@@ -1,0 +1,57 @@
+name: Bug or installation problem
+description: Report an unexpected game behavior, build failure, or setup difficulty.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the problem before preparing a code PR. Do not attach
+        original game assets or copyrighted source. Remove personal information
+        from diagnostics. If a save is needed, discuss how to provide it first.
+  - type: input
+    id: version
+    attributes:
+      label: Game version or commit
+      description: Include the release tag or commit, or say if it is unknown.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS version, architecture, and Go version
+      description: Go version is especially useful for installation/build problems.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps and game conditions
+      description: Include the command or sequence, location/state when relevant, and how often it happens.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Diagnostics or public references
+      description: Include relevant error text, public documentation, or a behavior ID if known.

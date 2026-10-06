@@ -1,0 +1,10 @@
+.DS_Store
+.idea/
+.env
+bin/
+OLD/
+*.prof
+PROFILING/
+__debug*
+go.work
+go.work.sum

@@ -1,0 +1,22 @@
+name: Suggestion or documentation correction
+description: Explain an improvement, confusing behavior, or a documentation discrepancy.
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Problem or context
+      description: What are you trying to do or understand?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement or correction
+      description: Include observations or public references supporting a behavioral correction. Please open the issue before preparing a PR.
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Related public issue, document, or behavior ID
+      description: Optional; you do not need an ID to report something useful.
