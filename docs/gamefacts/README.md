@@ -23,6 +23,9 @@ release or cross-version gameplay acceptance is implied.
 | [Time costs](TIME_COSTS.md) | Calendar modifiers, context ownership, actor cadence, slow steps, and special loops. |
 | [Provisions](PROVISIONS_CONSUMPTION.md) | Poison/meal ordering, observed hours, fuel, and key/gem commitment. |
 | [Camping and rest](CAMPING_MECHANICS.md) | Guard/ambush ordering, duration, rewards, beds, and paid inn rest. |
+| [Astronomy](ASTRONOMY.md) | Sky inheritance, instrument gates, planet tracks, stars/comets, and flexible navigation. |
+| [Moonstones](MOONSTONE_LOCATIONS.md) | Placements, phases, gate stages/routes, and earned destination knowledge. |
+| [Lighting](LIGHTING.md) | Original sight/illumination and Redux tint, daylight, and opening contracts. |
 | [Conventions](CONVENTIONS.md) | Rule IDs, statuses, pseudocode, and groups. |
 
 Report suspected errors through the [issue-first contribution process](../../CONTRIBUTING.md).
