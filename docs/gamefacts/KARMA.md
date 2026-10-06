@@ -215,8 +215,9 @@ signed change through the party mutation boundary.
 **Redux:** Unverified
 
 The stocks/manacles Jimmy path requires a key and appropriate target before the
-attempt. Failure when dexterity <= a uniformly selected integer in 0..29
-inclusive consumes one key and awards no karma. Success does not consume a key.
+attempt. Failure when dexterity <= a draw requested with bounds 0..29
+consumes one key and awards no karma. The bounds alone do not establish the
+original generator's uniformity. Success does not consume a key.
 
 Where the target resolves to an eligible NPC, clear its dialogue association
 before testing its persistent absence/death marker. If that marker is not set,

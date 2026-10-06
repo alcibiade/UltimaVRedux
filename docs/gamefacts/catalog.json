@@ -21,6 +21,14 @@
     "docs/gamefacts/SHIP_MECHANICS.md",
     "docs/gamefacts/VEHICLES.md",
     "docs/gamefacts/VIEW_SYSTEM.md",
-    "docs/gamefacts/WELLS_FOUNTAINS.md"
+    "docs/gamefacts/WELLS_FOUNTAINS.md",
+    "docs/gamefacts/CHARACTER_CREATION.md",
+    "docs/gamefacts/CHARACTER_PROGRESSION.md",
+    "docs/gamefacts/DEATH_RESURRECTION.md",
+    "docs/gamefacts/QUEST_ITEMS_LOCATIONS.md",
+    "docs/gamefacts/SHADOWLORDS.md",
+    "docs/gamefacts/SHRINE_SYSTEM.md",
+    "docs/gamefacts/STARTUP_MENU_AND_INTRODUCTIONS.md",
+    "docs/gamefacts/WORDS_OF_POWER.md"
   ]
 }

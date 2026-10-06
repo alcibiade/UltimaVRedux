@@ -91,7 +91,7 @@ relationship to effective protection is a separate equipment question.
 | 0209 | 1 | Grapples |
 | 020A | 1 | Carpets |
 | 020B | 1 | Skull Keys |
-| 020C | 1 | Skull Key collection day |
+| 020C | 1 | Skull Key search/reveal day |
 | 020D, 020E, 020F | 1 each | Amulet, Crown, Sceptre possession |
 | 0210 | 4 | Shard allocation; only three named counters established |
 | 0214, 0215, 0216 | 1 each | Spyglass, plans, Sextant |
@@ -111,6 +111,8 @@ shard byte's meaning remains unresolved; preserve it rather than inventing a
 fourth named shard or assuming it can never be addressed.
 
 This is the canonical inventory offset table; other topics should refer here.
+The day marker is committed by successful reveal, not later pickup; see
+[Skull Key commitment](PROVISIONS_CONSUMPTION.md#prov-0006).
 
 **Implementation:** `internal/legacy_save/decode.go`, `internal/legacy_save/types.go`
 **Tests:** `internal/legacy_save/decode_test.go`

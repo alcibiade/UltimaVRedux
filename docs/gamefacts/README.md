@@ -32,6 +32,14 @@ release or cross-version gameplay acceptance is implied.
 | [Vehicles](VEHICLES.md) | Terrain/occupancy, boarding, Exit, and carpet ownership. |
 | [View and atlas](VIEW_SYSTEM.md) | Paid observation, map geometry, crystal risk, and earned atlas authority. |
 | [Wells and fountains](WELLS_FOUNTAINS.md) | Wish commitment/matching/placement and context-specific drinking effects. |
+| [Creation](CHARACTER_CREATION.md) | Template/input/save construction, virtue tournament, generator state, and opening limits. |
+| [Progression](CHARACTER_PROGRESSION.md) | XP-derived levels, kill attribution, Wanderer restoration, and stat awards. |
+| [Recovery](DEATH_RESURRECTION.md) | Individual revival, caller commitment, and full-party destination/time restoration. |
+| [Quest items](QUEST_ITEMS_LOCATIONS.md) | Storage, evidenced placements, acquisition gaps, and artifact competition. |
+| [Shadowlords](SHADOWLORDS.md) | Daily assignment, town influence, theft, summons, and destruction rituals. |
+| [Shrines](SHRINE_SYSTEM.md) | Meditation/restoration input, quest state, Codex selection, and guardian timing. |
+| [Startup and introductions](STARTUP_MENU_AND_INTRODUCTIONS.md) | Menu, curated credits, illustrated frames, and attract interpreter. |
+| [Words of Power](WORDS_OF_POWER.md) | Canonical words, matching/dispatch, earned clues, and Codex acknowledgement. |
 | [Conventions](CONVENTIONS.md) | Rule IDs, statuses, pseudocode, and groups. |
 
 Report suspected errors through the [issue-first contribution process](../../CONTRIBUTING.md).
