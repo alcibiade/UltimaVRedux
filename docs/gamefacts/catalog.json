@@ -1,6 +1,14 @@
 {
   "schema_version": 1,
   "documents": [
-    "docs/gamefacts/KARMA.md"
+    "docs/gamefacts/KARMA.md",
+    "docs/gamefacts/SAVED_GAM_STRUCTURE.md",
+    "docs/gamefacts/BRIT_CBT_FORMAT.md",
+    "docs/gamefacts/EQUIPMENT_ORIGINAL_DATA.md",
+    "docs/gamefacts/EQUIPMENT_STATS.md",
+    "docs/gamefacts/INVENTORY_SYSTEM.md",
+    "docs/gamefacts/GRAPHICS_FORMATS.md",
+    "docs/gamefacts/SIGNS_AND_FONTS.md",
+    "docs/gamefacts/TILES.md"
   ]
 }
