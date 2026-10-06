@@ -9,6 +9,9 @@
     "docs/gamefacts/INVENTORY_SYSTEM.md",
     "docs/gamefacts/GRAPHICS_FORMATS.md",
     "docs/gamefacts/SIGNS_AND_FONTS.md",
-    "docs/gamefacts/TILES.md"
+    "docs/gamefacts/TILES.md",
+    "docs/gamefacts/TIME_COSTS.md",
+    "docs/gamefacts/PROVISIONS_CONSUMPTION.md",
+    "docs/gamefacts/CAMPING_MECHANICS.md"
   ]
 }
