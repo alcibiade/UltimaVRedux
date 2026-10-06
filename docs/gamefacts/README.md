@@ -26,6 +26,12 @@ release or cross-version gameplay acceptance is implied.
 | [Astronomy](ASTRONOMY.md) | Sky inheritance, instrument gates, planet tracks, stars/comets, and flexible navigation. |
 | [Moonstones](MOONSTONE_LOCATIONS.md) | Placements, phases, gate stages/routes, and earned destination knowledge. |
 | [Lighting](LIGHTING.md) | Original sight/illumination and Redux tint, daylight, and opening contracts. |
+| [Dungeons](DUNGEON_SYSTEM.md) | Packed cells, exploration, encounters, room records, triggers, and finale boundaries. |
+| [Hazards](ENVIRONMENTAL_HAZARDS.md) | Ordered party damage, transformed d30, terrain gates, falls, and tolls. |
+| [Frigates](SHIP_MECHANICS.md) | Sails, waits, hull damage, repair, cannon fire, and wind predicates. |
+| [Vehicles](VEHICLES.md) | Terrain/occupancy, boarding, Exit, and carpet ownership. |
+| [View and atlas](VIEW_SYSTEM.md) | Paid observation, map geometry, crystal risk, and earned atlas authority. |
+| [Wells and fountains](WELLS_FOUNTAINS.md) | Wish commitment/matching/placement and context-specific drinking effects. |
 | [Conventions](CONVENTIONS.md) | Rule IDs, statuses, pseudocode, and groups. |
 
 Report suspected errors through the [issue-first contribution process](../../CONTRIBUTING.md).

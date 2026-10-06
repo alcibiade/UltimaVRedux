@@ -15,6 +15,12 @@
     "docs/gamefacts/CAMPING_MECHANICS.md",
     "docs/gamefacts/ASTRONOMY.md",
     "docs/gamefacts/MOONSTONE_LOCATIONS.md",
-    "docs/gamefacts/LIGHTING.md"
+    "docs/gamefacts/LIGHTING.md",
+    "docs/gamefacts/DUNGEON_SYSTEM.md",
+    "docs/gamefacts/ENVIRONMENTAL_HAZARDS.md",
+    "docs/gamefacts/SHIP_MECHANICS.md",
+    "docs/gamefacts/VEHICLES.md",
+    "docs/gamefacts/VIEW_SYSTEM.md",
+    "docs/gamefacts/WELLS_FOUNTAINS.md"
   ]
 }
