@@ -40,6 +40,16 @@ release or cross-version gameplay acceptance is implied.
 | [Shrines](SHRINE_SYSTEM.md) | Meditation/restoration input, quest state, Codex selection, and guardian timing. |
 | [Startup and introductions](STARTUP_MENU_AND_INTRODUCTIONS.md) | Menu, curated credits, illustrated frames, and attract interpreter. |
 | [Words of Power](WORDS_OF_POWER.md) | Canonical words, matching/dispatch, earned clues, and Codex acknowledgement. |
+| [NPC schedules](NPC_SCHEDULES.md) | Schedule bytes, settled actions, planning, contact, and authored-actor limits. |
+| [Conversations](TALK_SYSTEM_STRUCTURE.md) | TLK structure, interpreter controls, matching, and semantic runtime boundaries. |
+| [Merchants](MERCHANT_SERVICES.md) | Catalogs, pricing, transactions, service families, and batch cadence. |
+| [Commands](COMMANDS_REFERENCE.md) | Context dispatch, completion, doors, chests, and input contracts. |
+| [Crime and prison](CRIME_PRISON.md) | Tribute, guards, capture, murder, persistence, and prisoner rescue. |
+| [Combat](COMBAT.md) | Scheduler, attack resolution, statuses, AI, loot, and encounter completion. |
+| [Enemies](ENEMIES.md) | Complete creature catalog, abilities, admission, generation, and world continuation. |
+| [Spells](MAGIC_SPELLS.md) | Prepared casting, all 48 effects/contexts, targeting, and commitment. |
+| [Potions and scrolls](POTIONS_SCROLLS.md) | Item-specific consumption, substitution, effects, and duration ownership. |
+| [Mixing](REAGENT_MIXING.md) | Reagent encodings, all recipes, commitment, failure traps, and learned formulas. |
 | [Conventions](CONVENTIONS.md) | Rule IDs, statuses, pseudocode, and groups. |
 
 Report suspected errors through the [issue-first contribution process](../../CONTRIBUTING.md).

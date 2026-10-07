@@ -29,6 +29,16 @@
     "docs/gamefacts/SHADOWLORDS.md",
     "docs/gamefacts/SHRINE_SYSTEM.md",
     "docs/gamefacts/STARTUP_MENU_AND_INTRODUCTIONS.md",
-    "docs/gamefacts/WORDS_OF_POWER.md"
+    "docs/gamefacts/WORDS_OF_POWER.md",
+    "docs/gamefacts/NPC_SCHEDULES.md",
+    "docs/gamefacts/TALK_SYSTEM_STRUCTURE.md",
+    "docs/gamefacts/MERCHANT_SERVICES.md",
+    "docs/gamefacts/COMMANDS_REFERENCE.md",
+    "docs/gamefacts/CRIME_PRISON.md",
+    "docs/gamefacts/COMBAT.md",
+    "docs/gamefacts/ENEMIES.md",
+    "docs/gamefacts/MAGIC_SPELLS.md",
+    "docs/gamefacts/POTIONS_SCROLLS.md",
+    "docs/gamefacts/REAGENT_MIXING.md"
   ]
 }
