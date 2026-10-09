@@ -31,14 +31,18 @@ func TestDiagnosticConfigPreservesPolicy(t *testing.T) {
 	if _, exists := issues["new-from-rev"]; exists {
 		t.Fatal("diagnostic copy retains new-from-rev")
 	}
-	issues["new-from-rev"] = "origin/main"
+	issues["new-from-rev"] = original["issues"].(map[string]any)["new-from-rev"]
 	if !reflect.DeepEqual(original, diagnostic) {
 		t.Fatal("diagnostic copy changed policy beyond removing new-from-rev")
 	}
 }
 
 func TestDiagnosticConfigRejectsUnexpectedPolicy(t *testing.T) {
-	for _, source := range []string{"[", "{}", "issues: false", "issues: {new-from-rev: HEAD}"} {
+	for _, source := range []string{
+		"[", "{}", "issues: false", "issues: {new-from-rev: HEAD}",
+		"issues: {new-from-rev: origin/main}", "issues: {new-from-rev: f31ba69}",
+		"issues: {new-from-rev: g31ba69759594face92838f0ce33855f46aca4e3}",
+	} {
 		t.Run(source, func(t *testing.T) {
 			if _, err := diagnosticConfig([]byte(source)); err == nil {
 				t.Fatal("accepted invalid or unexpected policy")

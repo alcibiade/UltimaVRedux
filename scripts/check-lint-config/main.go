@@ -24,6 +24,7 @@ const (
 	checkTimeout  = 10 * time.Minute
 	fixtureMode   = 0o600
 	settingCount  = 2
+	commitLength  = 40
 )
 
 //go:embed testdata/fixture.go.txt
@@ -97,8 +98,12 @@ func diagnosticConfig(source []byte) ([]byte, error) {
 		return nil, fmt.Errorf("parsing repository config: %w", err)
 	}
 	issues, ok := config["issues"].(map[string]any)
-	if !ok || issues["new-from-rev"] != "origin/main" {
-		return nil, fmt.Errorf("%w: expected issues.new-from-rev: origin/main", errRegression)
+	if !ok {
+		return nil, fmt.Errorf("%w: expected issues mapping", errRegression)
+	}
+	revision, ok := issues["new-from-rev"].(string)
+	if !ok || len(revision) != commitLength || strings.Trim(revision, "0123456789abcdef") != "" {
+		return nil, fmt.Errorf("%w: issues.new-from-rev must pin a full immutable commit", errRegression)
 	}
 	// Only the diagnostic copy is unfiltered; all linter settings and exclusions stay intact.
 	delete(issues, "new-from-rev")

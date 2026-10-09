@@ -312,7 +312,7 @@ dependency installation). `make validate` does not install frontend dependencies
 or browsers.
 
 `lint-config-check` verifies the actual configuration, then runs a diagnostic
-copy without only `issues.new-from-rev: origin/main`. It requires two errcheck
+copy with only the immutable `issues.new-from-rev` cutoff removed. It requires two errcheck
 findings (unchecked type assertion and blank-assigned error) and clean checked
 controls. Normal lint retains that revision filter; it is not an unfiltered
 whole-codebase count. `core-dependencies-check` uses `go list -deps -test`

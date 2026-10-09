@@ -51,6 +51,9 @@ into unrelated legacy cleanup. All 94 configured linters, thresholds, and existi
 exclusions remain enabled as defined in `.golangci.yml`. The new-code cutoff is
 the sanitized application-source checkpoint, not the documentation-only `main`.
 Migration-specific changed-line findings were checked before that checkpoint.
+The fixed baseline is `f31ba69759594face92838f0ce33855f46aca4e3`; retain this
+commit in checkout history. The config verifier rejects moving refs and abbreviated
+hashes. Advancing the cutoff requires an explicit reviewed policy change.
 
 `make lint` requires zero findings on new code relative to the recorded source
 baseline. `make lint-all` disables revision filtering and output caps so inherited

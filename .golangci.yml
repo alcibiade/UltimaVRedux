@@ -178,4 +178,5 @@ linters:
 issues:
   max-issues-per-linter: 100
   max-same-issues: 10
-  new-from-rev: origin/main  # Only report new issues
+  # Fixed standalone source checkpoint; retain inherited debt without moving the cutoff.
+  new-from-rev: f31ba69759594face92838f0ce33855f46aca4e3
