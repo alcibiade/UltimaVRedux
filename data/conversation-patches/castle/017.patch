@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: castle/017.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 421a685fc52431c428e97530531fbc28a16239ba178620708f52e6ae985a274d
+--- a/castle/017.yaml
++++ b/castle/017.yaml
+@@ -103,4 +103,5 @@
+               - text: The Word thou seeketh is
+               - runic: ' IGNAVUS'
+               - text: '!'
++          - discover_knowledge: dungeon.hythloth.word_of_power
+     default: Then I shall wait.

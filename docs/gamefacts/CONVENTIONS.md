@@ -6,7 +6,7 @@ A rule is declared by a heading such as `### KARMA-0011`, followed by a descript
 title. Its stable anchor is `#karma-0011`; title or file changes do not repurpose
 the identifier. IDs are unique and never recycled.
 
-Each pilot section has `Kind` (`rule` or `group`) and `Uses` (comma-separated IDs
+Each reference section has `Kind` (`rule` or `group`) and `Uses` (comma-separated IDs
 or `none`). A rule additionally states `Original` and `Redux` assessments. Other
 prose explains scope, conditions, algorithms, examples, and limitations.
 
@@ -40,7 +40,7 @@ when intermediate state matters.
 ## Groups and shared rules
 
 A group supplies navigation and a brief purpose, not another copy of its members.
-The pilot allows one group layer; members must be rules. `Uses` dependencies are
+The catalog allows one group layer; members must be rules. `Uses` dependencies are
 acyclic. Prefer specific leaf IDs in implementation comments and issue reports.
 Ordinary related-topic links need not imply dependency expansion.
 

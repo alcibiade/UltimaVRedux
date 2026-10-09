@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/034.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 897e6ddf5a358d67bbd5a7e77ed22e3123d300c446e6722a06220a5c7f5de224
+--- a/towne/034.yaml
++++ b/towne/034.yaml
+@@ -82,6 +82,7 @@
+       - say:
+           - runic: SUMM
+           - text: ' is the chant that thou dost seek!'
++      - discover_knowledge: shrine.honor.mantra
+       - narrate:
+           - line_break
+           - line_break

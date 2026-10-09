@@ -1,0 +1,29 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/019.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: b447878c22edf9c469711a59c26c4c863a39ac0f8cd965ab39f52ff0a5ab9818
+--- a/keep/019.yaml
++++ b/keep/019.yaml
+@@ -8,7 +8,9 @@
+ name: Barbra
+ description: a serene lady.
+ greeting: []
+-job: I am keeper of the flame of Love.
++job:
++  - say: I am keeper of the flame of Love.
++  - discover_knowledge: journal.flame.love
+ farewell: Tread carefully, Avatar. The fate of our world depends on thee.
+ topics:
+   - keywords:
+@@ -26,7 +28,9 @@
+       - ask: question_01
+   - keywords:
+       - keep
+-    response: I tend and protect the sacred flame of Love, to show the world that all hope is not yet lost!
++    response:
++      - say: I tend and protect the sacred flame of Love, to show the world that all hope is not yet lost!
++      - discover_knowledge: journal.flame.love
+   - keywords:
+       - hope
+       - lost

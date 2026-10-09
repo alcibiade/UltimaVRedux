@@ -1,0 +1,50 @@
+# format: ultima5redux.conversation-patch/v1
+# target: dwelling/015.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 28d0d3b967dedb5beceb08ed7388fb7dc2db3de39191d6adfe4ecafb7a2f4293
+--- a/dwelling/015.yaml
++++ b/dwelling/015.yaml
+@@ -1,4 +1,5 @@
+ schema: ultima5redux.conversation/v1
++# REDUX DEVIATION: DWELLING.TLK 15 has a missing affirmative key. Repair it and link the existing coin story after recognition rather than requiring keyword guesses.
+ protocol: ultima5
+ id: original.dwelling.015
+ origin:
+@@ -62,5 +63,35 @@
+     default: I see.
+   question_03:
+     prompt: Art thou the one true Avatar?
+-    answers: []
++    answers:
++      - keywords:
++          - y
++        response:
++          - say: "'Tis indeed an honor!"
++          - narrate:
++              - line_break
++              - line_break
++          - branch:
++              condition: npc_knows_party_name
++              then: []
++              otherwise:
++                - ask_name
++          - branch:
++              condition: npc_knows_party_name
++              then:
++                - narrate:
++                    - line_break
++                    - line_break
++                - say: I minted a magical coin!
++                - narrate:
++                    - line_break
++                    - line_break
++                - wait_for_key
++                - say: It was in the symbol of the Codex!
++                - narrate:
++                    - line_break
++                    - line_break
++                - wait_for_key
++                - say: It was commisioned secretly by persons unknown even to me. It was to be used to call back the one true Avatar!
++          - return_to_topics
+     default: Oh.

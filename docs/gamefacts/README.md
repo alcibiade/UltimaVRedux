@@ -4,10 +4,10 @@ Technical descriptions of original game behavior, compatibility formats, and
 Redux handling. Rules use stable identifiers so reports and implementation can
 refer to a specific condition rather than an entire subsystem.
 
-This is a documentation conversion candidate. The application has not yet been staged here;
-implementation/test paths are logical locators for the reviewed development
-implementation, not links to files already available in this checkout. No public
-release or cross-version gameplay acceptance is implied.
+Implementation and test paths resolve within this application source tree.
+Original-behavior assessments remain scoped to their stated evidence and limits;
+an available implementation is not proof of cross-version gameplay equivalence.
+Release availability is described in the repository's installation guidance.
 
 | Topic | Scope |
 | --- | --- |

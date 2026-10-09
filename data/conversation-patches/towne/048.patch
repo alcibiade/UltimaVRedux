@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/048.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 66b685f88cbeb64f9dce8af063fcd73e0f9d1ac64e073bb501d3aa9383b099fc
+--- a/towne/048.yaml
++++ b/towne/048.yaml
+@@ -94,4 +94,5 @@
+           - say:
+               - runic: LUM
+               - text: ' is the chant which thou dost seek!'
++          - discover_knowledge: shrine.humility.mantra
+     default: Thou must be doing well!

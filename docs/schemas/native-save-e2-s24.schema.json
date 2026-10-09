@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-e2-s24.schema.json",
+  "title": "Native Ultima V Redux Save Envelope 2 / Snapshot 24",
+  "description": "Load frozen sibling s16-s23 schemas locally and assert the version-aware ultima5-world-journal format. V24 adds three independent optional basement opening dates, chest lifetime identity, checkpointed personal notes, vessel identity allocation, and final Codex acknowledgement. The asserted format enforces identity/position uniqueness, calendar validity, fleet watermark and cross-representation consistency, and Codex prerequisites. Fleet positions remain solely in existing vehicle authorities.",
+  "type": "object", "additionalProperties": false,
+  "required": ["format", "envelopeVersion", "metadata", "snapshot"],
+  "properties": {
+    "format": {"const": "ultima5redux-native-snapshot"}, "envelopeVersion": {"const": 2},
+    "metadata": {"$ref": "native-save-e2-s23.schema.json#/properties/metadata"},
+    "snapshot": {"$ref": "#/$defs/snapshot"}
+  },
+  "$defs": {
+    "snapshot": {
+      "type": "object", "additionalProperties": false, "format": "ultima5-world-journal",
+      "required": ["version", "party", "inventory", "world", "progression", "effects", "wind", "random", "continuation", "redux", "presentation", "lastConversation", "dungeonJournal", "moonstoneJournal", "atlasLandmarks", "dungeon", "partyVehicle", "mapUnits", "itemStacks", "mapMutations", "openDoor", "basementChestHistory", "atlasNotes", "atlasFleet", "codexRevelationComplete"],
+      "properties": {
+        "version": {"const": 24},
+        "party": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/party"},
+        "inventory": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/inventory"},
+        "world": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/world"},
+        "progression": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/progression"},
+        "effects": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/effects"},
+        "wind": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/wind"},
+        "random": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/random"},
+        "continuation": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/continuation"},
+        "redux": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/redux"},
+        "presentation": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/presentation"},
+        "lastConversation": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/lastConversation"},
+        "dungeonJournal": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/dungeonJournal"},
+        "moonstoneJournal": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/moonstoneJournal"},
+        "atlasLandmarks": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/atlasLandmarks"},
+        "dungeon": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/dungeon"},
+        "partyVehicle": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/vehicle", "properties": {"pendingDelivery": {"const": false}}}]},
+        "mapUnits": {"type": ["array", "null"], "items": {"$ref": "#/$defs/mapUnit"}},
+        "itemStacks": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/itemStacks"},
+        "mapMutations": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/mapMutations"},
+        "openDoor": {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/properties/openDoor"},
+        "basementChestHistory": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/basementChestDailyRecord"}},
+        "atlasNotes": {"$ref": "#/$defs/atlasNotes"},
+        "atlasFleet": {"type": "object", "additionalProperties": false, "required": ["lastId"], "properties": {"lastId": {"$ref": "#/$defs/identity"}}},
+        "codexRevelationComplete": {"type": "boolean"}
+      },
+      "allOf": [
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/0"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/1"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/2"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/3"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/4"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/5"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/6"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/7"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/8"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/9"},
+        {"$ref": "native-save-e2-s23.schema.json#/$defs/snapshot/allOf/10"}
+      ]
+    },
+    "identity": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "basementChestDailyRecord": {
+      "type": "object", "additionalProperties": false, "required": ["lastOpened"],
+      "properties": {"lastOpened": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/date"}]}}
+    },
+    "date": {
+      "type": "object", "additionalProperties": false, "required": ["year", "month", "day"],
+      "properties": {"year": {"type": "integer", "minimum": 1, "maximum": 65535}, "month": {"type": "integer", "minimum": 1, "maximum": 13}, "day": {"type": "integer", "minimum": 1, "maximum": 28}}
+    },
+    "atlasNotes": {
+      "type": "object", "additionalProperties": false, "required": ["lastId", "records"],
+      "properties": {"lastId": {"$ref": "#/$defs/identity"}, "records": {"type": ["array", "null"], "maxItems": 256, "items": {"$ref": "#/$defs/note"}}}
+    },
+    "note": {
+      "type": "object", "additionalProperties": false, "required": ["id", "position", "label", "description", "recordedAt"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identity", "minimum": 1},
+        "position": {"$ref": "native-save-e2-s20.schema.json#/$defs/site", "properties": {"map": {"const": 0}, "floor": {"const": 0}}},
+        "label": {"type": "string", "minLength": 1, "maxLength": 32, "pattern": "^[!-~](?:[ -~]*[!-~])?$"},
+        "description": {"type": "string", "maxLength": 500, "pattern": "^[\\x20-\\x7e\\n]*$"},
+        "recordedAt": {"$ref": "native-save-e2-s20.schema.json#/$defs/time", "properties": {"year": {"minimum": 1}, "month": {"minimum": 1}, "day": {"minimum": 1}}}
+      }
+    },
+    "vehicle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "currentDirection", "previousDirection", "skiffs", "ownedByNpc", "hull", "sailState", "hasHmsCape", "pendingDelivery", "vesselId"],
+      "properties": {
+        "type": {"type": "integer", "minimum": 1, "maximum": 4}, "currentDirection": {"type": "integer", "minimum": 0, "maximum": 4}, "previousDirection": {"type": "integer", "minimum": 0, "maximum": 4},
+        "skiffs": {"type": "integer", "minimum": 0, "maximum": 12}, "ownedByNpc": {"type": "boolean"}, "hull": {"type": "integer", "minimum": 0, "maximum": 99},
+        "sailState": {"type": "integer", "minimum": 0, "maximum": 1}, "hasHmsCape": {"type": "boolean"}, "pendingDelivery": {"type": "boolean"}, "vesselId": {"$ref": "#/$defs/identity"}
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": 4}}}, "else": {"properties": {"skiffs": {"const": 0}}}},
+        {"if": {"properties": {"vesselId": {"minimum": 1}}}, "then": {"properties": {"type": {"enum": [3, 4]}, "pendingDelivery": {"const": false}}}}
+      ]
+    },
+    "mapUnit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["world", "controllerOrder", "kind", "referenceId", "npcNum", "position", "visible", "skipNextTurn", "wantsToAutoTalk", "overriddenAi", "aiOverrideProvenance", "currentPath", "vehicle", "enemyVariant", "enemyCurrentHp", "enemyFacing", "shadowlord", "surfaceChestAssessment", "surfaceChestAuthored", "surfaceChestTransient"],
+      "properties": {
+        "world": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled110"}, "controllerOrder": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled114"}, "kind": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled118"},
+        "referenceId": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled114"}, "npcNum": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled126"}, "position": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled036"},
+        "visible": {"type": "boolean"}, "skipNextTurn": {"type": "boolean"}, "wantsToAutoTalk": {"type": "boolean"},
+        "overriddenAi": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled143"}, "aiOverrideProvenance": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled144"},
+        "arrivedScheduleSlot": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled147"}, "consumedTalk3ScheduleSlot": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled147"}, "currentPath": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled154"},
+        "vehicle": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/vehicle"}]}, "enemyVariant": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled160"},
+        "enemyCurrentHp": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled012"}, "enemyFacing": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled168"}, "shadowlord": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled172"},
+        "surfaceChestNumber": {"type": "integer", "minimum": 0, "maximum": 255}, "surfaceChestAssessment": {"$ref": "native-save-e2-s20.schema.json#/$defs/assessment"},
+        "surfaceChestAuthored": {"type": "boolean"}, "surfaceChestTransient": {"type": "boolean"}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "vehicle"}}}, "then": {"properties": {"vehicle": {"$ref": "#/$defs/vehicle"}}}, "else": {"properties": {"vehicle": {"properties": {"vesselId": {"const": 0}}}}}},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled178"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled180"},
+        {"if": {"required": ["surfaceChestNumber"]}, "then": {"properties": {"kind": {"enum": ["npc", "chest"]}}}, "else": {"properties": {"surfaceChestAssessment": {"const": 0}}}},
+        {"if": {"properties": {"kind": {"const": "chest"}}}, "then": {"required": ["surfaceChestNumber"]}},
+        {"if": {"properties": {"surfaceChestAuthored": {"const": true}}}, "then": {"properties": {"kind": {"const": "chest"}, "surfaceChestTransient": {"const": false}, "position": {"properties": {"location": {"minimum": 1, "maximum": 32}}}}}},
+        {"if": {"properties": {"surfaceChestTransient": {"const": true}}}, "then": {"properties": {"kind": {"const": "chest"}, "surfaceChestAuthored": {"const": false}}}}
+      ]
+    }
+  }
+}

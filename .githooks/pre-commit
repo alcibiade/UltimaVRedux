@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Git pre-commit hook to run validation checks
+# Install with: git config core.hooksPath .githooks
+
+# Keep every normal local commit formatted and at zero lint findings before
+# running the project-specific regression checks.
+set -e
+make format-check
+make lint
+exec ./scripts/pre-commit-checks.sh

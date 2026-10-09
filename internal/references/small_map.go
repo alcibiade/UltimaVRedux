@@ -1,0 +1,129 @@
+package references
+
+import (
+	"fmt"
+
+	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
+)
+
+// Location floor counts for different building types
+const (
+	SingleFloorBuilding = 1 // Huts and single-story buildings
+	TownFloorCount      = 2 // Most towns and keeps
+	SpecialFloorCount   = 3 // Special buildings (Lycaeum, EmpathAbbey, etc.)
+	CastleFloorCount    = 5 // Major castles
+	DungeonFloorCount   = 8 // Dungeons
+)
+
+const (
+	XSmallMapTiles         = Coordinate(32)
+	YSmallMapTiles         = Coordinate(32)
+	TotalSmallMapLocations = 32
+	smallMapSizeInBytes    = int(XSmallMapTiles * YSmallMapTiles)
+)
+
+type SmallMapMasterTypes int
+
+const (
+	Castle SmallMapMasterTypes = iota
+	Towne
+	Dwelling
+	Keep
+	Dungeon
+	CutOrIntroScene
+	None
+)
+
+func GetSmallMapFile(smallMap SmallMapMasterTypes) string {
+	switch smallMap {
+	case Castle:
+		return files.CASTLE_DAT
+	case Towne:
+		return files.TOWNE_DAT
+	case Dwelling:
+		return files.DWELLING_DAT
+	case Keep:
+		return files.KEEP_DAT
+	case Dungeon:
+		return files.DUNGEON_DAT
+	default:
+		panic("unhandled default case")
+	}
+}
+
+// GetMapMasterFromLocation returns the SmallMapMasterType for a given Location
+func GetMapMasterFromLocation(location Location) SmallMapMasterTypes {
+	switch location {
+	case LordBritishsCastle, PalaceOfBlackthorn, EastBritanny, WestBritanny, NorthBritanny, Paws, Cove, BuccaneersDen:
+		return Castle
+	case Moonglow, Britain, Jhelom, Yew, Minoc, Trinsic, SkaraBrae, NewMagincia:
+		return Towne
+	case Fogsbane, Stormcrow, Waveguide, Greyhaven, IolosHut, SuteksHut, SinVraalsHut, GrendelsHut:
+		return Dwelling
+	case Ararat, Bordermarch, Farthing, Windemere, Stonegate, Lycaeum, EmpathAbbey, SerpentsHold:
+		return Keep
+	case Deceit, Despise, Destard, Wrong, Covetous, Shame, Hythloth, Doom:
+		return Dungeon
+	case CombatRestingShrine:
+		return CutOrIntroScene
+	case BritanniaUnderworld:
+		return None
+	}
+
+	return None
+}
+
+func NewSmallMapReferences(gameConfig *config.UltimaVConfiguration, dataOvl *DataOvl) (*LocationReferences, error) {
+	smr, err := newSingleMapReferences(gameConfig, dataOvl)
+	if err != nil {
+		return nil, fmt.Errorf("initializing small map references: %w", err)
+	}
+
+	type locationSpec struct {
+		location    Location
+		hasBasement bool
+		floors      int
+	}
+	groups := [][]locationSpec{
+		{
+			{LordBritishsCastle, true, CastleFloorCount}, {PalaceOfBlackthorn, true, CastleFloorCount},
+			{WestBritanny, false, 1}, {NorthBritanny, false, 1}, {EastBritanny, false, 1},
+			{Paws, false, 1}, {Cove, false, 1}, {BuccaneersDen, false, 1},
+		},
+		{
+			{Moonglow, false, TownFloorCount}, {Britain, false, TownFloorCount},
+			{Jhelom, false, TownFloorCount}, {Yew, true, TownFloorCount},
+			{Minoc, false, TownFloorCount}, {Trinsic, false, TownFloorCount},
+			{SkaraBrae, false, TownFloorCount}, {NewMagincia, false, TownFloorCount},
+		},
+		{
+			{Fogsbane, false, 3}, {Stormcrow, false, 3}, {Greyhaven, false, 3}, {Waveguide, false, 3},
+			{IolosHut, false, 1}, {SuteksHut, false, 1}, {SinVraalsHut, false, 1}, {GrendelsHut, false, 1},
+		},
+		{
+			{Ararat, false, TownFloorCount}, {Bordermarch, false, TownFloorCount},
+			{Farthing, false, 1}, {Windemere, false, 1}, {Stonegate, false, 1},
+			{Lycaeum, false, 3}, {EmpathAbbey, false, 3}, {SerpentsHold, true, 3},
+		},
+		{
+			{Deceit, false, 8}, {Despise, false, 8}, {Destard, false, 8}, {Wrong, false, 8},
+			{Covetous, false, 8}, {Shame, false, 8}, {Hythloth, false, 8}, {Doom, false, 8},
+		},
+	}
+	for _, group := range groups {
+		nextOffset := 0
+		for _, spec := range group {
+			nextOffset, err = smr.addLocation(spec.location, spec.hasBasement, spec.floors, nextOffset)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// TODO: Add these when underworld and combat shrine systems are implemented
+	// addLocation(BritanniaUnderworld, true, 2, 0)
+	// addLocation(CombatRestingShrine, false, 1, 0)
+
+	return smr, nil
+}

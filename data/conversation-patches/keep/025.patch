@@ -1,0 +1,18 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/025.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 8782e7d68655443ce9ef17403c7565df754be935e2f1daeb12667389b9a769fd
+--- a/keep/025.yaml
++++ b/keep/025.yaml
+@@ -8,7 +8,9 @@
+ name: Gardner
+ description: a sincere man.
+ greeting: []
+-job: I am the keeper of the Flame of Courage.
++job:
++  - say: I am the keeper of the Flame of Courage.
++  - discover_knowledge: journal.flame.courage
+ farewell: Fare thee well!
+ topics:
+   - keywords:

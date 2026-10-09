@@ -3,8 +3,8 @@
 **Scope:** Original DOS-format party karma and the reviewed Redux development
 implementation. Normal karma is 0-99. Correspondence across every distributed DOS
 version, every authored dialogue record, and malformed saves is not established.
-Sections explicitly narrow uncertain or unusual cases. The executable has not
-yet been staged in this repository; code/test paths below are review locators.
+Sections explicitly narrow uncertain or unusual cases. Code and test paths below
+identify the implementation in this application source tree.
 
 Arithmetic in the pseudocode uses nonnegative valid inputs and a sufficiently
 wide intermediate unless stated otherwise. `increase(k, n)` and `decrease(k, n)`

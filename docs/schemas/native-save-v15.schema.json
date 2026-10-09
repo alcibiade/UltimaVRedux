@@ -1,0 +1,475 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-v15.schema.json",
+  "title": "Native Ultima V Redux Save Schema",
+  "description": "Strict native Ultima V Redux save envelope containing SaveSnapshot version 15, including independent town and outdoor actor cadence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "envelopeVersion", "metadata", "snapshot"],
+  "properties": {
+    "format": {"const": "ultima5redux-native-snapshot"},
+    "envelopeVersion": {"const": 1},
+    "metadata": {"$ref": "#/$defs/bundled000"},
+    "snapshot": {"$ref": "#/$defs/saveSnapshot"}
+  },
+  "$defs": {
+    "saveSnapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "party", "inventory", "world", "progression", "effects", "wind", "random", "continuation", "redux", "dungeon", "partyVehicle", "mapUnits", "itemStacks", "mapMutations"],
+      "properties": {
+        "version": {"const": 15},
+        "party": {"$ref": "#/$defs/bundled001"},
+        "inventory": {"$ref": "#/$defs/bundled026"},
+        "world": {"$ref": "#/$defs/bundled035"},
+        "progression": {"$ref": "#/$defs/bundled044"},
+        "effects": {"$ref": "#/$defs/bundled067"},
+        "wind": {"$ref": "#/$defs/bundled077"},
+        "random": {"$ref": "#/$defs/bundled086"},
+        "continuation": {"$ref": "#/$defs/continuation"},
+        "redux": {"$ref": "#/$defs/redux"},
+        "dungeon": {"$ref": "#/$defs/bundled094"},
+        "partyVehicle": {"$ref": "#/$defs/bundled103"},
+        "mapUnits": {"$ref": "#/$defs/bundled105"},
+        "itemStacks": {"$ref": "#/$defs/bundled188"},
+        "mapMutations": {"$ref": "#/$defs/bundled198"}
+      },
+      "allOf": [
+        {"$ref": "#/$defs/bundled215"}, {"$ref": "#/$defs/bundled223"},
+        {"$ref": "#/$defs/bundled231"}, {"$ref": "#/$defs/bundled239"},
+        {"$ref": "#/$defs/bundled247"}, {"$ref": "#/$defs/bundled255"},
+        {"$ref": "#/$defs/bundled263"}, {"$ref": "#/$defs/bundled271"},
+        {"$ref": "#/$defs/bundled279"}, {"$ref": "#/$defs/bundled286"},
+        {"$ref": "#/$defs/bundled293"}
+      ]
+    },
+    "redux": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dungeonDiscoveries", "playerKnowledge", "questJournal", "lordBritishPassageOpen"],
+      "properties": {
+        "dungeonDiscoveries": {"$ref": "#/$defs/bundled300"},
+        "playerKnowledge": {"type": "array", "items": {"$ref": "#/$defs/playerKnowledgeEntry"}},
+        "questJournal": {"$ref": "#/$defs/bundled303"},
+        "lordBritishPassageOpen": {"type": "boolean"}
+      }
+    },
+    "playerKnowledgeEntry": {"oneOf": [{"$ref": "#/$defs/bundled306"}, {"$ref": "#/$defs/shadowlordKnowledgeEntry"}, {"$ref": "#/$defs/shrineKnowledgeEntry"}]},
+    "shadowlordKnowledgeEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["category", "key", "source", "discoveredOn", "unread", "spellFormula"],
+      "properties": {
+        "category": {"const": "shadowlord"},
+        "key": {"enum": ["faulinei.name", "faulinei.association", "astaroth.name", "astaroth.association", "nosfentor.name", "nosfentor.association"]},
+        "source": {"$ref": "#/$defs/dialogueKnowledgeSource"},
+        "discoveredOn": {"$ref": "#/$defs/bundled305"},
+        "unread": {"const": false}, "spellFormula": {"type": "null"}
+      }
+    },
+    "shrineKnowledgeEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["category", "key", "source", "discoveredOn", "unread", "spellFormula"],
+      "properties": {
+        "category": {"const": "shrine"},
+        "key": {"enum": ["honesty.mantra", "compassion.mantra", "valour.mantra", "justice.mantra", "sacrifice.mantra", "honor.mantra", "spirituality.mantra", "humility.mantra"]},
+        "source": {"$ref": "#/$defs/dialogueKnowledgeSource"},
+        "discoveredOn": {"$ref": "#/$defs/bundled305"},
+        "unread": {"const": false}, "spellFormula": {"type": "null"}
+      }
+    },
+    "dialogueKnowledgeSource": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "displayName"],
+      "properties": {"kind": {"const": "dialogue"}, "displayName": {"type": "string", "pattern": "\\S"}}
+    },
+    "bundled000": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "description", "createdAt", "gameVersion"],
+      "properties": {
+        "name": {"type": "string", "pattern": "\\S"}, "description": {"type": "string"},
+        "createdAt": {"type": "string", "format": "date-time", "pattern": "Z$"}, "gameVersion": {"type": "string"}
+      }
+    },
+    "bundled001": {
+      "allOf": [
+        {"$ref": "#/$defs/bundled009"},
+        {"properties": {"roster": {"allOf": [
+          {"items": {"$ref": "#/$defs/bundled014"}},
+          {"anyOf": [
+            {"prefixItems": [{"$ref": "#/$defs/bundled015"}], "items": {"$ref": "#/$defs/bundled017"}},
+            {"prefixItems": [{"$ref": "#/$defs/bundled015"}, {"$ref": "#/$defs/bundled016"}], "items": {"$ref": "#/$defs/bundled017"}},
+            {"prefixItems": [{"$ref": "#/$defs/bundled015"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}], "items": {"$ref": "#/$defs/bundled017"}},
+            {"prefixItems": [{"$ref": "#/$defs/bundled015"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}], "items": {"$ref": "#/$defs/bundled017"}},
+            {"prefixItems": [{"$ref": "#/$defs/bundled015"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}], "items": {"$ref": "#/$defs/bundled017"}},
+            {"prefixItems": [{"$ref": "#/$defs/bundled015"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}, {"$ref": "#/$defs/bundled016"}], "items": {"$ref": "#/$defs/bundled017"}}
+          ]}
+        ]}}}
+      ]
+    },
+    "bundled009": {
+      "type": "object", "additionalProperties": false, "required": ["roster", "karma", "metNpcs", "deadNpcs"],
+      "properties": {
+        "roster": {"type": "array", "minItems": 16, "maxItems": 16, "items": {"$ref": "#/$defs/bundled010"}},
+        "karma": {"type": "integer", "minimum": 0, "maximum": 99},
+        "metNpcs": {"type": ["array", "null"], "uniqueItems": true, "items": {"$ref": "#/$defs/bundled013"}},
+        "deadNpcs": {"type": ["array", "null"], "uniqueItems": true, "items": {"$ref": "#/$defs/bundled013"}}
+      }
+    },
+    "bundled010": {
+      "type": "object", "additionalProperties": false,
+      "required": ["occupied", "name", "gender", "class", "status", "strength", "dexterity", "intelligence", "currentMp", "currentHp", "maximumHp", "experience", "level", "monthsAtInn", "armorClass", "helmet", "armor", "weapon", "shield", "ring", "amulet", "partyMap"],
+      "properties": {
+        "occupied": {"type": "boolean"}, "name": {"type": "string"}, "gender": {"type": "integer"},
+        "class": {"type": "integer"}, "status": {"type": "integer"}, "strength": {"type": "integer"},
+        "dexterity": {"type": "integer"}, "intelligence": {"type": "integer"}, "currentMp": {"type": "integer"},
+        "currentHp": {"type": "integer"}, "maximumHp": {"type": "integer"}, "experience": {"type": "integer"},
+        "level": {"type": "integer"}, "monthsAtInn": {"type": "integer"}, "armorClass": {"type": "integer"},
+        "helmet": {"type": "integer"}, "armor": {"type": "integer"}, "weapon": {"type": "integer"},
+        "shield": {"type": "integer"}, "ring": {"type": "integer"}, "amulet": {"type": "integer"}, "partyMap": {"type": "integer"}
+      },
+      "allOf": [{
+        "if": {"properties": {"occupied": {"const": false}}, "required": ["occupied"]},
+        "then": {"properties": {
+          "name": {"const": ""}, "gender": {"const": 0}, "class": {"const": 0}, "status": {"const": 0},
+          "strength": {"const": 0}, "dexterity": {"const": 0}, "intelligence": {"const": 0}, "currentMp": {"const": 0},
+          "currentHp": {"const": 0}, "maximumHp": {"const": 0}, "experience": {"const": 0}, "level": {"const": 0},
+          "monthsAtInn": {"const": 0}, "armorClass": {"const": 0}, "helmet": {"const": 0}, "armor": {"const": 0},
+          "weapon": {"const": 0}, "shield": {"const": 0}, "ring": {"const": 0}, "amulet": {"const": 0}, "partyMap": {"const": 0}
+        }},
+        "else": {"properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 9},
+          "strength": {"$ref": "#/$defs/bundled011"}, "dexterity": {"$ref": "#/$defs/bundled011"}, "intelligence": {"$ref": "#/$defs/bundled011"},
+          "currentMp": {"type": "integer", "minimum": 0, "maximum": 255},
+          "currentHp": {"$ref": "#/$defs/bundled012"}, "maximumHp": {"$ref": "#/$defs/bundled012"}, "experience": {"$ref": "#/$defs/bundled012"},
+          "level": {"type": "integer", "minimum": 1, "maximum": 255},
+          "monthsAtInn": {"$ref": "#/$defs/bundled011"}, "armorClass": {"$ref": "#/$defs/bundled011"}, "helmet": {"$ref": "#/$defs/bundled011"},
+          "armor": {"$ref": "#/$defs/bundled011"}, "weapon": {"$ref": "#/$defs/bundled011"}, "shield": {"$ref": "#/$defs/bundled011"},
+          "ring": {"$ref": "#/$defs/bundled011"}, "amulet": {"$ref": "#/$defs/bundled011"},
+          "partyMap": {"anyOf": [{"type": "integer", "minimum": 0, "maximum": 40}, {"const": 127}, {"const": 255}]}
+        }}
+      }]
+    },
+    "bundled011": {"type": "integer", "minimum": 0, "maximum": 255},
+    "bundled012": {"type": "integer", "minimum": 0, "maximum": 65535},
+    "bundled013": {
+      "type": "object", "additionalProperties": false, "required": ["location", "npc"],
+      "properties": {"location": {"type": "integer", "minimum": 0, "maximum": 31}, "npc": {"type": "integer", "minimum": 0, "maximum": 31}}
+    },
+    "bundled014": {"allOf": [
+      {"$ref": "#/$defs/bundled010"},
+      {"if": {"properties": {"occupied": {"const": true}}, "required": ["occupied"]}, "then": {"properties": {
+        "gender": {"enum": [11, 12]}, "class": {"enum": [65, 70, 66, 77]}, "status": {"enum": [71, 80, 67, 83, 68]},
+        "partyMap": {"anyOf": [{"type": "integer", "minimum": 0, "maximum": 40}, {"const": 127}, {"const": 255}]}
+      }}}
+    ]},
+    "bundled015": {"allOf": [{"$ref": "#/$defs/bundled016"}, {"properties": {"class": {"const": 65}}}]},
+    "bundled016": {"allOf": [{"$ref": "#/$defs/bundled014"}, {"properties": {"occupied": {"const": true}, "partyMap": {"const": 0}}}]},
+    "bundled017": {"allOf": [{"$ref": "#/$defs/bundled014"}, {"not": {"properties": {"occupied": {"const": true}, "partyMap": {"const": 0}}, "required": ["occupied", "partyMap"]}}]},
+    "bundled026": {
+      "type": "object", "additionalProperties": false,
+      "required": ["food", "gold", "gems", "torches", "keys", "skullKeys", "equipment", "spells", "scrolls", "potions", "reagents", "questItems", "moonstones"],
+      "properties": {
+        "food": {"type": "integer", "minimum": 0, "maximum": 9999}, "gold": {"type": "integer", "minimum": 0, "maximum": 9999},
+        "gems": {"type": "integer", "minimum": 0, "maximum": 99}, "torches": {"type": "integer", "minimum": 0, "maximum": 99},
+        "keys": {"type": "integer", "minimum": 0, "maximum": 99}, "skullKeys": {"type": "integer", "minimum": 0, "maximum": 99},
+        "equipment": {"type": "array", "minItems": 48, "maxItems": 48, "items": {"type": "integer", "minimum": 0, "maximum": 99}},
+        "spells": {"type": "array", "minItems": 48, "maxItems": 48, "items": {"type": "integer", "minimum": 0, "maximum": 99}},
+        "scrolls": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "integer", "minimum": 0, "maximum": 9999}},
+        "potions": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "integer", "minimum": 0, "maximum": 99}},
+        "reagents": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "integer", "minimum": 0, "maximum": 99}},
+        "questItems": {"type": "array", "minItems": 14, "maxItems": 14, "items": {"type": "integer", "minimum": 0, "maximum": 99}},
+        "moonstones": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "integer", "minimum": 0, "maximum": 99}}
+      }
+    },
+    "bundled035": {
+      "type": "object", "additionalProperties": false,
+      "required": ["position", "lastLargeMapPosition", "calendar", "elapsedMs", "lastProcessedHour", "lastCamped", "lastWandererMonth", "combatSequence", "isSailing"],
+      "properties": {
+        "position": {"$ref": "#/$defs/bundled036"}, "lastLargeMapPosition": {"$ref": "#/$defs/bundled036"}, "calendar": {"$ref": "#/$defs/bundled037"},
+        "elapsedMs": {"type": "integer", "minimum": 0, "maximum": 9223372036854776000},
+        "lastProcessedHour": {"type": "integer", "minimum": 0, "maximum": 23}, "lastCamped": {"type": "integer", "minimum": 0},
+        "lastWandererMonth": {"type": "integer", "minimum": 0, "maximum": 13}, "combatSequence": {"$ref": "#/$defs/bundled039"}, "isSailing": {"const": false}
+      }
+    },
+    "bundled036": {
+      "type": "object", "additionalProperties": false, "required": ["location", "x", "y", "floor"],
+      "properties": {"location": {"$ref": "#/$defs/bundled011"}, "x": {"$ref": "#/$defs/bundled011"}, "y": {"$ref": "#/$defs/bundled011"}, "floor": {"type": "integer", "minimum": -128, "maximum": 127}}
+    },
+    "bundled037": {
+      "type": "object", "additionalProperties": false, "required": ["year", "month", "day", "hour", "minute", "turns"],
+      "properties": {
+        "year": {"type": "integer", "minimum": 1, "maximum": 65535}, "month": {"type": "integer", "minimum": 1, "maximum": 13},
+        "day": {"type": "integer", "minimum": 1, "maximum": 28}, "hour": {"type": "integer", "minimum": 0, "maximum": 23},
+        "minute": {"type": "integer", "minimum": 0, "maximum": 59}, "turns": {"$ref": "#/$defs/bundled038"}
+      }
+    },
+    "bundled038": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "bundled039": {"type": "integer", "minimum": 0, "maximum": 18446744073709552000},
+    "bundled044": {
+      "type": "object", "additionalProperties": false,
+      "required": ["searchFound", "skullKeysFoundDay", "reagentCachesFoundDay", "moonstones", "shrines", "dungeons", "dungeonRooms", "shadowlords", "recipes", "hmsCapeActivated"],
+      "properties": {
+        "searchFound": {"$ref": "#/$defs/bundled045"}, "skullKeysFoundDay": {"$ref": "#/$defs/bundled011"}, "reagentCachesFoundDay": {"$ref": "#/$defs/bundled047"},
+        "moonstones": {"$ref": "#/$defs/bundled048"}, "shrines": {"$ref": "#/$defs/bundled050"}, "dungeons": {"$ref": "#/$defs/bundled052"},
+        "dungeonRooms": {"$ref": "#/$defs/bundled053"}, "shadowlords": {"$ref": "#/$defs/bundled054"}, "recipes": {"$ref": "#/$defs/bundled059"}, "hmsCapeActivated": {"$ref": "#/$defs/bundled057"}
+      }
+    },
+    "bundled045": {"type": "array", "minItems": 24, "maxItems": 24, "items": {"$ref": "#/$defs/bundled011"}},
+    "bundled047": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/bundled011"}},
+    "bundled048": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "#/$defs/bundled049"}},
+    "bundled049": {
+      "type": "object", "additionalProperties": false, "required": ["x", "y", "map", "level", "state", "isFound"],
+      "properties": {
+        "x": {"$ref": "#/$defs/bundled011"}, "y": {"$ref": "#/$defs/bundled011"}, "map": {"$ref": "#/$defs/bundled011"}, "level": {"$ref": "#/$defs/bundled011"},
+        "state": {"enum": [0, 1, 255]}, "isFound": {"type": "boolean"}
+      }
+    },
+    "bundled050": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "#/$defs/bundled051"}},
+    "bundled051": {
+      "type": "object", "additionalProperties": false, "required": ["active", "completed", "ruined"],
+      "properties": {"active": {"type": "boolean"}, "completed": {"type": "boolean"}, "ruined": {"type": "boolean"}}
+    },
+    "bundled052": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"type": "boolean"}},
+    "bundled053": {"type": "array", "minItems": 14, "maxItems": 14, "items": {"$ref": "#/$defs/bundled011"}},
+    "bundled054": {
+      "type": "object", "additionalProperties": false, "required": ["alive", "townAssignments", "lastCalled", "summoned", "automaticPresence"],
+      "properties": {
+        "alive": {"$ref": "#/$defs/bundled055"},
+        "townAssignments": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "integer", "minimum": 0, "maximum": 8}},
+        "lastCalled": {"$ref": "#/$defs/bundled056"}, "summoned": {"$ref": "#/$defs/bundled057"}, "automaticPresence": {"$ref": "#/$defs/bundled056"}
+      },
+      "allOf": [
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 1}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 2}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 3}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 4}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 5}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 6}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 7}, "minContains": 2}}}},
+        {"not": {"properties": {"townAssignments": {"contains": {"const": 8}, "minContains": 2}}}},
+        {"if": {"properties": {"alive": {"prefixItems": [{"const": false}]}}}, "then": {"properties": {"townAssignments": {"prefixItems": [{"const": 0}]}}}},
+        {"if": {"properties": {"alive": {"prefixItems": [{}, {"const": false}]}}}, "then": {"properties": {"townAssignments": {"prefixItems": [{}, {"const": 0}]}}}},
+        {"if": {"properties": {"alive": {"prefixItems": [{}, {}, {"const": false}]}}}, "then": {"properties": {"townAssignments": {"prefixItems": [{}, {}, {"const": 0}]}}}}
+      ]
+    },
+    "bundled055": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "boolean"}},
+    "bundled056": {"type": "integer", "minimum": -1, "maximum": 2},
+    "bundled057": {"type": "boolean"},
+    "bundled059": {"type": "array", "minItems": 48, "maxItems": 48, "items": {"$ref": "#/$defs/bundled060"}},
+    "bundled060": {
+      "type": "object", "additionalProperties": false, "required": ["known", "mask"],
+      "properties": {"known": {"type": "boolean"}, "mask": {"type": "integer", "minimum": 0, "maximum": 255}}
+    },
+    "bundled067": {
+      "type": "object", "additionalProperties": false,
+      "required": ["durationType", "durationTurns", "durationToggleOnly", "magicLightMinutesRemaining", "carriedTorchMinutesRemaining", "quicknessWorldActorSkip", "townMountedActorSkip", "townQuicknessActorSkip", "outdoorMountedActorSkip", "amulet", "crown", "badge", "drunk", "smashed"],
+      "properties": {
+        "durationType": {"enum": [0, 67, 78, 80, 81, 84]}, "durationTurns": {"type": "integer", "minimum": 0}, "durationToggleOnly": {"const": false},
+        "magicLightMinutesRemaining": {"type": "integer", "minimum": 0}, "carriedTorchMinutesRemaining": {"type": "integer", "minimum": 0},
+        "quicknessWorldActorSkip": {"type": "boolean"}, "townMountedActorSkip": {"type": "boolean"}, "townQuicknessActorSkip": {"type": "boolean"}, "outdoorMountedActorSkip": {"type": "boolean"},
+        "amulet": {"$ref": "#/$defs/bundled068"}, "crown": {"$ref": "#/$defs/bundled068"}, "badge": {"$ref": "#/$defs/bundled068"},
+        "drunk": {"type": "integer", "minimum": 0}, "smashed": {"type": "integer", "minimum": 0, "maximum": 255}
+      },
+      "allOf": [{"if": {"properties": {"durationType": {"const": 0}}, "required": ["durationType"]}, "then": {"properties": {"durationTurns": {"const": 0}}}, "else": {"properties": {"durationTurns": {"type": "integer", "minimum": 1}}}}]
+    },
+    "bundled068": {
+      "type": "object", "additionalProperties": false, "required": ["active", "turns"],
+      "properties": {"active": {"type": "boolean"}, "turns": {"type": "integer", "minimum": 0}},
+      "if": {"properties": {"active": {"const": false}}, "required": ["active"]}, "then": {"properties": {"turns": {"const": 0}}}
+    },
+    "bundled077": {
+      "type": "object", "additionalProperties": false, "required": ["direction", "updateCounter", "nextTickMs"],
+      "properties": {"direction": {"type": "integer", "minimum": 0, "maximum": 4}, "updateCounter": {"type": "integer", "minimum": 0}, "nextTickMs": {"type": "integer", "minimum": 0, "maximum": 9223372036854776000}}
+    },
+    "bundled086": {
+      "type": "object", "additionalProperties": false, "required": ["seed", "sourceCalls"],
+      "properties": {"seed": {"$ref": "#/$defs/bundled039"}, "sourceCalls": {"$ref": "#/$defs/bundled039"}}
+    },
+    "bundled094": {"oneOf": [{"$ref": "#/$defs/bundled095"}, {"type": "null"}]},
+    "bundled095": {
+      "type": "object", "additionalProperties": false, "required": ["location", "cells", "facing", "lastDirection", "wanderer", "quicknessSkipNext"],
+      "properties": {
+        "location": {"type": "integer", "minimum": 33, "maximum": 40},
+        "cells": {"type": "array", "minItems": 512, "maxItems": 512, "items": {"type": "integer", "minimum": 0, "maximum": 255}},
+        "facing": {"type": "integer", "minimum": 0, "maximum": 3}, "lastDirection": {"type": "integer", "minimum": 0, "maximum": 5},
+        "wanderer": {"oneOf": [{"$ref": "#/$defs/bundled096"}, {"type": "null"}]}, "quicknessSkipNext": {"type": "boolean"}
+      }
+    },
+    "bundled096": {
+      "type": "object", "additionalProperties": false, "required": ["monster", "floor", "x", "y", "previousX", "previousY", "onCeiling"],
+      "properties": {
+        "monster": {"type": "integer", "minimum": 0, "maximum": 47}, "floor": {"type": "integer", "minimum": 0, "maximum": 7},
+        "x": {"type": "integer", "minimum": 0, "maximum": 7}, "y": {"type": "integer", "minimum": 0, "maximum": 7},
+        "previousX": {"type": "integer", "minimum": 0, "maximum": 7}, "previousY": {"type": "integer", "minimum": 0, "maximum": 7}, "onCeiling": {"type": "boolean"}
+      }
+    },
+    "bundled103": {"oneOf": [{"allOf": [{"$ref": "#/$defs/bundled104"}, {"properties": {"pendingDelivery": {"const": false}}}]}, {"type": "null"}]},
+    "bundled104": {
+      "type": "object", "additionalProperties": false, "required": ["type", "currentDirection", "previousDirection", "skiffs", "ownedByNpc", "hull", "sailState", "hasHmsCape", "pendingDelivery"],
+      "properties": {
+        "type": {"type": "integer", "minimum": 1, "maximum": 4}, "currentDirection": {"type": "integer", "minimum": 0, "maximum": 4},
+        "previousDirection": {"type": "integer", "minimum": 0, "maximum": 4}, "skiffs": {"type": "integer", "minimum": 0, "maximum": 12},
+        "ownedByNpc": {"type": "boolean"}, "hull": {"type": "integer", "minimum": 0, "maximum": 99}, "sailState": {"type": "integer", "minimum": 0, "maximum": 1},
+        "hasHmsCape": {"type": "boolean"}, "pendingDelivery": {"type": "boolean"}
+      },
+      "if": {"properties": {"type": {"const": 4}}, "required": ["type"]}, "else": {"properties": {"skiffs": {"const": 0}}}
+    },
+    "bundled105": {"type": ["array", "null"], "items": {"$ref": "#/$defs/bundled106"}},
+    "bundled106": {
+      "type": "object", "additionalProperties": false,
+      "required": ["world", "controllerOrder", "kind", "referenceId", "npcNum", "position", "visible", "skipNextTurn", "wantsToAutoTalk", "overriddenAi", "aiOverrideProvenance", "currentPath", "vehicle", "enemyVariant", "enemyCurrentHp", "enemyFacing", "shadowlord"],
+      "properties": {
+        "world": {"$ref": "#/$defs/bundled110"}, "controllerOrder": {"$ref": "#/$defs/bundled114"}, "kind": {"$ref": "#/$defs/bundled118"},
+        "referenceId": {"$ref": "#/$defs/bundled114"}, "npcNum": {"$ref": "#/$defs/bundled126"}, "position": {"$ref": "#/$defs/bundled036"},
+        "visible": {"$ref": "#/$defs/bundled057"}, "skipNextTurn": {"$ref": "#/$defs/bundled057"}, "wantsToAutoTalk": {"$ref": "#/$defs/bundled057"},
+        "overriddenAi": {"$ref": "#/$defs/bundled143"}, "aiOverrideProvenance": {"$ref": "#/$defs/bundled144"},
+        "arrivedScheduleSlot": {"$ref": "#/$defs/bundled147"}, "consumedTalk3ScheduleSlot": {"$ref": "#/$defs/bundled147"},
+        "currentPath": {"$ref": "#/$defs/bundled154"}, "vehicle": {"$ref": "#/$defs/bundled156"}, "enemyVariant": {"$ref": "#/$defs/bundled160"},
+        "enemyCurrentHp": {"$ref": "#/$defs/bundled012"}, "enemyFacing": {"$ref": "#/$defs/bundled168"}, "shadowlord": {"$ref": "#/$defs/bundled172"},
+        "surfaceChestNumber": {"type": "integer", "minimum": 0, "maximum": 255}
+      },
+      "allOf": [
+        {"$ref": "#/$defs/bundled174"}, {"$ref": "#/$defs/bundled178"}, {"$ref": "#/$defs/bundled180"},
+        {"if": {"required": ["surfaceChestNumber"]}, "then": {"properties": {"kind": {"enum": ["npc", "chest"]}}}},
+        {"if": {"properties": {"kind": {"const": "chest"}}, "required": ["kind"]}, "then": {"required": ["surfaceChestNumber"]}}
+      ]
+    },
+    "bundled110": {"type": "integer", "minimum": -1, "maximum": 0},
+    "bundled114": {"type": "integer", "minimum": 0},
+    "bundled118": {"enum": ["enemy", "npc", "vehicle", "chest"]},
+    "bundled126": {"type": "integer", "minimum": 0, "maximum": 31},
+    "bundled143": {"enum": [-1, 0, 1, 2, 3, 4, 6, 7, 8, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112]},
+    "bundled144": {"enum": ["none", "automatic-astaroth", "automatic-nosfentor", "guard-hostility", "generic-flee"]},
+    "bundled147": {"type": ["integer", "null"], "minimum": 0, "maximum": 2},
+    "bundled154": {"type": ["array", "null"], "items": {"$ref": "#/$defs/bundled036"}},
+    "bundled156": {"oneOf": [{"$ref": "#/$defs/bundled104"}, {"type": "null"}]},
+    "bundled160": {"enum": ["", "standard", "whirlpool", "pirate", "shadowlord"]},
+    "bundled168": {"type": "integer", "minimum": 0, "maximum": 4},
+    "bundled172": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 2}, {"type": "null"}]},
+    "bundled174": {"if": {"properties": {"kind": {"const": "vehicle"}}, "required": ["kind"]}, "then": {"properties": {"vehicle": {"$ref": "#/$defs/bundled104"}}}},
+    "bundled178": {
+      "if": {"properties": {"kind": {"const": "enemy"}}, "required": ["kind"]},
+      "then": {
+        "properties": {"enemyVariant": {"enum": ["standard", "whirlpool", "pirate", "shadowlord"]}},
+        "allOf": [
+          {"if": {"properties": {"enemyVariant": {"enum": ["standard", "whirlpool"]}}, "required": ["enemyVariant"]}, "then": {"properties": {"enemyFacing": {"const": 0}, "shadowlord": {"type": "null"}}}},
+          {"if": {"properties": {"enemyVariant": {"const": "pirate"}}, "required": ["enemyVariant"]}, "then": {"properties": {"enemyFacing": {"type": "integer", "minimum": 1, "maximum": 4}, "shadowlord": {"type": "null"}}}},
+          {"if": {"properties": {"enemyVariant": {"const": "shadowlord"}}, "required": ["enemyVariant"]}, "then": {"properties": {"enemyFacing": {"const": 0}, "shadowlord": {"type": "integer", "minimum": 0, "maximum": 2}}}}
+        ]
+      },
+      "else": {"properties": {"enemyVariant": {"const": ""}, "enemyCurrentHp": {"const": 0}, "enemyFacing": {"const": 0}, "shadowlord": {"type": "null"}}}
+    },
+    "bundled180": {
+      "if": {"properties": {"vehicle": {"type": "object", "properties": {"pendingDelivery": {"const": true}}, "required": ["pendingDelivery"]}}, "required": ["vehicle"]},
+      "then": {"properties": {
+        "world": {"const": 0}, "kind": {"const": "vehicle"}, "position": {"properties": {"location": {"const": 0}, "floor": {"const": 0}}}, "visible": {"const": true},
+        "vehicle": {
+          "properties": {
+            "type": {"enum": [3, 4]}, "currentDirection": {"const": 4}, "previousDirection": {"const": 4},
+            "ownedByNpc": {"const": false}, "hull": {"const": 99}, "sailState": {"const": 0}, "hasHmsCape": {"const": false}
+          },
+          "oneOf": [{"properties": {"type": {"const": 4}, "skiffs": {"minimum": 2, "maximum": 12}}}, {"properties": {"type": {"const": 3}, "skiffs": {"const": 0}}}]
+        }
+      }}
+    },
+    "bundled188": {"type": ["array", "null"], "items": {"$ref": "#/$defs/bundled189"}},
+    "bundled189": {
+      "type": "object", "additionalProperties": false, "required": ["position", "items"],
+      "properties": {"position": {"$ref": "#/$defs/bundled036"}, "items": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/bundled190"}}}
+    },
+    "bundled190": {
+      "type": "object", "additionalProperties": false, "required": ["type", "id", "quantity"],
+      "properties": {"type": {"enum": [0, 1, 2, 4, 5, 7, 8, 9]}, "id": {"type": "integer", "minimum": 0}, "quantity": {"type": "integer", "minimum": 1, "maximum": 65535}}
+    },
+    "bundled198": {"type": ["array", "null"], "items": {"$ref": "#/$defs/bundled199"}},
+    "bundled199": {
+      "type": "object", "additionalProperties": false, "required": ["position", "kind", "value"],
+      "properties": {"position": {"$ref": "#/$defs/bundled036"}, "kind": {"enum": ["setTile", "setObject"]}, "value": {"type": "integer", "minimum": -1}}
+    },
+    "bundled215": {
+      "if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"minimum": 33, "maximum": 40}}, "required": ["location"]}}, "required": ["position"]}}, "required": ["world"]},
+      "then": {"properties": {
+        "world": {"properties": {"position": {"properties": {"x": {"minimum": 0, "maximum": 7}, "y": {"minimum": 0, "maximum": 7}, "floor": {"minimum": 0, "maximum": 7}}}}},
+        "dungeon": {"$ref": "#/$defs/bundled095"}, "partyVehicle": {"type": "null"}
+      }},
+      "else": {"properties": {"dungeon": {"type": "null"}}}
+    },
+    "bundled223": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 33}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 33}}}}}},
+    "bundled231": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 34}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 34}}}}}},
+    "bundled239": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 35}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 35}}}}}},
+    "bundled247": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 36}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 36}}}}}},
+    "bundled255": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 37}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 37}}}}}},
+    "bundled263": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 38}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 38}}}}}},
+    "bundled271": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 39}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 39}}}}}},
+    "bundled279": {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 40}}}}}}}, "then": {"properties": {"dungeon": {"properties": {"location": {"const": 40}}}}}},
+    "bundled286": {"properties": {"mapUnits": {"contains": {"type": "object", "properties": {"vehicle": {"type": "object", "properties": {"pendingDelivery": {"const": true}}, "required": ["pendingDelivery"]}}, "required": ["vehicle"]}, "minContains": 0, "maxContains": 1}}},
+    "bundled293": {
+      "if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"const": 0}, "floor": {"const": 0}}, "required": ["location", "floor"]}}, "required": ["position"]}}, "required": ["world"]},
+      "then": {"properties": {"mapUnits": {"items": {"not": {"properties": {"vehicle": {"type": "object", "properties": {"pendingDelivery": {"const": true}}, "required": ["pendingDelivery"]}}, "required": ["vehicle"]}}}}}
+    },
+    "bundled300": {"type": "array", "items": {"$ref": "#/$defs/bundled301"}},
+    "bundled301": {
+      "type": "object", "additionalProperties": false, "required": ["location", "floor", "x", "y", "kind"],
+      "properties": {"location": {"type": "integer", "minimum": 33, "maximum": 40}, "floor": {"type": "integer", "minimum": 0, "maximum": 7}, "x": {"type": "integer", "minimum": 0, "maximum": 7}, "y": {"type": "integer", "minimum": 0, "maximum": 7}, "kind": {"enum": ["hiddenDoor", "hiddenPit"]}}
+    },
+    "bundled303": {
+      "type": "array", "maxItems": 3,
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/bundled304"}, {"properties": {"sequence": {"const": 1}}}]},
+        {"allOf": [{"$ref": "#/$defs/bundled304"}, {"properties": {"sequence": {"const": 2}}}]},
+        {"allOf": [{"$ref": "#/$defs/bundled304"}, {"properties": {"sequence": {"const": 3}}}]}
+      ],
+      "items": {"$ref": "#/$defs/bundled304"},
+      "allOf": [
+        {"not": {"contains": {"properties": {"subject": {"const": "faulinei"}}}, "minContains": 2}},
+        {"not": {"contains": {"properties": {"subject": {"const": "astaroth"}}}, "minContains": 2}},
+        {"not": {"contains": {"properties": {"subject": {"const": "nosfentor"}}}, "minContains": 2}}
+      ]
+    },
+    "bundled304": {
+      "type": "object", "additionalProperties": false, "required": ["sequence", "kind", "subject", "occurredOn", "source", "acknowledged"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1}, "kind": {"const": "shadowlord-defeated"}, "subject": {"enum": ["faulinei", "astaroth", "nosfentor"]},
+        "occurredOn": {"oneOf": [{"$ref": "#/$defs/bundled305"}, {"type": "null"}]}, "source": {"enum": ["gameplay", "migration"]}, "acknowledged": {"type": "boolean"}
+      },
+      "allOf": [{"if": {"properties": {"source": {"const": "migration"}}, "required": ["source"]}, "then": {"properties": {"occurredOn": {"type": "null"}, "acknowledged": {"const": true}}}, "else": {"properties": {"occurredOn": {"$ref": "#/$defs/bundled305"}}}}]
+    },
+    "bundled305": {
+      "type": "object", "additionalProperties": false, "required": ["year", "month", "day"],
+      "properties": {"year": {"type": "integer", "minimum": 1, "maximum": 65535}, "month": {"type": "integer", "minimum": 1, "maximum": 13}, "day": {"type": "integer", "minimum": 1, "maximum": 28}}
+    },
+    "bundled306": {
+      "type": "object", "additionalProperties": false, "required": ["category", "key", "source", "discoveredOn", "unread", "spellFormula"],
+      "properties": {
+        "category": {"const": "spell"}, "key": {"enum": ["an-ylem", "in-xen-mani", "rel-xen-bet"]}, "source": {"$ref": "#/$defs/bundled307"},
+        "discoveredOn": {"oneOf": [{"$ref": "#/$defs/bundled305"}, {"type": "null"}]}, "unread": {"type": "boolean"}, "spellFormula": {"$ref": "#/$defs/bundled308"}
+      },
+      "allOf": [
+        {"if": {"properties": {"key": {"const": "an-ylem"}, "spellFormula": {"type": "object", "properties": {"state": {"const": "confirmed"}}, "required": ["state"]}}, "required": ["key", "spellFormula"]}, "then": {"properties": {"spellFormula": {"properties": {"confirmedMask": {"const": 20}}}}}},
+        {"if": {"properties": {"key": {"const": "in-xen-mani"}, "spellFormula": {"type": "object", "properties": {"state": {"const": "confirmed"}}, "required": ["state"]}}, "required": ["key", "spellFormula"]}, "then": {"properties": {"spellFormula": {"properties": {"confirmedMask": {"const": 134}}}}}},
+        {"if": {"properties": {"key": {"const": "rel-xen-bet"}, "spellFormula": {"type": "object", "properties": {"state": {"const": "confirmed"}}, "required": ["state"]}}, "required": ["key", "spellFormula"]}, "then": {"properties": {"spellFormula": {"properties": {"confirmedMask": {"const": 201}}}}}}
+      ]
+    },
+    "bundled307": {"oneOf": [
+      {"type": "object", "additionalProperties": false, "required": ["kind", "displayName"], "properties": {"kind": {"const": "dialogue"}, "displayName": {"type": "string", "pattern": "\\S"}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "displayName"], "properties": {"kind": {"const": "experimentation"}, "displayName": {"const": "Experimentation"}}},
+      {"type": "object", "additionalProperties": false, "required": ["kind", "displayName"], "properties": {"kind": {"const": "migration"}, "displayName": {"const": "Previously learned; date unknown"}}}
+    ]},
+    "bundled308": {"oneOf": [
+      {"type": "object", "additionalProperties": false, "required": ["state", "confirmedMask", "candidateMasks"], "properties": {
+        "state": {"const": "uncertain"}, "confirmedMask": {"const": 0},
+        "candidateMasks": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "integer", "minimum": 1, "maximum": 255}}
+      }},
+      {"type": "object", "additionalProperties": false, "required": ["state", "confirmedMask", "candidateMasks"], "properties": {
+        "state": {"const": "confirmed"}, "confirmedMask": {"type": "integer", "minimum": 1, "maximum": 255}, "candidateMasks": {"type": "array", "maxItems": 0}
+      }},
+      {"type": "null"}
+    ]},
+    "continuation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["activePlayerIndex", "isCriminal", "hmsCapeAutomaticWaitActorSkip", "beggarKarmaCounter", "openingCampaignEncounterReduction", "combatActionTimeCounter"],
+      "properties": {
+        "activePlayerIndex": {"type": "integer", "minimum": -1, "maximum": 5}, "isCriminal": {"type": "boolean"},
+        "hmsCapeAutomaticWaitActorSkip": {"type": "boolean"}, "beggarKarmaCounter": {"type": "integer", "minimum": 0, "maximum": 255},
+        "openingCampaignEncounterReduction": {"type": "boolean"}, "combatActionTimeCounter": {"type": "integer", "minimum": 0, "maximum": 9}
+      }
+    }
+  }
+}

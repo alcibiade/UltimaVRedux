@@ -1,0 +1,74 @@
+package game_state
+
+func (g *GameState) ActionEscapeSmallMap() bool {
+	// Escape is only valid from combat screens
+	g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+	return false
+}
+
+func (g *GameState) ActionEscapeLargeMap() bool {
+	// Escape is only valid from combat screens
+	g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+	return false
+}
+
+func (g *GameState) ActionEscapeCombatMap() bool {
+	if !g.CanEscapeCombatMap() {
+		return false
+	}
+	reason := CombatVictory
+	if !g.CombatScene.Victory {
+		monsterCount := g.CombatScene.MonsterManager.CountActiveHostile()
+		reason = CombatEvacuated
+		if monsterCount > 0 {
+			reason = CombatDefeat
+		}
+	}
+	g.EndCombat(reason)
+
+	return true
+}
+
+// CanEscapeCombatMap validates an explicit combat exit without mutating combat state.
+func (g *GameState) CanEscapeCombatMap() bool {
+	if g.CombatScene == nil {
+		g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+		return false
+	}
+
+	pcCount := g.CombatScene.countActiveCombatPCs()
+	if pcCount == 0 {
+		return true
+	}
+
+	if g.CombatScene.ExitContext == CombatExitDungeonRoom {
+		if !g.CombatScene.Victory {
+			g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+			return false
+		}
+		if g.CombatScene.ExitRoute == CombatExitNone {
+			g.SystemCallbacks.Message.AddRowStr("Choose an exit first.")
+
+			return false
+		}
+	}
+
+	if !g.CombatScene.Victory {
+		g.SystemCallbacks.Message.AddRowStr("Not yet!")
+
+		return false
+	}
+
+	return true
+}
+
+func (g *GameState) ActionEscapeDungeonMap() bool {
+	// Escape is only valid from combat screens
+	g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+	return false
+}

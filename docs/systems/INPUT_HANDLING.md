@@ -1,0 +1,619 @@
+# Input Handling System
+
+Gameplay input is routed by `GameScene.Update` through a primary/secondary state machine. Primary input chooses a command; secondary input owns subsequent ordinary direction, tactical-target, or specialized retained input until that input contract completes.
+
+## Routing Order
+
+An active Traveller's Map session has the earliest frozen-reader path, before
+all gameplay updates below. Fresh exact Shift+M and Ctrl+N requests are checked
+against the safe openers described in [Traveller's Map](#travellers-map).
+
+After released-key consumption cleanup, Ctrl+R is reserved for the passive Runic
+reference (including release protection). An existing scene-owned Journal session
+is then checked before finale input, wind/effects, event queues, automatic
+doors, or gameplay dispatch. Only modal UI and audio presentation update;
+even the dismissal frame returns without advancing play. The shared map/journal
+notice owner samples entry/exit blockers, including early atlas returns, so
+pending ordinary Output notices wait until command and reader ownership ends.
+Search, tab changes, and loss of top-widget focus do not release the session's
+[full gameplay pause](TIME_SYSTEM.md#journal-pause).
+
+Outside that session, each frame follows this ownership order:
+
+1. Clear released-key consumption and update event queues, effects, and non-blocking UI.
+2. Let an active auto-open animation or rising-moongate lock own the frame.
+3. Let the top modal dialog consume input exclusively, then honor an explicit workflow input block.
+4. Present pending ordinary battle summaries after exit/recovery workflows finish;
+   then resolve pending overworld/dungeon encounters, combat turn transitions, and NPC auto-talk before player input.
+5. Update moongate transition state, then, if `secondaryKeyState != PrimaryInput`, route only to the current map's secondary handler and return.
+6. Otherwise read and debounce a bound key, intercept `/` (also shifted `/`, `?`)
+   Help, F4 last-battle review, and global Shift+J journal routing, process active-player number keys, and call the large-, small-,
+   dungeon-, or combat-map primary handler.
+
+In combat, selecting an active player enables solo mode without removing any
+combatant from the authoritative DEX queue. Non-selected player-loyal turns
+still resolve their timing, duration, ring, field-expiration, and standing-field
+effects, but the scheduler scans past their generic auto-passes synchronously.
+The scan stops for the selected actor or a hostile turn. Condition-driven
+non-actionable turns, such as sleep, retain their dedicated presentation and
+feedback.
+
+Dungeon primary input implements traversal, facing, turnaround, contextual
+rejection, and the production Attack, Cast, Get, Hole Up, Ignite, Jimmy, Klimb,
+Look, Mix, New Order, Open, Quit, Ready, Search, Use, View, and Yell workflows.
+
+## Input States
+
+### Traveller's Map
+
+Live `UI.AtlasUpdated` feedback never owns input or changes atlas selection. One
+scene FIFO coalesces pending updates for the same public site and keeps pending
+map updates ahead of the coalesced journal notice. At an unblocked boundary it
+flushes into the ordinary main Output, with styled Shift-M / Shift-J reader hints
+and normal History retention. Secondary prompts, readers, modals, workflows,
+arrival presentation and fades defer the flush; both entry and exit of the frame
+must be clear. There is no timed map overlay, countdown, or notice dialog.
+Notices add no save restriction, game time, RNG work or persisted queue. Scene
+replacement/disposal clears pending notices; hydration does not replay them. See
+`gamescene_journal_notice.go` and `gamescene_map_notice_test.go`.
+
+`gamescene_atlas.go` admits exact Shift+M only at idle PrimaryInput on actual
+large, small or dungeon maps, including read-only surface-chart access from the
+Underworld. Combat, camping, virtual scenes, workflows, modals, pending battle
+summaries/encounters, auto-open transitions and input locks reject opening. NPC
+auto-talk retains precedence. The accepted route precedes camera clearing,
+smashed-command interception, ordinary command dispatch and dungeon charging.
+An unavailable exact chord is consumed through M release without falling into
+Mix or secondary command input; other modifiers retain existing routing.
+
+Exact `Ctrl+N` (either Control, no Shift/Alt/Meta) uses the same safe-primary
+opener, restricted to Britannia's surface overworld. It opens the existing atlas
+and immediately requests Mark Current Position through its ordinary note intent
+and `BeginAtlasNoteDraft(0)`. The draft captures the current eligible sextant fix,
+never the camera or selected place. A note already at that position opens for
+editing. A missing sextant or unusable fix leaves the atlas open with the
+existing explanation and no editor. The shared rule requires a carried sextant
+at 19:00–05:59, or daytime with Flexible sextant use enabled; that preference does
+not expand the shortcut beyond the surface overworld. An unavailable request is
+not deferred. N stays reserved until release even if Ctrl releases first, so it
+cannot fall into New Order or secondary input. Fresh plain N retains New Order
+in exploration.
+Command Help describes the shortcut and its surface/fix requirements. See
+`cmd/ultimav/gamescene_atlas_mark_shortcut.go` and its `_test.go` coverage.
+
+The scene owns the exact AtlasDialog instance and freezes elapsed time, calendar,
+RNG, wind, effects and all event queue lanes. Only the top modal updates while
+the session exists. It refreshes detached public evidence and current sextant
+eligibility without adjusting the manually chosen camera. Opening/closing keys
+must be released; both dismissal and final release frames return without a
+gameplay tick. Resumption resets elapsed/presentation bases, so paused wall time
+does not catch up. Scene disposal removes the exact atlas and releases its pause;
+the application-owned geography texture survives. Atlas reading never changes
+Journal acknowledgements. Controls and rendering ownership are documented in
+[Widget Components](../ui/WIDGET_COMPONENTS.md#travellers-map).
+
+After opener release, Up/Down selects in the visible Places list. Tab and
+Shift+Tab change the visible place category (with release-based single-tap
+handling), not input focus. `P` enters/exits the explicit local Pan mode, in which
+plain arrows pan while preserving place selection and the header/footer identify
+the mode. Category cycling remains available in Pan mode; held arrows must be
+released across a mode switch. Opening resets to Places. There is no Control-arrow
+requirement, filter submenu or Space selection mode. Number-row/keypad `0` resets
+the world view; no Home key is required.
+
+Each specific category (not All) has a selectable `All mapped (N)` overview row,
+independent of individual selection. `L` shows/hides all authorised labels in overview or the
+single selected label in ordinary selection. `N` requests a note at the current
+eligible sextant fix; `E` edits a selected note and `D` requests its deletion.
+The exact scene-owned child editor remains within the atlas pause. Tab/Shift+Tab
+changes its label/description field, Enter inserts a description paragraph,
+Ctrl+Enter saves, and Escape discards. Delete confirmation uses Enter/Escape.
+`GameState` validates the captured draft and owns the mutation; cancel, teardown,
+or state replacement discards the draft and removes the exact child before its
+parent. Save or cancel returns to the underlying atlas, including after Ctrl+N;
+held child-dismissal keys cannot also dismiss the parent. Only final atlas close
+and key release resume play. Opening, editing and closing add no gameplay time,
+RNG draws or resource costs. Neither editing nor deletion invents another current fix.
+
+### Combat report and completed battle review
+
+At primary combat input, F3 reviews the oldest pending pickup/discovery/trap
+result, or the latest noteworthy result when none are pending. PgUp/PgDn/Home/End
+retain their history navigation; End returns live. F4 at primary input opens the
+last completed battle summary in the current scene/session. These controls spend
+no action, resources, gameplay time, or RNG, and never intercept retained targeting
+or a modal's input. The automatic departure summary uses the same bounded reader
+and requires fresh Enter/keypad Enter/Escape to continue. See
+[combat loot feedback](../ui/GAME_UI_INTEGRATION.md#combat-loot-feedback) for history,
+attention, accounting, and lifecycle contracts.
+
+### Runic reference
+
+`Ctrl+R` toggles the full right-rail alphabet during ordinary surface/dungeon
+exploration, Sign Look, and semantic NPC Talk. The source remains in its existing
+left-side presentation; the chart pairs the existing Runic font with Latin A-Z
+and the authored TH, EE, NG, and ST forms. It does not decode the current text.
+
+The panel is passive, never takes dialog focus, and permits conversation typing,
+progression, and exploration while open. The toggle spends no gameplay time or
+resources and does not start a dungeon command cycle. Visibility is transient,
+initially closed, and not saved. The exact sign/Talk dialog becomes its lifetime
+owner, even if the chart was opened before that dialog; removing the owner closes
+the chart. Other modal interfaces temporarily hide it. Combat, camping, cinematic
+layouts, View, and Journal close the scene-owned right-rail chart.
+
+The Journal handles Ctrl+R locally when reading a retained Runic exchange. It
+draws the same passive alphabet in its list pane beside the passage. Escape or
+Ctrl+R closes that reference first without changing the selected exchange/page;
+tab, search, or exchange changes close it. No gameplay time or knowledge changes.
+
+Outside the Journal, central routing reserves Ctrl+R before modal or primary/
+secondary input, including when the reference is unavailable. The chord remains intercepted until R is
+released, so releasing Ctrl first cannot type R, Ready equipment, or dismiss a
+raw press-any-key prompt. Escape retains the reading workflow's normal behavior.
+The shortcut is listed in command Help.
+
+The sign-specific maintainer translation chord and its release guard are
+documented in [SIGN-0008](../gamefacts/SIGNS_AND_FONTS.md#sign-0008).
+It is not part of player Help or a conversation translation facility.
+
+Implementation: `cmd/ultimav/gamescene_runic_reference.go` and
+`internal/ui/widgets/runic_reference_panel.go`. Injected-input and responsive
+layout coverage live in the corresponding `_test.go` files; physical-keyboard
+and visual acceptance remain separate from those automated assertions.
+
+### Command help and retained prompts
+
+Help also appears in Escape. It lists context-specific command purposes, next
+inputs, unavailable reasons, and Shift+J without puzzle answers. It is a detached
+keyboard-only modal: opening/browsing/closing adds no gameplay time, RNG draw,
+or combat action and does not begin a dungeon cycle. It cannot intercept a
+secondary prompt or an input-owning workflow. Physical-keyboard acceptance
+remains separate from injected-input coverage.
+
+`InputState` is defined in `cmd/ultimav/gamescene.go`.
+
+Standard directional states cover Open, Jimmy, Klimb, Push, Get, Look, Talk,
+Search, Attack, and Fire. `UseDirectionInput` remains declared but has no live
+ordinary primary Use route; item workflows own current Use input. Combat adds
+persistent target states for physical attacks, square-target spells, cone spells,
+and adjacent spells, plus `CombatKlimbLadderDirectionInput` for the original dual-ladder
+`U/D` choice. Specialized non-directional contracts can also retain secondary
+routing, including `DungeonQuitInput` and `SurfaceQuitInput`.
+
+Cast, Yell, Use menus, Ready, and other modal workflows do not require new directional states when their dialog or event workflow already owns input. Popup-based directional workflows use `thenShowDirectionPrompt` instead of the command state machine.
+
+Hole Up's guard selector returns cancellation separately from the explicit
+**No One** row. Escape cancels setup and removes the selector without starting
+camping; No One confirms an unguarded camp. Surface cancellation has no ordinary
+completion cycle. Dungeon cancellation retains its existing precharge and exact
+`DungeonFullEndPlayer` cleanup, without constructing a camping plan or consuming
+camp-setup RNG. See [Camping entry](CAMPING_SYSTEM.md#entry).
+
+Cast gathers required targets/directions before final confirmation spends MP and
+one mixture. Cancellation before that boundary preserves resources, gameplay
+time, combat action, and gameplay RNG, including party-member target selection.
+Later effect failure does not refund committed costs.
+
+Interaction transcript text prompts normally use Escape to cancel. Blackthorn
+alone configures `ClearTextOnEscape`: `Esc: Clear text` clears the editor without
+submitting an answer, advancing the attempt, or releasing interrogation input
+(the interrogation belongs to [CRIME-0003](../gamefacts/CRIME_PRISON.md#crime-0003)).
+Return, including an empty Return, still submits an answer.
+Shrine meditation empty submissions or cancellation skip remaining prompts and
+unfocused feedback, then perform normal walk-out/visit cleanup. Nonempty wrong
+mantras retain all three prompts; the existing early rejection of a nonempty
+wrong virtue is unchanged.
+
+## Dungeon Commands
+
+Dungeon exploration currently accepts these primary keys:
+
+| Key | Action | Command-cycle completion |
+|---|---|---|
+| Up | Advance one wrapped cell | Full end-player processing, including blocked attempts |
+| Down | Back up one wrapped cell | Full end-player processing, including blocked attempts |
+| Left / Right | Turn left / right | Command-only, including refused doorway turns |
+| Return / `.` | Turn around | Command-only |
+| Space | Pass | Full end-player processing |
+| `A` | Attack the wrapped facing cell | Command-only or retained tactical combat handoff |
+| `B` / `E` / `F` / `T` / `X` | Source-defined contextual response | Full end-player processing |
+| `D` / `W` | `D-What?` / `W-What?` | Command-only |
+| `C` | Retained prepared-spell workflow | Route-dependent full completion |
+| `G` | Take an open current-cell chest | Full end-player processing |
+| `H` | Retained exact-cycle camping workflow | Full completion after rest or ambush restoration |
+| `I` | Ignite | Full end-player processing on success or no-torch failure |
+| `J` | Retained current-cell chest Jimmy workflow | Full completion after actor selection and resolution |
+| `K` | Klimb from the current cell | Route-dependent; see below |
+| `L` / `S` | Retained actor and relative-direction Look / Search | Full completion after workflow cleanup |
+| `M` / `N` / `R` | Mix / New Order / Ready modal workflow | Full end-player processing after workflow cleanup |
+| `O` | Open the current packed cell | Full completion after optional actor selection |
+| `P` | `Push` / `Not here!` | Command-only |
+| `Q` | Retained Save game? Yes/No prompt | Command-only after the answer and optional save |
+| `U` | Retained item workflow | Full completion; supported Sceptre/View routes commit authoritatively |
+| `V` | Gem symbolic View | Retained through dialog dismissal, then full completion |
+| `Y` | Retained editable Yell input | Full end-player processing after input cleanup |
+
+Each accepted key begins one exact-once dungeon command cycle. Ordinary commands
+apply their precharge before the action. Cast and Use reserve the cycle but defer
+its charge until final confirmation, making their rejection and cancellation
+free. Charged cycles use one gameplay minute; Quickness alternates charged and
+free cycles, and Time Stop suppresses the charge. Completion never calls
+`FinishTurn` or callback-owned time, so the charge is not duplicated.
+
+Klimb starts one cycle and precharges once. A missing route or grapple-only
+opening without a grapple completes command-only. A single route starts an
+input-blocking floor workflow. A dual route retains the same token in
+`KlimbDirectionInput`: Up/`U` selects ascent, Down/`D` selects descent, Space
+passes, and unrelated keys leave the prompt and token active without another
+charge. Pass, a blocked selected route, and successful internal travel use full
+end-player completion. Boundary exits consume the token without dungeon
+end-player processing and transition to the route-selected world plane.
+
+Remaining unsupported bound keys that reach the dungeon primary handler report
+`Not implemented in dungeons.` and do not begin a command cycle or charge its
+minute. Party-selection numbers and Escape retain their global routing, while
+`Ctrl+M` toggles music without a dungeon cycle. A stale Look, Search, Klimb, or
+Quit secondary state is cleared without action or charge. Open, Jimmy, Search,
+and Look retain their command token through character and directional input.
+Mix, New Order, and Ready likewise retain one token through success, rejection,
+and cancellation. Immediate validation rejection completes synchronously;
+started workflow finalizers own exact-once full completion after cleanup.
+
+Shift+J is intercepted before queues, modal input, and primary handlers in
+exploration, conversations, retained prompts, workflows, dungeons, and combat
+including targeting. Terminal finale presentation is excluded. It opens the detached Quest
+Journal without beginning a dungeon command cycle, calling `FinishTurn`, or
+finishing a combat action. Plain J continues to reach the existing Jimmy path.
+The top modal isolates Tab/Shift+Tab, repeatable Up/Down and Page Up/Page Down,
+Home/End, Space detail paging, `/` Journal search, Escape, and Shift+J.
+Curated page keys move selection a full viewport; History arrows select whole
+messages and page keys read oversized messages without becoming a line cursor.
+Search owns text input, Enter opens a matching Journal destination, and Escape
+returns to the previous tab without closing Journal. Shift+J closes from either
+mode. `PrepareForTransition` prevents the opening or closing chord from bleeding
+into the next input owner. The pause lasts until closing keys are released, so
+raw workflow any-key waits cannot consume a held dismissal key. Covered message
+fades rebase their wall-clock start on resume. See the
+[widget contract](../ui/WIDGET_COMPONENTS.md#questjournaldialog).
+
+During semantic NPC Talk, Tab keeps the presented exchange before key waits,
+dismissal, or text entry handle input. In Talk history, Up/Down selects an
+exchange and Tab keeps it; page keys read its text. Last Conversation uses K,
+leaving Tab/Shift+Tab for Journal navigation. Neither capture path submits partial
+input, grants knowledge, flushes unseen output, or advances Talk. Combat Tab
+retains its meaning. Excerpts uses Delete or D then Enter confirmation; Escape
+cancels. A archives/restores the selected excerpt, and H toggles Show Archived
+(off on opening Journal, affecting both the excerpt list and Journal search).
+These letter bindings only act while browsing Excerpts; search keeps text input.
+
+In Journal's Last Conversation and Excerpts readers, Up/Down selects an exchange.
+Space/Shift+Space pages forward/backward within that selection, clamping at the
+first and last pages. There are no Page Up/Page Down or Ctrl+arrow paging aliases
+in these readers. Search and the other Journal sections retain their own existing
+navigation. K captures the complete highlighted exchange without moving its page.
+
+The Use item modal similarly owns keyboard input while open. Tab/Shift+Tab and
+Left/Right select non-empty categories; Up/Down and Page Up/Page Down browse;
+Space pages effect-first details and lore; Enter selects; Escape cancels. The
+modal has no number-key shortcuts or mouse handling. It emits a detached item
+identity only, and the owning workflow revalidates current inventory before
+mutation. Field and combat menus receive only their supported context items;
+the dungeon menu projects source-backed potions, scrolls, persistent artifacts,
+the Pocket Watch, and source-rejected items through one retained command token.
+Cancellation before final confirmation preserves resources, surface time,
+dungeon charge, combat action, and gameplay RNG. Surface Use transfers a
+confirmed asynchronous item to an exact-once completion callback; selection
+cleanup precedes the item workflow's final surface cycle, including shutdown.
+A dungeon menu cancel or unsupported-only inventory completes its deferred
+token without charging it. Confirmed attempts consume their item and cycle once,
+including attempts whose effect later fails.
+
+Surface and dungeon Quit present a map-relative `Save game?` overlay. Secondary
+input remains the sole owner; the overlay is removed before save capture, on
+cancellation, and on disposal. `Y` saves, `N` or `Escape` cancels, and other keys
+are ignored. Dismissal waits for key release before returning to map input.
+Dungeon Quit restores primary input
+and command-only completes before synchronously capturing a native quick save,
+so the snapshot contains the precharged minute at a stable boundary. A missing
+active save slot or persistence failure reports recoverable feedback and still
+returns to play. Dungeon Yell retains its token in the `dungeon_yell` workflow;
+submitted nonempty text reports `No effect!`, while empty input reports
+`Nothing`. Escape clears Yell text without completing the command; Return
+submits the current input.
+
+Surface Quit follows the same answer contract without starting a surface
+command cycle. It restores primary input before the optional native quick save,
+so the snapshot is captured at a stable boundary and declining or saving does
+not advance surface gameplay time.
+
+## Combat Party Spell Recipients
+
+Combat Mani, An Nox, An Zu and post-victory Vas Mani resolve to
+`TargetCombatPartyMember`, using the existing `CombatSpellTargetInput` state.
+The spell browser transfers ownership to battlefield targeting with exact caster
+focus. Arrows/keypad move freely; Tab cycles visible PC entries in source-slot
+order, including clones and shared-square occupants. Enter confirms the exact
+reviewed recipient; Escape cancels freely. Invalid confirmation retains the
+selector without payment. Preview and confirmation share authoritative presence
+and terrain-concealment rules. The HUD explains identity, HP/status, shared
+effects, costs and no-benefit casts. An Zu previews the original first sleeping
+copy independently of the highlighted copy. A hidden waking position is never
+published. One presentation workflow completes each committed combat action;
+Journal suspension retains the selector and no selection state is saved.
+
+## Spell Browser Mix Handoffs
+
+Cast and Z-stats Spells reserve `Ctrl+M` locally for preparing the selected spell;
+outside those modals the existing music shortcut remains unchanged. Ctrl chords
+are consumed before syllable/free-text input and held keys cannot bleed into the
+next owner. The shared finder also uses `/` search, `Ctrl+O` to cycle All known /
+Prepared / Mixable filtering,
+and Space detail paging outside search. While searching, Space enters text;
+Escape returns to browse mode for paging while retaining the selected spell.
+An incompatible older syllable prefix is cleared rather than selecting a different
+spell. Recoverable prerequisite refusals remain visible in the same Cast browser,
+with no resource, command-time, or combat-action commitment. No function keys are
+required.
+
+Cast awaits the reusable Mix sequence inside its own workflow. The underlying
+selector is suspended until Mix's receipt/trap steps and command completion
+finish. On the surface, Mix pays one ordinary command cycle; a later cancelled
+Cast adds none. In a dungeon, the uncharged Cast token completes before Mix
+starts its normal precharged full cycle. Resuming Cast reserves a fresh deferred
+token after Mix completion. A map change, combat transition or total party death
+prevents returning to an obsolete selector. Z-stats invokes the same sequence in
+a scene-owned workflow and refreshes its detached dossier after completion.
+Combat Mix requests are refused without spending a combat action.
+
+Opening a spell finder, choosing a recipe and editing quantity never consumes
+resources. Enter in preparation transfers a typed request to `ExecuteMixing`,
+which validates quantity and current selected-reagent stocks before deduction.
+Incorrect recipes still spend the confirmed ingredients and resolve the normal
+trap sequence before returning. Workflow finalizers remove the exact owned Mix
+and receipt instances, including shutdown while a parent Cast remains mounted.
+
+## Primary To Secondary Transition
+
+A directional command starts its transcript prompt, records the secondary state, and permits the following key to register immediately:
+
+```go
+g.gameState.SystemCallbacks.Message.ShowCommandPrompt("Open-")
+g.secondaryKeyState = OpenDirectionInput
+g.keyboard.SetAllowKeyPressImmediately()
+```
+
+`SetAllowKeyPressImmediately` is important when the player presses the command and direction in quick succession. New directional transitions should use it unless the command deliberately requires release or a modal handoff.
+
+Surface primary and secondary handlers return a typed completion result:
+completed, rejected, cancelled, deferred, or still active. Completed, rejected,
+and cancelled results consume one fixed command cycle by default;
+`ConsumesNormalCycle` records command-specific free exceptions. Deferred and
+still-active results cannot consume the normal cycle, and map transitions bypass
+surface completion. Action methods use the routing ownership guard so direct
+callers retain a cycle without production dispatch duplicating it.
+
+Open and Jimmy enter directional input with immediate key registration on both
+surface map types. Like the other reachable uncommitted surface direction
+prompts, they permit free Escape cancellation before the action starts.
+Deferred surface Open/Jimmy character selection re-enters surface routing for
+the authoritative mutation, then its completion callback consumes the cycle
+after dialog cleanup. Both map types prompt when no eligible actor is active and
+multiple eligible party members exist.
+
+Large-map `E` skips routed `FinishTurn` only when the current world coordinate
+identifies a dungeon admission attempt. Rejection adds no outdoor turn, and
+successful dungeon entry adds no time in its transition workflow; the first
+accepted dungeon command owns the next precharge. Other Enter contexts retain
+their existing turn ownership.
+
+## Secondary Resolution
+
+The surface handlers first intercept Escape for Get, Push, Open, Jimmy, Klimb,
+Look, Talk, Search, Attack, and large-map Fire. `cancelSurfaceDirectionInput`
+reports `Cancelled`, restores primary input, and returns a free result without
+calling an action, consuming time/resources, advancing actors, or drawing gameplay
+RNG. Registration consumes Escape through release without delaying the next fresh
+key. This is the deliberate [surface deviation](../gamefacts/COMMANDS_REFERENCE.md#cmd-0003)
+from original ordinary direction input, confined to the precommit prompt. It does not cancel an
+already committed action, item/spell workflow, combat reader, or dungeon token.
+
+All ordinary surface direction prompts keep their short command text, such as
+`Attack-` or `Open-`, without an inline direction/Pass/Cancel legend.
+`commandHelpEntries` in `cmd/ultimav/gamescene_command_help.go` describes cardinal
+arrow/keypad input, free Escape cancellation, and Space's normal command cost,
+including the free outdoor Attack Pass exception.
+
+After that surface-specific interception, `ordinaryDirectionInput` retains the
+shared original ordinary/spell direction-reader behavior:
+
+- Cardinal arrows and physical keypad `2`/`4`/`6`/`8` append and return the
+  equivalent direction.
+- Space appends `Pass`, returns a passed outcome, and terminates the prompt.
+- Escape, other invalid keys, and keypad diagonals return an active outcome;
+  they do not clear state, consume a cycle/action, or swallow the next key.
+
+Ordinary combat prompts retain the inline `Arrows; Space: Pass` guidance;
+combat Help explains that Escape does not cancel those readers.
+Cast details use the resolved context targeting profile rather than base spell
+metadata. Cast guidance describes final-confirmation MP/mixture commitment and
+free cancellation beforehand, including preservation of the combat action.
+Ready labels come from the authoritative preview: Equip, Unready,
+no change, or the blocking reason.
+
+After a selected direction, the map-specific handler calls the relevant
+`GameState.Action*` method or UI workflow and normally returns to `PrimaryInput`.
+After Pass (distinct from Escape), ordinary surface commands consume their fixed
+map cycle without calling the action. Outdoor Attack is the source exception and consumes no
+cycle. Combat Open, Jimmy, Push, Get, Search, and ordinary rock-direction Klimb
+Pass consume one action. Combat Push also exposes `P` and the ordinary direction
+route to a controlled monster; trap, rejection, pull, and push outcomes all
+complete through the same exact-once action owner. A failed non-rock combat Klimb direction reports
+`What?`, reprompts `Klimb-`, and leaves `KlimbDirectionInput` active for the
+exact same actor without consuming the action. A successful rock climb consumes
+exactly one action. Single-route combat ladders resolve directly from `K`;
+generated dual ladders use `CombatKlimbLadderDirectionInput`, accept Up/`U` or
+Down/`D`, and ignore Space rather than applying ordinary-direction Pass
+semantics. A successful selected ladder route consumes one action. `Stay with
+ship!`, an incompatible established dungeon-room exit, or another selected-route
+failure restores primary combat input for the exact same actor without consuming
+the action.
+
+Before normal-PC or controlled-monster command dispatch, combat rejects the
+original blocked matrix through one shared guard: `Board what?`,
+`Enter-Not here`, `Fire-Not here`, `Hole up-Not here`,
+`Ignite torch-Not here`, `Look-Not here`, `Mix-Not here`,
+`New order-Not here`, `Quit-Not here`, `Talk-Funny, no response!`,
+`View-Not here`, and `X-it what?`. Rejection restores the same actor's inner
+prompt without entering a secondary state, completing an action, consuming a
+resource, advancing time or RNG, or mutating the battlefield. Other unknown
+keys retain the generic `What?` inner reprompt. Combat Fire, Look, and Talk do
+not enter their surface secondary routes.
+
+Primary cardinal numpad movement is normalized to the same route as arrows
+after harpsichord and top-row number handling. Keypad diagonals have no ordinary
+movement meaning.
+
+Combat target states are intentionally distinct and longer lived. Physical and
+spell crosshairs accept all eight keypad directions; cursor movement keeps the
+state active, and Escape cancels aiming. Terminal cancellation also clears the
+command prompt. Do not apply ordinary direction semantics to tactical cursors.
+
+## Combat Physical Attack Ownership
+
+`combatMapInputHandler` routes an accepted Tab press through the pure
+`PlanCombatAutoAction` decision: one available-source attack before the existing
+one-step movement fallback. Eligible enemies are ordered by integer distance,
+then current HP, with deterministic path and monster-index fallbacks.
+`resolveCombatAutoAttack` begins authoritative per-source targeting with an exact
+victim and owns the complete automatic sequence in one input-blocking workflow.
+It calls `ContinueCombatAutoAttack` between sources to revalidate the same victim,
+range, obstruction, readied state, and ammunition; it does not call the
+adjacent-only attack executor or retarget after a kill. See
+[Tab semantics](../gamefacts/COMBAT.md#combat-0012).
+
+Manual aiming and Tab share `combatPhysicalProjectileSequence` in
+`cmd/ultimav/gamescene_input_combat.go`. A ranged source commits through the core
+confirmation path, resolves damage exactly once through
+`ResolvePendingCombatAttack` at impact, then awaits any return launch and clears
+the projectile before continuation. Neither the next source nor action completion
+may run while that travel remains pending. These are workflow steps, not
+presentation-feedback mutations.
+
+Manual `startCombatProjectileAttack` resumes `finishCombatAttackTargetAction`
+after the shared sequence; usable later sources return to aiming. The automatic
+owner instead revalidates later sources without player prompts and waits for
+melee impact presentation between sources. Finalizers clear projectile/input
+state, resolve an already committed pending impact if interrupted, and avoid
+replaying it. Automatic cleanup cancels uncommitted sources and finishes once
+only while its original combat/actor still owns the action. Manual initial
+cancellation remains free; later source cancellation retains its existing
+per-source completion rules. Physical aiming prompts show `Attack 1/2: Spiked
+Helm`, then `Attack 2/2: Morning Star`, with the full current equipment name.
+The controls advertise Space to skip that item at the origin and confirm away
+from it. Initial Escape cancels the sequence; later Escape skips the current
+item. Source order, range, resources and completion ownership are unchanged.
+
+The three-row readout keeps full equipment `(RN)`, target `(DN)`, and compact
+`Attack` status, including `Ally`/`Enemy` for a disclosed actor. The accompanying
+prompt explains R/range and D/distance and gives the target's full name, side
+and known Charmed/Summoned/Possessed provenance. At the origin it says `Choose
+target`; otherwise an unnamed square says `No one seen`. This deliberately
+describes disclosure rather than occupancy, so an invisible actor cannot be
+detected by comparing an empty-tile label. It uses the core exact-actor
+projection rather than renderer-side occupancy rules. The fixed 45% turn pane,
+font size and measured single-row layout remain unchanged.
+
+Core and scene regression assertions include resource deferral, impact,
+return-before-next-source, and shutdown cleanup in
+`internal/game_state/combat_attack_preview_test.go` and
+`cmd/ultimav/gamescene_combat_auto_attack_test.go`.
+Live keyboard acceptance is separate from these injected-input assertions;
+record its results in the relevant issue.
+
+## Keyboard Debouncing
+
+`pkg/input.Keyboard` provides three related mechanisms:
+
+- `TryToRegisterKeyPress` consumes a non-repeatable key until physical release and enforces the repeat delay.
+- `TryToRegisterRepeatableKeyPress` and
+  `IsKeyPressedAndRegisterRepeatable` support held movement and tactical cursor
+  keys through physical, injected, and simulated input.
+- `PrepareForTransition` and `TryAcceptKey` wait for already-held keys to release before a new dialog state accepts input.
+
+Arrow polling uses the same injected key source and one-shot simulated input as
+other bound keys while preserving the original Down, Up, Right, Left priority.
+Detection does not consume simulated input; successful registration owns that
+boundary.
+
+`ClearFrameConsumption` runs at the start of every update and removes only keys that have been released. `ResetReleaseDebouncing` is used during final dialog/workflow cleanup; it is not a substitute for returning `secondaryKeyState` to `PrimaryInput`.
+
+Use `SetAllowKeyPressImmediately` for command-to-direction continuity. Use `PrepareForTransition` for modal dismissal, KeyWait, and workflow handoffs where the initiating key must not bleed into the next state.
+
+Sign dismissal retains a release gate through workflow cleanup, including held
+movement, Space, Escape, and item-command keys. The closing press cannot also
+move, Pass, open Escape, or ignite a torch; a released/fresh press acts normally.
+Open signs reflow on size changes while retaining Runic display mode.
+
+Small-map cardinal movement that displays `Blocked!` also calls
+`PrepareForTransition(0)`, requiring release of the held movement input before
+another attempt. The rejected attempt still advances exactly one normal
+small-map turn, including NPC AI and eligible NPC-initiated Talk. Successful
+held movement remains repeatable; large-map, dungeon, combat, and declined
+small-map boundary-exit input retain their existing behavior. Original command
+and timing evidence belongs in
+[Commands Reference](../gamefacts/COMMANDS_REFERENCE.md) and
+[Time Costs](../gamefacts/TIME_COSTS.md).
+
+## Turn And Feedback Ownership
+
+- Input handlers display command prompts and select state.
+- `GameState` owns gameplay validation and authoritative mutation.
+- Feedback from core actions uses `GameState.SystemCallbacks`; scene handlers do
+  not repeat action-owned result text.
+- Event workflows own their own input blocking and final turn completion where explicitly designed.
+- Failed or cancelled input must follow that command's authentic time-cost rule; a boolean return is not a universal instruction to advance or skip time.
+
+### Choosing The Completion Owner
+
+| Context | Owner | Rule for new or changed commands |
+|---|---|---|
+| Britannia / Underworld | `completeSurfaceCommand` and typed surface results | Ordinary commands own one two-minute cycle; free exceptions and movement costs are explicit. |
+| Town / small map | Same surface completion boundary | Ordinary commands own one one-minute cycle, including blocked movement; transitions suppress duplicate origin completion. |
+| Retained surface workflow | Deferred completion callback | Finish only after prompt/dialog cleanup, including cancellation and shutdown paths. |
+| Dungeon | `DungeonCommandCycle` | Retain the exact token; choose command-only, full end-player, or transition completion. Cast/Use defer charge until confirmation. Never add surface `FinishTurn`. |
+| Tactical combat | `FinishCombatAction` or its deferred token | Preserve exact encounter/actor identity; a free inner reprompt cannot consume an action, time, resources, or RNG. |
+| Application UI | Scene/modal owner | Do not infer a gameplay cost merely from opening or dismissing a dialog. |
+
+Two easy-to-miss exceptions: combat Ready dismissal, including Escape without
+equipment changes, completes one action **after cleanup**; explicit small-map
+Attack can retain its origin turn until tactical combat returns. Do not complete
+either by observing that a dialog or combat scene merely opened.
+
+### Verification Entry Points
+
+Use `cmd/ultimav/gamescene_command_context_routing_test.go` for bounded primary
+dispatch, `gamescene_direction_input_test.go` for ordinary versus specialized
+directions, and `gamescene_surface_completion_test.go` for immediate/deferred
+surface ownership. `gamescene_input_dungeon_test.go` covers retained dungeon
+tokens. `gamescene_combat_ready_test.go` and
+`gamescene_smallmap_combat_return_test.go` exercise the exceptions above.
+`gamescene_surface_direction_cancel_test.go` covers the free surface precommit
+Escape boundary; `gamescene_camping_cancellation_test.go` distinguishes cancelling
+guard selection from explicitly choosing No One, including dungeon precharge.
+Pair routing assertions with focused `internal/game_state/action_*` or workflow
+tests for the terminal effects; a routing test alone does not prove a full
+interaction or manual keyboard acceptance.
+
+## Key Files
+
+- `cmd/ultimav/gamescene.go`
+- `cmd/ultimav/gamescene_input.go`
+- `cmd/ultimav/gamescene_input_common.go`
+- `cmd/ultimav/gamescene_input_smallmap.go`
+- `cmd/ultimav/gamescene_input_largemap.go`
+- `cmd/ultimav/gamescene_input_combat.go`
+- `cmd/ultimav/gamescene_input_dungeon.go`
+- `cmd/ultimav/gamescene_dialog_helpers.go`
+- `pkg/input/keyboard.go`
+- `internal/game_state/action_*.go`

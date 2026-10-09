@@ -1,0 +1,23 @@
+package fixture
+
+import "os"
+
+func BlankError() {
+	_ = os.Chdir(".") // want: errcheck
+}
+
+func UncheckedAssertion(value any) string {
+	return value.(string) // want: errcheck
+}
+
+func CheckedError() error {
+	if err := os.Chdir("."); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CheckedAssertion(value any) (string, bool) {
+	text, ok := value.(string)
+	return text, ok
+}

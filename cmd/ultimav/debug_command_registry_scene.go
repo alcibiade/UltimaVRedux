@@ -1,0 +1,413 @@
+package main
+
+import (
+	"github.com/bradhannah/UltimaVRedux/internal/debugging"
+)
+
+func registerCoreSceneDebugCommands(registry *debugCommandRegistry) {
+	coreHandler := func(context debugCommandContext, request debugging.Request) debugging.Result {
+		if request.CommandID == debugging.CommandMoongateStatus {
+			return executeMoongateStatusWithOverlay(
+				request,
+				context.scene.gameState,
+				context.scene.overlayRenderer.IsMoonstoneOverlayEnabled(),
+			)
+		}
+
+		return executeDebugCommand(context.scene.gameState, request)
+	}
+	registry.registerGroup("core gameplay", debugCommandScene, coreHandler,
+		debugging.CommandEnvironmentWindStatus,
+		debugging.CommandEnvironmentWindSet,
+		debugging.CommandShrineStatus,
+		debugging.CommandShrineProgressUpdate,
+		debugging.CommandPartyCharacterInspect,
+		debugging.CommandPartyCharacterUpdate,
+		debugging.CommandPartyKarmaSet,
+		debugging.CommandCalendarStatus,
+		debugging.CommandCalendarSetTime,
+		debugging.CommandCalendarSetDay,
+		debugging.CommandSearchStatus,
+		debugging.CommandSearchItemStackAdd,
+		debugging.CommandSearchProgressReset,
+		debugging.CommandQuestItemStatus,
+		debugging.CommandWorldPositionStatus,
+		debugging.CommandMoongateStatus,
+	)
+	for _, commandID := range []string{debugging.CommandQuestItemEnsure, debugging.CommandQuestItemRemove,
+		debugging.CommandMovementTeleport} {
+		registry.registerScene(commandID, "core gameplay", coreHandler, ritualStateMutationGuard, nil)
+	}
+	for _, commandID := range []string{debugging.CommandPartyMaximizeLevels, debugging.CommandPartyStatusSet,
+		debugging.CommandPartyFill, debugging.CommandPartyMemberAdd} {
+		registry.registerScene(commandID, "party roster", coreHandler, nil, resolvePartyRosterRuntime)
+	}
+	registry.registerScene(
+		debugging.CommandPartyEquipmentLoadoutUpdate,
+		"party equipment",
+		coreHandler,
+		equipmentMutationGuard,
+		resolvePartyEquipmentRuntime,
+	)
+}
+
+func registerSecondBatchDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("scene tools", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeSecondBatchSceneDebugCommand(request)
+		}),
+		debugging.CommandConversationScriptCatalog,
+		debugging.CommandConversationScriptInspect,
+		debugging.CommandVFXStatus,
+		debugging.CommandVFXKapow,
+		debugging.CommandVFXProjectile,
+		debugging.CommandEnvironmentEarthquake,
+	)
+	stateHandler := func(context debugCommandContext, request debugging.Request) debugging.Result {
+		return executeSecondBatchStateDebugCommand(request, context.scene.gameState)
+	}
+	registry.registerGroup("game state tools", debugCommandScene, stateHandler,
+		debugging.CommandCombatEncounterOptions,
+		debugging.CommandCombatEncounterStart,
+		debugging.CommandMonsterEcosystemStatus,
+		debugging.CommandMonsterGenerationSet,
+		debugging.CommandMonsterClearMapEnemies,
+		debugging.CommandMonsterSpawnWhirlpool,
+		debugging.CommandMonsterSpawnPirate,
+		debugging.CommandVehicleStatus,
+		debugging.CommandVehicleSpawn,
+		debugging.CommandVehicleForceBoard,
+		debugging.CommandShipDamageRaw,
+		debugging.CommandShipRepairFull,
+		debugging.CommandShipSkiffSet,
+	)
+}
+
+func registerThirdBatchDebugCommands(registry *debugCommandRegistry) {
+	handler := sceneHandledDebugCommand(func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+		return scene.executeThirdBatchDebugCommand(request)
+	})
+	registry.registerScene(debugging.CommandTestHoleUp, "hole-up workflow", handler, nil, resolveHoleUpRuntime)
+	registry.registerGroup("command workflows", debugCommandScene, handler,
+		debugging.CommandTestSearch,
+		debugging.CommandMoongateTravel,
+	)
+}
+
+func registerFourthBatchDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("quest workflows", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeFourthBatchDebugCommand(request)
+		}),
+		debugging.CommandQuestShardUse,
+		debugging.CommandQuestInventoryPresetUsable,
+	)
+}
+
+func registerFifthBatchDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("observation workflows", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeFifthBatchDebugCommand(request)
+		}),
+		debugging.CommandTestTelescope,
+		debugging.CommandTestSpyglass,
+		debugging.CommandTestCrystalBall,
+	)
+}
+
+func registerSixthBatchDebugCommands(registry *debugCommandRegistry) {
+	handler := sceneHandledDebugCommand(func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+		return scene.executeSixthBatchDebugCommand(request)
+	})
+	registry.registerScene(debugging.CommandDeathKillParty, "death testing", handler, nil, resolveDeathRuntime)
+	registry.registerScene(debugging.CommandDeathTestSequence, "death testing", handler, nil, resolveDeathRuntime)
+}
+
+func registerSeventhBatchDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("quest state", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeSeventhBatchDebugCommand(request)
+		}),
+		debugging.CommandCodexQuestStateSetAll,
+	)
+}
+
+func registerScenarioDebugCommands(registry *debugCommandRegistry) {
+	handler := sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeScenarioDebugCommand(request)
+		})
+	registry.registerGroup("scenario lab", debugCommandScene, handler,
+		debugging.CommandScenarioStatus,
+		debugging.CommandScenarioStarvationTrigger,
+		debugging.CommandScenarioStarvationHourly,
+		debugging.CommandScenarioGuardsActivate,
+		debugging.CommandScenarioWaterfallSetup,
+		debugging.CommandScenarioBridgeTroll,
+		debugging.CommandScenarioWordSetup,
+	)
+	registry.registerScene(
+		debugging.CommandScenarioBlackthornInterrogation,
+		"scenario lab",
+		handler,
+		nil,
+		resolveScriptedSceneRuntime,
+	)
+	registry.registerScene(
+		debugging.CommandScenarioLordBritishFinale,
+		"scenario lab",
+		handler,
+		nil,
+		resolveScriptedSceneRuntime,
+	)
+}
+
+func registerWorldSetupDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("world setup", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeWorldSetupDebugCommand(request)
+		}),
+		debugging.CommandMovementEnterLocation,
+		debugging.CommandMovementFloorSet,
+		debugging.CommandMovementLandmarkTravel,
+	)
+}
+
+func registerWorldDungeonExplorerDebugCommands(registry *debugCommandRegistry) {
+	handler := sceneHandledDebugCommand(func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+		return scene.executeWorldDungeonExplorerDebugCommand(request)
+	})
+	registry.registerScene(debugging.CommandWorldPositionSet, "world navigator", handler, nil, resolveWorldPositionRuntime)
+	registry.registerGroup("dungeon explorer", debugCommandScene, handler, debugging.CommandDungeonExplorerStatus)
+	registry.registerScene(
+		debugging.CommandDungeonExplorerSetup,
+		"dungeon explorer",
+		handler,
+		nil,
+		resolveDungeonSetupRuntime,
+	)
+}
+
+func registerOperationalDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("operations", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeOperationalDebugCommand(request)
+		}),
+		debugging.CommandGuardsStatus,
+		debugging.CommandShadowlordStatus,
+		debugging.CommandDeathStatus,
+		debugging.CommandDebugOptionsStatus,
+		debugging.CommandMovementFreeMoveSet,
+		debugging.CommandTextPlaceholdersSet,
+		debugging.CommandDialogBoundsSet,
+		debugging.CommandUnlimitedCastingResourcesSet,
+		debugging.CommandSpellLevelRestrictionsBypassSet,
+	)
+}
+
+func registerPresentationDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("presentation", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executePresentationDebugCommand(request)
+		}),
+		debugging.CommandLightingOverlaySet,
+		debugging.CommandSearchOverlaySet,
+		debugging.CommandMoongateOverlaySet,
+		debugging.CommandCombatPresentationSpeedSet,
+	)
+}
+
+func registerInventoryLockerDebugCommands(registry *debugCommandRegistry) {
+	handler := func(context debugCommandContext, request debugging.Request) debugging.Result {
+		result, handled := executeInventoryLockerDebugCommand(request, context.scene.gameState)
+		if !handled {
+			panic("registered inventory locker command was not handled: " + request.CommandID)
+		}
+
+		return result
+	}
+	registry.registerGroup("inventory locker", debugCommandScene, handler,
+		debugging.CommandInventoryLockerStatus,
+		debugging.CommandInventoryProvisionSet,
+		debugging.CommandInventoryProvisionPreset,
+		debugging.CommandInventoryReagentSet,
+		debugging.CommandInventoryReagentPreset,
+		debugging.CommandInventoryPotionAdd,
+		debugging.CommandInventoryPotionPreset,
+		debugging.CommandInventoryScrollAdd,
+		debugging.CommandInventoryScrollPreset,
+		debugging.CommandInventoryEquipmentSet,
+		debugging.CommandInventoryEquipmentPreset,
+		debugging.CommandInventoryEquipmentGrantPreset,
+	)
+	registry.registerScene(
+		debugging.CommandInventoryEquipmentClear,
+		"inventory locker",
+		handler,
+		equipmentMutationGuard,
+		nil,
+	)
+}
+
+func registerSpellDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("prepared spells", debugCommandScene, func(
+		context debugCommandContext,
+		request debugging.Request,
+	) debugging.Result {
+		result, handled := executeSpellDebugCommand(request, context.scene.gameState)
+		if !handled {
+			panic("registered spell command was not handled: " + request.CommandID)
+		}
+
+		return result
+	},
+		debugging.CommandInventorySpellStatus,
+		debugging.CommandInventorySpellSet,
+		debugging.CommandInventorySpellPresetMax,
+		debugging.CommandSpellEffectSetRemaining,
+		debugging.CommandSpellEffectActivate,
+	)
+}
+
+func registerActiveCombatDebugCommands(registry *debugCommandRegistry) {
+	handler := func(context debugCommandContext, request debugging.Request) debugging.Result {
+		if request.CommandID == debugging.CommandCombatStatus {
+			data := newActiveCombatResult(context.scene.gameState)
+			data.PresentationSpeedPercent = int(
+				context.scene.gameConfig.DebugConfiguration.GetCombatMovementSpeedFactor() * debugPercentScale,
+			)
+
+			return debugSuccessResult(request, "Active combat status loaded.", data)
+		}
+		result, handled := executeActiveCombatDebugCommand(request, context.scene.gameState)
+		if !handled {
+			panic("registered active combat command was not handled: " + request.CommandID)
+		}
+
+		return result
+	}
+	registry.registerGroup("active combat", debugCommandScene, handler,
+		debugging.CommandCombatStatus,
+		debugging.CommandRNGSeedSet,
+		debugging.CommandCombatMonsterDamageRaw,
+		debugging.CommandCombatMonsterKill,
+		debugging.CommandCombatMonsterKillAll,
+		debugging.CommandCombatMonsterClear,
+	)
+	for _, commandID := range []string{
+		debugging.CommandCombatMonsterSleepSet,
+		debugging.CommandCombatExitDebug,
+		debugging.CommandCombatMonsterSpawn,
+		debugging.CommandCombatDungeonRoomClear,
+	} {
+		registry.registerScene(commandID, "active combat", handler, activeCombatMutationGuard, nil)
+	}
+}
+
+func registerMerchantTesterDebugCommands(registry *debugCommandRegistry) {
+	registry.registerGroup("merchant tester", debugCommandScene, sceneHandledDebugCommand(
+		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
+			return scene.executeMerchantTesterDebugCommand(request)
+		}),
+		debugging.CommandMerchantTesterCatalog,
+		debugging.CommandMerchantTesterPreviewOpen,
+		debugging.CommandMerchantTesterLiveOpen,
+	)
+}
+
+func ritualStateMutationGuard(scene *GameScene, request debugging.Request) *debugging.Result {
+	return scene.thirdBatchWorkflowBlocked(request)
+}
+
+func equipmentMutationGuard(scene *GameScene, request debugging.Request) *debugging.Result {
+	if scene.dialogStack.HasOpenDialog() {
+		result := debugging.FailureResult(
+			request, "dialog_active", "equipment mutation is unavailable while a dialog is open",
+		)
+
+		return &result
+	}
+	if scene.gameState.EventQueueManager.HasActiveWorkflows() {
+		result := debugging.FailureResult(
+			request, "gameplay_workflow_active", "equipment mutation is unavailable during a gameplay workflow",
+		)
+
+		return &result
+	}
+
+	return nil
+}
+
+func activeCombatMutationGuard(scene *GameScene, request debugging.Request) *debugging.Result {
+	if scene.dialogStack.HasOpenDialog() {
+		result := debugging.FailureResult(
+			request, "dialog_active", "active combat mutations are unavailable while a dialog is open",
+		)
+
+		return &result
+	}
+	if scene.combatMovement.Active {
+		result := debugging.FailureResult(
+			request, "combat_busy", "active combat mutations are unavailable during movement",
+		)
+
+		return &result
+	}
+
+	return nil
+}
+
+func resolvePartyRosterRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	request.Arguments["expectedFingerprint"] = mustDebugJSON(scene.gameState.CurrentPartyRosterSnapshot().Fingerprint)
+
+	return request, nil
+}
+
+func resolveHoleUpRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	request.Arguments["expectedPartyFingerprint"] = mustDebugJSON(scene.gameState.CurrentPartyRosterSnapshot().Fingerprint)
+
+	return request, nil
+}
+
+func resolveDeathRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	request.Arguments["expectedFingerprint"] = mustDebugJSON(scene.gameState.ReviewActivePartyWipe().Fingerprint)
+
+	return request, nil
+}
+
+func resolvePartyEquipmentRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	request.Arguments[inventoryExpectedSnapshotArgument] = mustDebugJSON(
+		newInventoryLockerResult(scene.gameState).SnapshotFingerprint,
+	)
+
+	return request, nil
+}
+
+func resolveScriptedSceneRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	request.Arguments["expectedPartyFingerprint"] = mustDebugJSON(
+		scene.gameState.CurrentPartyRosterSnapshot().Fingerprint,
+	)
+
+	return request, nil
+}
+
+func resolveWorldPositionRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	current := scene.gameState.MapState.PlayerLocation
+	request.Arguments["expectedLocationId"] = mustDebugJSON(int(current.Location))
+	request.Arguments["expectedFloor"] = mustDebugJSON(int(current.Floor))
+	request.Arguments["expectedX"] = mustDebugJSON(int(current.Position.X))
+	request.Arguments["expectedY"] = mustDebugJSON(int(current.Position.Y))
+	request.Arguments["expectedSourceFingerprint"] = mustDebugJSON(debugWorldSourceFingerprint(scene.gameState))
+
+	return request, nil
+}
+
+func resolveDungeonSetupRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
+	request, err := resolveWorldPositionRuntime(scene, request)
+	if err != nil {
+		return request, err
+	}
+	request.Arguments["expectedDungeonRevision"] = mustDebugJSON(currentDungeonRevision(scene.gameState))
+
+	return request, nil
+}

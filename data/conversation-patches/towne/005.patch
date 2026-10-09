@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/005.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: cf98d767dd66d31a00dd7006e8f7d4af56074b1dbaf5223d1b4ba9367591571f
+--- a/towne/005.yaml
++++ b/towne/005.yaml
+@@ -72,4 +72,5 @@
+               - text: '''Tis an enchantment of the Second Circle, and is intoned '
+               - runic: IN XEN MANI
+               - text: ', requiring ginseng, garlic and mandrake root.'
++          - discover_knowledge: spell.in_xen_mani
+     default: Must be on a diet!

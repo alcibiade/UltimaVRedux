@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/012.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 5788baf8b74693b739ecee12bdfb4e799a2eefd5e208dda7e2fc35528e6fea7e
+--- a/towne/012.yaml
++++ b/towne/012.yaml
+@@ -101,6 +101,7 @@
+               - text: The Word is
+               - runic: ' VILIS'
+               - text: ', and remember, it can be used to open the dungeon Despise! '
++          - discover_knowledge: dungeon.despise.word_of_power
+           - narrate:
+               - line_break
+               - line_break

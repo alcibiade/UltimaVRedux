@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/026.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: f4fbc98f95ec03d0f6bf9c14e06a5f4c360a05c8efdb25c297026e04554224ec
+--- a/towne/026.yaml
++++ b/towne/026.yaml
+@@ -113,4 +113,5 @@
+               - text: The Word of Power to open the dungeon of Covetous is
+               - runic: ' AVIDUS'
+               - text: '!'
++          - discover_knowledge: dungeon.covetous.word_of_power
+     default: Sorry, I know that not.

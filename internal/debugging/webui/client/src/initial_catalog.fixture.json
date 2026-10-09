@@ -1,0 +1,7355 @@
+[
+  {
+    "id": "environment.wind.status",
+    "category": "Environment",
+    "name": "Wind Status",
+    "description": "Show the current wind direction.",
+    "aliases": [
+      "env wind",
+      "wind"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "environment.wind.set",
+    "category": "Environment",
+    "name": "Set Wind",
+    "description": "Set the current wind direction without consuming a scroll or advancing time.",
+    "aliases": [
+      "env wind set",
+      "set wind"
+    ],
+    "parameters": [
+      {
+        "id": "direction",
+        "name": "Direction",
+        "description": "Choose the new live wind direction.",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "calm",
+            "label": "Calm"
+          },
+          {
+            "value": "north",
+            "label": "North"
+          },
+          {
+            "value": "east",
+            "label": "East"
+          },
+          {
+            "value": "south",
+            "label": "South"
+          },
+          {
+            "value": "west",
+            "label": "West"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.map-catalog.all",
+    "category": "Combat",
+    "name": "Combat Map Catalog",
+    "description": "List Britannia combat maps and dungeon room ranges.",
+    "aliases": [
+      "combat list",
+      "combat list brit",
+      "combat list dungeons"
+    ],
+    "parameters": [
+      {
+        "id": "section",
+        "name": "Map Section",
+        "description": "Choose which combat-map family to list.",
+        "kind": "enum",
+        "required": false,
+        "default": "all",
+        "choices": [
+          {
+            "value": "all",
+            "label": "All Maps"
+          },
+          {
+            "value": "britannia",
+            "label": "Britannia"
+          },
+          {
+            "value": "dungeons",
+            "label": "Dungeons"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "logging.status",
+    "category": "Diagnostics",
+    "name": "Logging Status",
+    "description": "Show global logging, level, output, and category state.",
+    "aliases": [
+      "debug status",
+      "logging status"
+    ],
+    "searchTerms": [
+      "logs",
+      "console",
+      "categories",
+      "stdout",
+      "verbosity",
+      "logging"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "shrine.reference.inspect",
+    "category": "Shrines",
+    "name": "Shrine Reference",
+    "description": "Inspect static reference data for one virtue shrine.",
+    "aliases": [
+      "shrine data"
+    ],
+    "parameters": [
+      {
+        "id": "index",
+        "name": "Shrine",
+        "description": "Choose a virtue shrine.",
+        "kind": "enum",
+        "required": true,
+        "default": "0",
+        "choices": [
+          {
+            "value": "0",
+            "label": "Honesty"
+          },
+          {
+            "value": "1",
+            "label": "Compassion"
+          },
+          {
+            "value": "2",
+            "label": "Valour"
+          },
+          {
+            "value": "3",
+            "label": "Justice"
+          },
+          {
+            "value": "4",
+            "label": "Sacrifice"
+          },
+          {
+            "value": "5",
+            "label": "Honor"
+          },
+          {
+            "value": "6",
+            "label": "Spirituality"
+          },
+          {
+            "value": "7",
+            "label": "Humility"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "shrine.status",
+    "category": "Shrines",
+    "name": "Shrine Atlas",
+    "description": "Inspect immutable shrine reference data alongside current progression state.",
+    "aliases": [
+      "shrine status",
+      "shrine atlas"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "shrine.progress.update",
+    "category": "Shrines",
+    "name": "Shrine Progress Alteration",
+    "description": "Atomically update actual shrine quest and ruined-state variables without awarding rewards.",
+    "aliases": [
+      "shrine quest",
+      "shrine ruin",
+      "shrine restore"
+    ],
+    "parameters": [
+      {
+        "id": "index",
+        "name": "Shrine",
+        "description": "Choose the shrine whose live progression state will change.",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Honesty"
+          },
+          {
+            "value": "1",
+            "label": "Compassion"
+          },
+          {
+            "value": "2",
+            "label": "Valour"
+          },
+          {
+            "value": "3",
+            "label": "Justice"
+          },
+          {
+            "value": "4",
+            "label": "Sacrifice"
+          },
+          {
+            "value": "5",
+            "label": "Honor"
+          },
+          {
+            "value": "6",
+            "label": "Spirituality"
+          },
+          {
+            "value": "7",
+            "label": "Humility"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "questState",
+        "name": "Quest State",
+        "description": "Set the normalized completed/active flag combination without replaying rewards.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "not_assigned",
+            "label": "Not Assigned"
+          },
+          {
+            "value": "assigned",
+            "label": "Assigned / Seeking Codex"
+          },
+          {
+            "value": "ready_to_complete",
+            "label": "Ready to Complete"
+          },
+          {
+            "value": "offering",
+            "label": "Completed / Offering"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "ruined",
+        "name": "Shrine Condition",
+        "description": "Set whether Blackthorn has ruined the shrine.",
+        "kind": "boolean",
+        "required": false,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "party.character.inspect",
+    "category": "Party",
+    "name": "Party Character Roster",
+    "description": "Inspect the detached full roster, stable numeric indices, and review fingerprint.",
+    "aliases": [
+      "pc inspect",
+      "party status"
+    ],
+    "searchTerms": [
+      "party",
+      "characters",
+      "stats",
+      "hp",
+      "mp",
+      "experience",
+      "roster",
+      "karma"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "party.character.update",
+    "category": "Party",
+    "name": "Character Alteration",
+    "description": "Atomically update safe character attributes, resources, status, or party position. Combat permits current HP and MP only.",
+    "aliases": [
+      "pc stats",
+      "pc status",
+      "new order"
+    ],
+    "searchTerms": [
+      "party",
+      "characters",
+      "stats",
+      "hp",
+      "mp",
+      "experience",
+      "roster",
+      "karma"
+    ],
+    "parameters": [
+      {
+        "id": "character",
+        "name": "Character",
+        "description": "Select a current active-party member.",
+        "kind": "character",
+        "required": true,
+        "optionsProvider": "party.active-characters",
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioChoices": [
+          {
+            "value": "1",
+            "label": "Party Position 1"
+          },
+          {
+            "value": "2",
+            "label": "Party Position 2"
+          },
+          {
+            "value": "3",
+            "label": "Party Position 3"
+          },
+          {
+            "value": "4",
+            "label": "Party Position 4"
+          },
+          {
+            "value": "5",
+            "label": "Party Position 5"
+          },
+          {
+            "value": "6",
+            "label": "Party Position 6"
+          }
+        ],
+        "scenarioValueResolver": "active-party-position"
+      },
+      {
+        "id": "strength",
+        "name": "Strength",
+        "description": "Leave unset to preserve the current value.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 30,
+        "controlHint": "number"
+      },
+      {
+        "id": "dexterity",
+        "name": "Dexterity",
+        "description": "Leave unset to preserve the current value.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 30,
+        "controlHint": "number"
+      },
+      {
+        "id": "intelligence",
+        "name": "Intelligence",
+        "description": "Lower values clamp current MP to the new maximum.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 30,
+        "controlHint": "number"
+      },
+      {
+        "id": "currentHp",
+        "name": "Current HP",
+        "description": "Exact living HP; zero and death transitions are intentionally excluded.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 240,
+        "controlHint": "number"
+      },
+      {
+        "id": "currentMp",
+        "name": "Current MP",
+        "description": "Exact MP, validated against the resulting Intelligence value.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 30,
+        "controlHint": "number"
+      },
+      {
+        "id": "experience",
+        "name": "Experience",
+        "description": "Exact XP without forcing level or maximum-HP progression.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      },
+      {
+        "id": "level",
+        "name": "Level",
+        "description": "Set level, minimum XP, and level-derived maximum HP without healing or stat boosts.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 8,
+        "controlHint": "select"
+      },
+      {
+        "id": "status",
+        "name": "Status",
+        "description": "Safe non-dead status; leave unset to preserve the current status.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "good",
+            "label": "Good"
+          },
+          {
+            "value": "poisoned",
+            "label": "Poisoned"
+          },
+          {
+            "value": "sleep",
+            "label": "Sleep"
+          },
+          {
+            "value": "charmed",
+            "label": "Charmed"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "partyPosition",
+        "name": "Party Position",
+        "description": "Swap with an occupied position; the Avatar must remain first.",
+        "kind": "enum",
+        "required": false,
+        "optionsProvider": "party.active-positions",
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "party.maximize-levels",
+    "category": "Party",
+    "name": "Maximize Active Levels",
+    "description": "Raise every reviewed active roster member to level eight and restore progression-derived resources.",
+    "aliases": [
+      "pc stats maxlevels"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Roster Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "party.status.set",
+    "category": "Party",
+    "name": "Set Party Status",
+    "description": "Atomically set an explicit status for one or a reviewed list of stable active roster indices.",
+    "aliases": [
+      "pc status"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Roster Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "rosterIndices",
+        "name": "Active Roster Indices",
+        "kind": "integer_list",
+        "required": true,
+        "minimum": 0,
+        "maximum": 15
+      },
+      {
+        "id": "status",
+        "name": "Status",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "good",
+            "label": "Good"
+          },
+          {
+            "value": "poisoned",
+            "label": "Poisoned"
+          },
+          {
+            "value": "sleep",
+            "label": "Sleep"
+          },
+          {
+            "value": "charmed",
+            "label": "Charmed"
+          },
+          {
+            "value": "dead",
+            "label": "Dead"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "party.fill",
+    "category": "Party",
+    "name": "Fill Active Party",
+    "description": "Fill every open active-party position from the reviewed roster using authoritative composition rules.",
+    "aliases": [
+      "pc party fill"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Roster Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "party.member.add",
+    "category": "Party",
+    "name": "Add Roster Member",
+    "description": "Add one reviewed inactive member by stable numeric roster index.",
+    "aliases": [
+      "pc party add"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Roster Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "rosterIndex",
+        "name": "Roster Index",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 15,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "calendar.status",
+    "category": "Calendar",
+    "name": "Calendar Status",
+    "description": "Show the current Britannian date, time, turn, and moon phase.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "calendar.set-time",
+    "category": "Calendar",
+    "name": "Set Calendar Time",
+    "description": "Set the exact hour and minute without advancing game time.",
+    "parameters": [
+      {
+        "id": "hour",
+        "name": "Hour",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 23,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "minute",
+        "name": "Minute",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 59,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "calendar.set-day",
+    "category": "Calendar",
+    "name": "Set Calendar Day",
+    "description": "Set the day of the current month without advancing game time.",
+    "parameters": [
+      {
+        "id": "day",
+        "name": "Day",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 28,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "search.status",
+    "category": "Search",
+    "name": "Nearby Search Status",
+    "description": "Inspect the Avatar's current and four adjacent cells, authentic search progress, and detached item stacks.",
+    "searchTerms": [
+      "find",
+      "nearby",
+      "hidden",
+      "secret",
+      "item stacks",
+      "search overlay"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "search.item-stack.add",
+    "category": "Search",
+    "name": "Add Search Item Stack",
+    "description": "Add or merge a supported provision at a logical coordinate on the current map.",
+    "parameters": [
+      {
+        "id": "x",
+        "name": "X",
+        "description": "Coordinate on the active map.",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "y",
+        "name": "Y",
+        "description": "Coordinate on the active map.",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "item",
+        "name": "Provision",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "gold",
+            "label": "Gold"
+          },
+          {
+            "value": "torches",
+            "label": "Torches"
+          },
+          {
+            "value": "keys",
+            "label": "Keys"
+          },
+          {
+            "value": "food",
+            "label": "Food"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "quantity",
+        "name": "Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "search.progress.reset",
+    "category": "Search",
+    "name": "Reset One-Time Search Progress",
+    "description": "Destructively clear only authentic one-time search-location found flags.",
+    "parameters": [
+      {
+        "id": "scope",
+        "name": "Scope",
+        "kind": "enum",
+        "required": true,
+        "default": "one_time_locations",
+        "choices": [
+          {
+            "value": "one_time_locations",
+            "label": "One-Time Locations"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "quest.item.status",
+    "category": "Quest Items",
+    "name": "Quest Item Status",
+    "description": "Show all authentic quest items, quantities, categories, and known canonical placements.",
+    "searchTerms": [
+      "artifacts",
+      "shards",
+      "quest inventory",
+      "special items"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "quest.item.ensure",
+    "category": "Quest Items",
+    "name": "Grant Quest Item",
+    "description": "Add one quest item only when it is absent.",
+    "parameters": [
+      {
+        "id": "item",
+        "name": "Quest Item",
+        "description": "Choose one stable quest-item identity.",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "amulet",
+            "label": "Amulet of Lord British"
+          },
+          {
+            "value": "crown",
+            "label": "Crown of Lord British"
+          },
+          {
+            "value": "sceptre",
+            "label": "Sceptre of Lord British"
+          },
+          {
+            "value": "shard_falsehood",
+            "label": "Shard of Falsehood"
+          },
+          {
+            "value": "shard_hatred",
+            "label": "Shard of Hatred"
+          },
+          {
+            "value": "shard_cowardice",
+            "label": "Shard of Cowardice"
+          },
+          {
+            "value": "carpet",
+            "label": "Magic Carpet"
+          },
+          {
+            "value": "grapple",
+            "label": "Grapple"
+          },
+          {
+            "value": "spyglass",
+            "label": "Spyglass"
+          },
+          {
+            "value": "hms_cape",
+            "label": "HMS Cape Plans"
+          },
+          {
+            "value": "pocket_watch",
+            "label": "Pocket Watch"
+          },
+          {
+            "value": "black_badge",
+            "label": "Black Badge"
+          },
+          {
+            "value": "wooden_box",
+            "label": "Wooden Box"
+          },
+          {
+            "value": "sextant",
+            "label": "Sextant"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "quest.item.remove",
+    "category": "Quest Items",
+    "name": "Remove Quest Item",
+    "description": "Destructively remove the complete quantity of one quest item from inventory.",
+    "parameters": [
+      {
+        "id": "item",
+        "name": "Quest Item",
+        "description": "Choose one stable quest-item identity.",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "amulet",
+            "label": "Amulet of Lord British"
+          },
+          {
+            "value": "crown",
+            "label": "Crown of Lord British"
+          },
+          {
+            "value": "sceptre",
+            "label": "Sceptre of Lord British"
+          },
+          {
+            "value": "shard_falsehood",
+            "label": "Shard of Falsehood"
+          },
+          {
+            "value": "shard_hatred",
+            "label": "Shard of Hatred"
+          },
+          {
+            "value": "shard_cowardice",
+            "label": "Shard of Cowardice"
+          },
+          {
+            "value": "carpet",
+            "label": "Magic Carpet"
+          },
+          {
+            "value": "grapple",
+            "label": "Grapple"
+          },
+          {
+            "value": "spyglass",
+            "label": "Spyglass"
+          },
+          {
+            "value": "hms_cape",
+            "label": "HMS Cape Plans"
+          },
+          {
+            "value": "pocket_watch",
+            "label": "Pocket Watch"
+          },
+          {
+            "value": "black_badge",
+            "label": "Black Badge"
+          },
+          {
+            "value": "wooden_box",
+            "label": "Wooden Box"
+          },
+          {
+            "value": "sextant",
+            "label": "Sextant"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "world.position.status",
+    "category": "World",
+    "name": "Position Status",
+    "description": "Show current location, map type, coordinates, logical maxima, and available floor range.",
+    "searchTerms": [
+      "teleport",
+      "travel",
+      "map",
+      "location",
+      "coordinates",
+      "floor",
+      "navigator"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "movement.teleport",
+    "category": "Movement",
+    "name": "Same-Map Teleport",
+    "description": "Teleport to a validated coordinate on the current map without changing map or floor.",
+    "parameters": [
+      {
+        "id": "x",
+        "name": "X",
+        "description": "Coordinate on the active map.",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "y",
+        "name": "Y",
+        "description": "Coordinate on the active map.",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "movement.enter-location",
+    "category": "Movement",
+    "name": "Enter Named Location",
+    "description": "Transition directly to a supported small-map entry point without simulating travel time.",
+    "aliases": [
+      "mv gos"
+    ],
+    "parameters": [
+      {
+        "id": "location",
+        "name": "Location",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "1",
+            "label": "Moonglow"
+          },
+          {
+            "value": "2",
+            "label": "Britain"
+          },
+          {
+            "value": "3",
+            "label": "Jhelom"
+          },
+          {
+            "value": "4",
+            "label": "Yew"
+          },
+          {
+            "value": "5",
+            "label": "Minoc"
+          },
+          {
+            "value": "6",
+            "label": "Trinsic"
+          },
+          {
+            "value": "7",
+            "label": "SkaraBrae"
+          },
+          {
+            "value": "8",
+            "label": "NewMagincia"
+          },
+          {
+            "value": "9",
+            "label": "Fogsbane"
+          },
+          {
+            "value": "10",
+            "label": "Stormcrow"
+          },
+          {
+            "value": "11",
+            "label": "Greyhaven"
+          },
+          {
+            "value": "12",
+            "label": "Waveguide"
+          },
+          {
+            "value": "13",
+            "label": "IolosHut"
+          },
+          {
+            "value": "14",
+            "label": "SuteksHut"
+          },
+          {
+            "value": "15",
+            "label": "SinVraalsHut"
+          },
+          {
+            "value": "16",
+            "label": "GrendelsHut"
+          },
+          {
+            "value": "17",
+            "label": "LordBritishsCastle"
+          },
+          {
+            "value": "18",
+            "label": "PalaceOfBlackthorn"
+          },
+          {
+            "value": "19",
+            "label": "WestBritanny"
+          },
+          {
+            "value": "20",
+            "label": "NorthBritanny"
+          },
+          {
+            "value": "21",
+            "label": "EastBritanny"
+          },
+          {
+            "value": "22",
+            "label": "Paws"
+          },
+          {
+            "value": "23",
+            "label": "Cove"
+          },
+          {
+            "value": "24",
+            "label": "BuccaneersDen"
+          },
+          {
+            "value": "25",
+            "label": "Ararat"
+          },
+          {
+            "value": "26",
+            "label": "Bordermarch"
+          },
+          {
+            "value": "27",
+            "label": "Farthing"
+          },
+          {
+            "value": "28",
+            "label": "Windemere"
+          },
+          {
+            "value": "29",
+            "label": "Stonegate"
+          },
+          {
+            "value": "30",
+            "label": "Lycaeum"
+          },
+          {
+            "value": "31",
+            "label": "EmpathAbbey"
+          },
+          {
+            "value": "32",
+            "label": "SerpentsHold"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "movement.floor.set",
+    "category": "Movement",
+    "name": "Set Exact Floor",
+    "description": "Transition to one exact valid floor without climbing or advancing time.",
+    "aliases": [
+      "mv floor",
+      "mv floor up",
+      "mv floor down"
+    ],
+    "parameters": [
+      {
+        "id": "floor",
+        "name": "Floor",
+        "kind": "integer",
+        "required": true,
+        "minimum": -1,
+        "maximum": 3,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "movement.landmark.travel",
+    "category": "Movement",
+    "name": "Travel to Landmark",
+    "description": "Transition to a curated shrine, quest, or Flame landmark without simulating travel time.",
+    "aliases": [
+      "mv special shrine"
+    ],
+    "parameters": [
+      {
+        "id": "landmark",
+        "name": "Landmark",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "honesty",
+            "label": "Shrine of Honesty"
+          },
+          {
+            "value": "compassion",
+            "label": "Shrine of Compassion"
+          },
+          {
+            "value": "valour",
+            "label": "Shrine of Valour"
+          },
+          {
+            "value": "justice",
+            "label": "Shrine of Justice"
+          },
+          {
+            "value": "sacrifice",
+            "label": "Shrine of Sacrifice"
+          },
+          {
+            "value": "honor",
+            "label": "Shrine of Honor"
+          },
+          {
+            "value": "humility",
+            "label": "Shrine of Humility"
+          },
+          {
+            "value": "codex",
+            "label": "Shrine of the Codex"
+          },
+          {
+            "value": "lord_british_secret_room",
+            "label": "Lord British's Secret Room"
+          },
+          {
+            "value": "flame_truth",
+            "label": "Flame of Truth (Lycaeum)"
+          },
+          {
+            "value": "flame_love",
+            "label": "Flame of Love (Empath Abbey)"
+          },
+          {
+            "value": "flame_courage",
+            "label": "Flame of Courage (Serpent's Hold)"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "moongate.status",
+    "category": "Moongates",
+    "name": "Moongate Status",
+    "description": "Show current phase, visibility, activation state, all moonstones, and the computed destination without travelling.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "conversation.script.catalog",
+    "category": "Conversations",
+    "name": "Conversation Script Catalog",
+    "description": "List loaded runtime semantic conversations for one original source.",
+    "searchTerms": [
+      "talk",
+      "dialogue",
+      "dialog",
+      "npc",
+      "tlk",
+      "conversation"
+    ],
+    "parameters": [
+      {
+        "id": "source",
+        "name": "Source",
+        "kind": "enum",
+        "required": false,
+        "default": "towne",
+        "choices": [
+          {
+            "value": "castle",
+            "label": "Castle"
+          },
+          {
+            "value": "keep",
+            "label": "Keep"
+          },
+          {
+            "value": "towne",
+            "label": "Towne"
+          },
+          {
+            "value": "dwelling",
+            "label": "Dwelling"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "conversation.script.inspect",
+    "category": "Conversations",
+    "name": "Inspect Conversation Script",
+    "description": "Inspect the exact patched semantic document executed by Redux.",
+    "parameters": [
+      {
+        "id": "source",
+        "name": "Source",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "castle",
+            "label": "Castle"
+          },
+          {
+            "value": "keep",
+            "label": "Keep"
+          },
+          {
+            "value": "towne",
+            "label": "Towne"
+          },
+          {
+            "value": "dwelling",
+            "label": "Dwelling"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "index",
+        "name": "Script Index",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 47,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.encounter.options",
+    "category": "Combat",
+    "name": "Encounter Options",
+    "description": "List maps, entry directions, count modes, and spawnable monsters.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.encounter.start",
+    "category": "Combat",
+    "name": "Start Encounter",
+    "description": "Validate, compose, and synchronously start a tactical encounter.",
+    "parameters": [
+      {
+        "id": "territory",
+        "name": "Territory",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "britannia",
+            "label": "Britannia"
+          },
+          {
+            "value": "dungeon",
+            "label": "Dungeon"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "britanniaMap",
+        "name": "Britannia Map",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 15,
+        "controlHint": "number"
+      },
+      {
+        "id": "dungeon",
+        "name": "Dungeon",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 6,
+        "controlHint": "number"
+      },
+      {
+        "id": "dungeonRoom",
+        "name": "Dungeon Room",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 15,
+        "controlHint": "number"
+      },
+      {
+        "id": "entryDirection",
+        "name": "Entry Direction",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "west",
+            "label": "West"
+          },
+          {
+            "value": "east",
+            "label": "East"
+          },
+          {
+            "value": "north",
+            "label": "North"
+          },
+          {
+            "value": "south",
+            "label": "South"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "monsterType",
+        "name": "Monster",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Mage"
+          },
+          {
+            "value": "1",
+            "label": "Bard"
+          },
+          {
+            "value": "2",
+            "label": "Fighter"
+          },
+          {
+            "value": "3",
+            "label": "Avatar"
+          },
+          {
+            "value": "4",
+            "label": "Villager"
+          },
+          {
+            "value": "5",
+            "label": "Merchant"
+          },
+          {
+            "value": "6",
+            "label": "Jester"
+          },
+          {
+            "value": "7",
+            "label": "Bard"
+          },
+          {
+            "value": "8",
+            "label": "Pirate"
+          },
+          {
+            "value": "9",
+            "label": "Prisoner"
+          },
+          {
+            "value": "10",
+            "label": "Child"
+          },
+          {
+            "value": "11",
+            "label": "Beggar"
+          },
+          {
+            "value": "12",
+            "label": "Guard"
+          },
+          {
+            "value": "13",
+            "label": "Wanderer"
+          },
+          {
+            "value": "14",
+            "label": "Blackthorn"
+          },
+          {
+            "value": "15",
+            "label": "Lord British"
+          },
+          {
+            "value": "16",
+            "label": "Sea Horse"
+          },
+          {
+            "value": "17",
+            "label": "Squid"
+          },
+          {
+            "value": "18",
+            "label": "Sea Serpent"
+          },
+          {
+            "value": "19",
+            "label": "Shark"
+          },
+          {
+            "value": "20",
+            "label": "Rat"
+          },
+          {
+            "value": "21",
+            "label": "Bat"
+          },
+          {
+            "value": "22",
+            "label": "Spider"
+          },
+          {
+            "value": "23",
+            "label": "Ghost"
+          },
+          {
+            "value": "24",
+            "label": "Slime"
+          },
+          {
+            "value": "25",
+            "label": "Gremlin"
+          },
+          {
+            "value": "26",
+            "label": "Mimic"
+          },
+          {
+            "value": "27",
+            "label": "Reaper"
+          },
+          {
+            "value": "28",
+            "label": "Gazer"
+          },
+          {
+            "value": "29",
+            "label": "Crawler"
+          },
+          {
+            "value": "30",
+            "label": "Gargoyle"
+          },
+          {
+            "value": "31",
+            "label": "Insect"
+          },
+          {
+            "value": "32",
+            "label": "Orc"
+          },
+          {
+            "value": "33",
+            "label": "Skeleton"
+          },
+          {
+            "value": "34",
+            "label": "Snake"
+          },
+          {
+            "value": "35",
+            "label": "Ettin"
+          },
+          {
+            "value": "36",
+            "label": "Headless"
+          },
+          {
+            "value": "37",
+            "label": "Wisp"
+          },
+          {
+            "value": "38",
+            "label": "Daemon"
+          },
+          {
+            "value": "39",
+            "label": "Dragon"
+          },
+          {
+            "value": "40",
+            "label": "Sand Trap"
+          },
+          {
+            "value": "41",
+            "label": "Troll"
+          },
+          {
+            "value": "42",
+            "label": "Force Field"
+          },
+          {
+            "value": "43",
+            "label": "Whirlpool"
+          },
+          {
+            "value": "44",
+            "label": "Mongbat"
+          },
+          {
+            "value": "45",
+            "label": "Corpser"
+          },
+          {
+            "value": "46",
+            "label": "Rot Worm"
+          },
+          {
+            "value": "47",
+            "label": "Shadowlord"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "countMode",
+        "name": "Count Mode",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "automatic",
+            "label": "Automatic"
+          },
+          {
+            "value": "exact",
+            "label": "Exact"
+          },
+          {
+            "value": "maximum",
+            "label": "Maximum"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "exactCount",
+        "name": "Exact Count",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 16,
+        "controlHint": "number"
+      },
+      {
+        "id": "friends",
+        "name": "Include Friends",
+        "kind": "boolean",
+        "required": false,
+        "default": true,
+        "controlHint": "select"
+      },
+      {
+        "id": "seed",
+        "name": "Seed",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false,
+    "scenarioTerminal": true
+  },
+  {
+    "id": "vfx.status",
+    "category": "VFX",
+    "name": "VFX Status",
+    "description": "Show active visual effects and projectile state.",
+    "searchTerms": [
+      "visual effects",
+      "projectile",
+      "earthquake",
+      "lighting",
+      "renderer",
+      "presentation"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "vfx.kapow",
+    "category": "VFX",
+    "name": "Kapow",
+    "description": "Present a kapow effect without gameplay mutation.",
+    "parameters": [
+      {
+        "id": "targetMode",
+        "name": "Target",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "player",
+            "label": "Player"
+          },
+          {
+            "value": "coordinates",
+            "label": "Coordinates"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "x",
+        "name": "X",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "y",
+        "name": "Y",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "vfx.projectile",
+    "category": "VFX",
+    "name": "Projectile",
+    "description": "Present one serialized projectile without gameplay mutation.",
+    "parameters": [
+      {
+        "id": "fromMode",
+        "name": "From",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "player",
+            "label": "Player"
+          },
+          {
+            "value": "coordinates",
+            "label": "Coordinates"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "fromX",
+        "name": "From X",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "fromY",
+        "name": "From Y",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "toX",
+        "name": "To X",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "toY",
+        "name": "To Y",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "projectileType",
+        "name": "Projectile",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "arrow",
+            "label": "Arrow"
+          },
+          {
+            "value": "axe",
+            "label": "Axe"
+          },
+          {
+            "value": "rock",
+            "label": "Rock"
+          },
+          {
+            "value": "cannonball",
+            "label": "Cannonball"
+          },
+          {
+            "value": "violet",
+            "label": "Violet"
+          },
+          {
+            "value": "red",
+            "label": "Red"
+          },
+          {
+            "value": "blue",
+            "label": "Blue"
+          },
+          {
+            "value": "green",
+            "label": "Green"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "environment.earthquake",
+    "category": "VFX",
+    "name": "Earthquake",
+    "description": "Present a serialized earthquake without damage, messages, or input blocking.",
+    "aliases": [
+      "env earthquake"
+    ],
+    "parameters": [
+      {
+        "id": "durationTenths",
+        "name": "Duration (Tenths)",
+        "kind": "integer",
+        "required": true,
+        "default": 20,
+        "minimum": 1,
+        "maximum": 100,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "intensityTenths",
+        "name": "Intensity (Tenths)",
+        "kind": "integer",
+        "required": true,
+        "default": 8,
+        "minimum": 1,
+        "maximum": 20,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "monster.ecosystem.status",
+    "category": "Monsters",
+    "name": "Monster Ecosystem",
+    "description": "Show current-map generation and enemy state.",
+    "searchTerms": [
+      "spawn",
+      "enemies",
+      "generation",
+      "pirate",
+      "whirlpool",
+      "monsters"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "monster.generation.set",
+    "category": "Monsters",
+    "name": "Set Monster Generation",
+    "description": "Set natural generation enabled state and inclusive roll maximum; 30 matches the original.",
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Generation Enabled",
+        "kind": "boolean",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "odds",
+        "name": "Roll Maximum",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 1000,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "monster.clear-map-enemies",
+    "category": "Monsters",
+    "name": "Clear Map Enemies",
+    "description": "Remove hostile current-map units while preserving friendlies and vehicles.",
+    "parameters": [
+      {
+        "id": "expectedLocationId",
+        "name": "Expected Location",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedFloor",
+        "name": "Expected Floor",
+        "kind": "integer",
+        "required": true,
+        "minimum": -1,
+        "maximum": 5,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedEnemyCount",
+        "name": "Expected Enemy Count",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 32,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "monster.spawn-whirlpool",
+    "category": "Monsters",
+    "name": "Spawn Whirlpool",
+    "description": "Attempt a forced valid whirlpool spawn.",
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "monster.spawn-pirate",
+    "category": "Monsters",
+    "name": "Spawn Pirate",
+    "description": "Attempt a forced valid pirate spawn.",
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "vehicle.status",
+    "category": "Vehicles",
+    "name": "Ships",
+    "description": "Inspect the boarded party vehicle and exceptional frigate test state.",
+    "searchTerms": [
+      "ships",
+      "frigate",
+      "skiff",
+      "hull",
+      "boat",
+      "vehicle"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "vehicle.spawn",
+    "category": "Vehicles",
+    "name": "Spawn Vehicle",
+    "description": "Spawn a frigate or skiff at the Avatar or an authoritative overworld dock without advancing time.",
+    "parameters": [
+      {
+        "id": "type",
+        "name": "Vehicle Type",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "frigate",
+            "label": "Frigate"
+          },
+          {
+            "value": "skiff",
+            "label": "Skiff"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "placement",
+        "name": "Placement",
+        "kind": "enum",
+        "required": true,
+        "default": "avatar",
+        "choices": [
+          {
+            "value": "avatar",
+            "label": "At Avatar"
+          },
+          {
+            "value": "dock",
+            "label": "At Dock"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "dock",
+        "name": "Dock",
+        "description": "Required only when placement is Dock.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "jhelom",
+            "label": "Jhelom"
+          },
+          {
+            "value": "minoc",
+            "label": "Minoc"
+          },
+          {
+            "value": "east_britanny",
+            "label": "East Britanny"
+          },
+          {
+            "value": "buccaneers_den",
+            "label": "Buccaneer's Den"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "vehicle.force-board",
+    "category": "Vehicles",
+    "name": "Force Board Vehicle",
+    "description": "Replace the party vehicle in a supported world context. Intentionally bypasses terrain restrictions.",
+    "parameters": [
+      {
+        "id": "type",
+        "name": "Vehicle Type",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "horse",
+            "label": "Horse"
+          },
+          {
+            "value": "carpet",
+            "label": "Magic Carpet"
+          },
+          {
+            "value": "skiff",
+            "label": "Skiff"
+          },
+          {
+            "value": "frigate",
+            "label": "Frigate"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "ship.damage-raw",
+    "category": "Vehicles",
+    "name": "Damage Ship Hull",
+    "description": "Apply non-sinking raw hull damage.",
+    "parameters": [
+      {
+        "id": "amount",
+        "name": "Damage",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 98,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "ship.repair-full",
+    "category": "Vehicles",
+    "name": "Repair Ship Hull",
+    "description": "Restore the current frigate to full hull strength.",
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "ship.skiff.set",
+    "category": "Vehicles",
+    "name": "Set Frigate Skiffs",
+    "description": "Set the exact Redux attached-skiff quantity.",
+    "aliases": [
+      "ship add skiff"
+    ],
+    "parameters": [
+      {
+        "id": "quantity",
+        "name": "Skiffs",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 12,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "inventory.locker.status",
+    "category": "Inventory Locker",
+    "name": "Locker Status",
+    "description": "Show a detached, complete inventory locker snapshot.",
+    "searchTerms": [
+      "items",
+      "supplies",
+      "food",
+      "gold",
+      "reagents",
+      "potions",
+      "scrolls",
+      "equipment",
+      "armory"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "inventory.provision.set",
+    "category": "Inventory Locker",
+    "name": "Set Provision",
+    "description": "Synchronously set one provision quantity after verifying its reviewed value.",
+    "parameters": [
+      {
+        "id": "provision",
+        "name": "Provision",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "gold",
+            "label": "Gold"
+          },
+          {
+            "value": "food",
+            "label": "Food"
+          },
+          {
+            "value": "gems",
+            "label": "Gems"
+          },
+          {
+            "value": "torches",
+            "label": "Torches"
+          },
+          {
+            "value": "keys",
+            "label": "Keys"
+          },
+          {
+            "value": "skull_keys",
+            "label": "Skull Keys"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "targetQuantity",
+        "name": "Target Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedQuantity",
+        "name": "Expected Current Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.provision.preset",
+    "category": "Inventory Locker",
+    "name": "Provision Preset",
+    "description": "Apply an absolute reviewed provision locker preset.",
+    "parameters": [
+      {
+        "id": "preset",
+        "name": "Preset",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "provisions_max",
+            "label": "Set All Provisions to Maximum"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.reagent.set",
+    "category": "Inventory Locker",
+    "name": "Set Reagent",
+    "description": "Synchronously set one Reagent quantity after verifying its reviewed value.",
+    "parameters": [
+      {
+        "id": "reagent",
+        "name": "Reagent",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Sulfurous Ash"
+          },
+          {
+            "value": "1",
+            "label": "Ginseng"
+          },
+          {
+            "value": "2",
+            "label": "Garlic"
+          },
+          {
+            "value": "3",
+            "label": "Spider Silk"
+          },
+          {
+            "value": "4",
+            "label": "Blood Moss"
+          },
+          {
+            "value": "5",
+            "label": "Black Pearl"
+          },
+          {
+            "value": "6",
+            "label": "Nightshade"
+          },
+          {
+            "value": "7",
+            "label": "Mandrake Root"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "targetQuantity",
+        "name": "Target Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedQuantity",
+        "name": "Expected Current Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.reagent.preset",
+    "category": "Inventory Locker",
+    "name": "Reagent Preset",
+    "description": "Apply an absolute reviewed reagent locker preset.",
+    "parameters": [
+      {
+        "id": "preset",
+        "name": "Preset",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "reagents_all99",
+            "label": "Set Every Reagent to 99"
+          },
+          {
+            "value": "reagents_all20_no_garlic",
+            "label": "Set Non-Garlic Reagents to 20 and Clear Garlic"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.potion.add",
+    "category": "Inventory Locker",
+    "name": "Add Potion",
+    "description": "Add a positive amount to one potion stack.",
+    "parameters": [
+      {
+        "id": "potion",
+        "name": "Potion",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Blue"
+          },
+          {
+            "value": "1",
+            "label": "Yellow"
+          },
+          {
+            "value": "2",
+            "label": "Red"
+          },
+          {
+            "value": "3",
+            "label": "Green"
+          },
+          {
+            "value": "4",
+            "label": "Orange"
+          },
+          {
+            "value": "5",
+            "label": "Purple"
+          },
+          {
+            "value": "6",
+            "label": "Black"
+          },
+          {
+            "value": "7",
+            "label": "White"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "amount",
+        "name": "Amount",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 9999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "inventory.potion.preset",
+    "category": "Inventory Locker",
+    "name": "Potion Preset",
+    "description": "Apply an absolute reviewed potion locker preset.",
+    "parameters": [
+      {
+        "id": "preset",
+        "name": "Preset",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "potions_all1",
+            "label": "Set Every Potion to 1"
+          },
+          {
+            "value": "potions_all99",
+            "label": "Set Every Potion to 99"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.scroll.add",
+    "category": "Inventory Locker",
+    "name": "Add Scroll",
+    "description": "Add a positive amount to one scroll stack.",
+    "parameters": [
+      {
+        "id": "scroll",
+        "name": "Scroll",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Vas Lor"
+          },
+          {
+            "value": "1",
+            "label": "Rel Hur"
+          },
+          {
+            "value": "2",
+            "label": "In Sanct"
+          },
+          {
+            "value": "3",
+            "label": "In An"
+          },
+          {
+            "value": "4",
+            "label": "In Quas Wis"
+          },
+          {
+            "value": "5",
+            "label": "Kal Xen Corp"
+          },
+          {
+            "value": "6",
+            "label": "In Mani Corp"
+          },
+          {
+            "value": "7",
+            "label": "An Tym"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "amount",
+        "name": "Amount",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 9999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "inventory.scroll.preset",
+    "category": "Inventory Locker",
+    "name": "Scroll Preset",
+    "description": "Apply an absolute reviewed scroll locker preset.",
+    "parameters": [
+      {
+        "id": "preset",
+        "name": "Preset",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "scrolls_all1",
+            "label": "Set Every Scroll to 1"
+          },
+          {
+            "value": "scrolls_allmax",
+            "label": "Set Every Scroll to Maximum"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.equipment.set",
+    "category": "Inventory Locker",
+    "name": "Set Equipment",
+    "description": "Synchronously set one Equipment quantity after verifying its reviewed value.",
+    "parameters": [
+      {
+        "id": "equipment",
+        "name": "Equipment",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Leather Helm"
+          },
+          {
+            "value": "1",
+            "label": "Chain Coif"
+          },
+          {
+            "value": "2",
+            "label": "Iron Helm"
+          },
+          {
+            "value": "3",
+            "label": "Spiked Helm"
+          },
+          {
+            "value": "4",
+            "label": "Small Shield"
+          },
+          {
+            "value": "5",
+            "label": "Large Shield"
+          },
+          {
+            "value": "6",
+            "label": "Spiked Shield"
+          },
+          {
+            "value": "7",
+            "label": "Magic Shield"
+          },
+          {
+            "value": "8",
+            "label": "Jewel Shield"
+          },
+          {
+            "value": "9",
+            "label": "Cloth Armour"
+          },
+          {
+            "value": "10",
+            "label": "Leather Armour"
+          },
+          {
+            "value": "11",
+            "label": "Ring Mail"
+          },
+          {
+            "value": "12",
+            "label": "Scale Mail"
+          },
+          {
+            "value": "13",
+            "label": "Chain Mail"
+          },
+          {
+            "value": "14",
+            "label": "Plate Mail"
+          },
+          {
+            "value": "15",
+            "label": "Mystic Armour"
+          },
+          {
+            "value": "16",
+            "label": "Dagger"
+          },
+          {
+            "value": "17",
+            "label": "Sling"
+          },
+          {
+            "value": "18",
+            "label": "Club"
+          },
+          {
+            "value": "19",
+            "label": "Flaming Oil"
+          },
+          {
+            "value": "20",
+            "label": "Main Gauche"
+          },
+          {
+            "value": "21",
+            "label": "Spear"
+          },
+          {
+            "value": "22",
+            "label": "Throwing Axe"
+          },
+          {
+            "value": "23",
+            "label": "Short Sword"
+          },
+          {
+            "value": "24",
+            "label": "Mace"
+          },
+          {
+            "value": "25",
+            "label": "Morning Star"
+          },
+          {
+            "value": "26",
+            "label": "Bow"
+          },
+          {
+            "value": "27",
+            "label": "Arrows"
+          },
+          {
+            "value": "28",
+            "label": "Crossbow"
+          },
+          {
+            "value": "29",
+            "label": "Quarrels"
+          },
+          {
+            "value": "30",
+            "label": "Long Sword"
+          },
+          {
+            "value": "31",
+            "label": "2H Hammer"
+          },
+          {
+            "value": "32",
+            "label": "2H Axe"
+          },
+          {
+            "value": "33",
+            "label": "2H Sword"
+          },
+          {
+            "value": "34",
+            "label": "Halberd"
+          },
+          {
+            "value": "35",
+            "label": "Chaos Sword"
+          },
+          {
+            "value": "36",
+            "label": "Magic Bow"
+          },
+          {
+            "value": "37",
+            "label": "Silver Sword"
+          },
+          {
+            "value": "38",
+            "label": "Magic Axe"
+          },
+          {
+            "value": "39",
+            "label": "Glass Sword"
+          },
+          {
+            "value": "40",
+            "label": "Jeweled Sword"
+          },
+          {
+            "value": "41",
+            "label": "Mystic Sword"
+          },
+          {
+            "value": "42",
+            "label": "Ring of Invisibility"
+          },
+          {
+            "value": "43",
+            "label": "Ring of Protection"
+          },
+          {
+            "value": "44",
+            "label": "Ring of Regeneration"
+          },
+          {
+            "value": "45",
+            "label": "Amulet of Turning"
+          },
+          {
+            "value": "46",
+            "label": "Spiked Collar"
+          },
+          {
+            "value": "47",
+            "label": "Ankh"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "targetQuantity",
+        "name": "Target Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedQuantity",
+        "name": "Expected Current Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.equipment.preset",
+    "category": "Inventory Locker",
+    "name": "Equipment Preset",
+    "description": "Apply an absolute reviewed equipment locker preset.",
+    "parameters": [
+      {
+        "id": "preset",
+        "name": "Preset",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "equipment_all_equippable5",
+            "label": "Set Every Equippable Item to 5"
+          },
+          {
+            "value": "equipment_weapons5",
+            "label": "Set Every Weapon to 5"
+          },
+          {
+            "value": "equipment_armour5",
+            "label": "Set Every Armour Item to 5"
+          },
+          {
+            "value": "equipment_bows_no_ammo5",
+            "label": "Set Every Bow to 5 and Clear Ammo"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.equipment.grant-preset",
+    "category": "Inventory Locker",
+    "name": "Grant Equipment Preset",
+    "description": "Add five matching equipment items after reviewing the locker snapshot.",
+    "parameters": [
+      {
+        "id": "preset",
+        "name": "Preset",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "all_equippable5",
+            "label": "Add 5 of Every Equippable Item"
+          },
+          {
+            "value": "weapons5",
+            "label": "Add 5 of Every Weapon"
+          },
+          {
+            "value": "armour5",
+            "label": "Add 5 of Every Armour Item"
+          },
+          {
+            "value": "bows_no_ammo5",
+            "label": "Add 5 of Every Bow and Clear Ammo"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.equipment.clear",
+    "category": "Inventory Locker",
+    "name": "Clear All Equipment",
+    "description": "Destroy every carried equipment item and clear all 16 roster loadouts after reviewing the complete equipment state.",
+    "parameters": [
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact locker snapshot fingerprint returned by Locker Status.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.spell.status",
+    "category": "Spells",
+    "name": "Prepared Spell Inventory",
+    "description": "Inspect all 48 prepared spell quantities, independent magical light, and the active duration spell.",
+    "searchTerms": [
+      "spells",
+      "magic",
+      "prepared",
+      "light",
+      "time stop",
+      "duration",
+      "incantations"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "inventory.spell.set",
+    "category": "Spells",
+    "name": "Set Prepared Spell",
+    "description": "Set one exact prepared spell quantity after verifying its reviewed value.",
+    "parameters": [
+      {
+        "id": "spell",
+        "name": "Spell",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "In Lor"
+          },
+          {
+            "value": "1",
+            "label": "Grav Por"
+          },
+          {
+            "value": "2",
+            "label": "An Zu"
+          },
+          {
+            "value": "3",
+            "label": "An Nox"
+          },
+          {
+            "value": "4",
+            "label": "Mani"
+          },
+          {
+            "value": "5",
+            "label": "An Ylem"
+          },
+          {
+            "value": "6",
+            "label": "An Sanct"
+          },
+          {
+            "value": "7",
+            "label": "An Xen Corp"
+          },
+          {
+            "value": "8",
+            "label": "Rel Hur"
+          },
+          {
+            "value": "9",
+            "label": "In Wis"
+          },
+          {
+            "value": "10",
+            "label": "Kal Xen"
+          },
+          {
+            "value": "11",
+            "label": "In Xen Mani"
+          },
+          {
+            "value": "12",
+            "label": "Vas Lor"
+          },
+          {
+            "value": "13",
+            "label": "Vas Flam"
+          },
+          {
+            "value": "14",
+            "label": "In Flam Grav"
+          },
+          {
+            "value": "15",
+            "label": "In Nox Grav"
+          },
+          {
+            "value": "16",
+            "label": "In Zu Grav"
+          },
+          {
+            "value": "17",
+            "label": "In Por"
+          },
+          {
+            "value": "18",
+            "label": "An Grav"
+          },
+          {
+            "value": "19",
+            "label": "In Sanct"
+          },
+          {
+            "value": "20",
+            "label": "In Sanct Grav"
+          },
+          {
+            "value": "21",
+            "label": "Uus Por"
+          },
+          {
+            "value": "22",
+            "label": "Des Por"
+          },
+          {
+            "value": "23",
+            "label": "Wis Quas"
+          },
+          {
+            "value": "24",
+            "label": "In Bet Xen"
+          },
+          {
+            "value": "25",
+            "label": "An Ex Por"
+          },
+          {
+            "value": "26",
+            "label": "In Ex Por"
+          },
+          {
+            "value": "27",
+            "label": "Vas Mani"
+          },
+          {
+            "value": "28",
+            "label": "In Zu"
+          },
+          {
+            "value": "29",
+            "label": "Rel Tym"
+          },
+          {
+            "value": "30",
+            "label": "In Vas Por Ylem"
+          },
+          {
+            "value": "31",
+            "label": "Quas An Wis"
+          },
+          {
+            "value": "32",
+            "label": "In An"
+          },
+          {
+            "value": "33",
+            "label": "Wis An Ylem"
+          },
+          {
+            "value": "34",
+            "label": "An Xen Ex"
+          },
+          {
+            "value": "35",
+            "label": "Rel Xen Bet"
+          },
+          {
+            "value": "36",
+            "label": "Sanct Lor"
+          },
+          {
+            "value": "37",
+            "label": "Xen Corp"
+          },
+          {
+            "value": "38",
+            "label": "In Quas Xen"
+          },
+          {
+            "value": "39",
+            "label": "In Quas Wis"
+          },
+          {
+            "value": "40",
+            "label": "In Nox Hur"
+          },
+          {
+            "value": "41",
+            "label": "In Quas Corp"
+          },
+          {
+            "value": "42",
+            "label": "In Mani Corp"
+          },
+          {
+            "value": "43",
+            "label": "Kal Xen Corp"
+          },
+          {
+            "value": "44",
+            "label": "In Vas Grav Corp"
+          },
+          {
+            "value": "45",
+            "label": "In Flam Hur"
+          },
+          {
+            "value": "46",
+            "label": "Vas Rel Por"
+          },
+          {
+            "value": "47",
+            "label": "An Tym"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "targetQuantity",
+        "name": "Target Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedQuantity",
+        "name": "Expected Current Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "inventory.spell.preset-max",
+    "category": "Spells",
+    "name": "Maximum Prepared Spells",
+    "description": "Set all 48 castable prepared spell quantities to 99 after reviewing the spell snapshot.",
+    "aliases": [
+      "spells giveall"
+    ],
+    "parameters": [
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "description": "Exact prepared spell snapshot fingerprint returned by Prepared Spell Inventory.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "spell.effect.set-remaining",
+    "category": "Spells",
+    "name": "Set Effect Duration",
+    "description": "Set exact active-spell turns or magical-light minutes after checking both reviewed effects.",
+    "aliases": [
+      "spell reduceto1turn"
+    ],
+    "parameters": [
+      {
+        "id": "effectKind",
+        "name": "Effect Kind",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "active_spell",
+            "label": "Active Spell"
+          },
+          {
+            "value": "magic_light",
+            "label": "Magical Light"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "expectedEffect",
+        "name": "Expected Effect",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedTurns",
+        "name": "Expected Spell Turns",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedLightMinutes",
+        "name": "Expected Light Minutes",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      },
+      {
+        "id": "remaining",
+        "name": "Remaining Turns Or Minutes",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "spell.effect.activate",
+    "category": "Spells",
+    "name": "Activate Duration Effect",
+    "description": "Activate independent Light or the Time Stop spell at authentic duration after checking reviewed effect state.",
+    "aliases": [
+      "spell light",
+      "spell timestop"
+    ],
+    "parameters": [
+      {
+        "id": "effect",
+        "name": "Effect",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "light",
+            "label": "Light"
+          },
+          {
+            "value": "time_stop",
+            "label": "Time Stop"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "expectedEffect",
+        "name": "Expected Active Spell",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedTurns",
+        "name": "Expected Spell Turns",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedLightMinutes",
+        "name": "Expected Light Minutes",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 9999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.status",
+    "category": "Active Combat",
+    "name": "Active Combat",
+    "description": "Inspect the tactical map, combatants, conditions, and DEX queue without advancing combat.",
+    "aliases": [
+      "combat status"
+    ],
+    "searchTerms": [
+      "battle",
+      "tactical",
+      "monsters",
+      "turn",
+      "dex",
+      "encounter",
+      "combat"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.monster.sleep.set",
+    "category": "Active Combat",
+    "name": "Set Monster Sleep",
+    "description": "Set one live monster's sleep condition at a quiescent player-turn boundary.",
+    "aliases": [
+      "combat sleep monster",
+      "combat wake monster"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "monsterId",
+        "name": "Monster",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "asleep",
+        "name": "Asleep",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      },
+      {
+        "id": "expectedAsleep",
+        "name": "Expected Current State",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.exit-debug",
+    "category": "Active Combat",
+    "name": "Discard Active Encounter",
+    "description": "Discard one reviewed tactical encounter and return to its pre-combat location without resolving victory, defeat, evacuation, or overworld contact.",
+    "aliases": [
+      "combat exit"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "combat.monster.spawn",
+    "category": "Active Combat",
+    "name": "Spawn Reinforcements",
+    "description": "Atomically add a reviewed monster batch at unoccupied authoritative combat-map positions.",
+    "aliases": [
+      "combat spawn"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Snapshot",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "monsterType",
+        "name": "Monster Type ID",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 47,
+        "controlHint": "number"
+      },
+      {
+        "id": "countMode",
+        "name": "Count Mode",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "automatic",
+            "label": "Automatic"
+          },
+          {
+            "value": "exact",
+            "label": "Exact"
+          },
+          {
+            "value": "maximum",
+            "label": "Maximum"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "exactCount",
+        "name": "Exact Count",
+        "kind": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 16,
+        "controlHint": "number"
+      },
+      {
+        "id": "friends",
+        "name": "Include Friends",
+        "kind": "boolean",
+        "required": false,
+        "default": true,
+        "controlHint": "select"
+      },
+      {
+        "id": "seed",
+        "name": "Seed",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "rng.seed.set",
+    "category": "Active Combat",
+    "name": "Reset Gameplay RNG Seed",
+    "description": "Reset the global gameplay RNG from a reviewed active encounter; all subsequent gameplay randomness, including post-combat randomness, uses the new seed.",
+    "aliases": [
+      "combat seed"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Reviewed Status Fingerprint",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "seed",
+        "name": "Global Gameplay Seed",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 999999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "combat.monster.damage-raw",
+    "category": "Active Combat",
+    "name": "Damage Monster",
+    "description": "Apply bounded raw damage to one reviewed stable combatant; lethal damage synchronizes the queue and victory but awards no XP and creates no corpse or treasure.",
+    "aliases": [
+      "combat damage"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "monsterId",
+        "name": "Monster",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedCurrentHp",
+        "name": "Expected Current HP",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 999,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Reviewed Status Fingerprint",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      },
+      {
+        "id": "damage",
+        "name": "Damage",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 999,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "combat.monster.kill",
+    "category": "Active Combat",
+    "name": "Kill Monster",
+    "description": "Defeat one reviewed stable combatant, synchronize the queue, and trigger victory when none remain; awards no XP and creates no corpse or treasure.",
+    "aliases": [
+      "combat kill"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "monsterId",
+        "name": "Monster",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedCurrentHp",
+        "name": "Expected Current HP",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 999,
+        "controlHint": "number"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Reviewed Status Fingerprint",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "combat.monster.kill-all",
+    "category": "Active Combat",
+    "name": "Kill All Monsters",
+    "description": "Defeat every monster in the exact reviewed snapshot, synchronize the queue, and trigger victory; awards no XP and creates no corpses or treasure.",
+    "aliases": [
+      "combat kill all"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Reviewed Status Fingerprint",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "combat.monster.clear",
+    "category": "Active Combat",
+    "name": "Clear All Monsters",
+    "description": "Remove manager and queue monsters from the exact reviewed snapshot without XP, objects, or victory.",
+    "aliases": [
+      "combat clear"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Reviewed Status Fingerprint",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "logging.enabled.set",
+    "category": "Diagnostics",
+    "name": "Set Logging",
+    "description": "Explicitly enable or disable process-wide categorized logging.",
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Logging Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "logging.stdout.set",
+    "category": "Diagnostics",
+    "name": "Set Stdout Logging",
+    "description": "Explicitly enable or disable accepted log output to stdout.",
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Stdout Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "logging.level.set",
+    "category": "Diagnostics",
+    "name": "Set Logging Level",
+    "description": "Set the process-wide minimum accepted logging level.",
+    "aliases": [
+      "debug level"
+    ],
+    "parameters": [
+      {
+        "id": "level",
+        "name": "Minimum Level",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "DEBUG",
+            "label": "Debug"
+          },
+          {
+            "value": "INFO",
+            "label": "Info"
+          },
+          {
+            "value": "WARN",
+            "label": "Warn"
+          },
+          {
+            "value": "ERROR",
+            "label": "Error"
+          },
+          {
+            "value": "FATAL",
+            "label": "Fatal"
+          }
+        ],
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "logging.category.set",
+    "category": "Diagnostics",
+    "name": "Set Logging Category",
+    "description": "Explicitly enable or disable one categorized logging channel.",
+    "aliases": [
+      "debug log"
+    ],
+    "parameters": [
+      {
+        "id": "category",
+        "name": "Category",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "moongate",
+            "label": "moongate"
+          },
+          {
+            "value": "conversation",
+            "label": "conversation"
+          },
+          {
+            "value": "ai",
+            "label": "ai"
+          },
+          {
+            "value": "audio",
+            "label": "audio"
+          },
+          {
+            "value": "config",
+            "label": "config"
+          },
+          {
+            "value": "ui",
+            "label": "ui"
+          },
+          {
+            "value": "gamestate",
+            "label": "gamestate"
+          },
+          {
+            "value": "combat",
+            "label": "combat"
+          },
+          {
+            "value": "movement",
+            "label": "movement"
+          },
+          {
+            "value": "inventory",
+            "label": "inventory"
+          },
+          {
+            "value": "sprites",
+            "label": "sprites"
+          },
+          {
+            "value": "system",
+            "label": "system"
+          },
+          {
+            "value": "data",
+            "label": "data"
+          },
+          {
+            "value": "input",
+            "label": "input"
+          },
+          {
+            "value": "rendering",
+            "label": "rendering"
+          },
+          {
+            "value": "validation",
+            "label": "validation"
+          },
+          {
+            "value": "performance",
+            "label": "performance"
+          },
+          {
+            "value": "lighthouse",
+            "label": "lighthouse"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "logging.categories.set-all",
+    "category": "Diagnostics",
+    "name": "Set All Logging Categories",
+    "description": "Explicitly enable or disable every known categorized logging channel.",
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "All Categories Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "overlay.lighting.set",
+    "category": "Presentation",
+    "name": "Set Lighting Overlay",
+    "description": "Show or hide game-window light-distance diagnostics.",
+    "aliases": [
+      "light overlay"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "overlay.search.set",
+    "category": "Presentation",
+    "name": "Set Search Overlay",
+    "description": "Show or hide authentic search locations in the game window.",
+    "aliases": [
+      "command search overlay"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "overlay.moongate.set",
+    "category": "Presentation",
+    "name": "Set Moongate Overlay",
+    "description": "Show or hide moonstone and moongate diagnostics in the game window.",
+    "aliases": [
+      "moongate overlay"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.presentation.speed.set",
+    "category": "Presentation",
+    "name": "Set Combat Speed",
+    "description": "Set and persist combat movement animation speed for subsequent movement.",
+    "aliases": [
+      "combat speed"
+    ],
+    "parameters": [
+      {
+        "id": "percent",
+        "name": "Speed Percent",
+        "kind": "integer",
+        "required": true,
+        "minimum": 25,
+        "maximum": 400,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "guards.status",
+    "category": "Guards",
+    "name": "Guard Status",
+    "description": "Inspect criminal state, potential guards, and current hostility.",
+    "aliases": [
+      "guards status"
+    ],
+    "searchTerms": [
+      "guards",
+      "criminal",
+      "wanted",
+      "shadowlords",
+      "death",
+      "resurrection",
+      "world diagnostics"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "shadowlord.status",
+    "category": "Shadowlords",
+    "name": "Shadowlord Status",
+    "description": "Inspect life, summoned presence, and deterministic town assignments.",
+    "aliases": [
+      "shadowlord status"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "death.status",
+    "category": "Death",
+    "name": "Death Status",
+    "description": "Inspect party mortality and authoritative resurrection consequences.",
+    "aliases": [
+      "death status"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "debug.options.status",
+    "category": "Diagnostics",
+    "name": "Debug Options",
+    "description": "Inspect gameplay overrides and game-window diagnostic rendering options.",
+    "searchTerms": [
+      "free move",
+      "collision",
+      "placeholders",
+      "dialog bounds",
+      "debug overlays",
+      "unlimited casting",
+      "spell level bypass"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "movement.free-move.set",
+    "category": "Movement",
+    "name": "Set Free Move",
+    "description": "Explicitly enable or disable collision-free Avatar movement.",
+    "aliases": [
+      "mv freemove"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "overlay.text-placeholders.set",
+    "category": "Diagnostics",
+    "name": "Set Text Placeholders",
+    "description": "Show or hide empty-line placeholders in game-window text output.",
+    "aliases": [
+      "debug conversation textplaceholders"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "overlay.dialog-bounds.set",
+    "category": "Diagnostics",
+    "name": "Set Dialog Bounds",
+    "description": "Show or hide dialog text-area bounds in the game window.",
+    "aliases": [
+      "debug dialog boxes"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "magic.unlimited-casting-resources.set",
+    "category": "Magic",
+    "name": "Set Unlimited Casting Resources",
+    "description": "Cast without prepared spells or current MP consumption while preserving magical-ability requirements.",
+    "aliases": [
+      "unlimited magic",
+      "infinite spells",
+      "infinite mp"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "magic.spell-level-restrictions-bypass.set",
+    "category": "Magic",
+    "name": "Set Spell Level Bypass",
+    "description": "Allow magical characters to cast spells above their current level.",
+    "aliases": [
+      "all spell circles",
+      "ignore spell level"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "display.status",
+    "category": "Display",
+    "name": "Game Window Display",
+    "description": "Inspect requested and observed runtime game-window modes and dimensions.",
+    "searchTerms": [
+      "resolution",
+      "fullscreen",
+      "maximized",
+      "window",
+      "screen",
+      "display",
+      "pending"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "display.resolution.set",
+    "category": "Display",
+    "name": "Set Game Window Resolution",
+    "description": "Request one supported runtime window size without changing player display settings.",
+    "aliases": [
+      "screen ru",
+      "screen rd"
+    ],
+    "parameters": [
+      {
+        "id": "index",
+        "name": "Resolution",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 4,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "display.fullscreen.set",
+    "category": "Display",
+    "name": "Set Game Window Fullscreen",
+    "description": "Compatibility control that requests runtime fullscreen or windowed mode without changing player display settings.",
+    "aliases": [
+      "screen fs"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Enabled",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "party.karma.set",
+    "category": "Party",
+    "name": "Set Party Karma",
+    "description": "Set party-wide karma exactly without applying a moral event or advancing time.",
+    "aliases": [
+      "pc stats karma"
+    ],
+    "parameters": [
+      {
+        "id": "value",
+        "name": "Karma",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.status",
+    "category": "Scenarios",
+    "name": "Scenario Lab",
+    "description": "Inspect and run exceptional deterministic gameplay scenarios.",
+    "searchTerms": [
+      "test setup",
+      "reproduce",
+      "starvation",
+      "guards",
+      "waterfall",
+      "bridge troll",
+      "word of power",
+      "death"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.starvation.trigger",
+    "category": "Scenarios",
+    "name": "Trigger Starvation Damage",
+    "description": "Apply one deterministic starvation damage check without changing food or time.",
+    "aliases": [
+      "pc starving"
+    ],
+    "parameters": [
+      {
+        "id": "seed",
+        "name": "Deterministic Seed",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.starvation.force-hourly",
+    "category": "Scenarios",
+    "name": "Force Hourly Starvation",
+    "description": "Set food to zero, set hour 12, and run the authentic hourly meal check.",
+    "aliases": [
+      "pc starving force"
+    ],
+    "parameters": [
+      {
+        "id": "seed",
+        "name": "Deterministic Seed",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.guards.activate",
+    "category": "Scenarios",
+    "name": "Activate Town Guards",
+    "description": "Mark the party criminal and make all eligible guards on the current small map hostile.",
+    "aliases": [
+      "guards activate"
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.waterfall.setup",
+    "category": "Scenarios",
+    "name": "Set Up Waterfall Entry",
+    "description": "Move to the tile immediately before the canonical waterfall trigger step.",
+    "aliases": [
+      "mv special falls"
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.bridge-troll.start",
+    "category": "Scenarios",
+    "name": "Test Bridge Troll Sneak and Attack",
+    "description": "Move onto an original troll bridge, force the first sneak check to fail, set gold to zero, and start the production toll workflow.",
+    "aliases": [
+      "bridge troll",
+      "troll attack"
+    ],
+    "parameters": [
+      {
+        "id": "seed",
+        "name": "Deterministic Seed",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 2147483647,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": true,
+    "scenarioTerminal": true
+  },
+  {
+    "id": "scenario.word.setup",
+    "category": "Scenarios",
+    "name": "Set Up Word of Power",
+    "description": "Move beside the original dungeon entrance matching one Word of Power.",
+    "aliases": [
+      "command yell"
+    ],
+    "parameters": [
+      {
+        "id": "word",
+        "name": "Word of Power",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "fallax",
+            "label": "FALLAX · Deceit"
+          },
+          {
+            "value": "vilis",
+            "label": "VILIS · Despise"
+          },
+          {
+            "value": "inopia",
+            "label": "INOPIA · Destard"
+          },
+          {
+            "value": "malum",
+            "label": "MALUM · Wrong"
+          },
+          {
+            "value": "avidus",
+            "label": "AVIDUS · Covetous"
+          },
+          {
+            "value": "infama",
+            "label": "INFAMA · Shame"
+          },
+          {
+            "value": "ignavus",
+            "label": "IGNAVUS · Hythloth"
+          },
+          {
+            "value": "veramocor",
+            "label": "VERAMOCOR · Doom"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.definition.list",
+    "category": "Scenarios",
+    "name": "List Scripted Scenarios",
+    "description": "List durable scripted scenario definitions from project and personal sources.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.definition.get",
+    "category": "Scenarios",
+    "name": "Get Scripted Scenario",
+    "description": "Get one complete versioned scripted scenario definition by source-qualified reference.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Source-Qualified Reference",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.definition.validate",
+    "category": "Scenarios",
+    "name": "Validate Scripted Scenario",
+    "description": "Validate one JSON scripted scenario definition against the current command catalog without mutation.",
+    "parameters": [
+      {
+        "id": "definition",
+        "name": "JSON Definition",
+        "description": "Complete scripted scenario definition encoded as JSON.",
+        "kind": "string",
+        "required": true
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.definition.create",
+    "category": "Scenarios",
+    "name": "Create Scripted Scenario",
+    "description": "Validate and create one JSON scripted scenario definition only when its source-qualified destination is absent.",
+    "parameters": [
+      {
+        "id": "source",
+        "name": "Source",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "project",
+            "label": "Project"
+          },
+          {
+            "value": "personal",
+            "label": "Personal"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "definition",
+        "name": "JSON Definition",
+        "description": "Complete scripted scenario definition encoded as JSON.",
+        "kind": "string",
+        "required": true
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.definition.update",
+    "category": "Scenarios",
+    "name": "Update Scripted Scenario",
+    "description": "Validate and update one scripted scenario only when its stored revision matches; the definition ID cannot rename or move it.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Source-Qualified Reference",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      {
+        "id": "expectedRevision",
+        "name": "Expected Revision",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      {
+        "id": "definition",
+        "name": "JSON Definition",
+        "description": "Complete scripted scenario definition encoded as JSON.",
+        "kind": "string",
+        "required": true
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.definition.delete",
+    "category": "Scenarios",
+    "name": "Delete Scripted Scenario",
+    "description": "Delete one scripted scenario only when its stored revision matches.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Source-Qualified Reference",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      {
+        "id": "expectedRevision",
+        "name": "Expected Revision",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.definition.duplicate",
+    "category": "Scenarios",
+    "name": "Duplicate Scripted Scenario",
+    "description": "Copy one reviewed scenario revision to an explicit absent destination without overwriting.",
+    "parameters": [
+      {
+        "id": "sourceReference",
+        "name": "Source Reference",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      {
+        "id": "sourceRevision",
+        "name": "Source Revision",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      {
+        "id": "destinationSource",
+        "name": "Destination Source",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "project",
+            "label": "Project"
+          },
+          {
+            "value": "personal",
+            "label": "Personal"
+          }
+        ],
+        "controlHint": "select"
+      },
+      {
+        "id": "destinationId",
+        "name": "Destination ID",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
+      {
+        "id": "destinationName",
+        "name": "Destination Name",
+        "kind": "string",
+        "required": true
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.run.start",
+    "category": "Scenarios",
+    "name": "Start Scripted Scenario",
+    "description": "Start a reviewed durable scripted scenario revision against the reviewed active scene generation.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Source-Qualified Reference",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedRevision",
+        "name": "Reviewed Definition Revision",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[a-f0-9]{64}$"
+      },
+      {
+        "id": "expectedBaselineRevision",
+        "name": "Reviewed Baseline Revision",
+        "kind": "string",
+        "required": false,
+        "default": "",
+        "pattern": "^(?:[a-f0-9]{64})?$"
+      },
+      {
+        "id": "reviewedSceneGeneration",
+        "name": "Reviewed Scene Generation",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 2147483647,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "parameterValues",
+        "name": "JSON Parameter Values",
+        "description": "Launch parameter values encoded as a JSON object.",
+        "kind": "string",
+        "required": false,
+        "default": "{}",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.run.status",
+    "category": "Scenarios",
+    "name": "Scripted Scenario Run Status",
+    "description": "Report the active scripted scenario run and bounded private history with ordered step results.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "command-test.hole-up",
+    "category": "Scenarios",
+    "name": "Test Hole Up",
+    "description": "Queue production camping with explicit wanderer and ambush branches against a reviewed party roster.",
+    "aliases": [
+      "command holeup"
+    ],
+    "parameters": [
+      {
+        "id": "hours",
+        "name": "Hours",
+        "kind": "integer",
+        "required": true,
+        "minimum": 1,
+        "maximum": 24,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "forceWanderer",
+        "name": "Force Wanderer",
+        "kind": "boolean",
+        "required": false,
+        "default": false,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "forceAmbush",
+        "name": "Force Ambush",
+        "kind": "boolean",
+        "required": false,
+        "default": false,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedPartyFingerprint",
+        "name": "Reviewed Party",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "guardRosterIndex",
+        "name": "Guard Roster Index",
+        "description": "Optional stable active-party roster index.",
+        "kind": "integer",
+        "required": false,
+        "minimum": 0,
+        "maximum": 15,
+        "controlHint": "number",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "command-test.search",
+    "category": "Search",
+    "name": "Test Search",
+    "description": "Queue the production Search action using dispatch for the current map type.",
+    "aliases": [
+      "command search test"
+    ],
+    "parameters": [
+      {
+        "id": "direction",
+        "name": "Direction",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "up",
+            "label": "Up"
+          },
+          {
+            "value": "down",
+            "label": "Down"
+          },
+          {
+            "value": "left",
+            "label": "Left"
+          },
+          {
+            "value": "right",
+            "label": "Right"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "moongate.travel",
+    "category": "Moongates",
+    "name": "Travel Through Moongate",
+    "description": "Queue production moongate travel only while source and route still match reviewed status.",
+    "aliases": [
+      "moongate teleport"
+    ],
+    "parameters": [
+      {
+        "id": "expectedSourceFingerprint",
+        "name": "Reviewed Source",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedRouteFingerprint",
+        "name": "Reviewed Route",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "quest.shard.use",
+    "category": "Quest Items",
+    "name": "Use Shard",
+    "description": "Queue the production shard workflow for one explicitly reviewed shard and live quest state.",
+    "aliases": [
+      "quest use \u003cshard\u003e"
+    ],
+    "parameters": [
+      {
+        "id": "shard",
+        "name": "Shard",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "shard_falsehood",
+            "label": "Shard of Falsehood"
+          },
+          {
+            "value": "shard_hatred",
+            "label": "Shard of Hatred"
+          },
+          {
+            "value": "shard_cowardice",
+            "label": "Shard of Cowardice"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedQuantity",
+        "name": "Reviewed Quantity",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 99,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedLocationId",
+        "name": "Reviewed Location",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedX",
+        "name": "Reviewed X",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedY",
+        "name": "Reviewed Y",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedFloor",
+        "name": "Reviewed Floor",
+        "kind": "integer",
+        "required": true,
+        "minimum": -8,
+        "maximum": 8,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedFlame",
+        "name": "Reviewed Flame",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "none",
+            "label": "No Flame"
+          },
+          {
+            "value": "truth",
+            "label": "Flame of Truth"
+          },
+          {
+            "value": "love",
+            "label": "Flame of Love"
+          },
+          {
+            "value": "courage",
+            "label": "Flame of Courage"
+          }
+        ],
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedShadowlordSummoned",
+        "name": "Reviewed Summoning",
+        "kind": "boolean",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedShadowlord",
+        "name": "Reviewed Shadowlord",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "none",
+            "label": "No Shadowlord"
+          },
+          {
+            "value": "faulinei",
+            "label": "Faulinei"
+          },
+          {
+            "value": "astaroth",
+            "label": "Astaroth"
+          },
+          {
+            "value": "nosfentor",
+            "label": "Nosfentor"
+          }
+        ],
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedShadowlordAlive",
+        "name": "Reviewed Shadowlord Life",
+        "kind": "boolean",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "quest.inventory.preset-usable",
+    "category": "Inventory Locker",
+    "name": "Apply Usable Inventory Preset",
+    "description": "Apply exact reviewed targets for every quest item, moonstone, potion, and scroll.",
+    "aliases": [
+      "quest giveall"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Review Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "command-test.telescope",
+    "category": "Command Workflows",
+    "name": "Test Telescope",
+    "description": "Queue the production telescope workflow using the current Britannian time and small-map context.",
+    "aliases": [
+      "use telescope"
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "command-test.spyglass",
+    "category": "Command Workflows",
+    "name": "Test Spyglass",
+    "description": "Queue the production spyglass workflow after validating ownership and its above-ground small-map context.",
+    "aliases": [
+      "use spyglass"
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "command-test.crystal-ball",
+    "category": "Command Workflows",
+    "name": "Test Crystal Ball",
+    "description": "Queue the production crystal-ball selection and deterministic intelligence-check workflow on a small map.",
+    "aliases": [
+      "use crystalball"
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "death.kill-party",
+    "category": "Death",
+    "name": "Kill Active Party",
+    "description": "Atomically set every member in the reviewed active party to zero HP and Dead without starting resurrection.",
+    "aliases": [
+      "death kill"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Wipe Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "death.test-sequence",
+    "category": "Death",
+    "name": "Test Death Sequence",
+    "description": "Atomically wipe the reviewed active party and queue the production death and resurrection workflow.",
+    "aliases": [
+      "death test"
+    ],
+    "parameters": [
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Wipe Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "codex.quest-state.set-all",
+    "category": "Shrines",
+    "name": "Set All Shrine Quest States",
+    "description": "Atomically clear or complete every shrine quest after reviewing the complete shrine quest state.",
+    "aliases": [
+      "codex clear",
+      "codex endgame"
+    ],
+    "parameters": [
+      {
+        "id": "targetState",
+        "name": "Target State",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "not_assigned",
+            "label": "Clear All"
+          },
+          {
+            "value": "completed",
+            "label": "Prepare Endgame"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedFingerprint",
+        "name": "Reviewed Shrine Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "codex.equipment.catalog",
+    "category": "Codex",
+    "name": "Equipment Compendium",
+    "description": "Browse immutable original equipment identities, combat values, requirements, and abilities.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.monster.catalog",
+    "category": "Codex",
+    "name": "Monster Bestiary",
+    "description": "Browse immutable monster identities, original combat data, movement flags, and abilities.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.spell.catalog",
+    "category": "Codex",
+    "name": "Spell and Reagent Grimoire",
+    "description": "Compare all original spells with Redux targeting, formulas, visuals, audio, events, issues, opportunities, and code references.",
+    "searchTerms": [
+      "spell",
+      "magic",
+      "reagent",
+      "targeting",
+      "audio",
+      "visual",
+      "formula",
+      "known issues",
+      "code references"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.tile.catalog",
+    "category": "Codex",
+    "name": "Tile Atlas",
+    "description": "Browse immutable tile identities, rendering metadata, and derived passability rules.",
+    "searchTerms": [
+      "sprites",
+      "tiles",
+      "passability",
+      "terrain",
+      "animation",
+      "lighting"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.location.catalog",
+    "category": "Codex",
+    "name": "World Gazetteer",
+    "description": "Browse location identities, map families, floors, and original overworld entrances.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.npc.catalog",
+    "category": "Codex",
+    "name": "NPC Schedule Index",
+    "description": "Browse loaded NPC identities, dialogue references, sprites, and scheduled behavior.",
+    "searchTerms": [
+      "npc",
+      "schedule",
+      "dialogue",
+      "conversation",
+      "sprite",
+      "ai"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.quest.catalog",
+    "category": "Codex",
+    "name": "Quest Artifact Ledger",
+    "description": "Browse immutable quest-artifact identities, sprites, and pickup descriptions.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.save-format.catalog",
+    "category": "Codex",
+    "name": "Save Format Explorer",
+    "description": "Browse documented canonical SAVED.GAM layout and important field offsets.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.search-location.catalog",
+    "category": "Codex",
+    "name": "Search Location Atlas",
+    "description": "Decode the original search-location catalog, payloads, and repeat requirements (CMD-0007).",
+    "searchTerms": [
+      "search",
+      "atlas",
+      "sjog",
+      "object",
+      "payload",
+      "repeat"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "codex.consumable.catalog",
+    "category": "Codex",
+    "name": "Consumables Codex",
+    "description": "Compare original potion and scroll behavior with current Redux support and deviations.",
+    "searchTerms": [
+      "potion",
+      "scroll",
+      "consumable",
+      "original",
+      "redux",
+      "support"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "save.snapshot.list",
+    "category": "Save Snapshots",
+    "name": "List Save Snapshots",
+    "description": "List detached metadata and current eligibility for named and rollback snapshots.",
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "save.snapshot.get",
+    "category": "Save Snapshots",
+    "name": "Inspect Save Snapshot",
+    "description": "Inspect detached metadata and a compact gameplay summary without returning the full snapshot.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Snapshot",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal|rollback):[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+      }
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "save.snapshot.capture",
+    "category": "Save Snapshots",
+    "name": "Capture Save Snapshot",
+    "description": "Capture the stable active gameplay scene as a new immutable project or personal snapshot.",
+    "parameters": [
+      {
+        "id": "source",
+        "name": "Source",
+        "kind": "enum",
+        "required": true,
+        "default": "personal",
+        "choices": [
+          {
+            "value": "project",
+            "label": "Project"
+          },
+          {
+            "value": "personal",
+            "label": "Personal"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "id",
+        "name": "ID",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+      },
+      {
+        "id": "name",
+        "name": "Name",
+        "kind": "string",
+        "required": true,
+        "pattern": ".*\\S.*"
+      },
+      {
+        "id": "description",
+        "name": "Description",
+        "kind": "string",
+        "required": false,
+        "default": ""
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "save.snapshot.load",
+    "category": "Save Snapshots",
+    "name": "Load Save Snapshot",
+    "description": "Persist an automatic rollback, build a dormant candidate, and atomically replace the active scene.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Snapshot",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal|rollback):[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+      },
+      {
+        "id": "expectedRevision",
+        "name": "Expected Revision",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    ],
+    "executionModes": [
+      "scene_restart"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "save.snapshot.delete",
+    "category": "Save Snapshots",
+    "name": "Delete Save Snapshot",
+    "description": "Delete a project or personal snapshot only at the reviewed revision.",
+    "parameters": [
+      {
+        "id": "reference",
+        "name": "Snapshot",
+        "kind": "string",
+        "required": true,
+        "pattern": "^(project|personal):[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+      },
+      {
+        "id": "expectedRevision",
+        "name": "Expected Revision",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "party.equipment.loadout.update",
+    "category": "Party",
+    "name": "Equipment Loadout",
+    "description": "Atomically change one or more equipment slots for one or all active party members using carried or explicitly manufactured items.",
+    "aliases": [
+      "ready equipment",
+      "party loadout"
+    ],
+    "parameters": [
+      {
+        "id": "character",
+        "name": "Character",
+        "description": "Select all active party members or one current member.",
+        "kind": "character",
+        "required": true,
+        "optionsProvider": "party.equipment-loadout-targets",
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioChoices": [
+          {
+            "value": "all",
+            "label": "All active party members"
+          },
+          {
+            "value": "1",
+            "label": "Party Position 1"
+          },
+          {
+            "value": "2",
+            "label": "Party Position 2"
+          },
+          {
+            "value": "3",
+            "label": "Party Position 3"
+          },
+          {
+            "value": "4",
+            "label": "Party Position 4"
+          },
+          {
+            "value": "5",
+            "label": "Party Position 5"
+          },
+          {
+            "value": "6",
+            "label": "Party Position 6"
+          }
+        ],
+        "scenarioValueResolver": "active-party-position"
+      },
+      {
+        "id": "helm",
+        "name": "Helm",
+        "description": "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "unequip",
+            "label": "Unequip"
+          },
+          {
+            "value": "inventory:0",
+            "label": "Equip Leather Helm from inventory"
+          },
+          {
+            "value": "manufacture:0",
+            "label": "Manufacture and equip Leather Helm"
+          },
+          {
+            "value": "inventory:1",
+            "label": "Equip Chain Coif from inventory"
+          },
+          {
+            "value": "manufacture:1",
+            "label": "Manufacture and equip Chain Coif"
+          },
+          {
+            "value": "inventory:2",
+            "label": "Equip Iron Helm from inventory"
+          },
+          {
+            "value": "manufacture:2",
+            "label": "Manufacture and equip Iron Helm"
+          },
+          {
+            "value": "inventory:3",
+            "label": "Equip Spiked Helm from inventory"
+          },
+          {
+            "value": "manufacture:3",
+            "label": "Manufacture and equip Spiked Helm"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "armour",
+        "name": "Armour",
+        "description": "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "unequip",
+            "label": "Unequip"
+          },
+          {
+            "value": "inventory:9",
+            "label": "Equip Cloth Armour from inventory"
+          },
+          {
+            "value": "manufacture:9",
+            "label": "Manufacture and equip Cloth Armour"
+          },
+          {
+            "value": "inventory:10",
+            "label": "Equip Leather Armour from inventory"
+          },
+          {
+            "value": "manufacture:10",
+            "label": "Manufacture and equip Leather Armour"
+          },
+          {
+            "value": "inventory:11",
+            "label": "Equip Ring Mail from inventory"
+          },
+          {
+            "value": "manufacture:11",
+            "label": "Manufacture and equip Ring Mail"
+          },
+          {
+            "value": "inventory:12",
+            "label": "Equip Scale Mail from inventory"
+          },
+          {
+            "value": "manufacture:12",
+            "label": "Manufacture and equip Scale Mail"
+          },
+          {
+            "value": "inventory:13",
+            "label": "Equip Chain Mail from inventory"
+          },
+          {
+            "value": "manufacture:13",
+            "label": "Manufacture and equip Chain Mail"
+          },
+          {
+            "value": "inventory:14",
+            "label": "Equip Plate Mail from inventory"
+          },
+          {
+            "value": "manufacture:14",
+            "label": "Manufacture and equip Plate Mail"
+          },
+          {
+            "value": "inventory:15",
+            "label": "Equip Mystic Armour from inventory"
+          },
+          {
+            "value": "manufacture:15",
+            "label": "Manufacture and equip Mystic Armour"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "weapon",
+        "name": "Weapon",
+        "description": "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "unequip",
+            "label": "Unequip"
+          },
+          {
+            "value": "inventory:16",
+            "label": "Equip Dagger from inventory"
+          },
+          {
+            "value": "manufacture:16",
+            "label": "Manufacture and equip Dagger"
+          },
+          {
+            "value": "inventory:17",
+            "label": "Equip Sling from inventory"
+          },
+          {
+            "value": "manufacture:17",
+            "label": "Manufacture and equip Sling"
+          },
+          {
+            "value": "inventory:18",
+            "label": "Equip Club from inventory"
+          },
+          {
+            "value": "manufacture:18",
+            "label": "Manufacture and equip Club"
+          },
+          {
+            "value": "inventory:19",
+            "label": "Equip Flaming Oil from inventory"
+          },
+          {
+            "value": "manufacture:19",
+            "label": "Manufacture and equip Flaming Oil"
+          },
+          {
+            "value": "inventory:20",
+            "label": "Equip Main Gauche from inventory"
+          },
+          {
+            "value": "manufacture:20",
+            "label": "Manufacture and equip Main Gauche"
+          },
+          {
+            "value": "inventory:21",
+            "label": "Equip Spear from inventory"
+          },
+          {
+            "value": "manufacture:21",
+            "label": "Manufacture and equip Spear"
+          },
+          {
+            "value": "inventory:22",
+            "label": "Equip Throwing Axe from inventory"
+          },
+          {
+            "value": "manufacture:22",
+            "label": "Manufacture and equip Throwing Axe"
+          },
+          {
+            "value": "inventory:23",
+            "label": "Equip Short Sword from inventory"
+          },
+          {
+            "value": "manufacture:23",
+            "label": "Manufacture and equip Short Sword"
+          },
+          {
+            "value": "inventory:24",
+            "label": "Equip Mace from inventory"
+          },
+          {
+            "value": "manufacture:24",
+            "label": "Manufacture and equip Mace"
+          },
+          {
+            "value": "inventory:25",
+            "label": "Equip Morning Star from inventory"
+          },
+          {
+            "value": "manufacture:25",
+            "label": "Manufacture and equip Morning Star"
+          },
+          {
+            "value": "inventory:26",
+            "label": "Equip Bow from inventory"
+          },
+          {
+            "value": "manufacture:26",
+            "label": "Manufacture and equip Bow"
+          },
+          {
+            "value": "inventory:28",
+            "label": "Equip Crossbow from inventory"
+          },
+          {
+            "value": "manufacture:28",
+            "label": "Manufacture and equip Crossbow"
+          },
+          {
+            "value": "inventory:30",
+            "label": "Equip Long Sword from inventory"
+          },
+          {
+            "value": "manufacture:30",
+            "label": "Manufacture and equip Long Sword"
+          },
+          {
+            "value": "inventory:31",
+            "label": "Equip 2H Hammer from inventory"
+          },
+          {
+            "value": "manufacture:31",
+            "label": "Manufacture and equip 2H Hammer"
+          },
+          {
+            "value": "inventory:32",
+            "label": "Equip 2H Axe from inventory"
+          },
+          {
+            "value": "manufacture:32",
+            "label": "Manufacture and equip 2H Axe"
+          },
+          {
+            "value": "inventory:33",
+            "label": "Equip 2H Sword from inventory"
+          },
+          {
+            "value": "manufacture:33",
+            "label": "Manufacture and equip 2H Sword"
+          },
+          {
+            "value": "inventory:34",
+            "label": "Equip Halberd from inventory"
+          },
+          {
+            "value": "manufacture:34",
+            "label": "Manufacture and equip Halberd"
+          },
+          {
+            "value": "inventory:35",
+            "label": "Equip Chaos Sword from inventory"
+          },
+          {
+            "value": "manufacture:35",
+            "label": "Manufacture and equip Chaos Sword"
+          },
+          {
+            "value": "inventory:36",
+            "label": "Equip Magic Bow from inventory"
+          },
+          {
+            "value": "manufacture:36",
+            "label": "Manufacture and equip Magic Bow"
+          },
+          {
+            "value": "inventory:37",
+            "label": "Equip Silver Sword from inventory"
+          },
+          {
+            "value": "manufacture:37",
+            "label": "Manufacture and equip Silver Sword"
+          },
+          {
+            "value": "inventory:38",
+            "label": "Equip Magic Axe from inventory"
+          },
+          {
+            "value": "manufacture:38",
+            "label": "Manufacture and equip Magic Axe"
+          },
+          {
+            "value": "inventory:39",
+            "label": "Equip Glass Sword from inventory"
+          },
+          {
+            "value": "manufacture:39",
+            "label": "Manufacture and equip Glass Sword"
+          },
+          {
+            "value": "inventory:40",
+            "label": "Equip Jeweled Sword from inventory"
+          },
+          {
+            "value": "manufacture:40",
+            "label": "Manufacture and equip Jeweled Sword"
+          },
+          {
+            "value": "inventory:41",
+            "label": "Equip Mystic Sword from inventory"
+          },
+          {
+            "value": "manufacture:41",
+            "label": "Manufacture and equip Mystic Sword"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "shield",
+        "name": "Shield",
+        "description": "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "unequip",
+            "label": "Unequip"
+          },
+          {
+            "value": "inventory:4",
+            "label": "Equip Small Shield from inventory"
+          },
+          {
+            "value": "manufacture:4",
+            "label": "Manufacture and equip Small Shield"
+          },
+          {
+            "value": "inventory:5",
+            "label": "Equip Large Shield from inventory"
+          },
+          {
+            "value": "manufacture:5",
+            "label": "Manufacture and equip Large Shield"
+          },
+          {
+            "value": "inventory:6",
+            "label": "Equip Spiked Shield from inventory"
+          },
+          {
+            "value": "manufacture:6",
+            "label": "Manufacture and equip Spiked Shield"
+          },
+          {
+            "value": "inventory:7",
+            "label": "Equip Magic Shield from inventory"
+          },
+          {
+            "value": "manufacture:7",
+            "label": "Manufacture and equip Magic Shield"
+          },
+          {
+            "value": "inventory:8",
+            "label": "Equip Jewel Shield from inventory"
+          },
+          {
+            "value": "manufacture:8",
+            "label": "Manufacture and equip Jewel Shield"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "ring",
+        "name": "Ring",
+        "description": "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "unequip",
+            "label": "Unequip"
+          },
+          {
+            "value": "inventory:42",
+            "label": "Equip Ring of Invisibility from inventory"
+          },
+          {
+            "value": "manufacture:42",
+            "label": "Manufacture and equip Ring of Invisibility"
+          },
+          {
+            "value": "inventory:43",
+            "label": "Equip Ring of Protection from inventory"
+          },
+          {
+            "value": "manufacture:43",
+            "label": "Manufacture and equip Ring of Protection"
+          },
+          {
+            "value": "inventory:44",
+            "label": "Equip Ring of Regeneration from inventory"
+          },
+          {
+            "value": "manufacture:44",
+            "label": "Manufacture and equip Ring of Regeneration"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "amulet",
+        "name": "Amulet",
+        "description": "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+        "kind": "enum",
+        "required": false,
+        "choices": [
+          {
+            "value": "unequip",
+            "label": "Unequip"
+          },
+          {
+            "value": "inventory:45",
+            "label": "Equip Amulet of Turning from inventory"
+          },
+          {
+            "value": "manufacture:45",
+            "label": "Manufacture and equip Amulet of Turning"
+          },
+          {
+            "value": "inventory:46",
+            "label": "Equip Spiked Collar from inventory"
+          },
+          {
+            "value": "manufacture:46",
+            "label": "Manufacture and equip Spiked Collar"
+          },
+          {
+            "value": "inventory:47",
+            "label": "Equip Ankh from inventory"
+          },
+          {
+            "value": "manufacture:47",
+            "label": "Manufacture and equip Ankh"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Expected Equipment State",
+        "description": "Complete carried-inventory and roster-loadout fingerprint reviewed before execution.",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text",
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "coordinated_alteration"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "redux.modifications.status",
+    "category": "Redux Modifications",
+    "name": "Redux Gameplay Modifications",
+    "description": "Inspect persisted Redux gameplay rules and original-behavior overrides.",
+    "aliases": [
+      "redux settings",
+      "gameplay modifications"
+    ],
+    "searchTerms": [
+      "redux",
+      "deviation",
+      "original behavior",
+      "monster division",
+      "splits",
+      "dungeon",
+      "discoveries",
+      "visibility"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "redux.combat.repeated-monster-division.set",
+    "category": "Redux Modifications",
+    "name": "Set Repeated Monster Division",
+    "description": "Persist whether surviving Slimes, Gargoyles, and their children may divide repeatedly.",
+    "aliases": [
+      "repeated splits",
+      "original monster division"
+    ],
+    "searchTerms": [
+      "redux",
+      "combat",
+      "slime",
+      "gargoyle",
+      "splits"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Allow Repeated Division",
+        "description": "Enable repeated source-authentic division instead of the Redux one-child limit.",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.dungeons.persist-hidden-discoveries.set",
+    "category": "Redux Modifications",
+    "name": "Set Persistent Hidden Dungeon Discoveries",
+    "description": "Persist revealed hidden dungeon doors and pits between fresh visits.",
+    "aliases": [
+      "persistent dungeon discoveries",
+      "remember hidden doors"
+    ],
+    "searchTerms": [
+      "redux",
+      "dungeon",
+      "hidden door",
+      "hidden pit",
+      "persistence"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Persist Hidden Discoveries",
+        "description": "Enable Redux persistence instead of original per-visit discovery reset.",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.dungeons.subdued-unlit-visibility.set",
+    "category": "Redux Modifications",
+    "name": "Set Subdued Unlit Dungeon Visibility",
+    "description": "Show deterministic dim dungeon geometry when no real light is active.",
+    "aliases": [
+      "dim dungeons",
+      "unlit dungeon visibility"
+    ],
+    "searchTerms": [
+      "redux",
+      "dungeon",
+      "darkness",
+      "dim",
+      "visibility"
+    ],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Show Subdued Unlit Dungeons",
+        "description": "Enable Redux subdued visibility instead of original binary black.",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.presentation.smooth-surface-movement.set",
+    "category": "Redux Modifications",
+    "name": "Set Smooth Surface Movement",
+    "description": "Persist optional camera scrolling while walking, riding, flying or boating; mounts animate 25% faster and automatic sailing follows its cadence. Gameplay timing, combat and dungeons are unchanged.",
+    "aliases": ["smooth movement", "surface scrolling"],
+    "searchTerms": ["redux", "presentation", "camera", "smooth", "movement"],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Smooth Surface Movement",
+        "description": "Enable optional Redux camera scrolling; disabled by default.",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": ["live_safe"],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.navigation.flexible_sextant_use.set",
+    "category": "Redux Modifications",
+    "name": "Set Flexible Sextant Use",
+    "description": "Persist optional daytime and settlement sextant use on all floors, including cellars; dungeons, Underworld and ownership requirements remain excluded.",
+    "aliases": ["flexible sextant", "sextant navigation"],
+    "searchTerms": ["redux", "navigation", "sextant", "flexible"],
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Flexible sextant use",
+        "description": "Enable flexible navigation instead of original nighttime world-only use; disabled by default.",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": ["live_safe"],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "world.position.set",
+    "category": "World",
+    "name": "Set World Position",
+    "description": "Atomically apply one reviewed exact position or authoritative dungeon route target.",
+    "aliases": [
+      "world navigator set",
+      "teleport location floor"
+    ],
+    "searchTerms": [
+      "teleport",
+      "travel",
+      "map",
+      "location",
+      "coordinates",
+      "floor",
+      "navigator"
+    ],
+    "parameters": [
+      {
+        "id": "placement",
+        "name": "Placement",
+        "description": "Choose exact coordinates or one authoritative dungeon route target.",
+        "kind": "enum",
+        "required": false,
+        "default": "exact",
+        "choices": [
+          {
+            "value": "exact",
+            "label": "Arbitrary exact position"
+          },
+          {
+            "value": "dungeon_outside_entrance",
+            "label": "Outside dungeon entrance"
+          },
+          {
+            "value": "dungeon_inside_start",
+            "label": "Inside dungeon start"
+          },
+          {
+            "value": "dungeon_underworld_exit",
+            "label": "Dungeon Underworld-exit ladder"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "route",
+        "name": "Dungeon Route",
+        "description": "Select the Britannia or Underworld dungeon route when the placement uses one.",
+        "kind": "enum",
+        "required": false,
+        "default": "britannia",
+        "choices": [
+          {
+            "value": "britannia",
+            "label": "Britannia"
+          },
+          {
+            "value": "underworld",
+            "label": "Underworld"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "location",
+        "name": "Destination",
+        "description": "Choose Britannia/Underworld, a small location, or a dungeon.",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "0",
+            "label": "Britannia / Underworld"
+          },
+          {
+            "value": "1",
+            "label": "Moonglow"
+          },
+          {
+            "value": "2",
+            "label": "Britain"
+          },
+          {
+            "value": "3",
+            "label": "Jhelom"
+          },
+          {
+            "value": "4",
+            "label": "Yew"
+          },
+          {
+            "value": "5",
+            "label": "Minoc"
+          },
+          {
+            "value": "6",
+            "label": "Trinsic"
+          },
+          {
+            "value": "7",
+            "label": "SkaraBrae"
+          },
+          {
+            "value": "8",
+            "label": "NewMagincia"
+          },
+          {
+            "value": "9",
+            "label": "Fogsbane"
+          },
+          {
+            "value": "10",
+            "label": "Stormcrow"
+          },
+          {
+            "value": "11",
+            "label": "Greyhaven"
+          },
+          {
+            "value": "12",
+            "label": "Waveguide"
+          },
+          {
+            "value": "13",
+            "label": "IolosHut"
+          },
+          {
+            "value": "14",
+            "label": "SuteksHut"
+          },
+          {
+            "value": "15",
+            "label": "SinVraalsHut"
+          },
+          {
+            "value": "16",
+            "label": "GrendelsHut"
+          },
+          {
+            "value": "17",
+            "label": "LordBritishsCastle"
+          },
+          {
+            "value": "18",
+            "label": "PalaceOfBlackthorn"
+          },
+          {
+            "value": "19",
+            "label": "WestBritanny"
+          },
+          {
+            "value": "20",
+            "label": "NorthBritanny"
+          },
+          {
+            "value": "21",
+            "label": "EastBritanny"
+          },
+          {
+            "value": "22",
+            "label": "Paws"
+          },
+          {
+            "value": "23",
+            "label": "Cove"
+          },
+          {
+            "value": "24",
+            "label": "BuccaneersDen"
+          },
+          {
+            "value": "25",
+            "label": "Ararat"
+          },
+          {
+            "value": "26",
+            "label": "Bordermarch"
+          },
+          {
+            "value": "27",
+            "label": "Farthing"
+          },
+          {
+            "value": "28",
+            "label": "Windemere"
+          },
+          {
+            "value": "29",
+            "label": "Stonegate"
+          },
+          {
+            "value": "30",
+            "label": "Lycaeum"
+          },
+          {
+            "value": "31",
+            "label": "EmpathAbbey"
+          },
+          {
+            "value": "32",
+            "label": "SerpentsHold"
+          },
+          {
+            "value": "33",
+            "label": "Deceit"
+          },
+          {
+            "value": "34",
+            "label": "Despise"
+          },
+          {
+            "value": "35",
+            "label": "Destard"
+          },
+          {
+            "value": "36",
+            "label": "Wrong"
+          },
+          {
+            "value": "37",
+            "label": "Covetous"
+          },
+          {
+            "value": "38",
+            "label": "Shame"
+          },
+          {
+            "value": "39",
+            "label": "Hythloth"
+          },
+          {
+            "value": "40",
+            "label": "Doom"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "floor",
+        "name": "Floor",
+        "description": "Choose a floor valid for an exact destination.",
+        "kind": "enum",
+        "required": false,
+        "default": "0",
+        "choices": [
+          {
+            "value": "-1",
+            "label": "Underworld / Basement (-1)"
+          },
+          {
+            "value": "0",
+            "label": "Floor 0 / Dungeon Level 1"
+          },
+          {
+            "value": "1",
+            "label": "Floor 1 / Dungeon Level 2"
+          },
+          {
+            "value": "2",
+            "label": "Floor 2 / Dungeon Level 3"
+          },
+          {
+            "value": "3",
+            "label": "Floor 3 / Dungeon Level 4"
+          },
+          {
+            "value": "4",
+            "label": "Floor 4 / Dungeon Level 5"
+          },
+          {
+            "value": "5",
+            "label": "Floor 5 / Dungeon Level 6"
+          },
+          {
+            "value": "6",
+            "label": "Floor 6 / Dungeon Level 7"
+          },
+          {
+            "value": "7",
+            "label": "Floor 7 / Dungeon Level 8"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "x",
+        "name": "X",
+        "kind": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "y",
+        "name": "Y",
+        "kind": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "maximum": 255,
+        "controlHint": "number",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedLocationId",
+        "name": "Reviewed Location",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 40,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedFloor",
+        "name": "Reviewed Floor",
+        "kind": "integer",
+        "required": true,
+        "minimum": -1,
+        "maximum": 7,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedX",
+        "name": "Reviewed X",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedY",
+        "name": "Reviewed Y",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedSourceFingerprint",
+        "name": "Reviewed Source Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "dungeon.explorer.status",
+    "category": "Dungeon Explorer",
+    "name": "Dungeon Explorer",
+    "description": "Inspect the active semantic dungeon floor, facing, lighting, and packed cells.",
+    "aliases": [
+      "dungeon status",
+      "dungeon map"
+    ],
+    "searchTerms": [
+      "dungeon",
+      "map",
+      "cells",
+      "facing",
+      "lighting",
+      "semantic",
+      "explorer"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "dungeon.explorer.setup",
+    "category": "Dungeon Explorer",
+    "name": "Set Up Dungeon",
+    "description": "Atomically install one reviewed dungeon, floor, coordinate, facing, and light setup.",
+    "aliases": [
+      "dungeon setup",
+      "enter dungeon"
+    ],
+    "searchTerms": [
+      "dungeon",
+      "setup",
+      "floor",
+      "position",
+      "facing",
+      "lighting",
+      "explorer"
+    ],
+    "parameters": [
+      {
+        "id": "dungeon",
+        "name": "Dungeon",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "33",
+            "label": "Deceit"
+          },
+          {
+            "value": "34",
+            "label": "Despise"
+          },
+          {
+            "value": "35",
+            "label": "Destard"
+          },
+          {
+            "value": "36",
+            "label": "Wrong"
+          },
+          {
+            "value": "37",
+            "label": "Covetous"
+          },
+          {
+            "value": "38",
+            "label": "Shame"
+          },
+          {
+            "value": "39",
+            "label": "Hythloth"
+          },
+          {
+            "value": "40",
+            "label": "Doom"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "floor",
+        "name": "Floor",
+        "kind": "integer",
+        "required": false,
+        "default": 0,
+        "minimum": 0,
+        "maximum": 7,
+        "controlHint": "number",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "x",
+        "name": "X",
+        "kind": "integer",
+        "required": false,
+        "default": 4,
+        "minimum": 0,
+        "maximum": 7,
+        "controlHint": "number",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "y",
+        "name": "Y",
+        "kind": "integer",
+        "required": false,
+        "default": 4,
+        "minimum": 0,
+        "maximum": 7,
+        "controlHint": "number",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "facing",
+        "name": "Facing",
+        "kind": "enum",
+        "required": false,
+        "default": "east",
+        "choices": [
+          {
+            "value": "north",
+            "label": "North"
+          },
+          {
+            "value": "east",
+            "label": "East"
+          },
+          {
+            "value": "south",
+            "label": "South"
+          },
+          {
+            "value": "west",
+            "label": "West"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "lit",
+        "name": "Lit",
+        "kind": "boolean",
+        "required": false,
+        "default": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedLocationId",
+        "name": "Reviewed Location",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 40,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedFloor",
+        "name": "Reviewed Floor",
+        "kind": "integer",
+        "required": true,
+        "minimum": -1,
+        "maximum": 7,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedX",
+        "name": "Reviewed X",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedY",
+        "name": "Reviewed Y",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedSourceFingerprint",
+        "name": "Reviewed Source Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "expectedDungeonRevision",
+        "name": "Reviewed Dungeon Revision",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "combat.dungeon-room.clear",
+    "category": "Active Combat",
+    "name": "Clear Fixed Dungeon Room",
+    "description": "Defeat every hostile enemy in an authoritative fixed dungeon room and declare victory; awards no XP and creates no corpses or treasure.",
+    "aliases": [
+      "combat clear room"
+    ],
+    "parameters": [
+      {
+        "id": "encounterId",
+        "name": "Encounter",
+        "kind": "string",
+        "required": true,
+        "pattern": "^[1-9][0-9]*$",
+        "controlHint": "text"
+      },
+      {
+        "id": "expectedSnapshot",
+        "name": "Reviewed Status Fingerprint",
+        "kind": "string",
+        "required": true,
+        "controlHint": "text"
+      }
+    ],
+    "executionModes": [
+      "synchronized_live"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "merchant.tester.catalog",
+    "category": "Merchants",
+    "name": "Merchant Tester",
+    "description": "Inspect all canonical merchants and current Preview and Live launch availability.",
+    "aliases": [
+      "merchant catalog",
+      "shop tester"
+    ],
+    "searchTerms": [
+      "merchant",
+      "shop",
+      "guild",
+      "preview",
+      "live",
+      "tester"
+    ],
+    "executionModes": [
+      "query"
+    ],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "merchant.tester.preview.open",
+    "category": "Merchants",
+    "name": "Open Merchant Preview",
+    "description": "Open the production merchant presentation and stop before transaction authority.",
+    "aliases": [
+      "merchant preview",
+      "shop preview"
+    ],
+    "searchTerms": [
+      "merchant",
+      "shop",
+      "guild",
+      "preview",
+      "tester"
+    ],
+    "parameters": [
+      {
+        "id": "merchantId",
+        "name": "Merchant",
+        "description": "Choose one canonical active merchant identity.",
+        "kind": "string",
+        "required": true,
+        "optionsProvider": "merchant.tester.merchants",
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "merchant.tester.live.open",
+    "category": "Merchants",
+    "name": "Open Live Merchant Session",
+    "description": "Open a reviewed production merchant session, loading the canonical town when required.",
+    "aliases": [
+      "merchant live",
+      "shop live"
+    ],
+    "searchTerms": [
+      "merchant",
+      "shop",
+      "guild",
+      "live",
+      "tester"
+    ],
+    "parameters": [
+      {
+        "id": "merchantId",
+        "name": "Merchant",
+        "description": "Choose one canonical active merchant identity.",
+        "kind": "string",
+        "required": true,
+        "optionsProvider": "merchant.tester.merchants",
+        "controlHint": "select",
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedLocationId",
+        "name": "Reviewed Location",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 40,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedFloor",
+        "name": "Reviewed Floor",
+        "kind": "integer",
+        "required": true,
+        "minimum": -1,
+        "maximum": 7,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedX",
+        "name": "Reviewed X",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedY",
+        "name": "Reviewed Y",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 255,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      },
+      {
+        "id": "expectedSourceFingerprint",
+        "name": "Reviewed Source Fingerprint",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay",
+          "outside_combat"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow",
+      "coordinated_alteration"
+    ],
+    "destructive": true,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "scenario.blackthorn-interrogation.start",
+    "category": "Scenarios",
+    "name": "Test Blackthorn Interrogation",
+    "description": "Open the first shrine, move to Blackthorn's Palace, and start the production interrogation workflow.",
+    "aliases": [
+      "blackthorn interrogation",
+      "blackthorn prison"
+    ],
+    "searchTerms": [
+      "scripted scene",
+      "martyr",
+      "mantra",
+      "palace",
+      "prison"
+    ],
+    "parameters": [
+      {
+        "id": "expectedPartyFingerprint",
+        "name": "Reviewed Party",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioRuntime": true
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": true
+  },
+  {
+    "id": "scenario.lord-british-finale.start",
+    "category": "Scenarios",
+    "name": "Test Lord British Finale",
+    "description": "Choose Wooden Box ownership and start the production terminal Lord British rescue and ending workflow.",
+    "aliases": [
+      "lord british finale",
+      "endgame",
+      "ending"
+    ],
+    "searchTerms": [
+      "scripted scene",
+      "doom",
+      "rescue",
+      "wooden box",
+      "certificate"
+    ],
+    "parameters": [
+      {
+        "id": "expectedPartyFingerprint",
+        "name": "Reviewed Party",
+        "kind": "string",
+        "required": true,
+        "availability": [
+          "gameplay"
+        ],
+        "scenarioRuntime": true
+      },
+      {
+        "id": "woodenBox",
+        "name": "Wooden Box Ownership",
+        "kind": "boolean",
+        "required": true,
+        "default": true,
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "workflow"
+    ],
+    "destructive": true,
+    "scenarioTerminal": true
+  },
+  {
+    "id": "display.mode.set",
+    "category": "Display",
+    "name": "Set Game Window Mode",
+    "description": "Request a runtime game-window mode without changing player display settings.",
+    "aliases": [
+      "screen mode"
+    ],
+    "searchTerms": [
+      "resolution",
+      "fullscreen",
+      "maximized",
+      "window",
+      "screen",
+      "display"
+    ],
+    "parameters": [
+      {
+        "id": "mode",
+        "name": "Display Mode",
+        "kind": "enum",
+        "required": true,
+        "choices": [
+          {
+            "value": "windowed",
+            "label": "Windowed"
+          },
+          {
+            "value": "maximized",
+            "label": "Maximized Window"
+          },
+          {
+            "value": "fullscreen",
+            "label": "Borderless Fullscreen"
+          }
+        ],
+        "controlHint": "select",
+        "availability": [
+          "gameplay"
+        ]
+      }
+    ],
+    "executionModes": [
+      "presentation"
+    ],
+    "destructive": false
+  },
+  {
+    "id": "scenario.run.cancel",
+    "category": "Scenarios",
+    "name": "Cancel Remaining Steps",
+    "description": "Stop remaining steps of the identified run when processed; retain completed effects, the applied baseline, and production workflows. Does not restore rollback.",
+    "parameters": [
+      {
+        "id": "runId",
+        "name": "Run ID",
+        "kind": "string",
+        "required": true,
+        "pattern": "^\\S+$"
+      }
+    ],
+    "executionModes": [
+      "live_safe"
+    ],
+    "destructive": false,
+    "scenarioExcluded": true
+  }
+]

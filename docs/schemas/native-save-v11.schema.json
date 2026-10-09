@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-v11.schema.json",
+  "title": "Native Ultima V Redux Save Schema",
+  "description": "Strict native Ultima V Redux save envelope containing SaveSnapshot version 11, including character identity rules and durable surface chest lock authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "envelopeVersion", "metadata", "snapshot"],
+  "properties": {
+    "format": {"const": "ultima5redux-native-snapshot"},
+    "envelopeVersion": {"const": 1},
+    "metadata": {
+      "$ref": "native-save-v3.schema.json#/$defs/metadata"
+    },
+    "snapshot": {"$ref": "#/$defs/saveSnapshot"}
+  },
+  "$defs": {
+    "saveSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version", "party", "inventory", "world", "progression", "effects", "wind", "random",
+        "redux", "dungeon", "partyVehicle", "mapUnits", "itemStacks", "mapMutations"
+      ],
+      "properties": {
+        "version": {"const": 11},
+        "party": {"$ref": "#/$defs/party"},
+        "inventory": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/inventory"},
+        "world": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/world"},
+        "progression": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/progression"},
+        "effects": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/effects"},
+        "wind": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/wind"},
+        "random": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/random"},
+        "redux": {"$ref": "native-save-v10.schema.json#/$defs/redux"},
+        "dungeon": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/dungeon"},
+        "partyVehicle": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/partyVehicle"},
+        "mapUnits": {
+          "type": ["array", "null"],
+          "items": {"$ref": "#/$defs/mapUnit"}
+        },
+        "itemStacks": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/itemStacks"},
+        "mapMutations": {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/mapMutations"}
+      },
+      "allOf": [
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/0"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/1"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/2"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/3"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/4"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/5"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/6"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/7"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/8"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/9"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/10"},
+        {"$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/allOf/11"}
+      ]
+    },
+    "party": {
+      "allOf": [
+        {
+          "$ref": "native-save-v10.schema.json#/$defs/saveSnapshot/properties/party"
+        },
+        {
+          "properties": {
+            "roster": {
+              "allOf": [
+                {
+                  "items": {"$ref": "#/$defs/character"}
+                },
+                {
+                  "anyOf": [
+                    {
+                      "prefixItems": [
+                        {"$ref": "#/$defs/avatarCharacter"}
+                      ],
+                      "items": {"$ref": "#/$defs/inactiveCharacter"}
+                    },
+                    {
+                      "prefixItems": [
+                        {"$ref": "#/$defs/avatarCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"}
+                      ],
+                      "items": {"$ref": "#/$defs/inactiveCharacter"}
+                    },
+                    {
+                      "prefixItems": [
+                        {"$ref": "#/$defs/avatarCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"}
+                      ],
+                      "items": {"$ref": "#/$defs/inactiveCharacter"}
+                    },
+                    {
+                      "prefixItems": [
+                        {"$ref": "#/$defs/avatarCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"}
+                      ],
+                      "items": {"$ref": "#/$defs/inactiveCharacter"}
+                    },
+                    {
+                      "prefixItems": [
+                        {"$ref": "#/$defs/avatarCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"}
+                      ],
+                      "items": {"$ref": "#/$defs/inactiveCharacter"}
+                    },
+                    {
+                      "prefixItems": [
+                        {"$ref": "#/$defs/avatarCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"},
+                        {"$ref": "#/$defs/activeCharacter"}
+                      ],
+                      "items": {"$ref": "#/$defs/inactiveCharacter"}
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "character": {
+      "allOf": [
+        {
+          "$ref": "native-save-v3.schema.json#/$defs/character"
+        },
+        {
+          "if": {
+            "properties": {"occupied": {"const": true}},
+            "required": ["occupied"]
+          },
+          "then": {
+            "properties": {
+              "gender": {"enum": [11, 12]},
+              "class": {"enum": [65, 70, 66, 77]},
+              "status": {"enum": [71, 80, 67, 83, 68]},
+              "partyMap": {
+                "anyOf": [
+                  {"type": "integer", "minimum": 0, "maximum": 40},
+                  {"const": 127},
+                  {"const": 255}
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "activeCharacter": {
+      "allOf": [
+        {"$ref": "#/$defs/character"},
+        {"properties": {"occupied": {"const": true}, "partyMap": {"const": 0}}}
+      ]
+    },
+    "inactiveCharacter": {
+      "allOf": [
+        {"$ref": "#/$defs/character"},
+        {
+          "not": {
+            "properties": {"occupied": {"const": true}, "partyMap": {"const": 0}},
+            "required": ["occupied", "partyMap"]
+          }
+        }
+      ]
+    },
+    "avatarCharacter": {
+      "allOf": [
+        {"$ref": "#/$defs/activeCharacter"},
+        {"properties": {"class": {"const": 65}}}
+      ]
+    },
+    "mapUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world", "controllerOrder", "kind", "referenceId", "npcNum", "position",
+        "visible", "skipNextTurn", "wantsToAutoTalk", "overriddenAi", "aiOverrideProvenance",
+        "currentPath", "vehicle", "enemyVariant", "enemyCurrentHp", "enemyFacing", "shadowlord"
+      ],
+      "properties": {
+        "world": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/world"},
+        "controllerOrder": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/controllerOrder"},
+        "kind": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/kind"},
+        "referenceId": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/referenceId"},
+        "npcNum": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/npcNum"},
+        "position": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/position"},
+        "visible": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/visible"},
+        "skipNextTurn": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/skipNextTurn"},
+        "wantsToAutoTalk": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/wantsToAutoTalk"},
+        "overriddenAi": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/overriddenAi"},
+        "aiOverrideProvenance": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/aiOverrideProvenance"},
+        "arrivedScheduleSlot": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/arrivedScheduleSlot"},
+        "consumedTalk3ScheduleSlot": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/consumedTalk3ScheduleSlot"},
+        "currentPath": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/currentPath"},
+        "vehicle": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/vehicle"},
+        "enemyVariant": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/enemyVariant"},
+        "enemyCurrentHp": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/enemyCurrentHp"},
+        "enemyFacing": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/enemyFacing"},
+        "shadowlord": {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/properties/shadowlord"},
+        "surfaceChestNumber": {"type": "integer", "minimum": 0, "maximum": 255}
+      },
+      "allOf": [
+        {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/allOf/0"},
+        {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/allOf/1"},
+        {"$ref": "native-save-v9.schema.json#/$defs/mapUnit/allOf/2"},
+        {
+          "if": {"required": ["surfaceChestNumber"]},
+          "then": {"properties": {"kind": {"const": "npc"}}}
+        }
+      ]
+    }
+  }
+}

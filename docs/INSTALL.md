@@ -1,25 +1,48 @@
 # Installing and starting Ultima V Redux
 
-> **Draft for the first source release.** This repository currently contains
-> documentation only. No tagged, installable game version has been published here.
-> The following is the installation contract to validate before release.
+> **First source release in preparation.** Application source is staged on
+> `feat/graphics-test-trim`; `main` remains documentation-only. No source
+> release or version tag has been published. Local source builds are available
+> from the staged checkout; release installation and platform acceptance remain
+> to be verified.
 
 ## What you need
 
 - Your own original Ultima V game data files.
 - A supported desktop platform with a working graphics and audio environment.
-- The Go toolchain version documented with the release. The minimum and tested
-  toolchains for this repository will be confirmed when the application is staged.
+- Go 1.25.0 or newer. The module declares `go 1.25.0` and selects
+  `toolchain go1.27.1`; allow Go to obtain that toolchain or provision it yourself.
 - Network access for Go to download the public module and its dependencies.
 
 Initial validation targets are macOS arm64 (Apple Silicon), Windows amd64, and
 Linux amd64, in that order. Intel macOS and other architectures need separate
 acceptance before being advertised as supported.
 
-The intended player installation requires neither a source checkout nor Make or
-Node. Removing the application's native compiler requirement is part of release
-preparation. Linux still needs the applicable desktop graphics/audio runtime;
-exact distribution prerequisites will be documented from native validation.
+The production installation requires neither Make, Node, an AI tool, nor a C
+compiler. The future released-module route will also avoid a source checkout.
+Linux still needs the applicable desktop graphics/audio runtime; exact
+distribution prerequisites will be documented from native validation. Cross-build
+success alone does not establish native graphics, audio, or input acceptance.
+
+## Build the staged local source
+
+From an existing checkout of the application-bearing branch:
+
+```sh
+go build -o bin/ultimav ./cmd/ultimav
+./bin/ultimav
+```
+
+For Windows, build with `-o bin/ultimav.exe` and launch `.\bin\ultimav.exe`.
+Alternatively, `go run ./cmd/ultimav` builds and runs the local source. Dependency
+and toolchain downloads need network access unless already cached. A checkout of
+the documentation-only `main` does not contain this command yet.
+
+Required embedded/generated assets are included in the staged application. A
+production build does not require a frontend rebuild. Bundled assets and fixtures
+are not a complete original game installation and do not replace the external
+files described below. Contributors changing the frontend or running validation
+should use the separate [development guide](DEVELOPMENT_GUIDE.md).
 
 ## Install the latest released version
 

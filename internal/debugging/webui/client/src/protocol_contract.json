@@ -1,0 +1,146 @@
+{
+  "protocolVersion": 1,
+  "parameterKinds": {
+    "string": true,
+    "integer": true,
+    "integer_list": true,
+    "boolean": true,
+    "enum": true,
+    "character": true,
+    "location": true,
+    "monster": true,
+    "equipment": true
+  },
+  "executionModes": {
+    "query": true,
+    "live_safe": true,
+    "synchronized_live": true,
+    "workflow": true,
+    "coordinated_alteration": true,
+    "scene_restart": true,
+    "presentation": true
+  },
+  "messageTypes": {
+    "session.hello": true,
+    "session.ready": true,
+    "catalog.request": true,
+    "catalog.snapshot": true,
+    "command.execute": true,
+    "command.accepted": true,
+    "command.completed": true,
+    "command.failed": true,
+    "command.ack": true,
+    "operation.status": true,
+    "protocol.error": true
+  },
+  "fields": {
+    "Choice": {
+      "required": { "value": true, "label": true },
+      "optional": { "metadata": true }
+    },
+    "OptionSet": {
+      "required": { "provider": true, "choices": true },
+      "optional": { "unavailableReason": true }
+    },
+    "ParameterDefinition": {
+      "required": { "id": true, "name": true, "kind": true, "required": true },
+      "optional": {
+        "description": true,
+        "default": true,
+        "minimum": true,
+        "maximum": true,
+        "pattern": true,
+        "choices": true,
+        "optionsProvider": true,
+        "controlHint": true,
+        "availability": true,
+        "scenarioRuntime": true,
+        "scenarioChoices": true,
+        "scenarioValueResolver": true
+      }
+    },
+    "CommandDefinition": {
+      "required": {
+        "id": true,
+        "category": true,
+        "name": true,
+        "description": true,
+        "executionModes": true,
+        "destructive": true
+      },
+      "optional": {
+        "aliases": true,
+        "searchTerms": true,
+        "parameters": true,
+        "scenarioTerminal": true,
+        "scenarioExcluded": true
+      }
+    },
+    "CommandInvocation": {
+      "required": { "commandId": true, "arguments": true },
+      "optional": {}
+    },
+    "StateChange": {
+      "required": { "path": true },
+      "optional": { "before": true, "after": true }
+    },
+    "CommandResult": {
+      "required": {
+        "sessionId": true,
+        "requestId": true,
+        "commandId": true,
+        "sceneGeneration": true,
+        "success": true
+      },
+      "optional": {
+        "invocation": true,
+        "effectiveExecutionMode": true,
+        "summary": true,
+        "errorCode": true,
+        "errorMessage": true,
+        "changes": true,
+        "data": true
+      }
+    },
+    "Envelope": {
+      "required": { "version": true, "type": true },
+      "optional": { "id": true, "payload": true }
+    },
+    "SessionHello": {
+      "required": {},
+      "optional": { "sessionId": true }
+    },
+    "SessionReady": {
+      "required": { "sessionId": true, "sceneGeneration": true, "resumed": true },
+      "optional": {}
+    },
+    "CatalogSnapshot": {
+      "required": { "sceneGeneration": true, "optionsRevision": true, "commands": true },
+      "optional": { "optionSets": true }
+    },
+    "CommandExecute": {
+      "required": { "commandId": true },
+      "optional": {
+        "expectedSceneGeneration": true,
+        "expectedOptionsRevision": true,
+        "arguments": true
+      }
+    },
+    "CommandAccepted": {
+      "required": { "requestId": true, "commandId": true },
+      "optional": {}
+    },
+    "CommandAck": {
+      "required": { "requestId": true },
+      "optional": {}
+    },
+    "OperationStatus": {
+      "required": { "requestId": true },
+      "optional": {}
+    },
+    "ProtocolError": {
+      "required": { "code": true, "message": true },
+      "optional": {}
+    }
+  }
+}

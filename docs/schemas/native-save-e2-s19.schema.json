@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-e2-s19.schema.json",
+  "title": "Native Ultima V Redux Save Envelope 2 / Snapshot 19",
+  "description": "Load frozen sibling s16, s17 and s18 schemas locally. Assert journal formats with version-appropriate Go validators. Adds Stones melody knowledge and one Chronicle slot; existing wire shapes are unchanged.",
+  "type": "object", "additionalProperties": false,
+  "required": ["format", "envelopeVersion", "metadata", "snapshot"],
+  "properties": {
+    "format": {"const": "ultima5redux-native-snapshot"}, "envelopeVersion": {"const": 2},
+    "metadata": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled000"},
+    "snapshot": {"$ref": "#/$defs/snapshot"}
+  },
+  "$defs": {
+    "snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "party", "inventory", "world", "progression", "effects", "wind", "random", "continuation", "redux", "presentation", "lastConversation", "dungeonJournal", "dungeon", "partyVehicle", "mapUnits", "itemStacks", "mapMutations"],
+      "properties": {
+        "version": {"const": 19},
+        "party": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled001"},
+        "inventory": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled026"},
+        "world": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled035"},
+        "progression": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled044"},
+        "effects": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled067"},
+        "wind": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled077"},
+        "random": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled086"},
+        "continuation": {"$ref": "native-save-e2-s16.schema.json#/$defs/continuation"},
+        "redux": {"$ref": "#/$defs/redux"}, "presentation": {"$ref": "#/$defs/presentation"},
+        "lastConversation": {"$ref": "native-save-e2-s17.schema.json#/$defs/conversation"},
+        "dungeonJournal": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "native-save-e2-s17.schema.json#/$defs/dungeonObservation"}},
+        "dungeon": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled094"},
+        "partyVehicle": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled103"},
+        "mapUnits": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled105"},
+        "itemStacks": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled188"},
+        "mapMutations": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled198"}
+      },
+      "allOf": [
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled215"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled223"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled231"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled239"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled247"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled255"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled263"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled271"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled279"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled286"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled293"}
+      ]
+    },
+    "presentation": {
+      "type": "object", "additionalProperties": false, "required": ["history", "visits"], "format": "ultima5-journal-presentation",
+      "properties": {
+        "history": {"type": "string", "format": "ultima5-journal-history"},
+        "visits": {
+          "type": "object", "additionalProperties": false, "required": ["revision", "changes", "seen"],
+          "properties": {
+            "revision": {"$ref": "native-save-e2-s16.schema.json#/$defs/uint64"},
+            "changes": {"type": "array", "maxItems": 61, "items": {
+              "type": "object", "additionalProperties": false, "required": ["tab", "entry", "revision"],
+              "properties": {"tab": {"type": "integer"}, "entry": {"type": "integer"}, "revision": {"$ref": "native-save-e2-s16.schema.json#/$defs/uint64", "minimum": 1}},
+              "oneOf": [
+                {"properties": {"tab": {"const": 0}, "entry": {"minimum": 1, "maximum": 50}}},
+                {"properties": {"tab": {"const": 1}, "entry": {"minimum": 0, "maximum": 7}}},
+                {"properties": {"tab": {"const": 2}, "entry": {"minimum": 0, "maximum": 2}}}
+              ]
+            }},
+            "seen": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "native-save-e2-s16.schema.json#/$defs/uint64"}}
+          }
+        }
+      }
+    },
+    "redux": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dungeonDiscoveries", "playerKnowledge", "questJournal", "lordBritishPassageOpen"],
+      "properties": {
+        "dungeonDiscoveries": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled300"},
+        "playerKnowledge": {"type": "array", "items": {"oneOf": [
+          {"$ref": "native-save-e2-s16.schema.json#/$defs/playerKnowledgeEntry"},
+          {"$ref": "native-save-e2-s18.schema.json#/$defs/resistancePassword"},
+          {"$ref": "#/$defs/stonesMelody"}
+        ]}},
+        "questJournal": {"type": "array", "maxItems": 50, "format": "ultima5-journal-events", "items": {"$ref": "#/$defs/event"}},
+        "lordBritishPassageOpen": {"type": "boolean"}
+      }
+    },
+    "stonesMelody": {
+      "type": "object", "additionalProperties": false,
+      "required": ["category", "key", "source", "discoveredOn", "unread", "spellFormula"],
+      "properties": {
+        "category": {"const": "journal"}, "key": {"const": "stones.melody"},
+        "source": {"$ref": "native-save-e2-s16.schema.json#/$defs/loreKnowledgeSource"},
+        "discoveredOn": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled305"},
+        "unread": {"const": false}, "spellFormula": {"type": "null"}
+      }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "kind", "subject", "occurredOn", "source", "sourceName", "acknowledged"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 50}, "kind": {"type": "string"}, "subject": {"type": "string"},
+        "occurredOn": {"oneOf": [{"$ref": "native-save-e2-s16.schema.json#/$defs/bundled305"}, {"type": "null"}]},
+        "source": {"type": "string"}, "sourceName": {"type": "string"}, "acknowledged": {"type": "boolean"}
+      }
+    }
+  }
+}

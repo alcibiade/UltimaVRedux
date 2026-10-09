@@ -1,0 +1,24 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/012.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: e4041fa6e94dded973521ab515f57a4ef7bb9cbd1d3815f349080b7678e7c762
+--- a/keep/012.yaml
++++ b/keep/012.yaml
+@@ -47,6 +47,7 @@
+       - name
+     response:
+       - say: Through the exercise of great magic and scrying, I have gleaned the name of the Shadowlord of Falsehood.
++      - discover_knowledge: journal.domain.falsehood
+       - narrate:
+           - line_break
+           - line_break
+@@ -63,6 +64,8 @@
+               - text: The Name of this dread lord is
+               - runic: ' FAULINEI'
+               - text: . Speak it not, for only at thy bidding can he enter our hallowed Keep.
++          - discover_knowledge: shadowlord.faulinei.name
++          - discover_knowledge: shadowlord.faulinei.association
+       - keywords:
+           - n
+         response:

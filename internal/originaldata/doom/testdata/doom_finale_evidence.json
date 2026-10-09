@@ -1,0 +1,589 @@
+{
+  "schemaVersion": 1,
+  "doom": {
+    "datBlockOffset": 3584,
+    "thresholds": [
+      {
+        "rawValue": 240,
+        "floor": 0,
+        "x": 1,
+        "y": 1,
+        "datOffset": 3593,
+        "roomId": 0,
+        "cbtRecordIndex": 96,
+        "cbtRecordOffset": 33792
+      },
+      {
+        "rawValue": 242,
+        "floor": 1,
+        "x": 1,
+        "y": 1,
+        "datOffset": 3657,
+        "roomId": 2,
+        "cbtRecordIndex": 98,
+        "cbtRecordOffset": 34496
+      },
+      {
+        "rawValue": 243,
+        "floor": 2,
+        "x": 5,
+        "y": 1,
+        "datOffset": 3725,
+        "roomId": 3,
+        "cbtRecordIndex": 99,
+        "cbtRecordOffset": 34848
+      },
+      {
+        "rawValue": 244,
+        "floor": 2,
+        "x": 1,
+        "y": 5,
+        "datOffset": 3753,
+        "roomId": 4,
+        "cbtRecordIndex": 100,
+        "cbtRecordOffset": 35200
+      },
+      {
+        "rawValue": 246,
+        "floor": 2,
+        "x": 5,
+        "y": 5,
+        "datOffset": 3757,
+        "roomId": 6,
+        "cbtRecordIndex": 102,
+        "cbtRecordOffset": 35904
+      },
+      {
+        "rawValue": 241,
+        "floor": 3,
+        "x": 3,
+        "y": 3,
+        "datOffset": 3803,
+        "roomId": 1,
+        "cbtRecordIndex": 97,
+        "cbtRecordOffset": 34144
+      },
+      {
+        "rawValue": 245,
+        "floor": 4,
+        "x": 3,
+        "y": 3,
+        "datOffset": 3867,
+        "roomId": 5,
+        "cbtRecordIndex": 101,
+        "cbtRecordOffset": 35552
+      },
+      {
+        "rawValue": 248,
+        "floor": 5,
+        "x": 3,
+        "y": 3,
+        "datOffset": 3931,
+        "roomId": 8,
+        "cbtRecordIndex": 104,
+        "cbtRecordOffset": 36608
+      },
+      {
+        "rawValue": 247,
+        "floor": 5,
+        "x": 7,
+        "y": 3,
+        "datOffset": 3935,
+        "roomId": 7,
+        "cbtRecordIndex": 103,
+        "cbtRecordOffset": 36256
+      },
+      {
+        "rawValue": 250,
+        "floor": 6,
+        "x": 1,
+        "y": 3,
+        "datOffset": 3993,
+        "roomId": 10,
+        "cbtRecordIndex": 106,
+        "cbtRecordOffset": 37312
+      },
+      {
+        "rawValue": 249,
+        "floor": 6,
+        "x": 5,
+        "y": 3,
+        "datOffset": 3997,
+        "roomId": 9,
+        "cbtRecordIndex": 105,
+        "cbtRecordOffset": 36960
+      },
+      {
+        "rawValue": 254,
+        "floor": 6,
+        "x": 7,
+        "y": 3,
+        "datOffset": 3999,
+        "roomId": 14,
+        "cbtRecordIndex": 110,
+        "cbtRecordOffset": 38720
+      },
+      {
+        "rawValue": 253,
+        "floor": 6,
+        "x": 3,
+        "y": 7,
+        "datOffset": 4027,
+        "roomId": 13,
+        "cbtRecordIndex": 109,
+        "cbtRecordOffset": 38368
+      },
+      {
+        "rawValue": 251,
+        "floor": 7,
+        "x": 7,
+        "y": 3,
+        "datOffset": 4063,
+        "roomId": 11,
+        "cbtRecordIndex": 107,
+        "cbtRecordOffset": 37664
+      },
+      {
+        "rawValue": 252,
+        "floor": 7,
+        "x": 1,
+        "y": 7,
+        "datOffset": 4089,
+        "roomId": 12,
+        "cbtRecordIndex": 108,
+        "cbtRecordOffset": 38016
+      },
+      {
+        "rawValue": 255,
+        "floor": 7,
+        "x": 5,
+        "y": 7,
+        "datOffset": 4093,
+        "roomId": 15,
+        "cbtRecordIndex": 111,
+        "cbtRecordOffset": 39072
+      }
+    ],
+    "roomFingerprints": [
+      {
+        "roomId": 0,
+        "recordIndex": 96,
+        "recordOffset": 33792,
+        "recordSha256": "6fe98d221b2d57ff12f8ab11e3cf04f4609af8fba3e591f25bc5aabb8a6f8c47"
+      },
+      {
+        "roomId": 1,
+        "recordIndex": 97,
+        "recordOffset": 34144,
+        "recordSha256": "0918697372a295a233e8a62c8a1dd7c693556d1b57574a47f511f95c18f85219"
+      },
+      {
+        "roomId": 2,
+        "recordIndex": 98,
+        "recordOffset": 34496,
+        "recordSha256": "58735448e39c16bbfa7e39a9372a87dbe1b5a791ffe99714a2840e4a446de7b2"
+      },
+      {
+        "roomId": 3,
+        "recordIndex": 99,
+        "recordOffset": 34848,
+        "recordSha256": "cf486681c5d6a8959b695001e7597e1029d42b478fbb21455c7e1d022d558ed5"
+      },
+      {
+        "roomId": 4,
+        "recordIndex": 100,
+        "recordOffset": 35200,
+        "recordSha256": "5aa48b9b22836a8b627e03b5c72a20d0c6fd8b7bfce2acf574e713d1cd7e1e95"
+      },
+      {
+        "roomId": 5,
+        "recordIndex": 101,
+        "recordOffset": 35552,
+        "recordSha256": "be8226ec8f1738db6b19343c5aeb296cfc86207d4cad317656f35351103bcfd8"
+      },
+      {
+        "roomId": 6,
+        "recordIndex": 102,
+        "recordOffset": 35904,
+        "recordSha256": "da964cc2d97d8f8c2dc56c8a5371a0cf359d4bbf69df3f64099899835d383dee"
+      },
+      {
+        "roomId": 7,
+        "recordIndex": 103,
+        "recordOffset": 36256,
+        "recordSha256": "e07912ce92575df10ba958df9924fdf7b6a78ad182000833cdad001f9138e761"
+      },
+      {
+        "roomId": 8,
+        "recordIndex": 104,
+        "recordOffset": 36608,
+        "recordSha256": "bcab6c18921d793b59810b0768636abc5d5cbcfe473fc7348366fcee4808e988"
+      },
+      {
+        "roomId": 9,
+        "recordIndex": 105,
+        "recordOffset": 36960,
+        "recordSha256": "ec630673c3c98bacd744e90013145f50e1795b1a7e1dfbd50b1a0caadfea4225"
+      },
+      {
+        "roomId": 10,
+        "recordIndex": 106,
+        "recordOffset": 37312,
+        "recordSha256": "1111325852d60d0f208027f92944b6b619c0a7a65f5c23548e4d983a771da5e0"
+      },
+      {
+        "roomId": 11,
+        "recordIndex": 107,
+        "recordOffset": 37664,
+        "recordSha256": "fec50cbeb569a58be1cabe9e343b6f5b06554b0980a2360c8ce707ed2c2f9383"
+      },
+      {
+        "roomId": 12,
+        "recordIndex": 108,
+        "recordOffset": 38016,
+        "recordSha256": "abf6226ecc65b29cfc97380bccfa53b72d47bf6609ec4c920e9243e9f710682c"
+      },
+      {
+        "roomId": 13,
+        "recordIndex": 109,
+        "recordOffset": 38368,
+        "recordSha256": "61926be8e1f808a6d9b5339c19d25c95f8ef557c88a65cb502e3837bcd6de5ac"
+      },
+      {
+        "roomId": 14,
+        "recordIndex": 110,
+        "recordOffset": 38720,
+        "recordSha256": "803035e2f66d8d2a86df5a613b12ae76ceb9be158f5c77285f19831f67848205"
+      },
+      {
+        "roomId": 15,
+        "recordIndex": 111,
+        "recordOffset": 39072,
+        "recordSha256": "18a3f616b3d317e203dde9b5a7dd99f8b515d74a18da9b4ad398b9ed25c725d9"
+      }
+    ],
+    "finalMirror": {
+      "roomId": 15,
+      "mirrorObject": {
+        "x": 5,
+        "y": 1
+      },
+      "mirrorTerrainValue": 157,
+      "absorptionSquare": {
+        "x": 5,
+        "y": 2
+      },
+      "entryFormations": [
+        {
+          "direction": "west",
+          "row": 1,
+          "positions": [
+            {
+              "x": 5,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 7
+            },
+            {
+              "x": 4,
+              "y": 7
+            },
+            {
+              "x": 5,
+              "y": 8
+            },
+            {
+              "x": 7,
+              "y": 8
+            },
+            {
+              "x": 3,
+              "y": 8
+            }
+          ]
+        },
+        {
+          "direction": "east",
+          "row": 2,
+          "positions": [
+            {
+              "x": 5,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 7
+            },
+            {
+              "x": 4,
+              "y": 7
+            },
+            {
+              "x": 5,
+              "y": 8
+            },
+            {
+              "x": 7,
+              "y": 8
+            },
+            {
+              "x": 3,
+              "y": 8
+            }
+          ]
+        },
+        {
+          "direction": "north",
+          "row": 3,
+          "positions": [
+            {
+              "x": 5,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 7
+            },
+            {
+              "x": 4,
+              "y": 7
+            },
+            {
+              "x": 5,
+              "y": 8
+            },
+            {
+              "x": 7,
+              "y": 8
+            },
+            {
+              "x": 3,
+              "y": 8
+            }
+          ]
+        },
+        {
+          "direction": "south",
+          "row": 4,
+          "positions": [
+            {
+              "x": 5,
+              "y": 6
+            },
+            {
+              "x": 6,
+              "y": 7
+            },
+            {
+              "x": 4,
+              "y": 7
+            },
+            {
+              "x": 5,
+              "y": 8
+            },
+            {
+              "x": 7,
+              "y": 8
+            },
+            {
+              "x": 3,
+              "y": 8
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "rescueMap": {
+    "mapOffset": 528,
+    "mapSize": 176,
+    "mapSha256": "2105aad3b9be7e626b99f3db1dafccddf56161e6a6b82cbb00426c0dc51af130",
+    "mirror": {
+      "position": {
+        "x": 5,
+        "y": 9
+      },
+      "value": 157
+    },
+    "lordBritishStart": {
+      "x": 5,
+      "y": 8
+    },
+    "lordBritishEnd": {
+      "x": 5,
+      "y": 3
+    },
+    "partyStart": {
+      "x": 5,
+      "y": 9
+    },
+    "partyDestinations": [
+      {
+        "x": 5,
+        "y": 5
+      },
+      {
+        "x": 4,
+        "y": 6
+      },
+      {
+        "x": 6,
+        "y": 6
+      },
+      {
+        "x": 3,
+        "y": 7
+      },
+      {
+        "x": 5,
+        "y": 7
+      },
+      {
+        "x": 7,
+        "y": 7
+      }
+    ],
+    "boxMoongatePosition": {
+      "x": 5,
+      "y": 4
+    }
+  },
+  "ending": {
+    "graphics": [
+      {
+        "file": {
+          "name": "END1.16",
+          "size": 7792,
+          "sha256": "74e7d49b31c17f598b55e43ea5125db52ba79be7bc88f82c4ee34fdd0d5be489"
+        },
+        "entryCount": 3,
+        "requiredEntries": [
+          {
+            "name": "stones-down",
+            "index": 0,
+            "missing": false,
+            "width": 167,
+            "height": 124
+          },
+          {
+            "name": "robbed",
+            "index": 1,
+            "missing": false,
+            "width": 191,
+            "height": 90
+          },
+          {
+            "name": "snore",
+            "index": 2,
+            "missing": false,
+            "width": 192,
+            "height": 95
+          }
+        ]
+      },
+      {
+        "file": {
+          "name": "END2.16",
+          "size": 8542,
+          "sha256": "e8b395b7bca403c294d4f5544cce577cce11a93a6c05b81375b873324af8fbe0"
+        },
+        "entryCount": 3,
+        "requiredEntries": [
+          {
+            "name": "the-dream",
+            "index": 0,
+            "missing": false,
+            "width": 173,
+            "height": 98
+          },
+          {
+            "name": "naughty",
+            "index": 1,
+            "missing": false,
+            "width": 157,
+            "height": 90
+          },
+          {
+            "name": "bye-bye",
+            "index": 2,
+            "missing": false,
+            "width": 153,
+            "height": 110
+          }
+        ]
+      },
+      {
+        "file": {
+          "name": "ENDSC.16",
+          "size": 1392,
+          "sha256": "d096c4caffab3e624db0cefa8b50b670f6e4d9db6dc4eb3d7e65c38cb9d23799"
+        },
+        "entryCount": 1,
+        "requiredEntries": [
+          {
+            "name": "ending-screen",
+            "index": 0,
+            "missing": false,
+            "width": 260,
+            "height": 168
+          }
+        ]
+      },
+      {
+        "file": {
+          "name": "TEXT.16",
+          "size": 1678,
+          "sha256": "f106c8ba099c074510215ce1e4b7886b09eaf128475e85dd56e2808c83342a33"
+        },
+        "entryCount": 6,
+        "requiredEntries": [
+          {
+            "name": "the",
+            "index": 0,
+            "missing": false,
+            "width": 52,
+            "height": 32
+          },
+          {
+            "name": "homecoming",
+            "index": 4,
+            "missing": false,
+            "width": 168,
+            "height": 33
+          },
+          {
+            "name": "dream",
+            "index": 5,
+            "missing": false,
+            "width": 96,
+            "height": 33
+          }
+        ]
+      },
+      {
+        "file": {
+          "name": "PROPORT.PCS",
+          "size": 802,
+          "sha256": "424684721569465f65907a914d32bb6ad621cbb2c52bead36cbf74dfa0f88be5"
+        },
+        "entryCount": 91,
+        "requiredEntries": []
+      }
+    ],
+    "textData": [
+      {
+        "name": "END.DAT",
+        "size": 3698,
+        "sha256": "1ccdee2751731d6e9769adbcb2734ff967fc878691c3dad2699cc1e9fc9caeb4"
+      },
+      {
+        "name": "ENDMSG.DAT",
+        "size": 786,
+        "sha256": "60ea23e2e4cf6e9a58987c41bc72e808d0f6ccd49553f6bfdcc4281a5a59ebdf"
+      }
+    ]
+  }
+}

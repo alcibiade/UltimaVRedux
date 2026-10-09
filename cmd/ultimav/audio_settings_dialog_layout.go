@@ -1,0 +1,451 @@
+package main
+
+import (
+	"image"
+	"math"
+
+	"github.com/bradhannah/UltimaVRedux/internal/sprites"
+	"github.com/bradhannah/UltimaVRedux/internal/text"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+)
+
+const (
+	audioSettingsPreferredWidthPercent   = 0.58
+	audioSettingsPreferredHeightScale    = 1.30
+	audioSettingsCenterDivisor           = 2
+	audioSettingsSliderCount             = 3
+	audioSettingsGameplayCount           = 7
+	audioSettingsCardSectionGapCount     = 3
+	audioSettingsPaddingUnits            = 2
+	audioSettingsSectionGapUnits         = 2
+	audioSettingsTabVerticalUnits        = 1
+	audioSettingsSliderHeightUnits       = 6
+	audioSettingsSliderRowGapUnits       = 2
+	audioSettingsGameplayLines           = 2
+	audioSettingsGameplayRowPaddingUnits = 1
+	audioSettingsDetailLines             = 9
+	audioSettingsFooterLines             = 3
+	audioSettingsDisplayPresetLines      = 3
+	audioSettingsGameplayListRatio       = 0.43
+	audioSettingsDisplayLabelRatio       = 0.32
+)
+
+type audioSettingsLayout struct {
+	cardRect          image.Rectangle
+	titleRect         image.Rectangle
+	tabRects          []image.Rectangle
+	bodyRect          image.Rectangle
+	sliderLabelRects  []image.Rectangle
+	sliderValueRects  []image.Rectangle
+	sliderRects       []image.Rectangle
+	gameplayListRect  image.Rectangle
+	gameplayRows      []image.Rectangle
+	gameplayDetail    image.Rectangle
+	displayRows       []image.Rectangle
+	displaySelections []image.Rectangle
+	displayLabels     []image.Rectangle
+	displayValues     []image.Rectangle
+	footerRect        image.Rectangle
+	pixelUnit         int
+}
+
+type audioSettingsMetrics struct {
+	padding         int
+	sectionGap      int
+	titleHeight     int
+	tabHeight       int
+	bodyHeight      int
+	footerHeight    int
+	labelHeight     int
+	sliderLabelGap  int
+	sliderRowHeight int
+	sliderRowGap    int
+	cardHeight      int
+}
+
+func (d *ConfigurationDialog) ensureLayout(width, height int) {
+	if d.layoutIsCurrent(width, height) {
+		return
+	}
+	d.lastWidth = width
+	d.lastHeight = height
+	pixelUnit := widgets.ClassicUIPixelUnit(width, height)
+	d.initializeLayoutOutputs(width)
+	placementRect := audioSettingsPercentRect(*d.placement, width, height)
+	metrics := d.measureLayout(pixelUnit, placementRect.Dx())
+	cardWidth := d.measureCardWidth(width, placementRect, metrics.padding)
+	contentWidth := max(1, cardWidth-metrics.padding*audioSettingsCenterDivisor)
+	d.configureLayoutOutputs(contentWidth)
+	metrics = d.measureLayout(pixelUnit, contentWidth)
+	preferredCardHeight := min(
+		placementRect.Dy(),
+		int(math.Ceil(float64(metrics.cardHeight)*audioSettingsPreferredHeightScale)),
+	)
+	if preferredCardHeight > metrics.cardHeight {
+		metrics.bodyHeight += preferredCardHeight - metrics.cardHeight
+		metrics.cardHeight = preferredCardHeight
+	}
+	cardRect := centeredAudioSettingsCard(placementRect, cardWidth, metrics.cardHeight)
+	titleRect, tabRects, bodyRect, footerRect := d.buildSections(cardRect, metrics, pixelUnit)
+	labelRects, valueRects, sliderRects := d.buildSliderRects(bodyRect, metrics)
+	gameplayListRect, gameplayRows, gameplayDetail := d.buildGameplayRects(bodyRect, pixelUnit)
+	displayRows := buildDisplayRects(
+		bodyRect,
+		metrics.labelHeight,
+		int(math.Ceil(d.presetOutput.GetTotalHeightForLines(audioSettingsDisplayPresetLines))),
+		pixelUnit,
+	)
+	textInset := max(1, pixelUnit*audioSettingsCenterDivisor)
+	displayLabels, displayValues := buildDisplayTextRects(displayRows, textInset)
+	displaySelections := buildDisplaySelectionRects(displayRows, metrics.labelHeight, pixelUnit)
+	d.layout = audioSettingsLayout{
+		cardRect:          cardRect,
+		titleRect:         titleRect,
+		tabRects:          tabRects,
+		bodyRect:          bodyRect,
+		sliderLabelRects:  labelRects,
+		sliderValueRects:  valueRects,
+		sliderRects:       sliderRects,
+		gameplayListRect:  gameplayListRect,
+		gameplayRows:      gameplayRows,
+		gameplayDetail:    gameplayDetail,
+		displayRows:       displayRows,
+		displaySelections: displaySelections,
+		displayLabels:     displayLabels,
+		displayValues:     displayValues,
+		footerRect:        footerRect,
+		pixelUnit:         pixelUnit,
+	}
+	d.musicSlider.SetBounds(sliderRects[0])
+	d.sfxSlider.SetBounds(sliderRects[1])
+	d.ambientSlider.SetBounds(sliderRects[2])
+	d.gameplayOutput.SetMaxCharsPerLine(max(
+		1,
+		d.gameplayOutput.Font.CharsForWidth(gameplayListRect.Dx()-textInset*audioSettingsCenterDivisor),
+	))
+	d.detailOutput.SetMaxCharsPerLine(max(
+		1,
+		d.detailOutput.Font.CharsForWidth(gameplayDetail.Dx()-textInset*audioSettingsCenterDivisor),
+	))
+	d.labelOutput.SetMaxCharsPerLine(max(1, d.labelOutput.Font.CharsForWidth(displayLabels[0].Dx())))
+	d.valueOutput.SetMaxCharsPerLine(max(1, d.valueOutput.Font.CharsForWidth(displayValues[0].Dx())))
+}
+
+func buildDisplayRects(bodyRect image.Rectangle, textHeight, presetHeight, pixelUnit int) []image.Rectangle {
+	const displayVisualRowCount = 5
+	selectionHeight := textHeight + pixelUnit*audioSettingsCenterDivisor
+	rowGap := max(1, pixelUnit)
+	rows := make([]image.Rectangle, displayVisualRowCount)
+	rowTop := bodyRect.Min.Y
+	for index := range rows {
+		rowHeight := selectionHeight
+		if index == displayPresetStatusRow {
+			rowHeight = presetHeight
+		}
+		rows[index] = image.Rect(bodyRect.Min.X, rowTop, bodyRect.Max.X, rowTop+rowHeight)
+		rowTop += rowHeight + rowGap
+	}
+
+	return rows
+}
+
+func buildDisplayTextRects(rows []image.Rectangle, inset int) ([]image.Rectangle, []image.Rectangle) {
+	labelRects := make([]image.Rectangle, len(rows))
+	valueRects := make([]image.Rectangle, len(rows))
+	for index, row := range rows {
+		splitX := row.Min.X + int(math.Round(float64(row.Dx())*audioSettingsDisplayLabelRatio))
+		labelRects[index] = image.Rect(row.Min.X+inset, row.Min.Y, splitX-inset, row.Max.Y)
+		valueRects[index] = image.Rect(splitX+inset, row.Min.Y, row.Max.X-inset, row.Max.Y)
+	}
+
+	return labelRects, valueRects
+}
+
+func buildDisplaySelectionRects(rows []image.Rectangle, textHeight, pixelUnit int) []image.Rectangle {
+	selectionHeight := textHeight + pixelUnit*audioSettingsCenterDivisor
+	selections := make([]image.Rectangle, len(rows))
+	for index, row := range rows {
+		top := row.Min.Y + (row.Dy()-selectionHeight)/audioSettingsCenterDivisor
+		selections[index] = image.Rect(row.Min.X, top, row.Max.X, top+selectionHeight)
+	}
+
+	return selections
+}
+
+func (d *ConfigurationDialog) layoutIsCurrent(width, height int) bool {
+	if width <= 0 || height <= 0 {
+		return true
+	}
+
+	return d.lastWidth == width && d.lastHeight == height
+}
+
+func (d *ConfigurationDialog) initializeLayoutOutputs(width int) {
+	_, d.titleOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeDialogTitle,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              1,
+		MaxChars:              1,
+	}, width)
+	_, d.tabOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              1,
+		MaxChars:              1,
+	}, width)
+	_, d.gameplayOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              audioSettingsGameplayLines,
+		MaxChars:              1,
+	}, width)
+	_, d.detailOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              audioSettingsDetailLines,
+		MaxChars:              1,
+	}, width)
+	_, d.labelOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              1,
+		MaxChars:              1,
+	}, width)
+	_, d.valueOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              1,
+		MaxChars:              1,
+	}, width)
+	_, d.presetOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              audioSettingsDisplayPresetLines,
+		MaxChars:              1,
+	}, width)
+	_, d.footerOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
+		Size:                  widgets.FontSizeMainScreen,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
+		MaxLines:              audioSettingsFooterLines,
+		MaxChars:              1,
+	}, width)
+}
+
+func (d *ConfigurationDialog) configureLayoutOutputs(contentWidth int) {
+	d.titleOutput.SetMaxCharsPerLine(max(1, d.titleOutput.Font.CharsForWidth(contentWidth)))
+	d.titleOutput.Reset()
+	d.titleOutput.AppendLine().Text("Configuration", widgets.DialogHeaderColor).Done()
+	d.tabOutput.SetMaxCharsPerLine(max(1, d.tabOutput.Font.CharsForWidth(contentWidth)))
+	d.gameplayOutput.SetMaxCharsPerLine(max(1, d.gameplayOutput.Font.CharsForWidth(contentWidth)))
+	d.detailOutput.SetMaxCharsPerLine(max(1, d.detailOutput.Font.CharsForWidth(contentWidth)))
+	d.labelOutput.SetMaxCharsPerLine(max(1, d.labelOutput.Font.CharsForWidth(contentWidth)))
+	d.valueOutput.SetMaxCharsPerLine(max(1, d.valueOutput.Font.CharsForWidth(contentWidth)))
+	d.presetOutput.SetMaxCharsPerLine(max(1, d.presetOutput.Font.CharsForWidth(contentWidth)))
+	d.footerOutput.SetMaxCharsPerLine(max(1, d.footerOutput.Font.CharsForWidth(contentWidth)))
+}
+
+func (d *ConfigurationDialog) measureCardWidth(
+	width int,
+	placementRect image.Rectangle,
+	padding int,
+) int {
+	preferredWidth := int(math.Round(audioSettingsPreferredWidthPercent * float64(width)))
+	titleWidth, _ := d.titleOutput.Font.MeasureString("Configuration")
+	minimumWidth := int(math.Ceil(titleWidth)) + padding*audioSettingsCenterDivisor
+
+	return min(placementRect.Dx(), max(preferredWidth, minimumWidth))
+}
+
+func (d *ConfigurationDialog) measureLayout(pixelUnit, contentWidth int) audioSettingsMetrics {
+	padding := max(1, pixelUnit*audioSettingsPaddingUnits)
+	sectionGap := max(1, pixelUnit*audioSettingsSectionGapUnits)
+	titleHeight := int(math.Ceil(d.titleOutput.GetFontHeight()))
+	tabHeight := int(math.Ceil(d.tabOutput.GetFontHeight())) +
+		pixelUnit*audioSettingsTabVerticalUnits*audioSettingsCenterDivisor
+	labelHeight := int(math.Ceil(d.labelOutput.GetFontHeight()))
+	sliderHeight := max(pixelUnit*audioSettingsSliderHeightUnits, labelHeight)
+	sliderLabelGap := max(1, pixelUnit)
+	sliderRowHeight := labelHeight + sliderLabelGap + sliderHeight
+	sliderRowGap := max(1, pixelUnit*audioSettingsSliderRowGapUnits)
+	soundHeight := sliderRowHeight*audioSettingsSliderCount +
+		sliderRowGap*(audioSettingsSliderCount-1)
+	gameplayListWidth := int(math.Round(float64(contentWidth) * audioSettingsGameplayListRatio))
+	gameplayInset := max(1, pixelUnit*audioSettingsCenterDivisor)
+	gameplayMaxChars := max(1, d.gameplayOutput.Font.CharsForWidth(
+		gameplayListWidth-gameplayInset*audioSettingsCenterDivisor,
+	))
+	gameplayHeight := max(1, pixelUnit/audioSettingsCenterDivisor) * (audioSettingsGameplayCount - 1)
+	for _, setting := range gameplaySettings() {
+		measurement := text.MeasureText(
+			"[X] "+setting.label,
+			d.gameplayOutput.Font,
+			d.gameplayOutput.GetLineSpacing(),
+			gameplayMaxChars,
+		)
+		gameplayHeight += int(math.Ceil(measurement.TotalHeight)) +
+			pixelUnit*audioSettingsGameplayRowPaddingUnits
+	}
+	gameplayHeight = max(
+		gameplayHeight,
+		int(math.Ceil(d.detailOutput.GetTotalHeightForLines(audioSettingsDetailLines)))+
+			padding*audioSettingsCenterDivisor,
+	)
+	bodyHeight := max(soundHeight, gameplayHeight)
+	footerHeight := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(audioSettingsFooterLines)))
+	cardHeight := padding*audioSettingsCenterDivisor + titleHeight + tabHeight + bodyHeight + footerHeight +
+		sectionGap*audioSettingsCardSectionGapCount
+
+	return audioSettingsMetrics{
+		padding:         padding,
+		sectionGap:      sectionGap,
+		titleHeight:     titleHeight,
+		tabHeight:       tabHeight,
+		bodyHeight:      bodyHeight,
+		footerHeight:    footerHeight,
+		labelHeight:     labelHeight,
+		sliderLabelGap:  sliderLabelGap,
+		sliderRowHeight: sliderRowHeight,
+		sliderRowGap:    sliderRowGap,
+		cardHeight:      cardHeight,
+	}
+}
+
+func (d *ConfigurationDialog) buildGameplayRects(
+	bodyRect image.Rectangle,
+	pixelUnit int,
+) (image.Rectangle, []image.Rectangle, image.Rectangle) {
+	listWidth := int(math.Round(float64(bodyRect.Dx()) * audioSettingsGameplayListRatio))
+	listRect := image.Rect(bodyRect.Min.X, bodyRect.Min.Y, bodyRect.Min.X+listWidth, bodyRect.Max.Y)
+	detailRect := image.Rect(listRect.Max.X, bodyRect.Min.Y, bodyRect.Max.X, bodyRect.Max.Y)
+	rows := make([]image.Rectangle, audioSettingsGameplayCount)
+	inset := max(1, pixelUnit*audioSettingsCenterDivisor)
+	textWidth := max(1, listRect.Dx()-inset*audioSettingsCenterDivisor)
+	maxChars := max(1, d.gameplayOutput.Font.CharsForWidth(textWidth))
+	rowGap := max(1, pixelUnit/audioSettingsCenterDivisor)
+	rowHeights := make([]int, len(rows))
+	for index, setting := range gameplaySettings() {
+		measurement := text.MeasureText(
+			"[X] "+setting.label,
+			d.gameplayOutput.Font,
+			d.gameplayOutput.GetLineSpacing(),
+			maxChars,
+		)
+		rowHeights[index] = int(math.Ceil(measurement.TotalHeight)) + pixelUnit*audioSettingsGameplayRowPaddingUnits
+	}
+	rowTop := listRect.Min.Y
+	for index, rowHeight := range rowHeights {
+		rows[index] = image.Rect(listRect.Min.X, rowTop, listRect.Max.X, rowTop+rowHeight)
+		rowTop += rowHeight + rowGap
+	}
+
+	return listRect, rows, detailRect
+}
+
+func centeredAudioSettingsCard(placement image.Rectangle, width, height int) image.Rectangle {
+	centerX := placement.Min.X + placement.Dx()/audioSettingsCenterDivisor
+	centerY := placement.Min.Y + placement.Dy()/audioSettingsCenterDivisor
+	minimumX := min(max(placement.Min.X, centerX-width/audioSettingsCenterDivisor), placement.Max.X-width)
+	minimumY := min(max(placement.Min.Y, centerY-height/audioSettingsCenterDivisor), placement.Max.Y-height)
+
+	return image.Rect(minimumX, minimumY, minimumX+width, minimumY+height)
+}
+
+func (d *ConfigurationDialog) buildSections(
+	cardRect image.Rectangle,
+	metrics audioSettingsMetrics,
+	pixelUnit int,
+) (image.Rectangle, []image.Rectangle, image.Rectangle, image.Rectangle) {
+	contentMinX := cardRect.Min.X + metrics.padding
+	contentMaxX := cardRect.Max.X - metrics.padding
+	contentY := cardRect.Min.Y + metrics.padding
+	titleRect := image.Rect(
+		contentMinX,
+		contentY,
+		contentMaxX,
+		contentY+metrics.titleHeight,
+	)
+	contentY = titleRect.Max.Y + metrics.sectionGap
+	tabRects := d.buildTabRects(contentMinX, contentMaxX, contentY, metrics.tabHeight, pixelUnit)
+	contentY += metrics.tabHeight + metrics.sectionGap
+	bodyRect := image.Rect(contentMinX, contentY, contentMaxX, contentY+metrics.bodyHeight)
+	contentY = bodyRect.Max.Y + metrics.sectionGap
+	footerRect := image.Rect(contentMinX, contentY, contentMaxX, contentY+metrics.footerHeight)
+
+	return titleRect, tabRects, bodyRect, footerRect
+}
+
+func (d *ConfigurationDialog) buildTabRects(
+	contentMinX, contentMaxX int,
+	top, height, pixelUnit int,
+) []image.Rectangle {
+	if len(d.tabNames) == 0 {
+		return nil
+	}
+	tabGap := max(1, pixelUnit)
+	gapWidth := tabGap * (len(d.tabNames) - 1)
+	availableWidth := max(len(d.tabNames), contentMaxX-contentMinX-gapWidth)
+	tabWidth := availableWidth / len(d.tabNames)
+	tabGroupWidth := tabWidth*len(d.tabNames) + gapWidth
+	tabX := contentMinX + (contentMaxX-contentMinX-tabGroupWidth)/audioSettingsCenterDivisor
+	tabRects := make([]image.Rectangle, len(d.tabNames))
+	for index := range d.tabNames {
+		tabRects[index] = image.Rect(tabX, top, tabX+tabWidth, top+height)
+		tabX = tabRects[index].Max.X + tabGap
+	}
+
+	return tabRects
+}
+
+func (d *ConfigurationDialog) buildSliderRects(
+	bodyRect image.Rectangle,
+	metrics audioSettingsMetrics,
+) ([]image.Rectangle, []image.Rectangle, []image.Rectangle) {
+	sliderContentHeight := metrics.sliderRowHeight*audioSettingsSliderCount +
+		metrics.sliderRowGap*(audioSettingsSliderCount-1)
+	sliderY := bodyRect.Min.Y +
+		max(0, (bodyRect.Dy()-sliderContentHeight)/audioSettingsCenterDivisor)
+	labelRects := make([]image.Rectangle, audioSettingsSliderCount)
+	valueRects := make([]image.Rectangle, audioSettingsSliderCount)
+	sliderRects := make([]image.Rectangle, audioSettingsSliderCount)
+	valueWidth, _ := d.valueOutput.Font.MeasureString("10")
+	for index := range audioSettingsSliderCount {
+		rowTop := sliderY + index*(metrics.sliderRowHeight+metrics.sliderRowGap)
+		labelRects[index] = image.Rect(
+			bodyRect.Min.X,
+			rowTop,
+			bodyRect.Max.X,
+			rowTop+metrics.labelHeight,
+		)
+		valueRects[index] = image.Rect(
+			bodyRect.Max.X-int(math.Ceil(valueWidth)),
+			rowTop,
+			bodyRect.Max.X,
+			rowTop+metrics.labelHeight,
+		)
+		sliderRects[index] = image.Rect(
+			bodyRect.Min.X,
+			rowTop+metrics.labelHeight+metrics.sliderLabelGap,
+			bodyRect.Max.X,
+			rowTop+metrics.sliderRowHeight,
+		)
+	}
+
+	return labelRects, valueRects, sliderRects
+}
+
+func audioSettingsPercentRect(placement sprites.PercentBasedPlacement, width, height int) image.Rectangle {
+	return image.Rect(
+		int(math.Round(placement.StartPercentX*float64(width))),
+		int(math.Round(placement.StartPercentY*float64(height))),
+		int(math.Round(placement.EndPercentX*float64(width))),
+		int(math.Round(placement.EndPercentY*float64(height))),
+	)
+}

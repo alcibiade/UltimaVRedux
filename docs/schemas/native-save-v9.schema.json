@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-v9.schema.json",
+  "title": "Native Ultima V Redux Save Schema",
+  "description": "Strict native Ultima V Redux save envelope containing SaveSnapshot version 9, including ordered semantic Quest Journal events and typed map-unit AI override provenance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "envelopeVersion", "metadata", "snapshot"],
+  "properties": {
+    "format": {"const": "ultima5redux-native-snapshot"},
+    "envelopeVersion": {"const": 1},
+    "metadata": {
+      "$ref": "native-save-v3.schema.json#/$defs/metadata"
+    },
+    "snapshot": {"$ref": "#/$defs/saveSnapshot"}
+  },
+  "$defs": {
+    "saveSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version", "party", "inventory", "world", "progression", "effects", "wind", "random",
+        "redux", "dungeon", "partyVehicle", "mapUnits", "itemStacks", "mapMutations"
+      ],
+      "properties": {
+        "version": {"const": 9},
+        "party": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/party"
+        },
+        "inventory": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/inventory"
+        },
+        "world": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/world"
+        },
+        "progression": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/progression"
+        },
+        "effects": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/effects"
+        },
+        "wind": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/wind"
+        },
+        "random": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/random"
+        },
+        "redux": {"$ref": "#/$defs/redux"},
+        "dungeon": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/dungeon"
+        },
+        "partyVehicle": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/partyVehicle"
+        },
+        "mapUnits": {
+          "type": ["array", "null"],
+          "items": {"$ref": "#/$defs/mapUnit"}
+        },
+        "itemStacks": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/itemStacks"
+        },
+        "mapMutations": {
+          "$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/properties/mapMutations"
+        }
+      },
+      "allOf": [
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/0"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/1"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/2"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/3"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/4"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/5"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/6"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/7"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/8"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/9"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/10"},
+        {"$ref": "native-save-v8.schema.json#/$defs/saveSnapshot/allOf/11"}
+      ]
+    },
+    "redux": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reconstructMapUnits", "dungeonDiscoveries", "playerKnowledge", "questJournal"],
+      "properties": {
+        "reconstructMapUnits": {
+          "$ref": "native-save-v7.schema.json#/$defs/redux/properties/reconstructMapUnits"
+        },
+        "dungeonDiscoveries": {
+          "$ref": "native-save-v7.schema.json#/$defs/redux/properties/dungeonDiscoveries"
+        },
+        "playerKnowledge": {
+          "$ref": "native-save-v7.schema.json#/$defs/redux/properties/playerKnowledge"
+        },
+        "questJournal": {
+          "type": "array",
+          "maxItems": 3,
+          "prefixItems": [
+            {"allOf": [{"$ref": "#/$defs/questJournalEvent"}, {"properties": {"sequence": {"const": 1}}}]},
+            {"allOf": [{"$ref": "#/$defs/questJournalEvent"}, {"properties": {"sequence": {"const": 2}}}]},
+            {"allOf": [{"$ref": "#/$defs/questJournalEvent"}, {"properties": {"sequence": {"const": 3}}}]}
+          ],
+          "items": {"$ref": "#/$defs/questJournalEvent"},
+          "allOf": [
+            {"not": {"contains": {"properties": {"subject": {"const": "faulinei"}}}, "minContains": 2}},
+            {"not": {"contains": {"properties": {"subject": {"const": "astaroth"}}}, "minContains": 2}},
+            {"not": {"contains": {"properties": {"subject": {"const": "nosfentor"}}}, "minContains": 2}}
+          ]
+        }
+      }
+    },
+    "mapUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world", "controllerOrder", "kind", "referenceId", "npcNum", "position",
+        "visible", "skipNextTurn", "wantsToAutoTalk", "overriddenAi", "aiOverrideProvenance",
+        "currentPath", "vehicle", "enemyVariant", "enemyCurrentHp", "enemyFacing", "shadowlord"
+      ],
+      "properties": {
+        "world": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/world"},
+        "controllerOrder": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/controllerOrder"},
+        "kind": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/kind"},
+        "referenceId": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/referenceId"},
+        "npcNum": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/npcNum"},
+        "position": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/position"},
+        "visible": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/visible"},
+        "skipNextTurn": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/skipNextTurn"},
+        "wantsToAutoTalk": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/wantsToAutoTalk"},
+        "overriddenAi": {
+          "enum": [-1, 0, 1, 2, 3, 4, 6, 7, 8, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112]
+        },
+        "aiOverrideProvenance": {
+          "enum": ["none", "automatic-astaroth", "automatic-nosfentor", "guard-hostility", "generic-flee"]
+        },
+        "arrivedScheduleSlot": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/arrivedScheduleSlot"},
+        "consumedTalk3ScheduleSlot": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/consumedTalk3ScheduleSlot"},
+        "currentPath": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/currentPath"},
+        "vehicle": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/vehicle"},
+        "enemyVariant": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/enemyVariant"},
+        "enemyCurrentHp": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/enemyCurrentHp"},
+        "enemyFacing": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/enemyFacing"},
+        "shadowlord": {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/properties/shadowlord"}
+      },
+      "allOf": [
+        {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/allOf/0"},
+        {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/allOf/1"},
+        {"$ref": "native-save-v5.schema.json#/$defs/mapUnit/allOf/2"}
+      ]
+    },
+    "questJournalEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "kind", "subject", "occurredOn", "source", "acknowledged"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1},
+        "kind": {"const": "shadowlord-defeated"},
+        "subject": {"enum": ["faulinei", "astaroth", "nosfentor"]},
+        "occurredOn": {
+          "oneOf": [
+            {"$ref": "native-save-v7.schema.json#/$defs/britannianDate"},
+            {"type": "null"}
+          ]
+        },
+        "source": {"enum": ["gameplay", "migration"]},
+        "acknowledged": {"type": "boolean"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"source": {"const": "migration"}}, "required": ["source"]},
+          "then": {
+            "properties": {
+              "occurredOn": {"type": "null"},
+              "acknowledged": {"const": true}
+            }
+          },
+          "else": {
+            "properties": {
+              "occurredOn": {"$ref": "native-save-v7.schema.json#/$defs/britannianDate"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

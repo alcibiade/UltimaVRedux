@@ -1,0 +1,106 @@
+# format: ultima5redux.conversation-patch/v1
+# target: dwelling/014.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 07bebc8cd5445cbdf56bab33c5eca0a7d858f1e323c883162377beb213860738
+--- a/dwelling/014.yaml
++++ b/dwelling/014.yaml
+@@ -1,4 +1,5 @@
+ schema: ultima5redux.conversation/v1
++# REDUX DEVIATION: DWELLING.TLK 14 requires the Book of Lore and DCB/987 quiz answers. Teach the playable phrase in-game for accessibility.
+ protocol: ultima5
+ id: original.dwelling.014
+ origin:
+@@ -8,12 +9,15 @@
+ name: Lord Kenneth
+ description: a scholarly gentleman.
+ greeting: []
+-job: I am the Court Composer.
++job: I am the Court Composer. Ask me of MUSIC, and I shall gladly teach thee 'Stones'.
+ farewell: Bye.
+ topics:
+   - keywords:
+       - cour
+       - comp
++      - ston
++      - musi
++      - harp
+     response:
+       - say: I travel throughout Britannia teaching my craft.
+       - narrate:
+@@ -30,58 +34,31 @@
+           - ask: question_03
+     default: Alas.
+   question_03:
++    prompt: Dost thou already know 'Stones'?
++    answers:
++      - keywords:
++          - y
++        response:
++          - ask: question_04
++    default:
++      - ask: question_04
++  question_04:
+     prompt:
+-      - say: Open the Book of Lore to the Music section and study the score for the piece 'Stones'.
++      - say: Come, let us play its opening together. A fine melody should never be forgotten!
+       - narrate:
+           - line_break
+           - line_break
+       - wait_for_key
+-      - ask: question_04
+-    answers: []
+-    default: []
+-  question_04:
+-    prompt:
+-      - say: The notes are like a series of square marks upon a four-line staff. Their positions, either on one or between two lines, marks their pitch.
++      - say: Stand immediately north of the harpsichord. Press the number keys, along the top of thy keyboard or on the numpad, one at a time in this order.
+       - narrate:
+           - line_break
+           - line_break
+-      - wait_for_key
+-      - say: A letter C marks the second line of the staff as the pitch 'C'. The first 3 notes are 'ABC'.
++      - say: 6 7 8 9 8 7 8 7 6 7 6 5 3
++      - discover_knowledge: journal.stones.melody
+       - narrate:
+           - line_break
+           - line_break
+-      - wait_for_key
+-      - narrate: What are the next 3?
+-    answers:
+-      - keywords:
+-          - dcb
+-        response:
+-          - say: Good!
+-          - narrate:
+-              - line_break
+-              - line_break
+-          - ask: question_05
+-    default:
+-      - say: No, try again.
+-      - narrate:
+-          - line_break
+-          - line_break
+-      - wait_for_key
+-      - ask: question_04
+-  question_05:
+-    prompt: Many keyboards are marked with numbers, so that ABC would be 678.What would the next 3 be?
+-    answers:
+-      - keywords:
+-          - "987"
+-        response:
+-          - say: Good! So the first phrase goes 678 987 8767653! Now thou must practice!
+-          - narrate:
+-              - line_break
+-          - end
+-    default:
+-      - say: No, try again.
+-      - narrate:
+-          - line_break
+-          - line_break
+-      - wait_for_key
+-      - ask: question_05
++      - say: Now thou must practice! Ask me of STONES whenever thou wouldst hear the lesson again.
++      - return_to_topics
++    answers: []
++    default: []
