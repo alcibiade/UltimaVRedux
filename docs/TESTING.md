@@ -311,6 +311,11 @@ installation does not. Browser provisioning is separate from testing
 dependency installation). `make validate` does not install frontend dependencies
 or browsers.
 
+Frontend DOM tests run one worker without parallel test files; Chromium tests
+also use one worker. This bounds concurrent fixture/browser lifetimes in the
+local quality gate without excluding tests. These settings do not limit runtime
+Workbench behavior or replace host memory supervision.
+
 `lint-config-check` verifies the actual configuration, then runs a diagnostic
 copy with only the immutable `issues.new-from-rev` cutoff removed. It requires two errcheck
 findings (unchecked type assertion and blank-assigned error) and clean checked
