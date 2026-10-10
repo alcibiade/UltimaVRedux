@@ -153,12 +153,12 @@
     },
     "legacy_healing_01": {
       "file": "sounds/magic/healing_01.wav",
-      "note": "Unassigned legacy recording; provenance retained from the original library manifest before replacement of healing_01.",
+      "note": "Unassigned legacy recording, distinct from the replacement healing_01 MP3. Brad Hannah confirmed generating this sound in Audacity. The original provenance fields below are retained as import history; see ASSET_CREDITS.md for the updated attribution.",
       "provenance": {"originalFilename":"HealingSound.wav","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"unknown","importedFrom":"Historical bundled asset","processing":[]}
     },
     "legacy_healing_02": {
       "file": "sounds/magic/healing_02.wav",
-      "note": "Unassigned legacy recording; provenance retained from the original library manifest before replacement of healing_02.",
+      "note": "Unassigned legacy recording, distinct from the replacement healing_02 MP3. Brad Hannah confirmed generating this sound in Audacity. The original provenance fields below are retained as import history; see ASSET_CREDITS.md for the updated attribution.",
       "provenance": {"originalFilename":"HealingSound2.wav","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"unknown","importedFrom":"Historical bundled asset","processing":[]}
     },
     "cardboard_burning_01": {
@@ -322,7 +322,7 @@
     "whirlpool_vortex_01": {"file": null, "provenance": {"originalFilename": "unknown", "sourceType": "unknown", "sourceUrl": "unknown", "sourceCreator": "unknown", "license": "unknown", "importedFrom": "unknown", "processing": []}},
     "whirlpool_splash_01": {"file": null, "provenance": {"originalFilename": "unknown", "sourceType": "unknown", "sourceUrl": "unknown", "sourceCreator": "unknown", "license": "unknown", "importedFrom": "unknown", "processing": []}},
     "hull_crunch_01": {"file":"sounds/imported/hull_crunch_01_6a0598977a7c.mp3","provenance":{"originalFilename":"711656__discofield__brick-crash.mp3","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"Brick crash by discofield -- https://freesound.org/s/711656/ -- License: Creative Commons 0","importedFrom":"unknown","processing":[]}},
-    "shoal_scrape_01": {"file":"sounds/imported/shoal_scrape_01_1123426982d1.mp3","calibrationGainDb":-14.46368169409446,"calibrationMode":"auto","provenance":{"originalFilename":"a_large_wooden_boat__#1-1790340170485.mp3","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"unknown","importedFrom":"unknown","processing":[]}},
+    "shoal_scrape_01": {"file":"sounds/imported/shoal_scrape_01_1123426982d1.mp3","calibrationGainDb":-14.46368169409446,"calibrationMode":"auto","note":"Brad Hannah confirmed generating this sound with ElevenLabs Sound Effects during a paid subscription; subject to https://elevenlabs.io/terms. The original provenance fields below are retained as import history; see ASSET_CREDITS.md for the updated attribution.","provenance":{"originalFilename":"a_large_wooden_boat__#1-1790340170485.mp3","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"unknown","importedFrom":"unknown","processing":[]}},
     "horse_gallop_01": {"file":"sounds/imported/horse_gallop_01_a1480d226e9b.mp3","playbackWindow":{"startMs":30,"endMs":430},"provenance":{"originalFilename":"horse_galloping._onl_#2-1790283770014.mp3","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"unknown","importedFrom":"unknown","processing":[]}},
     "skiff_row_01": {"file":"sounds/imported/skiff_row_01_29c9c872acc0.mp3","calibrationGainDb":0,"calibrationMode":"manual","playbackWindow":{"startMs":0,"endMs":1150},"provenance":{"originalFilename":"79145__razzvio__sloshing-waterbottle.mp3","sourceType":"unknown","sourceUrl":"unknown","sourceCreator":"unknown","license":"unknown","importedFrom":"unknown","processing":[]}},
     "frigate_sail_01": {"file": null, "provenance": {"originalFilename": "unknown", "sourceType": "unknown", "sourceUrl": "unknown", "sourceCreator": "unknown", "license": "unknown", "importedFrom": "unknown", "processing": []}},
