@@ -512,9 +512,10 @@ The relevant paths are configurable at launch:
 - Scene replacement cleanup tests.
 - `go test -race` coverage for the bridge and server.
 - Browser type-check and production build.
-- Playwright Chromium source-UI regressions with synthetic transport cover
-  review/dispatch, historical values, pinned recovery, focus, draft retention,
-  visible errors, and 1440/1280/1024/800/640 CSS-pixel widths with both history
-  docks. Separate desktop-zoom tests exercise actual 200% Chromium tab zoom in
-  disposable profiles. These are not live-game mutation evidence.
+- Four Playwright Chromium smoke tests with synthetic transport cover desktop
+  startup/navigation/status, one compact layout, mutation confirmation/cancellation
+  and visible rejection, and keyboard palette focus/dismissal. Detailed component
+  and protocol behavior remains in DOM/Go tests. Browser dock matrices, actual
+  desktop zoom and exhaustive scenario workflows are outside this secondary tool's
+  acceptance scope. These tests are not live-game mutation or usability evidence.
 - Full repository validation for command-catalog, transport, and browser-interface changes.

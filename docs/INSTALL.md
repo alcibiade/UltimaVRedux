@@ -1,10 +1,8 @@
 # Installing and starting Ultima V Redux
 
-> **First source release in preparation.** Application source is staged on
-> `feat/graphics-test-trim`; `main` remains documentation-only. No source
-> release or version tag has been published. Local source builds are available
-> from the staged checkout; release installation and platform acceptance remain
-> to be verified.
+> **First source release in preparation.** This checkout contains the application
+> source. No source release or version tag has been published. Local source builds
+> are available; release installation and platform acceptance remain to be verified.
 
 ## What you need
 
@@ -24,9 +22,9 @@ Linux still needs the applicable desktop graphics/audio runtime; exact
 distribution prerequisites will be documented from native validation. Cross-build
 success alone does not establish native graphics, audio, or input acceptance.
 
-## Build the staged local source
+## Build the local source
 
-From an existing checkout of the application-bearing branch:
+From an existing application checkout:
 
 ```sh
 go build -o bin/ultimav ./cmd/ultimav
@@ -35,8 +33,7 @@ go build -o bin/ultimav ./cmd/ultimav
 
 For Windows, build with `-o bin/ultimav.exe` and launch `.\bin\ultimav.exe`.
 Alternatively, `go run ./cmd/ultimav` builds and runs the local source. Dependency
-and toolchain downloads need network access unless already cached. A checkout of
-the documentation-only `main` does not contain this command yet.
+and toolchain downloads need network access unless already cached.
 
 Required embedded/generated assets are included in the staged application. A
 production build does not require a frontend rebuild. Bundled assets and fixtures

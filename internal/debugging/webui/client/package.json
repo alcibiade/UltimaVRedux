@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
-    "test": "vitest run",
-    "test:browser": "playwright test",
-    "typecheck": "vue-tsc --noEmit"
+    "build": "npm run typecheck && vite build",
+    "test": "node --test typecheck_checks.mjs && vitest run",
+    "test:browser": "vite build --outDir browser/.build && node --max-old-space-size=64 --max-semi-space-size=2 node_modules/@playwright/test/cli.js test",
+    "typecheck": "node typecheck.mjs"
   },
   "dependencies": {
     "vue": "^3.5.22"

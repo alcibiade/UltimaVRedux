@@ -24,8 +24,8 @@ jobs:
         run: git diff --exit-code -- internal/debugging/webui/dist
       - name: Provision Chromium
         working-directory: internal/debugging/webui/client
-        run: npx playwright install --with-deps chromium
-      - name: Run real-browser interaction and layout regressions
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Run four real-browser Workbench smoke tests
         run: make web-test-browser
 
   logic:

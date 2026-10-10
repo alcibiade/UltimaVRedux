@@ -1,9 +1,8 @@
 # Ultima V Redux
 
-Ultima V Redux is a Go/Ebitengine recreation of Ultima V. Application source is
-staged on `feat/graphics-test-trim`; `main` remains documentation-only and no
-source release or tag has been published. Describe availability and native
-platform acceptance honestly.
+Ultima V Redux is a Go/Ebitengine recreation of Ultima V. This checkout contains
+the application source; no source release or tag has been published. Describe
+repository availability and native platform acceptance honestly.
 
 Read [README.md](README.md), [installation guidance](docs/INSTALL.md),
 [contribution policy](CONTRIBUTING.md), and the [documentation catalog](docs/README.md).

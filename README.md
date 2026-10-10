@@ -4,14 +4,13 @@ A modern Go recreation of **Ultima V: Warriors of Destiny**, with enhanced
 presentation, quality-of-life improvements, and a developer Debug Workbench.
 Playing requires files from your own copy of the original game.
 
-> **Source-release preparation:** application source is now staged on
-> `feat/graphics-test-trim`. `main` is still documentation-only, and no source
-> release or version tag has been published. The staged checkout can be built
-> locally; the versioned installation command below is a future release target.
+> **Source-release preparation:** this checkout contains the complete application.
+> No source release or version tag has been published. Local source builds are
+> available; the versioned installation command below is a future release target.
 
 ## Installation
 
-For an existing checkout of the staged application, use Go **1.25.0 or newer**;
+For an existing application checkout, use Go **1.25.0 or newer**;
 `go.mod` selects **go1.27.1** as the preferred toolchain:
 
 ```sh

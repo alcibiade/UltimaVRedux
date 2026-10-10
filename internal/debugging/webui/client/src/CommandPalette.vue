@@ -23,8 +23,7 @@ function activate(surface = visibleMatches.value[activeIndex.value]): void {
 }
 
 function onInputKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape") emit("close")
-  else if (event.key === "ArrowDown") activeIndex.value = Math.min(activeIndex.value + 1, visibleMatches.value.length - 1)
+  if (event.key === "ArrowDown") activeIndex.value = Math.min(activeIndex.value + 1, visibleMatches.value.length - 1)
   else if (event.key === "ArrowUp") activeIndex.value = Math.max(activeIndex.value - 1, 0)
   else if (event.key === "Home") activeIndex.value = 0
   else if (event.key === "End") activeIndex.value = Math.max(visibleMatches.value.length - 1, 0)
@@ -46,7 +45,7 @@ onMounted(() => void nextTick(() => input.value?.focus()))
 </script>
 
 <template>
-  <section class="command-palette-modal" role="dialog" aria-modal="true" aria-labelledby="command-palette-title" data-command-palette @keydown="trapFocus">
+  <section class="command-palette-modal" role="dialog" aria-modal="true" aria-labelledby="command-palette-title" data-command-palette @keydown="trapFocus" @keydown.esc.prevent.stop="emit('close')">
     <div ref="dialog" class="command-palette-dialog">
       <header><div><span>NAVIGATION ONLY</span><h2 id="command-palette-title">Go to Workbench Surface</h2></div><button type="button" aria-label="Close command palette" @click="emit('close')">ESC</button></header>
       <label class="sr-only" for="command-palette-input">Find a workspace surface</label>

@@ -43,6 +43,8 @@ describe("CommandPalette", () => {
     expect(close).toHaveBeenCalledOnce()
     const closeButton = root.querySelector<HTMLButtonElement>('button[aria-label="Close command palette"]')!
     closeButton.focus()
+    closeButton.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))
+    expect(close).toHaveBeenCalledTimes(2)
     closeButton.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }))
     expect(document.activeElement).toBe(input)
   })

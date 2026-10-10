@@ -376,15 +376,17 @@ desktop dock preference and reduce command-rail height so controls remain
 reachable. Editable values use larger form typography within the existing visual
 language; this does not add phone/touch controls to the player-facing game.
 
-`browser/workbench.spec.ts` under the frontend client exercises source UI in
-Chromium with synthetic transport at 1440/1280/1024/800/640 CSS-pixel widths,
-both history docks, long text, and active drafts. It checks Calendar/Inventory
-overflow, clipped controls, Tools reachability, focus, review, and outgoing
-requests. This is bounded automated coverage, not every instrument at every
-viewport. `browser/desktop_zoom.spec.ts` additionally verifies both docks at
-actual desktop 200% tab zoom, with unchanged outer window bounds and no pinch
-scaling. Live-game mutations and physical keyboard/window acceptance remain
-manually unverified.
+`browser/workbench.spec.ts` provides four smoke tests for this secondary tool:
+desktop startup/status/navigation at 1280px, reachable inventory controls at 800px,
+confirmation/cancellation and visible server rejection for one inventory mutation,
+and keyboard palette navigation/dismissal/focus restoration. It uses freshly built
+source UI in real Chromium with synthetic transport. Dock/width matrices, actual
+desktop zoom and exhaustive scenario workflows are outside browser acceptance.
+Live-game mutations and physical keyboard/window acceptance remain manually unverified.
+
+The browser harness builds before launching Chromium and serves the fresh assets
+with synthetic transport. Its bounded process profile and cleanup contract are
+specified in [Testing](../TESTING.md#canonical-commands).
 
 ## Keyboard Model
 

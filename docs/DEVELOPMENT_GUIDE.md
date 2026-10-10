@@ -8,9 +8,8 @@ particular editor or assistant.
 
 ## Setup
 
-Use the application-bearing checkout: source is staged on
-`feat/graphics-test-trim`, while `main` remains documentation-only. No source
-release or tag has been published. From that checkout, provision:
+This checkout contains the application source. No source release or tag has been
+published. For local development, provision:
 
 - Go: `go.mod` declares `go 1.25.0` and `toolchain go1.27.1`. Provision the selected
   toolchain before offline validation. Ebitengine is pinned to v2.10.4.
@@ -49,7 +48,7 @@ asset-independent validation must not silently rely on a developer's local files
 The source import retains inherited lint debt rather than broadening this work
 into unrelated legacy cleanup. All 94 configured linters, thresholds, and existing
 exclusions remain enabled as defined in `.golangci.yml`. The new-code cutoff is
-the sanitized application-source checkpoint, not the documentation-only `main`.
+the fixed sanitized application-source checkpoint rather than a moving branch.
 Migration-specific changed-line findings were checked before that checkpoint.
 The fixed baseline is `f31ba69759594face92838f0ce33855f46aca4e3`; retain this
 commit in checkout history. The config verifier rejects moving refs and abbreviated

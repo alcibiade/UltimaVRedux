@@ -275,7 +275,7 @@ The `Makefile` is the command authority:
 | `make lint-all` | Run the pinned configured linters across all packages without revision filtering, per-linter caps, same-message caps, or line deduplication. Existing path exclusions and production-only test handling still apply. |
 | `make core-dependencies-check` | Check transitive production and internal/external-test dependency closures for all six core roots. |
 | `make web-build` | Install locked frontend dependencies, run frontend tests, and build Debug Workbench assets. |
-| `make web-test-browser` | Run real Chromium Playwright regressions against source UI and mock transport; browser must already be installed. |
+| `make web-test-browser` | Build current source UI, then run four real Chromium smoke tests with mock transport; headless shell must already be installed. |
 | `make check` | Run formatting checks, lint, vet, and logic Go tests. |
 | `make pre-commit` | Run `scripts/pre-commit-checks.sh`. |
 | `make policy-check` | Run the script's architecture/input/logging policy checks without repeating Go formatting, vet, build, or tests. |
@@ -307,7 +307,7 @@ validation; it is not a player prerequisite. Provision the module's selected Go
 toolchain (`go 1.25.0`, `toolchain go1.27.1`) before offline validation.
 Race-instrumented tests require a native C toolchain even though production
 installation does not. Browser provisioning is separate from testing
-(`npx playwright install --with-deps chromium` from the frontend directory after
+(`npx playwright install --with-deps --only-shell chromium` from the frontend directory after
 dependency installation). `make validate` does not install frontend dependencies
 or browsers.
 
@@ -315,6 +315,40 @@ Frontend DOM tests run one worker without parallel test files; Chromium tests
 also use one worker. This bounds concurrent fixture/browser lifetimes in the
 local quality gate without excluding tests. These settings do not limit runtime
 Workbench behavior or replace host memory supervision.
+
+Frontend type checking runs four serial `vue-tsc` processes: application sources,
+root-component tests, other DOM tests, and browser tests/configuration. The
+canonical `tsconfig.json` remains the complete source inventory and compiler-option
+authority. `typecheck.mjs` includes Vue roots in that inventory, rejects missing,
+duplicate, unexpected or empty partitions, and requires identical compiler options
+in every partition. Each process checks its full imported source/declaration
+closure; `skipLibCheck` is not enabled. The 512 MiB old-space and 8 MiB semi-space
+settings encourage bounded V8 collection, but are not process RSS caps. `npm test`
+also runs the partition-accounting regressions before the existing DOM suite.
+
+The browser command first builds the current source into ignored `browser/.build`,
+then starts Playwright. Its global setup serves those fresh assets on loopback
+inside the runner process; it never reuses an existing server or the checked-in
+embedded bundle. Teardown closes the server and removes the temporary build.
+This avoids retaining Vite's compiler/transform graph beside Chromium. Tests use
+the same application production build as the embedded Workbench, with synthetic
+transport; Vite development-server/HMR behavior is not covered by this suite.
+
+Playwright's runner/workers use 64 MiB old-space and 2 MiB semi-space settings.
+The secondary Debug Workbench has a deliberately small browser acceptance scope:
+four smoke tests in `browser/workbench.spec.ts` cover desktop startup/status and
+navigation at 1280px, reachable inventory controls at 800px, explicit mutation
+confirmation/cancellation with visible server rejection, and keyboard palette
+navigation/Escape/focus restoration. They use bundled real Chromium headless shell
+with Playwright's default browser launch settings and screenshots only on failure.
+Full Chrome, custom Chromium feature overrides, extensions, persistent profiles,
+actual desktop zoom, dock matrices and exhaustive scenario browser workflows are
+not required. This is an intentional coverage reduction, not equivalent acceptance
+of those removed cases. Existing DOM/Go tests retain detailed behavior checks;
+two focused App DOM regressions protect stale scenario Start and delayed rollback
+review revocation. The synthetic transport never performs live game mutations or
+certifies the interface's live usability. These execution settings still require
+aggregate process-tree supervision on constrained hosts.
 
 `lint-config-check` verifies the actual configuration, then runs a diagnostic
 copy with only the immutable `issues.new-from-rev` cutoff removed. It requires two errcheck
@@ -459,12 +493,10 @@ validation evidence.
 
 These are public asset-independent jobs; optional-data skips remain visible.
 They do not replace mandatory local strict private-data validation. Browser
-tests exercise real DOM/input/layout with synthetic transport, not live game
-mutations. In addition to CSS-width coverage down to 640 pixels,
-`browser/desktop_zoom.spec.ts` exercises actual 200% desktop zoom through
-Chromium's tab zoom API in a disposable profile, checking changed inner dimensions
-and pixel ratio with unchanged outer bounds and no pinch scaling. Neither test
-is a physical-keyboard/game-window acceptance run.
+tests exercise real DOM/input/layout with synthetic transport at desktop and
+compact-laptop widths, not live game mutations. The four-test smoke scope above
+does not establish full Workbench usability, desktop zoom, or physical-keyboard/
+game-window acceptance.
 
 ## Test Review Checklist
 

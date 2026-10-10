@@ -1957,6 +1957,89 @@ describe("debug workbench connection", () => {
 		expect(root.querySelector('[data-scenario-screen="run-review"]')).toBeNull()
 	})
 
+	it("rejects a retained scenario Start control after the saved definition is edited", async () => {
+		mountApp()
+		const connection = MockWebSocket.instances[0]
+		connection.open()
+		connection.message(sessionReady("session-1"))
+		connection.message(formCatalogSnapshot())
+		await flushUI()
+		await openWorkspace("scenarios")
+		connection.message(successfulQueryCompletion(executionForCommand(connection, "scenario.definition.list").id, "scenario.definition.list", "Listed.", {
+			definitions: [{ reference: "project:typed-run", source: "project", id: "typed-run", name: "Typed Run", description: "Typed values.", baseline: { type: "current" }, revision: "a".repeat(64), steps: [] }],
+		}))
+		await flushUI()
+		click('[data-scenario-play="project:typed-run"]')
+		connection.message(scenarioDefinitionGetCompletion(executionForCommand(connection, "scenario.definition.get").id))
+		await flushUI()
+		connection.message(successfulQueryCompletion(executionForCommand(connection, "scenario.definition.validate").id, "scenario.definition.validate", "Valid.", { valid: true, issues: [] }))
+		connection.message(scenarioStatusCompletion(executionForCommand(connection, "scenario.status").id))
+		await flushUI()
+		const staleStart = root.querySelector<HTMLButtonElement>('[data-scenario-action="confirm-run"]')!
+		expect(staleStart).not.toBeNull()
+		expect(staleStart.disabled).toBe(false)
+		click('[data-scenario-screen="run-review"] .scenario-detail-actions button:last-child')
+		await flushUI()
+		click('[data-scenario-action="edit"]')
+		await flushUI()
+		setInputValue(root.querySelector<HTMLInputElement>('[data-scenario-field="name"]'), "Unsaved changed plan")
+		await flushUI()
+		// Exercise the retained handler as well as the visible disabled control.
+		staleStart.click()
+		await flushUI()
+		expect(root.querySelector("[data-owner-error]")?.textContent).toContain("before starting a run")
+		expect(executionsForCommand(connection, "scenario.run.start")).toHaveLength(0)
+	})
+
+	it("does not rearm rollback review from a delayed response after navigation", async () => {
+		mountApp()
+		const connection = MockWebSocket.instances[0]
+		connection.open()
+		connection.message(sessionReady("session-1"))
+		connection.message(formCatalogSnapshot())
+		await flushUI()
+		const run = {
+			runId: "rollback-run", reference: "personal:typed-run", definitionId: "typed-run", definitionRevision: "a".repeat(64),
+			baseline: { type: "current" }, rollback: { reference: "rollback:before", revision: "b".repeat(64) },
+			state: "succeeded", currentProcess: true, startedAt: "2026-08-07T10:00:00Z", finishedAt: "2026-08-07T10:01:00Z",
+			initialSceneGeneration: 7, sceneGeneration: 7, nextStep: 1, totalSteps: 1, steps: [],
+		}
+		connection.message(successfulQueryCompletion(executionForCommand(connection, "scenario.run.status").id, "scenario.run.status", "Runs.", { run, runs: [run], capacity: 20 }))
+		await flushUI()
+		click('[data-home-run="rollback-run"]')
+		await flushUI()
+		click("[data-scenario-review-rollback]")
+		await flushUI()
+		const oldRequest = executionForCommand(connection, "save.snapshot.get")
+		expect(oldRequest.payload.arguments).toEqual({ reference: "rollback:before" })
+		await openWorkspace("home")
+		await openWorkspace("saves")
+		const snapshot = {
+			summary: { reference: "rollback:before", source: "rollback", id: "before", name: "Before", description: "Rollback fixture",
+				revision: "b".repeat(64), createdAt: "2026-08-07T10:00:00Z", gameVersion: "test",
+				compatibility: { compatible: true }, eligibility: { canCapture: true, canLoad: true, canDelete: true } },
+			locationName: "Britain", location: 2, floor: 0, x: 1, y: 1, year: 138, month: 7, day: 12,
+			hour: 16, minute: 15, partyMembers: 1, moonPhaseIndex: 1, moonPhase: "Crescent Waxing",
+		}
+		connection.message(successfulQueryCompletion(oldRequest.id, "save.snapshot.get", "Snapshot.", { snapshot }))
+		await flushUI()
+		expect(root.querySelector(".save-detail-header")?.textContent).toContain("rollback:before")
+		expect(root.querySelector('[data-save-review="load"]')).toBeNull()
+		expect(executionsForCommand(connection, "save.snapshot.load")).toHaveLength(0)
+		// A new explicit handoff must still work; rejecting every response is not a fix.
+		await openWorkspace("home")
+		click('[data-home-run="rollback-run"]')
+		await flushUI()
+		click("[data-scenario-review-rollback]")
+		await flushUI()
+		const freshRequest = executionForCommand(connection, "save.snapshot.get")
+		expect(freshRequest.id).not.toBe(oldRequest.id)
+		connection.message(successfulQueryCompletion(freshRequest.id, "save.snapshot.get", "Snapshot.", { snapshot }))
+		await flushUI()
+		expect(root.querySelector('[data-save-review="load"]')).not.toBeNull()
+		expect(executionsForCommand(connection, "save.snapshot.load")).toHaveLength(0)
+	})
+
 	it("owns all snapshot commands in the Saves workspace and refreshes scene-bound status after load", async () => {
 		mountApp()
 		const connection = MockWebSocket.instances[0]
