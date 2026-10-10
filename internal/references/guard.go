@@ -1,0 +1,54 @@
+package references
+
+// Guard Extortion System Constants
+// Procedural tribute and Palace credentials; ref:CRIME-0001.
+
+// Tribute per living party member; ref:CRIME-0001.
+const (
+	// TributePerLivingMember is the gold required per living party member
+	// Formula: 10 gold × number of living party members
+	TributePerLivingMember = 10
+
+	// MinimumTribute is the minimum gold tribute (1 living party member)
+	MinimumTribute = 10
+
+	// MaximumTribute is the maximum gold tribute (6 living party members)
+	MaximumTribute = 60
+)
+
+// Jail Location Constants
+// Source: Original game data
+const (
+	// JailPositionX is the X coordinate of the jail in Yew.
+	JailPositionX = 25
+
+	// JailPositionY is the Y coordinate of the jail in Yew.
+	JailPositionY = 4
+
+	// JailFloorNumber is the floor level of the jail.
+	JailFloorNumber = FloorNumber(0)
+
+	// JailReleaseHour is the hour at which an ordinary sentence ends.
+	JailReleaseHour = 8
+
+	// JailSentenceStepMinutes is the ordinary sentence's time increment; ref:CRIME-0003.
+	JailSentenceStepMinutes = 20
+)
+
+// Blackthorn Guard Password
+// Palace credentials use a four-character password; ref:CRIME-0001.
+//
+//goland:noinspection GoUnusedConst
+const (
+	// BlackthornPassword is the correct password for Blackthorn's Castle guards
+	// First 4 letters are checked, case-insensitive
+	BlackthornPassword = "impe"
+)
+
+// Charity Guard Constants
+// Yew's special tribute is half the party's gold; ref:CRIME-0001.
+const (
+	// CharityGoldPercentage is the percentage of gold demanded by charity guards
+	// Map 5 only: demands 50% of player's total gold
+	CharityGoldPercentage = 50
+)

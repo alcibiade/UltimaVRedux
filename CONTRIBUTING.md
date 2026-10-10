@@ -35,13 +35,15 @@ Discuss scope in an issue before preparing a PR. The maintainer may implement th
 change directly or agree on a contribution. An accepted proposal is not a promise
 to accept an independently prepared implementation.
 
-Preserve attribution and license notices. Changes must follow the repository's
-architecture, gameplay, input, and validation conventions once the application is
-available here.
+Preserve attribution and license notices, including those accompanying bundled
+fonts, media, and fixtures. Changes must follow the repository's
+[architecture](docs/ARCHITECTURE_GUIDELINES.md), [coding conventions](docs/CODING_CONVENTIONS.md),
+and [testing policy](docs/TESTING.md). The [development guide](docs/DEVELOPMENT_GUIDE.md)
+describes tools and local validation. Humans review and merge PRs.
 
 ## Current availability
 
-This checkout is preparing its first source release and currently contains
-documentation rather than an installable application. The
-[installation guide](docs/INSTALL.md) states the intended release workflow and
-the validation still required.
+This checkout contains the application source. No source release or tag has been
+published. The
+[installation guide](docs/INSTALL.md) explains local source builds, the future
+release installation workflow, and platform acceptance still required.

@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: dwelling/010.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: dd6d97fd8239e5c33bd56fe822218c5dcefbe559e785b361e75aca5ef9633175
+--- a/dwelling/010.yaml
++++ b/dwelling/010.yaml
+@@ -71,6 +71,7 @@
+               - line_break
+           - wait_for_key
+           - say: Even as each respective Shadowlord stands nigh upon the flame of the Principle it opposes.
++          - discover_knowledge: journal.banishment.method
+           - narrate:
+               - line_break
+               - line_break

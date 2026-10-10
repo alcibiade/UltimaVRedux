@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/027.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: ded2cbe2ba522221f5f24b6c392cce8763004f52310cdb4b004e8e41880679eb
+--- a/towne/027.yaml
++++ b/towne/027.yaml
+@@ -83,6 +83,7 @@
+               - text: And in the corn
+               - line_break
+               - text: He sayeth 'Cah'!
++          - discover_knowledge: shrine.sacrifice.mantra
+     default: Thou knowest not what thou art missing!
+   question_03:
+     prompt: Dost thou believe that wishes can come true?

@@ -1,0 +1,25 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/016.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 4e1b92adc6d1287cdbb3b5832ab835215703ab771a792754df34f8a9c677bf01
+--- a/keep/016.yaml
++++ b/keep/016.yaml
+@@ -25,11 +25,15 @@
+       - alon
+       - stan
+       - virt
+-    response: The Shadowlords dare not desecrate this holy place, not even the Shadowlord of Hate!
++    response:
++      - say: The Shadowlords dare not desecrate this holy place, not even the Shadowlord of Hate!
++      - discover_knowledge: journal.domain.hatred
+   - keywords:
+       - shad
+       - hate
+-    response: Seek out the daemon who lives in the great eastern desert. He knows much of the Lord of Hatred!
++    response:
++      - say: Seek out the daemon who lives in the great eastern desert. He knows much of the Lord of Hatred!
++      - discover_knowledge: journal.domain.hatred
+   - keywords:
+       - moun
+       - clim

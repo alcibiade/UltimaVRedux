@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/005.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: c0ac6465c5927d5133e7792f8d26dd527c37d184fe93e8214ca24438166a990c
+--- a/keep/005.yaml
++++ b/keep/005.yaml
+@@ -43,6 +43,7 @@
+       - say:
+           - runic: AN YLEM
+           - text: '!'
++      - discover_knowledge: spell.an_ylem
+   - keywords:
+       - an ylem
+     response: Not now, fool! Am I still here?

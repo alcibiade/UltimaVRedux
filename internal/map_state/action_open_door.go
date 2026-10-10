@@ -1,0 +1,67 @@
+package map_state
+
+import (
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+)
+
+type DoorOpenState int
+
+const (
+	OpenDoorLocked DoorOpenState = iota
+	OpenDoorLockedMagical
+	OpenDoorNotADoor
+	OpenDoorOpened
+)
+
+func (m *MapState) OpenDoor(direction references.Direction) DoorOpenState {
+	newPosition := direction.GetNewPositionInDirection(&m.PlayerLocation.Position)
+	theMap := m.LayeredMaps.GetLayeredMap(references.SmallMapType, m.PlayerLocation.Floor)
+	closedTile := theMap.GetTileTopMapOnlyTile(newPosition)
+	result := OpenDoorAt(theMap, newPosition)
+	if result != OpenDoorOpened {
+		return result
+	}
+
+	m.CloseOpenDoor()
+	m.openDoorPos = newPosition
+	m.openDoorTurns = DefaultOpenDoorTurns
+	m.openDoorFloor = m.PlayerLocation.Floor
+	m.openDoorType = closedTile.Index
+
+	return OpenDoorOpened
+}
+
+// OpenDoorAt opens one surface-style door without applying map-specific lifecycle rules.
+func OpenDoorAt(theMap *LayeredMap, position *references.Position) DoorOpenState {
+	targetTile := theMap.GetTileTopMapOnlyTile(position)
+
+	switch targetTile.Index {
+	case indexes.MagicLockDoor, indexes.MagicLockDoorWithView:
+		return OpenDoorLockedMagical
+	case indexes.LockedDoor, indexes.LockedDoorView:
+		return OpenDoorLocked
+	case indexes.RegularDoor, indexes.RegularDoorView:
+		break
+	default:
+		return OpenDoorNotADoor
+	}
+
+	theMap.SetTileByLayer(MapOverrideLayer, position, indexes.BrickFloor)
+
+	return OpenDoorOpened
+}
+
+// IsPositionOpenDoor returns true if the position currently has an open door
+func (m *MapState) IsPositionOpenDoor(pos *references.Position) bool {
+	if m.openDoorPos != nil && m.openDoorFloor == m.PlayerLocation.Floor && m.openDoorPos.Equals(pos) {
+		return true
+	}
+	if m.PlayerLocation.Location.GetMapType() != references.SmallMapType {
+		return false
+	}
+	layer := m.GetLayeredMapByCurrentLocation()
+	terrain := layer.GetTileTopMapOnlyTile(pos)
+
+	return layer.isOccupiedDoor(pos, terrain)
+}

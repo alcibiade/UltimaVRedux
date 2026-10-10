@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/022.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 255e0a2fe442227b0d9bdafa5ff8f2fd2271f61a6ee61283165305abee557092
+--- a/towne/022.yaml
++++ b/towne/022.yaml
+@@ -82,4 +82,5 @@
+               - text: Very well, the Word of Power for the dungeon Wrong is
+               - runic: ' MALUM'
+               - text: '! Use it wisely!'
++          - discover_knowledge: dungeon.wrong.word_of_power
+     default: Nay, 'tis not.

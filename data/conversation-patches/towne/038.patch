@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/038.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 3d2421b7621b3fb2440599c952587bd5919671eae5887931789262b6cc24d97b
+--- a/towne/038.yaml
++++ b/towne/038.yaml
+@@ -87,6 +87,7 @@
+               - line_break
+           - wait_for_key
+           - say: Now, to further thy acceptance in our order, go see Elistaria on the northeastern most isle of Britannia. Say to her the password, 'Impera'.
++          - discover_knowledge: journal.oppression.password
+           - narrate:
+               - line_break
+           - end

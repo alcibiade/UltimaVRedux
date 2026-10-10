@@ -1,0 +1,23 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/022.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: c0642a9384f593bb1ed882e31ac353343b22999036cfb0d30196039d07d3cae4
+--- a/keep/022.yaml
++++ b/keep/022.yaml
+@@ -33,8 +33,13 @@
+       - evil
+       - cowa
+       - shad
+-    response: Even Nosfentor dares not cross the sacred threshold of Serpent's Hold!
++    response:
++      - say: Even Nosfentor dares not cross the sacred threshold of Serpent's Hold!
++      - discover_knowledge: shadowlord.nosfentor.name
+   - keywords:
+       - Nosf
+-    response: Speak not that name too loudly, for 'tis the name of the Shadowlord of Cowardice!
++    response:
++      - say: Speak not that name too loudly, for 'tis the name of the Shadowlord of Cowardice!
++      - discover_knowledge: shadowlord.nosfentor.name
++      - discover_knowledge: shadowlord.nosfentor.association
+ questions: {}

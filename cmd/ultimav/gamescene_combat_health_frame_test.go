@@ -1,0 +1,279 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"image"
+	"math"
+	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/bradhannah/UltimaVRedux/internal/display"
+	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
+)
+
+func TestCombatHealthOutlinePreservesEveryLegacyHPPixel(t *testing.T) {
+	for _, scale := range []float64{1, 1280 * 0.76 / 304, 1366 * 0.76 / 304} {
+		for _, loyalty := range []game_state.CombatMonsterLoyalty{game_state.CombatMonsterLoyaltyParty, game_state.CombatMonsterLoyaltyMonster} {
+			for _, hp := range []int{0, 1, 25, 50, 100} {
+				// Native pixels exercise every fill/colour boundary. Fractional
+				// registration needs only living-minimum and full-width footprints.
+				if scale != 1 && hp != 1 && hp != 100 {
+					continue
+				}
+				t.Run(fmt.Sprintf("scale%g/side%d/hp%d", scale, loyalty, hp), func(t *testing.T) {
+					options := &ebiten.DrawImageOptions{}
+					options.GeoM.Scale(scale, scale)
+					options.GeoM.Translate(7.35, 9.65)
+					sample := combatFixtureRasterBounds(options)
+					legacy := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+					outlined := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+					border := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+					t.Cleanup(legacy.Dispose)
+					t.Cleanup(outlined.Dispose)
+					t.Cleanup(border.Dispose)
+					drawCombatHealthBar(legacy, options, hp, 100)
+					drawCombatHealthFrameOutline(border, options, loyalty)
+					drawCombatHealthFrameOutline(outlined, options, loyalty)
+					drawCombatHealthBar(outlined, options, hp, 100)
+					before, after, ring := signaturePixels(legacy), signaturePixels(outlined), signaturePixels(border)
+					for pixel := 0; pixel < len(before); pixel += 4 {
+						if before[pixel+3] != 0 {
+							require.True(t, bytes.Equal(before[pixel:pixel+4], after[pixel:pixel+4]), "changed legacy HP at (%d,%d)", sample.Min.X+pixel/4%sample.Dx(), sample.Min.Y+pixel/4/sample.Dx())
+							require.Zero(t, ring[pixel+3], "exterior may not invade the black separator or fill")
+						}
+						if ring[pixel+3] != 0 {
+							require.Zero(t, before[pixel+3], "shared world/vehicle HP renderer must not acquire an exterior")
+						}
+					}
+					clr := ucolor.CombatAllegianceEnemy
+					if loyalty == game_state.CombatMonsterLoyaltyParty {
+						clr = ucolor.CombatAllegianceAlly
+					}
+					assert.Positive(t, countExactColor(border, clr))
+					assert.Equal(t, opaquePixelCount(border), countExactColor(border, clr), "no white pulse or alternate symbol colour")
+					_, top := options.GeoM.Apply(0, 12)
+					assert.Zero(t, opaquePixelCount(border.SubImage(image.Rect(sample.Min.X, sample.Min.Y, sample.Max.X, int(math.Floor(top)))).(*ebiten.Image)), "no upper-left emblem remains")
+				})
+			}
+		}
+	}
+}
+
+func TestCombatHealthOutlineExactNativeFootprint(t *testing.T) {
+	frame := ebiten.NewImage(18, 18)
+	t.Cleanup(frame.Dispose)
+	drawCombatHealthFrameOutline(frame, &ebiten.DrawImageOptions{}, game_state.CombatMonsterLoyaltyParty)
+	assert.Equal(t, 38, opaquePixelCount(frame), "15x6 exterior minus the unchanged 13x4 HP frame")
+	assert.Zero(t, opaquePixelCount(frame.SubImage(image.Rect(2, 13, 15, 17)).(*ebiten.Image)))
+	assert.Zero(t, opaquePixelCount(frame.SubImage(image.Rect(0, 0, 18, 12)).(*ebiten.Image)))
+	for _, face := range combatAttackBracketFaces() {
+		assert.LessOrEqual(t, face.Inset(-1).Max.Y, 12, "bracket backing ends before the top outline")
+		assert.False(t, face.Inset(-1).Overlaps(combatHealthFrameBounds()))
+	}
+}
+
+func TestCombatHealthFrameInsectAggregatePreservesSegmentsAndDisclosure(t *testing.T) {
+	scene := newCombatConcealmentTestState(t)
+	state := scene.gameState
+	state.CombatScene.MonsterManager.Clear()
+	state.CombatScene.TurnQueue.RemoveAllMonsters()
+	position := references.Position{X: 5, Y: 5}
+	setCombatConcealmentTerrain(state, position, indexes.BrickFloor)
+	ref := (*state.GameReferences.EnemyReferences)[references.MonsterInsect]
+	ref.HitPoints = 100
+	var indices []int
+	for _, hp := range []int{1, 25, 50, 100} {
+		monster := game_state.NewCombatMonster(references.MonsterInsect, &ref, position, state.AsRandomProvider())
+		monster.SetLoyalty(game_state.CombatMonsterLoyaltyParty)
+		monster.SetCurrentHP(hp)
+		indices = append(indices, state.CombatScene.AddMonsterToQueue(monster))
+	}
+	scene.beginCombatRenderFrame()
+	t.Cleanup(scene.endCombatRenderFrame)
+	require.Equal(t, indices, scene.combatPartyInsectStack(position))
+	frame, segments := ebiten.NewImage(18, 18), ebiten.NewImage(18, 18)
+	t.Cleanup(frame.Dispose)
+	t.Cleanup(segments.Dispose)
+	options := &ebiten.DrawImageOptions{}
+	scene.drawCombatInsectStackHealth(segments, options, indices)
+	for slot, index := range indices {
+		frame.Clear()
+		actor, ok := state.ProjectCombatActor(game_state.CombatTurnIdentity{EntityIndex: index}, 0)
+		require.True(t, ok)
+		scene.drawCombatActorHealthFrame(frame, options, actor)
+		if slot != 0 {
+			assert.Zero(t, opaquePixelCount(frame), "only the representative may emit the aggregate")
+			continue
+		}
+		want, got := signaturePixels(segments), signaturePixels(frame)
+		for pixel := 0; pixel < len(want); pixel += 4 {
+			if want[pixel+3] != 0 {
+				require.Equal(t, want[pixel:pixel+4], got[pixel:pixel+4], "segment attribution/fill changed at %d", pixel/4)
+			}
+		}
+		assert.Equal(t, 38, countExactColor(frame, ucolor.CombatAllegianceAlly))
+		for member := range indices {
+			x, y := combatInsectStackPipPosition(member, len(indices))
+			assert.GreaterOrEqual(t, y, 2.0, "northern health frame ends before the pip row")
+			assert.Equal(t, ucolor.EGACyan.ToRGBA(), frame.At(int(x), int(y)))
+		}
+	}
+	scene.endCombatRenderFrame()
+	state.CombatScene.MonsterManager.GetMonster(indices[0]).SetInvisible(true)
+	require.Equal(t, indices[1:], scene.combatPartyInsectStack(position), "invisible member must not add a pip or health segment")
+	setCombatConcealmentTerrain(state, position, indexes.BlackSquare)
+	assert.Empty(t, scene.combatPartyInsectStack(position))
+}
+
+func TestCombatHealthFrameSignatureOpacityAndHiddenIntervals(t *testing.T) {
+	manager := display.GetManager()
+	saved := *manager
+	t.Cleanup(func() { *manager = saved })
+	// Use source-pixel scale to isolate opacity and hidden-interval composition.
+	// Fractional health geometry is independently pinned above; comparing two
+	// separately packed source textures at fractional nearest ties is not an
+	// independent opacity oracle and can select opposite boundary texels.
+	manager.PublishLogicalSize(400, 208)
+	scene := newCombatConcealmentTestState(t)
+	state := scene.gameState
+	state.CombatScene.MonsterManager.Clear()
+	state.CombatScene.TurnQueue.RemoveAllMonsters()
+	for i := range state.CombatScene.PartyActive {
+		state.CombatScene.PartyActive[i] = false
+	}
+	from, to := references.Position{X: 2, Y: 2}, references.Position{X: 8, Y: 7}
+	setCombatConcealmentTerrain(state, from, indexes.BrickFloor)
+	index, monster := signatureMonster(t, scene, references.MonsterShadowlord, to)
+	monster.SetCurrentHP(1)
+	scene.recordCombatEvent(game_state.CombatEvent{Kind: game_state.CombatEventTeleport, From: from, To: to,
+		Attacker: game_state.CombatFeedbackEntity{Index: index, Position: to}})
+	require.Len(t, scene.combatSignatureEffects, 1)
+	effect := scene.combatSignatureEffects[0]
+	sample := combatFixtureRasterBounds(scene.combatEntityDrawOptions(from, false, index, 0)).Union(
+		combatFixtureRasterBounds(scene.combatEntityDrawOptions(to, false, index, 0)))
+	actual := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+	expected := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+	mask := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+	t.Cleanup(actual.Dispose)
+	t.Cleanup(expected.Dispose)
+	t.Cleanup(mask.Dispose)
+	for _, age := range []int64{90, 180, 259, 360} {
+		state.ElapsedMs = effect.StartedMs + age
+		scene.updateCombatSignatureEffects()
+		actual.Clear()
+		expected.Clear()
+		mask.Clear()
+		scene.drawCombatSignatureEffects(actual)
+		scene.drawCombatHealthFrames(actual)
+		if age == 180 || age == 259 {
+			assert.Zero(t, opaquePixelCount(actual), "hidden phase must expose neither destination nor health")
+			continue
+		}
+		require.Equal(t, signaturePixels(effect.Frame.SubImage(combatHealthFrameBounds()).(*ebiten.Image)),
+			signaturePixels(effect.HealthFrame.SubImage(combatHealthFrameBounds()).(*ebiten.Image)), "foreground split must preserve every source health pixel")
+		position, clr := from, ucolor.CombatMaterialization
+		if age == 360 {
+			position, clr = to, ucolor.CombatTeleportArrival
+		}
+		options := scene.combatEntityDrawOptions(position, false, index, 0)
+		drawCombatCornerCue(expected, options, 2.5, clr)
+		drawCombatHealthBar(mask, options, 1, monster.MaxHP())
+		drawCombatHealthFrameOutline(mask, options, game_state.CombatMonsterLoyaltyMonster)
+		options.ColorScale.ScaleAlpha(0.5)
+		// Independent full-frame reference: one application of original fade,
+		// rather than an opaque HP pass or two half-opacity blends.
+		expected.DrawImage(effect.Frame, options)
+		want, got, region := signaturePixels(expected), signaturePixels(actual), signaturePixels(mask)
+		for pixel := 0; pixel < len(want); pixel += 4 {
+			if region[pixel+3] != 0 {
+				require.True(t, bytes.Equal(want[pixel:pixel+4], got[pixel:pixel+4]), "age%d altered faded health at (%d,%d): %v -> %v", age, pixel/4%actual.Bounds().Dx(), pixel/4/actual.Bounds().Dx(), want[pixel:pixel+4], got[pixel:pixel+4])
+			}
+		}
+		assertSignatureHP(t, effect.Frame, 1, monster.MaxHP())
+	}
+	scene.clearCombatSignatureEffects()
+}
+
+func TestCombatHealthFramesSummonSuppressionAndPossessionSwitch(t *testing.T) {
+	manager := display.GetManager()
+	saved := *manager
+	t.Cleanup(func() { *manager = saved })
+	manager.PublishLogicalSize(400, 208)
+	scene := newCombatConcealmentTestState(t)
+	screen := ebiten.NewImage(400, 208)
+	t.Cleanup(screen.Dispose)
+	state := scene.gameState
+	actor := state.CombatScene.GetCurrentTurnIdentity()
+	for index := range state.CombatScene.PartyActive {
+		state.CombatScene.PartyActive[index] = index == actor.EntityIndex
+	}
+	state.CombatScene.MonsterManager.Clear()
+	state.CombatScene.TurnQueue.RemoveAllMonsters()
+	setCombatConcealmentTerrain(state, state.CombatScene.GetCombatantPosition(actor), indexes.BrickFloor)
+	for _, possessed := range []bool{false, true, false} {
+		state.CombatScene.PartyPossessed[actor.EntityIndex] = possessed
+		screen.Clear()
+		scene.drawCombatHealthFrames(screen)
+		assert.Equal(t, possessed, countExactColor(screen, ucolor.CombatAllegianceEnemy) > 0)
+		assert.Equal(t, !possessed, countExactColor(screen, ucolor.CombatAllegianceAlly) > 0)
+	}
+	state.CombatScene.PartyActive[actor.EntityIndex] = false
+	index, monster := signatureMonster(t, scene, references.MonsterRat, references.Position{X: 5, Y: 5})
+	monster.SetLoyalty(game_state.CombatMonsterLoyaltyParty)
+	scene.combatSummonEffect = &combatSummonSpellEffect{Result: game_state.CombatSummonResult{Created: []game_state.CombatSummonedMonster{{Index: index, CombatantID: monster.CombatantID(), Position: monster.Position()}}}}
+	for _, phase := range []combatSummonEffectPhase{combatSummonInvocation, combatSummonSeal, combatSummonManifestation, combatSummonAllegiance} {
+		scene.combatSummonEffect.Phase = phase
+		screen.Clear()
+		scene.drawCombatHealthFrames(screen)
+		assert.Equal(t, phase == combatSummonAllegiance, opaquePixelCount(screen) > 0)
+	}
+	monster.SetInvisible(true)
+	screen.Clear()
+	scene.drawCombatHealthFrames(screen)
+	assert.Zero(t, opaquePixelCount(screen))
+}
+
+func TestCombatHealthFrameCorpserMasksWholeOutlineAndHP(t *testing.T) {
+	for _, condition := range []game_state.CombatConditionResult{game_state.CombatConditionDraggedUnder, game_state.CombatConditionRegurgitated} {
+		scene := newCombatConcealmentTestState(t)
+		state := scene.gameState
+		actor := state.CombatScene.GetCurrentTurnIdentity()
+		position := state.CombatScene.GetCombatantPosition(actor)
+		setCombatConcealmentTerrain(state, position, indexes.BrickFloor)
+		state.CombatScene.PartyUnderground[actor.EntityIndex] = condition == game_state.CombatConditionDraggedUnder
+		scene.recordCombatEvent(game_state.CombatEvent{Kind: game_state.CombatEventCondition, Condition: condition,
+			Target: game_state.CombatFeedbackEntity{IsPartyMember: true, Index: actor.EntityIndex, Slot: actor.Slot, Position: position}})
+		require.Len(t, scene.combatSignatureEffects, 1)
+		effect := scene.combatSignatureEffects[0]
+		state.ElapsedMs += effect.DurationMs / 2
+		scene.updateCombatSignatureEffects()
+		scene.prepareCombatSignatureLayers(effect)
+		pixels, full, mask := signaturePixels(effect.HealthFrame), signaturePixels(effect.Frame), signaturePixels(effect.Dissolve.effect.GetMask())
+		width := effect.Frame.Bounds().Dx()
+		visible, hidden := 0, 0
+		for pixel := 0; pixel < len(pixels); pixel += 4 {
+			point := image.Pt(pixel/4%width, pixel/4/width)
+			if !point.In(combatHealthFrameBounds()) || mask[pixel+3] == 0 {
+				require.Equal(t, []byte{0, 0, 0, 0}, pixels[pixel:pixel+4], "health or allegiance escaped its mask at %v", point)
+				if point.In(combatHealthFrameBounds()) {
+					hidden++
+				}
+			} else {
+				require.Equal(t, full[pixel:pixel+4], pixels[pixel:pixel+4])
+				visible++
+			}
+		}
+		assert.Positive(t, visible)
+		assert.Positive(t, hidden)
+		scene.clearCombatSignatureEffects()
+		assert.Nil(t, effect.BodyFrame)
+		assert.Nil(t, effect.HealthFrame)
+	}
+}

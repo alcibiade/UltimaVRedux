@@ -1,0 +1,696 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-v4.schema.json",
+  "title": "Native Ultima V Redux Save Schema",
+  "description": "Strict native Ultima V Redux save envelope containing SaveSnapshot version 4, including optional active dungeon authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "envelopeVersion",
+    "metadata",
+    "snapshot"
+  ],
+  "properties": {
+    "format": {
+      "const": "ultima5redux-native-snapshot"
+    },
+    "envelopeVersion": {
+      "const": 1
+    },
+    "metadata": {
+      "$ref": "native-save-v3.schema.json#/$defs/metadata"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/saveSnapshot"
+    }
+  },
+  "$defs": {
+    "saveSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "party",
+        "inventory",
+        "world",
+        "progression",
+        "effects",
+        "wind",
+        "random",
+        "redux",
+        "dungeon",
+        "partyVehicle",
+        "mapUnits",
+        "itemStacks",
+        "mapMutations"
+      ],
+      "properties": {
+        "version": {
+          "const": 4
+        },
+        "party": {
+          "$ref": "native-save-v3.schema.json#/$defs/party"
+        },
+        "inventory": {
+          "$ref": "native-save-v3.schema.json#/$defs/inventory"
+        },
+        "world": {
+          "$ref": "native-save-v3.schema.json#/$defs/world"
+        },
+        "progression": {
+          "$ref": "native-save-v3.schema.json#/$defs/progression"
+        },
+        "effects": {
+          "$ref": "native-save-v3.schema.json#/$defs/effects"
+        },
+        "wind": {
+          "$ref": "native-save-v3.schema.json#/$defs/wind"
+        },
+        "random": {
+          "$ref": "native-save-v3.schema.json#/$defs/random"
+        },
+        "redux": {
+          "$ref": "#/$defs/redux"
+        },
+        "dungeon": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/dungeon"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "partyVehicle": {
+          "oneOf": [
+            {
+              "$ref": "native-save-v3.schema.json#/$defs/vehicle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mapUnits": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/mapUnit"
+          }
+        },
+        "itemStacks": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "native-save-v3.schema.json#/$defs/itemStack"
+          }
+        },
+        "mapMutations": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "native-save-v3.schema.json#/$defs/mapMutation"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "redux": {
+                "properties": {
+                  "reconstructMapUnits": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "reconstructMapUnits"
+                ]
+              }
+            },
+            "required": [
+              "redux"
+            ]
+          },
+          "then": {
+            "properties": {
+              "mapUnits": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "minimum": 33,
+                        "maximum": 40
+                      }
+                    },
+                    "required": [
+                      "location"
+                    ]
+                  }
+                },
+                "required": [
+                  "position"
+                ]
+              }
+            },
+            "required": [
+              "world"
+            ]
+          },
+          "then": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "x": {
+                        "minimum": 0,
+                        "maximum": 7
+                      },
+                      "y": {
+                        "minimum": 0,
+                        "maximum": 7
+                      },
+                      "floor": {
+                        "minimum": 0,
+                        "maximum": 7
+                      }
+                    }
+                  }
+                }
+              },
+              "dungeon": {
+                "$ref": "#/$defs/dungeon"
+              },
+              "partyVehicle": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "dungeon": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 33
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 33
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 34
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 34
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 35
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 35
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 36
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 36
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 37
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 37
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 38
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 38
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 39
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 39
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "world": {
+                "properties": {
+                  "position": {
+                    "properties": {
+                      "location": {
+                        "const": 40
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "dungeon": {
+                "properties": {
+                  "location": {
+                    "const": 40
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mapUnit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world",
+        "controllerOrder",
+        "kind",
+        "referenceId",
+        "npcNum",
+        "position",
+        "visible",
+        "skipNextTurn",
+        "wantsToAutoTalk",
+        "overriddenAi",
+        "currentPath",
+        "vehicle",
+        "enemyVariant",
+        "enemyCurrentHp",
+        "enemyFacing",
+        "shadowlord"
+      ],
+      "properties": {
+        "world": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/world"
+        },
+        "controllerOrder": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/controllerOrder"
+        },
+        "kind": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/kind"
+        },
+        "referenceId": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/referenceId"
+        },
+        "npcNum": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/npcNum"
+        },
+        "position": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/position"
+        },
+        "visible": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/visible"
+        },
+        "skipNextTurn": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/skipNextTurn"
+        },
+        "wantsToAutoTalk": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/wantsToAutoTalk"
+        },
+        "overriddenAi": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/overriddenAi"
+        },
+        "arrivedScheduleSlot": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2
+        },
+        "consumedTalk3ScheduleSlot": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 2
+        },
+        "currentPath": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/currentPath"
+        },
+        "vehicle": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/vehicle"
+        },
+        "enemyVariant": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/enemyVariant"
+        },
+        "enemyCurrentHp": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/enemyCurrentHp"
+        },
+        "enemyFacing": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/enemyFacing"
+        },
+        "shadowlord": {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/properties/shadowlord"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/allOf/0"
+        },
+        {
+          "$ref": "native-save-v3.schema.json#/$defs/mapUnit/allOf/1"
+        }
+      ]
+    },
+    "redux": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reconstructMapUnits",
+        "dungeonDiscoveries"
+      ],
+      "properties": {
+        "reconstructMapUnits": {
+          "type": "boolean"
+        },
+        "dungeonDiscoveries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dungeonDiscovery"
+          }
+        }
+      }
+    },
+    "dungeonDiscovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "floor",
+        "x",
+        "y",
+        "kind"
+      ],
+      "properties": {
+        "location": {
+          "type": "integer",
+          "minimum": 33,
+          "maximum": 40
+        },
+        "floor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "kind": {
+          "enum": [
+            "hiddenDoor",
+            "hiddenPit"
+          ]
+        }
+      }
+    },
+    "dungeon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "location",
+        "cells",
+        "facing",
+        "lastDirection",
+        "wanderer",
+        "quicknessSkipNext"
+      ],
+      "properties": {
+        "location": {
+          "type": "integer",
+          "minimum": 33,
+          "maximum": 40
+        },
+        "cells": {
+          "type": "array",
+          "minItems": 512,
+          "maxItems": 512,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        },
+        "facing": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "lastDirection": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "wanderer": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/dungeonWanderer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quicknessSkipNext": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dungeonWanderer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "monster",
+        "floor",
+        "x",
+        "y",
+        "previousX",
+        "previousY",
+        "onCeiling"
+      ],
+      "properties": {
+        "monster": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 47
+        },
+        "floor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "previousX": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "previousY": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "onCeiling": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

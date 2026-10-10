@@ -1,0 +1,59 @@
+schema: ultima5redux.conversation/v1
+protocol: ultima5
+id: redux.mara_cartographer
+origin:
+  kind: redux
+name: Mara
+description: A patient cartographer studies an unfinished map.
+greeting:
+  - say:
+      - text: "Welcome, {avatar_name}."
+      - line_break
+      - text: "I am {npc_name}."
+job: I chart roads that have not yet been walked.
+farewell: []
+topics:
+  - keywords: [map, charts]
+    response:
+      - say: Every blank corner invites a journey.
+      - pause
+      - return_to_topics
+  - keywords: [riddle]
+    response:
+      - ask: question_01
+questions:
+  question_01:
+    prompt:
+      - narrate: Mara traces a circle on the map.
+      - say:
+          - text: "Which marker means "
+          - runic: north
+          - text: "?"
+    answers:
+      - keywords: [north, upward]
+        response:
+          - say: That is the mark.
+          - give_item:
+              item: map_token
+              quantity: 5
+          - adjust_karma: 1
+          - return_to_topics
+      - keywords: [south]
+        response:
+          - branch:
+              condition: {karma_at_least: 50}
+              then:
+                - say: Consider the opposite edge.
+                - return_to_topics
+              otherwise:
+                - say: Try once more after studying the compass.
+                - return_to_topics
+    default:
+      - branch:
+          condition: npc_knows_party_name
+          then:
+            - say: I did not recognize that answer, {avatar_name}.
+            - return_to_topics
+          otherwise:
+            - ask_name
+            - return_to_topics

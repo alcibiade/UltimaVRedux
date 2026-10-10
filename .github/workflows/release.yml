@@ -1,0 +1,38 @@
+name: Release Builds
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Release Build
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: ultimav-linux-amd64
+          - os: macos-latest
+            asset_name: ultimav-darwin-arm64
+          - os: windows-latest
+            asset_name: ultimav-windows-amd64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build native binary
+        env:
+          CGO_ENABLED: 0
+        run: go build -o bin/${{ matrix.asset_name }} ./cmd/ultimav
+      - name: Upload Release Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}-release
+          path: bin/${{ matrix.asset_name }}
+          retention-days: 30

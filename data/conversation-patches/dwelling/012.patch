@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: dwelling/012.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 1028d634de215f43a276ae6ca875b8b6567d8ec705f3bd1facee99355d033603
+--- a/dwelling/012.yaml
++++ b/dwelling/012.yaml
+@@ -103,4 +103,5 @@
+               - line_break
+           - wait_for_key
+           - say: '...with a crushed root of mandrake and spores scraped from a nightshade cap.'
++          - discover_knowledge: spell.rel_xen_bet
+     default: O.K.

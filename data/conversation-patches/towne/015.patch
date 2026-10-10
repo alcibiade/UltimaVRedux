@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/015.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 285dfd1d74f8870a7e9a932fc719fccffa60911b8f9fbbfc4320c99a072cc20b
+--- a/towne/015.yaml
++++ b/towne/015.yaml
+@@ -62,6 +62,7 @@
+               - text: 'Drow of Rewop thou seeketh; remember '
+               - runic: AIPONI
+               - text: ' htod I.'
++          - discover_knowledge: dungeon.destard.word_of_power
+     default: Remember ton I.
+   question_02:
+     prompt: Noom Gates, thou tsod know about?

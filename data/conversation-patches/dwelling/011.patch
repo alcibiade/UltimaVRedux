@@ -1,0 +1,27 @@
+# format: ultima5redux.conversation-patch/v1
+# target: dwelling/011.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 9b6910ba091461fce3e839495fe8a632924e54448d0377642ac438e8131edf99
+--- a/dwelling/011.yaml
++++ b/dwelling/011.yaml
+@@ -8,12 +8,17 @@
+ name: Sin'Vraal
+ description: a huge, horned, leather-winged daemon.
+ greeting: []
+-job: I once served the mighty Astaroth, but that was long ago.
++job:
++  - say: I once served the mighty Astaroth, but that was long ago.
++  - discover_knowledge: shadowlord.astaroth.name
+ farewell: I bid thee a safe journey.
+ topics:
+   - keywords:
+       - asta
+-    response: Speak not that name in too loud a voice, lest thou summon the Shadowlord of Hatred!
++    response:
++      - say: Speak not that name in too loud a voice, lest thou summon the Shadowlord of Hatred!
++      - discover_knowledge: shadowlord.astaroth.name
++      - discover_knowledge: shadowlord.astaroth.association
+   - keywords:
+       - summ
+       - shad

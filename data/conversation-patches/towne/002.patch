@@ -1,0 +1,23 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/002.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 3d5430444c2273422c23c01853253743dab7d653d5be1143bd952d11385de359
+--- a/towne/002.yaml
++++ b/towne/002.yaml
+@@ -48,6 +48,7 @@
+           - text: 'I see an honest man chanting '
+           - runic: AHM
+           - text: '!'
++      - discover_knowledge: shrine.honesty.mantra
+   - keywords:
+       - word
+     response:
+@@ -55,6 +56,7 @@
+           - text: 'I see the runes '
+           - runic: FALLAX
+           - text: ' inscribed upon the entrance of the dungeon Deceit!'
++      - discover_knowledge: dungeon.deceit.word_of_power
+   - keywords:
+       - coun
+     response: Yes, {avatar_name}, I served on the Great Council.

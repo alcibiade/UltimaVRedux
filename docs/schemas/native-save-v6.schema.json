@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-v6.schema.json",
+  "title": "Native Ultima V Redux Save Schema",
+  "description": "Strict native Ultima V Redux save envelope containing SaveSnapshot version 6, including durable intoxication state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "envelopeVersion",
+    "metadata",
+    "snapshot"
+  ],
+  "properties": {
+    "format": {
+      "const": "ultima5redux-native-snapshot"
+    },
+    "envelopeVersion": {
+      "const": 1
+    },
+    "metadata": {
+      "$ref": "native-save-v3.schema.json#/$defs/metadata"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/saveSnapshot"
+    }
+  },
+  "$defs": {
+    "saveSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "party",
+        "inventory",
+        "world",
+        "progression",
+        "effects",
+        "wind",
+        "random",
+        "redux",
+        "dungeon",
+        "partyVehicle",
+        "mapUnits",
+        "itemStacks",
+        "mapMutations"
+      ],
+      "properties": {
+        "version": {
+          "const": 6
+        },
+        "party": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/party"
+        },
+        "inventory": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/inventory"
+        },
+        "world": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/world"
+        },
+        "progression": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/progression"
+        },
+        "effects": {
+          "$ref": "#/$defs/effects"
+        },
+        "wind": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/wind"
+        },
+        "random": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/random"
+        },
+        "redux": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/redux"
+        },
+        "dungeon": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/dungeon"
+        },
+        "partyVehicle": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/partyVehicle"
+        },
+        "mapUnits": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/mapUnits"
+        },
+        "itemStacks": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/itemStacks"
+        },
+        "mapMutations": {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/properties/mapMutations"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/0"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/1"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/2"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/3"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/4"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/5"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/6"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/7"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/8"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/9"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/10"
+        },
+        {
+          "$ref": "native-save-v5.schema.json#/$defs/saveSnapshot/allOf/11"
+        }
+      ]
+    },
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durationType",
+        "durationTurns",
+        "durationToggleOnly",
+        "magicLightMinutesRemaining",
+        "carriedTorchMinutesRemaining",
+        "quicknessWorldActorSkip",
+        "amulet",
+        "crown",
+        "badge",
+        "drunk",
+        "smashed"
+      ],
+      "properties": {
+        "durationType": {
+          "enum": [
+            0,
+            67,
+            78,
+            80,
+            81,
+            84
+          ]
+        },
+        "durationTurns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durationToggleOnly": {
+          "const": false
+        },
+        "magicLightMinutesRemaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "carriedTorchMinutesRemaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quicknessWorldActorSkip": {
+          "type": "boolean"
+        },
+        "amulet": {
+          "$ref": "native-save-v3.schema.json#/$defs/toggle"
+        },
+        "crown": {
+          "$ref": "native-save-v3.schema.json#/$defs/toggle"
+        },
+        "badge": {
+          "$ref": "native-save-v3.schema.json#/$defs/toggle"
+        },
+        "drunk": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "smashed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "durationType": {
+                "const": 0
+              }
+            },
+            "required": [
+              "durationType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "durationTurns": {
+                "const": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "durationTurns": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/006.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 9e26d969a4c8053e8399a03543cc78aead1bebfc5c7541de5cdf5dbddcdc25b0
+--- a/towne/006.yaml
++++ b/towne/006.yaml
+@@ -62,4 +62,5 @@
+               - text: The Mantra of Compassion is
+               - runic: ' MU'
+               - text: '!'
++          - discover_knowledge: shrine.compassion.mantra
+     default: I know not that Mantra!

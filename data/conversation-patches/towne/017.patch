@@ -1,0 +1,21 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/017.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: b080383958933371d00dac6116fb19f1d1ebe79dfb16de86f6516434be30c413
+--- a/towne/017.yaml
++++ b/towne/017.yaml
+@@ -94,6 +94,7 @@
+           - text: The password is
+           - runic: ' DAWN'
+           - text: .
++      - discover_knowledge: journal.resistance.password
+       - narrate:
+           - line_break
+           - line_break
+@@ -111,4 +112,5 @@
+               - text: Ah, yes. The Mantra of Justice is
+               - runic: ' BEH'
+               - text: '!'
++          - discover_knowledge: shrine.justice.mantra
+     default: I don't know what thou art talking about.

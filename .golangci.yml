@@ -1,0 +1,182 @@
+version: "2"
+run:
+  timeout: 10m
+  #tests: true
+  tests: false
+
+linters:
+  # start from an empty set…
+  enable: # …and add everything explicitly
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - decorder
+    #- depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - err113
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - exptostd
+    - fatcontext
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    #- godot - force a period at end of comment, GMAFB
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
+    - gosec
+    #- gosimple
+    - gosmopolitan
+    - govet
+    - grouper
+    #    - gofumpt- ifshort
+    - importas
+    - inamedparam
+    - interfacebloat
+    - intrange
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - mnd
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - tagalign
+    - tagliatelle
+    #- tenv
+    - testableexamples
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    #- wsl
+    - zerologlint
+    #- gci
+#    - gofmt
+#    - gofumpt
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    cyclop:
+      max-complexity: 15   # tweak as you see fit
+  exclusions:
+    paths:
+      - OLD/
+      - bin/
+      - temp_dump/
+      - u5dump/
+      - testdata/
+      - ".*_test\\.go$"  # Exclude all test files from strict linting
+    rules:
+      # exhaustruct: Normal Go pattern - DrawImageOptions and DrawOptions often have optional fields
+      - linters:
+          - exhaustruct
+        text: "(ebiten\\.DrawImageOptions|text\\.DrawOptions) is missing fields"
+      # exhaustive: Water tile generator switch doesn't need all sprite index cases
+      - linters:
+          - exhaustive
+        text: "missing cases in switch of type indexes\\.SpriteIndex"
+        path: "internal/sprites/water_tile_generator\\.go"
+      # Snapshot, scenario, and Codex code contains intentionally partial wire
+      # DTO literals, data-driven records, and compatibility validation branches.
+      - linters:
+          - cyclop
+          - exhaustruct
+          - funlen
+          - gocognit
+          - gocyclo
+          - lll
+          - mnd
+          - nestif
+          - nolintlint
+          - varnamelen
+        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|gamescene_debug_workbench|gamescene_initialization|gamescene_snapshot|scenario_definition_commands|scenario_runner|scenario_startup|snapshot_commands|snapshot_startup|scene|gamescene|debugging/|deterministic_random/|game_state/|references/|repositoryfs/|save_snapshot/)"
+      # These conversions are guarded by snapshot validation or preserve
+      # original binary save-game values.
+      - linters:
+          - gosec
+        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|scenario_runner|snapshot_commands|game_state/|references/|save_snapshot/)"
+      # Validation errors deliberately include field-specific context.
+      - linters:
+          - err113
+          - wrapcheck
+        path: "^(cmd/ultimav/|internal/)(gamescene_initialization|scenario_definition_commands|scenario_runner|scenario_startup|scene|snapshot_commands|debugging/|game_state/|repositoryfs/|save_snapshot/)"
+      # Repeated labels and names are intentional in immutable Codex tables.
+      - linters:
+          - goconst
+        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|debugging/snapshot_catalog|game_state/|references/)"
+      # Original graphics parsing and export code is validation-heavy and uses
+      # source-format constants directly for auditable binary compatibility.
+      - linters:
+          - cyclop
+          - err113
+          - exhaustruct
+          - funlen
+          - gocognit
+          - lll
+          - mnd
+          - nlreturn
+          - varnamelen
+          - wrapcheck
+        path: "^(cmd/graphics-export/|internal/graphics/)"
+issues:
+  max-issues-per-linter: 100
+  max-same-issues: 10
+  # Fixed standalone source checkpoint; retain inherited debt without moving the cutoff.
+  new-from-rev: f31ba69759594face92838f0ce33855f46aca4e3

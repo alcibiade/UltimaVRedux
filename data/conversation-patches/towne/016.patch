@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/016.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 59993c346edd697347455ca9d4110680710904d7a4660b08c5656bc08da4a58e
+--- a/towne/016.yaml
++++ b/towne/016.yaml
+@@ -55,6 +55,7 @@
+               - text: The Mantra for Valor is
+               - runic: ' RA'
+               - text: '!'
++          - discover_knowledge: shrine.valour.mantra
+           - narrate:
+               - line_break
+               - line_break

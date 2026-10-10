@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-e2-s20.schema.json",
+  "title": "Native Ultima V Redux Save Envelope 2 / Snapshot 20",
+  "description": "Load frozen sibling s16-s19 schemas locally. Assert journal formats and ultima5-world-journal using the Go validators for cross-field evidence, physical chest consistency, chronology and canonical survey sites.",
+  "type": "object", "additionalProperties": false,
+  "required": ["format", "envelopeVersion", "metadata", "snapshot"],
+  "properties": {
+    "format": {"const": "ultima5redux-native-snapshot"}, "envelopeVersion": {"const": 2},
+    "metadata": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled000"},
+    "snapshot": {"$ref": "#/$defs/snapshot"}
+  },
+  "$defs": {
+    "snapshot": {
+      "type": "object", "additionalProperties": false, "format": "ultima5-world-journal",
+      "required": ["version", "party", "inventory", "world", "progression", "effects", "wind", "random", "continuation", "redux", "presentation", "lastConversation", "dungeonJournal", "moonstoneJournal", "atlasLandmarks", "dungeon", "partyVehicle", "mapUnits", "itemStacks", "mapMutations"],
+      "properties": {
+        "version": {"const": 20},
+        "party": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled001"},
+        "inventory": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled026"},
+        "world": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled035"},
+        "progression": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled044"},
+        "effects": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled067"},
+        "wind": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled077"},
+        "random": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled086"},
+        "continuation": {"$ref": "native-save-e2-s16.schema.json#/$defs/continuation"},
+        "redux": {"$ref": "#/$defs/redux"}, "presentation": {"$ref": "#/$defs/presentation"},
+        "lastConversation": {"$ref": "native-save-e2-s17.schema.json#/$defs/conversation"},
+        "dungeonJournal": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "#/$defs/dungeonObservation"}},
+        "moonstoneJournal": {"type": "array", "minItems": 8, "maxItems": 8, "items": {"$ref": "#/$defs/moonstoneObservation"}},
+        "atlasLandmarks": {"type": ["array", "null"], "maxItems": 38, "items": {"$ref": "#/$defs/atlasLandmark"}},
+        "dungeon": {"oneOf": [{"$ref": "#/$defs/dungeon"}, {"type": "null"}]},
+        "partyVehicle": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled103"},
+        "mapUnits": {"type": ["array", "null"], "items": {"$ref": "#/$defs/mapUnit"}},
+        "itemStacks": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled188"},
+        "mapMutations": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled198"}
+      },
+      "allOf": [
+        {"if": {"properties": {"world": {"properties": {"position": {"properties": {"location": {"minimum": 33, "maximum": 40}}}}}}},
+         "then": {"properties": {"world": {"properties": {"position": {"properties": {"x": {"maximum": 7}, "y": {"maximum": 7}, "floor": {"minimum": 0, "maximum": 7}}}}}, "dungeon": {"$ref": "#/$defs/dungeon"}, "partyVehicle": {"type": "null"}}},
+         "else": {"properties": {"dungeon": {"type": "null"}}}},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled223"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled231"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled239"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled247"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled255"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled263"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled271"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled279"},
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled286"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled293"}
+      ]
+    },
+    "presentation": {
+      "type": "object", "additionalProperties": false, "required": ["history", "visits"], "format": "ultima5-journal-presentation",
+      "properties": {
+        "history": {"type": "string", "format": "ultima5-journal-history"},
+        "visits": {
+          "type": "object", "additionalProperties": false, "required": ["revision", "changes", "seen"],
+          "properties": {
+            "revision": {"$ref": "native-save-e2-s16.schema.json#/$defs/uint64"},
+            "changes": {"type": "array", "maxItems": 62, "items": {
+              "type": "object", "additionalProperties": false, "required": ["tab", "entry", "revision"],
+              "properties": {"tab": {"type": "integer"}, "entry": {"type": "integer"}, "revision": {"$ref": "native-save-e2-s16.schema.json#/$defs/uint64", "minimum": 1}},
+              "oneOf": [
+                {"properties": {"tab": {"const": 0}, "entry": {"minimum": 1, "maximum": 51}}},
+                {"properties": {"tab": {"const": 1}, "entry": {"minimum": 0, "maximum": 7}}},
+                {"properties": {"tab": {"const": 2}, "entry": {"minimum": 0, "maximum": 2}}}
+              ]
+            }},
+            "seen": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "native-save-e2-s16.schema.json#/$defs/uint64"}}
+          }
+        }
+      }
+    },
+    "redux": {
+      "type": "object", "additionalProperties": false,
+      "required": ["dungeonDiscoveries", "playerKnowledge", "questJournal", "lordBritishPassageOpen"],
+      "properties": {
+        "dungeonDiscoveries": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled300"},
+        "playerKnowledge": {"type": "array", "items": {"oneOf": [
+          {"$ref": "native-save-e2-s16.schema.json#/$defs/playerKnowledgeEntry"},
+          {"$ref": "native-save-e2-s18.schema.json#/$defs/resistancePassword"},
+          {"$ref": "native-save-e2-s19.schema.json#/$defs/stonesMelody"},
+          {"$ref": "#/$defs/oppressionPassword"}
+        ]}},
+        "questJournal": {"type": "array", "maxItems": 51, "format": "ultima5-journal-events", "items": {"$ref": "#/$defs/event"}},
+        "lordBritishPassageOpen": {"type": "boolean"}
+      }
+    },
+    "oppressionPassword": {
+      "type": "object", "additionalProperties": false,
+      "required": ["category", "key", "source", "discoveredOn", "unread", "spellFormula"],
+      "properties": {
+        "category": {"const": "journal"}, "key": {"const": "oppression.password"},
+        "source": {"$ref": "native-save-e2-s16.schema.json#/$defs/loreKnowledgeSource"},
+        "discoveredOn": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled305"},
+        "unread": {"const": false}, "spellFormula": {"type": "null"}
+      }
+    },
+    "event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sequence", "kind", "subject", "occurredOn", "source", "sourceName", "acknowledged"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1, "maximum": 51}, "kind": {"type": "string"}, "subject": {"type": "string"},
+        "occurredOn": {"oneOf": [{"$ref": "native-save-e2-s16.schema.json#/$defs/bundled305"}, {"type": "null"}]},
+        "source": {"type": "string"}, "sourceName": {"type": "string"}, "acknowledged": {"type": "boolean"}
+      }
+    },
+    "assessment": {"type": "integer", "minimum": 0, "maximum": 3},
+    "dungeon": {
+      "type": "object", "additionalProperties": false, "required": ["location", "cells", "chestAssessments", "facing", "lastDirection", "wanderer", "quicknessSkipNext"],
+      "properties": {
+        "location": {"type": "integer", "minimum": 33, "maximum": 40},
+        "cells": {"type": "array", "minItems": 512, "maxItems": 512, "items": {"type": "integer", "minimum": 0, "maximum": 255}},
+        "chestAssessments": {"type": "array", "minItems": 512, "maxItems": 512, "items": {"$ref": "#/$defs/assessment"}},
+        "facing": {"type": "integer", "minimum": 0, "maximum": 3}, "lastDirection": {"type": "integer", "minimum": 0, "maximum": 5},
+        "wanderer": {"oneOf": [{"$ref": "native-save-e2-s16.schema.json#/$defs/bundled096"}, {"type": "null"}]}, "quicknessSkipNext": {"type": "boolean"}
+      }
+    },
+    "mapUnit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["world", "controllerOrder", "kind", "referenceId", "npcNum", "position", "visible", "skipNextTurn", "wantsToAutoTalk", "overriddenAi", "aiOverrideProvenance", "currentPath", "vehicle", "enemyVariant", "enemyCurrentHp", "enemyFacing", "shadowlord", "surfaceChestAssessment"],
+      "properties": {
+        "world": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled110"}, "controllerOrder": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled114"}, "kind": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled118"},
+        "referenceId": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled114"}, "npcNum": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled126"}, "position": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled036"},
+        "visible": {"type": "boolean"}, "skipNextTurn": {"type": "boolean"}, "wantsToAutoTalk": {"type": "boolean"},
+        "overriddenAi": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled143"}, "aiOverrideProvenance": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled144"},
+        "arrivedScheduleSlot": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled147"}, "consumedTalk3ScheduleSlot": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled147"}, "currentPath": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled154"},
+        "vehicle": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled156"}, "enemyVariant": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled160"},
+        "enemyCurrentHp": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled012"}, "enemyFacing": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled168"}, "shadowlord": {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled172"},
+        "surfaceChestNumber": {"type": "integer", "minimum": 0, "maximum": 255}, "surfaceChestAssessment": {"$ref": "#/$defs/assessment"}
+      },
+      "allOf": [
+        {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled174"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled178"}, {"$ref": "native-save-e2-s16.schema.json#/$defs/bundled180"},
+        {"if": {"required": ["surfaceChestNumber"]}, "then": {"properties": {"kind": {"enum": ["npc", "chest"]}}}, "else": {"properties": {"surfaceChestAssessment": {"const": 0}}}},
+        {"if": {"properties": {"kind": {"const": "chest"}}}, "then": {"required": ["surfaceChestNumber"]}}
+      ]
+    },
+    "site": {
+      "type": "object", "additionalProperties": false, "required": ["map", "floor", "x", "y"],
+      "properties": {"map": {"type": "integer", "minimum": 0, "maximum": 40}, "floor": {"type": "integer", "minimum": -1, "maximum": 7}, "x": {"type": "integer", "minimum": 0, "maximum": 255}, "y": {"type": "integer", "minimum": 0, "maximum": 255}}
+    },
+    "time": {
+      "type": "object", "additionalProperties": false, "required": ["year", "month", "day", "hour", "minute"],
+      "properties": {"year": {"type": "integer", "minimum": 0, "maximum": 65535}, "month": {"type": "integer", "minimum": 0, "maximum": 13}, "day": {"type": "integer", "minimum": 0, "maximum": 28}, "hour": {"type": "integer", "minimum": 0, "maximum": 23}, "minute": {"type": "integer", "minimum": 0, "maximum": 59}}
+    },
+    "optionalTime": {
+      "type": "object", "additionalProperties": false, "required": ["known", "time"],
+      "properties": {"known": {"type": "boolean"}, "time": {"$ref": "#/$defs/time"}},
+      "if": {"properties": {"known": {"const": true}}},
+      "then": {"properties": {"time": {"properties": {"year": {"minimum": 1}, "month": {"minimum": 1}, "day": {"minimum": 1}}}}},
+      "else": {"properties": {"time": {"const": {"year": 0, "month": 0, "day": 0, "hour": 0, "minute": 0}}}}
+    },
+    "survey": {
+      "type": "object", "additionalProperties": false, "required": ["measured", "location", "recordedAt"],
+      "properties": {"measured": {"type": "boolean"}, "location": {"$ref": "#/$defs/site"}, "recordedAt": {"$ref": "#/$defs/optionalTime"}}
+    },
+    "dungeonSite": {
+      "type": "object", "additionalProperties": false, "required": ["seen", "location", "open", "observedAt", "survey"],
+      "properties": {"seen": {"type": "boolean"}, "location": {"$ref": "#/$defs/site"}, "open": {"type": "boolean"}, "observedAt": {"$ref": "#/$defs/optionalTime"}, "survey": {"$ref": "#/$defs/survey"}}
+    },
+    "dungeonObservation": {
+      "type": "object", "additionalProperties": false, "required": ["known", "wordUsed", "sites"],
+      "properties": {"known": {"type": "boolean"}, "wordUsed": {"type": "boolean"}, "sites": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/dungeonSite"}}}
+    },
+    "atlasLandmark": {
+      "type": "object", "additionalProperties": false,
+      "required": ["siteKey", "site", "kind", "name", "source", "nameSource", "observedAt", "namedAt", "survey", "surveySource"],
+      "properties": {
+        "siteKey": {"type": "integer", "anyOf": [{"minimum": 1, "maximum": 32, "not": {"const": 25}}, {"minimum": 101, "maximum": 107}]},
+        "site": {"$ref": "#/$defs/site"},
+        "kind": {"enum": ["towne", "village", "hut", "keep", "castle", "lighthouse", "shrine", "ruins"]},
+        "name": {"type": "string", "maxLength": 160},
+        "source": {"enum": ["look", "enter", "shrine-introduction"]},
+        "nameSource": {"enum": ["", "enter", "shrine-introduction"]},
+        "observedAt": {"$ref": "#/$defs/optionalTime"}, "namedAt": {"$ref": "#/$defs/optionalTime"},
+        "survey": {"$ref": "#/$defs/survey"},
+        "surveySource": {"enum": ["", "look", "enter", "shrine-introduction"]}
+      }
+    },
+    "moonstoneSource": {"enum": ["", "possession", "gate", "spell", "search", "pickup", "burial", "look"]},
+    "moonstoneContext": {
+      "type": "object", "additionalProperties": false, "required": ["source", "observer", "hasSextant"],
+      "properties": {"source": {"$ref": "#/$defs/moonstoneSource"}, "observer": {"$ref": "#/$defs/site"}, "hasSextant": {"type": "boolean"}}
+    },
+    "moonstoneObservation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["known", "firstSource", "discoveredAt", "siteKnown", "site", "placed", "lastContext", "observedAt", "survey", "surveyContext"],
+      "properties": {
+        "known": {"type": "boolean"}, "firstSource": {"$ref": "#/$defs/moonstoneSource"}, "discoveredAt": {"$ref": "#/$defs/optionalTime"},
+        "siteKnown": {"type": "boolean"}, "site": {"$ref": "#/$defs/site"}, "placed": {"type": "boolean"}, "lastContext": {"$ref": "#/$defs/moonstoneContext"},
+        "observedAt": {"$ref": "#/$defs/optionalTime"}, "survey": {"$ref": "#/$defs/survey"}, "surveyContext": {"$ref": "#/$defs/moonstoneContext"}
+      }
+    }
+  }
+}

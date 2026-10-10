@@ -1,0 +1,18 @@
+# format: ultima5redux.conversation-patch/v1
+# target: keep/026.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: 9579c39cf68d3a498b765708f1b1f14c6cef48ab19854a7d5d3f79bdc436ad78
+--- a/keep/026.yaml
++++ b/keep/026.yaml
+@@ -8,7 +8,9 @@
+ name: Sir Sean
+ description: a young nobleman.
+ greeting: []
+-job: I am the Keeper of the Eternal Flame of Truth.
++job:
++  - say: I am the Keeper of the Eternal Flame of Truth.
++  - discover_knowledge: journal.flame.truth
+ farewell: I wish thee luck, though I fear for thy life.
+ topics:
+   - keywords:

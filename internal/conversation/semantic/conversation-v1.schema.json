@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/internal/conversation/semantic/conversation-v1.schema.json",
+  "title": "Ultima 5 Redux Semantic Conversation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "protocol",
+    "id",
+    "origin",
+    "name",
+    "description",
+    "greeting",
+    "job",
+    "farewell",
+    "topics",
+    "questions"
+  ],
+  "properties": {
+    "schema": { "const": "ultima5redux.conversation/v1" },
+    "protocol": { "const": "ultima5" },
+    "id": { "$ref": "#/$defs/stableID" },
+    "origin": { "$ref": "#/$defs/origin" },
+    "name": { "$ref": "#/$defs/body" },
+    "description": { "$ref": "#/$defs/body" },
+    "greeting": { "$ref": "#/$defs/body" },
+    "job": { "$ref": "#/$defs/body" },
+    "farewell": { "$ref": "#/$defs/body" },
+    "topics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/topic" }
+    },
+    "questions": {
+      "type": "object",
+      "propertyNames": { "pattern": "^question_(0[1-9]|1[0-5])$" },
+      "additionalProperties": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stableID": {
+      "type": "string",
+      "pattern": "^(original|redux)\\.[a-z0-9][a-z0-9_.-]*$"
+    },
+    "origin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "source", "dialog"],
+          "properties": {
+            "kind": { "const": "original" },
+            "source": { "enum": ["castle", "towne", "dwelling", "keep"] },
+            "dialog": { "type": "integer", "minimum": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": { "const": "redux" }
+          }
+        }
+      ]
+    },
+    "body": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" }
+        }
+      ]
+    },
+    "topic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keywords", "response"],
+      "properties": {
+        "keywords": { "$ref": "#/$defs/keywords" },
+        "response": { "$ref": "#/$defs/body" }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompt", "answers", "default"],
+      "properties": {
+        "prompt": { "$ref": "#/$defs/body" },
+        "answers": {
+          "type": "array",
+          "description": "Custom keyword answers; may be empty when protocol matching falls through to default.",
+          "items": { "$ref": "#/$defs/answer" }
+        },
+        "default": { "$ref": "#/$defs/body" }
+      }
+    },
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keywords", "response"],
+      "properties": {
+        "keywords": { "$ref": "#/$defs/keywords" },
+        "response": { "$ref": "#/$defs/body" }
+      }
+    },
+    "keywords": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "action": {
+      "oneOf": [
+        { "const": "pause" },
+        { "const": "wait_for_key" },
+        { "const": "ask_name" },
+        { "const": "join_party" },
+        { "const": "call_guards" },
+        { "const": "go_to_jail" },
+        { "const": "return_to_topics" },
+        { "const": "end" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["say"],
+          "properties": { "say": { "$ref": "#/$defs/richText" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["narrate"],
+          "properties": { "narrate": { "$ref": "#/$defs/richText" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ask"],
+          "properties": { "ask": { "type": "string", "pattern": "^question_(0[1-9]|1[0-5])$" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["branch"],
+          "properties": { "branch": { "$ref": "#/$defs/branch" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["take_gold"],
+          "properties": { "take_gold": { "type": "integer", "minimum": 1, "maximum": 65535 } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["give_item"],
+          "properties": { "give_item": { "$ref": "#/$defs/itemGrant" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["adjust_karma"],
+          "properties": {
+            "adjust_karma": {
+              "oneOf": [
+                { "type": "integer", "minimum": -99, "maximum": -1 },
+                { "type": "integer", "minimum": 1, "maximum": 99 }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["discover_knowledge"],
+          "properties": { "discover_knowledge": { "$ref": "#/$defs/knowledgeID" } }
+        }
+      ]
+    },
+    "richText": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/inlinePart" }
+        }
+      ]
+    },
+    "inlinePart": {
+      "oneOf": [
+        { "const": "line_break" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text"],
+          "properties": { "text": { "$ref": "#/$defs/nonEmptyString" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["runic"],
+          "properties": { "runic": { "$ref": "#/$defs/nonEmptyString" } }
+        }
+      ]
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition", "then"],
+      "properties": {
+        "condition": { "$ref": "#/$defs/condition" },
+        "then": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" }
+        },
+        "otherwise": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/action" }
+        }
+      }
+    },
+    "condition": {
+      "oneOf": [
+        { "const": "npc_knows_party_name" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["karma_at_least"],
+          "properties": {
+            "karma_at_least": { "type": "integer", "minimum": 0, "maximum": 99 }
+          }
+        }
+      ]
+    },
+    "itemGrant": {
+      "oneOf": [
+        { "$ref": "#/$defs/nonEmptyString" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["item", "quantity"],
+          "properties": {
+            "item": { "$ref": "#/$defs/nonEmptyString" },
+            "quantity": { "type": "integer", "minimum": 1, "maximum": 255 }
+          }
+        }
+      ]
+    },
+    "knowledgeID": {
+      "type": "string",
+      "enum": ["spell.an_ylem", "spell.in_xen_mani", "spell.rel_xen_bet", "shadowlord.faulinei.name", "shadowlord.faulinei.association", "shadowlord.astaroth.name", "shadowlord.astaroth.association", "shadowlord.nosfentor.name", "shadowlord.nosfentor.association", "shrine.honesty.mantra", "shrine.compassion.mantra", "shrine.valour.mantra", "shrine.justice.mantra", "shrine.sacrifice.mantra", "shrine.honor.mantra", "shrine.spirituality.mantra", "shrine.humility.mantra", "journal.domain.falsehood", "journal.domain.hatred", "journal.domain.cowardice", "journal.flame.truth", "journal.flame.love", "journal.flame.courage", "journal.banishment.method", "journal.resistance.password", "journal.oppression.password", "journal.stones.melody", "dungeon.deceit.word_of_power", "dungeon.despise.word_of_power", "dungeon.destard.word_of_power", "dungeon.wrong.word_of_power", "dungeon.covetous.word_of_power", "dungeon.shame.word_of_power", "dungeon.hythloth.word_of_power", "dungeon.doom.word_of_power"]
+    }
+  }
+}

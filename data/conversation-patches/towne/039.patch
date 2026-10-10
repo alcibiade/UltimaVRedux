@@ -1,0 +1,15 @@
+# format: ultima5redux.conversation-patch/v1
+# target: towne/039.yaml
+# schema: ultima5redux.conversation/v1
+# extractor: original-tlk/v2
+# base-sha256: e9cd8280d47a7b30ee9ce79fdccab545f96302dc6b4675d4581bc3b26ee220f6
+--- a/towne/039.yaml
++++ b/towne/039.yaml
+@@ -88,6 +88,7 @@
+               - text: The Mantra of Spirituality is
+               - runic: ' OM'
+               - text: '! Guard it well!'
++          - discover_knowledge: shrine.spirituality.mantra
+           - narrate:
+               - line_break
+               - line_break

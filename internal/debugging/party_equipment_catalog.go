@@ -1,0 +1,126 @@
+package debugging
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+)
+
+const (
+	// CommandPartyEquipmentLoadoutUpdate atomically changes one or more slots for one or all active characters.
+	CommandPartyEquipmentLoadoutUpdate = "party.equipment.loadout.update"
+	partyEquipmentCategory             = "Party"
+	partyEquipmentAmuletID             = "amulet"
+)
+
+func partyEquipmentCommands() []CommandDefinition {
+	parameters := make([]ParameterDefinition, 0, len(partyEquipmentSlots())+2)
+	parameters = append(parameters, partyEquipmentCharacterParameter())
+	for _, slot := range partyEquipmentSlots() {
+		parameters = append(parameters, ParameterDefinition{
+			ID:           partyEquipmentSlotID(slot),
+			Name:         slot.String(),
+			Description:  "Leave unset to preserve this slot, unequip it, use carried inventory, or manufacture an item.",
+			Kind:         ParameterEnum,
+			Required:     false,
+			Choices:      partyEquipmentSlotChoices(slot),
+			ControlHint:  controlHintSelect,
+			Availability: []string{contextGameplay},
+		})
+	}
+	parameters = append(parameters, ParameterDefinition{
+		ID:              inventoryExpectedSnapshotID,
+		Name:            "Expected Equipment State",
+		Description:     "Complete carried-inventory and roster-loadout fingerprint reviewed before execution.",
+		Kind:            ParameterString,
+		Required:        true,
+		ControlHint:     activeCombatTextControlHint,
+		Availability:    []string{contextGameplay},
+		ScenarioRuntime: true,
+	})
+
+	return []CommandDefinition{{
+		ID:               CommandPartyEquipmentLoadoutUpdate,
+		Category:         partyEquipmentCategory,
+		Name:             "Equipment Loadout",
+		Description:      "Atomically change one or more equipment slots for one or all active party members using carried or explicitly manufactured items.",
+		Aliases:          []string{"ready equipment", "party loadout"},
+		SearchTerms:      []string{"weapon", "armour", "armor", "shield", "helm", "ring", partyEquipmentAmuletID},
+		Parameters:       parameters,
+		ExecutionModes:   []ExecutionMode{ExecutionAlteration},
+		Destructive:      true,
+		ScenarioTerminal: false,
+	}}
+}
+
+func partyEquipmentCharacterParameter() ParameterDefinition {
+	return ParameterDefinition{
+		ID:              "character",
+		Name:            "Character",
+		Description:     "Select all active party members or one current member.",
+		Kind:            ParameterCharacter,
+		Required:        true,
+		OptionsProvider: OptionProviderEquipmentLoadoutTargets,
+		ControlHint:     controlHintSelect,
+		Availability:    []string{contextGameplay},
+		ScenarioChoices: []Choice{
+			{Value: "all", Label: "All active party members"},
+			{Value: "1", Label: "Party Position 1"},
+			{Value: "2", Label: "Party Position 2"},
+			{Value: "3", Label: "Party Position 3"},
+			{Value: "4", Label: "Party Position 4"},
+			{Value: "5", Label: "Party Position 5"},
+			{Value: "6", Label: "Party Position 6"},
+		},
+		ScenarioValueResolver: ScenarioValueResolverActivePartyPosition,
+	}
+}
+
+func partyEquipmentSlotChoices(slot references.EquipmentSlot) []Choice {
+	choices := []Choice{choice("unequip", "Unequip")}
+	for equipment := references.LeatherHelm; equipment <= references.Ankh; equipment++ {
+		if equipment.IsAmmo() || equipment.GetSlotType() != slot {
+			continue
+		}
+		id := strconv.Itoa(equipment.ID())
+		choices = append(choices,
+			choice("inventory:"+id, fmt.Sprintf("Equip %s from inventory", equipment)),
+			choice("manufacture:"+id, fmt.Sprintf("Manufacture and equip %s", equipment)),
+		)
+	}
+
+	return choices
+}
+
+func partyEquipmentSlots() []references.EquipmentSlot {
+	return []references.EquipmentSlot{
+		references.SlotHelm,
+		references.SlotArmour,
+		references.SlotWeapon,
+		references.SlotShield,
+		references.SlotRing,
+		references.SlotAmulet,
+	}
+}
+
+func partyEquipmentSlotID(slot references.EquipmentSlot) string {
+	switch slot {
+	case references.SlotHelm:
+		return "helm"
+	case references.SlotArmour:
+		return "armour"
+	case references.SlotWeapon:
+		return "weapon"
+	case references.SlotShield:
+		return "shield"
+	case references.SlotRing:
+		return "ring"
+	case references.SlotAmulet:
+		return partyEquipmentAmuletID
+	case references.SlotNone:
+		panic("non-equipment slot has no catalog identifier")
+	default:
+		panic("unknown equipment slot")
+	}
+}

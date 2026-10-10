@@ -1,0 +1,335 @@
+package references
+
+// spell_metadata.go - Spell targeting, context restrictions, and descriptions
+// Original spell context permissions; ref:SPELL-0002.
+
+// Spell system constants from original Ultima V
+const (
+	TotalSpellCount   = 48 // Total number of spells in Ultima V
+	SpellsPerCircle   = 6  // Spells per circle (1-8)
+	MaxSpellCircle    = 8  // Highest spell circle
+	MaxSpellSyllables = 4  // Maximum syllables in any spell name
+)
+
+// TargetingType defines how a player selects a spell target. EffectScope is
+// recorded separately because a global or random effect may need no selection.
+type TargetingType int
+
+// Supported spell target-selection interactions.
+const (
+	TargetAutomatic          TargetingType = iota // No player target prompt.
+	TargetPartyMember                             // "On who?" party-member prompt.
+	TargetDirection                               // Cardinal direction prompt.
+	TargetAdjacentTile                            // Adjacent combat tile selector.
+	TargetCombatantCrosshair                      // Combat crosshair requiring a combatant.
+	TargetTileCrosshair                           // Combat crosshair selecting a legal tile.
+	TargetMoonPhase                               // Moon phase 1-8 prompt.
+	TargetCombatPartyMember                       // Visible exact PC entry on the battlefield.
+)
+
+func (t TargetingType) String() string {
+	switch t {
+	case TargetAutomatic:
+		return "Automatic"
+	case TargetPartyMember:
+		return "Character"
+	case TargetCombatPartyMember:
+		return "Battlefield recipient"
+	case TargetDirection:
+		return "Direction"
+	case TargetAdjacentTile:
+		return "Adjacent tile"
+	case TargetCombatantCrosshair:
+		return "Combatant crosshair"
+	case TargetTileCrosshair:
+		return "Tile crosshair"
+	case TargetMoonPhase:
+		return "Moon phase"
+	default:
+		return "Unknown"
+	}
+}
+
+// SpellEffectScope describes what a spell can affect after targeting resolves.
+type SpellEffectScope int
+
+// Supported spell effect scopes.
+const (
+	ScopeCaster SpellEffectScope = iota // Effect applies to the caster.
+	ScopeParty
+	ScopeSingleCharacter
+	ScopeSingleCombatant
+	ScopeSingleTile
+	ScopeCone
+	ScopeGlobal
+	ScopeRandomPlacement
+	ScopeWorldTransition
+)
+
+// SpellTargetingProfile combines player selection with effect scope for one context.
+type SpellTargetingProfile struct {
+	Selection TargetingType
+	Scope     SpellEffectScope
+}
+
+// GetSpellTargetingProfile resolves context-specific selection and effect scope.
+func GetSpellTargetingProfile(spell Spell, context SpellContext) SpellTargetingProfile {
+	info := GetSpellInfo(spell)
+	if info == nil {
+		return SpellTargetingProfile{}
+	}
+	profile := SpellTargetingProfile{Selection: info.Targeting, Scope: info.Scope}
+	if context == ContextDungeon {
+		// Dungeon packed-cell spells use the party's existing facing and never
+		// open a separate direction selector.
+		//nolint:exhaustive // Only dungeon interaction overrides are listed.
+		switch spell {
+		case AnSanct, InFlamGrav, InNoxGrav, InZuGrav, InSanctGrav, AnGrav:
+			profile.Selection, profile.Scope = TargetAutomatic, ScopeSingleTile
+		}
+
+		return profile
+	}
+	if context != ContextCombat {
+		return profile
+	}
+	//nolint:exhaustive // Only combat interaction overrides are listed.
+	switch spell {
+	case Mani, AnNox, AnZu, VasMani:
+		// REDUX DEVIATION: Original character targeting selects a roster number (ref:SPELL-0006). Combat uses
+		// visible battlefield sprites for identity/readability, retaining roster effects.
+		profile.Selection, profile.Scope = TargetCombatPartyMember, ScopeSingleCharacter
+	case InPor:
+		profile.Selection, profile.Scope = TargetAutomatic, ScopeCaster
+	case InFlamGrav, InNoxGrav, InZuGrav, InSanctGrav:
+		profile.Selection, profile.Scope = TargetTileCrosshair, ScopeSingleTile
+	case AnGrav, AnYlem, AnSanct, AnExPor, InExPor:
+		profile.Selection, profile.Scope = TargetAdjacentTile, ScopeSingleTile
+	case InZu, InNoxHur, InFlamHur, InVasGravCorp:
+		profile.Selection, profile.Scope = TargetDirection, ScopeCone
+	}
+
+	return profile
+}
+
+// SpellContext defines where a spell can be cast
+// Uses a bitmask for the permitted casting contexts; ref:SPELL-0002.
+type SpellContext uint8
+
+// Casting context flags identify supported spell environments; ref:SPELL-0002.
+const (
+	ContextOverworld SpellContext = 1 << iota // Outdoor casting.
+	ContextTown                               // Town casting.
+	ContextDungeon                            // First-person dungeon casting.
+	ContextCombat                             // Tactical casting.
+)
+
+// ContextAll is a convenience constant for spells usable everywhere
+const ContextAll = ContextOverworld | ContextTown | ContextDungeon | ContextCombat
+
+// ContextNonCombat is a convenience constant for spells usable outside combat
+const ContextNonCombat = ContextOverworld | ContextTown | ContextDungeon
+
+func (c SpellContext) String() string {
+	if c == ContextAll {
+		return "All"
+	}
+	if c == ContextNonCombat {
+		return "Non-Combat"
+	}
+
+	var contexts []string
+	if c&ContextOverworld != 0 {
+		contexts = append(contexts, "Overworld")
+	}
+	if c&ContextTown != 0 {
+		contexts = append(contexts, "Town")
+	}
+	if c&ContextDungeon != 0 {
+		contexts = append(contexts, "Dungeon")
+	}
+	if c&ContextCombat != 0 {
+		contexts = append(contexts, "Combat")
+	}
+
+	if len(contexts) == 0 {
+		return "None"
+	}
+
+	result := contexts[0]
+	for i := 1; i < len(contexts); i++ {
+		result += ", " + contexts[i]
+	}
+
+	return result
+}
+
+// HasContext returns true if the spell context includes the specified context
+func (c SpellContext) HasContext(ctx SpellContext) bool {
+	return c&ctx != 0
+}
+
+// SpellInfo contains all metadata for a spell
+type SpellInfo struct {
+	Spell       Spell         // The spell constant
+	Name        string        // Display name (e.g., "In Lor")
+	Circle      int           // Spell circle 1-8 (determines MP cost and level requirement)
+	Targeting   TargetingType // How the spell selects its target
+	Scope       SpellEffectScope
+	Context     SpellContext // Where the spell can be cast
+	Description string       // Brief description of the spell effect
+}
+
+// GetSpellCircle returns the circle (level) of a spell.
+// Circle = (spell_index / SpellsPerCircle) + 1
+// MP cost equals circle, and caster level must >= circle.
+func GetSpellCircle(spell Spell) int {
+	if spell < 0 || spell >= TotalSpellCount {
+		return 0
+	}
+
+	return int(spell)/SpellsPerCircle + 1
+}
+
+// spellMetadata contains metadata for all 48 spells
+// Indexed by Spell constant for O(1) lookup
+var spellMetadata = [TotalSpellCount]SpellInfo{ //nolint:gochecknoglobals,lll // Immutable catalog with compact readable rows.
+	// Circle 1 (Spells 0-5)
+	{InLor, "In Lor", 1, TargetAutomatic, ScopeParty, ContextNonCombat, "Creates magical light"},
+	{GravPor, "Grav Por", 1, TargetTileCrosshair, ScopeSingleCombatant, ContextCombat, "Energy missile attack"},
+	{AnZu, "An Zu", 1, TargetPartyMember, ScopeSingleCharacter, ContextAll, "Awakens sleeping character"},
+	{AnNox, "An Nox", 1, TargetPartyMember, ScopeSingleCharacter, ContextAll, "Cures poison"},
+	{Mani, "Mani", 1, TargetPartyMember, ScopeSingleCharacter, ContextAll, "Heals minor wounds"},
+	{AnYlem, "An Ylem", 1, TargetDirection, ScopeSingleTile, ContextTown | ContextCombat, "Destroys matter"},
+
+	// Circle 2 (Spells 6-11)
+	{AnSanct, "An Sanct", 2, TargetDirection, ScopeSingleTile, ContextAll, "Unlocks mundane doors and disarms chests"},
+	{AnXenCorp, "An Xen Corp", 2, TargetAutomatic, ScopeGlobal, ContextCombat, "Repels undead"},
+	{RelHur, "Rel Hur", 2, TargetDirection, ScopeGlobal, ContextOverworld, "Changes wind direction"},
+	{InWis, "In Wis", 2, TargetAutomatic, ScopeCaster, ContextOverworld, "Grants magical vision"},
+	{KalXen, "Kal Xen", 2, TargetAutomatic, ScopeRandomPlacement, ContextCombat, "Summons creature"},
+	{InXenMani, "In Xen Mani", 2, TargetAutomatic, ScopeParty, ContextAll, "Creates food"},
+
+	// Circle 3 (Spells 12-17)
+	{VasLor, "Vas Lor", 3, TargetAutomatic, ScopeParty, ContextNonCombat, "Creates great light"},
+	{VasFlam, "Vas Flam", 3, TargetTileCrosshair, ScopeSingleCombatant, ContextCombat, "Fireball attack"},
+	{InFlamGrav, "In Flam Grav", 3, TargetDirection, ScopeSingleTile, ContextDungeon | ContextCombat, "Creates fire field"},
+	{InNoxGrav, "In Nox Grav", 3, TargetDirection, ScopeSingleTile, ContextDungeon | ContextCombat, "Creates poison field"},
+	{InZuGrav, "In Zu Grav", 3, TargetDirection, ScopeSingleTile, ContextDungeon | ContextCombat, "Creates sleep field"},
+	{InPor, "In Por", 3, TargetDirection, ScopeWorldTransition, ContextOverworld | ContextCombat, "Blink teleport"},
+
+	// Circle 4 (Spells 18-23)
+	{AnGrav, "An Grav", 4, TargetDirection, ScopeSingleTile, ContextDungeon | ContextCombat, "Dispels magic field"},
+	{InSanct, "In Sanct", 4, TargetAutomatic, ScopeParty, ContextAll, "Grants party protection"},
+	{InSanctGrav, "In Sanct Grav", 4, TargetDirection, ScopeSingleTile, ContextDungeon | ContextCombat, "Creates protection field"},
+	{UusPor, "Uus Por", 4, TargetAutomatic, ScopeWorldTransition, ContextDungeon, "Ascend dungeon level"},
+	{DesPor, "Des Por", 4, TargetAutomatic, ScopeWorldTransition, ContextDungeon, "Descend dungeon level"},
+	{WisQuas, "Wis Quas", 4, TargetAutomatic, ScopeGlobal, ContextCombat, "Reveals hidden things"},
+
+	// Circle 5 (Spells 24-29)
+	{InBetXen, "In Bet Xen", 5, TargetAutomatic, ScopeRandomPlacement, ContextCombat, "Insect swarm attack"},
+	{AnExPor, "An Ex Por", 5, TargetDirection, ScopeSingleTile, ContextTown | ContextCombat, "Magically locks door"},
+	{InExPor, "In Ex Por", 5, TargetDirection, ScopeSingleTile, ContextTown | ContextCombat, "Unlocks magically locked door"},
+	{VasMani, "Vas Mani", 5, TargetPartyMember, ScopeSingleCharacter, ContextAll, "Heals major wounds"},
+	{InZu, "In Zu", 5, TargetDirection, ScopeCone, ContextCombat, "Directional mass sleep cone"},
+	{RelTym, "Rel Tym", 5, TargetAutomatic, ScopeGlobal, ContextAll, "Grants quickness"},
+
+	// Circle 6 (Spells 30-35)
+	{InVasPorYlem, "In Vas Por Ylem", 6, TargetAutomatic, ScopeGlobal, ContextCombat, "Earthquake attack"},
+	{QuasAnWis, "Quas An Wis", 6, TargetAutomatic, ScopeGlobal, ContextCombat, "Confuses enemies"},
+	{InAn, "In An", 6, TargetAutomatic, ScopeGlobal, ContextAll, "Negates magic"},
+	{WisAnYlem, "Wis An Ylem", 6, TargetAutomatic, ScopeCaster, ContextOverworld | ContextTown, "Grants temporary X-ray vision"},
+	{AnXenEx, "An Xen Ex", 6, TargetCombatantCrosshair, ScopeSingleCombatant, ContextCombat, "Charms creature"},
+	{RelXenBet, "Rel Xen Bet", 6, TargetCombatantCrosshair, ScopeSingleCombatant, ContextCombat, "Transforms to rat"},
+
+	// Circle 7 (Spells 36-41)
+	{SanctLor, "Sanct Lor", 7, TargetAutomatic, ScopeCaster, ContextCombat, "Grants invisibility"},
+	{XenCorp, "Xen Corp", 7, TargetTileCrosshair, ScopeSingleCombatant, ContextCombat, "Death spell"},
+	{InQuasXen, "In Quas Xen", 7, TargetCombatantCrosshair, ScopeSingleCombatant, ContextCombat, "Clones creature"},
+	{InQuasWis, "In Quas Wis", 7, TargetAutomatic, ScopeCaster, ContextNonCombat, "Views the surrounding area"},
+	{InNoxHur, "In Nox Hur", 7, TargetDirection, ScopeCone, ContextCombat, "Poison wind"},
+	{InQuasCorp, "In Quas Corp", 7, TargetAutomatic, ScopeGlobal, ContextCombat, "Fear spell"},
+
+	// Circle 8 (Spells 42-47)
+	{InManiCorp, "In Mani Corp", 8, TargetPartyMember, ScopeSingleCharacter, ContextNonCombat, "Resurrects dead"},
+	{KalXenCorp, "Kal Xen Corp", 8, TargetAutomatic, ScopeRandomPlacement, ContextCombat, "Summons daemon"},
+	{InVasGravCorp, "In Vas Grav Corp", 8, TargetDirection, ScopeCone, ContextCombat, "Energy vortex"},
+	{InFlamHur, "In Flam Hur", 8, TargetDirection, ScopeCone, ContextCombat, "Flame wind"},
+	{VasRelPor, "Vas Rel Por", 8, TargetMoonPhase, ScopeWorldTransition, ContextNonCombat, "Moongate travel"},
+	{AnTym, "An Tym", 8, TargetAutomatic, ScopeGlobal, ContextAll, "Stops time"},
+}
+
+// GetSpellInfo returns metadata for the specified spell.
+// Returns nil if spell is out of range.
+func GetSpellInfo(spell Spell) *SpellInfo {
+	if spell < 0 || spell >= TotalSpellCount {
+		return nil
+	}
+
+	return &spellMetadata[spell]
+}
+
+// GetSpellName returns the display name for a spell.
+// Returns empty string if spell is out of range.
+func GetSpellName(spell Spell) string {
+	info := GetSpellInfo(spell)
+	if info == nil {
+		return ""
+	}
+
+	return info.Name
+}
+
+// IsSpellValidInContext returns true if the spell can be cast in the given context.
+func IsSpellValidInContext(spell Spell, context SpellContext) bool {
+	info := GetSpellInfo(spell)
+	if info == nil {
+		return false
+	}
+
+	return info.Context.HasContext(context)
+}
+
+// GetSpellsByContext returns all spells valid in the given context.
+func GetSpellsByContext(context SpellContext) []Spell {
+	var spells []Spell
+	for i := 0; i < TotalSpellCount; i++ {
+		if spellMetadata[i].Context.HasContext(context) {
+			spells = append(spells, Spell(i))
+		}
+	}
+
+	return spells
+}
+
+// GetSpellsByCircle returns all spells of the specified circle.
+func GetSpellsByCircle(circle int) []Spell {
+	if circle < 1 || circle > MaxSpellCircle {
+		return nil
+	}
+
+	start := (circle - 1) * SpellsPerCircle
+	end := start + SpellsPerCircle
+	if end > TotalSpellCount {
+		end = TotalSpellCount
+	}
+
+	spells := make([]Spell, end-start)
+	for i := start; i < end; i++ {
+		spells[i-start] = Spell(i)
+	}
+
+	return spells
+}
+
+// GetSpellsByTargeting returns all spells with the specified targeting type.
+func GetSpellsByTargeting(targeting TargetingType) []Spell {
+	var spells []Spell
+	for i := 0; i < TotalSpellCount; i++ {
+		if spellMetadata[i].Targeting == targeting {
+			spells = append(spells, Spell(i))
+		}
+	}
+
+	return spells
+}
