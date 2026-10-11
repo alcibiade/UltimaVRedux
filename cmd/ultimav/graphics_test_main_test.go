@@ -37,6 +37,10 @@ func (*dungeonRendererTestGame) Layout(_, _ int) (int, int) {
 }
 
 func TestMain(tests *testing.M) {
+	// Automated native tests must not steal focus and ingest the maintainer's
+	// desktop typing. Real graphics frames still run while fixtures inject input.
+	ebiten.SetInitFocused(false)
+	ebiten.SetRunnableOnUnfocused(true)
 	// RunGame initializes native services on the main thread before Update
 	// launches test goroutines (Ebitengine 2.10 uses lazy monitor initialization).
 	runner := &dungeonRendererTestGame{tests: tests, code: 1, done: nil}
