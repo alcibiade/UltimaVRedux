@@ -256,7 +256,7 @@ func (ls *LighthouseState) rotate() {
 		ls.currentAngle = 0
 		ls.litTilesMap = make(map[references.Position]bool)
 
-		for i := 0; i < ConeSegmentsLit; i++ {
+		for i := range ConeSegmentsLit {
 			ls.lightShape(i)
 		}
 	} else {

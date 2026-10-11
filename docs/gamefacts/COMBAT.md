@@ -260,21 +260,26 @@ matching harmful field in ascending object order applies:
 | Hazard | Standing effect |
 |---|---|
 | Lava, fireplace, fire field | R(0,10) damage, no armor roll. |
-| Swamp, poison field | Original displayed-shape gate admits tiles below the monster-family boundary; toxify then poisons a Good PC or uses R(0,20) fallback damage. |
+| Swamp, poison field | Original base-tile gate admits tiles below the monster-family boundary; toxify then poisons a Good PC or uses R(0,20) fallback damage. |
 | Sleep field | Sleep without an INT save. |
 | Protection field | No standing damage. |
 
 The poison gate is **not** an unconditional “all monsters ignore standing poison”
 rule: humanoid-shaped non-PC entries and changed appearances require attention.
 Redux's non-PC standing-poison helper excludes species indexes 16 and above,
-while permitting humanoid archetypes below 16. Its exact PC/appearance equivalence
-is not established here. Direct field contact differs from standing contact:
+while permitting humanoid archetypes below 16. Purple changes the acting entry's
+base appearance to Rat, suppressing standing poison and its repeat-contact damage.
+Redux preserves that protection per tactical entry, including clones; it takes
+effect before the same action's standing check. It neither cures Poisoned status
+nor replaces character identity/stats/equipment. Black potion replaces the base
+appearance and ends Purple protection; Sanct Lor changes rendered appearance only
+and retains that protection. Direct field contact differs from standing contact:
 direct fire uses rating 21 then armor, direct poison uses toxify, and direct sleep
 has no save. Terrain precedence, exact identities, and unattributed death handling
 remain core state operations, not presentation decisions.
 
 **Implementation:** `internal/game_state/combat_field_effects.go`
-**Tests:** `internal/game_state/combat_field_test.go`
+**Tests:** `internal/game_state/combat_field_test.go`, `internal/game_state/findings_closeout_test.go`
 
 ### COMBAT-0008
 

@@ -475,8 +475,8 @@ func (g *GameState) ApplyShadowlordMapEffects(lord references.Shadowlord) (int, 
 	mapWidth := int(layeredMap.XMaxTilesPerMap)
 	mapHeight := int(layeredMap.YMaxTilesPerMap)
 
-	for y := 0; y < mapHeight; y++ {
-		for x := 0; x < mapWidth; x++ {
+	for y := range mapHeight {
+		for x := range mapWidth {
 			pos := references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}
 			tile := layeredMap.GetTileByLayer(map_state.MapLayer, &pos)
 

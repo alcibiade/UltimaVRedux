@@ -79,10 +79,14 @@ sails. Already performed waits remain spent; failed movement need not receive
 ordinary completion. Whirlpool contact damages; for non-ordinary-foot form it
 also removes the contacted whirlpool and transitions to Underworld (34,18).
 
-Redux has authoritative hull/fallback and contact paths; old broad claims about
-all collisions furling sails or exact byte-transfer equivalence are not retained.
+Redux has authoritative hull/fallback and contact paths. Pier collisions furl;
+other blockers stop automatic sailing with sails still raised, applying hull
+damage separately. Exact byte-transfer equivalence is not implied.
 Its destroyed frigate is not kept. Rough seas on deep water damage skiff/carpet
 riders through party damage, separately from hull damage and additional turn costs.
+
+**Implementation:** `internal/game_state/ship_collision.go`
+**Tests:** `internal/game_state/source_hit_test.go`, `cmd/ultimav/gamescene_input_largemap_sailing_test.go`
 
 ### SHIP-0004
 

@@ -22,6 +22,7 @@ const (
 	BedRestPreSleepNPCPasses    = 16
 )
 
+// ActionHoleUpSmallMap starts the town bed-rest selection workflow.
 func (g *GameState) ActionHoleUpSmallMap() bool {
 	playerPos := &g.MapState.PlayerLocation.Position
 	currentTile := g.GetLayeredMapByCurrentLocation().GetTileByLayer(map_state.MapLayer, playerPos)
@@ -85,9 +86,9 @@ func (g *GameState) NewBedRestState(hours int) *BedRestState {
 	// See ref:CAMP-0006.
 	return &BedRestState{
 		TargetHour: (int(g.DateTime.Hour) + hours) % 24,
-		// REDUX DEVIATION: bed rest loops indefinitely when active effect is
-		// Time Stop with duration 0 or 255. Redux wakes immediately for this
-		// corrupt/debug-only state so the event workflow cannot deadlock.
+		// REDUX DEVIATION: original bed rest retains occupancy as an exit even
+		// when Time Stop cannot expire. Redux exits immediately for duration
+		// 0 or 255, avoiding reliance on a future NPC interruption for safety.
 		// See ref:CAMP-0006.
 		TimeStopped: g.HasActiveDurationEffect(DurationEffectTimeStop) &&
 			(g.ActiveDurationEffect.TurnsRemaining == 0 ||

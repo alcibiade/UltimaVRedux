@@ -1243,7 +1243,7 @@ func originFramePosition(size image.Point) image.Point {
 
 func originFrameDrawOptions(size image.Point, flipped bool) *ebiten.DrawImageOptions {
 	position := originFramePosition(size)
-	drawOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct // Only GeoM is configured.
+	drawOptions := &ebiten.DrawImageOptions{}
 	if flipped {
 		drawOptions.GeoM.Scale(1, -1)
 		drawOptions.GeoM.Translate(float64(position.X), float64(position.Y+size.Y))
@@ -1286,11 +1286,11 @@ func drawIntroDissolve(
 ) {
 	buffer.Clear()
 	buffer.DrawImage(source, nil)
-	maskOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct // Only Blend is configured.
+	maskOptions := &ebiten.DrawImageOptions{}
 	maskOptions.Blend = ebiten.BlendDestinationIn
 	buffer.DrawImage(effect.GetMask(), maskOptions)
 	if drawOptions == nil {
-		drawOptions = &ebiten.DrawImageOptions{} //nolint:exhaustruct // Zero-value draw is intentional.
+		drawOptions = &ebiten.DrawImageOptions{}
 	}
 	screen.DrawImage(buffer, drawOptions)
 }
@@ -1304,7 +1304,7 @@ func drawIntroImage(canvas, img *ebiten.Image, x, y int) {
 }
 
 func introImageDrawOptions(x, y int) *ebiten.DrawImageOptions {
-	drawOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct // Only GeoM is configured.
+	drawOptions := &ebiten.DrawImageOptions{}
 	drawOptions.GeoM.Translate(float64(x), float64(y))
 
 	return drawOptions
@@ -1321,7 +1321,7 @@ func drawNarrativeCanvas(screen, canvas *ebiten.Image) {
 }
 
 func drawScaledIntroCanvas(screen, canvas *ebiten.Image, scale, offsetX, offsetY float64) {
-	drawOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct // Optional draw settings intentionally use zero values.
+	drawOptions := &ebiten.DrawImageOptions{}
 	drawOptions.Filter = ebiten.FilterNearest
 	drawOptions.GeoM.Scale(scale, scale)
 	drawOptions.GeoM.Translate(offsetX, offsetY)

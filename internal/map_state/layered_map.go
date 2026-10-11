@@ -72,7 +72,7 @@ func newLayeredMap(xMax references.Coordinate,
 	xVisibleTiles int,
 	yVisibleTiles int,
 	bWrappingMap bool,
-) *LayeredMap { //nolint:exhaustruct
+) *LayeredMap {
 	layeredMap := LayeredMap{ //nolint:exhaustruct
 		xVisibleTiles:   xVisibleTiles,
 		yVisibleTiles:   yVisibleTiles,
@@ -97,7 +97,7 @@ func newLayeredMap(xMax references.Coordinate,
 	// Initialize layers as 2D arrays for performance
 	for mapLayer := range layeredMap.layers {
 		layeredMap.layers[mapLayer] = make([][]indexes.SpriteIndex, arrayHeight)
-		for y := 0; y < arrayHeight; y++ {
+		for y := range arrayHeight {
 			layeredMap.layers[mapLayer][y] = make([]indexes.SpriteIndex, arrayWidth)
 		}
 	}

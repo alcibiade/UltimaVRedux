@@ -16,7 +16,7 @@ const (
 func NewAllEnemyReferences(tiles *Tiles) *EnemyReferences {
 	enemyRefs := make(EnemyReferences, 0, nTotalEnemies)
 
-	for i := 0; i < nTotalEnemies; i++ {
+	for i := range nTotalEnemies {
 		missile, missileRange := largeMapMissileFromMontype(i)
 
 		spriteIndex := indexes.SpriteIndex(nFirstEnemyTileReferenceIndex + (i * nFramesPerEnemy))
@@ -56,7 +56,7 @@ func NewAllEnemyReferences(tiles *Tiles) *EnemyReferences {
 	}
 
 	// Second pass: populate friend pointers
-	for i := 0; i < nTotalEnemies; i++ {
+	for i := range nTotalEnemies {
 		enemyRefs[i].Friend = &enemyRefs[friendsData[i]]
 	}
 

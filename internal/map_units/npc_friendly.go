@@ -189,7 +189,7 @@ func (friendly *NPCFriendly) PosPtr() *references.Position {
 func (friendly *NPCFriendly) SetPositionByIndividualNPCBehaviour(indiv references.IndividualNPCBehaviour) {
 	friendly.mapUnitDetails.Position = indiv.Position
 	friendly.mapUnitDetails.Floor = indiv.Floor
-	//friendly.mapUnitDetails.aiType = indiv.Ai
+	// friendly.mapUnitDetails.aiType = indiv.Ai
 }
 
 // PlaceAtScheduleSlot teleports an NPC to a schedule destination and records

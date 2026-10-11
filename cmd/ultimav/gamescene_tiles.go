@@ -228,8 +228,7 @@ func (g *GameScene) refreshAllMapLayerTiles() {
 	// Factors in: time of day, torch/light sources, basement lighting, line-of-sight, active moongates, and quest items
 	// This updates internal visibility flags used by all refresh methods
 	// Use visual system for moongate positions to include shrinking moongates
-	var moongatePositions []references.Position
-	moongatePositions = g.moongateVisualSystem.GetVisibleMoongatePositions()
+	moongatePositions := g.moongateVisualSystem.GetVisibleMoongatePositions()
 
 	// Get quest item light information for lighting system integration
 	questItemLights := g.gameState.GetVisibleQuestItemLights()

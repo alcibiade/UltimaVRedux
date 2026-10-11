@@ -2,6 +2,17 @@ package datetime
 
 import "testing"
 
+func TestFindingsFullDaylightUsesOriginalAmbientThreshold(t *testing.T) {
+	for hour := range byte(24) {
+		for _, minute := range []byte{0, 9, 10, 29, 30, 59} {
+			date := UltimaDate{Hour: hour, Minute: minute}
+			if got, want := date.IsFullDaylight(), hour >= 6 && hour < 19; got != want {
+				t.Errorf("%02d:%02d full daylight = %t, want %t", hour, minute, got, want)
+			}
+		}
+	}
+}
+
 func TestAdvanceCalendarMonthBoundaries(t *testing.T) {
 	t.Parallel()
 

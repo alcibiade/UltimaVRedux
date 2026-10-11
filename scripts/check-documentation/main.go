@@ -224,7 +224,6 @@ func legacySaveCoverageKeys(typesPath string) ([]string, error) {
 	return keys, nil
 }
 
-//nolint:cyclop // AST field shapes require one small branch per supported Go type expression.
 func collectLegacyStructKeys(structs map[string]*ast.StructType, typeName, prefix string, keys *[]string) {
 	structure := structs[typeName]
 	if structure == nil {
@@ -259,7 +258,6 @@ func collectLegacyStructKeys(structs map[string]*ast.StructType, typeName, prefi
 	}
 }
 
-//nolint:cyclop // Root discovery and the fixed retained subtrees form one bounded scan.
 func retainedMarkdownFiles(root string) ([]string, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {

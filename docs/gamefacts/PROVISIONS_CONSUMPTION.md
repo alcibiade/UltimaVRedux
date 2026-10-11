@@ -57,7 +57,7 @@ processed; that differs as described below.
 **Kind:** rule
 **Uses:** TIME-0001, PROV-0001
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Matches
 
 The original tests one pair of hour bytes. It does not enumerate all crossed
 hours. A nonzero time request overwrites the previous-hour baseline even when no
@@ -70,21 +70,21 @@ the terminal-hour mismatch without crossing another hour; dungeon completion
 does not have that extra post-camp charge and may still observe the terminal
 crossing. Neither path replays the intermediate camp hours.
 
-Redux instead queues crossed hours for ordinary `AdvanceGameplayMinutes` calls
-and drains them at an owning player/workflow boundary. When the queue is empty,
-it can fall back to current hour versus its last **processed** hour. Camping and
-bed advances bypass the ordinary queue, but that fallback still differs from an
-original baseline overwritten by each time request. A final camp update therefore
-does not establish an identical original hunger result.
+Redux replaces the hour observation on every positive request, including rest and
+requests suppressed by Time Stop. A player-update boundary compares it with the
+current hour and processes at most one consequence. A later same-hour advance
+erases an earlier crossing. Its transient deferred marker supports workflow/save
+eligibility; it is not an elapsed-hour backlog. Zero requests do not replace the
+observation. Sailing interruption returns to input without an extra player update.
+Bed's local rest-hour processing remains distinct.
 
-`TestConsumedSurfaceEnumeratesEveryCrossedHourInOrder` explicitly expects three
-starvation consequences after a 121-minute advance from 04:59; this is a Redux
-contract, not original-fidelity evidence. The reason for choosing this broader
-behavior has not been established. Keep it a known discrepancy pending a product
-decision rather than inventing a deviation rationale.
+For example, 121 minutes from 04:59 reaches 07:00 and can produce one starvation
+consequence if observed immediately. Another one-minute request before the update
+replaces the baseline with 07:00 and produces none. Modern full-duration camping
+remains the independently declared CAMP-0005 deviation.
 
 **Implementation:** `internal/game_state/turn.go`, `internal/game_state/action_hole_up_camping.go`, `internal/game_state/action_hole_up_dungeon.go`
-**Tests:** `internal/game_state/turn_test.go`, `internal/game_state/action_hole_up_dungeon_test.go`
+**Tests:** `internal/game_state/turn_test.go`, `internal/game_state/action_hole_up_dungeon_test.go`, `internal/game_state/findings_closeout_test.go`
 
 ### PROV-0003
 

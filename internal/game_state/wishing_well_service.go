@@ -151,8 +151,8 @@ func isWishingWellHorseWish(wish string) bool {
 		return false
 	}
 	aliases := [...]string{"corvette", "ferrari", "lamborghini", "lotus", "porsche", "horse", "mustang"}
-	// REDUX DEVIATION: wishing-well service has six aliases. Redux also retains Mustang.
-	// See ref:WELL-0001.
+	// REDUX DEVIATION: WELL-0001: original has six aliases and can skip overlapping
+	// starts. Redux keeps Mustang and normalized Contains matching for predictable input.
 	for _, alias := range aliases {
 		if strings.Contains(normalized, alias) {
 			return true

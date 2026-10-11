@@ -175,7 +175,7 @@ func (i *ItemStacksMap) Pop(pos *Position) *ItemAndQuantity {
 }
 
 func (i *ItemStacksMap) Peek(pos *Position) *ItemAndQuantity {
-	oof, _ := i.itemStacks[*pos]
+	oof := i.itemStacks[*pos]
 
 	return oof.PeekTopItem()
 }

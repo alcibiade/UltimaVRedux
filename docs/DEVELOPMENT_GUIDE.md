@@ -59,6 +59,23 @@ baseline. `make lint-all` disables revision filtering and output caps so inherit
 debt remains inspectable. A passing new-code gate is not a zero-debt assertion;
 changed-line filters also have declaration and transitive-change limitations.
 
+When manually modifying a source file, resolve all configured findings in that
+file using an unfiltered lint report, not only findings on the edited lines.
+Leave manual cleanup in otherwise untouched files alone. Repository-wide autofix
+is a separate, reviewed pass; files changed only by autofix are exempt from further
+manual cleanup. Reject automatic rewrites that change domain identities, callback
+ordering, or dynamically growing loop semantics. Formatting and tests remain
+required after reviewing the automatic diff. This policy does not move the fixed
+lint baseline or relax enabled checks.
+
+Canonical lint checks enumerate the requested packages with `go list` and run
+serial batches of four through the same pinned linter/configuration. Each package
+receives the complete configured analysis once; an earlier failure does not omit later batches. This
+bounds retained analyzer graphs without changing the configured rules or revision
+filter. Duplicate-code detection additionally runs over the full inventory so
+cross-batch duplication remains visible. `lint-all` retains uncapped, unfiltered
+output in every batch and the whole-inventory duplicate pass.
+
 ## Starting The Debug Workbench
 
 ```sh

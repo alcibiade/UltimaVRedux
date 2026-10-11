@@ -239,8 +239,8 @@ func (g *GameState) ClassifySailingCollision(target references.Position) Sailing
 	return SailingCollisionNone
 }
 
-// ResolveSailingCollision furls a blocked sailing frigate and applies hit2 for
-// every collision except a pier. It does not advance time or present feedback.
+// ResolveSailingCollision furls at piers and applies hit2 elsewhere (ref:SHIP-0003).
+// Other blocked movement retains hoisted sails. It does not advance time or present feedback.
 func (g *GameState) ResolveSailingCollision(target references.Position) SailingCollisionResult {
 	kind := g.ClassifySailingCollision(target)
 	result := SailingCollisionResult{Kind: kind}
@@ -252,8 +252,9 @@ func (g *GameState) ResolveSailingCollision(target references.Position) SailingC
 		panic("sailing collision requires a frigate")
 	}
 	g.StopAutomaticSailing()
-	vehicle.SetSailState(map_units.SailFurled)
 	if kind == SailingCollisionPier {
+		vehicle.SetSailState(map_units.SailFurled)
+
 		return result
 	}
 	result.HasHit = true

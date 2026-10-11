@@ -296,7 +296,6 @@ func (scene *CharacterCreationScene) Dispose() {
 	scene.terminalNotice = ""
 }
 
-//nolint:cyclop // Explicit state dispatch keeps input ownership auditable.
 func (scene *CharacterCreationScene) Update(_ *Game) error {
 	if scene.disposed {
 		return nil
@@ -580,7 +579,6 @@ func (scene *CharacterCreationScene) choiceRune(inputRunes []rune, first, second
 	return 0
 }
 
-//nolint:cyclop // Explicit finite-state rendering mirrors the input state machine.
 func (scene *CharacterCreationScene) Draw(screen *ebiten.Image) {
 	if scene.disposed || scene.canvas == nil {
 		return

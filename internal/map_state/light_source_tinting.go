@@ -741,7 +741,7 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 		props := GetLightSourceProperties(c.SourceIndex)
 
 		// Determine tint multiplier based on TintMode and ambient darkness.
-		var tintMultiplier float64 = 1.0
+		var tintMultiplier = 1.0
 		switch props.TintMode {
 		case TintNightOnly:
 			if darkness == 0 {
@@ -810,7 +810,7 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 
 	// Preserve the legacy nighttime falloff and outdoor interpolation arithmetic.
 	const radiusPadding = 0.5
-	var brightnessMult float64 = 1.0
+	var brightnessMult = 1.0
 	nightBrightness := 1.0
 	if darkness > 0 && closestRadius > 0 {
 		// Use radius + 0.5 to match the extended lit area (same as addLitTilesForSource)

@@ -104,7 +104,7 @@ equivalence for every raw tile/object-identity combination is not established.
 **Kind:** rule
 **Uses:** KARMA-0001
 **Original:** Incomplete
-**Redux:** Unverified
+**Redux:** Intentional deviation
 
 After the adjacent-cannon route selects a nonzero object-list target, removal
 precedes a 5-point loss. Only afterward is that object mapped to an NPC for any
@@ -119,6 +119,14 @@ impact-failure behavior are not certified for every executable variant.
 
 Redux's small-map workflow subtracts 5 on its selected map-unit removal path.
 Its target representation differs; universal selection equivalence is unverified.
+
+**REDUX DEVIATION: KARMA-0004:** The inspected original town-cannon path can remove
+a selected target despite blocked projectile travel and has an ineffective
+Shadowlord exclusion. Redux stops at blocking terrain and prevents ordinary
+cannon removal of Shadowlords, preserving physical obstruction and quest defeat
+authority. The original Shadowlord outcome is local removal, not ritual destruction;
+specific retail-executable reachability remains unverified. Successful removal is
+floor-aware. The target search covers four tiles beyond the muzzle.
 
 **Implementation:** `internal/game_state/action_fire.go`
 **Tests:** `internal/game_state/action_fire_integration_test.go`
@@ -212,7 +220,7 @@ signed change through the party mutation boundary.
 **Kind:** rule
 **Uses:** KARMA-0001
 **Original:** Incomplete
-**Redux:** Unverified
+**Redux:** Intentional deviation
 
 The stocks/manacles Jimmy path requires a key and appropriate target before the
 attempt. Failure when dexterity <= a draw requested with bounds 0..29
@@ -232,6 +240,8 @@ Arbitrary unusual occupants or unsupported map encodings are not certified here.
 Redux explicitly requires a persistent friendly town NPC, checks its floor and
 identity, and tests first reward, repeat attempts, failed keys, and lookup
 rejection. This is a scoped normal-prisoner match, not proof for every actor type.
+**REDUX DEVIATION: KARMA-0008:** that explicit identity restriction is retained
+to prevent arbitrary occupants and repeated rescues from generating rewards.
 
 **Implementation:** `internal/game_state/action_jimmy.go`
 **Tests:** `internal/game_state/action_jimmy_prisoner_test.go`
@@ -243,7 +253,7 @@ rejection. This is a scoped normal-prisoner match, not proof for every actor typ
 **Kind:** rule
 **Uses:** KARMA-0001
 **Original:** Established
-**Redux:** Unverified
+**Redux:** Intentional deviation
 
 After accepted virtue/mantra interaction, the quest flags select the result:
 
@@ -260,9 +270,9 @@ occurs on the qualifying return to the shrine.
 
 With valid starting karma, ordinary completion gains at most 3 and Humility at
 most 6. At karma 98, either ends at 99. Redux yields these final values but applies
-stat changes before one combined karma adjustment. Exact intermediate ordering
-and feedback equivalence are unverified; this is not declared a new intentional
-deviation merely to explain the difference.
+stat changes before one combined karma adjustment. **REDUX DEVIATION: KARMA-0009:**
+that ordering is deliberately retained for a single coherent reward transaction;
+equal final values do not imply identical intermediate feedback.
 
 **Implementation:** `internal/game_state/shrine_service.go`, `internal/game_state/shrine_data.go`
 **Tests:** `internal/game_state/shrine_quest_completion_test.go`

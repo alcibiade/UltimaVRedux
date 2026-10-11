@@ -89,7 +89,7 @@ func (t *TextCommands) ValidateNoAmbiguousCommands() {
 
 	// For each group, check all pairs
 	for slotCount, indices := range bySlotCount {
-		for a := range len(indices) {
+		for a := range indices {
 			for b := a + 1; b < len(indices); b++ {
 				cmdA := commands[indices[a]]
 				cmdB := commands[indices[b]]

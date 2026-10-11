@@ -40,7 +40,7 @@ func (ms *MoonstoneSystem) LoadFromSaveData(stonesX, stonesY, stonesM, stonesL [
 	}
 
 	ms.Moonstones = make([]MoonstoneLocation, 8)
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		ms.Moonstones[i] = MoonstoneLocationFromSaveFormat(
 			stonesX[i], stonesY[i], stonesM[i], stonesL[i])
 	}

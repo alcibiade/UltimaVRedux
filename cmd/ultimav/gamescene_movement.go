@@ -129,7 +129,7 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 	if mapType == references.LargeMapType {
 		if g.gameState.PartyVehicle.GetVehicleDetails().VehicleType == references.FrigateVehicle && !g.gameState.PartyVehicle.GetVehicleDetails().DoesMoveResultInMovement(direction) {
 			g.gameState.PartyVehicle.GetVehicleDetails().SetPartyVehicleDirection(direction)
-			g.output.AddText(fmt.Sprintf("Head %s", direction.GetDirectionCompassName()))
+			g.output.AddText("Head " + direction.GetDirectionCompassName())
 
 			return newSurfaceCommandResult(surfaceCommandCompleted, originMapType)
 		}

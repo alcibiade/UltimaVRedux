@@ -152,7 +152,7 @@ func (g *GameActionCallbacks) JoinParty() (conversation.JoinPartyOutcome, error)
 	}
 
 	// Display personalized success message with actual NPC name in yellow
-	g.dialogOutput.AddTextWithColor(fmt.Sprintf("%s has joined thee!", npcName), ucolor.EGAYellow)
+	g.dialogOutput.AddTextWithColor(npcName+" has joined thee!", ucolor.EGAYellow)
 
 	return conversation.JoinPartySuccess, nil
 }
@@ -235,7 +235,7 @@ func (g *GameActionCallbacks) GiveItem(itemID int) {
 
 		// Get equipment name for feedback
 		equipmentName := fmt.Sprintf("Equipment #%d", itemID)
-		g.dialogOutput.AddTextWithColor(fmt.Sprintf("Received: %s", equipmentName), ucolor.EGAYellow)
+		g.dialogOutput.AddTextWithColor("Received: "+equipmentName, ucolor.EGAYellow)
 		logging.Info(logging.CategoryConversation, "GiveItem: Equipment %d (Equipment enum value %d)", itemID, equipment)
 
 		return

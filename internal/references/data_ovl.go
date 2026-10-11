@@ -34,7 +34,7 @@ func readNullTerminatedStrings(data *[]byte, offset, n int) ([]string, error) {
 
 	var result []string
 	start := offset
-	for i := 0; i < n; i++ {
+	for range n {
 		// Find the null terminator (0 byte) to end the current string
 		end := start
 		for end < len(*data) && (*data)[end] != 0 {

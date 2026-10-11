@@ -55,6 +55,9 @@ func (g *GameState) CastAnTym() bool {
 }
 
 func (g *GameState) isAnTymAbsorbed() bool {
+	// REDUX DEVIATION: SPELL-0004: original absorption tests one exact base
+	// Shadowlord tile. Redux uses living Shadowlord identity/presence so
+	// presentation variants cannot bypass absorption.
 	if g.IsShadowlordNPCPresent() {
 		return true
 	}

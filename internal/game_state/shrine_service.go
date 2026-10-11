@@ -209,6 +209,9 @@ func (g *GameState) CommitShrineQuestCompletion(
 	data := GetShrineData(shrineIndex)
 	avatar := g.PartyState.GetAvatar()
 	bonuses := make([]string, 0, 3)
+	// REDUX DEVIATION: KARMA-0009: original completion interleaves karma and
+	// stats. Redux commits stats then one combined karma award, preserving
+	// final values and a single coherent reward transaction.
 	g.SetShrineQuestActive(shrineIndex, false)
 	if data.StrBonus > 0 {
 		avatar.Strength = byte(min(int(avatar.Strength)+int(data.StrBonus), MaxStatValue))

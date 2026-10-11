@@ -1633,7 +1633,6 @@ func validateTavernProvisionQuote(state game_state.TavernShopState) {
 	}
 }
 
-//nolint:cyclop // Exact detached drink comparison fields form one validation boundary.
 func validateTavernDrinkQuote(
 	quote game_state.TavernDrinkQuote,
 	state game_state.TavernShopState,

@@ -31,7 +31,9 @@ not universally counted in minutes.
 
 Redux's `advanceGameplayMinutes` preserves the positive-request Quickness and
 Time Stop rules, while `advanceElapsedGameplayMinutes` uses general calendar
-advancement and enumerates crossed hours. Nonpositive requests return without
+advancement bounded to 540 effective minutes per call. That accepted interval is
+used consistently for calendar, fuel, cooldown and the returned duration. Hour
+observations follow PROV-0002 rather than replaying elapsed hours. Nonpositive requests return without
 the original presentation refresh. The ordinary small-increment arithmetic is
 compatible, but large increments, refresh ownership, and hunger bookkeeping
 must not be described as universal equivalence.
@@ -169,7 +171,7 @@ the shared confirmed-use policy.
 **Kind:** rule
 **Uses:** TIME-0001, TIME-0002, PROV-0002
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Matches
 
 Repair performs five iterations of update/monster work followed by a five-minute
 request, and can abort after losing anchored-ship state. Outdoor completion is
@@ -183,12 +185,11 @@ ordinary player update inside the wait loop. Calm removes the wind-dependent
 cadence break and permits continued waiting until interrupted.
 
 Redux keeps separate `CompleteAutomaticSailingWait` and repair workflows.
-`CompleteAutomaticSailingInterruption` runs one player-effects update without
-adding time and drains queued provision hours. That latter behavior is **not an
-established original rule**: the original returns interrupting input to dispatch
-and has no elapsed-hour provision queue. The queue difference is documented in
-[provision timing](PROVISIONS_CONSUMPTION.md#prov-0002); its product intent remains
-unverified. Do not relabel it as a deliberate fidelity decision.
+`CompleteAutomaticSailingInterruption` returns to command input without adding
+time or a player-effects update. A later time request can replace an earlier
+hour crossing before the next player update, as described in
+[provision timing](PROVISIONS_CONSUMPTION.md#prov-0002). This match covers the
+wait/interruption ownership, not exact presentation timing or every rest policy.
 
 Camping, bed, and inn loops retain their own [rest rules](CAMPING_MECHANICS.md).
 Presentation delays and guard-performance iterations are not game minutes.

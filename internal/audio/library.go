@@ -212,7 +212,6 @@ func knownLibraryCueIDs(library *audioLibrary) map[string]bool {
 	return ids
 }
 
-//nolint:goconst // Explicit serialized track identities, distinct from similarly named selection contexts/categories.
 func musicTrackIDs() []string {
 	return []string{
 		"title", "town", "dungeon", "combat", "overworld", "victory", "ambient", "blackthorn",

@@ -9,8 +9,8 @@ type MapUnitType int
 
 const (
 	NonPlayerCharacter MapUnitType = 0
-	Enemy                          = 1
-	Vehicle                        = 2
+	Enemy              MapUnitType = 1
+	Vehicle            MapUnitType = 2
 )
 
 // PendingNPCInteraction identifies the command an adjacent NPC handed to the
@@ -47,7 +47,7 @@ type MapUnit interface {
 type MapUnitDetails struct {
 	Position references.Position
 	Floor    references.FloorNumber
-	//aiType   references.AiType
+	// aiType   references.AiType
 
 	overriddenAiType     references.AiType
 	aiOverrideProvenance references.AIOverrideProvenance

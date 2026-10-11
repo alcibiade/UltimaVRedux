@@ -1,3 +1,4 @@
+// Package datetime owns the Britannian calendar and calendar-derived presentation phases.
 package datetime
 
 import (
@@ -7,11 +8,13 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/helpers"
 )
 
+// Calendar dimensions and the maximum supported interval per advancement call.
 const (
-	DaysInMonth    = 28
-	MonthsPerYear  = 13
-	MinutesPerHour = 60
-	HoursPerDay    = 24
+	DaysInMonth           = 28
+	MonthsPerYear         = 13
+	MinutesPerHour        = 60
+	HoursPerDay           = 24
+	MaximumAdvanceMinutes = MinutesPerHour * 9
 )
 
 //nolint:gochecknoglobals // Immutable day-indexed lunar phase data; ref:MOON-0002.
@@ -30,8 +33,10 @@ const (
 	ambientTintTransitionMinutes = 30
 )
 
+// TimeOfDay identifies a convenient calendar preset.
 type TimeOfDay int
 
+// Calendar presets used by setup and debug controls.
 const (
 	Morning TimeOfDay = iota
 	Noon
@@ -44,6 +49,7 @@ const (
 // Based on original Ultima V moon phase system (0-7)
 type MoonPhase int
 
+// Lunar phases in their original cyclic order.
 const (
 	MoonPhaseNew            MoonPhase = iota // 0
 	MoonPhaseCrescentWaxing                  // 1
@@ -80,6 +86,7 @@ func (mp MoonPhase) ToMoonstoneIndex() int {
 	return int(mp)
 }
 
+// UltimaDate records the authoritative calendar and turn count.
 type UltimaDate struct {
 	Year   uint16
 	Month  byte
@@ -106,20 +113,22 @@ func (d BritannianDate) IsValid() bool {
 	return d.Year >= 1 && d.Month >= 1 && d.Month <= MonthsPerYear && d.Day >= 1 && d.Day <= DaysInMonth
 }
 
+// GetDateAsString formats the calendar as month-day-year.
 func (d *UltimaDate) GetDateAsString() string {
 	return fmt.Sprintf("%d-%d-%d", d.Month, d.Day, d.Year)
 }
 
+// GetTimeAsString formats the clock with an AM/PM suffix.
 func (d *UltimaDate) GetTimeAsString() string {
 	hour := d.Hour
 	isAM := true
-	if hour >= 12 {
-		hour -= 12
+	if hour >= hourOfNoon {
+		hour -= hourOfNoon
 		isAM = false
 	}
 
 	if hour == 0 {
-		hour = 12
+		hour = hourOfNoon
 	}
 
 	if isAM {
@@ -129,13 +138,14 @@ func (d *UltimaDate) GetTimeAsString() string {
 	return fmt.Sprintf("%2d:%02dPM", hour, d.Minute)
 }
 
+// Advance applies one bounded calendar interval and increments the turn count.
 func (d *UltimaDate) Advance(nMinutes int) {
 	d.Turn++
 
 	// Validate time advancement does not exceed 9 hours (for time-saving assumptions)
-	if nMinutes > MinutesPerHour*9 {
+	if nMinutes > MaximumAdvanceMinutes {
 		logging.Warn(logging.CategoryGameState, "Time advancement clamped to 9 hours (requested: %d minutes)", nMinutes)
-		nMinutes = MinutesPerHour * 9 // Clamp to maximum allowed
+		nMinutes = MaximumAdvanceMinutes
 	}
 	if nMinutes < 0 {
 		// Negative advancement is outside the current contract; retain its legacy behavior.
@@ -169,6 +179,7 @@ func (d *UltimaDate) Advance(nMinutes int) {
 	}
 }
 
+// SetTimeOfDay selects a preset hour.
 func (d *UltimaDate) SetTimeOfDay(timeOfDay TimeOfDay) {
 	d.Minute = 0
 
@@ -186,18 +197,26 @@ func (d *UltimaDate) SetTimeOfDay(timeOfDay TimeOfDay) {
 	}
 }
 
+// IsDayLight reports the broad daytime window, including twilight.
 func (d *UltimaDate) IsDayLight() bool {
 	return d.Hour >= hourOfSunrise && d.Hour < hourOfSunset
 }
 
+// IsNight reports whether the clock is outside the daytime window.
 func (d *UltimaDate) IsNight() bool {
 	return !d.IsDayLight()
 }
 
 // IsFullDaylight returns true during full daylight hours (after dawn, before dusk).
-// Corresponds to original Ultima V's "sight >= 50" check used for lighthouse disabling.
-// Returns true for hours 6-19 (after sunrise transition at hour 5, before sunset at hour 20).
+// Ordinary original ambient sight reaches 50 only during hours 6-18 (ref:LIGHT-0001).
+// Cosmetic dusk interpolation is independent of this lighthouse activation boundary.
 func (d *UltimaDate) IsFullDaylight() bool {
+	return d.Hour > hourOfSunrise && d.Hour < hourOfSunset-1
+}
+
+// IsVisibilityDaylight preserves Redux's daylight visibility window separately
+// from the original lighthouse sight threshold. Cosmetic dusk does not reduce LOS.
+func (d *UltimaDate) IsVisibilityDaylight() bool {
 	return d.Hour > hourOfSunrise && d.Hour < hourOfSunset
 }
 

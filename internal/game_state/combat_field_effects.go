@@ -151,6 +151,11 @@ func (g *GameState) applyCombatFieldToPC(field CombatField, identity CombatTurnI
 	case CombatFieldSleep:
 		g.setCombatPCSleeping(identity, true)
 	case CombatFieldPoison:
+		// Standing poison depends on the exact entry's base appearance (ref:COMBAT-0007).
+		// Purple does not protect against direct poison impacts or cure existing poison.
+		if !direct && g.CombatScene.IsCombatPCRat(identity) {
+			return
+		}
 		if character.IsGood() {
 			character.SetStatus(party_state.Poisoned)
 			g.SystemCallbacks.Message.AddRowStr(character.GetNameAsString() + " is poisoned!")

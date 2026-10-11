@@ -44,7 +44,7 @@ func NewLookReferences(gameConfig *config.UltimaVConfiguration) (*LookReferences
 
 	// Populate tile descriptions
 	lookRefs.TileDescriptions = make(map[int]string)
-	for i := 0; i < totalLooks; i++ {
+	for i := range totalLooks {
 		lookRefs.TileDescriptions[i] = lookRefs.GetTileLookDescription(indexes.SpriteIndex(i))
 	}
 

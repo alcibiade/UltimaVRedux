@@ -236,7 +236,7 @@ func (pde *PixelDissolveEffect) GetMask() *ebiten.Image {
 	// Scale mask to target dimensions
 	pde.scaledMask.Clear()
 
-	scaleOp := &ebiten.DrawImageOptions{} //nolint:exhaustruct // Only GeoM and Filter needed
+	scaleOp := &ebiten.DrawImageOptions{}
 	scaleX := float64(pde.targetWidth) / float64(pde.maskWidth)
 	scaleY := float64(pde.targetHeight) / float64(pde.maskHeight)
 	scaleOp.GeoM.Scale(scaleX, scaleY)

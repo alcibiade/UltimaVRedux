@@ -485,7 +485,7 @@ func (t *TabbedInterface) drawActiveContent(screen *ebiten.Image) {
 
 // switchToPreviousTab switches to the previous visible tab
 func (t *TabbedInterface) switchToPreviousTab() {
-	for i := 0; i < len(t.tabs); i++ {
+	for i := range len(t.tabs) {
 		candidateIndex := (t.activeIndex - 1 - i + len(t.tabs)) % len(t.tabs)
 		if t.tabs[candidateIndex].IsVisible {
 			t.switchToTab(candidateIndex)
@@ -499,7 +499,7 @@ func (t *TabbedInterface) switchToPreviousTab() {
 
 // switchToNextTab switches to the next visible tab
 func (t *TabbedInterface) switchToNextTab() {
-	for i := 0; i < len(t.tabs); i++ {
+	for i := range len(t.tabs) {
 		candidateIndex := (t.activeIndex + 1 + i) % len(t.tabs)
 		if t.tabs[candidateIndex].IsVisible {
 			t.switchToTab(candidateIndex)

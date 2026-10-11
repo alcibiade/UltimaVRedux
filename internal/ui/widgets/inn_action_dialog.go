@@ -252,7 +252,6 @@ func (d *InnActionDialog) ensureLayout() {
 	d.populateOutputs()
 }
 
-//nolint:cyclop // Header, action body, and semantic footer form one concrete modal composition.
 func (d *InnActionDialog) populateOutputs() {
 	if d.headerOutput == nil || d.bodyOutput == nil || d.footerOutput == nil {
 		return
@@ -439,7 +438,6 @@ func innActionPlacement() sprites.PercentBasedPlacement {
 	}
 }
 
-//nolint:cyclop // Action discrimination and common context validation are one typed-union boundary.
 func validateInnActionIntent(intent InnActionIntent) {
 	if intent.Action != intent.Request.Action || strings.TrimSpace(intent.InnName) == "" ||
 		intent.RoomCapacity <= 0 || intent.RoomOccupancy < 0 || intent.RoomOccupancy > intent.RoomCapacity ||
@@ -458,7 +456,6 @@ func validateInnActionIntent(intent InnActionIntent) {
 	}
 }
 
-//nolint:cyclop // Rest review fields must be validated together before consequential approval.
 func validateInnRestIntent(intent InnActionIntent) {
 	request := intent.Request.Rest
 	quote := intent.Rest
@@ -491,7 +488,6 @@ func validateInnLeaveIntent(intent InnActionIntent) {
 	validateInnWarnings(row.Warnings)
 }
 
-//nolint:cyclop // Pick Up identity, gate, and payment checks form one atomic approval contract.
 func validateInnPickupIntent(intent InnActionIntent) {
 	request := intent.Request.Pickup
 	row := intent.Pickup

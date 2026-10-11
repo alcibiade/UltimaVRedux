@@ -3,6 +3,7 @@ package text
 import (
 	"fmt"
 	"image/color"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 
@@ -104,13 +105,13 @@ func (lb *LineBuilder) AvatarWhatHeDidf(format string, args ...interface{}) *Lin
 
 // AvatarSpoken adds light green text segment for player/avatar dialogue
 func (lb *LineBuilder) AvatarSpoken(text string) *LineBuilder {
-	//return lb.Text(text, ucolor.EGALightGreen)
+	// return lb.Text(text, ucolor.EGALightGreen)
 	return lb.Text(text, ucolor.White)
 }
 
 // AvatarSpokenf adds formatted light green text segment for player/avatar dialogue
 func (lb *LineBuilder) AvatarSpokenf(format string, args ...interface{}) *LineBuilder {
-	//return lb.Textf(format, ucolor.EGALightGreen, args...)
+	// return lb.Textf(format, ucolor.EGALightGreen, args...)
 	return lb.Textf(format, ucolor.EGAWhite, args...)
 }
 
@@ -442,9 +443,11 @@ func (lb *LineBuilder) SetPlainTextCallback(callback func(string)) {
 // convertToPlainText extracts plain text from all color segments
 func (lb *LineBuilder) convertToPlainText() string {
 	var plain string
+	var plainSb445 strings.Builder
 	for _, seg := range lb.segments {
-		plain += seg.Text
+		plainSb445.WriteString(seg.Text)
 	}
+	plain += plainSb445.String()
 
 	return plain
 }
@@ -474,7 +477,7 @@ func (lb *LineBuilder) Done() {
 //// should appear on the same line as the prompt.
 //// The line index will stay at the last written line, allowing AppendToCurrentRowStr()
 //// to append user input to the same line.
-//func (lb *LineBuilder) DoneWithoutAdvance() {
+// func (lb *LineBuilder) DoneWithoutAdvance() {
 //	// PRIMARY: Write colored text to primary output (MessageDialog)
 //	lb.output.AddStyledPrompt(lb.segments, lb.alignment)
 //

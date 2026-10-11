@@ -94,6 +94,7 @@ func NewTextCacheWithBudget(maxEntries, maxBytes int) *TextCache {
 	if maxEntries <= 0 || maxBytes <= 0 {
 		panic("text cache requires positive entry and byte budgets")
 	}
+
 	return &TextCache{
 		cache:      make(map[CacheKey]*CacheEntry),
 		lruList:    list.New(),

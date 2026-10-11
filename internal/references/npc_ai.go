@@ -1,5 +1,6 @@
 package references
 
+// AiType identifies an authored schedule action or a Redux override behavior.
 type AiType int
 
 // AIOverrideProvenance identifies why a map unit's scheduled AI was replaced.
@@ -55,6 +56,9 @@ const (
 	// Talk3 identifies the original one-shot merchant schedule action.
 	Talk3 = CustomAi
 
+	// TalkAlways approaches and talks without action 4's schedule-anchor range gate.
+	TalkAlways = 5
+
 	// ExtortOrAttackOrFollow you better pay the guard, or they will attack!
 	ExtortOrAttackOrFollow = 6
 
@@ -100,6 +104,7 @@ const (
 
 	// BlackthornGuardFixed Blackthorn guard stays put, but will ask password if prompted
 	BlackthornGuardFixed = 111
+	// StoneGargoyleTrigger waits for nearby activation.
 	StoneGargoyleTrigger = 112
 )
 
@@ -112,6 +117,7 @@ func (aiType AiType) IsValid() bool {
 		BigWander,
 		ChildRunAway,
 		CustomAi,
+		TalkAlways,
 		ExtortOrAttackOrFollow,
 		DrudgeWorthThing,
 		FleeFromAvatar,

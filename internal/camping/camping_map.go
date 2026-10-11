@@ -110,7 +110,7 @@ func (cm *CampingMap) setupPartyPositions() {
 	if cm.combatMapRef != nil {
 		// Use positions from combat map for the first 6 players (original U5 party size)
 		// CampingDirectionIndex maps to row 3 in BRIT.CBT; ref:CBT-0002.
-		for i := 0; i < references.MaxPlayersPerMap; i++ {
+		for i := range references.MaxPlayersPerMap {
 			partyPositions = append(partyPositions, cm.combatMapRef.PlayerPositions[CampingDirectionIndex][i])
 		}
 		// Add extra positions for players 6-7 (Redux supports up to 8 party members)

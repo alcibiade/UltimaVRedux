@@ -211,13 +211,13 @@ func (gs *GameState) InitializeDungeonStatesFromSave(saveData []byte) {
 	const numDungeons = 8
 
 	// Initialize all dungeons as closed by default
-	for i := 0; i < numDungeons; i++ {
+	for i := range numDungeons {
 		gs.DungeonStates[i] = false
 	}
 
 	// If save data is available and large enough, read dungeon states
 	if len(saveData) >= dungeonStatesOffset+numDungeons {
-		for i := 0; i < numDungeons; i++ {
+		for i := range numDungeons {
 			// Bit 0x80 set means dungeon is open
 			gs.DungeonStates[i] = (saveData[dungeonStatesOffset+i] & 0x80) != 0
 		}

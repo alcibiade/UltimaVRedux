@@ -11,8 +11,8 @@ type ItemType int
 
 const (
 	ItemTypeReagent   ItemType = 0
-	ItemTypeEquipment          = 1
-	ItemTypeSpell              = 2
+	ItemTypeEquipment ItemType = 1
+	ItemTypeSpell     ItemType = 2
 	// ItemTypeSpecialItem = 3 - REMOVED: Special items merged into QuestItem
 	ItemTypeScroll    = 4
 	ItemTypePotion    = 5

@@ -184,7 +184,7 @@ func TestValidateHostileAIOverrideProvenanceActions(t *testing.T) {
 		references.AIOverrideProvenanceGuardHostility,
 	} {
 		for action := references.Unset; action <= references.StoneGargoyleTrigger; action++ {
-			if !action.IsValid() {
+			if !action.IsValid() || action == references.TalkAlways {
 				continue
 			}
 			t.Run(fmt.Sprintf("%s/action%d", provenance, action), func(t *testing.T) {

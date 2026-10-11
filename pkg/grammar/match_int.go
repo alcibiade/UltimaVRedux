@@ -25,7 +25,7 @@ func (m MatchInt) GetPartialMatches(s string) ([]string, error) {
 		return []string{}, fmt.Errorf("parsing integer match: %w", err)
 	}
 	if n >= m.IntMin && n <= m.IntMax {
-		return []string{fmt.Sprintf("%d", n)}, nil
+		return []string{strconv.Itoa(n)}, nil
 	}
 
 	return []string{}, nil

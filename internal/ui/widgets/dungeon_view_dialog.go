@@ -1167,7 +1167,6 @@ func dungeonViewContinuationRune(axis dungeonViewAxis, sourceIndex int) int {
 	}
 }
 
-//nolint:cyclop // Axis-specific seam endpoints are clearer together than behind indirection.
 func dungeonViewHasContinuation(plan dungeonViewRenderPlan, axis dungeonViewAxis, sourceIndex int) bool {
 	if sourceIndex < 0 || sourceIndex >= dungeonViewFloorCells {
 		return false

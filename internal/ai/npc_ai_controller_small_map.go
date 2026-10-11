@@ -43,7 +43,7 @@ type RNGProvider interface {
 // NPCDeadChecker allows checking if an NPC is dead without importing party_state.
 // This enables filtering out dead NPCs (freed prisoners, killed NPCs) when loading a location.
 type NPCDeadChecker interface {
-	IsNPCDead(location references.Location, npcId int) bool
+	IsNPCDead(location references.Location, npcID int) bool
 }
 
 // shadowlordPursuitRange is the exclusive distance at which a Shadowlord pursues the Avatar.
@@ -57,6 +57,12 @@ const (
 	originalRandomDirectionMaximum   = 64
 	originalAttackVariationMaximum   = 63
 	originalAttackVariationThreshold = 16
+	civilianFleeRange                = 8
+	interactionApproachRange         = 5
+	smallWanderDistance              = 2
+	largeWanderDistance              = 4
+	variationOdds                    = 4
+	replacementOdds                  = 2
 )
 
 //nolint:gochecknoglobals // Source cardinal order is an immutable gameplay contract.
@@ -75,6 +81,7 @@ const (
 	npcMovementSchedule
 )
 
+// NPCAIControllerSmallMap owns scheduled movement and contacts on local maps.
 type NPCAIControllerSmallMap struct {
 	tileRefs *references.Tiles
 	slr      *references.SmallLocationReference
@@ -112,7 +119,8 @@ func NewNPCAIControllerSmallMap(
 	rngProvider RNGProvider,
 	deadChecker NPCDeadChecker,
 ) *NPCAIControllerSmallMap {
-	npcsAiCont := &NPCAIControllerSmallMap{}
+	var controller NPCAIControllerSmallMap
+	npcsAiCont := &controller
 	npcsAiCont.dateTime = dateTime
 	npcsAiCont.tileRefs = tileRefs
 	npcsAiCont.slr = slr
@@ -241,6 +249,7 @@ func (n *NPCAIControllerSmallMap) SetNPCsReactToShadowlord(lord references.Shado
 
 		// Apply effect based on Shadowlord type
 		switch lord {
+		case references.NoShadowlord, references.Faulinei:
 		case references.Astaroth:
 			// Hatred: NPCs become hostile and attack the player
 			friendly.MapUnitDetails().SetAIOverride(
@@ -286,11 +295,7 @@ func (n *NPCAIControllerSmallMap) isAffectedByShadowlord(npc *map_units.NPCFrien
 		}
 	}
 
-	if !hasSchedule {
-		return false
-	}
-
-	return true
+	return hasSchedule
 }
 
 // calculateNextEnemyPosition handles movement for enemy NPCs on small maps.
@@ -335,7 +340,9 @@ func (n *NPCAIControllerSmallMap) calculateNextEnemyPosition(enemy *map_units.NP
 // moveEnemyOneTileCloserGreedy moves an enemy NPC one tile closer to the target position.
 // This is similar to moveOneTileCloserGreedy but works with NPCEnemy instead of NPCFriendly.
 // Used for Shadowlord pursuit of the player.
-func (n *NPCAIControllerSmallMap) moveEnemyOneTileCloserGreedy(enemy *map_units.NPCEnemy, targetPos references.Position) bool {
+func (n *NPCAIControllerSmallMap) moveEnemyOneTileCloserGreedy(
+	enemy *map_units.NPCEnemy, targetPos references.Position,
+) bool {
 	currentPos := enemy.Pos()
 
 	// Calculate current distance to target (Manhattan distance)
@@ -355,7 +362,7 @@ func (n *NPCAIControllerSmallMap) moveEnemyOneTileCloserGreedy(enemy *map_units.
 		newDist int
 	}
 
-	validMoves := make([]validMove, 0, 4)
+	validMoves := make([]validMove, 0, len(originalNPCDirections))
 
 	for _, dir := range directions {
 		newPos := references.Position{
@@ -424,7 +431,7 @@ func (n *NPCAIControllerSmallMap) AdvanceNextTurnCalcAndMoveNPCsExcluding(exclud
 func (n *NPCAIControllerSmallMap) advanceNextTurnCalcAndMoveNPCs(excluded map_units.MapUnit) {
 	n.mapState.GetLayeredMapByCurrentLocation().ClearMapUnitTiles()
 	n.clearPendingNPCInteractions()
-	//n.updateAllNPCAiTypes()
+	// n.updateAllNPCAiTypes()
 	n.positionOccupiedChance = n.mapUnits.CreateFreshXyOccupiedMap()
 
 	for _, mapUnit := range n.mapUnits {
@@ -445,6 +452,7 @@ func (n *NPCAIControllerSmallMap) advanceNextTurnCalcAndMoveNPCs(excluded map_un
 	n.FreshenExistingNPCsOnMap()
 }
 
+// FreshenExistingNPCsOnMap updates visible NPC occupancy on the current layer.
 func (n *NPCAIControllerSmallMap) FreshenExistingNPCsOnMap() {
 	n.mapState.GetLayeredMapByCurrentLocation().ClearMapUnitTiles()
 	n.placeNPCsOnLayeredMap()
@@ -542,6 +550,32 @@ func (n *NPCAIControllerSmallMap) calculateNextNPCPosition(friendly *map_units.N
 
 		return
 	}
+	if n.followCurrentSchedulePath(friendly, refBehaviour) {
+		return
+	}
+
+	if friendly.Floor() != refBehaviour.Floor {
+		if friendly.Floor() == n.mapState.PlayerLocation.Floor {
+			n.performAiMovementFromCurrentFloorToDifferentFloor(friendly)
+		} else {
+			n.performAiMovementFromDifferentFloorToOurFloor(friendly)
+		}
+
+		return
+	}
+	if n.createFreshPathToScheduledLocation(friendly) && n.moveNPCOnCalculatedPath(friendly) {
+		return
+	}
+	if friendly.Floor() == n.mapState.PlayerLocation.Floor {
+		// REDUX DEVIATION: NPC-0002: original retries retain pause/shared-search
+		// budgets. Redux replans and attempts one bounded recovery step per turn.
+		n.randomStepOriginalForPurpose(friendly, refBehaviour.Position, 0, npcMovementSchedule)
+	}
+}
+
+func (n *NPCAIControllerSmallMap) followCurrentSchedulePath(
+	friendly *map_units.NPCFriendly, refBehaviour references.IndividualNPCBehaviour,
+) bool {
 	if friendly.Floor() == n.mapState.PlayerLocation.Floor && friendly.MapUnitDetails().HasAPathAlreadyCalculated() {
 		path := friendly.MapUnitDetails().CurrentPath
 		goal := path[len(path)-1]
@@ -558,32 +592,11 @@ func (n *NPCAIControllerSmallMap) calculateNextNPCPosition(friendly *map_units.N
 		if !validGoal {
 			friendly.MapUnitDetails().SetCurrentPath(nil)
 		} else if n.moveNPCOnCalculatedPath(friendly) {
-			return
+			return true
 		}
 	}
 
-	if friendly.Floor() != refBehaviour.Floor {
-		if friendly.Floor() == n.mapState.PlayerLocation.Floor { // the NPC is on the Avatar's current floor
-			n.performAiMovementFromCurrentFloorToDifferentFloor(friendly)
-
-			return
-		}
-		// the NPC is on another floor and needs to come to ours
-		n.performAiMovementFromDifferentFloorToOurFloor(friendly)
-
-		return
-	}
-
-	if n.createFreshPathToScheduledLocation(friendly) && n.moveNPCOnCalculatedPath(friendly) {
-		return
-	}
-	if friendly.Floor() == n.mapState.PlayerLocation.Floor {
-		// Original routing recovers blocked steps and failed path searches (ref:NPC-0002) with
-		// randstep(..., 0, ...), allowing opposing travellers to move aside.
-		// REDUX DEVIATION: Original retries use pause counters and a shared
-		// path-search budget. Redux replans each turn, then tries one recovery step.
-		n.randomStepOriginalForPurpose(friendly, refBehaviour.Position, 0, npcMovementSchedule)
-	}
+	return false
 }
 
 //nolint:cyclop // The source action switch is clearer as one literal dispatch table.
@@ -614,6 +627,8 @@ func (n *NPCAIControllerSmallMap) performOriginalScheduleAction(
 		} else {
 			n.randomStepOriginal(friendly, behavior.Position, originalWanderRadius)
 		}
+	case references.TalkAlways:
+		n.attractOriginal(friendly, references.TalkAlways)
 	case references.ExtortOrAttackOrFollow:
 		if n.manhattanDistance(friendly.Pos(), avatar) < originalPursuitRange {
 			n.attractOriginal(friendly, references.ExtortOrAttackOrFollow)
@@ -659,7 +674,7 @@ func (n *NPCAIControllerSmallMap) attractOriginal(friendly *map_units.NPCFriendl
 	avatar := n.mapState.PlayerLocation.Position
 	current := friendly.Pos()
 	currentDistance := n.manhattanDistance(current, avatar)
-	if currentDistance == 1 {
+	if currentDistance == 1 && action > references.ChildRunAway {
 		n.handleOriginalAdjacentAction(friendly, action)
 
 		return
@@ -673,7 +688,7 @@ func (n *NPCAIControllerSmallMap) attractOriginal(friendly *map_units.NPCFriendl
 
 	chosen := n.firstOriginalAttractionDestination(friendly, current, avatar, currentDistance)
 
-	if action == references.DrudgeWorthThing {
+	if action == references.TalkAlways || action == references.DrudgeWorthThing {
 		chosen = n.originalAttackVariation(friendly, current, chosen)
 	}
 
@@ -691,7 +706,7 @@ func (n *NPCAIControllerSmallMap) handleOriginalAdjacentAction(
 	case references.Unset:
 		panic("unset original adjacent NPC action")
 	case references.Fixed:
-	case references.Talk3:
+	case references.Talk3, references.TalkAlways:
 		if friendly.NPCReference.DialogNumber > 0 {
 			n.setPendingNPCInteraction(friendly, map_units.PendingNPCInteractionTalk)
 		}
@@ -919,7 +934,9 @@ func (n *NPCAIControllerSmallMap) performAiMovementFromDifferentFloorToOurFloor(
 }
 
 // performAiMovementFromCurrentFloorToDifferentFloor From OUR floor to DIFFERENT floor
-func (n *NPCAIControllerSmallMap) performAiMovementFromCurrentFloorToDifferentFloor(friendly *map_units.NPCFriendly) bool {
+func (n *NPCAIControllerSmallMap) performAiMovementFromCurrentFloorToDifferentFloor(
+	friendly *map_units.NPCFriendly,
+) bool {
 	// called if the NPC is currently on a different floor then the current floor
 	refBehaviour := friendly.GetIndividualBehaviourByUltimaData(*n.dateTime)
 
@@ -935,7 +952,7 @@ func (n *NPCAIControllerSmallMap) performAiMovementFromCurrentFloorToDifferentFl
 	}
 
 	// // current floor matters - if they are coming to your floor - then teleport them
-	closestLadderPos := n.slr.GetClosestLadder(refBehaviour.Position, friendly.Floor(), refBehaviour.Floor) // n.gameState.Floor)
+	closestLadderPos := n.slr.GetClosestLadder(refBehaviour.Position, friendly.Floor(), refBehaviour.Floor)
 	tile := n.mapState.GetLayeredMapByCurrentLocation().GetTopTile(&closestLadderPos)
 	if !tile.IsWalkingPassable() {
 		return false
@@ -955,6 +972,8 @@ func (n *NPCAIControllerSmallMap) performAiMovementOnAssignedPosition(friendly *
 	nWanderDistance := n.getWanderDistanceByAiType(refBehaviour.Ai)
 
 	switch refBehaviour.Ai {
+	case references.Unset:
+		panic("unset assigned NPC behavior")
 	case references.BlackthornGuardFixed, references.Fixed:
 	case references.MerchantBuyingSellingCustom, references.MerchantBuyingSellingWander, references.Wander:
 		n.wanderOneTileWithinN(friendly, refBehaviour.Position, nWanderDistance)
@@ -969,96 +988,87 @@ func (n *NPCAIControllerSmallMap) performAiMovementOnAssignedPosition(friendly *
 	case references.MerchantBuyingSelling:
 		// Merchants stay in place
 		return true
-	case references.ExtortOrAttackOrFollow, references.DrudgeWorthThing:
+	case references.TalkAlways, references.ExtortOrAttackOrFollow, references.DrudgeWorthThing:
 		n.performOriginalScheduleAction(friendly, refBehaviour)
 
 		return true
 	case references.FleeFromAvatar:
-		// Civilians flee from Avatar when guards are called (50% chance from CallGuards)
-		// Move away from Avatar using reverse greedy algorithm
-		avatarPos := n.mapState.PlayerLocation.Position
+		n.fleeCivilian(friendly)
 
-		// If far enough away (beyond 8 tiles), stop fleeing and stay put
-		if !friendly.PosPtr().IsWithinN(&avatarPos, 8) {
-			return true
-		}
-
-		// Move one tile away from Avatar (reverse greedy algorithm)
-		if n.moveOneTileAwayGreedy(friendly, avatarPos) {
-			return true
-		}
-
-		// If can't flee (blocked), stay put
 		return true
 	case references.StoneGargoyleTrigger:
 		// if they are within 4 then change their AI to Drudgeworth (follow)
 	case references.FixedExceptAttackWhenIsWantedByThePoPo:
 		// if avatar is a wanted man/woman - then follow and get close
-	case references.CustomAi, references.Begging, references.GenericExtortingGuard, references.HalfYourGoldExtortingGuard, references.SmallWanderWantsToChat:
-		// These NPCs want to approach Avatar for interaction (dialogue, begging, extortion)
-		// CustomAi (4) is used for guards in some locations like Minoc
-		// They wander normally, but show interest in getting close to Avatar
-		avatarPos := n.mapState.PlayerLocation.Position
-
-		// If already adjacent to Avatar, stay put and request Talk (orthogonal adjacency only).
-		if friendly.PosPtr().IsNextTo(avatarPos, friendly.Floor(), n.mapState.PlayerLocation.Floor) {
-			// Check if this is orthogonally adjacent (distance==1, not diagonal)
-			// Manhattan distance: |x1-x2| + |y1-y2|
-			dx := helpers.AbsInt(int(friendly.PosPtr().X - avatarPos.X))
-			dy := helpers.AbsInt(int(friendly.PosPtr().Y - avatarPos.Y))
-			manhattanDist := dx + dy
-
-			// Original approach dispatches adjacent contact for actions above 3; ref:NPC-0005.
-			if manhattanDist == 1 && friendly.NPCReference.DialogNumber > 0 {
-				n.setPendingNPCInteraction(friendly, map_units.PendingNPCInteractionTalk)
-			}
-
-			return true
-		}
-
-		// Clear pending interaction when not adjacent (prevents stale state).
-		friendly.MapUnitDetails().PendingInteraction = map_units.PendingNPCInteractionNone
-
-		// Actively approach the Avatar when in range; ref:NPC-0003.
-		// Original would move EVERY turn toward Avatar when in range, not probabilistically
-		// Uses simple greedy algorithm instead of A* for lightweight, natural movement
-		if friendly.PosPtr().IsWithinN(&avatarPos, 5) {
-			// Use greedy cardinal movement with a safe blocked fallback; ref:NPC-0003.
-			// This is lightweight and happens every turn, unlike expensive A* pathfinding
-			// Add random variation for AI types that support it (actions 5 and 7 in original)
-			addRandomVariation := (refBehaviour.Ai == references.GenericExtortingGuard ||
-				refBehaviour.Ai == references.HalfYourGoldExtortingGuard)
-
-			if n.moveOneTileCloserGreedy(friendly, avatarPos, addRandomVariation) {
-				return true
-			}
-			// If greedy movement fails (blocked), fall through to wandering
-		}
-
-		// Otherwise just wander normally around their anchor position
-		return n.wanderOneTileWithinN(friendly, refBehaviour.Position, nWanderDistance)
+	case references.CustomAi, references.Begging, references.GenericExtortingGuard,
+		references.HalfYourGoldExtortingGuard, references.SmallWanderWantsToChat:
+		return n.approachForInteraction(friendly, refBehaviour, nWanderDistance)
 	case references.FollowAroundAndBeAnnoyingThenNeverSeeAgain:
-		// Freed prisoners follow the Avatar around (matches original action=5 "follow" behavior)
 		avatarPos := n.mapState.PlayerLocation.Position
-
-		// If already adjacent to Avatar, stay put
-		if friendly.PosPtr().IsNextTo(avatarPos, friendly.Floor(), n.mapState.PlayerLocation.Floor) {
-			return true
+		if !friendly.PosPtr().IsNextTo(avatarPos, friendly.Floor(), n.mapState.PlayerLocation.Floor) {
+			n.moveOneTileCloserGreedy(friendly, avatarPos, true)
 		}
 
-		// Follow Avatar (no range limit - they keep following)
-		// Use greedy movement with random variation for natural movement
-		if n.moveOneTileCloserGreedy(friendly, avatarPos, true) {
-			return true
-		}
-
-		// If blocked, stay put
 		return true
 	default:
 		panic(fmt.Sprintf("unknown aiType %d", refBehaviour.Ai))
 	}
 
 	return false
+}
+
+func (n *NPCAIControllerSmallMap) fleeCivilian(friendly *map_units.NPCFriendly) {
+	avatar := n.mapState.PlayerLocation.Position
+	if friendly.PosPtr().IsWithinN(&avatar, civilianFleeRange) {
+		n.moveOneTileAwayGreedy(friendly, avatar)
+	}
+}
+
+func (n *NPCAIControllerSmallMap) approachForInteraction(
+	friendly *map_units.NPCFriendly, refBehaviour references.IndividualNPCBehaviour, nWanderDistance int,
+) bool {
+	// These NPCs want to approach Avatar for interaction (dialogue, begging, extortion)
+	// CustomAi (4) is used for guards in some locations like Minoc
+	// They wander normally, but show interest in getting close to Avatar
+	avatarPos := n.mapState.PlayerLocation.Position
+
+	// If already adjacent to Avatar, stay put and request Talk (orthogonal adjacency only).
+	if friendly.PosPtr().IsNextTo(avatarPos, friendly.Floor(), n.mapState.PlayerLocation.Floor) {
+		// Check if this is orthogonally adjacent (distance==1, not diagonal)
+		// Manhattan distance: |x1-x2| + |y1-y2|
+		dx := helpers.AbsInt(int(friendly.PosPtr().X - avatarPos.X))
+		dy := helpers.AbsInt(int(friendly.PosPtr().Y - avatarPos.Y))
+		manhattanDist := dx + dy
+
+		// Original approach dispatches adjacent contact for actions above 3; ref:NPC-0005.
+		if manhattanDist == 1 && friendly.NPCReference.DialogNumber > 0 {
+			n.setPendingNPCInteraction(friendly, map_units.PendingNPCInteractionTalk)
+		}
+
+		return true
+	}
+
+	// Clear pending interaction when not adjacent (prevents stale state).
+	friendly.MapUnitDetails().PendingInteraction = map_units.PendingNPCInteractionNone
+
+	// Actively approach the Avatar when in range; ref:NPC-0003.
+	// Original would move EVERY turn toward Avatar when in range, not probabilistically
+	// Uses simple greedy algorithm instead of A* for lightweight, natural movement
+	if friendly.PosPtr().IsWithinN(&avatarPos, interactionApproachRange) {
+		// Use greedy cardinal movement with a safe blocked fallback; ref:NPC-0003.
+		// This is lightweight and happens every turn, unlike expensive A* pathfinding
+		// Add random variation for AI types that support it (actions 5 and 7 in original)
+		addRandomVariation := (refBehaviour.Ai == references.GenericExtortingGuard ||
+			refBehaviour.Ai == references.HalfYourGoldExtortingGuard)
+
+		if n.moveOneTileCloserGreedy(friendly, avatarPos, addRandomVariation) {
+			return true
+		}
+		// If greedy movement fails (blocked), fall through to wandering
+	}
+
+	// Otherwise just wander normally around their anchor position
+	return n.wanderOneTileWithinN(friendly, refBehaviour.Position, nWanderDistance)
 }
 
 // setPendingNPCInteraction preserves one pending command and actor identity (ref:NPC-0005):
@@ -1159,7 +1169,9 @@ func (n *NPCAIControllerSmallMap) createFreshPathToScheduledLocation(friendly *m
 	return muDetails.HasAPathAlreadyCalculated()
 }
 
-func (n *NPCAIControllerSmallMap) wanderOneTileWithinN(friendly *map_units.NPCFriendly, anchorPos references.Position, withinN int) bool {
+func (n *NPCAIControllerSmallMap) wanderOneTileWithinN(
+	friendly *map_units.NPCFriendly, anchorPos references.Position, withinN int,
+) bool {
 	// Use deterministic RNG instead of time.Now() seeding
 
 	// Define possible moves: up, down, left, right
@@ -1208,7 +1220,9 @@ func (n *NPCAIControllerSmallMap) wanderOneTileWithinN(friendly *map_units.NPCFr
 // 4. Optional: 25% chance to pick a random valid direction instead (adds natural variation)
 //
 // Returns true if NPC moved, false if no valid move found.
-func (n *NPCAIControllerSmallMap) moveOneTileCloserGreedy(friendly *map_units.NPCFriendly, targetPos references.Position, addRandomVariation bool) bool {
+func (n *NPCAIControllerSmallMap) moveOneTileCloserGreedy(
+	friendly *map_units.NPCFriendly, targetPos references.Position, addRandomVariation bool,
+) bool {
 	muDetails := friendly.MapUnitDetails()
 	currentPos := muDetails.Position
 
@@ -1229,7 +1243,7 @@ func (n *NPCAIControllerSmallMap) moveOneTileCloserGreedy(friendly *map_units.NP
 		newPos    references.Position
 		newDist   int
 	}
-	validMoves := make([]validMove, 0, 4)
+	validMoves := make([]validMove, 0, len(originalNPCDirections))
 
 	for _, dir := range directions {
 		newPos := references.Position{
@@ -1262,10 +1276,10 @@ func (n *NPCAIControllerSmallMap) moveOneTileCloserGreedy(friendly *map_units.NP
 	// Original Ultima V behavior: 25% chance to move randomly among valid directions
 	// Actions 5 and 7 vary direction when an inclusive 0..63 draw is below 16; ref:NPC-0003.
 	var chosenMove validMove
-	if addRandomVariation && n.rngProvider.OneInXOdds(4) {
+	if addRandomVariation && n.rngProvider.OneInXOdds(variationOdds) {
 		// Pick random valid move (25% chance)
 		randomIndex := 0
-		for i := 0; i < len(validMoves) && n.rngProvider.OneInXOdds(2); i++ {
+		for i := 0; i < len(validMoves) && n.rngProvider.OneInXOdds(replacementOdds); i++ {
 			randomIndex = i
 		}
 		if randomIndex >= len(validMoves) {
@@ -1286,7 +1300,9 @@ func (n *NPCAIControllerSmallMap) moveOneTileCloserGreedy(friendly *map_units.NP
 // moveOneTileAwayGreedy moves an NPC one tile away from the target position (fleeing behavior).
 // This is the reverse of moveOneTileCloserGreedy - it selects moves that INCREASE distance.
 // Used for civilians fleeing from Avatar when guards are called.
-func (n *NPCAIControllerSmallMap) moveOneTileAwayGreedy(friendly *map_units.NPCFriendly, targetPos references.Position) bool {
+func (n *NPCAIControllerSmallMap) moveOneTileAwayGreedy(
+	friendly *map_units.NPCFriendly, targetPos references.Position,
+) bool {
 	muDetails := friendly.MapUnitDetails()
 	currentPos := muDetails.Position
 
@@ -1307,7 +1323,7 @@ func (n *NPCAIControllerSmallMap) moveOneTileAwayGreedy(friendly *map_units.NPCF
 		newPos    references.Position
 		newDist   int
 	}
-	validMoves := make([]validMove, 0, 4)
+	validMoves := make([]validMove, 0, len(originalNPCDirections))
 
 	for _, dir := range directions {
 		newPos := references.Position{
@@ -1354,16 +1370,19 @@ func (n *NPCAIControllerSmallMap) isPositionOccupiedOnFloor(
 }
 
 func (n *NPCAIControllerSmallMap) getWanderDistanceByAiType(aiType references.AiType) int {
+	//nolint:exhaustive // Only wandering behaviors receive a nonzero radius.
 	switch aiType {
 	case references.Wander:
-		return 2
-	case references.BigWander, references.BlackthornGuardWander, references.MerchantBuyingSellingCustom, references.MerchantBuyingSellingWander:
-		return 4
+		return smallWanderDistance
+	case references.BigWander, references.BlackthornGuardWander,
+		references.MerchantBuyingSellingCustom, references.MerchantBuyingSellingWander:
+		return largeWanderDistance
 	}
 
 	return 0
 }
 
+// RemoveAllEnemies leaves the authored small-map roster intact.
 func (n *NPCAIControllerSmallMap) RemoveAllEnemies() {
 	// noop
 }

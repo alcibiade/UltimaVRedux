@@ -77,7 +77,7 @@ func (g *GameState) ProcessWaterfallHazard(position *references.Position) {
 
 		func() {
 			// Guaranteed cleanup: ensure fade is cleared
-			//g.SystemCallbacks.Visual.SetMapFadeLevel(0.0)
+			// g.SystemCallbacks.Visual.SetMapFadeLevel(0.0)
 		}).
 		Start()
 }

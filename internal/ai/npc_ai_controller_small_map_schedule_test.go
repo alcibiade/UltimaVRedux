@@ -77,6 +77,27 @@ func TestOriginalWanderActionsUseGateDirectionAndManhattanAnchor(t *testing.T) {
 }
 
 func TestOriginalScheduleActionsUseSourceRangesAndRNG(t *testing.T) {
+	t.Run("Flee3 escapes while adjacent", func(t *testing.T) {
+		rng := &scriptedOriginalScheduleRNG{t: t, values: []int{1, 0}}
+		controller, npc, _ := newOriginalScheduleTestController(t, rng, references.ChildRunAway, references.Position{X: 10, Y: 10})
+		controller.mapState.PlayerLocation.Position = references.Position{X: 11, Y: 10}
+		controller.attractOriginal(npc, references.ChildRunAway)
+		assert.Equal(t, references.Position{X: 9, Y: 10}, npc.Pos())
+		assert.Equal(t, []originalScheduleRNGCall{{0, 1}, {0, 1}}, rng.calls)
+	})
+	t.Run("TalkAlways approaches outside anchor range then talks", func(t *testing.T) {
+		rng := &scriptedOriginalScheduleRNG{t: t, values: []int{63}}
+		controller, npc, _ := newOriginalScheduleTestController(t, rng, references.TalkAlways, references.Position{X: 10, Y: 10})
+		controller.mapState.PlayerLocation.Position = references.Position{X: 12, Y: 10}
+		npc.NPCReference.DialogNumber = 1
+		behavior := references.IndividualNPCBehaviour{Ai: references.TalkAlways, Position: references.Position{X: 1, Y: 1}}
+		controller.performOriginalScheduleAction(npc, behavior)
+		assert.Equal(t, references.Position{X: 11, Y: 10}, npc.Pos())
+		controller.performOriginalScheduleAction(npc, behavior)
+		assert.Equal(t, []originalScheduleRNGCall{{0, 63}}, rng.calls)
+		assert.Equal(t, map_units.PendingNPCInteractionTalk, npc.MapUnitDetails().PendingInteraction)
+		assert.True(t, references.AiType(references.TalkAlways).IsValid())
+	})
 	t.Run("Flee3 chooses among farther directions in source order", func(t *testing.T) {
 		rng := &scriptedOriginalScheduleRNG{t: t, values: []int{1, 0}}
 		controller, npc, _ := newOriginalScheduleTestController(t, rng, references.ChildRunAway, references.Position{X: 10, Y: 10})

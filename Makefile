@@ -88,10 +88,10 @@ lint-config-check: ## Verify the pinned linter schema and executable errcheck se
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-lint-config "$(GOLANGCI_LINT)"
 
 lint: lint-config-check ## Run golangci-lint using the repository configuration
-	@$(GOLANGCI_LINT) run $(LINT_PACKAGES)
+	@$(PYTHON) scripts/lint_gate.py --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
 
 lint-all: lint-config-check ## Report all configured lint findings without revision filtering or output caps
-	@$(GOLANGCI_LINT) run --new=false --new-from-rev= --new-from-patch= --new-from-merge-base= --max-issues-per-linter=0 --max-same-issues=0 --uniq-by-line=false $(LINT_PACKAGES)
+	@$(PYTHON) scripts/lint_gate.py --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
 
 core-dependencies-check: ## Reject transitive graphics/input dependencies in core code and tests
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-core-dependencies

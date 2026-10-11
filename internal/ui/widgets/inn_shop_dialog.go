@@ -735,7 +735,6 @@ func (d *InnShopDialog) reviewSelection() {
 	d.syncPresentation()
 }
 
-//nolint:cyclop // The three concrete action gates are clearer together than behind a generic merchant abstraction.
 func (d *InnShopDialog) selectedIntent() (InnActionIntent, string) {
 	monthlyRate, hasMonthlyRate := trustedInnMonthlyRate(d.state)
 	base := InnActionIntent{
@@ -946,7 +945,6 @@ func (d *InnShopDialog) configureColumns() {
 	}
 }
 
-//nolint:cyclop // Measurement covers two small fixed schemas without introducing a generic table model.
 func (d *InnShopDialog) configureMeasuredColumns() bool {
 	if d.rowFont == nil || d.tableBounds.Dx() <= 0 {
 		return false
@@ -1039,7 +1037,6 @@ func (d *InnShopDialog) drawRestCard(screen *ebiten.Image) {
 	)
 }
 
-//nolint:cyclop // Leave and Pick Up rows intentionally share one concrete measured table renderer.
 func (d *InnShopDialog) drawRosterTable(screen *ebiten.Image) {
 	d.drawCardFrame(screen, d.tableBounds)
 	headings := []string{innShopColumnName, innShopColumnStatus, "ELIGIBILITY"}
@@ -1579,7 +1576,6 @@ func validateInnLeaveRows(state game_state.InnShopState) {
 	}
 }
 
-//nolint:cyclop // Pickup identity, gate, and payment invariants form one atomic row contract.
 func validateInnGuestRows(state game_state.InnShopState) {
 	seen := make(map[game_state.InnCharacterIdentity]struct{}, len(state.GuestRows))
 	for _, row := range state.GuestRows {

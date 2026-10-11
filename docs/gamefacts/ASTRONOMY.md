@@ -85,7 +85,7 @@ so navigation information is reliable.
 **Kind:** rule
 **Uses:** SIGN-0007, TIME-0002
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Matches
 
 | Viewer | Original location gate | Time gate |
 | --- | --- | --- |
@@ -101,14 +101,14 @@ Poisoned member. This is not general validation of every selected character.
 Sextant output uses [Y-before-X nibble encoding](SIGNS_AND_FONTS.md#sign-0007).
 
 Redux preserves the reviewed normal hour/location gates and one-point sun damage,
-with command completion owned by the surrounding workflow. Its selected index
-is subject to current active-player cleanup; absent selection falls back to the
-first active **non-dead** member, which is broader than Good/Poisoned. The previous
-blanket sun-target Match claim therefore overstated unusual-status equivalence.
-The difference is recorded without inventing product intent. Flexible Sextant
+with command completion owned by the surrounding workflow. The damage selector
+preserves an explicit designation without invoking active-player cleanup; absent
+selection falls back to the first active Good/Poisoned member. Sleeping/charmed
+members cannot become fallback targets. Flexible Sextant
 policy is a separate deliberate choice below.
 
-**Implementation:** `cmd/ultimav/gamescene_astronomy.go`, `internal/game_state/action_use.go`, `internal/party_state/party_state.go`
+**Implementation:** `cmd/ultimav/gamescene_astronomy.go`, `internal/game_state/astronomy_target.go`, `internal/game_state/action_use.go`, `internal/party_state/party_state.go`
+**Tests:** `cmd/ultimav/gamescene_astronomy_use_test.go`, `internal/game_state/findings_closeout_test.go`
 
 ### ASTRO-0004
 
@@ -117,7 +117,7 @@ policy is a separate deliberate choice below.
 **Kind:** rule
 **Uses:** ASTRO-0005
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Intentional deviation
 
 Prepare a dark 11×11 original view with telescope artwork at bottom center.
 Plot 80 bright-blue stars, requesting coordinates with bounds 9–182 and 9–172:
@@ -133,11 +133,12 @@ Shadowlord a comet represents.
 
 Redux creates 80 stars from 160 controlled game-RNG calls once per dialog and
 retains that field across redraws. Reopening produces fresh deterministic fields.
-However, its bounds depend on dialog dimensions, it draws all planets before
+**REDUX DEVIATION: ASTRO-0004:** its bounds depend on dialog dimensions, it draws all planets before
 all comets and the telescope afterward, and its town projection supplies one
 entry per occupied town. Exact original coordinates, compositing, and unusual
 multiple-lord multiplicity are not established by the call count. These differences
-are explicit rather than a broad exact-rendering Match. The viewer adds no town,
+are explicit rather than a broad exact-rendering Match. Responsive bounds and
+layering fit the modern dialog rather than reproducing original pixels. The viewer adds no town,
 planet, or virtue identification labels.
 
 **Implementation:** `internal/ui/widgets/astronomy_dialog.go`, `internal/game_state/astronomy.go`

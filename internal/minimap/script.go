@@ -137,7 +137,6 @@ func validateScriptStep(step *ScriptStep, index int) error {
 	}
 }
 
-//nolint:cyclop // Validation mirrors the finite typed command set.
 func validateTileCommand(command *TileCommand, index int) error {
 	if command == nil {
 		return fmt.Errorf("%w: tile command step %d has no command", errInvalidScript, index)

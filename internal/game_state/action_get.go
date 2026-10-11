@@ -550,7 +550,7 @@ func (g *GameState) ActionGetLargeMap(direction references.Direction) bool {
 		// Getting a found moonstone (discovered via search)
 		return g.getMoonstoneFromPosition(getThingPos)
 
-		//case indexes.Crown, indexes.Sceptre, indexes.Amulet:
+		// case indexes.Crown, indexes.Sceptre, indexes.Amulet:
 		//	// Getting quest items (Crown, Sceptre, Amulet of Lord British)
 		//	return g.getQuestItem(getThingPos, getThingTile, mapLayers)
 

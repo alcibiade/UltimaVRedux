@@ -50,10 +50,10 @@ func getNPCsFromFile(path string, locationOffset int) ([]NPCReference, error) {
 	}
 
 	npcs := make([]NPCReference, 0)
-	for townIndex := 0; townIndex < townsPerNPCFile; townIndex++ {
+	for townIndex := range townsPerNPCFile {
 		townOffset := singleTownSize * townIndex
 		townRawData := npcRaw[townOffset : townOffset+singleTownSize]
-		for npcIndex := 0; npcIndex < npcsPerTown; npcIndex++ {
+		for npcIndex := range npcsPerTown {
 			npc := NPCReference{}
 			npc.Location = Location(locationOffset + townIndex + 1)
 			npc.Schedule = CreateNPCSchedule(townRawData[npcIndex*sizeOfNPCSchedule : (npcIndex*sizeOfNPCSchedule)+sizeOfNPCSchedule])

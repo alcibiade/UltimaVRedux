@@ -119,7 +119,7 @@ func (bf *BitmapFont) DrawChar(dst *ebiten.Image, charIndex int, x, y float64, s
 // Returns the total width of the drawn string.
 func (bf *BitmapFont) DrawString(dst *ebiten.Image, text string, x, y float64, scale float64, colorR, colorG, colorB float32) float64 {
 	currentX := x
-	for i := 0; i < len(text); i++ {
+	for i := range len(text) {
 		charIndex := int(text[i]) & references.SignCharIndexMask // Mask to 7 bits
 		width := bf.DrawChar(dst, charIndex, currentX, y, scale, colorR, colorG, colorB)
 		currentX += width

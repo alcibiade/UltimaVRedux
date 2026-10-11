@@ -74,6 +74,14 @@ The Britannian calendar uses 13 months, 28 days per month (364 days per year), 2
 
 Calendar consumers include NPC schedules, food checks, visibility, lighthouse behavior, moon phases, moongates, and date/time display.
 
+GameState applies temporal modifiers before normalizing to the calendar's
+maximum interval. Calendar, carried-light fuel, camp cooldown and returned elapsed
+minutes all use that same accepted duration. Positive requests replace the prior
+hour observation even under Time Stop; zero requests leave it alone. Player updates
+observe one current/previous-hour pair, never replay a backlog of elapsed hours.
+Rest can overwrite an unprocessed crossing; sailing interruption returns to command
+input without an extra update. See [PROV-0002](../gamefacts/PROVISIONS_CONSUMPTION.md#prov-0002).
+
 ## Action Costs
 
 Authentic action cost is a gameplay rule, not a property of `ElapsedMs`.
@@ -169,7 +177,7 @@ and may coalesce without changing gameplay.
 Normal surface completion advances the owning command's calendar minutes,
 runs one ordered player update, then the actor phase. That player update owns
 town wake checks before standing hazards, the Codex guardian and random Underworld
-earthquake on large maps, poison, crossed-hour food/starvation, durations,
+earthquake on large maps, poison, observed-hour food/starvation, durations,
 toggle items, the noncombat Regeneration Ring sweep, and party-wipe detection.
 Completed, rejected, and cancelled surface results enter this seam by default
 when `ConsumesNormalCycle` is true. Explicitly free, deferred, still-active, and

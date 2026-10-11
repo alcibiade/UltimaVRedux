@@ -308,6 +308,9 @@ func (g *GameState) unreadyAllCombatWeapons(weapon references.Equipment) {
 			}
 		}
 	})
+	// REDUX DEVIATION: EQUIP-0015: the original last-ammunition return has
+	// no local stack cap. Redux discards overflow above 99, retaining bounded
+	// inventory rather than spawning recoverable ground equipment.
 	g.PartyState.Inventory.Equipment.IncrementBy(weapon, count)
 }
 

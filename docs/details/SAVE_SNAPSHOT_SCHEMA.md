@@ -818,10 +818,14 @@ The following are not captured and make the active scene ineligible:
 - Tavern customer-session eligibility, visible topic input/transcript, approvals, receipts, and the meal table-food overlay.
 
 Initial save capture is rejected while unsupported transient contexts are active.
-Crossed provision hours are processed before self-contained time-cost workflows
-finish and when combat returns to exploration. Ordinary surface and dungeon
-cycles process them in their existing player-update phase; capture still rejects
-any backlog defensively.
+Deferred provision observations are processed before self-contained time-cost
+workflows finish and when combat returns to exploration. Ordinary surface and
+dungeon cycles observe them in their player-update phase; capture rejects an
+outstanding observation defensively. There is no elapsed-hour backlog. The existing
+`LastProcessedHour` runtime/snapshot field now records the hour observation replaced
+by each positive time request and by a completed player update. Its wire shape and
+accepted range are unchanged. A sailing interruption may leave that observation
+for the next command; it is not silently discarded just to permit a save.
 
 ### Exact Capture Eligibility
 

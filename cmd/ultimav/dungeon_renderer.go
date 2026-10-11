@@ -860,7 +860,7 @@ func (g *GameScene) drawDungeonViewport(screen *ebiten.Image) dungeonHUDStatus {
 	)
 	fit := dungeonCanvasAspectFit(viewport)
 	if g.dungeonDrawOptions == nil {
-		g.dungeonDrawOptions = &ebiten.DrawImageOptions{} //nolint:exhaustruct // Zero-value defaults are required.
+		g.dungeonDrawOptions = &ebiten.DrawImageOptions{}
 	}
 	g.dungeonDrawOptions.GeoM.Reset()
 	g.dungeonDrawOptions.GeoM.Scale(fit.scale, fit.scale)

@@ -38,7 +38,7 @@ entrance resolution is not independently established by the coordinate table.
 **Kind:** rule
 **Uses:** none
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Intentional deviation
 
 Original matching searches the complete expected canonical word/name/mantra
 inside the submitted response, case-insensitively. Partial canonical words do
@@ -48,9 +48,10 @@ matched length plus one, potentially missing overlapping candidate starts.
 Therefore not every arbitrary response containing the term must succeed, and no
 modern whitespace-normalization contract is established.
 
-Redux normalized substring helpers accept complete tokens but do not reproduce
-that skipped-overlap behavior. Preserve ordinary acceptance as a scoped agreement,
-not an exact all-input Match or a newly invented intentional product choice.
+**REDUX DEVIATION: WORD-0002:** Redux normalized substring helpers accept complete
+tokens without reproducing skipped overlaps. Predictable matching is deliberately
+retained rather than rejecting valid containing text because of a partial prefix.
+This is not exact all-input original equivalence.
 
 **Implementation:** `internal/game_state/shrine_data.go`
 

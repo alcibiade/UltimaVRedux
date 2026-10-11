@@ -219,6 +219,8 @@ func TestDoomMirrorProvisionDeathSuppressesFinaleHandoff(t *testing.T) {
 	state.PartyState.GetCharacter(actor.EntityIndex).SetHp(1)
 	state.PartyState.Inventory.Provisions.Food.Set(0)
 	state.pendingProvisionHours = []int{6}
+	state.DateTime.Hour = 6
+	state.lastProcessedHour = 5
 	deathSequences := 0
 	state.SystemCallbacks.Flow.Consequences.TriggerDeathSequence = func() { deathSequences++ }
 

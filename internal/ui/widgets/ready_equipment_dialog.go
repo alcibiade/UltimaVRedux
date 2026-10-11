@@ -354,7 +354,7 @@ func (d *ReadyEquipmentDialog) updateAvailableItems() {
 			savedIndex = len(d.availableItems) - 1
 		}
 		// Move to saved position
-		for i := 0; i < savedIndex; i++ {
+		for range savedIndex {
 			d.itemListNav.MoveDown()
 		}
 	}
@@ -543,6 +543,7 @@ func (d *ReadyEquipmentDialog) toggleEquipSelected() {
 	if err != nil {
 		d.warningMessage = err.Error()
 		d.updateAvailableItems()
+
 		return
 	}
 	transaction.Confirmed = &preview
@@ -1031,6 +1032,7 @@ func (d *ReadyEquipmentDialog) selectionGuidance() (string, string) {
 		if item.Preview.RequiresConfirmation() {
 			return "Review removed items before replacing", "Review replacement"
 		}
+
 		return "Ready to equip", "Equip"
 	case game_state.ReadyEquipmentUnready:
 		return "Ready to unready", "Unready"

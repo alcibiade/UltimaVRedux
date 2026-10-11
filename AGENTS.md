@@ -62,6 +62,12 @@ See [architecture](docs/ARCHITECTURE_GUIDELINES.md),
   [Development Guide](docs/DEVELOPMENT_GUIDE.md) and [Testing](docs/TESTING.md).
 - Maintain zero findings with the repository-pinned linter and meaningful
   regression coverage. Do not describe skipped data-dependent tests as acceptance.
+- When manually changing a source file, address all configured lint findings in
+  that file, including inherited findings hidden by the new-code cutoff. Run and
+  review repository-wide autofixes as a separate pass. Files touched only by
+  autofix are exempt from additional manual debt cleanup; do not expand manual
+  cleanup into otherwise untouched files. Preserve domain names and behavior when
+  reviewing automatic edits.
 - Keep docs self-contained and preserve durable contracts, explicit uncertainty,
   and stable rule references. Catalog every retained `docs/**/*.md` exactly once
   with its semantic domain owner and authority classification.

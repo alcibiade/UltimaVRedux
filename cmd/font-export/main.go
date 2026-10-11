@@ -110,7 +110,7 @@ func exportFont(inputPath, outputPath string) error {
 	img := image.NewRGBA(image.Rect(0, 0, sheetWidth, sheetHeight))
 
 	// Process each character
-	for charIndex := 0; charIndex < totalChars; charIndex++ {
+	for charIndex := range totalChars {
 		// Calculate position in sprite sheet
 		sheetX := (charIndex % charsPerRow) * charWidth
 		sheetY := (charIndex / charsPerRow) * charHeight
@@ -119,11 +119,11 @@ func exportFont(inputPath, outputPath string) error {
 		charOffset := charIndex * bytesPerChar
 
 		// Process each row of the character
-		for row := 0; row < charHeight; row++ {
+		for row := range charHeight {
 			rowByte := data[charOffset+row]
 
 			// Process each pixel in the row (bit 7 = leftmost, bit 0 = rightmost)
-			for col := 0; col < charWidth; col++ {
+			for col := range charWidth {
 				// Check if bit is set (MSB first)
 				bitMask := byte(1 << (msbBitPos - col))
 				pixelSet := (rowByte & bitMask) != 0
@@ -153,7 +153,7 @@ func exportFont(inputPath, outputPath string) error {
 	defer func() {
 		if closeErr := outFile.Close(); closeErr != nil {
 			// Log but don't override the main error
-			_, _ = fmt.Fprintf(os.Stderr, "Warning: error closing file: %v\n", closeErr) //nolint:forbidigo // CLI tool output
+			_, _ = fmt.Fprintf(os.Stderr, "Warning: error closing file: %v\n", closeErr)
 		}
 	}()
 

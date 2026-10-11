@@ -79,7 +79,7 @@ func (d *WordDict) ReplaceMerchantString(raw string) (string, error) {
 	var out bytes.Buffer
 	useWord := false
 
-	for i := 0; i < len(raw); i++ {
+	for i := range len(raw) {
 		currentChar := raw[i]
 
 		switch {

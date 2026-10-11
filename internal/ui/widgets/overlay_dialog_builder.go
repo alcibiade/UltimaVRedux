@@ -1,7 +1,6 @@
 package widgets
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/text"
@@ -276,8 +275,7 @@ func (b *OverlayDialogBuilder) validate() {
 	}
 
 	if len(missing) > 0 {
-		panic(fmt.Sprintf("OverlayDialog.Build(): missing required configuration:\n  - %s",
-			strings.Join(missing, "\n  - ")))
+		panic("OverlayDialog.Build(): missing required configuration:\n  - " + strings.Join(missing, "\n  - "))
 	}
 }
 

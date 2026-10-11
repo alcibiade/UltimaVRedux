@@ -34,7 +34,7 @@ location or proof of its access route. Reward stats/karma belong to KARMA-0009.
 **Kind:** rule
 **Uses:** SHRINE-0001, WORD-0002, KARMA-0009, KARMA-0010
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Intentional deviation
 
 Original virtue keys, by index, are **hone, comp, valo, just, sacr, hono, spir,
 humi**, not full names. Read up to 12 bytes for virtue and for each of three
@@ -45,8 +45,9 @@ Full mantras use the shared matcher qualifications in WORD-0002.
 If completion bit is clear, set active and assign/reassign quest. If complete
 but inactive, offer (KARMA-0010). If both set, clear active and reward (KARMA-0009).
 Redux preserves these main branches and four-letter virtue matching, but rejects
-wrong nonempty virtue before mantra entry: that existing discrepancy remains
-unresolved. Escape immediately cancels in Redux; original line editing clears
+wrong nonempty virtue before mantra entry. **REDUX DEVIATION: SHRINE-0002:** immediate
+rejection avoids asking for mantras after the visit has already failed.
+Escape immediately cancels in Redux; original line editing clears
 text then requires Return. Wrong nonempty mantras still collect three attempts.
 Unaffordable offerings repeat within the same visit without deduction.
 

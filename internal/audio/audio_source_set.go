@@ -29,7 +29,7 @@ func NewAudioSourceSet(audioContext *audio.Context, streams []io.ReadSeeker) (*A
 		if err != nil {
 			err = fmt.Errorf("creating audio source player %d: %w", i, err)
 			// Clean up any successfully created players
-			for j := 0; j < i; j++ {
+			for j := range i {
 				clips[j].PauseAndStopReading()
 			}
 

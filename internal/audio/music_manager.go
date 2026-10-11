@@ -49,6 +49,7 @@ func (mm *MusicManager) GetMusicForContext(context string) string {
 
 func musicForContext(assignments map[string]*string, context string) string {
 	cue, _ := resolveAudioAssignment(assignments, "context/"+context)
+
 	return strings.TrimPrefix(cue, "music/track/")
 }
 
