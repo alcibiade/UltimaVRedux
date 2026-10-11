@@ -4,9 +4,13 @@ A modern Go recreation of **Ultima V: Warriors of Destiny**, with enhanced
 presentation, quality-of-life improvements, and a developer Debug Workbench.
 Playing requires files from your own copy of the original game.
 
-> **Source-release preparation:** this checkout contains the complete application.
-> No source release or version tag has been published. Local source builds are
-> available; the versioned installation command below is a future release target.
+> **Development preview in preparation:** this checkout contains the application,
+> which is unfinished and has known limitations. No source release or version tag
+> has been published. Local source builds are available; the versioned installation
+> command below is a future release target.
+
+This is a free, non-commercial fan project. Project-authored source code remains
+MIT-licensed; bundled media has separate terms described in [Asset credits](ASSET_CREDITS.md).
 
 ## Installation
 
@@ -73,3 +77,7 @@ fonts, media, and fixtures retain their accompanying notices and applicable
 rights; their inclusion does not make all media MIT-licensed. The complete
 original Ultima V installation needed to play is externally supplied by the
 player. Original game material retains its existing rights.
+
+See [Asset credits and media terms](ASSET_CREDITS.md) for the music sources,
+font notices and individual sound-effect attribution, including non-commercial
+media licences and remaining provenance limitations.
