@@ -377,7 +377,7 @@ func TestFinaleActorDepartureFizzlesAtMoongate(t *testing.T) {
 func TestFinaleCertificateAcknowledgementReturnsToMainMenu(t *testing.T) {
 	scene := newLordBritishFinaleWorkflowTestScene(t, true)
 	driveLordBritishFinaleWorkflow(t, scene, ebiten.KeyY)
-	scene.keyboard = input.NewKeyboard(0)
+	scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false })
 	replacement := &playerSaveTestScene{configuration: scene.gameConfig}
 	game := NewGame(scene)
 	game.mainMenuSceneBuilder = func(configuration *config.UltimaVConfiguration) (Scene, error) {
@@ -450,9 +450,10 @@ func newLordBritishFinaleWorkflowTestScene(t *testing.T, hasBox bool) *GameScene
 	}
 	font, _ := newMainOutput(1280)
 	scene := &GameScene{ //nolint:exhaustruct // Focused production finale workflow fixture.
-		gameConfig:           state.GameConfig,
-		gameState:            state,
-		keyboard:             input.NewKeyboard(0),
+		gameConfig: state.GameConfig,
+		gameState:  state,
+		// Simulated prompt input must not mix with keys held on the host desktop.
+		keyboard:             input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false }),
 		ultimaFont:           font,
 		spriteSheet:          sharedPresentationTestSpriteSheet(),
 		activeEffectsOverlay: NewActiveEffectsOverlay(nil),
