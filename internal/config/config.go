@@ -334,7 +334,7 @@ func LoadUltimaVConfiguration(configFilePath, dataFilePath string) (*UltimaVConf
 
 // newUltimaVConfiguration is the internal constructor used by both public constructors
 //
-//nolint:mnd // Supported 16:9 resolutions are canonical configuration values.
+
 func newUltimaVConfiguration(
 	source *viper.Viper,
 	explicitDataPath string,
@@ -1015,7 +1015,7 @@ func (uc *UltimaVConfiguration) GetAllNpcFilePaths() []string {
 	}
 }
 
-//func (uc *UltimaVConfiguration) GetAllTalkFilePaths() []string {
+// func (uc *UltimaVConfiguration) GetAllTalkFilePaths() []string {
 //	return []string{
 //		path.Join(uc.SavedConfigData.DataFilePath, files.TOWNE_TLK),
 //		path.Join(uc.SavedConfigData.DataFilePath, files.DWELLING_TLK),

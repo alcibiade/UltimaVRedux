@@ -451,7 +451,6 @@ func emptyMapUnitSnapshot() save_snapshot.MapUnitSnapshot {
 	return unit
 }
 
-//nolint:cyclop // Vehicle tile families and payload rules form one source-backed classifier.
 func convertObjectVehicle(
 	record ObjectRecord,
 	path string,

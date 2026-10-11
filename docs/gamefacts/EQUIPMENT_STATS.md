@@ -135,7 +135,7 @@ comparison must retain this evidence gap rather than manufacture certainty.
 **Kind:** rule
 **Uses:** EQUIP-0010, EQUIP-0012
 **Original:** Established
-**Redux:** Unverified
+**Redux:** Intentional deviation
 
 Bow/Magic Bow consume one Arrow and Crossbow one Quarrel when a valid combatant
 occupies the initially aimed square, before hit testing and projectile travel.
@@ -146,9 +146,17 @@ Using the last ammunition unreadies the exact firing weapon type across the
 active party. Bow does not automatically unready Magic Bow or vice versa. This
 return-to-stock path does not apply the usual 99-cap helper.
 
+**REDUX DEVIATION: EQUIP-0015:** Redux keeps the ordinary 99-item inventory cap
+when those readied weapons return. Excess copies are discarded, not spawned as
+ground equipment. This preserves bounded inventory and avoids a new overflow
+pickup workflow; exact weapon-type unreadying is retained.
+
 Dagger, Spear, and Throwing Axe use the same initial-target gate. At distance one
 they consume no copy; beyond one they consume a carried spare, otherwise remove
 the readied copy. This is range-based commitment, not random recovery.
+
+**Implementation:** `internal/game_state/combat_ranged_attack.go`
+**Tests:** `internal/game_state/combat_ranged_attack_test.go`, `internal/game_state/findings_closeout_test.go`
 
 ### EQUIP-0016
 

@@ -750,7 +750,6 @@ func loadPatches(root string, expected []string) (map[string][]byte, error) {
 	return patches, nil
 }
 
-//nolint:cyclop // Staging and rollback form one atomic patch-root publication transaction.
 func publishPatches(root string, expected []string, patches map[string][]byte) (err error) {
 	parent := filepath.Dir(root)
 	if err := os.MkdirAll(parent, projectDirectory); err != nil {

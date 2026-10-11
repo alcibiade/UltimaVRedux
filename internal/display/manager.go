@@ -349,7 +349,7 @@ func (dm *DisplayManager) InitializeMode(mode config.Mode, width, height int) er
 
 // RequestMode requests a validated mode transition and normal window size.
 //
-//nolint:cyclop // Keeping each OS transition together makes restore and size capture auditable.
+
 func (dm *DisplayManager) RequestMode(mode config.Mode, width, height int) error {
 	if err := validateModeRequest(mode, width, height); err != nil {
 		return err

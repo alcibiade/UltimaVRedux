@@ -399,7 +399,7 @@ func (h *EnvironmentalHazards) ApplySkillBasedDamage(party *party_state.PartySta
 			maxSingleDamage = damage
 		}
 		injuredMembers = append(injuredMembers, index)
-		result.HazardResult.Affected = append(result.HazardResult.Affected, index)
+		result.Affected = append(result.Affected, index)
 		result.AllSuccessful = false
 
 		// Update status if character dies
@@ -412,7 +412,7 @@ func (h *EnvironmentalHazards) ApplySkillBasedDamage(party *party_state.PartySta
 	result.TotalDamage = totalDamage
 	result.MaxSingleDamage = maxSingleDamage
 	result.InjuredMembers = injuredMembers
-	result.HazardResult.DamageDealt = totalDamage
+	result.DamageDealt = totalDamage
 
 	// Note: Audio and visual effects are NOT applied here
 	// The calling code (ActionKlimbLargeMap) handles sophisticated graduated effects

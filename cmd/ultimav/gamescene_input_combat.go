@@ -1016,6 +1016,7 @@ func (g *GameScene) combatMapOpenSecondary(direction references.Direction) bool 
 				LootReveal: game_state.CombatLootReveal{},
 			})
 		}
+
 		return false
 	}
 

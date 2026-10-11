@@ -31,3 +31,21 @@ func TestNPCScheduleDesiredSlotAndMerchantParity(t *testing.T) {
 		}
 	}
 }
+
+func TestNPCScheduleUnsignedMarkersKeepFirstTie(t *testing.T) {
+	for _, test := range []struct {
+		markers [4]byte
+		hour    byte
+		want    NPCScheduleSlot
+	}{
+		{[4]byte{6, 6, 18, 0}, 7, 0},
+		{[4]byte{0, 0, 0, 0}, 23, 0},
+		{[4]byte{18, 6, 12, 0}, 7, 1},
+		{[4]byte{255, 12, 18, 0}, 0, 1},
+	} {
+		schedule := NPCSchedule{Time: test.markers}
+		if got := schedule.DesiredSlot(datetime.UltimaDate{Hour: test.hour}); got != test.want {
+			t.Errorf("markers %v hour %d: got %d want %d", test.markers, test.hour, got, test.want)
+		}
+	}
+}

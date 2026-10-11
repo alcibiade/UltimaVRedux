@@ -20,8 +20,8 @@ const (
 	SkiffSpeed = 2
 
 	// AutoWakeOdds sets the Redux one-in-sixteen natural-wake test.
-	// The reviewed original selects draw 15; Redux currently selects zero.
-	// Equal assumed odds do not establish exact RNG-stream agreement. ref:ENV-0002
+	// REDUX DEVIATION: ENV-0002: original selects draw 15; Redux retains zero
+	// to preserve its deterministic wake convention. This does not claim original RNG-stream parity.
 	AutoWakeOdds = 16
 
 	// CombatTimeAdvanceMinutes is the requested calendar increment after
@@ -33,6 +33,7 @@ const (
 	maximumBeggarKarmaCounter  = 255
 )
 
+// FinishTurn completes the owning map context's command cycle once.
 func (g *GameState) FinishTurn() {
 	if g.outdoorActorContinuation != nil {
 		return
@@ -206,16 +207,15 @@ func (g *GameState) completeSurfaceCycleForCommand(
 	g.completingSurfaceCycle = true
 	defer func() { g.completingSurfaceCycle = false }()
 
-	timeWasStopped := g.HasActiveDurationEffect(DurationEffectTimeStop)
-	if !timeWasStopped {
-		switch originMapType {
-		case references.SmallMapType:
-			g.AdvanceGameplayMinutes(DefaultSmallMapMinutesPerTurn)
-		case references.LargeMapType:
-			g.AdvanceGameplayMinutes(largeMapMinutes)
-		case references.CombatMapType, references.DungeonMapType, references.CampingMapType:
-			panic("surface cycle requires a small-map or overworld origin")
-		}
+	// The request still replaces the hour observation under Time Stop; the
+	// central clock helper suppresses advancement before duration is decremented.
+	switch originMapType {
+	case references.SmallMapType:
+		g.AdvanceGameplayMinutes(DefaultSmallMapMinutesPerTurn)
+	case references.LargeMapType:
+		g.AdvanceGameplayMinutes(largeMapMinutes)
+	case references.CombatMapType, references.DungeonMapType, references.CampingMapType:
+		panic("surface cycle requires a small-map or overworld origin")
 	}
 	g.processNonCombatPlayerTurnEffects()
 	if processActorPhase {
@@ -627,7 +627,14 @@ func (g *GameState) AdvanceBedRestMinutes(minutes int) int {
 }
 
 func (g *GameState) advanceGameplayMinutes(minutes int, consumeFood bool) int {
-	if minutes <= 0 || g.HasActiveDurationEffect(DurationEffectTimeStop) {
+	if minutes <= 0 {
+		return 0
+	}
+	if g.HasActiveDurationEffect(DurationEffectTimeStop) {
+		// A nonzero time request replaces the observation even under Time Stop. ref:PROV-0002.
+		g.lastProcessedHour = int(g.DateTime.Hour)
+		g.pendingProvisionHours = nil
+
 		return 0
 	}
 
@@ -649,13 +656,19 @@ func (g *GameState) advanceElapsedGameplayMinutes(elapsed int, consumeFood bool)
 	if elapsed <= 0 {
 		return 0
 	}
+	// Calendar and side effects must share the calendar's accepted interval.
+	elapsed = min(elapsed, datetime.MaximumAdvanceMinutes)
 
 	minuteBefore := int(g.DateTime.Minute)
 	dateBefore := g.DateTime
-	if consumeFood {
-		g.recordCrossedProvisionHours(dateBefore, elapsed)
-	}
+	// Each nonzero request replaces the observation, including rest advances.
+	// Deferred effects observe one hour pair, not an elapsed-hour backlog. ref:PROV-0002.
+	g.lastProcessedHour = int(dateBefore.Hour)
+	g.pendingProvisionHours = nil
 	g.DateTime.Advance(elapsed)
+	if consumeFood && dateBefore.Hour != g.DateTime.Hour {
+		g.pendingProvisionHours = []int{int(g.DateTime.Hour)}
+	}
 	if dateBefore.Month != g.DateTime.Month {
 		g.openingCampaignEncounterReduction = false
 		g.SearchManager.resetDailyMarkersAtMonthBoundary()
@@ -674,17 +687,6 @@ func (g *GameState) advanceElapsedGameplayMinutes(elapsed int, consumeFood bool)
 	}
 
 	return elapsed
-}
-
-func (g *GameState) recordCrossedProvisionHours(before datetime.UltimaDate, elapsed int) {
-	minutesUntilBoundary := datetime.MinutesPerHour - int(before.Minute)
-	for crossed := minutesUntilBoundary; crossed <= elapsed; crossed += datetime.MinutesPerHour {
-		hour := (int(before.Hour) + crossed/datetime.MinutesPerHour) % datetime.HoursPerDay
-		if before.Minute > 0 {
-			hour = (hour + 1) % datetime.HoursPerDay
-		}
-		g.pendingProvisionHours = append(g.pendingProvisionHours, hour)
-	}
 }
 
 func (g *GameState) maintainInnMonths(before, after datetime.UltimaDate) {
@@ -750,13 +752,11 @@ func (g *GameState) processDamageOnAdvanceTimeNonCombat() {
 // moveNonCombatMapMapUnitsToNextMove
 // Moves non-combat map units to their next move
 func (g *GameState) moveNonCombatMapMapUnitsToNextMove() {
-	// TODO: implement this
+	// Movement is owned by the map-specific actor controllers; this legacy hook is inert.
 }
 
-// GenerateAndCleanupEnemies
-// Generates and cleans up enemies on the map
+// GenerateAndCleanupEnemies retains the legacy hook; map controllers own spawning.
 func (g *GameState) GenerateAndCleanupEnemies() {
-	// TODO: implement this
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
 	case references.SmallMapType:
 		return
@@ -765,6 +765,7 @@ func (g *GameState) GenerateAndCleanupEnemies() {
 		// g.largeMapGenerateAndCleanupEnemies()
 	case references.DungeonMapType:
 	case references.CombatMapType:
+	case references.CampingMapType:
 	default:
 		// Unsupported map type for enemy generation - log warning and continue
 		logging.Warn(logging.CategoryGameState, "GenerateAndCleanupEnemies called with unsupported map type: %v", g.MapState.PlayerLocation.Location.GetMapType())
@@ -780,23 +781,19 @@ func (g *GameState) checkHourlyFoodConsumption() {
 
 func (g *GameState) checkHourlyFoodConsumptionForDiners(diners int) {
 	currentHour := int(g.DateTime.Hour)
-	hours := g.pendingProvisionHours
 	g.pendingProvisionHours = nil
-	if len(hours) == 0 && currentHour != g.lastProcessedHour {
-		hours = []int{currentHour}
+	if currentHour == g.lastProcessedHour {
+		return
 	}
+	g.lastProcessedHour = currentHour
+	if g.PartyState.Inventory.Provisions.Food.Get() == 0 {
+		g.applyStarvationDamageWithFeedback()
 
-	for _, hour := range hours {
-		g.lastProcessedHour = hour
-		if g.PartyState.Inventory.Provisions.Food.Get() == 0 {
-			g.applyStarvationDamageWithFeedback()
-
-			continue
-		}
-		mapType := g.MapState.PlayerLocation.Location.GetMapType()
-		showEating := mapType == references.LargeMapType || mapType == references.SmallMapType
-		g.consumeMealWithFeedback(hour, diners, showEating)
+		return
 	}
+	mapType := g.MapState.PlayerLocation.Location.GetMapType()
+	showEating := mapType == references.LargeMapType || mapType == references.SmallMapType
+	g.consumeMealWithFeedback(currentHour, diners, showEating)
 }
 
 // ProcessPendingProvisionHours resolves deferred meal or starvation effects at

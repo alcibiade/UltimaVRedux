@@ -121,7 +121,7 @@ func loadLargeMapFromFile(world World, gameConfig *config.UltimaVConfiguration) 
 	chunkCount := 0
 
 	// Process each chunk
-	for chunk := 0; chunk < totalChunks; chunk++ {
+	for chunk := range totalChunks {
 		// Calculate the chunk column and row
 		col := chunk % tilesPerChunkX
 		row := chunk / tilesPerChunkY

@@ -342,11 +342,12 @@ func TestResolveSailingCollisionKeepsPositionAndPierSafe(t *testing.T) {
 			assert.Equal(t, test.wantHit, result.HasHit)
 			assert.Equal(t, origin, state.MapState.PlayerLocation.Position)
 			assert.False(t, state.IsSailing())
-			assert.Equal(t, map_units.SailFurled, state.PartyVehicle.GetVehicleDetails().SailState)
 			if test.wantHit {
+				assert.Equal(t, map_units.SailRaised, state.PartyVehicle.GetVehicleDetails().SailState)
 				assert.Equal(t, uint64(1), state.GetRNG().Calls())
 				assert.Positive(t, state.PartyVehicle.GetVehicleDetails().GetHullHP())
 			} else {
+				assert.Equal(t, map_units.SailFurled, state.PartyVehicle.GetVehicleDetails().SailState)
 				assert.Zero(t, state.GetRNG().Calls())
 				assert.Equal(t, 99, state.PartyVehicle.GetVehicleDetails().GetHullHP())
 			}

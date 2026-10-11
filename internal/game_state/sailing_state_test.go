@@ -215,20 +215,26 @@ func TestCompleteAutomaticSailingWaitAdvancesTimeAndWorldActorsOnly(t *testing.T
 		"source waits do not run ordinary player-turn effects")
 }
 
-func TestCompleteAutomaticSailingInterruptionDrainsPendingProvisionHours(t *testing.T) {
+func TestCompleteAutomaticSailingInterruptionLeavesObservationForNextCommand(t *testing.T) {
 	state, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.BritanniaUnderworld).
 		WithSystemCallbacks().
 		Build()
 	state.isSailing = true
-	state.pendingProvisionHours = []int{6}
+	state.DateTime.Hour, state.DateTime.Minute = 5, 59
+	state.AdvanceGameplayMinutes(1)
 	foodBefore := state.PartyState.Inventory.Provisions.Food.Get()
 
 	state.CompleteAutomaticSailingInterruption()
 
 	assert.False(t, state.IsSailing())
+	assert.Equal(t, []int{6}, state.pendingProvisionHours)
+	assert.Equal(t, foodBefore, state.PartyState.Inventory.Provisions.Food.Get())
+	state.AdvanceGameplayMinutes(2)
+	state.checkHourlyFoodConsumption()
 	assert.Empty(t, state.pendingProvisionHours)
-	assert.Less(t, state.PartyState.Inventory.Provisions.Food.Get(), foodBefore)
+	assert.Equal(t, foodBefore, state.PartyState.Inventory.Provisions.Food.Get(),
+		"a following same-hour command replaces the interrupted crossing")
 }
 
 func TestCompleteAutomaticSailingWaitWithHMSCapeUsesOneMinuteAndAlternatingActors(t *testing.T) {

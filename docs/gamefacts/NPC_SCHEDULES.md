@@ -13,7 +13,7 @@ in this documentation staging repository.
 **Kind:** rule
 **Uses:** none
 **Original:** Established
-**Redux:** Known discrepancy
+**Redux:** Matches
 
 A schedule occupies 16 bytes: three action bytes, three X bytes, three Y bytes,
 three floor bytes, then four hour markers. The fourth marker selects destination
@@ -29,12 +29,10 @@ Unsigned subtraction and first-index tie retention matter. With markers
 18–23 slot 2. All-zero markers select slot 0. This is byte arithmetic, not
 subtraction modulo 24, even though ordinary hour inputs describe a day.
 
-Redux preserves the layout and standard example, but selects through ordered
-branches. For raw markers `6,6,18,0` at hour 7, original differences are
-`1,1,245,7`, selecting slot 0, whereas Redux's middle interval selects slot 1.
-Whether installed NPC data exercises this duplicate-marker case is unverified.
-Other unsorted/invalid-byte equivalence is likewise not established; this is a
-known algorithmic discrepancy, not an approved intentional schedule change.
+Redux selects the minimum unsigned-byte difference and retains the first tie.
+For markers `6,6,18,0` at hour 7, differences are `1,1,245,7`, selecting slot 0.
+Regression cases include duplicate, all-zero and unsorted markers. This establishes
+algorithm behavior without claiming every exceptional marker occurs in installed data.
 
 **Implementation:** `internal/references/npc_schedule.go`
 **Tests:** `internal/references/npc_schedule_test.go`
@@ -85,7 +83,7 @@ floor guards reaching their shift destinations without a reload.
 **Kind:** rule
 **Uses:** RNG-0001, NPC-0001
 **Original:** Incomplete
-**Redux:** Known discrepancy
+**Redux:** Intentional deviation
 
 Distances below are Manhattan tile distances. The action belongs to the selected
 schedule slot; being combat-capable does not make a fixed or talking actor hostile.
@@ -116,17 +114,15 @@ the first alternative needs no replacement draw, later alternatives do.
 
 The original fallback beyond those four candidates reads outside its four-entry
 distance array. Outcomes on a blocked/no-improvement path are therefore not a
-determinate greedy algorithm. Redux safely stays or selects a checked alternative;
-do not describe that as matching undefined execution. Its settled-action switch
-also lacks action 5 and reaches the unknown-action panic. Whether provisioned
-authored actors use that action remains unverified, rather than proving it absent.
-Another bounded mismatch is action 3 at distance one: original adjacency dispatch
-applies only to actions above 3, so fleeing still considers escape steps. Redux
-returns through its adjacency handler before reaching flee, leaving that actor
-stationary even when a legal distance-increasing step exists. This is not an
-established intentional deviation.
+determinate greedy algorithm. **REDUX DEVIATION: NPC-0003:** Redux safely stays or
+selects a checked alternative rather than reproducing an out-of-bounds fallback.
+This keeps movement deterministic and within legal terrain/occupancy constraints.
+Redux supports action 5's ungated approach, variation and adjacent Talk dispatch.
+Action 3 still attempts escape when adjacent; adjacency dispatch applies only to
+actions above 3. The native save override enumeration remains frozen: action 5 is
+supported through authored schedules, not newly admitted as a saved AI override.
 
-**Implementation:** `internal/ai/npc_ai_controller_small_map.go`
+**Implementation:** `internal/ai/npc_ai_controller_small_map.go`, `internal/references/npc_ai.go`, `internal/save_snapshot/validation.go`
 **Tests:** `internal/ai/npc_ai_controller_small_map_schedule_test.go`
 
 ### NPC-0004

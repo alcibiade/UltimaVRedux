@@ -65,6 +65,7 @@ func (g *GameState) CastAnSanct(pos *references.Position) AnSanctResult {
 	// See ref:SPELL-0001.
 	if chest := g.surfaceChestAt(pos); chest != nil {
 		chest.UnlockSurfaceChest()
+
 		return AnSanctChestDisarmed
 	}
 

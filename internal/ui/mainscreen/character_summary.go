@@ -292,6 +292,7 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 
 		if character.PartyMap != party_state.PartyMapActive {
 			c.portraits[i].dispose()
+
 			continue
 		}
 

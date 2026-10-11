@@ -258,6 +258,7 @@ func (d *QuestJournalDialog) footerGuidance() string {
 	if pages := d.GetDetailPageCount(); pages > 1 {
 		paging = fmt.Sprintf("[Space] Detail %d/%d  ", d.detailPage+1, pages)
 	}
+
 	return "[Up/Dn] Select  [Shift+Up/Dn] List page  [/] Search  " +
 		"[Tab/Shift-Tab] Tab  " + paging + "[Esc/Shift-J] Close"
 }

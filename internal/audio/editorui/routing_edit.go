@@ -221,15 +221,16 @@ func (m *model) applyRoutingChoice(identity string) tea.Cmd {
 		}
 	default:
 		kind, target, _ := strings.Cut(menu.target, "|")
-		if kind == routingEmitter {
+		switch kind {
+		case routingEmitter:
 			routing.Emitters[target] = identity
-		} else if kind == routingNaval {
+		case routingNaval:
 			if identity == routingNone {
 				routing.Naval[target] = nil
 			} else {
 				routing.Naval[target] = &identity
 			}
-		} else {
+		default:
 			assignments := routing.Music
 			if kind == routingDungeon {
 				assignments = routing.Dungeon

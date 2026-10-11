@@ -31,7 +31,7 @@ type ShrineData struct {
 
 // allShrines contains data for all 8 virtue shrines
 // Index 6 (Spirituality) is accessed via moongate at midnight, not by walking
-var allShrines = [8]ShrineData{
+var allShrines = [8]ShrineData{ //nolint:gochecknoglobals // Immutable indexed shrine reference data.
 	{0, "Honesty", "hone", "ahm", "FALLAX", 0, 0, 1, 0xE9, 0x42, "the failing of Dishonesty!"},
 	{1, "Compassion", "comp", "mu", "VILIS", 0, 1, 0, 0x80, 0x5C, "of the heart of a cruel soul!"},
 	{2, "Valour", "valo", "ra", "INOPIA", 1, 0, 0, 0x24, 0xE5, "the failing of a life without Valour!"},
@@ -44,7 +44,7 @@ var allShrines = [8]ShrineData{
 
 // shrineAnswerText contains Codex answers for each shrine quest (MSG 8-15 from MISCMSG.DAT)
 // These are philosophical wisdom messages about each virtue, NOT map coordinates.
-var shrineAnswerText = [8]string{
+var shrineAnswerText = [8]string{ //nolint:gochecknoglobals // Immutable Codex text indexed by virtue.
 	"A dishonest life brings\nunto thee temporary gain, but forsakes\nthe permanent.",
 	// REDUX DEVIATION: MISCMSG.DAT SHRINE_MSG_9 (1273) hard-wraps this sentence;
 	// let the wider Codex dialog wrap naturally while preserving every word.
@@ -59,7 +59,7 @@ var shrineAnswerText = [8]string{
 
 // CodexRevelationMessages supplies the final revelation after all eight
 // shrine quests, directing the party toward Doom. ref:SHRINE-0003
-var CodexRevelationMessages = [5]string{
+var CodexRevelationMessages = [5]string{ //nolint:gochecknoglobals // Immutable ordered revelation text.
 	"A STRANGE WIND CAUSES THE PAGE TO TURN!",
 	"BEYOND SHAME'S\nEGRESS IN THE\nCENTRE OF THE\nUNDERWORLD THERE\nIS A PLACE OF\nDARKNESS.",
 	"BEYOND THIS\nDARKNESS LIES\nTHE GATE TO THE\nCORE OF THE\nWORLD.",
@@ -138,6 +138,8 @@ func GetShrineForWord(word string) int {
 
 // GetShrineForWordResponse returns the first shrine whose complete canonical
 // Word is contained in a normalized response.
+// REDUX DEVIATION: WORD-0002: original matching can skip overlapping starts.
+// Redux retains normalized substring matching for predictable accepted input.
 func GetShrineForWordResponse(response string) int {
 	normalized := strings.ToUpper(strings.TrimSpace(response))
 	if normalized == "" {
@@ -162,7 +164,7 @@ func GetShrineData(index int) *ShrineData {
 }
 
 // ValidateVirtue checks if input contains the virtue key (case-insensitive)
-// Uses partial string matching as in original game (canonical-token substring search function)
+// Uses the deliberately modernized substring matching described in ref:WORD-0002.
 // See ref:SHRINE-0002.
 func ValidateVirtue(input string, virtueKey string) bool {
 	return strings.Contains(
@@ -181,7 +183,7 @@ func ValidateRestorationVirtue(input string, virtueName string) bool {
 }
 
 // ValidateMantra checks if input contains the mantra (case-insensitive)
-// Uses partial string matching as in original game
+// Uses the deliberately modernized substring matching described in ref:WORD-0002.
 func ValidateMantra(input string, mantra string) bool {
 	return strings.Contains(
 		strings.ToLower(strings.TrimSpace(input)),

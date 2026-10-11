@@ -1,7 +1,7 @@
 package input
 
 import (
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -83,7 +83,7 @@ func (k *Keyboard) TryToRegisterKeyPress(key ebiten.Key) bool {
 
 	nowMilli := time.Now().UnixMilli()
 
-	//if k.forceRegisterNextKeyPressed {
+	// if k.forceRegisterNextKeyPressed {
 	//	k.forceRegisterNextKeyPressed = false
 	//	k.lastKeyPressed = key
 	//	k.timeOfLastKeyPress = nowMilli
@@ -254,17 +254,17 @@ func (k *Keyboard) GetKeyLetter(key ebiten.Key) string {
 		return key.String()
 	}
 	if keyInt >= int(ebiten.Key0) && keyInt <= int(ebiten.Key9) {
-		res := fmt.Sprintf("%d", keyInt-int(ebiten.Key0))
+		res := strconv.Itoa(keyInt - int(ebiten.Key0))
 
 		return res
 	}
 	if keyInt >= int(ebiten.KeyDigit0) && keyInt <= int(ebiten.KeyDigit9) {
-		res := fmt.Sprintf("%d", keyInt-int(ebiten.KeyDigit0))
+		res := strconv.Itoa(keyInt - int(ebiten.KeyDigit0))
 
 		return res
 	}
 	if keyInt >= int(ebiten.KeyNumpad0) && keyInt <= int(ebiten.KeyNumpad9) {
-		res := fmt.Sprintf("%d", keyInt-int(ebiten.KeyNumpad0))
+		res := strconv.Itoa(keyInt - int(ebiten.KeyNumpad0))
 
 		return res
 	}

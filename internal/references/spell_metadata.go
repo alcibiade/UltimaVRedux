@@ -1,5 +1,7 @@
 package references
 
+import "strings"
+
 // spell_metadata.go - Spell targeting, context restrictions, and descriptions
 // Original spell context permissions; ref:SPELL-0002.
 
@@ -157,9 +159,11 @@ func (c SpellContext) String() string {
 	}
 
 	result := contexts[0]
+	var resultSb160 strings.Builder
 	for i := 1; i < len(contexts); i++ {
-		result += ", " + contexts[i]
+		resultSb160.WriteString(", " + contexts[i])
 	}
+	result += resultSb160.String()
 
 	return result
 }
@@ -293,7 +297,7 @@ func IsSpellValidInContext(spell Spell, context SpellContext) bool {
 // GetSpellsByContext returns all spells valid in the given context.
 func GetSpellsByContext(context SpellContext) []Spell {
 	var spells []Spell
-	for i := 0; i < TotalSpellCount; i++ {
+	for i := range TotalSpellCount {
 		if spellMetadata[i].Context.HasContext(context) {
 			spells = append(spells, Spell(i))
 		}
@@ -325,7 +329,7 @@ func GetSpellsByCircle(circle int) []Spell {
 // GetSpellsByTargeting returns all spells with the specified targeting type.
 func GetSpellsByTargeting(targeting TargetingType) []Spell {
 	var spells []Spell
-	for i := 0; i < TotalSpellCount; i++ {
+	for i := range TotalSpellCount {
 		if spellMetadata[i].Targeting == targeting {
 			spells = append(spells, Spell(i))
 		}

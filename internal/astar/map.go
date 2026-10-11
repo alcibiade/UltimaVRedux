@@ -168,7 +168,7 @@ func (m *Map) InitializeByLayeredMap(
 			}
 		}
 	}
-	for i := 0; i < len(extraBlockTiles); i++ {
+	for i := range extraBlockTiles {
 		m.walkableMap[extraBlockTiles[i]] = -1
 	}
 }
@@ -240,7 +240,7 @@ func (m *Map) InitializeByLayeredMapWithLimit(
 			}
 		}
 	}
-	for i := 0; i < len(extraBlockTiles); i++ {
+	for i := range extraBlockTiles {
 		m.walkableMap[extraBlockTiles[i]] = -1
 	}
 }

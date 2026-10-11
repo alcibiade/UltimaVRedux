@@ -182,9 +182,11 @@ func (o *Output) DrawScrollingBufferWithHeight(screen *ebiten.Image, point image
 			line := o.lines[(i+o.nextLineToIndex)%o.maxLines]
 			var lineText string
 			if len(line.Segments) > 0 {
+				var lineTextSb185 strings.Builder
 				for _, seg := range line.Segments {
-					lineText += seg.Text
+					lineTextSb185.WriteString(seg.Text)
 				}
+				lineText += lineTextSb185.String()
 				lineText = "[styled] " + lineText
 			} else {
 				lineText = line.Text

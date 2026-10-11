@@ -271,7 +271,6 @@ type introNarrativeLineLayout struct {
 	drawHyphen bool
 }
 
-//nolint:cyclop // Mirrors the original proportional-font wrap and discretionary-hyphen algorithm.
 func introNarrativeLine(
 	text string,
 	start, initialWidth, maxWidth int,

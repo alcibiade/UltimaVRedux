@@ -22,6 +22,23 @@ func TestTelescopeDaytimeUsesSourceBoundaries(t *testing.T) {
 	}
 }
 
+func TestFindingsTelescopeFallbackSkipsSleepingAndCharmedMembers(t *testing.T) {
+	for _, status := range []party_state.CharacterStatus{party_state.Sleep, party_state.Charmed} {
+		state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.Britain).
+			WithRandomSeed(443).WithSystemCallbacks().Build()
+		state.DateTime.Hour = 6
+		state.PartyState.GetCharacter(0).SetStatus(status)
+		state.PartyState.GetCharacter(1).SetStatus(party_state.Good)
+		hp0 := state.PartyState.GetCharacter(0).GetCurrentHp()
+		hp1 := state.PartyState.GetCharacter(1).GetCurrentHp()
+		scene := newSurfaceCompletionTestScene(state)
+		scene.ShowTelescopeInteraction()
+		drainNamedSurfaceUseWorkflow(t, scene, "telescope_workflow")
+		assert.Equal(t, hp0, state.PartyState.GetCharacter(0).GetCurrentHp())
+		assert.Equal(t, hp1-1, state.PartyState.GetCharacter(1).GetCurrentHp())
+	}
+}
+
 func TestTownTelescopeLookCompletesCommandExactlyOnce(t *testing.T) {
 	state, callbacks := game_state.NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).

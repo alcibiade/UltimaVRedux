@@ -2,7 +2,6 @@ package game_state
 
 import (
 	"errors"
-	"fmt"
 	"image/color"
 
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
@@ -970,7 +969,7 @@ func NewSystemCallbacks(
 		return nil, errors.New("MessageCallbacks.AddRowStr is required")
 	}
 	if message.AppendToCurrentRowStr == nil {
-		return nil, fmt.Errorf("MessageCallbacks.AppendToCurrentRowStr is required")
+		return nil, errors.New("MessageCallbacks.AppendToCurrentRowStr is required")
 	}
 	audio.validate()
 	if visual.PlayKapowAtPosition == nil {
@@ -983,10 +982,10 @@ func NewSystemCallbacks(
 		return nil, errStatsDisplayCallbackRequired
 	}
 	if uiCallbacks.ShowYellDialogLargeMap == nil {
-		return nil, fmt.Errorf("UICallbacks.ShowYellDialogLargeMap is required")
+		return nil, errors.New("UICallbacks.ShowYellDialogLargeMap is required")
 	}
 	if uiCallbacks.ShowTimedOverlayMessage == nil {
-		return nil, fmt.Errorf("UICallbacks.ShowTimedOverlayMessage is required")
+		return nil, errors.New("UICallbacks.ShowTimedOverlayMessage is required")
 	}
 	if uiCallbacks.ShowActionFeedback == nil {
 		return nil, errUICallbackRequired

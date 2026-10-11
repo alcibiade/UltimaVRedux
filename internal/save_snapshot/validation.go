@@ -331,7 +331,9 @@ func validateAIOverrideProvenance(
 	}
 
 	aiType := references.AiType(unit.OverriddenAI)
-	if !aiType.IsValid() {
+	// Action 5 is supported in authored schedules, not in this frozen native
+	// override enumeration. Loading the authored schedule requires no wire change.
+	if !aiType.IsValid() || aiType == references.TalkAlways {
 		add(path+".overriddenAi", "unsupported", "overridden AI type is unsupported")
 
 		return

@@ -8,10 +8,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
-// astronomyDialog holds the current astronomy display dialog, if any.
-// Set when viewing telescope/spyglass, cleared on dismissal.
-var astronomyDialog *widgets.AstronomyDialog
-
 // ShowTelescopeInteraction is the SystemCallbacks wrapper that initiates telescope viewing.
 // Called from GameState when player looks at a telescope tile.
 func (g *GameScene) ShowTelescopeInteraction() {
@@ -31,6 +27,7 @@ func (g *GameScene) StartTelescopeWorkflow() {
 }
 
 func (g *GameScene) startTelescopeWorkflow(advanceTime bool) {
+	var astronomyDialog *widgets.AstronomyDialog
 	g.gameState.EventQueueManager.Workflow("telescope_workflow").
 		Priority(event_queue.PriorityNormal).
 		Sequential().BlockInput().
@@ -44,7 +41,7 @@ func (g *GameScene) startTelescopeWorkflow(advanceTime bool) {
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the night sky!", false)
 				}).ThenSequence(
 
-					g.thenShowAstronomyDialog())
+					g.thenShowAstronomyDialog(&astronomyDialog))
 			} else {
 				q.Then(func() {
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the sun!", false)
@@ -75,15 +72,19 @@ func isTelescopeDaytime(hour uint8) bool {
 }
 
 // thenShowAstronomyDialog returns an event queue modifier that shows the astronomy dialog.
-func (g *GameScene) thenShowAstronomyDialog() func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+func (g *GameScene) thenShowAstronomyDialog(
+	dialog **widgets.AstronomyDialog,
+) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		return q.
 			Then(func() {
 				// Get Shadowlord planet indices
 				shadowlordPlanets := g.gameState.GetShadowlordPlanetIndices()
 
-				// Create astronomy dialog with current game date for planet positions
-				astronomyDialog = widgets.NewAstronomyDialog(widgets.AstronomyDialogConfig{
+				// REDUX DEVIATION: ASTRO-0004: original uses fixed star bounds and
+				// interleaved planet/comet drawing. Redux retains responsive modern
+				// dialog geometry and layering for readable presentation.
+				*dialog = widgets.NewAstronomyDialog(widgets.AstronomyDialogConfig{
 					Placement:               centeredGameDialogPercents,
 					Keyboard:                g.keyboard,
 					SpriteSheet:             g.spriteSheet,
@@ -94,10 +95,10 @@ func (g *GameScene) thenShowAstronomyDialog() func(*event_queue.SequentialEventB
 					RandomIntInRange:        g.gameState.RandomIntInRange,
 				})
 
-				g.dialogStack.PushModalDialog(astronomyDialog)
+				g.dialogStack.PushModalDialog(*dialog)
 			}).
 			While(
-				func() bool { return !astronomyDialog.IsDismissed() },
+				func() bool { return !(*dialog).IsDismissed() },
 				func() {}, // Empty action - just polling
 				16,        // ~60fps poll rate
 			).
@@ -109,10 +110,7 @@ func (g *GameScene) thenShowAstronomyDialog() func(*event_queue.SequentialEventB
 
 // thenApplySunDamage returns an event queue modifier that applies sun damage.
 func (g *GameScene) thenApplySunDamage() func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	targetIndex := g.gameState.GetActivePlayerIndex()
-	if targetIndex < 0 {
-		targetIndex = g.gameState.PartyState.GetFirstLivingMemberIndex()
-	}
+	targetIndex := g.gameState.TelescopeSunDamageTarget()
 
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		if targetIndex < 0 {
@@ -142,6 +140,7 @@ func (g *GameScene) StartSpyglassWorkflow() {
 }
 
 func (g *GameScene) startSpyglassWorkflow(complete func()) {
+	var astronomyDialog *widgets.AstronomyDialog
 	// Check inventory
 	spyglassQuantity := g.gameState.PartyState.Inventory.QuestItems.GetQuantity(references.Spyglass)
 	if spyglassQuantity == nil || !(*spyglassQuantity).HasSome() {
@@ -176,7 +175,7 @@ func (g *GameScene) startSpyglassWorkflow(complete func()) {
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the night sky!", false)
 				}).ThenSequence(
 
-					g.thenShowAstronomyDialog())
+					g.thenShowAstronomyDialog(&astronomyDialog))
 			} else {
 				q.Then(func() {
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("No stars!", false)

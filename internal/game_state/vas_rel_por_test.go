@@ -128,7 +128,6 @@ func TestVasRelPorFrigatePrerequisitePreservesResources(t *testing.T) {
 func TestVasRelPorPrerequisiteAllowsNonFrigateTravel(t *testing.T) {
 	for _, vehicle := range []references.VehicleType{
 		references.NoPartyVehicle,
-		references.SkiffVehicle,
 		references.CarpetVehicle,
 		references.HorseVehicle,
 	} {

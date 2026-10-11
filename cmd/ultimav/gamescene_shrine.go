@@ -116,7 +116,7 @@ func (g *GameScene) buildShrineWorkflow(q *event_queue.SequentialEventBuilder, s
 		g.thenRunMiniMapScript(walkInScript)).
 		Then(func() {
 			g.gameState.SystemCallbacks.Message.AddRowStr(
-				fmt.Sprintf("Enter the shrine of\n%s", shrineData.VirtueName))
+				"Enter the shrine of\n" + shrineData.VirtueName)
 			transcript.AppendLine("Enter the shrine of " + shrineData.VirtueName + ".")
 			transcript.AppendLine("What virtue dost thou meditate upon?")
 			g.dialogStack.PushModalDialog(transcript)
@@ -137,6 +137,8 @@ func (g *GameScene) buildShrineWorkflow(q *event_queue.SequentialEventBuilder, s
 
 		func() bool { return !meditationCancelled && !virtueValid },
 		func(q *event_queue.SequentialEventBuilder) {
+			// REDUX DEVIATION: SHRINE-0002: original asks for all mantras after
+			// a wrong nonempty virtue. Redux rejects immediately to avoid futile prompts.
 			q.Then(func() {
 				g.gameState.SystemCallbacks.Message.AddRowStr("Thy thoughts are unfocused.")
 				transcript.AppendLine("Thy thoughts are unfocused.")

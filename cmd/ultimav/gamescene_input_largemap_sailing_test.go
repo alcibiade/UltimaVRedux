@@ -212,8 +212,8 @@ func TestAutomaticSailingStopInputDoesNotFurl(t *testing.T) {
 		assert.Contains(t, fixture.callbacks.Messages, "Sheets in irons!")
 		assert.Equal(t, map_units.SailRaised, fixture.state.PartyVehicle.GetVehicleDetails().SailState)
 		assert.True(t, fixture.scene.keyboard.IsWaitingForRelease(), "Space is consumed by sailing")
-		assert.Equal(t, 4, fixture.state.ActiveDurationEffect.TurnsRemaining,
-			"input interruption closes with one player-update phase")
+		assert.Equal(t, 5, fixture.state.ActiveDurationEffect.TurnsRemaining,
+			"input interruption returns to dispatch without a player-update phase")
 	})
 
 	t.Run("other command interrupts and remains processable", func(t *testing.T) {
@@ -250,10 +250,10 @@ func TestAutomaticSailingMovementOutcomesRemainCallerOwned(t *testing.T) {
 		assert.Equal(t, before, fixture.state.MapState.PlayerLocation.Position)
 		assert.Empty(t, fixture.callbacks.TimeAdvanced(), "blocked sailing does not complete a movement cycle")
 		assert.Less(t, fixture.state.PartyVehicle.GetVehicleDetails().GetHullHP(), 99)
-		assert.Equal(t, map_units.SailFurled, fixture.state.PartyVehicle.GetVehicleDetails().SailState)
+		assert.Equal(t, map_units.SailRaised, fixture.state.PartyVehicle.GetVehicleDetails().SailState)
 	})
 
-	t.Run("collision after wait drains crossed provision hour", func(t *testing.T) {
+	t.Run("later sailing wait replaces earlier provision crossing", func(t *testing.T) {
 		fixture := newAutomaticSailingWorkflowFixture(t, environment.North)
 		fixture.state.DebugOptions.FreeMove = false
 		fixture.state.DateTime.Hour, fixture.state.DateTime.Minute = 5, 59
@@ -273,7 +273,7 @@ func TestAutomaticSailingMovementOutcomesRemainCallerOwned(t *testing.T) {
 
 		assert.False(t, fixture.state.IsSailing())
 		assert.Equal(t, before, fixture.state.MapState.PlayerLocation.Position)
-		assert.Less(t, fixture.state.PartyState.Inventory.Provisions.Food.Get(), foodBefore)
+		assert.Equal(t, foodBefore, fixture.state.PartyState.Inventory.Provisions.Food.Get())
 		require.NoError(t, fixture.state.ValidateSaveSnapshotEligibility())
 	})
 

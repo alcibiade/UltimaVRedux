@@ -85,7 +85,7 @@ func NewHealerTreatmentDialog(config HealerTreatmentDialogConfig) *HealerTreatme
 
 // Draw renders the nested approval modal.
 //
-//nolint:dupl // Concrete merchant modals intentionally retain independent presentation contracts.
+
 func (d *HealerTreatmentDialog) Draw(screen *ebiten.Image) {
 	if screen == nil || d.dismissed {
 		return

@@ -43,8 +43,8 @@ var sourceMissilePassage = [32]byte{ //nolint:gochecknoglobals // Immutable sour
 // See ref:KARMA-0004.
 const (
 	// smallMapCannonRange is the maximum firing range for town cannons
-	// Original: for k=0; k<5; k++
-	smallMapCannonRange = 5
+	// Four positions beyond the muzzle are searched. ref:KARMA-0004.
+	smallMapCannonRange = 4
 
 	// cannonNPCKarmaPenalty is karma lost when killing NPC with cannon
 	// Original: karma -= 5
@@ -55,7 +55,7 @@ const (
 // Original Ultima V: original command rules town cannon fire
 // - Auto-detects adjacent cannon tile (no direction input needed)
 // - Cannon direction determined by sprite variant
-// - Range: 5 tiles, stops at first door or NPC
+// - Range: 4 tiles beyond the cannon
 // - Door hit: destroyed, replaced with floor
 // - NPC hit: killed, -5 karma, guards activated
 // See ref:KARMA-0004.
@@ -122,7 +122,7 @@ func (g *GameState) findAdjacentCannon() (*references.Position, references.Direc
 func (g *GameState) findSmallMapCannonTarget(
 	cannonPos references.Position,
 	fireDir references.Direction,
-) (targetPos references.Position, hitDoor bool, hitNPC *map_units.MapUnit) {
+) (references.Position, bool, *map_units.MapUnit) {
 	layeredMap := g.GetLayeredMapByCurrentLocation()
 	npcs := g.CurrentNPCAIController.GetNpcs()
 	currentPos := cannonPos
@@ -135,10 +135,20 @@ func (g *GameState) findSmallMapCannonTarget(
 		if tile != nil && tile.Index.IsDoor() {
 			return *nextPos, true, nil
 		}
+		// REDUX DEVIATION: KARMA-0004: original town fire can remove a selected
+		// target after a blocked missile. Redux stops at blocking terrain so
+		// cannon fire cannot kill occupants through walls.
+		if tile == nil || !sourceMissilePasses(tile.Index) {
+			return *nextPos, false, nil
+		}
 
 		// Check for NPC at this position
 		mapUnit := npcs.GetMapUnitAtPositionAndFloorOrNil(*nextPos, g.MapState.PlayerLocation.Floor)
 		if mapUnit != nil {
+			if !smallMapCannonCanRemove(*mapUnit) {
+				return *nextPos, false, nil
+			}
+
 			return *nextPos, false, mapUnit
 		}
 
@@ -149,12 +159,28 @@ func (g *GameState) findSmallMapCannonTarget(
 	return currentPos, false, nil
 }
 
+func smallMapCannonCanRemove(unit map_units.MapUnit) bool {
+	// REDUX DEVIATION: KARMA-0004: the inspected original town-cannon
+	// Shadowlord exclusion is ineffective. Redux protects Shadowlords from
+	// ordinary cannon removal so their quest defeat remains authoritative.
+	switch target := unit.(type) {
+	case *map_units.NPCEnemy:
+		return target.Variant() != map_units.EnemyVariantShadowlord
+	case *map_units.NPCFriendly:
+		monster, _ := target.NPCReference.SmallMapCombatMonsterType()
+
+		return monster != references.MonsterShadowlord
+	default:
+		return true
+	}
+}
+
 // StartSmallMapCannonFireWorkflow creates the event queue for small map cannon fire.
 // Sequence: sound → projectile animation → kapow → effect (door destroy/NPC kill)
 // See ref:KARMA-0004.
 func (g *GameState) StartSmallMapCannonFireWorkflow(
 	cannonPos, targetPos references.Position,
-	fireDir references.Direction,
+	_ references.Direction,
 	hitDoor bool,
 	hitNPC *map_units.MapUnit,
 ) {
@@ -187,7 +213,15 @@ func (g *GameState) StartSmallMapCannonFireWorkflow(
 			}
 
 			if hitNPC != nil {
-				g.CurrentNPCAIController.GetNpcs().RemoveNPCAtPosition(targetPos)
+				if !smallMapCannonCanRemove(*hitNPC) {
+					return
+				}
+				removed := g.CurrentNPCAIController.GetNpcs().RemoveNPCAtPositionAndFloor(
+					targetPos, g.MapState.PlayerLocation.Floor,
+				)
+				if !removed {
+					return
+				}
 
 				g.AdjustPartyKarma(-cannonNPCKarmaPenalty)
 
@@ -457,17 +491,15 @@ func (g *GameState) StartShipCannonFireWorkflow(result ShipCannonResult) {
 		Start()
 }
 
-func (g *GameState) ActionFireCombatMap(direction references.Direction) bool {
-	// TODO: Implement combat map Fire command - see Commands.md Fire (Cannons) section
-	// Combat map variant - tactical cannon use
+// ActionFireCombatMap rejects Fire during combat, as required by the command context.
+func (g *GameState) ActionFireCombatMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("What?")
 
 	return false
 }
 
-func (g *GameState) ActionFireDungeonMap(direction references.Direction) bool {
-	// TODO: Implement dungeon map Fire command - see Commands.md Fire (Cannons) section
-	// Dungeon map variant - likely not applicable
+// ActionFireDungeonMap rejects Fire in dungeon corridors.
+func (g *GameState) ActionFireDungeonMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("What?")
 
 	return false

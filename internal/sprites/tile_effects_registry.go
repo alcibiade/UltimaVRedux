@@ -39,7 +39,7 @@ var TileEffectRegistry = map[indexes.SpriteIndex]TileEffectPipeline{
 		Build(),
 
 	indexes.Brazier: Effect().
-		//WithBackground(indexes.MetalFloor).
+		// WithBackground(indexes.MetalFloor).
 		WithBounds(3, 0, 11, 6).
 		AddVerticalRise(FilterFire).
 		Build(),

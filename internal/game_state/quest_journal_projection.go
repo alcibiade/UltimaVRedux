@@ -69,6 +69,7 @@ func (g *GameState) projectKnowledgeNote(subject string) (string, string) {
 			if g.CodexRevelationComplete {
 				return "Codex revelation: VERAMOCOR", codexRevelationText
 			}
+
 			return "Word of Power: VERAMOCOR", "The Codex revealed VERAMOCOR to unlock the gate."
 		}
 

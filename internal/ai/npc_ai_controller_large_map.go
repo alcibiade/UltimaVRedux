@@ -328,7 +328,7 @@ func (m *NPCAIControllerLargeMap) moveRandomDirection(mapUnit map_units.MapUnit)
 	allDirections := mapUnit.PosPtr().GetFourDirectionsWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
 
 	// Try up to 3 random directions like the original
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		direction := m.randomIntInRange(0, maxCardinalDirectionIndex)
 		newPos := allDirections[direction]
 		enemy, ok := mapUnit.(*map_units.NPCEnemy)
@@ -361,10 +361,10 @@ func (m *NPCAIControllerLargeMap) generateTileBasedMonster() {
 		if m.oneInXOdds(coinFlipOdds) { // do deltaY
 			//nolint:gosec // G115: Viewport dimensions are bounded during initialization.
 			deltaY = references.Coordinate(m.pickOneOf(yDistanceAway, -yDistanceAway))
-			//nolint:gosec // G115: Viewport dimensions are bounded during initialization.
+
 			deltaX = m.randomSignedAxisDistance(minimumMonsterSpawnAxisDistance, xDistanceAway)
 		} else { // do deltaX
-			//nolint:gosec // G115: Viewport dimensions are bounded during initialization.
+
 			deltaY = m.randomSignedAxisDistance(minimumMonsterSpawnAxisDistance, yDistanceAway)
 			//nolint:gosec // G115: Viewport dimensions are bounded during initialization.
 			deltaX = references.Coordinate(m.pickOneOf(xDistanceAway, -xDistanceAway))

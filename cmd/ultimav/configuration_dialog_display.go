@@ -187,7 +187,6 @@ func (d *ConfigurationDialog) updateDisplayConfirmationInput() {
 	}
 }
 
-//nolint:cyclop // One-key dispatch is intentionally explicit for the keyboard-only contract.
 func (d *ConfigurationDialog) updateDisplayTab() {
 	boundKeys := []ebiten.Key{
 		ebiten.KeyEscape,
@@ -219,7 +218,6 @@ func (d *ConfigurationDialog) updateDisplayTab() {
 	}
 }
 
-//nolint:cyclop // Mode and size cycling share the same bounded selector semantics.
 func (d *ConfigurationDialog) adjustFocusedDisplaySetting(delta int) {
 	d.displayRollbackRetry = false
 	switch d.focusedDisplayIndex {

@@ -204,8 +204,8 @@ func (g *GameState) FloodFloorWithLava() {
 	currentMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, g.MapState.PlayerLocation.Floor)
 
 	// Fill all 32-by-32 current-floor terrain cells with lava. ref:ENV-0002
-	for x := 0; x < 32; x++ {
-		for y := 0; y < 32; y++ {
+	for x := range 32 {
+		for y := range 32 {
 			pos := &references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}
 			currentMap.SetTileByLayer(map_state.MapLayer, pos, indexes.Lava)
 		}

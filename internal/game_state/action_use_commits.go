@@ -347,6 +347,10 @@ func (g *GameState) CommitPotionEffect(outcome *PotionUseOutcome, targetIndex in
 			return PotionEffectNoNotice
 		}
 		if g.CastCombatSanctLor(targetIndex) {
+			// Black replaces the base appearance, unlike Sanct Lor's rendered-shape
+			// change. It therefore ends Purple's standing-poison protection. ref:COMBAT-0007.
+			g.CombatScene.TurnQueue.GetEntryByIdentity(outcome.combatIdentity).ratAppearance = false
+
 			return PotionEffectInvisible
 		}
 	case references.White:

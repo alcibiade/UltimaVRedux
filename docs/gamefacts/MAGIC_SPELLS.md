@@ -202,9 +202,9 @@ still use stored DEX. Forecasts must not consume RNG.
 Prepared An Tym's original absorption scan tests each of the 32 object tiles for
 exact base Shadowlord tile 0xFC, not the complete four-frame family 0xFC–0xFF and
 not a separate living-species test. Redux instead checks authoritative Shadowlord
-presence and active living Shadowlord combat species. Frame-sensitive equivalence
-is therefore not established by the general presence wording; this difference is
-not given an invented intentional-deviation rationale.
+presence and active living Shadowlord combat species. **REDUX DEVIATION: SPELL-0004:**
+identity-based absorption is deliberately retained so presentation variants cannot
+bypass a living Shadowlord's absorption; frame-sensitive equivalence is not claimed.
 
 Redux keeps Crown competing with the five duration spells, but Badge and Amulet
 are independent. Applying a spell removes Crown; donning Crown clears the spell.
@@ -251,10 +251,10 @@ Floor changes reject Doom; original boundary/failure reporting need not agree
 with the physical transition. Redux validates implicit dungeon targets and floor
 changes before payment and reports failure atomically.
 
-Vas Rel Por's original ship-shaped high-nibble gate includes skiffs. Redux's
-prerequisite rejects only frigates and explicitly permits skiffs in its tests.
-That is a known discrepancy, not an established intentional deviation; no new
-rationale is inferred from the implementation's frigate-only comment.
+Vas Rel Por's original ship-shaped high-nibble gate includes skiffs. Redux rejects
+both frigates and skiffs before destination selection, retaining the independently
+documented atomic prerequisite/resource commitment policy. Rejection spends no
+prepared spell, mana, or time through the prerequisite check.
 
 Resurrection applies the shared sequence in CONSUME-0004, including karma-scaled
 XP before level/max-HP recalculation. Original effect routines have differing

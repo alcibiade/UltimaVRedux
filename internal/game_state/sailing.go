@@ -64,11 +64,10 @@ func (g *GameState) StopAutomaticSailing() {
 	g.isSailing = false
 }
 
-// CompleteAutomaticSailingInterruption closes a player-requested sailing stop
-// at the original player-update boundary without adding another time phase.
+// CompleteAutomaticSailingInterruption returns to command input without an extra
+// player update. The next command owns provision and duration effects. ref:PROV-0002.
 func (g *GameState) CompleteAutomaticSailingInterruption() {
 	g.StopAutomaticSailing()
-	g.processNonCombatPlayerTurnEffects()
 }
 
 // AutomaticSailingWaitPhases returns the source n%3 wait threshold. Calm has no
@@ -100,10 +99,7 @@ func (g *GameState) CompleteAutomaticSailingWait() {
 		processWorldActors = !g.hmsCapeAutomaticWaitActorSkip
 	}
 
-	timeWasStopped := g.HasActiveDurationEffect(DurationEffectTimeStop)
-	if !timeWasStopped {
-		g.AdvanceGameplayMinutes(minutes)
-	}
+	g.AdvanceGameplayMinutes(minutes)
 	if processWorldActors {
 		g.processNonCombatWorldActorPhase()
 	}

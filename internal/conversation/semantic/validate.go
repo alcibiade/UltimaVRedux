@@ -157,7 +157,6 @@ func normalizeKeyword(keyword string) string {
 	return strings.ToLower(strings.Join(strings.Fields(keyword), " "))
 }
 
-//nolint:cyclop // The loop directly implements the small stable-ID character grammar.
 func isStableID(identifier string) bool {
 	var suffix string
 	switch {
@@ -357,7 +356,6 @@ func isKnownKnowledgeID(identifier KnowledgeID) bool {
 	}
 }
 
-//nolint:cyclop // The switch exhaustively validates the closed condition union.
 func (context *validationContext) validateBranch(branch *BranchAction, path string) {
 	conditionPath := fieldPath(path, "condition")
 	switch condition := branch.Condition.(type) {
@@ -389,7 +387,6 @@ func (context *validationContext) validateBranch(branch *BranchAction, path stri
 	}
 }
 
-//nolint:cyclop // The switch exhaustively validates the closed inline-part union.
 func (context *validationContext) validateRichText(text RichText, path string, oneParagraph bool) {
 	if len(text) == 0 {
 		context.add(path, "rich text must contain at least one inline part")
@@ -423,7 +420,6 @@ func (context *validationContext) validateRichText(text RichText, path string, o
 	}
 }
 
-//nolint:cyclop // This is a small state machine for substitution braces.
 func (context *validationContext) validateText(text, path string, oneParagraph bool) {
 	if text == "" {
 		context.add(path, "text must not be empty")

@@ -104,11 +104,11 @@ func (s *LocationReferences) addLocation(location Location, bHasBasement bool, n
 			// Fill remaining space in the 32x32 array with default tiles to prevent crashes
 			// when accessing positions outside the 8x8 dungeon area
 			for x := int(XDungeonMapTiles); x < int(XSmallMapTiles); x++ {
-				for y := 0; y < int(YSmallMapTiles); y++ {
+				for y := range YSmallMapTiles {
 					smr.rawData[floor+floorModifier][x][y] = byte(indexes.BrickFloor) // Default dungeon floor
 				}
 			}
-			for x := 0; x < int(XDungeonMapTiles); x++ {
+			for x := range XDungeonMapTiles {
 				for y := int(YDungeonMapTiles); y < int(YSmallMapTiles); y++ {
 					smr.rawData[floor+floorModifier][x][y] = byte(indexes.BrickFloor) // Default dungeon floor
 				}

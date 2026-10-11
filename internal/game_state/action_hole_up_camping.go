@@ -21,19 +21,17 @@ const EnableCampingProfiling = false
 
 // Global profiling state
 var (
-	campingCPUProfileFile *os.File
+	campingCPUProfileFile *os.File //nolint:gochecknoglobals // Owns the optional process-wide pprof session.
 )
 
 // Camping timing constants
 const (
 	// CampingCycleDelayMs Event queue delays (milliseconds)
-	// Empirical testing of original Ultima V shows actual gameplay timing (not theoretical max):
-	// - Bard music (wait_update 52): ~5-6 seconds observed
-	// - 8 hours camping (96 cycles): ~20 seconds total observed
-	// - Per cycle: ~208ms (close to our 200ms)
-	// Theoretical 18Hz (55ms) was maximum; actual hardware ran slower due to rendering overhead
-	CampingCycleDelayMs      = 200  // Matches observed ~20 second total for 8 hours camping
-	BardMusicDurationMs      = 5500 // Matches observed ~5-6 seconds for wait_update(52)
+	// REDUX DEVIATION: CAMP-0004: original Bard presentation uses 52 update/delay
+	// iterations, not a certified wall-time duration. Redux keeps these cosmetic
+	// delays for readable presentation; gameplay advances only on logical cycles.
+	CampingCycleDelayMs      = 200
+	BardMusicDurationMs      = 5500
 	WandererFadeAnimationMs  = 3000 // Duration for wanderer fade in/out
 	WandererVisiblePauseMs   = 1000 // Pause when wanderer fully visible
 	WandererDepartureDelayMs = 500  // Delay before wanderer departure
@@ -69,6 +67,7 @@ const (
 	SingleStatBoost = 1 // Number of stats indicating singular message
 )
 
+// ActionHoleUpLargeMap starts outdoor camp or anchored-ship repair selection.
 func (g *GameState) ActionHoleUpLargeMap() bool {
 	if g.EventQueueManager.HasActiveWorkflows() {
 		return false
@@ -303,7 +302,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 		RepeatWithDelay(
 			campingState.TotalCycles,
 			CampingCycleDelayMs,
-			func(iteration int) bool {
+			func(_ int) bool {
 				if campingState.Interrupted {
 					return false
 				}
@@ -1047,8 +1046,6 @@ func (g *GameState) cleanupCampingScene(campingScene *camping.CampingScene, camp
 			}
 		}
 	}
-
-	return
 }
 
 func (g *GameState) isValidCampingGuard(guardIndex int) bool {

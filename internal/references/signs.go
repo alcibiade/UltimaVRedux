@@ -77,7 +77,7 @@ func NewSignReferences(signsPath string) (*SignReferences, error) {
 	// Parse header - 33 little-endian 16-bit offsets
 	// Each entry points to sign data for that location index
 	offsets := make([]uint16, signHeaderEntries)
-	for i := 0; i < signHeaderEntries; i++ {
+	for i := range signHeaderEntries {
 		offsets[i] = binary.LittleEndian.Uint16(data[i*2 : i*2+2])
 	}
 
@@ -89,7 +89,7 @@ func NewSignReferences(signsPath string) (*SignReferences, error) {
 		}
 	}
 	// Sort offsets
-	for i := 0; i < len(sortedOffsets)-1; i++ {
+	for i := range len(sortedOffsets) - 1 {
 		for j := i + 1; j < len(sortedOffsets); j++ {
 			if sortedOffsets[j] < sortedOffsets[i] {
 				sortedOffsets[i], sortedOffsets[j] = sortedOffsets[j], sortedOffsets[i]

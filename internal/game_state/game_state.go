@@ -40,6 +40,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
 )
 
+// Ordinary surface command durations in game minutes.
 const (
 	DefaultSmallMapMinutesPerTurn = 1
 	DefaultLargeMapMinutesPerTurn = 2
@@ -58,10 +59,11 @@ const (
 	// Mirror reflection position offset
 	mirrorReflectionYOffset = 1 // Avatar must be 1 tile south of mirror to see reflection
 
-	// Fall sequence timing constants for TRAP tiles
+	// FallDelayMs is the delay between trap-induced floor transitions.
 	FallDelayMs = 1500 // 1.5 second delay between floor transitions
 )
 
+// GameState owns authoritative gameplay state, clocks, RNG and action mutations.
 type GameState struct {
 	PartyState   party_state.PartyState
 	MapState     map_state.MapState
@@ -225,11 +227,10 @@ type GameState struct {
 	// See ref:MOON-0003.
 	LastCamped int
 
-	// lastProcessedHour tracks the last hour when food consumption was processed.
-	// Used to detect hour changes for meal time food consumption and starvation.
-	// Matches original U5 original party-effect rules "last processed hour = hour" pattern.
-	// Native snapshots preserve this boundary so reloading cannot repeat a meal.
-	// See ref:MOON-0003.
+	// lastProcessedHour is the hour observation replaced by positive time requests
+	// and completed player updates. Native snapshots retain its legacy field name.
+	// pendingProvisionHours holds at most one deferred observation, never a backlog.
+	// See ref:PROV-0002.
 	lastProcessedHour     int
 	pendingProvisionHours []int
 	beggarKarmaCounter    int
@@ -371,6 +372,7 @@ func NewGameStateFromLegacyTemplateBytes(rawSaveData []byte,
 	return gameState, nil
 }
 
+// IsAvatarAtPosition compares a position with the party's current coordinates.
 func (g *GameState) IsAvatarAtPosition(pos *references.Position) bool {
 	return g.MapState.PlayerLocation.Position.Equals(pos)
 }
@@ -381,10 +383,12 @@ func (g *GameState) SetPlayerPosition(pos references.Position) {
 	g.MapState.PlayerLocation.Position = pos
 }
 
+// GetCurrentSmallLocationReference returns the current location's static reference.
 func (g *GameState) GetCurrentSmallLocationReference() *references.SmallLocationReference {
 	return g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
 }
 
+// GetLayeredMapByCurrentLocation resolves the active map type and floor.
 func (g *GameState) GetLayeredMapByCurrentLocation() *map_state.LayeredMap {
 	return g.MapState.LayeredMaps.GetLayeredMap(g.MapState.PlayerLocation.Location.GetMapType(), g.MapState.PlayerLocation.Floor)
 }
@@ -396,6 +400,7 @@ func (g *GameState) GetLayeredMapByCurrentLocation() *map_state.LayeredMap {
 func (g *GameState) GetOuterTileForCurrentLocation() indexes.SpriteIndex {
 	mapType := g.MapState.PlayerLocation.Location.GetMapType()
 
+	//nolint:exhaustive // All local and unknown contexts share the location-reference fallback.
 	switch mapType {
 	case references.CombatMapType:
 		// Combat/camping maps don't have outer tiles - use black void
@@ -455,12 +460,14 @@ func (g *GameState) IsOutOfBounds(position references.Position) bool {
 	return false
 }
 
+// GetCurrentLayeredMap returns the authoritative current-floor map.
 func (g *GameState) GetCurrentLayeredMap() *map_state.LayeredMap {
 	return g.MapState.LayeredMaps.GetLayeredMap(
 		g.MapState.PlayerLocation.Location.GetMapType(),
 		g.MapState.PlayerLocation.Floor)
 }
 
+// GetCurrentLayeredMapAvatarTopTile returns the party's topmost tile, if loaded.
 func (g *GameState) GetCurrentLayeredMapAvatarTopTile() *references.Tile {
 	theMap := g.GetCurrentLayeredMap()
 	topTile := theMap.GetTopTile(&g.MapState.PlayerLocation.Position)
@@ -471,6 +478,7 @@ func (g *GameState) GetCurrentLayeredMapAvatarTopTile() *references.Tile {
 	return topTile
 }
 
+// IsPassable checks terrain, occupancy and boarding rules for the party.
 func (g *GameState) IsPassable(pos *references.Position) bool {
 	theMap := g.GetCurrentLayeredMap()
 	topTile := theMap.GetTopTile(pos)
@@ -558,16 +566,16 @@ func (g *GameState) GetTileInDirectionWrapped(position *references.Position, dir
 		wrappedPos := newPos.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
 
 		return layeredMap.GetTopTile(wrappedPos)
-	} else {
-		// Small maps: return nil if out of bounds (no wrapping)
-		if g.IsOutOfBounds(*newPos) {
-			return nil
-		}
-
-		return layeredMap.GetTopTile(newPos)
 	}
+	// Small maps do not wrap.
+	if g.IsOutOfBounds(*newPos) {
+		return nil
+	}
+
+	return layeredMap.GetTopTile(newPos)
 }
 
+// GetDrawBridgeWaterByTime selects the nighttime drawbridge water tile.
 func (g *GameState) GetDrawBridgeWaterByTime(origIndex indexes.SpriteIndex) indexes.SpriteIndex {
 	if g.DateTime.Hour >= nightTowneCloseTime || g.DateTime.Hour < nightTowneOpenTime {
 		return indexes.WaterCoast
@@ -728,10 +736,9 @@ func (g *GameState) getEffectiveMapTerrainTile(currentMap *map_state.LayeredMap,
 				}
 				if g.IsDungeonOpen(dungeon) {
 					return openSprite
-				} else {
-					// Dungeon is sealed - show blocked entrance
-					return indexes.BlockEntrance
 				}
+				// Dungeon is sealed - show blocked entrance.
+				return indexes.BlockEntrance
 			}
 		}
 	}
@@ -749,8 +756,10 @@ func (g *GameState) getEffectiveMapTerrainTile(currentMap *map_state.LayeredMap,
 	return effectiveTile.Index
 }
 
+// BoardVehicleResult distinguishes boarding success, warnings and capacity refusal.
 type BoardVehicleResult int
 
+// Boarding outcomes preserve both vehicles when admission fails.
 const (
 	BoardVehicleResultSuccess BoardVehicleResult = iota
 	BoardVehicleResultNoVehicle
@@ -758,6 +767,7 @@ const (
 	BoardVehicleResultSkiffCapacity
 )
 
+// BoardVehicle commits boarding and transfers carried skiffs or a carpet.
 func (g *GameState) BoardVehicle(vehicle map_units.NPCFriendly) BoardVehicleResult {
 	result := BoardVehicleResultSuccess
 	partyVehicleType := g.PartyVehicle.GetVehicleDetails().VehicleType
@@ -800,26 +810,32 @@ func (g *GameState) BoardVehicle(vehicle map_units.NPCFriendly) BoardVehicleResu
 	return result
 }
 
+// GetTilesVisibleOnScreen returns the viewport's tile dimensions.
 func (g *GameState) GetTilesVisibleOnScreen() (int, int) {
 	return g.GetCurrentLayeredMap().GetTilesVisibleOnScreen()
 }
 
+// GetTopLeftExtent returns the viewport's top-left world coordinate.
 func (g *GameState) GetTopLeftExtent() references.Position {
 	return g.GetCurrentLayeredMap().TopLeft
 }
 
+// GetBottomRightExtent returns the viewport's bottom-right coordinate.
 func (g *GameState) GetBottomRightExtent() references.Position {
 	return g.GetCurrentLayeredMap().BottomRight
 }
 
+// IsWrappedMap reports whether coordinates wrap on the current map.
 func (g *GameState) IsWrappedMap() bool {
 	return g.GetCurrentLayeredMap().IsWrappedMap()
 }
 
+// GetBottomRightWithoutOverflow returns the map-bounded viewport extent.
 func (g *GameState) GetBottomRightWithoutOverflow() references.Position {
 	return g.GetCurrentLayeredMap().GetBottomRightWithoutOverflow()
 }
 
+// GetCurrentLargeMapNPCAIController selects the surface or Underworld controller.
 func (g *GameState) GetCurrentLargeMapNPCAIController() *ai.NPCAIControllerLargeMap {
 	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
 		panic(fmt.Sprintf("expected large map type, got %d", g.MapState.PlayerLocation.Location.GetMapType()))
@@ -945,7 +961,7 @@ func (g *GameState) GetPlayerLightType() map_state.PlayerLightType {
 
 	// At night or in dark areas without a torch, avatar has minimal ambient vision
 	// This prevents tiles from being full brightness when they should be dimmed
-	if !g.DateTime.IsFullDaylight() {
+	if !g.DateTime.IsVisibilityDaylight() {
 		return map_state.PlayerLightAmbient
 	}
 
@@ -1021,12 +1037,12 @@ func (g *GameState) RollDice(sides int) int {
 }
 
 // RandomIntInRange returns a random integer in [min, max] inclusive (deterministic replacement for helpers.RandomIntInRange)
-func (g *GameState) RandomIntInRange(min, max int) int {
-	if min > max {
-		panic(fmt.Sprintf("RandomIntInRange: min (%d) cannot be greater than max (%d)", min, max))
+func (g *GameState) RandomIntInRange(minimum, maximum int) int {
+	if minimum > maximum {
+		panic(fmt.Sprintf("RandomIntInRange: min (%d) cannot be greater than max (%d)", minimum, maximum))
 	}
 
-	return g.rng.Intn(max-min+1) + min
+	return g.rng.Intn(maximum-minimum+1) + minimum
 }
 
 // PickOneOfInt returns one of two int values randomly (deterministic replacement for helpers.PickOneOf)
@@ -1048,8 +1064,8 @@ func (g *GameState) ShuffleDirections(directions []references.Position) {
 // IsNPCDead implements ai.NPCDeadChecker interface.
 // Checks if an NPC at a specific location is marked as dead.
 // This enables filtering out dead NPCs (freed prisoners, killed NPCs) when loading a location.
-func (g *GameState) IsNPCDead(location references.Location, npcId int) bool {
-	return g.PartyState.IsNPCDead(location, npcId)
+func (g *GameState) IsNPCDead(location references.Location, npcID int) bool {
+	return g.PartyState.IsNPCDead(location, npcID)
 }
 
 // Active Player Management Methods
@@ -1256,8 +1272,8 @@ func (g *GameState) transitionToMiniMap(mapType shrine.MiniMapType, sceneIndex i
 
 	// Create LayeredMap using raw tile data
 	var tileData [references.XCombatMapTiles][references.YCombatMapTiles]byte
-	for x := 0; x < shrine.MiniMapSize; x++ {
-		for y := 0; y < shrine.MiniMapSize; y++ {
+	for x := range shrine.MiniMapSize {
+		for y := range shrine.MiniMapSize {
 			tileData[x][y] = mapData.Tiles[x][y]
 		}
 	}
@@ -1305,7 +1321,7 @@ func (g *GameState) GetCharacterSpriteForCamping() indexes.SpriteIndex {
 }
 
 // GetGuardSpriteForCamping returns the sprite for a guard during camping (standing alert)
-func (g *GameState) GetGuardSpriteForCamping(guard *party_state.PlayerCharacter, guardIndex int) indexes.SpriteIndex {
+func (g *GameState) GetGuardSpriteForCamping(guard *party_state.PlayerCharacter, _ int) indexes.SpriteIndex {
 	// Guard uses the default character sprite - special animations handled by SpriteOverrideManager
 	return guard.GetKeySpriteIndex()
 }
@@ -1343,8 +1359,8 @@ func (eq *eventQueueSystemCallbacks) GetPressedKey() *semantic_input.Key {
 // SetCriminalStatus marks the player as wanted by guards in the current location.
 // When true, guards will attempt arrest instead of extortion.
 // Criminal status does NOT persist across map transitions - guards forget when you leave.
-func (gs *GameState) SetCriminalStatus(wanted bool) {
-	gs.isCriminal = wanted
+func (g *GameState) SetCriminalStatus(wanted bool) {
+	g.isCriminal = wanted
 	if wanted {
 		logging.Info(logging.CategoryGameState, "Player marked as criminal in current location")
 	}
@@ -1352,25 +1368,25 @@ func (gs *GameState) SetCriminalStatus(wanted bool) {
 
 // IsCriminal returns true if the player is currently wanted by guards.
 // Used by guard AI to determine whether to arrest or extort.
-func (gs *GameState) IsCriminal() bool {
-	return gs.isCriminal
+func (g *GameState) IsCriminal() bool {
+	return g.isCriminal
 }
 
 // ClearCriminalStatus clears the wanted status.
 // Called after arrest (jail) or when leaving the map (guards forget).
 // Exposed as public for use in inlined event queue patterns (guard extortion flow).
-func (gs *GameState) ClearCriminalStatus() {
-	gs.isCriminal = false
+func (g *GameState) ClearCriminalStatus() {
+	g.isCriminal = false
 	logging.Debug(logging.CategoryGameState, "Criminal status cleared")
 }
 
 // OnMapTransition should be called when the player changes maps.
 // Clears criminal status as guards don't remember crimes across locations.
-func (gs *GameState) OnMapTransition() {
-	if gs.isCriminal {
+func (g *GameState) OnMapTransition() {
+	if g.isCriminal {
 		logging.Debug(logging.CategoryGameState,
 			"Map transition - guards no longer remember crimes")
-		gs.ClearCriminalStatus()
+		g.ClearCriminalStatus()
 	}
 }
 
@@ -1381,70 +1397,70 @@ func (gs *GameState) OnMapTransition() {
 // IsShrineQuestCompleted returns true if the quest for the specified shrine has been completed.
 // A quest is "completed" when the player has visited the Codex and received the answer.
 // This is separate from "active" - a quest can be completed but still active (ready for shrine completion).
-func (gs *GameState) IsShrineQuestCompleted(shrineIndex int) bool {
+func (g *GameState) IsShrineQuestCompleted(shrineIndex int) bool {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return false
 	}
 
-	return gs.shrineQuestsCompleted[shrineIndex]
+	return g.shrineQuestsCompleted[shrineIndex]
 }
 
 // SetShrineQuestCompleted sets the completion status for a shrine quest.
 // Called by the Codex when revealing the answer to the player.
-func (gs *GameState) SetShrineQuestCompleted(shrineIndex int, completed bool) {
+func (g *GameState) SetShrineQuestCompleted(shrineIndex int, completed bool) {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return
 	}
 
-	if gs.shrineQuestsCompleted[shrineIndex] != completed {
-		gs.shrineQuestsCompleted[shrineIndex] = completed
-		gs.SystemCallbacks.UI.JournalChanged(journal.VirtuesTab, shrineIndex)
+	if g.shrineQuestsCompleted[shrineIndex] != completed {
+		g.shrineQuestsCompleted[shrineIndex] = completed
+		g.SystemCallbacks.UI.JournalChanged(journal.VirtuesTab, shrineIndex)
 	}
 }
 
 // IsShrineQuestActive returns true if the quest for the specified shrine is currently active.
 // A quest becomes active when assigned at the shrine, and is cleared when completed at the shrine.
-func (gs *GameState) IsShrineQuestActive(shrineIndex int) bool {
+func (g *GameState) IsShrineQuestActive(shrineIndex int) bool {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return false
 	}
 
-	return gs.shrineQuestsActive[shrineIndex]
+	return g.shrineQuestsActive[shrineIndex]
 }
 
 // SetShrineQuestActive sets the active status for a shrine quest.
 // Called when assigning a quest (true) or completing a quest at the shrine (false).
-func (gs *GameState) SetShrineQuestActive(shrineIndex int, active bool) {
+func (g *GameState) SetShrineQuestActive(shrineIndex int, active bool) {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return
 	}
 
-	if gs.shrineQuestsActive[shrineIndex] != active {
-		gs.shrineQuestsActive[shrineIndex] = active
-		gs.SystemCallbacks.UI.JournalChanged(journal.VirtuesTab, shrineIndex)
+	if g.shrineQuestsActive[shrineIndex] != active {
+		g.shrineQuestsActive[shrineIndex] = active
+		g.SystemCallbacks.UI.JournalChanged(journal.VirtuesTab, shrineIndex)
 	}
 }
 
 // IsShrineRuined returns true if the specified shrine is ruined (closed by Blackthorn).
 // Ruined shrines cannot be entered and must be restored by yelling the Word of Power.
-func (gs *GameState) IsShrineRuined(shrineIndex int) bool {
+func (g *GameState) IsShrineRuined(shrineIndex int) bool {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return false
 	}
 
-	return gs.closedShrines[shrineIndex]
+	return g.closedShrines[shrineIndex]
 }
 
 // SetShrineRuined sets the ruined status for a shrine.
 // Shrines are ruined by failing Blackthorn's interrogation, restored by yelling Word of Power.
-func (gs *GameState) SetShrineRuined(shrineIndex int, ruined bool) {
+func (g *GameState) SetShrineRuined(shrineIndex int, ruined bool) {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return
 	}
 
-	if gs.closedShrines[shrineIndex] != ruined {
-		gs.closedShrines[shrineIndex] = ruined
-		gs.SystemCallbacks.UI.JournalChanged(journal.VirtuesTab, shrineIndex)
+	if g.closedShrines[shrineIndex] != ruined {
+		g.closedShrines[shrineIndex] = ruined
+		g.SystemCallbacks.UI.JournalChanged(journal.VirtuesTab, shrineIndex)
 	}
 }
 
@@ -1456,13 +1472,13 @@ func (gs *GameState) SetShrineRuined(shrineIndex int, ruined bool) {
 // - If completed=true and active=true: Ready to complete (give bonuses)
 // - If completed=true and active=false: Offering mode (accept gold)
 // See ref:MOON-0003.
-func (gs *GameState) GetShrineQuestState(shrineIndex int) int {
+func (g *GameState) GetShrineQuestState(shrineIndex int) int {
 	if shrineIndex < 0 || shrineIndex >= TotalShrines {
 		return QuestStateNotAssigned
 	}
 
-	completed := gs.IsShrineQuestCompleted(shrineIndex)
-	active := gs.IsShrineQuestActive(shrineIndex)
+	completed := g.IsShrineQuestCompleted(shrineIndex)
+	active := g.IsShrineQuestActive(shrineIndex)
 
 	if !completed {
 		return QuestStateNotAssigned // Assign quest (active doesn't matter for this check)
@@ -1477,9 +1493,9 @@ func (gs *GameState) GetShrineQuestState(shrineIndex int) int {
 
 // GetFirstActiveQuest returns the index of the first shrine with an active quest, or -1 if none.
 // Used by the Codex to determine which quest answer to display.
-func (gs *GameState) GetFirstActiveQuest() int {
-	for i := 0; i < TotalShrines; i++ {
-		if gs.IsShrineQuestActive(i) {
+func (g *GameState) GetFirstActiveQuest() int {
+	for i := range TotalShrines {
+		if g.IsShrineQuestActive(i) {
 			return i
 		}
 	}
@@ -1489,9 +1505,9 @@ func (gs *GameState) GetFirstActiveQuest() int {
 
 // AreAllQuestsComplete returns true if all 8 shrine quests have been completed.
 // Used to trigger the endgame sequence at the Codex.
-func (gs *GameState) AreAllQuestsComplete() bool {
-	for i := 0; i < TotalShrines; i++ {
-		if !gs.IsShrineQuestCompleted(i) {
+func (g *GameState) AreAllQuestsComplete() bool {
+	for i := range TotalShrines {
+		if !g.IsShrineQuestCompleted(i) {
 			return false
 		}
 	}

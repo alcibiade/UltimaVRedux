@@ -577,7 +577,7 @@ func TestConsumedSurfaceStarvationRunsOnNonMealCrossedHour(t *testing.T) {
 	assert.Contains(t, callbacks.Messages, "Starving!")
 }
 
-func TestConsumedSurfaceEnumeratesEveryCrossedHourInOrder(t *testing.T) {
+func TestConsumedSurfaceObservesOnlyLatestTimeRequest(t *testing.T) {
 	gs, callbacks := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
@@ -592,12 +592,9 @@ func TestConsumedSurfaceEnumeratesEveryCrossedHourInOrder(t *testing.T) {
 
 	assert.Equal(t, 7, gs.lastProcessedHour)
 	assert.Empty(t, gs.pendingProvisionHours)
-	assert.Equal(t, 3, countMatchingMessages(callbacks.Messages, "Starving!"))
-	assert.Equal(t, []TransientIconKind{
-		TransientIconStarving,
-		TransientIconStarving,
-		TransientIconStarving,
-	}, callbacks.TransientIconCalls)
+	assert.Equal(t, 0, countMatchingMessages(callbacks.Messages, "Starving!"),
+		"the following same-hour command replaces the earlier crossing")
+	assert.Empty(t, callbacks.TransientIconCalls)
 }
 
 func TestSelfContainedGameplayTimeProcessesCrossedProvisionHours(t *testing.T) {

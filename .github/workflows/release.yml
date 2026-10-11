@@ -30,7 +30,7 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: go build -o bin/${{ matrix.asset_name }} ./cmd/ultimav
-      - name: Upload Release Asset
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}-release

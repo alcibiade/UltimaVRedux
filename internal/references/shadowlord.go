@@ -102,7 +102,7 @@ func ShadowlordFromName(name string) Shadowlord {
 // toUpperASCII converts a string to uppercase (ASCII only).
 func toUpperASCII(s string) string {
 	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		if c >= 'a' && c <= 'z' {
 			c -= 32

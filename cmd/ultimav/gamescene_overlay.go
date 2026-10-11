@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"strconv"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -377,7 +378,7 @@ func (r *OverlayRenderer) renderMoonstoneOverlay(g *GameScene) {
 			overlayColor, false)
 
 		// Draw moonstone index number in center
-		indexStr := fmt.Sprintf("%d", i)
+		indexStr := strconv.Itoa(i)
 		ebitenutil.DebugPrintAt(r.overlayImage, indexStr,
 			tileX*sprites.TileSize+sprites.TileSize/2-4,
 			tileY*sprites.TileSize+sprites.TileSize/2-4)

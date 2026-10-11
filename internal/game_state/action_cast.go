@@ -84,7 +84,8 @@ func (g *GameState) ValidateVasRelPorPrerequisites(request CastRequest) SpellVal
 	// validates the ship, phase input, and planted moonstone. Redux validates all
 	// three before atomic commitment in every noncombat context.
 	// See ref:SPELL-0001.
-	if g.PartyVehicle.GetVehicleDetails().VehicleType == references.FrigateVehicle {
+	vehicle := g.PartyVehicle.GetVehicleDetails().VehicleType
+	if vehicle == references.FrigateVehicle || vehicle == references.SkiffVehicle {
 		return SpellValidationResult{Valid: false, ErrorMsg: VasRelPorShipMessage}
 	}
 
@@ -288,6 +289,8 @@ func (g *GameState) GetCurrentSpellContext() references.SpellContext {
 		return references.ContextDungeon
 	case references.CombatMapType:
 		return references.ContextCombat
+	case references.CampingMapType:
+		return 0
 	default:
 		return 0
 	}

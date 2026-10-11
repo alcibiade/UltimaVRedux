@@ -224,6 +224,7 @@ func (g *GameScene) getNearbyTilesForAmbientSound(playerPos references.Position,
 	currentMap := g.gameState.GetLayeredMapByCurrentLocation()
 	if currentMap == nil {
 		g.ambientTiles = nearbyTiles
+
 		return nearbyTiles
 	}
 

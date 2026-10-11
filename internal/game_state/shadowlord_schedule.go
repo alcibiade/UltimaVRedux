@@ -22,7 +22,7 @@ func (g *GameState) GetShadowlordForLocation(location references.Location) refer
 	if !IsShadowlordTown(location) {
 		return references.NoShadowlord
 	}
-	for i := 0; i < references.ShadowlordCount; i++ {
+	for i := range references.ShadowlordCount {
 		lord := references.Shadowlord(i)
 		if g.ShadowlordState.IsAlive(lord) && g.ShadowlordState.TownAssignments[i] == location {
 			return lord

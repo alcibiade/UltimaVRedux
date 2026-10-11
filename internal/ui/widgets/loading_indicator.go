@@ -287,7 +287,7 @@ func (l *LoadingIndicator) drawDots(screen *ebiten.Image, contentRect image.Rect
 	dotSpacing := contentRect.Dx() / 6
 	startX := contentRect.Min.X + dotSpacing
 
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		dotX := startX + i*dotSpacing
 
 		// Calculate pulsing alpha based on animation frame and dot position
@@ -321,7 +321,7 @@ func (l *LoadingIndicator) drawBars(screen *ebiten.Image, contentRect image.Rect
 	numBars := contentRect.Dx() / barSpacing
 	startX := contentRect.Min.X + (contentRect.Dx()-numBars*barSpacing)/2
 
-	for i := 0; i < numBars; i++ {
+	for i := range numBars {
 		barX := startX + i*barSpacing
 
 		// Calculate bar height based on animation frame and position

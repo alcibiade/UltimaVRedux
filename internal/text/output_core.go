@@ -280,24 +280,28 @@ func (o *Output) FirstPanelLineWithColor(start, end int, target color.Color) (in
 func (o *Output) GetOutputStr(bShowEmptyNewLines bool) string {
 	var outputStr string
 	nTotalLines := len(o.lines)
+	var outputStrSb283 strings.Builder
 	for i := range nTotalLines {
 		line := o.lines[(i+o.nextLineToIndex)%o.maxLines]
 
 		var lineText string
 		if len(line.Segments) > 0 {
 			// Styled line - concatenate all segments
+			var lineTextSb289 strings.Builder
 			for _, seg := range line.Segments {
-				lineText += seg.Text
+				lineTextSb289.WriteString(seg.Text)
 			}
+			lineText += lineTextSb289.String()
 		} else {
 			lineText = line.Text
 		}
 
-		outputStr += lineText
+		outputStrSb283.WriteString(lineText)
 		if (bShowEmptyNewLines || lineText != "") && i < nTotalLines-1 {
-			outputStr += " \n"
+			outputStrSb283.WriteString(" \n")
 		}
 	}
+	outputStr += outputStrSb283.String()
 
 	return outputStr
 }

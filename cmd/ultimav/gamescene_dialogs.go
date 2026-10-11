@@ -1210,6 +1210,7 @@ func (g *GameScene) startReadyEquipmentWorkflowWithCompletion(
 				result, err := g.gameState.ApplyReadyEquipment(transaction)
 				dialog.ApplyTransactionResult(result, err)
 			}
+
 			return !dialog.IsDismissed()
 		}, func() {
 

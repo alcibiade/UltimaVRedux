@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	//keyPressDelay = 120
+	// keyPressDelay = 120
 	keyPressDelay = 165
 )
 

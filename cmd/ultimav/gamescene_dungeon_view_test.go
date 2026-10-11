@@ -404,7 +404,7 @@ func newDungeonViewTestSceneAt(
 	return &GameScene{
 		gameState:         state,
 		output:            text.NewOutput(nil, 1, 10, 80),
-		keyboard:          input.NewKeyboard(0),
+		keyboard:          input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false }),
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}, mock

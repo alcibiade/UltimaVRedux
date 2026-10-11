@@ -39,7 +39,7 @@ type VisibilitySystem struct {
 // Init2DBoolArray creates a 2D boolean array initialized to false
 func (v *VisibilitySystem) init2DBoolArray() [][]bool {
 	arr := make([][]bool, v.numXTiles)
-	for x := 0; x < v.numXTiles; x++ {
+	for x := range v.numXTiles {
 		arr[x] = make([]bool, v.numYTiles)
 	}
 
@@ -49,7 +49,7 @@ func (v *VisibilitySystem) init2DBoolArray() [][]bool {
 // RefreshTestForVisibility refreshes the map that tracks which tiles have been tested for visibility
 func (v *VisibilitySystem) refreshTestForVisibility(nCharacters int) {
 	v.testForVisibility = make([][][]bool, nCharacters)
-	for i := 0; i < nCharacters; i++ {
+	for i := range nCharacters {
 		v.testForVisibility[i] = v.init2DBoolArray()
 	}
 }
@@ -186,7 +186,7 @@ func (v *VisibilitySystem) setMaxVisibleArea(startPos references.Position, nVisi
 
 	// Set the boundary box - tiles on the edge are marked as already tested
 	// This prevents the flood fill from going beyond the viewport
-	for nXDiff := 0; nXDiff < nVisibleTiles; nXDiff++ {
+	for nXDiff := range nVisibleTiles {
 		nX := adjustToMax(nStartX-nVisibleTilesPerSide+nXDiff, v.numXTiles)
 		nTopY := adjustToMax(nStartY-nVisibleTilesPerSide, v.numYTiles)
 		nBottomY := adjustToMax(nStartY+nVisibleTilesPerSide, v.numYTiles)
@@ -195,7 +195,7 @@ func (v *VisibilitySystem) setMaxVisibleArea(startPos references.Position, nVisi
 		v.testForVisibility[0][nX][nBottomY] = true
 	}
 
-	for nYDiff := 0; nYDiff < nVisibleTiles; nYDiff++ {
+	for nYDiff := range nVisibleTiles {
 		nY := adjustToMax(nStartY-nVisibleTilesPerSide+nYDiff, v.numYTiles)
 		nTopX := adjustToMax(nStartX-nVisibleTilesPerSide, v.numXTiles)
 		nBottomX := adjustToMax(nStartX+nVisibleTilesPerSide, v.numXTiles)
@@ -369,8 +369,8 @@ func (v *VisibilitySystem) RecalculateVisibleTiles(initialFloodFillPosition refe
 	if v.xRayMode {
 		v.visibleOnMap = v.init2DBoolArray()
 		// Set all tiles to visible
-		for x := 0; x < v.numXTiles; x++ {
-			for y := 0; y < v.numYTiles; y++ {
+		for x := range v.numXTiles {
+			for y := range v.numYTiles {
 				v.visibleOnMap[x][y] = true
 			}
 		}

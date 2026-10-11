@@ -236,7 +236,7 @@ func (p *Position) IsLineOfSightClear(to Position, getTileFromPosition GetTileFr
 
 	var tile *Tile
 
-	for !(currentX == targetX && currentY == targetY) {
+	for currentX != targetX || currentY != targetY {
 		e2 := 2 * err
 		if e2 > -deltaY {
 			err -= deltaY

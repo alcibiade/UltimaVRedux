@@ -85,7 +85,7 @@ func NewReagentPurchaseDialog(config ReagentPurchaseDialogConfig) *ReagentPurcha
 
 // Draw renders the centered opaque purchase modal.
 //
-//nolint:dupl // Concrete merchant modals deliberately retain independent rendering contracts.
+
 func (d *ReagentPurchaseDialog) Draw(screen *ebiten.Image) {
 	if screen == nil || d.dismissed {
 		return

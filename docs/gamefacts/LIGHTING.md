@@ -43,7 +43,9 @@ Redux separates calendar queries, visibility distances, and tint darkness.
 Its smoothly interpolated tint and player-light selection do not establish exact
 stepped-sight equivalence. In particular, a predicate named full daylight is not
 a substitute for this numeric schedule; review its actual caller before assuming
-hour 19 still has sight 50.
+hour 19 still has sight 50. Redux's lighthouse full-daylight predicate now uses
+06:00–18:59; it no longer suppresses beams throughout hour 19. Smooth tinting,
+window daylight, source colours and other declared presentation improvements remain.
 
 **Implementation:** `internal/datetime/ultima_date.go`, `internal/map_state/lighting.go`
 

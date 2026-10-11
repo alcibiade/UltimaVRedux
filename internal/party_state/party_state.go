@@ -197,7 +197,7 @@ func (p *PartyState) HasRoom() bool {
 func (p *PartyState) JoinNPC(npcRef references.NPCReference, npcName string) error {
 	// 1. Search roster (16 entries) for matching NPC by name (case insensitive, 3-char max)
 	// Original Ultima V used 3-byte character arrays for NPC names in SAVED.GAM
-	var rosterIndex int = -1
+	var rosterIndex = -1
 	// Original recruitment searches inactive records from slot 15 down to 1; ref:SAVE-0002.
 	// Slot zero is always the Avatar and cannot satisfy recruitment.
 	for candidateIndex := NRosterSlots - 1; candidateIndex >= 1; candidateIndex-- {

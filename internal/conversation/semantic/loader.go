@@ -114,7 +114,6 @@ func decodeOneDocument(reader io.Reader) (*yaml.Node, error) {
 	return document.Content[0], nil
 }
 
-//nolint:cyclop // This switch exhaustively rejects unsafe YAML node features.
 func inspectYAML(node *yaml.Node, path string) error {
 	if node.Anchor != "" {
 		return &documentError{diagnostic: diagnosticForNode(node, path, "YAML anchors are not allowed")}
@@ -197,7 +196,6 @@ func isCoreYAMLTag(tag string) bool {
 	}
 }
 
-//nolint:cyclop // Required fields are decoded explicitly into the typed model.
 func (parser *documentParser) parseConversation(node *yaml.Node) (*Conversation, error) {
 	rootFields := []string{
 		"schema", "protocol", "id", fieldOrigin, "name", fieldDescription,

@@ -274,7 +274,8 @@ func TestShipRepairMinutesDoNotProcessMealsBeforeOrdinaryCompletion(t *testing.T
 	assert.Equal(t, uint16(100), gs.PartyState.Inventory.Provisions.Food.Get())
 
 	gs.CompleteSurfaceCommandCycle(references.LargeMapType)
-	assert.Equal(t, uint16(99), gs.PartyState.Inventory.Provisions.Food.Get())
+	assert.Equal(t, uint16(100), gs.PartyState.Inventory.Provisions.Food.Get(),
+		"ordinary completion overwrites a repair crossing before observing hunger")
 }
 
 func TestShipRepairAbortsCleanlyWhenDeferredContactBecomesStale(t *testing.T) {

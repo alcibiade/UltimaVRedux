@@ -8,8 +8,10 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// JimmyDoorState describes the result of a physical unlock or prisoner attempt.
 type JimmyDoorState int
 
+// Jimmy results distinguish resource failure, target refusal and successful mutations.
 const (
 	JimmyDoorNoLockPicks JimmyDoorState = iota
 	JimmyUnlocked
@@ -37,6 +39,7 @@ const (
 	combatChestJimmyDifficultyDivisor = 2
 )
 
+// ActionJimmySmallMap attempts a town unlock with the eligible selected character.
 func (g *GameState) ActionJimmySmallMap(direction references.Direction) bool {
 	if !g.PartyState.Inventory.Provisions.Keys.HasSome() {
 		return g.actionJimmySurface(direction, nil)
@@ -125,6 +128,7 @@ func (g *GameState) actionJimmySurface(
 	}
 }
 
+// ActionJimmyLargeMap attempts an outdoor unlock with the eligible selected character.
 func (g *GameState) ActionJimmyLargeMap(direction references.Direction) bool {
 	if !g.PartyState.Inventory.Provisions.Keys.HasSome() {
 		return g.actionJimmySurface(direction, nil)
@@ -214,6 +218,7 @@ func (g *GameState) ActionJimmyDungeonMap(characterIndex int) bool {
 	return g.actionJimmyDungeonMap(characterIndex)
 }
 
+// SelectCharacterForJimmy selects the active or first eligible character.
 func (g *GameState) SelectCharacterForJimmy() *party_state.PlayerCharacter {
 	// REDUX DEVIATION: acting-character selection trusts the active designation; direct
 	// Open/Jimmy retain the surface selector's Good/Poisoned eligibility policy.
@@ -223,7 +228,7 @@ func (g *GameState) SelectCharacterForJimmy() *party_state.PlayerCharacter {
 	}
 
 	// The direct API has no selector; preserve its first-eligible fallback order.
-	for i := 0; i < g.PartyState.GetCharacterCount(); i++ {
+	for i := range g.PartyState.GetCharacterCount() {
 		character := g.PartyState.GetCharacter(i)
 		if character.IsGood() || character.IsPoisoned() {
 			return character
@@ -233,12 +238,14 @@ func (g *GameState) SelectCharacterForJimmy() *party_state.PlayerCharacter {
 	return nil // No available characters
 }
 
+// JimmyDoor dispatches the target by map context after resource admission.
 func (g *GameState) JimmyDoor(direction references.Direction, player *party_state.PlayerCharacter) JimmyDoorState {
 	if !g.PartyState.Inventory.Provisions.Keys.HasSome() {
 		position := direction.GetNewPositionInDirection(&g.MapState.PlayerLocation.Position)
 		if chest := g.surfaceChestAt(position); chest != nil && chest.SurfaceChestAssessment() == references.ChestSafe {
 			return JimmyChestAlreadySafe
 		}
+
 		return JimmyDoorNoLockPicks
 	}
 
@@ -311,14 +318,13 @@ func (g *GameState) jimmySmallMap(direction references.Direction, player *party_
 		return JimmyNotADoor
 	}
 
-	switch targetTile.Index {
-	case indexes.Stocks, indexes.Manacles:
+	if targetTile.Index == indexes.Stocks || targetTile.Index == indexes.Manacles {
 		// Prisoner freeing - original Search/Get/Open/Jimmy rules
 		// See ref:PROV-0004.
 		return g.jimmyPrisoner(newPosition, player)
-	default:
-		return JimmyNotADoor
 	}
+
+	return JimmyNotADoor
 }
 
 func (g *GameState) jimmyLargeMap(direction references.Direction, player *party_state.PlayerCharacter) JimmyDoorState {
@@ -464,7 +470,8 @@ func (g *GameState) reportCombatJimmyResult(result JimmyDoorState) bool {
 		g.SystemCallbacks.UI.ShowActionFeedback("No keys!", true)
 	case JimmyNotADoor:
 		return false
-	case JimmyPrisonerFreed, JimmyPrisonerAlreadyFreed, JimmyPrisonerNoOne:
+	case JimmyPrisonerFreed, JimmyPrisonerAlreadyFreed, JimmyPrisonerNoOne,
+		JimmyNoCharacter, JimmyChestUnlocked, JimmyChestAlreadySafe:
 		return false
 	default:
 		return false
@@ -505,8 +512,9 @@ func (g *GameState) isJimmySuccessful(player *party_state.PlayerCharacter) bool 
 //
 // See ref:PROV-0004.
 func (g *GameState) jimmyPrisoner(targetPos *references.Position, player *party_state.PlayerCharacter) JimmyDoorState {
-	// Original looklist is floor-aware; only a persistent friendly town NPC can
-	// receive the moral reward and dead/freed flag.
+	// REDUX DEVIATION: KARMA-0008: original reward/absence eligibility depends
+	// on shape-specific flags. Redux limits rewards to persistent friendly
+	// town NPCs, preventing arbitrary occupants and repeated rescues earning karma.
 	npcUnit := g.CurrentNPCAIController.GetNpcs().GetMapUnitAtPositionAndFloorOrNil(
 		*targetPos,
 		g.MapState.PlayerLocation.Floor,
