@@ -34,7 +34,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | Document | One-line purpose | Primary owner | Authority classification |
 |---|---|---|---|
 | [`README.md`](README.md) | Catalog every retained documentation file and its ownership. | `documentation` | Index |
-| [`INSTALL.md`](INSTALL.md) | Explain staged source builds, future release installation, and original-data setup. | `installation` | Procedure |
+| [`INSTALL.md`](INSTALL.md) | Explain local builds, intended main-branch preview installation, and original-data setup. | `installation` | Procedure |
 | [`ARCHITECTURE_GUIDELINES.md`](ARCHITECTURE_GUIDELINES.md) | Define package boundaries and cross-system architecture guardrails. | `architecture` | General policy |
 | [`brand-guidelines.md`](brand-guidelines.md) | Define visual identity and brand usage. | `visual-design` | General policy |
 | [`CODING_CONVENTIONS.md`](CODING_CONVENTIONS.md) | Define Go style, determinism, error, testing, and UI conventions. | `engineering` | General policy |
@@ -90,6 +90,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 |---|---|---|---|
 | [`details/LEGACY_TO_NATIVE_SAVE_CROSSWALK.md`](details/LEGACY_TO_NATIVE_SAVE_CROSSWALK.md) | Record every decoded legacy field disposition and object-list conversion rule. | `saves` | System documentation |
 | [`details/SAVE_SNAPSHOT_SCHEMA.md`](details/SAVE_SNAPSHOT_SCHEMA.md) | Specify native fields, validation, eligibility, repositories, and hydration. | `saves` | System documentation |
+| [`details/SAVE_CONVERTER.md`](details/SAVE_CONVERTER.md) | Convert an exact original save pair to a standalone native snapshot or player slot and load the result. | `saves` | Procedure |
 | [`details/search_locations.md`](details/search_locations.md) | Define fixed Search records, reward decoding, and native persistence. | `exploration` | System documentation |
 
 ## Original Gamefacts

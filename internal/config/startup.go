@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 const startupDataOvlSize = 48_464
 
-var errStartupDataOvlSize = errors.New("configured DATA.OVL has an unexpected size")
+var (
+	errStartupDataOvlSize = errors.New("configured DATA.OVL has an unexpected size")
+	errHomeNotAbsolute    = errors.New(
+		"set an absolute home folder before starting Redux; settings cannot use the working directory",
+	)
+	errHomeNotDirectory = errors.New("the configured home path must be a folder before starting Redux")
+)
 
 // StartupConfiguration contains enough configuration to initialize the window
 // even when the selected original game data or configuration file is unusable.
@@ -27,12 +34,12 @@ type StartupConfiguration struct {
 func LoadStartupConfiguration() StartupConfiguration {
 	source, err := loadUserConfigurationSource()
 	if err != nil {
-		return loadRecoveryConfiguration(err)
+		return loadRecoveryConfiguration(err, source)
 	}
 
 	configuration, err := newUltimaVConfiguration(source, "", false)
 	if err != nil {
-		return loadRecoveryConfiguration(err)
+		return loadRecoveryConfiguration(err, source)
 	}
 	dataErr := validateStartupDataFile(configuration.SavedConfigData.DataFilePath)
 
@@ -40,6 +47,9 @@ func LoadStartupConfiguration() StartupConfiguration {
 }
 
 func validateStartupDataFile(directory string) error {
+	if strings.TrimSpace(directory) == "" {
+		return ErrDataFilePathUnset
+	}
 	path := filepath.Join(directory, "DATA.OVL")
 	info, err := os.Stat(path)
 	if err != nil {
@@ -52,12 +62,15 @@ func validateStartupDataFile(directory string) error {
 	return nil
 }
 
-func loadRecoveryConfiguration(configurationErr error) StartupConfiguration {
+func loadRecoveryConfiguration(configurationErr error, selected *viper.Viper) StartupConfiguration {
 	recoverySource, recoveryErr := defaultRecoveryConfigurationSource()
 	if recoveryErr != nil {
 		return StartupConfiguration{
 			Configuration: nil, ConfigurationError: errors.Join(configurationErr, recoveryErr), OriginalDataError: nil,
 		}
+	}
+	if selected != nil && selected.ConfigFileUsed() != "" {
+		recoverySource.SetConfigFile(selected.ConfigFileUsed())
 	}
 	configuration, decodeErr := newUltimaVConfiguration(recoverySource, "", false)
 	if decodeErr != nil {
@@ -72,14 +85,32 @@ func loadRecoveryConfiguration(configurationErr error) StartupConfiguration {
 }
 
 func defaultRecoveryConfigurationSource() (*viper.Viper, error) {
-	home, err := os.UserHomeDir()
+	home, err := configurationHome()
 	if err != nil {
 		return nil, fmt.Errorf("locating configuration home: %w", err)
 	}
 	source := viper.New()
 	source.SetConfigType("yaml")
 	source.SetConfigFile(filepath.Join(home, ".ultima_v_redux", "config.yaml"))
-	source.Set("DataFilePath", "./OLD")
 
 	return source, nil
+}
+
+func configurationHome() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolve your home folder before starting Redux: %w", err)
+	}
+	if strings.TrimSpace(home) == "" || !filepath.IsAbs(home) {
+		return "", errHomeNotAbsolute
+	}
+	info, err := os.Stat(home)
+	if err != nil {
+		return "", fmt.Errorf("make your home folder available before starting Redux: %w", err)
+	}
+	if !info.IsDir() {
+		return "", errHomeNotDirectory
+	}
+
+	return home, nil
 }

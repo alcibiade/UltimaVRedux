@@ -18,7 +18,7 @@ components and their source entry points are in [Widget Components](WIDGET_COMPO
 | Staged prompt/response transcript | Workflow-owned `InteractionTranscript` |
 | Mutable multiline narrative, optionally with a prompt | `MessageDialog` |
 | Grammar, regex, yes/no, or numeric input | `InputBox` or its prefabs |
-| Filesystem path and platform text entry | `LegacyPathEntryModal` |
+| Optional checkpoint description and native text entry | `SaveDescriptionEntryModal` |
 | Saves, party, items, equipment, spells, or map selection | Existing domain dialog; see the component guide |
 | Personal atlas note authoring / deletion | Scene-owned `AtlasNoteEditor` child inside the atlas pause; core validates the captured draft. |
 
@@ -160,10 +160,13 @@ Lower modal dialogs remain in the stack and are drawn, but they do not receive `
 
 Modal widgets that own platform text focus are notified when they become or
 cease to be the highest modal. This private stack contract lets
-`LegacyPathEntryModal` focus Ebitengine's native text field only while it owns
-input; non-blocking dialogs do not disturb that focus. Clipboard text is read
-only after an explicit platform paste shortcut, and failed validation retains
-that focus for correction.
+`SaveDescriptionEntryModal` focus Ebitengine's native text field only while it owns
+input; non-blocking dialogs do not disturb that focus. Failed validation retains
+text and focus for correction. Ordinary native editing and IME composition remain
+supported. Redux supplies no clipboard adapter, paste handler, or paste hint;
+that does not assert that the operating system's text service cannot paste.
+Data locations use external settings editing, and title-menu legacy import uses
+the active data directory; neither has an in-game path-entry dialog.
 
 `HasOpenDialog` includes non-blocking entries. Use `HasModalDialog` to answer whether the stack owns gameplay input.
 

@@ -85,8 +85,8 @@ Success requires both host completion and a successful guest assertion exit.
 The guest needs no display, but the host still requires native graphics; use
 `xvfb-run -a make vm-settings-proof` on headless Linux. This verifies injected
 engine keyboard handling and rendered settings rollback. Physical keyboard,
-IME/clipboard, platform-window behavior and gameplay replay require their own
-acceptance. In particular, the application's existing wall-time input/debounce
+IME/native text-service behavior, platform-window behavior and gameplay replay
+require their own acceptance. In particular, the application's existing wall-time input/debounce
 and scene timing mean VM tick counts alone do not prove gameplay determinism.
 
 ### Regression Tests
@@ -115,12 +115,53 @@ source pair is read-only and the selected native slot is written to temporary
 storage; the test verifies Slot 7 creation, description/identity persistence,
 canonical capture, and gameplay activation. Without this optional source
 override, the test uses `SAVED.GAM` from the selected runtime data directory.
+This test-only override exercises the conversion/activation transaction; the
+title-menu player flow reads only the active data directory and has no path field.
 
 ```bash
 ULTIMA5_DATA_PATH="/path/to/original-data" \
 ULTIMA5_IMPORT_SOURCE="/path/to/save/SAVED.GAM" \
 go test ./cmd/ultimav -run '^TestIntegrationLegacyImportCreatesSelectedSlotAndStartsGame$' -count=1
 ```
+
+### Preview setup and save conversion acceptance
+
+Use isolated HOME/configuration and output directories for setup/conversion
+checks. Preserve original input bytes and never write test outputs into an
+original installation. The [converter procedure](details/SAVE_CONVERTER.md) owns
+human CLI invocation and result loading.
+
+- Setup: unset configuration must ask for confirmation even with one candidate;
+  a valid configured path, including historical `./OLD`, must remain usable.
+  Exercise GOG/Heroic and resolved home/UltimaV discovery, external editor failure,
+  real-file settings recheck, malformed-settings preservation, and next-launch
+  activation of title-menu data changes.
+- Title import: use only the active folder's exact pair, even with a different
+  pending or historical location. Verify Check Again/Back recovery, cancellation,
+  stale asynchronous completion, destination selection, description retention,
+  explicit overwrite review, persistence failure, and activation rollback.
+- Description editor: preserve native text/IME selection, repeat, validation,
+  resize, and top-modal focus lifecycle. Redux clipboard adapters/paste hints are
+  absent; that is not proof that OS text services cannot paste.
+- Converter: cover required flags and exclusive output modes; full-data
+  hydration/recapture; preserved input bytes; stderr warnings and the stdout
+  receipt (destination, playthrough identity, format/versions, warning count);
+  file and slot collision,
+  approved overwrite and stale-revision refusal; protected input trees; missing
+  parents; and post-publication uncertainty. Focused package coverage belongs in
+  `cmd/save-convert`, alongside native repository and conversion tests.
+- Load proof: separately load a converted slot using `--player-save-dir`, and a
+  lowercase-slug standalone snapshot through the Workbench's selected personal
+  directory. Establish stable gameplay first so the latter can persist rollback.
+  A successful converter exit is not this interactive acceptance.
+
+The intended production targets are darwin/arm64, linux/arm64, linux/amd64, and
+windows/amd64. Existing automated results are from Apple Silicon macOS; full
+native/manual acceptance is separate. Record each production build result,
+including the `CGO_ENABLED=0` build configuration, separately from native graphics,
+audio, keyboard/IME, setup, and save/load acceptance; Linux and Windows native
+behavior remains unverified. Anonymous `@main` installation and update proof
+must follow public cutover, which is still pending.
 
 Use default skipping for public asset-independent runs. Private original-data
 validation is a mandatory local gate for fidelity changes: set an explicit data
@@ -304,9 +345,9 @@ Provision separately before offline validation: `make tools` installs
 `goimports@v0.37.0` and `golangci-lint@v2.12.2`. Python 3.9+ is required for public
 Game Facts checks. Node/npm is needed for frontend builds and frontend-specific
 validation; it is not a player prerequisite. Provision the module's selected Go
-toolchain (`go 1.25.0`, `toolchain go1.27.1`) before offline validation.
-Race-instrumented tests require a native C toolchain even though production
-installation does not. Browser provisioning is separate from testing
+toolchain (`go 1.27.0`, `toolchain go1.27.1`) before offline validation.
+Race-instrumented tests require a native C toolchain, separate from the
+C-compiler-free production installation goal. Browser provisioning is separate from testing
 (`npx playwright install --with-deps --only-shell chromium` from the frontend directory after
 dependency installation). `make validate` does not install frontend dependencies
 or browsers.

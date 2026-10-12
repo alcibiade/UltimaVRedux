@@ -15,18 +15,15 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
-func newDescriptionEditorTest(t *testing.T, initial string, held map[ebiten.Key]bool) (*LegacyPathEntryModal, *fakeLegacyPathTextField) {
+func newDescriptionEditorTest(t *testing.T, initial string, held map[ebiten.Key]bool) (*SaveDescriptionEntryModal, *fakeSaveDescriptionTextField) {
 	t.Helper()
 	keySource := func(key ebiten.Key) bool { return held[key] }
-	modal := NewSaveDescriptionEntryModal(SaveDescriptionEntryModalConfig{
+	field := new(fakeSaveDescriptionTextField)
+	modal := newFocusedSaveDescriptionEntryModal(SaveDescriptionEntryModalConfig{
 		Title: "Save To Slot 2", InitialText: initial, MaxRunes: 80,
 		Keyboard:     input.NewKeyboardWithKeyStateSource(0, keySource),
 		IsKeyPressed: keySource, OnResult: func(string, bool) {},
-	})
-	field := new(fakeLegacyPathTextField)
-	modal.field = field
-	modal.isWindowFocused = func() bool { return true }
-	modal.SetText(initial)
+	}, field)
 	var stack DialogStack
 	stack.PushModalDialog(modal)
 	t.Cleanup(func() { modal.Dismiss() })
@@ -41,14 +38,14 @@ func TestSaveDescriptionBackspaceCadenceAndNativeArbitration(t *testing.T) {
 	field.handleText = "abc\u00e9"
 	m.Update()
 	require.Equal(t, "abc\u00e9", m.GetText())
-	for range legacyEntryBackspaceDelay - 1 {
+	for range saveDescriptionBackspaceDelay - 1 {
 		field.handleText = "abc"
 		m.Update()
 		require.Equal(t, "abc\u00e9", m.GetText())
 	}
 	m.Update()
 	require.Equal(t, "abc", m.GetText())
-	for range legacyEntryBackspaceInterval - 1 {
+	for range saveDescriptionBackspaceInterval - 1 {
 		m.Update()
 		require.Equal(t, "abc", m.GetText())
 	}
@@ -78,7 +75,7 @@ func TestSaveDescriptionBackspaceSelectionAndFocusReset(t *testing.T) {
 	start, end := field.Selection()
 	require.Equal(t, 1, start)
 	require.Equal(t, start, end)
-	for range legacyEntryBackspaceDelay {
+	for range saveDescriptionBackspaceDelay {
 		m.Update()
 	}
 	require.Equal(t, "z", m.GetText())
@@ -148,7 +145,7 @@ func TestSaveDescriptionEscapeStopsHeldBackspace(t *testing.T) {
 	m.Update()
 	require.True(t, m.IsFinished())
 	require.False(t, m.backspaceHeld)
-	require.Equal(t, LegacyPathEntryResult{Text: "ab", Submitted: false}, m.GetResult())
+	require.Equal(t, SaveDescriptionEntryResult{Text: "ab", Submitted: false}, m.GetResult())
 }
 
 func TestSaveDescriptionEnterOpeningReleaseAndSingleDispatch(t *testing.T) {
@@ -180,7 +177,6 @@ func TestSaveDescriptionEnterOpeningReleaseAndSingleDispatch(t *testing.T) {
 
 func TestSaveDescriptionLimitsPreservePreviousValueAndSelection(t *testing.T) {
 	m, field := newDescriptionEditorTest(t, "Keep case", nil)
-	m.clipboardEnabled = true
 	for _, invalid := range []string{strings.Repeat("\u754c", 81), "two\nlines", "trailing\n", "tab\t", "bad\x00", string([]byte{0xff})} {
 		t.Run(fmt.Sprintf("%q", invalid), func(t *testing.T) {
 			field.SetTextAndSelection("Keep case", 2, 6)
@@ -193,9 +189,9 @@ func TestSaveDescriptionLimitsPreservePreviousValueAndSelection(t *testing.T) {
 			require.NotEmpty(t, m.GetValidationMessage())
 			m.SetText(invalid)
 			require.Equal(t, "Keep case", m.GetText())
-			m.readClipboardText = func() (string, error) { return invalid, nil }
-			m.pasteClipboardText()
-			require.Equal(t, "Keep case", m.GetText())
+			start, end = field.Selection()
+			require.Equal(t, 2, start)
+			require.Equal(t, 6, end)
 		})
 	}
 	valid := strings.Repeat("\u754c", 80)
@@ -205,9 +201,6 @@ func TestSaveDescriptionLimitsPreservePreviousValueAndSelection(t *testing.T) {
 	require.Empty(t, m.GetValidationMessage())
 	m.SetText("About to go to Doom!")
 	require.Equal(t, "About to go to Doom!", m.GetText())
-	legacy := newTestLegacyPathEntryModal(new(fakeLegacyPathTextField), func(string, bool) {})
-	legacy.SetText(strings.Repeat("long path/", 100))
-	require.Equal(t, strings.Repeat("long path/", 100), legacy.GetText())
 }
 
 func TestSaveDescriptionValidationCancelAndClearedSubmit(t *testing.T) {
@@ -218,11 +211,11 @@ func TestSaveDescriptionValidationCancelAndClearedSubmit(t *testing.T) {
 	require.Equal(t, "Review destination again.", m.GetValidationMessage())
 	m.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	m.Update()
-	require.Equal(t, LegacyPathEntryResult{Text: "original", Submitted: false}, m.GetResult())
+	require.Equal(t, SaveDescriptionEntryResult{Text: "original", Submitted: false}, m.GetResult())
 	m, _ = newDescriptionEditorTest(t, "original", nil)
 	m.SetText("")
 	m.Submit()
-	require.Equal(t, LegacyPathEntryResult{Text: "", Submitted: true}, m.GetResult())
+	require.Equal(t, SaveDescriptionEntryResult{Text: "", Submitted: true}, m.GetResult())
 }
 
 func TestSaveDescriptionMeasuredLayoutAtSupportedSizes(t *testing.T) {

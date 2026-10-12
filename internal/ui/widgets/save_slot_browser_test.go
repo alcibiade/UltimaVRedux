@@ -327,7 +327,7 @@ func TestClassicPixelRoundedFrameClipsSquareCorners(t *testing.T) {
 func TestIntroSaveDialogsUseConsistentFontSize(t *testing.T) {
 	keyboard := newWidgetTestKeyboard(0)
 	browser := newTestSaveSlotBrowser(keyboard, makeSaveSlotViews(1), SaveSlotBrowserConfig{})
-	pathModal := newTestLegacyPathEntryModal(new(fakeLegacyPathTextField), func(string, bool) {})
+	pathModal := newTestSaveDescriptionEntryModal(new(fakeSaveDescriptionTextField), func(string, bool) {})
 	pathModal.ensureRendering(browser.lastScreenWidth, browser.lastScreenHeight)
 	expectedSize := GetScaledFont(FontSizeMainScreen).TextFace.Size
 
@@ -335,7 +335,7 @@ func TestIntroSaveDialogsUseConsistentFontSize(t *testing.T) {
 	require.Equal(t, expectedSize, browser.bodyFont.TextFace.Size)
 	require.Equal(t, expectedSize, browser.footerOutput.Font.TextFace.Size)
 	require.Equal(t, expectedSize, pathModal.promptOutput.Font.TextFace.Size)
-	require.Equal(t, expectedSize, pathModal.pathOutput.Font.TextFace.Size)
+	require.Equal(t, expectedSize, pathModal.fieldOutput.Font.TextFace.Size)
 	require.Equal(t, expectedSize, pathModal.hintOutput.Font.TextFace.Size)
 }
 

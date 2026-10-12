@@ -11,15 +11,17 @@ particular editor or assistant.
 This checkout contains the application source. No source release or tag has been
 published. For local development, provision:
 
-- Go: `go.mod` declares `go 1.25.0` and `toolchain go1.27.1`. Provision the selected
-  toolchain before offline validation. Ebitengine is pinned to v2.10.4.
+- Go: use Go 1.27's latest patch or newer; `go.mod` declares `go 1.27.0` and
+  `toolchain go1.27.1`. Provision the selected toolchain before offline validation.
+  Ebitengine is pinned to v2.10.4.
 - Git and Make for the contributor workflows below.
 - Python **3.9+** for standalone public Game Facts validation.
 - Repository-pinned Go tools, installed by `make tools` into `bin/tools`.
 - Optional Node/npm when changing or validating the Debug Workbench frontend;
   provision its dependencies separately before offline checks.
 
-Production installation needs neither Node, Make, an AI tool, nor a C compiler.
+The production installation goal needs neither Node, Make, an AI tool, nor a C
+compiler; see [installation acceptance](INSTALL.md#release-acceptance).
 Race-instrumented developer tests have separate native compiler requirements.
 The text editor adapter uses the supported, deprecated `exp/textinput.Field`
 for IME composition and selection; replacing it requires preserving those
@@ -37,11 +39,14 @@ missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
 Use [original-data setup](INSTALL.md#locate-the-original-game-data) to discover an
-existing installation, use the displayed Documents/UltimaV folder, enter a folder,
-or edit the settings file and recheck. A complete original installation is external
-even though the application retains bundled assets and test fixtures with their
-notices. Tests needing original files should receive an explicit data path; public
-asset-independent validation must not silently rely on a developer's local files.
+existing GOG/Heroic installation, use the displayed home/UltimaV folder,
+or edit the settings file externally and recheck. Fresh setup requires explicit
+confirmation even for one result; valid configured locations are retained.
+There are no in-game data or legacy-save path fields. A complete original
+installation is external even though the application retains bundled assets and
+test fixtures with their notices. Tests needing original files should receive an
+explicit data path; public asset-independent validation must not silently rely
+on a developer's local files.
 
 ## Lint Policy
 
@@ -101,6 +106,7 @@ for review, revision, scenario, and rollback contracts, and
 | Command | Purpose |
 |---|---|
 | `go build -o bin/ultimav ./cmd/ultimav` | Build local production source without Make. |
+| `go run ./cmd/save-convert --help` | Inspect the headless converter; follow the [save converter procedure](details/SAVE_CONVERTER.md) for explicit inputs and output modes. |
 | `make dev` | Build and run the game for development. |
 | `make test` | Run the Go test suite. |
 | `make test-integration` | Run tests whose names match `Integration`, not the complete real-data suite. |

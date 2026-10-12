@@ -15,30 +15,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRecommendedDirectoryUsesResolvedDocumentsFolderAcrossPlatforms(t *testing.T) {
-	for _, test := range []struct {
-		name     string
-		profile  HostProfile
-		expected string
-	}{
-		{
-			name:     "windows redirected documents",
-			profile:  HostProfile{GOOS: "windows", HomeDirectory: `C:\Users\Avatar`, DocumentsDir: `D:\Personal\Documents`},
-			expected: filepath.Join(`D:\Personal\Documents`, "UltimaV"),
-		},
-		{
-			name:     "macOS documents",
-			profile:  HostProfile{GOOS: "darwin", HomeDirectory: "/Users/avatar", DocumentsDir: "/Users/avatar/Documents"},
-			expected: "/Users/avatar/Documents/UltimaV",
-		},
-		{
-			name:     "Linux XDG documents",
-			profile:  HostProfile{GOOS: "linux", HomeDirectory: "/home/avatar", DocumentsDir: "/home/avatar/Docs"},
-			expected: "/home/avatar/Docs/UltimaV",
-		},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected, RecommendedDirectory(test.profile))
+func TestRecommendedDirectoryUsesResolvedHomeAcrossPlatforms(t *testing.T) {
+	for _, goos := range []string{"windows", "darwin", "linux"} {
+		t.Run(goos, func(t *testing.T) {
+			home := t.TempDir()
+			assert.Equal(t, filepath.Join(home, "UltimaV"), RecommendedDirectory(HostProfile{
+				GOOS: goos, HomeDirectory: home,
+			}))
 		})
 	}
 }
@@ -59,9 +42,8 @@ func TestDiscoverUsesHeroicMetadataAndDeduplicatesCanonicalPaths(t *testing.T) {
 
 	report := Discover(context.Background(), DiscoveryOptions{
 		Host: HostProfile{
-			GOOS: "linux", HomeDirectory: home, DocumentsDir: filepath.Join(home, "Documents"),
-			ExecutablePath: filepath.Join(home, "bin", "ultima5redux"),
-			Environment:    map[string]string{"XDG_CONFIG_HOME": filepath.Join(home, ".config")},
+			GOOS: "linux", HomeDirectory: home,
+			Environment: map[string]string{"XDG_CONFIG_HOME": filepath.Join(home, ".config")},
 		},
 		ConfiguredDirectory: alias,
 		Validate: func(_ context.Context, path string) error {
@@ -75,7 +57,7 @@ func TestDiscoverUsesHeroicMetadataAndDeduplicatesCanonicalPaths(t *testing.T) {
 
 	require.Len(t, report.Candidates, 1)
 	assert.Equal(t, canonicalIdentity(install, "linux"), canonicalIdentity(report.Candidates[0].Path, "linux"))
-	assert.Equal(t, filepath.Join(home, "Documents", "UltimaV"), report.RecommendedDirectory)
+	assert.Equal(t, filepath.Join(home, "UltimaV"), report.RecommendedDirectory)
 }
 
 func TestDiscoverResolvesCurrentAndLegacyMacBundleLayouts(t *testing.T) {
@@ -90,7 +72,7 @@ func TestDiscoverResolvesCurrentAndLegacyMacBundleLayouts(t *testing.T) {
 	}
 
 	report := Discover(context.Background(), DiscoveryOptions{
-		Host: HostProfile{GOOS: "darwin", HomeDirectory: root, DocumentsDir: filepath.Join(root, "Documents")},
+		Host: HostProfile{GOOS: "darwin", HomeDirectory: root},
 		AdditionalSeeds: []Seed{
 			{Path: filepath.Join(root, "Applications", "Ultima V™.app"), Source: SourceGOG},
 			{Path: filepath.Join(root, "Legacy.app"), Source: SourceGOG},
@@ -119,22 +101,32 @@ func TestDiscoverCancellationReturnsNoLateCandidates(t *testing.T) {
 	assert.Empty(t, report.Candidates)
 }
 
-func TestResolveDirectoryDeduplicatesSymlinkEquivalentLayouts(t *testing.T) {
-	root := t.TempDir()
-	installation := filepath.Join(root, "UltimaV")
-	require.NoError(t, os.Mkdir(installation, 0o700))
-	require.NoError(t, os.Symlink(installation, filepath.Join(root, "Ultima5")))
+func TestDiscoverOnlyUsesHomeFallbackAndExplicitOldPath(t *testing.T) {
+	home := t.TempDir()
+	t.Chdir(home)
+	for _, directory := range []string{"OLD", "UltimaV", "Documents/UltimaV"} {
+		require.NoError(t, os.MkdirAll(directory, 0o700))
+	}
+	options := DiscoveryOptions{
+		Host:     HostProfile{GOOS: "linux", HomeDirectory: home},
+		Validate: func(context.Context, string) error { return nil },
+	}
+	report := Discover(context.Background(), options)
+	assert.Equal(t, []string{filepath.Join(home, "UltimaV")}, StableCandidatePaths(report))
+	options.ConfiguredDirectory = "./OLD"
+	report = Discover(context.Background(), options)
+	assert.ElementsMatch(t, []string{filepath.Join(home, "OLD"), filepath.Join(home, "UltimaV")}, StableCandidatePaths(report))
+	assert.Equal(t, SourceConfigured, report.Candidates[0].Source)
+}
 
-	matches, err := ResolveDirectory(context.Background(), root, "linux", func(_ context.Context, path string) error {
-		if canonicalIdentity(path, "linux") == canonicalIdentity(installation, "linux") {
-			return nil
-		}
-
-		return errors.New("not game data")
-	})
-
-	require.NoError(t, err)
-	assert.Equal(t, []string{installation}, matches)
+func TestRecommendedDirectoryDoesNotFallBackToWorkingDirectory(t *testing.T) {
+	assert.Empty(t, RecommendedDirectory(HostProfile{}))
+	assert.Empty(t, RecommendedDirectory(HostProfile{HomeDirectory: "relative"}))
+	report := Discover(context.Background(), DiscoveryOptions{Host: HostProfile{GOOS: "linux"}})
+	assert.Empty(t, report.Candidates)
+	assert.Empty(t, report.CheckedRoots)
+	require.Len(t, report.Details, 1)
+	assert.Contains(t, report.Details[0].Reason, "absolute home folder")
 }
 
 func TestDiscoverEnforcesSeedAndHeroicMetadataBounds(t *testing.T) {
@@ -149,7 +141,7 @@ func TestDiscoverEnforcesSeedAndHeroicMetadataBounds(t *testing.T) {
 
 	report := Discover(context.Background(), DiscoveryOptions{
 		Host: HostProfile{
-			GOOS: "linux", HomeDirectory: home, DocumentsDir: filepath.Join(home, "Documents"),
+			GOOS: "linux", HomeDirectory: home,
 			Environment: map[string]string{"XDG_CONFIG_HOME": filepath.Join(home, ".config")},
 		},
 		AdditionalSeeds: additional,
@@ -187,8 +179,7 @@ func TestCommonSeedsUseGOGRootsAndProgramFilesFallback(t *testing.T) {
 	programFiles := filepath.Join(string(filepath.Separator), "Program Files")
 	seeds := commonSeeds(HostProfile{
 		GOOS: "windows", HomeDirectory: filepath.Join(string(filepath.Separator), "Users", "Avatar"),
-		DocumentsDir: filepath.Join(string(filepath.Separator), "Users", "Avatar", "Documents"),
-		Environment:  map[string]string{"ProgramFiles": programFiles, "SystemDrive": "C:"},
+		Environment: map[string]string{"ProgramFiles": programFiles, "SystemDrive": "C:"},
 	})
 
 	paths := make([]string, 0, len(seeds))

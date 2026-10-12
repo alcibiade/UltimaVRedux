@@ -1,10 +1,10 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"image"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,7 +20,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
 	"github.com/bradhannah/UltimaVRedux/internal/minimap"
-	"github.com/bradhannah/UltimaVRedux/internal/originaldata"
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
@@ -127,6 +126,9 @@ func TestIntroMenuNavigationClampsAtEdges(t *testing.T) {
 }
 
 func TestIntroMenuSetDataDirectoryStartsGuidedSetup(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	scene := newIntroInputTestScene()
 	game := NewGame(scene)
 	scene.nCurrentSelection = introChoiceData
@@ -410,10 +412,16 @@ func TestIntroMenuLoadBrowserUsesReviewedRevisionAfterRemovingDialog(t *testing.
 func TestIntroMenuLegacyImportIntoEmptySlotRemovesDialogsAndUsesEmptyRevision(t *testing.T) {
 	legacyPath := writePlayerSaveLegacyBundle(t, false)
 	scene := newIntroInputTestScene()
-	t.Setenv("HOME", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	startup := config.LoadStartupConfiguration()
 	require.NotNil(t, startup.Configuration)
 	scene.config = startup.Configuration
+	settingsPath, err := scene.config.ConfigurationFilePath()
+	require.NoError(t, err)
+	settingsBefore, err := os.ReadFile(settingsPath)
+	require.NoError(t, err)
 	repository := &introMenuObservingRepository{
 		playerSaveTestRepository: &playerSaveTestRepository{
 			records:   make(map[player_save.SlotID]player_save.Record),
@@ -432,7 +440,7 @@ func TestIntroMenuLegacyImportIntoEmptySlotRemovesDialogsAndUsesEmptyRevision(t 
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 
 	require.NoError(t, game.Update())
-	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 	require.True(t, ok)
 	editor.Submit()
 
@@ -441,7 +449,9 @@ func TestIntroMenuLegacyImportIntoEmptySlotRemovesDialogsAndUsesEmptyRevision(t 
 	assert.Equal(t, []int{0}, repository.saveDialogCounts)
 	assert.Zero(t, scene.dialogStack.Count())
 	assert.Same(t, loadedScene, game.currentScene)
-	assert.Equal(t, filepath.Dir(legacyPath), startup.Configuration.LastLegacyImportDirectory())
+	settingsAfter, err := os.ReadFile(settingsPath)
+	require.NoError(t, err)
+	assert.Equal(t, settingsBefore, settingsAfter, "successful imports must not persist source history")
 }
 
 func TestIntroMenuLegacyImportConfirmsOverwriteWithReviewedRevision(t *testing.T) {
@@ -470,11 +480,11 @@ func TestIntroMenuLegacyImportConfirmsOverwriteWithReviewedRevision(t *testing.T
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			require.NoError(t, game.Update())
 
-			assert.IsType(t, &widgets.LegacyPathEntryModal{}, scene.dialogStack.PeekTopModalDialog())
+			assert.IsType(t, &widgets.SaveDescriptionEntryModal{}, scene.dialogStack.PeekTopModalDialog())
 			assert.Equal(t, 2, scene.dialogStack.Count())
 			assert.Empty(t, repository.saves)
 
-			scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal).Submit()
+			scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal).Submit()
 
 			require.Len(t, repository.saves, 1)
 			assert.Equal(t, "reviewed", repository.saves[0].expectedRevision)
@@ -521,117 +531,23 @@ func TestIntroMenuLegacyImportFailureKeepsSceneActiveAndReportsError(t *testing.
 	game.ConfigurePlayerSaveRepository(repository, func(*config.UltimaVConfiguration, save_snapshot.SaveSnapshot) (Scene, error) {
 		return &playerSaveTestScene{}, nil
 	})
-	scene.openLegacySavePathEntry(game)
-	pathDialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
-	require.True(t, ok)
-	pathDialog.SetText(t.TempDir() + "/SAVED.GAM")
-	pathDialog.Submit()
+	scene.config.SavedConfigData.DataFilePath = t.TempDir()
+	scene.startActiveLegacySaveImport(game)
 	require.Eventually(t, func() bool {
 		require.NoError(t, game.Update())
-		_, pending := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+		_, pending := scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal)
 
 		return pending && !scene.legacyPrepareActive
 	}, time.Second, time.Millisecond)
-	resultDialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+	resultDialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal)
 	require.True(t, ok)
 
 	assert.Same(t, scene, game.currentScene)
 	assert.True(t, scene.active)
 	assert.Empty(t, scene.notice)
-	assert.Equal(t, "SAVED.GAM was not found in that folder.", resultDialog.GetValidationMessage())
+	assert.Equal(t, []string{"Check Again", "Back"}, resultDialog.ButtonTexts())
 	assert.Equal(t, 1, scene.dialogStack.Count())
 	assert.Same(t, resultDialog, scene.dialogStack.PeekTopModalDialog())
-}
-
-func TestIntroMenuLegacyDiscoveryRequiresExplicitSourceSelection(t *testing.T) {
-	legacyPath := writePlayerSaveLegacyBundle(t, false)
-	scene := newIntroInputTestScene()
-	scene.loadLegacyHost = func() (originaldata.HostProfile, error) {
-		return originaldata.HostProfile{GOOS: "linux", Environment: map[string]string{}}, nil
-	}
-	scene.discoverLegacySaves = func(context.Context, legacy_save.DiscoveryOptions) legacy_save.DiscoveryReport {
-		return legacy_save.DiscoveryReport{Candidates: []legacy_save.DiscoveredSave{{
-			SavedGamePath: legacyPath, Directory: filepath.Dir(legacyPath),
-			Source: originaldata.SourceConfigured, Label: "Save in current game folder",
-			AvatarName: "Avatar", Location: int(references.Britain),
-		}}}
-	}
-	game := NewGame(scene)
-	scene.nCurrentSelection = introChoiceImport
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	require.NoError(t, game.Update())
-
-	require.Eventually(t, func() bool {
-		require.NoError(t, game.Update())
-
-		return scene.dialogStack.Count() == 1
-	}, time.Second, time.Millisecond)
-	browser, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveSlotBrowser)
-	require.True(t, ok)
-	_, selected := browser.GetSelectedView()
-	assert.False(t, selected, "one detected save must not be selected automatically")
-
-	scene.keyboard.SimulateKeyPress(ebiten.KeyUp)
-	require.NoError(t, game.Update())
-	view, selected := browser.GetSelectedView()
-	require.True(t, selected)
-	assert.Equal(t, introLegacyManualCandidateID, view.ID)
-}
-
-func TestIntroMenuLegacyDiscoveryWithoutCandidatesOpensManualEntry(t *testing.T) {
-	scene := newIntroInputTestScene()
-	scene.loadLegacyHost = func() (originaldata.HostProfile, error) {
-		return originaldata.HostProfile{GOOS: "linux", Environment: map[string]string{}}, nil
-	}
-	scene.discoverLegacySaves = func(context.Context, legacy_save.DiscoveryOptions) legacy_save.DiscoveryReport {
-		return legacy_save.DiscoveryReport{}
-	}
-	game := NewGame(scene)
-	scene.nCurrentSelection = introChoiceImport
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	require.NoError(t, game.Update())
-
-	require.Eventually(t, func() bool {
-		require.NoError(t, game.Update())
-		_, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
-
-		return ok
-	}, time.Second, time.Millisecond)
-}
-
-func TestIntroMenuLegacyDiscoveryCanBeCancelledWithoutLateDialog(t *testing.T) {
-	scene := newIntroInputTestScene()
-	started := make(chan struct{})
-	scene.loadLegacyHost = func() (originaldata.HostProfile, error) {
-		return originaldata.HostProfile{GOOS: "linux", Environment: map[string]string{}}, nil
-	}
-	scene.discoverLegacySaves = func(ctx context.Context, _ legacy_save.DiscoveryOptions) legacy_save.DiscoveryReport {
-		close(started)
-		<-ctx.Done()
-
-		return legacy_save.DiscoveryReport{Candidates: []legacy_save.DiscoveredSave{{SavedGamePath: "late"}}}
-	}
-	game := NewGame(scene)
-	scene.nCurrentSelection = introChoiceImport
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	require.NoError(t, game.Update())
-	<-started
-
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
-	require.NoError(t, game.Update())
-	assert.False(t, scene.legacySearchActive)
-	assert.Zero(t, scene.dialogStack.Count())
-	assert.Contains(t, scene.notice, "cancelled")
-	require.Never(t, func() bool {
-		require.NoError(t, game.Update())
-
-		return scene.dialogStack.Count() != 0
-	}, 50*time.Millisecond, 5*time.Millisecond)
-}
-
-func TestNormalizeLegacySavePathInput(t *testing.T) {
-	assert.Equal(t, "/tmp/Ultima V/SAVED.GAM", normalizeLegacySavePathInput(`  "/tmp/Ultima V/SAVED.GAM"  `))
-	assert.Equal(t, `C:\Ultima V\SAVED.GAM`, normalizeLegacySavePathInput(`'C:\Ultima V\SAVED.GAM'`))
 }
 
 func TestIntroMenuLegacyImportCompatibilityFailureRequiresAcknowledgementBeforeRetry(t *testing.T) {
@@ -676,7 +592,7 @@ func TestIntroMenuLegacyImportCompatibilityFailureRequiresAcknowledgementBeforeR
 		pressed[ebiten.KeyEnter] = true
 		scene.keyboard.SetAllowKeyPressImmediately()
 		require.NoError(t, game.Update())
-		editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+		editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 		require.True(t, ok)
 		if attempt == 0 {
 			editor.SetText("Imported checkpoint")
@@ -747,7 +663,7 @@ func TestIntroMenuLegacyImportRollbackFailureRetainsFullErrorAtSupportedSizes(t 
 	scene.openPlayerSaveBrowser(game, playerSaveBrowserWrite, prepared)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	require.NoError(t, scene.Update(game))
-	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 	require.True(t, ok)
 	editor.Submit()
 	overlay, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.OverlayDialog)
@@ -789,14 +705,14 @@ func TestLegacySavePreparationMessageReportsTypedCause(t *testing.T) {
 			err: &legacy_save.ValidationError{Issues: []legacy_save.ValidationIssue{{
 				Code: "invalid_filename", Message: "selected file must be named SAVED.GAM",
 			}}},
-			want: "Select a file named SAVED.GAM.",
+			want: "The active game location must be a folder containing SAVED.GAM and SAVED.OOL.",
 		},
 		{
 			name: "missing sibling",
 			err: &legacy_save.ValidationError{Issues: []legacy_save.ValidationIssue{{
 				Code: "missing_sibling", Message: "SAVED.OOL must be present",
 			}}},
-			want: "SAVED.OOL is missing beside SAVED.GAM. Choose the original game folder containing both files.",
+			want: "SAVED.OOL is missing beside SAVED.GAM in the active game folder.",
 		},
 		{
 			name: "invalid length",
@@ -907,11 +823,8 @@ func openIntroSaveBrowser(t *testing.T, game *Game, scene *IntroMenuScene, choic
 
 func openIntroImportBrowser(t *testing.T, game *Game, scene *IntroMenuScene, legacyPath string) *widgets.SaveSlotBrowser {
 	t.Helper()
-	scene.openLegacySavePathEntry(game)
-	pathDialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
-	require.True(t, ok)
-	pathDialog.SetText(legacyPath)
-	pathDialog.Submit()
+	scene.config.SavedConfigData.DataFilePath = filepath.Dir(legacyPath)
+	scene.startActiveLegacySaveImport(game)
 	require.Eventually(t, func() bool {
 		require.NoError(t, game.Update())
 		_, ready := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveSlotBrowser)

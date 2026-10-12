@@ -23,7 +23,7 @@ func TestSinglePaneDialogsUseRoundedClassicFrames(t *testing.T) {
 	}
 
 	t.Run("legacy path", func(t *testing.T) {
-		dialog := newTestLegacyPathEntryModal(new(fakeLegacyPathTextField), func(string, bool) {})
+		dialog := newTestSaveDescriptionEntryModal(new(fakeSaveDescriptionTextField), func(string, bool) {})
 		screen.Clear()
 		dialog.Draw(screen)
 		requireSingleClassicPane(t, screen, dialog.border.GetBounds())

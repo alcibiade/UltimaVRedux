@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"image"
 	"path/filepath"
@@ -33,7 +32,6 @@ const (
 	setupDescriptionRows    = 12
 	setupSourceDetailLabel  = "Source"
 	setupFolderGuidance     = "Choose the folder containing DATA.OVL, not the DATA.OVL file itself."
-	setupPortableDirectory  = "./OLD"
 	setupSearchDisplayDelay = 12
 )
 
@@ -46,7 +44,6 @@ type dataSetupValidationKind int
 
 const (
 	dataSetupValidateCandidate dataSetupValidationKind = iota
-	dataSetupResolveManual
 	dataSetupCheckSettings
 	dataSetupLoadSelected
 )
@@ -55,8 +52,6 @@ type dataSetupValidationResult struct {
 	generation uint64
 	kind       dataSetupValidationKind
 	candidate  originaldata.Candidate
-	entered    string
-	matches    []string
 	playable   *config.UltimaVConfiguration
 	err        error
 }
@@ -89,7 +84,6 @@ type dataSetupScene struct {
 	validationGeneration uint64
 	validationKind       dataSetupValidationKind
 	validationCandidate  originaldata.Candidate
-	validationPath       string
 	validationActivity   string
 	validating           bool
 	report               originaldata.Report
@@ -101,7 +95,6 @@ type dataSetupScene struct {
 	disposed             bool
 	settingsVisible      bool
 	settingsBack         func()
-	manualBack           func()
 
 	font        *text.UltimaFont
 	heading     *text.Output
@@ -130,21 +123,34 @@ func newDataSetupScene(
 	if mode == dataSetupFromTitle && onReturn == nil {
 		panic("newDataSetupScene: title return callback is required")
 	}
+	configurationPath, configurationPathErr := configuration.ConfigurationFilePath()
 	scene := &dataSetupScene{
-		configuration:        configuration,
-		configurationError:   configurationError,
-		originalDataError:    originalDataError,
-		host:                 host,
-		mode:                 mode,
-		soundDisabled:        soundDisabled,
-		keyboard:             input.NewKeyboard(250),
-		dialogStack:          widgets.DialogStack{},
-		editor:               texteditor.SystemLauncher{},
-		editorResult:         nil,
-		discover:             originaldata.Discover,
-		validate:             originaldata.ValidateInstallation,
-		loadPlayable:         config.NewUltimaVConfiguration,
-		loadCandidate:        configuration.PlayableWithDataFilePath,
+		configuration:      configuration,
+		configurationError: configurationError,
+		originalDataError:  originalDataError,
+		host:               host,
+		mode:               mode,
+		soundDisabled:      soundDisabled,
+		keyboard:           input.NewKeyboard(250),
+		dialogStack:        widgets.DialogStack{},
+		editor:             texteditor.SystemLauncher{},
+		editorResult:       nil,
+		discover:           originaldata.Discover,
+		validate:           originaldata.ValidateInstallation,
+		loadPlayable: func() (*config.UltimaVConfiguration, error) {
+			if configurationPathErr != nil {
+				return nil, fmt.Errorf("locating saved settings for setup: %w", configurationPathErr)
+			}
+
+			return config.LoadUltimaVConfiguration(configurationPath, "")
+		},
+		loadCandidate: func(candidate string) (*config.UltimaVConfiguration, error) {
+			if configurationPathErr != nil {
+				return nil, fmt.Errorf("locating candidate settings for setup: %w", configurationPathErr)
+			}
+
+			return config.LoadUltimaVConfiguration(configurationPath, candidate)
+		},
 		onReady:              onReady,
 		onReturn:             onReturn,
 		cancelSearch:         nil,
@@ -157,7 +163,6 @@ func newDataSetupScene(
 		validationGeneration: 0,
 		validationKind:       dataSetupValidateCandidate,
 		validationCandidate:  originaldata.Candidate{Path: "", Source: "", Label: ""},
-		validationPath:       "",
 		validationActivity:   "",
 		validating:           false,
 		report: originaldata.Report{
@@ -171,7 +176,6 @@ func newDataSetupScene(
 		disposed:             false,
 		settingsVisible:      false,
 		settingsBack:         nil,
-		manualBack:           nil,
 		font:                 nil,
 		heading:              nil,
 		body:                 nil,
@@ -231,29 +235,15 @@ func (s *dataSetupScene) Update(game *Game) error {
 
 		return nil
 	}
-	if s.searching {
-		s.searchDisplayFrames++
-		select {
-		case result := <-s.searchResults:
-			if result.generation == s.searchGeneration {
-				s.searching = false
-				s.report = result.report
-				s.showSearchResult(game)
-			}
-		default:
-		}
-		if s.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-			s.stopSearch()
-			if s.mode == dataSetupFromTitle {
-				s.returnToTitle(game)
-
-				return nil
-			}
-			s.status = "Search cancelled. No files or settings were changed."
-			s.showRecoveryActions(game)
-		}
+	if s.searching && s.updateSearch(game) {
+		return nil
 	}
 	if s.validating {
+		if s.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
+			s.cancelValidationFlow(game)
+
+			return nil
+		}
 		select {
 		case result := <-s.validationResults:
 			if result.generation == s.validationGeneration {
@@ -268,12 +258,36 @@ func (s *dataSetupScene) Update(game *Game) error {
 			}
 		default:
 		}
-		if s.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-			s.cancelValidationFlow(game)
-		}
 	}
 
 	return nil
+}
+
+// updateSearch reports cancellation so Update cannot accept other work in that frame.
+func (s *dataSetupScene) updateSearch(game *Game) bool {
+	if s.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
+		s.stopSearch()
+		if s.mode == dataSetupFromTitle {
+			s.returnToTitle(game)
+		} else {
+			s.status = "Search cancelled. No files or settings were changed."
+			s.showRecoveryActions(game)
+		}
+
+		return true
+	}
+	s.searchDisplayFrames++
+	select {
+	case result := <-s.searchResults:
+		if result.generation == s.searchGeneration {
+			s.stopSearch()
+			s.report = result.report
+			s.showSearchResult(game)
+		}
+	default:
+	}
+
+	return false
 }
 
 func (s *dataSetupScene) Draw(screen *ebiten.Image) {
@@ -318,7 +332,7 @@ func (s *dataSetupScene) drawSearch(screen *ebiten.Image) {
 	s.body.Reset()
 	s.body.AppendLine().WithAlignment(etext.AlignCenter).White("Looking in common installation locations...").Done()
 	s.body.AppendLine().WithAlignment(etext.AlignCenter).
-		White("Checking configured, GOG, Heroic, portable, and personal folders").WordWrap().Done()
+		White("Checking configured folders, GOG and Heroic installations, and your home UltimaV folder").WordWrap().Done()
 	s.body.AppendLine().WithAlignment(etext.AlignCenter).
 		White("Recommended fallback: " + originaldata.RecommendedDirectory(s.host)).WordWrap().Done()
 	s.body.DrawPanelContent(screen, image.Pt(width/8, height*2/5), width*3/4, etext.AlignCenter)
@@ -328,6 +342,7 @@ func (s *dataSetupScene) drawSearch(screen *ebiten.Image) {
 }
 
 func (s *dataSetupScene) startSearch() {
+	s.stopValidation()
 	s.settingsVisible = false
 	s.clearDialogs()
 	s.stopSearch()
@@ -343,34 +358,26 @@ func (s *dataSetupScene) startSearch() {
 		configured = s.configuration.SavedConfigData.DataFilePath
 	}
 	previous := s.configuration.PersistedDataFilePath()
-	additionalSeeds := []originaldata.Seed{{
-		Path: setupPortableDirectory, Source: originaldata.SourcePortable, Label: "Portable copy",
-	}}
-	if s.mode == dataSetupFirstRun {
-		// ./OLD is a documented portable location, not an active first-run selection.
-		if strings.TrimSpace(configured) == setupPortableDirectory {
-			configured = ""
-		}
-		if strings.TrimSpace(previous) == setupPortableDirectory {
-			previous = ""
-		}
-	}
 	options := originaldata.DiscoveryOptions{
 		Host: s.host, ConfiguredDirectory: configured,
 		PreviousDataDirectory: previous,
-		AdditionalSeeds:       additionalSeeds,
+		AdditionalSeeds:       nil,
 		Validate:              s.validate,
 	}
+	results := make(chan dataSetupSearchResult, 1)
+	s.searchResults = results
+	discover := s.discover
 	go func() {
-		report := s.discover(ctx, options)
+		report := discover(ctx, options)
 		select {
-		case s.searchResults <- dataSetupSearchResult{generation: generation, report: report}:
+		case results <- dataSetupSearchResult{generation: generation, report: report}:
 		case <-ctx.Done():
 		}
 	}()
 }
 
 func (s *dataSetupScene) stopSearch() {
+	s.searchGeneration++
 	if s.cancelSearch != nil {
 		s.cancelSearch()
 		s.cancelSearch = nil
@@ -384,6 +391,7 @@ func (s *dataSetupScene) beginValidation(
 	activity string,
 	work func(context.Context) dataSetupValidationResult,
 ) {
+	s.stopSearch()
 	s.settingsVisible = false
 	s.editorResult = nil
 	s.clearDialogs()
@@ -395,12 +403,14 @@ func (s *dataSetupScene) beginValidation(
 	s.validationKind = kind
 	s.validationActivity = activity
 	s.validating = true
+	results := make(chan dataSetupValidationResult, 1)
+	s.validationResults = results
 	go func() {
 		result := work(ctx)
 		result.generation = generation
 		result.kind = kind
 		select {
-		case s.validationResults <- result:
+		case results <- result:
 		case <-ctx.Done():
 		}
 	}()
@@ -417,7 +427,6 @@ func (s *dataSetupScene) stopValidation() {
 	s.validating = false
 }
 
-//nolint:funlen // Each validation result owns a distinct recovery path in the setup state machine.
 func (s *dataSetupScene) handleValidationResult(game *Game, result dataSetupValidationResult) {
 	switch result.kind {
 	case dataSetupValidateCandidate:
@@ -434,25 +443,6 @@ func (s *dataSetupScene) handleValidationResult(game *Game, result dataSetupVali
 		}
 		s.status = ""
 		s.commitCandidate(game, result.candidate)
-	case dataSetupResolveManual:
-		if result.err != nil {
-			s.openManualFolderEntryWithState(game, s.manualBack, result.entered, manualDataDirectoryMessage(result.err))
-
-			return
-		}
-		s.status = ""
-		candidates := make([]originaldata.Candidate, len(result.matches))
-		for index, path := range result.matches {
-			candidates[index] = originaldata.Candidate{
-				Path: path, Source: originaldata.SourceConfigured, Label: "Selected folder",
-			}
-		}
-		if len(candidates) == 1 {
-			s.showSingleCandidate(game, candidates[0])
-
-			return
-		}
-		s.showCandidateBrowser(game, candidates, "Several valid Ultima V folders were found beneath the selected location.")
 	case dataSetupCheckSettings:
 		if result.err != nil {
 			s.status = "Saved settings are not usable yet: " + result.err.Error()
@@ -468,7 +458,7 @@ func (s *dataSetupScene) handleValidationResult(game *Game, result dataSetupVali
 
 			return
 		}
-		if err := s.configuration.PersistDataFilePath(result.candidate.Path); err != nil {
+		if err := s.persistCandidate(result.candidate); err != nil {
 			s.status = "The location is valid but could not be saved: " + err.Error()
 			s.showRecoveryActions(game)
 
@@ -486,7 +476,6 @@ func (s *dataSetupScene) handleValidationResult(game *Game, result dataSetupVali
 func (s *dataSetupScene) cancelValidationFlow(game *Game) {
 	kind := s.validationKind
 	candidate := s.validationCandidate
-	entered := s.validationPath
 	s.stopValidation()
 	switch kind {
 	case dataSetupValidateCandidate:
@@ -497,8 +486,6 @@ func (s *dataSetupScene) cancelValidationFlow(game *Game) {
 			return
 		}
 		s.showSingleCandidate(game, candidate)
-	case dataSetupResolveManual:
-		s.openManualFolderEntryWithState(game, s.manualBack, entered, "Folder validation was cancelled.")
 	case dataSetupCheckSettings:
 		s.status = "Saved-settings validation was cancelled."
 		s.showSettingsRecoveryWithBack(game, false, s.settingsBack)
@@ -559,8 +546,8 @@ func (s *dataSetupScene) showCandidateBrowser(
 		views = append(views, s.dataCandidateView(candidate))
 	}
 	views = append(views, widgets.SaveSlotView{
-		ID: alternativeLocationID, Label: "Look Somewhere Else", Status: "Enter a folder path or edit the settings file",
-		RowSummary: "", ReviewValue: "Enter a folder path or update the saved settings file.", Description: "",
+		ID: alternativeLocationID, Label: "Look Somewhere Else", Status: "Edit the settings file",
+		RowSummary: "", ReviewValue: "Set DataFilePath in the saved settings file.", Description: "",
 		Newest: false, HasSave: true, NavigationDisabled: false,
 		Details: nil, Problem: "", PrimaryEnabled: true,
 	})
@@ -690,7 +677,6 @@ func (s *dataSetupScene) showRecoveryActions(game *Game) {
 		description += "\nYour current game-file location remains active."
 	}
 	s.showButtonMenu("Game File Setup", description, []setupButton{
-		{label: "Enter a Folder Path", action: func() { s.openManualFolderEntry(game) }},
 		{label: "Open Settings File", action: func() { s.showSettingsRecovery(game, true) }},
 		{label: "Check Again", action: func() { s.checkAgain(game) }},
 		{label: "Show Search Details", action: func() { s.showSearchDetails(game) }},
@@ -700,10 +686,7 @@ func (s *dataSetupScene) showRecoveryActions(game *Game) {
 
 func (s *dataSetupScene) showAlternativeActions(game *Game) {
 	s.showButtonMenuWithCancel("Choose Another Location",
-		"Enter a folder directly or edit the saved settings file.", []setupButton{
-			{label: "Enter a Folder Path", action: func() {
-				s.openManualFolderEntryWithBack(game, func() { s.showAlternativeActions(game) })
-			}},
+		"Set DataFilePath in the saved settings file to use another folder.", []setupButton{
 			{label: "Open Settings File", action: func() {
 				s.showSettingsRecoveryWithBack(game, true, func() { s.showAlternativeActions(game) })
 			}},
@@ -796,145 +779,57 @@ func (s *dataSetupScene) searchDetailViews() []widgets.SaveSlotView {
 
 func (s *dataSetupScene) checkAgain(game *Game) {
 	if err := s.configuration.RefreshPersistedConfiguration(); err != nil {
+		s.configurationError = err
 		s.status = "The saved settings could not be reread: " + err.Error()
 		s.showSettingsRecovery(game, false)
 
 		return
 	}
+	s.configurationError = nil
 	s.startSearch()
 }
 
-func (s *dataSetupScene) openManualFolderEntry(game *Game) {
-	s.openManualFolderEntryWithBack(game, func() { s.showRecoveryActions(game) })
-}
+func (s *dataSetupScene) useCandidate(game *Game, candidate originaldata.Candidate) {
+	if err := s.configuration.RefreshPersistedConfiguration(); err != nil {
+		s.configurationError = err
+		s.status = "Repair the saved settings before selecting an installation: " + err.Error()
+		s.showSettingsRecovery(game, false)
 
-func (s *dataSetupScene) openManualFolderEntryWithBack(game *Game, onBack func()) {
-	s.openManualFolderEntryWithState(game, onBack, "", "")
-}
-
-func (s *dataSetupScene) openManualFolderEntryWithState(_ *Game, onBack func(), entered, validationMessage string) {
-	s.settingsVisible = false
-	s.clearDialogs()
-	s.manualBack = onBack
-	var pathDialog *widgets.LegacyPathEntryModal
-	initialPath := entered
-	if strings.TrimSpace(initialPath) == "" {
-		persistedPath := s.configuration.PersistedDataFilePath()
-		if s.mode != dataSetupFirstRun || strings.TrimSpace(persistedPath) != setupPortableDirectory {
-			initialPath = persistedPath
-		}
+		return
 	}
-	if strings.TrimSpace(initialPath) == "" && s.configuration.SavedConfigData != nil {
-		configuredPath := s.configuration.SavedConfigData.DataFilePath
-		if s.mode != dataSetupFirstRun || strings.TrimSpace(configuredPath) != setupPortableDirectory {
-			initialPath = configuredPath
-		}
-	}
-	if strings.TrimSpace(initialPath) == "" {
-		initialPath = originaldata.RecommendedDirectory(s.host)
-	}
-	pathDialog = widgets.NewLegacyPathEntryModal(widgets.LegacyPathEntryModalConfig{
-		Prompt:            "Enter the folder containing your Ultima V game files:",
-		Guidance:          setupFolderGuidance,
-		SubmitLabel:       "Check Folder",
-		CancelLabel:       "Cancel",
-		InitialPath:       initialPath,
-		Keyboard:          s.keyboard,
-		ReadClipboardText: nil,
-		ClipboardEnabled:  false,
-		IsKeyPressed:      nil,
-		Validate: func(value string) string {
-			value = normalizeLegacySavePathInput(value)
-			value = originaldata.ExpandUserPath(value, s.host.HomeDirectory)
-			if strings.TrimSpace(value) == "" {
-				return "Enter the folder containing your Ultima V game files."
-			}
-			_, err := filepath.Abs(value)
-			if err != nil {
-				return "That folder path is not valid."
-			}
-
-			return ""
-		},
-		OnResult: func(_ string, submitted bool) {
-			s.dialogStack.MustRemoveWidgetInstance(pathDialog)
-			if !submitted {
-				onBack()
-
-				return
-			}
-			normalized := originaldata.ExpandUserPath(normalizeLegacySavePathInput(pathDialog.GetText()), s.host.HomeDirectory)
-			s.startManualResolution(normalized)
-		},
-	})
-	pathDialog.SetValidationMessage(validationMessage)
-	s.dialogStack.PushModalDialog(pathDialog)
-}
-
-func (s *dataSetupScene) startManualResolution(entered string) {
-	s.validationPath = entered
-	s.beginValidation(dataSetupResolveManual, "Checking the selected folder and known collection layouts...",
-		func(ctx context.Context) dataSetupValidationResult {
-			matches, err := originaldata.ResolveDirectory(ctx, entered, s.host.GOOS, s.validate)
-
-			return dataSetupValidationResult{
-				generation: 0, kind: dataSetupResolveManual, candidate: originaldata.Candidate{
-					Path: "", Source: "", Label: "",
-				},
-				entered: entered, matches: matches, playable: nil, err: err,
-			}
-		})
-}
-
-func manualDataDirectoryMessage(err error) string {
-	switch {
-	case errors.Is(err, context.Canceled):
-		return "Folder validation was cancelled."
-	case errors.Is(err, errors.ErrUnsupported):
-		return "These game files are not supported."
-	case errors.Is(err, context.DeadlineExceeded):
-		return "Folder validation timed out."
-	}
-	message := err.Error()
-	if strings.Contains(message, "not exist") {
-		return "That folder does not exist."
-	}
-	if strings.Contains(message, "permission") {
-		return "These files could not be read due to permissions."
-	}
-	if strings.Contains(message, "not a file") {
-		return setupFolderGuidance
-	}
-
-	return message
-}
-
-func (s *dataSetupScene) useCandidate(_ *Game, candidate originaldata.Candidate) {
+	s.configurationError = nil
 	s.validationCandidate = candidate
+	validate := s.validate
 	s.beginValidation(dataSetupValidateCandidate, "Rechecking the selected installation before saving it...",
 		func(ctx context.Context) dataSetupValidationResult {
 			return dataSetupValidationResult{
 				generation: 0, kind: dataSetupValidateCandidate, candidate: candidate,
-				entered: "", matches: nil, playable: nil, err: s.validate(ctx, candidate.Path),
+				playable: nil, err: validate(ctx, candidate.Path),
 			}
 		})
 }
 
 func (s *dataSetupScene) commitCandidate(game *Game, candidate originaldata.Candidate) {
+	if s.configurationError != nil {
+		s.status = "Repair the saved settings before continuing: " + s.configurationError.Error()
+		s.showSettingsRecovery(game, false)
+
+		return
+	}
 	if s.mode == dataSetupFromTitle {
 		active := s.candidateIsActive(candidate)
 		pending := s.candidateIsPending(candidate)
+		if err := s.persistCandidate(candidate); err != nil {
+			s.status = "The location could not be saved: " + err.Error()
+			s.showRecoveryActions(game)
+
+			return
+		}
 		if active && pending {
 			s.showButtonMenu("Game-File Location Confirmed",
 				"This folder is already active and saved for the next launch.", []setupButton{
 					{label: setupReturnToMenuLabel, action: func() { s.returnToTitle(game) }},
 				})
-
-			return
-		}
-		if err := s.configuration.PersistDataFilePath(candidate.Path); err != nil {
-			s.status = "The location could not be saved: " + err.Error()
-			s.showRecoveryActions(game)
 
 			return
 		}
@@ -956,9 +851,10 @@ func (s *dataSetupScene) commitCandidate(game *Game, candidate originaldata.Cand
 		return
 	}
 
+	loadCandidate := s.loadCandidate
 	s.beginValidation(dataSetupLoadSelected, "Loading the validated installation...",
 		func(ctx context.Context) dataSetupValidationResult {
-			playable, err := s.loadCandidate(candidate.Path)
+			playable, err := loadCandidate(candidate.Path)
 			if err == nil {
 				err = ctx.Err()
 			}
@@ -966,9 +862,26 @@ func (s *dataSetupScene) commitCandidate(game *Game, candidate originaldata.Cand
 			return dataSetupValidationResult{
 				generation: 0, kind: dataSetupLoadSelected,
 				candidate: candidate,
-				entered:   "", matches: nil, playable: playable, err: err,
+				playable:  playable, err: err,
 			}
 		})
+}
+
+func (s *dataSetupScene) persistCandidate(candidate originaldata.Candidate) error {
+	if err := s.configuration.RefreshPersistedConfiguration(); err != nil {
+		s.configurationError = err
+
+		return fmt.Errorf("rereading settings before accepting installation: %w", err)
+	}
+	if s.candidateIsPending(candidate) {
+		return nil
+	}
+
+	if err := s.configuration.PersistDataFilePath(candidate.Path); err != nil {
+		return fmt.Errorf("persisting accepted installation: %w", err)
+	}
+
+	return nil
 }
 
 func (s *dataSetupScene) showSettingsRecovery(game *Game, launch bool) {
@@ -1034,28 +947,31 @@ func (s *dataSetupScene) updateEditorResult(game *Game) {
 }
 
 func (s *dataSetupScene) checkSavedSettings(_ *Game) {
+	loadPlayable, validate := s.loadPlayable, s.validate
 	s.beginValidation(dataSetupCheckSettings, "Rereading and validating the saved game-file location...",
 		func(ctx context.Context) dataSetupValidationResult {
-			playable, err := s.loadPlayable()
+			playable, err := loadPlayable()
 			if err == nil {
-				err = s.validate(ctx, playable.SavedConfigData.DataFilePath)
+				err = validate(ctx, playable.SavedConfigData.DataFilePath)
 			}
 
 			return dataSetupValidationResult{
 				generation: 0, kind: dataSetupCheckSettings,
 				candidate: originaldata.Candidate{Path: "", Source: "", Label: ""},
-				entered:   "", matches: nil, playable: playable, err: err,
+				playable:  playable, err: err,
 			}
 		})
 }
 
 func (s *dataSetupScene) completeSavedSettings(game *Game, playable *config.UltimaVConfiguration) {
 	if err := s.configuration.RefreshPersistedConfiguration(); err != nil {
+		s.configurationError = err
 		s.status = "Saved settings are not usable yet: " + err.Error()
 		s.showSettingsRecoveryWithBack(game, false, s.settingsBack)
 
 		return
 	}
+	s.configurationError = nil
 	if !filepathEqual(playable.SavedConfigData.DataFilePath, s.configuration.PersistedDataFilePath()) {
 		s.status = "The settings changed while they were being checked. Check them again."
 		s.showSettingsRecoveryWithBack(game, false, s.settingsBack)
@@ -1080,10 +996,10 @@ func (s *dataSetupScene) completeSavedSettings(game *Game, playable *config.Ulti
 
 		return
 	}
-	if err := s.onReady(game, playable); err != nil {
-		s.status = "Redux could not continue with the saved settings: " + err.Error()
-		s.showSettingsRecoveryWithBack(game, false, s.settingsBack)
-	}
+	s.status = "The saved location is usable. Confirm it to continue."
+	s.showSingleCandidate(game, originaldata.Candidate{
+		Path: playable.SavedConfigData.DataFilePath, Source: originaldata.SourceConfigured, Label: "Saved settings",
+	})
 }
 
 func yamlSingleQuotedValue(value string) string {
@@ -1091,6 +1007,8 @@ func yamlSingleQuotedValue(value string) string {
 }
 
 func (s *dataSetupScene) cancelSetup(game *Game) {
+	s.stopSearch()
+	s.stopValidation()
 	if s.mode == dataSetupFromTitle {
 		s.returnToTitle(game)
 
@@ -1168,6 +1086,9 @@ func filepathEqual(left, right string) bool {
 }
 
 func filepathEqualForOS(left, right, goos string) bool {
+	if strings.TrimSpace(left) == "" || strings.TrimSpace(right) == "" {
+		return false
+	}
 	leftPath, leftErr := filepath.Abs(left)
 	rightPath, rightErr := filepath.Abs(right)
 	if leftErr != nil || rightErr != nil {
