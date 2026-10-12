@@ -8,8 +8,9 @@ particular editor or assistant.
 
 ## Setup
 
-This checkout contains the application source. No source release or tag has been
-published. For local development, provision:
+The application source is public, with a development preview installable from
+`main`. No version tag or packaged release has been published. For local
+development, provision:
 
 - Go: use Go 1.27's latest patch or newer; `go.mod` declares `go 1.27.0` and
   `toolchain go1.27.1`. Provision the selected toolchain before offline validation.
@@ -20,8 +21,9 @@ published. For local development, provision:
 - Optional Node/npm when changing or validating the Debug Workbench frontend;
   provision its dependencies separately before offline checks.
 
-The production installation goal needs neither Node, Make, an AI tool, nor a C
-compiler; see [installation acceptance](INSTALL.md#release-acceptance).
+Player installation needs neither Node, Make, an AI tool, nor a C compiler;
+see [installation acceptance](INSTALL.md#installation-acceptance) for the verified
+macOS scope and deferred native Linux/Windows testing.
 Race-instrumented developer tests have separate native compiler requirements.
 The text editor adapter uses the supported, deprecated `exp/textinput.Field`
 for IME composition and selection; replacing it requires preserving those

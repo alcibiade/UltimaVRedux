@@ -34,7 +34,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | Document | One-line purpose | Primary owner | Authority classification |
 |---|---|---|---|
 | [`README.md`](README.md) | Catalog every retained documentation file and its ownership. | `documentation` | Index |
-| [`INSTALL.md`](INSTALL.md) | Explain local builds, intended main-branch preview installation, and original-data setup. | `installation` | Procedure |
+| [`INSTALL.md`](INSTALL.md) | Explain public main-branch preview installation, local builds, original-data setup, and platform acceptance limits. | `installation` | Procedure |
 | [`ARCHITECTURE_GUIDELINES.md`](ARCHITECTURE_GUIDELINES.md) | Define package boundaries and cross-system architecture guardrails. | `architecture` | General policy |
 | [`brand-guidelines.md`](brand-guidelines.md) | Define visual identity and brand usage. | `visual-design` | General policy |
 | [`CODING_CONVENTIONS.md`](CODING_CONVENTIONS.md) | Define Go style, determinism, error, testing, and UI conventions. | `engineering` | General policy |

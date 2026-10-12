@@ -1,9 +1,8 @@
 # Installing and starting Ultima V Redux
 
-> **Development preview — public cutover pending.** The repository is not public
-> yet and anonymous installation has not been verified. Local source builds are
-> available. No source release or version tag has been published; `@main` is the
-> intended installation target for the public preview.
+> **Public development preview.** The source is public and installation from
+> `@main` is available. The game is unfinished and has known limitations.
+> No version tag or packaged release has been published.
 
 ## What you need
 
@@ -13,15 +12,16 @@
   `toolchain go1.27.1`; allow Go to obtain that toolchain or provision it yourself.
 - Network access for Go to download the public module and its dependencies.
 
-The four intended targets are macOS arm64 (Apple Silicon), Linux arm64, Linux
-amd64, and Windows amd64. Existing automated results are from Apple Silicon macOS,
-not full native/manual acceptance. Linux and Windows remain unverified natively;
-intended targets are not a claim that every build or native installation has
-passed. Intel macOS and other architectures need separate acceptance.
+The four preview targets are macOS arm64 (Apple Silicon), Linux arm64, Linux
+amd64, and Windows amd64. Production compilation has passed for all four.
+Anonymous installation and bounded startup have been verified on Apple Silicon
+macOS. Native Linux and Windows testing is deferred with the maintainer's approval;
+their runtime behavior remains unverified. Intel macOS and other architectures
+need separate acceptance. See [installation acceptance](#installation-acceptance)
+for the scope of the macOS checks.
 
-The production installation goal requires neither Make, Node, an AI tool, nor a C
-compiler. The public module route will also avoid a source checkout. Acceptance
-of that installation contract is still platform-specific.
+The public module installation requires neither Make, Node, an AI tool, a C
+compiler, nor a source checkout. Native runtime acceptance remains platform-specific.
 Linux still needs the applicable desktop graphics/audio runtime; exact
 distribution prerequisites will be documented from native validation. Cross-build
 success alone does not establish native graphics, audio, or input acceptance.
@@ -39,7 +39,7 @@ For Windows, build with `-o bin/ultimav.exe` and launch `.\bin\ultimav.exe`.
 Alternatively, `go run ./cmd/ultimav` builds and runs the local source. Dependency
 and toolchain downloads need network access unless already cached.
 
-Required embedded/generated assets are included in the staged application. A
+Required embedded/generated assets are included in the public module. A
 production build does not require a frontend rebuild. Bundled assets and fixtures
 are not a complete original game installation and do not replace the external
 files described below. Contributors changing the frontend or running validation
@@ -47,7 +47,7 @@ should use the separate [development guide](DEVELOPMENT_GUIDE.md).
 
 ## Install the current development preview
 
-After public cutover, install directly from `main`:
+Install directly from `main`:
 
 ```sh
 go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
@@ -187,7 +187,7 @@ not intend to publish. Do not upload original game assets. See
 
 ## Update
 
-After public cutover, repeat the same command to update to the current preview:
+Repeat the same command to update to the current preview:
 
 ```sh
 go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
@@ -196,11 +196,24 @@ go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
 Review current save-compatibility guidance before updating a playthrough. This
 does not select a stable version tag; tagged releases are a future option.
 
-## Release acceptance
+## Installation acceptance
 
-The maintainer must verify anonymous `@main` installation, launch outside a checkout,
-asset-independent setup, original-data recovery, and native input on each
-advertised OS/architecture. The application and required embedded/generated
-assets must be present in the module; Go installation does not run frontend or
-asset-generation commands. Remove the draft notice only after that acceptance is
-complete for the published targets.
+The initial public preview has the following verified scope:
+
+- Anonymous network installation of both `ultimav@main` and `save-convert@main`
+  passed on macOS arm64 with Go 1.27.1, fresh HOME and Go caches, no GitHub
+  credentials, and a working directory outside the checkout. The checks used
+  `CGO_ENABLED=0` and invalid `CC`/`CXX` paths to verify compiler-free installation.
+- The installed executables' help commands and an eight-second `ultimav --no-sound`
+  startup check passed outside the checkout. This is bounded startup evidence,
+  not a full interactive setup, gameplay, or audio acceptance test.
+- The maintainer separately tested the game on macOS and reported that it looks
+  good. This report does not establish an itemized manual acceptance matrix.
+- Production compilation passed for macOS arm64, Linux arm64, Linux amd64, and
+  Windows amd64. Native Linux and Windows tests are deferred; cross-builds do not
+  establish native graphics, audio, keyboard/IME, setup, or save/load behavior.
+
+Required embedded/generated assets ship in the module; Go installation does not
+run frontend or asset-generation commands. Players still supply the complete
+original game installation. Broader native acceptance should exercise original-data
+setup and recovery, input, audio, and save/load on each target.

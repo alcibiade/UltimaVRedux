@@ -25,9 +25,10 @@ Versions 4 through 11 remain archived schemas but are not runtime decode paths.
 Schema `$id` values use this repository's canonical namespace; cross-file `$ref`
 values use sibling filenames and unchanged JSON pointers. Register those local
 resources when compiling schemas rather than fetching them from the network.
-The identifier is not a claim that the schema is already published on `main`;
-see [source availability](../INSTALL.md). Relocating schema resources does not
-change accepted fields, validation constraints, envelope versions, or promotion.
+The schema files are available under `docs/schemas/` in the public source on
+`main`; `$id` remains a schema identifier rather than a requirement to fetch it.
+Public availability does not change accepted fields, validation constraints,
+envelope or snapshot versions, or promotion.
 
 ## Principles
 

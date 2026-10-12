@@ -123,5 +123,7 @@ relative to `internal/audio/assets/`:
 The existing audio manifest retains these unknowns; this document does not invent
 authors or licence grants for them. Credits also do not establish additional
 redistribution permission for original game material.
-Inclusion and the initial public preview remain subject to the maintainer's final
-publication review.
+The maintainer has chosen to retain the current bundled assets for the initial
+public development preview. The provenance and licence gaps described above remain
+unresolved; this inclusion decision does not certify third-party rights or grant
+additional permissions.
