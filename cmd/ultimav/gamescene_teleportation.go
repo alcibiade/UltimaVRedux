@@ -41,6 +41,7 @@ func (g *GameScene) stabilizeTeleportationDestinationRenderer(destination game_s
 
 // resetTeleportationSourceRenderer clears renderer state before GameState changes location.
 func (g *GameScene) resetTeleportationSourceRenderer() {
+	g.clearProvisionFeedback()
 	// CRITICAL FIX: Reset moongate visual system state before teleportation
 	// This clears all renderers and state from the previous location, preventing
 	// the bug where moongates repeatedly trigger "fades from view" and block input

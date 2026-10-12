@@ -71,9 +71,10 @@ func TestBatchReviewHUDAmmunition(t *testing.T) {
 				protected := provisionRegionPixels(screen, layout.outputContent)
 				scene.provisionSummary.Draw(state, screen)
 				require.Equal(t, protected, provisionRegionPixels(screen, layout.outputContent), "ammo cannot overwrite the transcript")
-				// The bottom row must contain both semantic warning inks. Existing
+				// The third row must contain both semantic warning inks. Existing
 				// mainscreen tests verify the LOW/OUT strings; here they must rasterize.
 				ammo := layout.provisionContent
+				ammo.Max.Y -= mainscreen.ProvisionAmmoRowHeight(bounds.Dx()) // Calendar occupies the bottom row.
 				ammo.Min.Y = ammo.Max.Y - mainscreen.ProvisionAmmoRowHeight(bounds.Dx())
 				region := screen.SubImage(ammo).(*ebiten.Image)
 				require.Positive(t, countExactColor(region, ucolor.SupplyLow))

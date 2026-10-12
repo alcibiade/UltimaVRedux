@@ -60,27 +60,25 @@ func TestAmmunitionCellsFitNormalTypographyAndKeepLabelsStable(t *testing.T) {
 	for _, size := range []image.Point{{1280, 720}, {1365, 768}, {1920, 1080}, {2560, 1440}, {3840, 2160}} {
 		t.Run(size.String(), func(t *testing.T) {
 			summary := provisionTestSummary(size)
-			cells, _ := summary.rowCells(summary.rows()[3])
+			cells := summary.ammunitionCells(summary.rows()[2])
 			state := maximumProvisionTestState()
 			for _, count := range []uint16{0, 1, 19, 20, 21, 99} {
 				state.PartyState.Inventory.Equipment.Set(references.Arrows, count)
 				state.PartyState.Inventory.Equipment.Set(references.Quarrels, count)
-				resources := provisionResources(state)[3]
+				resources := provisionAmmunitionResources(state)
 				for index, resource := range resources {
 					cell := cells[index]
-					value, valueColor := ammunitionValue(count)
+					value, statusColor := ammunitionValue(count)
 					require.Equal(t, [2]string{"Ar", "Qr"}[index], resource.label)
 					require.Equal(t, ucolor.EGALightCyan, resource.labelColor, "both ammo labels stay cyan at every severity")
-					require.Equal(t, valueColor, resource.valueColor)
+					require.Equal(t, ucolor.UITextPrimary.RGBA(), resource.valueColor)
+					require.Equal(t, statusColor, resource.statusColor)
 					if resource.status == "" {
 						require.Equal(t, value, resource.value)
 					} else {
 						require.Equal(t, value, resource.value+" "+resource.status)
 					}
-					font, output := summary.valueTextLayout(resource.value, cell.value.Dx())
-					require.Same(t, summary.ultimaFont, font, "ammo quantities must retain normal readable typography")
-					require.Same(t, summary.output, output)
-					require.LessOrEqual(t, measuredProvisionWidth(font, resource.value), cell.value.Dx())
+					require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, resource.value), cell.value.Dx())
 					for _, status := range []string{"LOW", "OUT"} {
 						require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, status), cell.status.Dx())
 					}

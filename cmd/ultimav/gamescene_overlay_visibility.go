@@ -43,6 +43,8 @@ func (g *GameScene) ShowAmbientSounds() {
 // HideAllOverlays hides all overlay types
 // Useful for isolated scenes like camping, cutscenes, or special maps
 func (g *GameScene) HideAllOverlays() {
+	g.clearProvisionFeedback()
+	g.provisionChanges.suppressed = true
 	g.hideMapUnits = true
 	g.hideMoongates = true
 	g.HideQuestItems()
@@ -53,6 +55,8 @@ func (g *GameScene) HideAllOverlays() {
 // ShowAllOverlays shows all overlay types (default state)
 // Call this to restore normal gameplay rendering
 func (g *GameScene) ShowAllOverlays() {
+	g.clearProvisionFeedback()
+	g.provisionChanges.suppressed = false
 	g.hideMapUnits = false
 	g.hideMoongates = false
 	g.ShowQuestItems()

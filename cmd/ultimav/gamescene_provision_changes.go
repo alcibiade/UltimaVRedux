@@ -5,6 +5,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/mainscreen"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
@@ -13,8 +14,11 @@ type provisionChangePresentation struct {
 	state      *game_state.GameState
 	changes    mainscreen.ProvisionChanges
 	panel      mainscreen.ProvisionChangePanel
-	observedAt int64
 	ammunition mainscreen.AmmunitionCounts
+	location   references.PlayerLocation
+	combat     *game_state.CombatState
+	modalOpen  bool
+	suppressed bool
 }
 
 func (g *GameScene) resetProvisionChanges() {
@@ -22,9 +26,25 @@ func (g *GameScene) resetProvisionChanges() {
 	if g.gameState != nil && !g.disposed {
 		g.provisionChanges.state = g.gameState
 		g.provisionChanges.changes.Reset(mainscreen.SnapshotProvisions(&g.gameState.PartyState.Inventory), g.gameState.ElapsedMs)
-		g.provisionChanges.observedAt = g.gameState.ElapsedMs
 		g.provisionChanges.ammunition = mainscreen.SnapshotAmmunition(&g.gameState.PartyState.Inventory)
+		g.provisionChanges.location = g.gameState.MapState.PlayerLocation
+		g.provisionChanges.combat = g.gameState.CombatScene
+		g.provisionChanges.modalOpen = g.dialogStack.PeekTopModalDialog() != nil
 	}
+}
+
+// clearProvisionFeedback forgets receipts without changing ammunition observation.
+// Call at explicit presentation boundaries, before the new interaction mutates inventory.
+func (g *GameScene) clearProvisionFeedback() {
+	if g.gameState == nil {
+		return
+	}
+	if g.provisionChanges.state != g.gameState {
+		g.resetProvisionChanges()
+	}
+	g.provisionChanges.changes.Reset(mainscreen.SnapshotProvisions(&g.gameState.PartyState.Inventory), g.gameState.ElapsedMs)
+	width, height := display.GetManager().GetCurrentSize()
+	g.layoutProvisionChanges(image.Rect(0, 0, width, height))
 }
 
 // observeProvisionChanges brackets scene updates, including early modal returns.
@@ -37,10 +57,21 @@ func (g *GameScene) observeProvisionChanges() {
 	if g.provisionChanges.state != g.gameState {
 		g.resetProvisionChanges()
 	}
-	if !g.provisionChangesAboveDialogs() {
-		g.provisionChanges.changes.PauseExpiry(g.gameState.ElapsedMs - g.provisionChanges.observedAt)
+	location := g.gameState.MapState.PlayerLocation
+	modalOpen := g.dialogStack.PeekTopModalDialog() != nil
+	if location.Location != g.provisionChanges.location.Location || location.Floor != g.provisionChanges.location.Floor ||
+		g.gameState.CombatScene != g.provisionChanges.combat || g.provisionChanges.suppressed ||
+		g.atlasSession != nil || g.journalSession != nil || g.mapFadeLevel > 0 || g.finalePresentation != nil {
+		g.clearProvisionFeedback()
+	} else if modalOpen && !g.provisionChanges.modalOpen {
+		// Discard old rows, but retain unobserved activity from the interaction
+		// opening this modal (such as a purchase or gem use).
+		g.provisionChanges.changes.ClearFeedback()
 	}
-	g.provisionChanges.observedAt = g.gameState.ElapsedMs
+	g.provisionChanges.location = location
+	g.provisionChanges.combat = g.gameState.CombatScene
+	g.provisionChanges.modalOpen = modalOpen
+	// Obscured receipts expire normally; dismissal never grants them a new lifetime.
 	g.provisionChanges.changes.Observe(mainscreen.SnapshotProvisions(&g.gameState.PartyState.Inventory), g.gameState.ElapsedMs)
 	// Ammo deliberately observes final balances, not gross spent counters: an
 	// atomic refill/recovery must not manufacture an intermediate shortage.

@@ -119,14 +119,7 @@ func (p *ProvisionChanges) AbsorbReportedPickup(item references.Provision, acqui
 	}
 }
 
-// PauseExpiry preserves reading time while scene geometry obscures the panel.
-func (p *ProvisionChanges) PauseExpiry(delta int64) {
-	if delta <= 0 {
-		return
-	}
-	for index := range p.rows {
-		if p.rows[index].Name != "" {
-			p.rows[index].ExpiresMs += delta
-		}
-	}
+// ClearFeedback forgets displayed receipts while retaining unobserved activity.
+func (p *ProvisionChanges) ClearFeedback() {
+	p.rows = [provisionChangeCount]ProvisionChange{}
 }

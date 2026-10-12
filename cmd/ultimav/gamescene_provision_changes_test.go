@@ -152,7 +152,7 @@ func TestProvisionFeedbackProductionUpdateObservesQueueBeforeModalReturn(t *test
 	assert.Equal(t, 1, scene.dialogStack.Count())
 	state.ElapsedMs += mainscreen.ProvisionChangeHoldMs
 	require.NoError(t, scene.Update(nil))
-	assert.Equal(t, rows[1].Gained, scene.provisionChanges.changes.Rows()[1].Gained, "obscured feedback retains reading time")
+	assertNoSceneProvisionChanges(t, scene)
 	assert.Same(t, modal, scene.dialogStack.PeekTopModalDialog())
 	scene.dialogStack.MustRemoveWidgetInstance(modal)
 	state.ElapsedMs += mainscreen.ProvisionChangeHoldMs + 1

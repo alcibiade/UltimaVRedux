@@ -51,6 +51,7 @@ func (g *GameScene) pollAtlasRequest() bool {
 }
 
 func (g *GameScene) openAtlas(game *Game) {
+	g.clearProvisionFeedback()
 	var texture *ebiten.Image
 	if game != nil {
 		var err error

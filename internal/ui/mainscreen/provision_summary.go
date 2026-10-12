@@ -18,21 +18,20 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
+// ProvisionSummary displays resources, ammunition, and a dedicated calendar row.
 type ProvisionSummary struct {
-	ultimaFont    *text.UltimaFont
-	output        *text.Output
-	compactFont   *text.UltimaFont
-	compactOutput *text.Output
-	minimumFont   *text.UltimaFont
-	minimumOutput *text.Output
-	bounds        image.Rectangle
-	rowHeight     int
-	labelWidth    int
-	statusWidth   int
-	calendarWidth int
-	labelGap      int
-	gap           int
-	frameInset    int
+	ultimaFont          *text.UltimaFont
+	output              *text.Output
+	bounds              image.Rectangle
+	rowHeight           int
+	ammoLabelWidth      int
+	ammoValueWidth      int
+	statusWidth         int
+	statusGap           int
+	labelGap            int
+	frameInset          int
+	resourceLabelWidths [provisionColumnCount]int
+	resourceValueWidths [provisionColumnCount]int
 
 	// Refresh flag for SystemCallbacks integration
 	needsInventoryRefresh bool
@@ -40,26 +39,30 @@ type ProvisionSummary struct {
 
 const (
 	provisionRowCount               = 4
-	provisionColumnCount            = 2
+	provisionColumnCount            = 3
+	provisionResourceRows           = 2
+	provisionAmmoColumns            = 2
+	provisionAmmoRow                = 2
+	provisionCalendarRow            = 3
 	provisionCenterDivisor          = 2
 	provisionOutputMaxLines         = 1
 	provisionLabelGapAtReference    = 2
-	provisionStatusCalendarGaps     = 3
 	provisionFrameGutterAtReference = 2
 	provisionFrameGutterCount       = 2
-	maximumProvisionDate            = "13-28-65535"
 )
 
 type provisionResource struct {
-	label      string
-	value      string
-	status     string
-	labelColor color.Color
-	valueColor color.Color
+	label       string
+	value       string
+	status      string
+	labelColor  color.Color
+	valueColor  color.Color
+	statusColor color.Color
 }
 
-// Each row uses the same label and right-aligned quantity slots. Status slots
-// are used only on the bottom row; Qr's status borrows the unused calendar space.
+// Fixed resource blocks are centered in thirds, sharing label and quantity slots
+// across both rows. Ammunition blocks are centered in halves with reserved status
+// slots. Calendar text occupies its own bottom row.
 // Showing LOW or OUT cannot move a quantity or the next column.
 type provisionCell struct {
 	label  image.Rectangle
@@ -79,19 +82,21 @@ func NewProvisionSummaryForWidth(screenWidth int) *ProvisionSummary {
 	var summary ProvisionSummary
 	summary.rowHeight = ProvisionAmmoRowHeight(screenWidth)
 	summary.ultimaFont, summary.output = newMainScreenOutput(screenWidth, widgets.FontSizeDefault, provisionOutputMaxLines)
-	summary.compactFont, summary.compactOutput = newMainScreenOutput(
-		screenWidth, widgets.FontSizeSmall, provisionOutputMaxLines)
-	summary.minimumFont, summary.minimumOutput = newMainScreenOutput(
-		screenWidth, widgets.FontSizeXSmall, provisionOutputMaxLines)
-	summary.labelWidth = max(measuredProvisionWidth(summary.ultimaFont, "Ar"),
-		measuredProvisionWidth(summary.ultimaFont, "Qr"), measuredProvisionWidth(summary.ultimaFont, "Ka"))
+	summary.ammoLabelWidth = max(measuredProvisionWidth(summary.ultimaFont, "Ar"),
+		measuredProvisionWidth(summary.ultimaFont, "Qr"))
+	summary.ammoValueWidth = measuredProvisionWidth(summary.ultimaFont, "99")
 	summary.statusWidth = max(measuredProvisionWidth(summary.ultimaFont, "LOW"),
 		measuredProvisionWidth(summary.ultimaFont, "OUT"))
-	summary.calendarWidth = measuredProvisionWidth(summary.minimumFont, maximumProvisionDate)
+	summary.statusGap = measuredProvisionWidth(summary.ultimaFont, " ")
+	labels := [provisionColumnCount][provisionResourceRows]string{{"F", "$"}, {"K", "T"}, {"G", "Ka"}}
+	maximumValues := [provisionColumnCount]string{"9999", "99", "99"}
+	for column, pair := range labels {
+		summary.resourceLabelWidths[column] = max(measuredProvisionWidth(summary.ultimaFont, pair[0]),
+			measuredProvisionWidth(summary.ultimaFont, pair[1]))
+		summary.resourceValueWidths[column] = measuredProvisionWidth(summary.ultimaFont, maximumValues[column])
+	}
 	scale := float64(screenWidth) / mainScreenReferenceWidth
 	summary.labelGap = max(1, int(math.Round(provisionLabelGapAtReference*scale)))
-	spaceWidth, _ := summary.ultimaFont.MeasureString(" ")
-	summary.gap = max(1, int(math.Ceil(spaceWidth/provisionCenterDivisor)))
 	// Retain the established raster-frame clearance independently of text gaps.
 	frameGutter := max(1, int(math.Round(provisionFrameGutterAtReference*scale)))
 	summary.frameInset = measuredProvisionWidth(summary.ultimaFont, "0") + provisionFrameGutterCount*frameGutter
@@ -131,6 +136,7 @@ func (p *ProvisionSummary) IsInventoryRefreshNeeded() bool {
 	return p.needsInventoryRefresh
 }
 
+// Draw renders the four-row summary without changing gameplay state.
 func (p *ProvisionSummary) Draw(gameState *game_state.GameState, screen *ebiten.Image) {
 	if gameState == nil {
 		logging.Warn(logging.CategoryUI, "ProvisionSummary.Draw called with nil gameState, skipping draw")
@@ -148,50 +154,55 @@ func (p *ProvisionSummary) Draw(gameState *game_state.GameState, screen *ebiten.
 	}
 
 	resources := provisionResources(gameState)
-	calendar := [provisionRowCount]string{
-		gameState.DateTime.GetDateAsString(), gameState.DateTime.GetTimeAsString(), "", "",
-	}
-	for rowIndex, row := range p.rows() {
-		cells, calendarCell := p.rowCells(row)
-		for column, resource := range resources[rowIndex] {
+	rows := p.rows()
+	for rowIndex, row := range resources {
+		cells := p.resourceCells(rows[rowIndex])
+		for column, resource := range row {
 			p.drawResource(screen, cells[column], resource)
 		}
-		if value := calendar[rowIndex]; value != "" {
-			_, output := p.valueTextLayout(value, calendarCell.Dx())
-			drawProvisionText(screen, output, calendarCell, value, ucolor.UITextPrimary.RGBA(), etext.AlignEnd)
-		}
 	}
+	ammunition := p.ammunitionCells(rows[provisionAmmoRow])
+	for column, resource := range provisionAmmunitionResources(gameState) {
+		p.drawResource(screen, ammunition[column], resource)
+	}
+	date, clock := p.calendarCells(rows[provisionCalendarRow])
+	drawProvisionText(screen, p.output, date,
+		gameState.DateTime.GetDateAsString(), ucolor.UITextPrimary.RGBA(), etext.AlignCenter)
+	drawProvisionText(screen, p.output, clock,
+		gameState.DateTime.GetTimeAsString(), ucolor.UITextPrimary.RGBA(), etext.AlignCenter)
 }
 
-func provisionResources(state *game_state.GameState) [provisionRowCount][provisionColumnCount]provisionResource {
+func provisionResources(state *game_state.GameState) [provisionResourceRows][provisionColumnCount]provisionResource {
 	white := ucolor.UITextPrimary.RGBA()
-	resources := [provisionRowCount][provisionColumnCount]provisionResource{
+
+	return [provisionResourceRows][provisionColumnCount]provisionResource{
 		{
 			{label: "F", value: formatProvisionQuantity(state.PartyState.Inventory.Provisions.Food.Get()), status: "",
-				labelColor: ucolor.EGALightGreen, valueColor: white},
-			{label: "T", value: formatProvisionQuantity(state.PartyState.Inventory.Provisions.Torches.Get()), status: "",
-				labelColor: ucolor.EGALightRed, valueColor: white},
-		},
-		{
+				labelColor: ucolor.EGALightGreen, valueColor: white, statusColor: white},
 			{label: "K", value: formatProvisionQuantity(state.PartyState.Inventory.Provisions.Keys.Get()), status: "",
-				labelColor: ucolor.EGAYellow, valueColor: white},
+				labelColor: ucolor.EGAYellow, valueColor: white, statusColor: white},
 			{label: "G", value: formatProvisionQuantity(state.PartyState.Inventory.Provisions.Gems.Get()), status: "",
-				labelColor: ucolor.EGALightCyan, valueColor: white},
+				labelColor: ucolor.EGALightCyan, valueColor: white, statusColor: white},
 		},
 		{
 			{label: "$", value: formatProvisionQuantity(state.PartyState.Inventory.Gold.Get()), status: "",
-				labelColor: ucolor.EGAYellow, valueColor: white},
+				labelColor: ucolor.EGAYellow, valueColor: white, statusColor: white},
+			{label: "T", value: formatProvisionQuantity(state.PartyState.Inventory.Provisions.Torches.Get()), status: "",
+				labelColor: ucolor.EGALightRed, valueColor: white, statusColor: white},
 			{label: "Ka", value: strconv.Itoa(state.PartyState.Karma.Value), status: "",
-				labelColor: ucolor.EGALightMagenta, valueColor: white},
+				labelColor: ucolor.EGALightMagenta, valueColor: white, statusColor: white},
 		},
-		{},
 	}
+}
+
+func provisionAmmunitionResources(state *game_state.GameState) [provisionAmmoColumns]provisionResource {
+	var resources [provisionAmmoColumns]provisionResource
 	for index, count := range SnapshotAmmunition(&state.PartyState.Inventory) {
-		value, valueColor := ammunitionValue(count)
+		value, statusColor := ammunitionValue(count)
 		quantity, status, _ := strings.Cut(value, " ")
-		resources[provisionRowCount-1][index] = provisionResource{
+		resources[index] = provisionResource{
 			label: [2]string{"Ar", "Qr"}[index], value: quantity, status: status,
-			labelColor: ucolor.EGALightCyan, valueColor: valueColor,
+			labelColor: ucolor.EGALightCyan, valueColor: ucolor.UITextPrimary.RGBA(), statusColor: statusColor,
 		}
 	}
 
@@ -217,41 +228,70 @@ func (p *ProvisionSummary) rows() [provisionRowCount]image.Rectangle {
 	return rows
 }
 
-func (p *ProvisionSummary) rowCells(bounds image.Rectangle) ([provisionColumnCount]provisionCell, image.Rectangle) {
-	calendar := image.Rect(bounds.Max.X-p.calendarWidth, bounds.Min.Y, bounds.Max.X, bounds.Max.Y)
-	// Budget two labels and quantities, with Ar's status between the columns.
-	// Half-space gutters separate value/status, status/next label and the calendar.
-	// Labels already have fixed two-character slots; their smaller internal gaps
-	// leave room for complete four-digit values even at the odd logical width.
-	// Qr's status needs no extra width: the calendar is absent on the ammo row.
-	valueWidth := (calendar.Min.X - bounds.Min.X - provisionColumnCount*p.labelWidth -
-		p.statusWidth - provisionColumnCount*p.labelGap - provisionStatusCalendarGaps*p.gap) / provisionColumnCount
-	columnPitch := p.labelWidth + p.labelGap + valueWidth + p.statusWidth + provisionColumnCount*p.gap
+func (p *ProvisionSummary) resourceCells(bounds image.Rectangle) [provisionColumnCount]provisionCell {
 	var cells [provisionColumnCount]provisionCell
 	for index := range cells {
-		left := bounds.Min.X + index*columnPitch
-		valueLeft := left + p.labelWidth + p.labelGap
-		valueRight := valueLeft + valueWidth
-		statusLeft := valueRight + p.gap
-		if index == len(cells)-1 {
-			statusLeft = calendar.Min.X
-		}
-		cells[index] = provisionCell{
-			label:  image.Rect(left, bounds.Min.Y, left+p.labelWidth, bounds.Max.Y),
-			value:  image.Rect(valueLeft, bounds.Min.Y, valueRight, bounds.Max.Y),
-			status: image.Rect(statusLeft, bounds.Min.Y, statusLeft+p.statusWidth, bounds.Max.Y),
-		}
+		cells[index] = p.centeredResourceCell(provisionColumnBounds(bounds, index, len(cells)),
+			p.resourceLabelWidths[index], p.resourceValueWidths[index], 0)
 	}
 
-	return cells, calendar
+	return cells
+}
+
+func (p *ProvisionSummary) ammunitionCells(bounds image.Rectangle) [provisionAmmoColumns]provisionCell {
+	var cells [provisionAmmoColumns]provisionCell
+	left, right := p.calendarCells(bounds)
+	for index, half := range [provisionAmmoColumns]image.Rectangle{left, right} {
+		cells[index] = p.centeredResourceCell(half, p.ammoLabelWidth, p.ammoValueWidth, p.statusWidth)
+	}
+
+	return cells
+}
+
+func provisionColumnBounds(bounds image.Rectangle, index, columns int) image.Rectangle {
+	left := bounds.Min.X + index*bounds.Dx()/columns
+	right := bounds.Min.X + (index+1)*bounds.Dx()/columns
+
+	return image.Rect(left, bounds.Min.Y, right, bounds.Max.Y)
+}
+
+func (p *ProvisionSummary) centeredResourceCell(
+	bounds image.Rectangle, labelWidth, valueWidth, statusWidth int,
+) provisionCell {
+	width := labelWidth + p.labelGap + valueWidth
+	if statusWidth > 0 {
+		width += p.statusGap + statusWidth
+	}
+	left := bounds.Min.X + (bounds.Dx()-width)/provisionCenterDivisor
+	valueLeft := left + labelWidth + p.labelGap
+	valueRight := valueLeft + valueWidth
+	var status image.Rectangle
+	if statusWidth > 0 {
+		statusLeft := valueRight + p.statusGap
+		status = image.Rect(statusLeft, bounds.Min.Y, statusLeft+statusWidth, bounds.Max.Y)
+	}
+
+	return provisionCell{
+		label:  image.Rect(left, bounds.Min.Y, left+labelWidth, bounds.Max.Y),
+		value:  image.Rect(valueLeft, bounds.Min.Y, valueRight, bounds.Max.Y),
+		status: status,
+	}
+}
+
+func (p *ProvisionSummary) calendarCells(bounds image.Rectangle) (image.Rectangle, image.Rectangle) {
+	// Give an odd pixel to the longer date rather than the shorter clock.
+	middle := bounds.Min.X + (bounds.Dx()+1)/provisionCenterDivisor
+	date := image.Rect(bounds.Min.X, bounds.Min.Y, middle, bounds.Max.Y)
+	clock := image.Rect(middle, bounds.Min.Y, bounds.Max.X, bounds.Max.Y)
+
+	return date, clock
 }
 
 func (p *ProvisionSummary) drawResource(screen *ebiten.Image, cell provisionCell, resource provisionResource) {
-	drawProvisionText(screen, p.output, cell.label, resource.label, resource.labelColor, etext.AlignStart)
-	_, output := p.valueTextLayout(resource.value, cell.value.Dx())
-	drawProvisionText(screen, output, cell.value, resource.value, resource.valueColor, etext.AlignEnd)
+	drawProvisionText(screen, p.output, cell.label, resource.label, resource.labelColor, etext.AlignEnd)
+	drawProvisionText(screen, p.output, cell.value, resource.value, resource.valueColor, etext.AlignStart)
 	if resource.status != "" {
-		drawProvisionText(screen, p.output, cell.status, resource.status, resource.valueColor, etext.AlignStart)
+		drawProvisionText(screen, p.output, cell.status, resource.status, resource.statusColor, etext.AlignStart)
 	}
 }
 
@@ -264,21 +304,12 @@ func drawProvisionText(
 	alignment etext.Align,
 ) {
 	output.Reset()
-	output.SetMaxCharsPerLine(max(1, output.Font.CharsForWidth(bounds.Dx())))
+	// Layout measures the complete field. An M-based character estimate can
+	// otherwise wrap a numeric date that fits at a fractional display scale.
+	output.SetMaxCharsPerLine(max(1, len(value)))
 	output.AppendLine().Text(value, valueColor).WithAlignment(alignment).Done()
 	y := bounds.Min.Y + (bounds.Dy()-int(math.Ceil(output.GetFontHeight())))/provisionCenterDivisor
 	output.DrawPanelContent(screen, image.Pt(bounds.Min.X, y), bounds.Dx(), alignment)
-}
-
-func (p *ProvisionSummary) valueTextLayout(value string, availableWidth int) (*text.UltimaFont, *text.Output) {
-	if measuredProvisionWidth(p.ultimaFont, value) <= availableWidth {
-		return p.ultimaFont, p.output
-	}
-	if measuredProvisionWidth(p.compactFont, value) <= availableWidth {
-		return p.compactFont, p.compactOutput
-	}
-
-	return p.minimumFont, p.minimumOutput
 }
 
 func measuredProvisionWidth(font *text.UltimaFont, value string) int {
