@@ -183,6 +183,37 @@ class PackagingTests(unittest.TestCase):
             self.execute(missing_dependency)
         self.assertFalse(self.output.exists())
 
+    def test_homebrew_go_license_beside_libexec_is_packaged(self):
+        prefix = self.base / "go-prefix"
+        goroot = prefix / "libexec"
+        goroot.mkdir(parents=True)
+        (goroot / "PATENTS").write_text("patent notice is not a license")
+        (prefix / "LICENSE").write_text("Go BSD license")
+
+        def homebrew(command, cwd, env=None):
+            if command == ["go", "env", "GOROOT"]:
+                return str(goroot)
+            return self.fake_run(command, cwd, env)
+
+        self.execute(homebrew)
+        with zipfile.ZipFile(next(self.output.glob("*.zip"))) as archive:
+            license_name = next(name for name in archive.namelist() if name.endswith("notices/go/LICENSE"))
+            self.assertEqual(archive.read(license_name), b"Go BSD license")
+
+    def test_patent_notice_without_license_is_rejected(self):
+        goroot = self.base / "go-without-license"
+        goroot.mkdir()
+        (goroot / "PATENTS").write_text("patent notice is not a license")
+
+        def no_license(command, cwd, env=None):
+            if command == ["go", "env", "GOROOT"]:
+                return str(goroot)
+            return self.fake_run(command, cwd, env)
+
+        with self.assertRaisesRegex(ValueError, "no dependency license"):
+            self.execute(no_license)
+        self.assertFalse(self.output.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

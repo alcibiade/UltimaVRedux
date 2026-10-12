@@ -122,8 +122,13 @@ def copy_notices(source, destination, env):
     for name, directory in locations:
         notices = [p for p in directory.iterdir() if p.is_file() and
                    re.match(r"^(LICENSE|LICENCE|COPYING|NOTICE|AUTHORS|PATENTS)(?:[._-].*)?$", p.name, re.I)]
-        if not notices:
-            raise ValueError(f"no top-level dependency notice found for {name}; review its terms")
+        # Homebrew may move the Go license from libexec to the formula prefix.
+        if name == "go" and directory.name == "libexec" and not any(p.name == "LICENSE" for p in notices):
+            license_path = directory.parent / "LICENSE"
+            if license_path.is_file():
+                notices.append(license_path)
+        if not any(re.match(r"^(LICENSE|LICENCE|COPYING)(?:[._-].*)?$", p.name, re.I) for p in notices):
+            raise ValueError(f"no dependency license found for {name}; review its terms")
         for notice in notices:
             target = destination / "notices" / name / notice.name
             target.parent.mkdir(parents=True, exist_ok=True)
