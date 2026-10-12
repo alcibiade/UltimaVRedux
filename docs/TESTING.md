@@ -155,13 +155,16 @@ human CLI invocation and result loading.
   directory. Establish stable gameplay first so the latter can persist rollback.
   A successful converter exit is not this interactive acceptance.
 
-The intended production targets are darwin/arm64, linux/arm64, linux/amd64, and
-windows/amd64. Existing automated results are from Apple Silicon macOS; full
-native/manual acceptance is separate. Record each production build result,
-including the `CGO_ENABLED=0` build configuration, separately from native graphics,
-audio, keyboard/IME, setup, and save/load acceptance; Linux and Windows native
-behavior remains unverified. Anonymous `@main` installation and update proof
-must follow public cutover, which is still pending.
+Production compilation has passed for darwin/arm64, linux/arm64, linux/amd64, and
+windows/amd64. Anonymous public `@main` installation of the game and converter,
+installed help, and bounded no-sound startup outside the checkout have passed on
+Apple Silicon macOS. The maintainer separately tested the game on macOS and
+reported that it looks good; these results do not establish a full manual
+acceptance matrix. Native Linux and Windows testing is deferred with the
+maintainer's approval, and their runtime behavior remains unverified. See
+[installation acceptance](INSTALL.md#installation-acceptance) for the verified
+conditions. Keep build/install results, including `CGO_ENABLED=0`, separate from
+native graphics, audio, keyboard/IME, setup, save/load, and update acceptance.
 
 Use default skipping for public asset-independent runs. Private original-data
 validation is a mandatory local gate for fidelity changes: set an explicit data
@@ -347,7 +350,7 @@ Game Facts checks. Node/npm is needed for frontend builds and frontend-specific
 validation; it is not a player prerequisite. Provision the module's selected Go
 toolchain (`go 1.27.0`, `toolchain go1.27.1`) before offline validation.
 Race-instrumented tests require a native C toolchain, separate from the
-C-compiler-free production installation goal. Browser provisioning is separate from testing
+C-compiler-free player installation. Browser provisioning is separate from testing
 (`npx playwright install --with-deps --only-shell chromium` from the frontend directory after
 dependency installation). `make validate` does not install frontend dependencies
 or browsers.

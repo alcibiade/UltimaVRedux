@@ -23,26 +23,23 @@ explains conversion dispositions and omissions.
   Shell-expanded paths such as `"$HOME/UltimaV"` work; a quoted literal `~` is not
   expanded by the converter. Substitute your real paths in the examples.
 
-From an existing application checkout, inspect the current flags:
-
-```sh
-go run ./cmd/save-convert --help
-```
-
-After public cutover, the corresponding module installation will be:
+Install the converter from the public development preview and inspect its flags:
 
 ```sh
 go install github.com/bradhannah/UltimaVRedux/cmd/save-convert@main
 save-convert --help
 ```
 
-Public cutover and anonymous installation proof are still pending. Go places this
-executable in the same `GOBIN`/`GOPATH` location described in
-[Start the game](../INSTALL.md#start-the-game); use its full path if needed.
+Repeat the installation command to update alongside the game. Anonymous macOS
+installation and installed help have been verified; see
+[installation acceptance](../INSTALL.md#installation-acceptance) for scope and
+platform limits. Go places this executable in the same `GOBIN`/`GOPATH` location
+described in [Start the game](../INSTALL.md#start-the-game); use its full path if needed.
 
-You can also build a local executable with
+From an existing application checkout, use `go run ./cmd/save-convert --help`
+to inspect the local version. You can also build a local executable with
 `go build -o bin/save-convert ./cmd/save-convert` and use `./bin/save-convert`
-in place of `go run ./cmd/save-convert`. On Windows, build with
+in place of `save-convert` below. On Windows, build with
 `-o bin/save-convert.exe` and launch `.\bin\save-convert.exe`.
 The examples below use macOS/Linux shell syntax; in PowerShell, supply
 the same flags with your actual paths, using `$HOME` for the home directory.
@@ -56,7 +53,7 @@ separate directory, then write a named snapshot:
 
 ```sh
 mkdir -p "$HOME/UltimaV-converted-snapshots"
-go run ./cmd/save-convert \
+save-convert \
   --data-dir "$HOME/UltimaV" \
   --source "/path/to/original-save/SAVED.GAM" \
   --output "$HOME/UltimaV-converted-snapshots/imported-adventure.json" \
@@ -77,7 +74,7 @@ Use both `--save-dir` and `--slot`. The root is explicit; it is not inferred fro
 your normal game configuration. The slot must be `slot-01` through `slot-08`.
 
 ```sh
-go run ./cmd/save-convert \
+save-convert \
   --data-dir "$HOME/UltimaV" \
   --source "/path/to/original-save" \
   --save-dir "$HOME/UltimaV-converted-slots" \

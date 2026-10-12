@@ -43,7 +43,7 @@ describes tools and local validation. Humans review and merge PRs.
 
 ## Current availability
 
-This checkout contains the application source. No source release or tag has been
-published. The
-[installation guide](docs/INSTALL.md) explains local source builds, the future
-release installation workflow, and platform acceptance still required.
+The application source is public, with a development preview installable from
+`main`. No version tag or packaged release has been published. The
+[installation guide](docs/INSTALL.md) explains installation and updates, local
+source builds, and verified platform acceptance and its limits.

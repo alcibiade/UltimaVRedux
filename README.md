@@ -4,46 +4,35 @@ A modern Go recreation of **Ultima V: Warriors of Destiny**, with enhanced
 presentation, quality-of-life improvements, and a developer Debug Workbench.
 Playing requires files from your own copy of the original game.
 
-> **Development preview — public cutover pending:** the application is unfinished
-> and has known limitations. The repository is not public yet, and anonymous
-> installation has not been verified. No source release or version tag has been
-> published. The `@main` command below is the intended public preview installation.
+> **Public development preview:** the source is available and the game can be
+> installed from `main`. The application is unfinished and has known limitations.
+> No version tag or packaged release has been published.
 
 This is a free, non-commercial fan project. Project-authored source code remains
 MIT-licensed; bundled media has separate terms described in [Asset credits](ASSET_CREDITS.md).
 
 ## Installation
 
-Install the latest patch of **Go 1.27** or newer. The module minimum is
-**1.27.0**, with **go1.27.1** selected as its preferred toolchain. After public
-cutover, install the current development preview with:
+Install the latest patch of **Go 1.27** or newer, then install and start the preview:
 
 ```sh
 go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
 ultimav
 ```
 
-Repeat the installation command to update the preview. Version-tagged source
-releases are a future option. For an existing application checkout:
+Repeat the installation command to update. If `ultimav` is not found, see
+[finding the executable](docs/INSTALL.md#start-the-game) for the `GOBIN`/`GOPATH`
+fallback. The [installation guide](docs/INSTALL.md) also covers local builds,
+original-game setup, and configuration recovery.
 
-```sh
-go build -o bin/ultimav ./cmd/ultimav
-./bin/ultimav
-```
-
-On Windows, use `bin/ultimav.exe` for the output and launch path. These are local
-source-build instructions, not a claim of native platform acceptance.
-
-See the [installation guide](docs/INSTALL.md) for Go prerequisites, finding the
-installed executable, original-game setup, configuration recovery, and updates.
-
-The four intended targets are macOS arm64 (Apple Silicon), Linux arm64, Linux
-amd64, and Windows amd64. Existing automated results are from Apple Silicon macOS;
-they do not establish full native/manual acceptance. Linux and Windows native
-behavior remains unverified.
-The production installation goal is Go, your original game files, and a desktop
-graphics/audio runtime, without Node, Make, an AI tool, or a C compiler. Platform
-build and installation acceptance remain separate from that goal.
+The preview targets macOS arm64 (Apple Silicon), Linux arm64, Linux amd64, and
+Windows amd64. All four targets compile. Anonymous installation and bounded startup
+were verified on Apple Silicon macOS. The maintainer also tested the game on macOS
+and reported that it looks good. Native Linux and Windows testing is deferred and
+their runtime behavior remains unverified; see
+[installation acceptance](docs/INSTALL.md#installation-acceptance).
+Players need Go, their original game files, and a desktop graphics/audio runtime.
+Installation does not require a source checkout, Node, Make, or a C compiler.
 
 ## Original game files
 
