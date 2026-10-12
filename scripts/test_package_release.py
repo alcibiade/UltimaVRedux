@@ -38,7 +38,9 @@ class PackagingTests(unittest.TestCase):
         if command == ["go", "version"]:
             return "go version go1.27.1 darwin/arm64"
         if command[:3] == ["go", "list", "-m"]:
-            return json.dumps({"Main": True})
+            return json.dumps({"Main": True}) + "\n" + json.dumps({"Path": "unused.example/test-only"})
+        if command[:3] == ["go", "list", "-mod=readonly"]:
+            return "example.com/game"
         if command == ["go", "env", "GOROOT"]:
             goroot = self.base / "go"
             goroot.mkdir(exist_ok=True)
@@ -147,6 +149,39 @@ class PackagingTests(unittest.TestCase):
         (source / "LICENSE").unlink()
         with self.assertRaises(FileNotFoundError):
             release.copy_notices(source, self.base / "payload", {})
+
+    def test_platform_specific_dependency_notices_are_included(self):
+        dependency = self.base / "windows-dependency"
+        dependency.mkdir()
+        (dependency / "LICENSE.txt").write_text("Windows dependency license")
+
+        def with_dependency(command, cwd, env=None):
+            if command[:3] == ["go", "list", "-mod=readonly"] and env and env["GOOS"] == "windows":
+                return "example.com/game\nexample.com/windows"
+            if command[:3] == ["go", "list", "-m"]:
+                return json.dumps({"Path": "example.com/windows", "Version": "v1.0.0", "Dir": str(dependency)})
+            return self.fake_run(command, cwd, env)
+
+        self.execute(with_dependency)
+        archive = next(self.output.glob("*darwin*.tar.gz"))
+        with tarfile.open(archive) as contents:
+            notice = next(m for m in contents if m.name.endswith("notices/example.com/windows@v1.0.0/LICENSE.txt"))
+            stream = contents.extractfile(notice)
+            assert stream is not None
+            with stream:
+                self.assertEqual(stream.read(), b"Windows dependency license")
+
+    def test_missing_production_dependency_fails_before_build(self):
+        def missing_dependency(command, cwd, env=None):
+            if command[:3] == ["go", "list", "-mod=readonly"]:
+                return "example.com/missing"
+            if command[:3] == ["go", "list", "-m"]:
+                return json.dumps({"Path": "example.com/missing", "Version": "v1.0.0"})
+            return self.fake_run(command, cwd, env)
+
+        with self.assertRaisesRegex(ValueError, "not provisioned"):
+            self.execute(missing_dependency)
+        self.assertFalse(self.output.exists())
 
 
 if __name__ == "__main__":

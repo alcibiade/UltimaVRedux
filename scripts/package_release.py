@@ -99,10 +99,20 @@ def copy_notices(source, destination, env):
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / relative, target)
+    # The module graph also contains unused/test-only modules. Collect notices for
+    # the union of production imports across all four targets, not that whole graph.
+    used = set()
+    for system, architecture in TARGETS:
+        target_env = dict(env, GOOS=system, GOARCH=architecture)
+        used.update(run(["go", "list", "-mod=readonly", "-deps", "-f",
+                         "{{if .Module}}{{.Module.Path}}{{end}}", "./cmd/ultimav"],
+                        source, target_env).splitlines())
     modules = list(json_stream(run(["go", "list", "-m", "-json", "all"], source, env)))
     locations = [("go", Path(run(["go", "env", "GOROOT"], source, env)))]
     for module in modules:
         if module.get("Main"):
+            continue
+        if module["Path"] not in used:
             continue
         if module.get("Replace"):
             raise ValueError("release packaging does not support replaced dependencies")
