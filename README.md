@@ -13,17 +13,23 @@ MIT-licensed; bundled media has separate terms described in [Asset credits](ASSE
 
 ## Installation
 
-Install the latest patch of **Go 1.27** or newer, then install and start the preview:
+Install the latest patch of **Go 1.27** or newer. See the short
+[Windows, macOS, and Linux Go setup instructions](docs/INSTALL.md#install-go).
+Then install the preview:
 
 ```sh
 go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
-ultimav
 ```
 
-Repeat the installation command to update. If `ultimav` is not found, see
-[finding the executable](docs/INSTALL.md#start-the-game) for the `GOBIN`/`GOPATH`
-fallback. The [installation guide](docs/INSTALL.md) also covers local builds,
-original-game setup, and configuration recovery.
+Launch the executable from the directory printed by `go env GOBIN`; if empty,
+use `bin` under the first directory printed by `go env GOPATH`. With Go's default
+paths, run `"$HOME/go/bin/ultimav"` on macOS/Linux or
+`& "$HOME\go\bin\ultimav.exe"` in Windows PowerShell. An older `ultimav` on
+`PATH` can otherwise launch a different program after a successful install.
+See [starting the game](docs/INSTALL.md#start-the-game) for copyable commands.
+
+Repeat the installation command to update. The [installation guide](docs/INSTALL.md)
+also covers local builds, original-game setup, and configuration recovery.
 
 The preview targets macOS arm64 (Apple Silicon), Linux arm64, Linux amd64, and
 Windows amd64. All four targets compile. Anonymous installation and bounded startup
