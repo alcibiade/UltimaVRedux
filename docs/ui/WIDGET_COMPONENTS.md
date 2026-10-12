@@ -21,7 +21,7 @@ Paths in this table are relative to `internal/ui/widgets/` unless stated.
 | Busy presentation | `loading_indicator.go` | Owner manages Start/Stop and visibility; animation requires active updates. |
 | Grammar or free-text editor | `textinput_core.go`, `textinput_update.go`, `textinput_autocomplete.go` | Input callbacks report choices; gameplay stays outside the widget. |
 | Validated prompt | `input_box.go`, `input_box_prefabs.go` | Grammar and regex modes are exclusive; use Yell, sleep-duration, and yes/no prefabs. |
-| Native path/description input | `legacy_path_entry_modal.go`, `save_description_entry_modal.go` | Preserve native focus/composition and owner-held draft/revision state. |
+| Native checkpoint description input | `save_description_entry_modal.go`, `save_description_layout.go` | Preserve native focus/composition and owner-held draft/revision state. |
 | Mutable narrative | `message_dialog_core.go`, `message_dialog_content.go` | Reserve prompt capacity before using prompt methods. |
 | Timed/acknowledged popup | `overlay_dialog_builder.go`, `overlay_dialog_templates.go` | Exactly one duration mode and one removal owner. |
 | Staged interaction | `interaction_transcript.go` | Captures raw responses; the workflow owns sequencing and authority. |
@@ -388,12 +388,14 @@ and return from a nested modal in the running game.
 
 ## Save And Native Text Entry
 
-`LegacyPathEntryModal` uses platform text input for punctuation, spaces, and IME
-composition. macOS/Windows paste uses explicit clipboard adapters; Linux remains
-typeable without advertising paste. Required `OnResult(path, submitted)` reports
-the user's choice; optional validation keeps invalid input open with an error.
+`SaveDescriptionEntryModal` is the concrete checkpoint-description editor. It
+uses platform text input for punctuation, spaces, selection, and IME composition.
+Required `OnResult(text, submitted)` reports the user's choice; validation keeps
+invalid input open with an error. Redux has no clipboard adapter, custom paste
+handler, or paste hint; OS text-service behavior remains separate.
+There are no in-game data or legacy-save path fields: custom data locations use
+external settings editing, while title-menu import reads the active data folder.
 
-`SaveDescriptionEntryModal` configures that editor rather than duplicating it.
 The caller retains the reviewed revision and draft and removes the exact editor
 and browser before gameplay capture. `OnResult` runs before automatic stack
 removal. Invalid/oversized input preserves the prior value rather than truncating;
@@ -403,7 +405,7 @@ composition edits must not replay as local deletion. Opening Enter is release-
 gated; focus loss/dismissal resets repeat and native text focus follows top-modal
 ownership.
 
-Native path/description editors and the default save browser use normal body
+The native description editor and the default save browser use normal body
 typography. Focused editors show the visible selection with inverted text on a
 high-contrast background, including backward selections and composition ranges.
 An empty Load browser explains Create/Import and exposes only dismissal guidance.
@@ -423,7 +425,8 @@ are opt-in; ordinary browsers do not inherit extra review geometry.
 
 See [player slots](../details/SAVE_SNAPSHOT_SCHEMA.md#player-slots) for persistence
 authority. Tests include `save_slot_browser_test.go`,
-`save_description_submit_input_test.go`, and `legacy_path_native_input_test.go`.
+`save_description_submit_input_test.go`, `save_description_lifecycle_test.go`,
+and `save_description_native_input_test.go`.
 
 ## QuestJournalDialog
 

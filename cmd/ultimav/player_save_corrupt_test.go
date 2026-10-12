@@ -50,7 +50,7 @@ func TestImportCanReplaceCorruptSlotWithRevisionAndRollbackSafety(t *testing.T) 
 				require.True(t, view.PrimaryEnabled)
 				menu.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 				require.NoError(t, game.Update())
-				editor, ok := menu.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+				editor, ok := menu.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 				require.True(t, ok)
 				editor.SetText("b_skiff")
 				if outcome == "stale" {

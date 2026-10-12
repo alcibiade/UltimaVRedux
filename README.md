@@ -4,18 +4,27 @@ A modern Go recreation of **Ultima V: Warriors of Destiny**, with enhanced
 presentation, quality-of-life improvements, and a developer Debug Workbench.
 Playing requires files from your own copy of the original game.
 
-> **Development preview in preparation:** this checkout contains the application,
-> which is unfinished and has known limitations. No source release or version tag
-> has been published. Local source builds are available; the versioned installation
-> command below is a future release target.
+> **Development preview — public cutover pending:** the application is unfinished
+> and has known limitations. The repository is not public yet, and anonymous
+> installation has not been verified. No source release or version tag has been
+> published. The `@main` command below is the intended public preview installation.
 
 This is a free, non-commercial fan project. Project-authored source code remains
 MIT-licensed; bundled media has separate terms described in [Asset credits](ASSET_CREDITS.md).
 
 ## Installation
 
-For an existing application checkout, use Go **1.25.0 or newer**;
-`go.mod` selects **go1.27.1** as the preferred toolchain:
+Install the latest patch of **Go 1.27** or newer. The module minimum is
+**1.27.0**, with **go1.27.1** selected as its preferred toolchain. After public
+cutover, install the current development preview with:
+
+```sh
+go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
+ultimav
+```
+
+Repeat the installation command to update the preview. Version-tagged source
+releases are a future option. For an existing application checkout:
 
 ```sh
 go build -o bin/ultimav ./cmd/ultimav
@@ -25,21 +34,16 @@ go build -o bin/ultimav ./cmd/ultimav
 On Windows, use `bin/ultimav.exe` for the output and launch path. These are local
 source-build instructions, not a claim of native platform acceptance.
 
-Once the first source release is published, the intended player installation is:
-
-```sh
-go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@latest
-ultimav
-```
-
 See the [installation guide](docs/INSTALL.md) for Go prerequisites, finding the
 installed executable, original-game setup, configuration recovery, and updates.
 
-The initial platform targets are Apple Silicon macOS, Windows amd64, and Linux
-amd64. Native installation and startup must be validated before each target is
-advertised as supported. Native Windows/Linux acceptance and public installation
-availability are not yet claimed. The production installation requires Go and a
-desktop graphics/audio environment, not Node, Make, an AI tool, or a C compiler.
+The four intended targets are macOS arm64 (Apple Silicon), Linux arm64, Linux
+amd64, and Windows amd64. Existing automated results are from Apple Silicon macOS;
+they do not establish full native/manual acceptance. Linux and Windows native
+behavior remains unverified.
+The production installation goal is Go, your original game files, and a desktop
+graphics/audio runtime, without Node, Make, an AI tool, or a C compiler. Platform
+build and installation acceptance remain separate from that goal.
 
 ## Original game files
 
@@ -47,14 +51,21 @@ First-run setup offers three practical routes:
 
 1. Confirm a verified existing installation found through supported GOG/Heroic
    discovery or known local locations.
-2. Copy your original game files into the **Documents/UltimaV** folder shown by
-   setup, then choose **Check Again**.
+2. Copy your original game files into the **UltimaV** folder directly under your
+   home directory, as shown by setup, then choose **Check Again**.
 3. Choose **Open Settings File**, edit the game-data location in your text editor,
    save it, and choose **Check Saved Settings**.
 
-The setup screen shows your actual Documents and settings paths. Manual folder
-entry remains available. These routes do not depend on pasting text into the game.
-The game does not download original assets for you.
+Fresh configuration leaves the data location unset; setup asks for confirmation
+even when it finds just one valid installation.
+An already valid configured path is retained. The screen shows the resolved home
+folder and settings filename; custom locations are entered in the external
+settings editor. There are no in-game path fields. The game does not download
+original assets for you.
+
+To import a playthrough, the title menu reads `SAVED.GAM` and `SAVED.OOL` only
+from the active game-data directory. For a save pair elsewhere, use the
+[command-line save converter](docs/details/SAVE_CONVERTER.md).
 
 ## Reports and suggestions
 

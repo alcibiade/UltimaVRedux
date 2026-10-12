@@ -40,9 +40,11 @@ func buildPlayerSaveBrowserModel(
 	playthroughID string,
 ) playerSaveBrowserModel {
 	model := playerSaveBrowserModel{
-		views:              make([]widgets.SaveSlotView, 0, len(summaries)),
-		summaries:          make(map[player_save.SlotID]player_save.SlotSummary, len(summaries)),
-		initialSelectionID: "",
+		views:                    make([]widgets.SaveSlotView, 0, len(summaries)),
+		summaries:                make(map[player_save.SlotID]player_save.SlotSummary, len(summaries)),
+		initialSelectionID:       "",
+		newestLegend:             "",
+		requireExplicitSelection: false,
 	}
 	newestID := newestReadyPlayerSaveSlot(summaries, mode, playthroughID)
 	for _, summary := range summaries {
@@ -126,6 +128,8 @@ func playerSaveSlotView(summary player_save.SlotSummary, mode playerSaveBrowserM
 		RowSummary:  playerSaveRowSummary(summary),
 		Description: summary.Metadata.UserDescription,
 		HasSave:     summary.Status != player_save.SlotEmpty,
+		ReviewValue: "",
+		Newest:      false,
 		NavigationDisabled: mode == playerSaveBrowserLoad &&
 			summary.Status == player_save.SlotEmpty,
 		Details:        playerSaveDetails(summary),
@@ -370,7 +374,7 @@ func showPlayerSaveDescriptionEditor(
 	summary player_save.SlotSummary, playthroughID string, draft *playerSaveDescriptionDraft,
 	onSubmit func(string),
 ) {
-	var editor *widgets.LegacyPathEntryModal
+	var editor *widgets.SaveDescriptionEntryModal
 	editor = widgets.NewSaveDescriptionEntryModal(widgets.SaveDescriptionEntryModalConfig{
 		Title:       title + " " + playerSaveSlotName(summary.Slot),
 		Notice:      playerSaveDescriptionNotice(summary, playthroughID),

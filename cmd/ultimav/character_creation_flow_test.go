@@ -205,7 +205,7 @@ func TestCompletedCharacterCreationWaitsForConclusionKeyReleaseBeforeSaving(t *t
 	held[ebiten.KeyEnter] = true
 	require.NoError(t, scene.Update(game))
 	assert.Empty(t, repository.saves)
-	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 	require.True(t, ok)
 	require.NoError(t, scene.Update(game))
 	assert.Empty(t, repository.saves, "held opening Enter must not confirm")
@@ -313,7 +313,7 @@ func TestCharacterCreationSaveConfirmsReviewedOverwrite(t *testing.T) {
 			game.completeCharacterCreation(result)
 			pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyDown)
 			pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEnter)
-			assert.IsType(t, &widgets.LegacyPathEntryModal{}, scene.dialogStack.PeekTopModalDialog())
+			assert.IsType(t, &widgets.SaveDescriptionEntryModal{}, scene.dialogStack.PeekTopModalDialog())
 			assert.Equal(t, 2, scene.dialogStack.Count())
 			assert.Empty(t, repository.saves)
 
@@ -506,7 +506,7 @@ func TestCharacterCreationRollbackFailureRefreshesDestination(t *testing.T) {
 			assertCharacterCreationResultRetained(t, scene, result)
 
 			pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEnter)
-			assert.IsType(t, &widgets.LegacyPathEntryModal{}, scene.dialogStack.PeekTopModalDialog())
+			assert.IsType(t, &widgets.SaveDescriptionEntryModal{}, scene.dialogStack.PeekTopModalDialog())
 			assert.Len(t, repository.saves, 1, "retry requires fresh overwrite confirmation")
 		})
 	}
@@ -598,7 +598,7 @@ func pressCharacterCreationFlowKey(
 
 func confirmCharacterCreationOverwrite(t *testing.T, game *Game, scene *CharacterCreationScene) {
 	t.Helper()
-	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+	editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 	require.True(t, ok)
 	editor.Submit()
 }

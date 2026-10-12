@@ -266,7 +266,7 @@ func TestManualDescriptionNestedRetryRemovesAllDialogsAndDoesNotAdvanceGameplay(
 		require.True(t, selected)
 		assert.Equal(t, string(player_save.Slot03), view.ID)
 		pressEscapeMenuWidgetKey(scene, browser, ebiten.KeyEnter)
-		editor := requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, scene)
+		editor := requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, scene)
 		if attempt == 0 {
 			editor.SetText("  About to go to Doom  ")
 		} else {
@@ -431,7 +431,7 @@ func TestNewGameIdentityFailureAndNestedSaveRetriesRetainPreparedPayload(t *test
 	pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEnter)
 	for attempt := range 3 {
 		pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEnter)
-		editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+		editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 		require.True(t, ok)
 		if attempt == 0 {
 			editor.SetText("First checkpoint")
@@ -466,7 +466,7 @@ func TestImportDescriptionNestedRetriesKeepIdentityAndDraft(t *testing.T) {
 	for attempt := range 3 {
 		scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 		require.NoError(t, game.Update())
-		editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+		editor, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 		require.True(t, ok)
 		if attempt == 0 {
 			editor.SetText("Imported checkpoint")

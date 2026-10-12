@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"image"
 	"io/fs"
-	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -53,7 +53,6 @@ const (
 	introTitleFizzSeed         = 0x554C54494D41
 	introFlameFizzSeed         = 0x464C414D4553
 	narrativeScreenPadding     = 0.02
-	legacyAvatarLabel          = "Avatar"
 )
 
 var errIntroConfigurationRequired = errors.New("intro configuration and saved data are required")
@@ -94,23 +93,13 @@ type IntroMenuScene struct {
 	active                  bool
 	disposed                bool
 	startupSkipped          bool
-	legacySearchResults     chan introLegacySearchResult
-	legacySearchCancel      context.CancelFunc
-	legacySearchGeneration  uint64
-	legacySearchActive      bool
 	legacyPrepareResults    chan introLegacyPrepareResult
 	legacyPrepareCancel     context.CancelFunc
 	legacyPrepareGeneration uint64
 	legacyPrepareActive     bool
 	legacyPrepareOnFailure  func(error)
 	legacyPrepareOnCancel   func()
-	discoverLegacySaves     func(context.Context, legacy_save.DiscoveryOptions) legacy_save.DiscoveryReport
-	loadLegacyHost          func() (originaldata.HostProfile, error)
-}
-
-type introLegacySearchResult struct {
-	generation uint64
-	report     legacy_save.DiscoveryReport
+	prepareLegacySave       func(context.Context, string) (preparedLegacyPlayerSave, error)
 }
 
 type introLegacyPrepareResult struct {
@@ -138,21 +127,7 @@ func createIntroMenuScene(gameConfig *config.UltimaVConfiguration, startAtMenu b
 		return nil, fmt.Errorf("creating intro menu: %w", err)
 	}
 	font := text.NewUltimaFont(text.GetIntroFontSize())
-	intro := &IntroMenuScene{
-		introSprites:         introSprites,
-		borderSprites:        sprites.NewBorderSprites(),
-		ultimaFont:           font,
-		noticeOutput:         text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, introNoticeLineCount, 80),
-		keyboard:             input.NewKeyboard(250),
-		config:               gameConfig,
-		presentationCanvas:   ebiten.NewImage(introLogicalWidth, introLogicalHeight),
-		signatureCanvas:      ebiten.NewImage(introLogicalWidth, introLogicalHeight),
-		nCurrentSelection:    introChoiceLoad,
-		legacySearchResults:  make(chan introLegacySearchResult, 1),
-		legacyPrepareResults: make(chan introLegacyPrepareResult, 1),
-		discoverLegacySaves:  legacy_save.Discover,
-		loadLegacyHost:       originaldata.CurrentHostProfile,
-	}
+	intro := newIntroMenuState(gameConfig, introSprites, font)
 	intro.presentation = newIntroPresentationDriver(introSprites.BritishPaths)
 	intro.titleFizzSource = ebiten.NewImage(introLogicalWidth, introTitleFizzHeight)
 	intro.titleFizzSource.DrawImage(introSprites.Ultima16Logo, nil)
@@ -188,6 +163,58 @@ func createIntroMenuScene(gameConfig *config.UltimaVConfiguration, startAtMenu b
 	return intro, nil
 }
 
+func newIntroMenuState(
+	gameConfig *config.UltimaVConfiguration,
+	introSprites *sprites.IntroSprites,
+	font *text.UltimaFont,
+) *IntroMenuScene {
+	var navigation input.ListNavigation
+
+	return &IntroMenuScene{
+		navigation:              navigation,
+		introSprites:            introSprites,
+		borderSprites:           sprites.NewBorderSprites(),
+		ultimaFont:              font,
+		noticeOutput:            text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, introNoticeLineCount, 80),
+		keyboard:                input.NewKeyboard(250),
+		config:                  gameConfig,
+		audioManager:            nil,
+		eventQueueManager:       nil,
+		dialogStack:             widgets.DialogStack{},
+		presentation:            nil,
+		narrative:               nil,
+		narrativeAssets:         nil,
+		returnView:              nil,
+		returnViewData:          nil,
+		presentationCanvas:      ebiten.NewImage(introLogicalWidth, introLogicalHeight),
+		signatureCanvas:         ebiten.NewImage(introLogicalWidth, introLogicalHeight),
+		titleFizzSource:         nil,
+		titleFizzBuffer:         nil,
+		flameFizzBuffer:         nil,
+		titleFizz:               nil,
+		flameFizz:               nil,
+		signaturePointCount:     0,
+		elapsedMs:               0,
+		flameAnimationStartMs:   0,
+		menuIdleStartedMs:       0,
+		nCurrentSelection:       introChoiceLoad,
+		notice:                  "",
+		journeyOnwardEnabled:    false,
+		saveAvailabilityKnown:   false,
+		menuVisible:             false,
+		active:                  false,
+		disposed:                false,
+		startupSkipped:          false,
+		legacyPrepareResults:    make(chan introLegacyPrepareResult, 1),
+		legacyPrepareCancel:     nil,
+		legacyPrepareGeneration: 0,
+		legacyPrepareActive:     false,
+		legacyPrepareOnFailure:  nil,
+		legacyPrepareOnCancel:   nil,
+		prepareLegacySave:       nil,
+	}
+}
+
 func (m *IntroMenuScene) finishStartupPresentation() {
 	if m.startupSkipped {
 		m.showMenu()
@@ -213,7 +240,6 @@ func (m *IntroMenuScene) Activate() {
 }
 
 func (m *IntroMenuScene) PrepareForSceneReplacement() {
-	m.stopLegacySaveSearch()
 	m.stopLegacySavePreparation()
 	if m.audioManager == nil {
 		return
@@ -229,7 +255,6 @@ func (m *IntroMenuScene) Dispose() {
 	}
 	m.disposed = true
 	m.active = false
-	m.stopLegacySaveSearch()
 	m.stopLegacySavePreparation()
 	if m.audioManager == nil {
 		return
@@ -277,11 +302,6 @@ func (m *IntroMenuScene) Update(game *Game) error {
 
 		return nil
 	}
-	if m.legacySearchActive {
-		m.updateLegacySaveSearch(game)
-
-		return nil
-	}
 	if modal := m.dialogStack.PeekTopModalDialog(); modal != nil {
 		m.navigation.BlockUntilRelease(m.keyboard.IsKeyHeld)
 		m.menuIdleStartedMs = m.elapsedMs
@@ -300,19 +320,7 @@ func (m *IntroMenuScene) Update(game *Game) error {
 	if m.keyboard.GetBoundKeyPressed(&boundKeysAny) != nil {
 		m.menuIdleStartedMs = m.elapsedMs
 	}
-	if key, owned := m.navigation.Poll(m.keyboard); owned {
-		if key != nil {
-			switch *key { //nolint:exhaustive // The compact intro menu has no paging action.
-			case ebiten.KeyUp:
-				// REDUX DEVIATION: INTRO-0001: original highlight wraps; Redux clamps by product decision.
-				m.moveIntroSelection(-1)
-				m.notice = ""
-			case ebiten.KeyDown:
-				m.moveIntroSelection(1)
-				m.notice = ""
-			}
-		}
-
+	if m.updateMenuNavigation() {
 		return nil
 	}
 	pressedKey := m.keyboard.GetBoundKeyPressed(&boundKeysIntro)
@@ -329,12 +337,28 @@ func (m *IntroMenuScene) Update(game *Game) error {
 		return nil
 	}
 
-	switch *pressedKey {
-	case ebiten.KeyEnter, ebiten.KeyNumpadEnter:
+	if *pressedKey == ebiten.KeyEnter || *pressedKey == ebiten.KeyNumpadEnter {
 		m.activateSelection(game)
 	}
 
 	return nil
+}
+
+func (m *IntroMenuScene) updateMenuNavigation() bool {
+	key, owned := m.navigation.Poll(m.keyboard)
+	if owned && key != nil {
+		switch *key { //nolint:exhaustive // The compact intro menu has no paging action.
+		case ebiten.KeyUp:
+			// REDUX DEVIATION: INTRO-0001: original highlight wraps; Redux clamps by product decision.
+			m.moveIntroSelection(-1)
+			m.notice = ""
+		case ebiten.KeyDown:
+			m.moveIntroSelection(1)
+			m.notice = ""
+		}
+	}
+
+	return owned
 }
 
 func (m *IntroMenuScene) updatePresentationInput() {
@@ -400,7 +424,7 @@ func (m *IntroMenuScene) activateSelection(game *Game) {
 	case introChoiceLoad:
 		m.openPlayerSaveBrowser(game, playerSaveBrowserLoad, nil)
 	case introChoiceImport:
-		m.startLegacySaveDiscovery(game)
+		m.startActiveLegacySaveImport(game)
 	case introChoiceData:
 		m.startDataDirectorySetup(game)
 	case introChoiceCreate:
@@ -633,213 +657,51 @@ func (m *IntroMenuScene) continueLatestPlayerSave(game *Game) {
 	}
 }
 
-const introLegacyManualCandidateID = "manual-path"
+func (m *IntroMenuScene) startActiveLegacySaveImport(game *Game) {
+	m.stopLegacySavePreparation()
+	directory := m.config.SavedConfigData.DataFilePath
+	if strings.TrimSpace(directory) == "" {
+		m.showLegacySaveFailure(game, "(unset)", config.ErrDataFilePathUnset)
 
-func (m *IntroMenuScene) startLegacySaveDiscovery(game *Game) {
-	loadHost := m.loadLegacyHost
-	if loadHost == nil {
-		loadHost = originaldata.CurrentHostProfile
+		return
 	}
-	host, err := loadHost()
+	absolute, err := filepath.Abs(directory)
 	if err != nil {
-		logging.Warn(logging.CategoryUI, "Legacy-save host setup failed: %v", err)
-		m.openLegacySavePathEntryWithNotice(
-			game,
-			"Automatic save discovery is unavailable. Enter a folder or SAVED.GAM path.",
-		)
+		m.showLegacySaveFailure(game, directory, err)
 
 		return
 	}
-	discover := m.discoverLegacySaves
-	if discover == nil {
-		discover = legacy_save.Discover
-	}
-	if m.legacySearchResults == nil {
-		m.legacySearchResults = make(chan introLegacySearchResult, 1)
-	}
-	m.stopLegacySaveSearch()
-	m.legacySearchGeneration++
-	generation := m.legacySearchGeneration
-	ctx, cancel := context.WithCancel(context.Background())
-	m.legacySearchCancel = cancel
-	m.legacySearchActive = true
-	m.notice = "Looking for original Ultima V saves in known local folders..."
-	options := legacy_save.DiscoveryOptions{
-		Host:                    host,
-		ActiveDataDirectory:     m.config.SavedConfigData.DataFilePath,
-		PreviousImportDirectory: m.config.LastLegacyImportDirectory(),
-	}
-	go func() {
-		report := discover(ctx, options)
-		select {
-		case m.legacySearchResults <- introLegacySearchResult{generation: generation, report: report}:
-		case <-ctx.Done():
-		}
-	}()
+	m.prepareActiveLegacySave(game, absolute)
 }
 
-func (m *IntroMenuScene) updateLegacySaveSearch(game *Game) {
-	select {
-	case result := <-m.legacySearchResults:
-		if result.generation == m.legacySearchGeneration {
-			m.stopLegacySaveSearch()
-			if !result.report.Cancelled {
-				m.showLegacySaveCandidates(game, result.report, "")
-			}
-		}
-	default:
-	}
-	if m.legacySearchActive && m.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-		m.stopLegacySaveSearch()
-		m.notice = "Original-save search cancelled. No files or settings were changed."
-	}
+func (m *IntroMenuScene) prepareActiveLegacySave(game *Game, directory string) {
+	m.startLegacySavePreparation(game, directory,
+		func(err error) { m.showLegacySaveFailure(game, directory, err) },
+		func() {
+			m.notice = "Original-save check cancelled. No files or settings were changed."
+			m.menuIdleStartedMs = m.elapsedMs
+		})
 }
 
-func (m *IntroMenuScene) stopLegacySaveSearch() {
-	if m.legacySearchCancel != nil {
-		m.legacySearchCancel()
-		m.legacySearchCancel = nil
-	}
-	m.legacySearchActive = false
-}
-
-func (m *IntroMenuScene) showLegacySaveCandidates(
-	game *Game,
-	report legacy_save.DiscoveryReport,
-	notice string,
-) {
-	if len(report.Candidates) == 0 {
-		m.openLegacySavePathEntryWithNotice(game, legacySaveNotFoundMessage(report))
-
-		return
-	}
-	views := make([]widgets.SaveSlotView, 0, len(report.Candidates)+1)
-	for _, candidate := range report.Candidates {
-		views = append(views, legacySaveCandidateView(candidate))
-	}
-	views = append(views, widgets.SaveSlotView{
-		ID: introLegacyManualCandidateID, Label: "Enter a File or Folder Path...",
-		Status: "Choose a standalone save backup or game folder", RowSummary: "", ReviewValue: "", Description: "",
-		Newest: false, HasSave: false, NavigationDisabled: false, Details: nil, Problem: "", PrimaryEnabled: true,
-	})
-	var browser *widgets.SaveSlotBrowser
-	browser = widgets.NewSaveSlotBrowser(views, widgets.SaveSlotBrowserConfig{
-		Title: "Import an Original Save", PrimaryActionLabel: "Choose Source",
-		CancelActionLabel: "", FontSize: defaultOutputFontSize, InitialSelectionID: "", NewestLegend: "", ReviewLabel: "",
-		RequireExplicitSelection: true, Notice: notice, Keyboard: m.keyboard,
-		Placement: sprites.PercentBasedPlacement{
-			StartPercentX: 0, EndPercentX: 0, StartPercentY: 0, EndPercentY: 0,
-		},
-		OnPrimary: func(view widgets.SaveSlotView) {
-			m.dialogStack.MustRemoveWidgetInstance(browser)
-			if view.ID == introLegacyManualCandidateID {
-				m.openLegacySavePathEntry(game)
-
-				return
-			}
-			m.startLegacySavePreparation(game, view.ID,
-				func(err error) {
-					logging.Warn(logging.CategoryUI, "Discovered legacy save changed before selection: %v", err)
-					m.showLegacySaveCandidates(game, report, legacySavePreparationMessage(err))
-				},
-				func() { m.showLegacySaveCandidates(game, report, "Original-save check cancelled.") },
-			)
-		},
-		OnCancel: func() {
-			m.dialogStack.MustRemoveWidgetInstance(browser)
-			m.notice = ""
-		},
-		IsKeyPressed: nil,
-	})
+func (m *IntroMenuScene) showLegacySaveFailure(game *Game, directory string, err error) {
 	m.notice = ""
-	m.dialogStack.PushModalDialog(browser)
-}
-
-func legacySaveCandidateView(candidate legacy_save.DiscoveredSave) widgets.SaveSlotView {
-	return widgets.SaveSlotView{
-		ID: candidate.SavedGamePath, Label: candidate.Label,
-		Status: "Original save pair verified", RowSummary: candidate.AvatarName,
-		ReviewValue: "", Description: "", Newest: false, HasSave: true, NavigationDisabled: false,
-		Details: []widgets.SaveSlotDetail{
-			{Label: "Save", Value: candidate.SavedGamePath},
-			{Label: legacyAvatarLabel, Value: candidate.AvatarName},
-			{Label: "Location", Value: playerSaveLocationLabel(candidate.Location, candidate.Floor)},
-			{Label: setupSourceDetailLabel, Value: string(candidate.Source)},
-		},
-		Problem: "", PrimaryEnabled: true,
+	var menu *widgets.ButtonListModal
+	back := func() {
+		m.dialogStack.MustRemoveWidgetInstance(menu)
+		m.stopLegacySavePreparation()
+		m.menuIdleStartedMs = m.elapsedMs
 	}
-}
-
-func legacySaveNotFoundMessage(report legacy_save.DiscoveryReport) string {
-	for _, detail := range report.Details {
-		if strings.Contains(detail.Reason, "SAVED.OOL") {
-			return "SAVED.OOL is missing beside SAVED.GAM. Choose the original game folder containing both files."
-		}
-	}
-
-	return "No original saves were found in the usual places. Enter a folder or the full SAVED.GAM path."
-}
-
-func (m *IntroMenuScene) openLegacySavePathEntry(game *Game) {
-	m.openLegacySavePathEntryWithNotice(game, "")
-}
-
-func (m *IntroMenuScene) openLegacySavePathEntryWithNotice(game *Game, notice string) {
-	m.openLegacySavePathEntryWithState(game, notice, "")
-}
-
-func (m *IntroMenuScene) openLegacySavePathEntryWithState(game *Game, notice, enteredPath string) {
-	var pathDialog *widgets.LegacyPathEntryModal
-	_, homeErr := os.UserHomeDir()
-	if homeErr != nil {
-		logging.Warn(logging.CategoryUI, "Legacy save home directory is unavailable: %v", homeErr)
-	}
-	initialPath := enteredPath
-	if initialPath == "" {
-		initialPath = m.config.LastLegacyImportDirectory()
-	}
-	if initialPath == "" {
-		initialPath = m.config.SavedConfigData.DataFilePath
-	}
-	pathDialog = widgets.NewLegacyPathEntryModal(widgets.LegacyPathEntryModalConfig{
-		Prompt:            "Folder containing the save, or SAVED.GAM path:",
-		Guidance:          notice,
-		SubmitLabel:       "Continue",
-		CancelLabel:       "Cancel",
-		InitialPath:       initialPath,
-		Keyboard:          m.keyboard,
-		ReadClipboardText: nil,
-		ClipboardEnabled:  false,
-		IsKeyPressed:      nil,
-		Validate: func(path string) string {
-			path = normalizeLegacySavePathInput(path)
-			if path == "" {
-				return "Enter a save folder or SAVED.GAM path."
-			}
-			if homeErr != nil && (path == "~" || strings.HasPrefix(path, "~/")) {
-				return "The home folder could not be resolved; enter an absolute path."
-			}
-
-			return ""
-		},
-		OnResult: func(_ string, submitted bool) {
-			m.dialogStack.MustRemoveWidgetInstance(pathDialog)
-			if !submitted {
-				return
-			}
-			entered := normalizeLegacySavePathInput(pathDialog.GetText())
-			m.startLegacySavePreparation(game, entered,
-				func(err error) {
-					logging.Warn(logging.CategoryUI, "Intro menu legacy save preparation failed: %v", err)
-					m.openLegacySavePathEntryWithState(game, legacySavePreparationMessage(err), entered)
-				},
-				func() { m.openLegacySavePathEntryWithState(game, "Original-save check cancelled.", entered) },
-			)
-		},
+	placement := sprites.PercentBasedPlacement{StartPercentX: 0, EndPercentX: 1, StartPercentY: 0, EndPercentY: 1}
+	menu = widgets.NewButtonListModal("Original Save Unavailable", back, m.keyboard, &placement)
+	menu.SetDescriptionRowCapacity(setupDescriptionRows)
+	menu.SetDescription("Active game folder: " + directory + "\n" + legacySavePreparationMessage(err) + "\n" + err.Error())
+	menu.SetEscapeLabel(setupBackLabel)
+	menu.AddButton("Check Again", func() {
+		back()
+		m.startActiveLegacySaveImport(game)
 	})
-	pathDialog.SetValidationMessage(notice)
-	m.notice = ""
-	m.dialogStack.PushModalDialog(pathDialog)
+	menu.AddButton(setupBackLabel, back)
+	m.dialogStack.PushModalDialog(menu)
 }
 
 func (m *IntroMenuScene) startLegacySavePreparation(
@@ -848,9 +710,6 @@ func (m *IntroMenuScene) startLegacySavePreparation(
 	onFailure func(error),
 	onCancel func(),
 ) {
-	if m.legacyPrepareResults == nil {
-		m.legacyPrepareResults = make(chan introLegacyPrepareResult, 1)
-	}
 	m.stopLegacySavePreparation()
 	m.legacyPrepareGeneration++
 	generation := m.legacyPrepareGeneration
@@ -859,33 +718,35 @@ func (m *IntroMenuScene) startLegacySavePreparation(
 	m.legacyPrepareActive = true
 	m.legacyPrepareOnFailure = onFailure
 	m.legacyPrepareOnCancel = onCancel
-	m.notice = "Checking and converting the selected original save..."
+	m.notice = "Checking the original save in the active game folder... Esc: Cancel"
+	results := make(chan introLegacyPrepareResult, 1)
+	m.legacyPrepareResults = results
+	prepare := m.prepareLegacySave
+	if prepare == nil {
+		prepare = game.prepareLegacyPlayerSaveContext
+	}
 	go func() {
-		home, homeErr := os.UserHomeDir()
-		if homeErr != nil && (selectedPath == "~" || strings.HasPrefix(selectedPath, "~/")) {
-			var emptyPrepared preparedLegacyPlayerSave
-			select {
-			case m.legacyPrepareResults <- introLegacyPrepareResult{
-				generation: generation, prepared: emptyPrepared, err: homeErr,
-			}:
-			case <-ctx.Done():
-			}
-
-			return
-		}
-		resolved, err := legacy_save.ResolveSavedGamePathContext(ctx, selectedPath, home)
+		resolved, err := legacy_save.ResolveSavedGamePathContext(ctx, selectedPath, "")
 		var prepared preparedLegacyPlayerSave
 		if err == nil {
-			prepared, err = game.prepareLegacyPlayerSaveContext(ctx, resolved)
+			prepared, err = prepare(ctx, resolved)
+			prepared.sourceDirectory = selectedPath
 		}
 		select {
-		case m.legacyPrepareResults <- introLegacyPrepareResult{generation: generation, prepared: prepared, err: err}:
+		case results <- introLegacyPrepareResult{generation: generation, prepared: prepared, err: err}:
 		case <-ctx.Done():
 		}
 	}()
 }
 
 func (m *IntroMenuScene) updateLegacySavePreparation(game *Game) {
+	if m.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
+		onCancel := m.legacyPrepareOnCancel
+		m.stopLegacySavePreparation()
+		onCancel()
+
+		return
+	}
 	select {
 	case result := <-m.legacyPrepareResults:
 		if result.generation == m.legacyPrepareGeneration {
@@ -899,14 +760,11 @@ func (m *IntroMenuScene) updateLegacySavePreparation(game *Game) {
 		}
 	default:
 	}
-	if m.legacyPrepareActive && m.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-		onCancel := m.legacyPrepareOnCancel
-		m.stopLegacySavePreparation()
-		onCancel()
-	}
 }
 
 func (m *IntroMenuScene) stopLegacySavePreparation() {
+	m.legacyPrepareGeneration++
+	m.menuIdleStartedMs = m.elapsedMs
 	if m.legacyPrepareCancel != nil {
 		m.legacyPrepareCancel()
 		m.legacyPrepareCancel = nil
@@ -914,19 +772,6 @@ func (m *IntroMenuScene) stopLegacySavePreparation() {
 	m.legacyPrepareActive = false
 	m.legacyPrepareOnFailure = nil
 	m.legacyPrepareOnCancel = nil
-}
-
-func normalizeLegacySavePathInput(path string) string {
-	path = strings.TrimSpace(path)
-	if len(path) < 2 {
-		return path
-	}
-	first, last := path[0], path[len(path)-1]
-	if first == last && (first == '"' || first == '\'') {
-		return strings.TrimSpace(path[1 : len(path)-1])
-	}
-
-	return path
 }
 
 func legacySavePreparationMessage(err error) string {
@@ -953,9 +798,9 @@ func legacySavePreparationMessage(err error) string {
 func legacySaveSourceValidationMessage(issue legacy_save.ValidationIssue) string {
 	switch issue.Code {
 	case "invalid_filename":
-		return "Select a file named SAVED.GAM."
+		return "The active game location must be a folder containing SAVED.GAM and SAVED.OOL."
 	case "missing_sibling":
-		return "SAVED.OOL is missing beside SAVED.GAM. Choose the original game folder containing both files."
+		return "SAVED.OOL is missing beside SAVED.GAM in the active game folder."
 	case "missing_file":
 		return "SAVED.GAM was not found in that folder."
 	case "ambiguous_sibling":
@@ -993,15 +838,7 @@ func (m *IntroMenuScene) openPlayerSaveBrowserWithState(
 		return
 	}
 
-	playthroughID := ""
-	if legacySave != nil {
-		playthroughID = legacySave.playthrough.id
-	}
-	model := buildPlayerSaveBrowserModel(summaries, mode, playthroughID)
-	if selectionID != "" {
-		model.initialSelectionID = selectionID
-		model.requireExplicitSelection = false
-	}
+	model := buildIntroSaveBrowserModel(summaries, mode, legacySave, selectionID)
 	title, action := "Select Save Game", "Load"
 	if mode == playerSaveBrowserWrite {
 		title, action = "Import Legacy Save", "Import"
@@ -1010,6 +847,8 @@ func (m *IntroMenuScene) openPlayerSaveBrowserWithState(
 	browser = widgets.NewSaveSlotBrowser(model.views, widgets.SaveSlotBrowserConfig{
 		Title:                    title,
 		PrimaryActionLabel:       action,
+		CancelActionLabel:        "",
+		ReviewLabel:              "",
 		FontSize:                 defaultOutputFontSize,
 		InitialSelectionID:       model.initialSelectionID,
 		NewestLegend:             model.newestLegend,
@@ -1039,11 +878,38 @@ func (m *IntroMenuScene) openPlayerSaveBrowserWithState(
 		},
 		OnCancel: func() {
 			m.dialogStack.MustRemoveWidgetInstance(browser)
+			m.menuIdleStartedMs = m.elapsedMs
 		},
 		IsKeyPressed: nil,
 	})
 	m.notice = ""
 	m.dialogStack.PushModalDialog(browser)
+}
+
+func buildIntroSaveBrowserModel(
+	summaries []player_save.SlotSummary,
+	mode playerSaveBrowserMode,
+	legacySave *preparedLegacyPlayerSave,
+	selectionID string,
+) playerSaveBrowserModel {
+	playthroughID := ""
+	if legacySave != nil {
+		playthroughID = legacySave.playthrough.id
+	}
+	model := buildPlayerSaveBrowserModel(summaries, mode, playthroughID)
+	if legacySave != nil {
+		for index := range model.views {
+			model.views[index].Details = append([]widgets.SaveSlotDetail{
+				{Label: "Source folder", Value: legacySave.sourceDirectory},
+			}, model.views[index].Details...)
+		}
+	}
+	if selectionID != "" {
+		model.initialSelectionID = selectionID
+		model.requireExplicitSelection = false
+	}
+
+	return model
 }
 
 func (m *IntroMenuScene) loadReviewedPlayerSave(
@@ -1115,11 +981,6 @@ func (m *IntroMenuScene) importLegacySave(
 	}
 	if len(legacySave.warnings) > 0 {
 		logging.Warn(logging.CategoryUI, "Legacy save import completed with %d conversion warnings", len(legacySave.warnings))
-	}
-	if legacySave.sourceDirectory != "" {
-		if err := m.config.PersistLastLegacyImportDirectory(legacySave.sourceDirectory); err != nil {
-			logging.Warn(logging.CategoryConfig, "Legacy import history could not be saved: %v", err)
-		}
 	}
 }
 

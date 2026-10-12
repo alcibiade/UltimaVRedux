@@ -28,10 +28,9 @@ const (
 )
 
 var (
-	errEmptyDirectory     = errors.New("enter an Ultima V folder")
-	errDataFileSelected   = errors.New("choose the folder containing DATA.OVL, not a file")
-	errRequiredDataAbsent = errors.New("required game files are missing")
-	errMetadataTooLarge   = errors.New("provider metadata exceeds the discovery size limit")
+	errMetadataTooLarge = errors.New("provider metadata exceeds the discovery size limit")
+	errHomeNotAbsolute  = errors.New("set an absolute home folder before locating Ultima V game files")
+	errHomeNotDirectory = errors.New("the configured home path must be a folder before locating game files")
 )
 
 // Source identifies how a candidate path was discovered.
@@ -44,18 +43,15 @@ const (
 	SourceGOG         Source = "GOG installation"
 	SourceHeroic      Source = "Heroic installation"
 	SourceCommon      Source = "Common installation location"
-	SourcePortable    Source = "Portable copy"
 	SourceRecommended Source = "Recommended personal folder"
 )
 
 // HostProfile contains the host paths used to produce a finite discovery catalogue.
 type HostProfile struct {
-	GOOS           string
-	HomeDirectory  string
-	DocumentsDir   string
-	ExecutablePath string
-	Environment    map[string]string
-	ProviderSeeds  []Seed
+	GOOS          string
+	HomeDirectory string
+	Environment   map[string]string
+	ProviderSeeds []Seed
 }
 
 // Seed is one bounded root or installation path to inspect.
@@ -113,21 +109,21 @@ func CurrentHostProfile() (HostProfile, error) {
 	if err != nil {
 		return HostProfile{}, fmt.Errorf("locating home directory: %w", err)
 	}
-	executable, err := os.Executable()
-	if err != nil {
-		return HostProfile{}, fmt.Errorf("locating executable: %w", err)
+	if strings.TrimSpace(home) == "" || !filepath.IsAbs(home) {
+		return HostProfile{}, errHomeNotAbsolute
 	}
-	documents, err := platformDocumentsDirectory(home)
+	info, err := os.Stat(home)
 	if err != nil {
-		documents = filepath.Join(home, "Documents")
+		return HostProfile{}, fmt.Errorf("make your home folder available before locating game files: %w", err)
+	}
+	if !info.IsDir() {
+		return HostProfile{}, errHomeNotDirectory
 	}
 	host := HostProfile{
-		GOOS:           runtime.GOOS,
-		HomeDirectory:  home,
-		DocumentsDir:   documents,
-		ExecutablePath: executable,
-		Environment:    environmentMap(),
-		ProviderSeeds:  platformProviderSeeds(),
+		GOOS:          runtime.GOOS,
+		HomeDirectory: home,
+		Environment:   environmentMap(),
+		ProviderSeeds: platformProviderSeeds(),
 	}
 
 	return host, nil
@@ -136,26 +132,11 @@ func CurrentHostProfile() (HostProfile, error) {
 // RecommendedDirectory returns the simple personal folder shown when managed
 // installation discovery does not find a usable copy.
 func RecommendedDirectory(host HostProfile) string {
-	documents := strings.TrimSpace(host.DocumentsDir)
-	if documents == "" {
-		documents = filepath.Join(host.HomeDirectory, "Documents")
+	if strings.TrimSpace(host.HomeDirectory) == "" || !filepath.IsAbs(host.HomeDirectory) {
+		return ""
 	}
 
-	return filepath.Join(documents, "UltimaV")
-}
-
-// ExpandUserPath expands only the portable home shorthand. It deliberately
-// does not evaluate shell variables, commands, or escape sequences.
-func ExpandUserPath(value, homeDirectory string) string {
-	value = strings.TrimSpace(value)
-	if value == "~" {
-		return homeDirectory
-	}
-	if strings.HasPrefix(value, "~"+string(filepath.Separator)) {
-		return filepath.Join(homeDirectory, strings.TrimPrefix(value, "~"+string(filepath.Separator)))
-	}
-
-	return value
+	return filepath.Join(host.HomeDirectory, "UltimaV")
 }
 
 // Discover completes the finite catalogue before returning stable verified results.
@@ -165,6 +146,12 @@ func Discover(ctx context.Context, options DiscoveryOptions) Report {
 	report := Report{
 		Candidates: nil, Details: nil, CheckedRoots: nil,
 		RecommendedDirectory: RecommendedDirectory(options.Host), Cancelled: false,
+	}
+	if report.RecommendedDirectory == "" {
+		report.Details = []Detail{{Path: options.Host.HomeDirectory, Source: SourceRecommended,
+			Reason: "An absolute home folder is required; set it before checking installations again."}}
+
+		return report
 	}
 	validator := options.Validate
 	if validator == nil {
@@ -229,62 +216,6 @@ func Discover(ctx context.Context, options DiscoveryOptions) Report {
 	return report
 }
 
-// ResolveDirectory validates a manually entered data directory or one of the
-// finite known layouts directly beneath it. It never performs a recursive scan.
-func ResolveDirectory(ctx context.Context, enteredPath, goos string, validator ValidateFunc) ([]string, error) {
-	enteredPath = strings.TrimSpace(enteredPath)
-	if enteredPath == "" {
-		return nil, errEmptyDirectory
-	}
-	absolute, err := filepath.Abs(enteredPath)
-	if err != nil {
-		return nil, fmt.Errorf("resolving selected folder: %w", err)
-	}
-	info, err := os.Stat(absolute)
-	if err != nil {
-		return nil, fmt.Errorf("checking selected folder: %w", err)
-	}
-	if !info.IsDir() {
-		return nil, errDataFileSelected
-	}
-	if validator == nil {
-		validator = ValidateInstallation
-	}
-	var matches []string
-	var validationErrors []error
-	seenMatches := make(map[string]struct{})
-	for _, candidate := range boundedLayouts(absolute, goos) {
-		if err := ctx.Err(); err != nil {
-			return nil, fmt.Errorf("cancelling folder resolution: %w", err)
-		}
-		candidateInfo, statErr := os.Stat(candidate)
-		if statErr != nil || !candidateInfo.IsDir() {
-			continue
-		}
-		if validationErr := validator(ctx, candidate); validationErr != nil {
-			validationErrors = append(validationErrors, validationErr)
-
-			continue
-		}
-		identity := canonicalIdentity(candidate, goos)
-		if _, exists := seenMatches[identity]; exists {
-			continue
-		}
-		seenMatches[identity] = struct{}{}
-		matches = append(matches, candidate)
-	}
-	if len(matches) == 0 {
-		if len(validationErrors) > 0 {
-			return nil, fmt.Errorf("these game files are not usable: %w", validationErrors[0])
-		}
-
-		return nil, errRequiredDataAbsent
-	}
-	sort.Strings(matches)
-
-	return slices.Compact(matches), nil
-}
-
 func discoverySeeds(options DiscoveryOptions) ([]Seed, []Detail) {
 	seeds := make([]Seed, 0, discoverySeedCapacity)
 	appendDirectory := func(path string, source Source, label string) {
@@ -294,16 +225,14 @@ func discoverySeeds(options DiscoveryOptions) ([]Seed, []Detail) {
 	}
 	appendDirectory(options.ConfiguredDirectory, SourceConfigured, "Configured location")
 	appendDirectory(options.PreviousDataDirectory, SourcePrevious, "Previously used folder")
-	seeds = append(seeds, options.Host.ProviderSeeds...)
+	for _, seed := range options.Host.ProviderSeeds {
+		if filepath.IsAbs(seed.Path) {
+			seeds = append(seeds, seed)
+		}
+	}
 	heroic, details := heroicSeeds(options.Host)
 	seeds = append(seeds, heroic...)
 	seeds = append(seeds, commonSeeds(options.Host)...)
-	if options.Host.ExecutablePath != "" {
-		executableDirectory := filepath.Dir(options.Host.ExecutablePath)
-		for _, name := range []string{"OLD", "UltimaV", "Ultima 5", "Ultima V"} {
-			appendDirectory(filepath.Join(executableDirectory, name), SourcePortable, "Local copy beside Redux")
-		}
-	}
 	appendDirectory(RecommendedDirectory(options.Host), SourceRecommended, "Recommended personal folder")
 	seeds = append(seeds, options.AdditionalSeeds...)
 
@@ -321,9 +250,9 @@ func discoverySeeds(options DiscoveryOptions) ([]Seed, []Detail) {
 
 func commonSeeds(host HostProfile) []Seed {
 	var seeds []Seed
-	add := func(path string, source Source, label string) {
+	add := func(path, label string) {
 		if strings.TrimSpace(path) != "" {
-			seeds = append(seeds, Seed{Path: path, Source: source, Label: label})
+			seeds = append(seeds, Seed{Path: path, Source: SourceCommon, Label: label})
 		}
 	}
 	switch host.GOOS {
@@ -336,24 +265,22 @@ func commonSeeds(host HostProfile) []Seed {
 		if systemDrive == "" {
 			systemDrive = "C:"
 		}
-		add(filepath.Join(programFilesX86, "GOG Galaxy", "Games"), SourceCommon, "GOG Galaxy default")
+		if filepath.IsAbs(programFilesX86) {
+			add(filepath.Join(programFilesX86, "GOG Galaxy", "Games"), "GOG Galaxy default")
+		}
 		add(
 			filepath.Join(systemDrive+string(filepath.Separator), "GOG Games"),
-			SourceCommon,
 			"GOG offline installer",
 		)
-		add(filepath.Join(host.HomeDirectory, "Games", "Heroic", "Ultima 5"), SourceCommon, "Heroic default")
+		add(filepath.Join(host.HomeDirectory, "Games", "Heroic", "Ultima 5"), "Heroic default")
 	case goosDarwin:
 		for _, root := range []string{"/Applications", filepath.Join(host.HomeDirectory, "Applications")} {
-			add(filepath.Join(root, "Ultima V™.app"), SourceCommon, "GOG macOS application")
-			add(filepath.Join(root, "Ultima V.app"), SourceCommon, "GOG macOS application")
+			add(filepath.Join(root, "Ultima V™.app"), "GOG macOS application")
+			add(filepath.Join(root, "Ultima V.app"), "GOG macOS application")
 		}
 	case goosLinux:
-		add(filepath.Join(host.HomeDirectory, "Games", "Heroic", "Ultima 5"), SourceCommon, "Heroic default")
-		add(filepath.Join(host.HomeDirectory, "GOG Games"), SourceCommon, "Manual GOG copy")
-	}
-	for _, name := range []string{"UltimaV", "Ultima 5", "Ultima V"} {
-		add(filepath.Join(host.DocumentsDir, name), SourceRecommended, "Recommended personal folder")
+		add(filepath.Join(host.HomeDirectory, "Games", "Heroic", "Ultima 5"), "Heroic default")
+		add(filepath.Join(host.HomeDirectory, "GOG Games"), "Manual GOG copy")
 	}
 
 	return seeds
@@ -422,7 +349,7 @@ func heroicSeeds(host HostProfile) ([]Seed, []Detail) {
 			entries = entries[:heroicInstalledEntryLimit]
 		}
 		for _, entry := range entries {
-			if entry.AppName == GOGGameID && strings.TrimSpace(entry.InstallPath) != "" {
+			if entry.AppName == GOGGameID && filepath.IsAbs(entry.InstallPath) {
 				seeds = append(seeds, Seed{Path: entry.InstallPath, Source: SourceHeroic, Label: "Heroic GOG installation"})
 			}
 		}
@@ -435,16 +362,16 @@ func heroicMetadataPaths(host HostProfile) []string {
 	var metadataPaths []string
 	switch host.GOOS {
 	case goosWindows:
-		metadataPaths = append(metadataPaths,
-			filepath.Join(host.Environment["APPDATA"], "heroic", "gog_store", "installed.json"),
-		)
+		if appData := host.Environment["APPDATA"]; filepath.IsAbs(appData) {
+			metadataPaths = append(metadataPaths, filepath.Join(appData, "heroic", "gog_store", "installed.json"))
+		}
 	case goosDarwin:
 		metadataPaths = append(metadataPaths,
 			filepath.Join(host.HomeDirectory, "Library", "Application Support", "heroic", "gog_store", "installed.json"),
 		)
 	case goosLinux:
 		xdgConfig := host.Environment["XDG_CONFIG_HOME"]
-		if xdgConfig == "" {
+		if !filepath.IsAbs(xdgConfig) {
 			xdgConfig = filepath.Join(host.HomeDirectory, ".config")
 		}
 		metadataPaths = append(metadataPaths,

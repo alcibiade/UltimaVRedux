@@ -56,7 +56,6 @@ func TestDataSetupSceneNoCandidatesOffersRecoveryAndFirstRunQuit(t *testing.T) {
 	menu, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal)
 	require.True(t, ok)
 	assert.Equal(t, []string{
-		"Enter a Folder Path",
 		"Open Settings File",
 		"Check Again",
 		"Show Search Details",
@@ -94,7 +93,7 @@ func TestDataSetupSceneMultipleCandidatesPreselectsFirstVerifiedInstallation(t *
 	scene.discover = func(context.Context, originaldata.DiscoveryOptions) originaldata.Report {
 		return originaldata.Report{Candidates: []originaldata.Candidate{
 			first,
-			{Path: filepath.Join(t.TempDir(), "portable"), Source: originaldata.SourcePortable, Label: "Portable copy"},
+			{Path: filepath.Join(t.TempDir(), "personal"), Source: originaldata.SourceRecommended, Label: "Personal folder"},
 		}}
 	}
 	game := NewGame(scene)
@@ -201,7 +200,7 @@ func TestDataSetupSceneRetrySupersedesCancelledSearch(t *testing.T) {
 		}
 
 		return originaldata.Report{Candidates: []originaldata.Candidate{{
-			Path: secondPath, Source: originaldata.SourcePortable, Label: "second search",
+			Path: secondPath, Source: originaldata.SourceRecommended, Label: "second search",
 		}}}
 	}
 	game := NewGame(scene)
@@ -301,7 +300,10 @@ func TestDataSetupSceneTitleSelectionDoesNotRewriteAlreadyActivePersistedPath(t 
 	scene, configuration := newDataSetupTestScene(t, dataSetupFromTitle)
 	path, err := configuration.ConfigurationFilePath()
 	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(path, []byte("invalid: [yaml\n"), 0o600))
+	active := filepath.Join(t.TempDir(), "active")
+	configuration.SavedConfigData.DataFilePath = active
+	contents := []byte("# preserve formatting\nDataFilePath: '" + active + "'\n")
+	require.NoError(t, os.WriteFile(path, contents, 0o600))
 	game := &Game{}
 	candidate := originaldata.Candidate{Path: configuration.SavedConfigData.DataFilePath}
 
@@ -312,6 +314,9 @@ func TestDataSetupSceneTitleSelectionDoesNotRewriteAlreadyActivePersistedPath(t 
 	menu, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal)
 	require.True(t, ok)
 	assert.Equal(t, []string{"Return to Menu"}, menu.ButtonTexts())
+	after, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, contents, after)
 }
 
 func TestDataSetupSceneTitleSelectingActivePathClearsPendingChange(t *testing.T) {
@@ -331,17 +336,13 @@ func TestDataSetupSceneTitleSelectingActivePathClearsPendingChange(t *testing.T)
 	assert.Equal(t, []string{setupReturnToMenuLabel}, menu.ButtonTexts())
 }
 
-func TestDataSetupSceneFirstRunManualEntryUsesRecommendedFolderInsteadOfDefaultOld(t *testing.T) {
-	scene, _ := newDataSetupTestScene(t, dataSetupFirstRun)
-	scene.openManualFolderEntry(&Game{})
-
-	modal, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
-	require.True(t, ok)
-	assert.Equal(t, originaldata.RecommendedDirectory(scene.host), modal.GetText())
-}
-
-func TestDataSetupSceneFirstRunTreatsDefaultOldAsPortableDiscoverySeed(t *testing.T) {
-	scene, _ := newDataSetupTestScene(t, dataSetupFirstRun)
+func TestDataSetupScenePreservesExplicitOldWithoutAutomaticPortableSeeds(t *testing.T) {
+	scene, configuration := newDataSetupTestScene(t, dataSetupFirstRun)
+	path, err := configuration.ConfigurationFilePath()
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, []byte("DataFilePath: ./OLD\n"), 0o600))
+	require.NoError(t, configuration.RefreshPersistedConfiguration())
+	configuration.SavedConfigData.DataFilePath = "./OLD"
 	options := make(chan originaldata.DiscoveryOptions, 1)
 	scene.discover = func(_ context.Context, discovered originaldata.DiscoveryOptions) originaldata.Report {
 		options <- discovered
@@ -353,11 +354,9 @@ func TestDataSetupSceneFirstRunTreatsDefaultOldAsPortableDiscoverySeed(t *testin
 
 	select {
 	case discovered := <-options:
-		assert.Empty(t, discovered.ConfiguredDirectory)
-		assert.Empty(t, discovered.PreviousDataDirectory)
-		require.Contains(t, discovered.AdditionalSeeds, originaldata.Seed{
-			Path: "./OLD", Source: originaldata.SourcePortable, Label: "Portable copy",
-		})
+		assert.Equal(t, "./OLD", discovered.ConfiguredDirectory)
+		assert.Equal(t, "./OLD", discovered.PreviousDataDirectory)
+		assert.Empty(t, discovered.AdditionalSeeds)
 	case <-time.After(time.Second):
 		t.Fatal("data discovery did not start")
 	}
@@ -420,26 +419,6 @@ func TestDataSetupSceneValidationDropsLateEditorFailure(t *testing.T) {
 	scene.stopValidation()
 }
 
-func TestDataSetupSceneManualValidationFailurePreservesEnteredPath(t *testing.T) {
-	scene, _ := newDataSetupTestScene(t, dataSetupFirstRun)
-	scene.validate = func(context.Context, string) error { return errors.New("required game files are missing") }
-	game := &Game{}
-	entered := filepath.Join(t.TempDir(), "collection")
-	require.NoError(t, os.Mkdir(entered, 0o700))
-
-	scene.startManualResolution(entered)
-	updateDataSetupUntil(t, scene, game, func() bool {
-		_, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
-
-		return ok
-	})
-
-	modal, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
-	require.True(t, ok)
-	assert.Equal(t, entered, modal.GetText())
-	assert.Contains(t, modal.GetValidationMessage(), "required game files are missing")
-}
-
 func TestDataSetupSceneAlternativeActionsHaveTruthfulBackNavigation(t *testing.T) {
 	scene, _ := newDataSetupTestScene(t, dataSetupFirstRun)
 	game := &Game{}
@@ -448,7 +427,7 @@ func TestDataSetupSceneAlternativeActionsHaveTruthfulBackNavigation(t *testing.T
 
 	menu, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal)
 	require.True(t, ok)
-	assert.Equal(t, []string{"Enter a Folder Path", "Open Settings File", "Back"}, menu.ButtonTexts())
+	assert.Equal(t, []string{"Open Settings File", "Back"}, menu.ButtonTexts())
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	require.NoError(t, scene.Update(game))
 
@@ -538,12 +517,12 @@ func newDataSetupTestScene(
 	t.Helper()
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	startup := config.LoadStartupConfiguration()
 	require.NotNil(t, startup.Configuration)
 	require.NoError(t, startup.ConfigurationError)
 	host := originaldata.HostProfile{
-		GOOS: "linux", HomeDirectory: home, DocumentsDir: filepath.Join(home, "Documents"),
-		ExecutablePath: filepath.Join(home, "bin", "ultima-v-redux"), Environment: map[string]string{},
+		GOOS: "linux", HomeDirectory: home, Environment: map[string]string{},
 	}
 	ready := func(*Game, *config.UltimaVConfiguration) error { return nil }
 	back := func(*Game) error { return nil }

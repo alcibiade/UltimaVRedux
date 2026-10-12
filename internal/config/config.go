@@ -1,3 +1,4 @@
+// Package config loads and persists player preferences and original-data locations.
 package config
 
 import (
@@ -8,6 +9,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
+	"strings"
 
 	"github.com/spf13/viper"
 
@@ -22,10 +25,21 @@ var (
 	ErrGameplayConfigNil       = errors.New("gameplay configuration is nil")
 	ErrAudioConfigNil          = errors.New("audio configuration is nil")
 	ErrDisplayConfigNil        = errors.New("display configuration is nil")
+	ErrLoggingConfigNil        = errors.New("logging configuration is nil")
 	ErrConfigFileUnknown       = errors.New("configuration file path is unknown")
 	ErrConfigSourceUnavailable = errors.New("configuration source is unavailable")
 	ErrResolutionIndex         = errors.New("invalid window resolution index")
 	ErrDisplayConfig           = errors.New("invalid display configuration")
+	ErrDataFilePathUnset       = errors.New(
+		"DataFilePath is unset; choose an installation or set DataFilePath in the settings file",
+	)
+)
+
+const (
+	maximumVolumeSlider       = 10
+	maximumTargetFPS          = 144
+	millisecondsPerSecond     = 1000
+	defaultAmbientLightRadius = 2
 )
 
 // always use 16x9 resolutions
@@ -48,6 +62,7 @@ var (
 // var WindowWidth = 2560
 // var WindowHeight = 1440
 
+// UltimaVConfigurationFlags holds the legacy display flags and active data path.
 type UltimaVConfigurationFlags struct {
 	Resolution   int
 	FullScreen   bool
@@ -162,8 +177,8 @@ func clampSliderValue(value int) int {
 	if value < 0 {
 		return 0
 	}
-	if value > 10 {
-		return 10
+	if value > maximumVolumeSlider {
+		return maximumVolumeSlider
 	}
 
 	return value
@@ -198,8 +213,8 @@ func (d *DisplayConfiguration) SetTargetFPS(fps int) {
 	if fps < 0 {
 		fps = 0 // 0 = unlimited
 	}
-	if fps > 144 {
-		fps = 144 // Reasonable upper limit
+	if fps > maximumTargetFPS {
+		fps = maximumTargetFPS
 	}
 	d.TargetFPS = fps
 }
@@ -210,7 +225,7 @@ func (d *DisplayConfiguration) GetFrameInterval() int64 {
 		return 0 // No limiting
 	}
 
-	return 1000 / int64(d.TargetFPS) // Convert FPS to milliseconds per frame
+	return millisecondsPerSecond / int64(d.TargetFPS)
 }
 
 // Clone creates a deep copy of the DisplayConfiguration
@@ -224,6 +239,7 @@ func (d *DisplayConfiguration) Clone() *DisplayConfiguration {
 	}
 }
 
+// UltimaVConfiguration owns active preferences, original data, and the selected persistence source.
 type UltimaVConfiguration struct {
 	// DataFilePath     string
 	RawDataOvl       []byte
@@ -233,6 +249,9 @@ type UltimaVConfiguration struct {
 
 	// Each configuration owns its selected source, including unknown settings.
 	source *viper.Viper
+	// Track preferences last loaded or deliberately saved by this session so an
+	// exit-time save cannot undo external edits that take effect next launch.
+	runtimeBaseline *viper.Viper
 
 	// Audio configuration for volume settings
 	AudioConfiguration *AudioConfiguration
@@ -269,7 +288,7 @@ func NewUltimaVConfiguration() (*UltimaVConfiguration, error) {
 }
 
 func loadUserConfigurationSource() (*viper.Viper, error) {
-	home, err := os.UserHomeDir()
+	home, err := configurationHome()
 	if err != nil {
 		return nil, fmt.Errorf("locating configuration home: %w", err)
 	}
@@ -281,12 +300,12 @@ func loadUserConfigurationSource() (*viper.Viper, error) {
 	if err := source.ReadInConfig(); err != nil {
 		var notFound viper.ConfigFileNotFoundError
 		if !errors.As(err, &notFound) {
-			return nil, fmt.Errorf("reading configuration: %w", err)
+			return source, fmt.Errorf("reading configuration: %w", err)
 		}
 		if err := os.MkdirAll(directory, 0o700); err != nil { //nolint:mnd // User configuration is private to its owner.
 			return nil, fmt.Errorf("creating configuration directory: %w", err)
 		}
-		source.Set("DataFilePath", "./OLD")
+		source.Set("DataFilePath", "")
 		if err := source.SafeWriteConfig(); err != nil {
 			return nil, fmt.Errorf("writing default configuration: %w", err)
 		}
@@ -340,6 +359,9 @@ func newUltimaVConfiguration(
 	explicitDataPath string,
 	loadOriginalData bool,
 ) (*UltimaVConfiguration, error) {
+	if err := validateConfigurationTypes(source); err != nil {
+		return nil, err
+	}
 	configuration := UltimaVConfiguration{source: source} //nolint:exhaustruct // Configuration sections are loaded below.
 	if err := configuration.loadConfigurationSource(explicitDataPath, loadOriginalData); err != nil {
 		return nil, err
@@ -373,18 +395,21 @@ func newUltimaVConfiguration(
 	if source.IsSet("Lighting.AmbientLightRadius") {
 		configuration.AmbientLightRadius = source.GetInt("Lighting.AmbientLightRadius")
 	} else {
-		configuration.AmbientLightRadius = 2 // Default: 2 tile radius for night vision
+		configuration.AmbientLightRadius = defaultAmbientLightRadius
 	}
 	// Clamp to valid range (1-5)
 	if configuration.AmbientLightRadius < 1 || configuration.AmbientLightRadius > 5 {
-		configuration.AmbientLightRadius = 2
+		configuration.AmbientLightRadius = defaultAmbientLightRadius
 	}
+
+	configuration.runtimeBaseline = viper.New()
+	setInitializedConfiguration(configuration.runtimeBaseline, &configuration)
 
 	return &configuration, nil
 }
 
 func (uc *UltimaVConfiguration) loadConfigurationSource(explicitDataPath string, loadOriginalData bool) error {
-	uc.SavedConfigData = &UltimaVConfigurationFlags{}
+	uc.SavedConfigData = &UltimaVConfigurationFlags{Resolution: 0, FullScreen: false, DataFilePath: ""}
 	if err := uc.source.Unmarshal(uc.SavedConfigData); err != nil {
 		return fmt.Errorf("decoding configuration: %w", err)
 	}
@@ -392,12 +417,15 @@ func (uc *UltimaVConfiguration) loadConfigurationSource(explicitDataPath string,
 	uc.SavedConfigData.DataFilePath = explicitDataPath
 	if explicitDataPath == "" {
 		uc.SavedConfigData.DataFilePath = uc.source.GetString("DataFilePath")
-		if uc.SavedConfigData.DataFilePath == "" {
-			uc.SavedConfigData.DataFilePath = "./OLD"
-		}
+	}
+	if strings.TrimSpace(uc.SavedConfigData.DataFilePath) == "" {
+		uc.SavedConfigData.DataFilePath = ""
 	}
 
 	if loadOriginalData {
+		if uc.SavedConfigData.DataFilePath == "" {
+			return ErrDataFilePathUnset
+		}
 		var err error
 		uc.RawDataOvl, err = os.ReadFile(path.Join(uc.SavedConfigData.DataFilePath, files.DATA_OVL))
 		if err != nil {
@@ -436,22 +464,30 @@ func (uc *UltimaVConfiguration) loadDisplayConfiguration() {
 	heightSet := uc.source.IsSet("Display.WindowHeight")
 	if modeSet || widthSet || heightSet {
 		if modeSet && widthSet && heightSet {
-			modeValue, modeOK := uc.source.Get("Display.Mode").(string)
-			mode, modeErr := ParseMode(modeValue)
-			width, widthOK := strictConfigurationInt(uc.source.Get("Display.WindowWidth"))
-			height, heightOK := strictConfigurationInt(uc.source.Get("Display.WindowHeight"))
-			if modeOK && modeErr == nil && widthOK && heightOK &&
-				validDisplayDimensions(width, height) {
-				uc.DisplayConfiguration.Mode = mode
-				uc.DisplayConfiguration.WindowWidth = width
-				uc.DisplayConfiguration.WindowHeight = height
-			}
+			uc.loadExplicitDisplayDimensions()
 		}
 		uc.syncLegacyDisplayModel()
 
 		return
 	}
 
+	uc.loadLegacyDisplayDimensions()
+	uc.syncLegacyDisplayModel()
+}
+
+func (uc *UltimaVConfiguration) loadExplicitDisplayDimensions() {
+	modeValue, modeOK := uc.source.Get("Display.Mode").(string)
+	mode, modeErr := ParseMode(modeValue)
+	width, widthOK := strictConfigurationInt(uc.source.Get("Display.WindowWidth"))
+	height, heightOK := strictConfigurationInt(uc.source.Get("Display.WindowHeight"))
+	if modeOK && modeErr == nil && widthOK && heightOK && validDisplayDimensions(width, height) {
+		uc.DisplayConfiguration.Mode = mode
+		uc.DisplayConfiguration.WindowWidth = width
+		uc.DisplayConfiguration.WindowHeight = height
+	}
+}
+
+func (uc *UltimaVConfiguration) loadLegacyDisplayDimensions() {
 	resolution, resolutionOK := strictConfigurationInt(uc.source.Get("Resolution"))
 	fullscreen, fullscreenOK := uc.source.Get("FullScreen").(bool)
 	resolutions := uc.windowResolutions()
@@ -463,7 +499,6 @@ func (uc *UltimaVConfiguration) loadDisplayConfiguration() {
 			uc.DisplayConfiguration.Mode = ModeFullscreen
 		}
 	}
-	uc.syncLegacyDisplayModel()
 }
 
 //nolint:mnd // Thirty FPS is the intentional default frame limit.
@@ -526,14 +561,17 @@ func (uc *UltimaVConfiguration) loadDebugConfiguration() {
 	}
 }
 
+// GetLookDataFilePath returns the look-description file in the active data folder.
 func (uc *UltimaVConfiguration) GetLookDataFilePath() string {
 	return path.Join(uc.SavedConfigData.DataFilePath, files.LOOK2_DAT)
 }
 
+// GetSignsDataFilePath returns the signs file in the active data folder.
 func (uc *UltimaVConfiguration) GetSignsDataFilePath() string {
 	return path.Join(uc.SavedConfigData.DataFilePath, files.SIGNS_DAT)
 }
 
+// GetCurrentTrackedWindowResolution returns active dimensions or the legacy/default fallback.
 func (uc *UltimaVConfiguration) GetCurrentTrackedWindowResolution() ScreenResolution {
 	if uc.DisplayConfiguration != nil &&
 		validDisplayDimensions(uc.DisplayConfiguration.WindowWidth, uc.DisplayConfiguration.WindowHeight) {
@@ -657,10 +695,18 @@ func (uc *UltimaVConfiguration) SaveWindowConfiguration() error {
 	return uc.UpdateSaveFile()
 }
 
-// UpdateSaveFile persists all initialized configuration sections.
+// UpdateSaveFile persists changed runtime preferences and initializes absent
+// defaults without overwriting externally edited next-launch preferences.
 func (uc *UltimaVConfiguration) UpdateSaveFile() error {
+	current := viper.New()
+	setInitializedConfiguration(current, uc)
 	if err := uc.saveConfiguration(func(candidate *viper.Viper) {
-		setInitializedConfiguration(candidate, uc)
+		for _, key := range current.AllKeys() {
+			if !candidate.IsSet(key) || uc.runtimeBaseline == nil ||
+				!reflect.DeepEqual(current.Get(key), uc.runtimeBaseline.Get(key)) {
+				candidate.Set(key, current.Get(key))
+			}
+		}
 	}); err != nil {
 		return fmt.Errorf("saving configuration: %w", err)
 	}
@@ -685,11 +731,17 @@ func (uc *UltimaVConfiguration) saveConfiguration(update func(*viper.Viper)) err
 			return fmt.Errorf("recreating configuration %s: %w", configurationPath, err)
 		}
 	}
+	if err := validateConfigurationTypes(candidate); err != nil {
+		return err
+	}
 	update(candidate)
 	if err := writeViperConfigAtomically(candidate, configurationPath); err != nil {
 		return err
 	}
 	uc.source = candidate
+	if uc.runtimeBaseline != nil {
+		update(uc.runtimeBaseline)
+	}
 
 	return nil
 }
@@ -856,7 +908,7 @@ func writeViperConfigAtomically(configuration *viper.Viper, configPath string) e
 // SaveLoggingConfiguration immediately persists current logging settings to config file
 func (uc *UltimaVConfiguration) SaveLoggingConfiguration() error {
 	if uc.LoggingConfiguration == nil {
-		return errors.New("logging configuration is nil")
+		return ErrLoggingConfigNil
 	}
 
 	if err := uc.saveConfiguration(func(candidate *viper.Viper) {
@@ -1002,10 +1054,12 @@ func (uc *UltimaVConfiguration) gameplayBooleanDefaultTrue(key string) bool {
 	return uc.source.GetBool(key)
 }
 
+// GetFileWithFullPath joins a filename to the active original-data folder.
 func (uc *UltimaVConfiguration) GetFileWithFullPath(fileName string) string {
 	return path.Join(uc.SavedConfigData.DataFilePath, fileName)
 }
 
+// GetAllNpcFilePaths returns the four small-map NPC data file paths.
 func (uc *UltimaVConfiguration) GetAllNpcFilePaths() []string {
 	return []string{
 		uc.GetFileWithFullPath(files.TOWNE_NPC),
@@ -1027,7 +1081,7 @@ func (uc *UltimaVConfiguration) GetAllNpcFilePaths() []string {
 // This is the radius for PlayerLightAmbient - minimal night vision when no torch/magic.
 func (uc *UltimaVConfiguration) GetAmbientLightRadius() int {
 	if uc.AmbientLightRadius < 1 {
-		return 2 // Fallback default
+		return defaultAmbientLightRadius
 	}
 
 	return uc.AmbientLightRadius

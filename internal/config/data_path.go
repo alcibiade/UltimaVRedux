@@ -9,12 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const lastLegacyImportDirectoryKey = "LegacyImport.LastSuccessfulDirectory"
-
-var (
-	errDataDirectoryNotAbsolute   = errors.New("data directory must be an absolute path")
-	errLegacyDirectoryNotAbsolute = errors.New("legacy import directory must be an absolute path")
-)
+var errDataDirectoryNotAbsolute = errors.New("data directory must be an absolute path")
 
 // ConfigurationFilePath returns the exact absolute settings file selected at startup.
 func (uc *UltimaVConfiguration) ConfigurationFilePath() (string, error) {
@@ -60,6 +55,9 @@ func (uc *UltimaVConfiguration) RefreshPersistedConfiguration() error {
 	if err := refreshed.ReadInConfig(); err != nil {
 		return fmt.Errorf("rereading configuration %s: %w", path, err)
 	}
+	if err := validateConfigurationTypes(refreshed); err != nil {
+		return err
+	}
 	uc.source = refreshed
 
 	return nil
@@ -76,32 +74,6 @@ func (uc *UltimaVConfiguration) PersistDataFilePath(directory string) error {
 		candidate.Set("DataFilePath", directory)
 	}); err != nil {
 		return fmt.Errorf("saving data directory: %w", err)
-	}
-
-	return nil
-}
-
-// LastLegacyImportDirectory returns the last source directory committed by a
-// successful legacy import.
-func (uc *UltimaVConfiguration) LastLegacyImportDirectory() string {
-	if uc == nil || uc.source == nil {
-		return ""
-	}
-
-	return uc.source.GetString(lastLegacyImportDirectoryKey)
-}
-
-// PersistLastLegacyImportDirectory records successful import history separately
-// from the selected original-data installation.
-func (uc *UltimaVConfiguration) PersistLastLegacyImportDirectory(directory string) error {
-	directory = filepath.Clean(strings.TrimSpace(directory))
-	if directory == "." || directory == "" || !filepath.IsAbs(directory) {
-		return errLegacyDirectoryNotAbsolute
-	}
-	if err := uc.saveConfiguration(func(candidate *viper.Viper) {
-		candidate.Set(lastLegacyImportDirectoryKey, directory)
-	}); err != nil {
-		return fmt.Errorf("saving legacy import directory: %w", err)
 	}
 
 	return nil

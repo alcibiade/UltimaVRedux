@@ -196,7 +196,7 @@ func TestEscapeMenuDepartureExplicitSaveSuccessReturnsToMainMenu(t *testing.T) {
 	pressEscapeMenuWidgetKey(ui, prompt, ebiten.KeyEnter)
 	browser := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, ui)
 	pressEscapeMenuWidgetKey(ui, browser, ebiten.KeyEnter)
-	requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, ui).Submit()
+	requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, ui).Submit()
 
 	require.Len(t, repository.saves, 1)
 	assert.Same(t, candidate, game.currentScene)
@@ -333,7 +333,7 @@ func TestEscapeMenuQuickSaveRemovesMenuAndFallsBackToWriteBrowser(t *testing.T) 
 		assert.Zero(t, capture.captures)
 		browser := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, ui)
 		pressEscapeMenuWidgetKey(ui, browser, ebiten.KeyEnter)
-		requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, ui).Submit()
+		requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, ui).Submit()
 		assert.Equal(t, 1, capture.captures)
 		require.Len(t, repository.saves, 1)
 		assert.Empty(t, repository.saves[0].expectedRevision)
@@ -369,7 +369,7 @@ func TestEscapeMenuSaveUsesReviewedSummaryAndOverwriteConfirmation(t *testing.T)
 
 			assert.Zero(t, capture.captures)
 			assert.Equal(t, 2, ui.dialogStack.Count())
-			confirmation := requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, ui)
+			confirmation := requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, ui)
 			confirmation.Submit()
 
 			assert.Equal(t, 1, capture.captures)
@@ -399,7 +399,7 @@ func TestEscapeMenuSaveWritesEmptyDirectlyAndDisablesUnsafeSlots(t *testing.T) {
 		activateEscapeMenuAction(t, ui, game, 1)
 		browser := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, ui)
 		pressEscapeMenuWidgetKey(ui, browser, ebiten.KeyEnter)
-		requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, ui).Submit()
+		requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, ui).Submit()
 
 		assert.Equal(t, 1, capture.captures)
 		assert.Zero(t, ui.dialogStack.Count())
@@ -464,7 +464,7 @@ func TestEscapeMenuSaveRemovesBrowserBeforeRealGameSceneCapture(t *testing.T) {
 			browser := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, scene)
 			pressEscapeMenuWidgetKey(scene, browser, ebiten.KeyDown)
 			pressEscapeMenuWidgetKey(scene, browser, ebiten.KeyEnter)
-			requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, scene).Submit()
+			requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, scene).Submit()
 
 			require.Len(t, repository.saves, 1)
 			assert.Equal(t, player_save.Slot02, repository.saves[0].slot)
@@ -493,7 +493,7 @@ func TestEscapeMenuSaveFailureReopensReviewedBrowserAfterCapture(t *testing.T) {
 	activateEscapeMenuAction(t, ui, game, 1)
 	original := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, ui)
 	pressEscapeMenuWidgetKey(ui, original, ebiten.KeyEnter)
-	requireEscapeMenuDialog[*widgets.LegacyPathEntryModal](t, ui).Submit()
+	requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, ui).Submit()
 
 	reopened := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, ui)
 	assert.NotSame(t, original, reopened)

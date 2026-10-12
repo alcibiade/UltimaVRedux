@@ -39,7 +39,7 @@ func TestIntegrationLegacyImportCreatesSelectedSlotAndStartsGame(t *testing.T) {
 	require.Equal(t, string(player_save.Slot07), selected.ID)
 	menu.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	require.NoError(t, game.Update())
-	editor, ok := menu.dialogStack.PeekTopModalDialog().(*widgets.LegacyPathEntryModal)
+	editor, ok := menu.dialogStack.PeekTopModalDialog().(*widgets.SaveDescriptionEntryModal)
 	require.True(t, ok, "dialog %T, selection %d", menu.dialogStack.PeekTopModalDialog(), browser.GetSelectedIndex())
 	editor.SetText("b_skiff")
 	editor.Submit()

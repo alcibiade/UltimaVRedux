@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/files"
@@ -31,6 +32,9 @@ var (
 // ValidateInstallation verifies an exact data directory without creating GPU
 // resources or active gameplay state.
 func ValidateInstallation(ctx context.Context, directory string) error {
+	if strings.TrimSpace(directory) == "" {
+		return config.ErrDataFilePathUnset
+	}
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("cancelling installation validation: %w", err)
 	}

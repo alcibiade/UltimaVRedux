@@ -9,6 +9,8 @@ capture/hydration boundary.
 The architecture decision is recorded in [ADR-009](../ADR/ADR-009-canonical-save-snapshot.md).
 Original-save conversion dispositions are recorded in the
 [legacy crosswalk](LEGACY_TO_NATIVE_SAVE_CROSSWALK.md).
+For headless command-line conversion and loading either a standalone snapshot or
+a player slot, follow the [save converter procedure](SAVE_CONVERTER.md).
 The executable Draft 2020-12 contract is
 [`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json), with
 frozen V16–V23 sibling resources loaded locally. Assert its version-aware
@@ -1096,7 +1098,8 @@ Failed import commits additionally show a centered, user-dismissed error dialog
 identifying the destination and underlying failure, including rollback errors.
 The submitting Enter must be released before acknowledgement. Dismissal returns
 to the selected slot with its description draft intact, without automatically
-retrying. Source-file validation failures remain inline in the path editor.
+retrying. Source-file validation failures return to active-folder recovery with
+Check Again and Back actions.
 
 The workflow removes its exact editor and browser before snapshot capture so
 the scene is representable. Failed capture/write reopens the browser with the
@@ -1122,11 +1125,12 @@ slot browsers are removed before capture. Successful persistence continues to
 the reviewed destination; cancellation returns to the departure prompt, and a
 failure never discards the active gameplay scene.
 
-Import from Legacy uses a focused in-game text field rather than an OS file
-picker. macOS and Windows have dependency-free native textual paste; Linux
-remains typeable. Invalid paths keep the field focused and display an inline
-error. The detached importer locates and requires the 512-byte `SAVED.OOL`
-sibling, validates and decodes both, then converts once before destination
+Import from Legacy reads the exact `SAVED.GAM`/`SAVED.OOL` pair only from the
+active game-data directory. Pending configuration changes, previous paths, and
+provider-discovered installations are not fallback sources. There is no path
+entry field. Missing or unusable pairs offer Check Again and Back, preserving
+explicit recovery ownership. The detached importer requires the 512-byte `SAVED.OOL`
+sibling, validates and decodes both, then converts once before native destination
 selection. A dormant candidate is preflighted before the selected slot is
 written. Source files are read-only. Active dungeon imports restore all 512
 cells and stable semantic wanderer state; Redux never exports the original
@@ -1140,8 +1144,15 @@ Conversion also reads original active-player selection and beggar reward cooldow
 dead, sleeping, or zero-HP selections normalize to `-1` with a warning. The
 converted snapshot carries transient reconstruction metadata only in memory.
 Candidate preparation hydrates and immediately recaptures it so the first slot
-write contains ordinary v16 JSON with concrete authored NPCs and supported
+write contains current canonical JSON with concrete authored NPCs and supported
 semantic overlays.
+
+`cmd/save-convert` provides a separate headless entry point with explicit
+original-data, source-pair, and output selection. It uses real references and the
+same hydrate/recapture boundary; it neither reads HOME configuration nor changes
+the schema. Standalone output and player-slot output have separate destination
+contracts, documented in the [CLI procedure](SAVE_CONVERTER.md). Converter success
+does not establish an interactive load test.
 
 Outdoor object conversion excludes records whose level disagrees with the
 authoritative Britannia/Underworld list. Original non-combat lookup and drawing
@@ -1242,8 +1253,8 @@ current-version semantic map units with no reconstruction property.
 - Map mutations must target maps loaded by neutral reconstruction; arbitrary unloaded-map mutations are not supported.
 - Combat encounter state, event queues, dialogs, input ownership, audio playback, rendering state, and transient presentation are not restored.
 - Neither repository has an arbitrary snapshot editor, comparison engine, or
-  patch format. Legacy import is player-facing only; there is no Workbench
-  import command or legacy export.
+  patch format. Legacy import is available through the title menu and headless
+  converter; there is no Workbench legacy-import command or legacy export.
 
 ## Deterministic Continuation
 
