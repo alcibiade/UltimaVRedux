@@ -34,11 +34,11 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | Document | One-line purpose | Primary owner | Authority classification |
 |---|---|---|---|
 | [`README.md`](README.md) | Catalog every retained documentation file and its ownership. | `documentation` | Index |
-| [`INSTALL.md`](INSTALL.md) | Explain public main-branch preview installation, local builds, original-data setup, and platform acceptance limits. | `installation` | Procedure |
+| [`INSTALL.md`](INSTALL.md) | Explain beginner Go setup, source installation, portable binaries, launch-path resolution, original-data setup, and platform limits. | `installation` | Procedure |
 | [`ARCHITECTURE_GUIDELINES.md`](ARCHITECTURE_GUIDELINES.md) | Define package boundaries and cross-system architecture guardrails. | `architecture` | General policy |
 | [`brand-guidelines.md`](brand-guidelines.md) | Define visual identity and brand usage. | `visual-design` | General policy |
 | [`CODING_CONVENTIONS.md`](CODING_CONVENTIONS.md) | Define Go style, determinism, error, testing, and UI conventions. | `engineering` | General policy |
-| [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md) | Guide contributor setup and recurring implementation workflows. | `development` | Procedure |
+| [`DEVELOPMENT_GUIDE.md`](DEVELOPMENT_GUIDE.md) | Guide contributor setup, implementation workflows, and local cross-platform release packaging. | `development` | Procedure |
 | [`ERROR_HANDLING.md`](ERROR_HANDLING.md) | Define panic, fatal, returned-error, and callback failure policy. | `engineering` | General policy |
 | [`PROFILING.md`](PROFILING.md) | Define profile-first CPU, memory, and allocation investigation. | `performance` | Procedure |
 | [`TESTING.md`](TESTING.md) | Define test strategy, fixture recipes, suites, and regression review. | `testing` | General policy |

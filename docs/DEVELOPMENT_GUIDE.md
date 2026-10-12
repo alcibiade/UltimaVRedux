@@ -124,6 +124,73 @@ Run focused tests while developing. Use deterministic seeds and callback mocks
 for gameplay regressions. Review contracts, failure paths, cancellation, resource
 commitment, and save behavior as well as happy paths. Humans review and merge PRs.
 
+## Local release packaging
+
+Release archives are built locally; no GitHub Actions runner or credit is needed.
+Use Python 3.9+, Git, and the exact toolchain selected by `go.mod`. Provision that
+toolchain and `go mod download` separately while network access is available.
+The packaging command is offline and fails if a toolchain, module, or dependency
+notice is missing. It uses shipped assets without a frontend rebuild.
+
+From a **clean checkout** of the intended commit, after local validation:
+
+```sh
+python3 scripts/package_release.py --revision HEAD --version v0.1.0-preview.1 --output /existing/output-parent/ultimav-v0.1.0-preview.1
+```
+
+The version is an example, not an announced release. Supply an explicit version
+and revision; the revision must resolve to current HEAD. An existing local tag of
+that name must identify the same commit. No tag is required or created. Untracked
+and modified files block packaging. The output parent must exist, the output
+directory must be new and outside the checkout, and concurrent use of the same
+output is rejected. An interrupted process may leave a sibling `.lock` directory;
+remove it only after confirming its packaging process has ended.
+
+The script exports the commit to a temporary source tree, builds sequentially with
+`CGO_ENABLED=0`, two Go scheduler threads, `-p=1`, and a 256 MiB Go soft memory
+limit. These settings reduce pressure; they are not a hard process-tree RSS cap.
+Ambient Go flags, workspaces, and architecture tuning are disabled. It produces:
+
+- `ultimav_<version>_darwin_arm64.tar.gz`
+- `ultimav_<version>_windows_amd64.zip`
+- `ultimav_<version>_linux_amd64.tar.gz`
+- `ultimav_<version>_linux_arm64.tar.gz`
+- `SHA256SUMS`
+
+Only the game executable is included; the optional save converter remains a
+separate source installation. Each archive includes an explicit-path launch guide,
+installation guidance, version/commit/toolchain metadata and binary checksum,
+project/media credits, font companion notices, the audio attribution manifest,
+and top-level Go/dependency license notices. Review notice coverage when changing
+dependencies, particularly licenses in nested directories. Source game data,
+settings, saves, and unrelated checkout files are not copied into the payload.
+Go build metadata is trimmed of local source paths; `release.json` records the
+commit because the exported source has no Git directory. Archive timestamps are
+not normalized, so byte-for-byte reproducibility is not claimed.
+
+The final output directory appears only when all four builds and checksums finish.
+Failures clean up staged output and do not replace an earlier release. Test the
+packaging logic with `python3 -B -m unittest discover -s scripts -p test_package_release.py -v`.
+Run `make validate` for implementation changes; packaging does not replace the
+project's validation gates or platform acceptance.
+
+Before distribution, verify checksums and archive membership, extract into a clean
+directory outside the checkout, and invoke the extracted macOS executable by its
+explicit path with `--help` and bounded startup. Record interactive original-data
+setup, keyboard, graphics, audio, and save/load acceptance separately per platform.
+Linux and Windows cross-builds alone are not native acceptance. Initial archives
+are unsigned and require the [download guidance](INSTALL.md#downloaded-binaries).
+
+Uploading is a separate, explicitly authorized operation. With a reviewed and
+pushed tag, a maintainer can create a **draft prerelease** using `gh release create
+<tag> <archive-paths> <checksum-path> --repo bradhannah/UltimaVRedux --verify-tag
+--draft --prerelease --title <title> --notes-file <public-release-notes>`.
+Enumerate only reviewed artifacts. Existing drafts can receive reviewed files via
+`gh release upload <tag> <paths> --repo bradhannah/UltimaVRedux`; avoid overwriting
+published artifacts. Tag creation/push, uploading, and publishing are separate
+decisions. Release notes must identify the source and honest platform acceptance,
+original-data requirements, save compatibility, and relevant known limitations.
+
 ## Finding The Right Guidance
 
 | Work | Durable reference |

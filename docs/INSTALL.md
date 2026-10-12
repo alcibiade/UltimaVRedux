@@ -12,6 +12,9 @@
   `toolchain go1.27.1`; allow Go to obtain that toolchain or provision it yourself.
 - Network access for Go to download the public module and its dependencies.
 
+Go is needed only for building or installing from source. Prebuilt release
+downloads do not require Go; see [downloaded binaries](#downloaded-binaries).
+
 The four preview targets are macOS arm64 (Apple Silicon), Linux arm64, Linux
 amd64, and Windows amd64. Production compilation has passed for all four.
 Anonymous installation and bounded startup have been verified on Apple Silicon
@@ -25,6 +28,94 @@ compiler, nor a source checkout. Native runtime acceptance remains platform-spec
 Linux still needs the applicable desktop graphics/audio runtime; exact
 distribution prerequisites will be documented from native validation. Cross-build
 success alone does not establish native graphics, audio, or input acceptance.
+
+## Install Go
+
+Use Go **1.27's latest patch or newer** for source installation. These steps install
+the compiler; the game installation is a separate command below.
+
+### Windows
+
+1. Open the [official Go downloads](https://go.dev/dl/) and download the Windows
+   **amd64 MSI installer** for Go 1.27 or newer.
+2. Run the installer and follow its prompts.
+3. Close and reopen PowerShell, then run `go version`.
+4. Confirm the version is at least 1.27, then continue to
+   [install the preview](#install-the-current-development-preview).
+
+### macOS
+
+1. Open the [official Go downloads](https://go.dev/dl/) and download the macOS
+   **arm64 PKG installer** for Apple Silicon, using Go 1.27 or newer.
+   Intel Macs require the amd64 installer, but Intel game acceptance is separate.
+2. Open the package and follow its prompts.
+3. Close and reopen Terminal, then run `go version`.
+4. Confirm the version is at least 1.27, then continue to
+   [install the preview](#install-the-current-development-preview).
+
+### Linux (Debian/Ubuntu with apt)
+
+Open a terminal and run:
+
+```sh
+sudo apt update
+sudo apt install golang-go
+go version
+```
+
+**Check the version before continuing.** Distribution packages can be older than
+the game requires: for example, Ubuntu 24.04's
+[`golang-go` package](https://packages.ubuntu.com/noble/golang-go) selects Go 1.22.
+If yours is below 1.27, use the [official Linux installation instructions](https://go.dev/doc/install)
+with a current Linux **amd64** or **arm64** archive matching your computer
+(`uname -m` reports `x86_64` or `aarch64`, respectively). Those instructions explain
+installing a fresh tree under `/usr/local/go`; do not extract over an older Go tree.
+Put `/usr/local/go/bin` before the apt compiler on your PATH:
+
+```sh
+export PATH="/usr/local/go/bin:$PATH"
+go version
+```
+
+Keep that PATH line in your shell startup file (usually `~/.bashrc` for Bash),
+open a fresh terminal, and verify `go version` again. Then continue below.
+The official [Go installation guide](https://go.dev/doc/install) covers all three
+operating systems if the compiler is not found after installation.
+
+## Downloaded binaries
+
+No packaged release has been published yet. When preview archives are offered on
+the [releases page](https://github.com/bradhannah/UltimaVRedux/releases), choose the
+archive matching your OS and architecture. Extract the whole archive; Go, Node,
+Make, and a source checkout are not required. You still need your original game
+files and a desktop graphics/audio runtime.
+
+Check the archive against the release's `SHA256SUMS` file before extracting:
+use `shasum -a 256 <archive>` on macOS, `sha256sum <archive>` on Linux, or
+`Get-FileHash <archive> -Algorithm SHA256` in PowerShell, then compare the hash
+for that exact filename. Checksums detect a damaged or different download; they
+are not a code signature.
+
+Open a terminal in the extracted folder and launch that copy explicitly:
+
+```sh
+./ultimav
+```
+
+Windows PowerShell:
+
+```powershell
+.\ultimav.exe
+```
+
+Keep `START-HERE.txt`, `release.json`, credits, and notices with the executable.
+`release.json` identifies its version, source commit, and target. The initial
+portable archives are unsigned: macOS Gatekeeper or Windows security checks may
+require you to review the download before allowing it to open. Use the operating
+system's per-app review controls only for the intended trusted download; do not
+disable system-wide protection. These archives are command-line-launched binaries,
+not signed installers or macOS app bundles. Refer to each release's platform
+acceptance notes; compilation alone does not establish native runtime support.
 
 ## Build the local source
 
@@ -60,13 +151,7 @@ be offered later through the [releases page](https://github.com/bradhannah/Ultim
 
 ## Start the game
 
-If Go's executable directory is on your `PATH`, run:
-
-```sh
-ultimav
-```
-
-If the command is not found, inspect:
+First identify where Go installed the new executable:
 
 ```sh
 go env GOBIN
@@ -88,8 +173,41 @@ Windows PowerShell:
 & "$HOME\go\bin\ultimav.exe"
 ```
 
-Use your actual executable directory if you customized Go's environment. The
-installed game must work from an unrelated directory; running from a source
+Use your actual executable directory if you customized Go's environment. For an
+automatic lookup in macOS/Linux shells:
+
+```sh
+game_bin="$(go env GOBIN)"
+if [ -z "$game_bin" ]; then
+  game_path="$(go env GOPATH)"
+  game_bin="${game_path%%:*}/bin"
+fi
+"$game_bin/ultimav"
+```
+
+Windows PowerShell:
+
+```powershell
+$gameBin = go env GOBIN
+if ([string]::IsNullOrWhiteSpace($gameBin)) {
+    $gameBin = Join-Path ((go env GOPATH) -split ';')[0] 'bin'
+}
+& (Join-Path $gameBin 'ultimav.exe')
+```
+
+Once the intended executable directory is first on `PATH`, `ultimav` is also
+convenient. If it starts an unexpected program or an old version, inspect
+`type -a ultimav` on macOS/Linux or `Get-Command ultimav -All` in PowerShell.
+Compare that result with the Go destination above. A successful installation does
+not replace an unrelated executable elsewhere on `PATH` or a shell alias/function.
+Launch by explicit path to bypass that ambiguity. For default Go paths, prepend
+`export PATH="$HOME/go/bin:$PATH"` after other PATH configuration in `~/.zshrc`
+(zsh) or `~/.bashrc` (Bash), then open a new terminal. On Windows, adjust the user
+Path through **Edit environment variables for your account**, then reopen
+PowerShell and verify resolution; explicit paths work even if another executable
+still takes precedence. Preserve older executables unless you intend to remove them.
+
+The installed game must work from an unrelated directory; running from a source
 checkout is not part of the player setup contract.
 
 ## Locate the original game data
@@ -175,6 +293,7 @@ pair stored elsewhere or create a standalone native snapshot, follow the
 | Problem | First step |
 | --- | --- |
 | `ultimav` is not found | Check `GOBIN`/`GOPATH` and use the executable's full path. |
+| `ultimav` launches an old or unexpected program | Compare command resolution with `GOBIN`/`GOPATH`; launch the newly installed executable by its explicit path. |
 | No original installation is detected | Use the displayed home/UltimaV folder or edit the configuration. |
 | Files are missing or unusable | Confirm that the full original data set is present and readable; inspect the setup details. |
 | A custom data path is needed | Edit it in the external settings file, then choose Check Saved Settings and confirm. |
