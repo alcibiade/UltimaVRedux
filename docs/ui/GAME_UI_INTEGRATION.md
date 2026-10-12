@@ -121,26 +121,37 @@ never owns input.
 
 ### Ammunition Summary And Shortages
 
-The provisions panel has **four normal-font rows and two resource columns**,
-with date/time in a separate upper-right calendar area:
+The provisions panel has **four normal-font rows**: compact label/quantity pairs
+centered in thirds on the first two rows, followed by ammunition and calendar
+rows centered in matching equal halves:
 
-| Row | Left resource | Right resource | Calendar |
+| Row | Left | Middle | Right |
 |---|---|---|---|
-| 1 | `F` — Food | `T` — Torches | Date |
-| 2 | `K` — Keys | `G` — Gems | Time |
-| 3 | `$` — Gold | `Ka` — Karma | |
-| 4 | `Ar` — Arrows | `Qr` — Quarrels | |
+| 1 | `F` — Food | `K` — Keys | `G` — Gems |
+| 2 | `$` — Gold | `T` — Torches | `Ka` — Karma |
+| 3 | `Ar` centered in left half | | `Qr` centered in right half |
+| 4 | Date centered in left half | | Time centered in right half |
 
-Each resource cell has a fixed-width label slot, a right-aligned quantity slot,
-and a reserved status slot. Empty status slots retain their width, so `LOW`/`OUT`
-never shifts a number or the next column. Labels retain their normal font and
-resource colours; numbers and the right-aligned calendar use measured smaller
-font fallbacks only when needed to fit their slots. The calendar reserves the
-largest supported numeric date.
+Each resource column reserves a fixed label slot wide enough for both rows and
+a fixed quantity slot wide enough for its maximum value. That compact block is
+centered in its third. Labels are right-aligned; quantities are left-aligned
+after a small scaled gap, giving both rows the same numeric starting X coordinate.
+Neither changing digit counts nor `G` versus `Ka` shifts the quantity anchor.
+Ammunition blocks reserve
+two-digit quantity slots and fixed `LOW`/`OUT` slots, including while healthy,
+with a full normal-font space between the quantity slot and the warning;
+changing the count or warning cannot shift the label, count, or neighboring block.
+Each complete ammunition block is centered in the same half as the date or time
+below it. Labels, quantities, status words, date, and time all use the **same
+normal font size**, with no smaller fallbacks. The calendar centers each string
+within its half, giving the date the extra pixel when the row width is odd; the
+largest supported numeric date fits at normal size. The panel retains its
+existing height and frame clearance at every resolution.
 
-`Ar` and `Qr` labels stay cyan. Their quantities are white above 20, yellow with
-`LOW` at 1–20, and red with `OUT` at zero; the status word uses the quantity's
-colour. Other resource quantities stay white. Ammunition counters are read-only
+`Ar` and `Qr` labels stay cyan, and their quantities always stay white. Only the
+status word is coloured: yellow `LOW` at 1–20 and red `OUT` at zero, with no
+warning above 20. Status words use the same font size as quantities. Other
+resource quantities stay white. Ammunition counters are read-only
 snapshots of party equipment stock, independent of readied weapons.
 
 `ProvisionSummaryHeight` reserves the four scaled rows. The supplies area grows
@@ -183,8 +194,8 @@ part of native or legacy saves and must not be used for gameplay decisions.
   available. Geometry and modal overlap are re-evaluated on resize.
 - Typography scales against the logical **screen width**, independently of the
   narrower map/battlefield placement bounds. Ordinary rows use main-screen body
-  text; the food-loss heading retains its larger title size. Entering combat or
-  moving between map types must not shrink the same message.
+  text; the food-loss heading retains its larger title size. Fresh feedback uses
+  the same typography in exploration and combat.
 - A single opaque **Recent provisions** strip is drawn above dialogs only when
   its measured bounds do not overlap the active modal's bounds (merchant parents
   expose their shell; transaction modals expose their own bounds). With unknown
@@ -210,7 +221,8 @@ part of native or legacy saves and must not be used for gameplay decisions.
   reduce the column count instead of clipping, abbreviating, or shrinking text;
   that exceptional taller strip yields to any overlapping active modal.
 - Each resource has a **six-second idle timeout** on `GameState.ElapsedMs`.
-  Time obscured by an overlapping or unmeasurable modal is excluded from expiry.
+  Time obscured by an overlapping or unmeasurable modal still counts toward expiry;
+  dismissing the dialog does not restore an expired receipt.
   A further actual change refreshes only that resource and adds to its separate
   gain/loss accumulators. Food gained and eaten in the same update therefore
   remain `+N -M`, even when the final balance is unchanged. Repeated eating uses
@@ -226,6 +238,33 @@ part of native or legacy saves and must not be used for gameplay decisions.
   and never replays loaded stock as a reward. Live developer inventory changes
   are observable like other live mutations, while candidate-scene setup is
   absorbed by activation's baseline.
+
+### Provision Feedback Context Boundaries
+
+Old receipts belong to the interaction that produced them. Cleanup is
+presentation-only and never resets ammunition-shortage observation or inventory.
+
+- A change of location, floor, or combat instance silently adopts current
+  provisions as the new baseline. This covers town/dungeon entry and exit,
+  stairs, camping-map setup/return, combat entry (including ambushes), and combat
+  exit before its summary. Ordinary movement within the same map preserves feedback.
+- Moongate/teleport source-renderer cleanup clears receipts even for a destination
+  on the same map and floor.
+- Opening the atlas or quest journal immediately clears receipts. Their frozen
+  scene clocks cannot preserve old receipts for redisplay after reading.
+- Entering the first modal clears already-displayed rows while preserving fresh,
+  unobserved activity generated by that interaction. This includes NPC/merchant
+  conversations, rest setup, and Dungeon View. Nested approval/result dialogs
+  preserve fresh transaction feedback; they do not restart its timeout.
+- `HideAllOverlays` clears and suppresses provision feedback until
+  `ShowAllOverlays` silently baselines it again. Map fades and the finale also
+  suppress feedback, keeping bed rest, death/resurrection, and other faded
+  scripted presentations free of stale receipts. Suppressed changes are not
+  replayed afterward. Fresh changes after the boundary remain eligible.
+
+`cmd/ultimav/gamescene_provision_lifecycle_test.go` covers transitions, ordinary
+movement, nested modals, frozen readers, teleport cleanup, and scripted suppression.
+The production tavern purchase tests continue to verify fresh merchant receipts.
 
 ### Combat Loot Feedback
 

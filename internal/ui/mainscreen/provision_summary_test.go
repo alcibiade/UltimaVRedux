@@ -43,27 +43,34 @@ func maximumProvisionTestState() *game_state.GameState {
 func TestProvisionResourcesUseSelectedFourRowOrderAndSemanticColors(t *testing.T) {
 	state := maximumProvisionTestState()
 	resources := provisionResources(state)
-	labels := [4][2]string{{"F", "T"}, {"K", "G"}, {"$", "Ka"}, {"Ar", "Qr"}}
-	values := [4][2]string{{"9999", "99"}, {"99", "99"}, {"9999", "99"}, {"20", "0"}}
-	colors := [4][2]color.Color{
-		{ucolor.EGALightGreen, ucolor.EGALightRed}, {ucolor.EGAYellow, ucolor.EGALightCyan},
-		{ucolor.EGAYellow, ucolor.EGALightMagenta}, {ucolor.EGALightCyan, ucolor.EGALightCyan},
+	labels := [2][3]string{{"F", "K", "G"}, {"$", "T", "Ka"}}
+	values := [2][3]string{{"9999", "99", "99"}, {"9999", "99", "99"}}
+	colors := [2][3]color.Color{
+		{ucolor.EGALightGreen, ucolor.EGAYellow, ucolor.EGALightCyan},
+		{ucolor.EGAYellow, ucolor.EGALightRed, ucolor.EGALightMagenta},
 	}
 	for row := range resources {
 		for column, resource := range resources[row] {
 			require.Equal(t, labels[row][column], resource.label)
 			require.Equal(t, values[row][column], resource.value)
 			require.Equal(t, colors[row][column], resource.labelColor)
-			if row < 3 {
-				require.Empty(t, resource.status)
-				require.Equal(t, ucolor.UITextPrimary.RGBA(), resource.valueColor)
-			}
+			require.Empty(t, resource.status)
+			require.Equal(t, ucolor.UITextPrimary.RGBA(), resource.valueColor)
 		}
 	}
-	require.Equal(t, "LOW", resources[3][0].status)
-	require.Equal(t, ucolor.SupplyLow, resources[3][0].valueColor)
-	require.Equal(t, "OUT", resources[3][1].status)
-	require.Equal(t, ucolor.SupplyEmpty, resources[3][1].valueColor)
+	ammunition := provisionAmmunitionResources(state)
+	require.Equal(t, "Ar", ammunition[0].label)
+	require.Equal(t, "Qr", ammunition[1].label)
+	require.Equal(t, "20", ammunition[0].value)
+	require.Equal(t, "0", ammunition[1].value)
+	require.Equal(t, "LOW", ammunition[0].status)
+	require.Equal(t, ucolor.SupplyLow, ammunition[0].statusColor)
+	require.Equal(t, "OUT", ammunition[1].status)
+	require.Equal(t, ucolor.SupplyEmpty, ammunition[1].statusColor)
+	for _, resource := range ammunition {
+		require.Equal(t, ucolor.EGALightCyan, resource.labelColor)
+		require.Equal(t, ucolor.UITextPrimary.RGBA(), resource.valueColor, "quantities stay white even for LOW/OUT")
+	}
 	require.Equal(t, "13-28-65535", state.DateTime.GetDateAsString())
 }
 
@@ -74,12 +81,10 @@ func TestProvisionFourRowGeometryFitsMaximumValuesAtEveryResolution(t *testing.T
 			spaceWidth, _ := summary.ultimaFont.MeasureString(" ")
 			require.Positive(t, spaceWidth, "the font must provide a measurable space advance")
 			minimumSeparator := int(math.Ceil(spaceWidth / 2))
-			require.GreaterOrEqual(t, summary.gap, minimumSeparator)
 			rows := summary.rows()
 			require.Len(t, rows, 4)
 			require.Equal(t, summary.bounds.Min.Y, rows[0].Min.Y)
 			require.Equal(t, summary.bounds.Max.Y, rows[3].Max.Y)
-			firstCells, firstCalendar := summary.rowCells(rows[0])
 			for index, row := range rows {
 				require.True(t, row.In(summary.bounds), "supplies must never shift left into the rasterized frame")
 				require.Equal(t, summary.bounds.Min.X, row.Min.X, "retain the scene's safe left content edge")
@@ -88,45 +93,63 @@ func TestProvisionFourRowGeometryFitsMaximumValuesAtEveryResolution(t *testing.T
 				if index > 0 {
 					require.Equal(t, rows[index-1].Max.Y, row.Min.Y, "four disjoint, evenly spaced rows")
 				}
-				cells, calendar := summary.rowCells(row)
-				require.True(t, calendar.In(row))
-				require.Equal(t, firstCalendar.Min.X, calendar.Min.X, "calendar stays in its own right column")
-				require.GreaterOrEqual(t, calendar.Min.X-cells[1].value.Max.X, minimumSeparator,
-					"date/time need a visible half-space gutter after the resource quantities")
-				require.GreaterOrEqual(t, cells[1].label.Min.X-cells[0].status.Max.X, minimumSeparator,
-					"Ar LOW/OUT needs a visible half-space gutter before the Qr label")
-				if index == 3 {
-					require.True(t, cells[1].status.In(calendar), "Qr status uses the otherwise empty calendar column")
-				}
+			}
+			for rowIndex, resources := range provisionResources(maximumProvisionTestState()) {
+				cells := summary.resourceCells(rows[rowIndex])
 				for column, cell := range cells {
-					require.True(t, cell.label.In(row) && cell.value.In(row) && cell.status.In(row))
-					require.Equal(t, firstCells[column].label.Min.X, cell.label.Min.X)
-					require.Equal(t, firstCells[column].value.Min.X, cell.value.Min.X)
-					require.Equal(t, firstCells[column].value.Max.X, cell.value.Max.X, "all quantities share a right edge")
-					require.Equal(t, firstCells[column].status.Min.X, cell.status.Min.X)
-					require.GreaterOrEqual(t, cell.value.Min.X-cell.label.Max.X, summary.labelGap)
-					require.GreaterOrEqual(t, cell.status.Min.X-cell.value.Max.X, minimumSeparator,
-						"LOW/OUT needs a visible half-space gutter after the right-aligned count")
-					require.False(t, cell.label.Overlaps(calendar), "calendar may not obscure a resource label")
-					require.False(t, cell.value.Overlaps(calendar), "calendar may not obscure a quantity")
-					for _, label := range []string{"F", "T", "K", "G", "$", "Ka", "Ar", "Qr"} {
-						require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, label), cell.label.Dx())
+					assertProvisionCellFits(t, summary, rows[rowIndex], cell, resources[column])
+					require.True(t, cell.status.Empty())
+					if column > 0 {
+						require.GreaterOrEqual(t, cell.label.Min.X-cells[column-1].value.Max.X, minimumSeparator)
 					}
-					for _, value := range []string{"0", "1", "20", "99", "100", "218", "9999"} {
-						font, output := summary.valueTextLayout(value, cell.value.Dx())
-						require.LessOrEqual(t, measuredProvisionWidth(font, value), cell.value.Dx(), "%s must be complete", value)
-						require.LessOrEqual(t, int(math.Ceil(output.GetFontHeight())), row.Dy())
-					}
-				}
-				for _, value := range []string{"13-28-65535", "13-28-139", "12:59PM", "12:00AM"} {
-					font, _ := summary.valueTextLayout(value, calendar.Dx())
-					require.LessOrEqual(t, measuredProvisionWidth(font, value), calendar.Dx(), "%s must be complete", value)
+					third := image.Rect(rows[rowIndex].Min.X+column*rows[rowIndex].Dx()/3, rows[rowIndex].Min.Y,
+						rows[rowIndex].Min.X+(column+1)*rows[rowIndex].Dx()/3, rows[rowIndex].Max.Y)
+					require.InDelta(t, cell.label.Min.X-third.Min.X, third.Max.X-cell.value.Max.X, 1,
+						"the fixed label/quantity block is centered in its third")
+					first := summary.resourceCells(rows[0])[column]
+					require.Equal(t, first.label.Max.X, cell.label.Max.X, "labels share a right edge across rows")
+					require.Equal(t, first.value.Min.X, cell.value.Min.X, "quantities share a left edge across rows")
 				}
 			}
-			summary.gap *= 2
+			ammo := summary.ammunitionCells(rows[2])
+			left, right := summary.calendarCells(rows[2])
+			halves := [2]image.Rectangle{left, right}
+			for column, resource := range provisionAmmunitionResources(maximumProvisionTestState()) {
+				assertProvisionCellFits(t, summary, rows[2], ammo[column], resource)
+				require.InDelta(t, ammo[column].label.Min.X-halves[column].Min.X,
+					halves[column].Max.X-ammo[column].status.Max.X, 1, "ammunition blocks are centered in calendar-aligned halves")
+				require.True(t, ammo[column].status.In(rows[2]))
+				require.Equal(t, summary.statusGap, ammo[column].status.Min.X-ammo[column].value.Max.X)
+				require.GreaterOrEqual(t, summary.statusGap, int(math.Ceil(spaceWidth)), "warnings have a full-space gutter")
+				for _, value := range []string{"LOW", "OUT"} {
+					require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, value), ammo[column].status.Dx())
+				}
+			}
+			require.GreaterOrEqual(t, ammo[1].label.Min.X-ammo[0].status.Max.X, summary.labelGap)
+			date, clock := summary.calendarCells(rows[3])
+			require.True(t, date.In(rows[3]) && clock.In(rows[3]))
+			require.Equal(t, rows[3].Min.X, date.Min.X)
+			require.Equal(t, rows[3].Max.X, clock.Max.X)
+			require.Equal(t, date.Max.X, clock.Min.X)
+			require.InDelta(t, date.Dx(), clock.Dx(), 1, "date and time occupy equal halves")
+			for _, value := range []string{"13-28-65535", "13-28-139"} {
+				require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, value), date.Dx())
+			}
+			for _, value := range []string{"12:59PM", "12:00AM"} {
+				require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, value), clock.Dx())
+			}
+			summary.labelGap *= 2
 			require.Equal(t, rows, summary.rows(), "text spacing must not enlarge frame clearance or steal more content width")
 		})
 	}
+}
+
+func assertProvisionCellFits(t *testing.T, summary *ProvisionSummary, row image.Rectangle, cell provisionCell, resource provisionResource) {
+	t.Helper()
+	require.True(t, cell.label.In(row) && cell.value.In(row))
+	require.Equal(t, summary.labelGap, cell.value.Min.X-cell.label.Max.X, "quantity sits immediately after its label")
+	require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, resource.label), cell.label.Dx())
+	require.LessOrEqual(t, measuredProvisionWidth(summary.ultimaFont, resource.value), cell.value.Dx(), "%s quantity must fit at normal size", resource.label)
 }
 
 // Compare each field with isolated glyphs: a complete-panel translated reference
@@ -146,47 +169,49 @@ func TestProvisionRenderedFieldsRetainCompleteIsolatedGlyphs(t *testing.T) {
 			t.Cleanup(actual.Dispose)
 			t.Cleanup(reference.Dispose)
 			state := maximumProvisionTestState()
+			// Unequal digit counts prove values start at their shared column
+			// anchors rather than being right-aligned or individually recentered.
+			state.PartyState.Inventory.Provisions.Food.Set(218)
+			state.PartyState.Inventory.Gold.Set(1250)
+			state.PartyState.Inventory.Provisions.Gems.Set(8)
+			state.PartyState.Karma.Value = 75
 			summary.Draw(state, actual)
 			resources := provisionResources(state)
-			for rowIndex, row := range summary.rows() {
-				cells, calendar := summary.rowCells(row)
-				assertProvisionGutterPixels(t, actual, image.Rect(cells[0].status.Max.X, row.Min.Y, cells[1].label.Min.X, row.Max.Y))
-				assertProvisionGutterPixels(t, actual, image.Rect(cells[1].value.Max.X, row.Min.Y, calendar.Min.X, row.Max.Y))
-				for column, resource := range resources[rowIndex] {
+			rows := summary.rows()
+			for rowIndex, rowResources := range resources {
+				row := rows[rowIndex]
+				cells := summary.resourceCells(row)
+				for column, resource := range rowResources {
 					cell := cells[column]
-					assertProvisionGutterPixels(t, actual, image.Rect(cell.value.Max.X, row.Min.Y, cell.status.Min.X, row.Max.Y))
-					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.label, resource.label, resource.labelColor, etext.AlignStart)
-					_, output := summary.valueTextLayout(resource.value, cell.value.Dx())
-					assertProvisionFieldPixels(t, actual, reference, output, cell.value, resource.value, resource.valueColor, etext.AlignEnd)
-					if resource.status != "" {
-						assertProvisionFieldPixels(t, actual, reference, summary.output, cell.status, resource.status, resource.valueColor, etext.AlignStart)
+					if column > 0 {
+						assertProvisionGutterPixels(t, actual, image.Rect(cells[column-1].value.Max.X, row.Min.Y, cell.label.Min.X, row.Max.Y))
 					}
-				}
-				if rowIndex < 2 {
-					value := [2]string{state.DateTime.GetDateAsString(), state.DateTime.GetTimeAsString()}[rowIndex]
-					_, output := summary.valueTextLayout(value, calendar.Dx())
-					assertProvisionFieldPixels(t, actual, reference, output, calendar, value, ucolor.UITextPrimary.RGBA(), etext.AlignEnd)
+					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.label, resource.label, resource.labelColor, etext.AlignEnd)
+					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.value, resource.value, resource.valueColor, etext.AlignStart)
 				}
 			}
-			cells, _ := summary.rowCells(summary.rows()[3])
-			for _, count := range []uint16{0, 20, 21} {
+			date, clock := summary.calendarCells(rows[3])
+			assertProvisionFieldPixels(t, actual, reference, summary.output, date, state.DateTime.GetDateAsString(), ucolor.UITextPrimary.RGBA(), etext.AlignCenter)
+			assertProvisionFieldPixels(t, actual, reference, summary.output, clock, state.DateTime.GetTimeAsString(), ucolor.UITextPrimary.RGBA(), etext.AlignCenter)
+			cells := summary.ammunitionCells(rows[2])
+			for _, count := range []uint16{0, 20, 21, 99} {
 				state.PartyState.Inventory.Equipment.Set(references.Arrows, count)
 				state.PartyState.Inventory.Equipment.Set(references.Quarrels, count)
 				actual.Clear()
 				summary.Draw(state, actual)
-				row := summary.rows()[3]
+				row := rows[2]
 				assertProvisionGutterPixels(t, actual, image.Rect(cells[0].status.Max.X, row.Min.Y, cells[1].label.Min.X, row.Max.Y))
-				for column, resource := range provisionResources(state)[3] {
+				for column, resource := range provisionAmmunitionResources(state) {
 					cell := cells[column]
 					assertProvisionGutterPixels(t, actual, image.Rect(cell.value.Max.X, row.Min.Y, cell.status.Min.X, row.Max.Y))
-					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.label, resource.label, resource.labelColor, etext.AlignStart)
-					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.value, resource.value, resource.valueColor, etext.AlignEnd)
+					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.label, resource.label, resource.labelColor, etext.AlignEnd)
+					assertProvisionFieldPixels(t, actual, reference, summary.output, cell.value, resource.value, resource.valueColor, etext.AlignStart)
 					if resource.status == "" {
 						pixels := make([]byte, cell.status.Dx()*cell.status.Dy()*4)
 						actual.SubImage(cell.status).(*ebiten.Image).ReadPixels(pixels)
 						require.Equal(t, make([]byte, len(pixels)), pixels, "healthy ammunition keeps its status slot empty")
 					} else {
-						assertProvisionFieldPixels(t, actual, reference, summary.output, cell.status, resource.status, resource.valueColor, etext.AlignStart)
+						assertProvisionFieldPixels(t, actual, reference, summary.output, cell.status, resource.status, resource.statusColor, etext.AlignStart)
 					}
 				}
 			}

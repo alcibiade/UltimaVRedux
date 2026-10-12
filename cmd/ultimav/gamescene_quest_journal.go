@@ -27,6 +27,7 @@ func (g *GameScene) ShowQuestJournalDossier(dossier game_state.QuestJournalDossi
 	if g.journalSession != nil {
 		return
 	}
+	g.clearProvisionFeedback()
 	visits := g.journalVisits.Clone()
 	var newEntries [3][]bool
 	for _, entry := range dossier.Chronicle {
