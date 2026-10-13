@@ -4,7 +4,10 @@
 
 ## Current Architecture
 
-`internal/audio.AudioManager` owns one shared Ebitengine audio context and coordinates these components:
+`internal/audio.AudioManager` borrows the process-wide Ebitengine audio context
+and owns its voices. A host may create the context first, choosing its sample
+rate; otherwise the first manager creates the 44.1 kHz default. Managers never
+close the shared device. They coordinate these components:
 
 | Component | Current responsibility |
 |---|---|
@@ -29,6 +32,17 @@ voices cannot play or seek again. Managers drop those references after retiremen
 decoder readers never acquire manager locks while the barrier waits. The raw
 preview/source-set players likewise stop reading before their owners release them.
 Ordinary Pause remains resumable.
+
+`AudioManager.Close` is terminal and idempotent. `SetEnabled(true)` cannot reopen
+a closed manager; subsequent playback and category setters report `ErrAudioClosed`.
+`GetConfiguration` returns a detached snapshot, and category setters are the live
+mutation boundary. Walking requests serialize their shared variant sequence.
+The manager facade coordinates configuration and voices; callers must not combine
+concurrent direct subsystem control with facade operations.
+
+The in-game ambient preview applies recording calibration, cue gain, and category
+gain through the calibrated player. Category changes affect its existing voice;
+global audio disable retires it together with ordinary playback.
 
 ## Integration Boundary
 
@@ -300,6 +314,9 @@ and a presentation already started before combat does not replay afterward.
 Buccaneers Den and the named ship locations no longer select Hornpipe merely
 because the player enters them. `routing.naval.sailing` is the authored music
 assignment, independent of onboard ambience and the Music volume preference.
+A missing recording or failed playback attempt consumes that hoist's presentation;
+frame updates do not repeatedly retry it. Furling and raising sails permits a new
+attempt. Sailing alone is sufficient to trigger lazy music-asset preparation.
 
 `Game` retains detached `MusicHistory` across load, new-game and main-menu round
 trips. Scene activation imports only heard-theme history, remaining quiet time,
@@ -309,11 +326,14 @@ interval. Failed scene candidates cannot mutate the retained history. History
 is not saved to disk and resets on application restart. The music toggle uses
 enabled policy, so a quiet interval is not mistaken for music being off.
 
-Missing recordings and failed starts stay silent and defer retry by a full quiet
-interval. Natural completion closes its player. Policy tests cover completion,
+Missing recordings and failed starts stay silent. Exploration defers retry by a
+full quiet interval; encounter and sailing presentations are consumed until a new
+encounter or hoist. Natural completion closes its player. Policy tests cover completion,
 repeat gain, transition reversal, nested owners, preview replacement, local music,
 mute/disable, special cues and detached session history without real-time waits;
-device-level tests additionally verify restoration of decoded-stream position.
+player/stream tests additionally verify restoration of decoded-stream position.
+Those tests do not prove device consumption: Ebitengine initializes its device
+only while the game loop runs. Native playback and listening are separate checks.
 Final acceptance requires representative in-game long-session listening, with
 recording identities, category sliders, listening setup and accepted policy values
 recorded in the owning issue.
@@ -582,6 +602,10 @@ typing instead of firing workspace shortcuts. Notes support multiple lines and
 use Ctrl+Enter to apply. Numeric errors retain their field/value. Picker dialogs
 use Enter to choose and Space to preview/pause. Dialog bodies scroll to the focused
 control on small terminals while their title and action hints remain visible.
+Below 60 × 24, editing shortcuts are paused so invisible controls cannot mutate
+the library; Stop, Save, and Quit remain available with their normal draft guards.
+Preview-volume controls opened over a duplicate draft are visibly foregrounded
+and own input until dismissed.
 
 Availability badges describe technical playback status, not listening approval:
 
@@ -674,9 +698,9 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | +/- | Live saved calibration (Recordings, 0.5 dB steps) or cue gain (Moments, 0.05 steps) |
 | g | Enter exact calibration in dB or cue gain in amplitude |
 | v | Open independent 0–10 preview category sliders and Game Mix / Reference controls |
-| i / o | Set start/end at the source-relative playhead |
+| i / o | Set start/end at the source-relative playhead and select that marker for nudging |
 | [ / ] | Select start/end marker; arrows now nudge that marker |
-| Left/Right, Shift+Left/Right | Seek/nudge by 10 ms or 100 ms |
+| Left/Right, Shift+Left/Right | Seek/nudge by 10 ms or 100 ms; the same steps apply in ordinary and duplicate bound fields |
 | s / e | Enter exact start/end in whole milliseconds |
 | z | Zoom around the selected marker or playhead |
 | t | Suggest a trim in the working copy: -40 dB threshold plus 10 ms edge padding |
@@ -694,7 +718,7 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | Shift+A | Calculate/recalculate auto-gain for the selected recording; Enter accepts, Escape cancels |
 | Shift+T | Edit the auto-gain target (uncalibrated or auto mode only) |
 | u / Ctrl+R | Undo/redo authored edits |
-| Ctrl+S | Validate and save directly to the real manifest |
+| Ctrl+S | Validate and save the library; finish or cancel an open draft first |
 | x | Stop all voices, retaining Soundscape assignments for restarting |
 | q / Ctrl+C | Quit; unsaved edits require Y to discard |
 
@@ -703,6 +727,14 @@ with Enter, goes up with Backspace, accepts a typed path with `/`, and previews
 candidates with `p`. Enter imports/assigns a file; Escape cancels. The moment
 recording picker uses Space for preview/pause with the moment's gain and Enter to confirm
 the assignment. Previewing candidates alone never changes an assignment.
+
+The waveform identifies the arrow target. An active preview seeks within its
+playing selection and immediately displays the actual clamped source position;
+with playback stopped, arrows move the cursor across the full source. `[`/`]`
+select crop markers. Zoom follows the arrow target, so a numeric bound can change
+while its screen column remains centered. A crop edit preserves a retained
+standalone preview's playing/paused state and its source position, clamped to the new region.
+Space resumes a paused edited preview; Enter explicitly restarts it.
 
 ### Game-Matched Preview Volumes
 
@@ -760,6 +792,10 @@ Moving/seeking the playhead alone never changes calibration. Shift+A from Moment
 affects that moment's selected shared recording; +/- and g in Moments still edit
 only its cue gain. Ctrl+S saves; undo/redo retain both the gain and ownership mode.
 Existing numeric gains without a mode are treated as manual, protecting prior edits.
+Loading a source, refreshing availability, and undo/redo hydration do not author
+calibration. A family change recomputes an existing AUTO gain in the same document
+transaction as the family edit. AUTO confirmation is bound to its recording and
+document revision; a stale suggestion cannot be applied to another target.
 `calibrationMode` is `auto` or `manual` and requires `calibrationGainDb`.
 Optional `calibrationTargetDb` overrides the family default and is restricted to
 `[-60,-6]` dB. Invalid or silent selections have no suggestion.
@@ -813,8 +849,10 @@ preserving zero padding (`_009` becomes `_010`). The duplicate references the
 same physical file and copies provenance/calibration, but gets its own window
 and a fresh note. If the selected clip ends before the source does, the draft
 starts there and ends at the source end. Otherwise it starts with the same
-region. Edit ID/start/end with arrows and Enter, or `s`/`e` for bounds. `p`
-previews the draft; `i`/`o` mark at the current source playhead. `c` creates it;
+region. Up/Down chooses a field and Enter edits it, or `s`/`e` opens a bound directly.
+Left/Right changes bound drafts by 10 ms, Shift+Left/Right by 100 ms. `[`/`]` and
+arrow nudges also work on duplicate markers. `p` previews the draft; Space pauses
+or resumes; `i`/`o` mark and select a boundary at the current source playhead. `c` creates it;
 Escape cancels. Both bounds validate together, so moving a start past the old
 end while editing does not mutate the original clip.
 
@@ -823,9 +861,12 @@ the draft offers an unchecked `a` toggle to append the new clip to that moment.
 Creation and optional membership are one undoable metadata edit. No audio bytes
 are copied or rewritten, and source-file duplication is not required.
 
-In Moments, `Shift+v` opens ordered SFX variants. Arrows choose a clip; Enter
-previews it; `a` opens a recording picker to append; `d` removes a member;
-Ctrl+Up/Down reorders; Shift+Up/Down pages; Escape returns. One remaining member becomes an ordinary
+In Moments, `Shift+v` opens ordered SFX variants. Up/Down in the browser chooses a
+clip; Enter previews it; `a` opens a recording picker to append; Delete removes a
+member, while `d` retains its Details meaning. Ctrl+Up/Down reorders;
+Shift+Up/Down pages. Waveform focus keeps Up/Down from changing the editing target.
+Escape first leaves focused marker/details editing, then returns from the list.
+One remaining member becomes an ordinary
 single assignment. At least one member must remain. Outside this list, `n`
 previews the next member of a cycling moment; Enter restarts the current one. Editor preview position
 is independent of the running game's cursor. Comparison mix layers audition
@@ -897,6 +938,18 @@ their exact bytes; deleting a routing override rewrites only its containing map,
 preserving other sections. A no-op Save leaves the entire file untouched. There is no
 intermediate tuning-export format or automatic source-audio rewrite.
 
+Save never silently commits an unfinished field, form, or duplicate: finish or
+cancel that draft first. Duplicate drafts participate in quit confirmation even
+when the authored document is clean. Ctrl+S from quit confirmation saves an
+already-applied document and returns to editing rather than discarding it.
+
+File operations carry their starting document revision and operation identity.
+Stale or replayed completions cannot replace a newer working copy. Waveform
+loads bind a generation and recording identity; editing also verifies the loaded
+source path. Background availability scans do not retarget active editors.
+Import failure reloads the original assigned source while preserving the error,
+instead of leaving an auditioned candidate under the old recording identity.
+
 Repository audio files are referenced by relative path. Outside files are copied
 byte-for-byte to `sounds/imported/` (or `music/imported/` when replacing a music
 recording), using recording ID and content hash in the name to avoid overwriting
@@ -931,6 +984,12 @@ Fresh-stream re-decode failure degrades to silence; music logs that fallback,
 while sound effects currently substitute a silent stream directly. Disabling
 sound is a supported silent mode. Do not add nil checks around required
 `SystemCallbacks.Audio` functions; their constructors validate the contract.
+
+These returned-error paths do not contain every backend failure. In Ebitengine
+2.10, device initialization and asynchronous player errors can surface through
+the engine update hook after manager construction and can terminate `RunGame`.
+Successful construction or a nil immediate playback error is not device-readiness
+or fail-soft acceptance.
 
 An absent non-null manifest file assignment is invalid embedded application data,
 not an intentional placeholder or ordinary runtime degradation.

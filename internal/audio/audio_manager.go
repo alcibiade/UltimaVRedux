@@ -13,7 +13,10 @@ import (
 )
 
 // AudioManager is the central coordinator for all audio functionality
-// Provides thread-safe operations and manages all audio subsystems
+// Its facade serializes configuration and voice ownership. Callers must not
+// concurrently control subsystems obtained through GetMusicManager directly.
+//
+//nolint:revive // Preserve the established application facade name during in-place hardening.
 type AudioManager struct {
 	// Core components
 	soundEffectPlayer    *SoundEffectPlayer
@@ -29,6 +32,7 @@ type AudioManager struct {
 
 	// State management
 	enabled           bool
+	closed            bool
 	ambientSuppressed bool
 	mutex             sync.RWMutex
 
@@ -36,8 +40,12 @@ type AudioManager struct {
 	assetsLoaded bool
 
 	// Preview audio players
-	ambientPreviewPlayer *audio.Player
+	ambientPreviewPlayer *gainPlayer
+	ambientPreviewGain   float64
 }
+
+// ErrAudioClosed reports an operation on a terminally closed manager.
+var ErrAudioClosed = errors.New("audio manager is closed")
 
 // NewAudioManager creates a new AudioManager with all subsystems initialized using default configuration
 func NewAudioManager() (*AudioManager, error) {
@@ -56,19 +64,20 @@ func NewAudioManagerWithConfig(viperConfig *config.AudioConfiguration) (*AudioMa
 	}
 
 	// Convert from Viper config (integer slider values 0-10) to internal audio config (float64 0.0-1.0)
-	audioConfig := &AudioConfiguration{
-		SoundEffectVolume:   ConvertSliderToVolume(viperConfig.SoundEffectVolume),
-		MusicVolume:         ConvertSliderToVolume(viperConfig.MusicVolume),
-		AmbientVolume:       ConvertSliderToVolume(viperConfig.AmbientVolume),
-		MaxAudioDistance:    20.0, // Keep technical defaults
-		VolumeRolloffFactor: 0.3,
+	audioConfig, err := NewAudioConfiguration()
+	if err != nil {
+		return nil, fmt.Errorf("create audio defaults: %w", err)
 	}
+	audioConfig.SoundEffectVolume = ConvertSliderToVolume(viperConfig.SoundEffectVolume)
+	audioConfig.MusicVolume = ConvertSliderToVolume(viperConfig.MusicVolume)
+	audioConfig.AmbientVolume = ConvertSliderToVolume(viperConfig.AmbientVolume)
 
 	return newAudioManagerWithConfig(audioConfig)
 }
 
 // newAudioManagerWithConfig is the internal constructor that both public constructors use
 func newAudioManagerWithConfig(config *AudioConfiguration) (*AudioManager, error) {
+	config = config.Clone()
 	// Create shared audio context
 	audioContext := getSharedAudioContext()
 
@@ -83,16 +92,12 @@ func newAudioManagerWithConfig(config *AudioConfiguration) (*AudioManager, error
 	}
 
 	positionalCalc := NewPositionalAudioCalculator()
+	positionalCalc.SetConfiguration(config)
 
-	manager := &AudioManager{
-		soundEffectPlayer:    soundPlayer,
-		backgroundMusic:      musicSystem,
-		positionalCalculator: positionalCalc,
-		config:               config,
-		sharedContext:        audioContext,
-		enabled:              true,
-		assetsLoaded:         false,
-	}
+	manager := new(AudioManager)
+	manager.soundEffectPlayer, manager.backgroundMusic = soundPlayer, musicSystem
+	manager.positionalCalculator, manager.config = positionalCalc, config
+	manager.sharedContext, manager.enabled = audioContext, true
 
 	// Initialize walking sounds manager after main manager is created
 	manager.walkingSounds = NewWalkingSoundManager(manager)
@@ -180,6 +185,9 @@ func (am *AudioManager) PlaySoundEffectAt(effect game_state.SoundEffect, playerX
 func (am *AudioManager) SetSoundEffectVolume(volume float64) error {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return ErrAudioClosed
+	}
 
 	// Update the configuration
 	if err := am.config.SetSoundEffectVolume(volume); err != nil {
@@ -195,6 +203,9 @@ func (am *AudioManager) SetSoundEffectVolume(volume float64) error {
 func (am *AudioManager) SetMusicVolume(volume float64) error {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return ErrAudioClosed
+	}
 
 	// Update the configuration
 	if err := am.config.SetMusicVolume(volume); err != nil {
@@ -210,6 +221,9 @@ func (am *AudioManager) SetMusicVolume(volume float64) error {
 func (am *AudioManager) SetAmbientVolume(volume float64) error {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return ErrAudioClosed
+	}
 
 	// Update the configuration
 	if err := am.config.SetAmbientVolume(volume); err != nil {
@@ -217,6 +231,9 @@ func (am *AudioManager) SetAmbientVolume(volume float64) error {
 	}
 
 	am.ambientSounds.RefreshVolume()
+	if am.ambientPreviewPlayer != nil {
+		am.ambientPreviewPlayer.SetVolume(am.config.GetEffectiveAmbientVolume(am.ambientPreviewGain))
+	}
 
 	return nil
 }
@@ -265,6 +282,11 @@ func (am *AudioManager) PlayMusicPreview(track string) error {
 // PlayWalkingSound plays appropriate walking sound based on tile surface
 func (am *AudioManager) PlayWalkingSound(tile *references.Tile) error {
 	am.mutex.RLock()
+	if am.closed {
+		am.mutex.RUnlock()
+
+		return ErrAudioClosed
+	}
 	if !am.enabled {
 		am.mutex.RUnlock()
 
@@ -284,6 +306,9 @@ func (am *AudioManager) PlayWalkingSound(tile *references.Tile) error {
 func (am *AudioManager) SetEnabled(enabled bool) {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return
+	}
 
 	am.enabled = enabled
 	am.musicManager.SetSuppressed(musicSystem, !enabled)
@@ -292,6 +317,7 @@ func (am *AudioManager) SetEnabled(enabled bool) {
 		am.backgroundMusic.Pause()
 		am.soundEffectPlayer.StopAll()
 		am.ambientSounds.SetEnabled(false)
+		am.stopAmbientPreview()
 	} else {
 		am.ambientSounds.SetEnabled(!am.ambientSuppressed)
 	}
@@ -337,18 +363,23 @@ func (am *AudioManager) Update() {
 	am.musicManager.Update()
 }
 
-// GetConfiguration returns the current audio configuration
+// GetConfiguration returns a detached snapshot. Use setters to change live gains.
 func (am *AudioManager) GetConfiguration() *AudioConfiguration {
 	am.mutex.RLock()
 	defer am.mutex.RUnlock()
 
-	return am.config
+	return am.config.Clone()
 }
 
-// Close shuts down the audio manager and releases all resources
+// Close terminally retires owned voices, but never the borrowed process context.
+// It is idempotent; SetEnabled cannot reopen a closed manager.
 func (am *AudioManager) Close() error {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return nil
+	}
+	am.closed = true
 	am.enabled = false
 	am.musicManager.SetSuppressed(musicSystem, true)
 
@@ -398,6 +429,11 @@ func (am *AudioManager) loadAssets() error {
 
 func (am *AudioManager) ensureAssetsLoaded() error {
 	am.mutex.RLock()
+	if am.closed {
+		am.mutex.RUnlock()
+
+		return ErrAudioClosed
+	}
 	if !am.enabled || am.assetsLoaded {
 		am.mutex.RUnlock()
 
@@ -407,6 +443,9 @@ func (am *AudioManager) ensureAssetsLoaded() error {
 
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return ErrAudioClosed
+	}
 	if !am.enabled || am.assetsLoaded {
 		return nil
 	}
@@ -461,8 +500,10 @@ func (am *AudioManager) UpdateAmbientSounds(playerPos references.Position, nearb
 	am.UpdateAmbientSoundsWithDynamicSources(playerPos, nearbyTiles, nil)
 }
 
-// UpdateAmbientSoundsWithDynamicSources updates ambient sounds with both static tiles and dynamic sources (like moongates)
-func (am *AudioManager) UpdateAmbientSoundsWithDynamicSources(playerPos references.Position, nearbyTiles []TileWithPosition, dynamicSources []AmbientSoundSource) {
+// UpdateAmbientSoundsWithDynamicSources reconciles static tiles and dynamic emitters.
+func (am *AudioManager) UpdateAmbientSoundsWithDynamicSources(
+	playerPos references.Position, nearbyTiles []TileWithPosition, dynamicSources []AmbientSoundSource,
+) {
 	am.mutex.RLock()
 	defer am.mutex.RUnlock()
 	if !am.enabled {
@@ -487,6 +528,9 @@ func (am *AudioManager) GetAmbientSoundDefinition(soundType AmbientSoundType) (A
 func (am *AudioManager) PlayAmbientSoundPreview() error {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
+	if am.closed {
+		return ErrAudioClosed
+	}
 
 	if !am.enabled {
 		return nil // Silent operation when disabled
@@ -530,13 +574,14 @@ func (am *AudioManager) PlayAmbientSoundPreview() error {
 	loopedStream := audio.NewInfiniteLoop(stream, streamLength)
 
 	// Create audio player
-	player, err := am.sharedContext.NewPlayer(loopedStream)
+	player, err := newGainPlayer(am.sharedContext, loopedStream)
 	if err != nil {
 		return fmt.Errorf("failed to create ambient preview player: %w", err)
 	}
 
 	// Set volume using ambient volume setting
-	effectiveVolume := am.config.GetEffectiveAmbientVolume(1.0)
+	am.ambientPreviewGain = cue.VolumeModifier * productionLibrary().recordingCalibration(cue.RecordingID)
+	effectiveVolume := am.config.GetEffectiveAmbientVolume(am.ambientPreviewGain)
 	player.SetVolume(effectiveVolume)
 
 	// Store player for cleanup

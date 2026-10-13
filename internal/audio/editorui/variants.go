@@ -156,13 +156,13 @@ func (m *model) variantKey(key string) tea.Cmd {
 		return m.closeVariants()
 	case "a", "f":
 		return m.beginAppendVariant()
-	case "d":
+	case keyDelete:
 		return m.editVariants(0, true)
 	case "ctrl+up":
 		return m.editVariants(-1, false)
 	case "ctrl+down":
 		return m.editVariants(1, false)
-	case "+", "-", "ctrl+f", keyTab, "1", "2":
+	case "+", "-", keyFilter, keyTab, "1", "2":
 		return nil
 	}
 

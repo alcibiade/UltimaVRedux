@@ -6,19 +6,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
-var (
-	sharedContext *audio.Context
-	contextMutex  sync.Mutex
-)
+//nolint:gochecknoglobals // Ebitengine has one process context; serialize default creation by these adapters.
+var contextMutex sync.Mutex
 
-// getSharedAudioContext returns a shared audio context to avoid multiple context creation
+// getSharedAudioContext borrows a host-created context, including its sample
+// rate. Hosts create their context before constructing audio managers; otherwise
+// the first adapter creates the process default. Managers never own this device.
 func getSharedAudioContext() *audio.Context {
 	contextMutex.Lock()
 	defer contextMutex.Unlock()
 
-	if sharedContext == nil {
-		sharedContext = audio.NewContext(44100)
+	if current := audio.CurrentContext(); current != nil {
+		return current
 	}
 
-	return sharedContext
+	const defaultSampleRate = 44100
+
+	return audio.NewContext(defaultSampleRate)
 }

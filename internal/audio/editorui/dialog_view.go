@@ -62,7 +62,7 @@ func (m *model) inputLines(width int) []string {
 	return rows
 }
 
-//nolint:cyclop // Explicit modal priority mirrors input ownership, including nested picker/volume dialogs.
+// Modal priority mirrors input ownership, including nested picker/volume dialogs.
 func (m *model) dialogContent(width int) (editorDialog, bool) {
 	if m.confirmQuit {
 		return editorDialog{title: "UNSAVED CHANGES", rows: []string{
@@ -84,7 +84,7 @@ func (m *model) dialogContent(width int) (editorDialog, bool) {
 		return editorDialog{title: m.infoDialog.title, rows: m.infoDialog.lines, focus: m.infoDialog.scroll,
 			help: []string{"Up/Down: scroll   Enter/Escape: close"}}, true
 	}
-	if m.volumeControls && (m.form != nil || m.routing.menu != nil || m.picker != nil || m.assigning) {
+	if m.volumeControls && m.hasDraft() {
 		return editorDialog{title: "PREVIEW VOLUME — temporary", rows: m.previewVolumeLines(width),
 			focus: m.volumeCursor, help: []string{"Up/Down: control   Left/Right: adjust   Escape: return"}}, true
 	}

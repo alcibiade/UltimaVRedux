@@ -103,7 +103,7 @@ func (m *model) previewForm(departure, toggle bool) tea.Cmd {
 		}
 		form.previewProfile = &profile
 	}
-	if m.clip == nil {
+	if !m.selectedClipReady() {
 		form.errorText = "Choose a playable recording before previewing."
 
 		return nil

@@ -91,7 +91,7 @@ func (m *model) editSharedAmbientProfile() tea.Cmd {
 	return m.loadSelection()
 }
 
-func (m *model) openNewAmbientForm() {
+func (m *model) openNewAmbientForm() tea.Cmd {
 	const initialFadeInMs, initialFadeOutMs, initialRadius = 800, 1200, 8
 	const newFieldCount = 6
 	fields := make([]formField, 0, newFieldCount)
@@ -108,15 +108,19 @@ func (m *model) openNewAmbientForm() {
 		kind: formNewAmbient, title: "NEW AMBIENT SOUND", fields: fields, errorField: -1, parentMenu: m.routing.menu,
 	}
 	m.routing.menu = nil
+
+	return m.loadSelection()
 }
 
-func (m *model) editSurfaceCues() {
+func (m *model) editSurfaceCues() tea.Cmd {
 	routing := m.doc.Routing()
 	surface := m.tileSurface(m.selectedID())
 	m.form = &editorForm{ //nolint:exhaustruct // Ordered draft is detached; Apply commits once.
 		kind: formSurface, title: "FOOTSTEP SEQUENCE — " + surface, surface: surface,
 		sequence: append([]string(nil), routing.Surfaces[surface]...), errorField: -1,
 	}
+
+	return m.loadSelection()
 }
 
 func (m *model) closeForm() tea.Cmd {

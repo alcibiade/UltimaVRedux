@@ -46,14 +46,17 @@ func (m *model) waveform(width, height int) string {
 	} else if m.previewVoice().Active() {
 		state = "paused/ended"
 	}
-	focus := "playhead"
+	focus := "source cursor"
+	if m.previewVoice().Active() {
+		focus = "preview selection"
+	}
 	if m.marker == markerStart {
 		focus = "START marker"
 	}
 	if m.marker == markerEnd {
 		focus = "END marker"
 	}
-	title := fmt.Sprintf("WAVEFORM · %s · %s · arrows: %s", mode, state, focus)
+	title := fmt.Sprintf("WAVEFORM · %s · %s · arrows: %s (10 ms)", mode, state, focus)
 	label := fmt.Sprintf("Start %d · End %d ms · Selected %d ms · Position %.3fs", window.StartMs, window.EndMs,
 		window.EndMs-window.StartMs, float64(m.position)/msPerSecond)
 	lines := []string{fit(label, inside)}
@@ -70,7 +73,7 @@ func (m *model) waveform(width, height int) string {
 
 func zoomLabel(zoom bool) string {
 	if zoom {
-		return "ZOOM"
+		return "ZOOM · follows arrow target"
 	}
 
 	return "FULL"

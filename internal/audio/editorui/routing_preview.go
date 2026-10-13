@@ -7,7 +7,7 @@ import (
 )
 
 func (m *model) playRouting() bool {
-	if m.clip == nil {
+	if !m.selectedClipReady() {
 		m.status = "No playable recording selected. Open the Moment to assign/import its recording."
 
 		return false

@@ -1,6 +1,8 @@
 package audio
 
 import (
+	"sync"
+
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
@@ -19,9 +21,11 @@ const (
 // WalkingSoundManager handles surface-based walking sound effects
 // Cycles through sound effect enums to create realistic footstep patterns
 type WalkingSoundManager struct {
-	audioManager  *AudioManager
-	enabled       bool
-	stepCounter   int                                      // Single counter for all walking sound cycling
+	mutex        sync.Mutex
+	audioManager *AudioManager
+	enabled      bool
+	// Shared sequence has no short reset that disrupts variant periods.
+	stepCounter   uint64
 	surfaceSounds map[SurfaceType][]game_state.SoundEffect // Map of surface types to their sound variants
 }
 
@@ -39,12 +43,10 @@ func NewWalkingSoundManager(audioManager *AudioManager) *WalkingSoundManager {
 		}
 	}
 
-	return &WalkingSoundManager{
-		audioManager:  audioManager,
-		enabled:       true,
-		stepCounter:   0,
-		surfaceSounds: surfaceSounds,
-	}
+	manager := new(WalkingSoundManager)
+	manager.audioManager, manager.enabled, manager.surfaceSounds = audioManager, true, surfaceSounds
+
+	return manager
 }
 
 // getSurfaceTypeForTile determines the surface type based on tile
@@ -71,7 +73,7 @@ func (wsm *WalkingSoundManager) getSoundEffectForTile(tile *references.Tile) gam
 	}
 
 	// Use modulo to cycle through available variants
-	variantIndex := wsm.stepCounter % len(soundVariants)
+	variantIndex := wsm.stepCounter % uint64(len(soundVariants))
 
 	return soundVariants[variantIndex]
 }
@@ -79,6 +81,8 @@ func (wsm *WalkingSoundManager) getSoundEffectForTile(tile *references.Tile) gam
 // PlayWalkingSound plays appropriate walking sound based on tile surface
 // Uses stepCounter to cycle through sound variants automatically
 func (wsm *WalkingSoundManager) PlayWalkingSound(tile *references.Tile) error {
+	wsm.mutex.Lock()
+	defer wsm.mutex.Unlock()
 	if !wsm.enabled {
 		return nil
 	}
@@ -92,8 +96,7 @@ func (wsm *WalkingSoundManager) PlayWalkingSound(tile *references.Tile) error {
 		return nil
 	}
 
-	// Increment counter for next call (prevents overflow with modulo)
-	wsm.stepCounter = (wsm.stepCounter + 1) % 1000
+	wsm.stepCounter++
 
 	// Play the sound using the existing enum-based system
 	return wsm.audioManager.PlaySoundEffectAt(soundEffect, 0, 0, 0, 0)

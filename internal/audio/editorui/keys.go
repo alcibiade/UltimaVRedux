@@ -19,30 +19,8 @@ const (
 )
 
 func (m *model) key(key tea.KeyMsg) tea.Cmd {
-	if key.String() == "x" && m.field == "" && (m.form == nil || !m.form.editing) &&
-		(m.routing.menu == nil || !m.routing.menu.editingSearch) {
-		m.stopAll()
-		m.status = "All playback stopped."
-
-		return nil
-	}
-	if m.busy {
-		m.status = "Finishing file operation…"
-
-		return nil
-	}
-	if key.String() == "ctrl+c" {
-		m.confirmQuit = true
-
-		return m.quit()
-	}
-	if m.confirmQuit {
-		if key.String() == "y" {
-			return tea.Quit
-		}
-		m.confirmQuit = false
-
-		return nil
+	if command, handled := m.globalKey(key); handled {
+		return command
 	}
 	if command, handled := m.modalKey(key); handled {
 		return command
@@ -53,17 +31,94 @@ func (m *model) key(key tea.KeyMsg) tea.Cmd {
 	if m.routingWorkspace() {
 		return m.routingKey(key.String())
 	}
-	if m.focus == focusMix {
-		return m.mixKey(key)
+	if command, handled := m.focusedKey(key); handled {
+		return command
 	}
-	if m.focus == focusDetails && m.scrollDetails(key.String()) {
-		return nil
-	}
-	if m.focus == focusWave && (key.String() == "up" || key.String() == keyDown) {
-		return nil
+	if m.variantCue != "" && !m.assigning {
+		return m.variantKey(key.String())
 	}
 
 	return m.browserKey(key.String())
+}
+
+func (m *model) focusedKey(key tea.KeyMsg) (tea.Cmd, bool) {
+	if m.focus == focusMix {
+		return m.mixKey(key), true
+	}
+	if m.focus == focusDetails && m.scrollDetails(key.String()) {
+		return nil, true
+	}
+	if m.focus == focusWave && (key.String() == "up" || key.String() == keyDown) {
+		return nil, true
+	}
+	if key.String() == keyEscape && (m.marker != 0 || m.focus != focusBrowser) {
+		return m.browserKey(keyEscape), true
+	}
+
+	return nil, false
+}
+
+func (m *model) globalKey(key tea.KeyMsg) (tea.Cmd, bool) {
+	if key.String() == "x" && !m.typing() {
+		m.stopAll()
+		m.status = "All playback stopped."
+
+		return nil, true
+	}
+	if m.busy {
+		m.status = "Finishing file operation…"
+
+		return nil, true
+	}
+	if key.String() == "ctrl+c" {
+		m.confirmQuit = true
+
+		return m.quit(), true
+	}
+	if m.confirmQuit {
+		if key.String() == "y" {
+			return tea.Quit, true
+		}
+		m.confirmQuit = false
+
+		if key.String() == keySave {
+			return m.saveFromKeyboard(), true
+		}
+
+		return nil, true
+	}
+	if key.String() == keySave {
+		return m.saveFromKeyboard(), true
+	}
+	if m.width < minimumWidth || m.height < minimumHeight {
+		if key.String() == "q" {
+			return m.quit(), true
+		}
+
+		return nil, true
+	}
+
+	return nil, false
+}
+
+func (m *model) typing() bool {
+	return m.field != "" || m.form != nil && m.form.editing ||
+		m.routing.menu != nil && m.routing.menu.editingSearch
+}
+
+func (m *model) hasDraft() bool {
+	return m.field != "" || m.form != nil || m.duplicate != nil || m.assigning || m.picker != nil ||
+		m.autoGainDraft != nil || m.routing.menu != nil
+}
+
+func (m *model) saveFromKeyboard() tea.Cmd {
+	if m.hasDraft() {
+		m.status, m.statusIsError = "Finish or cancel the current draft before saving the library.", true
+
+		return nil
+	}
+
+	return m.save()
 }
 
 func (m *model) modalKey(key tea.KeyMsg) (tea.Cmd, bool) {
@@ -107,9 +162,6 @@ func (m *model) modalKey(key tea.KeyMsg) (tea.Cmd, bool) {
 	if m.picker != nil {
 		return m.pickerKey(key), true
 	}
-	if m.variantCue != "" && !m.assigning && m.focus != focusMix {
-		return m.variantKey(key.String()), true
-	}
 
 	return nil, false
 }
@@ -119,7 +171,7 @@ func (m *model) browserKey(key string) tea.Cmd {
 	switch key {
 	case "q":
 		return m.quit()
-	case "ctrl+s":
+	case keySave:
 		return m.save()
 	case "up", "k":
 		return m.move(-1)
@@ -150,8 +202,8 @@ func (m *model) browserKey(key string) tea.Cmd {
 	case "B":
 		return m.editAmbientProfile()
 	case keyCtrlA:
-		m.openNewAmbientForm()
-	case "ctrl+f":
+		return m.openNewAmbientForm()
+	case keyFilter:
 		selected := m.selectedID()
 		m.filter = (m.filter + 1) % filterCount
 		m.refreshKeys()
@@ -220,11 +272,11 @@ func (m *model) browserKey(key string) tea.Cmd {
 		m.field, m.input = fieldEnd, strconv.FormatInt(m.window().EndMs, 10)
 	case keyLeft:
 		m.nudge(-fineSeekMs)
-	case "right":
+	case keyRight:
 		m.nudge(fineSeekMs)
-	case "shift+left":
+	case keyShiftLeft:
 		m.nudge(-coarseSeekMs)
-	case "shift+right":
+	case keyShiftRight:
 		m.nudge(coarseSeekMs)
 	case "z":
 		m.zoom = !m.zoom
@@ -288,7 +340,7 @@ func (m *model) move(delta int) tea.Cmd {
 }
 
 func (m *model) quit() tea.Cmd {
-	if m.doc.Dirty() || m.field != "" || m.form != nil {
+	if m.doc.Dirty() || m.hasDraft() {
 		m.confirmQuit = true
 		m.status = "Unsaved changes: y discards and quits; any other key cancels. Ctrl+s saves."
 
@@ -343,89 +395,4 @@ func (m *model) setGain(value float64) {
 	}
 	m.preview.SetGain(m.gain())
 	m.refreshMixGains()
-}
-
-func (m *model) window() audio.PlaybackWindow {
-	if m.duplicate != nil {
-		return m.duplicate.window
-	}
-	window := audio.PlaybackWindow{StartMs: 0, EndMs: 0}
-	if m.clip != nil {
-		window.EndMs = m.clip.DurationMs
-	}
-	if saved := m.doc.Recording(m.recordingID()).PlaybackWindow; saved != nil {
-		window = *saved
-	}
-
-	return window
-}
-
-func (m *model) setWindow(window *audio.PlaybackWindow) {
-	if m.clip == nil || m.assigning {
-		m.status = "Select a playable recording before editing its region."
-
-		return
-	}
-	recording := m.doc.Recording(m.recordingID())
-	recording.PlaybackWindow = window
-	if !m.followAutoCalibration(&recording) {
-		return
-	}
-	if err := m.doc.SetRecording(m.recordingID(), recording); err != nil {
-		m.report(err)
-
-		return
-	}
-	wasPlaying := m.preview.Playing()
-	if !m.sceneFXPreview && m.preview.Active() {
-		m.play()
-		m.preview.Pause(!wasPlaying)
-	}
-	m.restartMixRecording(m.recordingID(), m.clip)
-	m.preview.SetGain(m.gain())
-	m.updateSelectedAvailability(loadedMsg{generation: m.generation, clip: m.clip, err: nil, autoplay: false})
-	m.status = "Updated shared recording region; Ctrl+s saves, u undoes."
-}
-
-func (m *model) markPosition(start bool) {
-	window := m.window()
-	if start {
-		window.StartMs = m.position
-	} else {
-		window.EndMs = m.position
-	}
-	m.setWindow(&window)
-}
-
-func (m *model) nudge(delta int64) {
-	if m.clip == nil {
-		return
-	}
-	if m.marker != 0 {
-		window := m.window()
-		if m.marker == markerStart {
-			window.StartMs += delta
-		} else {
-			window.EndMs += delta
-		}
-		m.setWindow(&window)
-
-		return
-	}
-	m.position = max(0, min(m.clip.DurationMs, m.position+delta))
-	m.report(m.previewVoice().SeekMs(m.position))
-}
-
-func (m *model) suggestTrim() {
-	if m.clip == nil {
-		return
-	}
-	window, ok := m.clip.SuggestedWindow()
-	if !ok {
-		m.status = "No sound above −40 dB found; set markers manually."
-
-		return
-	}
-	m.setWindow(window)
-	m.status = "Suggested trim applied to working copy (−40 dB, 10 ms padding). Audition it; u undoes."
 }

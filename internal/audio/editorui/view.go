@@ -79,7 +79,13 @@ func (m *model) browserLabelRows() int {
 
 func (m *model) View() string {
 	if m.width < minimumWidth || m.height < minimumHeight {
-		return "Audio Library Editor — enlarge terminal to at least 60 × 24.\nCtrl+s saves; q quits."
+		message := "Audio Library Editor — enlarge terminal to at least 60 × 24.\n" +
+			"Editing paused; x stops audio; Ctrl+s saves; q quits."
+		if m.confirmQuit {
+			message += "\nUnsaved work: y discards and quits; Escape keeps editing."
+		}
+
+		return message + "\n" + safe(m.status)
 	}
 	const dialogWidth = 84
 	width := min(dialogWidth, m.width-editorDialogMargin)

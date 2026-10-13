@@ -100,22 +100,32 @@ func (m *model) footerLines() []string {
 		return m.hintRows([]keyHint{{"", "Finishing file operation…"}, {"x", hintStopAll}})
 	}
 	if m.field != "" {
-		if m.field == fieldSearch {
-			backspace := "Delete character"
-			if m.filterClearPending {
-				backspace = "Clear existing filter once"
-			}
-
-			return m.hintRows([]keyHint{{"", "EDIT FILTER · keywords or category:/family:/context:"},
-				{"Backspace", backspace}, {"Enter", "Apply filter"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
-		}
-
-		return m.hintRows([]keyHint{{"", m.inputGuidance()},
-			{"Enter", "Confirm"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
+		return m.inputFooter()
 	}
 	if m.confirmQuit {
 		return m.hintRows([]keyHint{{"y", "Discard and quit"}, {"Esc", "Keep editing"}})
 	}
+
+	return m.selectionFooter()
+}
+
+func (m *model) inputFooter() []string {
+	if m.field == fieldSearch {
+		backspace := "Delete character"
+		if m.filterClearPending {
+			backspace = "Clear existing filter once"
+		}
+
+		return m.hintRows([]keyHint{{"", "EDIT FILTER · keywords or category:/family:/context:"},
+			{"Backspace", backspace}, {"Enter", "Apply filter"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
+	}
+
+	return m.hintRows([]keyHint{{"", m.inputGuidance()},
+		{"Enter", "Confirm"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
+}
+
+//nolint:goconst // Contextual shortcut tables retain the same key and action vocabulary.
+func (m *model) selectionFooter() []string {
 	if m.duplicate != nil {
 		return m.hintRows([]keyHint{{"↑↓", "Field"}, {"Enter", "Edit"}, {"s/e", "Bounds"}, {"i/o", "Mark"},
 			{"p", "Preview"}, {"a", "Append toggle"}, {"c", "Create clip"}, {"Esc", "Cancel"}})
@@ -125,14 +135,20 @@ func (m *model) footerLines() []string {
 			{"Ctrl+p/n", "Prev/next page"}, {"/", "Path"}, {"Backspace", "Parent"}, {"Esc", hintCancel}, {"x", "Stop"}})
 	}
 	if m.assigning {
-		return m.hintRows([]keyHint{{"↑↓", "Choose"}, {"Enter", "Preview"}, {"y", "Assign"}, {"Esc", hintCancel},
+		return m.hintRows([]keyHint{{"↑↓", "Choose"}, {"Enter/y", "Assign"}, {"Space", "Preview/pause"}, {"Esc", hintCancel},
 			{"/", "Search"}, {"Ctrl+f", "Filter"}, {"x", hintStopAll}})
 	}
 	if m.variantCue != "" {
-		return m.hintRows([]keyHint{{"↑↓", "Clip"}, {"Enter", "Preview"}, {"a", "Append"}, {"d", "Remove"},
+		return m.hintRows([]keyHint{{"↑↓", "Clip"}, {"Enter", "Preview"}, {"a", "Append"}, {"Delete", "Remove"},
 			{"Ctrl+↑↓", "Reorder"}, {"Ctrl+p/n", "Prev/next page"}, {"Shift+d", "Duplicate"},
 			{"Ctrl+s", "Save"}, {"Esc", "Back"}})
 	}
+
+	return m.browseFooter()
+}
+
+//nolint:goconst // Each focus surface publishes a complete readable shortcut table.
+func (m *model) browseFooter() []string {
 	const primaryHintCapacity = 9
 	rows := make([]keyHint, 0, primaryHintCapacity)
 	rows = append(rows, keyHint{"Tab/1–4", "Workspace"}, keyHint{"/", "Search"},

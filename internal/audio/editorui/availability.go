@@ -113,7 +113,7 @@ func (m *model) acceptAvailability(message availabilityMsg) tea.Cmd {
 	if message.signature == sourceSignature(m.doc, message.id) {
 		selected := m.selectedID()
 		m.availability[message.id] = message.status
-		if m.field != "" || m.form != nil || m.routing.menu != nil || m.assigning || m.picker != nil {
+		if m.selectionOwned() {
 			return m.scanNext() // Do not change the target beneath an active editor or picker.
 		}
 		m.refreshKeys()
@@ -123,6 +123,11 @@ func (m *model) acceptAvailability(message availabilityMsg) tea.Cmd {
 	}
 
 	return m.scanNext()
+}
+
+func (m *model) selectionOwned() bool {
+	return m.busy || m.field != "" || m.form != nil || m.routing.menu != nil || m.assigning || m.picker != nil ||
+		m.duplicate != nil || m.autoGainDraft != nil || m.marker != 0 || m.focus == focusWave || m.volumeControls
 }
 
 func (m *model) recheckFiles() tea.Cmd {

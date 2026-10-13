@@ -22,7 +22,7 @@ type clipDraft struct {
 }
 
 func (m *model) beginDuplicate() {
-	if m.clip == nil || m.assigning {
+	if !m.selectedClipReady() || m.assigning {
 		m.status = "Load a source recording before duplicating its metadata."
 
 		return
@@ -51,7 +51,14 @@ func (m *model) beginDuplicate() {
 	m.duplicate = &clipDraft{sourceID: m.recordingID(), id: newID, window: window,
 		eligibleCue: cueID, appendToCue: false, field: 0}
 	m.fullSource, m.marker = false, 0
+	if m.sceneFXPreview {
+		m.report(m.previewVoice().Close())
+		if layer := m.layerAt(sfxSlot); layer != nil {
+			layer.stopped, layer.paused = true, false
+		}
+	}
 	m.report(m.preview.Close())
+	m.sceneFXPreview, m.previewPaused = false, false
 	m.position = window.StartMs
 	m.status = "New metadata-only clip: edit ID/start/end; p previews; c creates; Esc cancels."
 }
@@ -81,13 +88,17 @@ func (m *model) duplicateKey(key string) tea.Cmd {
 			draft.appendToCue = !draft.appendToCue
 		}
 	case "p":
-		m.report(m.preview.Play(m.clip, &draft.window, false, m.gain()))
+		m.play()
+	case " ":
+		m.togglePreview()
 	case "i":
-		draft.window.StartMs = m.position
+		m.markPosition(true)
 	case "o":
-		draft.window.EndMs = m.position
+		m.markPosition(false)
 	case "c":
 		return m.createDuplicate()
+	case keyLeft, keyRight, keyShiftLeft, keyShiftRight, "[", "]", "z":
+		return m.browserKey(key)
 	}
 
 	return nil
@@ -109,6 +120,13 @@ func (m *model) commitDuplicateField(field, value string) {
 		m.duplicate.window.StartMs = milliseconds
 	} else {
 		m.duplicate.window.EndMs = milliseconds
+	}
+	if m.duplicate.window.EndMs > m.duplicate.window.StartMs {
+		m.restartCroppedPreview()
+	} else {
+		m.report(m.preview.Close())
+		m.previewPaused = false
+		m.status = "Draft bounds overlap; set End after Start before previewing or creating."
 	}
 }
 

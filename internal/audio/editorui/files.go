@@ -87,33 +87,43 @@ func (m *model) pickerKey(key tea.KeyMsg) tea.Cmd {
 	case "/":
 		m.field, m.input = "path", picker.directory+string(filepath.Separator)
 	case keyEnter:
-		if len(picker.entries) == 0 {
-			return nil
-		}
-		entry := picker.entries[picker.cursor]
-		if entry.directory {
-			m.readDirectory(entry.path)
-		} else {
-			return m.importFile(entry.path)
-		}
+		return m.openPickerEntry()
 	case "p":
-		if len(picker.entries) > 0 && !picker.entries[picker.cursor].directory {
-			m.fullSource = true
-
-			return m.loadPath(picker.entries[picker.cursor].path, true)
-		}
+		return m.previewPickerEntry(false)
 	case " ":
-		if m.preview.Active() && (m.preview.Playing() || m.previewPaused) {
-			m.togglePreview()
-		} else if len(picker.entries) > 0 && !picker.entries[picker.cursor].directory {
-			m.fullSource = true
-
-			return m.loadPath(picker.entries[picker.cursor].path, true)
-		}
+		return m.previewPickerEntry(true)
 	}
 	picker.start = listViewportStart(picker.start, picker.cursor, len(picker.entries), m.listHeight())
 
 	return nil
+}
+
+func (m *model) openPickerEntry() tea.Cmd {
+	if len(m.picker.entries) == 0 {
+		return nil
+	}
+	entry := m.picker.entries[m.picker.cursor]
+	if entry.directory {
+		m.readDirectory(entry.path)
+
+		return nil
+	}
+
+	return m.importFile(entry.path)
+}
+
+func (m *model) previewPickerEntry(toggle bool) tea.Cmd {
+	if toggle && m.preview.Active() && (m.preview.Playing() || m.previewPaused) {
+		m.togglePreview()
+
+		return nil
+	}
+	if len(m.picker.entries) == 0 || m.picker.entries[m.picker.cursor].directory {
+		return nil
+	}
+	m.fullSource = true
+
+	return m.loadPath(m.picker.entries[m.picker.cursor].path, true)
 }
 
 func (m *model) enterPickerPath(path string) tea.Cmd {
@@ -142,15 +152,17 @@ func (m *model) enterPickerPath(path string) tea.Cmd {
 }
 
 func (m *model) importFile(path string) tea.Cmd {
-	document, recordingID := m.doc.Clone(), m.recordingID()
+	recordingID := m.recordingID()
 	m.busy, m.picker = true, nil
+	if m.cancelLoad != nil {
+		m.cancelLoad()
+	}
+	m.generation++
+	m.clip, m.loading = nil, false
 	m.status = "Validating and importing recording…"
 	m.clearSoundscape()
 
-	return func() tea.Msg {
-		err := document.ImportRecording(recordingID, path)
-
-		return documentMsg{document: document, err: err,
-			summary: "File assigned; old trim/calibration cleared. Ctrl+s saves; u undoes assignment.", reload: true}
-	}
+	return m.documentOperation(true,
+		"File assigned; trim reset, manual gain retained or AUTO recalculated. Ctrl+s saves; u undoes.",
+		func(document *audio.LibraryEditor) error { return document.ImportRecording(recordingID, path) })
 }

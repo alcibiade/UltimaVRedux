@@ -312,7 +312,7 @@ func (m *model) routingKey(key string) tea.Cmd {
 	case "D":
 		return m.openRoutingAssignment("default surface")
 	case "S":
-		m.editSurfaceCues()
+		return m.editSurfaceCues()
 	case "insert":
 		if m.workspace == workspaceTiles && m.selectedID() != "" {
 			m.routing.selected[m.selectedID()] = !m.routing.selected[m.selectedID()]
@@ -343,7 +343,7 @@ func (m *model) routingKey(key string) tea.Cmd {
 	case "b":
 		return m.editSharedAmbientProfile()
 	case "ctrl+a":
-		m.openNewAmbientForm()
+		return m.openNewAmbientForm()
 	case "d":
 		m.focus = focusDetails
 	case "U":

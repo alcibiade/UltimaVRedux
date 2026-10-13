@@ -220,14 +220,18 @@ func (policy *musicPolicy) startEligible() error {
 		// An authored null-file slot is silent. Retry no faster than a normal
 		// quiet interval, and never turn a missing special cue into a loop.
 		policy.completeCombatPresentation()
-		if policy.sailingRaised && policy.combatEncounter == 0 && policy.cue == "" {
-			policy.sailingPlayed = true
-		}
+		policy.completeSailingPresentation()
 		policy.history.quietRemaining = musicQuietInterval
 		policy.cue = ""
 
 		return nil
 	}
+	policy.startTrack(track, isCue, level)
+
+	return nil
+}
+
+func (policy *musicPolicy) startTrack(track string, isCue bool, level float64) {
 	policy.track, policy.trackIsCue = track, isCue
 	policy.trackSailEpoch = 0
 	if policy.sailingRaised && policy.combatEncounter == 0 && policy.cue == "" {
@@ -239,8 +243,6 @@ func (policy *musicPolicy) startEligible() error {
 	if !isCue {
 		policy.history.heard[track] = true
 	}
-
-	return nil
 }
 
 func (policy *musicPolicy) finish() error {
@@ -260,10 +262,19 @@ func (policy *musicPolicy) finish() error {
 
 func (policy *musicPolicy) failed(err error) error {
 	policy.completeCombatPresentation()
+	policy.completeSailingPresentation()
 	policy.track, policy.cue, policy.suspended = "", "", false
 	policy.history.quietRemaining = musicQuietInterval
 
 	return err
+}
+
+// A hoist owns one attempted finite presentation, just like an encounter.
+// Failure consumes it rather than retrying a broken stream on every frame.
+func (policy *musicPolicy) completeSailingPresentation() {
+	if policy.sailingRaised && policy.combatEncounter == 0 && policy.cue == "" {
+		policy.sailingPlayed = true
+	}
 }
 
 // Combat gets one finite presentation per encounter, independent of exploration

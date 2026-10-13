@@ -29,6 +29,7 @@ type LibraryEditor struct {
 	saved    []byte
 	undo     []*audioLibrary
 	redo     []*audioLibrary
+	revision uint64
 }
 
 // OpenLibraryEditor reads the real manifest, without consulting the embedded cache.
@@ -48,11 +49,15 @@ func OpenLibraryEditor(path string) (*LibraryEditor, error) {
 	}
 
 	return &LibraryEditor{path: absolute, files: files, library: library,
-		baseline: library, saved: data, undo: nil, redo: nil}, nil
+		baseline: library, saved: data, undo: nil, redo: nil, revision: 0}, nil
 }
 
 // Path returns the absolute manifest filename.
 func (e *LibraryEditor) Path() string { return e.path }
+
+// Revision identifies authored state, including Undo/Redo. Detached work must
+// compare its starting revision before replacing the current working document.
+func (e *LibraryEditor) Revision() uint64 { return e.revision }
 
 // RecordingIDs returns sorted stable recording identities for browsing.
 func (e *LibraryEditor) RecordingIDs() []string { return sortedKeys(e.library.Recordings) }
@@ -194,6 +199,23 @@ func (e *LibraryEditor) SetRecordingFamily(recordingID, family string) error {
 	}
 	next := cloneAudioValue(e.library)
 	moveTaxonomyID(next.Taxonomy.RecordingFamilies, recordingID, family)
+	recording := next.Recordings[recordingID]
+	if recording.File != nil && recording.CalibrationMode() == CalibrationAuto {
+		path, err := e.RecordingPath(recordingID)
+		if err != nil {
+			return err
+		}
+		clip, err := LoadRecording(path)
+		if err != nil {
+			return err
+		}
+		suggestion, err := clip.SuggestCalibration(recording.PlaybackWindow, family, recording.CalibrationTargetDB)
+		if err != nil {
+			return fmt.Errorf("calibrate changed recording family: %w", err)
+		}
+		recording.CalibrationGainDB = &suggestion.GainDB
+		next.Recordings[recordingID] = recording
+	}
 
 	return e.replace(next)
 }
@@ -242,6 +264,7 @@ func (e *LibraryEditor) replace(next *audioLibrary) error {
 		e.undo = e.undo[1:]
 	}
 	e.library, e.redo = cloneAudioValue(next), nil
+	e.revision++
 
 	return nil
 }
@@ -254,6 +277,7 @@ func (e *LibraryEditor) Undo() bool {
 	e.redo = append(e.redo, e.library)
 	e.library = e.undo[len(e.undo)-1]
 	e.undo = e.undo[:len(e.undo)-1]
+	e.revision++
 
 	return true
 }
@@ -266,6 +290,7 @@ func (e *LibraryEditor) Redo() bool {
 	e.undo = append(e.undo, e.library)
 	e.library = e.redo[len(e.redo)-1]
 	e.redo = e.redo[:len(e.redo)-1]
+	e.revision++
 
 	return true
 }

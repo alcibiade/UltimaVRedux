@@ -18,8 +18,10 @@ func (m *model) editInput(key tea.KeyMsg) tea.Cmd {
 		m.filterClearPending = false
 
 		return nil
-	case keyCtrlEnter, keySave:
+	case keyCtrlEnter:
 		return m.commitInput()
+	case keySave:
+		return m.saveFromKeyboard()
 	case keyEnter:
 		if m.field == fieldNote {
 			m.input += "\n"
@@ -41,8 +43,8 @@ func (m *model) editInput(key tea.KeyMsg) tea.Cmd {
 	case "ctrl+u":
 		m.input = ""
 		m.filterClearPending = false
-	case keyLeft, keyRight:
-		m.adjustInlineInput(key.String() == keyRight)
+	case keyLeft, keyRight, keyShiftLeft, keyShiftRight:
+		m.adjustInlineInput(key.String())
 	case " ":
 		m.input += " "
 		m.filterClearPending = false
@@ -56,15 +58,18 @@ func (m *model) editInput(key tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
-func (m *model) adjustInlineInput(increase bool) {
+func (m *model) adjustInlineInput(key string) {
 	step := calibrationStep
 	switch m.field {
 	case fieldGain:
 		if m.browsingCues() {
 			step = cueGainStep
 		}
-	case fieldStart, fieldEnd:
+	case fieldStart, fieldEnd, fieldClipStart, fieldClipEnd:
 		step = float64(fineSeekMs)
+		if strings.HasPrefix(key, "shift+") {
+			step = float64(coarseSeekMs)
+		}
 	case fieldCalibrationTarget:
 	default:
 		return
@@ -73,7 +78,7 @@ func (m *model) adjustInlineInput(increase bool) {
 	if err != nil || math.IsInf(value, 0) || math.IsNaN(value) {
 		return
 	}
-	if !increase {
+	if strings.HasSuffix(key, keyLeft) {
 		step = -step
 	}
 	m.input = strconv.FormatFloat(value+step, 'f', -1, 64)
@@ -164,14 +169,8 @@ func (m *model) commitClassification(value string) {
 		return
 	}
 	m.report(m.doc.SetRecordingFamily(m.recordingID(), value))
-	if m.clip != nil {
-		recording := m.doc.Recording(m.recordingID())
-		if m.followAutoCalibration(&recording) {
-			m.report(m.doc.SetRecording(m.recordingID(), recording))
-			m.preview.SetGain(m.gain())
-			m.refreshMixGains()
-		}
-	}
+	m.preview.SetGain(m.gain())
+	m.refreshMixGains()
 }
 
 func (m *model) createEmptyRecording(recordingID string) tea.Cmd {

@@ -10,6 +10,12 @@ import (
 
 const fieldCalibrationTarget = "calibration target"
 
+type calibrationDraft struct {
+	audio.CalibrationSuggestion
+	recordingID string
+	revision    uint64
+}
+
 type calibrationCache struct {
 	clip   *audio.RecordingAudio
 	window audio.PlaybackWindow
@@ -44,7 +50,7 @@ func (m *model) calibrationSuggestion(recording audio.Recording) (audio.Calibrat
 }
 
 func (m *model) beginAutoCalibration() {
-	if m.clip == nil || m.picker != nil || m.assigning || m.duplicate != nil {
+	if !m.selectedClipReady() || m.picker != nil || m.assigning || m.duplicate != nil {
 		m.status = "Select a playable recording before recalibrating."
 
 		return
@@ -55,7 +61,8 @@ func (m *model) beginAutoCalibration() {
 
 		return
 	}
-	m.autoGainDraft = &suggestion
+	m.autoGainDraft = &calibrationDraft{CalibrationSuggestion: suggestion,
+		recordingID: m.recordingID(), revision: m.doc.Revision()}
 	m.status = fmt.Sprintf("Apply %+.2f dB and enable AUTO? Enter confirms; Esc keeps calibration.", suggestion.GainDB)
 }
 
@@ -65,6 +72,11 @@ func (m *model) autoCalibrationKey(key string) {
 		m.autoGainDraft = nil
 		m.status = "Calibration unchanged."
 	case keyEnter, "y":
+		if m.autoGainDraft.recordingID != m.recordingID() || m.autoGainDraft.revision != m.doc.Revision() {
+			m.status, m.statusIsError = "Calibration draft is stale. Escape and recalculate before applying.", true
+
+			return
+		}
 		recording := m.doc.Recording(m.recordingID())
 		gain := m.autoGainDraft.GainDB
 		recording.CalibrationGainDB, recording.CalibrationPolicy = &gain, audio.CalibrationAuto

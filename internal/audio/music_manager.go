@@ -207,7 +207,8 @@ func (mm *MusicManager) IsEnabled() bool {
 // Update advances presentation-only scheduling and fades.
 func (mm *MusicManager) Update() {
 	mm.mutex.RLock()
-	needed := mm.policy.exploration != "" || mm.policy.cue != "" || mm.policy.combatEncounter != 0
+	needed := mm.policy.exploration != "" || mm.policy.cue != "" || mm.policy.combatEncounter != 0 ||
+		mm.policy.sailingRaised
 	mm.mutex.RUnlock()
 	if needed {
 		if err := mm.audioManager.ensureAssetsLoaded(); err != nil {
