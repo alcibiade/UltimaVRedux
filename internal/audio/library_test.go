@@ -212,7 +212,9 @@ func TestExactAssetDurationUsesStereoPCMFrames(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 	require.NoError(t, manager.ensureAssetsLoaded())
 	asset := manager.soundEffectPlayer.soundAssets[game_state.SoundWalkGrassLeft][0]
-	pcm, err := io.ReadAll(asset.StreamFactory(game_state.SoundPlaybackOneShot))
+	stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
+	require.NoError(t, err)
+	pcm, err := io.ReadAll(stream)
 	require.NoError(t, err)
 	want := int64(len(pcm)) * 1000 / (int64(asset.SampleRate) * 4)
 	require.Equal(t, want, asset.Duration)

@@ -14,7 +14,7 @@ close the shared device. They coordinate these components:
 | `SoundEffectPlayer` | Embedded sound assets, active sound instances, one-shot or looped streams, independent fade gains, and an eight-instance limit that protects existing loops |
 | `BackgroundMusicSystem` | Embedded finite music playback, current track, and track volume |
 | `MusicManager` | Location/context selection, finite score policy, interruption ownership, and session history |
-| `AmbientSoundManager` | Persistent proximity loops for tile families/dynamic sources and optional non-spatial dungeon backgrounds |
+| `AmbientSoundManager` | Desired source snapshots, proximity voices, fades, completion and bounded retries for tile/dynamic sources and dungeon backgrounds |
 | `WalkingSoundManager` | Surface-sensitive footstep selection |
 | `PositionalAudioCalculator` | Distance attenuation and a calculated pan value |
 | `AudioConfiguration` | Sound-effect, music, and ambient volume plus distance/rolloff settings |
@@ -32,6 +32,12 @@ voices cannot play or seek again. Managers drop those references after retiremen
 decoder readers never acquire manager locks while the barrier waits. The raw
 preview/source-set players likewise stop reading before their owners release them.
 Ordinary Pause remains resumable.
+
+`NewAudioManagerWithRuntime` accepts the host context and a required presentation
+clock alongside copied configuration. SFX, ambient envelopes/retries and music
+share that timeline. Native `time.Now` timestamps retain their monotonic component;
+injected backward samples are clamped. SFX store elapsed milliseconds, with zero
+a valid start/release instant. Audio never reads or advances the gameplay clock.
 
 `AudioManager.Close` is terminal and idempotent. `SetEnabled(true)` cannot reopen
 a closed manager; subsequent playback and category setters report `ErrAudioClosed`.
@@ -192,7 +198,16 @@ slots are silent until filled. The original DOS routines use generic damage nois
 without distinguishing fall severity; this semantic split is Redux presentation
 policy rather than an original sound distinction.
 
-Each playback request creates one fresh decoded stream and one Ebitengine player. `SoundEffectPlayer` tracks active instances by generated ID and request mode. `AudioManager.Update` retires finite voices when the player reports completion and advances fades; there is no one-shot cleanup goroutine. The eight-voice limit evicts the oldest finite voice, not an existing workflow-owned loop. A new loop fails explicitly if all eight slots are loops; a routine one-shot is dropped with audio debug logging in that case. Stop requests still target every instance of their effect.
+Each playback request creates one fresh decoded stream and one Ebitengine player.
+Preparation must succeed before replacing the preceding same-effect voice or
+evicting for capacity. Rejected, failed and dropped requests advance neither the
+variant cursor nor the instance sequence. `SoundEffectPlayer` tracks active
+instances by generated ID and request mode. `AudioManager.Update` advances fades
+and retires failed or completed voices; there is no cleanup goroutine. The
+eight-voice limit evicts the oldest finite voice, not an existing workflow-owned
+loop. A new loop fails explicitly if all eight slots are loops; a routine one-shot
+is dropped with audio debug logging in that case. Stop requests still target
+every instance of their effect.
 
 Morning Star and Halberd commitment requests `SoundCombatSwing`, including hits,
 misses and empty attacks at range 1 or 2. Their missile type still governs hit
@@ -242,7 +257,29 @@ recording without a `playbackWindow` does not inherit the old trim. Window bound
 are validated and must fit the decoded source. Duration accounting for SFX and
 music uses stereo PCM frames, not byte count divided only by sample rate.
 
-Fade bookkeeping and sound cleanup use wall-clock time because they are presentation resource management, not authoritative gameplay timing.
+### Presentation servicing
+
+`GameScene.Update` registers audio servicing before its reader/shortcut returns,
+including atlas opening, reading and dismissal. Journal, menu and cinematic score
+holds retain their ownership; servicing does not unpause gameplay or run its
+queues. Long presentation gaps finish expired release envelopes on the next tick.
+
+Ambient source discovery and voice servicing are independent. An explicit empty
+snapshot means departure and starts release; no new snapshot retains the previous
+desired sources while `AudioManager.Update` advances envelopes, failure retirement,
+completion and retries. Disable/suppression clears desired/attempt state, and
+lifting it requires a fresh world snapshot. Re-entry reverses an in-progress
+release continuously. Successfully completed finite ambient sources remain
+complete until departure/re-entry or an asset-identity change.
+
+A desired ambient source that fails is retired and retried after 1, 2, 4, 8, 16,
+then at most once per 30 seconds. Repeated source snapshots do not reset backoff.
+The backoff level is bounded per presence/asset epoch, including after a successful
+reopen that fails later; a long gap permits one new attempt, never catch-up bursts.
+`AmbientSoundManager.Failures` returns detached current diagnostics (the attempt
+level saturates at six). Departure/suppression removes that bookkeeping. Failed
+replacement preparation retains the existing voice; an explicitly empty recording
+slot retires it without retrying.
 
 ## Music
 
@@ -1109,17 +1146,30 @@ apply/confirmation behavior is documented in
 
 ## Failure Policy
 
-Recoverable audio initialization and playback errors are returned and logged by
-the `GameScene` adapter. Initial load or decode failure for a required embedded
-sound or music asset panics because production data is expected to be complete.
-Fresh-stream re-decode failure degrades to silence; music logs that fallback,
-while sound effects currently substitute a silent stream directly. Disabling
-sound is a supported silent mode. Do not add nil checks around required
+Recoverable audio initialization and fresh-stream preparation
+errors are returned with their cause and logged by the `GameScene` adapter.
+Initial loading of required embedded SFX/music retains its production-invariant
+panic if an assignment cannot be loaded; validated embedded data must be complete.
+Factories never substitute an infinite silent stream for failed decoding.
+Music/SFX/ambient replacement preparation precedes eviction of an existing voice.
+Disabling sound and authored empty recording slots are supported silent modes.
+Do not add nil checks around required
 `SystemCallbacks.Audio` functions; their constructors validate the contract.
 
-These returned-error paths do not contain every backend failure. In Ebitengine
-2.10, device initialization and asynchronous player errors can surface through
-the engine update hook after manager construction and can terminate `RunGame`.
+Runtime calibrated players latch decoder/PCM failures before Ebitengine's
+context-wide read-error hook. The backend sees finite EOF, while the owner can
+inspect the original wrapped error and retire the voice on its next service tick.
+One hundred consecutive empty decoder reads become `io.ErrNoProgress`; incomplete
+PCM samples are failures. Buffered valid bytes do not discard a pending failure.
+Retirement uses the read barrier before closing a closable decoder. Failed loops
+cannot indefinitely occupy SFX capacity. Finite music failures retain the normal
+quiet interval and consume the encounter/hoist presentation; they never become
+per-frame restart attempts. Healthy paused music is retained, while failed paused
+or preview transport is released without erasing the suspended score intent.
+
+These boundaries do not contain every backend failure. In Ebitengine 2.10, device
+initialization and other context errors can still surface through the engine
+update hook after manager construction and can terminate `RunGame`.
 Successful construction or a nil immediate playback error is not device-readiness
 or fail-soft acceptance.
 

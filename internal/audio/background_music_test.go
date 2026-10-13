@@ -186,7 +186,10 @@ func TestMusicTrackStreamEndsAtRecordedDuration(t *testing.T) {
 		t.Fatal("town music asset was not loaded")
 	}
 
-	stream := asset.StreamFactory()
+	stream, err := asset.StreamFactory()
+	if err != nil {
+		t.Fatal(err)
+	}
 	maxBytes := (asset.Duration + millisecondsPerSecond) * int64(manager.sharedContext.SampleRate()) * decodedPCMBytesPerFrame / millisecondsPerSecond
 	if _, err := io.ReadFull(stream, make([]byte, maxBytes)); err == nil {
 		t.Error("town music did not end within one second of its recorded duration")

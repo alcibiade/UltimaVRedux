@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
@@ -29,6 +31,7 @@ type AudioManager struct {
 
 	// Shared resources (exposed for subsystems)
 	sharedContext *audio.Context
+	clock         *presentationClock
 
 	// State management
 	enabled           bool
@@ -77,9 +80,19 @@ func NewAudioManagerWithConfig(viperConfig *config.AudioConfiguration) (*AudioMa
 
 // newAudioManagerWithConfig is the internal constructor that both public constructors use
 func newAudioManagerWithConfig(config *AudioConfiguration) (*AudioManager, error) {
+	return NewAudioManagerWithRuntime(config, getSharedAudioContext(), time.Now)
+}
+
+// NewAudioManagerWithRuntime borrows the host context and uses an injected
+// presentation clock. Both dependencies are required; gameplay time is unrelated.
+// Configuration is copied. Device initialization/readiness belongs to the host.
+func NewAudioManagerWithRuntime(
+	config *AudioConfiguration, audioContext *audio.Context, now func() time.Time,
+) (*AudioManager, error) {
+	if config == nil || audioContext == nil || now == nil {
+		return nil, fmt.Errorf("%w: audio requires configuration, context, and presentation clock", ErrAudioLibrary)
+	}
 	config = config.Clone()
-	// Create shared audio context
-	audioContext := getSharedAudioContext()
 
 	soundPlayer, err := NewSoundEffectPlayerWithContext(config, audioContext)
 	if err != nil {
@@ -95,7 +108,9 @@ func newAudioManagerWithConfig(config *AudioConfiguration) (*AudioManager, error
 	positionalCalc.SetConfiguration(config)
 
 	manager := new(AudioManager)
+	manager.clock = newPresentationClock(now)
 	manager.soundEffectPlayer, manager.backgroundMusic = soundPlayer, musicSystem
+	soundPlayer.nowMillis = manager.clock.Milliseconds
 	manager.positionalCalculator, manager.config = positionalCalc, config
 	manager.sharedContext, manager.enabled = audioContext, true
 
@@ -343,21 +358,30 @@ func (am *AudioManager) IsEnabled() bool {
 // Update processes audio system updates like fading effects
 // Should be called regularly (e.g., every frame) to handle fade-in/fade-out
 func (am *AudioManager) Update() {
-	am.mutex.RLock()
+	am.mutex.Lock()
 
-	if !am.enabled {
-		am.mutex.RUnlock()
+	if am.closed {
+		am.mutex.Unlock()
 
 		return
+	}
+	if am.ambientPreviewPlayer != nil {
+		if err := am.ambientPreviewPlayer.Failure(); err != nil {
+			logging.Warn(logging.CategoryAudio, "Retire failed ambient preview: %v", err)
+			am.stopAmbientPreview()
+		} else if !am.ambientPreviewPlayer.IsPlaying() {
+			am.stopAmbientPreview()
+		}
 	}
 
 	if am.soundEffectPlayer != nil {
 		am.soundEffectPlayer.UpdateFading()
 	}
+	am.ambientSounds.Update()
 	if am.soundEffectPlayer.hasInstrumentMusic() || am.ambientSounds.hasBardMusic() {
 		am.musicManager.LocalMusic()
 	}
-	am.mutex.RUnlock()
+	am.mutex.Unlock()
 	// Music may lazily load assets after a request made while audio was off.
 	// Never hold the manager lock across that loading boundary.
 	am.musicManager.Update()
@@ -542,11 +566,10 @@ func (am *AudioManager) PlayAmbientSoundPreview() error {
 		}
 	}
 
-	// Stop any currently playing ambient preview
-	am.stopAmbientPreview()
-
 	filePath := libraryCuePath("ambient/AmbientForest")
 	if filePath == "" {
+		am.stopAmbientPreview()
+
 		return nil
 	}
 	fileData, err := soundFiles.ReadFile(filePath)
@@ -563,11 +586,9 @@ func (am *AudioManager) PlayAmbientSoundPreview() error {
 	}
 
 	// Get stream length for looping
-	var streamLength int64
-	if lengthStream, ok := stream.(interface{ Length() int64 }); ok {
-		streamLength = lengthStream.Length()
-	} else {
-		streamLength = 44100 // Default 1 second at 44.1kHz
+	streamLength, err := decodedStreamLength(stream)
+	if err != nil {
+		return fmt.Errorf("ambient preview loop: %w", err)
 	}
 
 	// Create infinite loop for ambient sound
@@ -578,6 +599,7 @@ func (am *AudioManager) PlayAmbientSoundPreview() error {
 	if err != nil {
 		return fmt.Errorf("failed to create ambient preview player: %w", err)
 	}
+	am.stopAmbientPreview()
 
 	// Set volume using ambient volume setting
 	am.ambientPreviewGain = cue.VolumeModifier * productionLibrary().recordingCalibration(cue.RecordingID)
@@ -606,7 +628,9 @@ func (am *AudioManager) StopAmbientSoundPreview() error {
 // stopAmbientPreview is the internal method to stop ambient preview (caller must hold mutex)
 func (am *AudioManager) stopAmbientPreview() {
 	if am.ambientPreviewPlayer != nil {
-		am.ambientPreviewPlayer.PauseAndStopReading()
+		if err := am.ambientPreviewPlayer.Close(); err != nil {
+			logging.Warn(logging.CategoryAudio, "Close ambient preview: %v", err)
+		}
 		am.ambientPreviewPlayer = nil
 	}
 }

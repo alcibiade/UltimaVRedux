@@ -74,7 +74,7 @@ type auditionStream struct {
 }
 
 func newAuditionStream(source io.ReadSeeker) *auditionStream {
-	gain := &gainStream{source: source, gain: atomic.Uint64{}, buffer: nil, pending: nil}
+	gain := &gainStream{source: source, gain: atomic.Uint64{}, buffer: nil, pending: nil, pendingErr: nil}
 	gain.gain.Store(math.Float64bits(1))
 
 	return &auditionStream{gain: gain, position: atomic.Int64{}}

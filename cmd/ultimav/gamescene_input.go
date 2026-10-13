@@ -17,6 +17,7 @@ const (
 	keyPressDelay = 165
 )
 
+//nolint:gochecknoglobals // Immutable keyboard binding table shared by scene input polling.
 var boundKeysGame = []ebiten.Key{
 	// Movement and basic actions
 	ebiten.KeySpace,
@@ -92,8 +93,10 @@ var boundKeysGame = []ebiten.Key{
 
 // Update method for the GameScene
 //
-//nolint:cyclop,gocyclo,funlen // Central input routing is intentionally kept together.
+//nolint:cyclop,gocyclo,funlen,maintidx // Ordered input-owner precedence stays together so early returns are auditable.
 func (g *GameScene) Update(game *Game) error {
+	// Presentation service must run even when a reader consumes the whole frame.
+	defer g.updateSceneMusic()
 	defer g.updateJournalNoticeAfterFrame(g.knowledgeNoticeBlocked())
 	g.observeProvisionChanges()
 	defer g.observeProvisionChanges()
@@ -129,7 +132,6 @@ func (g *GameScene) Update(game *Game) error {
 		return nil
 	}
 	g.syncSkyPresentation()
-	defer g.updateSceneMusic()
 	// Clear frame-based key consumption at start of frame
 	// This allows each frame to have fresh key state, preventing same-frame duplicate key processing
 	g.keyboard.ClearFrameConsumption()
@@ -187,7 +189,7 @@ func (g *GameScene) Update(game *Game) error {
 		return nil
 	}
 	// Expire transient feedback.
-	g.activeEffectsOverlay.Update(int64(g.gameState.ElapsedMs))
+	g.activeEffectsOverlay.Update(g.gameState.ElapsedMs)
 
 	// Update auto-open door animation if active
 	if g.autoOpenDoorState != nil && g.autoOpenDoorState.IsActive() {
@@ -285,6 +287,8 @@ func (g *GameScene) Update(game *Game) error {
 			g.combatMapHandleSecondaryInput()
 		case references.DungeonMapType:
 			g.dungeonMapHandleSecondaryInput(game)
+		case references.CampingMapType:
+			// Camping owns its workflow; it has no secondary map command routing.
 		}
 
 		return nil

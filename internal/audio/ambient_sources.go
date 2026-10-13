@@ -1,0 +1,146 @@
+package audio
+
+import (
+	"fmt"
+	"slices"
+
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+)
+
+type ambientCandidate struct {
+	definition         AmbientSoundDefinition
+	position           references.Position
+	distance, modifier float64
+}
+
+func sameAmbientAsset(left, right AmbientSoundDefinition) bool {
+	return left.FileName == right.FileName && left.SoundType == right.SoundType && left.LoopSound == right.LoopSound
+}
+
+func (asm *AmbientSoundManager) collectSources(
+	position references.Position, tiles []TileWithPosition, dynamic []AmbientSoundSource,
+) map[AmbientSoundType]ambientCandidate {
+	sources := make(map[AmbientSoundType]ambientCandidate)
+	for _, tile := range tiles {
+		definition, exists := asm.soundDefinitions[tile.Tile.Index]
+		if !exists {
+			continue
+		}
+		distance := asm.calculateDistance(position, tile.Position)
+		previous, exists := sources[definition.SoundType]
+		if strongerAmbientSource(definition, distance, previous.definition, previous.distance, exists) {
+			sources[definition.SoundType] = ambientCandidate{
+				definition: definition, position: tile.Position, distance: distance, modifier: 1,
+			}
+		}
+	}
+	for _, source := range dynamic {
+		asm.collectDynamicSource(sources, position, source)
+	}
+
+	return sources
+}
+
+func (asm *AmbientSoundManager) collectDynamicSource(
+	sources map[AmbientSoundType]ambientCandidate, listener references.Position, source AmbientSoundSource,
+) {
+	if !source.IsActive {
+		return
+	}
+	base := asm.soundTypeDefinitions[source.SoundType]
+	definition := AmbientSoundDefinition{
+		SoundType: source.SoundType, FileName: source.SoundFile, MaxDistance: source.MaxDistance,
+		BaseVolume: source.GetBaseVolume(), LoopSound: base.LoopSound,
+		FadeInTime: source.FadeInTime, FadeOutTime: source.FadeOutTime,
+	}
+	distance := asm.calculateDistance(listener, source.Position)
+	if distance > definition.MaxDistance {
+		return
+	}
+	modifier := source.VolumeModifier
+	if !source.IsDynamic && modifier == 0 && definition.BaseVolume > 0 {
+		modifier = 1
+	}
+	key := AmbientSoundType(fmt.Sprintf("source/%s/%s/%d/%d",
+		source.Emitter, source.SoundType, source.Position.X, source.Position.Y))
+	if definition.MaxDistance == 0 {
+		key = AmbientSoundType("background/" + string(source.SoundType))
+	}
+	if source.Emitter == lighthouseEmitter {
+		key = source.SoundType // Preserve the coastal/interior lighthouse voice.
+	}
+	previous, exists := sources[key]
+	if !exists || distance < previous.distance || source.Emitter == lighthouseEmitter {
+		sources[key] = ambientCandidate{
+			definition: definition, position: source.Position, distance: distance, modifier: modifier,
+		}
+	}
+}
+
+func (asm *AmbientSoundManager) reconcileSourcesLocked(sources map[AmbientSoundType]ambientCandidate) {
+	asm.desired = sources
+	for key, attempt := range asm.attempts {
+		candidate, exists := sources[key]
+		if !exists || !sameAmbientAsset(candidate.definition, attempt.definition) {
+			delete(asm.attempts, key)
+		}
+	}
+	for key, instance := range asm.activeSounds {
+		candidate, exists := sources[key]
+		if !exists {
+			asm.fadeOutAmbientSound(instance)
+
+			continue
+		}
+		if candidate.definition.FileName == "" {
+			asm.retireAmbientLocked(key)
+
+			continue
+		}
+		if !sameAmbientAsset(instance.Definition, candidate.definition) {
+			continue // Prepare a replacement before retiring the existing voice.
+		}
+		if instance.FadeState == AmbientFadeOut {
+			asm.updateFade(instance)
+			instance.FadeState, instance.FadeFrom, instance.FadeStart = AmbientFadeIn, instance.FadeGain, asm.now()
+		}
+		instance.Definition, instance.Position, instance.VolumeModifier =
+			candidate.definition, candidate.position, candidate.modifier
+		asm.updateAmbientSound(instance, candidate.distance)
+	}
+}
+
+func (asm *AmbientSoundManager) startDesiredSourcesLocked() {
+	keys := make([]AmbientSoundType, 0, len(asm.desired))
+	for key := range asm.desired {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
+		candidate := asm.desired[key]
+		if candidate.definition.FileName == "" {
+			continue
+		}
+		if active := asm.activeSounds[key]; active != nil && sameAmbientAsset(active.Definition, candidate.definition) {
+			continue
+		}
+		attempt := asm.attempts[key]
+		if attempt.completed || asm.now().Before(attempt.next) {
+			continue
+		}
+		instance, err := asm.prepareAmbientVoice(
+			candidate.definition, candidate.position, candidate.distance, candidate.modifier)
+		if err != nil {
+			asm.failAmbientLocked(key, candidate.definition, err)
+
+			continue
+		}
+		if asm.activeSounds[key] != nil {
+			asm.retireAmbientLocked(key)
+		}
+		asm.activeSounds[key] = instance
+		instance.Player.Play()
+		attempt.definition, attempt.err = candidate.definition, nil
+		asm.attempts[key] = attempt
+	}
+}

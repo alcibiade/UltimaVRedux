@@ -258,9 +258,12 @@ func TestHarpsichordSoundMetadataAndAssets(t *testing.T) {
 			t.Fatalf("digit %d WAV peak = %d, want at least %d", digit, peak, minimumAudiblePeak)
 		}
 		asset := player.soundAssets[effect][0]
-		if asset == nil || asset.Duration <= 0 || asset.StreamFactory == nil ||
-			asset.StreamFactory(game_state.SoundPlaybackOneShot) == nil {
+		if asset == nil || asset.Duration <= 0 || asset.StreamFactory == nil {
 			t.Fatalf("digit %d asset is incomplete", digit)
+		}
+		stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
+		if err != nil || stream == nil {
+			t.Fatalf("digit %d stream unavailable: %v", digit, err)
 		}
 	}
 }

@@ -3,7 +3,6 @@ package audio
 import (
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -28,7 +27,7 @@ func NewMusicManager(audioManager *AudioManager) *MusicManager {
 	return &MusicManager{
 		audioManager:    audioManager,
 		currentLocation: references.EmptyLocation,
-		policy:          newMusicPolicy(audioManager.backgroundMusic, time.Now),
+		policy:          newMusicPolicy(audioManager.backgroundMusic, audioManager.clock.Now),
 		pauseDepth:      0, mutex: sync.RWMutex{},
 	}
 }

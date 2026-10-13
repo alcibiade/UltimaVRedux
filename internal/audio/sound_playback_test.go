@@ -51,7 +51,7 @@ func TestPlaybackRequestModeOverridesMetadataAndAppliesVolumeOnce(t *testing.T) 
 		asset := manager.soundEffectPlayer.soundAssets[effect][0]
 		require.NotNil(t, asset)
 		originalFactory := asset.StreamFactory
-		asset.StreamFactory = func(mode game_state.SoundPlaybackMode) io.ReadSeeker {
+		asset.StreamFactory = func(mode game_state.SoundPlaybackMode) (io.ReadSeeker, error) {
 			seenModes = append(seenModes, mode)
 
 			return originalFactory(mode)

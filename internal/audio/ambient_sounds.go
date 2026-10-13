@@ -1,3 +1,4 @@
+// Package audio provides application audio playback and shared authoring mechanisms.
 package audio
 
 import (
@@ -58,6 +59,9 @@ type AmbientSoundManager struct {
 	lastPlayerPosition *references.Position
 	enabled            bool
 	now                func() time.Time
+	desired            map[AmbientSoundType]ambientCandidate
+	attempts           map[AmbientSoundType]ambientAttempt
+	openStream         func(string) (io.ReadSeeker, error)
 
 	// Base definitions for each sound type
 	soundTypeDefinitions map[AmbientSoundType]AmbientSoundDefinition
@@ -80,6 +84,7 @@ type AmbientSoundInstance struct {
 // AmbientFadeState represents the current fade state of an ambient sound
 type AmbientFadeState int
 
+// Ambient envelopes retain a voice through release and reversible re-entry.
 const (
 	AmbientFadeNone AmbientFadeState = iota
 	AmbientFadeIn
@@ -90,14 +95,20 @@ const (
 // NewAmbientSoundManager creates a new ambient sound manager
 func NewAmbientSoundManager(audioManager *AudioManager) *AmbientSoundManager {
 	asm := &AmbientSoundManager{
+		mu:                   sync.RWMutex{},
 		audioManager:         audioManager,
-		audioContext:         getSharedAudioContext(),
+		audioContext:         audioManager.sharedContext,
 		activeSounds:         make(map[AmbientSoundType]*AmbientSoundInstance),
 		soundDefinitions:     make(map[indexes.SpriteIndex]AmbientSoundDefinition),
 		enabled:              true,
-		now:                  time.Now,
+		now:                  audioManager.clock.Now,
+		lastPlayerPosition:   nil,
+		desired:              make(map[AmbientSoundType]ambientCandidate),
+		attempts:             make(map[AmbientSoundType]ambientAttempt),
+		openStream:           nil,
 		soundTypeDefinitions: defaultAmbientSoundDefinitions(),
 	}
+	asm.openStream = asm.loadAmbientAudioFile
 
 	asm.initializeAllAmbientSounds()
 
@@ -153,148 +164,19 @@ func (asm *AmbientSoundManager) UpdatePlayerPosition(playerPos references.Positi
 	asm.UpdatePlayerPositionWithDynamicSources(playerPos, nearbyTiles, nil)
 }
 
-// UpdatePlayerPositionWithDynamicSources updates the player's position and manages both static and dynamic ambient sounds
-func (asm *AmbientSoundManager) UpdatePlayerPositionWithDynamicSources(playerPos references.Position, nearbyTiles []TileWithPosition, dynamicSources []AmbientSoundSource) {
+// UpdatePlayerPositionWithDynamicSources reconciles an explicit source snapshot.
+// Empty source lists mean departure; skipping discovery does not.
+func (asm *AmbientSoundManager) UpdatePlayerPositionWithDynamicSources(
+	playerPos references.Position, nearbyTiles []TileWithPosition, dynamicSources []AmbientSoundSource,
+) {
+	asm.mu.Lock()
+	defer asm.mu.Unlock()
 	if !asm.enabled {
 		return
 	}
-
-	asm.mu.Lock()
-	defer asm.mu.Unlock()
-
 	asm.lastPlayerPosition = &playerPos
-
-	// Group by cue, retaining the strongest audible static source for each loop.
-	soundTypeDistances := make(map[AmbientSoundType]float64)
-	soundTypeDefinitions := make(map[AmbientSoundType]AmbientSoundDefinition)
-	soundTypePositions := make(map[AmbientSoundType]references.Position)
-	soundTypeModifiers := make(map[AmbientSoundType]float64) // Track volume modifiers separately
-
-	// A quiet nearby torch must not mask a louder brazier using the same cue.
-	for _, tilePos := range nearbyTiles {
-		definition, exists := asm.soundDefinitions[tilePos.Tile.Index]
-		if !exists {
-			continue
-		}
-		distance := asm.calculateDistance(playerPos, tilePos.Position)
-		soundType := definition.SoundType
-		existingDistance, existing := soundTypeDistances[soundType]
-		if strongerAmbientSource(definition, distance, soundTypeDefinitions[soundType], existingDistance, existing) {
-			soundTypeDistances[soundType] = distance
-			soundTypeDefinitions[soundType] = definition
-			soundTypePositions[soundType] = tilePos.Position
-			soundTypeModifiers[soundType] = 1
-		}
-	}
-
-	// Process dynamic sources (like moongates)
-	for _, source := range dynamicSources {
-		if !source.IsActive {
-			continue
-		}
-
-		distance := asm.calculateDistance(playerPos, source.Position)
-
-		// Start with base definition and apply explicit overrides from source
-		baseDef := asm.soundTypeDefinitions[source.SoundType]
-
-		// Keep volume modifier separate - NEVER modify BaseVolume!
-		// Note: VolumeModifier can legitimately be 0 for fade-in effects
-		// Only default to 1.0 if the field wasn't explicitly set (we check if it's a dynamic source)
-		volumeModifier := source.VolumeModifier
-		baseVolume := source.GetBaseVolume() // Use getter to access private field
-		if !source.IsDynamic && volumeModifier == 0 && baseVolume > 0 {
-			volumeModifier = 1.0 // Default modifier for static sources only
-		}
-
-		// Create definition with base volume kept unchanged
-		definition := AmbientSoundDefinition{
-			SoundType:   source.SoundType,
-			FileName:    source.SoundFile,
-			MaxDistance: source.MaxDistance,
-			BaseVolume:  baseVolume, // Use the value from getter
-			LoopSound:   baseDef.LoopSound,
-			FadeInTime:  source.FadeInTime,
-			FadeOutTime: source.FadeOutTime,
-		}
-
-		if distance <= definition.MaxDistance {
-			// Debug logging for moongate sounds
-			if source.SoundType == AmbientHum {
-				logging.Debug(logging.CategoryAudio, "Moongate: distance=%.2f, MaxDistance=%.2f, BaseVolume=%.2f, VolumeModifier=%.2f, Final=%.2f, File=%s",
-					distance, definition.MaxDistance, baseVolume, volumeModifier, baseVolume*volumeModifier, definition.FileName)
-			}
-
-			// Create unique key for dynamic sources based on position to avoid conflicts
-			// Use large offset to avoid conflicts with static sound types
-			dynamicKey := AmbientSoundType(fmt.Sprintf("source/%s/%s/%d/%d",
-				source.Emitter, source.SoundType, source.Position.X, source.Position.Y))
-			if definition.MaxDistance == 0 {
-				dynamicKey = AmbientSoundType("background/" + string(source.SoundType))
-			}
-			// The location bed is the same lighthouse voice as the coastal tile,
-			// so entering/leaving never overlaps two loops or restarts the recording.
-			if source.Emitter == lighthouseEmitter {
-				dynamicKey = source.SoundType
-			}
-
-			// Use the closest distance for this specific dynamic source
-			if existingDistance, exists := soundTypeDistances[dynamicKey]; !exists ||
-				distance < existingDistance || source.Emitter == lighthouseEmitter {
-				soundTypeDistances[dynamicKey] = distance
-				soundTypeDefinitions[dynamicKey] = definition
-				soundTypePositions[dynamicKey] = source.Position
-				soundTypeModifiers[dynamicKey] = volumeModifier // Store the actual modifier for this source
-			}
-		}
-	}
-
-	// Update or create sounds for each active sound type
-	for soundType, distance := range soundTypeDistances {
-		definition := soundTypeDefinitions[soundType]
-		position := soundTypePositions[soundType]
-		volumeModifier := soundTypeModifiers[soundType] // Get the volume modifier for this sound
-
-		if instance, exists := asm.activeSounds[soundType]; exists {
-			// Update existing sound with closest distance and volume modifier
-			if instance.Definition.FileName != definition.FileName {
-				if err := instance.Player.Close(); err != nil {
-					logging.Warn(logging.CategoryAudio, "Close replaced ambient sound: %v", err)
-				}
-				delete(asm.activeSounds, soundType)
-				asm.createAmbientSoundWithModifier(definition, position, distance, soundType, volumeModifier)
-
-				continue
-			}
-			if instance.FadeState == AmbientFadeOut {
-				asm.updateFade(instance)
-				instance.FadeState = AmbientFadeIn
-				instance.FadeFrom = instance.FadeGain
-				instance.FadeStart = asm.now()
-			}
-			instance.VolumeModifier = volumeModifier // Update the modifier in case it changed
-			instance.Definition = definition         // Source overrides change gain/range, never loop identity.
-			instance.Position = position
-			asm.updateAmbientSound(instance, distance)
-		} else {
-			// Create new ambient sound for this type
-			if definition.SoundType == AmbientHum {
-				logging.Debug(logging.CategoryAudio, "Creating ambient source: type=%s, baseVolume=%.2f, modifier=%.2f, file=%s",
-					soundType, definition.BaseVolume, volumeModifier, definition.FileName)
-			}
-			asm.createAmbientSoundWithModifier(definition, position, distance, soundType, volumeModifier)
-		}
-	}
-
-	// Fade out sounds that are no longer in range
-	for soundType, instance := range asm.activeSounds {
-		if _, stillActive := soundTypeDistances[soundType]; !stillActive {
-			asm.fadeOutAmbientSound(instance)
-		}
-	}
-
-	// Clean up fully stopped sounds
-	asm.cleanupStoppedSounds()
+	asm.reconcileSourcesLocked(asm.collectSources(playerPos, nearbyTiles, dynamicSources))
+	asm.serviceLocked()
 }
 
 func strongerAmbientSource(candidate AmbientSoundDefinition, distance float64,
@@ -362,51 +244,21 @@ func (a *AmbientSoundSource) SetVolumeModifier(modifier float64) {
 	a.VolumeModifier = modifier
 }
 
-// createAmbientSound creates and starts a new ambient sound instance (backward compatibility wrapper)
-//
-//nolint:unused // Internal helper for ambient sound creation, may be used for future enhancements
-func (asm *AmbientSoundManager) createAmbientSound(definition AmbientSoundDefinition, position references.Position, distance float64, soundType AmbientSoundType) {
-	asm.createAmbientSoundWithModifier(definition, position, distance, soundType, 1.0) // Default modifier of 1.0
-}
-
-// createAmbientSoundWithModifier creates and starts a new ambient sound instance with a volume modifier
-func (asm *AmbientSoundManager) createAmbientSoundWithModifier(definition AmbientSoundDefinition, position references.Position, distance float64, soundType AmbientSoundType, volumeModifier float64) {
-	if definition.FileName == "" {
-		return // Known cue with an intentionally empty recording slot.
-	}
-
-	// Load the actual audio file from embedded assets
-	audioStream, err := asm.loadAmbientAudioFile(definition.FileName)
+func (asm *AmbientSoundManager) prepareAmbientVoice(
+	definition AmbientSoundDefinition, position references.Position, distance, volumeModifier float64,
+) (*AmbientSoundInstance, error) {
+	audioStream, err := asm.openStream(definition.FileName)
 	if err != nil {
-		// Log the error but don't crash the game
-		logging.Warn(logging.CategoryAudio, "Failed to load ambient sound %s: %v", definition.FileName, err)
-
-		return
+		return nil, fmt.Errorf("load ambient sound %s: %w", definition.FileName, err)
 	}
-
-	cue := productionLibrary().Cues[string(definition.SoundType)]
-	window := productionLibrary().Recordings[cue.RecordingID].PlaybackWindow
-	audioStream, err = boundedRecording(audioStream, asm.audioContext.SampleRate(), window)
+	prepared, err := asm.prepareAmbientStream(audioStream, definition)
 	if err != nil {
-		logging.Warn(logging.CategoryAudio, "Invalid ambient selection %s: %v", definition.FileName, err)
-
-		return
-	}
-	if definition.LoopSound {
-		length, lengthErr := decodedStreamLength(audioStream)
-		if lengthErr != nil {
-			logging.Warn(logging.CategoryAudio, "Invalid ambient loop %s: %v", definition.FileName, lengthErr)
-
-			return
-		}
-		audioStream = audio.NewInfiniteLoop(audioStream, length)
+		return nil, errors.Join(err, closeRuntimeSource(audioStream))
 	}
 	// Create audio player with the loaded stream
-	player, err := newGainPlayer(asm.audioContext, audioStream)
+	player, err := newGainPlayer(asm.audioContext, &ownedRuntimeStream{ReadSeeker: prepared, owner: audioStream})
 	if err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to create ambient sound player for %s: %v", definition.FileName, err)
-
-		return
+		return nil, fmt.Errorf("ambient player %s: %w", definition.FileName, err)
 	}
 
 	// Calculate initial volume based on distance and apply volume modifier
@@ -421,6 +273,7 @@ func (asm *AmbientSoundManager) createAmbientSoundWithModifier(definition Ambien
 		VolumeModifier: volumeModifier, // Store the modifier separately
 		FadeState:      AmbientFadeIn,
 		FadeStart:      asm.now(),
+		FadeFrom:       0,
 		FadeGain:       0,
 		LastDistance:   distance,
 	}
@@ -430,15 +283,39 @@ func (asm *AmbientSoundManager) createAmbientSoundWithModifier(definition Ambien
 		instance.FadeGain = 1
 	}
 	player.SetVolume(asm.effectiveVolume(volume * instance.FadeGain))
-	player.Play()
 
-	asm.activeSounds[soundType] = instance
+	return instance, nil
+}
+
+func (asm *AmbientSoundManager) prepareAmbientStream(
+	source io.ReadSeeker, definition AmbientSoundDefinition,
+) (io.ReadSeeker, error) {
+	if source == nil {
+		return nil, errSoundStreamUnavailable
+	}
+	cue := productionLibrary().Cues[string(definition.SoundType)]
+	window := productionLibrary().Recordings[cue.RecordingID].PlaybackWindow
+	stream, err := boundedRecording(source, asm.audioContext.SampleRate(), window)
+	if err != nil {
+		return nil, fmt.Errorf("ambient selection %s: %w", definition.FileName, err)
+	}
+	if definition.LoopSound {
+		length, err := decodedStreamLength(stream)
+		if err != nil {
+			return nil, fmt.Errorf("ambient loop %s: %w", definition.FileName, err)
+		}
+
+		return audio.NewInfiniteLoop(stream, length), nil
+	}
+
+	return stream, nil
 }
 
 // updateAmbientSound updates an existing ambient sound based on distance
 func (asm *AmbientSoundManager) updateAmbientSound(instance *AmbientSoundInstance, distance float64) {
 	// Calculate base volume from distance, then apply the instance's volume modifier
-	baseVolume := asm.calculateVolumeFromDistance(distance, instance.Definition.MaxDistance, instance.Definition.BaseVolume)
+	baseVolume := asm.calculateVolumeFromDistance(
+		distance, instance.Definition.MaxDistance, instance.Definition.BaseVolume)
 	newVolume := baseVolume * instance.VolumeModifier // Apply the modifier
 
 	asm.updateFade(instance)
@@ -484,24 +361,6 @@ func (asm *AmbientSoundManager) fadeOutAmbientSound(instance *AmbientSoundInstan
 	}
 }
 
-// cleanupStoppedSounds removes fully stopped ambient sound instances
-func (asm *AmbientSoundManager) cleanupStoppedSounds() {
-	for soundType, instance := range asm.activeSounds {
-		if instance.FadeState == AmbientFadeOut {
-			asm.updateFade(instance)
-			if instance.FadeGain == 0 {
-				instance.Player.Pause()
-				if err := instance.Player.Close(); err != nil {
-					logging.Warn(logging.CategoryAudio, "Close faded ambient sound: %v", err)
-				}
-				delete(asm.activeSounds, soundType)
-			} else {
-				instance.Player.SetVolume(asm.effectiveVolume(instance.Volume * instance.FadeGain))
-			}
-		}
-	}
-}
-
 func (asm *AmbientSoundManager) effectiveVolume(volume float64) float64 {
 	return asm.audioManager.config.GetEffectiveAmbientVolume(volume)
 }
@@ -544,6 +403,8 @@ func (asm *AmbientSoundManager) SetEnabled(enabled bool) {
 			}
 		}
 		asm.activeSounds = make(map[AmbientSoundType]*AmbientSoundInstance)
+		clear(asm.desired)
+		clear(asm.attempts)
 	}
 
 	asm.enabled = enabled
@@ -612,6 +473,8 @@ func (asm *AmbientSoundManager) Close() error {
 	}
 
 	asm.activeSounds = make(map[AmbientSoundType]*AmbientSoundInstance)
+	clear(asm.desired)
+	clear(asm.attempts)
 	asm.enabled = false
 
 	return errors.Join(closeErrors...)
@@ -634,7 +497,9 @@ func (asm *AmbientSoundManager) loadAmbientAudioFile(filename string) (io.ReadSe
 }
 
 // AddCustomAmbientSound allows adding custom ambient sound definitions for specific sprites
-func (asm *AmbientSoundManager) AddCustomAmbientSound(spriteIndex indexes.SpriteIndex, definition AmbientSoundDefinition) {
+func (asm *AmbientSoundManager) AddCustomAmbientSound(
+	spriteIndex indexes.SpriteIndex, definition AmbientSoundDefinition,
+) {
 	asm.mu.Lock()
 	defer asm.mu.Unlock()
 
