@@ -46,6 +46,7 @@ func TestCropMarkersShareArrowStepsThroughInputRouting(t *testing.T) {
 func TestPausedPreviewSeekAgreesWithNextTransportTick(t *testing.T) {
 	model := fixture(t)
 	model.setWindow(&audio.PlaybackWindow{StartMs: 100, EndMs: 500})
+	finish(model, model.applyCrop())
 	dispatchRune(model, 'p')
 	dispatchKey(model, tea.KeyMsg{Type: tea.KeySpace})
 	model.position = 100
@@ -215,6 +216,7 @@ func TestSaveShortcutProtectsDraftAndWorksFromQuitConfirmation(t *testing.T) {
 	require.False(t, model.doc.Dirty())
 	require.Contains(t, model.status, "Finish or cancel")
 	dispatchKey(model, tea.KeyMsg{Type: tea.KeyEnter})
+	dispatchRune(model, 'a')
 	dispatchRune(model, 'q')
 	require.True(t, model.confirmQuit)
 	dispatchKey(model, tea.KeyMsg{Type: tea.KeyCtrlS})
@@ -247,7 +249,7 @@ func TestCropKeepsStandalonePreviewOwnershipWhenSoundscapeIsVisible(t *testing.T
 	require.Equal(t, int64(200), voice.PositionMs())
 }
 
-func TestDuplicateRetiresPreviousPreviewOwnersAndUsesItsDraftWindow(t *testing.T) {
+func TestDuplicateIsolatesPreviousPreviewOwnersAndUsesItsDraftWindow(t *testing.T) {
 	model := fixture(t)
 	dispatchRune(model, 'p')
 	standalone := model.preview.(*fakeVoice)
@@ -259,13 +261,14 @@ func TestDuplicateRetiresPreviousPreviewOwnersAndUsesItsDraftWindow(t *testing.T
 	require.True(t, layer.voice.Active())
 	dispatchRune(model, 'D')
 	require.False(t, standalone.Active())
-	require.False(t, layer.voice.Active())
-	require.True(t, layer.stopped, "the old repeating SFX must not restart under the duplicate preview")
+	require.False(t, layer.voice.Playing())
+	require.True(t, layer.paused, "the old repeating SFX stays suspended under the duplicate preview")
 	dispatchRune(model, 'p')
 	dispatchKey(model, tea.KeyMsg{Type: tea.KeySpace})
 	dispatchRune(model, 's')
 	model.input = "100"
 	dispatchKey(model, tea.KeyMsg{Type: tea.KeyEnter})
+	model.updateCropPreview(true)
 	require.Equal(t, int64(100), standalone.window.StartMs)
 	require.True(t, model.previewIsPaused())
 	require.False(t, model.doc.Dirty())

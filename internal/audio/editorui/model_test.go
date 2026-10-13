@@ -54,7 +54,7 @@ func (v *fakeVoice) SeekMs(position int64) error {
 }
 func (v *fakeVoice) Close() error { v.active = false; v.playing = false; v.closes++; return nil }
 
-func fixture(t *testing.T) *model {
+func fixture(t testing.TB) *model {
 	t.Helper()
 	data, err := os.ReadFile("../assets/library.json")
 	require.NoError(t, err)
@@ -151,10 +151,13 @@ func TestLiveEditingWaveformSaveAndUndo(t *testing.T) {
 	model.browserKey("i")
 	model.position = 260
 	model.browserKey("o")
+	require.Nil(t, model.doc.Recording("healing_01").PlaybackWindow, "marking only edits the region draft")
+	finish(model, model.applyCrop())
 	require.Equal(t, &audio.PlaybackWindow{StartMs: 40, EndMs: 260}, model.doc.Recording("healing_01").PlaybackWindow)
 	model.browserKey("[")
 	model.browserKey("right")
 	require.Equal(t, int64(50), model.window().StartMs)
+	finish(model, model.applyCrop())
 	require.Contains(t, model.View(), "UNSAVED")
 	require.Contains(t, model.View(), "Start 50")
 	starts := voice.starts
@@ -194,11 +197,12 @@ func TestStaleDecodeAndStopAllNeverStartUnexpectedAudio(t *testing.T) {
 	model.autoPreview = true
 	oldGeneration := model.generation
 	model.generation++
-	model.Update(loadedMsg{generation: oldGeneration, recordingID: model.recordingID(), clip: model.clip, autoplay: true})
+	request := sourceLoad{recordingID: model.recordingID(), path: model.clip.Path, autoplay: true}
+	model.Update(loadedMsg{generation: oldGeneration, request: request, clip: model.clip})
 	require.Zero(t, voice.starts)
 	model.picker = &filePicker{}
 	model.key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
-	model.Update(loadedMsg{generation: model.generation, recordingID: model.recordingID(), clip: model.clip, autoplay: true})
+	model.Update(loadedMsg{generation: model.generation, request: request, clip: model.clip})
 	require.Zero(t, voice.starts, "X also cancels a pending file-picker preview")
 }
 

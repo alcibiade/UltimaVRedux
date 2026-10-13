@@ -27,12 +27,12 @@ func TestFooterPacksAcrossWidthWithoutDroppingTrimHints(t *testing.T) {
 			require.Contains(t, plain, hint)
 		}
 	}
-	model.browserKey("s")
+	model.beginInput(fieldStart, "0")
 	require.Equal(t, focusWave, model.focus)
-	require.Contains(t, ansi.Strip(strings.Join(model.footerLines(), "\n")), "420=0.420s; before end")
+	require.Contains(t, ansi.Strip(strings.Join(model.footerLines(), "\n")), "420=0.420s; sets the draft only")
 	model.field = ""
-	model.browserKey("e")
-	require.Contains(t, ansi.Strip(strings.Join(model.footerLines(), "\n")), "2350=2.350s; after start")
+	model.beginInput(fieldEnd, "3000")
+	require.Contains(t, ansi.Strip(strings.Join(model.footerLines(), "\n")), "2350=2.350s; sets the draft only")
 }
 
 func TestWaveformUsesMoreHeightWhileKeepingOtherPanesUsable(t *testing.T) {

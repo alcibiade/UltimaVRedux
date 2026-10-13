@@ -717,7 +717,7 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | Tab / Shift+Tab | Next / previous workspace |
 | 1 / 2 / 3 / 4 | Open Recordings / Moments / Tiles / Locations directly |
 | Ctrl+f | Cycle availability filter |
-| F5 | Recheck files and refresh waveform from disk |
+| F5 | Recheck files; inside a region draft, reload its source and retain bounds for explicit review |
 | w / d / m | Focus waveform / show Details / open Soundscape controls; Escape returns to browser |
 | a | Add the selected sound to its Soundscape slot; ambience loops, music plays once, SFX fires |
 | Up/Down | Browse the current list |
@@ -731,13 +731,13 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | +/- | Live saved calibration (Recordings, 0.5 dB steps) or cue gain (Moments, 0.05 steps) |
 | g | Enter exact calibration in dB or cue gain in amplitude |
 | v | Open independent 0–10 preview category sliders and Game Mix / Reference controls |
-| i / o | Set start/end at the source-relative playhead and select that marker for nudging |
-| [ / ] | Select start/end marker; arrows now nudge that marker |
+| i / o | Open/update a region draft at the source-relative playhead and select its start/end marker |
+| [ / ] | Open a region draft and select its start/end marker for nudging |
 | Left/Right, Shift+Left/Right | Outside text entry, seek/nudge by 10 ms or 100 ms; inside fields, move/select text |
 | s / e | Enter exact start/end in whole milliseconds |
 | z | Zoom around the selected marker or playhead |
-| t | Suggest a trim in the working copy: -40 dB threshold plus 10 ms edge padding |
-| r | Reset the recording to its full source (remove the playback window) |
+| t | Suggest draft bounds: -40 dB threshold plus 10 ms edge padding; Apply is separate |
+| r | Draft a reset to the full source; Apply removes the authored playback window |
 | f | Choose a source file, or choose a recording for the selected moment |
 | n | Create an empty recording ID in Recordings (lowercase snake_case) |
 | Shift+d | Duplicate the selected recording as a new metadata-only clip |
@@ -765,9 +765,60 @@ The waveform identifies the arrow target. An active preview seeks within its
 playing selection and immediately displays the actual clamped source position;
 with playback stopped, arrows move the cursor across the full source. `[`/`]`
 select crop markers. Zoom follows the arrow target, so a numeric bound can change
-while its screen column remains centered. A crop edit preserves a retained
-standalone preview's playing/paused state and its source position, clamped to the new region.
-Space resumes a paused edited preview; Enter explicitly restarts it.
+while its screen column remains centered. Region audition preserves playing/paused
+state and source position, clamped to the candidate bounds. Space resumes a paused
+preview; `p` explicitly restarts it. A completed preview does not automatically
+restart merely because a bound changes.
+
+### Region Draft, Apply, And Cancel
+
+Ordinary crops and metadata-only duplicates share one region workflow. `[`/`]`,
+`s`/`e`, marking, reset, or a trim suggestion opens a detached draft in the right
+pane, leaving the waveform visible. Tab/Up/Down selects fields or the visible
+**Apply**/**Cancel** actions; Enter edits or activates the selected row. For a
+duplicate those actions are **Create**/**Cancel**, with an additional ID field.
+The Apply action shows the number of cue uses affected by the shared recording.
+The active-pane border follows the actual field/cursor owner; the transport is
+read-only status, not a competing input owner.
+
+Typing bounds and pressing Enter finishes that field only. Start and End can
+temporarily cross; invalid bounds remain visible, stop the draft audition, and
+cannot be applied. `s`/`e` retains the corresponding marker as the arrow target
+after text entry. `w` selects the source cursor for seeking; `[`/`]` returns to
+marker adjustment. `?` shows draft controls, the exact loaded source path, its
+content fingerprint, and the sharing scope.
+
+Valid adjustments update the visible draft immediately. Analysis and retained
+preview reconstruction coalesce at a 100 ms cadence on the presentation tick;
+repeated key events do not clone/validate the document or read/decode the file.
+The pane says when a preview update is pending. `p` resolves the latest candidate
+immediately. AUTO calibration is derived from cached source analysis, and both
+ordinary Apply and duplicate Create use that exact region/calibration calculation.
+Full-source comparison bypasses the excerpt but retains the candidate calibration.
+
+Apply/Create checks the captured document revision and verifies the source bytes
+before publishing one atomic edit. The source check and document publication run
+as a bounded background editor operation. A new clip and optional cue membership
+are one Undo entry. An unchanged ordinary Apply preserves history, including Redo.
+Ctrl+S remains a separate disk-save operation and refuses an unfinished region.
+
+Escape discards the region without authoring it. If an audition was requested,
+Cancel restores authored playback settings with the current paused/playing intent
+and a bounded source position; it does not resurrect an explicit Stop or replay
+a naturally completed preview. Matching Soundscape layers are temporarily suspended
+to avoid doubling the edited recording. Cancel restores them; Apply updates their
+authored region while preserving paused state and position. Unrelated layers remain
+active. Duplicate Create preserves the original recording and its layers. A retained
+created-clip audition keeps its original cue mix, labelled in the transport/details;
+Enter starts a new audition using the selected recording's current context.
+
+Loaded audio is an immutable content snapshot. Background stamp probes detect
+ordinary file replacement without filesystem work in key dispatch or rendering.
+A changed source stops affected voices and requires an explicit reload. Region
+Apply/Create additionally hashes the current file, rejecting content changes even
+when size and timestamps are preserved. F5 inside a draft reloads/rebinds the source
+and retains the bounds; review the new waveform/calibration before applying. These
+checks are not a lock against an external writer changing a file afterward.
 
 ### Game-Matched Preview Volumes
 
@@ -818,7 +869,7 @@ controller. It never rewrites audio bytes or adjusts a cue/category slider.
 | Mode | Selected-region or source changes | Manual editing |
 |---|---|---|
 | Uncalibrated | Displays a new suggestion without changing gain | Shift+A then Enter accepts auto; +/- or g creates a manual calibration |
-| Auto | Updates working-copy calibration with the selected region; trim plus gain is one undoable edit | +/- or g in Recordings locks the value |
+| Auto | Region preview derives candidate calibration; Apply/Create publishes region plus gain as one edit | +/- or g in Recordings locks the value |
 | Manual | Keeps the exact gain across trim, source replacement, duplication and reopen; suggestion computation is paused | Only explicit Shift+A plus confirmation returns to auto |
 
 Moving/seeking the playhead alone never changes calibration. Shift+A from Moments
@@ -871,13 +922,13 @@ uses source-file milliseconds even for trimmed or looping playback. Waveform
 zoom retains a whole-file overview, with the selected region and zoom viewport
 highlighted. Waveform
 decoding is cancellable background work; stale results cannot replace a newer
-selection. Silence suggestions remain undoable edits, not automatic saves or
-proof that a quiet onset/tail should be removed. Cuts have no implicit fades or
+selection. Silence suggestions only change draft bounds; they are not proof that
+a quiet onset/tail should be removed. Cuts have no implicit fades or
 zero-crossing adjustment; audition for clicks before saving.
 
 ### Shared-File Clips And Ordered Variants
 
-`Shift+d` opens a small new-clip draft with the next unused numeric suffix,
+`Shift+d` opens a new-clip region draft with the next unused numeric suffix,
 preserving zero padding (`_009` becomes `_010`). The duplicate references the
 same physical file and copies provenance/calibration, but gets its own window
 and a fresh note. If the selected clip ends before the source does, the draft
@@ -891,7 +942,9 @@ end while editing does not mutate the original clip.
 
 When an SFX moment is selected, or the recording has one unambiguous SFX use,
 the draft offers an unchecked `a` toggle to append the new clip to that moment.
-Creation and optional membership are one undoable metadata edit. No audio bytes
+Creation and optional membership are one undoable metadata edit. Its AUTO gain
+matches the draft audition rather than being recalculated by a different path.
+No audio bytes
 are copied or rewritten, and source-file duplication is not required.
 
 In Moments, `Shift+v` opens ordered SFX variants. Up/Down in the browser chooses a
@@ -904,6 +957,9 @@ single assignment. At least one member must remain. Outside this list, `n`
 previews the next member of a cycling moment; Enter restarts the current one. Editor preview position
 is independent of the running game's cursor. Comparison mix layers audition
 the selected clip; their repeat interval does not change production selection.
+The editor retains its last successful variant and playback while the next source
+loads. Failure, Stop, or a newly opened editing owner prevents a late completion
+from advancing the selection. Only a successful next preview advances the cursor.
 
 Single cues keep `recordingId`. An SFX cycle instead uses an ordered
 `recordingIds` array and `selection: "cycle"`. These forms are mutually
@@ -950,7 +1006,7 @@ existing playing slot. Stop All (`x`) closes voices and cancels pending/repeat
 playback but retains assignments; Enter restarts an individual stopped slot.
 
 Browsing and workspace changes preserve the soundscape. File import, clip-list
-edits, duplication, and document undo/redo clear it to avoid stale assignments;
+edits, and document undo/redo clear it to avoid stale assignments;
 quitting closes every voice. Adding a sound closes the standalone preview to
 avoid doubling an already auditioned recording. No soundscape assignments are
 saved as production cue assignments or persistent sessions.
@@ -980,6 +1036,10 @@ File operations carry their starting document revision and operation identity.
 Stale or replayed completions cannot replace a newer working copy. Waveform
 loads bind a generation and recording identity; editing also verifies the loaded
 source path. Background availability scans do not retarget active editors.
+File-candidate requests also bind the selected candidate path. Moving the picker
+invalidates outstanding audition requests; Space auditions the newly selected file,
+and the transport names that actual candidate. Candidate failures never invalidate
+an unrelated destination recording's assigned-file status.
 Import failure reloads the original assigned source while preserving the error,
 instead of leaving an auditioned candidate under the old recording identity.
 

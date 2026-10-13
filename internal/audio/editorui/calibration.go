@@ -86,7 +86,7 @@ func (m *model) autoCalibrationKey(key string) {
 			return
 		}
 		m.autoGainDraft = nil
-		m.preview.SetGain(m.gain())
+		m.preview.SetGain(m.livePreviewGain())
 		m.refreshMixGains()
 		m.status = "AUTO enabled. Trim edits follow; Recordings +/- or g locks calibration. Ctrl+s saves."
 	}
@@ -134,7 +134,7 @@ func (m *model) setCalibrationTarget(value string) {
 	recording.CalibrationTargetDB = &target
 	if m.followAutoCalibration(&recording) {
 		m.report(m.doc.SetRecording(m.recordingID(), recording))
-		m.preview.SetGain(m.gain())
+		m.preview.SetGain(m.livePreviewGain())
 		m.refreshMixGains()
 	}
 }

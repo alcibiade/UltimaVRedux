@@ -175,7 +175,7 @@ func (m *model) transportView(width int) string {
 	}
 
 	return m.panel("PREVIEW · "+state, []string{style.Render(fit(line, width-panelEdges)),
-		fit("Enter: play/restart   Space: pause/resume   x / Ctrl+x: stop", width-panelEdges)}, width, transportRows, true)
+		fit("Enter: play/restart   Space: pause/resume   x / Ctrl+x: stop", width-panelEdges)}, width, transportRows, false)
 }
 
 func (m *model) showAnimationInfo() {
@@ -211,6 +211,8 @@ func (m *model) openHelp() {
 		"", "RECORDINGS AND MOMENTS", "f: file / recording picker · d: details · w: waveform · m: Soundscape",
 		"g / +/-: shared gain · i/o: trim markers · s/e: exact trim times",
 		"[/]: choose trim marker · arrows: nudge · z: zoom · t: suggest trim · r: reset trim",
+		"Regions are drafts: Tab/Enter selects Apply or Cancel; p auditions; Escape discards",
+		"F5 in a region reloads its source while retaining bounds for review · ? shows draft/source details",
 		"Shift+K: keywords · Shift+H: trigger · Shift+N: note · C: classification",
 		"Ctrl+L: edit the selected recording's license (shared provenance)",
 		"A: auto-gain · T: calibration target · D: duplicate clip · V: ordered variants",

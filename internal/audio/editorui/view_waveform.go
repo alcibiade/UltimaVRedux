@@ -18,11 +18,12 @@ func (m *model) waveform(width, height int) string {
 	inside := width - panelEdges
 	if m.loading {
 		return m.panel("WAVEFORM · analyzing", []string{"Decoding in background; browsing remains responsive."},
-			width, height, m.focus == focusWave)
+			width, height, m.panelFocused(focusWave))
 	}
 	if m.clip == nil {
 		return m.panel("WAVEFORM · no playable source", []string{
-			"Choose a recording with an audio file. Missing items can be repaired with f."}, width, height, m.focus == focusWave)
+			"Choose a recording with an audio file. Missing items can be repaired with f."},
+			width, height, m.panelFocused(focusWave))
 	}
 	window := m.window()
 	from, until := int64(0), m.clip.DurationMs
@@ -56,6 +57,9 @@ func (m *model) waveform(width, height int) string {
 	if m.marker == markerEnd {
 		focus = "END marker"
 	}
+	if m.crop != nil && m.crop.field >= m.cropFieldCount() {
+		focus = "Apply/Cancel"
+	}
 	title := fmt.Sprintf("WAVEFORM · %s · %s · arrows: %s (10 ms)", mode, state, focus)
 	label := fmt.Sprintf("Start %d · End %d ms · Selected %d ms · Position %.3fs", window.StartMs, window.EndMs,
 		window.EndMs-window.StartMs, float64(m.position)/msPerSecond)
@@ -68,7 +72,7 @@ func (m *model) waveform(width, height int) string {
 	lines = append(lines, fit(fmt.Sprintf("%.3fs — %.3fs · %s · source dB view −72…0 (display only)",
 		float64(from)/msPerSecond, float64(until)/msPerSecond, zoomLabel(m.zoom)), inside))
 
-	return m.panel(title, lines, width, height, m.focus == focusWave)
+	return m.panel(title, lines, width, height, m.panelFocused(focusWave))
 }
 
 func zoomLabel(zoom bool) string {

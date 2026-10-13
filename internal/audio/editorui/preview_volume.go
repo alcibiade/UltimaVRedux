@@ -10,6 +10,13 @@ import (
 
 type previewCategory int
 
+type previewRoute struct {
+	recordingID, cueID string
+	calibrated         bool
+}
+
+const previewMusicLabel = "Music"
+
 const (
 	previewMusic previewCategory = iota
 	previewSFX
@@ -26,7 +33,7 @@ const (
 func (category previewCategory) label() string {
 	switch category {
 	case previewMusic:
-		return "Music"
+		return previewMusicLabel
 	case previewSFX:
 		return "SFX"
 	case previewAmbience:
@@ -104,9 +111,18 @@ func (m *model) refreshPreviewVolumes() {
 	if m.routingWorkspace() || m.routing.menu != nil {
 		m.refreshRoutingPreviewGain()
 	} else {
-		m.preview.SetGain(m.gain())
+		m.preview.SetGain(m.livePreviewGain())
 	}
 	m.refreshMixGains()
+}
+
+func (m *model) livePreviewGain() float64 {
+	if m.crop != nil || m.previewRoute == nil || !m.preview.Active() {
+		return m.gain()
+	}
+	route := m.previewRoute
+
+	return m.auditionGain(route.recordingID, route.cueID, route.calibrated)
 }
 
 func (m *model) openPreviewVolumes() {
@@ -125,7 +141,7 @@ func (m *model) previewVolumeKey(key string) {
 		m.volumeCursor = min(volumeRecordingRow, m.volumeCursor+1)
 	case "left", "-":
 		m.adjustPreviewControl(-1)
-	case "right", "+", "=":
+	case keyRight, "+", "=":
 		m.adjustPreviewControl(1)
 	case "r":
 		m.referencePreview = !m.referencePreview
@@ -195,6 +211,9 @@ func (m *model) previewVolumeLines(width int) []string {
 
 func (m *model) previewGainDetails(add func(string, string)) {
 	add("Preview mode: ", m.previewModeLabel()+" (temporary)")
+	if m.preview.Active() && m.previewRoute != nil && m.previewRoute.cueID != m.activeCue() {
+		add("Playing mix route: ", m.previewRoute.cueID+" · Enter restarts the selected mix")
+	}
 	if m.picker != nil {
 		add("Candidate preview: ", "Uncalibrated file; existing recording calibration is bypassed.")
 	}

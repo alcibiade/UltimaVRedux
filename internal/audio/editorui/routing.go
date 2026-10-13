@@ -76,7 +76,7 @@ func (m *model) routingWorkspace() bool {
 }
 
 func (m *model) selectWorkspace(workspace editorWorkspace) tea.Cmd {
-	if m.assigning || m.variantCue != "" || m.picker != nil || m.duplicate != nil {
+	if m.assigning || m.variantCue != "" || m.picker != nil || m.crop != nil {
 		return nil
 	}
 	m.workspaceState[m.workspace] = m.currentBrowseState()
@@ -270,7 +270,7 @@ func (m *model) routingMatchesFilter(identity, cue string) bool {
 	}
 }
 
-//nolint:cyclop,funlen,gocyclo,goconst // Auditable keyboard table; labels match the existing editor bindings.
+//nolint:cyclop,funlen,gocyclo // Auditable keyboard table; labels match the existing editor bindings.
 func (m *model) routingKey(key string) tea.Cmd {
 	if m.focus == focusDetails && m.scrollDetails(key) {
 		return nil

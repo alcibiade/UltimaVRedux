@@ -34,10 +34,14 @@ func TestResponsiveLayoutUsesEveryRowAndKeepsHintsAtBottom(t *testing.T) {
 	model.openPicker()
 	assertFullScreen(t, model)
 	model.picker = nil
+	finish(model, model.loadSelection())
 	model.width, model.height = 60, 24
 	model.beginDuplicate()
 	assertFullScreen(t, model)
-	require.GreaterOrEqual(t, model.layout().top-panelEdges, len(model.duplicateLines(model.layout().left)))
+	model.focusCropField(model.cropFieldCount())
+	require.Contains(t, ansi.Strip(model.View()), "Create clip")
+	model.focusCropField(model.cropFieldCount() + 1)
+	require.Contains(t, ansi.Strip(model.View()), "Cancel")
 }
 
 func assertFullScreen(t *testing.T, model *model) {

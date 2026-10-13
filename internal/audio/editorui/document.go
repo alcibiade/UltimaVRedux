@@ -1,6 +1,8 @@
 package editorui
 
 import (
+	"errors"
+
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
@@ -24,6 +26,10 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 		return nil
 	}
 	m.busy = false
+	cropCommit := m.crop != nil && m.crop.applying
+	if cropCommit {
+		m.crop.applying = false
+	}
 	if message.baseRevision != m.doc.Revision() {
 		m.quitAfterOperation = false
 		m.statusIsError = true
@@ -33,6 +39,11 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 	}
 	m.doc = message.document
 	if message.err != nil {
+		if cropCommit {
+			if errors.Is(message.err, audio.ErrRecordingSourceChanged) {
+				m.rejectSourceSnapshot(m.crop.source, message.err)
+			}
+		}
 		m.quitAfterOperation = false
 		var reload tea.Cmd
 		if message.reload {
@@ -46,9 +57,12 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 	selected := m.selectedID()
 	m.refreshKeys()
 	var refresh tea.Cmd
-	if message.reload {
+	switch {
+	case cropCommit:
+		refresh = m.finishCropCommit()
+	case message.reload:
 		refresh = m.recheckFiles()
-	} else if selected != m.selectedID() {
+	case selected != m.selectedID():
 		refresh = m.loadSelection()
 	}
 	if m.quitAfterOperation {

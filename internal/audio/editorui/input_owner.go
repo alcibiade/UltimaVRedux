@@ -18,6 +18,7 @@ const (
 	ownerAmbientReplacement
 	ownerCalibration
 	ownerDuplicate
+	ownerCrop
 	ownerFiles
 	ownerAssignment
 )
@@ -44,6 +45,8 @@ func (m *model) inputOwner() inputOwner {
 		return ownerCalibration
 	case m.duplicate != nil:
 		return ownerDuplicate
+	case m.crop != nil:
+		return ownerCrop
 	case m.picker != nil:
 		return ownerFiles
 	case m.assigning:
@@ -51,6 +54,37 @@ func (m *model) inputOwner() inputOwner {
 	default:
 		return ownerWorkspace
 	}
+}
+
+// panelFocused projects the current input owner onto a workspace pane. Modal
+// owners have their own active frame; telemetry such as transport owns no input.
+func (m *model) panelFocused(panel panelFocus) bool {
+	switch m.inputOwner() {
+	case ownerWorkspace:
+		return m.focus == panel
+	case ownerField:
+		if !m.inlineInput() || m.assigning {
+			return false
+		}
+		if m.field == fieldSearch {
+			return panel == focusBrowser
+		}
+
+		return panel == focusDetails
+	case ownerCrop, ownerDuplicate:
+		if m.crop.field == -1 {
+			return panel == focusWave
+		}
+
+		return panel == focusDetails
+	case ownerVolumes:
+		return !m.hasDraft() && panel == focusDetails
+	case ownerBusy, ownerQuit, ownerInfo, ownerRoutingPicker, ownerForm,
+		ownerAmbientReplacement, ownerCalibration, ownerFiles, ownerAssignment:
+		return false
+	}
+
+	panic("invalid audio editor input owner")
 }
 
 func (m *model) typing() bool {
@@ -62,7 +96,7 @@ func (m *model) typing() bool {
 	case ownerRoutingPicker:
 		return m.routing.menu.editingSearch
 	case ownerWorkspace, ownerBusy, ownerQuit, ownerInfo, ownerVolumes, ownerAmbientReplacement,
-		ownerCalibration, ownerDuplicate, ownerFiles, ownerAssignment:
+		ownerCalibration, ownerDuplicate, ownerCrop, ownerFiles, ownerAssignment:
 		return false
 	}
 
@@ -71,7 +105,7 @@ func (m *model) typing() bool {
 
 func (owner inputOwner) permitsVolumeControls() bool {
 	switch owner {
-	case ownerWorkspace, ownerForm, ownerRoutingPicker, ownerDuplicate, ownerFiles, ownerAssignment:
+	case ownerWorkspace, ownerForm, ownerRoutingPicker, ownerDuplicate, ownerCrop, ownerFiles, ownerAssignment:
 		return true
 	case ownerBusy, ownerQuit, ownerField, ownerInfo, ownerVolumes, ownerAmbientReplacement, ownerCalibration:
 		return false
@@ -105,6 +139,8 @@ func (m *model) modalKey(key tea.KeyMsg) (tea.Cmd, bool) {
 		m.autoCalibrationKey(key.String())
 	case ownerDuplicate:
 		return m.duplicateKey(key.String()), true
+	case ownerCrop:
+		return m.cropKey(key.String()), true
 	case ownerFiles:
 		return m.pickerKey(key), true
 	case ownerAssignment:

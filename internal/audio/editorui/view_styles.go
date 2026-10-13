@@ -80,7 +80,7 @@ func (m *model) hintRows(hints []keyHint) []string {
 	return rows
 }
 
-//nolint:goconst // Help rows repeat literal keys and labels so each context is readable as a binding table.
+//nolint:cyclop,goconst // Exhaustive owner hints keep priority and complete binding tables auditable.
 func (m *model) footerLines() []string {
 	switch m.inputOwner() {
 	case ownerBusy:
@@ -109,11 +109,13 @@ func (m *model) footerLines() []string {
 		}
 
 		return m.routingFooter()
+	case ownerCrop, ownerDuplicate:
+		return m.cropFooter()
 	case ownerWorkspace:
 		if m.routingWorkspace() && m.focus == focusBrowser {
 			return m.routingFooter()
 		}
-	case ownerDuplicate, ownerFiles, ownerAssignment:
+	case ownerFiles, ownerAssignment:
 	}
 
 	return m.selectionFooter()
@@ -149,10 +151,6 @@ func (m *model) inputFooter() []string {
 
 //nolint:goconst // Contextual shortcut tables retain the same key and action vocabulary.
 func (m *model) selectionFooter() []string {
-	if m.duplicate != nil {
-		return m.hintRows([]keyHint{{"↑↓", "Field"}, {"Enter", "Edit"}, {"s/e", "Bounds"}, {"i/o", "Mark"},
-			{"p", "Preview"}, {"a", "Append toggle"}, {"c", "Create clip"}, {"Esc", "Cancel"}})
-	}
 	if m.picker != nil {
 		return m.hintRows([]keyHint{{"↑↓", "Choose"}, {"Enter", "Open/import"}, {"p", "Preview"},
 			{"Ctrl+p/n", "Prev/next page"}, {"/", "Path"}, {"Backspace", "Parent"}, {"Esc", hintCancel}, {"x", "Stop"}})
@@ -244,10 +242,10 @@ func (m *model) inputGuidance() string {
 		return "Comma-separated keywords or phrases · replaces this item's custom terms"
 	case fieldTrigger:
 		return "One sentence describing this moment's usual gameplay trigger"
-	case fieldStart, fieldClipStart:
-		return timeExample("Start", start) + "; before end."
-	case fieldEnd, fieldClipEnd:
-		return timeExample("End", end) + "; after start."
+	case fieldStart:
+		return timeExample("Start", start) + "; sets the draft only."
+	case fieldEnd:
+		return timeExample("End", end) + "; sets the draft only."
 	default:
 		return "Text input · Enter applies"
 	}

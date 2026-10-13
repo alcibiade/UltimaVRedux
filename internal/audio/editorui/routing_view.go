@@ -9,7 +9,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 )
 
-//nolint:goconst // Visible filter/scope labels are kept together in display order.
 func (m *model) routingFilterTitle() string {
 	filters := []string{"All", "Assigned", "Silent / none", "Needs audio", "Surface overrides"}
 	if m.workspace == workspaceLocations {

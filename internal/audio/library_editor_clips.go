@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strconv"
@@ -46,41 +47,20 @@ func (e *LibraryEditor) DuplicateClip(sourceID, newID string, window PlaybackWin
 	if _, exists := e.library.Recordings[newID]; exists {
 		return fmt.Errorf("%w: recording %s already exists", ErrAudioLibrary, newID)
 	}
-	recording = cloneAudioValue(recording)
-	recording.PlaybackWindow = &window
-	recording.Note = "" // Source provenance carries over, but clip-specific observations do not.
-	if err := e.validateWindow(recording); err != nil {
+	path, err := e.RecordingPath(sourceID)
+	if err != nil {
 		return err
 	}
-	if recording.CalibrationMode() == CalibrationAuto {
-		path, err := e.RecordingPath(sourceID)
-		if err != nil {
-			return err
-		}
-		clip, err := LoadRecording(path)
-		if err != nil {
-			return err
-		}
-		suggestion, err := clip.SuggestCalibration(&window, e.RecordingFamily(sourceID), recording.CalibrationTargetDB)
-		if err != nil {
-			return err
-		}
-		recording.CalibrationGainDB = &suggestion.GainDB
+	clip, err := LoadRecording(path)
+	if err != nil {
+		return err
 	}
-	next := cloneAudioValue(e.library)
-	next.Recordings[newID] = recording
-	family := next.Taxonomy.recordingFamily(sourceID)
-	next.Taxonomy.RecordingFamilies[family] = append(next.Taxonomy.RecordingFamilies[family], newID)
-	slices.Sort(next.Taxonomy.RecordingFamilies[family])
-	if appendCue != "" {
-		cue, exists := next.Cues[appendCue]
-		if !exists || !strings.HasPrefix(appendCue, "sfx/") {
-			return fmt.Errorf("%w: choose an SFX moment for clip cycling", ErrAudioLibrary)
-		}
-		next.Cues[appendCue] = cue.WithRecordings(append(cue.Recordings(), newID))
+	draft, err := e.BeginRecordingRegion(sourceID, clip)
+	if err != nil {
+		return err
 	}
 
-	return e.replace(next)
+	return e.DuplicateRecordingRegion(context.Background(), draft, newID, &window, appendCue)
 }
 
 // AppendCueRecording adds one explicit cycle member, retaining the existing order.

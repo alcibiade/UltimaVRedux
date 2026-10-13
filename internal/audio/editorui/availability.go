@@ -13,10 +13,10 @@ import (
 )
 
 func (m *model) updateSelectedAvailability(message loadedMsg) {
-	if m.picker != nil || errors.Is(message.err, context.Canceled) {
+	if message.request.purpose == sourceCandidate || errors.Is(message.err, context.Canceled) {
 		return
 	}
-	recordingID := m.recordingID()
+	recordingID := message.request.recordingID
 	if recordingID == "" {
 		return
 	}

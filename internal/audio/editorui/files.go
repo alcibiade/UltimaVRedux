@@ -33,6 +33,13 @@ func (m *model) openPicker() tea.Cmd {
 }
 
 func (m *model) readDirectory(path string) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		m.report(fmt.Errorf("resolve picker directory: %w", err))
+
+		return
+	}
+	path = absolute
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		m.report(fmt.Errorf("browse audio files: %w", err))
@@ -62,11 +69,21 @@ func (m *model) readDirectory(path string) {
 
 		return strings.Compare(left.name, right.name)
 	})
+	m.invalidateSource(true)
 	m.picker = &filePicker{directory: path, entries: rows, cursor: 0, start: 0}
+}
+
+func (m *model) pickerPath() string {
+	if m.picker == nil || len(m.picker.entries) == 0 || m.picker.entries[m.picker.cursor].directory {
+		return ""
+	}
+
+	return m.picker.entries[m.picker.cursor].path
 }
 
 func (m *model) pickerKey(key tea.KeyMsg) tea.Cmd {
 	picker := m.picker
+	previousPath := m.pickerPath()
 	switch key.String() {
 	case keyEscape:
 		m.picker = nil
@@ -84,6 +101,8 @@ func (m *model) pickerKey(key tea.KeyMsg) tea.Cmd {
 		picker.cursor = max(0, min(len(picker.entries)-1, picker.cursor+m.listHeight()))
 	case keyBackspace:
 		m.readDirectory(filepath.Dir(picker.directory))
+
+		return nil
 	case "/":
 		m.beginInput("path", picker.directory+string(filepath.Separator))
 	case keyEnter:
@@ -92,6 +111,10 @@ func (m *model) pickerKey(key tea.KeyMsg) tea.Cmd {
 		return m.previewPickerEntry(false)
 	case " ":
 		return m.previewPickerEntry(true)
+	}
+	if m.pickerPath() != previousPath {
+		m.invalidateSource(true)
+		m.status = "File selection changed; p auditions this candidate, Enter imports it."
 	}
 	picker.start = listViewportStart(picker.start, picker.cursor, len(picker.entries), m.listHeight())
 
@@ -113,7 +136,8 @@ func (m *model) openPickerEntry() tea.Cmd {
 }
 
 func (m *model) previewPickerEntry(toggle bool) tea.Cmd {
-	if toggle && m.preview.Active() && (m.preview.Playing() || m.previewPaused) {
+	if toggle && m.clip != nil && m.clip.Path == m.pickerPath() &&
+		m.preview.Active() && (m.preview.Playing() || m.previewPaused) {
 		m.togglePreview()
 
 		return nil

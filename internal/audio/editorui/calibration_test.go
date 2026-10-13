@@ -30,6 +30,7 @@ func TestAutoCalibrationIsConfirmedUndoableAndManualOverrideStaysLocked(t *testi
 	window := audio.PlaybackWindow{StartMs: 0, EndMs: m.clip.DurationMs / 2}
 	beforeTrim := m.doc.Recording(id)
 	m.setWindow(&window)
+	finish(m, m.applyCrop())
 	suggestion, err := m.calibrationSuggestion(m.doc.Recording(id))
 	require.NoError(t, err)
 	require.InDelta(t, suggestion.GainDB, *m.doc.Recording(id).CalibrationGainDB, 0.001)
@@ -38,6 +39,7 @@ func TestAutoCalibrationIsConfirmedUndoableAndManualOverrideStaysLocked(t *testi
 	m.setGain(2.5)
 	cache := m.calibrationCache
 	m.setWindow(&window)
+	finish(m, m.applyCrop())
 	m.position = 100
 	m.detailLines(60)
 	require.Same(t, cache, m.calibrationCache, "manual override does not trigger measurement")

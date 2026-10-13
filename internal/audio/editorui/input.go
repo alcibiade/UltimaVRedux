@@ -174,7 +174,7 @@ func (m *model) commitClassification(value string) {
 		return
 	}
 	m.report(m.doc.SetRecordingFamily(m.recordingID(), value))
-	m.preview.SetGain(m.gain())
+	m.preview.SetGain(m.livePreviewGain())
 	m.refreshMixGains()
 }
 

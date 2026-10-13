@@ -111,9 +111,8 @@ func (m *model) dialogContent(width int) (editorDialog, bool) {
 		return m.filePickerDialog(width), true
 	case ownerAssignment:
 		return m.recordingAssignmentDialog(width), true
-	case ownerDuplicate:
-		return editorDialog{title: "DUPLICATE CLIP — draft", rows: m.duplicateLines(width), focus: m.duplicate.field + 1,
-			help: []string{"Enter: edit field   p: preview   c: create   Escape: cancel"}}, true
+	case ownerDuplicate, ownerCrop:
+		// Region drafts use the right pane so the waveform stays visible.
 	case ownerCalibration:
 		return editorDialog{title: "AUTO-GAIN", rows: []string{
 			fmt.Sprintf("Suggested recording calibration: %+.2f dB", m.autoGainDraft.GainDB),

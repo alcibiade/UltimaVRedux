@@ -124,7 +124,7 @@ func (m *model) busyKey(key string) {
 
 func (m *model) hasDraft() bool {
 	return m.field != "" || m.form != nil || m.duplicate != nil || m.assigning || m.picker != nil ||
-		m.autoGainDraft != nil || m.routing.menu != nil
+		m.autoGainDraft != nil || m.routing.menu != nil || m.crop != nil
 }
 
 func (m *model) saveFromKeyboard() tea.Cmd {
@@ -230,17 +230,23 @@ func (m *model) browserKey(key string) tea.Cmd {
 		m.focus = focusWave
 		m.markPosition(false)
 	case "[":
-		m.marker = markerStart
-		m.focus = focusWave
+		if m.beginCrop() {
+			m.focusCropField(m.cropFieldCount() - cropBoundCount)
+		}
 	case "]":
-		m.marker = markerEnd
-		m.focus = focusWave
+		if m.beginCrop() {
+			m.focusCropField(m.cropFieldCount() - 1)
+		}
 	case "s":
-		m.focus = focusWave
-		m.beginInput(fieldStart, strconv.FormatInt(m.window().StartMs, 10))
+		if m.beginCrop() {
+			m.focusCropField(m.cropFieldCount() - cropBoundCount)
+			m.beginInput(fieldStart, strconv.FormatInt(m.window().StartMs, 10))
+		}
 	case "e":
-		m.focus = focusWave
-		m.beginInput(fieldEnd, strconv.FormatInt(m.window().EndMs, 10))
+		if m.beginCrop() {
+			m.focusCropField(m.cropFieldCount() - 1)
+			m.beginInput(fieldEnd, strconv.FormatInt(m.window().EndMs, 10))
+		}
 	case keyLeft:
 		m.nudge(-fineSeekMs)
 	case keyRight:
@@ -364,6 +370,6 @@ func (m *model) setGain(value float64) {
 		recording.CalibrationPolicy = audio.CalibrationManual
 		m.report(m.doc.SetRecording(m.recordingID(), recording))
 	}
-	m.preview.SetGain(m.gain())
+	m.preview.SetGain(m.livePreviewGain())
 	m.refreshMixGains()
 }

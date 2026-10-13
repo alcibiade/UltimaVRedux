@@ -47,9 +47,6 @@ func (m *model) browserLines(width int) []string {
 	if m.routing.menu != nil || m.routingWorkspace() {
 		return m.routingBrowserLines(width)
 	}
-	if m.duplicate != nil {
-		return m.duplicateLines(width)
-	}
 	if m.picker != nil {
 		return m.fileLines(width)
 	}
