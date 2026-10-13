@@ -17,6 +17,6 @@ func (m *model) beginLicenseEdit() {
 		return
 	}
 	m.licenseRecordingID = recordingID
-	m.field, m.input = fieldLicense, m.doc.Recording(recordingID).Provenance.License
+	m.beginInput(fieldLicense, m.doc.Recording(recordingID).Provenance.License)
 	m.inputError, m.statusIsError = "", false
 }

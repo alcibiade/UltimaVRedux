@@ -44,7 +44,10 @@ type routingMenu struct {
 	choices             []routingChoice
 	cursor              int
 	search              string
+	searchInput         string
+	text                textCursor
 	editingSearch       bool
+	parent              *routingMenu
 }
 
 type routingEditor struct {

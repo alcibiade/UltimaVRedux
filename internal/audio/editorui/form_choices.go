@@ -33,7 +33,9 @@ func (m *model) openSoundRecordingPicker() tea.Cmd {
 }
 
 func (m *model) openRecordingChoices(kind, target string) tea.Cmd {
-	menu := &routingMenu{kind: kind, title: "CHOOSE RECORDING", target: target} //nolint:exhaustruct // Fresh picker.
+	menu := &routingMenu{ //nolint:exhaustruct // Fresh child picker retains its parent selection and filter.
+		kind: kind, title: "CHOOSE RECORDING", target: target, parent: m.routing.menu,
+	}
 	if kind == formRecordingPicker {
 		menu.choices = append(menu.choices, routingChoice{formEmptyRecording, "Empty slot — supply a file later", "", nil})
 	}
@@ -75,51 +77,66 @@ func (m *model) applyFormChoice(choice routingChoice) tea.Cmd {
 			return nil
 		}
 	}
-	m.routing.menu = nil
+	m.routing.menu = menu.parent
 
 	return m.loadSelection()
 }
 
 func (m *model) surfaceFormKey(key string) tea.Cmd {
 	form := m.form
+	const actions = 2
+	last := len(form.sequence) + actions - 1
 	switch key {
 	case keyEscape:
 		return m.closeForm()
-	case keyCtrlEnter:
-		return m.applyForm()
 	case "a":
 		return m.openSurfaceAddition()
-	case "up":
+	case keyShiftTab, "up":
 		form.cursor = max(0, form.cursor-1)
 
 		return m.loadSelection()
-	case keyDown:
-		form.cursor = max(0, min(len(form.sequence)-1, form.cursor+1))
+	case keyTab, keyDown:
+		form.cursor = min(last, form.cursor+1)
 
 		return m.loadSelection()
 	case "delete":
-		if len(form.sequence) > 0 {
+		if form.cursor < len(form.sequence) {
 			form.sequence = append(form.sequence[:form.cursor], form.sequence[form.cursor+1:]...)
 			form.cursor = max(0, min(form.cursor, len(form.sequence)-1))
 		}
 
 		return m.loadSelection()
 	case "ctrl+up", keyCtrlDown:
-		if len(form.sequence) > 0 {
-			other := max(0, form.cursor-1)
-			if key == keyCtrlDown {
-				other = min(len(form.sequence)-1, form.cursor+1)
-			}
-			form.sequence[form.cursor], form.sequence[other] = form.sequence[other], form.sequence[form.cursor]
-			form.cursor = other
+		m.reorderSurfaceDraft(key == keyCtrlDown)
+	case keyEnter:
+		if form.cursor == len(form.sequence) {
+			return m.applyForm()
 		}
-	case keyEnter, "p":
+		if form.cursor == last {
+			return m.closeForm()
+		}
+
+		return m.previewForm(false, false)
+	case "p":
 		return m.previewForm(false, false)
 	case " ":
 		return m.previewForm(false, true)
 	}
 
 	return nil
+}
+
+func (m *model) reorderSurfaceDraft(down bool) {
+	form := m.form
+	if form.cursor >= len(form.sequence) {
+		return
+	}
+	other := max(0, form.cursor-1)
+	if down {
+		other = min(len(form.sequence)-1, form.cursor+1)
+	}
+	form.sequence[form.cursor], form.sequence[other] = form.sequence[other], form.sequence[form.cursor]
+	form.cursor = other
 }
 
 func (m *model) importAssignedRecording() tea.Cmd {

@@ -25,6 +25,7 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 	}
 	m.busy = false
 	if message.baseRevision != m.doc.Revision() {
+		m.quitAfterOperation = false
 		m.statusIsError = true
 		m.status = "Library changed during the file operation; current draft retained. Reopen before saving again."
 
@@ -32,6 +33,7 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 	}
 	m.doc = message.document
 	if message.err != nil {
+		m.quitAfterOperation = false
 		var reload tea.Cmd
 		if message.reload {
 			reload = m.loadSelection()
@@ -43,12 +45,18 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 	m.status, m.statusIsError = message.summary, false
 	selected := m.selectedID()
 	m.refreshKeys()
+	var refresh tea.Cmd
 	if message.reload {
-		return m.recheckFiles()
+		refresh = m.recheckFiles()
+	} else if selected != m.selectedID() {
+		refresh = m.loadSelection()
 	}
-	if selected != m.selectedID() {
-		return m.loadSelection()
+	if m.quitAfterOperation {
+		m.quitAfterOperation = false
+		if quit := m.quit(); quit != nil {
+			return quit
+		}
 	}
 
-	return nil
+	return refresh
 }

@@ -152,7 +152,7 @@ func (m *model) nudge(delta int64) {
 	m.status = fmt.Sprintf("Source cursor: %d ms. [/]: select a trim marker.", position)
 	if voice.Active() {
 		m.position = voice.PositionMs()
-		m.status = fmt.Sprintf("Preview cursor: %d ms (within the playing selection). X stops; [/]: trim marker.", m.position)
+		m.status = fmt.Sprintf("Preview cursor: %d ms (within the playing selection). Ctrl+x stops; [/]: marker.", m.position)
 	}
 }
 

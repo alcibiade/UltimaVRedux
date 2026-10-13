@@ -37,7 +37,10 @@ type editorForm struct {
 	fields                    []formField
 	sequence                  []string
 	cursor                    int
-	editing, replaceText      bool
+	editing                   bool
+	text                      textCursor
+	textBefore                string
+	identifierBefore          bool
 	errorText                 string
 	errorField                int
 	parentMenu                *routingMenu
@@ -239,8 +242,6 @@ func (m *model) formKey(key tea.KeyMsg) tea.Cmd {
 	switch key.String() {
 	case keyEscape:
 		return m.closeForm()
-	case keyCtrlEnter:
-		return m.applyForm()
 	case keyTab, keyDown:
 		form.cursor = (form.cursor + 1) % (last + 1)
 	case keyShiftTab, "up":
@@ -268,7 +269,10 @@ func (m *model) formKey(key tea.KeyMsg) tea.Cmd {
 		if len(form.fields[form.cursor].options) > 0 {
 			m.adjustFormField(true)
 		} else {
-			form.editing, form.replaceText = true, true
+			form.editing = true
+			form.textBefore = form.fields[form.cursor].value
+			form.identifierBefore = form.identifierEdited
+			form.text.reset(form.textBefore)
 		}
 	}
 
@@ -308,33 +312,17 @@ func (m *model) formTextKey(key tea.KeyMsg) tea.Cmd {
 	form := m.form
 	field := &form.fields[form.cursor]
 	before := field.value
-	switch key.String() {
+	switch textControlKey(key) {
 	case keyEscape:
+		field.value, form.identifierEdited = form.textBefore, form.identifierBefore
 		form.editing = false
 	case keyEnter, keyTab:
 		form.editing = false
 		form.cursor = min(len(form.fields), form.cursor+1)
-	case keyCtrlEnter:
-		form.editing = false
-
-		return m.applyForm()
-	case "ctrl+u":
-		field.value, form.replaceText = "", false
-	case keyBackspace:
-		runes := []rune(field.value)
-		if form.replaceText {
-			field.value = ""
-		} else if len(runes) > 0 {
-			field.value = string(runes[:len(runes)-1])
-		}
-		form.replaceText = false
 	default:
-		if key.Type == tea.KeyRunes || key.Type == tea.KeySpace {
-			if form.replaceText {
-				field.value = ""
-			}
-			field.value += key.String()
-			form.replaceText = false
+		form.text.edit(&field.value, key, false)
+		if field.value != before && form.kind == formNewAmbient && form.cursor == newIDField {
+			form.identifierEdited = true
 		}
 	}
 	if field.value != before {
@@ -347,9 +335,6 @@ func (m *model) formTextKey(key tea.KeyMsg) tea.Cmd {
 
 func (form *editorForm) updateIdentifier() {
 	if form.kind == formNewAmbient {
-		if form.cursor == newIDField && form.editing {
-			form.identifierEdited = true
-		}
 		if !form.identifierEdited {
 			form.fields[newIDField].value = ambientIdentifier(form.fields[newNameField].value)
 		}

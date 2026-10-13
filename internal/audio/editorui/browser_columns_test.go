@@ -98,5 +98,5 @@ func TestColumnsFitNarrowAndWidePanesWithColoursAndUnicode(t *testing.T) {
 	narrow := ansi.Strip(m.columnHeader(31))
 	require.Contains(t, narrow, "Family")
 	require.NotContains(t, narrow, "Cal dB")
-	require.Contains(t, strings.Join(m.detailLines(80), "\n"), "Calibration [saved]")
+	require.Contains(t, strings.Join(m.detailLines(80), "\n"), "Calibration [working]")
 }

@@ -20,20 +20,22 @@ func dispatchRune(model *model, key rune) {
 	dispatchKey(model, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{key}})
 }
 
-func TestCropFieldsShareArrowStepsThroughInputRouting(t *testing.T) {
+func TestCropMarkersShareArrowStepsThroughInputRouting(t *testing.T) {
 	for _, duplicate := range []bool{false, true} {
 		t.Run(map[bool]string{false: "recording", true: "duplicate"}[duplicate], func(t *testing.T) {
 			model := fixture(t)
 			if duplicate {
 				dispatchRune(model, 'D')
 			}
-			dispatchRune(model, 's')
+			dispatchRune(model, '[')
 			dispatchKey(model, tea.KeyMsg{Type: tea.KeyRight})
-			require.Equal(t, "10", model.input)
+			require.Equal(t, int64(10), model.window().StartMs)
 			dispatchKey(model, tea.KeyMsg{Type: tea.KeyShiftRight})
-			require.Equal(t, "110", model.input)
-			dispatchKey(model, tea.KeyMsg{Type: tea.KeyEnter})
 			require.Equal(t, int64(110), model.window().StartMs)
+			dispatchRune(model, 's')
+			dispatchKey(model, tea.KeyMsg{Type: tea.KeyLeft})
+			require.Equal(t, "110", model.input, "arrows move the caret once text editing owns input")
+			dispatchKey(model, tea.KeyMsg{Type: tea.KeyEsc})
 			if duplicate {
 				require.False(t, model.doc.Dirty(), "duplicate bounds remain a draft until Create")
 			}

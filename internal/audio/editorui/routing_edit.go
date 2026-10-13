@@ -132,31 +132,18 @@ func (m *model) routingMenuChoices() []routingChoice {
 func (m *model) routingMenuKey(key tea.KeyMsg) tea.Cmd {
 	menu := m.routing.menu
 	if menu.editingSearch {
-		switch key.String() {
-		case keyEnter, keyEscape:
-			menu.editingSearch = false
-		case keyBackspace:
-			runes := []rune(menu.search)
-			if len(runes) > 0 {
-				menu.search = string(runes[:len(runes)-1])
-			}
-		default:
-			if key.Type == tea.KeyRunes || key.Type == tea.KeySpace {
-				menu.search += key.String()
-			}
-		}
-		menu.cursor = 0
-
-		return m.loadSelection()
+		return m.routingSearchKey(key)
 	}
 	choices := m.routingMenuChoices()
 	switch key.String() {
 	case keyEscape:
-		m.routing.menu = nil
+		m.routing.menu = menu.parent
 
 		return m.loadSelection()
 	case "/":
 		menu.editingSearch = true
+		menu.searchInput = menu.search
+		menu.text.reset(menu.searchInput)
 	case "up", "k":
 		menu.cursor = max(0, menu.cursor-1)
 
@@ -196,6 +183,22 @@ func (m *model) routingMenuKey(key tea.KeyMsg) tea.Cmd {
 		}
 
 		return m.applyRoutingChoice(choice.id)
+	}
+
+	return nil
+}
+
+func (m *model) routingSearchKey(key tea.KeyMsg) tea.Cmd {
+	menu := m.routing.menu
+	switch textControlKey(key) {
+	case keyEscape:
+		menu.editingSearch = false
+	case keyEnter, keyTab:
+		menu.search, menu.editingSearch, menu.cursor = menu.searchInput, false, 0
+
+		return m.loadSelection()
+	default:
+		menu.text.edit(&menu.searchInput, key, false)
 	}
 
 	return nil

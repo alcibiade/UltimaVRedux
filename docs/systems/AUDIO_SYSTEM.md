@@ -566,7 +566,10 @@ stored in milliseconds. Changing a shared default affects only sources that have
 not overridden that setting. The right pane explicitly labels effective values
 as sound defaults or tile overrides.
 Tab/Up/Down changes focus, Enter edits a field or activates Apply/Cancel,
-Left/Right adjusts numeric/choice fields, and Ctrl+Enter applies the draft.
+Left/Right adjusts numeric/choice controls while they are not in text-entry mode.
+Tab or Up/Down reaches the visible **Apply changes** and **Cancel** actions;
+Enter activates the selected action. Footstep sequences have those same actions,
+including empty sequences. No operation depends on modified Enter support.
 Invalid values remain visible with their validation error. Draft previews do not
 mutate the library; Apply is one undoable edit. New ambient identities need no
 enum changes. `r` changes an assigned sound's recording; `i` opens its recording's
@@ -598,14 +601,42 @@ contains status and hints, never editable input. Search expands into a highlight
 in-place field above the browser and leaves workspace tabs visible. Gain, trim
 bounds and calibration targets use a prominent right-pane editor; longer text
 and file paths use centred dialogs over a dimmed workspace. Input focus captures
-typing instead of firing workspace shortcuts. Notes support multiple lines and
-use Ctrl+Enter to apply. Numeric errors retain their field/value. Picker dialogs
+typing instead of firing workspace shortcuts. Notes support multiple lines:
+Enter inserts a line, Tab moves to **Apply**/**Cancel**, and Enter activates the
+selected action. Numeric errors retain their field/value. Picker dialogs
 use Enter to choose and Space to preview/pause. Dialog bodies scroll to the focused
 control on small terminals while their title and action hints remain visible.
 Below 60 × 24, editing shortcuts are paused so invisible controls cannot mutate
 the library; Stop, Save, and Quit remain available with their normal draft guards.
 Preview-volume controls opened over a duplicate draft are visibly foregrounded
 and own input until dismissed.
+
+One typed input-owner resolver determines command routing, foreground presentation,
+and contextual hints. Recording-assignment dialogs accept only their chooser
+actions; unrelated gain, crop, history, metadata, and workspace shortcuts cannot
+open hidden editors behind them. Nested recording pickers restore their parent
+chooser's selection and filter on return.
+
+Inline fields, form fields, and routing searches share grapheme-aware text editing:
+Left/Right moves the caret, Shift+Left/Right selects, Backspace/Delete removes a
+whole grapheme or selection, Home/End moves within a line, and Alt+Left/Right
+(or Alt+b/f) moves by word. Ctrl+w removes the previous word; Ctrl+u clears the
+field. Notes also support Up/Down with a retained display column. Carets remain
+visible when long single-line fields scroll. Bracketed paste inserts its payload
+without terminal-key decorations; pasted key names never execute commands.
+Notes retain authored whitespace, and path fields retain exact filesystem paths.
+
+Entering a form field places the caret at the end without silently selecting or
+replacing its value. Enter/Tab finishes the field; Escape restores the value it
+had on entry. A subsequent Escape cancels the enclosing form. Routing-picker
+search is a detached draft: Enter applies it and Escape restores the active filter.
+
+Ctrl+x stops audio even while typing or during a file operation. The ordinary
+`x` shortcut is available outside text entry. Ctrl+c during Save/import requests
+exit after the operation settles; successful completion checks for unsaved work,
+while failure keeps the editor open with the error visible. Publication is never
+interrupted halfway by a keyboard quit. Labels marked **working** describe the
+current authored document; the separate saved/unsaved indicator describes persistence.
 
 Availability badges describe technical playback status, not listening approval:
 
@@ -626,6 +657,8 @@ recording, shown beside their name. Background checks preserve the selected ID
 when it remains visible. `F5` rechecks files changed outside the editor.
 Each workspace remembers its search, filter and selection. An asterisk marks
 edited recordings/cues, including moments affected by a shared recording edit.
+Tiles and Locations also retain independent routing filters/scopes. F5 rechecks
+sources from any workspace when no editor or chooser owns input.
 
 The browser has aligned column headings. **Recordings** shows identity, actual
 acoustic family, **Cal dB** and **Uses** whenever the pane has room. Calibration
@@ -670,9 +703,9 @@ intended gameplay context, not listening approval or proof of reachability.
 
 Pressing `/` opens a highlighted **FILTER** draft in the browser and status
 row, with **EDIT FILTER** at the top and the cursor kept visible for long text.
-When an existing filter is opened, the first Backspace clears it completely.
-After typing or clearing, Backspace deletes one character normally. Enter
-applies the draft; Escape retains the original filter; Ctrl+U clears any draft.
+Opening an existing filter places the caret at its end. Backspace removes the
+preceding grapheme; Ctrl+U explicitly clears the field. Enter applies the draft;
+Escape retains the original filter.
 
 Structurally valid manifests with missing files can be opened and repaired.
 Production loading and Save remain strict: missing/unreadable files, decode
@@ -690,7 +723,7 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | Up/Down | Browse the current list |
 | Ctrl+P / Ctrl+N | Previous / next page in the focused browser, details, file picker, variants, or mix |
 | PgUp/PgDown or Shift+Up/Down | Additional paging shortcuts (terminal modifier support varies) |
-| / | Edit the highlighted filter; first Backspace clears existing text, Enter applies, Escape cancels |
+| / | Edit the highlighted filter with caret navigation; Ctrl+U clears, Enter applies, Escape cancels |
 | Enter or p | Play/restart the selected recording/region immediately |
 | Space | Pause/resume; replay a completed preview |
 | Shift+S | Switch full-source versus selected-region playback |
@@ -700,7 +733,7 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | v | Open independent 0–10 preview category sliders and Game Mix / Reference controls |
 | i / o | Set start/end at the source-relative playhead and select that marker for nudging |
 | [ / ] | Select start/end marker; arrows now nudge that marker |
-| Left/Right, Shift+Left/Right | Seek/nudge by 10 ms or 100 ms; the same steps apply in ordinary and duplicate bound fields |
+| Left/Right, Shift+Left/Right | Outside text entry, seek/nudge by 10 ms or 100 ms; inside fields, move/select text |
 | s / e | Enter exact start/end in whole milliseconds |
 | z | Zoom around the selected marker or playhead |
 | t | Suggest a trim in the working copy: -40 dB threshold plus 10 ms edge padding |
@@ -719,10 +752,10 @@ panel explains the problem and offers `f` to choose a replacement or assignment.
 | Shift+T | Edit the auto-gain target (uncalibrated or auto mode only) |
 | u / Ctrl+R | Undo/redo authored edits |
 | Ctrl+S | Validate and save the library; finish or cancel an open draft first |
-| x | Stop all voices, retaining Soundscape assignments for restarting |
-| q / Ctrl+C | Quit; unsaved edits require Y to discard |
+| x / Ctrl+x | Stop all voices, retaining Soundscape assignments; Ctrl+x also works while typing or busy |
+| q / Ctrl+C | Quit; unsaved edits require y to discard; Ctrl+C during file publication waits for completion |
 
-Input fields accept Backspace and Ctrl+U to clear. The file picker opens folders
+Input fields accept Backspace/Delete and Ctrl+U to clear explicitly. The file picker opens folders
 with Enter, goes up with Backspace, accepts a typed path with `/`, and previews
 candidates with `p`. Enter imports/assigns a file; Escape cancels. The moment
 recording picker uses Space for preview/pause with the moment's gain and Enter to confirm
@@ -850,8 +883,8 @@ same physical file and copies provenance/calibration, but gets its own window
 and a fresh note. If the selected clip ends before the source does, the draft
 starts there and ends at the source end. Otherwise it starts with the same
 region. Up/Down chooses a field and Enter edits it, or `s`/`e` opens a bound directly.
-Left/Right changes bound drafts by 10 ms, Shift+Left/Right by 100 ms. `[`/`]` and
-arrow nudges also work on duplicate markers. `p` previews the draft; Space pauses
+Left/Right edits the caret while a bound field is open. Outside text entry,
+`[`/`]` and 10/100 ms arrow nudges work on duplicate markers. `p` previews the draft; Space pauses
 or resumes; `i`/`o` mark and select a boundary at the current source playhead. `c` creates it;
 Escape cancels. Both bounds validate together, so moving a start past the old
 end while editing does not mutate the original clip.

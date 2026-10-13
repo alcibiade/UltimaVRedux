@@ -33,7 +33,6 @@ const (
 	keyShiftDown    = "shift+down"
 	keyShiftLeft    = "shift+left"
 	keyShiftRight   = "shift+right"
-	keyCtrlEnter    = "ctrl+enter"
 	keyCtrlDown     = "ctrl+down"
 	keyShiftTab     = "shift+tab"
 	keyCtrlA        = "ctrl+a"
@@ -87,7 +86,6 @@ type model struct {
 	browserStart        int
 	workspace           editorWorkspace
 	search              string
-	filterClearPending  bool
 	width, height       int
 	generation          uint64
 	documentGeneration  uint64
@@ -95,6 +93,8 @@ type model struct {
 	loading, busy       bool
 	status              string
 	field, input        string
+	inputText           textCursor
+	inputAction         int
 	licenseRecordingID  string
 	inputError          string
 	committingInput     bool
@@ -118,6 +118,7 @@ type model struct {
 	volumeControls      bool
 	volumeCursor        int
 	confirmQuit         bool
+	quitAfterOperation  bool
 	mix                 []*mixLayer
 	mixCursor           int
 	soundscapeVisible   bool
@@ -269,7 +270,7 @@ func (m *model) formRecordingID() string {
 	case m.form.kind == formNewAmbient:
 		return m.form.fields[newRecordingField].value
 	case m.form.kind == formSurface:
-		if len(m.form.sequence) > 0 {
+		if m.form.cursor < len(m.form.sequence) {
 			return m.doc.Cue(m.form.sequence[m.form.cursor]).PrimaryRecording()
 		}
 

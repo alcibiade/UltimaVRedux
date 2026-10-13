@@ -80,7 +80,7 @@ func (m *model) browserLabelRows() int {
 func (m *model) View() string {
 	if m.width < minimumWidth || m.height < minimumHeight {
 		message := "Audio Library Editor — enlarge terminal to at least 60 × 24.\n" +
-			"Editing paused; x stops audio; Ctrl+s saves; q quits."
+			"Editing paused; Ctrl+x stops audio; Ctrl+s saves; q quits."
 		if m.confirmQuit {
 			message += "\nUnsaved work: y discards and quits; Escape keeps editing."
 		}

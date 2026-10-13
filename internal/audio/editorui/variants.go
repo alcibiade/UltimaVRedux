@@ -16,7 +16,7 @@ func (m *model) browsingCues() bool {
 
 func (m *model) activeCue() string {
 	if m.form != nil && m.routing.menu == nil {
-		if m.form.kind == formSurface && len(m.form.sequence) > 0 {
+		if m.form.kind == formSurface && m.form.cursor < len(m.form.sequence) {
 			return m.form.sequence[m.form.cursor]
 		}
 

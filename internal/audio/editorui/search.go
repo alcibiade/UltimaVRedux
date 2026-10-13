@@ -13,9 +13,7 @@ const fieldKeywords = "keywords"
 const fieldTrigger = "typical trigger"
 
 func (m *model) beginSearch() {
-	m.inputError = ""
-	m.field, m.input = fieldSearch, m.search
-	m.filterClearPending = m.search != ""
+	m.beginInput(fieldSearch, m.search)
 	m.focus = focusBrowser
 }
 
@@ -34,12 +32,9 @@ func (m *model) searchLine(width int) string {
 	}
 	const label = "FILTER › "
 	available := max(1, width-ansi.StringWidth(label)-1)
-	input := safe(m.input)
-	if ansi.StringWidth(input) > available {
-		input = ansi.Cut(input, ansi.StringWidth(input)-available, ansi.StringWidth(input))
-	}
+	input := m.inputText.viewport(m.input, available, m.colors.selected.Render)
 
-	return m.colors.selected.Render(fit(label+input+"▏", width))
+	return m.colors.selected.Render(fit(label+input, width))
 }
 
 func (m *model) beginMetadataEdit(trigger bool) {
@@ -52,7 +47,7 @@ func (m *model) beginMetadataEdit(trigger bool) {
 
 			return
 		}
-		m.field, m.input = fieldTrigger, m.doc.Cue(m.activeCue()).HowToHear
+		m.beginInput(fieldTrigger, m.doc.Cue(m.activeCue()).HowToHear)
 
 		return
 	}
@@ -60,7 +55,7 @@ func (m *model) beginMetadataEdit(trigger bool) {
 	if m.browsingCues() {
 		terms = m.doc.Cue(m.activeCue()).SearchTerms
 	}
-	m.field, m.input = fieldKeywords, strings.Join(terms, ", ")
+	m.beginInput(fieldKeywords, strings.Join(terms, ", "))
 }
 
 func (m *model) commitKeywords(value string) {

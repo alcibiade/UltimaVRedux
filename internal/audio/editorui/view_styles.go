@@ -82,46 +82,69 @@ func (m *model) hintRows(hints []keyHint) []string {
 
 //nolint:goconst // Help rows repeat literal keys and labels so each context is readable as a binding table.
 func (m *model) footerLines() []string {
-	if (m.routing.menu != nil || m.routingWorkspace()) && m.field == "" && !m.confirmQuit && !m.volumeControls {
-		return m.routingFooter()
-	}
-	if m.pendingAmbient != nil {
+	switch m.inputOwner() {
+	case ownerBusy:
+		return m.hintRows([]keyHint{{"", "Finishing file operation…"}, {"Ctrl+x", hintStopAll},
+			{"Ctrl+c", "Quit after publication"}})
+	case ownerQuit:
+		return m.hintRows([]keyHint{{"y", "Discard and quit"}, {"Esc", "Keep editing"}, {"Ctrl+x", hintStopAll}})
+	case ownerField:
+		return m.inputFooter()
+	case ownerInfo:
+		return m.hintRows([]keyHint{{"Up/Down", "Scroll"}, {"Enter/Esc", "Close"}, {"Ctrl+x", hintStopAll}})
+	case ownerAmbientReplacement:
 		return m.hintRows([]keyHint{{"1/2 or ↑↓", "Ambient slot"}, {"Enter", "Replace"},
 			{"Esc", "Cancel"}, {"x", hintStopAll}})
-	}
-	if m.volumeControls {
+	case ownerVolumes:
 		return m.hintRows([]keyHint{{"↑↓", "Control"}, {"←→ or +/-", "Change"},
 			{"r", "Game Mix/Reference"}, {"Enter/Esc", "Close"}, {"x", hintStopAll}})
-	}
-	if m.autoGainDraft != nil {
+	case ownerCalibration:
 		return m.hintRows([]keyHint{{"Enter", "Apply auto-gain"}, {"Esc", "Keep calibration"}, {"x", hintStopAll}})
-	}
-	if m.busy {
-		return m.hintRows([]keyHint{{"", "Finishing file operation…"}, {"x", hintStopAll}})
-	}
-	if m.field != "" {
-		return m.inputFooter()
-	}
-	if m.confirmQuit {
-		return m.hintRows([]keyHint{{"y", "Discard and quit"}, {"Esc", "Keep editing"}})
+	case ownerForm:
+		return m.hintRows(m.formKeyHints())
+	case ownerRoutingPicker:
+		if m.routing.menu.editingSearch {
+			return m.hintRows([]keyHint{{"Left/Right", "Caret"}, {"Enter", "Apply search"},
+				{"Esc", "Cancel search"}, {"Ctrl+u", "Clear"}, {"Ctrl+x", hintStopAll}})
+		}
+
+		return m.routingFooter()
+	case ownerWorkspace:
+		if m.routingWorkspace() && m.focus == focusBrowser {
+			return m.routingFooter()
+		}
+	case ownerDuplicate, ownerFiles, ownerAssignment:
 	}
 
 	return m.selectionFooter()
 }
 
+//nolint:goconst // Complete shortcut tables deliberately repeat rendered keys and action labels.
+func (m *model) formKeyHints() []keyHint {
+	if m.form.editing {
+		return []keyHint{{"Left/Right", "Caret"}, {"Enter/Tab", "Finish field"},
+			{"Escape", "Revert field"}, {"Ctrl+u", "Clear"}, {"Ctrl+x", hintStopAll}}
+	}
+	hints := []keyHint{{"Tab/Up/Down", "Focus"}, {"Enter", "Edit/activate"},
+		{"", "Apply changes / Cancel"}, {"Escape", hintCancel}, {"Ctrl+x", hintStopAll}}
+	if m.form.kind == formSurface {
+		return append(hints, keyHint{"a", "Add"}, keyHint{"Delete", "Remove"},
+			keyHint{"Ctrl+Up/Down", "Reorder"}, keyHint{"Space", "Preview/pause"})
+	}
+
+	return append(hints, keyHint{"Left/Right", "Adjust"}, keyHint{"p", "Preview"},
+		keyHint{"Space", hintPause}, keyHint{"Shift+l", "Departure"})
+}
+
 func (m *model) inputFooter() []string {
 	if m.field == fieldSearch {
-		backspace := "Delete character"
-		if m.filterClearPending {
-			backspace = "Clear existing filter once"
-		}
-
 		return m.hintRows([]keyHint{{"", "EDIT FILTER · keywords or category:/family:/context:"},
-			{"Backspace", backspace}, {"Enter", "Apply filter"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
+			{"Left/Right", "Caret"}, {"Enter", "Apply filter"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
 	}
 
 	return m.hintRows([]keyHint{{"", m.inputGuidance()},
-		{"Enter", "Confirm"}, {"Esc", hintCancel}, {"Ctrl+u", "Clear"}})
+		{"Tab", "Apply/Cancel"}, {"Left/Right", "Caret/action"}, {"Esc", hintCancel},
+		{"Ctrl+u", "Clear"}, {"Ctrl+x", hintStopAll}})
 }
 
 //nolint:goconst // Contextual shortcut tables retain the same key and action vocabulary.
@@ -138,7 +161,7 @@ func (m *model) selectionFooter() []string {
 		return m.hintRows([]keyHint{{"↑↓", "Choose"}, {"Enter/y", "Assign"}, {"Space", "Preview/pause"}, {"Esc", hintCancel},
 			{"/", "Search"}, {"Ctrl+f", "Filter"}, {"x", hintStopAll}})
 	}
-	if m.variantCue != "" {
+	if m.variantCue != "" && m.focus == focusBrowser {
 		return m.hintRows([]keyHint{{"↑↓", "Clip"}, {"Enter", "Preview"}, {"a", "Append"}, {"Delete", "Remove"},
 			{"Ctrl+↑↓", "Reorder"}, {"Ctrl+p/n", "Prev/next page"}, {"Shift+d", "Duplicate"},
 			{"Ctrl+s", "Save"}, {"Esc", "Back"}})
@@ -213,6 +236,8 @@ func timeExample(label string, milliseconds int64) string {
 func (m *model) inputGuidance() string {
 	start, end := m.trimExamples()
 	switch m.field {
+	case fieldNote:
+		return "Note: Enter inserts a line; Tab selects Apply/Cancel; Escape discards."
 	case fieldLicense:
 		return "Enter documented license terms (e.g. CC BY 4.0), or unknown. Blank is not allowed."
 	case fieldKeywords:

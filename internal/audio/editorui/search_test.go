@@ -37,19 +37,18 @@ func TestFilterSearchesDescriptionsKeywordsAndLinkedUsages(t *testing.T) {
 	require.NotContains(t, m.keys, "sfx/SoundHeal")
 }
 
-func TestExistingFilterFirstBackspaceClearsOnlyOnceAndEscapeRestores(t *testing.T) {
+func TestExistingFilterUsesConventionalBackspaceClearAndCancel(t *testing.T) {
 	m := fixture(t)
 	m.search = "family:magic"
 	m.refreshKeys()
 	m.browserKey("/")
-	require.True(t, m.filterClearPending)
 	view := ansi.Strip(m.View())
 	require.Contains(t, view, "EDIT FILTER")
 	require.Contains(t, view, "FILTER › family:magic▏")
-	require.Contains(t, view, "Clear existing filter once")
 	m.key(tea.KeyMsg{Type: tea.KeyBackspace})
+	require.Equal(t, "family:magi", m.input)
+	m.key(tea.KeyMsg{Type: tea.KeyCtrlU})
 	require.Empty(t, m.input)
-	require.False(t, m.filterClearPending)
 	m.key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("door")})
 	m.key(tea.KeyMsg{Type: tea.KeyBackspace})
 	require.Equal(t, "doo", m.input)
@@ -59,7 +58,7 @@ func TestExistingFilterFirstBackspaceClearsOnlyOnceAndEscapeRestores(t *testing.
 	m.key(tea.KeyMsg{Type: tea.KeyEsc})
 	require.Equal(t, "family:magic", m.search, "draft edits do not change the applied filter")
 	m.browserKey("/")
-	m.key(tea.KeyMsg{Type: tea.KeyBackspace})
+	m.key(tea.KeyMsg{Type: tea.KeyCtrlU})
 	m.key(tea.KeyMsg{Type: tea.KeyEnter})
 	require.Empty(t, m.search)
 	require.Len(t, m.keys, len(m.doc.RecordingIDs()))

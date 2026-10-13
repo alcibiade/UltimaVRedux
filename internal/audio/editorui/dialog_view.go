@@ -20,7 +20,6 @@ type editorDialog struct {
 const (
 	editorDialogMargin = 4
 	dialogHeaderRows   = 2
-	inputTailRows      = 3
 	inputPadding       = 4
 )
 
@@ -34,16 +33,29 @@ func (m *model) inlineInput() bool {
 }
 
 func (m *model) inputLines(width int) []string {
+	rows, _ := m.inputRows(width)
+
+	return rows
+}
+
+func (m *model) inputRows(width int) ([]string, int) {
 	label := "EDITING " + strings.ToUpper(m.fieldLabel())
-	value := m.input + "▏"
+	value := m.inputText.render(m.input, m.colors.selected.Render)
+	textWidth := max(1, width-inputPadding)
+	prefix := m.input[:m.inputText.position(m.input)]
+	caretRow := 0
+	for _, line := range strings.Split(prefix+"▏", "\n") {
+		caretRow += len(strings.Split(ansi.Hardwrap(safe(line), textWidth, true), "\n"))
+	}
 	var rows []string
 	for _, line := range strings.Split(value, "\n") {
-		rows = append(rows, strings.Split(ansi.Hardwrap(safe(line), width-inputPadding, true), "\n")...)
+		rows = append(rows, strings.Split(ansi.Hardwrap(line, textWidth, true), "\n")...)
 	}
 	for index := range rows {
 		rows[index] = m.colors.key.Render(fit("  "+rows[index], width))
 	}
 	rows = append([]string{m.colors.focus.Render(fit(label, width)), ""}, rows...)
+	focus := caretRow + 1
 	if m.field == fieldLicense {
 		const subjectRows = 3
 		subject := make([]string, 0, subjectRows+len(rows))
@@ -51,6 +63,7 @@ func (m *model) inputLines(width int) []string {
 			m.colors.detailValue.Render(safe(m.licenseRecordingID)),
 			fmt.Sprintf("Shared provenance · used by %d Moment(s).", len(m.doc.Usages(m.licenseRecordingID))), "")
 		rows = append(subject, rows...)
+		focus += subjectRows
 	}
 	if m.inputError != "" {
 		for _, line := range strings.Split(ansi.Hardwrap("! "+safe(m.inputError), width, true), "\n") {
@@ -58,66 +71,93 @@ func (m *model) inputLines(width int) []string {
 		}
 	}
 	rows = append(rows, "", m.colors.dim.Render(fit(m.inputGuidance(), width)))
+	if m.field != fieldSearch {
+		for index, action := range []string{"Apply", hintCancel} {
+			line := "[ " + action + " ]"
+			if m.inputAction == index+1 {
+				focus = len(rows)
+				line = m.colors.selected.Render("> " + line)
+			}
+			rows = append(rows, line)
+		}
+	}
 
-	return rows
+	return rows, focus
 }
 
 // Modal priority mirrors input ownership, including nested picker/volume dialogs.
 func (m *model) dialogContent(width int) (editorDialog, bool) {
-	if m.confirmQuit {
+	switch m.inputOwner() {
+	case ownerBusy:
+		return editorDialog{title: "FILE OPERATION", rows: []string{safe(m.status)}, focus: 0,
+			help: []string{"Ctrl+x: stop audio · Ctrl+c: quit after publication · Errors keep the editor open."}}, true
+	case ownerQuit:
 		return editorDialog{title: "UNSAVED CHANGES", rows: []string{
 			m.colors.warning.Render("The library or editing dialog contains unsaved changes."),
-			"Y discards them and quits. Escape returns to editing.",
-		}, focus: 0, help: []string{"Y: discard and quit   Escape: keep editing"}}, true
-	}
-	if m.field != "" && !m.inlineInput() {
-		help := "Enter: apply   Escape: cancel   Ctrl+U: clear"
-		if m.field == fieldNote {
-			help = "Ctrl+Enter: apply   Enter: new line   Escape: cancel"
-		}
-		rows := m.inputLines(width)
-
-		return editorDialog{title: "EDIT " + strings.ToUpper(m.fieldLabel()), rows: rows,
-			focus: max(0, len(rows)-inputTailRows), help: []string{help}}, true
-	}
-	if m.infoDialog != nil {
+			"y discards them and quits. Escape returns to editing.",
+		}, focus: 0, help: []string{"y: discard and quit   Escape: keep editing"}}, true
+	case ownerField:
+		return m.fieldDialog(width)
+	case ownerInfo:
 		return editorDialog{title: m.infoDialog.title, rows: m.infoDialog.lines, focus: m.infoDialog.scroll,
 			help: []string{"Up/Down: scroll   Enter/Escape: close"}}, true
-	}
-	if m.volumeControls && m.hasDraft() {
-		return editorDialog{title: "PREVIEW VOLUME — temporary", rows: m.previewVolumeLines(width),
-			focus: m.volumeCursor, help: []string{"Up/Down: control   Left/Right: adjust   Escape: return"}}, true
-	}
-	if m.routing.menu != nil {
+	case ownerVolumes:
+		return m.volumeDialog(width)
+	case ownerRoutingPicker:
 		return m.routingPickerDialog(width), true
-	}
-	if m.form != nil {
+	case ownerForm:
 		return m.formDialog(width), true
-	}
-	if m.picker != nil {
+	case ownerFiles:
 		return m.filePickerDialog(width), true
-	}
-	if m.assigning {
+	case ownerAssignment:
 		return m.recordingAssignmentDialog(width), true
-	}
-	if m.duplicate != nil {
+	case ownerDuplicate:
 		return editorDialog{title: "DUPLICATE CLIP — draft", rows: m.duplicateLines(width), focus: m.duplicate.field + 1,
-			help: []string{"Enter: edit field   P: preview   C: create   Escape: cancel"}}, true
-	}
-	if m.autoGainDraft != nil {
+			help: []string{"Enter: edit field   p: preview   c: create   Escape: cancel"}}, true
+	case ownerCalibration:
 		return editorDialog{title: "AUTO-GAIN", rows: []string{
 			fmt.Sprintf("Suggested recording calibration: %+.2f dB", m.autoGainDraft.GainDB),
 			"Apply this calibration and enable automatic gain updates?",
 		}, focus: 0, help: []string{"Enter: apply   Escape: keep existing calibration"}}, true
-	}
-	if m.pendingAmbient != nil {
+	case ownerAmbientReplacement:
 		return editorDialog{title: "REPLACE AMBIENT LAYER", rows: []string{
 			"Both ambient slots are occupied. Choose which layer to replace.",
 			fmt.Sprintf("Selected slot: %d", m.mixCursor+1),
 		}, focus: 1, help: []string{"1/2: select slot   Enter: replace   Escape: cancel"}}, true
+	case ownerWorkspace:
 	}
 
 	return editorDialog{title: "", rows: nil, focus: 0, help: nil}, false
+}
+
+func (m *model) fieldDialog(width int) (editorDialog, bool) {
+	if m.field == fieldSearch && m.assigning {
+		dialog := m.recordingAssignmentDialog(width)
+		dialog.focus = 1
+		dialog.help = []string{"Enter: apply filter   Escape: cancel filter   Left/Right: caret   Ctrl+x: stop audio"}
+
+		return dialog, true
+	}
+	if m.inlineInput() {
+		return editorDialog{title: "", rows: nil, focus: 0, help: nil}, false
+	}
+	help := "Enter: apply   Tab: actions   Escape: cancel   Ctrl+U: clear"
+	if m.field == fieldNote {
+		help = "Enter: new line / activate action   Tab: Apply/Cancel   Escape: cancel"
+	}
+	rows, focus := m.inputRows(width)
+
+	return editorDialog{title: "EDIT " + strings.ToUpper(m.fieldLabel()), rows: rows,
+		focus: focus, help: []string{help}}, true
+}
+
+func (m *model) volumeDialog(width int) (editorDialog, bool) {
+	if !m.hasDraft() {
+		return editorDialog{title: "", rows: nil, focus: 0, help: nil}, false
+	}
+
+	return editorDialog{title: "PREVIEW VOLUME — temporary", rows: m.previewVolumeLines(width),
+		focus: m.volumeCursor, help: []string{"Up/Down: control   Left/Right: adjust   Escape: return"}}, true
 }
 
 //nolint:cyclop,nestif // Fields, inline errors and actions render in order so focus offsets stay aligned.
@@ -136,7 +176,7 @@ func (m *model) formDialog(width int) editorDialog {
 			rows = append(rows, line)
 		}
 		if len(form.sequence) == 0 {
-			rows = append(rows, "Silent surface. A adds a footstep sound.")
+			rows = append(rows, "Silent surface. a adds a footstep sound.")
 		}
 	} else {
 		if form.kind == formTileAmbient {
@@ -158,40 +198,32 @@ func (m *model) formDialog(width int) editorDialog {
 				rows = append(rows, m.colors.problem.Render("! "+safe(form.errorText)))
 			}
 		}
-		for index, action := range []string{"Apply changes", hintCancel} {
-			line := "[ " + action + " ]"
-			if form.cursor == len(form.fields)+index {
-				focus = len(rows)
-				line = m.colors.key.Render(fit("> "+line, width))
-			}
-			rows = append(rows, line)
+	}
+	fieldCount := len(form.fields)
+	if form.kind == formSurface {
+		fieldCount = len(form.sequence)
+	}
+	for index, action := range []string{"Apply changes", hintCancel} {
+		line := "[ " + action + " ]"
+		if form.cursor == fieldCount+index {
+			focus = len(rows)
+			line = m.colors.key.Render(fit("> "+line, width))
 		}
+		rows = append(rows, line)
 	}
 	if form.errorField < 0 && form.errorText != "" {
 		rows = append(rows, m.colors.problem.Render("! "+safe(form.errorText)))
 		focus = len(rows) - 1
 	}
-	help := []string{"Tab/Up/Down: focus   Enter: edit/activate   Left/Right: adjust",
-		"Ctrl+Enter: apply   Escape: cancel   P: preview   Space: pause   L: departure"}
-	if form.editing {
-		help = []string{"TYPING IN HIGHLIGHTED FIELD · Ctrl+U clears · Enter finishes field",
-			"Ctrl+Enter: apply draft   Escape: leave field"}
-	} else if form.kind == formSurface {
-		help = []string{"A: add   Delete: remove   Ctrl+Up/Down: reorder   Space: preview/pause",
-			"Ctrl+Enter: apply sequence   Escape: cancel"}
-	}
 
-	return editorDialog{title: form.title, rows: rows, focus: focus, help: help}
+	return editorDialog{title: form.title, rows: rows, focus: focus, help: m.hintRows(m.formKeyHints())}
 }
 
 func (m *model) formFieldLine(field formField, active, editing bool, width int) string {
 	value := safe(field.value)
 	if active && editing {
-		value += "▏"
 		available := max(1, width-ansi.StringWidth(field.label+field.unit)-inputPadding-dialogHeaderRows)
-		if length := ansi.StringWidth(value); length > available {
-			value = ansi.Cut(value, length-available, length)
-		}
+		value = m.form.text.viewport(field.value, available, m.colors.selected.Render)
 	}
 	if active {
 		return m.colors.key.Render(fit("> "+field.label+": [ "+value+" ] "+field.unit, width))
@@ -209,7 +241,9 @@ func (m *model) routingPickerDialog(width int) editorDialog {
 	nameWidth, recordingWidth := remaining/columnSplit, remaining-remaining/columnSplit
 	search := "Search: " + safe(menu.search)
 	if menu.editingSearch {
-		search = m.colors.key.Render(fit("EDIT SEARCH: "+safe(menu.search)+"▏", width))
+		const label = "EDIT SEARCH: "
+		search = m.colors.key.Render(fit(label+
+			menu.text.viewport(menu.searchInput, width-len(label), m.colors.selected.Render), width))
 	}
 	rows := []string{search, m.colors.detailLabel.Render(strings.Repeat(" ", rowPrefixWidth) +
 		fit("Name", nameWidth) + " " + fit("Recording / file", recordingWidth) + " " + fit("State", routingStatusWidth))}

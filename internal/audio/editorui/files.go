@@ -85,7 +85,7 @@ func (m *model) pickerKey(key tea.KeyMsg) tea.Cmd {
 	case keyBackspace:
 		m.readDirectory(filepath.Dir(picker.directory))
 	case "/":
-		m.field, m.input = "path", picker.directory+string(filepath.Separator)
+		m.beginInput("path", picker.directory+string(filepath.Separator))
 	case keyEnter:
 		return m.openPickerEntry()
 	case "p":

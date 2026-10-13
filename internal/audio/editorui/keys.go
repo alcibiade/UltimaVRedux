@@ -19,20 +19,25 @@ const (
 )
 
 func (m *model) key(key tea.KeyMsg) tea.Cmd {
+	if key.Type == tea.KeyRunes && !key.Alt && !m.typing() && (key.Paste || len(key.Runes) != 1) {
+		m.status, m.statusIsError = "Focus a text field before entering text; no shortcut was executed.", false
+
+		return nil // Pasting outside a text owner never executes a shortcut macro.
+	}
 	if command, handled := m.globalKey(key); handled {
 		return command
 	}
 	if command, handled := m.modalKey(key); handled {
 		return command
 	}
-	if m.routing.menu != nil {
-		return m.routingMenuKey(key)
-	}
-	if m.routingWorkspace() {
-		return m.routingKey(key.String())
+	if key.Type == tea.KeyF5 {
+		return m.recheckFiles()
 	}
 	if command, handled := m.focusedKey(key); handled {
 		return command
+	}
+	if m.routingWorkspace() {
+		return m.routingKey(key.String())
 	}
 	if m.variantCue != "" && !m.assigning {
 		return m.variantKey(key.String())
@@ -52,46 +57,52 @@ func (m *model) focusedKey(key tea.KeyMsg) (tea.Cmd, bool) {
 		return nil, true
 	}
 	if key.String() == keyEscape && (m.marker != 0 || m.focus != focusBrowser) {
-		return m.browserKey(keyEscape), true
+		m.marker, m.focus = 0, focusBrowser
+
+		return nil, true
 	}
 
 	return nil, false
 }
 
 func (m *model) globalKey(key tea.KeyMsg) (tea.Cmd, bool) {
-	if key.String() == "x" && !m.typing() {
+	name := key.String()
+	if m.typing() {
+		name = textControlKey(key)
+	}
+	if name == "ctrl+x" || name == "x" && !m.typing() {
 		m.stopAll()
 		m.status = "All playback stopped."
 
 		return nil, true
 	}
 	if m.busy {
-		m.status = "Finishing file operation…"
+		m.busyKey(name)
 
 		return nil, true
 	}
-	if key.String() == "ctrl+c" {
+	if name == "ctrl+c" {
 		m.confirmQuit = true
 
 		return m.quit(), true
 	}
 	if m.confirmQuit {
-		if key.String() == "y" {
+		if name == "y" || name == "Y" {
 			return tea.Quit, true
 		}
 		m.confirmQuit = false
 
-		if key.String() == keySave {
+		if name == keySave {
 			return m.saveFromKeyboard(), true
 		}
 
 		return nil, true
 	}
-	if key.String() == keySave {
+	if name == keySave {
 		return m.saveFromKeyboard(), true
 	}
 	if m.width < minimumWidth || m.height < minimumHeight {
-		if key.String() == "q" {
+		if name == "q" {
 			return m.quit(), true
 		}
 
@@ -101,9 +112,14 @@ func (m *model) globalKey(key tea.KeyMsg) (tea.Cmd, bool) {
 	return nil, false
 }
 
-func (m *model) typing() bool {
-	return m.field != "" || m.form != nil && m.form.editing ||
-		m.routing.menu != nil && m.routing.menu.editingSearch
+func (m *model) busyKey(key string) {
+	m.status = "Finishing file operation…"
+	if key == "ctrl+c" {
+		m.quitAfterOperation = true
+	}
+	if m.quitAfterOperation {
+		m.status = "Quit requested; finishing file publication before checking unsaved work."
+	}
 }
 
 func (m *model) hasDraft() bool {
@@ -119,51 +135,6 @@ func (m *model) saveFromKeyboard() tea.Cmd {
 	}
 
 	return m.save()
-}
-
-func (m *model) modalKey(key tea.KeyMsg) (tea.Cmd, bool) {
-	if m.field != "" {
-		return m.editInput(key), true
-	}
-	if m.infoDialog != nil {
-		m.infoKey(key.String())
-
-		return nil, true
-	}
-	if m.volumeControls {
-		m.previewVolumeKey(key.String())
-
-		return nil, true
-	}
-	if m.routing.menu != nil && m.routing.menu.editingSearch {
-		return m.routingMenuKey(key), true
-	}
-	if m.form != nil && m.routing.menu == nil {
-		return m.formKey(key), true
-	}
-	if m.pendingAmbient != nil {
-		m.ambientReplacementKey(key.String())
-
-		return nil, true
-	}
-	if m.autoGainDraft != nil {
-		m.autoCalibrationKey(key.String())
-
-		return nil, true
-	}
-	if key.String() == "v" {
-		m.openPreviewVolumes()
-
-		return nil, true
-	}
-	if m.duplicate != nil {
-		return m.duplicateKey(key.String()), true
-	}
-	if m.picker != nil {
-		return m.pickerKey(key), true
-	}
-
-	return nil, false
 }
 
 //nolint:cyclop,funlen,gocyclo,maintidx // One explicit keyboard dispatch table keeps bindings auditable.
@@ -247,7 +218,7 @@ func (m *model) browserKey(key string) tea.Cmd {
 	case "-":
 		m.adjustGain(-1)
 	case "g":
-		m.field, m.input = fieldGain, ""
+		m.beginInput(fieldGain, "")
 	case "ctrl+l":
 		m.beginLicenseEdit()
 	case "v":
@@ -266,10 +237,10 @@ func (m *model) browserKey(key string) tea.Cmd {
 		m.focus = focusWave
 	case "s":
 		m.focus = focusWave
-		m.field, m.input = fieldStart, strconv.FormatInt(m.window().StartMs, 10)
+		m.beginInput(fieldStart, strconv.FormatInt(m.window().StartMs, 10))
 	case "e":
 		m.focus = focusWave
-		m.field, m.input = fieldEnd, strconv.FormatInt(m.window().EndMs, 10)
+		m.beginInput(fieldEnd, strconv.FormatInt(m.window().EndMs, 10))
 	case keyLeft:
 		m.nudge(-fineSeekMs)
 	case keyRight:
@@ -299,10 +270,10 @@ func (m *model) browserKey(key string) tea.Cmd {
 			return m.previewNextClip()
 		}
 		if m.workspace == workspaceRecordings {
-			m.field, m.input = "new", ""
+			m.beginInput("new", "")
 		}
 	case "N":
-		m.field, m.input = fieldNote, m.doc.Recording(m.recordingID()).Note
+		m.beginInput(fieldNote, m.doc.Recording(m.recordingID()).Note)
 	case "C":
 		m.beginClassificationEdit()
 	case "A":

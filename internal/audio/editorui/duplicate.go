@@ -78,11 +78,11 @@ func (m *model) duplicateKey(key string) tea.Cmd {
 	case keyEnter:
 		fields := []string{fieldClipID, fieldClipStart, fieldClipEnd}
 		values := []string{draft.id, strconv.FormatInt(draft.window.StartMs, 10), strconv.FormatInt(draft.window.EndMs, 10)}
-		m.field, m.input = fields[draft.field], values[draft.field]
+		m.beginInput(fields[draft.field], values[draft.field])
 	case "s":
-		m.field, m.input = fieldClipStart, strconv.FormatInt(draft.window.StartMs, 10)
+		m.beginInput(fieldClipStart, strconv.FormatInt(draft.window.StartMs, 10))
 	case "e":
-		m.field, m.input = fieldClipEnd, strconv.FormatInt(draft.window.EndMs, 10)
+		m.beginInput(fieldClipEnd, strconv.FormatInt(draft.window.EndMs, 10))
 	case "a":
 		if draft.eligibleCue != "" {
 			draft.appendToCue = !draft.appendToCue

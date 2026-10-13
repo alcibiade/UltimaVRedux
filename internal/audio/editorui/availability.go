@@ -46,10 +46,12 @@ const (
 )
 
 type browseState struct {
-	search   string
-	filter   availabilityFilter
-	selected string
-	start    int
+	search        string
+	filter        availabilityFilter
+	selected      string
+	start         int
+	routingFilter int
+	routingScope  int
 }
 
 type availabilityMsg struct {
@@ -126,8 +128,7 @@ func (m *model) acceptAvailability(message availabilityMsg) tea.Cmd {
 }
 
 func (m *model) selectionOwned() bool {
-	return m.busy || m.field != "" || m.form != nil || m.routing.menu != nil || m.assigning || m.picker != nil ||
-		m.duplicate != nil || m.autoGainDraft != nil || m.marker != 0 || m.focus == focusWave || m.volumeControls
+	return m.inputOwner() != ownerWorkspace || m.marker != 0 || m.focus == focusWave
 }
 
 func (m *model) recheckFiles() tea.Cmd {
@@ -272,11 +273,13 @@ func (m *model) matchesCueFacet(cueID, key, value string) bool {
 }
 
 func (m *model) currentBrowseState() browseState {
-	return browseState{search: m.search, filter: m.filter, selected: m.selectedID(), start: m.browserWindowStart()}
+	return browseState{search: m.search, filter: m.filter, selected: m.selectedID(), start: m.browserWindowStart(),
+		routingFilter: m.routing.filter, routingScope: m.routing.scope}
 }
 
 func (m *model) restoreBrowseState(state browseState) {
 	m.search, m.filter, m.cursor = state.search, state.filter, 0
+	m.routing.filter, m.routing.scope = state.routingFilter, state.routingScope
 	m.refreshKeys()
 	m.selectID(state.selected)
 	m.browserStart = listViewportStart(state.start, m.cursor, len(m.keys), m.listHeight())

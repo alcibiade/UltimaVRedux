@@ -10,78 +10,69 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 )
 
+const (
+	inputTyping = iota
+	inputApply
+	inputCancel
+	inputFocusCount
+)
+
+func (m *model) beginInput(field, value string) {
+	m.field, m.input, m.inputError = field, value, ""
+	m.inputAction, m.statusIsError = inputTyping, false
+	m.inputText.reset(value)
+}
+
+func (m *model) cancelInput() {
+	m.field, m.input, m.inputError = "", "", ""
+	m.inputAction = inputTyping
+	m.inputText.reset("")
+}
+
+func (m *model) discardInput() {
+	m.cancelInput()
+	m.status, m.statusIsError = "Field draft discarded.", false
+}
+
 func (m *model) editInput(key tea.KeyMsg) tea.Cmd {
-	switch key.String() {
+	name := textControlKey(key)
+	switch name {
 	case keyEscape:
-		m.field, m.input = "", ""
-		m.inputError = ""
-		m.filterClearPending = false
+		m.discardInput()
 
 		return nil
-	case keyCtrlEnter:
-		return m.commitInput()
 	case keySave:
 		return m.saveFromKeyboard()
+	case keyTab, keyShiftTab:
+		if m.field == fieldSearch {
+			return m.commitInput()
+		}
+		direction := 1
+		if name == keyShiftTab {
+			direction = inputFocusCount - 1
+		}
+		m.inputAction = (m.inputAction + direction) % inputFocusCount
+
+		return nil
 	case keyEnter:
-		if m.field == fieldNote {
-			m.input += "\n"
-
-			return nil
+		switch {
+		case m.inputAction == inputCancel:
+			m.discardInput()
+		case m.inputAction == inputApply || m.field != fieldNote:
+			return m.commitInput()
+		default:
+			m.inputText.edit(&m.input, key, true)
 		}
 
-		return m.commitInput()
-	case keyBackspace:
-		if m.field == fieldSearch && m.filterClearPending {
-			m.input, m.filterClearPending = "", false
-
-			return nil
-		}
-		runes := []rune(m.input)
-		if len(runes) > 0 {
-			m.input = string(runes[:len(runes)-1])
-		}
-	case "ctrl+u":
-		m.input = ""
-		m.filterClearPending = false
-	case keyLeft, keyRight, keyShiftLeft, keyShiftRight:
-		m.adjustInlineInput(key.String())
-	case " ":
-		m.input += " "
-		m.filterClearPending = false
-	default:
-		if key.Type == tea.KeyRunes {
-			m.input += string(key.Runes)
-			m.filterClearPending = false
-		}
+		return nil
+	}
+	if m.inputAction == inputTyping {
+		m.inputText.edit(&m.input, key, m.field == fieldNote)
+	} else if name == keyLeft || name == keyRight {
+		m.inputAction = inputFocusCount - m.inputAction
 	}
 
 	return nil
-}
-
-func (m *model) adjustInlineInput(key string) {
-	step := calibrationStep
-	switch m.field {
-	case fieldGain:
-		if m.browsingCues() {
-			step = cueGainStep
-		}
-	case fieldStart, fieldEnd, fieldClipStart, fieldClipEnd:
-		step = float64(fineSeekMs)
-		if strings.HasPrefix(key, "shift+") {
-			step = float64(coarseSeekMs)
-		}
-	case fieldCalibrationTarget:
-	default:
-		return
-	}
-	value, err := strconv.ParseFloat(m.input, 64)
-	if err != nil || math.IsInf(value, 0) || math.IsNaN(value) {
-		return
-	}
-	if strings.HasSuffix(key, keyLeft) {
-		step = -step
-	}
-	m.input = strconv.FormatFloat(value+step, 'f', -1, 64)
 }
 
 func (m *model) beginClassificationEdit() {
@@ -106,8 +97,9 @@ func (m *model) commitInput() tea.Cmd {
 	defer func() { m.committingInput = false }()
 	command := m.commitInputValue()
 	if m.inputError == "" {
-		m.field, m.input = "", ""
-		m.filterClearPending = false
+		m.cancelInput()
+	} else {
+		m.inputAction = inputTyping
 	}
 
 	return command
@@ -115,7 +107,7 @@ func (m *model) commitInput() tea.Cmd {
 
 func (m *model) commitInputValue() tea.Cmd {
 	selected := m.selectedID()
-	field, value := m.field, strings.TrimSpace(m.input)
+	field, value := m.field, normalizedFieldInput(m.field, m.input)
 	if m.duplicate != nil {
 		m.commitDuplicateField(field, value)
 
@@ -135,10 +127,7 @@ func (m *model) commitInputValue() tea.Cmd {
 	case "new":
 		return m.createEmptyRecording(value)
 	case fieldNote:
-		recording := m.doc.Recording(m.recordingID())
-		recording.Note = value
-		m.report(m.doc.SetRecording(m.recordingID(), recording))
-		m.refreshKeys()
+		m.commitNote(value)
 	case "classification":
 		m.commitClassification(value)
 		m.refreshKeys()
@@ -160,6 +149,22 @@ func (m *model) commitInputValue() tea.Cmd {
 	}
 
 	return nil
+}
+
+func normalizedFieldInput(field, value string) string {
+	switch field {
+	case fieldNote, "path":
+		return value // Preserve authored note whitespace and exact filesystem paths.
+	default:
+		return strings.TrimSpace(value)
+	}
+}
+
+func (m *model) commitNote(value string) {
+	recording := m.doc.Recording(m.recordingID())
+	recording.Note = value
+	m.report(m.doc.SetRecording(m.recordingID(), recording))
+	m.refreshKeys()
 }
 
 func (m *model) commitClassification(value string) {
