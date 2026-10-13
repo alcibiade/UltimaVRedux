@@ -1027,6 +1027,30 @@ their exact bytes; deleting a routing override rewrites only its containing map,
 preserving other sections. A no-op Save leaves the entire file untouched. There is no
 intermediate tuning-export format or automatic source-audio rewrite.
 
+File publication and authored dirtiness are separate facts. `LastPublication`
+reports `not_published`, `unchanged`, `published`, or `published_sync_pending`,
+with the affected path and import/assignment facts. Once manifest replacement
+succeeds, its actual bytes become the conflict baseline even if the subsequent
+directory flush fails. `NeedsSync` retains that pending work; the editor displays
+**DURABILITY PENDING**, guards Quit, and Ctrl+S retries the flush without rewriting
+an unchanged manifest. A later edit or failed operation cannot erase the pending
+state. Rejecting a stale asynchronous document result also retains its real file
+outcome/baseline while preserving newer authored state and history.
+
+Save and import hold a nonblocking cooperative publisher lock for the canonical
+manifest directory/name. A second editor reports busy and can retry; an editor
+with an older manifest baseline still receives an external-change conflict after
+the first writer finishes. Stable `.audio-library-*.lock` files live one directory
+above the manifest directory, outside embedded assets, and are ignored by Git.
+Do not remove their inodes while editors are active. Arbitrary external writers
+that ignore the lock can still race filesystem operations; this is not a universal
+filesystem compare-and-swap guarantee.
+
+Successful publication means the supported flush operations completed. Windows
+does not support this directory-flush implementation; receipts/details disclose
+that platform limit rather than claiming equivalent durability. Reopening a file
+does not retrospectively prove that an earlier failed flush reached durable media.
+
 Save never silently commits an unfinished field, form, or duplicate: finish or
 cancel that draft first. Duplicate drafts participate in quit confirmation even
 when the authored document is clean. Ctrl+S from quit confirmation saves an
@@ -1048,6 +1072,21 @@ byte-for-byte to `sounds/imported/` (or `music/imported/` when replacing a music
 recording), using recording ID and content hash in the name to avoid overwriting
 another file. Unknown provenance stays literal `unknown`. Undo restores the
 assignment but deliberately leaves imported files on disk for Git review.
+
+Import validates the candidate metadata and AUTO calibration before creating a
+copy. If the file was auditioned, the import verifies those exact snapshot bytes
+before proceeding. A copy is written, flushed and closed as a same-directory
+temporary file, then installed atomically with a no-overwrite link. Existing
+content-qualified destinations are reused only after a full hash match and file
+flush; conflicting contents are never overwritten. Created directory levels and
+the published file entry are flushed separately. A durability failure after publication leaves
+an explicit retained-file receipt and retryable durability work, without pretending
+the recording assignment succeeded.
+
+The Details pane lists persistence state and unassigned files copied during the
+session. Save/import errors and Undo explain retained files; neither Undo nor Quit
+silently deletes them. `RetainedImports` derives current references from the working
+document, so a copied file can remain on disk after its assignment is undone.
 
 The game still embeds the production manifest/assets at build time. Save affects
 editor preview immediately; rebuild/restart the game to use those edits. Review

@@ -176,7 +176,18 @@ func (m *model) enterPickerPath(path string) tea.Cmd {
 }
 
 func (m *model) importFile(path string) tea.Cmd {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		m.report(fmt.Errorf("resolve import source: %w", err))
+
+		return nil
+	}
+	path = absolute
 	recordingID := m.recordingID()
+	var auditioned *audio.RecordingAudio
+	if m.picker != nil && m.clip != nil && m.clip.Path == path {
+		auditioned = m.clip
+	}
 	m.busy, m.picker = true, nil
 	if m.cancelLoad != nil {
 		m.cancelLoad()
@@ -188,5 +199,11 @@ func (m *model) importFile(path string) tea.Cmd {
 
 	return m.documentOperation(true,
 		"File assigned; trim reset, manual gain retained or AUTO recalculated. Ctrl+s saves; u undoes.",
-		func(document *audio.LibraryEditor) error { return document.ImportRecording(recordingID, path) })
+		func(document *audio.LibraryEditor) error {
+			if auditioned != nil {
+				return document.ImportRecordingSource(recordingID, auditioned)
+			}
+
+			return document.ImportRecording(recordingID, path)
+		})
 }

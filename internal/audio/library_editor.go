@@ -22,14 +22,19 @@ const editorHistoryLimit = 100
 // LibraryEditor owns a disk-backed working document. Its caller serializes edits
 // and saves; detached file decoding can run in background commands.
 type LibraryEditor struct {
-	path     string
-	files    fs.FS
-	library  *audioLibrary
-	baseline *audioLibrary
-	saved    []byte
-	undo     []*audioLibrary
-	redo     []*audioLibrary
-	revision uint64
+	path                string
+	files               fs.FS
+	library             *audioLibrary
+	baseline            *audioLibrary
+	saved               []byte
+	undo                []*audioLibrary
+	redo                []*audioLibrary
+	revision            uint64
+	persistence         libraryPersistence
+	publication         PublicationOutcome
+	pendingDirectories  []string
+	manifestSyncPending bool
+	retainedImports     []string
 }
 
 // OpenLibraryEditor reads the real manifest, without consulting the embedded cache.
@@ -48,8 +53,14 @@ func OpenLibraryEditor(path string) (*LibraryEditor, error) {
 		return nil, err
 	}
 
-	return &LibraryEditor{path: absolute, files: files, library: library,
-		baseline: library, saved: data, undo: nil, redo: nil, revision: 0}, nil
+	editor := new(LibraryEditor)
+	editor.path, editor.files, editor.library = absolute, files, library
+	editor.baseline, editor.saved = library, data
+	editor.persistence = defaultLibraryPersistence()
+	editor.beginPublication(absolute, false)
+	editor.publication.State = PublicationUnchanged
+
+	return editor, nil
 }
 
 // Path returns the absolute manifest filename.
@@ -156,6 +167,8 @@ func (e *LibraryEditor) Clone() *LibraryEditor {
 	cloned.saved = bytes.Clone(e.saved)
 	cloned.undo = slices.Clone(e.undo)
 	cloned.redo = slices.Clone(e.redo)
+	cloned.pendingDirectories = slices.Clone(e.pendingDirectories)
+	cloned.retainedImports = slices.Clone(e.retainedImports)
 
 	return &cloned
 }

@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"github.com/bradhannah/UltimaVRedux/internal/repositoryfs"
 )
 
 type jsonEdit struct {
@@ -22,13 +20,33 @@ type jsonEdit struct {
 // Save preserves untouched entries verbatim and replaces only edited records.
 // An external change is a conflict even if the local document is not dirty.
 func (e *LibraryEditor) Save() error {
+	e.beginPublication(e.path, false)
+	unlock, err := e.persistence.lock(e.path)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	return e.saveLocked()
+}
+
+func (e *LibraryEditor) saveLocked() error {
 	if err := e.checkExternalChange(); err != nil {
+		return err
+	}
+	if err := e.flushPendingDirectories(); err != nil {
+		if e.manifestSyncPending {
+			e.publication.State = PublicationSyncPending
+		}
+
 		return err
 	}
 	if err := e.Validate(); err != nil {
 		return err
 	}
 	if !e.Dirty() {
+		e.publication.State = PublicationUnchanged
+
 		return nil
 	}
 	data := e.formattedChanges()
@@ -36,26 +54,31 @@ func (e *LibraryEditor) Save() error {
 	if err != nil {
 		return fmt.Errorf("stat audio manifest: %w", err)
 	}
-	err = repositoryfs.PublishTemporaryFile(filepath.Dir(e.path), ".audio-library-*", data, info.Mode().Perm(),
+	err = e.persistence.publish(filepath.Dir(e.path), ".audio-library-*", data, info.Mode().Perm(),
 		func(temporary string) error {
 			if err := e.checkExternalChange(); err != nil {
 				return err
 			}
-			if err := os.Rename(temporary, e.path); err != nil {
+			if err := e.persistence.replace(temporary, e.path); err != nil {
 				return fmt.Errorf("publish audio manifest: %w", err)
 			}
+			e.saved, e.baseline, e.manifestSyncPending = data, e.library, true
+			e.requireDirectorySync(filepath.Dir(e.path))
+			e.publication.State = PublicationSyncPending
 
 			return nil
 		})
 	if err != nil {
+		if e.manifestSyncPending {
+			return fmt.Errorf("%w: %w", ErrAudioPublicationSync, err)
+		}
+
 		return fmt.Errorf("save audio library: %w", err)
 	}
-	e.saved = data
-	e.baseline = e.library
-
-	if err := repositoryfs.SyncDirectory(filepath.Dir(e.path)); err != nil {
-		return fmt.Errorf("sync saved audio library: %w", err)
+	if err := e.flushPendingDirectories(); err != nil {
+		return err
 	}
+	e.publication.State = PublicationComplete
 
 	return nil
 }

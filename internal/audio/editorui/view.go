@@ -102,8 +102,15 @@ func (m *model) View() string {
 func (m *model) workspaceView() string {
 	layout := m.layout()
 	state := m.colors.ready.Render("SAVED")
-	if m.doc.Dirty() {
+	dirty := m.doc.Dirty()
+	if dirty {
 		state = m.colors.warning.Render("* UNSAVED")
+	}
+	if m.doc.NeedsSync() {
+		state = m.colors.warning.Render("* DURABILITY PENDING")
+		if dirty {
+			state += " · UNSAVED"
+		}
 	}
 	if m.crop != nil {
 		state += " · REGION DRAFT"

@@ -317,9 +317,9 @@ func (m *model) move(delta int) tea.Cmd {
 }
 
 func (m *model) quit() tea.Cmd {
-	if m.doc.Dirty() || m.hasDraft() {
+	if m.doc.Dirty() || m.doc.NeedsSync() || m.hasDraft() {
 		m.confirmQuit = true
-		m.status = "Unsaved changes: y discards and quits; any other key cancels. Ctrl+s saves."
+		m.status = "Unsaved work or pending durability: y quits; other keys cancel. Ctrl+s saves/retries."
 
 		return nil
 	}
@@ -335,8 +335,12 @@ func (m *model) history(redo bool) tea.Cmd {
 	}
 	m.refreshKeys()
 	m.clearSoundscape()
+	command := m.recheckFiles()
+	if len(m.doc.RetainedImports()) != 0 {
+		m.status = "History restored; copied import files remain on disk. Details lists unassigned retained files."
+	}
 
-	return m.recheckFiles()
+	return command
 }
 
 func (m *model) adjustGain(direction float64) {

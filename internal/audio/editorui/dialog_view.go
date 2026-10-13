@@ -93,8 +93,8 @@ func (m *model) dialogContent(width int) (editorDialog, bool) {
 			help: []string{"Ctrl+x: stop audio · Ctrl+c: quit after publication · Errors keep the editor open."}}, true
 	case ownerQuit:
 		return editorDialog{title: "UNSAVED CHANGES", rows: []string{
-			m.colors.warning.Render("The library or editing dialog contains unsaved changes."),
-			"y discards them and quits. Escape returns to editing.",
+			m.colors.warning.Render("Unsaved work, an open draft, or unconfirmed file durability remains."),
+			"y quits. Published/imported files remain on disk. Escape returns to editing.",
 		}, focus: 0, help: []string{"y: discard and quit   Escape: keep editing"}}, true
 	case ownerField:
 		return m.fieldDialog(width)

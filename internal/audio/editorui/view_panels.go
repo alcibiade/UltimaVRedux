@@ -167,6 +167,7 @@ func (m *model) detailLines(width int) []string {
 		lines = append(lines, m.colors.warning.Render("f  Choose a file / repair assignment"), "")
 	}
 	add("Recording: ", m.recordingID())
+	m.publicationDetails(add)
 	m.previewGainDetails(add)
 	m.metadataDetails(recording, add)
 	add("Acoustic family [working]: ", m.doc.RecordingFamily(m.recordingID()))

@@ -1,8 +1,8 @@
 package audio
 
 import (
+	"context"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,34 +14,89 @@ import (
 // content-qualified names, so replacing a source never overwrites shared audio.
 // Imported files remain on disk after Undo; Git exposes them for review.
 func (e *LibraryEditor) ImportRecording(recordingID, path string) error {
-	previous, exists := e.library.Recordings[recordingID]
-	if !exists {
-		return fmt.Errorf("%w: select or create a recording first", ErrAudioLibrary)
-	}
+	e.beginPublication(path, true)
 	clip, err := LoadRecording(path)
 	if err != nil {
 		return err
 	}
-	absolute, err := filepath.Abs(path)
-	if err != nil {
-		return fmt.Errorf("resolve recording path: %w", err)
+
+	return e.ImportRecordingSource(recordingID, clip)
+}
+
+// ImportRecordingSource imports exactly the auditioned snapshot, rejecting a
+// changed source rather than silently choosing new bytes at the same pathname.
+func (e *LibraryEditor) ImportRecordingSource(recordingID string, clip *RecordingAudio) error {
+	if clip == nil {
+		return fmt.Errorf("%w: select a source recording", ErrAudioLibrary)
 	}
-	relative, err := filepath.Rel(filepath.Dir(e.path), absolute)
+	e.beginPublication(clip.Path, true)
+	unlock, err := e.persistence.lock(e.path)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	if err := e.checkExternalChange(); err != nil {
+		return err
+	}
+	if err := e.flushPendingDirectories(); err != nil {
+		return err
+	}
+
+	return e.importSourceLocked(recordingID, clip)
+}
+
+func (e *LibraryEditor) importSourceLocked(recordingID string, clip *RecordingAudio) error {
+	previous, exists := e.library.Recordings[recordingID]
+	if !exists {
+		return fmt.Errorf("%w: select or create a recording first", ErrAudioLibrary)
+	}
+	relative, err := filepath.Rel(filepath.Dir(e.path), clip.Path)
 	if err != nil {
 		return fmt.Errorf("resolve relative recording path: %w", err)
 	}
 	relative = filepath.ToSlash(relative)
-	if !validRecordingPath(relative) {
-		relative, err = e.copyRecording(recordingID, previous, clip)
-		if err != nil {
-			return err
-		}
+	copySource := !validRecordingPath(relative)
+	if copySource {
+		relative = importRelativePath(recordingID, previous, clip)
+	}
+	e.publication.Path = filepath.Join(filepath.Dir(e.path), filepath.FromSlash(relative))
+	if err := clip.VerifySource(context.Background()); err != nil {
+		return err
 	}
 	if previous.File != nil && *previous.File == relative {
+		e.publication.State, e.publication.Assigned = PublicationUnchanged, true
+
 		return nil
 	}
+	replacement, err := e.importReplacement(recordingID, previous, relative, clip)
+	if err != nil {
+		return err
+	}
+	next := cloneAudioValue(e.library)
+	next.Recordings[recordingID] = replacement
+	if _, err := parseAudioLibraryDocument(encodeAudioValue(next)); err != nil {
+		return err // All authored validation precedes any copied-file publication.
+	}
+	if copySource {
+		if err := e.publishImport(relative, clip); err != nil {
+			return err
+		}
+	} else {
+		e.publication.State = PublicationUnchanged
+	}
+	if err := e.replace(next); err != nil {
+		return err
+	}
+	e.publication.Assigned = true
+
+	return nil
+}
+
+func (e *LibraryEditor) importReplacement(
+	recordingID string, previous Recording, relative string, clip *RecordingAudio,
+) (Recording, error) {
 	provenance := unknownRecordingProvenance()
-	provenance.OriginalFilename = filepath.Base(path)
+	provenance.OriginalFilename = filepath.Base(clip.Path)
 	for _, known := range e.library.Recordings {
 		if known.File != nil && *known.File == relative {
 			provenance = cloneAudioValue(known.Provenance)
@@ -58,45 +113,73 @@ func (e *LibraryEditor) ImportRecording(recordingID, path string) error {
 	if replacement.CalibrationMode() == CalibrationAuto {
 		suggestion, err := clip.SuggestCalibration(nil, e.RecordingFamily(recordingID), replacement.CalibrationTargetDB)
 		if err != nil {
-			return err
+			return Recording{}, err
 		}
 		replacement.CalibrationGainDB = &suggestion.GainDB
 	}
 
-	return e.SetRecording(recordingID, replacement)
+	return replacement, nil
 }
 
-func (e *LibraryEditor) copyRecording(recordingID string, previous Recording, clip *RecordingAudio) (string, error) {
+func importRelativePath(recordingID string, previous Recording, clip *RecordingAudio) string {
 	directory := "sounds/imported"
 	if previous.File != nil && strings.HasPrefix(*previous.File, "music/") {
 		directory = "music/imported"
 	}
 	hash := sha256.Sum256(clip.data)
 	name := fmt.Sprintf("%s_%x%s", recordingID, hash[:6], strings.ToLower(filepath.Ext(clip.Path)))
-	relative := directory + "/" + name
+
+	return directory + "/" + name
+}
+
+func (e *LibraryEditor) publishImport(relative string, clip *RecordingAudio) error {
 	path := filepath.Join(filepath.Dir(e.path), filepath.FromSlash(relative))
 	const directoryMode = 0o750
 	const recordingMode = 0o644
 	if err := os.MkdirAll(filepath.Dir(path), directoryMode); err != nil {
-		return "", fmt.Errorf("create recording directory: %w", err)
+		return fmt.Errorf("create recording directory: %w", err)
 	}
-	//nolint:gosec // Destination is built from a validated recording ID and content hash under the library root.
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, recordingMode)
-	if os.IsExist(err) {
-		return matchImportedFile(path, relative, hash)
+	// Flush every namespace level potentially created by MkdirAll, up to the
+	// already-existing asset root containing this manifest.
+	for directory := filepath.Dir(path); ; directory = filepath.Dir(directory) {
+		e.requireDirectorySync(directory)
+		if directory == filepath.Dir(e.path) {
+			break
+		}
 	}
+	if err := e.flushPendingDirectories(); err != nil {
+		return err
+	}
+	err := e.persistence.publish(filepath.Dir(path), ".audio-import-*", clip.data, recordingMode,
+		func(temporary string) error {
+			if err := e.persistence.link(temporary, path); err != nil {
+				if !os.IsExist(err) {
+					return fmt.Errorf("publish imported recording: %w", err)
+				}
+				if _, err := matchImportedFile(path, relative, clip.fingerprint); err != nil {
+					return err
+				}
+				if err := e.persistence.syncFile(path); err != nil {
+					return err
+				}
+			} else {
+				e.publication.Created = true
+				e.retainedImports = append(e.retainedImports, path)
+			}
+			e.publication.State = PublicationSyncPending
+			e.requireDirectorySync(filepath.Dir(path))
+
+			return nil
+		})
 	if err != nil {
-		return "", fmt.Errorf("create imported recording: %w", err)
+		return fmt.Errorf("import recording: %w", err)
 	}
-	_, writeErr := file.Write(clip.data)
-	closeErr := file.Close()
-	if writeErr != nil || closeErr != nil {
-		removeErr := os.Remove(path)
-
-		return "", fmt.Errorf("write imported recording: %w", errors.Join(writeErr, closeErr, removeErr))
+	if err := e.flushPendingDirectories(); err != nil {
+		return err
 	}
+	e.publication.State = PublicationComplete
 
-	return relative, nil
+	return nil
 }
 
 func matchImportedFile(path, relative string, expected [sha256.Size]byte) (string, error) {
