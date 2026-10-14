@@ -36,6 +36,8 @@ type HMSCapeUseReview struct {
 type HMSCapeUseCommit struct {
 	state     *GameState
 	review    HMSCapeUseReview
+	location  references.PlayerLocation
+	owner     CombatUseOwner
 	committed bool
 }
 
@@ -69,7 +71,9 @@ func (g *GameState) BeginHMSCapeUse() (*HMSCapeUseCommit, HMSCapeUseReview) {
 		return nil, review
 	}
 
-	return &HMSCapeUseCommit{state: g, review: review}, review
+	return &HMSCapeUseCommit{
+		state: g, review: review, location: g.MapState.PlayerLocation, owner: g.CaptureCombatUseOwner(),
+	}, review
 }
 
 // CommitHMSCapeUse revalidates and applies one confirmed global preference change.
@@ -78,7 +82,8 @@ func (g *GameState) CommitHMSCapeUse(commit *HMSCapeUseCommit) HMSCapeUseResult 
 		panic("invalid HMS Cape use commit")
 	}
 	commit.committed = true
-	if g.ReviewHMSCapeUse() != commit.review {
+	if g.ReviewHMSCapeUse() != commit.review || g.MapState.PlayerLocation != commit.location ||
+		!g.isRetainedUseContext(commit.owner) {
 		return HMSCapeUseStale
 	}
 	g.SetHMSCapeActivated(!commit.review.Enabled)
@@ -104,6 +109,7 @@ type PotionUseCommit struct {
 	state          *GameState
 	review         PotionUseReview
 	combatIdentity CombatTurnIdentity
+	owner          CombatUseOwner
 	location       references.PlayerLocation
 	committed      bool
 }
@@ -126,6 +132,7 @@ type PotionUseOutcome struct {
 	state           *GameState
 	context         UsageContext
 	combatIdentity  CombatTurnIdentity
+	owner           CombatUseOwner
 	effectCommitted bool
 }
 
@@ -191,7 +198,9 @@ func (g *GameState) BeginPotionUse(potion references.Potion, context UsageContex
 	if !review.Ready {
 		return nil, review
 	}
-	commit := &PotionUseCommit{state: g, review: review, location: g.MapState.PlayerLocation}
+	commit := &PotionUseCommit{
+		state: g, review: review, location: g.MapState.PlayerLocation, owner: g.CaptureCombatUseOwner(),
+	}
 	if context == UsageCombat {
 		commit.combatIdentity = g.CombatScene.GetCurrentTurnIdentity()
 	}
@@ -212,7 +221,7 @@ func (g *GameState) CommitPotionUse(commit *PotionUseCommit) (*PotionUseOutcome,
 	commit.committed = true
 	current := g.ReviewPotionUse(commit.review.Potion, commit.review.Context)
 	if current != commit.review || g.MapState.PlayerLocation != commit.location ||
-		(commit.review.Context == UsageCombat && g.CombatScene.GetCurrentTurnIdentity() != commit.combatIdentity) {
+		!g.isRetainedUseContext(commit.owner) {
 		return nil, false
 	}
 	if !g.PartyState.Inventory.Potions.DecrementByOne(commit.review.Potion) {
@@ -229,6 +238,7 @@ func (g *GameState) CommitPotionUse(commit *PotionUseCommit) (*PotionUseOutcome,
 		state:          g,
 		context:        commit.review.Context,
 		combatIdentity: commit.combatIdentity,
+		owner:          commit.owner,
 	}, true
 }
 
@@ -248,7 +258,7 @@ func (g *GameState) CommitPotionEffect(outcome *PotionUseOutcome, targetIndex in
 	}
 	outcome.effectCommitted = true
 	if outcome.context == UsageCombat {
-		if g.CombatScene == nil || g.CombatScene.GetCurrentTurnIdentity() != outcome.combatIdentity {
+		if !g.IsCurrentCombatUseOwner(outcome.owner) {
 			return PotionEffectNoEffect
 		}
 		targetIndex = outcome.combatIdentity.EntityIndex

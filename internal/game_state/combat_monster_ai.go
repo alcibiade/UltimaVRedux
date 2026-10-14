@@ -901,9 +901,7 @@ func (g *GameState) executeFleeingMonsterTurnWithRNG(
 			From: from,
 			To:   to,
 		})
-		if monster.MonsterType() == references.MonsterShadowlord {
-			g.recoverOnePossessedPC()
-		}
+		g.releaseCombatController(monster.CombatantID(), CombatPossessionReleaseControllerEscaped)
 
 		return true, false
 	}

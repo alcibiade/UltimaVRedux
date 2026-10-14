@@ -119,6 +119,6 @@ func TestSurfaceCancellationDoesNotClaimLegacyUseOrCombatDirections(t *testing.T
 	scene, _ := newCombatUseTestScene(t)
 	scene.secondaryKeyState = OpenDirectionInput
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
-	scene.combatMapHandleSecondaryInput()
+	require.False(t, scene.cancelSurfaceDirectionInput())
 	require.Equal(t, OpenDirectionInput, scene.secondaryKeyState)
 }

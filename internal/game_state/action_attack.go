@@ -10,6 +10,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// ActionAttackSmallMap resolves mirror breaking, attacks on defenseless NPCs,
+// or an eligible NPC's combat encounter in the requested direction.
 func (g *GameState) ActionAttackSmallMap(direction references.Direction) bool {
 	// Get target position based on direction
 	newPosition := direction.GetNewPositionInDirection(&g.MapState.PlayerLocation.Position)
@@ -178,6 +180,8 @@ func murderedNPCDeathPersists(victim *map_units.NPCFriendly) bool {
 	return (sprite != indexes.Guard_KeyIndex && sprite < indexes.Seahorse1) || sprite == crawlerSprite
 }
 
+// ActionAttackLargeMap starts combat with a visible eligible enemy in the
+// adjacent wrapped cardinal square.
 func (g *GameState) ActionAttackLargeMap(direction references.Direction) bool {
 	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
 		g.SystemCallbacks.UI.ShowActionFeedback("Not here!", true)
@@ -211,7 +215,8 @@ func (g *GameState) ActionAttackLargeMap(direction references.Direction) bool {
 	return true
 }
 
-//goland:noinspection GoUnusedParameter
+// ActionAttackCombatMap resolves the active PC's attack at the adjacent square
+// in the requested direction.
 func (g *GameState) ActionAttackCombatMap(direction references.Direction) bool {
 	// Get active combatant's position and compute target position
 	activeIdentity, active := g.activeCombatPCIdentity()
@@ -622,9 +627,7 @@ func (g *GameState) finalizeCombatMonsterDeathWithPolicy(
 			EntityIndex:   monsterIdx,
 		})
 	}
-	if disappears {
-		g.recoverOnePossessedPC()
-	}
+	g.releaseCombatController(monster.CombatantID(), CombatPossessionReleaseControllerDefeated)
 
 	experienceAwarded := 0
 	if awardExperience {

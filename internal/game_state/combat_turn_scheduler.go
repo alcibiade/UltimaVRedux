@@ -59,6 +59,7 @@ type pendingCombatPresentationStep struct {
 	completeUndefinedPlayerTail bool
 	reviewed                    bool
 	resolved                    bool
+	possessionTurn              combatPossessionTurn
 }
 
 var (
@@ -176,6 +177,7 @@ func (g *GameState) CompleteScheduledCombatStep(token CombatPresentationToken) e
 	}
 
 	combat := g.CombatScene
+	g.completeCombatPossessionTurn(pending.possessionTurn)
 	combat.pendingPresentationStep = nil
 	combat.lastCompletedPresentation = token
 	combat.ActiveMonsterIndex = NoActiveMonster
@@ -212,8 +214,9 @@ func (g *GameState) scheduleCombatPresentationStep(
 			Token: token, Kind: kind, Actor: actor, MonsterIndex: monsterIndex,
 			Target: target, HasTarget: hasTarget,
 		},
-		action: action,
-		entry:  entry,
+		action:         action,
+		entry:          entry,
+		possessionTurn: combat.possessionTurn,
 	}
 
 	return token

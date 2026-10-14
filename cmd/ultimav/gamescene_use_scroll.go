@@ -8,34 +8,47 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
-func (g *GameScene) thenUseCombatScroll(scroll references.Scroll) event_queue.Sequence {
+func (g *GameScene) thenUseCombatScroll(
+	scroll references.Scroll,
+	canCommit func() bool,
+	didCommit *bool,
+) event_queue.Sequence {
 	//nolint:exhaustive // Field-only scrolls are rejected by the default programming-error path.
 	switch scroll {
 	case references.ScrollVasLor:
-		return g.thenCommitCombatScroll(scroll, g.thenUseCombatLightScroll())
+		return g.thenCommitCombatScroll(scroll, g.thenUseCombatLightScroll(), canCommit, didCommit)
 	case references.ScrollInSanct:
 		return g.thenCommitCombatScroll(scroll, g.thenUseCombatDurationScroll(scroll, "Protection!", func(duration int) {
 			g.gameState.ActivateProtectionEffect(duration)
-		}))
+		}), canCommit, didCommit)
 	case references.ScrollInAn:
 		return g.thenCommitCombatScroll(scroll, g.thenUseCombatDurationScroll(scroll, "Negate magic!", func(duration int) {
 			g.gameState.ActivateNegateMagicEffect(duration)
-		}))
+		}), canCommit, didCommit)
 	case references.ScrollKalXenCorp:
-		return g.thenUseCombatDaemonScroll()
+		return g.thenUseCombatDaemonScroll(canCommit, didCommit)
 	case references.ScrollAnTym:
-		return g.thenCommitCombatScroll(scroll, g.thenUseCombatTimeStopScroll())
+		return g.thenCommitCombatScroll(scroll, g.thenUseCombatTimeStopScroll(), canCommit, didCommit)
 	default:
 		panic("combat Use workflow received a field-only scroll")
 	}
 }
 
-func (g *GameScene) thenCommitCombatScroll(scroll references.Scroll, effect event_queue.Sequence) event_queue.Sequence {
+func (g *GameScene) thenCommitCombatScroll(
+	scroll references.Scroll,
+	effect event_queue.Sequence,
+	canCommit func() bool,
+	didCommit *bool,
+) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		committed := false
 
 		return q.Then(func() {
+			if !canCommit() {
+				return
+			}
 			committed = g.gameState.CommitScrollUse(scroll)
+			*didCommit = committed
 			if !committed {
 				g.gameState.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
 			}
@@ -108,7 +121,7 @@ func (g *GameScene) startWindChangeScrollWorkflow(complete func()) {
 		g.thenShowCastUseDirectionPrompt(
 			"Wind change!\nDirection-",
 			func(dir references.Direction) {
-				if g.gameState.MapState.PlayerLocation != origin ||
+				if g.gameState.CombatScene != nil || g.gameState.MapState.PlayerLocation != origin ||
 					g.gameState.PartyState.Inventory.Scrolls.Get(references.ScrollRelHur) != quantity {
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Use context changed!", true)
 
@@ -327,7 +340,7 @@ func (g *GameScene) startResurrectionScrollWorkflow(complete func()) {
 		func() bool { return selectedCharacterIndex >= 0 },
 		func(subQ *event_queue.SequentialEventBuilder) {
 			subQ.Then(func() {
-				if g.gameState.MapState.PlayerLocation == origin &&
+				if g.gameState.CombatScene == nil && g.gameState.MapState.PlayerLocation == origin &&
 					g.gameState.PartyState.Inventory.Scrolls.Get(references.ScrollInManiCorp) == quantity {
 					// REDUX DEVIATION: CONSUME-0001: original Use consumes before target selection.
 					// Redux commits only after a final valid confirmation.

@@ -35,7 +35,19 @@ func (g *GameScene) reviewScheduledCombatStep() bool {
 }
 
 func (g *GameScene) startScheduledMonsterTurn(step game_state.CombatPresentationStep) {
+	pacing, fastMovement := g.fastScheduledMonsterPacing(step.Actor)
+	g.startScheduledMonsterTurnWithPacing(step, pacing, fastMovement)
+}
+
+// startScheduledMonsterTurnWithPacing also lets deterministic fixtures compare
+// the former presentation profile through the same resolve/complete workflow.
+func (g *GameScene) startScheduledMonsterTurnWithPacing(
+	step game_state.CombatPresentationStep, pacing combatMonsterPacing, fastMovement bool,
+) {
 	delayMs := int64(game_state.MonsterMoveDelayMs)
+	if fastMovement {
+		delayMs = int64(pacing.anticipationMs) //nolint:gosec // Validated speed bounds the 75ms base to 19-300ms.
+	}
 	if step.HasTarget {
 		delayMs = int64(game_state.MonsterAttackDelayMs)
 	}
@@ -91,7 +103,12 @@ func (g *GameScene) startScheduledMonsterTurn(step game_state.CombatPresentation
 			return sequence
 		}
 
-		return sequence.Animate(g.combatMovementDuration(combatEnemyMovementDurationMs), func(progress float32) {
+		movementMs := g.combatMovementDuration(combatEnemyMovementDurationMs)
+		if fastMovement {
+			movementMs = pacing.movementMs
+		}
+
+		return sequence.Animate(movementMs, func(progress float32) {
 			g.updateCombatMovementProgress(progress)
 		})
 	}).While(g.hasCombatSignatureEffects, func() {}, DialogPollingRateMs)

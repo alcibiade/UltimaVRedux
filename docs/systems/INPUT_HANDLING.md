@@ -38,6 +38,15 @@ The scan stops for the selected actor or a hostile turn. Condition-driven
 non-actionable turns, such as sleep, retain their dedicated presentation and
 feedback.
 
+AI-controlled bats and mongbats use a scene-only movement profile: at 1x, 75 ms
+no-target anticipation and 175 ms walking interpolation. Both durations capture
+the validated movement-speed factor together when the workflow starts. Targeted
+attack anticipation, projectile/signature feedback, ordinary enemies, player and
+controlled-monster movement retain their own timings. Actual resolved movement
+determines interpolation; idle/blocked/teleport outcomes do not receive a walking
+tween. Exact token completion remains after presentation; changing speed never
+changes AI actions, DEX order, possession progress, calendar, or RNG.
+
 Dungeon primary input implements traversal, facing, turnaround, contextual
 rejection, and the production Attack, Cast, Get, Hole Up, Ignite, Jimmy, Klimb,
 Look, Mix, New Order, Open, Quit, Ready, Search, Use, View, and Yell workflows.
@@ -163,6 +172,14 @@ layout coverage live in the corresponding `_test.go` files; physical-keyboard
 and visual acceptance remain separate from those automated assertions.
 
 ### Command help and retained prompts
+
+Combat status Help explains enemy possession's own-completed-turn resistance,
+intelligence adjustment, guaranteed twelfth-turn endpoint, and An Xen Ex or
+controller-removal alternatives. Sleep/captivity and temporal suppression still
+count at the scheduled boundary. Help and report browsing never advance that
+counter or draw recovery RNG; the exact actor/episode completion ticket belongs
+to GameState. Chaos Sword control remains untimed. See
+[COMBAT-0005](../gamefacts/COMBAT.md#combat-0005).
 
 Help also appears in Escape. It lists context-specific command purposes, next
 inputs, unavailable reasons, and Shift+J without puzzle answers. It is a detached
@@ -298,16 +315,26 @@ Left/Right select non-empty categories; Up/Down and Page Up/Page Down browse;
 Space pages effect-first details and lore; Enter selects; Escape cancels. The
 modal has no number-key shortcuts or mouse handling. It emits a detached item
 identity only, and the owning workflow revalidates current inventory before
-mutation. Field and combat menus receive only their supported context items;
-the dungeon menu projects source-backed potions, scrolls, persistent artifacts,
-the Pocket Watch, and source-rejected items through one retained command token.
+mutation. All contexts show every owned identity in the existing Use categories,
+including an inventory containing only unavailable items. `UnavailableReason`
+blocks activation independently of effect-applicability warnings. Unavailable
+rows use muted text and a `[No]` marker with an explicit legend; selected rows
+retain contrast. Enter shows the specific restriction on the first detail page
+without dismissing or dispatching. Warning-only consumables remain selectable.
 Cancellation before final confirmation preserves resources, surface time,
 dungeon charge, combat action, and gameplay RNG. Surface Use transfers a
 confirmed asynchronous item to an exact-once completion callback; selection
 cleanup precedes the item workflow's final surface cycle, including shutdown.
-A dungeon menu cancel or unsupported-only inventory completes its deferred
-token without charging it. Confirmed attempts consume their item and cycle once,
+A dungeon menu cancel completes its deferred token without charging it; inspecting
+or rejecting an unavailable row keeps the menu and token open without charge.
+Confirmed consumable attempts consume their item and cycle once,
 including attempts whose effect later fails.
+
+Combat Crown, Amulet and Black Badge wear/remove retain inventory and spend one
+action. Deferred Use confirmations retain location, stock, and exact encounter,
+actor/clone, and dispatch ownership. The workflow completes only its own committed
+attempt; another operation changing the global commit count cannot charge a
+cancelled or stale Use workflow.
 
 Surface and dungeon Quit present a map-relative `Save game?` overlay. Secondary
 input remains the sole owner; the overlay is removed before save capture, on
@@ -424,7 +451,14 @@ All ordinary surface direction prompts keep their short command text, such as
 arrow/keypad input, free Escape cancellation, and Space's normal command cost,
 including the free outdoor Attack Pass exception.
 
-After that surface-specific interception, `ordinaryDirectionInput` retains the
+Combat adds its own scoped `cancelCombatDirectionInput` before the shared reader
+for Klimb, Open, Jimmy, Push, Get, and Search. It reports cancellation and restores
+primary input for the exact same actor/action without gameplay effects. This also
+covers controlled-monster Push and a failed ordinary Klimb retry. Escape is
+consumed through release and a fresh command can follow immediately. Dedicated
+ladder/tactical selectors and item workflows keep their own rules.
+
+After those context-specific interceptions, `ordinaryDirectionInput` retains the
 shared original ordinary/spell direction-reader behavior:
 
 - Cardinal arrows and physical keypad `2`/`4`/`6`/`8` append and return the
@@ -433,8 +467,8 @@ shared original ordinary/spell direction-reader behavior:
 - Escape, other invalid keys, and keypad diagonals return an active outcome;
   they do not clear state, consume a cycle/action, or swallow the next key.
 
-Ordinary combat prompts retain the inline `Arrows; Space: Pass` guidance;
-combat Help explains that Escape does not cancel those readers.
+The six ordinary combat prompts show `Arrows; Space: Pass; Esc: Cancel`;
+combat Help distinguishes free cancellation from paid Pass.
 Cast details use the resolved context targeting profile rather than base spell
 metadata. Cast guidance describes final-confirmation MP/mixture commitment and
 free cancellation beforehand, including preservation of the combat action.

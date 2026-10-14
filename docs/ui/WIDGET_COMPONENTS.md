@@ -649,8 +649,14 @@ The detail pane prioritizes the action explanation over a portrait in this mode.
 
 `ItemSelectionDialog` receives detached `UseableItemInfo` values containing stable
 identity, quantity, applicability, guidance, consumption, lore, and sprite. The
-workflow revalidates inventory/context after selection. Likely no-effect items
-remain selectable with explicit warnings. Action detail pages precede lore.
+workflow revalidates inventory/context and exact combat ownership at commitment.
+All owned Use-category items appear even when none can be activated. An explicit
+`UnavailableReason` blocks activation independently of `AvailableNow` effect
+applicability. Such rows are muted and marked `[No]` with an `Unavailable` legend;
+selection keeps readable contrast. Enter retains the picker/selection and returns
+to the first detail page's concrete restriction. Likely no-effect but permitted
+items remain selectable with explicit warnings and expenditure text. Action detail
+pages precede lore.
 Nonempty categories retain independent selection/scroll; item/category changes
 reset details. Tabs/Left/Right wrap categories, arrows browse, page keys move half
 a viewport, Space pages details, Enter selects, and Escape cancels. There are no

@@ -204,8 +204,63 @@ their shared gameplay authority. Controlled monsters can attack hostile Saduj
 entries by melee or missile. Unreadying an Invisibility Ring clears only the
 acting PC/clone and refunds the item without an extra draw.
 
-**Implementation:** `internal/game_state/combat_status.go`, `internal/game_state/combat_melee_engagement.go`, `internal/game_state/combat_rings.go`
-**Tests:** `internal/game_state/combat_status_test.go`, `internal/game_state/combat_saduj_allegiance_test.go`, `internal/game_state/combat_loyalty_attack_test.go`
+**REDUX DEVIATION: bounded enemy possession.** Original enemy possession has no
+natural countdown. Redux restores agency by releasing a surviving affected exact
+PC/clone no later than the end of its twelfth own completed scheduled turn.
+Turns lost to sleep, captivity, Time Stop and Quickness still count. Resolution
+follows the action and standing hazards, before selection/end-condition checks;
+other actors, forecasts, rendering and presentation delays never advance it.
+
+| Completed turns | Base percent | INT 10 | INT 20 | INT 30 |
+|---|---:|---:|---:|---:|
+| 1–3 | 0 | 0% | 0% | 0% |
+| 4–6 | 3 | 2.25% | 3% | 3.75% |
+| 7–9 | 8 | 6% | 8% | 10% |
+| 10 | 20 | 15% | 20% | 25% |
+| 11 | 35 | 26.25% | 35% | 43.75% |
+| 12 | guaranteed | 100% | 100% | 100% |
+
+These are independent per-check chances, not cumulative probabilities. For
+turns 4–11, clamp current shared character INT to 1–30 and compute
+`thresholdBP = floor(basePercent * 100 * (20 + INT) / 40)`; exactly one gameplay
+RNG draw in 0–9999 recovers when below that threshold. Turns 1–3 and 12 use no
+resistance draw. These new draws intentionally change gameplay RNG progression.
+
+Each successful enemy acquisition records a unique episode, the controller's
+stable encounter combatant ID, and progress under the complete turn identity
+(including clone Slot). Failed/redundant acquisition never resets it. Dispatch
+captures the episode; duplicate/stale completion cannot tick a replacement.
+A possessed clone copies controller/progress by value but receives a fresh
+episode. Monster clones receive fresh controller IDs and inherit no victims.
+
+Defeating, actually escaping off-map, or successfully replacing the responsible
+controller with a rat releases all its current victims in stable exact-actor
+order without RNG. Beginning flight, teleportation, invisibility, allegiance
+changes, administrative removal and a Daemon's successful-possession retirement
+do not release them. Rat replacement grants no kill rewards. This replaces the
+source-unaware disappearance/Shadowlord-escape recovery; unrelated controllers'
+victims remain possessed. Controller names and locations are not disclosed.
+
+Natural/controller release clears only possession, preserving HP, equipment,
+sleep, poison, captivity and intrinsic Saduj hostility. It grants no extra turn,
+resources or time. Chaos Sword control and charmed monsters remain separate
+untimed mechanics. An Xen Ex retains its immediate intelligence-save/resource
+semantics: failure preserves progress; success clears only the exact episode
+and retains the spell's existing roster-status behavior. Emergency pass-out
+recovery remains separate under COMBAT-0011. Death (including shared source/clone
+death), departure, replacement, clone deletion and teardown discard episode
+metadata. Combat is excluded from native snapshots; no save schema is added.
+
+Surviving episodes emit resistance messages at turns 3, 7 and 10; recovery
+replaces a same-turn milestone. Typed resistance/release events feed the report,
+with distinct clone names and no duplicate generic allegiance announcement.
+Condition text shows `Possessed - 8/12 turns` only for genuine timed episodes;
+Help explains own-turn counting, intelligence, the cap and rescue alternatives.
+Feedback and episode-guarded onset effects own no gameplay work. Directed-attack
+awakening remains the separate COMBAT-0006 policy.
+
+**Implementation:** `internal/game_state/combat_status.go`, `internal/game_state/combat_melee_engagement.go`, `internal/game_state/combat_rings.go`, `internal/game_state/combat_possession.go`
+**Tests:** `internal/game_state/combat_status_test.go`, `internal/game_state/combat_saduj_allegiance_test.go`, `internal/game_state/combat_loyalty_attack_test.go`, `internal/game_state/combat_possession_test.go`
 
 ### COMBAT-0006
 
@@ -294,7 +349,7 @@ The original monster-loyal action order is:
 
 1. Time Stop suppresses; Quickness requires R(0,1)≠0; underground actors do nothing.
 2. Sleep checks wake then stops the turn.
-3. A fleeing non-PC may gain 1 HP when R(0,3)=0, reevaluates condition, and seeks.
+3. A fleeing non-PC may gain 1 HP when R(0,3)=3, reevaluates condition, and seeks.
    Even if fleeing clears, it does not restart special/attack processing this turn.
 4. Try possession, invisibility, then gating.
 5. Try an in-range melee/missile attack; otherwise take a greedy movement step.
@@ -314,6 +369,10 @@ possession removes the Daemon; Shadowlord possession does not. Invisibility togg
 on R(0,255)<32. Gating is tested afterward with that same threshold and requires a
 legal Daemon-shaped destination plus free slots. Mimics always attempt their
 in-range missile branch; other monsters require R(0,255)<128.
+
+Redux successful acquisition and controller-removal resistance semantics are
+defined by COMBAT-0005. Daemon retirement is explicitly not controller defeat;
+its victims keep their bounded episodes even after it disappears.
 
 Fleeing uses q=floor(maximum HP/4): below q always flee; below 2q request R(0,256)
 and flee when greater than 251; otherwise clear fleeing. The original comment's
@@ -415,6 +474,12 @@ a separate no-PC end condition; fixed dungeon-room Escape is rejected while PCs
 remain. Losing all party-loyal entries attempts possession recovery, otherwise
 loses the battle. A surviving allied creature does not fabricate victory from
 the no-PC departure condition.
+
+The independent no-friendly/no-opponent emergency recovery still frees one
+possessed actor and makes it pass out, with its established Chaos Sword handling.
+It also clears that exact episode's metadata. It is not invoked as a second
+recovery after controller defeat/escape: COMBAT-0005 owns those source-specific
+releases, which neither sleep the victims nor remove their equipment.
 
 Original return restores source map, coordinates, and objects before exploration
 tests all-dead recovery. Pirate salvage requires retained victory. Redux requests

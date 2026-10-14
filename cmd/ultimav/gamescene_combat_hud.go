@@ -139,6 +139,7 @@ func (hud *CombatHUD) addEvent(event game_state.CombatEvent) int {
 }
 
 func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
+	g.observeCombatPossessionAllegiance(event)
 	if event.Kind == game_state.CombatEventPickup && g.provisionChanges.state == g.gameState &&
 		event.Pickup.Result.ItemType == references.ItemTypeProvision {
 		g.provisionChanges.changes.AbsorbReportedPickup(
@@ -763,6 +764,9 @@ func (g *GameScene) appendCombatEventSentence(event game_state.CombatEvent) {
 	case game_state.CombatEventRecovery:
 		line := g.appendCombatEntitySegment(g.newCombatEventLine(), event.Target)
 		line.Magenta(" is freed and passes out").Done()
+	case game_state.CombatEventPossessionResistance, game_state.CombatEventPossessionRelease:
+		line := g.appendCombatEntitySegment(g.newCombatEventLine(), event.Target)
+		line.LightCyan(combatPossessionEventSuffix(event)).Done()
 	case game_state.CombatEventSummon:
 		line := g.newCombatEventLine().LightCyan(references.GetSpellName(event.Summon.Spell)).White(" summons ")
 		line.White(g.combatSummonReportResult(event)).Done()
@@ -981,6 +985,8 @@ func (g *GameScene) combatEventPlainText(event game_state.CombatEvent) string {
 		return g.combatEntityEventName(combatTurnIdentityForFeedback(event.Attacker)) + " teleports"
 	case game_state.CombatEventRecovery:
 		return g.combatEntityEventName(combatTurnIdentityForFeedback(event.Target)) + " is freed and passes out"
+	case game_state.CombatEventPossessionResistance, game_state.CombatEventPossessionRelease:
+		return g.combatEntityEventName(combatTurnIdentityForFeedback(event.Target)) + combatPossessionEventSuffix(event)
 	case game_state.CombatEventSummon:
 		return references.GetSpellName(event.Summon.Spell) + " summons " + g.combatSummonReportResult(event)
 	case game_state.CombatEventRepelUndead:
@@ -1152,6 +1158,8 @@ func (g *GameScene) combatEventDetailText(event game_state.CombatEvent) string {
 		return fmt.Sprintf("Vanished at (%d,%d)", event.Vanished.Position.X, event.Vanished.Position.Y)
 	case game_state.CombatEventRecovery:
 		return fmt.Sprintf("Recovered at (%d,%d)", event.Target.Position.X, event.Target.Position.Y)
+	case game_state.CombatEventPossessionResistance, game_state.CombatEventPossessionRelease:
+		return fmt.Sprintf("%d/12 own scheduled turns completed", event.PossessionTurns)
 	case game_state.CombatEventFled:
 		return fmt.Sprintf("Left from (%d,%d)", event.Attacker.Position.X, event.Attacker.Position.Y)
 	case game_state.CombatEventBattleBegun,
@@ -1440,8 +1448,8 @@ func (g *GameScene) combatEntityEventName(identity game_state.CombatTurnIdentity
 	}
 	if identity.IsPartyMember {
 		name := g.gameState.PartyState.GetCharacter(identity.EntityIndex).GetNameAsString()
-		if g.gameState.CombatScene.IsPCClone(identity) {
-			return name + " clone"
+		if identity.Slot != 0 {
+			return fmt.Sprintf("%s clone %d", name, identity.Slot)
 		}
 
 		return name

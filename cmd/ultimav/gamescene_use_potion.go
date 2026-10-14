@@ -33,7 +33,11 @@ func (g *GameScene) startDungeonPotionWorkflow(potion references.Potion, complet
 	g.startCharacterSelectPotionWorkflow(commit, complete)
 }
 
-func (g *GameScene) thenUseCombatPotion(potion references.Potion) event_queue.Sequence {
+func (g *GameScene) thenUseCombatPotion(
+	potion references.Potion,
+	canCommit func() bool,
+	didCommit *bool,
+) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var effect game_state.PotionEffectResult
 		var outcome *game_state.PotionUseOutcome
@@ -41,6 +45,9 @@ func (g *GameScene) thenUseCombatPotion(potion references.Potion) event_queue.Se
 		casterIdx := g.gameState.CombatScene.GetActiveCombatantIndex()
 
 		return q.Then(func() {
+			if !canCommit() {
+				return
+			}
 			commit, _ := g.gameState.BeginPotionUse(potion, game_state.UsageCombat)
 			if commit == nil {
 				g.gameState.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
@@ -48,6 +55,7 @@ func (g *GameScene) thenUseCombatPotion(potion references.Potion) event_queue.Se
 				return
 			}
 			outcome, committed = g.gameState.CommitPotionUse(commit)
+			*didCommit = committed
 			if !committed {
 				g.gameState.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
 

@@ -31,8 +31,22 @@ are not refunded. One-shot potion review retains location, context, stock, and
 exact combat identity; effect resolution uses the retained entry, not a later
 occupant of a reused slot. Presentation does not consume a second item.
 
-**Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/action_use.go`
-**Tests:** `internal/game_state/action_use_commits_test.go`, `internal/game_state/cast_use_commit_test.go`
+The Use picker projects all owned identities in its existing categories in every
+context. Ownership and quantity do not imply activation permission. Contextually
+unavailable rows remain inspectable, with a muted appearance, a `[No]` marker and
+an explicit reason. Enter keeps the picker open and shows that reason for free;
+Escape cancels. Unsupported-only inventory still opens the picker.
+
+This free precommit rejection is an intentional Redux departure from the original
+post-consumption context checks. A permitted attempt whose intended effect may
+fail remains selectable with a distinct warning and consumption guidance; potion
+substitution and paid confirmed failures are unchanged. Deferred combat confirmations
+retain inventory, location, and the exact encounter/actor/dispatch boundary.
+Combat action completion belongs to the workflow's own committed attempt, not another operation's
+global commit-counter change.
+
+**Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/action_use.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/combat_use_owner.go`, `cmd/ultimav/gamescene_use.go`
+**Tests:** `internal/game_state/action_use_commits_test.go`, `internal/game_state/cast_use_commit_test.go`, `internal/game_state/action_use_stale_test.go`, `cmd/ultimav/gamescene_use_stale_test.go`
 
 ### CONSUME-0002
 
@@ -110,6 +124,11 @@ using original Pass to clear wind. Dungeon View uses its dedicated symbolic-view
 route. Combat invocation uses the combat scene route and authoritative summon
 operation; the generic noncombat scroll dispatcher is not evidence that summoning
 is unsupported. Time Stop's direct-location no-effect check remains a paid effect.
+Combat View, Wind Change, and Resurrection scrolls remain visible but unavailable;
+Summon Daemon is unavailable outside combat. These picker restrictions reject
+before expenditure under CONSUME-0001, rather than reproducing original paid
+context failures. Missing a dead recipient is a warning about a permitted
+resurrection attempt, distinct from a combat context restriction.
 
 **Implementation:** `internal/game_state/action_use.go`, `internal/game_state/combat_summon_spells.go`, `cmd/ultimav/gamescene_use_scroll.go`, `cmd/ultimav/gamescene_combat_invocation_effect.go`
 **Tests:** `cmd/ultimav/gamescene_combat_use_test.go`, `internal/game_state/action_use_scroll_integration_test.go`

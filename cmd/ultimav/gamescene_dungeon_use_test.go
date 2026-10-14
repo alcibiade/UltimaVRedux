@@ -322,10 +322,16 @@ func TestDungeonUseSourceRejectionsAndConsumption(t *testing.T) {
 			expectedTime := state.DateTime
 			callbacks.Reset()
 
-			selectOnlyDungeonUseItem(t, scene)
-
+			scene.dungeonMapInputHandler(ebiten.KeyU)
+			dialog := waitForDungeonItemDialog(t, scene)
+			calls := state.GetRNG().Calls()
+			dialog.HandleEnter()
+			require.False(t, dialog.IsDismissed())
+			require.Equal(t, calls, state.GetRNG().Calls())
 			assert.Equal(t, test.wantQuantity, test.quantity(state))
-			assert.Contains(t, callbacks.Messages, test.message)
+			assert.Empty(t, callbacks.Messages, "unavailable entries never dispatch their old effect handler")
+			dialog.Dismiss()
+			drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 			assert.True(t, state.IsAtDungeonCommandBoundary())
 			assert.Equal(t, expectedTime, state.DateTime)
 		})

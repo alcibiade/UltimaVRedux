@@ -2,6 +2,8 @@ package widgets
 
 import (
 	"image"
+	"image/color"
+	"math"
 	"strings"
 	"testing"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	pkgcolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -139,7 +142,7 @@ func TestItemSelectionDialogActionPagesPrecedeMeasuredLorePages(t *testing.T) {
 	require.Equal(t, 1, dialog.GetDetailPage(), "a bounded no-op does not discard the page")
 }
 
-func TestItemSelectionDialogAllowsUnavailableSelectionAndCancelsExactlyOnce(t *testing.T) {
+func TestItemSelectionDialogAllowsWarningSelectionAndCancelsExactlyOnce(t *testing.T) {
 	item := testUseItem("Purple", game_state.UseItemCategoryPotion, references.Purple)
 	item.AvailableNow = false
 	item.Warning = "No noticeable effect outside combat; it is still consumed."
@@ -163,6 +166,155 @@ func TestItemSelectionDialogAllowsUnavailableSelectionAndCancelsExactlyOnce(t *t
 	pressItemDialogKey(cancelDialog, keyboard, ebiten.KeyEscape)
 	cancelDialog.Dismiss()
 	assert.Equal(t, 1, cancelCalls)
+}
+
+func TestItemSelectionDialogUnavailableEnterStaysOpenAndShowsReason(t *testing.T) {
+	for _, key := range []ebiten.Key{ebiten.KeyEnter, ebiten.KeyNumpadEnter} {
+		item := testUseItem("Resurrection", game_state.UseItemCategoryScroll, references.ScrollInManiCorp)
+		item.UnavailableReason = "Cannot resurrect during combat."
+		item.AvailableNow = false
+		keyboard := newWidgetTestKeyboard(0)
+		config := testItemSelectionConfig(keyboard, []game_state.UseableItemInfo{item})
+		config.OnSelect = func(game_state.UseableItemInfo) { t.Fatal("unavailable activation dispatched") }
+		dialog := NewItemSelectionDialog(config)
+		dialog.detailPage = 1
+		pressItemDialogKey(dialog, keyboard, key)
+		require.False(t, dialog.IsDismissed())
+		require.Zero(t, dialog.detailPage)
+		require.Equal(t, item, *dialog.selectedItem())
+		require.Equal(t, "Unavailable", dialog.actionDetailLines(item)[0].label)
+		require.Equal(t, item.UnavailableReason, dialog.actionDetailLines(item)[0].value)
+		require.Equal(t, "[No] Resurrection", useItemRowLabel(item))
+		pressItemDialogKey(dialog, keyboard, ebiten.KeyEscape)
+		require.True(t, dialog.IsDismissed())
+	}
+}
+
+func TestItemSelectionUnavailableMarkerQuantityAndFocusRemainReadable(t *testing.T) {
+	for _, size := range []image.Point{{X: 320, Y: 200}, {X: 640, Y: 480}, {X: 1280, Y: 800}} {
+		setItemDialogTestResolution(t, size.X, size.Y)
+		item := testUseItem("Resurrection scroll with a long name", game_state.UseItemCategoryScroll, references.ScrollInManiCorp)
+		item.Quantity = 99
+		item.UnavailableReason = "Cannot resurrect during combat."
+		item.AvailableNow = false
+		dialog := NewItemSelectionDialog(testItemSelectionConfig(newWidgetTestKeyboard(0), []game_state.UseableItemInfo{item}))
+		content := dialog.listContentRect()
+		height := int(math.Ceil(dialog.rowOutput.GetLineSpacing()))
+		rect := image.Rect(content.Min.X, content.Min.Y, content.Max.X, content.Min.Y+height)
+		markerWidth, _ := dialog.font.MeasureString("[No]")
+		quantityWidth, _ := dialog.font.MeasureString("99")
+		marker := image.Rect(rect.Min.X+dialog.layout.padding, rect.Min.Y,
+			rect.Min.X+dialog.layout.padding+int(math.Ceil(markerWidth)), rect.Max.Y)
+		right := rect.Max.X - dialog.layout.padding - dialog.listIndicatorWidth()
+		quantity := image.Rect(right-int(math.Ceil(quantityWidth)), rect.Min.Y, right, rect.Max.Y)
+		require.Less(t, marker.Max.X+dialog.layout.padding, quantity.Min.X, "marker must fit beside the quantity")
+		for _, selected := range []bool{false, true} {
+			screen := ebiten.NewImage(size.X, size.Y)
+			screen.Fill(MerchantDialogBackgroundColor)
+			dialog.drawDetailHeader(screen, item)
+			dialog.drawHeader(screen)
+			require.Contains(t, dialog.titleOutput.GetOutputStr(false), "[No] Unavailable")
+			require.Equal(t, 1, dialog.titleOutput.GetPanelContentLineCount(), "availability legend must fit the title")
+			dialog.drawListRow(screen, rect, item, selected)
+			// Keep exactly the same glyphs and geometry, but render the control as an available row.
+			// Its brighter text exposes glyph coverage even when no small glyph pixel is fully opaque.
+			control := ebiten.NewImage(size.X, size.Y)
+			control.Fill(MerchantDialogBackgroundColor)
+			available := item
+			available.Name = useItemRowLabel(item)
+			available.UnavailableReason = ""
+			available.AvailableNow = true
+			dialog.drawListRow(control, rect, available, false)
+			var want color.Color = pkgcolor.UITextDisabled.RGBA()
+			background := MerchantDialogBackgroundColor
+			if selected {
+				want = DialogSelectedText
+				background = DialogSelectedBackground
+				require.NotEqual(t, DialogSelectedBackground, DialogSelectedText)
+				requireColorRGBA(t, DialogSelectedBackground, screen.At(rect.Min.X, rect.Min.Y))
+			}
+			requireUseRowInk(t, screen, control, marker,
+				background, want, MerchantDialogBackgroundColor, DialogItemNameColor)
+			requireUseRowInk(t, screen, control, quantity,
+				background, want, MerchantDialogBackgroundColor, DialogItemQuantityColor)
+		}
+	}
+}
+
+func requireUseRowInk(
+	t *testing.T,
+	screen, control *ebiten.Image,
+	rect image.Rectangle,
+	background, want, controlBackground, controlColor color.Color,
+) {
+	t.Helper()
+	rgb := func(value color.Color) [3]float64 {
+		r, g, b, _ := value.RGBA()
+
+		return [3]float64{float64(r >> 8), float64(g >> 8), float64(b >> 8)}
+	}
+	base, foreground, controlForeground := rgb(background), rgb(want), rgb(controlColor)
+	controlBase := rgb(controlBackground)
+	channel := 0
+	for candidate := 1; candidate < len(base); candidate++ {
+		if math.Abs(controlForeground[candidate]-controlBase[candidate]) >
+			math.Abs(controlForeground[channel]-controlBase[channel]) {
+			channel = candidate
+		}
+	}
+	require.NotEqual(t, controlBase[channel], controlForeground[channel], "control text must contrast with its background")
+	maxInk, maxBlendError := 0.0, 0.0
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			actual, reference := rgb(screen.At(x, y)), rgb(control.At(x, y))
+			coverage := (reference[channel] - controlBase[channel]) /
+				(controlForeground[channel] - controlBase[channel])
+			for component := range base {
+				expected := base[component] + coverage*(foreground[component]-base[component])
+				maxBlendError = math.Max(maxBlendError, math.Abs(actual[component]-expected))
+				maxInk = math.Max(maxInk, math.Abs(actual[component]-base[component]))
+			}
+		}
+	}
+	// Allow 8-bit raster/compositing rounding, not arbitrary colours or an empty region.
+	require.LessOrEqual(t, maxBlendError, 3.0, "wrong semantic text colour or glyph placement in %v", rect)
+	require.Greater(t, maxInk, 3.0, "no visible marker/quantity contrast in %v", rect)
+}
+
+func TestItemSelectionCategoriesIncludeUnavailableOwnershipAndWarningRowsStayActionable(t *testing.T) {
+	items := testUseItems()
+	for index := range items {
+		items[index].UnavailableReason = "This interaction is not supported here."
+		items[index].AvailableNow = false
+		items[index].Quantity = index + 1
+	}
+	dialog := NewItemSelectionDialog(testItemSelectionConfig(newWidgetTestKeyboard(0), items))
+	require.Len(t, dialog.categories, itemCategoryCount)
+	require.Len(t, dialog.currentItems(), len(items))
+	for _, category := range dialog.categories[1:] {
+		require.NotEmpty(t, dialog.itemsByCategory[category])
+	}
+	dialog.moveSelection(3)
+	selected := *dialog.selectedItem()
+	dialog.HandleEnter()
+	require.False(t, dialog.IsDismissed())
+	require.Equal(t, selected, *dialog.selectedItem())
+
+	warning := testUseItem("White", game_state.UseItemCategoryPotion, references.White)
+	warning.AvailableNow = false
+	warning.Warning = "No noticeable effect in combat; it is still consumed."
+	warning.Consumption = "One potion is consumed before its effect is known."
+	selectedCount := 0
+	config := testItemSelectionConfig(newWidgetTestKeyboard(0), []game_state.UseableItemInfo{warning})
+	config.OnSelect = func(game_state.UseableItemInfo) { selectedCount++ }
+	warningDialog := NewItemSelectionDialog(config)
+	require.Equal(t, "White", useItemRowLabel(warning))
+	require.Contains(t, warningDialog.actionDetailLines(warning), itemSelectionDetailLine{
+		label: "Warning", value: warning.Warning, color: DialogWarningColor, header: false,
+	})
+	warningDialog.HandleEnter()
+	require.True(t, warningDialog.IsDismissed())
+	require.Equal(t, 1, selectedCount)
 }
 
 func TestItemSelectionDialogIgnoresNumberShortcutsAndUsesResponsiveMainFont(t *testing.T) {

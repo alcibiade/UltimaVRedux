@@ -183,6 +183,11 @@ distances, not the original sight thresholds 10 and 18. Fields, quest items, and
 some creatures add emitters beyond the original list. Radius/source admission
 changes must not be conflated with tint-only changes.
 
+The configured ambient radius defaults to two tiles and supports values one
+through five. Ordinary Underworld exploration receives that ambient pool at every
+surface hour when no torch or magical light is active; see LIGHT-0008. Carried
+magical light takes precedence over torch, which takes precedence over ambient.
+
 For smoother day/night appearance, cosmetic darkness fades from 0 to 1 during
 19:30–20:00 and from 1 to 0 during 05:00–05:30. This fade does not itself alter
 tile visibility or add black tiles. Color modes use global darkness: night-only,
@@ -285,10 +290,14 @@ Indoor shade does not activate night-only sources during the day.
 
 Daylight targets apply to ordinary small-map floors at least zero and overworld
 floor zero. Underworld exploration uses full-night cosmetic darkness at every
-surface hour, with nighttime source strength/colors/falloff and tint-only ambient
-player light even at noon without carried light. Breathing remains independent of
-world time. This preserves a consistently dark underground presentation; it changes
-neither player-light visibility selection nor fuel, calendar, or RNG. Returning
+surface hour, with nighttime source strength/colors/falloff. Its no-carried-light
+visibility also keeps the configured ambient player radius at every hour instead
+of losing that source during surface daytime. This is an explicit Redux ambient
+visibility policy, separate from original sight thresholds and from RGB tinting.
+Full visibility recomputation therefore preserves the admitted tile set when only
+surface time changes. LOS/obstructions and changing sources still affect admission.
+Breathing remains independent of world time. Neither policy consumes fuel, advances
+the calendar, or draws RNG. Returning
 to the surface restores clock tinting and stale daylight targets cannot cross layers.
 Basement, dungeon, combat/camping, mini-map, and finale policies are not broadened
 by this exploration rule.
@@ -297,5 +306,5 @@ Regression fixtures compare indoor (10,24) and outdoor (15,23) views of Serpent'
 Hold, diagonal exterior corners, and bricks beside windows. Underworld tests fix
 source/animation state across midnight, dawn, noon, dusk, and transitions.
 
-**Implementation:** `internal/game_state/daylight_tinting.go`, `internal/game_state/ambient_tinting.go`, `internal/map_state/light_source_tinting.go`
+**Implementation:** `internal/game_state/daylight_tinting.go`, `internal/game_state/ambient_tinting.go`, `internal/game_state/game_state.go`, `internal/map_state/light_source_tinting.go`
 **Tests:** `internal/game_state/daylight_boundary_view_test.go`, `cmd/ultimav/gamescene_daylight_boundary_test.go`, `cmd/ultimav/gamescene_underworld_tint_test.go`

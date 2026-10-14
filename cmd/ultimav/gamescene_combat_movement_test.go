@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 )
@@ -31,6 +33,64 @@ func TestCombatMovementOffset_TraversesActualRoundedGridDistance(t *testing.T) {
 	x, y = g.combatMovementOffset(true, 2, 0)
 	assert.Zero(t, x)
 	assert.Zero(t, y)
+}
+
+func TestFastScheduledMonsterPacingSpeciesAndPartyExclusions(t *testing.T) {
+	for _, kind := range []references.MonsterType{
+		references.MonsterBat, references.MonsterMongbat, references.MonsterOrc, references.MonsterSlime,
+	} {
+		t.Run(kind.Name(), func(t *testing.T) {
+			scene, _, step := newScheduledProjectileTestScene(t, kind, 6)
+			pacing, fast := scene.fastScheduledMonsterPacing(step.Actor)
+			wantFast := kind == references.MonsterBat || kind == references.MonsterMongbat
+			assert.Equal(t, wantFast, fast)
+			if wantFast {
+				assert.Equal(t, combatMonsterPacing{anticipationMs: 75, movementMs: 175}, pacing)
+			}
+			// A possessed PC can share the bat's entity index, but never its profile.
+			partyActor := game_state.CombatTurnIdentity{IsPartyMember: true, EntityIndex: step.Actor.EntityIndex}
+			scene.gameState.CombatScene.PartyPossessed[partyActor.EntityIndex] = true
+			_, fast = scene.fastScheduledMonsterPacing(partyActor)
+			assert.False(t, fast)
+		})
+	}
+}
+
+func TestFastScheduledMonsterPacingScalingAndFallback(t *testing.T) {
+	scene, _, step := newScheduledProjectileTestScene(t, references.MonsterBat, 6)
+	for _, test := range []struct {
+		name   string
+		factor float64
+		want   combatMonsterPacing
+	}{
+		{"quarter", 0.25, combatMonsterPacing{300, 700}},
+		{"normal", 1, combatMonsterPacing{75, 175}},
+		{"double", 2, combatMonsterPacing{38, 88}},
+		{"quadruple", 4, combatMonsterPacing{19, 44}},
+		{"unset", 0, combatMonsterPacing{75, 175}},
+		{"negative", -1, combatMonsterPacing{75, 175}},
+		{"below minimum", 0.24, combatMonsterPacing{75, 175}},
+		{"above maximum", 4.01, combatMonsterPacing{75, 175}},
+		{"nan", math.NaN(), combatMonsterPacing{75, 175}},
+		{"infinity", math.Inf(1), combatMonsterPacing{75, 175}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			scene.gameConfig = &config.UltimaVConfiguration{
+				DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: test.factor},
+			}
+			pacing, fast := scene.fastScheduledMonsterPacing(step.Actor)
+			require.True(t, fast)
+			assert.Equal(t, test.want, pacing)
+		})
+	}
+	for _, configuration := range []*config.UltimaVConfiguration{nil, {DebugConfiguration: nil}} {
+		scene.gameConfig = configuration
+		pacing, fast := scene.fastScheduledMonsterPacing(step.Actor)
+		require.True(t, fast)
+		assert.Equal(t, combatMonsterPacing{75, 175}, pacing)
+	}
+	assert.Equal(t, uint64(1), scaledCombatMovementDuration(1,
+		&config.DebugConfiguration{CombatMovementSpeedFactor: 4}), "rounding retains the minimum duration")
 }
 
 func TestCombatMovementOffset_OnlyMovesSelectedEntity(t *testing.T) {

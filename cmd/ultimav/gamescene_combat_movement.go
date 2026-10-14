@@ -13,6 +13,8 @@ import (
 const (
 	combatPlayerMovementDurationMs uint64 = 333
 	combatEnemyMovementDurationMs  uint64 = 650
+	combatBatAnticipationMs        uint64 = 75
+	combatBatMovementDurationMs    uint64 = 175
 )
 
 const (
@@ -114,9 +116,41 @@ func scaledCombatMovementDuration(
 	baseDurationMs uint64,
 	debugConfiguration *config.DebugConfiguration,
 ) uint64 {
+	return scaleCombatMovementDuration(baseDurationMs, debugConfiguration.GetCombatMovementSpeedFactor())
+}
+
+func scaleCombatMovementDuration(baseDurationMs uint64, factor float64) uint64 {
+	return max(uint64(math.Round(float64(baseDurationMs)/factor)), 1)
+}
+
+type combatMonsterPacing struct {
+	anticipationMs uint64
+	movementMs     uint64
+}
+
+// fastScheduledMonsterPacing captures both durations before any deferred queue
+// stage runs. Only AI bats and mongbats use this profile; possessed PCs also
+// enter the monster workflow, so reject party identities before monster lookup.
+func (g *GameScene) fastScheduledMonsterPacing(actor game_state.CombatTurnIdentity) (combatMonsterPacing, bool) {
+	if actor.IsPartyMember || g.gameState.CombatScene == nil {
+		return combatMonsterPacing{}, false
+	}
+	monster := g.gameState.CombatScene.MonsterManager.GetMonster(actor.EntityIndex)
+	if monster == nil || (monster.MonsterType() != references.MonsterBat &&
+		monster.MonsterType() != references.MonsterMongbat) {
+		return combatMonsterPacing{}, false
+	}
+
+	var debugConfiguration *config.DebugConfiguration
+	if g.gameConfig != nil {
+		debugConfiguration = g.gameConfig.DebugConfiguration
+	}
 	factor := debugConfiguration.GetCombatMovementSpeedFactor()
 
-	return max(uint64(math.Round(float64(baseDurationMs)/factor)), 1)
+	return combatMonsterPacing{
+		anticipationMs: scaleCombatMovementDuration(combatBatAnticipationMs, factor),
+		movementMs:     scaleCombatMovementDuration(combatBatMovementDurationMs, factor),
+	}, true
 }
 
 func (g *GameScene) combatMovementOffset(isPartyMember bool, entityIndex, slot int) (float64, float64) {

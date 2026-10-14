@@ -24,7 +24,7 @@ import (
 func TestCombatCharacterPanelMatchesExplorationThroughConditionsAndHUDDraw(t *testing.T) {
 	// Resolution and all-six selection geometry are independently covered by
 	// mainscreen's original-layout oracle. This integration test checks that the
-	// actual combat HUD cannot contaminate that roster through entry/recovery/exit.
+	// combat text overlay changes only the affected text through entry/recovery/exit.
 	// One resolution and two distinct selections exercise the shared draw path.
 	for _, width := range []int{1280} {
 		t.Run(fmt.Sprint(width), func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestCombatCharacterPanelMatchesExplorationThroughConditionsAndHUDDraw(t *te
 				scene.characterSummary.Draw(&state.PartyState, screen, index, false, -1)
 				baseline[index] = combatRosterPixels(screen, panel)
 			}
-			check := func(phase string) {
+			check := func(phase string, possessed bool) {
 				t.Helper()
 				if state.IsInCombat() {
 					hudScreen.Clear()
@@ -81,9 +81,24 @@ func TestCombatCharacterPanelMatchesExplorationThroughConditionsAndHUDDraw(t *te
 				for _, active := range selections {
 					for _, solo := range []bool{false, true} {
 						screen.Clear()
+						scene.characterSummary.SetCombatText(combatRosterText(state))
 						scene.characterSummary.Draw(&state.PartyState, screen, active, solo, active)
-						require.True(t, bytes.Equal(baseline[active], combatRosterPixels(screen, panel)),
-							"%s changed portraits or standard text; selected=%d solo=%v", phase, active, solo)
+						got := combatRosterPixels(screen, panel)
+						rowBytes := panel.Dy() / 6 * panel.Dx() * 4
+						if possessed {
+							require.False(t, bytes.Equal(baseline[active][:rowBytes], got[:rowBytes]),
+								"possession must immediately change the source text")
+							portraitWidth := panel.Dy()/6 - 4
+							for y := range panel.Dy() / 6 {
+								offset := y * panel.Dx() * 4
+								require.Equal(t, baseline[active][offset:offset+portraitWidth*4], got[offset:offset+portraitWidth*4],
+									"%s changed the persistent portrait", phase)
+							}
+							require.Equal(t, baseline[active][rowBytes:], got[rowBytes:], "other roster rows must be unchanged")
+						} else {
+							require.Equal(t, baseline[active], got,
+								"%s changed portraits or restored text; selected=%d solo=%v", phase, active, solo)
+						}
 					}
 				}
 				for index := range characters {
@@ -93,12 +108,12 @@ func TestCombatCharacterPanelMatchesExplorationThroughConditionsAndHUDDraw(t *te
 			for range 2 { // Re-entering must not retain layout or font changes.
 				require.NoError(t, state.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 				state.BeginCombatTurns(game_state.CombatTurnsImmediate)
-				check("combat entry")
+				check("combat entry", false)
 				combat := state.CombatScene
 				source := game_state.CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 				combat.PartyPossessed[0], combat.PartyUnderground[0], combat.PartySleeping[0] = true, true, true
 				combat.CurrentTurnIdentity = source
-				check("possessed, underground and sleeping source")
+				check("possessed, underground and sleeping source", true)
 				assert.Contains(t, scene.combatHUD.turnOutput.GetOutputStr(false), combatUnknownEntityLabel)
 				assert.NotContains(t, scene.combatHUD.turnOutput.GetOutputStr(false), "PC1", "underground identity stays undisclosed in the live actor HUD")
 				require.True(t, state.CastCombatInQuasXen(0, source))
@@ -107,11 +122,11 @@ func TestCombatCharacterPanelMatchesExplorationThroughConditionsAndHUDDraw(t *te
 				require.Positive(t, clone.Slot)
 				combat.PartyPossessed[0], combat.PartyUnderground[0], combat.PartySleeping[0] = false, false, false
 				combat.CurrentTurnIdentity = clone
-				check("recovered source with affected clone")
+				check("recovered source with affected clone", false)
 				assert.Contains(t, scene.combatHUD.turnOutput.GetOutputStr(false), combatUnknownEntityLabel)
 				assert.NotContains(t, scene.combatHUD.turnOutput.GetOutputStr(false), "CLONE")
 				state.TransitionFromCombatMap()
-				check("combat exit")
+				check("combat exit", false)
 			}
 		})
 	}

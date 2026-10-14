@@ -934,8 +934,7 @@ func (g *GameState) UpdateLightSourceTinting(layer *map_state.LayeredMap) {
 	// Add player-carried light (torch or magic light spell)
 	playerLightType := g.GetPlayerLightType()
 	if playerLightType == map_state.PlayerLightNone && g.AmbientTintDarkness() > 0 {
-		// Tint-only ambient light starts at dusk, or persists in the Underworld;
-		// visibility keeps its existing schedule.
+		// Surface dusk starts cosmetic ambient light before night visibility.
 		playerLightType = map_state.PlayerLightAmbient
 	}
 	g.LightSourceTintingState.UpdatePlayerLight(
@@ -961,7 +960,9 @@ func (g *GameState) GetPlayerLightType() map_state.PlayerLightType {
 
 	// At night or in dark areas without a torch, avatar has minimal ambient vision
 	// This prevents tiles from being full brightness when they should be dimmed
-	if !g.DateTime.IsVisibilityDaylight() {
+	// REDUX DEVIATION: LIGHT-0008: ordinary Underworld exploration keeps the
+	// configured ambient pool at every hour, independent of surface daylight.
+	if (g.MapState.IsUnderworld() && !g.IsInCombat()) || !g.DateTime.IsVisibilityDaylight() {
 		return map_state.PlayerLightAmbient
 	}
 
