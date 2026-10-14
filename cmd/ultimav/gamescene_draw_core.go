@@ -21,6 +21,8 @@ import (
 )
 
 // gameScreenPercents defines the game map area placement (left 76% of screen, full height)
+//
+//nolint:gochecknoglobals // Read-only layout template shared by scene viewport and overlay calculations.
 var gameScreenPercents = sprites.PercentBasedPlacement{
 	StartPercentX: 0.0,
 	EndPercentX:   0.76,
@@ -54,6 +56,8 @@ func cinematicMapPanePlacement() sprites.PercentBasedPlacement {
 // centeredGameDialogPercents defines a square dialog centered within the game area
 // Used for overlay dialogs like GemViewDialog and AstronomyDialog that need to
 // display visual content (maps, star charts) without covering UI panels
+//
+//nolint:gochecknoglobals // Read-only placement template shared by centered map dialogs.
 var centeredGameDialogPercents = sprites.PercentBasedPlacement{
 	StartPercentX: 0.14,
 	EndPercentX:   0.62,
@@ -224,10 +228,7 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		// Position at percentage-based coordinates matching the midRightTextOutputBorder placement
 		g.drawMainOutput(screen)
 
-		g.characterSummary.Draw(&g.gameState.PartyState, screen,
-			g.gameState.GetActivePlayerIndex(),
-			g.gameState.IsSoloMoveMode(),
-			g.gameState.GetSoloMoveCharacterIndex())
+		g.drawCharacterSummary(screen)
 		g.provisionSummary.Draw(g.gameState, screen)
 	}
 

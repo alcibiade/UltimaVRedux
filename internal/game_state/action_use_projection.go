@@ -20,21 +20,22 @@ func (g *GameState) newUseableItemInfo(
 		fullName = name
 	}
 	info := UseableItemInfo{
-		Name:            name,
-		FullName:        fullName,
-		Description:     itemRef.ItemDescription,
-		EffectSummary:   "Uses this item.",
-		NextInteraction: "The effect resolves immediately.",
-		Requirement:     "Ready to use.",
-		Consumption:     "Not consumed.",
-		Warning:         "",
-		AvailableNow:    true,
-		Category:        category,
-		UsageContext:    usage,
-		Quantity:        quantity,
-		SpriteIndex:     itemRef.ItemSprite,
-		ItemRef:         itemRef,
-		ItemType:        item,
+		Name:              name,
+		FullName:          fullName,
+		Description:       itemRef.ItemDescription,
+		EffectSummary:     "Uses this item.",
+		NextInteraction:   "The effect resolves immediately.",
+		Requirement:       "Ready to use.",
+		Consumption:       "Not consumed.",
+		Warning:           "",
+		UnavailableReason: "",
+		AvailableNow:      true,
+		Category:          category,
+		UsageContext:      usage,
+		Quantity:          quantity,
+		SpriteIndex:       itemRef.ItemSprite,
+		ItemRef:           itemRef,
+		ItemType:          item,
 	}
 
 	return g.withUseItemGuidance(info, UsageField)
@@ -43,6 +44,7 @@ func (g *GameState) newUseableItemInfo(
 func (g *GameState) withUseItemGuidance(info UseableItemInfo, context UsageContext) UseableItemInfo {
 	info.AvailableNow = true
 	info.Warning = ""
+	info.UnavailableReason = ""
 
 	switch item := info.ItemType.(type) {
 	case references.Potion:
@@ -57,6 +59,9 @@ func (g *GameState) withUseItemGuidance(info UseableItemInfo, context UsageConte
 		g.addProvisionUseGuidance(&info, item, context)
 	default:
 		panic("use item projection received an unsupported item type")
+	}
+	if !useItemSupportsContext(info.ItemType, info.UsageContext, context) {
+		markUseItemUnavailable(&info, useItemContextRestriction(info.ItemType, context))
 	}
 
 	return info
@@ -112,14 +117,14 @@ func (g *GameState) addPotionUseGuidance(info *UseableItemInfo, potion reference
 		info.NextInteraction = usePotionTargetInteraction(context)
 		info.Requirement = "Its intended effect requires combat."
 		if !review.EffectAvailable {
-			markUseItemUnavailable(info, "No noticeable effect outside combat; it is still consumed.")
+			warnUseItemIneffective(info, "No noticeable effect outside combat; it is still consumed.")
 		}
 	case references.Black:
 		info.EffectSummary = "Usually makes the active combatant invisible for the battle."
 		info.NextInteraction = usePotionTargetInteraction(context)
 		info.Requirement = "Its intended effect requires combat."
 		if !review.EffectAvailable {
-			markUseItemUnavailable(info, "No noticeable effect outside combat; it is still consumed.")
+			warnUseItemIneffective(info, "No noticeable effect outside combat; it is still consumed.")
 		}
 	case references.White:
 		info.EffectSummary = "Usually reveals the immediate surface or town view."
@@ -130,7 +135,7 @@ func (g *GameState) addPotionUseGuidance(info *UseableItemInfo, potion reference
 			if context == UsageDungeon {
 				warning = "No noticeable effect in a dungeon; it is still consumed."
 			}
-			markUseItemUnavailable(info, warning)
+			warnUseItemIneffective(info, warning)
 		}
 	default:
 		panic("use item projection received an unknown potion")
@@ -196,7 +201,7 @@ func (g *GameState) addScrollUseGuidance(info *UseableItemInfo, scroll reference
 			info.Consumption = "Consumed on target confirmation, even with no effect; cancellation is free."
 		}
 		if !g.PartyState.HasDeadMembers() {
-			markUseItemUnavailable(info, "No party member is currently dead.")
+			warnUseItemIneffective(info, "No party member is currently dead; a confirmed attempt still consumes the scroll.")
 		}
 	case references.ScrollAnTym:
 		info.EffectSummary = "Briefly freezes time while the party remains active."
@@ -205,7 +210,7 @@ func (g *GameState) addScrollUseGuidance(info *UseableItemInfo, scroll reference
 		location := g.MapState.PlayerLocation.Location
 		if location == references.Stonegate || location == references.Doom {
 			info.NextInteraction = "Reports 'No effect!' after consumption."
-			markUseItemUnavailable(info, "No effect here; this scroll is still consumed.")
+			warnUseItemIneffective(info, "No effect here; this scroll is still consumed.")
 		}
 	default:
 		panic("use item projection received an unknown scroll")
@@ -372,6 +377,30 @@ func activeState(active bool) string {
 }
 
 func markUseItemUnavailable(info *UseableItemInfo, warning string) {
+	info.UnavailableReason = warning
+	info.NextInteraction = "Unavailable: inspect this restriction or choose another item."
+	warnUseItemIneffective(info, warning)
+}
+
+func warnUseItemIneffective(info *UseableItemInfo, warning string) {
 	info.AvailableNow = false
 	info.Warning = warning
+}
+
+func useItemContextRestriction(item references.Item, context UsageContext) string {
+	if scroll, ok := item.(references.Scroll); ok {
+		//nolint:exhaustive // Only context-restricted scrolls need special wording.
+		switch scroll {
+		case references.ScrollInManiCorp:
+			return "Cannot resurrect during combat."
+		case references.ScrollRelHur:
+			return "Wind can only be changed in towns or outdoors."
+		case references.ScrollInQuasWis:
+			return "The map view cannot be opened during combat."
+		case references.ScrollKalXenCorp:
+			return "Summoning a daemon requires combat."
+		}
+	}
+
+	return fmt.Sprintf("This item's Use interaction is not supported in %s context.", strings.ToLower(context.String()))
 }

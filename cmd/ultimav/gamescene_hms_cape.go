@@ -14,10 +14,10 @@ type hmsCapeConfirmationState struct {
 	dialog     *widgets.InputBox
 	choiceMade bool
 	confirmed  bool
+	committed  bool
 }
 
 func (g *GameScene) startHMSCapeWorkflow(commit *game_state.HMSCapeUseCommit, complete func()) {
-	commitSequence := g.gameState.CastUseCommitSequence()
 	confirmation := &hmsCapeConfirmationState{}
 	g.gameState.EventQueueManager.Workflow(hmsCapeWorkflowName).
 		Priority(event_queue.PriorityNormal).
@@ -28,7 +28,7 @@ func (g *GameScene) startHMSCapeWorkflow(commit *game_state.HMSCapeUseCommit, co
 			g.cleanupHMSCapeConfirmation(confirmation)
 			g.keyboard.ResetReleaseDebouncing()
 			if complete == nil {
-				if g.gameState.CastUseCommitSequence() != commitSequence {
+				if confirmation.committed {
 					g.gameState.AdvanceGameplayMinutesAndProcessProvisions(1)
 				}
 			} else {
@@ -73,13 +73,15 @@ func (g *GameScene) thenConfirmHMSCape(
 					case game_state.HMSCapeUseNoPlans, game_state.HMSCapeUseReady:
 						panic("HMS Cape commit returned a review-only result")
 					case game_state.HMSCapeUseEnabled:
+						confirmation.committed = true
 						g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundSummon)
 						g.gameState.SystemCallbacks.UI.ShowActionFeedback("H.M.S. Cape enabled!", true)
 					case game_state.HMSCapeUseDisabled:
+						confirmation.committed = true
 						g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundSummon)
 						g.gameState.SystemCallbacks.UI.ShowActionFeedback("H.M.S. Cape disabled!", true)
 					case game_state.HMSCapeUseStale:
-						g.gameState.SystemCallbacks.UI.ShowActionFeedback("H.M.S. Cape setting changed; no effect.", true)
+						g.gameState.SystemCallbacks.UI.ShowActionFeedback("H.M.S. Cape selection changed; no effect.", true)
 					default:
 						panic("unsupported HMS Cape commit result")
 					}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -32,7 +33,11 @@ func combatAllegianceText(actor game_state.CombatActorPresentation) string {
 func combatActorContext(actor game_state.CombatActorPresentation) string {
 	parts := []string{combatAllegianceText(actor)}
 	if actor.Possessed {
-		parts = append(parts, "Possessed")
+		condition := "Possessed"
+		if actor.PossessionEpisodeID != 0 {
+			condition = fmt.Sprintf("Possessed - %d/12 turns", actor.PossessionTurns)
+		}
+		parts = append(parts, condition)
 	}
 	if actor.Charmed {
 		parts = append(parts, "Charmed")

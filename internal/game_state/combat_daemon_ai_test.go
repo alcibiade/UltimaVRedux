@@ -748,7 +748,7 @@ func TestShadowlordEscapeRecoversPossessedPCWhileOtherMonsterRemains(t *testing.
 	}
 	addHostileOrcForShadowlordRecoveryTest(gs)
 	victim := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
-	gs.CombatScene.setCombatPCPossessed(victim, true)
+	require.True(t, gs.CombatScene.acquireCombatPossession(victim, shadowlord.CombatantID()))
 	opponent := gs.CombatScene.TurnQueue.GetEntry(1, true)
 	require.NotNil(t, opponent)
 	opponent.status = turnQueueActive
@@ -769,9 +769,9 @@ func TestShadowlordEscapeRecoversPossessedPCWhileOtherMonsterRemains(t *testing.
 	assert.False(t, teleported)
 	assert.False(t, shadowlord.IsActive())
 	assert.False(t, gs.CombatScene.isCombatPCPossessed(victim))
-	assert.True(t, gs.CombatScene.isCombatPCSleeping(victim))
-	assert.Equal(t, party_state.Sleep, gs.PartyState.GetCharacter(0).GetStatus())
-	assert.Equal(t, []CombatEventKind{CombatEventFled, CombatEventRecovery}, combatEventKinds(mock.CombatEvents))
+	assert.False(t, gs.CombatScene.isCombatPCSleeping(victim))
+	assert.Equal(t, party_state.Good, gs.PartyState.GetCharacter(0).GetStatus())
+	assert.Equal(t, []CombatEventKind{CombatEventFled, CombatEventPossessionRelease}, combatEventKinds(mock.CombatEvents))
 }
 
 func TestShadowlordDeathRecoversPossessedPCWhileOtherMonsterRemains(t *testing.T) {
@@ -781,7 +781,7 @@ func TestShadowlordDeathRecoversPossessedPCWhileOtherMonsterRemains(t *testing.T
 	}
 	addHostileOrcForShadowlordRecoveryTest(gs)
 	victim := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
-	gs.CombatScene.setCombatPCPossessed(victim, true)
+	require.True(t, gs.CombatScene.acquireCombatPossession(victim, shadowlord.CombatantID()))
 	shadowlord.SetCurrentHP(0)
 	mock.Reset()
 
@@ -790,11 +790,11 @@ func TestShadowlordDeathRecoversPossessedPCWhileOtherMonsterRemains(t *testing.T
 	)
 
 	assert.False(t, gs.CombatScene.isCombatPCPossessed(victim))
-	assert.True(t, gs.CombatScene.isCombatPCSleeping(victim))
-	assert.Equal(t, party_state.Sleep, gs.PartyState.GetCharacter(0).GetStatus())
+	assert.False(t, gs.CombatScene.isCombatPCSleeping(victim))
+	assert.Equal(t, party_state.Good, gs.PartyState.GetCharacter(0).GetStatus())
 	require.Len(t, mock.CombatEvents, 2)
 	assert.Equal(t, CombatEventVanished, mock.CombatEvents[0].Kind)
-	assert.Equal(t, CombatEventRecovery, mock.CombatEvents[1].Kind)
+	assert.Equal(t, CombatEventPossessionRelease, mock.CombatEvents[1].Kind)
 }
 
 func addHostileOrcForShadowlordRecoveryTest(gs *GameState) {

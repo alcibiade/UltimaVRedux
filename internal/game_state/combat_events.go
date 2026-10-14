@@ -66,6 +66,10 @@ const (
 	CombatEventChestTrap
 	// CombatEventInterruption records one action/source rejected by melee interference.
 	CombatEventInterruption
+	// CombatEventPossessionResistance records a surviving episode milestone.
+	CombatEventPossessionResistance
+	// CombatEventPossessionRelease records freedom without emergency pass-out.
+	CombatEventPossessionRelease
 )
 
 // CombatInterruptedAction identifies the attempted action, before any spell or
@@ -246,17 +250,20 @@ type CombatEvent struct {
 	Visibility CombatVisibilityResult
 	FieldKind  CombatFieldKind
 	// FieldFizzled distinguishes a field expiring during the same action that created it.
-	FieldFizzled      bool
-	UtilityResult     CombatUtilityResult
-	Summon            CombatSummonEvent
-	AnXenCorp         CombatAnXenCorpEvent
-	Created           CombatSummonedMonster
-	Vanished          CombatVanishedMonster
-	Diagnostics       CombatDiagnostics
-	Pickup            CombatPickupEvent
-	LootReveal        CombatLootReveal
-	ChestTrap         CombatChestTrapResult
-	InterruptedAction CombatInterruptedAction
+	FieldFizzled            bool
+	UtilityResult           CombatUtilityResult
+	Summon                  CombatSummonEvent
+	AnXenCorp               CombatAnXenCorpEvent
+	Created                 CombatSummonedMonster
+	Vanished                CombatVanishedMonster
+	Diagnostics             CombatDiagnostics
+	Pickup                  CombatPickupEvent
+	LootReveal              CombatLootReveal
+	ChestTrap               CombatChestTrapResult
+	InterruptedAction       CombatInterruptedAction
+	PossessionEpisodeID     uint64
+	PossessionTurns         int
+	PossessionReleaseReason CombatPossessionReleaseReason
 }
 
 // CombatSpecialConclusion identifies an encounter outcome requiring external orchestration.

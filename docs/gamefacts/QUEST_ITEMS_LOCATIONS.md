@@ -79,4 +79,13 @@ Sceptre fallback and reports no effect; dungeon/combat removal stays context-own
 Shard consumption is SHADOW-0005; Carpet, plans, instruments, Watch use their owning
 rules. Box has no operative Use effect in the inspected original handler.
 
-**Implementation:** `internal/game_state/duration_effect.go`, `internal/game_state/action_use.go`
+Owned Crown, Amulet, and Black Badge are actionable through combat Use: confirmed
+wear/remove retains the artifact and completes exactly one current actor action.
+Selecting the Crown preserves its duration-effect replacement rules and its
+protection against enemy magical abilities, including acquisition of possession.
+This is prevention, not a cure of an already active possession episode. Inventory,
+context, and exact encounter/actor ownership are revalidated before activation;
+stale or unavailable selections are free under CONSUME-0001.
+
+**Implementation:** `internal/game_state/duration_effect.go`, `internal/game_state/action_use.go`, `cmd/ultimav/gamescene_use.go`
+**Tests:** `internal/game_state/combat_artifact_use_test.go`, `cmd/ultimav/gamescene_combat_artifact_use_test.go`

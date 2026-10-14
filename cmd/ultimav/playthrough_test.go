@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -293,6 +296,16 @@ func TestManualDescriptionNestedRetryRemovesAllDialogsAndDoesNotAdvanceGameplay(
 }
 
 func TestSaveLocationAndLocalTimePresentation(t *testing.T) {
+	if zone := os.Getenv(saveTimeFixtureEnvironment); zone != "" {
+		if zone == "named" {
+			assert.Equal(t, "Sep 6, 2026, 6:00 PM PDT", playerSaveLocalTime(time.Date(2026, 9, 7, 1, 0, 0, 0, time.UTC)))
+			assert.Equal(t, "Mar 8, 2026, 1:59 AM PST", playerSaveLocalTime(time.Date(2026, 3, 8, 9, 59, 0, 0, time.UTC)))
+			assert.Equal(t, "Mar 8, 2026, 3:00 AM PDT", playerSaveLocalTime(time.Date(2026, 3, 8, 10, 0, 0, 0, time.UTC)))
+		} else {
+			assert.Contains(t, playerSaveLocalTime(time.Date(2026, 9, 7, 1, 0, 0, 0, time.UTC)), "+0530")
+		}
+		return
+	}
 	for floor, want := range map[int]string{-2: "basement 2", -1: "basement", 0: "main", 1: "1st", 2: "2nd", 3: "3rd", 11: "11th", 12: "12th", 13: "13th", 21: "21st", 22: "22nd", 23: "23rd"} {
 		assert.Equal(t, "Britain, "+want, playerSaveLocationLabel(int(references.Britain), floor))
 	}
@@ -300,16 +313,37 @@ func TestSaveLocationAndLocalTimePresentation(t *testing.T) {
 	assert.Equal(t, "Deceit, level 8", playerSaveLocationLabel(int(references.Deceit), 7))
 	assert.Equal(t, "Britannia", playerSaveLocationLabel(int(references.BritanniaUnderworld), 0))
 	assert.Equal(t, "Underworld", playerSaveLocationLabel(int(references.BritanniaUnderworld), int(references.UNDERWORLD)))
-	local := time.Local
-	t.Cleanup(func() { time.Local = local })
-	zone, err := time.LoadLocation("America/Los_Angeles")
+	executable, err := os.Executable()
 	require.NoError(t, err)
-	time.Local = zone
-	assert.Equal(t, "Sep 6, 2026, 6:00 PM PDT", playerSaveLocalTime(time.Date(2026, 9, 7, 1, 0, 0, 0, time.UTC)))
-	assert.Equal(t, "Mar 8, 2026, 1:59 AM PST", playerSaveLocalTime(time.Date(2026, 3, 8, 9, 59, 0, 0, time.UTC)))
-	assert.Equal(t, "Mar 8, 2026, 3:00 AM PDT", playerSaveLocalTime(time.Date(2026, 3, 8, 10, 0, 0, 0, time.UTC)))
-	time.Local = time.FixedZone("", 5*60*60+30*60)
-	assert.Contains(t, playerSaveLocalTime(time.Date(2026, 9, 7, 1, 0, 0, 0, time.UTC)), "+0530")
+	for _, zone := range []string{"named", "unnamed"} {
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		command := exec.CommandContext(ctx, executable, "-test.run=^TestSaveLocationAndLocalTimePresentation$", "-test.count=1")
+		command.Env = append(os.Environ(), saveTimeFixtureEnvironment+"="+zone)
+		output, runErr := command.CombinedOutput()
+		cancel()
+		require.NoError(t, runErr, "isolated %s timezone fixture: %s", zone, output)
+	}
+}
+
+const saveTimeFixtureEnvironment = "ULTIMAV_TEST_SAVE_TIME_ZONE"
+
+// Initialize timezone fixtures before any native loop is running. The child
+// executes only the formatting test: the parent continues its native rendering
+// normally and never mutates the process-wide location read by time.Now.
+func initializeSaveTimeFixture() bool {
+	switch os.Getenv(saveTimeFixtureEnvironment) {
+	case "named":
+		zone, err := time.LoadLocation("America/Los_Angeles")
+		if err != nil {
+			panic(err)
+		}
+		time.Local = zone
+	case "unnamed":
+		time.Local = time.FixedZone("", 5*60*60+30*60)
+	default:
+		return false
+	}
+	return true
 }
 
 func TestDoomRecoveryRequiresPlaythroughAndRestoresIndependentNote(t *testing.T) {

@@ -162,7 +162,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	attacker := gs.PartyState.GetCharacter(attackerIndex)
 	experienceBefore := attacker.Exp
 	victim := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
-	gs.CombatScene.setCombatPCPossessed(victim, true)
+	require.True(t, gs.CombatScene.acquireCombatPossession(victim, shadowlord.CombatantID()))
 	attacker.SetEquippedItem(references.SlotWeapon, references.ChaosSword)
 	entry := gs.CombatScene.TurnQueue.GetEntry(shadowlordIndex, false)
 	require.NotNil(t, entry)
@@ -173,7 +173,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	gs.SystemCallbacks.Combat = NewCombatCallbacks(func(event CombatEvent) {
 		mock.CombatEvents = append(mock.CombatEvents, event)
 		eventExperience = append(eventExperience, attacker.Exp)
-		if event.Kind == CombatEventRecovery {
+		if event.Kind == CombatEventPossessionRelease {
 			releasedBeforeRecovery = entry.sourceSlotReleased
 		}
 	}, publishConclusion)
@@ -187,14 +187,15 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	assert.Equal(t, randomCallsBefore, gs.GetRNG().Calls(), "disappearance must bypass both treasure rolls")
 	assert.Zero(t, gs.CombatScene.ObjectCount())
 	assert.True(t, entry.sourceSlotReleased)
-	assert.True(t, releasedBeforeRecovery, "the disappearing monster must be removed before badtrip recovery")
+	assert.True(t, releasedBeforeRecovery, "the disappearing controller is removed before attributed release")
 	assert.False(t, gs.CombatScene.isCombatPCPossessed(victim))
-	assert.True(t, gs.CombatScene.isCombatPCSleeping(victim))
+	assert.False(t, gs.CombatScene.isCombatPCSleeping(victim))
+	assert.Equal(t, references.ChaosSword, attacker.GetEquippedItem(references.SlotWeapon))
 	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
 	assert.Equal(t, []uint16{experienceBefore, experienceBefore, experienceBefore}, eventExperience,
 		"XP credit must follow fatal feedback, disappearance, and recovery")
 	require.Len(t, mock.CombatEvents, 3)
-	assert.Equal(t, []CombatEventKind{CombatEventAttack, CombatEventVanished, CombatEventRecovery},
+	assert.Equal(t, []CombatEventKind{CombatEventAttack, CombatEventVanished, CombatEventPossessionRelease},
 		combatEventKinds(mock.CombatEvents))
 	vanished := mock.CombatEvents[1].Vanished
 	assert.Equal(t, shadowlord.CombatantID(), vanished.CombatantID)

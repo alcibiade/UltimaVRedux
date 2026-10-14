@@ -83,6 +83,10 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 				entry.Unavailable = "Not available during combat."
 			}
 			switch entry.Key {
+			case "G", "J", "O", "P", "S":
+				entry.NextInput = "Arrow/keypad direction; Esc: Cancel without spending the action. Space: Pass spends the action."
+			case "K":
+				entry.NextInput = "Ordinary direction: Esc cancels for free; Space passes the action. Underfoot ladders and the U/D ladder selector use their displayed route."
 			case "A":
 				entry.NextInput = "Arrows/keypad aim; Enter or A attacks. Escape cancels before the first attack, " +
 					"then skips the remaining weapon. Space skips at your own square and attacks elsewhere."

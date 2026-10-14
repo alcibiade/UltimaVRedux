@@ -116,7 +116,8 @@ func (g *GameState) replaceCombatTargetWithRat(target CombatTurnIdentity, positi
 		panic("rat reference is unavailable: " + err.Error())
 	}
 	rat := NewCombatMonster(references.MonsterRat, ratReference, position, g.AsRandomProvider())
-	g.CombatScene.ReplaceCombatantWithMonster(target, rat)
+	_, controller := g.CombatScene.replaceCombatantWithMonster(target, rat)
+	g.releaseCombatController(controller, CombatPossessionReleaseControllerReplaced)
 
 	return true
 }

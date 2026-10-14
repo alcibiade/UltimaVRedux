@@ -252,6 +252,7 @@ func (g *GameState) EndSurfaceCommandRouting() {
 func (g *GameState) FinishCombatAction() {
 	g.finishCombatAction()
 	if g.CombatScene != nil {
+		g.completeCombatPossessionTurn(g.CombatScene.possessionTurn)
 		g.AdvanceCombatTurn()
 	}
 }
@@ -348,6 +349,7 @@ func (g *GameState) FinishCombatSelection() {
 		// scheduler still applies actor-local standing effects. ref:COMBAT-0002
 		g.resolveCombatPCStandingEffects(g.CombatScene.GetCurrentTurnIdentity())
 	}
+	g.completeCombatPossessionTurn(g.CombatScene.possessionTurn)
 	g.AdvanceCombatTurn()
 }
 

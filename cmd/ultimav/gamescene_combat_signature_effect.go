@@ -37,23 +37,24 @@ const (
 // Results have already committed. These snapshots never resolve an action or
 // use gameplay RNG. Encounter + identity guards prevent recycled-slot effects.
 type combatSignatureEffect struct {
-	Encounter       *game_state.CombatState
-	Kind            game_state.CombatEventKind
-	Condition       game_state.CombatConditionResult
-	Actor           game_state.CombatTurnIdentity
-	CombatantID     game_state.CombatantID
-	From, To        references.Position
-	Sprite          indexes.SpriteIndex
-	StartedMs       int64
-	DurationMs      int64
-	OriginDisclosed bool
-	Frame           *ebiten.Image
-	BodyFrame       *ebiten.Image
-	HealthFrame     *ebiten.Image
-	Dissolve        DissolveEffectState
-	Highlight       *ebiten.Image
-	GatePhase       combatGatePhase
-	PhaseStartedMs  int64
+	Encounter           *game_state.CombatState
+	Kind                game_state.CombatEventKind
+	Condition           game_state.CombatConditionResult
+	Actor               game_state.CombatTurnIdentity
+	CombatantID         game_state.CombatantID
+	PossessionEpisodeID uint64
+	From, To            references.Position
+	Sprite              indexes.SpriteIndex
+	StartedMs           int64
+	DurationMs          int64
+	OriginDisclosed     bool
+	Frame               *ebiten.Image
+	BodyFrame           *ebiten.Image
+	HealthFrame         *ebiten.Image
+	Dissolve            DissolveEffectState
+	Highlight           *ebiten.Image
+	GatePhase           combatGatePhase
+	PhaseStartedMs      int64
 }
 
 func (g *GameScene) showCombatSignatureEffect(event game_state.CombatEvent) {
@@ -69,6 +70,7 @@ func (g *GameScene) showCombatSignatureEffect(event game_state.CombatEvent) {
 		effect.DurationMs = combatGateDurationMs
 		effect.PhaseStartedMs = effect.StartedMs
 	case game_state.CombatEventPossession:
+		effect.PossessionEpisodeID = event.PossessionEpisodeID
 		sound = game_state.SoundMonsterPossession
 		effect.Actor = combatTurnIdentityForFeedback(event.Target)
 		effect.DurationMs = combatPossessionDurationMs
@@ -163,7 +165,9 @@ func (g *GameScene) combatSignatureEffectCurrent(effect *combatSignatureEffect) 
 			return false
 		}
 		if effect.Kind == game_state.CombatEventPossession {
-			return effect.Encounter.IsCombatPCPossessed(effect.Actor)
+			episode, _, _ := effect.Encounter.CombatPossessionProgress(effect.Actor)
+
+			return effect.Encounter.IsCombatPCPossessed(effect.Actor) && episode == effect.PossessionEpisodeID
 		}
 		if effect.Kind == game_state.CombatEventCondition {
 			underground := effect.Encounter.IsCombatPCUnderground(effect.Actor)

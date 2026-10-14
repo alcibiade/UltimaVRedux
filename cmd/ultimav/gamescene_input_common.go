@@ -60,6 +60,11 @@ func (g *GameScene) appendOrdinaryDirectionHint(mapType references.GeneralMapTyp
 	if mapType != references.CombatMapType {
 		return
 	}
+	if g.hasUncommittedCombatDirection() {
+		g.output.AppendCommandHintOnce(ordinaryDirectionHint + "; Esc: Cancel")
+
+		return
+	}
 	//nolint:exhaustive // Only states handled by ordinaryDirectionInput need this hint.
 	switch g.secondaryKeyState {
 	case GetDirectionInput, PushDirectionInput, OpenDirectionInput, JimmyDoorDirectionInput,

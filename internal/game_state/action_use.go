@@ -34,6 +34,7 @@ func formatItemName(name string) string {
 // UseItemCategory represents the category groupings for usable items
 type UseItemCategory int
 
+// Use inventory categories group owned items independently of their availability.
 const (
 	UseItemCategoryQuest UseItemCategory = iota
 	UseItemCategoryPotion
@@ -46,6 +47,7 @@ const (
 // UsageContext indicates when an item can be used
 type UsageContext int
 
+// Usage contexts identify the supported item interaction routes.
 const (
 	UsageAnytime UsageContext = iota // Usable in combat and field
 	UsageField                       // Field/exploration use only
@@ -79,13 +81,15 @@ type UseableItemInfo struct {
 	Requirement     string
 	Consumption     string
 	Warning         string
-	AvailableNow    bool
-	Category        UseItemCategory
-	UsageContext    UsageContext
-	Quantity        int
-	SpriteIndex     indexes.SpriteIndex
-	ItemRef         references.InventoryItem
-	ItemType        references.Item
+	// UnavailableReason blocks activation; AvailableNow describes effect applicability only.
+	UnavailableReason string
+	AvailableNow      bool
+	Category          UseItemCategory
+	UsageContext      UsageContext
+	Quantity          int
+	SpriteIndex       indexes.SpriteIndex
+	ItemRef           references.InventoryItem
+	ItemType          references.Item
 }
 
 // GetUsableItems returns all usable items in the player's inventory, organized for the UI
@@ -99,7 +103,7 @@ func (g *GameState) GetUsableItems() []UseableItemInfo {
 		if qty > 0 {
 			itemRef := g.GameReferences.InventoryItemReferences.QuestItem[questItem]
 			usageContext := UsageField
-			if questItem == references.HMSCape {
+			if questItem == references.HMSCape || questItem == references.BlackBadge {
 				usageContext = UsageAnytime
 			}
 			items = append(items, g.newUseableItemInfo(
@@ -148,7 +152,7 @@ func (g *GameState) GetUsableItems() []UseableItemInfo {
 		if qty > 0 {
 			itemRef := g.GameReferences.InventoryItemReferences.QuestItem[questItem]
 			usageContext := UsageField
-			if questItem == references.Sceptre {
+			if questItem == references.Sceptre || questItem == references.Crown || questItem == references.Amulet {
 				usageContext = UsageAnytime
 			}
 
@@ -194,18 +198,16 @@ func (g *GameState) GetUsableItems() []UseableItemInfo {
 	return items
 }
 
-// GetUsableItemsForContext returns items supported by the current Use workflow.
+// GetUsableItemsForContext projects ownership separately from activation permission.
+// REDUX DEVIATION: CONSUME-0001: original Use checks context after expenditure;
+// Redux keeps owned items inspectable and rejects unavailable activation for free.
 func (g *GameState) GetUsableItemsForContext(context UsageContext) []UseableItemInfo {
 	items := g.GetUsableItems()
-	filtered := make([]UseableItemInfo, 0, len(items))
-	for _, item := range items {
-		if !useItemSupportsContext(item.ItemType, item.UsageContext, context) {
-			continue
-		}
-		filtered = append(filtered, g.withUseItemGuidance(item, context))
+	for index := range items {
+		items[index] = g.withUseItemGuidance(items[index], context)
 	}
 
-	return filtered
+	return items
 }
 
 func useItemSupportsContext(item references.Item, usage UsageContext, context UsageContext) bool {
@@ -269,7 +271,8 @@ func (g *GameState) RevalidateUseItemSelection(
 	}
 	for _, current := range g.GetUsableItemsForContext(context) {
 		if current.ItemType.Type() == selection.ItemType.Type() &&
-			current.ItemType.ID() == selection.ItemType.ID() && current.Quantity == selection.Quantity {
+			current.ItemType.ID() == selection.ItemType.ID() &&
+			current.Quantity == selection.Quantity && current.UnavailableReason == "" {
 			return current, true
 		}
 	}
@@ -294,8 +297,12 @@ func getCategoryForToolQuestItem(item references.QuestItem) UseItemCategory {
 	switch item {
 	case references.PocketWatch, references.Sextant, references.Spyglass:
 		return UseItemCategoryTools
-	default:
+	case references.Amulet, references.Crown, references.Sceptre,
+		references.ShardOfFalsehood, references.ShardOfHatred, references.ShardOfCowardice,
+		references.Carpet, references.Grapple, references.HMSCape, references.BlackBadge, references.WoodenBox:
 		return UseItemCategoryQuest
+	default:
+		panic("unknown Use quest item category")
 	}
 }
 
@@ -589,8 +596,8 @@ func (g *GameState) executeScrollEffect(scroll references.Scroll, complete func(
 		return g.ActivateNegateMagicEffect(duration)
 
 	case references.ScrollKalXenCorp: // Summon Daemon (combat only)
-		// TODO: Implement combat summoning system
-		g.SystemCallbacks.UI.ShowActionFeedback("Summon scroll not yet implemented!", true)
+		// The combat Use workflow owns summoning; this exploration dispatcher cannot perform it.
+		g.SystemCallbacks.UI.ShowActionFeedback("Use the combat scroll workflow!", true)
 
 		return false
 
@@ -910,48 +917,29 @@ func (g *GameState) IsSpyglassLocationValid() bool {
 		g.MapState.PlayerLocation.Floor >= 0
 }
 
-func (g *GameState) ActionUseSmallMap(direction references.Direction) bool {
-	// TODO: Implement other small map Use commands - see Commands.md Use section
-	// Should handle:
-	// - Magic Carpet usage (boarding conditions, consumption)
-	// - Skull Key usage (directional In Ex Por semantics)
-	// - Amulet/Crown equipping (persistent effects)
-	// - Sceptre usage (clear chests/dispel fields)
-	// - Spyglass usage (astronomy at night)
-	// - Item validation and context gating
-
-	// Special items not implemented yet
+// ActionUseSmallMap is a legacy direction handler, unused by the item picker.
+func (g *GameState) ActionUseSmallMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
 
 	return false
 }
 
-func (g *GameState) ActionUseLargeMap(direction references.Direction) bool {
-	// TODO: Implement large map Use command - see Commands.md Use section
-	// Large map variant of use command
-
-	// Special items not implemented yet
+// ActionUseLargeMap is a legacy direction handler, unused by the item picker.
+func (g *GameState) ActionUseLargeMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
 
 	return false
 }
 
-func (g *GameState) ActionUseCombatMap(direction references.Direction) bool {
-	// TODO: Implement combat map Use command - see Commands.md Use section
-	// Combat map variant of use command - items/spells during combat
-
-	// Not allowed during combat
+// ActionUseCombatMap is a legacy direction handler, unused by the combat item picker.
+func (g *GameState) ActionUseCombatMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("Not now!")
 
 	return false
 }
 
-func (g *GameState) ActionUseDungeonMap(direction references.Direction) bool {
-	// TODO: Implement dungeon map Use command - see Commands.md Use section
-	// Dungeon map variant of use command
-	// Should handle special dungeon items and fixtures
-
-	// Special items not implemented yet
+// ActionUseDungeonMap is a legacy direction handler, unused by the dungeon item picker.
+func (g *GameState) ActionUseDungeonMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
 
 	return false

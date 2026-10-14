@@ -89,21 +89,30 @@ func (g *GameScene) thenCastCombatSummon(spell references.Spell, casterIdx int) 
 	return g.thenCombatSummon(spell, casterIdx, false)
 }
 
-func (g *GameScene) thenUseCombatDaemonScroll() event_queue.Sequence {
+func (g *GameScene) thenUseCombatDaemonScroll(canCommit func() bool, didCommit *bool) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		casterIdx := g.gameState.CombatScene.GetActiveCombatantIndex()
 
 		return g.thenCommitCombatScroll(references.ScrollKalXenCorp,
-			g.thenCombatSummon(references.KalXenCorp, casterIdx, true))(q)
+			g.thenCombatSummon(references.KalXenCorp, casterIdx, true), canCommit, didCommit)(q)
 	}
 }
 
 func (g *GameScene) thenCombatSummon(spell references.Spell, casterIdx int, fromScroll bool) event_queue.Sequence {
+	owner := g.gameState.CaptureCombatUseOwner()
+	origin := g.gameState.MapState.PlayerLocation
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var result game_state.CombatSummonResult
 		invocationMs, sealMs, manifestationMs, allegianceMs := combatSummonDurations(spell)
 
 		return q.Then(func() {
+			if fromScroll && (!g.gameState.IsCurrentCombatUseOwner(owner) ||
+				g.gameState.MapState.PlayerLocation != origin) {
+				result.Outcome = game_state.CombatSummonInvalidCaster
+
+				return
+			}
 			// Resolve once before exposing any presentation state. The result owns all later VFX decisions.
 			//nolint:exhaustive // Dispatch limits this sequence to the three summoning spells.
 			switch spell {

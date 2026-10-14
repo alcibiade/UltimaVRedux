@@ -487,6 +487,14 @@ formats those detached conditions for the combat turn HUD, which shows the
 disclosed acting entry's own combination. Concealed/underground actors use
 `Unknown` rather than leaking their names or clone identity in live readouts.
 Source and clone conditions remain independent.
+Enemy-possession conditions additionally carry a detached episode ID and completed
+own-turn progress, shown as `Possessed - 8/12 turns`. Chaos-only control has no
+timer. Onset effects require the same encounter and episode, so a cure followed
+by reacquisition cannot revive an old effect. Typed resistance/release events
+use the report's text.Output paths and freeze the exact victim name without
+disclosing its controller. Their allegiance observation prevents duplicate side
+announcements. Ordinary release is distinct from emergency pass-out recovery;
+the authoritative policy is [COMBAT-0005](../gamefacts/COMBAT.md#combat-0005).
 Persistent conditions such as Poisoned can coexist; this projection never
 mutates the party roster to force a colour or label.
 
@@ -494,8 +502,16 @@ The top-right party panel uses the same portraits, two-line name/HP/status/MP
 layout, XLarge font, and line spacing in combat and exploration. In particular,
 `Pois.` remains in its ordinary status column with its ordinary typography;
 entering combat does not shrink portraits or move status text into a compact
-block. Encounter-only details belong to the combat HUD and exact-actor
-battlefield indicators, not a second roster layout.
+block. A detached text overlay supplies each original party entry's exact combat
+conditions without inheriting its clones' conditions or changing persistent roster
+status. Text precedence is Dead, Possessed/Charmed, Poisoned, Sleep, then Good.
+Possession uses semantic light blue and the full `Possessed` label; the status
+label alone is measured to fit its existing cell when necessary, leaving MP,
+names, portraits, and row geometry unchanged. Selection keeps its existing
+brightness distinction. The text cache includes effective label, colour, and cell
+width, so acquisition, recovery, resizing, and combat exit update immediately.
+Clone-specific conditions and resistance progress remain in the exact-actor HUD
+and battlefield indicators, not a second roster layout.
 
 The ongoing Possessed marker is a blue cap inside the sprite's upper edge and
 is paired with explicit `Possessed` text. It remains distinct from active

@@ -79,7 +79,7 @@ func (g *GameScene) captureCombatReportIdentities(event game_state.CombatEvent) 
 		snapshot.DetailsDisclosed = snapshot.Attacker.Disclosed && visible(event.To)
 	case game_state.CombatEventRetired, game_state.CombatEventFled:
 		snapshot.DetailsDisclosed = snapshot.Attacker.Disclosed
-	case game_state.CombatEventRecovery:
+	case game_state.CombatEventRecovery, game_state.CombatEventPossessionResistance, game_state.CombatEventPossessionRelease:
 		snapshot.DetailsDisclosed = snapshot.Target.Disclosed
 	case game_state.CombatEventGating:
 		snapshot.CreatedDisclosed = g.combatMonsterDisclosed(event.Created.Index, event.Created.CombatantID, event.Created.Position)

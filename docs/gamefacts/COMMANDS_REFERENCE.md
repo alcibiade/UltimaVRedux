@@ -103,7 +103,7 @@ Its current native-save workflow is separate from the original file-write facts.
 
 ### CMD-0003
 
-**Ordinary direction input, Pass, and free surface Escape**
+**Ordinary direction input, Pass, and free precommit Escape**
 
 **Kind:** rule
 **Uses:** TIME-0002
@@ -120,6 +120,13 @@ may support diagonals; that does not enlarge exploration direction input.
 Look, Talk, Search, Attack and outdoor Fire permit Escape with no time, actor
 phase, resource, or gameplay RNG. It restores primary input, reports cancellation,
 and consumes Escape through release so the same press cannot open the menu.
+Combat Klimb, Open, Jimmy, Push, Get, and Search ordinary direction prompts also
+permit free Escape before commitment, retaining the exact actor and action. This
+includes controlled-monster Push and an ordinary Klimb retry. Consuming Escape
+through release prevents the held press from becoming a battlefield-exit request.
+Single-route underfoot exits, the dual-ladder U/D selector, tactical attack/spell
+selectors, and item workflows retain their own contracts.
+
 This lets accidental commands be abandoned. Space remains Pass: ordinary surface
 commands complete their map cycle, except outdoor Attack Pass is free. Invalid
 keys/keypad diagonals leave the prompt active. Tactical aiming and dungeon
@@ -127,15 +134,16 @@ retained cycles keep their own rules. Current Use is an item workflow, not the
 declared but unreachable ordinary Use-direction state.
 
 Surface prompts use short command text without an inline key legend; contextual
-Help explains cardinal input, Escape and Space's command-specific cost. Ordinary
-combat prompts retain their distinct guidance. Hole Up guard selection has a
+Help explains cardinal input, Escape and Space's command-specific cost. The six
+ordinary combat prompts advertise `Arrows; Space: Pass; Esc: Cancel`; their Pass
+spends exactly one action. Hole Up guard selection has a
 separate boundary: Escape cancels setup, while explicitly choosing No One starts
 unguarded camping. Surface cancellation is free; dungeon cancellation retains
 its precharged cycle. Neither cancellation runs camp setup, stowing, rest, or
 encounters.
 
-**Implementation:** `cmd/ultimav/gamescene_surface_direction_cancel.go`
-**Tests:** `cmd/ultimav/gamescene_surface_direction_cancel_test.go`
+**Implementation:** `cmd/ultimav/gamescene_surface_direction_cancel.go`, `cmd/ultimav/gamescene_combat_direction_cancel.go`
+**Tests:** `cmd/ultimav/gamescene_surface_direction_cancel_test.go`, `cmd/ultimav/gamescene_combat_direction_cancel_test.go`
 
 ### CMD-0004
 

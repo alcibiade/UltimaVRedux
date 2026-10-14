@@ -376,13 +376,18 @@ func (d *ItemSelectionDialog) selectedItem() *game_state.UseableItemInfo {
 	return &items[index]
 }
 
-// HandleEnter emits the selected detached item exactly once and closes the picker.
+// HandleEnter submits permitted attempts; unavailable entries remain inspectable.
 func (d *ItemSelectionDialog) HandleEnter() {
 	if d.dismissed {
 		return
 	}
 	item := d.selectedItem()
 	if item == nil {
+		return
+	}
+	if item.UnavailableReason != "" {
+		d.detailPage = 0 // Show the concrete restriction rather than dismissing the picker.
+
 		return
 	}
 	d.dismissed = true
@@ -611,10 +616,19 @@ func (d *ItemSelectionDialog) calculateDetailRects(lineHeight int) {
 }
 
 func (d *ItemSelectionDialog) drawHeader(screen *ebiten.Image) {
+	title := "Use Item"
+	for _, item := range d.allItems {
+		if item.UnavailableReason != "" {
+			title = "Use Item  [No] Unavailable"
+
+			break
+		}
+	}
+	d.titleOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(d.layout.titleRect.Dx())))
 	d.titleOutput.Reset()
 	d.titleOutput.AppendLine().
 		WithAlignment(etext.AlignCenter).
-		Text("Use Item", DialogHeaderColor).
+		Text(title, DialogHeaderColor).
 		Done()
 	d.titleOutput.DrawPanelContent(screen, d.layout.titleRect.Min, d.layout.titleRect.Dx(), etext.AlignCenter)
 
@@ -665,6 +679,10 @@ func (d *ItemSelectionDialog) drawListRow(
 ) {
 	textColor := DialogItemNameColor
 	quantityColor := DialogItemQuantityColor
+	if item.UnavailableReason != "" {
+		textColor = pkgcolor.UITextDisabled.RGBA()
+		quantityColor = pkgcolor.UITextDisabled.RGBA()
+	}
 	if selected {
 		vector.FillRect(
 			screen,
@@ -687,7 +705,7 @@ func (d *ItemSelectionDialog) drawListRow(
 
 	d.rowOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(nameWidth)))
 	d.rowOutput.Reset()
-	d.rowOutput.AppendLine().Text(item.Name, textColor).Done()
+	d.rowOutput.AppendLine().Text(useItemRowLabel(item), textColor).Done()
 	d.rowOutput.DrawPanelContent(
 		screen,
 		image.Pt(rect.Min.X+padding, rect.Min.Y),
@@ -787,11 +805,15 @@ func (d *ItemSelectionDialog) drawDetailHeader(screen *ebiten.Image, item game_s
 
 func (d *ItemSelectionDialog) drawFooter(screen *ebiten.Image) {
 	content := d.footerContentRect()
+	enter := "Use"
+	if item := d.selectedItem(); item != nil && item.UnavailableReason != "" {
+		enter = "Why unavailable"
+	}
 	drawModifierFooter(
 		screen,
 		content,
 		"[Tab/Shift-Tab] Category  [Space] Details\n"+
-			"[Up/Dn] Item  [Shift+Up/Dn] Page  [Enter] Use  [Esc] Cancel",
+			"[Up/Dn] Item  [Shift+Up/Dn] Page  [Enter] "+enter+"  [Esc] Cancel",
 		itemDialogFooterLines,
 		d.footerOutput,
 	)
@@ -828,6 +850,11 @@ func (d *ItemSelectionDialog) actionDetailLines(item game_state.UseableItemInfo)
 		{label: "Now", value: item.Requirement, color: statusColor, header: false},
 		{label: "Consumed", value: item.Consumption, color: DialogValueColor, header: false},
 	}
+	if item.UnavailableReason != "" {
+		lines = append([]itemSelectionDetailLine{{
+			label: "Unavailable", value: item.UnavailableReason, color: DialogStatusWarningColor, header: false,
+		}}, lines...)
+	}
 	if warning := strings.TrimSpace(item.Warning); warning != "" {
 		lines = append(lines, itemSelectionDetailLine{
 			label: "Warning", value: warning, color: DialogWarningColor, header: false,
@@ -835,6 +862,14 @@ func (d *ItemSelectionDialog) actionDetailLines(item game_state.UseableItemInfo)
 	}
 
 	return lines
+}
+
+func useItemRowLabel(item game_state.UseableItemInfo) string {
+	if item.UnavailableReason != "" {
+		return "[No] " + item.Name
+	}
+
+	return item.Name
 }
 
 func (d *ItemSelectionDialog) loreDetailLines(item game_state.UseableItemInfo) []itemSelectionDetailLine {

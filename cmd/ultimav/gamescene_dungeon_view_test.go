@@ -351,7 +351,7 @@ func TestDungeonUseRejectsSelectionRemovedWhileDialogIsOpen(t *testing.T) {
 	assert.Zero(t, scene.dialogStack.Count())
 }
 
-func TestDungeonUseTreatsNonUseGrappleAsNoUsableItems(t *testing.T) {
+func TestDungeonUseKeepsOwnedGrappleInspectable(t *testing.T) {
 	scene, mock := newDungeonViewTestScene(t)
 	state := scene.gameState
 	clearUsableItemsForDungeonView(state)
@@ -361,11 +361,18 @@ func TestDungeonUseTreatsNonUseGrappleAsNoUsableItems(t *testing.T) {
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 
-	assert.False(t, state.EventQueueManager.HasWorkflow("dungeon_use_item_workflow"))
+	dialog := waitForDungeonItemDialog(t, scene)
+	dialog.HandleEnter()
+	assert.False(t, dialog.IsDismissed())
+	assert.True(t, state.EventQueueManager.HasWorkflow("dungeon_use_item_workflow"))
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.Grapple))
+	assert.False(t, state.IsAtDungeonCommandBoundary())
+	assert.Equal(t, expectedTime, state.DateTime)
+	assert.NotContains(t, mock.Messages, "No usable items!")
+	dialog.Dismiss()
+	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.Equal(t, expectedTime, state.DateTime)
-	assert.Contains(t, mock.Messages, "No usable items!")
 }
 
 func TestDungeonUseWithoutItemsCompletesImmediately(t *testing.T) {

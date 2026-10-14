@@ -148,6 +148,9 @@ func (g *GameState) resolveMonsterPossession(
 	rng references.RandomProvider,
 ) {
 	victim := g.PartyState.GetCharacter(victimIdentity.EntityIndex)
+	if !g.combatPCEligibleForPossession(victimIdentity) {
+		return
+	}
 	failedSave := CombatHitCheck(
 		daemon.EnemyRef().Intelligence, int(victim.Intelligence), false, rng,
 	)
@@ -155,7 +158,9 @@ func (g *GameState) resolveMonsterPossession(
 		return
 	}
 
-	g.CombatScene.setCombatPCPossessed(victimIdentity, true)
+	if !g.CombatScene.acquireCombatPossession(victimIdentity, daemon.CombatantID()) {
+		return
+	}
 	g.clearInactiveCombatPCSelection(victimIdentity.EntityIndex)
 	victimPosition := g.CombatScene.GetCombatantPosition(victimIdentity)
 	event := CombatEvent{ //nolint:exhaustruct // Possession has no damage calculation.
@@ -164,7 +169,8 @@ func (g *GameState) resolveMonsterPossession(
 		Target:   combatFeedbackIdentity(victimIdentity, victimPosition),
 		Result:   CombatFeedbackDamage,
 		From:     daemon.Position(), To: victimPosition,
-		Diagnostics: CombatDiagnostics{Hit: failedSave}, //nolint:exhaustruct // Save only.
+		Diagnostics:         CombatDiagnostics{Hit: failedSave}, //nolint:exhaustruct // Save only.
+		PossessionEpisodeID: g.CombatScene.possessions[victimIdentity].id,
 	}
 	g.SystemCallbacks.Combat.PublishEvent(event)
 	if daemon.MonsterType() == references.MonsterDevil {
@@ -768,16 +774,12 @@ func (g *GameState) clearAllCombatPossession() {
 	if g.CombatScene == nil {
 		return
 	}
-	for sourceSlot := range sourceCombatQueueSlots {
-		entry := g.CombatScene.TurnQueue.getActiveEntryAtSourceSlot(sourceSlot)
-		if entry == nil || !entry.Combatant.IsPC() {
-			continue
-		}
-		identity := turnQueueIdentity(entry)
-		if g.CombatScene.isCombatPCPossessed(identity) {
-			g.CombatScene.setCombatPCPossessed(identity, false)
-		}
+	clear(g.CombatScene.possessions)
+	clear(g.CombatScene.PartyPossessed[:])
+	for index := range g.CombatScene.partyClones {
+		g.CombatScene.partyClones[index].possessed = false
 	}
+	g.CombatScene.possessionTurn = combatPossessionTurn{}
 }
 
 func (g *GameState) setActiveCombatTarget(target CombatTurnIdentity, hasTarget bool) {

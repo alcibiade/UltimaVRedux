@@ -22,6 +22,7 @@ func (g *GameState) moveControlledCombatMonster(
 		}
 		monster.SetActive(false)
 		g.CombatScene.TurnQueue.MarkFled(monsterIndex, false)
+		g.releaseCombatController(monster.CombatantID(), CombatPossessionReleaseControllerEscaped)
 		g.SystemCallbacks.Message.AddRowStr(monster.MonsterType().Name() + " - Escape!")
 		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Flee has no target or roll data.
 			Kind: CombatEventFled,

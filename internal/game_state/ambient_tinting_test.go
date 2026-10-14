@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
@@ -21,6 +22,7 @@ func TestAmbientTintDarknessOnlyOverridesUnderworldExploration(t *testing.T) {
 		{"basement", references.LordBritishsCastle, -1, false},
 		{"dungeon", references.Deceit, -1, false},
 		{"combat", references.CombatLocation, -1, false},
+		{"camping", references.CampingLocation, -1, false},
 	} {
 		t.Run(context.name, func(t *testing.T) {
 			state := &GameState{}
@@ -34,5 +36,33 @@ func TestAmbientTintDarknessOnlyOverridesUnderworldExploration(t *testing.T) {
 				assert.Equal(t, want, state.AmbientTintDarkness())
 			}
 		})
+	}
+}
+
+func TestPlayerLightSelectionOnlyOverridesUnderworldExploration(t *testing.T) {
+	for _, context := range []struct {
+		location references.Location
+		floor    references.FloorNumber
+		ambient  bool
+	}{
+		{references.BritanniaUnderworld, -1, true},
+		{references.BritanniaUnderworld, 0, false},
+		{references.LordBritishsCastle, -1, false},
+		{references.Deceit, -1, false},
+		{references.CombatLocation, -1, false},
+		{references.CampingLocation, -1, false},
+	} {
+		state := &GameState{}
+		state.MapState.PlayerLocation = references.PlayerLocation{Location: context.location, Floor: context.floor}
+		state.DateTime.Hour = 12
+		want := map_state.PlayerLightNone
+		if context.ambient {
+			want = map_state.PlayerLightAmbient
+		}
+		assert.Equal(t, want, state.GetPlayerLightType())
+		state.MapState.Lighting.LightTorch()
+		assert.Equal(t, map_state.PlayerLightTorch, state.GetPlayerLightType())
+		state.MapState.Lighting.SetMagicLight(true)
+		assert.Equal(t, map_state.PlayerLightInLor, state.GetPlayerLightType())
 	}
 }

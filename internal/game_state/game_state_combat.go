@@ -146,7 +146,12 @@ type CombatState struct {
 	PartyUnderground [party_state.MaxActiveParty]bool
 	// PartyPossessed is encounter-local daemon charm allegiance. The saved party
 	// record remains shared, while clones own an independent condition below.
-	PartyPossessed [party_state.MaxActiveParty]bool
+	PartyPossessed          [party_state.MaxActiveParty]bool
+	possessions             map[CombatTurnIdentity]combatPossessionEpisode
+	nextPossessionEpisode   uint64
+	nextPossessionTurn      uint64
+	completedPossessionTurn uint64
+	possessionTurn          combatPossessionTurn
 
 	// EntryDirection is the direction from which the party entered combat
 	EntryDirection CombatEntryDirection
@@ -445,6 +450,9 @@ func (combatState *CombatState) IsCombatPCActive(identity CombatTurnIdentity) bo
 }
 
 func (combatState *CombatState) setCombatPCPossessed(identity CombatTurnIdentity, possessed bool) {
+	if !possessed {
+		delete(combatState.possessions, identity)
+	}
 	if !identity.IsPartyMember {
 		panic("setCombatPCPossessed called for monster")
 	}
@@ -633,6 +641,7 @@ func (combatState *CombatState) addPCCloneFromSource(
 		lastAttackTarget: combatState.lastCombatAttackTarget(source),
 	})
 	combatState.TurnQueue.AddClonedCombatant(provider, partyIndex, identity.Slot, source)
+	combatState.cloneCombatPossession(source, identity)
 	if !combatState.registerCombatantObject(identity) {
 		panic("addPCCloneFromSource: preflighted original object slot is unavailable")
 	}
@@ -670,6 +679,7 @@ func (combatState *CombatState) setLastCombatAttackTarget(identity CombatTurnIde
 }
 
 func (combatState *CombatState) removePCClone(identity CombatTurnIdentity) {
+	delete(combatState.possessions, identity)
 	for index, clone := range combatState.partyClones {
 		if clone.partyIndex == identity.EntityIndex && clone.slot == identity.Slot {
 			combatState.partyClones = append(combatState.partyClones[:index], combatState.partyClones[index+1:]...)
@@ -714,6 +724,11 @@ func (combatState *CombatState) SetPartyMemberInvisible(memberIndex int, invisib
 }
 
 func (g *GameState) markCombatPCDead(pcIndex int) {
+	for identity := range g.CombatScene.possessions {
+		if identity.EntityIndex == pcIndex {
+			g.CombatScene.setCombatPCPossessed(identity, false)
+		}
+	}
 	type defeatedPCEntry struct {
 		identity CombatTurnIdentity
 		position references.Position
@@ -922,6 +937,15 @@ func (combatState *CombatState) ReplaceMonsterAt(index int, monster *CombatMonst
 // sequence: the target slot is released, then the rat uses the lowest free
 // monster-region source slot with a fresh countdown.
 func (combatState *CombatState) ReplaceCombatantWithMonster(identity CombatTurnIdentity, monster *CombatMonster) int {
+	index, _ := combatState.replaceCombatantWithMonster(identity, monster)
+
+	return index
+}
+
+// Capture removed identity before releasing storage; GameState decides whether
+// this replacement is an authoritative controller-release outcome.
+func (combatState *CombatState) replaceCombatantWithMonster(identity CombatTurnIdentity, monster *CombatMonster) (int, CombatantID) {
+	var controller CombatantID
 	entry := combatState.TurnQueue.GetEntryByIdentity(identity)
 	if entry == nil {
 		panic("CombatState.ReplaceCombatantWithMonster: missing queue entry")
@@ -931,6 +955,7 @@ func (combatState *CombatState) ReplaceCombatantWithMonster(identity CombatTurnI
 	entry.originalObjectSlot = 0
 	if identity.IsPartyMember {
 		if identity.Slot == 0 {
+			combatState.setCombatPCPossessed(identity, false)
 			combatState.PartyActive[identity.EntityIndex] = false
 		} else {
 			combatState.removePCClone(identity)
@@ -938,11 +963,12 @@ func (combatState *CombatState) ReplaceCombatantWithMonster(identity CombatTurnI
 	} else {
 		replaced := combatState.MonsterManager.GetMonster(identity.EntityIndex)
 		if replaced != nil {
+			controller = replaced.CombatantID()
 			replaced.SetActive(false)
 		}
 	}
 
-	return combatState.AddMonsterToQueue(monster)
+	return combatState.AddMonsterToQueue(monster), controller
 }
 
 func (combatState *CombatState) canReplaceCombatantWithMonster(identity CombatTurnIdentity) bool {
@@ -1365,6 +1391,7 @@ func (g *GameState) departPCFromCombat(identity CombatTurnIdentity) {
 	}
 	position := g.CombatScene.GetCombatantPosition(identity)
 	pcIndex := identity.EntityIndex
+	g.CombatScene.setCombatPCPossessed(identity, false)
 	if identity.Slot == 0 {
 		g.CombatScene.PartyActive[pcIndex] = false
 	} else {
@@ -1648,7 +1675,7 @@ func (g *GameState) resolveCombatActorStandingEffects(identity CombatTurnIdentit
 // priority queue (replicating original combat scheduler countdown scheduler behavior).
 //
 // The queue is iterated until a PC turn that should receive player input is found:
-//   - Monster turns: logged and skipped (Phase 4.5 adds monster AI)
+//   - Hostile turns: execute AI immediately or yield to an exact presentation step
 //   - Solo mode non-active PC turns: auto-passed (original combat scheduler)
 //   - Active PC turns: set as CurrentTurnIndex and return
 //   - nil from queue: all combatants dead/fled — combat should end
@@ -1708,6 +1735,7 @@ func (g *GameState) AdvanceCombatTurn() {
 		g.CombatScene.currentTurnIdentitySet = true
 		identity := turnQueueIdentity(entry)
 		loyaltyAtDispatch := g.combatIdentityLoyalty(identity)
+		g.CombatScene.dispatchCombatPossessionTurn(identity)
 
 		// Player action applies the active-player filter before Chaos
 		// Sword interception. Only currently player-loyal actors participate;
@@ -1738,29 +1766,7 @@ func (g *GameState) AdvanceCombatTurn() {
 			monster = g.CombatScene.MonsterManager.GetMonster(entry.EntityIndex)
 		}
 		if g.combatTemporalActionSuppressed(identity, loyaltyAtDispatch) {
-			if identity.IsPartyMember {
-				g.CombatScene.CurrentTurnIndex = identity.EntityIndex
-				g.ClearActivePlayer()
-			} else {
-				g.CombatScene.ActiveMonsterIndex = identity.EntityIndex
-			}
-			g.clearActiveCombatTarget()
-			if g.CombatScene.presentTurns {
-				g.scheduleCombatPresentationStep(
-					CombatPresentationMonsterTurn,
-					combatPresentationIdleMonster,
-					identity,
-					identity.EntityIndex,
-					CombatTurnIdentity{},
-					false,
-					entry,
-				)
-
-				return
-			}
-			g.resolveCombatActorStandingEffects(identity)
-			g.CombatScene.ActiveMonsterIndex = NoActiveMonster
-			if g.combatEndedAfterCompletedTurn() {
+			if g.dispatchSuppressedCombatTurn(entry, identity) {
 				return
 			}
 
@@ -1769,61 +1775,7 @@ func (g *GameState) AdvanceCombatTurn() {
 
 		turnStart := g.processCombatTurnStart(entry)
 		if turnStart == combatTurnSkipped {
-			if identity.IsPartyMember {
-				g.CombatScene.CurrentTurnIndex = entry.EntityIndex
-				g.ClearActivePlayer()
-			}
-			// The recovered sleeping/swallowed/initial-Chaos playermove tails read
-			// an uninitialized command byte. Keep Redux's established deterministic
-			// player-loyal dispatch policy; this is not defined original behavior.
-			if loyaltyAtDispatch == CombatMonsterLoyaltyParty {
-				// Countdown scheduler calls standing-field effects even when player action consumes the
-				// turn for sleep or Corpser captivity. Field expiration remains an
-				// tactical action completion concern and is intentionally not coupled to this path.
-				// See ref:COMBAT-0002.
-				g.resolveCombatActorStandingEffects(identity)
-				g.processDurationEffects()
-				if identity.IsPartyMember && g.CombatScene.presentTurns {
-					g.scheduleCombatPresentationStep(
-						CombatPresentationAutoPass,
-						combatPresentationAdvance,
-						identity,
-						NoActiveMonster,
-						CombatTurnIdentity{},
-						false,
-						nil,
-					)
-
-					return
-				}
-				if g.combatEndedAfterCompletedTurn() {
-					return
-				}
-
-				continue
-			}
-
-			if !identity.IsPartyMember {
-				g.CombatScene.ActiveMonsterIndex = entry.EntityIndex
-			}
-			g.clearActiveCombatTarget()
-			if g.CombatScene.presentTurns {
-				g.scheduleCombatPresentationStep(
-					CombatPresentationMonsterTurn,
-					combatPresentationIdleMonster,
-					identity,
-					entry.EntityIndex,
-					CombatTurnIdentity{},
-					false,
-					entry,
-				)
-
-				return
-			}
-
-			g.resolveCombatActorStandingEffects(identity)
-			g.CombatScene.ActiveMonsterIndex = NoActiveMonster
-			if g.combatEndedAfterCompletedTurn() {
+			if g.dispatchSkippedCombatTurn(entry, identity, loyaltyAtDispatch) {
 				return
 			}
 
@@ -1848,34 +1800,7 @@ func (g *GameState) AdvanceCombatTurn() {
 
 		// Monster-loyal PCs retain their queue slot but execute monster-side AI.
 		if identity.IsPartyMember && loyalty == CombatMonsterLoyaltyMonster {
-			plan := g.planPossessedPCTurn(identity)
-			g.setActiveCombatTarget(plan.Target, plan.HasTarget)
-			g.ClearActivePlayer()
-			if g.CombatScene.presentTurns {
-				g.scheduleCombatPresentationStep(
-					CombatPresentationMonsterTurn,
-					combatPresentationPossessedPC,
-					identity,
-					NoActiveMonster,
-					plan.Target,
-					plan.HasTarget,
-					entry,
-				)
-				// The initial Chaos interception entered via player-side dispatch;
-				// preserve the same deterministic tail as immediate execution.
-				g.CombatScene.pendingPresentationStep.completeUndefinedPlayerTail = loyaltyAtDispatch == CombatMonsterLoyaltyParty
-
-				return
-			}
-			g.executePossessedPCTurn(identity)
-			g.resolveCombatPCStandingEffects(identity)
-			if loyaltyAtDispatch == CombatMonsterLoyaltyParty {
-				// Initial Chaos interception has an undefined original endaction tail;
-				// retain Redux's deterministic duration handling for that first turn.
-				g.processDurationEffects()
-			}
-			g.clearActiveCombatTarget()
-			if g.combatEndedAfterCompletedTurn() {
+			if g.dispatchPossessedCombatTurn(entry, identity, loyaltyAtDispatch) {
 				return
 			}
 
@@ -1884,39 +1809,7 @@ func (g *GameState) AdvanceCombatTurn() {
 
 		// Hostile monster turn — delegate to scheduler for delayed execution
 		if !identity.IsPartyMember && loyalty == CombatMonsterLoyaltyMonster {
-			g.CombatScene.ActiveMonsterIndex = entry.EntityIndex
-
-			// Pre-compute what the monster will do so the UI can highlight the target
-			plan := g.planMonsterTurn(entry)
-			g.setActiveCombatTarget(plan.Target, plan.HasTarget)
-
-			if g.CombatScene.presentTurns {
-				g.scheduleCombatPresentationStep(
-					CombatPresentationMonsterTurn,
-					combatPresentationMonsterAI,
-					identity,
-					entry.EntityIndex,
-					plan.Target,
-					plan.HasTarget,
-					entry,
-				)
-
-				return
-			}
-
-			// Headless turns execute immediately and continue the same DEX scan.
-			result := g.executeMonsterTurn(entry, plan)
-			if result.ProjectileLaunch != nil {
-				g.ResolvePendingMonsterMissile()
-			}
-			if g.CombatScene != nil {
-				g.CombatScene.ActiveMonsterIndex = NoActiveMonster
-				g.CombatScene.ActiveTargetPCIndex = NoTargetPC
-				g.CombatScene.ActiveTargetIdentitySet = false
-			}
-
-			// Check if combat ended from this monster's action
-			if g.combatEndedAfterCompletedTurn() {
+			if g.dispatchHostileMonsterCombatTurn(entry, identity) {
 				return
 			}
 
@@ -1946,7 +1839,168 @@ func (g *GameState) AdvanceCombatTurn() {
 	}
 }
 
+// Dispatch helpers return true when presentation or combat conclusion stops the
+// DEX scan. False means this exact turn completed and scanning may continue.
+func (g *GameState) dispatchSuppressedCombatTurn(entry *TurnQueueEntry, identity CombatTurnIdentity) bool {
+	if identity.IsPartyMember {
+		g.CombatScene.CurrentTurnIndex = identity.EntityIndex
+		g.ClearActivePlayer()
+	} else {
+		g.CombatScene.ActiveMonsterIndex = identity.EntityIndex
+	}
+	g.clearActiveCombatTarget()
+	if g.CombatScene.presentTurns {
+		g.scheduleCombatPresentationStep(
+			CombatPresentationMonsterTurn,
+			combatPresentationIdleMonster,
+			identity,
+			identity.EntityIndex,
+			CombatTurnIdentity{},
+			false,
+			entry,
+		)
+
+		return true
+	}
+	g.resolveCombatActorStandingEffects(identity)
+	g.CombatScene.ActiveMonsterIndex = NoActiveMonster
+
+	return g.combatEndedAfterCompletedTurn()
+}
+
+func (g *GameState) dispatchSkippedCombatTurn(
+	entry *TurnQueueEntry,
+	identity CombatTurnIdentity,
+	loyaltyAtDispatch CombatMonsterLoyalty,
+) bool {
+	if identity.IsPartyMember {
+		g.CombatScene.CurrentTurnIndex = entry.EntityIndex
+		g.ClearActivePlayer()
+	}
+	// The recovered sleeping/swallowed/initial-Chaos playermove tails read
+	// an uninitialized command byte. Keep Redux's established deterministic
+	// player-loyal dispatch policy; this is not defined original behavior.
+	if loyaltyAtDispatch == CombatMonsterLoyaltyParty {
+		// Countdown scheduler calls standing-field effects even when player action
+		// consumes the turn for sleep or Corpser captivity. Field expiration remains
+		// a tactical action completion concern, separate from this path. COMBAT-0002.
+		g.resolveCombatActorStandingEffects(identity)
+		g.processDurationEffects()
+		if identity.IsPartyMember && g.CombatScene.presentTurns {
+			g.scheduleCombatPresentationStep(
+				CombatPresentationAutoPass,
+				combatPresentationAdvance,
+				identity,
+				NoActiveMonster,
+				CombatTurnIdentity{},
+				false,
+				nil,
+			)
+
+			return true
+		}
+
+		return g.combatEndedAfterCompletedTurn()
+	}
+
+	if !identity.IsPartyMember {
+		g.CombatScene.ActiveMonsterIndex = entry.EntityIndex
+	}
+	g.clearActiveCombatTarget()
+	if g.CombatScene.presentTurns {
+		g.scheduleCombatPresentationStep(
+			CombatPresentationMonsterTurn,
+			combatPresentationIdleMonster,
+			identity,
+			entry.EntityIndex,
+			CombatTurnIdentity{},
+			false,
+			entry,
+		)
+
+		return true
+	}
+
+	g.resolveCombatActorStandingEffects(identity)
+	g.CombatScene.ActiveMonsterIndex = NoActiveMonster
+
+	return g.combatEndedAfterCompletedTurn()
+}
+
+func (g *GameState) dispatchPossessedCombatTurn(
+	entry *TurnQueueEntry,
+	identity CombatTurnIdentity,
+	loyaltyAtDispatch CombatMonsterLoyalty,
+) bool {
+	plan := g.planPossessedPCTurn(identity)
+	g.setActiveCombatTarget(plan.Target, plan.HasTarget)
+	g.ClearActivePlayer()
+	if g.CombatScene.presentTurns {
+		g.scheduleCombatPresentationStep(
+			CombatPresentationMonsterTurn,
+			combatPresentationPossessedPC,
+			identity,
+			NoActiveMonster,
+			plan.Target,
+			plan.HasTarget,
+			entry,
+		)
+		// The initial Chaos interception entered via player-side dispatch;
+		// preserve the same deterministic tail as immediate execution.
+		g.CombatScene.pendingPresentationStep.completeUndefinedPlayerTail = loyaltyAtDispatch == CombatMonsterLoyaltyParty
+
+		return true
+	}
+	g.executePossessedPCTurn(identity)
+	g.resolveCombatPCStandingEffects(identity)
+	if loyaltyAtDispatch == CombatMonsterLoyaltyParty {
+		// Initial Chaos interception has an undefined original endaction tail;
+		// retain Redux's deterministic duration handling for that first turn.
+		g.processDurationEffects()
+	}
+	g.clearActiveCombatTarget()
+
+	return g.combatEndedAfterCompletedTurn()
+}
+
+func (g *GameState) dispatchHostileMonsterCombatTurn(entry *TurnQueueEntry, identity CombatTurnIdentity) bool {
+	g.CombatScene.ActiveMonsterIndex = entry.EntityIndex
+
+	// Pre-compute what the monster will do so the UI can highlight the target.
+	plan := g.planMonsterTurn(entry)
+	g.setActiveCombatTarget(plan.Target, plan.HasTarget)
+	if g.CombatScene.presentTurns {
+		g.scheduleCombatPresentationStep(
+			CombatPresentationMonsterTurn,
+			combatPresentationMonsterAI,
+			identity,
+			entry.EntityIndex,
+			plan.Target,
+			plan.HasTarget,
+			entry,
+		)
+
+		return true
+	}
+
+	// Headless turns execute immediately and continue the same DEX scan.
+	result := g.executeMonsterTurn(entry, plan)
+	if result.ProjectileLaunch != nil {
+		g.ResolvePendingMonsterMissile()
+	}
+	if g.CombatScene != nil {
+		g.CombatScene.ActiveMonsterIndex = NoActiveMonster
+		g.CombatScene.ActiveTargetPCIndex = NoTargetPC
+		g.CombatScene.ActiveTargetIdentitySet = false
+	}
+
+	return g.combatEndedAfterCompletedTurn()
+}
+
 func (g *GameState) combatEndedAfterCompletedTurn() bool {
+	if g.CombatScene != nil {
+		g.completeCombatPossessionTurn(g.CombatScene.possessionTurn)
+	}
 	endReason := g.checkCombatEndConditions()
 
 	return g.CombatScene == nil || endReason == CombatDefeat || endReason == CombatEvacuated

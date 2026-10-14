@@ -1,19 +1,25 @@
 package game_state
 
-import "github.com/bradhannah/UltimaVRedux/internal/references"
+import (
+	"fmt"
+
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+)
 
 // CombatActorPresentation is a detached, disclosed exact-entry view. Side comes
 // from combatIdentityLoyalty; provenance is recorded at the successful producer,
 // never guessed from artwork, roster membership, control, or current loyalty.
 type CombatActorPresentation struct {
-	Identity    CombatTurnIdentity
-	CombatantID CombatantID
-	Position    references.Position
-	Name        string
-	Loyalty     CombatMonsterLoyalty
-	Charmed     bool
-	Summoned    bool
-	Possessed   bool
+	Identity            CombatTurnIdentity
+	CombatantID         CombatantID
+	Position            references.Position
+	Name                string
+	Loyalty             CombatMonsterLoyalty
+	Charmed             bool
+	Summoned            bool
+	Possessed           bool
+	PossessionEpisodeID uint64
+	PossessionTurns     int
 }
 
 // ProjectCombatActor returns no identifying data for an undisclosed or retired
@@ -35,10 +41,11 @@ func (g *GameState) ProjectCombatActor(identity CombatTurnIdentity, expectedID C
 		}
 		view.Name = character.GetNameAsString()
 		if identity.Slot != 0 {
-			view.Name += " Clone"
+			view.Name += fmt.Sprintf(" Clone %d", identity.Slot)
 		}
 		view.Position = combat.GetCombatantPosition(identity)
 		view.Possessed = combat.IsCombatPCPossessed(identity)
+		view.PossessionEpisodeID, view.PossessionTurns, _ = combat.CombatPossessionProgress(identity)
 	} else {
 		monster := combat.MonsterManager.GetMonster(identity.EntityIndex)
 		if identity.Slot != 0 || monster == nil || !monster.IsAlive() || monster.IsInvisible() || monster.IsCorpserHidden() ||

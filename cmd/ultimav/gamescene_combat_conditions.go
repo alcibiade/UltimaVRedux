@@ -10,9 +10,12 @@ func combatConditions(combat *game_state.CombatState, identity game_state.Combat
 		return mainscreen.CombatConditions{}
 	}
 
+	_, turns, timed := combat.CombatPossessionProgress(identity)
+
 	return mainscreen.CombatConditions{
 		Possessed: combat.IsCombatPCPossessed(identity), Underground: combat.IsCombatPCUnderground(identity),
-		Sleeping: combat.IsCombatPCSleeping(identity),
+		Sleeping:        combat.IsCombatPCSleeping(identity),
+		PossessionTurns: turns, TimedPossession: timed,
 	}
 }
 

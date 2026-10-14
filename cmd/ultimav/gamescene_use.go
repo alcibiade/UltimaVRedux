@@ -7,6 +7,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
+const staleUseSelectionMessage = "Use selection changed!"
+
 // StartUseWorkflow initiates the Use command workflow, showing the item selection dialog.
 // Shows "No usable items!" if the inventory is empty.
 //
@@ -32,10 +34,7 @@ func (g *GameScene) StartCombatUseWorkflow() {
 func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSurfaceCycle bool) {
 	commitSequence := g.gameState.CastUseCommitSequence()
 	origin := g.gameState.MapState.PlayerLocation
-	var combatActor game_state.CombatTurnIdentity
-	if context == game_state.UsageCombat {
-		combatActor = g.gameState.CombatScene.GetCurrentTurnIdentity()
-	}
+	combatOwner := g.gameState.CaptureCombatUseOwner()
 	originLocation := g.gameState.MapState.PlayerLocation.Location
 	originMapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
 	// Get usable items from game state
@@ -52,6 +51,7 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 	var selectedItem *game_state.UseableItemInfo
 	var executableItem *game_state.UseableItemInfo
 	var hmsCapeConfirmation *hmsCapeConfirmationState
+	combatItemCommitted := false
 	fieldItemAccepted := false
 	parentFinalized := false
 	effectFinalized := false
@@ -122,7 +122,7 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 		func() bool { return selectedItem != nil },
 		func(q *event_queue.SequentialEventBuilder) {
 			q.Then(func() {
-				if g.gameState.CombatScene == nil || g.gameState.CombatScene.GetCurrentTurnIdentity() != combatActor {
+				if !g.gameState.IsCurrentCombatUseOwner(combatOwner) || g.gameState.MapState.PlayerLocation != origin {
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Not thy turn!", true)
 
 					return
@@ -138,7 +138,13 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 				func() bool { return executableItem != nil },
 				func(effectQ *event_queue.SequentialEventBuilder) {
 					effectQ.ThenSequence(func(useQ *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-						return g.thenUseCombatItem(*executableItem, &hmsCapeConfirmation)(useQ)
+						canCommit := func() bool {
+							return g.validateCombatUseSelection(*selectedItem, combatOwner, origin)
+						}
+
+						return g.thenUseCombatItem(
+							*executableItem, &hmsCapeConfirmation, canCommit, &combatItemCommitted,
+						)(useQ)
 					})
 				},
 			)
@@ -153,7 +159,10 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 				g.clearCombatInvocationEffects()
 			}
 			g.keyboard.ResetReleaseDebouncing()
-			if context == game_state.UsageCombat && g.gameState.CastUseCommitSequence() != commitSequence {
+			if hmsCapeConfirmation != nil && hmsCapeConfirmation.committed {
+				combatItemCommitted = true
+			}
+			if context == game_state.UsageCombat && combatItemCommitted && g.gameState.IsCurrentCombatUseOwner(combatOwner) {
 				g.gameState.FinishCombatAction()
 			}
 			if context == game_state.UsageField && completeSurfaceCycle {
@@ -162,6 +171,27 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 			}
 		}).
 		Start()
+}
+
+// validateCombatUseSelection runs immediately before a deferred item commitment.
+// The caller retains the original menu owner and quantity, rather than rebasing
+// them when a nested sequence or direction prompt is constructed.
+func (g *GameScene) validateCombatUseSelection(
+	item game_state.UseableItemInfo,
+	owner game_state.CombatUseOwner,
+	origin references.PlayerLocation,
+) bool {
+	valid := g.gameState.IsCurrentCombatUseOwner(owner) && g.gameState.MapState.PlayerLocation == origin
+	if valid {
+		_, valid = g.gameState.RevalidateUseItemSelection(item, game_state.UsageCombat)
+	}
+	if !valid {
+		g.gameState.SystemCallbacks.UI.ShowActionFeedback(staleUseSelectionMessage, true)
+
+		return false
+	}
+
+	return true
 }
 
 // StartDungeonUseWorkflow retains the accepted command while selecting a supported dungeon item.
@@ -238,8 +268,14 @@ func (g *GameScene) StartDungeonUseWorkflow(token game_state.DungeonCommandCycle
 				func() bool { return executableItem != nil },
 				func(useQ *event_queue.SequentialEventBuilder) {
 					useQ.Then(func() {
+						current, ok := g.gameState.RevalidateUseItemSelection(*selectedItem, game_state.UsageDungeon)
+						if !ok || g.gameState.MapState.PlayerLocation != origin {
+							g.gameState.SystemCallbacks.UI.ShowActionFeedback(staleUseSelectionMessage, true)
+
+							return
+						}
 						effectOwned = true
-						g.dispatchDungeonUseItem(*executableItem, &model, &viewReady, effectComplete)
+						g.dispatchDungeonUseItem(current, &model, &viewReady, effectComplete)
 					})
 				},
 			).If(
@@ -378,18 +414,37 @@ func (g *GameScene) dispatchDungeonQuestItem(
 		panic("dungeon Use received unsupported quest item")
 	}
 }
+
+// thenUseCombatItem records only this selection's authoritative commitment.
+// H.M.S. Cape retains its commit result in its confirmation state for cleanup.
 func (g *GameScene) thenUseCombatItem(
 	item game_state.UseableItemInfo,
 	hmsCapeConfirmation **hmsCapeConfirmationState,
+	canCommit func() bool,
+	didCommit *bool,
 ) event_queue.Sequence {
+	if !canCommit() {
+		return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder { return q }
+	}
+
 	switch itemType := item.ItemType.(type) {
 	case references.Potion:
-		return g.thenUseCombatPotion(itemType)
+		return g.thenUseCombatPotion(itemType, canCommit, didCommit)
 	case references.Scroll:
-		return g.thenUseCombatScroll(itemType)
+		return g.thenUseCombatScroll(itemType, canCommit, didCommit)
 	case references.QuestItem:
+		if itemType == references.Crown || itemType == references.Amulet || itemType == references.BlackBadge {
+			return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+				return q.Then(func() {
+					if !canCommit() {
+						return
+					}
+					*didCommit = g.gameState.UseItem(item)
+				})
+			}
+		}
 		if itemType == references.Sceptre {
-			return g.thenUseCombatSceptre()
+			return g.thenUseCombatSceptre(canCommit, didCommit)
 		}
 		if itemType == references.HMSCape {
 			commit, review := g.gameState.BeginHMSCapeUse()

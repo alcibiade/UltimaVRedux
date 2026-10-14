@@ -27,6 +27,7 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
+// CharacterSummary renders party portraits, resources and detached combat status text.
 type CharacterSummary struct {
 	characterSummaryImage [party_state.MaxCharactersInParty]*ebiten.Image
 	spriteSheet           *sprites.SpriteSheet
@@ -44,6 +45,7 @@ type CharacterSummary struct {
 	previousStatuses [party_state.MaxCharactersInParty]party_state.CharacterStatus
 	textRows         [party_state.MaxCharactersInParty]characterTextRow
 	portraits        [party_state.MaxCharactersInParty]characterPortrait
+	combatText       [party_state.MaxCharactersInParty]CharacterCombatText
 }
 
 const (
@@ -72,6 +74,8 @@ const (
 
 // Status effect color mapping for visual feedback
 // Colors match original Ultima V visual themes for status conditions
+//
+//nolint:gochecknoglobals // Read-only semantic palette shared by portrait outlines and roster text.
 var statusColors = map[party_state.CharacterStatus]color.Color{
 	party_state.Poisoned: ucolor.From(ucolor.EGAGreen).RGBA(),   // Green for poison
 	party_state.Sleep:    ucolor.From(ucolor.EGAMagenta).RGBA(), // Magenta for sleep
@@ -97,7 +101,7 @@ func NewCharacterSummary(spriteSheet *sprites.SpriteSheet) *CharacterSummary {
 
 // NewCharacterSummaryForWidth creates a summary scaled to the logical render width.
 func NewCharacterSummaryForWidth(spriteSheet *sprites.SpriteSheet, screenWidth int) *CharacterSummary {
-	characterSummary := &CharacterSummary{}
+	characterSummary := new(CharacterSummary)
 
 	characterSummary.spriteSheet = spriteSheet
 
@@ -174,7 +178,15 @@ func (c *CharacterSummary) getEffectiveTextColor(
 	isActivePlayer, hasActivePlayer bool,
 	isSoloMode, isSoloCharacter bool,
 ) color.Color {
-	statusColor := c.getStatusColor(status)
+	return selectedCharacterTextColor(
+		c.getStatusColor(status), isActivePlayer, hasActivePlayer, isSoloMode, isSoloCharacter,
+	)
+}
+
+func selectedCharacterTextColor(
+	statusColor color.Color,
+	isActivePlayer, hasActivePlayer, isSoloMode, isSoloCharacter bool,
+) color.Color {
 	isSelected := isActivePlayer
 	hasSelection := hasActivePlayer
 	if isSoloMode {
@@ -209,16 +221,16 @@ func (c *CharacterSummary) shouldApplyStatusOutline(status party_state.Character
 func (c *CharacterSummary) detectStatusChanges(partyState *party_state.PartyState) bool {
 	statusChanged := false
 
-	for i := range c.previousStatuses {
-		if i >= partyState.GetCharacterCount() {
+	for index := range c.previousStatuses {
+		if index >= partyState.GetCharacterCount() {
 			break // Safety check
 		}
 
-		currentStatus := partyState.GetCharacter(i).GetStatus()
-		if c.previousStatuses[i] != currentStatus {
+		currentStatus := partyState.GetCharacter(index).GetStatus()
+		if c.previousStatuses[index] != currentStatus {
 			logging.Debug(logging.CategoryUI, "Character %d status changed: %v -> %v",
-				i, c.previousStatuses[i], currentStatus)
-			c.previousStatuses[i] = currentStatus
+				index, c.previousStatuses[index], currentStatus)
+			c.previousStatuses[index] = currentStatus
 			statusChanged = true
 		}
 	}
@@ -258,19 +270,7 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 		return
 	}
 
-	// Automatically detect character status changes and trigger immediate refresh if needed
-	statusChanged := c.detectStatusChanges(partyState)
-
-	// Clear character images when stats refresh is needed OR when status changes detected
-	// Active player changes should be handled via UpdateStatsDisplay callback
-	if c.needsStatsRefresh || statusChanged {
-		for i := range c.characterSummaryImage {
-			c.characterSummaryImage[i].Clear()
-		}
-	}
-
-	// Reset refresh flag since we're drawing
-	c.needsStatsRefresh = false
+	c.refreshCharacterImages(partyState)
 	if c.bounds.Empty() {
 		return
 	}
@@ -279,69 +279,88 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 	rightTextLeft := rightTextBounds.Min.X
 	rightTextWidth := rightTextBounds.Dx()
 
-	for i := range c.characterSummaryImage {
+	for index := range c.characterSummaryImage {
 		// Error handling: validate character data
-		if i >= partyState.GetCharacterCount() {
-			c.portraits[i].dispose()
-			logging.Warn(logging.CategoryUI, "CharacterSummary character index %d out of bounds, skipping", i)
+		if index >= partyState.GetCharacterCount() {
+			c.portraits[index].dispose()
+			logging.Warn(logging.CategoryUI, "CharacterSummary character index %d out of bounds, skipping", index)
 
 			continue
 		}
 
-		character := partyState.GetCharacter(i)
+		character := partyState.GetCharacter(index)
 
 		if character.PartyMap != party_state.PartyMapActive {
-			c.portraits[i].dispose()
+			c.portraits[index].dispose()
 
 			continue
 		}
 
-		characterPortrait := c.spriteSheet.GetSprite(character.GetKeySpriteIndex())
-
-		portraitToDraw := c.prepareCharacterPortrait(i, characterPortrait, character.GetStatus())
-
-		rowTop := c.bounds.Min.Y + i*rowHeight
+		rowTop := c.bounds.Min.Y + index*rowHeight
 		portraitSize := max(rowHeight-characterRowPadding*characterLayoutCenter, 1)
-		c.portraitDop.GeoM.Reset()
-		c.portraitDop.GeoM.Scale(
-			float64(portraitSize)/float64(portraitToDraw.Bounds().Dx()),
-			float64(portraitSize)/float64(portraitToDraw.Bounds().Dy()),
-		)
-		c.portraitDop.GeoM.Translate(float64(c.bounds.Min.X), float64(rowTop+characterRowPadding))
-		screen.DrawImage(portraitToDraw, c.portraitDop)
+		c.drawCharacterPortrait(index, character, screen, rowTop, portraitSize)
 
 		// Determine if this character is the active player
 		// activePlayerIndex -1 means no active player, so no character should be highlighted
-		isActivePlayer := activePlayerIndex >= 0 && activePlayerIndex == i
+		isActivePlayer := activePlayerIndex >= 0 && activePlayerIndex == index
 		hasActivePlayer := activePlayerIndex >= 0
 
 		// Determine solo mode coloring
-		isSoloCharacter := isSoloMode && soloCharacterIndex == i
+		isSoloCharacter := isSoloMode && soloCharacterIndex == index
 
 		// Get text color based on status effects, active player status, and solo mode
-		textColor := c.getEffectiveTextColor(character.GetStatus(), isActivePlayer, hasActivePlayer, isSoloMode, isSoloCharacter)
+		textColor := c.characterTextColor(
+			index, character, isActivePlayer, hasActivePlayer, isSoloMode, isSoloCharacter,
+		)
 
 		textTop := rowTop +
 			(rowHeight-int(c.output.GetTotalHeightForLines(characterTextLines)))/characterLayoutCenter
 		leftTextX := c.bounds.Min.X + portraitSize + characterTextGap
 		leftTextWidth := max(rightTextLeft-characterTextGap-leftTextX, 1)
-		row := c.prepareCharacterText(i, character, textColor)
+		row := c.prepareCharacterText(index, character, textColor)
 		row.left.DrawPanelContent(screen, image.Pt(leftTextX, textTop), leftTextWidth, etext.AlignStart)
 		row.right.DrawPanelContent(screen, image.Pt(rightTextLeft, textTop), rightTextWidth, etext.AlignEnd)
 	}
 }
 
+func (c *CharacterSummary) refreshCharacterImages(partyState *party_state.PartyState) {
+	statusChanged := c.detectStatusChanges(partyState)
+	if c.needsStatsRefresh || statusChanged {
+		for _, rowImage := range c.characterSummaryImage {
+			rowImage.Clear()
+		}
+	}
+	c.needsStatsRefresh = false
+}
+
+func (c *CharacterSummary) drawCharacterPortrait(
+	index int, character *party_state.PlayerCharacter, screen *ebiten.Image, rowTop, portraitSize int,
+) {
+	source := c.spriteSheet.GetSprite(character.GetKeySpriteIndex())
+	portrait := c.prepareCharacterPortrait(index, source, character.GetStatus())
+	c.portraitDop.GeoM.Reset()
+	c.portraitDop.GeoM.Scale(
+		float64(portraitSize)/float64(portrait.Bounds().Dx()),
+		float64(portraitSize)/float64(portrait.Bounds().Dy()),
+	)
+	c.portraitDop.GeoM.Translate(float64(c.bounds.Min.X), float64(rowTop+characterRowPadding))
+	screen.DrawImage(portrait, c.portraitDop)
+}
+
 func characterSummaryStatusName(character *party_state.PlayerCharacter) string {
-	if character.GetStatus() == party_state.Poisoned {
+	return characterStatusName(character.GetStatus())
+}
+
+func characterStatusName(status party_state.CharacterStatus) string {
+	if status == party_state.Poisoned {
 		return "Pois."
 	}
 
-	if statusRef := party_state.CharacterStatuses.GetById(character.GetStatus()); statusRef != nil {
+	if statusRef := party_state.CharacterStatuses.GetById(status); statusRef != nil {
 		return statusRef.FriendlyName
 	}
 
-	logging.Warn(logging.CategoryUI,
-		"Invalid character status %d for character %s", character.GetStatus(), character.GetNameAsString())
+	logging.Warn(logging.CategoryUI, "Invalid character status %d", status)
 
 	return "Unknown"
 }

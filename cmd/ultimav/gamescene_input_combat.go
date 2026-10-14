@@ -403,6 +403,7 @@ func (g *GameScene) handleCombatHUDInput(key ebiten.Key) bool {
 }
 
 func (g *GameScene) combatMapHandleSecondaryInput() {
+	//nolint:exhaustive // Specialized selectors return before ordinary direction dispatch below.
 	switch g.secondaryKeyState {
 	case CombatAttackTargetInput:
 		g.handleCombatAttackTargetInput()
@@ -426,6 +427,9 @@ func (g *GameScene) combatMapHandleSecondaryInput() {
 		return
 	}
 
+	if g.cancelCombatDirectionInput() {
+		return
+	}
 	g.appendOrdinaryDirectionHint(references.CombatMapType)
 	directionInput := g.ordinaryDirectionInput()
 	if directionInput.Outcome == ordinaryDirectionActive {
