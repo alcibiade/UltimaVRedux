@@ -13,10 +13,10 @@ import (
 )
 
 func (m *model) updateSelectedAvailability(message loadedMsg) {
-	if m.picker != nil || errors.Is(message.err, context.Canceled) {
+	if message.request.purpose == sourceCandidate || errors.Is(message.err, context.Canceled) {
 		return
 	}
-	recordingID := m.recordingID()
+	recordingID := message.request.recordingID
 	if recordingID == "" {
 		return
 	}
@@ -46,10 +46,12 @@ const (
 )
 
 type browseState struct {
-	search   string
-	filter   availabilityFilter
-	selected string
-	start    int
+	search        string
+	filter        availabilityFilter
+	selected      string
+	start         int
+	routingFilter int
+	routingScope  int
 }
 
 type availabilityMsg struct {
@@ -113,7 +115,7 @@ func (m *model) acceptAvailability(message availabilityMsg) tea.Cmd {
 	if message.signature == sourceSignature(m.doc, message.id) {
 		selected := m.selectedID()
 		m.availability[message.id] = message.status
-		if m.field != "" || m.form != nil || m.routing.menu != nil || m.assigning || m.picker != nil {
+		if m.selectionOwned() {
 			return m.scanNext() // Do not change the target beneath an active editor or picker.
 		}
 		m.refreshKeys()
@@ -123,6 +125,10 @@ func (m *model) acceptAvailability(message availabilityMsg) tea.Cmd {
 	}
 
 	return m.scanNext()
+}
+
+func (m *model) selectionOwned() bool {
+	return m.inputOwner() != ownerWorkspace || m.marker != 0 || m.focus == focusWave
 }
 
 func (m *model) recheckFiles() tea.Cmd {
@@ -267,11 +273,13 @@ func (m *model) matchesCueFacet(cueID, key, value string) bool {
 }
 
 func (m *model) currentBrowseState() browseState {
-	return browseState{search: m.search, filter: m.filter, selected: m.selectedID(), start: m.browserWindowStart()}
+	return browseState{search: m.search, filter: m.filter, selected: m.selectedID(), start: m.browserWindowStart(),
+		routingFilter: m.routing.filter, routingScope: m.routing.scope}
 }
 
 func (m *model) restoreBrowseState(state browseState) {
 	m.search, m.filter, m.cursor = state.search, state.filter, 0
+	m.routing.filter, m.routing.scope = state.routingFilter, state.routingScope
 	m.refreshKeys()
 	m.selectID(state.selected)
 	m.browserStart = listViewportStart(state.start, m.cursor, len(m.keys), m.listHeight())

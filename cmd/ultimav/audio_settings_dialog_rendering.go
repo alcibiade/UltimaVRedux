@@ -87,6 +87,9 @@ func (d *ConfigurationDialog) Update() {
 	if d.updateDisplayWorkflow() {
 		return
 	}
+	if d.updateAudioDiagnostics() {
+		return
+	}
 	if key, owned := d.navigation.Poll(d.keyboard); owned {
 		if key != nil {
 			d.navigateConfigurationRows(*key)
@@ -165,6 +168,7 @@ func (d *ConfigurationDialog) updateGameplayControl(key ebiten.Key) {
 
 func (d *ConfigurationDialog) updateAudioTab() {
 	boundKeys := []ebiten.Key{
+		ebiten.KeyD,
 		ebiten.KeyEscape,
 		ebiten.KeyEnter,
 		ebiten.KeyNumpadEnter,
@@ -179,6 +183,8 @@ func (d *ConfigurationDialog) updateAudioTab() {
 
 	//nolint:exhaustive // The keyboard lookup above restricts input to this tab's bindings.
 	switch *boundKey {
+	case ebiten.KeyD:
+		d.openAudioDiagnostics()
 	case ebiten.KeyEscape:
 		d.onCancelClicked()
 	case ebiten.KeyEnter, ebiten.KeyNumpadEnter:
@@ -259,7 +265,11 @@ func (d *ConfigurationDialog) Draw(screen *ebiten.Image) {
 	case audioSettingsGameplayTab:
 		d.drawGameplayContent(screen)
 	case audioSettingsAudioTab:
-		d.drawAudioContent(screen)
+		if d.audioReport != nil {
+			d.drawAudioDiagnostics(screen)
+		} else {
+			d.drawAudioContent(screen)
+		}
 	case audioSettingsDisplayTab:
 		d.drawDisplayContent(screen)
 	default:
@@ -537,6 +547,11 @@ func (d *ConfigurationDialog) drawAudioContent(screen *ebiten.Image) {
 func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 	d.footerOutput.Reset()
 	switch {
+	case d.audioReport != nil:
+		hints := []string{"Up/Down: Scroll  PageUp/PageDown: Page", "R: Refresh captured state", "D/Esc: Back to Sound"}
+		for _, hint := range hints {
+			widgets.AppendControlHints(d.footerOutput.AppendLine(), hint).Done()
+		}
 	case d.displayPhase == configurationDisplayApplying:
 		d.footerOutput.AppendLine().
 			Text("Applying display settings...", widgets.DialogStatusWarningColor).
@@ -557,7 +572,7 @@ func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 		case audioSettingsGameplayTab:
 			adjust = "Space: Toggle"
 		case audioSettingsAudioTab:
-			adjust = "Left/Right: Adjust"
+			adjust = "Left/Right: Adjust  D: Diagnostics"
 		case audioSettingsDisplayTab:
 			adjust = "Left/Right: Change"
 		default:

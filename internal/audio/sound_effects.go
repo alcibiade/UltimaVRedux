@@ -34,6 +34,13 @@ var soundFiles embed.FS
 
 // SoundEffectPlayer handles individual sound effect playbook with volume and positional audio
 type SoundEffectPlayer struct {
+	library           *Library
+	backend           PlaybackBackend
+	redux             bool
+	cueAssets         map[string][]*SoundAsset
+	nextCue           map[string]int
+	assetErrors       map[string]error
+	cueEffects        map[string]game_state.SoundEffect
 	config            *AudioConfiguration
 	audioContext      *audio.Context
 	activeSounds      map[string]*ActiveSound
@@ -47,6 +54,9 @@ type SoundEffectPlayer struct {
 
 // ActiveSound represents a currently playing sound effect
 type ActiveSound struct {
+	CueID       string
+	RequestGain float64
+	owner       *VoiceOwner
 	Effect      game_state.SoundEffect
 	RecordingID string
 	Mode        game_state.SoundPlaybackMode
@@ -54,14 +64,14 @@ type ActiveSound struct {
 	Volume      float64
 	BaseGain    float64 // Request and authored cue gain, before category and fade.
 	FadeGain    float64 // Presentation envelope independent of category preference.
-	StartTime   int64   // Unix timestamp in milliseconds
+	StartTime   int64   // Elapsed presentation milliseconds, never civil/gameplay time.
 	Duration    int64   // Finite decoded duration for diagnostics (not a stop timer).
 	Sequence    uint64
 
 	// Fade settings
 	FadeInDuration  int64   // Fade-in duration in milliseconds (0 = no fade-in)
-	FadeOutStart    int64   // When to start fade-out (0 = no fade-out)
-	FadeOutDuration int64   // Fade-out duration in milliseconds
+	FadeOutStart    int64   // Elapsed start; zero is a valid presentation instant.
+	FadeOutDuration int64   // Fade-out duration in milliseconds (0 = no fade-out).
 	FadeOutVolume   float64 // Volume captured when fade-out begins
 	FadeOutGain     float64 // Fade envelope captured when fade-out begins.
 	TargetVolume    float64 // Target volume after fade-in
@@ -71,30 +81,42 @@ type ActiveSound struct {
 type SoundAsset struct {
 	Effect        game_state.SoundEffect
 	RecordingID   string
-	StreamFactory func(mode game_state.SoundPlaybackMode) io.ReadSeeker
+	StreamFactory func(mode game_state.SoundPlaybackMode) (io.ReadSeeker, error)
 	Duration      int64 // Duration in milliseconds
 	SampleRate    int   // Sample rate in Hz
 }
 
 // NewSoundEffectPlayerWithContext creates a new sound effect player with specific audio context
-func NewSoundEffectPlayerWithContext(config *AudioConfiguration, audioContext *audio.Context) (*SoundEffectPlayer, error) {
+func NewSoundEffectPlayerWithContext(
+	config *AudioConfiguration, audioContext *audio.Context,
+) (*SoundEffectPlayer, error) {
 	if config == nil {
-		return nil, fmt.Errorf("configuration cannot be nil")
+		return nil, fmt.Errorf("%w: configuration cannot be nil", ErrAudioLibrary)
 	}
 
 	if audioContext == nil {
-		return nil, fmt.Errorf("audio context cannot be nil")
+		return nil, fmt.Errorf("%w: audio context cannot be nil", ErrAudioLibrary)
 	}
 
+	return newProjectSoundPlayer(config, defaultRuntimeLibrary(),
+		EbitengineBackend{Context: audioContext}, audioContext, true), nil
+}
+
+func newProjectSoundPlayer(config *AudioConfiguration, library *Library, backend PlaybackBackend,
+	context *audio.Context, redux bool) *SoundEffectPlayer {
 	return &SoundEffectPlayer{
+		library: library, backend: backend, redux: redux, cueAssets: make(map[string][]*SoundAsset),
+		nextCue: make(map[string]int), assetErrors: make(map[string]error),
+		cueEffects:   make(map[string]game_state.SoundEffect),
 		config:       config,
-		audioContext: audioContext,
+		audioContext: context,
 		activeSounds: make(map[string]*ActiveSound),
-		nowMillis:    getCurrentTimeMillis,
+		mutex:        sync.RWMutex{}, nextSoundSequence: 0,
+		nowMillis:    newPresentationClock(time.Now).Milliseconds,
 		soundAssets:  make(map[game_state.SoundEffect][]*SoundAsset),
 		nextVariant:  make(map[game_state.SoundEffect]int),
 		assetsLoaded: false,
-	}, nil
+	}
 }
 
 // LoadAssets loads all sound effect assets from embedded files
@@ -107,8 +129,15 @@ func (sep *SoundEffectPlayer) LoadAssets() error {
 	}
 
 	// Use data-driven sound file mapping from metadata
-	for effect, metadata := range soundEffectMetadataMap {
-		sep.loadConfiguredSoundAsset(effect, metadata)
+	if sep.redux {
+		for effect, name := range catalogEffectNames() {
+			cue := sep.library.document.Cues["sfx/"+name]
+			metadata := SoundEffectMetadata{Name: cue.Name, RecordingID: cue.PrimaryRecording(),
+				VolumeModifier: cue.VolumeModifier}
+			if err := sep.loadConfiguredSoundAsset(effect, metadata); err != nil {
+				return err
+			}
+		}
 	}
 
 	sep.assetsLoaded = true
@@ -117,40 +146,57 @@ func (sep *SoundEffectPlayer) LoadAssets() error {
 }
 
 func (sep *SoundEffectPlayer) loadConfiguredSoundAsset(
-	effect game_state.SoundEffect,
-	metadata SoundEffectMetadata,
-) {
-	cue := productionLibrary().Cues["sfx/"+catalogEffectNames()[effect]]
+	effect game_state.SoundEffect, metadata SoundEffectMetadata,
+) error {
+	cueID := "sfx/" + catalogEffectNames()[effect]
+	assets, err := sep.prepareCueAssets(cueID, effect)
+	if err != nil {
+		return fmt.Errorf("load sound effect %s: %w", metadata.Name, err)
+	}
+	if len(assets) == 0 {
+		return nil
+	}
+	sep.soundAssets[effect], sep.cueAssets[cueID] = assets, assets
+	sep.cueEffects[cueID] = effect
+
+	return nil
+}
+
+func (sep *SoundEffectPlayer) prepareCueAssets(id string, effect game_state.SoundEffect) ([]*SoundAsset, error) {
+	cue := sep.library.document.Cues[id]
+	assets := make([]*SoundAsset, 0, len(cue.Recordings()))
 	for _, recordingID := range cue.Recordings() {
-		filePath := productionLibrary().recordingPath(recordingID)
+		filePath := sep.library.recordingPath(recordingID)
 		if filePath == "" {
 			continue
 		} // Only single-clip cues may be empty slots.
-		window := productionLibrary().Recordings[recordingID].PlaybackWindow
+		window := sep.library.document.Recordings[recordingID].PlaybackWindow
 		asset, err := sep.prepareSoundAsset(effect, recordingID, filePath, window)
 		if err != nil {
-			panic(fmt.Sprintf("Failed to load sound effect %s: %v", metadata.Name, err))
+			return nil, err
 		}
-		sep.soundAssets[effect] = append(sep.soundAssets[effect], asset)
+		assets = append(assets, asset)
 	}
+
+	return assets, nil
 }
 
 func (sep *SoundEffectPlayer) prepareSoundAsset(
 	effect game_state.SoundEffect, recordingID, filePath string, window *PlaybackWindow,
 ) (*SoundAsset, error) {
-	fileData, err := soundFiles.ReadFile(filePath)
+	fileData, err := sep.library.readFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read sound %s: %w", filePath, err)
 	}
-	stream, err := DecodeAudioStream(fileData, filePath, sep.audioContext.SampleRate())
+	stream, err := DecodeAudioStream(fileData, filePath, sep.backend.SampleRate())
 	if err != nil {
 		return nil, fmt.Errorf("decode sound %s: %w", filePath, err)
 	}
 
 	if window != nil {
-		asset, err := excerptSoundAsset(effect, stream, sep.audioContext.SampleRate(), *window)
+		asset, err := excerptSoundAsset(effect, stream, sep.backend.SampleRate(), *window)
 		if err != nil {
-			return nil, fmt.Errorf("prepare %s: %w", GetSoundEffectName(effect), err)
+			return nil, fmt.Errorf("prepare %s: %w", recordingID, err)
 		}
 		asset.RecordingID = recordingID
 
@@ -164,30 +210,24 @@ func (sep *SoundEffectPlayer) prepareSoundAsset(
 	}
 
 	// Store the original file data for creating fresh streams
-	originalData := make([]byte, len(fileData))
-	copy(originalData, fileData)
+	originalData := fileData // Library owns immutable encoded bytes shared by independent decoders.
 
-	newStream := func() io.ReadSeeker {
-		freshStream, err := DecodeAudioStream(originalData, filePath, sep.audioContext.SampleRate())
-		if err != nil {
-			return &silentStream{position: 0}
-		}
-
-		return freshStream
-	}
 	asset := &SoundAsset{
 		Effect:      effect,
 		RecordingID: recordingID,
-		StreamFactory: func(mode game_state.SoundPlaybackMode) io.ReadSeeker {
-			freshStream := newStream()
+		StreamFactory: func(mode game_state.SoundPlaybackMode) (io.ReadSeeker, error) {
+			freshStream, err := DecodeAudioStream(originalData, filePath, sep.backend.SampleRate())
+			if err != nil {
+				return nil, fmt.Errorf("recreate sound %s: %w", filePath, err)
+			}
 			if mode == game_state.SoundPlaybackLoop {
-				return audio.NewInfiniteLoop(freshStream, streamLength)
+				return audio.NewInfiniteLoop(freshStream, streamLength), nil
 			}
 
-			return freshStream
+			return freshStream, nil
 		},
-		Duration:   streamLength * millisecondsPerSecond / (int64(sep.audioContext.SampleRate()) * decodedPCMBytesPerFrame),
-		SampleRate: sep.audioContext.SampleRate(),
+		Duration:   streamLength * millisecondsPerSecond / (int64(sep.backend.SampleRate()) * decodedPCMBytesPerFrame),
+		SampleRate: sep.backend.SampleRate(),
 	}
 
 	return asset, nil
@@ -195,112 +235,171 @@ func (sep *SoundEffectPlayer) prepareSoundAsset(
 
 // Play starts one explicitly configured sound instance.
 func (sep *SoundEffectPlayer) Play(request game_state.SoundPlaybackRequest) error {
+	_, err := sep.play(request, nil)
+
+	return err
+}
+
+func (sep *SoundEffectPlayer) play(request game_state.SoundPlaybackRequest, owner *VoiceOwner) (uint64, error) {
+	return sep.playCue(request, "sfx/"+catalogEffectNames()[request.Effect], owner,
+		request.Effect == game_state.SoundWalkMetal1 || request.Effect == game_state.SoundFireBurn, true)
+}
+
+func (sep *SoundEffectPlayer) playCue(request game_state.SoundPlaybackRequest, cueID string,
+	owner *VoiceOwner, replace, legacy bool) (uint64, error) {
 	sep.mutex.Lock()
 	defer sep.mutex.Unlock()
-	asset, skip, err := sep.assetForRequest(request)
+	asset, skip, err := sep.assetForCue(request, cueID, legacy)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if skip {
-		return nil
-	}
-
-	// Repeated footfalls and burning damage replace their own preceding voice.
-	// Fire ambience and the workflow-owned campfire use different identities.
-	if request.Effect == game_state.SoundWalkMetal1 || request.Effect == game_state.SoundFireBurn {
-		sep.stopEffectLocked(request.Effect)
-	}
-
-	// Retire completed finite voices before applying the shared voice budget.
-	sep.retireCompletedLocked()
-	// Long-running workflow loops are never evicted by an ordinary one-shot.
-	if len(sep.activeSounds) >= 8 {
-		if !sep.removeOldestOneShot() {
-			if request.Mode == game_state.SoundPlaybackLoop {
-				return errSoundVoiceLimit
-			}
-			logging.Debug(logging.CategoryAudio, "Dropping %s: all SFX voices are owned loops",
-				GetSoundEffectName(request.Effect))
-
-			return nil
-		}
+		return 0, nil
 	}
 
 	// Calculate effective volume with sound-specific volume modifier
 	baseVolume := request.Volume
-	if metadata, exists := GetSoundEffectMetadata(request.Effect); exists {
-		baseVolume *= metadata.VolumeModifier * productionLibrary().recordingCalibration(asset.RecordingID)
+	if cue, exists := sep.library.document.Cues[cueID]; exists {
+		baseVolume *= cue.VolumeModifier * sep.library.document.recordingCalibration(asset.RecordingID)
 	}
 	effectiveVolume := sep.config.GetEffectiveVolume(baseVolume)
+	if request.Mode == game_state.SoundPlaybackOneShot && effectiveVolume == 0 {
+		return 0, nil // An inaudible finite request cannot evict an audible voice.
+	}
 
 	// Create a fresh stream for this player to avoid reuse issues
-	freshStream := asset.StreamFactory(request.Mode)
+	freshStream, err := asset.StreamFactory(request.Mode)
+	if err != nil {
+		return 0, fmt.Errorf("prepare cue %s: %w", cueID, err)
+	}
 	if freshStream == nil {
-		return fmt.Errorf("%w: %s", errSoundStreamUnavailable, GetSoundEffectName(request.Effect))
+		return 0, fmt.Errorf("%w: %s", errSoundStreamUnavailable, cueID)
 	}
 
 	// Create audio player
-	player, err := newGainPlayer(sep.audioContext, freshStream)
+	player, err := newGainPlayerWithBackend(sep.backend, freshStream)
 	if err != nil {
-		return fmt.Errorf("failed to create audio player: %w", err)
+		return 0, fmt.Errorf("failed to create audio player: %w", err)
+	}
+	// Preparation is transactional: failed decoding/player creation cannot evict
+	// a sounding voice or advance variant/instance sequence selection.
+	admitted, err := sep.admitPreparedLocked(request, cueID, owner, player, replace)
+	if err != nil || !admitted {
+		return 0, err
 	}
 
-	// Set initial volume for fade-in or normal playback
 	initialVolume := effectiveVolume
 	if request.FadeInMs > 0 {
-		initialVolume = 0.0 // Start at silence for fade-in
-		logging.Debug(
-			logging.CategoryAudio,
-			"Starting fade-in for %s: 0.0 -> %.3f over %dms",
-			GetSoundEffectName(request.Effect),
-			effectiveVolume,
-			request.FadeInMs,
-		)
+		initialVolume = 0
 	}
 	player.SetVolume(initialVolume)
-
-	// TODO: Implement stereo pan when Ebiten supports it
-	// pan parameter is calculated but not yet applied
-
-	sep.trackActiveSound(request, player, baseVolume, initialVolume, effectiveVolume, asset)
-
-	// Start playback
+	sep.trackActiveSound(request, player, baseVolume, initialVolume, effectiveVolume, asset, owner, cueID)
 	player.Play()
-	sep.nextVariant[request.Effect] = (sep.nextVariant[request.Effect] + 1) % len(sep.soundAssets[request.Effect])
+	if legacy {
+		sep.nextVariant[request.Effect] = (sep.nextVariant[request.Effect] + 1) % len(sep.soundAssets[request.Effect])
+		sep.nextCue[cueID] = sep.nextVariant[request.Effect]
+	} else {
+		sep.nextCue[cueID] = (sep.nextCue[cueID] + 1) % len(sep.cueAssets[cueID])
+		if effect, exists := sep.cueEffects[cueID]; exists {
+			sep.nextVariant[effect] = sep.nextCue[cueID]
+		}
+	}
 
-	return nil
+	return sep.nextSoundSequence, nil
+}
+
+func (sep *SoundEffectPlayer) admitPreparedLocked(
+	request game_state.SoundPlaybackRequest, cueID string, owner *VoiceOwner, player *gainPlayer, replace bool,
+) (bool, error) {
+	if replace {
+		for id, sound := range sep.activeSounds {
+			if sound.CueID == cueID && sound.owner == owner {
+				sep.closeSoundLocked(id)
+			}
+		}
+	}
+	sep.retireCompletedLocked()
+	const voiceLimit = 8
+	if len(sep.activeSounds) >= voiceLimit && !sep.removeOldestOneShot() {
+		if err := player.Close(); err != nil {
+			return false, fmt.Errorf("retire unadmitted sound: %w", err)
+		}
+		if request.Mode == game_state.SoundPlaybackLoop {
+			return false, errSoundVoiceLimit
+		}
+		logging.Debug(logging.CategoryAudio, "Dropping %s: all SFX voices are owned loops", cueID)
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (sep *SoundEffectPlayer) assetForRequest(
 	request game_state.SoundPlaybackRequest,
 ) (*SoundAsset, bool, error) {
-	if request.Mode != game_state.SoundPlaybackOneShot && request.Mode != game_state.SoundPlaybackLoop {
-		return nil, false, fmt.Errorf("%w: %d", errUnsupportedSoundPlaybackMode, request.Mode)
-	}
-	if err := validateVolumeRange(request.Volume); err != nil {
-		return nil, false, fmt.Errorf("invalid sound request volume: %w", err)
-	}
-	if request.FadeInMs < 0 {
-		return nil, false, fmt.Errorf("%w: %d", errInvalidSoundFade, request.FadeInMs)
-	}
-	if !sep.assetsLoaded {
-		return nil, false, errSoundAssetsNotLoaded
+	if err := sep.validateRequest(request); err != nil {
+		return nil, false, err
 	}
 	assets := sep.soundAssets[request.Effect]
 	if len(assets) > 0 {
 		return assets[sep.nextVariant[request.Effect]%len(assets)], false, nil
 	}
-	if isPlaceholderSound(request.Effect) {
+	cue, exists := sep.library.document.Cues["sfx/"+catalogEffectNames()[request.Effect]]
+	if exists && sep.library.document.Recordings[cue.PrimaryRecording()].File == nil {
 		return nil, true, nil
 	}
 
 	return nil, false, fmt.Errorf("%w: %d", errSoundEffectNotFound, request.Effect)
 }
 
-func isPlaceholderSound(effect game_state.SoundEffect) bool {
-	metadata, exists := GetSoundEffectMetadata(effect)
+func (sep *SoundEffectPlayer) assetForCue(request game_state.SoundPlaybackRequest, cueID string,
+	legacy bool) (*SoundAsset, bool, error) {
+	if legacy {
+		return sep.assetForRequest(request)
+	}
+	if err := sep.validateRequest(request); err != nil {
+		return nil, false, err
+	}
+	if _, exists := sep.library.document.Cues[cueID]; !exists {
+		return nil, false, fmt.Errorf("%w: unknown cue %s", ErrAudioLibrary, cueID)
+	}
+	if err := sep.assetErrors[cueID]; err != nil {
+		return nil, false, err
+	}
+	assets, prepared := sep.cueAssets[cueID]
+	if !prepared {
+		var err error
+		assets, err = sep.prepareCueAssets(cueID, game_state.SoundEffect(-1))
+		if err != nil {
+			sep.assetErrors[cueID] = err
 
-	return exists && productionLibrary().Recordings[metadata.RecordingID].File == nil
+			return nil, false, err
+		}
+		sep.cueAssets[cueID] = assets
+	}
+	if len(assets) == 0 {
+		return nil, true, nil
+	}
+
+	return assets[sep.nextCue[cueID]%len(assets)], false, nil
+}
+
+func (sep *SoundEffectPlayer) validateRequest(request game_state.SoundPlaybackRequest) error {
+	if request.Mode != game_state.SoundPlaybackOneShot && request.Mode != game_state.SoundPlaybackLoop {
+		return fmt.Errorf("%w: %d", errUnsupportedSoundPlaybackMode, request.Mode)
+	}
+	if err := validateVolumeRange(request.Volume); err != nil {
+		return fmt.Errorf("invalid sound request volume: %w", err)
+	}
+	if request.FadeInMs < 0 {
+		return fmt.Errorf("%w: %d", errInvalidSoundFade, request.FadeInMs)
+	}
+	if !sep.assetsLoaded {
+		return errSoundAssetsNotLoaded
+	}
+
+	return nil
 }
 
 // nextSoundID returns a collision-free ID while the caller holds sep.mutex.
@@ -318,9 +417,14 @@ func (sep *SoundEffectPlayer) trackActiveSound(
 	volume float64,
 	targetVolume float64,
 	asset *SoundAsset,
+	owner *VoiceOwner,
+	cueID string,
 ) {
 	soundID, startTime, sequence := sep.nextSoundID(request.Effect)
 	sep.activeSounds[soundID] = &ActiveSound{
+		CueID:           cueID,
+		RequestGain:     request.Volume,
+		owner:           owner,
 		Effect:          request.Effect,
 		RecordingID:     asset.RecordingID,
 		Mode:            request.Mode,
@@ -335,6 +439,7 @@ func (sep *SoundEffectPlayer) trackActiveSound(
 		FadeOutStart:    0,
 		FadeOutDuration: 0,
 		FadeOutVolume:   0,
+		FadeOutGain:     0,
 		TargetVolume:    targetVolume,
 	}
 	if request.FadeInMs > 0 {
@@ -360,7 +465,7 @@ func (sep *SoundEffectPlayer) StopAll() {
 	for _, sound := range sep.activeSounds {
 		if sound.Player != nil {
 			if err := sound.Player.Close(); err != nil {
-				logging.Warn(logging.CategoryAudio, "Stopping sound %s: %v", GetSoundEffectName(sound.Effect), err)
+				logging.Warn(logging.CategoryAudio, "Stopping sound %s: %v", sound.CueID, err)
 			}
 		}
 	}
@@ -381,7 +486,7 @@ func (sep *SoundEffectPlayer) stopEffectLocked(effect game_state.SoundEffect) {
 		if sound.Effect == effect {
 			if sound.Player != nil {
 				if err := sound.Player.Close(); err != nil {
-					logging.Warn(logging.CategoryAudio, "Stopping sound %s: %v", GetSoundEffectName(sound.Effect), err)
+					logging.Warn(logging.CategoryAudio, "Stopping sound %s: %v", sound.CueID, err)
 				}
 			}
 			delete(sep.activeSounds, soundID)
@@ -403,12 +508,13 @@ func (sep *SoundEffectPlayer) FadeOutEffect(effect game_state.SoundEffect, fadeO
 			sound.FadeOutVolume = sound.Volume
 			sound.FadeOutGain = sound.FadeGain
 			sound.FadeInDuration = 0
-			logging.Debug(logging.CategoryAudio, "Starting fade-out for %s: %.3f -> 0.0 over %dms", GetSoundEffectName(effect), sound.Volume, fadeOutDurationMs)
+			logging.Debug(logging.CategoryAudio, "Starting fade-out for %s: %.3f -> 0.0 over %dms",
+				sound.CueID, sound.Volume, fadeOutDurationMs)
 		}
 	}
 }
 
-// Update method to handle fading - should be called regularly (e.g., every frame)
+// UpdateFading services envelopes, decoder failures, and completed voices every frame.
 func (sep *SoundEffectPlayer) UpdateFading() {
 	sep.mutex.Lock()
 	defer sep.mutex.Unlock()
@@ -456,7 +562,7 @@ func (sep *SoundEffectPlayer) closeSoundLocked(soundID string) {
 	sound := sep.activeSounds[soundID]
 	if sound.Player != nil {
 		if err := sound.Player.Close(); err != nil {
-			logging.Warn(logging.CategoryAudio, "Close sound %s: %v", GetSoundEffectName(sound.Effect), err)
+			logging.Warn(logging.CategoryAudio, "Close sound %s: %v", sound.CueID, err)
 		}
 	}
 	delete(sep.activeSounds, soundID)
@@ -464,7 +570,10 @@ func (sep *SoundEffectPlayer) closeSoundLocked(soundID string) {
 
 func (sep *SoundEffectPlayer) retireCompletedLocked() {
 	for id, sound := range sep.activeSounds {
-		if sound.Mode == game_state.SoundPlaybackOneShot && !sound.Player.IsPlaying() {
+		if err := sound.Player.Failure(); err != nil {
+			logging.Warn(logging.CategoryAudio, "Retire failed sound %s: %v", sound.CueID, err)
+			sep.closeSoundLocked(id)
+		} else if !sound.Player.IsPlaying() {
 			sep.closeSoundLocked(id)
 		}
 	}
@@ -488,7 +597,7 @@ func (sep *SoundEffectPlayer) Close() error {
 	for _, sound := range sep.activeSounds {
 		if sound.Player != nil {
 			if err := sound.Player.Close(); err != nil {
-				closeErrors = append(closeErrors, fmt.Errorf("closing sound %s: %w", GetSoundEffectName(sound.Effect), err))
+				closeErrors = append(closeErrors, fmt.Errorf("closing sound %s: %w", sound.CueID, err))
 			}
 		}
 	}
@@ -496,6 +605,10 @@ func (sep *SoundEffectPlayer) Close() error {
 	sep.activeSounds = make(map[string]*ActiveSound)
 	sep.soundAssets = make(map[game_state.SoundEffect][]*SoundAsset)
 	clear(sep.nextVariant)
+	clear(sep.nextCue)
+	clear(sep.cueAssets)
+	clear(sep.assetErrors)
+	clear(sep.cueEffects)
 	sep.assetsLoaded = false
 
 	return errors.Join(closeErrors...)
@@ -520,42 +633,6 @@ func (sep *SoundEffectPlayer) removeOldestOneShot() bool {
 	}
 
 	return false
-}
-
-// getCurrentTimeMillis returns current time in milliseconds
-// TODO: Consider using game clock for deterministic behavior
-// Note: This is used for audio management (sound ID generation and cleanup),
-// not gameplay logic, so non-deterministic time is less critical here
-func getCurrentTimeMillis() int64 {
-	return time.Now().UnixMilli()
-}
-
-// silentStream is a placeholder stream that produces silence
-type silentStream struct {
-	position int64
-}
-
-func (s *silentStream) Read(p []byte) (n int, err error) {
-	// Fill with silence (zeros)
-	for i := range p {
-		p[i] = 0
-	}
-	s.position += int64(len(p))
-
-	return len(p), nil
-}
-
-func (s *silentStream) Seek(offset int64, whence int) (int64, error) {
-	switch whence {
-	case io.SeekStart:
-		s.position = offset
-	case io.SeekCurrent:
-		s.position += offset
-	case io.SeekEnd:
-		s.position = offset // For infinite silence, end is same as start
-	}
-
-	return s.position, nil
 }
 
 // GetSoundEffectName returns human-readable name for a sound effect

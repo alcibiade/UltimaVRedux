@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"github.com/bradhannah/UltimaVRedux/internal/repositoryfs"
 )
 
 type jsonEdit struct {
@@ -22,13 +20,33 @@ type jsonEdit struct {
 // Save preserves untouched entries verbatim and replaces only edited records.
 // An external change is a conflict even if the local document is not dirty.
 func (e *LibraryEditor) Save() error {
+	e.beginPublication(e.path, false)
+	unlock, err := e.persistence.lock(e.path)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	return e.saveLocked()
+}
+
+func (e *LibraryEditor) saveLocked() error {
 	if err := e.checkExternalChange(); err != nil {
+		return err
+	}
+	if err := e.flushPendingDirectories(); err != nil {
+		if e.manifestSyncPending {
+			e.publication.State = PublicationSyncPending
+		}
+
 		return err
 	}
 	if err := e.Validate(); err != nil {
 		return err
 	}
 	if !e.Dirty() {
+		e.publication.State = PublicationUnchanged
+
 		return nil
 	}
 	data := e.formattedChanges()
@@ -36,26 +54,31 @@ func (e *LibraryEditor) Save() error {
 	if err != nil {
 		return fmt.Errorf("stat audio manifest: %w", err)
 	}
-	err = repositoryfs.PublishTemporaryFile(filepath.Dir(e.path), ".audio-library-*", data, info.Mode().Perm(),
+	err = e.persistence.publish(filepath.Dir(e.path), ".audio-library-*", data, info.Mode().Perm(),
 		func(temporary string) error {
 			if err := e.checkExternalChange(); err != nil {
 				return err
 			}
-			if err := os.Rename(temporary, e.path); err != nil {
+			if err := e.persistence.replace(temporary, e.path); err != nil {
 				return fmt.Errorf("publish audio manifest: %w", err)
 			}
+			e.saved, e.baseline, e.manifestSyncPending = data, e.library, true
+			e.requireDirectorySync(filepath.Dir(e.path))
+			e.publication.State = PublicationSyncPending
 
 			return nil
 		})
 	if err != nil {
+		if e.manifestSyncPending {
+			return fmt.Errorf("%w: %w", ErrAudioPublicationSync, err)
+		}
+
 		return fmt.Errorf("save audio library: %w", err)
 	}
-	e.saved = data
-	e.baseline = e.library
-
-	if err := repositoryfs.SyncDirectory(filepath.Dir(e.path)); err != nil {
-		return fmt.Errorf("sync saved audio library: %w", err)
+	if err := e.flushPendingDirectories(); err != nil {
+		return err
 	}
+	e.publication.State = PublicationComplete
 
 	return nil
 }
@@ -63,7 +86,7 @@ func (e *LibraryEditor) Save() error {
 // Validate checks schema, file references, and authored windows against decoded
 // source lengths without opening an audio device or modifying any files.
 func (e *LibraryEditor) Validate() error {
-	if _, err := parseAudioLibrary(encodeAudioValue(e.library), e.files); err != nil {
+	if _, err := parseLibraryDocument(encodeAudioValue(e.library), e.validator); err != nil {
 		return err
 	}
 
@@ -96,10 +119,10 @@ func (e *LibraryEditor) validateWindows() error {
 }
 
 func (e *LibraryEditor) validateWindow(recording Recording) error {
-	if !validRecordingPath(*recording.File) {
+	if !validAssetPath(*recording.File) {
 		return fmt.Errorf("%w: invalid recording path", ErrAudioLibrary)
 	}
-	data, err := fs.ReadFile(e.files, "assets/"+*recording.File)
+	data, err := fs.ReadFile(e.files, *recording.File)
 	if err != nil {
 		return fmt.Errorf("read selection source: %w", err)
 	}
@@ -139,7 +162,9 @@ func (e *LibraryEditor) formattedChanges() []byte {
 	roots := objectSpans(e.saved)
 	edits := entryEdits(roots["recordings"], e.library.Recordings)
 	edits = append(edits, entryEdits(roots["cues"], e.library.Cues)...)
-	edits = append(edits, routingEntryEdits(roots["routing"], e.library.Routing)...)
+	if !bytes.Equal(encodeAudioValue(e.library.Routing), encodeAudioValue(e.baseline.Routing)) {
+		edits = append(edits, routingEntryEdits(roots["routing"], e.library.Routing)...)
+	}
 	if !bytes.Equal(encodeAudioValue(e.library.Taxonomy), encodeAudioValue(e.baseline.Taxonomy)) {
 		edits = append(edits, jsonEdit{start: roots["taxonomy"].start, end: roots["taxonomy"].end,
 			data: encodeAudioValue(e.library.Taxonomy)})
@@ -202,16 +227,24 @@ func entryEdits[T any](root jsonEdit, values map[string]T) []jsonEdit {
 
 func routingEntryEdits(root jsonEdit, routing Routing) []jsonEdit {
 	fields := objectSpans(root.data)
+	sections := []string{routingAmbientKey, routingTilesKey, "surfaces", catalogMusic,
+		routingDungeonKey, "naval", "emitters", "defaultSurface"}
+	for _, name := range sections {
+		field, exists := fields[name]
+		if !exists || bytes.Equal(bytes.TrimSpace(field.data), []byte("null")) {
+			return []jsonEdit{{start: root.start, end: root.end, data: encodeAudioValue(routing)}}
+		}
+	}
 	for key, field := range fields {
 		field.start += root.start
 		field.end += root.start
 		fields[key] = field
 	}
-	edits := entryEdits(fields["ambient"], routing.Ambient)
-	edits = append(edits, entryEdits(fields["tiles"], routing.Tiles)...)
+	edits := entryEdits(fields[routingAmbientKey], routing.Ambient)
+	edits = append(edits, entryEdits(fields[routingTilesKey], routing.Tiles)...)
 	edits = append(edits, entryEdits(fields["surfaces"], routing.Surfaces)...)
-	edits = append(edits, entryEdits(fields["music"], routing.Music)...)
-	edits = append(edits, entryEdits(fields["dungeon"], routing.Dungeon)...)
+	edits = append(edits, entryEdits(fields[catalogMusic], routing.Music)...)
+	edits = append(edits, entryEdits(fields[routingDungeonKey], routing.Dungeon)...)
 	edits = append(edits, entryEdits(fields["naval"], routing.Naval)...)
 	edits = append(edits, entryEdits(fields["emitters"], routing.Emitters)...)
 	field := fields["defaultSurface"]

@@ -11,6 +11,19 @@ import (
 // Audio system methods for GameScene
 // Handles sound effects, background music, and audio state management
 
+//nolint:ireturn // Gameplay receives only opaque cleanup capability, never a device/backend dependency.
+func (g *GameScene) playSoundVoice(request game_state.SoundPlaybackRequest) game_state.SoundVoice {
+	if g.audioManager == nil {
+		return game_state.SilentSoundVoice{}
+	}
+	voice, err := g.audioManager.PlayVoice(request)
+	if err != nil {
+		logging.Warn(logging.CategoryAudio, "Start owned sound %s: %v", audio.GetSoundEffectName(request.Effect), err)
+	}
+
+	return voice
+}
+
 func (g *GameScene) playSound(request game_state.SoundPlaybackRequest) {
 	// Use the comprehensive audio system to play sound effects
 	if g.audioManager != nil {

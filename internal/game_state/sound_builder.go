@@ -24,6 +24,19 @@ type SoundStopRequest struct {
 	FadeOutMs int64
 }
 
+// SoundVoice is an opaque presentation-only cleanup capability. Gameplay cannot
+// query device state or use audio completion to govern time, RNG or outcomes.
+type SoundVoice interface {
+	Stop(fadeOutMs int64)
+}
+
+// SilentSoundVoice is the safe cleanup value before a workflow starts playback
+// or when its presentation adapter intentionally has no audio device.
+type SilentSoundVoice struct{}
+
+// Stop has no effect for a silent presentation.
+func (SilentSoundVoice) Stop(_ int64) {}
+
 // SoundBuilder provides a fluent API for configuring sound effects before playing them.
 type SoundBuilder struct {
 	effect    SoundEffect
@@ -96,6 +109,21 @@ func (b *SoundBuilder) Start() {
 	b.callbacks.RequestPlayback(SoundPlaybackRequest{
 		Effect: b.effect, Mode: b.mode, Volume: b.volume, FadeInMs: b.fadeInMs,
 	})
+}
+
+// StartOwned returns a cleanup capability for this instance, independent of
+// other presentations of the same effect. Its workflow releases it in Finally.
+//
+//nolint:ireturn // Opaque presentation cleanup keeps gameplay independent of audio backends.
+func (b *SoundBuilder) StartOwned() SoundVoice {
+	voice := b.callbacks.RequestVoice(SoundPlaybackRequest{
+		Effect: b.effect, Mode: b.mode, Volume: b.volume, FadeInMs: b.fadeInMs,
+	})
+	if voice == nil {
+		panic("AudioCallbacks.RequestVoice must return a cleanup capability")
+	}
+
+	return voice
 }
 
 // FadeOut configures the stop to fade out over the specified duration

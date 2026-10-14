@@ -267,7 +267,7 @@ func (catalog *Catalog) Validate() error {
 	if catalog.SchemaVersion != CatalogSchemaVersion {
 		return fmt.Errorf("%w: unsupported schema %d", ErrAudioCatalog, catalog.SchemaVersion)
 	}
-	for effect := range soundEffectMetadataMap {
+	for effect := range soundEffectMetadataMap() {
 		if _, exists := catalogEffectNames()[effect]; !exists {
 			return fmt.Errorf("%w: effect %d has no catalog identity", ErrAudioCatalog, effect)
 		}
@@ -288,29 +288,42 @@ func (catalog *Catalog) Validate() error {
 			return fmt.Errorf("%w: duplicate/empty moment identity %q", ErrAudioCatalog, moment.ID)
 		}
 		seen[moment.ID] = true
-		if moment.CueID != "" && (moment.Family == "" || moment.Phase == "" || moment.Outcome == "" || moment.MixRole == "") {
-			return fmt.Errorf("%w: unclassified moment %s", ErrAudioCatalog, moment.ID)
-		}
-		if len(moment.AssetIDs) > 0 && (moment.Selection != SelectionCycle || len(moment.AssetIDs) < 2 ||
-			moment.AssetID != moment.AssetIDs[0]) {
-			return fmt.Errorf("%w: invalid ordered assignment for %s", ErrAudioCatalog, moment.ID)
-		}
-		if moment.AssetID == "" {
-			if moment.Availability == CatalogPresent {
-				return fmt.Errorf("%w: present moment %s has no asset", ErrAudioCatalog, moment.ID)
-			}
-
-			continue
-		}
-		for _, recordingID := range moment.recordingIDs() {
-			asset, exists := assets[recordingID]
-			if !exists || !slices.Contains(asset.MomentIDs, moment.ID) || moment.Availability != asset.Availability {
-				return fmt.Errorf("%w: unresolved assignment for %s", ErrAudioCatalog, moment.ID)
-			}
+		if err := validateCatalogMoment(moment, assets); err != nil {
+			return err
 		}
 	}
 
 	return catalog.validateInverseLinks()
+}
+
+func validateCatalogMoment(moment CatalogMoment, assets map[string]CatalogAsset) error {
+	if moment.CueID != "" && (moment.Family == "" || moment.Phase == "" || moment.Outcome == "" || moment.MixRole == "") {
+		return fmt.Errorf("%w: unclassified moment %s", ErrAudioCatalog, moment.ID)
+	}
+	if len(moment.AssetIDs) > 0 && (moment.Selection != SelectionCycle ||
+		len(moment.AssetIDs) < 2 || moment.AssetID != moment.AssetIDs[0]) {
+		return fmt.Errorf("%w: invalid ordered assignment for %s", ErrAudioCatalog, moment.ID)
+	}
+	if moment.AssetID == "" {
+		if moment.Availability == CatalogPresent {
+			return fmt.Errorf("%w: present moment %s has no asset", ErrAudioCatalog, moment.ID)
+		}
+
+		return nil
+	}
+
+	return validateMomentAssets(moment, assets)
+}
+
+func validateMomentAssets(moment CatalogMoment, assets map[string]CatalogAsset) error {
+	for _, recordingID := range moment.recordingIDs() {
+		asset, exists := assets[recordingID]
+		if !exists || !slices.Contains(asset.MomentIDs, moment.ID) || moment.Availability != asset.Availability {
+			return fmt.Errorf("%w: unresolved assignment for %s", ErrAudioCatalog, moment.ID)
+		}
+	}
+
+	return nil
 }
 
 func (catalog *Catalog) validateInverseLinks() error {

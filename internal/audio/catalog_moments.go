@@ -8,6 +8,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 )
 
+const catalogSilent = "silent"
+
 const contextGainSemantics = "linear cue gain; combines with recording, category, position and fade; not final output"
 const catalogMagicFamily = "magic"
 
@@ -38,7 +40,7 @@ func (catalog *Catalog) addEffectMoments() {
 }
 
 func (catalog *Catalog) addMusicMoments() {
-	for id, metadata := range musicTrackMetadataMap {
+	for id, metadata := range musicTrackMetadataMap() {
 		moment := catalog.musicMoment("music/track/"+id, metadata.Name, id)
 		moment.SourceSymbols = []string{"PlayMusicForContext", "PlayBackgroundMusic"}
 		moment.Note = "Library track: selection availability is not proof a particular gameplay context requests it."
@@ -82,7 +84,7 @@ func (catalog *Catalog) musicMoment(id, name, track string) CatalogMoment {
 	moment.GainSemantics = contextGainSemantics
 	moment.RelatedIssues = []int{579, 581}
 	if track == "" {
-		moment.Availability = "silent"
+		moment.Availability = catalogSilent
 		moment.Playback = "authored silence"
 		moment.Note = "The effective music assignment is silence, not an absent recording."
 
@@ -129,7 +131,7 @@ func (catalog *Catalog) addAmbientMoments() {
 		moment.SourceSymbols = []string{"DungeonAmbientSource"}
 		moment.Playback = "non-spatial persistent loop; retained through dungeon room transitions"
 		if cue == "" {
-			moment.Availability = "silent"
+			moment.Availability = catalogSilent
 			moment.Note = "Dungeon background is explicitly or implicitly silent."
 		} else {
 			catalog.assignCue(&moment, cue)
@@ -143,7 +145,7 @@ func (catalog *Catalog) addAmbientMoments() {
 		if cue := productionLibrary().Routing.Naval[vessel]; cue != nil {
 			catalog.assignCue(&moment, *cue)
 		} else {
-			moment.Availability, moment.Note = "silent", "No onboard ambient sound assigned yet."
+			moment.Availability, moment.Note = catalogSilent, "No onboard ambient sound assigned yet."
 		}
 		catalog.Moments = append(catalog.Moments, moment)
 	}

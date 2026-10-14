@@ -16,7 +16,7 @@ func (m *model) browsingCues() bool {
 
 func (m *model) activeCue() string {
 	if m.form != nil && m.routing.menu == nil {
-		if m.form.kind == formSurface && len(m.form.sequence) > 0 {
+		if m.form.kind == formSurface && m.form.cursor < len(m.form.sequence) {
 			return m.form.sequence[m.form.cursor]
 		}
 
@@ -75,7 +75,6 @@ func availabilityPriority(state audio.RecordingState) int {
 }
 
 func (m *model) previewNextClip() tea.Cmd {
-	m.pendingCycle = ""
 	if !m.browsingCues() || len(m.doc.Cue(m.selectedID()).Recordings()) < 2 {
 		m.play()
 
@@ -84,35 +83,15 @@ func (m *model) previewNextClip() tea.Cmd {
 	cueID := m.selectedID()
 	ids := m.doc.Cue(cueID).Recordings()
 	index := (m.currentVariant[cueID] + 1) % len(ids)
-	previous := m.currentVariant[cueID]
-	m.currentVariant[cueID] = index
-	if previous == index && m.clip != nil {
-		m.pendingCycle = cueID
-		if m.play() {
-			m.advancePreviewCycle()
-		}
-
-		return nil
-	}
 	path, err := m.doc.RecordingPath(ids[index])
 	if err != nil {
 		m.report(err)
 
 		return nil
 	}
-	command := m.loadPath(path, true)
-	m.pendingCycle = cueID
 
-	return command
-}
-
-func (m *model) advancePreviewCycle() {
-	if m.pendingCycle == "" || m.pendingCycle != m.activeCue() {
-		return
-	}
-	ids := m.doc.Cue(m.pendingCycle).Recordings()
-	m.nextVariant[m.pendingCycle] = (m.currentVariant[m.pendingCycle] + 1) % len(ids)
-	m.pendingCycle = ""
+	return m.loadSource(sourceLoad{recordingID: ids[index], path: path, purpose: sourceVariant,
+		autoplay: true, cueID: cueID, variant: index})
 }
 
 func (m *model) openVariants() tea.Cmd {
@@ -156,13 +135,13 @@ func (m *model) variantKey(key string) tea.Cmd {
 		return m.closeVariants()
 	case "a", "f":
 		return m.beginAppendVariant()
-	case "d":
+	case keyDelete:
 		return m.editVariants(0, true)
 	case "ctrl+up":
 		return m.editVariants(-1, false)
 	case "ctrl+down":
 		return m.editVariants(1, false)
-	case "+", "-", "ctrl+f", keyTab, "1", "2":
+	case "+", "-", keyFilter, keyTab, "1", "2":
 		return nil
 	}
 
@@ -191,7 +170,7 @@ func (m *model) editVariants(direction int, remove bool) tea.Cmd {
 
 		return nil
 	}
-	m.currentVariant[m.variantCue], m.nextVariant[m.variantCue] = 0, 0
+	m.currentVariant[m.variantCue] = 0
 	m.clearSoundscape()
 	m.refreshKeys()
 

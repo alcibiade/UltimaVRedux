@@ -2,10 +2,16 @@ package audio
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
+	eaudio "github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/stretchr/testify/require"
 )
+
+func newGainPlayer(context *eaudio.Context, source io.ReadSeeker) (*gainPlayer, error) {
+	return newGainPlayerWithBackend(EbitengineBackend{Context: context}, source)
+}
 
 func TestGainPlayerRetirementPreventsRestart(t *testing.T) {
 	player, err := newGainPlayer(getSharedAudioContext(), bytes.NewReader(make([]byte, 4096)))

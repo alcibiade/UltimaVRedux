@@ -3,7 +3,6 @@ package audio
 import (
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -12,11 +11,12 @@ import (
 // MusicManager handles location-based background music selection and playback
 // Maps specific locations to appropriate music tracks for atmospheric gameplay
 type MusicManager struct {
-	audioManager    *AudioManager
-	currentLocation references.Location
-	policy          *musicPolicy
-	pauseDepth      int
-	mutex           sync.RWMutex
+	audioManager      *AudioManager
+	currentLocation   references.Location
+	policy            *musicPolicy
+	pauseDepth        int
+	mutex             sync.RWMutex
+	loadFailureLogged bool
 }
 
 // NewMusicManager creates a new music manager with location-based music mapping
@@ -28,14 +28,14 @@ func NewMusicManager(audioManager *AudioManager) *MusicManager {
 	return &MusicManager{
 		audioManager:    audioManager,
 		currentLocation: references.EmptyLocation,
-		policy:          newMusicPolicy(audioManager.backgroundMusic, time.Now),
-		pauseDepth:      0, mutex: sync.RWMutex{},
+		policy:          newMusicPolicy(audioManager.backgroundMusic, audioManager.clock.Now),
+		pauseDepth:      0, mutex: sync.RWMutex{}, loadFailureLogged: false,
 	}
 }
 
 // GetMusicForLocation returns the appropriate music track for a given location
 func (mm *MusicManager) GetMusicForLocation(location references.Location) string {
-	return musicForLocation(location)
+	return mm.audioManager.library.document.Routing.musicFor(location, references.FloorNumber(references.OVERWORLD))
 }
 
 func musicForLocation(location references.Location) string {
@@ -44,7 +44,7 @@ func musicForLocation(location references.Location) string {
 
 // GetMusicForContext returns appropriate music for game contexts (intro, victory, etc.)
 func (mm *MusicManager) GetMusicForContext(context string) string {
-	return musicForContext(productionLibrary().Routing.Music, context)
+	return musicForContext(mm.audioManager.library.document.Routing.Music, context)
 }
 
 func musicForContext(assignments map[string]*string, context string) string {
@@ -84,7 +84,7 @@ func (mm *MusicManager) PlayMusicForScene(location references.PlayerLocation) er
 	defer mm.mutex.Unlock()
 	mm.policy.cue = "" // An explicit new location request replaces any pending special cue.
 	mm.currentLocation = location.Location
-	mm.policy.exploration = productionLibrary().Routing.musicFor(location.Location, location.Floor)
+	mm.policy.exploration = mm.audioManager.library.document.Routing.musicFor(location.Location, location.Floor)
 
 	return mm.policy.update()
 }
@@ -113,11 +113,11 @@ func (mm *MusicManager) SetSceneSoundscape(
 			mm.policy.cue = ""
 		}
 		mm.currentLocation = location.Location
-		mm.policy.exploration = productionLibrary().Routing.musicFor(location.Location, location.Floor)
+		mm.policy.exploration = mm.audioManager.library.document.Routing.musicFor(location.Location, location.Floor)
 	}
 	mm.policy.combatTrack = mm.GetMusicForContext("combat")
 	track := ""
-	if cue := productionLibrary().Routing.Naval["sailing"]; cue != nil {
+	if cue := mm.audioManager.library.document.Routing.Naval["sailing"]; cue != nil {
 		track = strings.TrimPrefix(*cue, "music/track/")
 	}
 	mm.policy.setSailing(sailsRaised, track)
@@ -207,11 +207,17 @@ func (mm *MusicManager) IsEnabled() bool {
 // Update advances presentation-only scheduling and fades.
 func (mm *MusicManager) Update() {
 	mm.mutex.RLock()
-	needed := mm.policy.exploration != "" || mm.policy.cue != "" || mm.policy.combatEncounter != 0
+	needed := mm.policy.exploration != "" || mm.policy.cue != "" || mm.policy.combatEncounter != 0 ||
+		mm.policy.sailingRaised
 	mm.mutex.RUnlock()
 	if needed {
 		if err := mm.audioManager.ensureAssetsLoaded(); err != nil {
-			logging.Warn(logging.CategoryAudio, "Load scheduled music: %v", err)
+			mm.mutex.Lock()
+			if !mm.loadFailureLogged {
+				logging.Warn(logging.CategoryAudio, "Load scheduled music: %v", err)
+				mm.loadFailureLogged = true
+			}
+			mm.mutex.Unlock()
 
 			return
 		}
@@ -252,7 +258,12 @@ func (mm *MusicManager) RestoreHistory(history MusicHistory) {
 
 // GetAllLocationMusicMappings returns a map of all location to music mappings for debugging/testing
 func (mm *MusicManager) GetAllLocationMusicMappings() map[references.Location]string {
-	return locationMusicMappings()
+	mappings := make(map[references.Location]string)
+	for location := references.Location(0); location <= references.CombatRestingShrine; location++ {
+		mappings[location] = mm.GetMusicForLocation(location)
+	}
+
+	return mappings
 }
 
 func locationMusicMappings() map[references.Location]string {

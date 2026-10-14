@@ -103,7 +103,7 @@ func (m *model) previewForm(departure, toggle bool) tea.Cmd {
 		}
 		form.previewProfile = &profile
 	}
-	if m.clip == nil {
+	if !m.selectedClipReady() {
 		form.errorText = "Choose a playable recording before previewing."
 
 		return nil
@@ -175,7 +175,7 @@ func (m *model) transportView(width int) string {
 	}
 
 	return m.panel("PREVIEW · "+state, []string{style.Render(fit(line, width-panelEdges)),
-		fit("Enter: play/restart   Space: pause/resume   X: stop", width-panelEdges)}, width, transportRows, true)
+		fit("Enter: play/restart   Space: pause/resume   x / Ctrl+x: stop", width-panelEdges)}, width, transportRows, false)
 }
 
 func (m *model) showAnimationInfo() {
@@ -200,7 +200,8 @@ func (m *model) infoKey(key string) {
 func (m *model) openHelp() {
 	lines := []string{
 		"BROWSING AND PLAYBACK", "1–4 / Tab: workspace · /: search · Ctrl+F: filter",
-		"Enter / p: play or restart · Space: pause/resume · X: stop all", "N / n: next clip where available",
+		"Enter / p: play or restart · Space: pause/resume · Ctrl+x: stop all (including while typing)",
+		"n: next clip in Moments · Shift+n: recording note",
 		"Ctrl+S: save library · u / Ctrl+R: undo / redo", "",
 		"TILES AND LOCATIONS", "f: choose ambient sound or music · r: change recording · i: import recording file",
 		"p: preview ambience · Shift+P: preview footstep · n: next footstep",
@@ -210,13 +211,17 @@ func (m *model) openHelp() {
 		"", "RECORDINGS AND MOMENTS", "f: file / recording picker · d: details · w: waveform · m: Soundscape",
 		"g / +/-: shared gain · i/o: trim markers · s/e: exact trim times",
 		"[/]: choose trim marker · arrows: nudge · z: zoom · t: suggest trim · r: reset trim",
+		"Regions are drafts: Tab/Enter selects Apply or Cancel; p auditions; Escape discards",
+		"F5 in a region reloads its source while retaining bounds for review · ? shows draft/source details",
 		"Shift+K: keywords · Shift+H: trigger · Shift+N: note · C: classification",
 		"Ctrl+L: edit the selected recording's license (shared provenance)",
 		"A: auto-gain · T: calibration target · D: duplicate clip · V: ordered variants",
 		"a: add to Soundscape · v: temporary preview volumes", "",
 		"EDITING", "A highlighted field owns typing; other workspace shortcuts are suspended.",
-		"Dialogs: Tab moves focus · Enter edits/activates · Ctrl+Enter applies · Escape cancels",
-		"Text: Ctrl+U clears · Enter applies (notes: Ctrl+Enter; Enter inserts a line)",
+		"Dialogs: Tab moves focus · Enter edits/activates Apply or Cancel · Escape cancels",
+		"Text: arrows move the caret · Home/End: line bounds · Ctrl+U: clear · Shift+arrows: select",
+		"Notes: Enter inserts a line · Tab selects Apply/Cancel · Enter activates the selected action",
+		"Forms: Enter finishes a field · Escape restores the field; another Escape cancels the form",
 		"Apply changes the library draft; Ctrl+S writes the file. Rebuild the game to use saved changes.",
 	}
 	m.infoDialog = &editorInfo{

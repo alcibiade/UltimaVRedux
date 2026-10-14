@@ -70,7 +70,7 @@ func TestStandaloneAuditionUsesGameplayPCMCalibration(t *testing.T) {
 func TestAuditionRetirementStopsReadsAndPreservesErrors(t *testing.T) {
 	closeErr := errors.New("decoder failed")
 	device := &auditionDeviceStub{playing: true, err: closeErr}
-	audition := &Audition{player: &auditionPlayer{device: device}}
+	audition := &Audition{player: &auditionPlayer{device: device, stream: newAuditionStream(bytes.NewReader(nil))}}
 	require.ErrorIs(t, audition.Close(), closeErr)
 	assert.Equal(t, 1, device.stopped)
 	assert.False(t, audition.Active())

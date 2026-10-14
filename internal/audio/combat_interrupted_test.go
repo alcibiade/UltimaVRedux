@@ -28,7 +28,7 @@ func TestCombatInterruptedCueResolvesToIntentionalSilentSlot(t *testing.T) {
 		TargetAcousticFamily: "status", Phase: "resolution", Outcome: "failure",
 		MixRole: "foreground_feedback", Emitters: []string{"creature"}, Contexts: []string{audioContextCombat},
 	}, profile)
-	player := &SoundEffectPlayer{assetsLoaded: true}
+	player := &SoundEffectPlayer{assetsLoaded: true, library: defaultRuntimeLibrary()}
 	asset, skip, err := player.assetForRequest(game_state.SoundPlaybackRequest{
 		Effect: game_state.SoundCombatInterrupted, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
 	})

@@ -42,9 +42,6 @@ func (m *model) layout() editorLayout {
 	wave := max(minimumWaveHeight, min(maximumWaveHeight, height/waveHeightDivisor))
 	mix := 1
 	minimumBrowserHeight := panelEdges + m.browserLabelRows() + 1
-	if m.duplicate != nil {
-		minimumBrowserHeight = panelEdges + len(m.duplicateLines(width))
-	}
 	if m.field != "" && m.inlineInput() && m.field != fieldSearch {
 		minimumBrowserHeight = max(minimumBrowserHeight, len(m.inputLines(width/columnSplit))+panelEdges)
 	}
@@ -79,7 +76,13 @@ func (m *model) browserLabelRows() int {
 
 func (m *model) View() string {
 	if m.width < minimumWidth || m.height < minimumHeight {
-		return "Audio Library Editor — enlarge terminal to at least 60 × 24.\nCtrl+s saves; q quits."
+		message := "Audio Library Editor — enlarge terminal to at least 60 × 24.\n" +
+			"Editing paused; Ctrl+x stops audio; Ctrl+s saves; q quits."
+		if m.confirmQuit {
+			message += "\nUnsaved work: y discards and quits; Escape keeps editing."
+		}
+
+		return message + "\n" + safe(m.status)
 	}
 	const dialogWidth = 84
 	width := min(dialogWidth, m.width-editorDialogMargin)
@@ -99,29 +102,24 @@ func (m *model) View() string {
 func (m *model) workspaceView() string {
 	layout := m.layout()
 	state := m.colors.ready.Render("SAVED")
-	if m.doc.Dirty() {
+	dirty := m.doc.Dirty()
+	if dirty {
 		state = m.colors.warning.Render("* UNSAVED")
+	}
+	if m.doc.NeedsSync() {
+		state = m.colors.warning.Render("* DURABILITY PENDING")
+		if dirty {
+			state += " · UNSAVED"
+		}
+	}
+	if m.crop != nil {
+		state += " · REGION DRAFT"
 	}
 	title := "AUDIO LIBRARY EDITOR  /  " + strings.ToUpper(workspaceName(m.workspace)) + "  " + state
 	tabs := m.workspaceTitle()
 	left := m.panel(m.browserTitle(), m.browserLines(layout.left-panelEdges), layout.left, layout.top,
-		m.focus == focusBrowser || m.picker != nil)
-	rightTitle := "DETAILS · d focus / Esc browse"
-	if m.soundscapeVisible {
-		rightTitle = "SOUNDSCAPE · temporary · m focus"
-	}
-	if m.volumeControls {
-		rightTitle = "PREVIEW VOLUME · temporary"
-	}
-	rightLines := m.visibleDetails(layout.right - panelEdges)
-	inline := m.field != "" && m.field != fieldSearch && m.inlineInput()
-	if inline {
-		rightTitle = "EDITING · " + m.fieldLabel()
-		rightLines = m.inputLines(layout.right - panelEdges)
-	}
-	right := m.panel(rightTitle, rightLines, layout.right, layout.top,
-		m.focus == focusDetails || m.focus == focusMix || m.volumeControls || inline)
-	panes := lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", paneGap), right)
+		m.panelFocused(focusBrowser))
+	panes := lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", paneGap), m.rightPane(layout))
 	status := safe(m.status)
 	if m.statusIsError {
 		status = m.colors.problem.Render("! " + status)
@@ -135,6 +133,34 @@ func (m *model) workspaceView() string {
 		fit(status, layout.width), strings.Join(m.footerLines(), "\n"))
 
 	return strings.Join(sections, "\n")
+}
+
+func (m *model) rightPane(layout editorLayout) string {
+	rightTitle := "DETAILS · d focus / Esc browse"
+	if m.soundscapeVisible {
+		rightTitle = "SOUNDSCAPE · temporary · m focus"
+	}
+	if m.volumeControls {
+		rightTitle = "PREVIEW VOLUME · temporary"
+	}
+	var rightLines []string
+	if m.crop != nil && !m.volumeControls {
+		rightTitle = "REGION DRAFT · Apply/Cancel"
+		if m.duplicate != nil {
+			rightTitle = "DUPLICATE CLIP · Create/Cancel"
+		}
+		rightLines = m.visibleCropLines(layout.right-panelEdges, layout.top-panelEdges)
+	} else {
+		rightLines = m.visibleDetails(layout.right - panelEdges)
+	}
+	inline := m.field != "" && m.field != fieldSearch && m.inlineInput()
+	if inline {
+		rightTitle = "EDITING · " + m.fieldLabel()
+		rightLines = m.inputLines(layout.right - panelEdges)
+	}
+
+	return m.panel(rightTitle, rightLines, layout.right, layout.top,
+		m.panelFocused(focusDetails) || m.panelFocused(focusMix))
 }
 
 func (m *model) workspaceTitle() string {

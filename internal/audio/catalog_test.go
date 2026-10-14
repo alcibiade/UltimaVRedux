@@ -65,7 +65,7 @@ func TestCatalogCoversEveryDeclaredEffectAndProductionAssignment(t *testing.T) {
 	}
 	catalog, err := BuildCatalog(false)
 	require.NoError(t, err)
-	for effect, metadata := range soundEffectMetadataMap {
+	for effect, metadata := range soundEffectMetadataMap() {
 		name, exists := names[effect]
 		require.True(t, exists, "metadata lacks a stable identity: %v", effect)
 		moment := findCatalogMoment(t, catalog, "sfx/"+name)
@@ -78,11 +78,11 @@ func TestCatalogCoversEveryDeclaredEffectAndProductionAssignment(t *testing.T) {
 		}
 	}
 	for effect, name := range names {
-		if _, exists := soundEffectMetadataMap[effect]; !exists {
+		if _, exists := soundEffectMetadataMap()[effect]; !exists {
 			require.Equal(t, "missing_definition", findCatalogMoment(t, catalog, "sfx/"+name).Availability)
 		}
 	}
-	for id, metadata := range musicTrackMetadataMap {
+	for id, metadata := range musicTrackMetadataMap() {
 		moment := findCatalogMoment(t, catalog, "music/track/"+id)
 		require.Equal(t, productionLibrary().recordingPath(metadata.RecordingID), moment.ConfiguredFile)
 		require.Equal(t, metadata.VolumeModifier, *moment.ConfiguredGain)

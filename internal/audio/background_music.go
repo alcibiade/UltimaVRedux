@@ -20,7 +20,7 @@ type MusicTrackMetadata struct {
 }
 
 //nolint:gochecknoglobals // Immutable metadata derived from the validated embedded library.
-var musicTrackMetadataMap = libraryMusicMetadata()
+var musicTrackMetadataMap = sync.OnceValue(libraryMusicMetadata)
 
 func libraryMusicMetadata() map[string]MusicTrackMetadata {
 	metadata := make(map[string]MusicTrackMetadata)
@@ -35,25 +35,17 @@ func libraryMusicMetadata() map[string]MusicTrackMetadata {
 	return metadata
 }
 
-// getMusicTrackMetadata returns the exact current file paths (empty means an intentional slot).
-func getMusicTrackMetadata() map[string]string {
-	tracks := make(map[string]string)
-	for name, metadata := range musicTrackMetadataMap {
-		tracks[name] = productionLibrary().recordingPath(metadata.RecordingID)
-	}
-
-	return tracks
-}
-
 // GetMusicTrackMetadata returns the code-backed track's library metadata.
 func GetMusicTrackMetadata(track string) (MusicTrackMetadata, bool) {
-	metadata, exists := musicTrackMetadataMap[track]
+	metadata, exists := musicTrackMetadataMap()[track]
 
 	return metadata, exists
 }
 
 // BackgroundMusicSystem handles finite background music playback and volume control.
 type BackgroundMusicSystem struct {
+	library      *Library
+	backend      PlaybackBackend
 	config       *AudioConfiguration
 	audioContext *audio.Context
 	currentTrack string
@@ -68,7 +60,7 @@ type BackgroundMusicSystem struct {
 // MusicAsset represents a loaded music track.
 type MusicAsset struct {
 	Name           string
-	StreamFactory  func() io.ReadSeeker
+	StreamFactory  func() (io.ReadSeeker, error)
 	Duration       int64
 	VolumeModifier float64
 }
@@ -81,11 +73,17 @@ func NewBackgroundMusicSystemWithContext(
 		return nil, fmt.Errorf("%w: music requires configuration and audio context", ErrAudioLibrary)
 	}
 
+	return newProjectMusicSystem(config, defaultRuntimeLibrary(), EbitengineBackend{Context: context}, context), nil
+}
+
+func newProjectMusicSystem(config *AudioConfiguration, library *Library, backend PlaybackBackend,
+	context *audio.Context) *BackgroundMusicSystem {
 	return &BackgroundMusicSystem{
+		library: library, backend: backend,
 		config: config, audioContext: context, currentTrack: "", player: nil,
 		mutex: sync.RWMutex{}, assetsLoaded: false,
 		musicAssets: make(map[string]*MusicAsset), isPlaying: false, volumeGain: 1,
-	}, nil
+	}
 }
 
 // LoadAssets resolves exact manifest assignments; null-file slots deliberately stay silent.
@@ -95,12 +93,17 @@ func (bms *BackgroundMusicSystem) LoadAssets() error {
 	if bms.assetsLoaded {
 		return nil
 	}
-	for track, path := range getMusicTrackMetadata() {
+	for _, track := range musicTrackIDs() {
+		cue, exists := bms.library.document.Cues["music/track/"+track]
+		if !exists {
+			continue
+		}
+		path := bms.library.recordingPath(cue.RecordingID)
 		if path == "" {
 			continue
 		}
 		if err := bms.loadMusicAsset(track, path); err != nil {
-			panic(fmt.Sprintf("Failed to load music track %s: %v", track, err))
+			return fmt.Errorf("load music track %s: %w", track, err)
 		}
 	}
 	bms.assetsLoaded = true
@@ -109,13 +112,13 @@ func (bms *BackgroundMusicSystem) LoadAssets() error {
 }
 
 func (bms *BackgroundMusicSystem) loadMusicAsset(track, path string) error {
-	data, err := soundFiles.ReadFile(path)
+	data, err := bms.library.readFile(path)
 	if err != nil {
 		return fmt.Errorf("read music %s: %w", path, err)
 	}
-	metadata := musicTrackMetadataMap[track]
-	window := productionLibrary().Recordings[metadata.RecordingID].PlaybackWindow
-	stream, err := decodeRecording(data, path, bms.audioContext.SampleRate(), window, false)
+	metadata := bms.library.document.Cues["music/track/"+track]
+	window := bms.library.document.Recordings[metadata.RecordingID].PlaybackWindow
+	stream, err := decodeRecording(data, path, bms.backend.SampleRate(), window, false)
 	if err != nil {
 		return fmt.Errorf("decode music %s: %w", path, err)
 	}
@@ -125,18 +128,16 @@ func (bms *BackgroundMusicSystem) loadMusicAsset(track, path string) error {
 	}
 	bms.musicAssets[track] = &MusicAsset{
 		Name: track,
-		StreamFactory: func() io.ReadSeeker {
-			fresh, err := decodeRecording(data, path, bms.audioContext.SampleRate(), window, false)
+		StreamFactory: func() (io.ReadSeeker, error) {
+			fresh, err := decodeRecording(data, path, bms.backend.SampleRate(), window, false)
 			if err != nil {
-				logging.Error(logging.CategoryAudio, "Failed to recreate music %s: %v", path, err)
-
-				return &silentStream{position: 0}
+				return nil, fmt.Errorf("recreate music %s: %w", path, err)
 			}
 
-			return fresh
+			return fresh, nil
 		},
-		Duration:       length * millisecondsPerSecond / (int64(bms.audioContext.SampleRate()) * decodedPCMBytesPerFrame),
-		VolumeModifier: metadata.VolumeModifier * productionLibrary().recordingCalibration(metadata.RecordingID),
+		Duration:       length * millisecondsPerSecond / (int64(bms.backend.SampleRate()) * decodedPCMBytesPerFrame),
+		VolumeModifier: metadata.VolumeModifier * bms.library.document.recordingCalibration(metadata.RecordingID),
 	}
 
 	return nil
@@ -151,15 +152,16 @@ func (bms *BackgroundMusicSystem) Play(track string) error {
 }
 
 func (bms *BackgroundMusicSystem) playLocked(track string, position time.Duration) error {
-	bms.stopLocked()
 	if !bms.assetsLoaded {
 		return fmt.Errorf("%w: music assets not loaded", ErrAudioLibrary)
 	}
-	metadata, known := GetMusicTrackMetadata(track)
+	metadata, known := bms.library.document.Cues["music/track/"+track]
 	if !known {
 		return fmt.Errorf("%w: unknown music track %s", ErrAudioLibrary, track)
 	}
-	if productionLibrary().Recordings[metadata.RecordingID].File == nil {
+	if bms.library.document.Recordings[metadata.RecordingID].File == nil {
+		bms.stopLocked()
+
 		return nil
 	}
 	asset, exists := bms.musicAssets[track]
@@ -167,11 +169,14 @@ func (bms *BackgroundMusicSystem) playLocked(track string, position time.Duratio
 		return fmt.Errorf("%w: track %s was not loaded", ErrAudioLibrary, track)
 	}
 	position = boundedMusicPosition(position, asset.Duration)
-	stream := asset.StreamFactory()
+	stream, err := asset.StreamFactory()
+	if err != nil {
+		return fmt.Errorf("prepare music %s: %w", track, err)
+	}
 	if stream == nil {
 		return fmt.Errorf("%w: music stream unavailable for %s", ErrAudioLibrary, track)
 	}
-	player, err := newGainPlayer(bms.audioContext, stream)
+	player, err := newGainPlayerWithBackend(bms.backend, stream)
 	if err != nil {
 		return fmt.Errorf("create music player: %w", err)
 	}
@@ -185,6 +190,7 @@ func (bms *BackgroundMusicSystem) playLocked(track string, position time.Duratio
 			return fmt.Errorf("seek resumed music: %w", err)
 		}
 	}
+	bms.stopLocked()
 	player.Play()
 	bms.player, bms.currentTrack, bms.isPlaying = player, track, true
 
@@ -257,6 +263,28 @@ func (bms *BackgroundMusicSystem) IsPlaying() bool {
 	defer bms.mutex.RUnlock()
 
 	return bms.isPlaying && bms.player != nil && bms.player.IsPlaying()
+}
+
+// Update releases completed finite players and failed decoders, including a
+// decoder that failed while policy playback was suspended. Failure is reported
+// exactly once; paused healthy playback is retained.
+func (bms *BackgroundMusicSystem) Update() error {
+	bms.mutex.Lock()
+	defer bms.mutex.Unlock()
+	if bms.player == nil {
+		return nil
+	}
+	if err := bms.player.Failure(); err != nil {
+		track := bms.currentTrack
+		bms.stopLocked()
+
+		return fmt.Errorf("retire failed music %s: %w", track, err)
+	}
+	if bms.isPlaying && !bms.player.IsPlaying() {
+		bms.stopLocked()
+	}
+
+	return nil
 }
 
 // GetCurrentTrack returns the playing track identity.

@@ -41,6 +41,7 @@ func (player *policyPlayer) Stop() error {
 	return nil
 }
 func (player *policyPlayer) IsPlaying() bool              { return player.playing }
+func (player *policyPlayer) Update() error                { return nil }
 func (player *policyPlayer) SetVolume(gain float64) error { player.volume = gain; return nil }
 func (player *policyPlayer) Pause() time.Duration         { player.playing = false; return player.position }
 func (player *policyPlayer) Resume(track string, position time.Duration) error {

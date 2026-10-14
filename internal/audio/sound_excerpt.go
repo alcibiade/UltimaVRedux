@@ -55,13 +55,13 @@ func excerptSoundAsset(
 	return &SoundAsset{
 		Effect:      effect,
 		RecordingID: "",
-		StreamFactory: func(mode game_state.SoundPlaybackMode) io.ReadSeeker {
+		StreamFactory: func(mode game_state.SoundPlaybackMode) (io.ReadSeeker, error) {
 			stream := bytes.NewReader(pcm)
 			if mode == game_state.SoundPlaybackLoop {
-				return audio.NewInfiniteLoop(stream, int64(len(pcm)))
+				return audio.NewInfiniteLoop(stream, int64(len(pcm))), nil
 			}
 
-			return stream
+			return stream, nil
 		},
 		Duration:   int64(len(pcm)) * millisecondsPerSecond / (int64(sampleRate) * decodedPCMBytesPerFrame),
 		SampleRate: sampleRate,
@@ -70,8 +70,8 @@ func excerptSoundAsset(
 
 func decodedStreamLength(stream io.ReadSeeker) (int64, error) {
 	length, ok := stream.(interface{ Length() int64 })
-	if !ok || length.Length() <= 0 {
-		return 0, fmt.Errorf("%w: recording must have a finite positive decoded length", ErrAudioLibrary)
+	if !ok || length.Length() <= 0 || length.Length()%decodedPCMBytesPerFrame != 0 {
+		return 0, fmt.Errorf("%w: recording requires a positive whole-frame decoded PCM length", ErrAudioLibrary)
 	}
 
 	return length.Length(), nil

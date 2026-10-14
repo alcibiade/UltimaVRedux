@@ -23,5 +23,8 @@ func TestEditorFlagsAndMissingLibrary(t *testing.T) {
 	require.NoError(t, run([]string{"-help"}))
 	require.Error(t, run([]string{"-unsupported"}))
 	require.Error(t, run([]string{"extra"}))
+	require.ErrorContains(t, run([]string{"-check", "-probe", "healing_01"}), "choose one")
+	require.ErrorContains(t, run([]string{"-probe", "healing_01", "-probe-runtime", "sfx/SoundHeal"}), "choose one")
+	require.ErrorContains(t, run([]string{"-check", "-probe-runtime-soak", "sfx/SoundHeal"}), "choose one")
 	require.Error(t, run([]string{"-library", t.TempDir() + "/missing.json", "-check"}))
 }

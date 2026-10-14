@@ -129,7 +129,7 @@ func TestVolumeModifierIntegration(t *testing.T) {
 
 func TestAllSoundEffectsHaveVolumeModifier(t *testing.T) {
 	// Ensure all sound effects in the metadata map have a VolumeModifier set
-	for effect, metadata := range soundEffectMetadataMap {
+	for effect, metadata := range soundEffectMetadataMap() {
 		if metadata.VolumeModifier <= 0 {
 			t.Errorf("Sound effect %s (ID: %d) has invalid VolumeModifier: %f (should be > 0)",
 				metadata.Name, effect, metadata.VolumeModifier)
@@ -200,8 +200,10 @@ func TestEnvironmentalHazardSoundMetadataAndAssets(t *testing.T) {
 		t.Fatalf("load fire burn asset: %v", err)
 	}
 	player.assetsLoaded = true
-	player.loadConfiguredSoundAsset(game_state.SoundFallingMinor,
-		soundEffectMetadataMap[game_state.SoundFallingMinor])
+	if err := player.loadConfiguredSoundAsset(game_state.SoundFallingMinor,
+		soundEffectMetadataMap()[game_state.SoundFallingMinor]); err != nil {
+		t.Fatal(err)
+	}
 	minor, skipped, err := player.assetForRequest(game_state.SoundPlaybackRequest{
 		Effect: game_state.SoundFallingMinor, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
 	})
@@ -258,9 +260,12 @@ func TestHarpsichordSoundMetadataAndAssets(t *testing.T) {
 			t.Fatalf("digit %d WAV peak = %d, want at least %d", digit, peak, minimumAudiblePeak)
 		}
 		asset := player.soundAssets[effect][0]
-		if asset == nil || asset.Duration <= 0 || asset.StreamFactory == nil ||
-			asset.StreamFactory(game_state.SoundPlaybackOneShot) == nil {
+		if asset == nil || asset.Duration <= 0 || asset.StreamFactory == nil {
 			t.Fatalf("digit %d asset is incomplete", digit)
+		}
+		stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
+		if err != nil || stream == nil {
+			t.Fatalf("digit %d stream unavailable: %v", digit, err)
 		}
 	}
 }

@@ -26,7 +26,9 @@ func TestHexGrateCyclesFourDistinctSharedFileClipsAndLeavesBrickAssignments(t *t
 	for index, asset := range assets {
 		require.Equal(t, wantIDs[index], asset.RecordingID)
 		require.Equal(t, "sounds/footsteps/stone_steps_01.ogg", *productionLibrary().Recordings[asset.RecordingID].File)
-		pcm, err := io.ReadAll(asset.StreamFactory(game_state.SoundPlaybackOneShot))
+		stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
+		require.NoError(t, err)
+		pcm, err := io.ReadAll(stream)
 		require.NoError(t, err)
 		require.Equal(t, 1, audibleBursts(pcm, asset.SampleRate), asset.RecordingID)
 		hashes[sha256.Sum256(pcm)] = true
@@ -70,7 +72,7 @@ func TestCueCycleDoesNotAdvanceOnRejectedOrDroppedRequests(t *testing.T) {
 	require.Zero(t, player.nextVariant[effect])
 	asset := player.soundAssets[effect][0]
 	factory := asset.StreamFactory
-	asset.StreamFactory = func(game_state.SoundPlaybackMode) io.ReadSeeker { return nil }
+	asset.StreamFactory = func(game_state.SoundPlaybackMode) (io.ReadSeeker, error) { return nil, errSoundStreamUnavailable }
 	require.Error(t, player.Play(request))
 	require.Zero(t, player.nextVariant[effect])
 	asset.StreamFactory = factory

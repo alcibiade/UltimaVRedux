@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"math"
@@ -45,6 +46,7 @@ type MusicHistory struct {
 }
 
 type musicPlayback interface {
+	Update() error
 	Play(track string) error
 	Stop() error
 	IsPlaying() bool
@@ -129,6 +131,19 @@ func (policy *musicPolicy) update() error {
 	now := policy.now()
 	delta := max(time.Duration(0), now.Sub(policy.last))
 	policy.last = now
+	if err := policy.output.Update(); err != nil {
+		if policy.suspended || policy.track == "" {
+			// A failed preview cannot erase suspended score ownership.
+			return fmt.Errorf("service music transport: %w", err)
+		}
+
+		return policy.failed(err)
+	}
+	if policy.track != "" && !policy.suspended && !policy.output.IsPlaying() {
+		policy.completeCombatPresentation()
+
+		return policy.finish()
+	}
 	if policy.combatEncounter != 0 && policy.combatVictory && policy.track != "" {
 		return policy.finish() // Victory stops any pending or active score without a transition fade.
 	}
@@ -220,14 +235,18 @@ func (policy *musicPolicy) startEligible() error {
 		// An authored null-file slot is silent. Retry no faster than a normal
 		// quiet interval, and never turn a missing special cue into a loop.
 		policy.completeCombatPresentation()
-		if policy.sailingRaised && policy.combatEncounter == 0 && policy.cue == "" {
-			policy.sailingPlayed = true
-		}
+		policy.completeSailingPresentation()
 		policy.history.quietRemaining = musicQuietInterval
 		policy.cue = ""
 
 		return nil
 	}
+	policy.startTrack(track, isCue, level)
+
+	return nil
+}
+
+func (policy *musicPolicy) startTrack(track string, isCue bool, level float64) {
 	policy.track, policy.trackIsCue = track, isCue
 	policy.trackSailEpoch = 0
 	if policy.sailingRaised && policy.combatEncounter == 0 && policy.cue == "" {
@@ -239,8 +258,6 @@ func (policy *musicPolicy) startEligible() error {
 	if !isCue {
 		policy.history.heard[track] = true
 	}
-
-	return nil
 }
 
 func (policy *musicPolicy) finish() error {
@@ -260,10 +277,19 @@ func (policy *musicPolicy) finish() error {
 
 func (policy *musicPolicy) failed(err error) error {
 	policy.completeCombatPresentation()
+	policy.completeSailingPresentation()
 	policy.track, policy.cue, policy.suspended = "", "", false
 	policy.history.quietRemaining = musicQuietInterval
 
-	return err
+	return errors.Join(err, policy.output.Stop())
+}
+
+// A hoist owns one attempted finite presentation, just like an encounter.
+// Failure consumes it rather than retrying a broken stream on every frame.
+func (policy *musicPolicy) completeSailingPresentation() {
+	if policy.sailingRaised && policy.combatEncounter == 0 && policy.cue == "" {
+		policy.sailingPlayed = true
+	}
 }
 
 // Combat gets one finite presentation per encounter, independent of exploration

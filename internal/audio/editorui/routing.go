@@ -44,7 +44,10 @@ type routingMenu struct {
 	choices             []routingChoice
 	cursor              int
 	search              string
+	searchInput         string
+	text                textCursor
 	editingSearch       bool
+	parent              *routingMenu
 }
 
 type routingEditor struct {
@@ -73,7 +76,7 @@ func (m *model) routingWorkspace() bool {
 }
 
 func (m *model) selectWorkspace(workspace editorWorkspace) tea.Cmd {
-	if m.assigning || m.variantCue != "" || m.picker != nil || m.duplicate != nil {
+	if m.assigning || m.variantCue != "" || m.picker != nil || m.crop != nil {
 		return nil
 	}
 	m.workspaceState[m.workspace] = m.currentBrowseState()
@@ -102,12 +105,12 @@ func (m *model) routingIDs() []string {
 		return ids
 	}
 	if m.routing.scope == 0 || m.routing.scope == 1 {
-		for target := range audio.MusicTargets() {
+		for target := range m.targets.Music {
 			ids = append(ids, "music|"+target)
 		}
 	}
 	if m.routing.scope == 0 || m.routing.scope == 2 {
-		for target := range audio.DungeonTargets() {
+		for target := range m.targets.Dungeon {
 			ids = append(ids, "dungeon|"+target)
 		}
 	}
@@ -117,7 +120,7 @@ func (m *model) routingIDs() []string {
 		}
 	}
 	if m.routing.scope == 0 || m.routing.scope == 4 {
-		for situation := range audio.NavalTargets() {
+		for situation := range m.targets.Naval {
 			ids = append(ids, "naval|"+situation)
 		}
 	}
@@ -148,13 +151,13 @@ func (m *model) routingName(identity string) string {
 	}
 	kind, target, _ := strings.Cut(identity, "|")
 	if kind == routingMusic {
-		return audio.MusicTargets()[target] + " · music"
+		return m.targets.Music[target] + " · music"
 	}
 	if kind == routingDungeon {
-		return audio.DungeonTargets()[target] + " · background"
+		return m.targets.Dungeon[target] + " · background"
 	}
 	if kind == routingNaval {
-		return audio.NavalTargets()[target] + " · situation"
+		return m.targets.Naval[target] + " · situation"
 	}
 
 	return target + " · dynamic emitter"
@@ -267,7 +270,7 @@ func (m *model) routingMatchesFilter(identity, cue string) bool {
 	}
 }
 
-//nolint:cyclop,funlen,gocyclo,goconst // Auditable keyboard table; labels match the existing editor bindings.
+//nolint:cyclop,funlen,gocyclo // Auditable keyboard table; labels match the existing editor bindings.
 func (m *model) routingKey(key string) tea.Cmd {
 	if m.focus == focusDetails && m.scrollDetails(key) {
 		return nil
@@ -312,7 +315,7 @@ func (m *model) routingKey(key string) tea.Cmd {
 	case "D":
 		return m.openRoutingAssignment("default surface")
 	case "S":
-		m.editSurfaceCues()
+		return m.editSurfaceCues()
 	case "insert":
 		if m.workspace == workspaceTiles && m.selectedID() != "" {
 			m.routing.selected[m.selectedID()] = !m.routing.selected[m.selectedID()]
@@ -343,7 +346,7 @@ func (m *model) routingKey(key string) tea.Cmd {
 	case "b":
 		return m.editSharedAmbientProfile()
 	case "ctrl+a":
-		m.openNewAmbientForm()
+		return m.openNewAmbientForm()
 	case "d":
 		m.focus = focusDetails
 	case "U":

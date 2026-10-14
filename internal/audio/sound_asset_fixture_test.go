@@ -2,6 +2,11 @@ package audio
 
 import "github.com/bradhannah/UltimaVRedux/internal/game_state"
 
+func isPlaceholderSound(effect game_state.SoundEffect) bool {
+	metadata, exists := GetSoundEffectMetadata(effect)
+	return exists && productionLibrary().Recordings[metadata.RecordingID].File == nil
+}
+
 // loadSoundAsset installs one fixture asset using the production decoder;
 // normal loading resolves all recordings through loadConfiguredSoundAsset.
 func (sep *SoundEffectPlayer) loadSoundAsset(effect game_state.SoundEffect, filePath string) error {

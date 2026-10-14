@@ -20,40 +20,53 @@ func (m *model) openRoutingAssignment(kind string) tea.Cmd {
 		kind: kind, title: "ASSIGN " + strings.ToUpper(kind), target: m.selectedID(),
 	}
 	if kind == "cue" {
-		menu.title = "CHOOSE AMBIENT SOUND"
-		if strings.HasPrefix(menu.target, "music|") {
-			menu.title = "CHOOSE MUSIC"
-		} else if strings.HasPrefix(menu.target, "dungeon|") {
-			menu.title = "CHOOSE DUNGEON BACKGROUND"
-		} else if menu.target == "naval|sailing" {
-			menu.title = "CHOOSE SAILING MUSIC"
-		} else if strings.HasPrefix(menu.target, "naval|") {
-			menu.title = "CHOOSE ONBOARD AMBIENCE"
-		}
+		menu.title = routingAssignmentTitle(menu.target)
 	}
 	if kind == routingSurface || kind == "default surface" {
 		menu.choices = m.surfaceChoices(kind)
 	} else {
-		owner, target, _ := strings.Cut(menu.target, "|")
-		if m.workspace == workspaceLocations && target != "default" && owner != routingEmitter && owner != routingNaval {
-			menu.choices = append(menu.choices, routingChoice{routingInherit, "Inherit default", "", nil})
-		}
-		if owner != routingEmitter {
-			label := "Silence / no ambient source"
-			if owner == routingMusic || menu.target == "naval|sailing" {
-				label = "No music"
-			}
-			menu.choices = append(menu.choices, routingChoice{routingNone, label, "", nil})
-		}
-		for _, cueID := range m.doc.CueIDs() {
-			if m.compatibleRoutingCue(cueID, owner, target) {
-				menu.choices = append(menu.choices, routingChoice{cueID, m.doc.Cue(cueID).Name, cueID, nil})
-			}
-		}
+		menu.choices = m.routingAssignmentChoices(menu.target)
 	}
 	m.routing.menu = menu
 
 	return m.loadSelection()
+}
+
+func routingAssignmentTitle(target string) string {
+	switch {
+	case strings.HasPrefix(target, "music|"):
+		return "CHOOSE MUSIC"
+	case strings.HasPrefix(target, "dungeon|"):
+		return "CHOOSE DUNGEON BACKGROUND"
+	case target == "naval|sailing":
+		return "CHOOSE SAILING MUSIC"
+	case strings.HasPrefix(target, "naval|"):
+		return "CHOOSE ONBOARD AMBIENCE"
+	default:
+		return "CHOOSE AMBIENT SOUND"
+	}
+}
+
+func (m *model) routingAssignmentChoices(destination string) []routingChoice {
+	owner, target, _ := strings.Cut(destination, "|")
+	var choices []routingChoice
+	if m.workspace == workspaceLocations && target != "default" && owner != routingEmitter && owner != routingNaval {
+		choices = append(choices, routingChoice{routingInherit, "Inherit default", "", nil})
+	}
+	if owner != routingEmitter {
+		label := "Silence / no ambient source"
+		if owner == routingMusic || destination == "naval|sailing" {
+			label = "No music"
+		}
+		choices = append(choices, routingChoice{routingNone, label, "", nil})
+	}
+	for _, cueID := range m.doc.CueIDs() {
+		if m.compatibleRoutingCue(cueID, owner, target) {
+			choices = append(choices, routingChoice{cueID, m.doc.Cue(cueID).Name, cueID, nil})
+		}
+	}
+
+	return choices
 }
 
 func (m *model) surfaceChoices(kind string) []routingChoice {
@@ -119,31 +132,18 @@ func (m *model) routingMenuChoices() []routingChoice {
 func (m *model) routingMenuKey(key tea.KeyMsg) tea.Cmd {
 	menu := m.routing.menu
 	if menu.editingSearch {
-		switch key.String() {
-		case keyEnter, keyEscape:
-			menu.editingSearch = false
-		case keyBackspace:
-			runes := []rune(menu.search)
-			if len(runes) > 0 {
-				menu.search = string(runes[:len(runes)-1])
-			}
-		default:
-			if key.Type == tea.KeyRunes || key.Type == tea.KeySpace {
-				menu.search += key.String()
-			}
-		}
-		menu.cursor = 0
-
-		return m.loadSelection()
+		return m.routingSearchKey(key)
 	}
 	choices := m.routingMenuChoices()
 	switch key.String() {
 	case keyEscape:
-		m.routing.menu = nil
+		m.routing.menu = menu.parent
 
 		return m.loadSelection()
 	case "/":
 		menu.editingSearch = true
+		menu.searchInput = menu.search
+		menu.text.reset(menu.searchInput)
 	case "up", "k":
 		menu.cursor = max(0, menu.cursor-1)
 
@@ -169,7 +169,7 @@ func (m *model) routingMenuKey(key tea.KeyMsg) tea.Cmd {
 	case "r":
 		return m.openSoundRecordingPicker()
 	case keyCtrlA:
-		m.openNewAmbientForm()
+		return m.openNewAmbientForm()
 	case keyEnter:
 		if len(choices) == 0 {
 			return nil
@@ -188,7 +188,22 @@ func (m *model) routingMenuKey(key tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
-//nolint:cyclop // One atomic edit handles canonical tiles, source cleanup and explicit/inherited assignments.
+func (m *model) routingSearchKey(key tea.KeyMsg) tea.Cmd {
+	menu := m.routing.menu
+	switch textControlKey(key) {
+	case keyEscape:
+		menu.editingSearch = false
+	case keyEnter, keyTab:
+		menu.search, menu.editingSearch, menu.cursor = menu.searchInput, false, 0
+
+		return m.loadSelection()
+	default:
+		menu.text.edit(&menu.searchInput, key, false)
+	}
+
+	return nil
+}
+
 func (m *model) applyRoutingChoice(identity string) tea.Cmd {
 	menu := m.routing.menu
 	routing := m.doc.Routing()
@@ -196,29 +211,7 @@ func (m *model) applyRoutingChoice(identity string) tea.Cmd {
 	case menu.kind == "default surface":
 		routing.DefaultSurface = identity
 	case m.workspace == workspaceTiles:
-		targets := []string{menu.target}
-		for target, selected := range m.routing.selected {
-			if selected && target != menu.target {
-				targets = append(targets, target)
-			}
-		}
-		for _, target := range targets {
-			assignment := routing.Tiles[target]
-			value := identity
-			if identity == routingNone || identity == routingInherit {
-				value = ""
-			}
-			if menu.kind == routingSurface {
-				assignment.Surface = value
-			} else {
-				assignment = assignment.WithAmbient(value)
-			}
-			if assignment.AmbientCue == "" && assignment.Surface == "" {
-				delete(routing.Tiles, target)
-			} else {
-				routing.Tiles[target] = assignment
-			}
-		}
+		m.applyTileRoutingChoice(&routing, identity)
 	default:
 		kind, target, _ := strings.Cut(menu.target, "|")
 		switch kind {
@@ -255,6 +248,33 @@ func (m *model) applyRoutingChoice(identity string) tea.Cmd {
 	m.status = "Assignment updated. Ctrl+S saves; u undoes the entire edit."
 
 	return m.loadSelection()
+}
+
+func (m *model) applyTileRoutingChoice(routing *audio.Routing, identity string) {
+	menu := m.routing.menu
+	targets := []string{menu.target}
+	for target, selected := range m.routing.selected {
+		if selected && target != menu.target {
+			targets = append(targets, target)
+		}
+	}
+	value := identity
+	if identity == routingNone || identity == routingInherit {
+		value = ""
+	}
+	for _, target := range targets {
+		assignment := routing.Tiles[target]
+		if menu.kind == routingSurface {
+			assignment.Surface = value
+		} else {
+			assignment = assignment.WithAmbient(value)
+		}
+		if assignment.AmbientCue == "" && assignment.Surface == "" {
+			delete(routing.Tiles, target)
+		} else {
+			routing.Tiles[target] = assignment
+		}
+	}
 }
 
 func (m *model) openRoutingUsages() tea.Cmd {

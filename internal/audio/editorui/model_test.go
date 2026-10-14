@@ -18,27 +18,43 @@ import (
 type fakeVoice struct {
 	active, playing bool
 	position        int64
+	start, end      int64
+	clip            *audio.RecordingAudio
 	gain            float64
 	window          *audio.PlaybackWindow
 	loop            bool
 	starts, closes  int
 }
 
-func (v *fakeVoice) Play(_ *audio.RecordingAudio, window *audio.PlaybackWindow, loop bool, gain float64) error {
+func (v *fakeVoice) Play(clip *audio.RecordingAudio, window *audio.PlaybackWindow, loop bool, gain float64) error {
 	v.active, v.playing, v.loop, v.gain = true, true, loop, gain
-	v.window = window
+	v.clip, v.start, v.end = clip, 0, clip.DurationMs
+	if window != nil {
+		v.start, v.end = window.StartMs, window.EndMs
+	}
+	v.position = v.start
+	v.window = nil
+	if window != nil {
+		region := *window
+		v.window = &region
+	}
 	v.starts++
 	return nil
 }
-func (v *fakeVoice) SetGain(gain float64)        { v.gain = gain }
-func (v *fakeVoice) Active() bool                { return v.active }
-func (v *fakeVoice) Playing() bool               { return v.playing }
-func (v *fakeVoice) Pause(paused bool)           { v.playing = !paused }
-func (v *fakeVoice) PositionMs() int64           { return v.position }
-func (v *fakeVoice) SeekMs(position int64) error { v.position = position; return nil }
-func (v *fakeVoice) Close() error                { v.active = false; v.playing = false; v.closes++; return nil }
+func (v *fakeVoice) SetGain(gain float64) { v.gain = gain }
+func (v *fakeVoice) Active() bool         { return v.active }
+func (v *fakeVoice) Playing() bool        { return v.playing }
+func (v *fakeVoice) Pause(paused bool)    { v.playing = !paused }
+func (v *fakeVoice) PositionMs() int64    { return v.position }
+func (v *fakeVoice) SeekMs(position int64) error {
+	if v.active {
+		v.position = max(v.start, min(v.end, position))
+	}
+	return nil
+}
+func (v *fakeVoice) Close() error { v.active = false; v.playing = false; v.closes++; return nil }
 
-func fixture(t *testing.T) *model {
+func fixture(t testing.TB) *model {
 	t.Helper()
 	data, err := os.ReadFile("../assets/library.json")
 	require.NoError(t, err)
@@ -86,8 +102,25 @@ func fixture(t *testing.T) *model {
 }
 
 func finish(model *model, command tea.Cmd) {
-	if command != nil {
-		model.Update(command())
+	queue := []tea.Cmd{command}
+	for steps := 0; len(queue) > 0; steps++ {
+		if steps > 10000 {
+			panic("editor test command chain did not settle")
+		}
+		command, queue = queue[0], queue[1:]
+		if command == nil {
+			continue
+		}
+		message := command()
+		if batch, ok := message.(tea.BatchMsg); ok {
+			queue = append(queue, batch...)
+			continue
+		}
+		if _, tick := message.(tickMsg); tick {
+			continue // Recurring transport ticks are advanced explicitly by each test.
+		}
+		_, next := model.Update(message)
+		queue = append(queue, next)
 	}
 }
 
@@ -118,10 +151,13 @@ func TestLiveEditingWaveformSaveAndUndo(t *testing.T) {
 	model.browserKey("i")
 	model.position = 260
 	model.browserKey("o")
+	require.Nil(t, model.doc.Recording("healing_01").PlaybackWindow, "marking only edits the region draft")
+	finish(model, model.applyCrop())
 	require.Equal(t, &audio.PlaybackWindow{StartMs: 40, EndMs: 260}, model.doc.Recording("healing_01").PlaybackWindow)
 	model.browserKey("[")
 	model.browserKey("right")
 	require.Equal(t, int64(50), model.window().StartMs)
+	finish(model, model.applyCrop())
 	require.Contains(t, model.View(), "UNSAVED")
 	require.Contains(t, model.View(), "Start 50")
 	starts := voice.starts
@@ -161,11 +197,12 @@ func TestStaleDecodeAndStopAllNeverStartUnexpectedAudio(t *testing.T) {
 	model.autoPreview = true
 	oldGeneration := model.generation
 	model.generation++
-	model.Update(loadedMsg{generation: oldGeneration, clip: model.clip, autoplay: true})
+	request := sourceLoad{recordingID: model.recordingID(), path: model.clip.Path, autoplay: true}
+	model.Update(loadedMsg{generation: oldGeneration, request: request, clip: model.clip})
 	require.Zero(t, voice.starts)
 	model.picker = &filePicker{}
 	model.key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'x'}})
-	model.Update(loadedMsg{generation: model.generation, clip: model.clip, autoplay: true})
+	model.Update(loadedMsg{generation: model.generation, request: request, clip: model.clip})
 	require.Zero(t, voice.starts, "X also cancels a pending file-picker preview")
 }
 

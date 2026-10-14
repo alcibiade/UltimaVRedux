@@ -10,6 +10,12 @@ import (
 
 const fieldCalibrationTarget = "calibration target"
 
+type calibrationDraft struct {
+	audio.CalibrationSuggestion
+	recordingID string
+	revision    uint64
+}
+
 type calibrationCache struct {
 	clip   *audio.RecordingAudio
 	window audio.PlaybackWindow
@@ -44,7 +50,7 @@ func (m *model) calibrationSuggestion(recording audio.Recording) (audio.Calibrat
 }
 
 func (m *model) beginAutoCalibration() {
-	if m.clip == nil || m.picker != nil || m.assigning || m.duplicate != nil {
+	if !m.selectedClipReady() || m.picker != nil || m.assigning || m.duplicate != nil {
 		m.status = "Select a playable recording before recalibrating."
 
 		return
@@ -55,7 +61,8 @@ func (m *model) beginAutoCalibration() {
 
 		return
 	}
-	m.autoGainDraft = &suggestion
+	m.autoGainDraft = &calibrationDraft{CalibrationSuggestion: suggestion,
+		recordingID: m.recordingID(), revision: m.doc.Revision()}
 	m.status = fmt.Sprintf("Apply %+.2f dB and enable AUTO? Enter confirms; Esc keeps calibration.", suggestion.GainDB)
 }
 
@@ -65,6 +72,11 @@ func (m *model) autoCalibrationKey(key string) {
 		m.autoGainDraft = nil
 		m.status = "Calibration unchanged."
 	case keyEnter, "y":
+		if m.autoGainDraft.recordingID != m.recordingID() || m.autoGainDraft.revision != m.doc.Revision() {
+			m.status, m.statusIsError = "Calibration draft is stale. Escape and recalculate before applying.", true
+
+			return
+		}
 		recording := m.doc.Recording(m.recordingID())
 		gain := m.autoGainDraft.GainDB
 		recording.CalibrationGainDB, recording.CalibrationPolicy = &gain, audio.CalibrationAuto
@@ -74,7 +86,7 @@ func (m *model) autoCalibrationKey(key string) {
 			return
 		}
 		m.autoGainDraft = nil
-		m.preview.SetGain(m.gain())
+		m.preview.SetGain(m.livePreviewGain())
 		m.refreshMixGains()
 		m.status = "AUTO enabled. Trim edits follow; Recordings +/- or g locks calibration. Ctrl+s saves."
 	}
@@ -108,7 +120,7 @@ func (m *model) editCalibrationTarget() {
 	if saved := m.doc.Recording(m.recordingID()).CalibrationTargetDB; saved != nil {
 		target = *saved
 	}
-	m.field, m.input = fieldCalibrationTarget, strconv.FormatFloat(target, 'f', 1, 64)
+	m.beginInput(fieldCalibrationTarget, strconv.FormatFloat(target, 'f', 1, 64))
 }
 
 func (m *model) setCalibrationTarget(value string) {
@@ -122,7 +134,7 @@ func (m *model) setCalibrationTarget(value string) {
 	recording.CalibrationTargetDB = &target
 	if m.followAutoCalibration(&recording) {
 		m.report(m.doc.SetRecording(m.recordingID(), recording))
-		m.preview.SetGain(m.gain())
+		m.preview.SetGain(m.livePreviewGain())
 		m.refreshMixGains()
 	}
 }

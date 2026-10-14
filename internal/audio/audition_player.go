@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -62,8 +63,9 @@ type auditionDevicePlayer interface {
 }
 
 type auditionPlayer struct {
-	device auditionDevicePlayer
-	stream *auditionStream
+	device  auditionDevicePlayer
+	stream  *auditionStream
+	retired bool
 }
 
 // auditionStream counts PCM bytes delivered to Oto, including complete loops.
@@ -74,7 +76,7 @@ type auditionStream struct {
 }
 
 func newAuditionStream(source io.ReadSeeker) *auditionStream {
-	gain := &gainStream{source: source, gain: atomic.Uint64{}, buffer: nil, pending: nil}
+	gain := &gainStream{source: source, gain: atomic.Uint64{}, buffer: nil, pending: nil, pendingErr: nil}
 	gain.gain.Store(math.Float64bits(1))
 
 	return &auditionStream{gain: gain, position: atomic.Int64{}}
@@ -99,16 +101,44 @@ func (stream *auditionStream) Seek(offset int64, whence int) (int64, error) {
 func newAuditionPlayer(source io.ReadSeeker) (*auditionPlayer, error) {
 	device, err := standaloneAudioContext()
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, closeRuntimeSource(source))
+	}
+
+	return newAuditionPlayerWithDevice(source, func(stream io.Reader) auditionDevicePlayer {
+		return device.NewPlayer(stream)
+	})
+}
+
+func newAuditionPlayerWithDevice(
+	source io.ReadSeeker, create func(io.Reader) auditionDevicePlayer,
+) (*auditionPlayer, error) {
+	if source == nil {
+		return nil, errSoundStreamUnavailable
+	}
+	if _, err := source.Seek(0, io.SeekCurrent); err != nil {
+		return nil, errors.Join(fmt.Errorf("prepare audition source: %w", err), closeRuntimeSource(source))
 	}
 	stream := newAuditionStream(source)
 
-	return &auditionPlayer{device: device.NewPlayer(stream), stream: stream}, nil
+	return &auditionPlayer{device: create(stream), stream: stream, retired: false}, nil
 }
 
-func (player *auditionPlayer) Play()           { player.device.Play() }
+func (player *auditionPlayer) Play() {
+	if player.retired {
+		panic("cannot play a retired audio voice")
+	}
+	player.device.Play()
+}
 func (player *auditionPlayer) Pause()          { player.device.Pause() }
-func (player *auditionPlayer) IsPlaying() bool { return player.device.IsPlaying() }
+func (player *auditionPlayer) IsPlaying() bool { return !player.retired && player.device.IsPlaying() }
+
+func (player *auditionPlayer) Failure() error {
+	if err := player.device.Err(); err != nil {
+		return fmt.Errorf("standalone audio player: %w", err)
+	}
+
+	return nil
+}
 
 func (player *auditionPlayer) SetVolume(gain float64) {
 	gain = outputGain(gain)
@@ -125,6 +155,9 @@ func (player *auditionPlayer) PositionMs() int64 {
 }
 
 func (player *auditionPlayer) SeekMs(position int64) error {
+	if player.retired {
+		return errGainPlayerRetired
+	}
 	if position < 0 || position > math.MaxInt64/(EditorSampleRate*decodedPCMBytesPerFrame) {
 		return fmt.Errorf("%w: audition seek position out of range", ErrAudioLibrary)
 	}
@@ -137,12 +170,13 @@ func (player *auditionPlayer) SeekMs(position int64) error {
 }
 
 func (player *auditionPlayer) Close() error {
+	if player.retired {
+		return errGainPlayerRetired
+	}
 	// Pause alone allows read-ahead. Stop it before dropping the decoder and
 	// voice; Oto.Close is a deprecated no-op, not a resource-lifecycle operation.
 	player.device.PauseAndStopReading()
-	if err := player.device.Err(); err != nil {
-		return fmt.Errorf("stop standalone player: %w", err)
-	}
+	player.retired = true
 
-	return nil
+	return errors.Join(player.Failure(), closeRuntimeSource(player.stream.gain.source))
 }

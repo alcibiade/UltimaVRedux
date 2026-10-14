@@ -159,6 +159,8 @@ type TalkDialogCall struct {
 
 // NewMockSystemCallbacks creates a new mock system callbacks instance
 func NewMockSystemCallbacks(t *testing.T) *MockSystemCallbacks {
+	t.Helper()
+
 	return &MockSystemCallbacks{
 		t:                      t,
 		Messages:               make([]string, 0),
@@ -175,6 +177,8 @@ func NewMockSystemCallbacks(t *testing.T) *MockSystemCallbacks {
 }
 
 // ToSystemCallbacks converts the mock to actual SystemCallbacks interface
+//
+//nolint:maintidx // Keep the complete required callback wiring in one auditable test adapter.
 func (m *MockSystemCallbacks) ToSystemCallbacks() *SystemCallbacks {
 	messageCallbacks := NewMessageCallbacks(MessageCallbacks{
 		AddRowStr:             m.addRowStr,
@@ -221,6 +225,7 @@ func (m *MockSystemCallbacks) ToSystemCallbacks() *SystemCallbacks {
 		m.updateLocationMusic,
 		func() {}, // PauseBackgroundMusic no-op for mock
 		func() {}, // ResumeBackgroundMusic no-op for mock
+		m.requestSoundVoice,
 	)
 
 	screenCallbacks := NewScreenCallbacks(ScreenCallbacks{
@@ -567,6 +572,27 @@ func (m *MockSystemCallbacks) blockAllInput(blocked bool) {
 }
 
 // Audio callback implementations
+//
+//nolint:ireturn // Implements the opaque presentation callback contract for gameplay fixtures.
+func (m *MockSystemCallbacks) requestSoundVoice(request SoundPlaybackRequest) SoundVoice {
+	m.requestSoundPlayback(request)
+
+	return &mockSoundVoice{callbacks: m, effect: request.Effect, stopped: false}
+}
+
+type mockSoundVoice struct {
+	callbacks *MockSystemCallbacks
+	effect    SoundEffect
+	stopped   bool
+}
+
+func (voice *mockSoundVoice) Stop(fadeOutMs int64) {
+	if !voice.stopped {
+		voice.stopped = true
+		voice.callbacks.requestSoundStop(SoundStopRequest{Effect: voice.effect, FadeOutMs: fadeOutMs})
+	}
+}
+
 func (m *MockSystemCallbacks) requestSoundPlayback(request SoundPlaybackRequest) {
 	m.SoundEffectsPlayed = append(m.SoundEffectsPlayed, request.Effect)
 	m.PlaybackRequests = append(m.PlaybackRequests, request)
@@ -627,6 +653,8 @@ func (m *MockSystemCallbacks) showHorseRefusalDialog() {
 }
 
 // Talk callback implementations
+//
+//nolint:ireturn // Implements the required TalkDialog callback boundary for test fixtures.
 func (m *MockSystemCallbacks) createTalkDialog(npc *map_units.NPCFriendly) TalkDialog {
 	m.TalkDialogCalls = append(m.TalkDialogCalls, TalkDialogCall{NPC: npc})
 	m.TalkCallCount++
@@ -689,6 +717,7 @@ func (m *MockSystemCallbacks) StopRequestCount(effect SoundEffect) int {
 	return count
 }
 
+// AssertMessageContains checks whether recorded output includes the expected text.
 func (m *MockSystemCallbacks) AssertMessageContains(expected string) {
 	m.t.Helper()
 	for _, msg := range m.Messages {
@@ -699,6 +728,7 @@ func (m *MockSystemCallbacks) AssertMessageContains(expected string) {
 	m.t.Errorf("Expected message containing '%s', but not found in: %v", expected, m.Messages)
 }
 
+// AssertLastMessage checks the most recently recorded message.
 func (m *MockSystemCallbacks) AssertLastMessage(expected string) {
 	m.t.Helper()
 	if len(m.Messages) == 0 {
@@ -711,6 +741,7 @@ func (m *MockSystemCallbacks) AssertLastMessage(expected string) {
 	}
 }
 
+// AssertSoundEffectPlayed checks whether the requested cue was dispatched.
 func (m *MockSystemCallbacks) AssertSoundEffectPlayed(expected SoundEffect) {
 	m.t.Helper()
 	for _, effect := range m.SoundEffectsPlayed {
@@ -721,6 +752,7 @@ func (m *MockSystemCallbacks) AssertSoundEffectPlayed(expected SoundEffect) {
 	m.t.Errorf("Expected sound effect %v, but not found in: %v", expected, m.SoundEffectsPlayed)
 }
 
+// AssertTimeAdvanced checks authoritative elapsed calendar minutes.
 func (m *MockSystemCallbacks) AssertTimeAdvanced(expectedMinutes int) {
 	m.t.Helper()
 	totalAdvanced := 0
@@ -769,6 +801,7 @@ func ultimaDateAbsoluteMinute(date datetime.UltimaDate) int64 {
 		int64(date.Hour)*datetime.MinutesPerHour + int64(date.Minute)
 }
 
+// AssertNoMessages checks that no message was recorded.
 func (m *MockSystemCallbacks) AssertNoMessages() {
 	m.t.Helper()
 	if len(m.Messages) > 0 {
@@ -776,6 +809,7 @@ func (m *MockSystemCallbacks) AssertNoMessages() {
 	}
 }
 
+// AssertNoSoundEffects checks that no playback request was recorded.
 func (m *MockSystemCallbacks) AssertNoSoundEffects() {
 	m.t.Helper()
 	if len(m.SoundEffectsPlayed) > 0 {

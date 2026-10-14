@@ -51,7 +51,7 @@ func TestPlaybackRequestModeOverridesMetadataAndAppliesVolumeOnce(t *testing.T) 
 		asset := manager.soundEffectPlayer.soundAssets[effect][0]
 		require.NotNil(t, asset)
 		originalFactory := asset.StreamFactory
-		asset.StreamFactory = func(mode game_state.SoundPlaybackMode) io.ReadSeeker {
+		asset.StreamFactory = func(mode game_state.SoundPlaybackMode) (io.ReadSeeker, error) {
 			seenModes = append(seenModes, mode)
 
 			return originalFactory(mode)
@@ -72,11 +72,11 @@ func TestPlaybackRequestModeOverridesMetadataAndAppliesVolumeOnce(t *testing.T) 
 	active := activeSoundsByEffect(manager.soundEffectPlayer)
 	require.Len(t, active, 2)
 	assert.Equal(t, game_state.SoundPlaybackOneShot, active[game_state.SoundCannonFire].Mode)
-	cannon := soundEffectMetadataMap[game_state.SoundCannonFire]
+	cannon := soundEffectMetadataMap()[game_state.SoundCannonFire]
 	assert.InDelta(t, 0.43*0.5*cannon.VolumeModifier*productionLibrary().recordingCalibration(cannon.RecordingID),
 		active[game_state.SoundCannonFire].TargetVolume, 0.0001)
 	assert.Equal(t, game_state.SoundPlaybackLoop, active[game_state.SoundHeal].Mode)
-	heal := soundEffectMetadataMap[game_state.SoundHeal]
+	heal := soundEffectMetadataMap()[game_state.SoundHeal]
 	assert.InDelta(t, 0.43*0.25*heal.VolumeModifier*productionLibrary().recordingCalibration(heal.RecordingID),
 		active[game_state.SoundHeal].TargetVolume, 0.0001)
 }
@@ -173,9 +173,9 @@ func TestMissingSoundAssetPolicy(t *testing.T) {
 	player, err := NewSoundEffectPlayerWithContext(configuration, getSharedAudioContext())
 	require.NoError(t, err)
 
-	for effect, metadata := range soundEffectMetadataMap {
+	for effect, metadata := range soundEffectMetadataMap() {
 		if isPlaceholderSound(effect) {
-			assert.NotPanics(t, func() { player.loadConfiguredSoundAsset(effect, metadata) })
+			require.NoError(t, player.loadConfiguredSoundAsset(effect, metadata))
 			assert.NotContains(t, player.soundAssets, effect)
 		}
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 )
 
-//nolint:goconst // Visible filter/scope labels are kept together in display order.
 func (m *model) routingFilterTitle() string {
 	filters := []string{"All", "Assigned", "Silent / none", "Needs audio", "Surface overrides"}
 	if m.workspace == workspaceLocations {
@@ -153,9 +152,9 @@ func (m *model) routingLocationDetails(add func(string)) {
 	kind, target, _ := strings.Cut(m.selectedID(), "|")
 	_, explicit := m.doc.ResolveAssignment(target, kind == routingDungeon)
 	if explicit || kind == routingEmitter || kind == routingNaval {
-		add("Assignment: explicit [saved]")
+		add("Assignment: explicit [working]")
 	} else {
-		add("Assignment: inherits default [saved]")
+		add("Assignment: inherits default [working]")
 	}
 	switch kind {
 	case routingDungeon:
@@ -181,7 +180,7 @@ func (m *model) routingTileDetails(add func(string)) {
 	if surface == "" {
 		surface = "Inherit → " + routing.DefaultSurface
 	}
-	add("Footstep surface: " + surface + " [saved]")
+	add("Footstep surface: " + surface + " [working]")
 	add("p: preview ambient · P: preview footstep")
 	if len(tile.Frames) > 1 {
 		add("ANIMATION · READ ONLY")

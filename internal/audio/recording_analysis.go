@@ -2,17 +2,20 @@ package audio
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 )
 
-// Editor analysis uses the same stereo rate as production playback.
+// Editor analysis/audition uses fixed-rate stereo; runtime adapters decode at
+// the host context's rate. Authored windows remain source-relative milliseconds.
 const (
 	EditorSampleRate   = 44100
 	WaveformBucketMs   = 10
@@ -23,11 +26,13 @@ const (
 // RecordingAudio is immutable decoded metadata plus encoded bytes. Each player
 // gets an independent decoder. Peak buckets preserve transients in both channels.
 type RecordingAudio struct {
-	Path       string
-	DurationMs int64
-	Peaks      []float64
-	data       []byte
-	loudness   []loudnessBucket
+	Path        string
+	DurationMs  int64
+	Peaks       []float64
+	data        []byte
+	loudness    []loudnessBucket
+	fingerprint [sha256.Size]byte
+	fileInfo    os.FileInfo
 }
 
 // LoadRecording can run outside the UI loop. It streams analysis rather than
@@ -38,21 +43,19 @@ func LoadRecording(path string) (*RecordingAudio, error) {
 
 // LoadRecordingContext cancels obsolete waveform requests during fast browsing.
 func LoadRecordingContext(ctx context.Context, path string) (*RecordingAudio, error) {
-	file, err := os.Open(path) //nolint:gosec // Explicit local recording chosen in the authoring tool.
-	if err != nil {
-		return nil, fmt.Errorf("open recording: %w", err)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("load recording canceled: %w", err)
 	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			logging.Warn(logging.CategoryAudio, "Close analyzed recording: %v", err)
-		}
-	}()
-	data, err := io.ReadAll(io.LimitReader(file, maxEditorFileBytes+1))
+	path, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("read recording: %w", err)
+		return nil, fmt.Errorf("resolve recording path: %w", err)
 	}
-	if len(data) > maxEditorFileBytes {
-		return nil, fmt.Errorf("%w: recording exceeds 128 MiB", ErrAudioLibrary)
+	data, info, err := readRecordingSource(path)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("load recording canceled: %w", err)
 	}
 	stream, err := DecodeAudioStream(data, path, EditorSampleRate)
 	if err != nil {
@@ -68,7 +71,44 @@ func LoadRecordingContext(ctx context.Context, path string) (*RecordingAudio, er
 	}
 
 	return &RecordingAudio{Path: path, data: data, Peaks: peaks, loudness: loudness,
-		DurationMs: length * millisecondsPerSecond / (EditorSampleRate * decodedPCMBytesPerFrame)}, nil
+		DurationMs:  length * millisecondsPerSecond / (EditorSampleRate * decodedPCMBytesPerFrame),
+		fingerprint: sha256.Sum256(data), fileInfo: info}, nil
+}
+
+func readRecordingSource(path string) ([]byte, os.FileInfo, error) {
+	initialInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("inspect recording: %w", err)
+	}
+	if !initialInfo.Mode().IsRegular() || initialInfo.Size() > maxEditorFileBytes {
+		return nil, nil, fmt.Errorf("%w: select a regular recording no larger than 128 MiB", ErrAudioLibrary)
+	}
+	file, err := os.Open(path) //nolint:gosec // Explicit local recording chosen in the authoring tool.
+	if err != nil {
+		return nil, nil, fmt.Errorf("open recording: %w", err)
+	}
+	defer func() {
+		if err := file.Close(); err != nil {
+			logging.Warn(logging.CategoryAudio, "Close analyzed recording: %v", err)
+		}
+	}()
+	data, err := io.ReadAll(io.LimitReader(file, maxEditorFileBytes+1))
+	if err != nil {
+		return nil, nil, fmt.Errorf("read recording: %w", err)
+	}
+	if len(data) > maxEditorFileBytes {
+		return nil, nil, fmt.Errorf("%w: recording exceeds 128 MiB", ErrAudioLibrary)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		return nil, nil, fmt.Errorf("inspect recording source: %w", err)
+	}
+	if !info.Mode().IsRegular() || info.Size() != int64(len(data)) || !os.SameFile(initialInfo, info) ||
+		!initialInfo.ModTime().Equal(info.ModTime()) {
+		return nil, nil, fmt.Errorf("%w: recording changed during loading", ErrRecordingSourceChanged)
+	}
+
+	return data, info, nil
 }
 
 func recordingAnalysis(ctx context.Context, stream io.Reader) ([]float64, []loudnessBucket, error) {

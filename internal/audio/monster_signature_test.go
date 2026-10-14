@@ -11,7 +11,7 @@ import (
 func TestMonsterSignatureCuesResolveToSilentCombatSlots(t *testing.T) {
 	library := productionLibrary()
 	// Exercise slot resolution without decoding recordings or opening an audio device.
-	player := &SoundEffectPlayer{assetsLoaded: true}
+	player := &SoundEffectPlayer{assetsLoaded: true, library: defaultRuntimeLibrary()}
 	for _, test := range []struct {
 		effect                 game_state.SoundEffect
 		cue, recording, family string

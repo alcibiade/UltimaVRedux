@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,19 +25,22 @@ const (
 	keyDown         = "down"
 	keyTab          = "tab"
 	keyBackspace    = "backspace"
+	keyDelete       = "delete"
 	keyPageUp       = "pgup"
 	keyPageDown     = "pgdown"
 	keyPreviousPage = "ctrl+p"
 	keyNextPage     = "ctrl+n"
 	keyShiftUp      = "shift+up"
 	keyShiftDown    = "shift+down"
-	keyCtrlEnter    = "ctrl+enter"
+	keyShiftLeft    = "shift+left"
+	keyShiftRight   = "shift+right"
 	keyCtrlDown     = "ctrl+down"
 	keyShiftTab     = "shift+tab"
 	keyCtrlA        = "ctrl+a"
 	keyLeft         = "left"
 	keyRight        = "right"
 	keySave         = "ctrl+s"
+	keyFilter       = "ctrl+f"
 	fieldNote       = "note"
 	fieldGain       = "gain"
 	fieldStart      = "start"
@@ -47,15 +51,17 @@ const (
 
 type loadedMsg struct {
 	generation uint64
+	request    sourceLoad
 	clip       *audio.RecordingAudio
 	err        error
-	autoplay   bool
 }
 type documentMsg struct {
-	document *audio.LibraryEditor
-	err      error
-	summary  string
-	reload   bool
+	generation   uint64
+	baseRevision uint64
+	document     *audio.LibraryEditor
+	err          error
+	summary      string
+	reload       bool
 }
 type tickMsg time.Time
 
@@ -71,21 +77,29 @@ type playback interface {
 }
 
 type model struct {
+	targets             audio.AuthoringTargets
 	doc                 *audio.LibraryEditor
 	preview             playback
 	clip                *audio.RecordingAudio
+	clipRecordingID     string
+	sourceStale         bool
+	sourceProbePending  bool
+	nextSourceProbe     time.Time
+	cancelSourceProbe   context.CancelFunc
 	keys                []string
 	cursor              int
 	browserStart        int
 	workspace           editorWorkspace
 	search              string
-	filterClearPending  bool
 	width, height       int
 	generation          uint64
+	documentGeneration  uint64
 	cancelLoad          context.CancelFunc
 	loading, busy       bool
 	status              string
 	field, input        string
+	inputText           textCursor
+	inputAction         int
 	licenseRecordingID  string
 	inputError          string
 	committingInput     bool
@@ -109,12 +123,14 @@ type model struct {
 	volumeControls      bool
 	volumeCursor        int
 	confirmQuit         bool
+	quitAfterOperation  bool
 	mix                 []*mixLayer
 	mixCursor           int
 	soundscapeVisible   bool
 	pendingAmbient      *mixLayer
 	sceneFXPreview      bool
 	previewLabel        string
+	previewRoute        *previewRoute
 	now                 func() time.Time
 	newVoice            func() playback
 	availability        map[string]audio.RecordingAvailability
@@ -131,10 +147,9 @@ type model struct {
 	variantState        browseState
 	assignmentAppend    bool
 	duplicate           *clipDraft
+	crop                *cropSession
 	currentVariant      map[string]int
-	nextVariant         map[string]int
-	pendingCycle        string
-	autoGainDraft       *audio.CalibrationSuggestion
+	autoGainDraft       *calibrationDraft
 	calibrationCache    *calibrationCache
 	routing             routingEditor
 }
@@ -149,8 +164,8 @@ func newModel(doc *audio.LibraryEditor) *model {
 	editor.newVoice = newVoice
 	editor.colors = newPalette()
 	editor.currentVariant = make(map[string]int)
-	editor.nextVariant = make(map[string]int)
-	editor.routing.tiles = audio.TileTargets()
+	editor.targets = doc.Targets()
+	editor.routing.tiles = editor.targets.Tiles
 	editor.routing.selected = make(map[string]bool)
 	editor.prepareAvailability()
 	editor.status = "Enter: play selection. f: choose file. Ctrl+s: save the real manifest."
@@ -187,57 +202,25 @@ func (m *model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case loadedMsg:
 		m.acceptLoaded(msg)
 	case documentMsg:
-		m.busy = false
-		m.doc = msg.document
-		if msg.err == nil {
-			m.statusIsError = false
-			m.status = msg.summary
-			selected := m.selectedID()
-			m.refreshKeys()
-			if msg.reload {
-				return m, m.recheckFiles()
-			}
-			if selected != m.selectedID() {
-				return m, m.loadSelection()
-			}
-
-			return m, nil
-		}
-		m.report(msg.err)
+		return m, m.acceptDocument(msg)
 	case availabilityMsg:
 		return m, m.acceptAvailability(msg)
+	case sourceProbeMsg:
+		m.acceptSourceProbe(msg)
 	case tickMsg:
 		if voice := m.previewVoice(); voice.Active() {
 			m.position = voice.PositionMs()
 		}
 		m.updateMix()
 		m.updateRoutingPreview()
+		m.updateCropPreview(false)
 
-		return m, tick()
+		return m, tea.Batch(tick(), m.queueSourceProbe())
 	case tea.KeyMsg:
 		return m, m.key(msg)
 	}
 
 	return m, nil
-}
-
-func (m *model) acceptLoaded(message loadedMsg) {
-	if message.generation != m.generation {
-		return
-	}
-	m.loading, m.clip = false, message.clip
-	m.report(message.err)
-	m.updateSelectedAvailability(message)
-	if message.err == nil && m.clip != nil && m.picker == nil && !m.assigning && m.form == nil {
-		recording := m.doc.Recording(m.recordingID())
-		if recording.CalibrationMode() == audio.CalibrationAuto && m.followAutoCalibration(&recording) {
-			m.report(m.doc.SetRecording(m.recordingID(), recording))
-			m.refreshMixGains()
-		}
-	}
-	if message.err == nil && message.autoplay && m.autoPreview && m.play() {
-		m.advancePreviewCycle()
-	}
 }
 
 func (m *model) selectedID() string {
@@ -282,7 +265,7 @@ func (m *model) formRecordingID() string {
 	case m.form.kind == formNewAmbient:
 		return m.form.fields[newRecordingField].value
 	case m.form.kind == formSurface:
-		if len(m.form.sequence) > 0 {
+		if m.form.cursor < len(m.form.sequence) {
 			return m.doc.Cue(m.form.sequence[m.form.cursor]).PrimaryRecording()
 		}
 
@@ -292,63 +275,15 @@ func (m *model) formRecordingID() string {
 	}
 }
 
-func (m *model) loadSelection() tea.Cmd {
-	m.statusIsError = false
-	m.routing.fading = false
-	m.previewPaused = false
-	m.sceneFXPreview = false
-	m.pendingCycle = ""
-	m.fullSource = false
-	path, err := m.doc.RecordingPath(m.recordingID())
-	if err != nil {
-		if m.cancelLoad != nil {
-			m.cancelLoad()
-		}
-		m.generation++
-		m.clip = nil
-		m.loading = false
-		m.report(m.preview.Close())
-		m.report(err)
-		if m.doc.FileAvailability(m.recordingID()).State == audio.RecordingNoFile {
-			m.statusIsError = false // An intentional empty slot is not an invalid file.
-		}
-		if m.selectedID() == "" {
-			m.status = "No matches. / changes search; Ctrl+f changes the filter."
-		} else if m.routingWorkspace() && m.routingCue() == "" {
-			m.status = "No sound selected. f assigns; Enter previews."
-		}
-
-		return nil
-	}
-
-	return m.loadPath(path, false)
-}
-
-func (m *model) loadPath(path string, autoplay bool) tea.Cmd {
-	m.sceneFXPreview = false
-	m.pendingCycle = ""
-	m.autoPreview = autoplay
-	if m.cancelLoad != nil {
-		m.cancelLoad()
-	}
-	m.generation++
-	m.clip, m.position = nil, 0
-	m.previewPaused = false
-	m.report(m.preview.Close())
-	ctx, cancel := context.WithCancel(context.Background())
-	m.cancelLoad = cancel
-	generation := m.generation
-	m.loading = true
-
-	return func() tea.Msg {
-		defer cancel()
-		clip, err := audio.LoadRecordingContext(ctx, path)
-
-		return loadedMsg{generation: generation, clip: clip, err: err, autoplay: autoplay}
-	}
-}
-
 func (m *model) gain() float64 {
+	if m.crop != nil {
+		preview := m.crop.preview
+		if m.preview.Active() {
+			preview = m.crop.audible
+		}
+
+		return m.cropGain(preview)
+	}
 	if m.form != nil && m.form.kind == formNewAmbient && m.routing.menu == nil {
 		return m.newAmbientPreviewGain()
 	}
@@ -365,6 +300,19 @@ func (m *model) gain() float64 {
 }
 
 func (m *model) play() bool {
+	if m.crop != nil {
+		return m.playCrop()
+	}
+	if m.sourceStale {
+		m.report(audio.ErrRecordingSourceChanged)
+
+		return false
+	}
+	if m.picker == nil && !m.selectedClipReady() {
+		m.status = "Choose a recording with an audio file; wait for waveform loading."
+
+		return false
+	}
 	if m.form != nil && m.routing.menu == nil {
 		m.previewForm(false, false)
 
@@ -378,26 +326,38 @@ func (m *model) play() bool {
 
 		return false
 	}
-	if (m.soundscapeVisible || len(m.mix) > 0) && m.picker == nil && !m.assigning && m.duplicate == nil &&
-		m.categoryForPreview(m.recordingID(), m.activeCue()) == previewSFX {
-		layer := m.selectedMixLayer()
-		layer.slot = sfxSlot
-		layer.fullSource = m.fullSource
-		if m.looping {
-			layer.mode = modeLoop
-		}
-		if m.installMixLayer(layer) {
-			m.sceneFXPreview = true
-			m.previewPaused, m.previewLoop = false, layer.mode == modeLoop
-			m.previewLabel = m.layerName(layer)
-			m.mixCursor = int(sfxSlot)
-			m.status = "SFX triggered over Soundscape: " + m.layerName(layer)
+	if m.shouldPreviewInSoundscape() {
+		return m.playSoundscapeEffect()
+	}
 
-			return true
-		}
+	return m.playStandalone()
+}
 
+func (m *model) shouldPreviewInSoundscape() bool {
+	return (m.soundscapeVisible || len(m.mix) > 0) && m.picker == nil && !m.assigning && m.crop == nil &&
+		m.categoryForPreview(m.recordingID(), m.activeCue()) == previewSFX
+}
+
+func (m *model) playSoundscapeEffect() bool {
+	layer := m.selectedMixLayer()
+	layer.slot = sfxSlot
+	layer.fullSource = m.fullSource
+	if m.looping {
+		layer.mode = modeLoop
+	}
+	if !m.installMixLayer(layer) {
 		return false
 	}
+	m.sceneFXPreview = true
+	m.previewPaused, m.previewLoop = false, layer.mode == modeLoop
+	m.previewLabel = m.layerName(layer)
+	m.mixCursor = int(sfxSlot)
+	m.status = "SFX triggered over Soundscape: " + m.layerName(layer)
+
+	return true
+}
+
+func (m *model) playStandalone() bool {
 	m.sceneFXPreview = false
 	window := m.doc.Recording(m.recordingID()).PlaybackWindow
 	if m.fullSource {
@@ -405,8 +365,12 @@ func (m *model) play() bool {
 	}
 	err := m.preview.Play(m.clip, window, m.looping, m.gain())
 	if err == nil {
-		m.status = "Playing " + m.recordingID()
+		m.previewRoute = &previewRoute{recordingID: m.recordingID(), cueID: m.activeCue(), calibrated: m.picker == nil}
 		m.previewLabel = m.recordingID()
+		if m.picker != nil {
+			m.previewLabel = "Candidate " + filepath.Base(m.clip.Path)
+		}
+		m.status = "Playing " + m.previewLabel
 		m.previewPaused, m.previewLoop = false, m.looping
 		m.previewEndMs = m.clip.DurationMs
 		if window != nil {
@@ -430,6 +394,9 @@ func (m *model) previewVoice() playback {
 }
 
 func (m *model) pausePreview(paused bool) {
+	if m.crop != nil {
+		m.crop.paused = paused
+	}
 	if paused && !m.previewPaused {
 		m.routing.pauseStart = m.now()
 	} else if !paused && m.previewPaused && m.routing.fading {
@@ -459,6 +426,9 @@ func (m *model) rejectInput(message string) {
 }
 
 func (m *model) close() {
+	if m.cancelSourceProbe != nil {
+		m.cancelSourceProbe()
+	}
 	if m.cancelScan != nil {
 		m.cancelScan()
 	}
@@ -473,14 +443,9 @@ func (m *model) close() {
 
 func (m *model) save() tea.Cmd {
 	m.statusIsError = false
-	document := m.doc.Clone()
 	m.confirmQuit = false
-	m.busy, m.status = true, "Validating and saving library.json…"
+	m.status = "Validating and saving library.json…"
 
-	return func() tea.Msg {
-		err := document.Save()
-
-		return documentMsg{document: document, err: err,
-			summary: "Saved library.json. Rebuild the game to use these changes.", reload: false}
-	}
+	return m.documentOperation(false, "Saved library.json. Rebuild the game to use these changes.",
+		(*audio.LibraryEditor).Save)
 }

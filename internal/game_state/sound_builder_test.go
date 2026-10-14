@@ -67,5 +67,13 @@ func newSoundBuilderTestCallbacks(
 	requestPlayback func(SoundPlaybackRequest),
 	requestStop func(SoundStopRequest),
 ) AudioCallbacks {
-	return NewAudioCallbacks(requestPlayback, requestStop, func() {}, func() {}, func() {})
+	return NewAudioCallbacks(requestPlayback, requestStop, func() {}, func() {}, func() {},
+		func(request SoundPlaybackRequest) SoundVoice {
+			requestPlayback(request)
+			return testSoundVoice(func(fade int64) { requestStop(SoundStopRequest{Effect: request.Effect, FadeOutMs: fade}) })
+		})
 }
+
+type testSoundVoice func(int64)
+
+func (voice testSoundVoice) Stop(fade int64) { voice(fade) }

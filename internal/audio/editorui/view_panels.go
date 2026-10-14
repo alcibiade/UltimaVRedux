@@ -11,6 +11,7 @@ import (
 
 const badgeWidth = 11
 const rowPrefixWidth = 2
+const filterLabelAll = "All"
 
 func (m *model) filterStrip(width int) string {
 	if m.statusIsError && m.field == "" && m.form == nil {
@@ -19,7 +20,7 @@ func (m *model) filterStrip(width int) string {
 	if m.routingWorkspace() {
 		return fit(m.routingFilterTitle(), width)
 	}
-	labels := []string{"All", "Existing", "Missing", "Problems"}
+	labels := []string{filterLabelAll, "Existing", "Missing", "Problems"}
 	counts := [filterCount]int{}
 	for _, id := range m.workspaceIDs() {
 		for filter := filterAll; filter < filterCount; filter++ {
@@ -45,9 +46,6 @@ func (m *model) filterStrip(width int) string {
 func (m *model) browserLines(width int) []string {
 	if m.routing.menu != nil || m.routingWorkspace() {
 		return m.routingBrowserLines(width)
-	}
-	if m.duplicate != nil {
-		return m.duplicateLines(width)
 	}
 	if m.picker != nil {
 		return m.fileLines(width)
@@ -169,9 +167,10 @@ func (m *model) detailLines(width int) []string {
 		lines = append(lines, m.colors.warning.Render("f  Choose a file / repair assignment"), "")
 	}
 	add("Recording: ", m.recordingID())
+	m.publicationDetails(add)
 	m.previewGainDetails(add)
 	m.metadataDetails(recording, add)
-	add("Acoustic family [saved]: ", m.doc.RecordingFamily(m.recordingID()))
+	add("Acoustic family [working]: ", m.doc.RecordingFamily(m.recordingID()))
 	if recording.File != nil {
 		add("Expected file: ", *recording.File)
 	}
@@ -179,28 +178,10 @@ func (m *model) detailLines(width int) []string {
 	if recording.CalibrationGainDB != nil {
 		calibration = fmt.Sprintf("%.2f dB", *recording.CalibrationGainDB)
 	}
-	add("Calibration [saved]: ", calibration)
+	add("Calibration [working]: ", calibration)
 	m.calibrationDetails(add)
 	if m.workspace == workspaceMoments {
-		id := m.activeCue()
-		cue := m.doc.Cue(id)
-		add("Moment: ", id)
-		for _, classificationLine := range m.classificationDetailLines(id) {
-			label, value, _ := strings.Cut(classificationLine, ": ")
-			add(label+": ", value)
-		}
-		add("Cue gain [saved]: ", fmt.Sprintf("%.3f amplitude", cue.VolumeModifier))
-		if profile, exists := m.doc.Routing().Ambient[id]; exists {
-			add("Ambient [B edits]: ", fmt.Sprintf("range %.1f tiles · fade %d/%d ms",
-				profile.RadiusTiles, profile.FadeInMs, profile.FadeOutMs))
-		}
-		add("Configured sources [U]: ", fmt.Sprintf("%d assignments (not placed-map counts)", len(m.doc.RoutingUsages(id))))
-		if len(cue.Recordings()) > 1 {
-			add("Selection: ", "n previews next; Enter restarts the current clip")
-			for index, recordingID := range cue.Recordings() {
-				add(fmt.Sprintf("  %d. ", index+1), recordingID)
-			}
-		}
+		m.momentDetails(add)
 	}
 	add("Source: ", recording.Provenance.SourceCreator)
 	add("License [Ctrl+L]: ", recording.Provenance.License)
@@ -217,10 +198,33 @@ func (m *model) detailLines(width int) []string {
 	return lines
 }
 
+func (m *model) momentDetails(add func(string, string)) {
+	cueID := m.activeCue()
+	cue := m.doc.Cue(cueID)
+	add("Moment: ", cueID)
+	for _, classificationLine := range m.classificationDetailLines(cueID) {
+		label, value, _ := strings.Cut(classificationLine, ": ")
+		add(label+": ", value)
+	}
+	add("Cue gain [working]: ", fmt.Sprintf("%.3f amplitude", cue.VolumeModifier))
+	if profile, exists := m.doc.Routing().Ambient[cueID]; exists {
+		add("Ambient [Shift+b]: ", fmt.Sprintf("range %.1f tiles · fade %d/%d ms",
+			profile.RadiusTiles, profile.FadeInMs, profile.FadeOutMs))
+	}
+	add("Configured sources [Shift+u]: ",
+		fmt.Sprintf("%d assignments (not placed-map counts)", len(m.doc.RoutingUsages(cueID))))
+	if len(cue.Recordings()) > 1 {
+		add("Selection: ", "n previews next; Enter restarts the current clip")
+		for index, recordingID := range cue.Recordings() {
+			add(fmt.Sprintf("  %d. ", index+1), recordingID)
+		}
+	}
+}
+
 func (m *model) classificationDetailLines(cueID string) []string {
 	classification := m.doc.CueClassification(cueID)
 	lines := []string{
-		"Classification [saved]: " + m.doc.CueProfile(cueID),
+		"Classification [working]: " + m.doc.CueProfile(cueID),
 		"Intent: " + classification.TargetAcousticFamily + " · " + classification.Phase + "/" +
 			classification.Outcome + " · " + classification.MixRole,
 		"Emitters / contexts: " + strings.Join(classification.Emitters, ", ") + " / " +

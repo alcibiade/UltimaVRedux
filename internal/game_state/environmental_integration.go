@@ -73,7 +73,7 @@ func (w *windSystemCallbacksAdapter) AddRowStr(message string) {
 }
 
 // logEnvironmentalHazard provides debug logging for environmental hazard events
-func (g *GameState) logEnvironmentalHazard(hazardResult environment.HazardResult) {
+func (g *GameState) logEnvironmentalHazard(_ environment.HazardResult) {
 	// This could be expanded for more detailed logging if needed
 	// For now, the SystemCallbacks already handle user-facing messages
 }
@@ -427,11 +427,12 @@ func joinNames(names []string) string {
 		// For 3+ names: "Alice, Bob, and Charlie"
 		result := ""
 		for i, name := range names {
-			if i == 0 {
+			switch i {
+			case 0:
 				result = name
-			} else if i == len(names)-1 {
+			case len(names) - 1:
 				result += ", and " + name
-			} else {
+			default:
 				result += ", " + name
 			}
 		}
@@ -479,19 +480,20 @@ func (a *earthquakeCallbacksAdapter) PresentEarthquake(_ EarthquakeResult) {
 	a.gameState.SystemCallbacks.Message.AddRowStr("EARTHQUAKE!")
 	// REDUX DEVIATION: earthquake check blocks in earthquake feedback. Redux
 	// presents nonblocking feedback after damage so command completion remains synchronous.
-	// See ref:ENV-0002.
+	// See ref:ENV-0004.
 	a.gameState.EventQueueManager.TriggerFeedback(
 		earthquakeRandomFeedbackName,
 		event_queue.PriorityNormal,
 		func(sequence *event_queue.SequentialEventBuilder) {
+			var voice SoundVoice = SilentSoundVoice{}
 			sequence.First(func() {
-				a.gameState.SystemCallbacks.Audio.Play(SoundEarthquake).FadeIn(earthquakeSoundFadeInMs).Start()
+				voice = a.gameState.SystemCallbacks.Audio.Play(SoundEarthquake).FadeIn(earthquakeSoundFadeInMs).StartOwned()
 			}).Animate(earthquakeRandomDurationMs, func(progress float32) {
 				x, y := calculateScreenShakeOffset(progress, earthquakeRandomPixels*(1-float64(progress)))
 				a.gameState.SystemCallbacks.Visual.SetScreenShakeOffset(x, y)
 			}).Finally(func() {
 				a.gameState.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
-				a.gameState.SystemCallbacks.Audio.Stop(SoundEarthquake).FadeOut(earthquakeSoundFadeOutMs).Now()
+				voice.Stop(earthquakeSoundFadeOutMs)
 			})
 		},
 	)
@@ -518,13 +520,14 @@ func (g *GameState) QueueDebugEarthquakeFeedback(durationMs int, intensity float
 	logging.Debug(logging.CategoryGameState, "Queuing debug earthquake: duration=%dms intensity=%.2f", durationMs, intensity)
 	g.EventQueueManager.TriggerFeedback(earthquakeDebugFeedbackName, event_queue.PriorityNormal,
 		func(sequence *event_queue.SequentialEventBuilder) {
+			var voice SoundVoice = SilentSoundVoice{}
 			sequence.First(func() {
-				g.SystemCallbacks.Audio.Play(SoundEarthquake).FadeIn(earthquakeSoundFadeInMs).Start()
+				voice = g.SystemCallbacks.Audio.Play(SoundEarthquake).FadeIn(earthquakeSoundFadeInMs).StartOwned()
 			}).ThenSequence(
 				NewPartyStateBuilder(g).ToAllParty().WithShake(durationMs, shakePixels).Build(),
 			).Finally(func() {
 				g.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
-				g.SystemCallbacks.Audio.Stop(SoundEarthquake).FadeOut(earthquakeSoundFadeOutSlowMs).Now()
+				voice.Stop(earthquakeSoundFadeOutSlowMs)
 			})
 		})
 

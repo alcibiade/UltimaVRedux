@@ -47,7 +47,7 @@ func (m *model) layerAt(slot soundscapeSlot) *mixLayer {
 }
 
 func (m *model) selectedMixLayer() *mixLayer {
-	if m.clip == nil || m.assigning || m.picker != nil {
+	if !m.selectedClipReady() || m.assigning || m.picker != nil || m.crop != nil {
 		m.status = "Select a playable Moment, then a adds it to Soundscape."
 
 		return nil
@@ -135,6 +135,13 @@ func (m *model) layerGain(layer *mixLayer) float64 {
 }
 
 func (m *model) startMixLayer(layer *mixLayer) bool {
+	if err := layer.clip.CheckSourceStamp(); err != nil {
+		layer.stopped = true
+		m.report(layer.voice.Close())
+		m.report(err)
+
+		return false
+	}
 	window := m.doc.Recording(layer.recordingID).PlaybackWindow
 	if layer.fullSource {
 		window = nil
@@ -163,17 +170,6 @@ func (m *model) updateMix() {
 func (m *model) refreshMixGains() {
 	for _, layer := range m.mix {
 		layer.voice.SetGain(m.layerGain(layer))
-	}
-}
-
-func (m *model) restartMixRecording(id string, clip *audio.RecordingAudio) {
-	for _, layer := range m.mix {
-		if layer.recordingID == id {
-			layer.clip = clip
-			if !layer.stopped {
-				m.startMixLayer(layer)
-			}
-		}
 	}
 }
 
@@ -291,9 +287,12 @@ func (m *model) removeMixLayer(layer *mixLayer) {
 }
 
 func (m *model) stopAll() {
+	if m.crop != nil {
+		m.crop.audition, m.crop.paused, m.crop.resumeLayers = false, false, false
+	}
 	m.previewPaused, m.routing.fading = false, false
 	m.autoPreview, m.sceneFXPreview = false, false
-	m.pendingAmbient, m.pendingCycle = nil, ""
+	m.pendingAmbient = nil
 	m.report(m.preview.Close())
 	for _, layer := range m.mix {
 		m.report(layer.voice.Close())
