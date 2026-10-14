@@ -129,6 +129,7 @@ func (g *GameScene) updateAmbientSounds() {
 	}
 
 	// Update ambient sounds through audio manager with dynamic sources
+	g.projectAmbientSources(playerPos, dynamicSources)
 	g.audioManager.UpdateAmbientSoundsWithDynamicSources(playerPos, nearbyTiles, dynamicSources)
 }
 
@@ -153,6 +154,7 @@ func (g *GameScene) getMoongateAmbientSources() []audio.AmbientSoundSource {
 	for _, renderer := range activeRenderers {
 		baseDef := g.audioManager.AmbientEmitterDefinition("moongate")
 		source := audio.AmbientSoundSource{
+			ID:             "",
 			Emitter:        "moongate",
 			Position:       renderer.GetPosition(),
 			SoundType:      baseDef.SoundType,
@@ -197,6 +199,7 @@ func (g *GameScene) getBardAmbientSources() []audio.AmbientSoundSource {
 
 	for _, pos := range bardPositions {
 		source := audio.AmbientSoundSource{
+			ID:             "",
 			Emitter:        "bard",
 			Position:       pos,
 			SoundType:      baseDef.SoundType,
@@ -228,18 +231,21 @@ func (g *GameScene) getNearbyTilesForAmbientSound(playerPos references.Position,
 		return nearbyTiles
 	}
 
-	// Gather tiles in a square around the player
-	startX := playerPos.X - references.Coordinate(radius)
-	startY := playerPos.Y - references.Coordinate(radius)
-	endX := playerPos.X + references.Coordinate(radius)
-	endY := playerPos.Y + references.Coordinate(radius)
-
-	for x := startX; x <= endX; x++ {
-		for y := startY; y <= endY; y++ {
-			pos := references.Position{X: x, Y: y}
-
-			// Skip out-of-bounds positions
-			if g.gameState.IsOutOfBounds(pos) {
+	// Visit each canonical tile at most once, even when a dungeon's authored
+	// hearing radius exceeds its grid. Keep the nearest image for attenuation.
+	startX, endX, startY, endY := -radius, radius, -radius, radius
+	if currentMap.IsWrappedMap() {
+		startX, endX = max(startX, -int(currentMap.XMaxTilesPerMap)/2), min(endX, (int(currentMap.XMaxTilesPerMap)-1)/2)
+		startY, endY = max(startY, -int(currentMap.YMaxTilesPerMap)/2), min(endY, (int(currentMap.YMaxTilesPerMap)-1)/2)
+	}
+	for dx := startX; dx <= endX; dx++ {
+		for dy := startY; dy <= endY; dy++ {
+			//nolint:gosec // Listener coordinates and validated audio radius (<=32) fit Coordinate.
+			pos := references.Position{X: playerPos.X + references.Coordinate(dx), Y: playerPos.Y + references.Coordinate(dy)}
+			if currentMap.IsWrappedMap() {
+				pos.X = canonicalAudioCoordinate(pos.X, currentMap.XMaxTilesPerMap)
+				pos.Y = canonicalAudioCoordinate(pos.Y, currentMap.YMaxTilesPerMap)
+			} else if pos.X < 0 || pos.Y < 0 || pos.X >= currentMap.XMaxTilesPerMap || pos.Y >= currentMap.YMaxTilesPerMap {
 				continue
 			}
 
@@ -249,9 +255,14 @@ func (g *GameScene) getNearbyTilesForAmbientSound(playerPos references.Position,
 				tile = currentMap.GetSmallMapTerrainTile(&pos, g.gameState.DateTime.Hour)
 			}
 			if tile != nil {
+				projected := pos
+				if currentMap.IsWrappedMap() {
+					projected.X = projectAudioCoordinate(playerPos.X, pos.X, currentMap.XMaxTilesPerMap)
+					projected.Y = projectAudioCoordinate(playerPos.Y, pos.Y, currentMap.YMaxTilesPerMap)
+				}
 				nearbyTiles = append(nearbyTiles, audio.TileWithPosition{
 					Tile:     tile,
-					Position: pos,
+					Position: projected,
 				})
 			}
 		}

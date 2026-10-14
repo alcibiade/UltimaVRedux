@@ -30,6 +30,7 @@ var (
 // SoundEffect represents different types of sound effects
 type SoundEffect int
 
+// Sound effect identities are append-only so authored cue mappings remain stable.
 const (
 	SoundCannonFire SoundEffect = iota
 	SoundBroadside
@@ -46,7 +47,7 @@ const (
 	SoundFireBurn
 	SoundHeal
 	SoundMoongateTravel
-	// Walking sound variants for natural footstep cycling
+	// SoundWalkGrassLeft begins the variants used for natural footstep cycling.
 	SoundWalkGrassLeft
 	SoundWalkGrassRight
 	SoundWalkStone1
@@ -57,7 +58,7 @@ const (
 	SoundWalkWood2
 	SoundWalkWood3
 	SoundWalkMetal1
-	// Ambient sounds
+	// SoundAmbientHum represents ambient humming.
 	SoundAmbientHum
 	// SoundClimbingSuccess marks successful climbing; falling uses separate cues.
 	SoundClimbingSuccess
@@ -94,7 +95,7 @@ const (
 	SoundHullCrunch      // Hull takes damage from whirlpool
 	// SoundShoalScrape marks a ship collision with shoals.
 	SoundShoalScrape // Ship hits shoals
-	// Vehicle movement sounds (placeholder for future audio)
+	// SoundMoveHorse begins the vehicle movement cues (some recordings remain empty).
 	SoundMoveHorse   // Horse galloping/hooves
 	SoundMoveSkiff   // Skiff rowing/water
 	SoundMoveFrigate // Frigate sailing/creaking
@@ -102,7 +103,7 @@ const (
 	// SoundTrollGrowl marks the start of a troll bridge encounter.
 	SoundTrollGrowl  // Troll appearance/threat
 	SoundTrollCaught // Alert sound when caught by trolls
-	// Shadowlord presence sounds
+	// SoundShadowlordSummon begins the Shadowlord presence cues.
 	SoundShadowlordSummon   // Original successful-Yell pulse accompanying the summon fizz
 	SoundShadowlordPresence // Ominous sound when Shadowlord is present at town entry
 	SoundShardPulse         // Original 2640 Hz pulse sweep when a Shard is raised
@@ -124,10 +125,16 @@ const (
 	SoundShrineQuestAssign // Quest assignment fanfare
 	// Original: 7 pulse tones at 3300, 3925, 3925, 3925, 3925, 3700, 3925 Hz
 	// Durations: 7000, 6000, 3000, 3000, 3000, 3000, 8000 ms
+
+	// SoundShrineOffering accompanies an accepted shrine offering.
 	SoundShrineOffering // Gold offering accepted
 	// Original: 2700 Hz pulse sweep (ascending 2000→25000, descending 25000→2000, step 50)
+
+	// SoundShrineReward accompanies shrine quest completion.
 	SoundShrineReward // Quest completion reward
 	// Original: 3100 Hz pulse sweep (ascending 2000→25000, descending 25000→2000, step 50)
+
+	// SoundAwakenSpell begins the spell-specific cues.
 	// Spell-specific sounds (detached from caller - usable by spells, scrolls, potions)
 	SoundAwakenSpell // An Zu spell - wake sleeping character
 	SoundCreateFood  // In Xen Mani spell - conjure food
@@ -461,6 +468,8 @@ type AudioCallbacks struct {
 
 	// RequestPlayback dispatches one fully configured playback request.
 	RequestPlayback func(request SoundPlaybackRequest)
+	// RequestVoice dispatches one independently owned presentation instance.
+	RequestVoice func(request SoundPlaybackRequest) SoundVoice
 	// RequestStop dispatches one fully configured stop request.
 	RequestStop func(request SoundStopRequest)
 
@@ -474,9 +483,10 @@ type AudioCallbacks struct {
 
 // NewAudioCallbacks creates AudioCallbacks with required function validation.
 func NewAudioCallbacks(requestPlayback func(SoundPlaybackRequest), requestStop func(SoundStopRequest), updateLocationMusic func(),
-	pauseBackgroundMusic func(), resumeBackgroundMusic func()) AudioCallbacks {
+	pauseBackgroundMusic func(), resumeBackgroundMusic func(), requestVoice func(SoundPlaybackRequest) SoundVoice) AudioCallbacks {
 	callbacks := AudioCallbacks{
 		RequestPlayback:       requestPlayback,
+		RequestVoice:          requestVoice,
 		RequestStop:           requestStop,
 		UpdateLocationMusic:   updateLocationMusic,
 		PauseBackgroundMusic:  pauseBackgroundMusic,
@@ -498,6 +508,9 @@ func NewAudioCallbacks(requestPlayback func(SoundPlaybackRequest), requestStop f
 }
 
 func (callbacks AudioCallbacks) validate() {
+	if callbacks.RequestVoice == nil {
+		panic("AudioCallbacks.RequestVoice is required - cannot be nil")
+	}
 	if callbacks.Play == nil {
 		panic("AudioCallbacks.Play is required - cannot be nil")
 	}

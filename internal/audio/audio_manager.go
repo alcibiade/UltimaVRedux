@@ -137,24 +137,9 @@ func (am *AudioManager) PlaySoundEffect(effect game_state.SoundEffect) error {
 
 // PlaySound handles one complete typed playback request.
 func (am *AudioManager) PlaySound(request game_state.SoundPlaybackRequest) error {
-	if err := am.ensureAssetsLoaded(); err != nil {
-		return err
-	}
-	am.mutex.RLock()
-	defer am.mutex.RUnlock()
+	_, err := am.playVoice(request, nil)
 
-	if !am.enabled {
-		return nil
-	}
-
-	if err := am.soundEffectPlayer.Play(request); err != nil {
-		return err
-	}
-	if isInstrumentEffect(request.Effect) && am.soundEffectPlayer.hasInstrumentMusic() {
-		am.musicManager.LocalMusic()
-	}
-
-	return nil
+	return err
 }
 
 // StopSound stops or fades every active instance matching one effect.

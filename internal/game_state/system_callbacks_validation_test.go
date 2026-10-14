@@ -118,6 +118,7 @@ func TestAudioCallbacksRequireEveryCapability(t *testing.T) {
 		{"Stop", func(audio *AudioCallbacks) { audio.Stop = nil }, false},
 		{"PlaySoundEffect", func(audio *AudioCallbacks) { audio.PlaySoundEffect = nil }, false},
 		{"RequestPlayback", func(audio *AudioCallbacks) { audio.RequestPlayback = nil }, true},
+		{"RequestVoice", func(audio *AudioCallbacks) { audio.RequestVoice = nil }, true},
 		{"RequestStop", func(audio *AudioCallbacks) { audio.RequestStop = nil }, true},
 		{"UpdateLocationMusic", func(audio *AudioCallbacks) { audio.UpdateLocationMusic = nil }, true},
 		{"PauseBackgroundMusic", func(audio *AudioCallbacks) { audio.PauseBackgroundMusic = nil }, true},
@@ -135,7 +136,7 @@ func TestAudioCallbacksRequireEveryCapability(t *testing.T) {
 			if test.constructor {
 				assert.PanicsWithValue(t, wantPanic, func() {
 					NewAudioCallbacks(audio.RequestPlayback, audio.RequestStop, audio.UpdateLocationMusic,
-						audio.PauseBackgroundMusic, audio.ResumeBackgroundMusic)
+						audio.PauseBackgroundMusic, audio.ResumeBackgroundMusic, audio.RequestVoice)
 				})
 			}
 		})
@@ -156,6 +157,10 @@ func TestNewSystemCallbacksPreservesSuppliedAudioCapabilities(t *testing.T) {
 	}
 	audio.PlaySoundEffect = func(SoundEffect) { calls = append(calls, "PlaySoundEffect") }
 	audio.RequestPlayback = func(SoundPlaybackRequest) { calls = append(calls, "RequestPlayback") }
+	audio.RequestVoice = func(SoundPlaybackRequest) SoundVoice {
+		calls = append(calls, "RequestVoice")
+		return SilentSoundVoice{}
+	}
 	audio.RequestStop = func(SoundStopRequest) { calls = append(calls, "RequestStop") }
 	audio.UpdateLocationMusic = func() { calls = append(calls, "UpdateLocationMusic") }
 	audio.PauseBackgroundMusic = func() { calls = append(calls, "PauseBackgroundMusic") }
@@ -170,11 +175,12 @@ func TestNewSystemCallbacksPreservesSuppliedAudioCapabilities(t *testing.T) {
 	require.NotNil(t, callbacks.Audio.Stop(SoundOpenDoor))
 	callbacks.Audio.PlaySoundEffect(SoundOpenDoor)
 	callbacks.Audio.RequestPlayback(SoundPlaybackRequest{Effect: SoundOpenDoor})
+	callbacks.Audio.RequestVoice(SoundPlaybackRequest{Effect: SoundOpenDoor}).Stop(0)
 	callbacks.Audio.RequestStop(SoundStopRequest{Effect: SoundOpenDoor})
 	callbacks.Audio.UpdateLocationMusic()
 	callbacks.Audio.PauseBackgroundMusic()
 	callbacks.Audio.ResumeBackgroundMusic()
-	assert.Equal(t, []string{"Play", "Stop", "PlaySoundEffect", "RequestPlayback", "RequestStop",
+	assert.Equal(t, []string{"Play", "Stop", "PlaySoundEffect", "RequestPlayback", "RequestVoice", "RequestStop",
 		"UpdateLocationMusic", "PauseBackgroundMusic", "ResumeBackgroundMusic"}, calls)
 }
 

@@ -53,6 +53,7 @@ func (am *AudioManager) DungeonAmbientSource(
 	}
 
 	return AmbientSoundSource{
+		ID:      "",
 		Emitter: "", Position: listener, SoundType: definition.SoundType, IsActive: true, IsDynamic: true,
 		SoundFile: definition.FileName, MaxDistance: 0, baseVolume: definition.BaseVolume,
 		VolumeModifier: 1, FadeInTime: definition.FadeInTime, FadeOutTime: definition.FadeOutTime,
@@ -82,6 +83,7 @@ func navalAmbientSource(
 	}
 
 	return AmbientSoundSource{
+		ID:      "",
 		Emitter: vessel, Position: listener, SoundType: definition.SoundType, IsActive: true, IsDynamic: true,
 		SoundFile: definition.FileName, MaxDistance: 0, baseVolume: definition.BaseVolume,
 		VolumeModifier: 1, FadeInTime: definition.FadeInTime, FadeOutTime: definition.FadeOutTime,

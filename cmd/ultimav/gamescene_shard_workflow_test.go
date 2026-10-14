@@ -493,6 +493,7 @@ func trackLoopedSounds(scene *GameScene) *[]soundFadeCall {
 		audio.UpdateLocationMusic,
 		audio.PauseBackgroundMusic,
 		audio.ResumeBackgroundMusic,
+		audio.RequestVoice,
 	)
 
 	return &looped

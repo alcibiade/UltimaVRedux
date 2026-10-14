@@ -52,6 +52,7 @@ func (g *GameScene) wireSystemCallbacks() error {
 		g.updateMusicForCurrentLocation, // Wire to location-based music system
 		g.pauseBackgroundMusic,          // Wire to background music pause functionality
 		g.resumeBackgroundMusic,         // Wire to background music resume functionality
+		g.playSoundVoice,
 	)
 
 	screenCallbacks := game_state.NewScreenCallbacks(game_state.ScreenCallbacks{

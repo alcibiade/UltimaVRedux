@@ -88,12 +88,13 @@ func (g *GameState) completeHarpsichordMelody() {
 }
 
 func (g *GameState) startHarpsichordEarthquakeWorkflow() {
+	var voice SoundVoice = SilentSoundVoice{}
 	g.EventQueueManager.Workflow(harpsichordEarthquakeWorkflowName).
 		Priority(event_queue.PriorityMedium).
 		Sequential().
 		BlockInput().
 		First(func() {
-			g.SystemCallbacks.Audio.Play(SoundEarthquake).Start()
+			voice = g.SystemCallbacks.Audio.Play(SoundEarthquake).StartOwned()
 		}).
 		Animate(harpsichordEarthquakeDurationMs, func(progress float32) {
 			dampen := 1 - float64(progress)
@@ -103,7 +104,7 @@ func (g *GameState) startHarpsichordEarthquakeWorkflow() {
 		}).
 		Finally(func() {
 			g.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
-			g.SystemCallbacks.Audio.Stop(SoundEarthquake).FadeOut(earthquakeSoundFadeOutMs).Now()
+			voice.Stop(earthquakeSoundFadeOutMs)
 		}).
 		Start()
 }

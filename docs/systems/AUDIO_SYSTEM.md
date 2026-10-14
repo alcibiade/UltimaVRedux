@@ -15,6 +15,7 @@ close the shared device. They coordinate these components:
 | `BackgroundMusicSystem` | Embedded finite music playback, current track, and track volume |
 | `MusicManager` | Location/context selection, finite score policy, interruption ownership, and session history |
 | `AmbientSoundManager` | Desired source snapshots, proximity voices, fades, completion and bounded retries for tile/dynamic sources and dungeon backgrounds |
+| `VoiceHandle` / `VoiceOwner` | Manager-scoped instance cleanup and terminal multi-voice presentation lifetimes |
 | `WalkingSoundManager` | Surface-sensitive footstep selection |
 | `PositionalAudioCalculator` | Distance attenuation and a calculated pan value |
 | `AudioConfiguration` | Sound-effect, music, and ambient volume plus distance/rolloff settings |
@@ -63,6 +64,7 @@ type AudioCallbacks struct {
 
     PlaySoundEffect   func(SoundEffect)
     RequestPlayback  func(SoundPlaybackRequest)
+    RequestVoice     func(SoundPlaybackRequest) SoundVoice
     RequestStop      func(SoundStopRequest)
     UpdateLocationMusic   func()
     PauseBackgroundMusic  func()
@@ -80,11 +82,19 @@ type SoundStopRequest struct {
     Effect    SoundEffect
     FadeOutMs int64
 }
+
+type SoundVoice interface {
+    Stop(fadeOutMs int64)
+}
 ```
 
-`NewAudioCallbacks` requires the playback request, stop request, and three music lifecycle functions. The constructor adds `Play`, `Stop`, and the widely used `PlaySoundEffect` one-shot convenience. Gameplay still depends only on `game_state` types; the `GameScene` adapter translates requests to `AudioManager` operations.
+`NewAudioCallbacks` requires ordinary playback, effect-wide stop, owned-voice
+playback, and three music lifecycle functions. The constructor adds `Play`, `Stop`,
+and the widely used `PlaySoundEffect` one-shot convenience. Gameplay still depends
+only on `game_state` types; the `GameScene` adapter translates requests to
+`AudioManager` operations.
 
-Both `NewAudioCallbacks` and `NewSystemCallbacks` validate all eight resulting
+Both `NewAudioCallbacks` and `NewSystemCallbacks` validate all nine resulting
 capabilities. Missing wiring is a programming error and panics during
 construction, even when sound is disabled. Aggregate validation preserves the
 supplied functions without invoking or rebuilding them; action call sites do
@@ -107,6 +117,36 @@ gs.SystemCallbacks.Audio.Stop(game_state.SoundWind).FadeOut(500).Now()
 gs.SystemCallbacks.Audio.Play(game_state.SoundEarthquake).Volume(0.5).FadeIn(500).Start()
 gs.SystemCallbacks.Audio.Stop(game_state.SoundEarthquake).FadeOut(500).Now()
 ```
+
+Use owned playback when a workflow must release only its own presentation:
+
+```go
+var voice game_state.SoundVoice = game_state.SilentSoundVoice{}
+sequence.First(func() {
+    voice = gs.SystemCallbacks.Audio.Play(game_state.SoundEarthquake).
+        FadeIn(500).StartOwned()
+}).Finally(func() {
+    voice.Stop(500)
+})
+```
+
+The initial silent capability makes cancellation before the first step safe.
+`StartOwned` returns only cleanup capability; gameplay cannot inspect device
+completion or use a handle to determine time, RNG, costs or outcomes. Random/debug
+earthquake feedback and the harpsichord earthquake workflow use this boundary.
+Ordinary `Start` and `Stop(effect)` retain their existing effect-wide behavior.
+
+Application presentation code can use `AudioManager.PlayVoice` to obtain one
+opaque `VoiceHandle`, or `NewVoiceOwner` to group several sounds under one lifetime.
+`VoiceOwner.Play` follows normal admission rules; `Stop(fadeMs)` terminally rejects
+later playback and releases just that owner's live voices. `Close` immediately
+finishes any remaining release tails. Owners retain no list of completed handles.
+Zero/stale handles safely stop nothing, and `StopVoice` rejects a handle issued by
+another manager even if its numeric sequence matches. Disable removes current
+voices without reusing their IDs; Close ends the manager permanently. Repeated
+handle fades never extend an existing release. Same-effect footfall/burn replacement
+is restricted to the requesting owner; legacy effect-wide Stop still reaches all
+owners deliberately. These capabilities are transient and excluded from saves.
 
 `SoundBuilder.Start` emits exactly one `SoundPlaybackRequest`. The request mode is
 authoritative: `OneShot()` creates a finite stream and `Loop()` creates an infinite
@@ -208,6 +248,11 @@ eight-voice limit evicts the oldest finite voice, not an existing workflow-owned
 loop. A new loop fails explicitly if all eight slots are loops; a routine one-shot
 is dropped with audio debug logging in that case. Stop requests still target
 every instance of their effect.
+
+Exactly inaudible finite requests (request/category/authored gain zero) are dropped
+before stream preparation and cannot evict audible voices or advance selection.
+Fade-ins whose eventual target is audible remain eligible. Owned loops retain
+their existing mute/unmute continuity; an ordinary finite request never evicts one.
 
 Morning Star and Halberd commitment requests `SoundCombatSwing`, including hits,
 misses and empty attacks at range 1 or 2. Their missile type still governs hit
@@ -404,11 +449,65 @@ a louder brazier using the same sound. Ties prefer the nearer source; changes in
 the winning source update the existing player's gain/range without restarting it.
 `AmbientSoundType` is a
 string identity, not a closed enum: adding an ambient cue/profile does not require
-a Go constant. Dynamic sources include cue identity and position in their keys.
+a Go constant. Dynamic sources accept an adapter-owned stable `ID`; callers
+omitting it retain the legacy emitter/cue/position identity. The Redux scene binds
+IDs to map, floor, emitter and canonical source position before projecting the
+nearest wrapped image. Crossing a world/dungeon seam updates attenuation without
+duplicating or restarting the voice. Bard music ownership follows its emitter
+role, independently of the ID spelling.
 The manager composes distance, source/context, recording calibration, category,
 and fade gains. Infinite decoded loops retain their players during updates,
 strongest-source changes, and fade reversals. Scene suppression/global disable
 close active voices; restoration rebuilds sources on the next scene update.
+
+World and dungeon discovery wrap through the current map's actual dimensions;
+bounded town/combat maps stay bounded. Each physical tile is visited once even
+when the hearing radius exceeds a dungeon grid. Attenuation uses the nearest
+projected image, with a negative displacement for an exact half-map tie. These
+topology rules belong to the scene adapter; audio calculations remain planar.
+Radius-zero background sources ignore source/listener coordinates altogether and
+retain their stable cue identity through movement. Lighthouse source sharing
+continues to use its existing coastal/interior cue identity.
+
+### Runtime voice admission budget
+
+Ambience admits at most **16 active-and-releasing voices** independently of the
+eight-SFX budget, one finite music transport and one settings ambience preview.
+Preparation may temporarily hold a replacement decoder; only admitted players
+start. Ambient priority is source/calibration/distance/modifier gain, then an
+existing voice on an exact gain tie, then stable ID. Category mute preserves the
+ranking and loop continuity. Departing or displaced voices release normally and
+count against the cap until retirement, so new arrivals can wait for release.
+Failed sources in backoff and completed finite sources do not reserve admission
+slots. Retry eligibility is still bounded by the presentation-clock policy.
+
+The reproducible synthetic `BenchmarkAmbientReconciliationAndService` measures
+warm reconciliation plus service, excluding native device/mixer work and initial
+decoding. On Apple M3 Pro, 100 iterations with 8/32/128 desired sources measured
+approximately 5/23/80 microseconds per iteration with 8/16/16 voices. The preceding
+uncapped path measured 5/23/94 microseconds with 8/32/128 voices. Ranking adds some
+allocation overhead (about 98 KB versus 80 KB at 128 sources); the demonstrated
+benefit is bounded live playback and predictable selection, not a claim of lower
+allocation in every case. Native mix headroom, device latency, audible transitions
+and long-session plateaus require their separate acceptance.
+
+### Backend adapter conformance
+
+The Ebitengine and Oto adapters share a controlled-device suite covering PCM gain
+and clipping, pending-sample gain changes, looped selections, paused seeking,
+natural EOF versus failure, replay after healthy EOF, and terminal retirement.
+An in-flight-read test holds a decoder read open while Close reaches the device
+barrier; the decoder must remain open until that read returns and close exactly
+once afterward. Both low-level adapters reject replay/seek after retirement;
+the manager and high-level `Audition` retain idempotent Close.
+
+Their error paths remain distinct: runtime decoder faults are latched while
+Ebitengine sees EOF; Oto exposes its per-player error, which audition reports on
+Close. Runtime position uses Ebitengine's buffered-time estimate; editor position
+subtracts unread device buffering from delivered PCM bytes. These are real adapter
+and PCM tests with controlled device reads, not native SDK/device initialization,
+latency or listening proof. Ebitengine still requires its running game loop, and
+the standalone editor's Oto context belongs in its separate process.
 
 ### Authored Routing And Animation Families
 

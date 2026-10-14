@@ -19,6 +19,7 @@ func (am *AudioManager) LighthouseAmbientSource(
 	}
 
 	return AmbientSoundSource{
+		ID:      "",
 		Emitter: lighthouseEmitter, Position: listener, SoundType: definition.SoundType,
 		IsActive: true, IsDynamic: true, SoundFile: definition.FileName, MaxDistance: 0,
 		baseVolume: definition.BaseVolume, VolumeModifier: 1,

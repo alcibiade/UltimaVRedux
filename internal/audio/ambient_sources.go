@@ -8,6 +8,7 @@ import (
 )
 
 type ambientCandidate struct {
+	emitter            string
 	definition         AmbientSoundDefinition
 	position           references.Position
 	distance, modifier float64
@@ -30,6 +31,7 @@ func (asm *AmbientSoundManager) collectSources(
 		previous, exists := sources[definition.SoundType]
 		if strongerAmbientSource(definition, distance, previous.definition, previous.distance, exists) {
 			sources[definition.SoundType] = ambientCandidate{
+				emitter:    "",
 				definition: definition, position: tile.Position, distance: distance, modifier: 1,
 			}
 		}
@@ -54,6 +56,9 @@ func (asm *AmbientSoundManager) collectDynamicSource(
 		FadeInTime: source.FadeInTime, FadeOutTime: source.FadeOutTime,
 	}
 	distance := asm.calculateDistance(listener, source.Position)
+	if definition.MaxDistance == 0 {
+		distance = 0 // A background source is non-spatial, not tied to the last listener snapshot.
+	}
 	if distance > definition.MaxDistance {
 		return
 	}
@@ -63,6 +68,9 @@ func (asm *AmbientSoundManager) collectDynamicSource(
 	}
 	key := AmbientSoundType(fmt.Sprintf("source/%s/%s/%d/%d",
 		source.Emitter, source.SoundType, source.Position.X, source.Position.Y))
+	if source.ID != "" {
+		key = AmbientSoundType("source/" + source.ID)
+	}
 	if definition.MaxDistance == 0 {
 		key = AmbientSoundType("background/" + string(source.SoundType))
 	}
@@ -72,6 +80,7 @@ func (asm *AmbientSoundManager) collectDynamicSource(
 	previous, exists := sources[key]
 	if !exists || distance < previous.distance || source.Emitter == lighthouseEmitter {
 		sources[key] = ambientCandidate{
+			emitter:    source.Emitter,
 			definition: definition, position: source.Position, distance: distance, modifier: modifier,
 		}
 	}
@@ -85,15 +94,18 @@ func (asm *AmbientSoundManager) reconcileSourcesLocked(sources map[AmbientSoundT
 			delete(asm.attempts, key)
 		}
 	}
+}
+
+func (asm *AmbientSoundManager) reconcileAdmittedLocked(admitted []AmbientSoundType) {
 	for key, instance := range asm.activeSounds {
-		candidate, exists := sources[key]
-		if !exists {
-			asm.fadeOutAmbientSound(instance)
+		candidate, exists := asm.desired[key]
+		if exists && candidate.definition.FileName == "" {
+			asm.retireAmbientLocked(key)
 
 			continue
 		}
-		if candidate.definition.FileName == "" {
-			asm.retireAmbientLocked(key)
+		if !exists || !slices.Contains(admitted, key) {
+			asm.fadeOutAmbientSound(instance)
 
 			continue
 		}
@@ -106,23 +118,22 @@ func (asm *AmbientSoundManager) reconcileSourcesLocked(sources map[AmbientSoundT
 		}
 		instance.Definition, instance.Position, instance.VolumeModifier =
 			candidate.definition, candidate.position, candidate.modifier
+		instance.emitter = candidate.emitter
 		asm.updateAmbientSound(instance, candidate.distance)
 	}
 }
 
-func (asm *AmbientSoundManager) startDesiredSourcesLocked() {
-	keys := make([]AmbientSoundType, 0, len(asm.desired))
-	for key := range asm.desired {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	for _, key := range keys {
+func (asm *AmbientSoundManager) startDesiredSourcesLocked(admitted []AmbientSoundType) {
+	for _, key := range admitted {
 		candidate := asm.desired[key]
 		if candidate.definition.FileName == "" {
 			continue
 		}
 		if active := asm.activeSounds[key]; active != nil && sameAmbientAsset(active.Definition, candidate.definition) {
 			continue
+		}
+		if asm.activeSounds[key] == nil && len(asm.activeSounds) >= AmbientVoiceLimit {
+			continue // Release tails count against the budget; do not overlap new arrivals.
 		}
 		attempt := asm.attempts[key]
 		if attempt.completed || asm.now().Before(attempt.next) {
@@ -139,6 +150,7 @@ func (asm *AmbientSoundManager) startDesiredSourcesLocked() {
 			asm.retireAmbientLocked(key)
 		}
 		asm.activeSounds[key] = instance
+		instance.emitter = candidate.emitter
 		instance.Player.Play()
 		attempt.definition, attempt.err = candidate.definition, nil
 		asm.attempts[key] = attempt

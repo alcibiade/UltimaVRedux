@@ -50,6 +50,8 @@ func (asm *AmbientSoundManager) Update() {
 }
 
 func (asm *AmbientSoundManager) serviceLocked() {
+	admitted := asm.rankSourcesLocked()
+	asm.reconcileAdmittedLocked(admitted)
 	for key, instance := range asm.activeSounds {
 		if err := instance.Player.Failure(); err != nil {
 			asm.failAmbientLocked(key, instance.Definition, err)
@@ -80,7 +82,7 @@ func (asm *AmbientSoundManager) serviceLocked() {
 		}
 		instance.Player.SetVolume(asm.effectiveVolume(instance.Volume * instance.FadeGain))
 	}
-	asm.startDesiredSourcesLocked()
+	asm.startDesiredSourcesLocked(admitted)
 }
 
 func (asm *AmbientSoundManager) failAmbientLocked(

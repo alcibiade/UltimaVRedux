@@ -15,16 +15,42 @@ import (
 // gainPlayer keeps the device slider in [0,1] while supporting positive authored
 // calibration. Scaling occurs on decoded PCM, without rewriting source files.
 type gainPlayer struct {
-	*eaudio.Player
+	device   gainDevicePlayer
 	stream   *gainStream
 	boundary *runtimeStream
 	volume   float64
 	retired  bool
 }
 
+// gainDevicePlayer is the narrow Ebitengine transport boundary. Production uses
+// the borrowed context; conformance tests drive this same adapter with controlled
+// device reads, independently of native device initialization/listening checks.
+type gainDevicePlayer interface {
+	Play()
+	Pause()
+	PauseAndStopReading()
+	IsPlaying() bool
+	SetVolume(volume float64)
+	SetPosition(position time.Duration) error
+	Position() time.Duration
+}
+
 var errGainPlayerRetired = errors.New("audio player has been retired")
 
 func newGainPlayer(context *eaudio.Context, source io.ReadSeeker) (*gainPlayer, error) {
+	return newGainPlayerWithDevice(source, func(stream io.ReadSeeker) (gainDevicePlayer, error) {
+		player, err := context.NewPlayer(stream)
+		if err != nil {
+			return nil, fmt.Errorf("create Ebitengine transport: %w", err)
+		}
+
+		return player, nil
+	})
+}
+
+func newGainPlayerWithDevice(
+	source io.ReadSeeker, create func(io.ReadSeeker) (gainDevicePlayer, error),
+) (*gainPlayer, error) {
 	if source == nil {
 		return nil, errSoundStreamUnavailable
 	}
@@ -38,7 +64,7 @@ func newGainPlayer(context *eaudio.Context, source io.ReadSeeker) (*gainPlayer, 
 	stream.gain.Store(math.Float64bits(1))
 	boundary := new(runtimeStream)
 	boundary.source = stream
-	player, err := context.NewPlayer(boundary)
+	player, err := create(boundary)
 	if err != nil {
 		return nil, errors.Join(fmt.Errorf("create calibrated player: %w", err), closeRuntimeSource(source))
 	}
@@ -48,8 +74,13 @@ func newGainPlayer(context *eaudio.Context, source io.ReadSeeker) (*gainPlayer, 
 		return nil, errors.Join(err, closeRuntimeSource(source))
 	}
 
-	return &gainPlayer{Player: player, stream: stream, boundary: boundary, volume: 1, retired: false}, nil
+	return &gainPlayer{device: player, stream: stream, boundary: boundary, volume: 1, retired: false}, nil
 }
+
+func (player *gainPlayer) Pause()                  { player.device.Pause() }
+func (player *gainPlayer) PauseAndStopReading()    { player.device.PauseAndStopReading() }
+func (player *gainPlayer) IsPlaying() bool         { return !player.retired && player.device.IsPlaying() }
+func (player *gainPlayer) Position() time.Duration { return player.device.Position() }
 
 // Close retains the owner's terminal lifecycle while using Ebitengine 2.10's
 // supported read barrier. Owners discard the voice after this returns; the
@@ -70,14 +101,17 @@ func (player *gainPlayer) Play() {
 	if player.retired {
 		panic("cannot play a retired audio voice")
 	}
-	player.Player.Play()
+	player.device.Play()
 }
 
 func (player *gainPlayer) SetPosition(position time.Duration) error {
 	if player.retired {
 		return errGainPlayerRetired
 	}
-	if err := player.Player.SetPosition(position); err != nil {
+	if position < 0 {
+		return fmt.Errorf("%w: negative runtime audio position", ErrAudioLibrary)
+	}
+	if err := player.device.SetPosition(position); err != nil {
 		return fmt.Errorf("seek calibrated player: %w", err)
 	}
 
@@ -91,7 +125,7 @@ func (player *gainPlayer) SetVolume(gain float64) {
 	// Retain the device's normal attenuation/fade path below unity. Only the
 	// excess boost is applied to PCM; accepted auto gains retain peak headroom.
 	player.stream.gain.Store(math.Float64bits(math.Max(1, player.volume)))
-	player.Player.SetVolume(math.Min(1, player.volume))
+	player.device.SetVolume(math.Min(1, player.volume))
 }
 
 func (player *gainPlayer) Volume() float64 { return player.volume }

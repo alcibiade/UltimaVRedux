@@ -69,6 +69,7 @@ type AmbientSoundManager struct {
 
 // AmbientSoundInstance represents an active ambient sound at a specific location
 type AmbientSoundInstance struct {
+	emitter        string
 	Definition     AmbientSoundDefinition
 	Position       references.Position
 	Player         *gainPlayer
@@ -199,6 +200,7 @@ type TileWithPosition struct {
 
 // AmbientSoundSource represents a generic sound source for ambient sound processing
 type AmbientSoundSource struct {
+	ID        string              // Stable adapter-owned emitter identity, independent of its projected position.
 	Emitter   string              // Code-owned role; independent of the selected cue.
 	Position  references.Position // Where the sound is located
 	SoundType AmbientSoundType    // Type of ambient sound to play
@@ -266,6 +268,7 @@ func (asm *AmbientSoundManager) prepareAmbientVoice(
 	volume := baseVolume * volumeModifier // Apply the modifier to get final volume
 
 	instance := &AmbientSoundInstance{
+		emitter:        "",
 		Definition:     definition,
 		Position:       position,
 		Player:         player,

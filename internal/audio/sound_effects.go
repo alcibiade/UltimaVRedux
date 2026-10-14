@@ -47,6 +47,7 @@ type SoundEffectPlayer struct {
 
 // ActiveSound represents a currently playing sound effect
 type ActiveSound struct {
+	owner       *VoiceOwner
 	Effect      game_state.SoundEffect
 	RecordingID string
 	Mode        game_state.SoundPlaybackMode
@@ -192,14 +193,20 @@ func (sep *SoundEffectPlayer) prepareSoundAsset(
 
 // Play starts one explicitly configured sound instance.
 func (sep *SoundEffectPlayer) Play(request game_state.SoundPlaybackRequest) error {
+	_, err := sep.play(request, nil)
+
+	return err
+}
+
+func (sep *SoundEffectPlayer) play(request game_state.SoundPlaybackRequest, owner *VoiceOwner) (uint64, error) {
 	sep.mutex.Lock()
 	defer sep.mutex.Unlock()
 	asset, skip, err := sep.assetForRequest(request)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if skip {
-		return nil
+		return 0, nil
 	}
 
 	// Calculate effective volume with sound-specific volume modifier
@@ -208,57 +215,69 @@ func (sep *SoundEffectPlayer) Play(request game_state.SoundPlaybackRequest) erro
 		baseVolume *= metadata.VolumeModifier * productionLibrary().recordingCalibration(asset.RecordingID)
 	}
 	effectiveVolume := sep.config.GetEffectiveVolume(baseVolume)
+	if request.Mode == game_state.SoundPlaybackOneShot && effectiveVolume == 0 {
+		return 0, nil // An inaudible finite request cannot evict an audible voice.
+	}
 
 	// Create a fresh stream for this player to avoid reuse issues
 	freshStream, err := asset.StreamFactory(request.Mode)
 	if err != nil {
-		return fmt.Errorf("prepare sound %s: %w", GetSoundEffectName(request.Effect), err)
+		return 0, fmt.Errorf("prepare sound %s: %w", GetSoundEffectName(request.Effect), err)
 	}
 	if freshStream == nil {
-		return fmt.Errorf("%w: %s", errSoundStreamUnavailable, GetSoundEffectName(request.Effect))
+		return 0, fmt.Errorf("%w: %s", errSoundStreamUnavailable, GetSoundEffectName(request.Effect))
 	}
 
 	// Create audio player
 	player, err := newGainPlayer(sep.audioContext, freshStream)
 	if err != nil {
-		return fmt.Errorf("failed to create audio player: %w", err)
+		return 0, fmt.Errorf("failed to create audio player: %w", err)
 	}
 	// Preparation is transactional: failed decoding/player creation cannot evict
 	// a sounding voice or advance variant/instance sequence selection.
-	if request.Effect == game_state.SoundWalkMetal1 || request.Effect == game_state.SoundFireBurn {
-		sep.stopEffectLocked(request.Effect)
-	}
-	sep.retireCompletedLocked()
-	const voiceLimit = 8
-	if len(sep.activeSounds) >= voiceLimit && !sep.removeOldestOneShot() {
-		if err := player.Close(); err != nil {
-			return fmt.Errorf("retire unadmitted sound: %w", err)
-		}
-		if request.Mode == game_state.SoundPlaybackLoop {
-			return errSoundVoiceLimit
-		}
-		logging.Debug(logging.CategoryAudio, "Dropping %s: all SFX voices are owned loops",
-			GetSoundEffectName(request.Effect))
-
-		return nil
+	admitted, err := sep.admitPreparedLocked(request, owner, player)
+	if err != nil || !admitted {
+		return 0, err
 	}
 
-	// Set initial volume for fade-in or normal playback.
 	initialVolume := effectiveVolume
 	if request.FadeInMs > 0 {
 		initialVolume = 0
 	}
 	player.SetVolume(initialVolume)
-
-	// Playback currently attenuates spatial requests without stereo panning.
-
-	sep.trackActiveSound(request, player, baseVolume, initialVolume, effectiveVolume, asset)
-
-	// Start playback
+	sep.trackActiveSound(request, player, baseVolume, initialVolume, effectiveVolume, asset, owner)
 	player.Play()
 	sep.nextVariant[request.Effect] = (sep.nextVariant[request.Effect] + 1) % len(sep.soundAssets[request.Effect])
 
-	return nil
+	return sep.nextSoundSequence, nil
+}
+
+func (sep *SoundEffectPlayer) admitPreparedLocked(
+	request game_state.SoundPlaybackRequest, owner *VoiceOwner, player *gainPlayer,
+) (bool, error) {
+	if request.Effect == game_state.SoundWalkMetal1 || request.Effect == game_state.SoundFireBurn {
+		for id, sound := range sep.activeSounds {
+			if sound.Effect == request.Effect && sound.owner == owner {
+				sep.closeSoundLocked(id)
+			}
+		}
+	}
+	sep.retireCompletedLocked()
+	const voiceLimit = 8
+	if len(sep.activeSounds) >= voiceLimit && !sep.removeOldestOneShot() {
+		if err := player.Close(); err != nil {
+			return false, fmt.Errorf("retire unadmitted sound: %w", err)
+		}
+		if request.Mode == game_state.SoundPlaybackLoop {
+			return false, errSoundVoiceLimit
+		}
+		logging.Debug(logging.CategoryAudio, "Dropping %s: all SFX voices are owned loops",
+			GetSoundEffectName(request.Effect))
+
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (sep *SoundEffectPlayer) assetForRequest(
@@ -308,9 +327,11 @@ func (sep *SoundEffectPlayer) trackActiveSound(
 	volume float64,
 	targetVolume float64,
 	asset *SoundAsset,
+	owner *VoiceOwner,
 ) {
 	soundID, startTime, sequence := sep.nextSoundID(request.Effect)
 	sep.activeSounds[soundID] = &ActiveSound{
+		owner:           owner,
 		Effect:          request.Effect,
 		RecordingID:     asset.RecordingID,
 		Mode:            request.Mode,

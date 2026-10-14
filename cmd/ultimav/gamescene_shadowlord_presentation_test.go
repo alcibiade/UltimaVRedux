@@ -155,6 +155,7 @@ func trackStoppedSounds(scene *GameScene) *[]game_state.SoundStopRequest {
 		audio.UpdateLocationMusic,
 		audio.PauseBackgroundMusic,
 		audio.ResumeBackgroundMusic,
+		audio.RequestVoice,
 	)
 
 	return &stopped
