@@ -28,6 +28,8 @@ func run(arguments []string) error {
 	path := flags.String("library", audio.LibraryManifestRelativePath, "Production library.json to edit")
 	check := flags.Bool("check", false, "Validate the disk-backed library without opening audio or writing files")
 	probe := flags.String("probe", "", "Play one recording ID briefly and verify standalone playback progress")
+	runtimeProbe := flags.String("probe-runtime", "", "Run a bounded Ebitengine device probe for one cue ID")
+	runtimeSoak := flags.String("probe-runtime-soak", "", "Run a muted one-minute Ebitengine lifecycle/heap probe")
 	if err := flags.Parse(arguments); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return nil
@@ -37,6 +39,15 @@ func run(arguments []string) error {
 	}
 	if flags.NArg() != 0 {
 		return fmt.Errorf("%w: unexpected positional arguments", audio.ErrAudioLibrary)
+	}
+	modes := 0
+	for _, selected := range []bool{*check, *probe != "", *runtimeProbe != "", *runtimeSoak != ""} {
+		if selected {
+			modes++
+		}
+	}
+	if modes > 1 {
+		return fmt.Errorf("%w: choose one check or native probe mode", audio.ErrAudioLibrary)
 	}
 	editor, err := audio.OpenLibraryEditor(*path)
 	if err != nil {
@@ -53,6 +64,12 @@ func run(arguments []string) error {
 	}
 	if *probe != "" {
 		return probeRecording(editor, *probe)
+	}
+	if *runtimeProbe != "" {
+		return probeRuntime(editor, *runtimeProbe)
+	}
+	if *runtimeSoak != "" {
+		return runRuntimeProbe(editor, *runtimeSoak, true)
 	}
 	logging.SetStdoutEnabled(false)
 	defer logging.SetStdoutEnabled(true)

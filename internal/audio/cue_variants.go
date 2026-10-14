@@ -3,7 +3,6 @@ package audio
 import (
 	"fmt"
 	"slices"
-	"strings"
 )
 
 // SelectionCycle selects the next recording after each successful cue start.
@@ -46,8 +45,8 @@ func (cue libraryCue) WithRecordings(ids []string) libraryCue {
 func validateCueRecordings(library *audioLibrary, cueID string, cue libraryCue) error {
 	if len(cue.RecordingIDs) > 0 {
 		if cue.RecordingID != "" || len(cue.RecordingIDs) < 2 ||
-			cue.Selection != SelectionCycle || !strings.HasPrefix(cueID, "sfx/") {
-			return fmt.Errorf("%w: %s requires either recordingId or an SFX cycle of at least two clips", ErrAudioLibrary, cueID)
+			cue.Selection != SelectionCycle {
+			return fmt.Errorf("%w: %s requires either recordingId or a cycle of at least two clips", ErrAudioLibrary, cueID)
 		}
 	} else if cue.RecordingID == "" || cue.Selection != "" {
 		return fmt.Errorf("%w: %s requires one recordingId or an ordered cycle", ErrAudioLibrary, cueID)

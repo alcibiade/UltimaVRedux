@@ -107,11 +107,13 @@ func NewAmbientSoundManager(audioManager *AudioManager) *AmbientSoundManager {
 		desired:              make(map[AmbientSoundType]ambientCandidate),
 		attempts:             make(map[AmbientSoundType]ambientAttempt),
 		openStream:           nil,
-		soundTypeDefinitions: defaultAmbientSoundDefinitions(),
+		soundTypeDefinitions: ambientSoundDefinitions(audioManager.library),
 	}
 	asm.openStream = asm.loadAmbientAudioFile
 
-	asm.initializeAllAmbientSounds()
+	if audioManager.redux {
+		asm.initializeAllAmbientSounds()
+	}
 
 	return asm
 }
@@ -119,13 +121,24 @@ func NewAmbientSoundManager(audioManager *AudioManager) *AmbientSoundManager {
 // defaultAmbientSoundDefinitions is shared with the read-only audio catalog.
 // Inspecting definitions must not construct players or an audio context.
 func defaultAmbientSoundDefinitions() map[AmbientSoundType]AmbientSoundDefinition {
-	definitions := make(map[AmbientSoundType]AmbientSoundDefinition)
 	library := productionLibrary()
+
+	return buildAmbientDefinitions(library, library.recordingPath)
+}
+
+func ambientSoundDefinitions(project *Library) map[AmbientSoundType]AmbientSoundDefinition {
+	return buildAmbientDefinitions(project.document, project.recordingPath)
+}
+
+func buildAmbientDefinitions(
+	library *audioLibrary, recordingPath func(string) string,
+) map[AmbientSoundType]AmbientSoundDefinition {
+	definitions := make(map[AmbientSoundType]AmbientSoundDefinition)
 	for id, profile := range library.Routing.Ambient {
 		cue := library.Cues[id]
 		kind := AmbientSoundType(id)
 		definitions[kind] = AmbientSoundDefinition{
-			SoundType: kind, FileName: library.recordingPath(cue.RecordingID),
+			SoundType: kind, FileName: recordingPath(cue.RecordingID),
 			MaxDistance: profile.RadiusTiles, BaseVolume: cue.VolumeModifier * library.recordingCalibration(cue.RecordingID),
 			LoopSound: true, FadeInTime: time.Duration(profile.FadeInMs) * time.Millisecond,
 			FadeOutTime: time.Duration(profile.FadeOutMs) * time.Millisecond,
@@ -137,8 +150,8 @@ func defaultAmbientSoundDefinitions() map[AmbientSoundType]AmbientSoundDefinitio
 
 // initializeAllAmbientSounds sets up all ambient sound mappings using a generic system
 func (asm *AmbientSoundManager) initializeAllAmbientSounds() {
-	routing := productionLibrary().Routing
-	for spriteIndex, soundType := range ambientSpriteMappings() {
+	routing := asm.audioManager.library.document.Routing
+	for spriteIndex, soundType := range ambientSpriteMappingsFor(routing) {
 		if definition, exists := asm.soundTypeDefinitions[soundType]; exists {
 			profile, gain := routing.TileAmbientSettings(tileAudioKey(spriteIndex))
 			definition.MaxDistance = profile.RadiusTiles
@@ -149,9 +162,13 @@ func (asm *AmbientSoundManager) initializeAllAmbientSounds() {
 }
 
 func ambientSpriteMappings() map[indexes.SpriteIndex]AmbientSoundType {
+	return ambientSpriteMappingsFor(productionLibrary().Routing)
+}
+
+func ambientSpriteMappingsFor(routing Routing) map[indexes.SpriteIndex]AmbientSoundType {
 	mappings := make(map[indexes.SpriteIndex]AmbientSoundType)
 	for sprite := range *references.NewTileReferences() {
-		assignment := productionLibrary().Routing.Tiles[tileAudioKey(sprite)]
+		assignment := routing.Tiles[tileAudioKey(sprite)]
 		if assignment.AmbientCue != "" {
 			mappings[sprite] = AmbientSoundType(assignment.AmbientCue)
 		}
@@ -258,7 +275,8 @@ func (asm *AmbientSoundManager) prepareAmbientVoice(
 		return nil, errors.Join(err, closeRuntimeSource(audioStream))
 	}
 	// Create audio player with the loaded stream
-	player, err := newGainPlayer(asm.audioContext, &ownedRuntimeStream{ReadSeeker: prepared, owner: audioStream})
+	owned := &ownedRuntimeStream{ReadSeeker: prepared, owner: audioStream}
+	player, err := newGainPlayerWithBackend(asm.audioManager.backend, owned)
 	if err != nil {
 		return nil, fmt.Errorf("ambient player %s: %w", definition.FileName, err)
 	}
@@ -296,9 +314,10 @@ func (asm *AmbientSoundManager) prepareAmbientStream(
 	if source == nil {
 		return nil, errSoundStreamUnavailable
 	}
-	cue := productionLibrary().Cues[string(definition.SoundType)]
-	window := productionLibrary().Recordings[cue.RecordingID].PlaybackWindow
-	stream, err := boundedRecording(source, asm.audioContext.SampleRate(), window)
+	library := asm.audioManager.library.document
+	cue := library.Cues[string(definition.SoundType)]
+	window := library.Recordings[cue.RecordingID].PlaybackWindow
+	stream, err := boundedRecording(source, asm.audioManager.backend.SampleRate(), window)
 	if err != nil {
 		return nil, fmt.Errorf("ambient selection %s: %w", definition.FileName, err)
 	}
@@ -485,13 +504,13 @@ func (asm *AmbientSoundManager) Close() error {
 
 // loadAmbientAudioFile loads an audio file from embedded assets and returns a readable stream
 func (asm *AmbientSoundManager) loadAmbientAudioFile(filename string) (io.ReadSeeker, error) {
-	fileData, err := soundFiles.ReadFile(filename)
+	fileData, err := asm.audioManager.library.readFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("read exact ambient file %s: %w", filename, err)
 	}
 
 	// Use multi-format decoder (supports WAV, MP3, OGG)
-	stream, err := DecodeAudioStream(fileData, filename, asm.audioContext.SampleRate())
+	stream, err := DecodeAudioStream(fileData, filename, asm.audioManager.backend.SampleRate())
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode ambient audio file %s: %w", filename, err)
 	}

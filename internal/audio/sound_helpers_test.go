@@ -129,7 +129,7 @@ func TestVolumeModifierIntegration(t *testing.T) {
 
 func TestAllSoundEffectsHaveVolumeModifier(t *testing.T) {
 	// Ensure all sound effects in the metadata map have a VolumeModifier set
-	for effect, metadata := range soundEffectMetadataMap {
+	for effect, metadata := range soundEffectMetadataMap() {
 		if metadata.VolumeModifier <= 0 {
 			t.Errorf("Sound effect %s (ID: %d) has invalid VolumeModifier: %f (should be > 0)",
 				metadata.Name, effect, metadata.VolumeModifier)
@@ -200,8 +200,10 @@ func TestEnvironmentalHazardSoundMetadataAndAssets(t *testing.T) {
 		t.Fatalf("load fire burn asset: %v", err)
 	}
 	player.assetsLoaded = true
-	player.loadConfiguredSoundAsset(game_state.SoundFallingMinor,
-		soundEffectMetadataMap[game_state.SoundFallingMinor])
+	if err := player.loadConfiguredSoundAsset(game_state.SoundFallingMinor,
+		soundEffectMetadataMap()[game_state.SoundFallingMinor]); err != nil {
+		t.Fatal(err)
+	}
 	minor, skipped, err := player.assetForRequest(game_state.SoundPlaybackRequest{
 		Effect: game_state.SoundFallingMinor, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
 	})

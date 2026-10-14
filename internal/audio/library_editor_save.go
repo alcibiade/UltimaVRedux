@@ -86,7 +86,7 @@ func (e *LibraryEditor) saveLocked() error {
 // Validate checks schema, file references, and authored windows against decoded
 // source lengths without opening an audio device or modifying any files.
 func (e *LibraryEditor) Validate() error {
-	if _, err := parseAudioLibrary(encodeAudioValue(e.library), e.files); err != nil {
+	if _, err := parseLibraryDocument(encodeAudioValue(e.library), e.validator); err != nil {
 		return err
 	}
 
@@ -119,10 +119,10 @@ func (e *LibraryEditor) validateWindows() error {
 }
 
 func (e *LibraryEditor) validateWindow(recording Recording) error {
-	if !validRecordingPath(*recording.File) {
+	if !validAssetPath(*recording.File) {
 		return fmt.Errorf("%w: invalid recording path", ErrAudioLibrary)
 	}
-	data, err := fs.ReadFile(e.files, "assets/"+*recording.File)
+	data, err := fs.ReadFile(e.files, *recording.File)
 	if err != nil {
 		return fmt.Errorf("read selection source: %w", err)
 	}
@@ -162,7 +162,9 @@ func (e *LibraryEditor) formattedChanges() []byte {
 	roots := objectSpans(e.saved)
 	edits := entryEdits(roots["recordings"], e.library.Recordings)
 	edits = append(edits, entryEdits(roots["cues"], e.library.Cues)...)
-	edits = append(edits, routingEntryEdits(roots["routing"], e.library.Routing)...)
+	if !bytes.Equal(encodeAudioValue(e.library.Routing), encodeAudioValue(e.baseline.Routing)) {
+		edits = append(edits, routingEntryEdits(roots["routing"], e.library.Routing)...)
+	}
 	if !bytes.Equal(encodeAudioValue(e.library.Taxonomy), encodeAudioValue(e.baseline.Taxonomy)) {
 		edits = append(edits, jsonEdit{start: roots["taxonomy"].start, end: roots["taxonomy"].end,
 			data: encodeAudioValue(e.library.Taxonomy)})
@@ -225,16 +227,24 @@ func entryEdits[T any](root jsonEdit, values map[string]T) []jsonEdit {
 
 func routingEntryEdits(root jsonEdit, routing Routing) []jsonEdit {
 	fields := objectSpans(root.data)
+	sections := []string{routingAmbientKey, routingTilesKey, "surfaces", catalogMusic,
+		routingDungeonKey, "naval", "emitters", "defaultSurface"}
+	for _, name := range sections {
+		field, exists := fields[name]
+		if !exists || bytes.Equal(bytes.TrimSpace(field.data), []byte("null")) {
+			return []jsonEdit{{start: root.start, end: root.end, data: encodeAudioValue(routing)}}
+		}
+	}
 	for key, field := range fields {
 		field.start += root.start
 		field.end += root.start
 		fields[key] = field
 	}
-	edits := entryEdits(fields["ambient"], routing.Ambient)
-	edits = append(edits, entryEdits(fields["tiles"], routing.Tiles)...)
+	edits := entryEdits(fields[routingAmbientKey], routing.Ambient)
+	edits = append(edits, entryEdits(fields[routingTilesKey], routing.Tiles)...)
 	edits = append(edits, entryEdits(fields["surfaces"], routing.Surfaces)...)
-	edits = append(edits, entryEdits(fields["music"], routing.Music)...)
-	edits = append(edits, entryEdits(fields["dungeon"], routing.Dungeon)...)
+	edits = append(edits, entryEdits(fields[catalogMusic], routing.Music)...)
+	edits = append(edits, entryEdits(fields[routingDungeonKey], routing.Dungeon)...)
 	edits = append(edits, entryEdits(fields["naval"], routing.Naval)...)
 	edits = append(edits, entryEdits(fields["emitters"], routing.Emitters)...)
 	field := fields["defaultSurface"]

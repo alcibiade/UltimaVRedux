@@ -79,6 +79,12 @@ func (e *LibraryEditor) AddAmbient(id, name string, profile AmbientProfile) erro
 func (e *LibraryEditor) AddAmbientWithRecording(
 	identity, name string, profile AmbientProfile, recordingID string,
 ) error {
+	if e.library.Routing.Ambient == nil {
+		return fmt.Errorf("%w: this project does not declare ambient authoring", ErrAudioLibrary)
+	}
+	if _, exists := e.library.Taxonomy.Profiles["ambient_bed"]; !exists {
+		return fmt.Errorf("%w: declare an ambient_bed profile before creating ambience", ErrAudioLibrary)
+	}
 	if identity == "" || strings.Trim(identity, "abcdefghijklmnopqrstuvwxyz0123456789_") != "" {
 		return fmt.Errorf("%w: ambient identifier must use lowercase letters, digits and underscores", ErrAudioLibrary)
 	}
@@ -119,30 +125,30 @@ type Usage struct {
 func (e *LibraryEditor) RoutingUsages(cueID string) []Usage {
 	var usages []Usage
 	routing := e.library.Routing
-	for _, tile := range TileTargets() {
+	for _, tile := range e.targets.Tiles {
 		assignment := routing.Tiles[tile.ID]
 		if assignment.AmbientCue == cueID {
-			usages = append(usages, Usage{"tiles", tile.ID, tile.Name + " · ambience"})
+			usages = append(usages, Usage{routingTilesKey, tile.ID, tile.Name + " · ambience"})
 		}
 		surface := assignment.Surface
 		if surface == "" {
 			surface = routing.DefaultSurface
 		}
 		if slices.Contains(routing.Surfaces[surface], cueID) {
-			usages = append(usages, Usage{"tiles", tile.ID, tile.Name + " · footsteps: " + surface})
+			usages = append(usages, Usage{routingTilesKey, tile.ID, tile.Name + " · footsteps: " + surface})
 		}
 	}
-	for target, name := range MusicTargets() {
+	for target, name := range e.targets.Music {
 		if cue, _ := resolveAudioAssignment(routing.Music, target); cue == cueID {
-			usages = append(usages, Usage{"music", target, name + " · music"})
+			usages = append(usages, Usage{catalogMusic, target, name + " · music"})
 		}
 	}
-	for target, name := range DungeonTargets() {
+	for target, name := range e.targets.Dungeon {
 		if cue, _ := resolveAudioAssignment(routing.Dungeon, target); cue == cueID {
-			usages = append(usages, Usage{"dungeon", target, name + " · background"})
+			usages = append(usages, Usage{routingDungeonKey, target, name + " · background"})
 		}
 	}
-	for target, name := range NavalTargets() {
+	for target, name := range e.targets.Naval {
 		if assignment := routing.Naval[target]; assignment != nil && *assignment == cueID {
 			usages = append(usages, Usage{"naval", target, name + " · state-driven"})
 		}

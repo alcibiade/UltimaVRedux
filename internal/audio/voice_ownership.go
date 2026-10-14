@@ -50,6 +50,15 @@ func (owner *VoiceOwner) Play(request game_state.SoundPlaybackRequest) (VoiceHan
 	return owner.manager.playVoice(request, owner)
 }
 
+// PlayCue starts a neutral cue in this lifetime, using its originating library.
+func (owner *VoiceOwner) PlayCue(request CueRequest) (VoiceHandle, error) {
+	if owner == nil || owner.manager == nil {
+		return VoiceHandle{}, ErrVoiceOwnerClosed
+	}
+
+	return owner.manager.playCueVoice(request, owner)
+}
+
 // Stop closes the lifetime to new playback and releases only its current voices.
 // An immediate stop can still finish a previously requested fade.
 func (owner *VoiceOwner) Stop(fadeOutMs int64) {
@@ -80,6 +89,22 @@ func (am *AudioManager) PlayVoice(request game_state.SoundPlaybackRequest) (Voic
 }
 
 func (am *AudioManager) playVoice(request game_state.SoundPlaybackRequest, owner *VoiceOwner) (VoiceHandle, error) {
+	return am.playSelectedVoice(request, owner, nil)
+}
+
+func (am *AudioManager) playCueVoice(request CueRequest, owner *VoiceOwner) (VoiceHandle, error) {
+	mode := game_state.SoundPlaybackOneShot
+	if request.Loop {
+		mode = game_state.SoundPlaybackLoop
+	}
+	legacy := game_state.SoundPlaybackRequest{Effect: game_state.SoundEffect(-1), Mode: mode,
+		Volume: request.Volume, FadeInMs: request.FadeInMs}
+
+	return am.playSelectedVoice(legacy, owner, &request)
+}
+
+func (am *AudioManager) playSelectedVoice(request game_state.SoundPlaybackRequest,
+	owner *VoiceOwner, cue *CueRequest) (VoiceHandle, error) {
 	am.mutex.RLock()
 	closed := am.closed
 	expired := owner != nil && owner.closed
@@ -104,11 +129,17 @@ func (am *AudioManager) playVoice(request game_state.SoundPlaybackRequest, owner
 	if !am.enabled {
 		return VoiceHandle{manager: nil, sequence: 0}, nil
 	}
-	sequence, err := am.soundEffectPlayer.play(request, owner)
+	var sequence uint64
+	var err error
+	if cue == nil {
+		sequence, err = am.soundEffectPlayer.play(request, owner)
+	} else {
+		sequence, err = am.soundEffectPlayer.playCue(request, cue.CueID, owner, cue.ReplacePrevious, false)
+	}
 	if err != nil || sequence == 0 {
 		return VoiceHandle{}, err
 	}
-	if isInstrumentEffect(request.Effect) && am.soundEffectPlayer.hasInstrumentMusic() {
+	if cue == nil && isInstrumentEffect(request.Effect) && am.soundEffectPlayer.hasInstrumentMusic() {
 		am.musicManager.LocalMusic()
 	}
 

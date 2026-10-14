@@ -83,6 +83,10 @@ func parseAudioLibrary(data []byte, files fs.FS) (*audioLibrary, error) {
 // The editor must be able to open a structurally valid document whose files
 // need repair. Production initialization and Save also validate disk references.
 func parseAudioLibraryDocument(data []byte) (*audioLibrary, error) {
+	return parseLibraryDocument(data, ReduxLibraryValidator)
+}
+
+func parseLibraryDocument(data []byte, validate LibraryValidator) (*audioLibrary, error) {
 	if err := checkLibraryJSON(data); err != nil {
 		return nil, err
 	}
@@ -103,14 +107,19 @@ func parseAudioLibraryDocument(data []byte) (*audioLibrary, error) {
 			return nil, err
 		}
 	}
-	if err := validateLibraryCues(&library); err != nil {
+	if err := validateCoreLibraryCues(&library); err != nil {
 		return nil, err
 	}
-	if err := library.Taxonomy.validate(&library); err != nil {
+	if err := library.Taxonomy.validateStructure(&library); err != nil {
 		return nil, err
 	}
-	if err := library.Routing.validate(&library); err != nil {
+	if err := validateRoutingStructure(&library); err != nil {
 		return nil, err
+	}
+	if validate != nil {
+		if err := validate(*cloneAudioValue(&library)); err != nil {
+			return nil, err
+		}
 	}
 
 	return &library, nil
@@ -152,8 +161,8 @@ func validateLibraryRecordingMetadata(recordingID string, recording libraryRecor
 		return nil
 	}
 	path := *recording.File
-	if !validRecordingPath(path) {
-		return fmt.Errorf("%w: %s requires an exact sounds/ or music/ audio file, got %q", ErrAudioLibrary, recordingID, path)
+	if !validAssetPath(path) {
+		return fmt.Errorf("%w: %s requires an exact relative audio file, got %q", ErrAudioLibrary, recordingID, path)
 	}
 	if window := recording.PlaybackWindow; window != nil {
 		if window.StartMs < 0 || window.EndMs <= window.StartMs {
@@ -164,20 +173,13 @@ func validateLibraryRecordingMetadata(recordingID string, recording libraryRecor
 	return nil
 }
 
-func validRecordingPath(path string) bool {
-	return fs.ValidPath(path) && !strings.Contains(path, "\\") &&
-		(strings.HasPrefix(path, "sounds/") || strings.HasPrefix(path, "music/")) &&
-		DetectAudioFormat(path) != AudioFormatUnknown
-}
-
-func validateLibraryCues(library *audioLibrary) error {
-	expected := knownLibraryCueIDs(library)
+func validateCoreLibraryCues(library *audioLibrary) error {
 	for cueID, cue := range library.Cues {
 		if err := validateSearchTerms(cue.SearchTerms); err != nil {
 			return fmt.Errorf("cue %s: %w", cueID, err)
 		}
-		if !expected[cueID] {
-			return fmt.Errorf("%w: unknown cue %s", ErrAudioLibrary, cueID)
+		if !fs.ValidPath(cueID) || strings.Contains(cueID, "\\") {
+			return fmt.Errorf("%w: invalid cue identity %q", ErrAudioLibrary, cueID)
 		}
 		if err := validateCueRecordings(library, cueID, cue); err != nil {
 			return err
@@ -188,35 +190,8 @@ func validateLibraryCues(library *audioLibrary) error {
 			return fmt.Errorf("%w: cue %s requires name, howToHear, and a gain in [0,1]", ErrAudioLibrary, cueID)
 		}
 	}
-	for id := range expected {
-		if _, exists := library.Cues[id]; !exists {
-			return fmt.Errorf("%w: missing known cue %s (use a null-file recording slot)", ErrAudioLibrary, id)
-		}
-	}
 
 	return nil
-}
-
-func knownLibraryCueIDs(library *audioLibrary) map[string]bool {
-	ids := make(map[string]bool)
-	for _, symbol := range catalogEffectNames() {
-		ids["sfx/"+symbol] = true
-	}
-	for id := range library.Routing.Ambient {
-		ids[id] = true
-	}
-	for _, id := range musicTrackIDs() {
-		ids["music/track/"+id] = true
-	}
-
-	return ids
-}
-
-func musicTrackIDs() []string {
-	return []string{
-		"title", "town", "dungeon", "combat", "overworld", "victory", "ambient", "blackthorn",
-		"stones", "amiga", "rule", "hornpipe", "tarantella", "greyson", "reunion", "worlds",
-	}
 }
 
 func (library *audioLibrary) recordingPath(id string) string {
@@ -244,12 +219,6 @@ func (library *audioLibrary) recordingCalibration(id string) float64 {
 	return 1
 }
 
-func libraryCuePath(id string) string {
-	library := productionLibrary()
-
-	return library.recordingPath(library.Cues[id].PrimaryRecording())
-}
-
 // checkLibraryJSON rejects duplicate keys, trailing JSON, and accidentally
 // omitted file fields. A null file is deliberate; a misspelled field is not.
 func checkLibraryJSON(data []byte) error {
@@ -263,9 +232,13 @@ func checkLibraryJSON(data []byte) error {
 	var fields struct {
 		Recordings map[string]map[string]json.RawMessage `json:"recordings"`
 		Cues       map[string]map[string]json.RawMessage `json:"cues"`
+		Routing    map[string]json.RawMessage            `json:"routing"`
 	}
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return fmt.Errorf("%w: inspect file fields: %w", ErrAudioLibrary, err)
+	}
+	if fields.Routing == nil {
+		return fmt.Errorf("%w: require an explicit routing object (empty is allowed)", ErrAudioLibrary)
 	}
 	for id, fields := range fields.Recordings {
 		if _, explicit := fields["file"]; !explicit {

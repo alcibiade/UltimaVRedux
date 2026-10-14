@@ -8,8 +8,6 @@ import (
 	"math"
 	"sync/atomic"
 	"time"
-
-	eaudio "github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 // gainPlayer keeps the device slider in [0,1] while supporting positive authored
@@ -37,15 +35,8 @@ type gainDevicePlayer interface {
 
 var errGainPlayerRetired = errors.New("audio player has been retired")
 
-func newGainPlayer(context *eaudio.Context, source io.ReadSeeker) (*gainPlayer, error) {
-	return newGainPlayerWithDevice(source, func(stream io.ReadSeeker) (gainDevicePlayer, error) {
-		player, err := context.NewPlayer(stream)
-		if err != nil {
-			return nil, fmt.Errorf("create Ebitengine transport: %w", err)
-		}
-
-		return player, nil
-	})
+func newGainPlayerWithBackend(backend PlaybackBackend, source io.ReadSeeker) (*gainPlayer, error) {
+	return newGainPlayerWithDevice(source, backend.NewPlayer)
 }
 
 func newGainPlayerWithDevice(

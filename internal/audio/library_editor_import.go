@@ -50,16 +50,19 @@ func (e *LibraryEditor) importSourceLocked(recordingID string, clip *RecordingAu
 	if !exists {
 		return fmt.Errorf("%w: select or create a recording first", ErrAudioLibrary)
 	}
-	relative, err := filepath.Rel(filepath.Dir(e.path), clip.Path)
+	relative, err := filepath.Rel(e.assetRoot, clip.Path)
 	if err != nil {
 		return fmt.Errorf("resolve relative recording path: %w", err)
 	}
 	relative = filepath.ToSlash(relative)
-	copySource := !validRecordingPath(relative)
+	copySource := !e.importPathAllowed(relative)
 	if copySource {
 		relative = importRelativePath(recordingID, previous, clip)
+		if e.importDirectory != "" {
+			relative = e.importDirectory + "/" + filepath.Base(relative)
+		}
 	}
-	e.publication.Path = filepath.Join(filepath.Dir(e.path), filepath.FromSlash(relative))
+	e.publication.Path = filepath.Join(e.assetRoot, filepath.FromSlash(relative))
 	if err := clip.VerifySource(context.Background()); err != nil {
 		return err
 	}
@@ -74,7 +77,7 @@ func (e *LibraryEditor) importSourceLocked(recordingID string, clip *RecordingAu
 	}
 	next := cloneAudioValue(e.library)
 	next.Recordings[recordingID] = replacement
-	if _, err := parseAudioLibraryDocument(encodeAudioValue(next)); err != nil {
+	if _, err := parseLibraryDocument(encodeAudioValue(next), e.validator); err != nil {
 		return err // All authored validation precedes any copied-file publication.
 	}
 	if copySource {
@@ -133,7 +136,7 @@ func importRelativePath(recordingID string, previous Recording, clip *RecordingA
 }
 
 func (e *LibraryEditor) publishImport(relative string, clip *RecordingAudio) error {
-	path := filepath.Join(filepath.Dir(e.path), filepath.FromSlash(relative))
+	path := filepath.Join(e.assetRoot, filepath.FromSlash(relative))
 	const directoryMode = 0o750
 	const recordingMode = 0o644
 	if err := os.MkdirAll(filepath.Dir(path), directoryMode); err != nil {
@@ -143,7 +146,7 @@ func (e *LibraryEditor) publishImport(relative string, clip *RecordingAudio) err
 	// already-existing asset root containing this manifest.
 	for directory := filepath.Dir(path); ; directory = filepath.Dir(directory) {
 		e.requireDirectorySync(directory)
-		if directory == filepath.Dir(e.path) {
+		if directory == e.assetRoot {
 			break
 		}
 	}

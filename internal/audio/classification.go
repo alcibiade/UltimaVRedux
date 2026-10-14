@@ -54,12 +54,19 @@ func (taxonomy *Taxonomy) cueProfile(id string) string {
 	return ""
 }
 
-func (taxonomy *Taxonomy) validate(library *audioLibrary) error {
+func (taxonomy *Taxonomy) validateStructure(library *audioLibrary) error {
 	if taxonomy.RecordingFamilies == nil || taxonomy.CueProfiles == nil || taxonomy.Profiles == nil {
 		return fmt.Errorf("%w: schema v2 requires recordingFamilies, cueProfiles, and profiles", ErrAudioLibrary)
 	}
-	if err := taxonomy.validateProfiles(); err != nil {
+	if err := taxonomy.validateProfileTerms(); err != nil {
 		return err
+	}
+	for name, profile := range taxonomy.Profiles {
+		if name == "" || profile.TargetAcousticFamily == "" || profile.Phase == "" ||
+			profile.Outcome == "" || profile.MixRole == "" ||
+			!validOpenTags(profile.Emitters) || !validOpenTags(profile.Contexts) {
+			return fmt.Errorf("%w: incomplete classification profile %q", ErrAudioLibrary, name)
+		}
 	}
 	if err := taxonomy.validateRecordingFamilies(library); err != nil {
 		return err
@@ -68,14 +75,22 @@ func (taxonomy *Taxonomy) validate(library *audioLibrary) error {
 	return taxonomy.validateCueProfiles(library)
 }
 
+func validOpenTags(tags []string) bool {
+	if len(tags) == 0 {
+		return false
+	}
+	for index, tag := range tags {
+		if strings.TrimSpace(tag) == "" || strings.TrimSpace(tag) != tag || (index > 0 && tags[index-1] >= tag) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (taxonomy *Taxonomy) validateProfiles() error {
-	for profile, terms := range taxonomy.ProfileSearchTerms {
-		if _, exists := taxonomy.Profiles[profile]; !exists {
-			return fmt.Errorf("%w: search terms reference unknown profile %s", ErrAudioLibrary, profile)
-		}
-		if err := validateSearchTerms(terms); err != nil {
-			return fmt.Errorf("profile %s: %w", profile, err)
-		}
+	if err := taxonomy.validateProfileTerms(); err != nil {
+		return err
 	}
 	for name, profile := range taxonomy.Profiles {
 		if !slices.Contains(acousticFamilies, profile.TargetAcousticFamily) ||
@@ -93,10 +108,23 @@ func (taxonomy *Taxonomy) validateProfiles() error {
 	return nil
 }
 
+func (taxonomy *Taxonomy) validateProfileTerms() error {
+	for profile, terms := range taxonomy.ProfileSearchTerms {
+		if _, exists := taxonomy.Profiles[profile]; !exists {
+			return fmt.Errorf("%w: search terms reference unknown profile %s", ErrAudioLibrary, profile)
+		}
+		if err := validateSearchTerms(terms); err != nil {
+			return fmt.Errorf("profile %s: %w", profile, err)
+		}
+	}
+
+	return nil
+}
+
 func (taxonomy *Taxonomy) validateRecordingFamilies(library *audioLibrary) error {
 	seenRecordings := make(map[string]bool, len(library.Recordings))
 	for family, ids := range taxonomy.RecordingFamilies {
-		if !slices.Contains(acousticFamilies, family) || len(ids) == 0 {
+		if family == "" || len(ids) == 0 {
 			return fmt.Errorf("%w: invalid recording family %q", ErrAudioLibrary, family)
 		}
 		for _, id := range ids {

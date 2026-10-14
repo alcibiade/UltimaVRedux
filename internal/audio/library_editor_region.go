@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"strings"
 )
 
 // ErrRecordingRegionStale rejects an edit reviewed against another document.
@@ -147,8 +146,8 @@ func (e *LibraryEditor) DuplicateRecordingRegion(
 	slices.Sort(next.Taxonomy.RecordingFamilies[draft.family])
 	if appendCue != "" {
 		cue, exists := next.Cues[appendCue]
-		if !exists || !strings.HasPrefix(appendCue, "sfx/") {
-			return fmt.Errorf("%w: choose an SFX moment for clip cycling", ErrAudioLibrary)
+		if !exists {
+			return fmt.Errorf("%w: choose a known moment for clip cycling", ErrAudioLibrary)
 		}
 		next.Cues[appendCue] = cue.WithRecordings(append(cue.Recordings(), newID))
 	}

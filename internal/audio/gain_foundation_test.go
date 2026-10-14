@@ -27,8 +27,8 @@ func TestActiveSFXReactsToCategoryChangesDuringFade(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 	clock := int64(100)
-	modifier := soundEffectMetadataMap[game_state.SoundEarthquake].VolumeModifier
-	modifier *= productionLibrary().recordingCalibration(soundEffectMetadataMap[game_state.SoundEarthquake].RecordingID)
+	modifier := soundEffectMetadataMap()[game_state.SoundEarthquake].VolumeModifier
+	modifier *= productionLibrary().recordingCalibration(soundEffectMetadataMap()[game_state.SoundEarthquake].RecordingID)
 	manager.soundEffectPlayer.nowMillis = func() int64 { return clock }
 	require.NoError(t, manager.PlaySound(game_state.SoundPlaybackRequest{
 		Effect: game_state.SoundEarthquake, Mode: game_state.SoundPlaybackLoop, Volume: 0.5, FadeInMs: 1000,
@@ -103,11 +103,11 @@ func TestMusicCategoryRefreshKeepsContextGain(t *testing.T) {
 	require.NoError(t, manager.PlayBackgroundMusic("town"))
 	require.NoError(t, manager.backgroundMusic.SetVolume(0.4))
 	require.NoError(t, manager.SetMusicVolume(0.2))
-	town := musicTrackMetadataMap["town"]
+	town := musicTrackMetadataMap()["town"]
 	require.InDelta(t, 0.2*0.4*town.VolumeModifier*productionLibrary().recordingCalibration(town.RecordingID),
 		manager.backgroundMusic.player.Volume(), 1e-9)
 	require.NoError(t, manager.PlayBackgroundMusic("combat"))
-	combat := musicTrackMetadataMap["combat"]
+	combat := musicTrackMetadataMap()["combat"]
 	require.InDelta(t, 0.2*0.4*combat.VolumeModifier*productionLibrary().recordingCalibration(combat.RecordingID),
 		manager.backgroundMusic.player.Volume(), 1e-9)
 	require.Error(t, manager.backgroundMusic.SetVolume(math.NaN()))

@@ -55,7 +55,8 @@ const (
 
 // ConfigurationDialog provides detached Sound and Gameplay settings with audio preview.
 type ConfigurationDialog struct {
-	navigation input.ListNavigation
+	audioReport *configurationAudioReport
+	navigation  input.ListNavigation
 	// Core dialog properties
 	placement *sprites.PercentBasedPlacement
 	keyboard  *input.Keyboard
@@ -201,6 +202,7 @@ func validateConfigurationDialogInputs(
 
 // initializeComponents sets up all UI components for the dialog.
 func (d *ConfigurationDialog) initializeComponents() {
+	const maximumSlider = 10
 	emptyPlacement := sprites.PercentBasedPlacement{
 		StartPercentX: 0,
 		EndPercentX:   0,
@@ -208,14 +210,15 @@ func (d *ConfigurationDialog) initializeComponents() {
 		EndPercentY:   0,
 	}
 	d.musicSlider = widgets.NewSlider(widgets.SliderConfig{
+		TrackColor: nil, HandleColor: nil, LabelColor: nil, BackgroundColor: nil,
 		Placement:    emptyPlacement,
 		Keyboard:     d.keyboard,
 		InitialValue: d.stagedAudio.MusicVolume,
 		MinValue:     0,
-		MaxValue:     10,
+		MaxValue:     maximumSlider,
 		Label:        "Music Volume",
 		FontSize:     float64(widgets.FontSizeMainScreen),
-		OnValueChanged: func(oldValue, newValue int) {
+		OnValueChanged: func(_, newValue int) {
 			d.stagedAudio.SetMusicVolume(newValue)
 			d.saveError = ""
 			d.adjustMusicPreviewVolume()
@@ -223,14 +226,15 @@ func (d *ConfigurationDialog) initializeComponents() {
 	})
 
 	d.sfxSlider = widgets.NewSlider(widgets.SliderConfig{
+		TrackColor: nil, HandleColor: nil, LabelColor: nil, BackgroundColor: nil,
 		Placement:    emptyPlacement,
 		Keyboard:     d.keyboard,
 		InitialValue: d.stagedAudio.SoundEffectVolume,
 		MinValue:     0,
-		MaxValue:     10,
+		MaxValue:     maximumSlider,
 		Label:        "SFX Volume",
 		FontSize:     float64(widgets.FontSizeMainScreen),
-		OnValueChanged: func(oldValue, newValue int) {
+		OnValueChanged: func(_, newValue int) {
 			d.stagedAudio.SetSoundEffectVolume(newValue)
 			d.saveError = ""
 			d.previewSoundEffectVolume()
@@ -238,14 +242,15 @@ func (d *ConfigurationDialog) initializeComponents() {
 	})
 
 	d.ambientSlider = widgets.NewSlider(widgets.SliderConfig{
+		TrackColor: nil, HandleColor: nil, LabelColor: nil, BackgroundColor: nil,
 		Placement:    emptyPlacement,
 		Keyboard:     d.keyboard,
 		InitialValue: d.stagedAudio.AmbientVolume,
 		MinValue:     0,
-		MaxValue:     10,
+		MaxValue:     maximumSlider,
 		Label:        "Ambient Volume",
 		FontSize:     float64(widgets.FontSizeMainScreen),
-		OnValueChanged: func(oldValue, newValue int) {
+		OnValueChanged: func(_, newValue int) {
 			d.stagedAudio.SetAmbientVolume(newValue)
 			d.saveError = ""
 			d.adjustAmbientPreviewVolume()

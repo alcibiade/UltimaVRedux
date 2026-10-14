@@ -129,7 +129,7 @@ func TestMusicVolumeModifierIntegration(t *testing.T) {
 
 func TestAllMusicTracksHaveVolumeModifier(t *testing.T) {
 	// Ensure all music tracks in the metadata map have a VolumeModifier set
-	for trackName, metadata := range musicTrackMetadataMap {
+	for trackName, metadata := range musicTrackMetadataMap() {
 		if metadata.VolumeModifier <= 0 {
 			t.Errorf("Music track %s (%s) has invalid VolumeModifier: %f (should be > 0)",
 				trackName, metadata.Name, metadata.VolumeModifier)
@@ -143,7 +143,7 @@ func TestAllMusicTracksHaveVolumeModifier(t *testing.T) {
 
 func TestMusicTrackMetadataConsistency(t *testing.T) {
 	// Verify that all tracks have consistent metadata
-	for trackName, metadata := range musicTrackMetadataMap {
+	for trackName, metadata := range musicTrackMetadataMap() {
 		// Check that all required fields are populated
 		if metadata.Name == "" {
 			t.Errorf("Track %s has empty Name field", trackName)

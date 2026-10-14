@@ -79,7 +79,7 @@ func (m *model) beginClassificationEdit() {
 	if m.selectedID() == "" || m.assigning {
 		return
 	}
-	value, options, cue := m.doc.RecordingFamily(m.recordingID()), audio.AcousticFamilies(), ""
+	value, options, cue := m.doc.RecordingFamily(m.recordingID()), m.doc.AcousticFamilies(), ""
 	if m.browsingCues() {
 		cue = m.activeCue()
 		value, options = m.doc.CueProfile(cue), m.doc.ClassificationProfiles()

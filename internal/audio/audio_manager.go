@@ -20,6 +20,9 @@ import (
 //
 //nolint:revive // Preserve the established application facade name during in-place hardening.
 type AudioManager struct {
+	library *Library
+	backend PlaybackBackend
+	redux   bool
 	// Core components
 	soundEffectPlayer    *SoundEffectPlayer
 	backgroundMusic      *BackgroundMusicSystem
@@ -40,7 +43,8 @@ type AudioManager struct {
 	mutex             sync.RWMutex
 
 	// Asset management
-	assetsLoaded bool
+	assetsLoaded   bool
+	assetLoadError error
 
 	// Preview audio players
 	ambientPreviewPlayer *gainPlayer
@@ -92,27 +96,48 @@ func NewAudioManagerWithRuntime(
 	if config == nil || audioContext == nil || now == nil {
 		return nil, fmt.Errorf("%w: audio requires configuration, context, and presentation clock", ErrAudioLibrary)
 	}
+
+	return newProjectAudioManager(config, defaultRuntimeLibrary(),
+		EbitengineBackend{Context: audioContext}, audioContext, now, true)
+}
+
+// NewAudioManagerWithLibrary keeps Redux policy in its adapter while allowing
+// independent validated library snapshots (for example designer preview builds).
+func NewAudioManagerWithLibrary(
+	config *AudioConfiguration, library *Library, context *audio.Context, now func() time.Time,
+) (*AudioManager, error) {
+	if library == nil || context == nil {
+		return nil, fmt.Errorf("%w: library and host context are required", ErrAudioLibrary)
+	}
+	if err := ReduxLibraryValidator(library.Document()); err != nil {
+		return nil, err
+	}
+
+	return newProjectAudioManager(config, library, EbitengineBackend{Context: context}, context, now, true)
+}
+
+func newProjectAudioManager(
+	config *AudioConfiguration, library *Library, backend PlaybackBackend, context *audio.Context,
+	now func() time.Time, redux bool,
+) (*AudioManager, error) {
+	if config == nil || library == nil || backend == nil || now == nil || backend.SampleRate() <= 0 {
+		return nil, fmt.Errorf("%w: library, configuration, backend and presentation clock are required", ErrAudioLibrary)
+	}
 	config = config.Clone()
 
-	soundPlayer, err := NewSoundEffectPlayerWithContext(config, audioContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sound effect player: %w", err)
-	}
-
-	musicSystem, err := NewBackgroundMusicSystemWithContext(config, audioContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create background music system: %w", err)
-	}
+	soundPlayer := newProjectSoundPlayer(config, library, backend, context, redux)
+	musicSystem := newProjectMusicSystem(config, library, backend, context)
 
 	positionalCalc := NewPositionalAudioCalculator()
 	positionalCalc.SetConfiguration(config)
 
 	manager := new(AudioManager)
+	manager.library, manager.backend, manager.redux = library, backend, redux
 	manager.clock = newPresentationClock(now)
 	manager.soundEffectPlayer, manager.backgroundMusic = soundPlayer, musicSystem
 	soundPlayer.nowMillis = manager.clock.Milliseconds
 	manager.positionalCalculator, manager.config = positionalCalc, config
-	manager.sharedContext, manager.enabled = audioContext, true
+	manager.sharedContext, manager.enabled = context, true
 
 	// Initialize walking sounds manager after main manager is created
 	manager.walkingSounds = NewWalkingSoundManager(manager)
@@ -421,14 +446,23 @@ func (am *AudioManager) Close() error {
 // loadAssets performs lazy loading of audio assets
 // The caller must hold am.mutex exclusively.
 func (am *AudioManager) loadAssets() error {
+	if am.assetLoadError != nil {
+		return am.assetLoadError
+	}
 	// Load sound effect assets
 	if err := am.soundEffectPlayer.LoadAssets(); err != nil {
-		return fmt.Errorf("failed to load sound effect assets: %w", err)
+		am.assetLoadError = fmt.Errorf("failed to load sound effect assets: %w", err)
+
+		return am.assetLoadError
 	}
 
 	// Load music assets
-	if err := am.backgroundMusic.LoadAssets(); err != nil {
-		return fmt.Errorf("failed to load music assets: %w", err)
+	if am.redux {
+		if err := am.backgroundMusic.LoadAssets(); err != nil {
+			am.assetLoadError = fmt.Errorf("failed to load music assets: %w", err)
+
+			return am.assetLoadError
+		}
 	}
 
 	am.assetsLoaded = true
@@ -551,21 +585,21 @@ func (am *AudioManager) PlayAmbientSoundPreview() error {
 		}
 	}
 
-	filePath := libraryCuePath("ambient/AmbientForest")
+	cue := am.library.document.Cues["ambient/AmbientForest"]
+	filePath := am.library.recordingPath(cue.RecordingID)
 	if filePath == "" {
 		am.stopAmbientPreview()
 
 		return nil
 	}
-	fileData, err := soundFiles.ReadFile(filePath)
+	fileData, err := am.library.readFile(filePath)
 	if err != nil {
 		return fmt.Errorf("load ambient preview: %w", err)
 	}
 
 	// Decode the audio stream
-	cue := productionLibrary().Cues["ambient/AmbientForest"]
-	window := productionLibrary().Recordings[cue.RecordingID].PlaybackWindow
-	stream, err := decodeRecording(fileData, filePath, am.sharedContext.SampleRate(), window, false)
+	window := am.library.document.Recordings[cue.RecordingID].PlaybackWindow
+	stream, err := decodeRecording(fileData, filePath, am.backend.SampleRate(), window, false)
 	if err != nil {
 		return fmt.Errorf("decode ambient preview: %w", err)
 	}
@@ -580,14 +614,14 @@ func (am *AudioManager) PlayAmbientSoundPreview() error {
 	loopedStream := audio.NewInfiniteLoop(stream, streamLength)
 
 	// Create audio player
-	player, err := newGainPlayer(am.sharedContext, loopedStream)
+	player, err := newGainPlayerWithBackend(am.backend, loopedStream)
 	if err != nil {
 		return fmt.Errorf("failed to create ambient preview player: %w", err)
 	}
 	am.stopAmbientPreview()
 
 	// Set volume using ambient volume setting
-	am.ambientPreviewGain = cue.VolumeModifier * productionLibrary().recordingCalibration(cue.RecordingID)
+	am.ambientPreviewGain = cue.VolumeModifier * am.library.document.recordingCalibration(cue.RecordingID)
 	effectiveVolume := am.config.GetEffectiveAmbientVolume(am.ambientPreviewGain)
 	player.SetVolume(effectiveVolume)
 

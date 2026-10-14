@@ -121,7 +121,7 @@ func (e *LibraryEditor) RetainedImports() []ImportReceipt {
 	referenced := make(map[string]bool)
 	for _, recording := range e.library.Recordings {
 		if recording.File != nil {
-			referenced[filepath.Join(filepath.Dir(e.path), filepath.FromSlash(*recording.File))] = true
+			referenced[filepath.Join(e.assetRoot, filepath.FromSlash(*recording.File))] = true
 		}
 	}
 	files := make([]ImportReceipt, 0, len(e.retainedImports))
@@ -141,7 +141,7 @@ func (e *LibraryEditor) beginPublication(path string, importing bool) {
 // preserving newer authored state and its history. Rejecting a stale document
 // must not discard knowledge of a manifest replacement or retained import.
 func (e *LibraryEditor) MergePublication(completed *LibraryEditor) error {
-	if completed == nil || completed.path != e.path {
+	if completed == nil || completed.path != e.path || completed.assetRoot != e.assetRoot {
 		return fmt.Errorf("%w: publication belongs to another library", ErrAudioLibrary)
 	}
 	if completed.publication.Sequence <= e.publication.Sequence {

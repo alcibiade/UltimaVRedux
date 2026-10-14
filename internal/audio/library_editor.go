@@ -22,6 +22,11 @@ const editorHistoryLimit = 100
 // LibraryEditor owns a disk-backed working document. Its caller serializes edits
 // and saves; detached file decoding can run in background commands.
 type LibraryEditor struct {
+	assetRoot           string
+	validator           LibraryValidator
+	importDirectory     string
+	importPathAllowed   func(string) bool
+	targets             AuthoringTargets
 	path                string
 	files               fs.FS
 	library             *audioLibrary
@@ -39,6 +44,29 @@ type LibraryEditor struct {
 
 // OpenLibraryEditor reads the real manifest, without consulting the embedded cache.
 func OpenLibraryEditor(path string) (*LibraryEditor, error) {
+	options := EditorOptions{AssetRoot: "", Validate: ReduxLibraryValidator,
+		ImportDirectory: "", Targets: reduxAuthoringTargets()}
+	editor, err := OpenLibraryProject(path, options)
+	if err != nil {
+		return nil, err
+	}
+	editor.importPathAllowed = validRecordingPath
+
+	return editor, nil
+}
+
+// EditorOptions binds disk authoring to an explicit asset root and consumer
+// validation policy. An empty root uses the manifest directory.
+type EditorOptions struct {
+	AssetRoot       string
+	Validate        LibraryValidator
+	ImportDirectory string
+	Targets         AuthoringTargets
+}
+
+// OpenLibraryProject opens the shared authoring engine for an independent project.
+// Relative asset roots resolve against the manifest, never the process directory.
+func OpenLibraryProject(path string, options EditorOptions) (*LibraryEditor, error) {
 	absolute, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("resolve audio library: %w", err)
@@ -47,13 +75,39 @@ func OpenLibraryEditor(path string) (*LibraryEditor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open audio library: %w", err)
 	}
-	files := os.DirFS(filepath.Dir(filepath.Dir(absolute)))
-	library, err := parseAudioLibraryDocument(data)
+	root := options.AssetRoot
+	if root == "" {
+		root = filepath.Dir(absolute)
+	} else if !filepath.IsAbs(root) {
+		root = filepath.Join(filepath.Dir(absolute), root)
+	}
+	root = filepath.Clean(root)
+	info, err := os.Stat(root)
+	if err != nil {
+		return nil, fmt.Errorf("open audio asset root: %w", err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("%w: asset root is not a directory", ErrAudioLibrary)
+	}
+	if options.ImportDirectory != "" &&
+		(!fs.ValidPath(options.ImportDirectory) || strings.Contains(options.ImportDirectory, "\\")) {
+		return nil, fmt.Errorf("%w: invalid import directory", ErrAudioLibrary)
+	}
+	files := os.DirFS(root)
+	library, err := parseLibraryDocument(data, options.Validate)
 	if err != nil {
 		return nil, err
 	}
+	for _, category := range options.Targets.CueCategories {
+		if category != catalogMusic && category != catalogSFX && category != routingAmbientKey {
+			return nil, fmt.Errorf("%w: unknown authoring cue category %s", ErrAudioLibrary, category)
+		}
+	}
 
 	editor := new(LibraryEditor)
+	editor.assetRoot, editor.validator, editor.importDirectory = root, options.Validate, options.ImportDirectory
+	editor.importPathAllowed = validAssetPath
+	editor.targets = cloneAudioValue(options.Targets)
 	editor.path, editor.files, editor.library = absolute, files, library
 	editor.baseline, editor.saved = library, data
 	editor.persistence = defaultLibraryPersistence()
@@ -65,6 +119,12 @@ func OpenLibraryEditor(path string) (*LibraryEditor, error) {
 
 // Path returns the absolute manifest filename.
 func (e *LibraryEditor) Path() string { return e.path }
+
+// RuntimeLibrary freezes the current validated authoring state for isolated
+// playback. Later edits, Save, Undo and external file changes cannot retarget it.
+func (e *LibraryEditor) RuntimeLibrary() (*Library, error) {
+	return NewLibrary(encodeAudioValue(e.library), e.files, LibraryOptions{AssetRoot: ".", Validate: e.validator})
+}
 
 // Revision identifies authored state, including Undo/Redo. Detached work must
 // compare its starting revision before replacing the current working document.
@@ -114,7 +174,7 @@ func (e *LibraryEditor) RecordingPath(id string) (string, error) {
 		return "", fmt.Errorf("%w: %s has no audio file", ErrAudioLibrary, id)
 	}
 
-	return filepath.Join(filepath.Dir(e.path), filepath.FromSlash(*recording.File)), nil
+	return filepath.Join(e.assetRoot, filepath.FromSlash(*recording.File)), nil
 }
 
 // SetRecording validates a replacement before changing the document or history.
@@ -204,7 +264,7 @@ func AcousticFamilies() []string { return slices.Clone(acousticFamilies) }
 
 // SetRecordingFamily changes one recording's acoustic description atomically.
 func (e *LibraryEditor) SetRecordingFamily(recordingID, family string) error {
-	if _, exists := e.library.Recordings[recordingID]; !exists || !slices.Contains(acousticFamilies, family) {
+	if _, exists := e.library.Recordings[recordingID]; !exists || strings.TrimSpace(family) == "" {
 		return fmt.Errorf("%w: unknown recording or acoustic family", ErrAudioLibrary)
 	}
 	if e.RecordingFamily(recordingID) == family {
@@ -266,7 +326,7 @@ func (e *LibraryEditor) replace(next *audioLibrary) error {
 	if err != nil {
 		return fmt.Errorf("invalid audio edit: %w", err)
 	}
-	if _, err := parseAudioLibraryDocument(encoded); err != nil {
+	if _, err := parseLibraryDocument(encoded, e.validator); err != nil {
 		return err
 	}
 	if bytes.Equal(encoded, encodeAudioValue(e.library)) {

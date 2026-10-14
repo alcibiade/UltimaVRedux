@@ -77,6 +77,7 @@ type playback interface {
 }
 
 type model struct {
+	targets             audio.AuthoringTargets
 	doc                 *audio.LibraryEditor
 	preview             playback
 	clip                *audio.RecordingAudio
@@ -163,7 +164,8 @@ func newModel(doc *audio.LibraryEditor) *model {
 	editor.newVoice = newVoice
 	editor.colors = newPalette()
 	editor.currentVariant = make(map[string]int)
-	editor.routing.tiles = audio.TileTargets()
+	editor.targets = doc.Targets()
+	editor.routing.tiles = editor.targets.Tiles
 	editor.routing.selected = make(map[string]bool)
 	editor.prepareAvailability()
 	editor.status = "Enter: play selection. f: choose file. Ctrl+s: save the real manifest."

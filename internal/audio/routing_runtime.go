@@ -9,10 +9,10 @@ import (
 // AmbientScanRadius follows authored ranges rather than a fixed scene constant.
 func (am *AudioManager) AmbientScanRadius() int {
 	var radius float64
-	for _, profile := range productionLibrary().Routing.Ambient {
+	for _, profile := range am.library.document.Routing.Ambient {
 		radius = max(radius, profile.RadiusTiles)
 	}
-	for _, tile := range productionLibrary().Routing.Tiles {
+	for _, tile := range am.library.document.Routing.Tiles {
 		if tile.RadiusTiles != nil {
 			radius = max(radius, *tile.RadiusTiles)
 		}
@@ -23,7 +23,7 @@ func (am *AudioManager) AmbientScanRadius() int {
 
 // AmbientEmitterDefinition resolves the two code-owned dynamic emitter roles.
 func (am *AudioManager) AmbientEmitterDefinition(emitter string) AmbientSoundDefinition {
-	id, exists := productionLibrary().Routing.Emitters[emitter]
+	id, exists := am.library.document.Routing.Emitters[emitter]
 	if !exists {
 		panic("unknown ambient emitter: " + emitter)
 	}
@@ -43,7 +43,7 @@ func (am *AudioManager) DungeonAmbientSource(
 	location references.Location, listener references.Position,
 ) (AmbientSoundSource, bool) {
 	// TODO(audio): Supply cave/brick recordings; loop through floors/combat, fade on exit.
-	id := productionLibrary().Routing.dungeonCue(location)
+	id := am.library.document.Routing.dungeonCue(location)
 	if id == "" {
 		return AmbientSoundSource{}, false //nolint:exhaustruct // Explicit or inherited silence.
 	}
@@ -63,7 +63,7 @@ func (am *AudioManager) DungeonAmbientSource(
 // NavalAmbientSource follows the boarded vessel, not the visible water tiles.
 // Its stable cue key retains the loop through travel, turns and combat.
 func (am *AudioManager) NavalAmbientSource(vessel string, listener references.Position) (AmbientSoundSource, bool) {
-	return navalAmbientSource(productionLibrary().Routing, am.ambientSounds.soundTypeDefinitions, vessel, listener)
+	return navalAmbientSource(am.library.document.Routing, am.ambientSounds.soundTypeDefinitions, vessel, listener)
 }
 
 func navalAmbientSource(

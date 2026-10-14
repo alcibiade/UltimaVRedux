@@ -51,6 +51,75 @@ The in-game ambient preview applies recording calibration, cue gain, and categor
 gain through the calibrated player. Category changes affect its existing voice;
 global audio disable retires it together with ordinary playback.
 
+### Independent library and consumer boundaries
+
+`NewLibrary(manifest, filesystem, LibraryOptions)` validates and freezes one
+project. `AssetRoot` is an explicit `fs.FS` mount, defaulting to `.`. Recording
+paths remain relative to that mount; absolute paths, traversal and backslashes
+are rejected. Each unique referenced encoded file is copied once into the
+immutable snapshot, so later filesystem or caller-metadata edits cannot retarget
+existing playback. `Document()` returns detached metadata. `EncodedBytes()` counts
+the retained unique payload, excluding decoder/device buffers. The default Redux
+snapshot currently retains about 48.4 MB of encoded media and is shared by its
+managers; independent projects retain their own assets.
+
+Shared validation owns JSON integrity, recording/cue references, provenance,
+windows, gains, cycles and classification structure. `LibraryValidator` adds
+consumer policy using a detached document. `ReduxLibraryValidator` preserves the
+game's complete enum/track catalog, sounds/music layout, controlled vocabulary,
+map targets and routing requirements. The default editor and game constructors
+always select it. Neutral projects may use other cue names, asset folders,
+classification vocabulary and target labels without satisfying Redux completeness.
+The schema remains version 3; the production manifest and existing IDs are retained.
+
+`NewRuntime(library, backend, clock, volume)` exposes neutral `CueRequest` playback,
+owned lifetimes, live volume, servicing, diagnostics and terminal Close through
+the same playback implementation used by the game. A `PlaybackBackend` supplies
+sample rate and stopped transports; it must serialize read/seek operations and
+provide a retirement read barrier. `EbitengineBackend` borrows a host context.
+Each runtime owns its decoders, variant cursors, handles and preferences; closing
+one cannot close another runtime or the host device. Neutral cue factories prepare
+lazily and cache immutable preparation failures rather than repeatedly decoding
+bad assets. Game effect enums, world scanning/projection, score selection/holds,
+and settings persistence remain in the Redux-facing adapters.
+
+`NewAudioManagerWithLibrary` applies those adapters to an independently frozen
+Redux-valid library, including SFX, music, ambient definitions and routing. Runtime
+subsystems use that instance rather than consulting the default embedded cache.
+Default catalog metadata is lazy and remains a Redux-specific inspection surface.
+
+`OpenLibraryProject` reuses authoring transactions, source identity checks,
+calibration, crop previews, Undo/Redo and durable publication. Its `EditorOptions`
+select a filesystem asset root relative to the manifest, an import directory,
+validation and detached `AuthoringTargets`. The frontend uses those supplied tile,
+location and family labels instead of inventing Redux targets. Cue monitoring
+categories may be supplied explicitly; otherwise established prefixes are retained
+and neutral names default to SFX monitoring. `RuntimeLibrary()` freezes a current
+working document for isolated playback. Rendering never reads asset files or
+revalidates the entire document per adjustment.
+
+Synthetic project tests exercise same-named cues/paths in distinct libraries,
+caller mutation after freezing, consumer validation, separate asset roots, durable
+authoring, shared preview/runtime PCM and a fresh process whose production-library
+loaders are forbidden. These establish in-repository dependency boundaries. The
+package still contains the Redux adapters and bundled media; separate-module
+extraction, media-free distribution and public API/schema stability are later work.
+
+### Explaining current playback
+
+`PlaybackSnapshot()` / `Runtime.Snapshot()` capture detached actual voice identities,
+recordings, asset paths, selections, transport states, positions and composed gain
+factors. Reading a snapshot does not service audio, advance clocks or change the
+selected cue. Applied gain is distinguished from its factors and from device/PCM
+clipping. Ambient retry diagnostics and desired-source counts remain bounded.
+
+In **Configuration → Sound**, press **D** for a captured diagnostic report.
+Up/Down and PageUp/PageDown scroll; Home/End reach the limits; **R** captures fresh
+state; **D/Esc** returns to the sliders. Playback continues while the report is
+open. Enter, slider arrows and section keys cannot author settings behind it.
+The report rewraps to measured bounds and labels its state as captured rather
+than pretending a frozen snapshot is live.
+
 ## Integration Boundary
 
 Core gameplay identifies sounds with `game_state.SoundEffect` and calls `SystemCallbacks.Audio`. It does not import `internal/audio`.
@@ -619,7 +688,7 @@ make audio-editor
 go run ./cmd/audio-editor
 ```
 
-`-library /path/to/assets/library.json` selects another library. `-check`
+`-library /path/to/assets/library.json` selects another Redux-valid library. `-check`
 validates schema, references and authored trim bounds without audio playback or
 file writes. `-probe healing_01` briefly plays a recording and checks that the
 audio device advances without a graphics/game loop. It verifies device progress,
@@ -633,6 +702,28 @@ frame-aligned and source-relative window mapping remains in `Audition`.
 Voice replacement and shutdown use `PauseAndStopReading` before discarding the
 voice. Oto permits one device context per process: standalone audition and the
 game's Ebitengine context belong in separate processes.
+
+### Core and advanced task boundaries
+
+The task review retains capabilities that answer distinct authoring questions,
+while keeping them out of the ordinary crop transaction:
+
+| Task | Surface and reason to retain it | Ownership boundary |
+|---|---|---|
+| Find, repair or replace a source | Recordings search, availability, import, provenance and notes identify the actual bytes and their rights. | Candidate loads bind source/request identity; failed import preserves the working source. |
+| Make one clip sound right | Calibration, waveform, exact bounds and ordinary/duplicate region drafts share preview/commit transformations. | Apply/Create publishes one Undo entry; Cancel never authors. No immediate per-key document mutation. |
+| Assign an event or vary repetition | Moments and ordered variants separate cue intent from shared recording content. | Exclusive assignment picker; failed/cancelled playback does not advance selection. |
+| Place sound in game context | Tiles/Locations, surfaces and animation-family information preserve world routing knowledge. | Separate advanced workspaces using consumer descriptors; source editing stays in Recordings/Moments. |
+| Compare a mix | Opt-in Soundscape retains two ambient beds, music and SFX comparison. | It starts hidden, has explicit slot replacement and owns its own transport; crop audition cannot silently control an unrelated layer. |
+| Compare reference and game gain | Temporary monitoring sliders and reference mode distinguish authored mix from listening preferences. | Never saved to the library; labels state the applied mode. |
+| Diagnose actual playback | Captured runtime source/gain reports explain what a device voice represents. | Read-only snapshots, outside ordinary editing and configuration mutation. |
+
+No additional mixer graph, effects chain or duplicate cropping workflow is
+introduced. The conventional shared text editor, one visible input owner and
+explicit region transaction are the common interaction foundation. Automated
+task coverage includes top-level key routing, terminal-byte paste, stale messages,
+ownership transitions, bounded repeat, import/save failures and layered audition;
+human terminal/listening observations remain separately recorded acceptance.
 
 ### Editing And Playback
 
@@ -1245,10 +1336,13 @@ apply/confirmation behavior is documented in
 
 ## Failure Policy
 
-Recoverable audio initialization and fresh-stream preparation
+Recoverable audio initialization, asset preparation and fresh-stream creation
 errors are returned with their cause and logged by the `GameScene` adapter.
-Initial loading of required embedded SFX/music retains its production-invariant
-panic if an assignment cannot be loaded; validated embedded data must be complete.
+An immutable snapshot's asset-preparation failure is retained, and scheduled music
+reports its initial loading failure once. Repair requires a newly validated
+library/runtime, not silently rereading changed files into existing players.
+Invalid bundled manifest structure remains a build/programming invariant; external
+project construction reports validation errors.
 Factories never substitute an infinite silent stream for failed decoding.
 Music/SFX/ambient replacement preparation precedes eviction of an existing voice.
 Disabling sound and authored empty recording slots are supported silent modes.
@@ -1271,6 +1365,50 @@ initialization and other context errors can still surface through the engine
 update hook after manager construction and can terminate `RunGame`.
 Successful construction or a nil immediate playback error is not device-readiness
 or fail-soft acceptance.
+
+### Native probes and measured acceptance scope
+
+From a configured checkout, these bounded commands exercise the actual device
+paths separately from controlled-device unit tests:
+
+```sh
+go run ./cmd/audio-editor --probe healing_01
+go run ./cmd/audio-editor --probe-runtime sfx/SoundHeal
+go run ./cmd/audio-editor --probe-runtime-soak sfx/SoundHeal
+```
+
+The first runs standalone Oto playback. The second opens a small Ebitengine window,
+plays through its real game loop, verifies advancing device position and retires
+an owned release before closing. The CLI rejects combining check/probe modes.
+On Apple Silicon macOS both probes passed and the maintainer confirmed that both
+sounded clean. This is a bounded healing-cue smoke/listening result, not acceptance
+of every recording, loop seam, mixed-output peak, device failure or terminal.
+Windows/Linux compilation is distinct from native playback acceptance.
+
+The third command runs a muted one-minute native lifecycle/heap soak: four owned
+loops are replaced every 200 ms, with a five-second warmup and an 8 MiB retained
+Go-heap tolerance. The measured macOS run completed 281 cycles / 1,124 transports,
+ended with zero active voices, and decreased retained heap from 65,055,424 to
+63,493,600 bytes. Its supervisor observed about 355 MiB peak tracked RSS and no
+remaining child processes. This adds native cleanup evidence; it is still bounded
+to one minute, one cue and the current device/backend rather than every device or
+multi-hour listening condition.
+
+An accelerated synthetic lifecycle test covers 16,800 prepared transports under
+loop/one-shot pressure: all retire, at most nine are prepared/active at once
+(eight admitted plus one replacement), and retained heap remains within a 2 MiB
+tolerance after collection (336-byte delta in the measured run). This tests engine
+bookkeeping and caller ownership, not a multi-hour native driver soak. Ordinary
+crop adjustment remains about 0.75 microseconds per Right/Left pair; measured
+key-plus-render p95 is 2.34 ms WAV, 2.43 ms MP3 and 2.23 ms OGG. Measurements use
+100 iterations on Apple M3 Pro and exclude terminal delivery and device buffering.
+
+Physical terminal-key acceptance still uses the real editing tasks: ordinary and
+modified arrows, held repeat, pause/crop/resume, invalid/crossed bounds, cancelled
+import, Save/Undo/Redo and safe Quit. Tests feed the pinned terminal decoder's raw
+bytes and adversarial controller messages, but cannot certify an untested terminal
+or replace user-observed keyboard behavior. Long native sessions and broader mix/
+loop listening also require their own evidence before stronger claims are made.
 
 An absent non-null manifest file assignment is invalid embedded application data,
 not an intentional placeholder or ordinary runtime degradation.

@@ -47,7 +47,19 @@ func (category previewCategory) label() string {
 	}
 }
 
-func cuePreviewCategory(cueID string) previewCategory {
+func (m *model) cuePreviewCategory(cueID string) previewCategory {
+	if category, exists := m.targets.CueCategories[cueID]; exists {
+		switch category {
+		case "music":
+			return previewMusic
+		case "ambient":
+			return previewAmbience
+		case "sfx":
+			return previewSFX
+		default:
+			panic("validated project has an unknown preview category")
+		}
+	}
 	switch {
 	case strings.HasPrefix(cueID, "music/"):
 		return previewMusic
@@ -56,22 +68,22 @@ func cuePreviewCategory(cueID string) previewCategory {
 	case strings.HasPrefix(cueID, "sfx/"):
 		return previewSFX
 	default:
-		panic("preview requires a known cue category")
+		return previewSFX // Neutral cue identities use an explicit, overrideable SFX monitoring default.
 	}
 }
 
 func (m *model) categoryForPreview(recordingID, cueID string) previewCategory {
 	if cueID != "" {
-		return cuePreviewCategory(cueID)
+		return m.cuePreviewCategory(cueID)
 	}
 	if m.recordingCategory != previewCategoryAuto {
 		return m.recordingCategory
 	}
 	usages := m.doc.Usages(recordingID)
 	if len(usages) > 0 {
-		category := cuePreviewCategory(usages[0])
+		category := m.cuePreviewCategory(usages[0])
 		for _, usage := range usages[1:] {
-			if cuePreviewCategory(usage) != category {
+			if m.cuePreviewCategory(usage) != category {
 				return previewSFX // Mixed-use source: labelled default, override in v panel.
 			}
 		}

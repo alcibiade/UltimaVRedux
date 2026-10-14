@@ -33,25 +33,27 @@ type WalkingSoundManager struct {
 func NewWalkingSoundManager(audioManager *AudioManager) *WalkingSoundManager {
 	// Initialize surface sound mappings
 	surfaceSounds := make(map[SurfaceType][]game_state.SoundEffect)
+	manager := new(WalkingSoundManager)
+	manager.audioManager, manager.enabled, manager.surfaceSounds = audioManager, true, surfaceSounds
+	if !audioManager.redux {
+		return manager
+	}
 	effects := make(map[string]game_state.SoundEffect)
 	for effect, name := range catalogEffectNames() {
 		effects["sfx/"+name] = effect
 	}
-	for surface, cues := range productionLibrary().Routing.Surfaces {
+	for surface, cues := range audioManager.library.document.Routing.Surfaces {
 		for _, cue := range cues {
 			surfaceSounds[SurfaceType(surface)] = append(surfaceSounds[SurfaceType(surface)], effects[cue])
 		}
 	}
-
-	manager := new(WalkingSoundManager)
-	manager.audioManager, manager.enabled, manager.surfaceSounds = audioManager, true, surfaceSounds
 
 	return manager
 }
 
 // getSurfaceTypeForTile determines the surface type based on tile
 func (wsm *WalkingSoundManager) getSurfaceTypeForTile(tile *references.Tile) SurfaceType {
-	routing := productionLibrary().Routing
+	routing := wsm.audioManager.library.document.Routing
 	if tile != nil {
 		if surface := routing.Tiles[tileAudioKey(tile.Index)].Surface; surface != "" {
 			return SurfaceType(surface)
