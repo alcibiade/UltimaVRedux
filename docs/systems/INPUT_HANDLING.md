@@ -50,8 +50,12 @@ the validated movement-speed factor together when the workflow starts. Targeted
 attack anticipation, projectile/signature feedback, ordinary enemies, player and
 controlled-monster movement retain their own timings. Actual resolved movement
 determines interpolation; idle/blocked/teleport outcomes do not receive a walking
-tween. Exact token completion remains after presentation; changing speed never
-changes AI actions, DEX order, possession progress, calendar, or RNG.
+tween. Exact token completion remains after presentation. The pacing profile adds
+no gameplay RNG draws and changes no AI, DEX-order, possession-counter, or calendar
+cost rules. Isolated queue tests compare outcomes with controlled RNG inputs;
+production wind runs before queues and shares the gameplay RNG. Different elapsed
+waits can therefore admit different wind draws and change subsequent outcomes.
+See [elapsed-time and shared RNG scope](TIME_SYSTEM.md#elapsed-time-and-shared-rng-scope).
 
 Dungeon primary input implements traversal, facing, turnaround, contextual
 rejection, and the production Attack, Cast, Get, Hole Up, Ignite, Jimmy, Klimb,
