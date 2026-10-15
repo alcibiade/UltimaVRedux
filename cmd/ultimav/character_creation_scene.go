@@ -7,14 +7,17 @@ import (
 	"image"
 	"math"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
 	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
+	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
@@ -70,6 +73,25 @@ type characterCreationIdentityPresentation struct {
 	elapsedMs      int64
 }
 
+// The name editor owns its native session. Offsets are UTF-8 bytes, including
+// preedit offsets; only committed ASCII letters enter the character identity.
+type characterCreationNameField interface {
+	Focus()
+	Blur()
+	IsFocused() bool
+	HandleInputWithBounds(bounds image.Rectangle) (bool, error)
+	Text() string
+	TextForRendering() string
+	Selection() (int, int)
+	CompositionSelection() (int, int, bool)
+	SetTextAndSelection(value string, start, end int)
+}
+
+//nolint:staticcheck // SA1019: Field owns the native session and selection, matching the other native editors.
+func newCharacterCreationNameField() *textinput.Field {
+	return new(textinput.Field)
+}
+
 func newCharacterCreationIdentityPresentation(
 	introSprites *sprites.IntroSprites,
 	elapsedMs int64,
@@ -113,6 +135,8 @@ type CharacterCreationScene struct {
 	source               *deterministic_random.Source
 	keyboard             *input.Keyboard
 	appendInputChars     func([]rune) []rune
+	nameField            characterCreationNameField
+	isWindowFocused      func() bool
 	canvas               *ebiten.Image
 	identityPresentation *characterCreationIdentityPresentation
 	identityOutput       *text.Output
@@ -171,6 +195,7 @@ func CreateCharacterCreationScene(
 	return newCharacterCreationScene(gameConfig, source, callbacks, assets, identityPresentation), nil
 }
 
+//nolint:funlen // One complete scene literal makes initial ownership and terminal state explicit.
 func newCharacterCreationScene(
 	gameConfig *config.UltimaVConfiguration,
 	source *deterministic_random.Source,
@@ -192,7 +217,9 @@ func newCharacterCreationScene(
 		config:               gameConfig,
 		source:               source,
 		keyboard:             input.NewKeyboard(0),
-		appendInputChars:     ebiten.AppendInputChars,
+		appendInputChars:     nil, // Explicit legacy input seam for tests only.
+		nameField:            newCharacterCreationNameField(),
+		isWindowFocused:      ebiten.IsFocused,
 		canvas:               ebiten.NewImage(introLogicalWidth, introLogicalHeight),
 		identityPresentation: identityPresentation,
 		identityOutput: text.NewOutput(
@@ -254,6 +281,7 @@ func (scene *CharacterCreationScene) PreflightActivation() error {
 }
 
 func (scene *CharacterCreationScene) PrepareInputForSceneActivation() {
+	scene.blurNameField()
 	scene.drainInputRunes()
 	scene.keyboard.PrepareForTransition(0)
 }
@@ -269,6 +297,7 @@ func (scene *CharacterCreationScene) Activate() {
 }
 
 func (scene *CharacterCreationScene) PrepareForSceneReplacement() {
+	scene.blurNameField()
 	scene.active = false
 }
 
@@ -276,6 +305,7 @@ func (scene *CharacterCreationScene) Dispose() {
 	if scene.disposed {
 		return
 	}
+	scene.blurNameField()
 	scene.disposed = true
 	scene.active = false
 	scene.assets = nil
@@ -283,6 +313,8 @@ func (scene *CharacterCreationScene) Dispose() {
 	scene.source = nil
 	scene.keyboard = nil
 	scene.appendInputChars = nil
+	scene.nameField = nil
+	scene.isWindowFocused = nil
 	scene.canvas = nil
 	scene.identityPresentation = nil
 	scene.identityOutput = nil
@@ -306,7 +338,11 @@ func (scene *CharacterCreationScene) Update(_ *Game) error {
 		scene.identityPresentation.advance()
 	}
 	scene.keyboard.ClearFrameConsumption()
+	if scene.suspendNativeNameInput() {
+		return nil
+	}
 	if modal := scene.dialogStack.PeekTopModalDialog(); modal != nil {
+		scene.blurNameField()
 		modal.Update()
 
 		return nil
@@ -322,9 +358,13 @@ func (scene *CharacterCreationScene) Update(_ *Game) error {
 		return nil
 	}
 
+	return scene.updateCreationPhase()
+}
+
+func (scene *CharacterCreationScene) updateCreationPhase() error {
 	switch scene.state {
 	case characterCreationName:
-		scene.updateName()
+		return scene.updateName()
 	case characterCreationSex:
 		scene.updateSex()
 	case characterCreationIntroduction:
@@ -342,6 +382,22 @@ func (scene *CharacterCreationScene) Update(_ *Game) error {
 	}
 
 	return nil
+}
+
+func (scene *CharacterCreationScene) suspendNativeNameInput() bool {
+	if scene.appendInputChars != nil {
+		return false
+	}
+	if scene.state != characterCreationName {
+		scene.blurNameField()
+	}
+	if scene.active && scene.isWindowFocused() {
+		return false
+	}
+	scene.blurNameField()
+	scene.keyboard.PrepareForTransition(0)
+
+	return true
 }
 
 func (scene *CharacterCreationScene) updateTerminal() {
@@ -378,7 +434,35 @@ func (scene *CharacterCreationScene) setTerminalNotice(notice string) {
 	scene.keyboard.PrepareForTransition(0)
 }
 
-func (scene *CharacterCreationScene) updateName() {
+func (scene *CharacterCreationScene) updateName() error {
+	if scene.appendInputChars == nil {
+		owned, err := scene.updateNativeName()
+		if owned || err != nil {
+			return err
+		}
+	} else if scene.updateInjectedName() {
+		return nil
+	}
+	if scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
+		scene.cancel()
+
+		return nil
+	}
+	if !scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) &&
+		!scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
+		return nil
+	}
+	if len(scene.name) == 0 {
+		scene.cancel()
+
+		return nil
+	}
+	scene.transitionTo(characterCreationSex)
+
+	return nil
+}
+
+func (scene *CharacterCreationScene) updateInjectedName() bool {
 	for _, inputRune := range scene.readInputRunes() {
 		if ((inputRune >= 'A' && inputRune <= 'Z') || (inputRune >= 'a' && inputRune <= 'z')) &&
 			len(scene.name) < characterCreationNameLimit {
@@ -390,23 +474,136 @@ func (scene *CharacterCreationScene) updateName() {
 			scene.name = scene.name[:len(scene.name)-1]
 		}
 
-		return
+		return true
 	}
-	if scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-		scene.cancel()
 
-		return
-	}
-	if !scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) &&
-		!scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
-		return
-	}
-	if len(scene.name) == 0 {
-		scene.cancel()
+	return false
+}
 
+func (scene *CharacterCreationScene) updateNativeName() (bool, error) {
+	field := scene.nameField
+	if !field.IsFocused() {
+		start, end := field.Selection()
+		value := string(scene.name)
+		field.SetTextAndSelection(value, min(start, len(value)), min(end, len(value)))
+		field.Focus()
+		scene.keyboard.PrepareForTransition(0)
+
+		return true, nil
+	}
+	_, _, wasComposing := field.CompositionSelection()
+	handled, err := field.HandleInputWithBounds(scene.nameInputBounds())
+	if err != nil {
+		scene.blurNameField()
+
+		return true, fmt.Errorf("character creation name input: %w", err)
+	}
+	_, _, composing := field.CompositionSelection()
+	if !composing {
+		scene.acceptNativeName()
+	}
+	if handled || wasComposing || composing {
+		// IME commit/cancel/deletion owns the physical key through release, even
+		// when this tick removes the last preedit character.
+		for _, key := range [...]ebiten.Key{
+			ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyEscape, ebiten.KeyBackspace,
+			ebiten.KeyDelete, ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyHome, ebiten.KeyEnd,
+		} {
+			_ = scene.keyboard.IsKeyPressedAndRegister(key)
+			scene.keyboard.SuppressUntilRelease(key)
+		}
+
+		return true, nil
+	}
+
+	return scene.editNativeName(), nil
+}
+
+func (scene *CharacterCreationScene) acceptNativeName() {
+	value := scene.nameField.Text()
+	start, end := scene.nameField.Selection()
+	filtered := characterCreationASCIIName(value)
+	if filtered != value {
+		start = len(characterCreationASCIIName(value[:min(max(start, 0), len(value))]))
+		end = len(characterCreationASCIIName(value[:min(max(end, 0), len(value))]))
+		scene.nameField.SetTextAndSelection(filtered, start, end)
+	}
+	scene.name = []rune(filtered)
+}
+
+func characterCreationASCIIName(value string) string {
+	var result strings.Builder
+	for _, char := range value {
+		if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') {
+			result.WriteRune(char)
+			if result.Len() == characterCreationNameLimit {
+				break
+			}
+		}
+	}
+
+	return result.String()
+}
+
+func (scene *CharacterCreationScene) editNativeName() bool {
+	value := scene.nameField.Text()
+	start, end := scene.nameField.Selection()
+	switch {
+	case scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyBackspace):
+		if start == end {
+			start = max(0, start-1)
+		}
+		value, end = value[:start]+value[end:], start
+	case scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyDelete):
+		if start == end {
+			end = min(len(value), end+1)
+		}
+		value, end = value[:start]+value[end:], start
+	case scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft):
+		if start == end {
+			start = max(0, start-1)
+		}
+		end = start
+	case scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight):
+		if start == end {
+			end = min(len(value), end+1)
+		}
+		start = end
+	case scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyHome):
+		start, end = 0, 0
+	case scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnd):
+		start, end = len(value), len(value)
+	default:
+		return false
+	}
+	scene.nameField.SetTextAndSelection(value, start, end)
+	scene.name = []rune(value)
+
+	return true
+}
+
+func (scene *CharacterCreationScene) blurNameField() {
+	if scene.nameField == nil || !scene.nameField.IsFocused() {
 		return
 	}
-	scene.transitionTo(characterCreationSex)
+	start, end := scene.nameField.Selection()
+	scene.nameField.Blur()
+	// Blur may drain a queued commit. Keep only the already accepted identity;
+	// late native events must not leak into a later phase or resumed editor.
+	value := string(scene.name)
+	scene.nameField.SetTextAndSelection(value, min(start, len(value)), min(end, len(value)))
+}
+
+func (scene *CharacterCreationScene) nameInputBounds() image.Rectangle {
+	width, height := display.GetManager().GetCurrentSize()
+	scale, offsetX, offsetY := narrativeCanvasTransform(image.Rect(0, 0, width, height))
+	_, _, caret := scene.namePresentation()
+	capacity := (introLogicalWidth - 128) / text.BitmapCharWidth
+	caret = min(caret, capacity-1)
+	x := offsetX + float64(120+caret*text.BitmapCharWidth)*scale
+	y := offsetY + 152*scale
+
+	return image.Rect(int(x), int(y), int(x)+max(1, int(scale)), int(y)+max(1, int(text.BitmapCharHeight*scale)))
 }
 
 func (scene *CharacterCreationScene) updateSex() {
@@ -517,6 +714,7 @@ func (scene *CharacterCreationScene) requestDiscard() {
 }
 
 func (scene *CharacterCreationScene) cancel() {
+	scene.blurNameField()
 	scene.state = characterCreationCancelled
 	scene.terminal = true
 	scene.keyboard.PrepareForTransition(0)
@@ -525,6 +723,7 @@ func (scene *CharacterCreationScene) cancel() {
 }
 
 func (scene *CharacterCreationScene) transitionTo(next characterCreationState) {
+	scene.blurNameField()
 	scene.state = next
 	scene.terminal = next == characterCreationComplete || next == characterCreationCancelled
 	scene.drainInputRunes()
@@ -537,7 +736,9 @@ func (scene *CharacterCreationScene) acceptAnyKey() bool {
 		return true
 	}
 
-	return len(scene.readInputRunes()) != 0
+	scene.drainInputRunes()
+
+	return false
 }
 
 func (scene *CharacterCreationScene) acceptedChoice(
@@ -551,7 +752,9 @@ func (scene *CharacterCreationScene) acceptedChoice(
 		return second
 	}
 
-	return scene.choiceRune(scene.readInputRunes(), first, second)
+	scene.drainInputRunes()
+
+	return 0
 }
 
 func (scene *CharacterCreationScene) readInputRunes() []rune {
@@ -564,19 +767,6 @@ func (scene *CharacterCreationScene) readInputRunes() []rune {
 
 func (scene *CharacterCreationScene) drainInputRunes() {
 	_ = scene.readInputRunes()
-}
-
-func (scene *CharacterCreationScene) choiceRune(inputRunes []rune, first, second rune) rune {
-	for _, inputRune := range inputRunes {
-		switch inputRune {
-		case first, first + ('a' - 'A'):
-			return first
-		case second, second + ('a' - 'A'):
-			return second
-		}
-	}
-
-	return 0
 }
 
 func (scene *CharacterCreationScene) Draw(screen *ebiten.Image) {
@@ -642,14 +832,59 @@ func (scene *CharacterCreationScene) drawIdentityPanel(enteringName bool) {
 
 	scene.drawIdentityLine(image.Pt(24, 136), "By what name shalt thou be known?")
 	scene.drawIdentityLine(image.Pt(112, 152), ":")
-	scene.drawIdentityLine(image.Pt(120, 152), string(scene.name))
 	if enteringName {
-		scene.drawIdentityLine(image.Pt(120+len(scene.name)*text.BitmapCharWidth, 152), "_")
+		scene.drawNameField()
+	} else {
+		scene.drawIdentityLine(image.Pt(120, 152), string(scene.name))
 	}
 	if !enteringName {
 		scene.drawIdentityLine(image.Pt(64, 168), "Art thou Male or Female? ")
 		scene.drawIdentityLine(image.Pt(264, 168), "_")
 	}
+}
+
+func (scene *CharacterCreationScene) namePresentation() (string, int, int) {
+	if scene.appendInputChars != nil || !scene.nameField.IsFocused() {
+		return string(scene.name), len(scene.name), len(scene.name)
+	}
+	value := scene.nameField.TextForRendering()
+	start, end := scene.nameField.Selection()
+	if preeditStart, preeditEnd, composing := scene.nameField.CompositionSelection(); composing {
+		start, end = start+preeditStart, start+preeditEnd
+	}
+	start = min(max(start, 0), len(value))
+	end = min(max(end, start), len(value))
+
+	return value, utf8.RuneCountInString(value[:start]), utf8.RuneCountInString(value[:end])
+}
+
+func (scene *CharacterCreationScene) drawNameField() {
+	value, start, end := scene.namePresentation()
+	runes := []rune(value)
+	// Keep preedit visible without admitting it to the ASCII identity. Bound
+	// presentation to the original panel; native composition may be longer.
+	capacity := (introLogicalWidth - 128) / text.BitmapCharWidth
+	offset := max(0, end-capacity+1)
+	last := min(len(runes), offset+capacity)
+	start, end = max(start, offset)-offset, end-offset
+	runes = runes[offset:last]
+	start, end = min(start, len(runes)), min(end, len(runes))
+	// The original bitmap font indexes 7-bit bytes. Unsupported preedit glyphs
+	// need one fallback cell each, not one misleading glyph per UTF-8 byte.
+	// The native field retains the actual composition unchanged.
+	for index, char := range runes {
+		if char < ' ' || char > '~' {
+			runes[index] = '?'
+		}
+	}
+	vector.FillRect(scene.canvas, float32(120+start*text.BitmapCharWidth), 152,
+		float32((end-start)*text.BitmapCharWidth), text.BitmapCharHeight, widgets.DialogSelectedBackground, false)
+	scene.identityOutput.Reset()
+	scene.identityOutput.AppendLine().IBMWithColor(string(runes[:start]), color.EGAWhite).
+		IBMWithColor(string(runes[start:end]), widgets.DialogSelectedText).
+		IBMWithColor(string(runes[end:]), color.EGAWhite).Done()
+	scene.identityOutput.DrawPanelContent(scene.canvas, image.Pt(120, 152), introLogicalWidth-128, textv2.AlignStart)
+	scene.drawIdentityLine(image.Pt(120+end*text.BitmapCharWidth, 152), "_")
 }
 
 func (scene *CharacterCreationScene) drawIdentityLine(point image.Point, line string) {

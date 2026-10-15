@@ -25,6 +25,8 @@ type AtlasNoteEditorConfig struct {
 	Keyboard *input.Keyboard
 	Submit   func(label, description string) error
 	Cancel   func()
+	// AppendInputChars is an explicit legacy test seam. Nil selects owned native input.
+	AppendInputChars func([]rune) []rune
 }
 
 // AtlasNoteEditor is a keyboard-only, two-field multiline editor. Its owner
@@ -34,11 +36,18 @@ type AtlasNoteEditor struct {
 	fields  [2][]rune
 	cursors [2]int
 	// At a shared soft-wrap offset, upstream keeps the caret on the preceding row.
-	upstream                  [2]bool
-	focus                     int
-	focused, finished         bool
-	message                   string
+	upstream          [2]bool
+	focus             int
+	focused, finished bool
+	message           string
+	// appendChars is an explicit legacy test seam; production owns native fields.
 	appendChars               func([]rune) []rune
+	nativeFields              [2]nativeTextField
+	nativeFocusOwned          bool
+	anchors                   [2]int
+	controlsBlocked           [ebiten.KeyMax + 1]bool
+	keysReady, inputFailed    bool
+	isWindowFocused           func() bool
 	font                      *text.UltimaFont
 	output                    *text.Output
 	validation                *text.Output
@@ -56,45 +65,73 @@ const (
 
 // NewAtlasNoteEditor creates a scene-owned authoring or deletion-confirmation child.
 func NewAtlasNoteEditor(config AtlasNoteEditorConfig) *AtlasNoteEditor {
+	return newAtlasNoteEditor(config, [2]nativeTextField{newNativeTextField(), newNativeTextField()})
+}
+
+func newAtlasNoteEditor(config AtlasNoteEditorConfig, fields [2]nativeTextField) *AtlasNoteEditor {
 	if config.Keyboard == nil || config.Submit == nil || config.Cancel == nil {
 		panic("atlas editor requires input and lifecycle owners")
 	}
 	editor := new(AtlasNoteEditor)
-	editor.config, editor.focused, editor.appendChars = config, true, ebiten.AppendInputChars
+	editor.config, editor.focused = config, true
+	editor.appendChars = config.AppendInputChars
+	editor.nativeFields, editor.isWindowFocused = fields, ebiten.IsFocused
 	editor.fields = [2][]rune{[]rune(config.Record.Label), []rune(config.Record.Description)}
-	for i := range editor.fields {
-		editor.cursors[i] = len(editor.fields[i])
+	for fieldIndex := range editor.fields {
+		if fields[fieldIndex] == nil {
+			panic("atlas editor requires native text fields")
+		}
+		editor.cursors[fieldIndex] = len(editor.fields[fieldIndex])
+		editor.anchors[fieldIndex] = editor.cursors[fieldIndex]
+		value := string(editor.fields[fieldIndex])
+		fields[fieldIndex].SetTextAndSelection(value, len(value), len(value))
 	}
 	editor.ensureLayout()
 
 	return editor
 }
 
-func (e *AtlasNoteEditor) onDialogFocusChanged(focused bool) { e.focused = focused }
-
 // Update drains pending text before applying the focused editor's physical controls.
 func (e *AtlasNoteEditor) Update() {
-	if e.finished || !e.focused || e.config.Keyboard.IsWaitingForRelease() {
+	if e.finished || !e.focused {
 		return
 	}
 	e.ensureLayout()
-	keyboard := e.config.Keyboard
-	for _, key := range []ebiten.Key{ebiten.KeyEscape, ebiten.KeyTab, ebiten.KeyEnter, ebiten.KeyNumpadEnter,
-		ebiten.KeyBackspace, ebiten.KeyDelete, ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyUp, ebiten.KeyDown,
-		ebiten.KeyHome, ebiten.KeyEnd, ebiten.KeyPageUp, ebiten.KeyPageDown} {
-		if keyboard.IsTextKeyPressedAndRegister(key) {
-			if key != ebiten.KeyEscape && !e.config.Deleting && !e.drainPlatformText() {
-				return
-			}
-			e.handleKey(key)
-
-			return
-		}
+	if e.appendChars == nil && e.prepareNativeInput() {
+		return
 	}
-	if !e.config.Deleting && !keyboard.IsModifierPressed(input.ModifierCtrl) &&
+	if e.config.Keyboard.IsWaitingForRelease() {
+		return
+	}
+	if e.nativeEditing() && e.selectAllNativeText() {
+		return
+	}
+	if e.updatePhysicalControls() {
+		return
+	}
+	keyboard := e.config.Keyboard
+	if e.appendChars != nil && !e.config.Deleting && !keyboard.IsModifierPressed(input.ModifierCtrl) &&
 		!keyboard.IsModifierPressed(input.ModifierAlt) && !keyboard.IsModifierPressed(input.ModifierMeta) {
 		e.drainPlatformText()
 	}
+}
+
+func (e *AtlasNoteEditor) updatePhysicalControls() bool {
+	for _, key := range atlasEditorControlKeys() {
+		if e.config.Keyboard.IsTextKeyPressedAndRegister(key) {
+			if e.inputFailed && key != ebiten.KeyEscape {
+				return true
+			}
+			if e.appendChars != nil && key != ebiten.KeyEscape && !e.config.Deleting && !e.drainPlatformText() {
+				return true
+			}
+			e.handleKey(key)
+
+			return true
+		}
+	}
+
+	return false
 }
 
 // Owned physical controls supply paragraph breaks and field changes themselves.
@@ -114,7 +151,7 @@ func (e *AtlasNoteEditor) drainPlatformText() bool {
 
 func (e *AtlasNoteEditor) handleKey(key ebiten.Key) {
 	if key == ebiten.KeyEscape {
-		e.finished = true
+		e.Dismiss()
 		e.config.Cancel()
 
 		return
@@ -127,7 +164,9 @@ func (e *AtlasNoteEditor) handleKey(key ebiten.Key) {
 		return
 	}
 	if key == ebiten.KeyTab {
+		e.releaseNativeFields()
 		e.focus = 1 - e.focus
+		e.keysReady = false
 
 		return
 	}
@@ -136,11 +175,16 @@ func (e *AtlasNoteEditor) handleKey(key ebiten.Key) {
 			e.submit()
 		} else if e.focus == 1 {
 			e.insert([]rune{'\n'})
+			e.writeNativeField()
 		}
 
 		return
 	}
-	e.editAtCursor(key)
+	if e.nativeEditing() {
+		e.editNativeSelection(key)
+	} else {
+		e.editAtCursor(key)
+	}
 }
 
 //nolint:cyclop // Keep each physical edit beside its caret-affinity reset; vertical moves retain affinity.
@@ -192,11 +236,30 @@ func (e *AtlasNoteEditor) insert(runes []rune) bool {
 	if len(runes) == 0 {
 		return true
 	}
+	start, end := e.cursors[e.focus], e.cursors[e.focus]
+	if e.nativeEditing() {
+		start, end = min(start, e.anchors[e.focus]), max(end, e.anchors[e.focus])
+	}
+	content := append([]rune(nil), e.fields[e.focus][:start]...)
+	content = append(content, runes...)
+	content = append(content, e.fields[e.focus][end:]...)
+	if !e.validFieldText(string(content)) {
+		return false
+	}
+	e.fields[e.focus], e.cursors[e.focus] = content, start+len(runes)
+	e.anchors[e.focus] = e.cursors[e.focus]
+	e.upstream[e.focus] = false
+	e.message = ""
+
+	return true
+}
+
+func (e *AtlasNoteEditor) validFieldText(value string) bool {
 	limit := journal.MaxAtlasNoteLabelRunes
 	if e.focus == 1 {
 		limit = journal.MaxAtlasNoteDescriptionRunes
 	}
-	for _, r := range runes {
+	for _, r := range value {
 		if r < ' ' || r > '~' {
 			if e.focus == 1 && r == '\n' {
 				continue
@@ -206,18 +269,11 @@ func (e *AtlasNoteEditor) insert(runes []rune) bool {
 			return false
 		}
 	}
-	if len(e.fields[e.focus])+len(runes) > limit {
+	if utf8.RuneCountInString(value) > limit {
 		e.message = fmt.Sprintf("This field allows at most %d characters.", limit)
 
 		return false
 	}
-	cursor := e.cursors[e.focus]
-	content := append([]rune(nil), e.fields[e.focus][:cursor]...)
-	content = append(content, runes...)
-	content = append(content, e.fields[e.focus][cursor:]...)
-	e.fields[e.focus], e.cursors[e.focus] = content, cursor+len(runes)
-	e.upstream[e.focus] = false
-	e.message = ""
 
 	return true
 }
@@ -236,7 +292,7 @@ func (e *AtlasNoteEditor) submit() {
 
 		return
 	}
-	e.finished = true
+	e.Dismiss()
 }
 
 type atlasEditorLine struct{ start, end int }
@@ -244,7 +300,10 @@ type atlasEditorLine struct{ start, end int }
 // Measured wrapping retains original rune offsets, including empty paragraphs,
 // so arrow motion, cursor rendering and scroll all agree with the actual text.
 func (e *AtlasNoteEditor) lines(field int) []atlasEditorLine {
-	content := e.fields[field]
+	return e.linesForContent(field, e.fields[field])
+}
+
+func (e *AtlasNoteEditor) linesForContent(field int, content []rune) []atlasEditorLine {
 	width := e.fieldLayout(field).textWidth
 	start := 0
 	var lines []atlasEditorLine
@@ -287,7 +346,10 @@ func (e *AtlasNoteEditor) moveVertical(delta int) {
 }
 
 func (e *AtlasNoteEditor) cursorLine(field int, lines []atlasEditorLine) int {
-	cursor := e.cursors[field]
+	return e.lineForCursor(field, lines, e.cursors[field])
+}
+
+func (e *AtlasNoteEditor) lineForCursor(field int, lines []atlasEditorLine, cursor int) int {
 	row := atlasEditorCursorLine(lines, cursor)
 	if e.upstream[field] && row > 0 && cursor == lines[row].start && cursor == lines[row-1].end {
 		return row - 1
@@ -449,22 +511,30 @@ func (e *AtlasNoteEditor) drawField(screen *ebiten.Image, field int) {
 		return
 	}
 	target := atlasSubImage(screen, layout.content)
-	lines, row := e.prepareFieldScroll(field, layout)
+	content, anchor, caret := e.fieldPresentation(field)
+	lines, row := e.scrollForContent(field, layout, content, caret)
 	for lineIndex := e.scroll[field]; lineIndex < min(len(lines), e.scroll[field]+layout.capacity); lineIndex++ {
 		line := lines[lineIndex]
 		point := layout.lineOrigin(lineIndex - e.scroll[field])
-		atlasSingleLine(e.output, string(e.fields[field][line.start:line.end]), DialogValueColor)
+		e.populateFieldLine(target, content, line, point, anchor, caret, layout.textHeight)
 		e.output.DrawPanelContent(target, point, layout.textWidth, etext.AlignStart)
-		if field == e.focus && lineIndex == row {
-			width, _ := e.font.MeasureString(string(e.fields[field][line.start:e.cursors[field]]))
+		if field == e.focus && e.focused && lineIndex == row {
+			width, _ := e.font.MeasureString(string(content[line.start:caret]))
 			fillAtlasRect(target, layout.caretRect(lineIndex-e.scroll[field], width), DialogLabelColor)
 		}
 	}
 }
 
+//nolint:unused // Geometry tests exercise accepted-draft scrolling independently of native preedit.
 func (e *AtlasNoteEditor) prepareFieldScroll(field int, layout atlasEditorFieldLayout) ([]atlasEditorLine, int) {
-	lines := e.lines(field)
-	row := e.cursorLine(field, lines)
+	return e.scrollForContent(field, layout, e.fields[field], e.cursors[field])
+}
+
+func (e *AtlasNoteEditor) scrollForContent(
+	field int, layout atlasEditorFieldLayout, content []rune, caret int,
+) ([]atlasEditorLine, int) {
+	lines := e.linesForContent(field, content)
+	row := e.lineForCursor(field, lines, caret)
 	if layout.capacity > 0 {
 		e.scroll[field] = min(max(e.scroll[field], row-layout.capacity+1), row)
 	}

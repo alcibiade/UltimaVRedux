@@ -194,12 +194,15 @@ type TavernShopDialogProse struct {
 
 // TavernShopDialogConfig configures one detached, keyboard-only Tavern session.
 type TavernShopDialogConfig struct {
-	Keyboard         *input.Keyboard
-	MerchantSprite   *ebiten.Image
-	State            game_state.TavernShopState
-	Prose            TavernShopDialogProse
-	Preview          bool
-	IsKeyPressed     func(ebiten.Key) bool
+	Keyboard       *input.Keyboard
+	MerchantSprite *ebiten.Image
+	State          game_state.TavernShopState
+	Prose          TavernShopDialogProse
+	Preview        bool
+	IsKeyPressed   func(ebiten.Key) bool
+
+	// AppendInputChars selects the detached rune-input test adapter. Nil uses
+	// a native field, compatible with the save description editor's session.
 	AppendInputChars func([]rune) []rune
 }
 
@@ -221,15 +224,24 @@ type TavernShopDialog struct {
 	prose            TavernShopDialogProse
 	preview          bool
 
-	mode           TavernShopMode
-	subflow        TavernOrderSubflow
-	phase          TavernShopDialogPhase
-	selectedOrder  int
-	selectedWine   int
-	topicInput     []rune
-	inputKeysReady bool
-	visible        bool
-	dismissed      bool
+	mode                 TavernShopMode
+	subflow              TavernOrderSubflow
+	phase                TavernShopDialogPhase
+	selectedOrder        int
+	selectedWine         int
+	topicInput           []rune // Used only by the explicitly supplied rune adapter.
+	topicField           nativeTextField
+	modalFocused         bool
+	isWindowFocused      func() bool
+	selectionReversed    bool
+	topicControlBlocked  [ebiten.KeyMax + 1]bool
+	topicInputSuspended  bool
+	topicBounds          image.Rectangle
+	topicCaretBounds     image.Rectangle
+	topicSelectionBounds image.Rectangle
+	inputKeysReady       bool
+	visible              bool
+	dismissed            bool
 
 	latestExchange  string
 	receiptText     string
@@ -260,6 +272,15 @@ type TavernShopDialog struct {
 
 // NewTavernShopDialog creates a visible Tavern dialog from one complete authoritative snapshot.
 func NewTavernShopDialog(config TavernShopDialogConfig) *TavernShopDialog {
+	var field nativeTextField
+	if config.AppendInputChars == nil {
+		field = newNativeTextField()
+	}
+
+	return newTavernShopDialog(config, field)
+}
+
+func newTavernShopDialog(config TavernShopDialogConfig, field nativeTextField) *TavernShopDialog {
 	if config.Keyboard == nil {
 		panic("TavernShopDialog: keyboard is required")
 	}
@@ -272,16 +293,20 @@ func NewTavernShopDialog(config TavernShopDialogConfig) *TavernShopDialog {
 	if isKeyPressed == nil {
 		isKeyPressed = ebiten.IsKeyPressed
 	}
-	appendInputChars := config.AppendInputChars
-	if appendInputChars == nil {
-		appendInputChars = ebiten.AppendInputChars
+	if config.AppendInputChars == nil && field == nil {
+		panic("TavernShopDialog: native text field is required")
+	}
+	if config.AppendInputChars != nil && field != nil {
+		panic("TavernShopDialog: text input must have exactly one source")
 	}
 
 	dialog := &TavernShopDialog{ //nolint:exhaustruct // Resolution-dependent presentation fields initialize on demand.
 		navigation:       newNavigation(config.Keyboard.IsKeyHeld),
 		keyboard:         config.Keyboard,
 		isKeyPressed:     isKeyPressed,
-		appendInputChars: appendInputChars,
+		appendInputChars: config.AppendInputChars,
+		topicField:       field,
+		isWindowFocused:  ebiten.IsFocused,
 		state:            state,
 		prose:            config.Prose,
 		preview:          config.Preview,
@@ -322,24 +347,38 @@ func (d *TavernShopDialog) Draw(screen *ebiten.Image) {
 		d.modeBounds.Dx(),
 		etext.AlignCenter,
 	)
+	d.drawTopicSelection(screen)
 	d.bodyOutput.DrawPanelContent(screen, d.bodyText.Min, max(1, d.bodyText.Dx()), etext.AlignStart)
+	d.drawTopicCaret(screen)
 }
 
 // Update processes keyboard-only Tavern input.
 func (d *TavernShopDialog) Update() {
-	if !d.IsVisible() {
-		return
-	}
-	d.ensureLayout()
-	if !d.inputKeysReady {
-		if !tavernParentControlsReleased(d.isKeyPressed) {
-			if d.mode == TavernShopConversation {
-				d.discardInputChars()
-			}
+	if d.topicField != nil {
+		if !d.modalFocused {
+			d.syncTopicFocus()
 
 			return
 		}
+		if !d.isWindowFocused() {
+			d.SuspendTextInput()
+
+			return
+		}
+	}
+	if !d.IsVisible() {
+		return
+	}
+	d.topicInputSuspended = false
+	d.ensureLayout()
+	if !d.inputKeysReady {
+		if !tavernParentControlsReleased(d.isKeyPressed) {
+			return
+		}
 		d.inputKeysReady = true
+	}
+	if d.updateNativeTopic() {
+		return
 	}
 	if handleMerchantSpeechPaging(d.shell, d.keyboard) {
 		return
@@ -399,8 +438,8 @@ func (d *TavernShopDialog) handleModeInput() bool {
 	switch {
 	case d.keyboard.IsKeyPressedAndRegister(ebiten.KeyTab):
 		d.setMode(TavernShopMode((int(d.mode) + 1) % tavernShopModeCount))
-	case d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft),
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight):
+	case (d.topicField == nil || d.mode != TavernShopConversation || !d.state.CustomerEligible) &&
+		(d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight)):
 		d.setMode(TavernShopMode((int(d.mode) + 1) % tavernShopModeCount))
 	default:
 		return false
@@ -465,19 +504,22 @@ func (d *TavernShopDialog) updateWinePicker() {
 
 func (d *TavernShopDialog) updateConversation() {
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-		d.topicInput = nil
+		d.setTopicInput("")
 		d.setMode(TavernShopOrder)
 
 		return
 	}
 	if !d.state.CustomerEligible {
-		d.discardInputChars()
-
+		return
+	}
+	if d.topicField != nil && d.editNativeTopic() {
 		return
 	}
 
-	d.appendTopicRunes(d.appendInputChars(nil))
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyBackspace) {
+	if d.topicField == nil {
+		d.appendTopicRunes(d.appendInputChars(nil))
+	}
+	if d.topicField == nil && d.keyboard.IsKeyPressedAndRegister(ebiten.KeyBackspace) {
 		if len(d.topicInput) > 0 {
 			d.topicInput = d.topicInput[:len(d.topicInput)-1]
 			d.inlineFeedback = ""
@@ -546,12 +588,11 @@ func (d *TavernShopDialog) RejectInformationTopic(topic TavernTopicIntent) {
 	}
 	d.pendingTopic = nil
 	d.quotedTopic = TavernTopicIntent{Input: ""}
-	d.topicInput = nil
+	d.setTopicInput("")
 	d.inlineFeedback = ""
 	d.latestExchange = d.prose.UnknownTopic + "\n\n" + d.prose.ConversationPrompt
 	d.transcriptScroll = d.transcriptTailStart()
 	d.transitionTo(TavernShopBrowse)
-	d.discardInputChars()
 	d.syncPresentation()
 }
 
@@ -577,9 +618,6 @@ func (d *TavernShopDialog) CancelActionApproval() {
 	d.restoreApprovalReturn()
 	d.clearAwaitingAction()
 	d.transitionTo(TavernShopBrowse)
-	if d.mode == TavernShopConversation {
-		d.discardInputChars()
-	}
 	d.syncPresentation()
 }
 
@@ -600,6 +638,7 @@ func (d *TavernShopDialog) ApplyState(refreshed game_state.TavernShopState) {
 		panic("TavernShopDialog.ApplyState: dialog must be browsing")
 	}
 	d.applyState(refreshed)
+	d.syncTopicFocus()
 	d.clearTransientPresentation()
 	d.syncPresentation()
 }
@@ -627,9 +666,6 @@ func (d *TavernShopDialog) ApplyResult(
 	d.clearAwaitingAction()
 	d.restoreAfterResult(request.Action)
 	d.transitionTo(TavernShopBrowse)
-	if d.mode == TavernShopConversation {
-		d.discardInputChars()
-	}
 	d.syncPresentation()
 	if display.Dismiss {
 		d.Dismiss()
@@ -644,14 +680,14 @@ func (d *TavernShopDialog) restoreAfterResult(action TavernAction) {
 		}
 		d.mode = TavernShopOrder
 		d.subflow = TavernOrderMenu
-		d.topicInput = nil
+		d.setTopicInput("")
 	case TavernActionInformation:
 		d.mode = TavernShopConversation
-		d.topicInput = nil
+		d.setTopicInput("")
 	case TavernActionDrink:
 		d.mode = TavernShopOrder
 		d.subflow = TavernOrderMenu
-		d.topicInput = nil
+		d.setTopicInput("")
 	case TavernActionMeal, TavernActionProvision:
 		d.restoreApprovalReturn()
 	case TavernActionUnknown:
@@ -672,9 +708,6 @@ func (d *TavernShopDialog) PreviewStop(request TavernActionRequest) {
 	d.inlineFeedback = ""
 	d.clearAwaitingAction()
 	d.transitionTo(TavernShopBrowse)
-	if d.mode == TavernShopConversation {
-		d.discardInputChars()
-	}
 	d.syncPresentation()
 }
 
@@ -716,7 +749,13 @@ func (d *TavernShopDialog) GetSelectedOrderIndex() int { return d.selectedOrder 
 func (d *TavernShopDialog) GetSelectedWineIndex() int { return d.selectedWine }
 
 // GetTopicInput returns a defensive string copy of the raw input.
-func (d *TavernShopDialog) GetTopicInput() string { return string(d.topicInput) }
+func (d *TavernShopDialog) GetTopicInput() string {
+	if d.topicField != nil {
+		return d.topicField.Text()
+	}
+
+	return string(d.topicInput)
+}
 
 // GetTranscript returns a defensive append-only successful paid transcript.
 func (d *TavernShopDialog) GetTranscript() []TavernTranscriptEntry {
@@ -791,7 +830,14 @@ func (d *TavernShopDialog) IsAwaitingResult() bool { return d.phase == TavernSho
 func (d *TavernShopDialog) ShowWithoutAnimation() {
 	if !d.dismissed {
 		d.visible = true
+		d.prepareForTransition()
 	}
+}
+
+// Hide releases the native subject session while retaining the Tavern workspace.
+func (d *TavernShopDialog) Hide() {
+	d.visible = false
+	d.prepareForTransition()
 }
 
 // IsComplete reports whether the parent has been permanently dismissed.
@@ -811,6 +857,7 @@ func (d *TavernShopDialog) Dismiss() {
 	d.keyboard.PrepareForTransition(0)
 	d.visible = false
 	d.dismissed = true
+	d.syncTopicFocus()
 }
 
 func (d *TavernShopDialog) activateOrderSelection() {
@@ -888,7 +935,7 @@ func (d *TavernShopDialog) submitTopic() {
 	if d.phase != TavernShopBrowse || d.pendingTopic != nil {
 		return
 	}
-	intent := TavernTopicIntent{Input: string(d.topicInput)}
+	intent := TavernTopicIntent{Input: d.GetTopicInput()}
 	if intent.Input == "" {
 		d.setMode(TavernShopOrder)
 		d.latestExchange = d.prose.ConversationExit
@@ -921,12 +968,6 @@ func (d *TavernShopDialog) appendTopicRunes(events []rune) {
 	}
 }
 
-func (d *TavernShopDialog) discardInputChars() {
-	if d.appendInputChars != nil {
-		_ = d.appendInputChars(nil)
-	}
-}
-
 func (d *TavernShopDialog) setMode(mode TavernShopMode) {
 	d.Reset()
 	if mode < TavernShopOrder || mode > TavernShopConversation {
@@ -940,7 +981,7 @@ func (d *TavernShopDialog) setMode(mode TavernShopMode) {
 	switch {
 	case mode == TavernShopOrder:
 		d.latestExchange = d.prose.OrderPrompt
-		d.topicInput = nil
+		d.setTopicInput("")
 	case !d.state.CustomerEligible:
 		// REDUX DEVIATION: Original tavern information silently ignores Chat before the
 		// customer gate. Redux keeps the tab selectable as a read-only explanation.
@@ -949,9 +990,6 @@ func (d *TavernShopDialog) setMode(mode TavernShopMode) {
 		d.latestExchange = d.prose.ConversationPrompt
 	}
 	d.prepareForTransition()
-	if mode == TavernShopConversation {
-		d.discardInputChars()
-	}
 	d.syncPresentation()
 }
 
@@ -1005,7 +1043,7 @@ func (d *TavernShopDialog) captureApprovalReturn() tavernApprovalReturn {
 	return tavernApprovalReturn{
 		mode:          d.mode,
 		subflow:       d.subflow,
-		topicInput:    string(d.topicInput),
+		topicInput:    d.GetTopicInput(),
 		selectedOrder: d.selectedOrder,
 		selectedWine:  d.selectedWine,
 	}
@@ -1014,7 +1052,7 @@ func (d *TavernShopDialog) captureApprovalReturn() tavernApprovalReturn {
 func (d *TavernShopDialog) restoreApprovalReturn() {
 	d.mode = d.approvalReturn.mode
 	d.subflow = d.approvalReturn.subflow
-	d.topicInput = []rune(d.approvalReturn.topicInput)
+	d.setTopicInput(d.approvalReturn.topicInput)
 	d.selectedOrder = d.approvalReturn.selectedOrder
 	d.selectedWine = d.approvalReturn.selectedWine
 }
@@ -1116,7 +1154,7 @@ func (d *TavernShopDialog) conversationNonTranscriptLineCount() int {
 		return tavernConversationBaseLines
 	}
 	lines := d.conversationLineCount(strings.ToUpper(d.state.Menu.Information.Name))
-	lines += d.conversationLineCount("Subject: " + string(d.topicInput) + "_")
+	lines += d.conversationLineCount("Subject: " + d.topicRenderingText() + "_")
 	lines += d.conversationLineCount(d.receiptText)
 	lines += d.conversationLineCount(d.inlineFeedback)
 
@@ -1162,7 +1200,8 @@ func (d *TavernShopDialog) transitionTo(phase TavernShopDialogPhase) {
 
 func (d *TavernShopDialog) prepareForTransition() {
 	d.keyboard.PrepareForTransition(0)
-	d.inputKeysReady = tavernParentControlsReleased(d.isKeyPressed)
+	d.inputKeysReady = !d.topicInputSuspended && tavernParentControlsReleased(d.isKeyPressed)
+	d.syncTopicFocus()
 }
 
 func (d *TavernShopDialog) ensureLayout() {
@@ -1253,6 +1292,9 @@ func (d *TavernShopDialog) populateBodyOutput() {
 		return
 	}
 	d.bodyOutput.Reset()
+	d.topicBounds = image.Rect(0, 0, 0, 0)
+	d.topicCaretBounds = image.Rect(0, 0, 0, 0)
+	d.topicSelectionBounds = image.Rect(0, 0, 0, 0)
 	if d.receiptText != "" && d.mode != TavernShopConversation {
 		if d.preview {
 			d.bodyOutput.AppendLine().Text("PREVIEW", DialogStatusWarningColor).Done()
@@ -1334,7 +1376,7 @@ func (d *TavernShopDialog) populateConversationBody() {
 	if d.inlineFeedback != "" {
 		d.bodyOutput.AppendLine().Text(d.inlineFeedback, DialogControlHintColor).WordWrap().Done()
 	}
-	d.bodyOutput.AppendLine().LightGray("Subject: ").LightCyan(string(d.topicInput)).White("_").Done()
+	d.populateTopicLine()
 }
 
 func (d *TavernShopDialog) orderRowPrice(item TavernOrderItem) string {
@@ -1716,7 +1758,7 @@ func tavernParentControlsReleased(isKeyPressed func(ebiten.Key) bool) bool {
 func tavernParentControlKeys() []ebiten.Key {
 	keys := []ebiten.Key{
 		ebiten.KeyEscape, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyBackspace,
-		ebiten.KeyTab,
+		ebiten.KeyTab, ebiten.KeyDelete, ebiten.KeyHome, ebiten.KeyEnd,
 		ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyLeft, ebiten.KeyRight,
 		ebiten.KeyPageUp, ebiten.KeyPageDown,
 	}

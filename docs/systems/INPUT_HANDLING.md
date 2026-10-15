@@ -57,6 +57,52 @@ Dungeon primary input implements traversal, facing, turnaround, contextual
 rejection, and the production Attack, Cast, Get, Hole Up, Ignite, Jimmy, Klimb,
 Look, Mix, New Order, Open, Quit, Ready, Search, Use, View, and Yell workflows.
 
+## Native Tavern Subject Ownership
+
+The Tavern's eligible Conversation/Browse Subject owns a native text session,
+compatible with the save-slot description editor. Ending the save session does
+not guarantee that macOS resumes `AppendInputChars` delivery. Production Tavern
+construction leaves `AppendInputChars` nil and uses its own native field; physical
+letter keys are never translated into text. This preserves Unicode, dead keys and
+IME input independently of purchase shortcuts.
+
+`DialogStack` grants only its top modal focus. The Tavern listener retains list
+navigation's release reset and releases native focus when covered, hidden,
+dismissed, window-unfocused, in Order, ineligible, or awaiting quote/approval/result
+or error acknowledgement. Each eligible Update pumps native input before merchant
+speech paging, mode controls, local editing and topic submission. Composition and
+handled native control presses remain owned through release, including Enter
+confirming a candidate and Escape/Backspace editing preedit. Bounds and selection
+are derived from the displayed Subject, including multibyte and long preedit text.
+
+If the scene omits the Tavern Update while input is suspended,
+`suspendNativeDialogInput` calls `TavernShopDialog.SuspendTextInput()` before
+any reader-owned early return.
+The hook retains top-modal ownership, releases the native session without pumping
+input, preserves the committed draft/byte selection against late Blur commits,
+and resets local holds. A returning held control must release before editing can
+resume; no second resume hook is needed. Calling it under masked keyboard polling
+must not reopen focus or rearm controls through another presentation transition.
+
+Subject submissions retain the existing 15-printable-rune and whitespace rules;
+the workflow receives the exact committed text. Text-service errors visibly end
+editing without emitting a topic intent. Detached tests may explicitly supply
+`AppendInputChars`; that adapter is a per-frame snapshot, not a drainable queue.
+Use the same `Keyboard.IsKeyHeld` source for the Tavern's `IsKeyPressed` release
+checks. See the [widget contract](../ui/WIDGET_COMPONENTS.md#tavern-subject-native-session)
+for lifecycle, editing and regression entry points.
+
+Atlas note fields and character-name entry also own native sessions rather than
+depending on raw character delivery returning after a save or Tavern session.
+Atlas keeps its 32-character ASCII label and 500-character multiline description
+policies. Each field retains its draft and selection across Tab changes; the
+top-modal editor releases native input before an unfocused reader frame returns.
+Character naming keeps its eight-ASCII-letter policy, pumps composition before
+controls, and releases native ownership on phase change, cancellation and scene
+replacement. Later creation choices use their ordinary physical-key routes.
+Native-session handoff tests model the separate character channel; they do not
+replace native platform keyboard/IME acceptance.
+
 ## Input States
 
 ### Exploration Pass repeat

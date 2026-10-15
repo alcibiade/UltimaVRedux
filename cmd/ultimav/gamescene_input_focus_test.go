@@ -83,6 +83,30 @@ func TestUnfocusedUpdateDoesNotCallInputOwningModal(t *testing.T) {
 	require.Equal(t, 1, dialog.updates)
 }
 
+type nativeSuspensionTestDialog struct {
+	countingDialog
+	suspensions int
+}
+
+func (d *nativeSuspensionTestDialog) SuspendTextInput() { d.suspensions++ }
+
+func TestUnfocusedAtlasSuspendsNativeChildBeforeReaderReturn(t *testing.T) {
+	scene, _, _, _ := newRunicReferenceTestScene(t, references.BritanniaUnderworld)
+	scene.spriteSheet = sharedPresentationTestSpriteSheet()
+	scene.openAtlas(nil)
+	t.Cleanup(func() { scene.closeAtlasSession(true) })
+	dialog := &nativeSuspensionTestDialog{}
+	scene.dialogStack.PushModalDialog(dialog)
+	scene.transientCommandInput.focused = func() bool { return false }
+	elapsed, date := scene.gameState.ElapsedMs, scene.gameState.DateTime
+	require.NoError(t, scene.Update(nil))
+	require.Equal(t, 1, dialog.suspensions)
+	require.Zero(t, dialog.updates, "native teardown must not poll hidden input")
+	require.Equal(t, elapsed, scene.gameState.ElapsedMs)
+	require.Equal(t, date, scene.gameState.DateTime)
+	scene.dialogStack.RemoveWidgetInstance(dialog)
+}
+
 func TestUnfocusedRawWaitRequiresReleaseAfterFocusReturns(t *testing.T) {
 	scene, held, update, _ := newRunicReferenceTestScene(t, references.BritanniaUnderworld)
 	state := scene.gameState

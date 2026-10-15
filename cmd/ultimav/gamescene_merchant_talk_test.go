@@ -3052,6 +3052,9 @@ func newMerchantTalkFixture(
 	scene := &GameScene{
 		gameState: state,
 		keyboard:  keyboard,
+		// Authority/workflow fixtures use detached text input. Native field
+		// ownership and save-editor handoff have their own widget regressions.
+		appendInputChars: func(chars []rune) []rune { return chars },
 		// Merchant tests need addressable tile bounds, not the production border cache.
 		spriteSheet: &sprites.SpriteSheet{SpriteImage: ebiten.NewImage(512, 256)}, //nolint:mnd
 	}

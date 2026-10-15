@@ -9,7 +9,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
@@ -70,17 +69,7 @@ type SaveDescriptionEntryResult struct {
 	Submitted bool
 }
 
-type saveDescriptionTextField interface {
-	Focus()
-	Blur()
-	IsFocused() bool
-	HandleInputWithBounds(bounds image.Rectangle) (handled bool, err error)
-	Text() string
-	TextForRendering() string
-	Selection() (startInBytes, endInBytes int)
-	CompositionSelection() (startInBytes, endInBytes int, ok bool)
-	SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int)
-}
+type saveDescriptionTextField = nativeTextField
 
 // SaveDescriptionEntryModal is a centered, single-line checkpoint description editor.
 // Push it with DialogStack.PushModalDialog so platform input focus follows the
@@ -127,10 +116,7 @@ type SaveDescriptionEntryModal struct {
 // OnResult and Keyboard are mandatory. The field gains focus when this widget
 // becomes the top modal in a DialogStack.
 func NewSaveDescriptionEntryModal(config SaveDescriptionEntryModalConfig) *SaveDescriptionEntryModal {
-	// Composer requires caller-owned text, selection, and composition callbacks.
-	// Keep the tested Field focus/preedit/error lifecycle until a separate adapter migration.
-	//nolint:staticcheck // SA1019: preserve the tested Field lifecycle; Composer is not a drop-in replacement.
-	return newSaveDescriptionEntryModal(config, new(textinput.Field))
+	return newSaveDescriptionEntryModal(config, newNativeTextField())
 }
 
 func newSaveDescriptionEntryModal(

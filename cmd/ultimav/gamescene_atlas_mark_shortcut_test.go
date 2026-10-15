@@ -23,6 +23,8 @@ func newAtlasMarkShortcutScene(t *testing.T, location references.Location, floor
 	state.PartyState.Inventory.QuestItems.Set(references.Sextant, 1)
 	state.DateTime.Hour = 19
 	scene := newSurfaceCompletionTestScene(state)
+	// Shortcut/command ownership is detached from the platform text service.
+	scene.appendInputChars = func(chars []rune) []rune { return chars }
 	initializeDungeonUpdateTestScene(scene, state)
 	keys := map[ebiten.Key]bool{}
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(keyPressDelay, func(key ebiten.Key) bool { return keys[key] })

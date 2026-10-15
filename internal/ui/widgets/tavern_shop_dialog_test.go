@@ -93,6 +93,7 @@ func TestTavernShopDialogLockedConversationHidesTopicsAndUnlockedInputIsVisible(
 	}
 	queue.Push("hone")
 	dialog.Update()
+	queue.Push("")
 	require.Empty(t, dialog.GetTopicInput(), "locked conversation must not accept topic input")
 
 	refreshed := dialog.GetState()
@@ -100,6 +101,7 @@ func TestTavernShopDialogLockedConversationHidesTopicsAndUnlockedInputIsVisible(
 	dialog.ApplyState(refreshed)
 	queue.Push("honesty")
 	dialog.Update()
+	queue.Push("")
 	require.Equal(t, "honesty", dialog.GetTopicInput())
 	workspace := strings.ToLower(compactTavernText(dialog.GetWorkspaceText()))
 	require.Contains(t, workspace, "subject: honesty_")
@@ -149,6 +151,7 @@ func TestTavernShopDialogSpacesSubmitAsUnknownTopic(t *testing.T) {
 	pressTavernShopKey(dialog, keyboard, ebiten.KeyC)
 	queue.Push("   ")
 	dialog.Update()
+	queue.Push("")
 	pressTavernShopKey(dialog, keyboard, ebiten.KeyEnter)
 
 	topic, ok := dialog.ConsumePendingTopicIntent()
@@ -172,7 +175,8 @@ func TestTavernShopDialogRuneEventsPreserveRapidRepeatedInputLimitAndBackspace(t
 	queue.Push("c")
 	pressTavernShopKey(dialog, config.Keyboard, ebiten.KeyC)
 	require.Equal(t, TavernShopConversation, dialog.GetMode())
-	require.Empty(t, dialog.GetTopicInput(), "the shortcut rune must be drained on entry")
+	require.Empty(t, dialog.GetTopicInput(), "the shortcut frame must not be interpreted as subject text")
+	require.Equal(t, []rune("c"), queue.Append(nil), "AppendInputChars is a frame snapshot, not a drain")
 
 	queue.Push("bookkeeper")
 	dialog.Update()
@@ -184,6 +188,7 @@ func TestTavernShopDialogRuneEventsPreserveRapidRepeatedInputLimitAndBackspace(t
 
 	queue.Push("!!世界abcdef")
 	dialog.Update()
+	queue.Push("")
 	require.Equal(t, tavernTopicRuneLimit, len([]rune(dialog.GetTopicInput())))
 	require.Equal(t, "bookkeeper!!世界a", dialog.GetTopicInput())
 
@@ -202,6 +207,7 @@ func TestTavernShopDialogConversationAcceptsPhysicalOrderLetterAsText(t *testing
 	keyboard.SimulateKeyPress(ebiten.KeyO)
 	queue.Push("honor")
 	dialog.Update()
+	queue.Push("")
 
 	require.Equal(t, TavernShopConversation, dialog.GetMode())
 	require.Equal(t, "honor", dialog.GetTopicInput())
@@ -227,6 +233,7 @@ func TestTavernShopDialogHeldEnterEscapeAndShortcutDoNotLeakAcrossTransitions(t 
 	pressTavernShopKey(dialog, config.Keyboard, ebiten.KeyC)
 	queue.Push("valor")
 	dialog.Update()
+	queue.Push("")
 	require.Equal(t, "valor", dialog.GetTopicInput())
 
 	held[ebiten.KeyEnter] = true
@@ -389,6 +396,7 @@ func TestTavernShopDialogInformationWorkflowFullRefreshTranscriptAndScroll(t *te
 		question := fmt.Sprintf("question %d", index)
 		queue.Push(question)
 		dialog.Update()
+		queue.Push("")
 		pressTavernShopKey(dialog, keyboard, ebiten.KeyEnter)
 		topic, ok := dialog.ConsumePendingTopicIntent()
 		require.True(t, ok)
@@ -469,6 +477,7 @@ func TestTavernShopDialogInformationQuoteVisibilityCancelAndPreviewPurity(t *tes
 	pressTavernShopKey(dialog, keyboard, ebiten.KeyC)
 	queue.Push("honesty")
 	dialog.Update()
+	queue.Push("")
 	pressTavernShopKey(dialog, keyboard, ebiten.KeyEnter)
 	topic, ok := dialog.ConsumePendingTopicIntent()
 	require.True(t, ok)
@@ -516,23 +525,18 @@ func TestTavernShopDialogResponsiveDrawSessionErrorAndLifecycle(t *testing.T) {
 }
 
 type tavernRuneQueue struct {
-	frames [][]rune
+	frame []rune
 }
 
 func newTavernRuneQueue() *tavernRuneQueue { return &tavernRuneQueue{} }
 
 func (q *tavernRuneQueue) Push(value string) {
-	q.frames = append(q.frames, []rune(value))
+	// Explicitly advance the frame; reading never consumes Ebitengine's snapshot.
+	q.frame = []rune(value)
 }
 
 func (q *tavernRuneQueue) Append(dst []rune) []rune {
-	if len(q.frames) == 0 {
-		return dst
-	}
-	frame := q.frames[0]
-	q.frames = q.frames[1:]
-
-	return append(dst, frame...)
+	return append(dst, q.frame...)
 }
 
 func newTestTavernShopDialog(

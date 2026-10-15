@@ -2,6 +2,14 @@ package main
 
 import "github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 
+// Native editors release their session even when a paused reader returns before
+// modal Update. This optional widget capability cannot accept keys or intents.
+func (g *GameScene) suspendNativeDialogInput() {
+	if editor, ok := g.dialogStack.PeekTopModalDialog().(interface{ SuspendTextInput() }); ok {
+		editor.SuspendTextInput()
+	}
+}
+
 // updateDialogsWithoutInput advances the animation-bearing passive primitives
 // while the scene keyboard is suspended. Other modal selectors/readers can poll
 // their own physical adapters, so their input Update must not run without focus.

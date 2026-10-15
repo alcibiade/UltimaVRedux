@@ -106,6 +106,7 @@ func (g *GameScene) Update(game *Game) error {
 		// automatic-door and effect path; retained readers still own a full pause.
 		restoreKeyboard := g.keyboard.SuspendInputPolling()
 		defer restoreKeyboard()
+		g.suspendNativeDialogInput()
 		if g.atlasSession != nil || g.journalSession != nil {
 			return nil
 		}
