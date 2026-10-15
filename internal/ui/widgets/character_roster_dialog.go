@@ -82,6 +82,7 @@ type CharacterSelectionOption struct {
 	Facts          []CharacterSelectionFact
 	Details        []string
 	Health         *CharacterSelectionHealth
+	Resources      *CharacterSelectionResources
 }
 
 func (o CharacterSelectionOption) confirmable() bool {
@@ -132,9 +133,11 @@ type characterRosterDialogLayout struct {
 // characterRosterDialogShell draws the shared roster/detail/footer family.
 // Selection state and gameplay behavior remain with the concrete dialog owner.
 type characterRosterDialogShell struct {
-	healthRoster bool
-	placement    sprites.PercentBasedPlacement
-	spriteSheet  *sprites.SpriteSheet
+	guardResources        bool
+	guardResourcesCompact bool
+	healthRoster          bool
+	placement             sprites.PercentBasedPlacement
+	spriteSheet           *sprites.SpriteSheet
 
 	titleOutput  *text.Output
 	headerOutput *text.Output
@@ -160,7 +163,8 @@ func newCharacterRosterDialogShell(
 		panic("character roster dialog: placement must have positive width and height")
 	}
 
-	return &characterRosterDialogShell{ //nolint:exhaustruct // Outputs and layout are lazy display-size caches.
+	//nolint:exhaustruct // Layout modes default off; outputs and geometry are lazy display-size caches.
+	return &characterRosterDialogShell{
 		placement:   placement,
 		spriteSheet: spriteSheet,
 		drawOp:      new(ebiten.DrawImageOptions),
@@ -169,6 +173,11 @@ func newCharacterRosterDialogShell(
 
 func (s *characterRosterDialogShell) draw(screen *ebiten.Image, view characterRosterDialogView) {
 	if screen == nil {
+		return
+	}
+	if s.guardResources {
+		s.drawGuardResources(screen, view)
+
 		return
 	}
 	bounds := screen.Bounds()
@@ -203,7 +212,9 @@ func (s *characterRosterDialogShell) ensureLayout(width, height, rowCount int) {
 	s.createOutputs()
 }
 
-//nolint:funlen // Keeping the responsive pane geometry together makes its bounds easier to audit.
+// calculateLayout keeps responsive pane geometry together for bounds review.
+//
+//nolint:funlen // Keep interdependent roster, portrait, and detail bounds in one geometry calculation.
 func (s *characterRosterDialogShell) calculateLayout(width, height, rowCount int) {
 	workspace := image.Rect(
 		int(float64(width)*s.placement.StartPercentX),
@@ -378,7 +389,7 @@ func (s *characterRosterDialogShell) drawHeader(screen *ebiten.Image, title stri
 }
 
 func (s *characterRosterDialogShell) drawRoster(screen *ebiten.Image, view characterRosterDialogView) {
-	if len(view.options) > 0 && view.options[0].Health != nil {
+	if s.healthRoster {
 		s.drawHealthRoster(screen, view)
 
 		return

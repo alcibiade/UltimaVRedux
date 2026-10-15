@@ -41,6 +41,7 @@ type TavernActionDialogConfig struct {
 
 // TavernActionDialog presents detached reviewed consequences and emits exact requests unchanged.
 type TavernActionDialog struct {
+	quantityInput
 	keyboard        *input.Keyboard
 	isKeyPressed    func(ebiten.Key) bool
 	intent          TavernActionIntent
@@ -65,13 +66,14 @@ func NewTavernActionDialog(config TavernActionDialogConfig) *TavernActionDialog 
 	validateTavernActionIntent(config.Intent)
 	isKeyPressed := config.IsKeyPressed
 	if isKeyPressed == nil {
-		isKeyPressed = ebiten.IsKeyPressed
+		isKeyPressed = config.Keyboard.IsKeyHeld
 	}
 	footerMinimumLines := 1
 	if config.Intent.Action == TavernActionProvision {
 		footerMinimumLines = tavernActionFooterLines
 	}
 	dialog := &TavernActionDialog{ //nolint:exhaustruct // Resolution-dependent presentation fields initialize on demand.
+		quantityInput:   newQuantityInput(config.Keyboard, isKeyPressed, ebiten.KeyM),
 		keyboard:        config.Keyboard,
 		isKeyPressed:    isKeyPressed,
 		intent:          cloneTavernActionIntent(config.Intent),
@@ -166,18 +168,20 @@ func (d *TavernActionDialog) prepareActionKeys() bool {
 }
 
 func (d *TavernActionDialog) updateProvisionQuantity() bool {
-	switch {
-	case d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft):
+	key, owned := d.pollQuantityInput()
+	if key == nil {
+		return owned
+	}
+	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
+	case ebiten.KeyLeft:
 		d.setProvisionPackCount(d.provisionPacks - 1)
-	case d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight):
+	case ebiten.KeyRight:
 		d.setProvisionPackCount(d.provisionPacks + 1)
-	case d.keyboard.IsKeyPressedAndRegister(ebiten.KeyM):
+	case ebiten.KeyM:
 		d.setProvisionPackCount(d.intent.Provision.MaximumUsefulPacks)
-	default:
-		return false
 	}
 
-	return true
+	return owned
 }
 
 func (d *TavernActionDialog) setProvisionPackCount(packCount int) {
@@ -285,6 +289,7 @@ func (d *TavernActionDialog) Dismiss() {
 	if d.dismissed {
 		return
 	}
+	d.onDialogFocusChanged(false)
 	d.keyboard.PrepareForTransition(0)
 	d.visible = false
 	d.dismissed = true
@@ -293,9 +298,7 @@ func (d *TavernActionDialog) Dismiss() {
 func (d *TavernActionDialog) accept(request TavernActionRequest) {
 	accepted := request
 	d.pending = &accepted
-	d.keyboard.PrepareForTransition(0)
-	d.visible = false
-	d.dismissed = true
+	d.Dismiss()
 }
 
 func (d *TavernActionDialog) cancel() {
@@ -303,6 +306,7 @@ func (d *TavernActionDialog) cancel() {
 	d.Dismiss()
 }
 
+//nolint:dupl // Keep Tavern-specific font budgets and output population with its approval layout.
 func (d *TavernActionDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return

@@ -298,3 +298,24 @@ func pressGuildPurchaseKey(dialog *GuildPurchaseDialog, keyboard *input.Keyboard
 	keyboard.SimulateKeyPress(key)
 	dialog.Update()
 }
+
+func TestGuildPurchaseDialogPhysicalZeroMaximumCannotConfirm(t *testing.T) {
+	keys := newPhysicalQuantityKeys()
+	dialog := NewGuildPurchaseDialog(GuildPurchaseDialogConfig{
+		Keyboard: keys.keyboard, Quote: testGuildQuote(references.Key, 3, 10, 99, 100),
+		Pitch: "A bundle of keys.",
+	})
+	for _, key := range []ebiten.Key{ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyM, ebiten.KeyEnter} {
+		keys.held[key] = true
+		for range 60 {
+			keys.tick(dialog)
+		}
+		require.Zero(t, dialog.GetBundleCount())
+		require.False(t, dialog.HasPendingPurchaseRequest())
+		require.False(t, dialog.IsDismissed())
+		keys.release(dialog)
+	}
+	keys.held[ebiten.KeyEscape] = true
+	keys.tick(dialog)
+	require.True(t, dialog.IsCancelled())
+}

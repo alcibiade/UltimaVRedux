@@ -500,9 +500,10 @@ func (g *GameScene) thenShowGuardSelection(
 			options := g.characterSelectionOptions(characterSelectionContext{Profile: characterSelectionGuard})
 			options = append(options, characterSelectionNoOneOption())
 			*dialog = widgets.NewCharacterSelectionDialog(widgets.CharacterSelectionConfig{
-				Title:       "Guard: Choose Character",
-				Options:     options,
-				CancelLabel: "Cancel camping",
+				Title:          "Guard: Choose Character",
+				GuardResources: true,
+				Options:        options,
+				CancelLabel:    "Cancel camping",
 				OnSelect: func(characterIndex int) {
 					// Character selected as guard
 					selectionComplete = true

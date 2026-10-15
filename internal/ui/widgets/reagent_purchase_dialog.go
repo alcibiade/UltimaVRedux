@@ -38,6 +38,7 @@ type ReagentPurchaseDialogConfig struct {
 
 // ReagentPurchaseDialog selects supplied approval views and emits one stable request.
 type ReagentPurchaseDialog struct {
+	quantityInput
 	keyboard    *input.Keyboard
 	quote       game_state.ReagentOfferQuote
 	preview     bool
@@ -59,6 +60,8 @@ func NewReagentPurchaseDialog(config ReagentPurchaseDialogConfig) *ReagentPurcha
 	}
 	validateReagentPurchaseQuote(config.Quote)
 	dialog := &ReagentPurchaseDialog{
+		quantityInput: newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld,
+			ebiten.KeyM, ebiten.KeyUp, ebiten.KeyDown),
 		keyboard:    config.Keyboard,
 		quote:       cloneReagentOfferQuote(config.Quote),
 		preview:     config.Preview,
@@ -84,8 +87,6 @@ func NewReagentPurchaseDialog(config ReagentPurchaseDialogConfig) *ReagentPurcha
 }
 
 // Draw renders the centered opaque purchase modal.
-//
-
 func (d *ReagentPurchaseDialog) Draw(screen *ebiten.Image) {
 	if screen == nil || d.dismissed {
 		return
@@ -115,7 +116,7 @@ func (d *ReagentPurchaseDialog) Update() {
 	d.ensureLayout()
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		d.cancelled = true
-		d.dismissed = true
+		d.Dismiss()
 
 		return
 	}
@@ -129,31 +130,26 @@ func (d *ReagentPurchaseDialog) Update() {
 			BundleCount: d.bundleCount,
 		}
 		d.pending = &request
-		d.dismissed = true
+		d.Dismiss()
 	}
 }
 
 func (d *ReagentPurchaseDialog) handleQuantityInput() bool {
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyM) {
+	key, owned := d.pollQuantityInput()
+	if key == nil {
+		return owned
+	}
+	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
+	case ebiten.KeyM:
 		d.setBundleCount(uint16(len(d.quote.ApprovalViews))) //nolint:gosec // Valid reagent quotes contain at most 99 views.
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyUp) {
+	case ebiten.KeyLeft, ebiten.KeyUp:
 		d.setBundleCount(max(uint16(1), d.bundleCount-1))
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyDown) {
+	case ebiten.KeyRight, ebiten.KeyDown:
 		maximum := uint16(len(d.quote.ApprovalViews)) //nolint:gosec // Valid quotes contain at most 99 views.
 		d.setBundleCount(min(maximum, d.bundleCount+1))
-
-		return true
 	}
 
-	return false
+	return owned
 }
 
 // HasPendingPurchaseRequest reports whether confirmation emitted an unconsumed request.
@@ -220,7 +216,10 @@ func (d *ReagentPurchaseDialog) IsDismissed() bool { return d.dismissed }
 func (d *ReagentPurchaseDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
-func (d *ReagentPurchaseDialog) Dismiss() { d.dismissed = true }
+func (d *ReagentPurchaseDialog) Dismiss() {
+	d.onDialogFocusChanged(false)
+	d.dismissed = true
+}
 
 func (d *ReagentPurchaseDialog) setBundleCount(count uint16) {
 	if count == d.bundleCount {
@@ -230,6 +229,7 @@ func (d *ReagentPurchaseDialog) setBundleCount(count uint16) {
 	d.populateOutputs()
 }
 
+//nolint:dupl // Keep reagent-specific font budgets and output population with its approval layout.
 func (d *ReagentPurchaseDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return

@@ -153,28 +153,41 @@ func (g *GameState) ActionJimmyLargeMapWithCharacter(
 
 // ActionJimmyCombatMap reports whether the target was handled, including failed attempts.
 func (g *GameState) ActionJimmyCombatMap(direction references.Direction) bool {
+	handled, _ := g.ActionJimmyCombatMapWithDisarm(direction)
+
+	return handled
+}
+
+// ActionJimmyCombatMapWithDisarm retains handled-command semantics and returns
+// a detached identity for the successfully disarmed chest's presentation ownership.
+func (g *GameState) ActionJimmyCombatMapWithDisarm(direction references.Direction) (bool, *CombatChestIdentity) {
 	combatantPos := g.getActiveCombatantPosition()
 	targetPos := direction.GetNewPositionInDirection(&combatantPos)
-	if targetPos == nil {
-		return false
+	if targetPos == nil || !combatAdjacentPositionInBounds(*targetPos) {
+		return false, nil
 	}
 
 	combatantIndex := g.CombatScene.GetActiveCombatantIndex()
 	combatant := g.PartyState.GetCharacter(combatantIndex)
 	if chest, found := g.CombatScene.objectAtMatching(*targetPos, CombatObject.IsChest); found {
-		g.jimmyCombatChest(chest, combatant)
+		if g.jimmyCombatChest(chest, combatant) {
+			return true, &CombatChestIdentity{Position: *targetPos, ObjectID: chest.LifetimeID()}
+		}
 
-		return true
+		return true, nil
 	}
 	result := g.jimmySurfaceDoorAt(g.GetCurrentLayeredMap(), targetPos, combatant)
+	if result == JimmyUnlocked {
+		g.setCombatTerrain(*targetPos, g.GetCurrentLayeredMap().GetTileTopMapOnlyTile(targetPos).Index)
+	}
 
-	return g.reportCombatJimmyResult(result)
+	return g.reportCombatJimmyResult(result), nil
 }
 
 func (g *GameState) jimmyCombatChest(
 	chest CombatObject,
 	character *party_state.PlayerCharacter,
-) {
+) bool {
 	// REDUX DEVIATION: chest disarming breaks a key on every safe
 	// chest attempt. Known safety instead permits a harmless refusal; blind
 	// attempts retain the original cost without revealing hidden trap state.
@@ -182,12 +195,12 @@ func (g *GameState) jimmyCombatChest(
 	if chest.ChestAssessment() == references.ChestSafe {
 		g.SystemCallbacks.UI.ShowActionFeedback(chestAlreadySafeMessage, true)
 
-		return
+		return false
 	}
 	if g.PartyState.Inventory.Provisions.Keys.Get() == 0 {
 		g.SystemCallbacks.UI.ShowActionFeedback("No keys!", true)
 
-		return
+		return false
 	}
 
 	if !chest.IsLockedAndTrapped() {
@@ -195,7 +208,7 @@ func (g *GameState) jimmyCombatChest(
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundKeyBreak)
 		g.SystemCallbacks.UI.ShowActionFeedback("Key broke!", true)
 
-		return
+		return false
 	}
 
 	difficulty := (combatTreasureDiceSides + chest.TreasureValue() - int(character.Dexterity)) /
@@ -205,12 +218,14 @@ func (g *GameState) jimmyCombatChest(
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundKeyBreak)
 		g.SystemCallbacks.UI.ShowActionFeedback("Key broke!", true)
 
-		return
+		return false
 	}
 
 	g.CombatScene.liveChest(chest).UnlockChest()
 	g.SystemCallbacks.Audio.PlaySoundEffect(SoundUnlock)
 	g.SystemCallbacks.UI.ShowActionFeedback(chestDisarmedMessage, true)
+
+	return true
 }
 
 // ActionJimmyDungeonMap attempts to disarm the current dungeon chest.

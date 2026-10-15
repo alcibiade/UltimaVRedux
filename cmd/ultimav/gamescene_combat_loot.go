@@ -9,24 +9,34 @@ import (
 )
 
 type combatLootProjection struct {
-	position references.Position
-	sprite   indexes.SpriteIndex
+	position   references.Position
+	sprite     indexes.SpriteIndex
+	chestScope combatChestFeedbackScope
 }
 
 func (g *GameScene) startCombatChestRevealWorkflow(result game_state.CombatOpenResult, token game_state.CombatPresentationToken) {
 	var dialog *widgets.CombatLootDialog
+	combat := g.gameState.CombatScene
+	scope := combatChestFeedbackScope{
+		combat: combat, encounterID: combat.EncounterID,
+		chest: game_state.CombatChestIdentity{Position: result.Position, ObjectID: result.ChestID},
+	}
+	// Retain the authoritative removed chest before the first queued callback;
+	// feedback reconciliation can run while this reveal awaits admission.
+	preview := &combatLootProjection{position: result.Position, sprite: indexes.NoSprites, chestScope: scope}
+	g.combatLootPreview = preview
 	g.gameState.EventQueueManager.Workflow("combat_chest_reveal_workflow").
 		Priority(event_queue.PriorityMedium).Sequential().BlockInput().
 		First(func() {
 			dialog = widgets.NewCombatLootDialog(result.RevealItems, g.keyboard, g.spriteSheet)
 			dialog.SetTrapNotice(combatChestTrapText(result.Trap))
+			g.retireCombatChestFeedback(scope)
 			g.dialogStack.PushModalDialog(dialog)
-			g.combatLootPreview = &combatLootProjection{position: result.Position, sprite: indexes.NoSprites}
 			g.gameState.SystemCallbacks.Message.AddRowStr("Found:")
 		}).RepeatWithDelay(len(result.RevealItems), combatChestRevealDelayMs, func(index int) bool {
 		entry := result.RevealItems[index]
 		dialog.Reveal(index + 1)
-		g.combatLootPreview.sprite = entry.Sprite
+		preview.sprite = entry.Sprite
 		g.gameState.SystemCallbacks.Message.AddRowStr(entry.Description)
 		g.recordCombatEvent(game_state.CombatEvent{Kind: game_state.CombatEventLootRevealed, LootReveal: entry})
 
@@ -37,7 +47,10 @@ func (g *GameScene) startCombatChestRevealWorkflow(result game_state.CombatOpenR
 			if dialog != nil {
 				g.dialogStack.MustRemoveWidgetInstance(dialog)
 			}
-			g.combatLootPreview = nil
+			g.retireCombatChestFeedback(scope)
+			if g.combatLootPreview == preview {
+				g.combatLootPreview = nil
+			}
 			g.keyboard.PrepareForTransition(0)
 			g.completeScheduledCombatStep("chest reveal", token)
 		}).Start()

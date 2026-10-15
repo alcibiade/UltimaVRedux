@@ -38,6 +38,9 @@ func (g *GameScene) startCombatMovement(
 	entityIndex, slot int,
 	fromPos, toPos references.Position,
 ) {
+	if g.combatMovement.Active {
+		g.clearCombatMovement()
+	}
 	g.combatMovement = CombatMovementAnimation{
 		Active:        true,
 		IsPartyMember: isPartyMember,
@@ -47,6 +50,7 @@ func (g *GameScene) startCombatMovement(
 		To:            toPos,
 		Progress:      0,
 	}
+	g.bindCombatFireMovement()
 }
 
 func (g *GameScene) updateCombatMovementProgress(progress float32) {
@@ -56,6 +60,7 @@ func (g *GameScene) updateCombatMovementProgress(progress float32) {
 }
 
 func (g *GameScene) clearCombatMovement() {
+	g.finishCombatFireMovement(g.combatMovement.Active && g.combatMovement.Progress >= 1)
 	g.combatMovement = CombatMovementAnimation{
 		Active:        false,
 		IsPartyMember: false,

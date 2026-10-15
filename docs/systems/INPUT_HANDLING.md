@@ -109,6 +109,20 @@ replace native platform keyboard/IME acceptance.
 
 ## Input States
 
+### Merchant quantity adjustment
+
+The Arms trade, Guild purchase, Reagent purchase, Ship purchase and Tavern ration
+approval forms share plain Left/Right quantity input: one immediate step, a
+300 ms initial hold delay, then nominal 120 ms repeats quantized to widget updates.
+Release stops repetition; fresh taps and direction changes do not inherit gameplay
+movement delay. Modified or conflicting quantity keys are suppressed through
+release. Guild, Reagent and Ship retain Up/Down as one-shot aliases; maximum/All
+shortcuts also remain one-shot. Quantity holds never confirm a purchase, including
+Enter pressed during an adjustment. Covering, returning to or removing a modal,
+and application focus suspension, require held controls to release before use by
+the next owner. Quote bounds and transaction commitment remain family-owned. See
+[merchant quantity controls](../ui/WIDGET_COMPONENTS.md#merchant-quantity-controls).
+
 ### Exploration Pass repeat
 
 Space passes immediately, then repeats after 300 ms and every 120 ms while held
@@ -335,6 +349,15 @@ completion cycle. Dungeon cancellation retains its existing precharge and exact
 `DungeonFullEndPlayer` cleanup, without constructing a camping plan or consuming
 camp-setup RNG. See [Camping entry](CAMPING_SYSTEM.md#entry).
 
+The guard selector explicitly opts into `GuardResources`, showing detached
+current/max HP and MP for every party row and blank resource cells for No One.
+Arrows and number keys inspect; Enter confirms. It does not automatically choose
+a guard from those values. A Poisoned row is confirmable with the warning that it
+**cancels camping**; the scene rechecks Good status before accepting a guard.
+This describes the existing Redux cancellation path, distinct from the original
+non-Good-selection-to-unguarded rule in
+[CAMP-0001](../gamefacts/CAMPING_MECHANICS.md#camp-0001).
+
 Cast gathers required targets/directions before final confirmation spends MP and
 one mixture. Cancellation before that boundary preserves resources, gameplay
 time, combat action, and gameplay RNG, including party-member target selection.
@@ -497,6 +520,37 @@ copy independently of the highlighted copy. A hidden waking position is never
 published. One presentation workflow completes each committed combat action;
 Journal suspension retains the selector and no selection state is saved.
 
+## Combat Door And Disarm Spells
+
+An Sanct, An Ex Por and In Ex Por retain `CombatAdjacentSpellTargetInput` while
+using the familiar full-size white attack cursor. Arrows and cardinal keypad
+8/2/4/6 select only the caster's four neighbouring squares; repeated directions
+never extend range, diagonals do nothing, and edges do not wrap. The initial
+square is the first in-bounds neighbour in north/east/south/west order, without
+inspecting doors or chests. Aim text and cursor colour disclose no lock/trap
+eligibility. These three spells suppress the generic adjacent underlay and
+direction arrows; other adjacent/cone previews retain their own contracts.
+
+Enter, keypad Enter, C or Space confirms. Escape cancels freely; invalid targets
+retain selection without MP, mixture, action or RNG cost. Final confirmation
+revalidates resources and retains a single-use `CombatUtilitySpellCommit` for the
+exact encounter, PC/clone, dispatch, origin, maps and target state. The paid cast
+remains owned through effect resolution and finalization. Duplicate callbacks
+cannot spend, resolve or finish twice. Shutdown settles an already-paid cast only
+for its still-current owner; stale ownership cannot finish a replacement action.
+A changed target after payment suppresses success but still completes the owned
+paid action.
+
+Successful door changes synchronize the combat reference and effective layered
+terrain, removing obsolete overrides. Ordinary Open then sees the unlocked door
+and changes both views to floor; Jimmy preserves its physical-unlock/key rules.
+Spell semantics and the original/Redux commitment distinction belong to
+[SPELL-0001](../gamefacts/MAGIC_SPELLS.md#spell-0001),
+[SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spell-0002) and
+[SPELL-0006](../gamefacts/MAGIC_SPELLS.md#spell-0006).
+Core and scene `combat_door_spell_test.go` / `gamescene_combat_door_spell_test.go`
+cover these ownership, routing and terrain boundaries.
+
 ## Spell Browser Mix Handoffs
 
 Cast and Z-stats Spells reserve `Ctrl+M` locally for preparing the selected spell;
@@ -637,9 +691,11 @@ after harpsichord and top-row number handling. Keypad diagonals have no ordinary
 movement meaning.
 
 Combat target states are intentionally distinct and longer lived. Physical and
-spell crosshairs accept all eight keypad directions; cursor movement keeps the
-state active, and Escape cancels aiming. Terminal cancellation also clears the
-command prompt. Do not apply ordinary direction semantics to tactical cursors.
+square-target spell crosshairs accept all eight keypad directions; the
+[door/disarm cursor](#combat-door-and-disarm-spells) selects only four cardinal
+neighbours. Cursor movement keeps the state active, and Escape cancels aiming.
+Terminal cancellation also clears the command prompt. Do not apply ordinary
+direction semantics to tactical cursors.
 
 ## Combat Physical Attack Ownership
 

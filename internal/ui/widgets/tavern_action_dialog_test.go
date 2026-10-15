@@ -337,3 +337,85 @@ func pressTavernActionKey(dialog *TavernActionDialog, keyboard *input.Keyboard, 
 	keyboard.SimulateKeyPress(key)
 	dialog.Update()
 }
+
+func TestTavernActionDialogNativeSubjectToOrderQuantityAndConfirmation(t *testing.T) {
+	previousTPS := ebiten.TPS()
+	ebiten.SetTPS(60)
+	t.Cleanup(func() { ebiten.SetTPS(previousTPS) })
+	setMerchantShellTestResolution(t, 1280, 720)
+	f := newTavernNativeTest(t)
+	saveField := &tavernNativeTestField{rawStranded: &f.rawStranded}
+	var saved SaveDescriptionEntryResult
+	save := newSaveDescriptionEntryModal(SaveDescriptionEntryModalConfig{
+		Keyboard: f.keyboard, IsKeyPressed: f.keyboard.IsKeyHeld, MaxRunes: 80,
+		OnResult: func(value string, submitted bool) {
+			saved = SaveDescriptionEntryResult{Text: value, Submitted: submitted}
+		},
+	}, saveField).AutoCloseAndPop(&f.stack)
+	save.isWindowFocused = func() bool { return true }
+	f.stack.PushModalDialog(save)
+	f.tick()
+	saveField.nextInput = func() { saveField.commit("Before buying rations") }
+	f.tick()
+	f.press(ebiten.KeyEnter)
+	require.Equal(t, SaveDescriptionEntryResult{Text: "Before buying rations", Submitted: true}, saved)
+	require.False(t, saveField.IsFocused())
+	require.Zero(t, f.stack.Count())
+	require.True(t, f.rawStranded, "the save editor has ended a real simulated native input session")
+
+	state := testTavernState(references.TavernMenuMuttonAleRations)
+	state.CustomerEligible = true
+	config := testTavernShopConfig(f.keyboard, state, nil)
+	config.AppendInputChars = nil
+	config.IsKeyPressed = f.keyboard.IsKeyHeld
+	f.field = &tavernNativeTestField{rawStranded: &f.rawStranded}
+	f.dialog = newTavernShopDialog(config, f.field)
+	f.dialog.isWindowFocused = func() bool { return true }
+	f.stack.PushModalDialog(f.dialog)
+	f.tick()
+	f.press(ebiten.KeyC)
+	f.typeText("honesty")
+	require.True(t, f.field.IsFocused())
+	require.Equal(t, "honesty", f.dialog.GetTopicInput())
+	f.press(ebiten.KeyEscape)
+	require.Equal(t, TavernShopOrder, f.dialog.GetMode())
+	require.False(t, f.field.IsFocused())
+	pumps := f.field.pumps
+	f.press(ebiten.KeyR)
+	intent, ok := f.dialog.ConsumePendingActionIntent()
+	require.True(t, ok)
+	require.Equal(t, TavernActionProvision, intent.Action)
+	intent.ProvisionPitch = "Fresh rations for the road."
+	// The default adapter must use this keyboard, rather than Ebitengine globals.
+	action := NewTavernActionDialog(TavernActionDialogConfig{Keyboard: f.keyboard, Intent: intent})
+	f.stack.PushModalDialog(action)
+	f.held[ebiten.KeyRight] = true
+	f.tick()
+	require.Equal(t, 2, action.GetProvisionPackCount())
+	for range 18 {
+		f.tick()
+	}
+	require.Equal(t, 3, action.GetProvisionPackCount())
+	f.held[ebiten.KeyRight] = false
+	f.tick()
+	f.press(ebiten.KeyM)
+	require.Equal(t, state.Provision.MaximumUsefulPacks, action.GetProvisionPackCount())
+	require.Greater(t, action.GetProvisionPackCount(), int(state.Gold)/state.Provision.PricePerPack,
+		"maximum is useful packs, not affordable packs")
+	require.Contains(t, compactTavernText(action.GetBodyText()), "can currently be paid for")
+	f.press(ebiten.KeyEnter)
+	request, ok := action.ConsumePendingRequest()
+	require.True(t, ok)
+	want := intent.Request
+	want.Provision.PackCount = state.Provision.MaximumUsefulPacks
+	require.Equal(t, want, request)
+	_, duplicate := action.ConsumePendingRequest()
+	require.False(t, duplicate)
+	f.dialog.AcceptActionApproval(request)
+	f.stack.MustRemoveWidgetInstance(action)
+	require.Same(t, f.dialog, f.stack.PeekTopModalDialog())
+	require.Equal(t, TavernShopAwaitingResult, f.dialog.GetPhase())
+	require.Equal(t, state, f.dialog.GetState(), "widgets only emit the reviewed request")
+	require.Equal(t, pumps, f.field.pumps, "Order and quantity never revive the native Subject session")
+	require.True(t, f.rawStranded, "this path must not depend on restoring raw character delivery")
+}

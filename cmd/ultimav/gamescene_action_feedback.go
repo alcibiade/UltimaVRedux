@@ -104,6 +104,7 @@ func (g *GameScene) admitTransientActionFeedback(dialog *widgets.MessageDialog, 
 	}
 	g.reconcileTransientActionFeedback(now, false)
 	g.retireExternallyRemovedActionFeedback()
+	g.retireStaleCombatChestFeedback()
 
 	feedback := &transientActionFeedback{
 		dialog: dialog, startedAt: now, phase: transientFeedbackFadingIn,
@@ -125,6 +126,7 @@ func (g *GameScene) updateTransientActionFeedback() {
 	now := g.gameState.ElapsedMs
 	g.reconcileTransientActionFeedback(now, true)
 	removed := g.retireExternallyRemovedActionFeedback()
+	removed = g.retireStaleCombatChestFeedback() || removed
 	if len(g.transientActionFeedback) == 0 {
 		return
 	}
@@ -235,6 +237,7 @@ func (g *GameScene) applyTransientFeedbackLifecycle() bool {
 		}
 	transitioned:
 		if feedback.phase == transientFeedbackFadingOut && feedback.consumedMs >= transientFeedbackLifetimeMs {
+			delete(g.combatChestFeedback, feedback)
 			g.dialogStack.RemoveWidgetInstance(feedback.dialog)
 			feedback.dialog.HideWithoutAnimation()
 			removed = true
@@ -407,6 +410,7 @@ func clampFeedbackCoordinate(value float64, size, minimum, maximum int) float64 
 
 func (g *GameScene) evictTransientActionFeedback(index int) {
 	feedback := g.transientActionFeedback[index]
+	delete(g.combatChestFeedback, feedback)
 	g.dialogStack.RemoveWidgetInstance(feedback.dialog)
 	feedback.dialog.HideWithoutAnimation()
 	copy(g.transientActionFeedback[index:], g.transientActionFeedback[index+1:])
@@ -419,6 +423,7 @@ func (g *GameScene) retireExternallyRemovedActionFeedback() bool {
 	removed := false
 	for _, feedback := range g.transientActionFeedback {
 		if !g.dialogStack.ContainsWidgetInstance(feedback.dialog) {
+			delete(g.combatChestFeedback, feedback)
 			feedback.dialog.HideWithoutAnimation()
 			removed = true
 
@@ -434,6 +439,7 @@ func (g *GameScene) retireExternallyRemovedActionFeedback() bool {
 }
 
 func (g *GameScene) clearTransientActionFeedback() {
+	clear(g.combatChestFeedback)
 	for _, feedback := range g.transientActionFeedback {
 		g.dialogStack.RemoveWidgetInstance(feedback.dialog)
 		feedback.dialog.HideWithoutAnimation()

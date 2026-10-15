@@ -183,6 +183,7 @@ type GameScene struct {
 	journalNotice                    journalNotice
 	journalNoticeSuppressed          bool
 	transientActionFeedback          []*transientActionFeedback
+	combatChestFeedback              map[*transientActionFeedback]combatChestFeedbackScope
 	transientActionFeedbackAt        int64
 	transientActionFeedbackClockSet  bool
 	transientActionFeedbackLayout    transientFeedbackLayoutContext

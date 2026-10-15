@@ -58,11 +58,17 @@ type combatStrikeLine struct {
 
 // CombatImpactEffect coordinates local sprite motion and floating damage text.
 type CombatImpactEffect struct {
-	Feedback     game_state.CombatAttackFeedback
-	Elapsed      float64
-	Fire         bool
-	SpellOutcome game_state.CombatSpellOutcome
-	TargetID     game_state.CombatantID
+	Feedback          game_state.CombatAttackFeedback
+	Elapsed           float64
+	Fire              bool
+	SpellOutcome      game_state.CombatSpellOutcome
+	TargetID          game_state.CombatantID
+	FireInjury        *game_state.CombatFireInjury
+	fireOwner         game_state.CombatFireInjuryOwner
+	fireClockAt       int64
+	fireAdmittedAt    int64
+	fireMovement      bool
+	fireMovementBound bool
 }
 
 func (g *GameScene) showCombatAreaSpellImpact(event game_state.CombatEvent) {
@@ -70,7 +76,7 @@ func (g *GameScene) showCombatAreaSpellImpact(event game_state.CombatEvent) {
 	if result == nil || !result.Disclosed {
 		return
 	}
-	g.combatImpactEffects = append(g.combatImpactEffects, CombatImpactEffect{
+	effect := CombatImpactEffect{
 		Feedback: game_state.CombatAttackFeedback{
 			Attacker: event.Attacker, Target: result.Target, Result: event.Result,
 			HPLost: result.HPLost, Fatal: result.Fatal,
@@ -81,7 +87,13 @@ func (g *GameScene) showCombatAreaSpellImpact(event game_state.CombatEvent) {
 		Fire:         event.Diagnostics.Spell == references.InFlamHur && result.HPLost > 0,
 		SpellOutcome: result.Outcome,
 		TargetID:     result.CombatantID,
-	})
+	}
+	if effect.Fire {
+		injury := g.gameState.CombatSpellFireInjury(*result)
+		g.admitCombatFireImpact(effect, injury)
+	} else {
+		g.combatImpactEffects = append(g.combatImpactEffects, effect)
+	}
 	// Retain the cone's successful arrival effect, owned by the same result as
 	// its label/tint. A processed zero-damage square is not a successful impact.
 	if event.Diagnostics.Spell != references.InVasPorYlem &&
@@ -135,13 +147,17 @@ func (g *GameScene) captureCombatImpacts(resolve func() bool) (bool, []game_stat
 }
 
 func (g *GameScene) showCombatFireImpact(event game_state.CombatEvent) {
-	g.combatImpactEffects = append(g.combatImpactEffects, CombatImpactEffect{
+	if event.FireInjury == nil {
+		return
+	}
+	injury := *event.FireInjury
+	g.admitCombatFireImpact(CombatImpactEffect{
 		Feedback: game_state.CombatAttackFeedback{
-			Attacker: event.Target,
-			Target:   event.Target,
+			Attacker: injury.Target,
+			Target:   injury.Target,
 			Result:   game_state.CombatFeedbackDamage,
-			HPLost:   event.HPLost,
-			Fatal:    event.Fatal,
+			HPLost:   injury.HPLost,
+			Fatal:    injury.Fatal,
 			Presentation: game_state.CombatAttackPresentation{
 				Delivery: game_state.CombatAttackDeliveryEnvironmental,
 				Source:   references.NoEquipment,
@@ -149,7 +165,7 @@ func (g *GameScene) showCombatFireImpact(event game_state.CombatEvent) {
 		},
 		Elapsed: 0,
 		Fire:    true,
-	})
+	}, injury)
 }
 
 func compareCoordinate(target, attacker references.Coordinate) int {
@@ -165,6 +181,7 @@ func compareCoordinate(target, attacker references.Coordinate) int {
 
 func (g *GameScene) updateCombatImpactEffects(deltaSeconds float64) {
 	if !g.gameState.IsInCombat() {
+		clear(g.combatImpactEffects)
 		g.combatImpactEffects = g.combatImpactEffects[:0]
 
 		return
@@ -173,13 +190,27 @@ func (g *GameScene) updateCombatImpactEffects(deltaSeconds float64) {
 	writeIndex := 0
 	for i := range g.combatImpactEffects {
 		effect := &g.combatImpactEffects[i]
-		effect.Elapsed += deltaSeconds
-		if effect.Elapsed >= combatImpactDurationSeconds || !g.combatAreaImpactStillDisclosed(*effect) {
+		if effect.FireInjury != nil {
+			if _, disclosed := g.gameState.ProjectCombatFireInjury(*effect.FireInjury, effect.fireOwner); !disclosed {
+				continue
+			}
+			effect.Elapsed = float64(max(g.gameState.ElapsedMs-effect.fireClockAt, 0)) / 1000
+			if effect.fireMovement {
+				effect.Elapsed = 0
+			}
+		} else {
+			effect.Elapsed += deltaSeconds
+			if !g.combatAreaImpactStillDisclosed(*effect) {
+				continue
+			}
+		}
+		if effect.Elapsed >= combatImpactDurationSeconds {
 			continue
 		}
 		g.combatImpactEffects[writeIndex] = *effect
 		writeIndex++
 	}
+	clear(g.combatImpactEffects[writeIndex:])
 	g.combatImpactEffects = g.combatImpactEffects[:writeIndex]
 }
 
@@ -194,6 +225,9 @@ func (g *GameScene) combatImpactEntityOffset(isPartyMember bool, index, slot int
 	for i := len(g.combatImpactEffects) - 1; i >= 0; i-- {
 		effect := g.combatImpactEffects[i]
 		feedback := effect.Feedback
+		if effect.Fire {
+			continue
+		}
 		if feedback.Target.IsPartyMember == isPartyMember && feedback.Target.Index == index &&
 			(!isPartyMember || feedback.Target.Slot == slot) &&
 			feedback.Result == game_state.CombatFeedbackDamage && effect.Elapsed < combatJoltDurationSeconds {
@@ -236,6 +270,7 @@ func (g *GameScene) combatFireImpactAlpha(isPartyMember bool, index, slot int) f
 		effect := g.combatImpactEffects[effectIndex]
 		target := effect.Feedback.Target
 		if effect.Fire && effect.Elapsed < combatFireTintDurationSeconds &&
+			g.combatFireEffectVisible(effect) &&
 			target.IsPartyMember == isPartyMember && target.Index == index &&
 			(!isPartyMember || target.Slot == slot) {
 			return combatFireTintMaximumAlpha * (1 - effect.Elapsed/combatFireTintDurationSeconds)
@@ -371,6 +406,9 @@ func (g *GameScene) drawCombatImpactEffects(screen *ebiten.Image) {
 	}
 
 	for effectIndex := range g.combatImpactEffects {
+		if !g.combatFireEffectVisible(g.combatImpactEffects[effectIndex]) {
+			continue
+		}
 		lane := combatImpactLane(g.combatImpactEffects, effectIndex)
 		g.drawCombatDamageIndicator(screen, &g.combatImpactEffects[effectIndex], lane)
 	}
@@ -433,13 +471,12 @@ func (g *GameScene) drawCombatDamageIndicator(
 	easeOut := 1 - math.Pow(1-progress, combatDamageEaseExponent)
 	rise := easeOut * combatDamageRisePixels
 
-	targetPos := effect.Feedback.Target.Position
-	screenX, screenY := combatPositionToSourcePixels(targetPos)
+	screenX, screenY := g.combatImpactLabelPosition(*effect)
 
 	mapOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct
 	sprites.ApplyDrawOptionsFromPercentsForWholeScreen(mapOptions, g.mapImage, g.mapScreenPlacement())
 	mapOptions.GeoM.Translate(g.screenShakeOffsetX, g.screenShakeOffsetY)
-	textX, textY := mapOptions.GeoM.Apply(float64(screenX+combatTileCenterPixels), float64(screenY)-rise)
+	textX, textY := mapOptions.GeoM.Apply(screenX+combatTileCenterPixels, screenY-rise)
 
 	label, textBaseColor := combatImpactText(*effect)
 	textWidth, textHeight := g.combatDamageOutput.Font.MeasureString(label)

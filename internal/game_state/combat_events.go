@@ -259,7 +259,10 @@ type CombatEvent struct {
 	Diagnostics   CombatDiagnostics
 	// SpellTarget is the authoritative area-spell outcome, including disclosure
 	// captured before damage/death can retire the exact target entry.
-	SpellTarget             *CombatAreaSpellTargetResult
+	SpellTarget *CombatAreaSpellTargetResult
+	// FireInjury contains detached pre-damage disclosure and scalar lifetime IDs,
+	// never live combat/provider pointers. Typed Flame Wind keeps its SpellTarget owner.
+	FireInjury              *CombatFireInjury
 	Pickup                  CombatPickupEvent
 	LootReveal              CombatLootReveal
 	ChestTrap               CombatChestTrapResult

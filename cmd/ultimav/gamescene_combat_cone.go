@@ -216,6 +216,9 @@ func (g *GameScene) drawCombatDirectionIndicators(screen *ebiten.Image) {
 		casterIdx = combat.ConeTargeting.Request.CasterIdx
 		selectedDirection = combat.ConeTargeting.Direction
 	case combat.AdjacentSpellTargeting != nil:
+		if game_state.IsCombatDoorSpell(combat.AdjacentSpellTargeting.Request.Spell) {
+			return
+		}
 		origin = combat.AdjacentSpellTargeting.Origin
 		casterIdx = combat.AdjacentSpellTargeting.Request.CasterIdx
 		selectedDirection = combat.AdjacentSpellTargeting.Direction
@@ -241,6 +244,10 @@ func (g *GameScene) drawCombatDirectionIndicators(screen *ebiten.Image) {
 }
 
 func (g *GameScene) drawCombatAdjacentSpellTargetPreview(screen *ebiten.Image) {
+	if combat := g.gameState.CombatScene; combat != nil && combat.AdjacentSpellTargeting != nil &&
+		game_state.IsCombatDoorSpell(combat.AdjacentSpellTargeting.Request.Spell) {
+		return
+	}
 	target, valid, active := g.gameState.CombatAdjacentSpellPreview()
 	if !active || g.gameState.CombatScene.AdjacentSpellTargeting.Direction == references.NoneDirection {
 		return
@@ -257,6 +264,19 @@ func (g *GameScene) drawCombatAdjacentSpellTargetPreview(screen *ebiten.Image) {
 		g.getElapsedMs(),
 		color,
 	)
+}
+
+// combatDoorSpellCursor supplies a square to the final aim layer. It shares the
+// full-size white attack reticle; eligibility never changes its geometry/color.
+func (g *GameScene) combatDoorSpellCursor() (references.Position, bool) {
+	combat := g.gameState.CombatScene
+	if combat == nil || combat.AdjacentSpellTargeting == nil ||
+		!game_state.IsCombatDoorSpell(combat.AdjacentSpellTargeting.Request.Spell) {
+		return references.Position{}, false
+	}
+	target, _, active := g.gameState.CombatAdjacentSpellPreview()
+
+	return target, active
 }
 
 type combatConeArrowGeometry struct {

@@ -193,3 +193,26 @@ func pressArmsTradeKey(dialog *ArmsTradeDialog, keyboard *input.Keyboard, key eb
 	keyboard.SimulateKeyPress(key)
 	dialog.Update()
 }
+
+func TestArmsTradeDialogPhysicalFixedAndZeroMaximum(t *testing.T) {
+	for _, index := range []int{0, 1} {
+		quote := testArmsShopState().BuyQuotes[index]
+		quote.MaxQuantity = 0
+		t.Run(quote.Equipment.String(), func(t *testing.T) {
+			keys := newPhysicalQuantityKeys()
+			dialog := newTestArmsTradeDialog(keys.keyboard, ArmsTradeIntent{Mode: ArmsShopBuy, BuyQuote: quote})
+			keys.held[ebiten.KeyRight] = true
+			for range 60 {
+				keys.tick(dialog)
+			}
+			require.Equal(t, uint16(1), dialog.GetQuantity())
+			require.False(t, dialog.HasPendingRequest())
+			keys.release(dialog)
+			keys.held[ebiten.KeyEnter] = true
+			keys.tick(dialog)
+			request, ok := dialog.ConsumePendingRequest()
+			require.True(t, ok, "zero maximum still submits the original one-item attempt")
+			require.Equal(t, game_state.ArmsBuyRequest{Equipment: quote.Equipment, Quantity: 1}, request.Buy)
+		})
+	}
+}

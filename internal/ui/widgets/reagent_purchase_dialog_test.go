@@ -169,3 +169,26 @@ func pressReagentPurchaseKey(dialog *ReagentPurchaseDialog, keyboard *input.Keyb
 	keyboard.SimulateKeyPress(key)
 	dialog.Update()
 }
+
+func TestReagentPurchaseDialogPhysicalMaximumRetainsPaidOverflowView(t *testing.T) {
+	keys := newPhysicalQuantityKeys()
+	quote := testReagentShopState().Offers[0]
+	dialog := NewReagentPurchaseDialog(ReagentPurchaseDialogConfig{Keyboard: keys.keyboard, Quote: quote})
+	keys.held[ebiten.KeyM] = true
+	keys.tick(dialog)
+	maximum := quote.ApprovalViews[len(quote.ApprovalViews)-1]
+	require.Equal(t, maximum, dialog.GetApprovalView())
+	require.True(t, maximum.PaidOverflow)
+	keys.release(dialog)
+	keys.held[ebiten.KeyRight] = true
+	for range 60 {
+		keys.tick(dialog)
+	}
+	require.Equal(t, maximum, dialog.GetApprovalView(), "held input cannot create an unsupplied approval view")
+	keys.release(dialog)
+	keys.held[ebiten.KeyEnter] = true
+	keys.tick(dialog)
+	request, ok := dialog.ConsumePendingPurchaseRequest()
+	require.True(t, ok)
+	require.Equal(t, game_state.ReagentPurchaseRequest{Reagent: quote.Reagent, BundleCount: quote.MaxBundles}, request)
+}

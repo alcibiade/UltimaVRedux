@@ -200,6 +200,17 @@ GameScene timed overlays instead use `WithExternallyManagedDuration`. `OverlayDi
 
 Non-blocking action feedback has separate GameScene ownership. The owner retains stable exact instances, reconciles protected lifecycle and movement before the stack's one non-blocking update, and promptly retires an instance removed elsewhere. Capacity eviction, expiry, scene replacement, and disposal remove only owned feedback and tolerate idempotent cleanup.
 
+Combat chest contents have one scoped handoff: just before their modal is pushed,
+retire surviving successful-Jimmy cards captured for the same combat instance,
+encounter ID, chest position and non-reused object lifetime ID. Do not clear all
+feedback or remove by text/type/slot. Co-located chests are separate owners.
+Other cards and persistent history survive. Already expired/evicted handles are
+harmless. Open removes its chest before admission, so only its exact pending reveal
+snapshot bridges that interval; cancellation retires the same captured handles.
+Removed owners without that pending snapshot (including empty Open results) retire
+on reconciliation, even beneath a modal. Identical readmission cannot inherit them.
+See [combat loot feedback](GAME_UI_INTEGRATION.md#combat-loot-feedback).
+
 ## Event Workflow Pattern
 
 ```go
@@ -231,6 +242,14 @@ Do not use `BlockInput` on feedback. Do not start an unrelated workflow and assu
 ## Input Debouncing
 
 Dialog transitions must prevent the key that submitted one state from immediately dismissing the next. Use `Keyboard.PrepareForTransition`, advance release state with the keyboard acceptance methods, and accept only a fresh press. Linear conversation and event-queue helpers contain current examples.
+
+The five [merchant quantity forms](WIDGET_COMPONENTS.md#merchant-quantity-controls)
+also listen for top-modal focus changes. Cover/return/removal resets horizontal
+repeat and suppresses held quantity and confirmation keys even when the covered
+widget received no Update. Missing updates alone are not evidence of release.
+The scene's shared keyboard suspension protects window-focus return. An Enter
+pressed during an adjustment cannot become a delayed purchase after the arrow
+releases; dismissal cannot leak that hold into gameplay or the next modal.
 
 Atlas note editors keep the parent mounted and frozen. Only the top child accepts
 text; successful commit or cancellation removes that exact child and release-gates

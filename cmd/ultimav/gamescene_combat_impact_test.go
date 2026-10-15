@@ -302,17 +302,9 @@ func TestCombatDamageAlpha_FadesOnlyNearEnd(t *testing.T) {
 }
 
 func TestCombatFireImpactTintIsBriefAndTargeted(t *testing.T) {
-	g := &GameScene{}
-	g.showCombatFireImpact(game_state.CombatEvent{
-		Kind: game_state.CombatEventFieldTriggered,
-		Target: game_state.CombatFeedbackEntity{
-			IsPartyMember: true,
-			Index:         2,
-			Position:      references.Position{X: 4, Y: 5},
-		},
-		HPLost:    7,
-		FieldKind: game_state.CombatFieldFire,
-	})
+	feedback := newTestCombatFeedback(game_state.CombatFeedbackDamage)
+	feedback.Presentation.Delivery = game_state.CombatAttackDeliveryEnvironmental
+	g := &GameScene{combatImpactEffects: []CombatImpactEffect{{Feedback: feedback, Fire: true}}}
 
 	assert.Equal(t, combatFireTintMaximumAlpha, g.combatFireImpactAlpha(true, 2, 0))
 	assert.Equal(t, game_state.CombatAttackDeliveryEnvironmental,
@@ -325,16 +317,8 @@ func TestCombatFireImpactTintIsBriefAndTargeted(t *testing.T) {
 }
 
 func TestCombatFireImpactUsesFloatingDamageAmount(t *testing.T) {
-	g := &GameScene{}
-	g.showCombatFireImpact(game_state.CombatEvent{
-		Target: game_state.CombatFeedbackEntity{
-			IsPartyMember: true,
-			Index:         2,
-			Position:      references.Position{X: 4, Y: 5},
-		},
-		HPLost: 7,
+	label, _ := combatImpactText(CombatImpactEffect{
+		Feedback: newTestCombatFeedback(game_state.CombatFeedbackDamage), Fire: true,
 	})
-
-	label, _ := combatFeedbackText(g.combatImpactEffects[0].Feedback)
 	assert.Equal(t, "-7", label)
 }

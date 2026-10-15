@@ -130,6 +130,11 @@ Common event-queue helpers in `gamescene_dialog_helpers.go` return sequence modi
 
 Rapid feedback calls remain independently owned and never block gameplay. Fitting cards retain complete content and visible gaps; an oversized newest singleton keeps its beginning visible and clips at the lower feedback boundary. Resize and map-mode changes remeasure and retarget the live stack without refreshing lifetime. Scene replacement and disposal remove every retained exact instance.
 
+A successful combat chest Jimmy card can retire earlier at its matching contents
+modal's admission or when its object lifetime ends without a pending reveal;
+[combat loot feedback](#combat-loot-feedback) defines that exact-handle handoff
+without clearing other cards or history.
+
 ## Smooth Surface Movement
 
 `Gameplay.Presentation.SmoothSurfaceMovement` changes only the camera projection after authoritative movement and synchronous completion. Walking, horses, carpets, manual skiff movement, and furled-frigate rowing use the configured ordinary duration and curve; only horses and carpets apply the 25-percent faster presentation factor.
@@ -314,6 +319,32 @@ and Get order. Terrain concealment applies to both the pile and preview.
 Trap consequences appear above the discovery list and in the battle report.
 The report records each discovery at the same reveal cadence, explicitly as an
 item on the ground; an empty chest is reported without implying an acquisition.
+
+Successful combat chest Jimmy captures every newly admitted, still-surviving
+action-feedback handle from that synchronous action. The association retains the
+exact combat instance, encounter ID, selected chest position and non-reused object
+lifetime ID; it is not inferred from message text, widget type or a reusable object
+slot. Jimmy selects the last matching chest while Open selects the first, so
+co-located chests retain independent feedback. Immediately before pushing the matching contents
+modal, its workflow retires only those captured cards. They cannot reappear after
+acknowledgement, and unrelated cards, other chest lifetimes and transcript/report
+history retain their ordinary ownership. Open returns the removed chest's detached
+identity. A pending reveal retains that exact snapshot until modal admission;
+object absence alone must not retire its card during this handoff. Empty Open
+results create no contents modal and leave no pending reveal: feedback for the
+removed owner retires on reconciliation. Door Jimmy, failed disarms and
+known-safe refusals do not acquire this successful-chest association.
+
+Expiry, capacity eviction, external removal and scene cleanup forget the exact
+handle. Removed objects without a pending matching reveal and ended/replaced
+encounters retire stale associations even while another modal pauses ordinary
+feedback lifetime. Readmission assigns a fresh lifetime ID even for identical
+contents at the same position and original slot; repeated cleanup cannot remove
+the replacement's card. Pending-reveal cancellation also retires its captured
+cards. This changes presentation only, leaving
+keys, trap/loot RNG, action completion and contents acknowledgement with their
+existing owners. The scope and production Jimmy-to-Open handoff are exercised in
+`cmd/ultimav/gamescene_combat_chest_feedback_test.go`.
 
 Combat Get publishes one `CombatEventPickup` with a detached actor name, target
 position, item identity, and actual post-cap quantity. The full-sized **Battle

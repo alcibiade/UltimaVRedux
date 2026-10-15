@@ -45,6 +45,7 @@ type GuildPurchaseDialogConfig struct {
 
 // GuildPurchaseDialog selects a bounded bundle count and emits one authoritative request.
 type GuildPurchaseDialog struct {
+	quantityInput
 	keyboard    *input.Keyboard
 	quote       game_state.GuildOfferQuote
 	pitch       string
@@ -81,6 +82,8 @@ func NewGuildPurchaseDialog(config GuildPurchaseDialogConfig) *GuildPurchaseDial
 	}
 	var emptyBounds image.Rectangle
 	dialog := &GuildPurchaseDialog{
+		quantityInput: newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld,
+			ebiten.KeyM, ebiten.KeyUp, ebiten.KeyDown),
 		keyboard:    config.Keyboard,
 		quote:       config.Quote,
 		pitch:       config.Pitch,
@@ -156,7 +159,7 @@ func (d *GuildPurchaseDialog) Update() {
 	d.ensureLayout()
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		d.cancelled = true
-		d.dismissed = true
+		d.Dismiss()
 
 		return
 	}
@@ -173,30 +176,25 @@ func (d *GuildPurchaseDialog) Update() {
 			BundleCount: d.bundleCount,
 		}
 		d.pending = &request
-		d.dismissed = true
+		d.Dismiss()
 	}
 }
 
 func (d *GuildPurchaseDialog) handleQuantityInput() bool {
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyM) {
+	key, owned := d.pollQuantityInput()
+	if key == nil {
+		return owned
+	}
+	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
+	case ebiten.KeyM:
 		d.setBundleCount(d.quote.MaxBundles)
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyUp) {
+	case ebiten.KeyLeft, ebiten.KeyUp:
 		d.setBundleCount(max(uint16(1), d.bundleCount-1))
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyDown) {
+	case ebiten.KeyRight, ebiten.KeyDown:
 		d.setBundleCount(min(d.quote.MaxBundles, d.bundleCount+1))
-
-		return true
 	}
 
-	return false
+	return owned
 }
 
 // HasPendingPurchaseRequest reports whether confirmation emitted an unconsumed request.
@@ -276,6 +274,7 @@ func (d *GuildPurchaseDialog) IsVisible() bool {
 
 // Dismiss closes the modal without emitting a request.
 func (d *GuildPurchaseDialog) Dismiss() {
+	d.onDialogFocusChanged(false)
 	d.dismissed = true
 }
 

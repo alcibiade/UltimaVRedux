@@ -330,6 +330,10 @@ chest safe. Dungeon An Sanct opens/disarms current-or-ahead closed chest and
 retires closed-chest knowledge. In overlapping combat piles, Search/Jimmy/
 An Sanct select the last matching slot; Open selects the first and checks that
 slot's actual state. This is not a redesigned pile selection policy.
+Redux's successful combat Jimmy result and Open result carry the selected chest's
+detached lifetime identity (COMBAT-0010). Open retains it after removal so its
+contents summary can retire only that chest's disarm feedback, not another chest
+at the same square or an identical replacement using the same original slot.
 
 **Implementation:** `internal/game_state/action_jimmy.go`, `internal/game_state/action_open.go`
 **Tests:** `internal/game_state/combat_chest_assessment_test.go`

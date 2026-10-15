@@ -23,6 +23,9 @@ func (g *GameScene) ScenarioRunsAllowed() bool {
 
 // PrepareForSceneReplacement stops live playback before the candidate is activated.
 func (g *GameScene) PrepareForSceneReplacement() {
+	g.clearCombatMovement()
+	clear(g.combatImpactEffects)
+	g.combatImpactEffects = g.combatImpactEffects[:0]
 	g.ResetTransientCommandInput()
 	g.clearDungeonInjury()
 	g.clearDungeonFieldDispels()
@@ -83,6 +86,9 @@ func (g *GameScene) Dispose() {
 		}
 		g.gameState.EventQueueManager.Shutdown()
 	}
+	g.clearCombatMovement()
+	clear(g.combatImpactEffects)
+	g.combatImpactEffects = g.combatImpactEffects[:0]
 	g.clearDungeonFieldDispels()
 	g.clearActorAnimationClocks()
 	g.clearTimedOverlay()

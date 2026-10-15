@@ -76,6 +76,10 @@ type CombatTemporalEffects struct {
 // TurnQueueEntry pairs a combatant reference with turn-specific countdown state.
 // The queue does NOT duplicate stats — it reads them via CombatantProvider.
 type TurnQueueEntry struct {
+	// lifetimeID changes on registration/replacement, never on dispatch or death.
+	// It lets detached results reject a reused identity without retaining providers.
+	lifetimeID uint64
+
 	// Combatant is the PC or monster this entry refers to.
 	Combatant CombatantProvider
 
@@ -139,6 +143,8 @@ const actionsPerTimeAdvance = 10
 // See ref:COMBAT-0002.
 type CombatTurnQueue struct {
 	entries []*TurnQueueEntry
+	// Monotonic within this queue, including after removal of retired entries.
+	nextEntryLifetimeID uint64
 
 	// actionCount tracks total actions taken. Every actionsPerTimeAdvance actions,
 	// the caller should advance game time by 1 unit (6 seconds in original).
@@ -154,9 +160,10 @@ type CombatTurnQueue struct {
 // NewCombatTurnQueue creates a new empty turn queue.
 func NewCombatTurnQueue() *CombatTurnQueue {
 	return &CombatTurnQueue{
-		entries:      make([]*TurnQueueEntry, 0),
-		actionCount:  0,
-		currentIndex: 0,
+		entries:             make([]*TurnQueueEntry, 0),
+		actionCount:         0,
+		currentIndex:        0,
+		nextEntryLifetimeID: 0,
 	}
 }
 
@@ -218,7 +225,9 @@ func (q *CombatTurnQueue) addCombatant(
 		countdown = *countdownOverride
 	}
 
+	q.nextEntryLifetimeID++
 	entry := &TurnQueueEntry{
+		lifetimeID:         q.nextEntryLifetimeID,
 		Combatant:          combatant,
 		EntityIndex:        entityIndex,
 		Slot:               slot,
@@ -318,6 +327,8 @@ func (q *CombatTurnQueue) ReplaceCombatant(identity CombatTurnIdentity, replacem
 	if entry == nil {
 		panic("CombatTurnQueue.ReplaceCombatant: missing queue entry")
 	}
+	q.nextEntryLifetimeID++
+	entry.lifetimeID = q.nextEntryLifetimeID
 	entry.Combatant = combatant
 	entry.EntityIndex = replacement.EntityIndex
 	entry.Slot = replacement.Slot

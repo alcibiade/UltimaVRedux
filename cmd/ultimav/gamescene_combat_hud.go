@@ -139,6 +139,13 @@ func (hud *CombatHUD) addEvent(event game_state.CombatEvent) int {
 }
 
 func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
+	if event.FireInjury != nil {
+		injury := *event.FireInjury
+		event.FireInjury = &injury
+	}
+	if event.Kind == game_state.CombatEventMove {
+		g.closeCombatFireMovementAdmission()
+	}
 	g.observeCombatPossessionAllegiance(event)
 	if event.Kind == game_state.CombatEventPickup && g.provisionChanges.state == g.gameState &&
 		event.Pickup.Result.ItemType == references.ItemTypeProvision {
@@ -184,6 +191,11 @@ func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
 		disclosure.Target.Disclosed = false
 		disclosure.DetailsDisclosed = false
 	}
+	if event.FireInjury != nil && !event.FireInjury.Disclosed {
+		disclosure.Target.Name = combatUnknownEntityLabel
+		disclosure.Target.Disclosed = false
+		disclosure.DetailsDisclosed = false
+	}
 	if slot := g.combatHUD.addEvent(event); slot >= 0 {
 		g.combatHUD.identities[slot] = disclosure
 	}
@@ -200,9 +212,7 @@ func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
 	if event.Kind == game_state.CombatEventFieldDispelled {
 		g.showCombatFieldDispelEffect(event)
 	}
-	if ((event.Kind == game_state.CombatEventFieldTriggered && event.FieldKind == game_state.CombatFieldFire) ||
-		(event.Kind == game_state.CombatEventSpell && event.Diagnostics.Spell == references.InFlamHur && event.SpellTarget == nil)) &&
-		event.HPLost > 0 {
+	if event.FireInjury != nil && event.SpellTarget == nil {
 		g.showCombatFireImpact(event)
 	}
 }

@@ -124,6 +124,8 @@ func TestCombatPileDisplayUsesLowestOrdinarySlotWithoutChangingObjectAt(t *testi
 	state.CombatScene.insertObjectByOriginalSlot(chest)
 	selected, found := state.CombatScene.ObjectAt(position)
 	require.True(t, found)
+	require.NotZero(t, selected.LifetimeID())
+	potion.lifetimeID = selected.LifetimeID() // Admission supplies the encounter-local lifetime.
 	assert.Equal(t, potion, selected, "existing action lookup is not display authority")
 	for _, elapsed := range []int64{0, 999, 1000, 2000, 60000} {
 		state.ElapsedMs = elapsed

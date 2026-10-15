@@ -249,6 +249,8 @@ type CombatState struct {
 	// objects contains encounter-local chests and loose treasure. It is discarded
 	// with CombatState and never shares ownership with world ItemStacksMap entries.
 	objects []CombatObject
+	// lastObjectID is encounter-local and never resets when objects are removed.
+	lastObjectID CombatObjectID
 	// Collection accounting is independent of the presentation's bounded history.
 	collectedItems []CombatCollectedItem
 	// fields contains encounter-local magical fields in original creation order.
