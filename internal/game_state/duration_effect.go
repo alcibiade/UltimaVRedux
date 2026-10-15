@@ -90,11 +90,15 @@ type DurationEffectOperationResult struct {
 
 // setDurationEffect activates or refreshes one effect, replacing any other effect.
 func (gs *GameState) setDurationEffect(effectType DurationEffectType, turns int) bool {
+	wasTimeStopped := gs.HasActiveDurationEffect(DurationEffectTimeStop)
 	gs.CrownState = ToggleItemState{}
 	gs.ActiveDurationEffect = DurationEffect{
 		EffectType:       effectType,
 		TurnsRemaining:   turns,
 		IsToggleItemOnly: false, // Spells/scrolls are not toggle items
+	}
+	if wasTimeStopped != gs.HasActiveDurationEffect(DurationEffectTimeStop) {
+		gs.SystemCallbacks.Screen.UpdateDisplay()
 	}
 
 	return true
@@ -102,10 +106,14 @@ func (gs *GameState) setDurationEffect(effectType DurationEffectType, turns int)
 
 // ClearDurationEffect removes the active effect.
 func (gs *GameState) ClearDurationEffect() {
+	wasTimeStopped := gs.HasActiveDurationEffect(DurationEffectTimeStop)
 	gs.ActiveDurationEffect = DurationEffect{
 		EffectType:       DurationEffectNone,
 		TurnsRemaining:   0,
 		IsToggleItemOnly: false,
+	}
+	if wasTimeStopped {
+		gs.SystemCallbacks.Screen.UpdateDisplay()
 	}
 }
 
@@ -177,6 +185,7 @@ func (gs *GameState) ActivateDebugDurationEffect(
 		return result, fmt.Errorf("%w: spell effects changed after review", ErrInvalidDurationEffectDebugOperation)
 	}
 	var turns int
+	//nolint:exhaustive // Debug activation intentionally supports only Light and Time Stop scroll effects.
 	switch effectType {
 	case DurationEffectLight:
 		turns = gs.GameReferences.InventoryItemReferences.GetScrollEffectDuration(references.ScrollVasLor)
@@ -186,10 +195,9 @@ func (gs *GameState) ActivateDebugDurationEffect(
 		return result, fmt.Errorf("%w: unsupported effect %q", ErrInvalidDurationEffectDebugOperation, effectType)
 	}
 
-	switch {
-	case effectType == DurationEffectLight:
+	if effectType == DurationEffectLight {
 		gs.setDebugMagicLightMinutes(turns)
-	default:
+	} else {
 		gs.setDurationEffect(effectType, turns)
 	}
 	result.After = gs.GetDurationEffectsStatus()

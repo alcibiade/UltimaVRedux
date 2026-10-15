@@ -62,6 +62,7 @@ type documentMsg struct {
 	err          error
 	summary      string
 	reload       bool
+	calibration  *calibrationDraft
 }
 type tickMsg time.Time
 

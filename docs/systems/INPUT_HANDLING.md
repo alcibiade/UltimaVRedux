@@ -20,12 +20,18 @@ Search, tab changes, and loss of top-widget focus do not release the session's
 
 Outside that session, each frame follows this ownership order:
 
-1. Clear released-key consumption and update event queues, effects, and non-blocking UI.
+1. Capture one detached physical-key edge sample before any owner advances;
+   after reader/shortcut precedence, capture eligible waiting combat intent.
+   Then update event queues, effects, and non-blocking UI.
 2. Let an active auto-open animation or rising-moongate lock own the frame.
-3. Let the top modal dialog consume input exclusively, then honor an explicit workflow input block.
+3. Let the top modal dialog consume input exclusively. Admit a sleeping-only
+   camping Space request after rechecking its exact owner, then honor the workflow
+   block for all ordinary commands.
 4. Present pending ordinary battle summaries after exit/recovery workflows finish;
    then resolve pending overworld/dungeon encounters, combat turn transitions, and NPC auto-talk before player input.
-5. Update moongate transition state, then, if `secondaryKeyState != PrimaryInput`, route only to the current map's secondary handler and return.
+5. Accept a still-valid pending combat verb through its normal handler before
+   ordinary movement; if `secondaryKeyState != PrimaryInput`, route only to the
+   current map's secondary handler and return.
 6. Otherwise read and debounce a bound key, intercept `/` (also shifted `/`, `?`)
    Help, F4 last-battle review, and global Shift+J journal routing, process active-player number keys, and call the large-, small-,
    dungeon-, or combat-map primary handler.
@@ -52,6 +58,78 @@ rejection, and the production Attack, Cast, Get, Hole Up, Ignite, Jimmy, Klimb,
 Look, Mix, New Order, Open, Quit, Ready, Search, Use, View, and Yell workflows.
 
 ## Input States
+
+### Exploration Pass repeat
+
+Space passes immediately, then repeats after 300 ms and every 120 ms while held
+at idle exploration input: towns, overworld, Underworld and first-person dungeon
+corridors. Each due key follows the same ordinary map handler and completion
+owner as a single press. Combat never repeats Pass. The injected scene elapsed
+clock controls cadence; one Update emits at most one Pass, with no backlog after
+a hitch. Release stops immediately. Readers, modals, blocking workflows, focus
+loss and location/floor changes cancel the hold and require a fresh press.
+Space cannot bleed from a repeat into another prompt or command owner.
+
+### Sleeping Space
+
+Outdoor and dungeon Hole Up retain their workflow input block. Only a fresh
+unmodified Space edge sampled during logical sleeping can request acceleration;
+setup/Bard holds are suppressed through release. The post-queue check rejects a
+request if the same Update completed or interrupted sleep. The passive indication
+changes from **Space: Speed up** to **Resting — Fast**, then disappears before
+results/Wanderer/ambush interaction. Additional fast-sleep presses are consumed,
+and raw any-key waits keep their release-before-press contract. No command cycle,
+calendar charge or RNG draw belongs to this input intent. See
+[camping acceleration](CAMPING_SYSTEM.md#on-demand-sleeping-acceleration).
+
+### One pending solo combat verb
+
+While the selected ordinary party character waits for intervening enemy turns,
+fresh **G/O/J/P/S** may retain one Get/Open/Jimmy/Push/Search verb. Further
+supported edges replace it immediately, even while an earlier key remains held.
+A passive indication says **Pending: Open (Avatar) — waiting for turn; Esc: Clear**.
+It neither reveals enemy information nor pauses their workflows. This initial
+scope excludes all-party mode, controlled monsters, ambiguous clone selection,
+committed player-action presentation, retained targeting, readers and modals.
+Modified shortcuts retain precedence; Shift+J opens Journal and clears intent.
+
+Escape clears without cost. A plain unsupported gameplay letter, Space/Pass or
+Tab/Auto clears with a nonmodal explanation and is consumed through release.
+Directions entered while waiting retain the verb but are suppressed through
+physical release, including cardinal keypad keys and the repeatable movement
+path. Clearing or invalidating the verb does not release an old arrow. With no
+pending intention, unrelated input keeps its existing behavior.
+
+One edge sample precedes wind/queues. Same-sample ties have no chronological
+ordering: Escape wins, then an unsupported action, then the alphabetically first
+supported verb. All losing action edges are consumed. A blocked-entry arrow
+stays early even if that Update finishes the last enemy. At an already-ready
+boundary a fresh direction reaches the installed secondary prompt in the same
+Update, without an extra release-all delay. Normal Escape cancellation and paid
+Space Pass apply after acceptance; the buffer is already empty.
+
+`ProjectSoloCombatInput` reads exact encounter, queue entry and an entry-local
+dispatch generation. Waiting binds to that entry's next generation; ready input
+matches the same generation after actual dispatch. The authoritative queue
+increments it before turn-start rules, including skipped opportunities. Input
+never forecasts countdowns, plans future actions or claims a scheduler review.
+Enemy removal, DEX changes and Time Stop suppression of intervening enemies do
+not expire the selected character's pending opportunity. Death, departure, sleep,
+captivity, possession, ambiguous clone selection, selection/control changes and
+encounter replacement still invalidate; a skipped selected opportunity cannot
+replay on its later recovery. Scene teardown/load and application focus
+loss clear intent and feedback. Production remains runnable without focus:
+sky synchronization, wind/queues, committed automatic-door phases, effects and
+audio service continue on the ordinary update path outside retained reader pauses.
+The keyboard is temporarily masked and raw acknowledgement waits retain a real
+release-before-press requirement across focus return. Animated Message/Overlay
+dialogs continue their presentation without accepting keys; other modal input
+updates remain suspended. Journal and Atlas keep their full gameplay pause.
+These fields and release guards are transient and never saved.
+
+The two combat presentation workflows use a narrow release guard that permits
+handoff over keys already suppressed until physical release. This does not alter
+raw `WaitForAnyKey` or camping release-before-unblock behavior.
 
 ### Traveller's Map
 

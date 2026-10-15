@@ -1,5 +1,3 @@
-// Test helpers for integration testing with real Ultima V data
-// Following patterns established in TESTING.md
 package game_state
 
 import (
@@ -30,13 +28,16 @@ type IntegrationTestBuilder struct {
 
 // NewIntegrationTestBuilder creates a new builder for integration tests
 func NewIntegrationTestBuilder(t *testing.T) *IntegrationTestBuilder {
+	t.Helper()
+
 	return &IntegrationTestBuilder{
-		t:            t,
-		location:     references.BritanniaUnderworld,
-		floor:        references.FloorNumber(0),
-		playerX:      50,
-		playerY:      50,
-		skipIfNoData: true,
+		t:               t,
+		location:        references.BritanniaUnderworld,
+		floor:           references.FloorNumber(0),
+		playerX:         50,
+		playerY:         50,
+		skipIfNoData:    true,
+		systemCallbacks: NewMockSystemCallbacks(t),
 	}
 }
 
@@ -62,7 +63,8 @@ func (b *IntegrationTestBuilder) WithPlayerAt(x, y int) *IntegrationTestBuilder 
 	return b
 }
 
-// WithSystemCallbacks sets up mock system callbacks for testing
+// WithSystemCallbacks installs fresh recording callbacks. Integration fixtures
+// always have valid callbacks, including transition/presentation notifications.
 func (b *IntegrationTestBuilder) WithSystemCallbacks() *IntegrationTestBuilder {
 	b.systemCallbacks = NewMockSystemCallbacks(b.t)
 
@@ -130,12 +132,9 @@ func (b *IntegrationTestBuilder) Build() (*GameState, *MockSystemCallbacks) {
 		Y: references.Coordinate(b.playerY),
 	}
 
-	// Set up mock system callbacks if requested
-	if b.systemCallbacks != nil {
-		b.gameState.SystemCallbacks = b.systemCallbacks.ToSystemCallbacks()
-		// Update environmental systems with proper callbacks
-		b.gameState.SetupEnvironmentalSystemCallbacks()
-	}
+	// Every integration fixture satisfies the runtime's mandatory callback contract.
+	b.gameState.SystemCallbacks = b.systemCallbacks.ToSystemCallbacks()
+	b.gameState.SetupEnvironmentalSystemCallbacks()
 
 	// Set deterministic random seed if specified
 	if b.randomSeed != nil {
@@ -172,9 +171,7 @@ func (b *IntegrationTestBuilder) Build() (*GameState, *MockSystemCallbacks) {
 	b.gameState.DateTime.Minute = 0
 	b.gameState.lastProcessedHour = int(b.gameState.DateTime.Hour)
 	b.gameState.initializeMoongateStage()
-	if b.systemCallbacks != nil {
-		b.systemCallbacks.BindGameState(b.gameState)
-	}
+	b.systemCallbacks.BindGameState(b.gameState)
 
 	b.t.Logf("Integration test initialized: location=%v, floor=%v, player=(%d,%d)",
 		b.location, b.floor, b.playerX, b.playerY)

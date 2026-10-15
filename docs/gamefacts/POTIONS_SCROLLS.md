@@ -45,8 +45,17 @@ retain inventory, location, and the exact encounter/actor/dispatch boundary.
 Combat action completion belongs to the workflow's own committed attempt, not another operation's
 global commit-counter change.
 
+Skull Keys and Pocket Watch are also actionable through this combat picker and
+dispatch route. Keys use the acting PC's adjacent square and consume on final
+direction confirmation under PROV-0006. Watch reads the current time at execution,
+retains its stock, and keeps the owning Use workflow/input open until the display
+is dismissed. Its one committed action is completed only for the original combat
+owner, without an additional surface minute or provision pass; TIME-0005 owns the
+clock rule. Stale precommit selections are free. Replacement owners cannot inherit
+either item's deferred completion, and disposal removes the owned prompts/dialogs.
+
 **Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/action_use.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/combat_use_owner.go`, `cmd/ultimav/gamescene_use.go`
-**Tests:** `internal/game_state/action_use_commits_test.go`, `internal/game_state/cast_use_commit_test.go`, `internal/game_state/action_use_stale_test.go`, `cmd/ultimav/gamescene_use_stale_test.go`
+**Tests:** `internal/game_state/action_use_commits_test.go`, `internal/game_state/cast_use_commit_test.go`, `internal/game_state/action_use_stale_test.go`, `cmd/ultimav/gamescene_use_stale_test.go`, `cmd/ultimav/gamescene_combat_key_watch_test.go`
 
 ### CONSUME-0002
 
@@ -129,6 +138,13 @@ Summon Daemon is unavailable outside combat. These picker restrictions reject
 before expenditure under CONSUME-0001, rather than reproducing original paid
 context failures. Missing a dead recipient is a warning about a permitted
 resurrection attempt, distinct from a combat context restriction.
+
+Once active, the An Tym scroll uses the same **5%**, phase-continuous actor-body
+animation as prepared Time Stop under [SPELL-0004](MAGIC_SPELLS.md#spell-0004).
+This Redux presentation choice does not scale its 20-unit duration, action/calendar
+rules, environmental animation, or feedback timing. The existing activation
+inversion and confirmation keep their ordinary elapsed-time presentation; the
+body clock introduces no new wait, resource payment, or gameplay RNG draw.
 
 **Implementation:** `internal/game_state/action_use.go`, `internal/game_state/combat_summon_spells.go`, `cmd/ultimav/gamescene_use_scroll.go`, `cmd/ultimav/gamescene_combat_invocation_effect.go`
 **Tests:** `cmd/ultimav/gamescene_combat_use_test.go`, `internal/game_state/action_use_scroll_integration_test.go`

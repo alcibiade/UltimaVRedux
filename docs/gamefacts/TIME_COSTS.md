@@ -161,8 +161,17 @@ watch is selected, keeps ownership through dismissal, and adds no second minute
 or surface completion. Cancelling the menu before selection remains free under
 the shared confirmed-use policy.
 
-**Implementation:** `internal/game_state/action_use.go`, `internal/game_state/dungeon_command_cycle.go`
-**Tests:** `cmd/ultimav/gamescene_dungeon_use_test.go`, `cmd/ultimav/gamescene_surface_use_ownership_test.go`
+In combat, Redux exposes the owned watch in Use and reads the time when that
+selection commits, retaining the watch quantity. The same Use workflow owns the
+dismissible display and completes exactly one action for its retained
+encounter/actor/dispatch owner after dismissal. It adds no surface completion,
+provision pass, or independent calendar charge; TIME-0003's combat scheduler
+still owns minute advancement. Menu cancellation and stale precommit selection
+are free. A replaced owner cannot inherit the deferred completion, and workflow
+finalization/disposal removes the owned dialog.
+
+**Implementation:** `internal/game_state/action_use.go`, `internal/game_state/dungeon_command_cycle.go`, `internal/game_state/combat_watch.go`, `internal/game_state/combat_use_owner.go`, `cmd/ultimav/gamescene_use.go`, `cmd/ultimav/gamescene_use_item.go`
+**Tests:** `cmd/ultimav/gamescene_dungeon_use_test.go`, `cmd/ultimav/gamescene_surface_use_ownership_test.go`, `internal/game_state/combat_key_watch_test.go`, `cmd/ultimav/gamescene_combat_key_watch_test.go`
 
 ### TIME-0006
 

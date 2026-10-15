@@ -23,7 +23,7 @@ func TestAutoCalibrationIsConfirmedUndoableAndManualOverrideStaysLocked(t *testi
 	m.autoCalibrationKey(keyEscape)
 	require.False(t, m.doc.Dirty())
 	m.beginAutoCalibration()
-	m.autoCalibrationKey(keyEnter)
+	finish(m, m.autoCalibrationKey(keyEnter))
 	require.Equal(t, audio.CalibrationAuto, m.doc.Recording(id).CalibrationMode())
 	m.setCalibrationTarget("-30")
 	require.Equal(t, -30.0, *m.doc.Recording(id).CalibrationTargetDB)
@@ -50,7 +50,7 @@ func TestAutoCalibrationIsConfirmedUndoableAndManualOverrideStaysLocked(t *testi
 	require.NoError(t, err)
 	require.Equal(t, audio.CalibrationManual, reopened.Recording(id).CalibrationMode())
 	m.beginAutoCalibration()
-	m.autoCalibrationKey(keyEnter)
+	finish(m, m.autoCalibrationKey(keyEnter))
 	require.Equal(t, audio.CalibrationAuto, m.doc.Recording(id).CalibrationMode())
 	require.Equal(t, original.File, m.doc.Recording(id).File)
 }

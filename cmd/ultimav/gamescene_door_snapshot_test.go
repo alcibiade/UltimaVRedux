@@ -39,6 +39,10 @@ func TestDoorPlayerSlotSaveLoadAfterManualAndAutomaticOpening(t *testing.T) {
 			require.NoError(t, err)
 			source, err := NewGameSceneFromSaveSnapshot(configuration, initial)
 			require.NoError(t, err)
+			// The native test window is hidden. Input acceptance belongs to this
+			// fixture's detached focus source, not the maintainer's desktop focus.
+			focused := true
+			source.transientCommandInput.focused = func() bool { return focused }
 			t.Cleanup(source.Dispose)
 			now := time.Unix(1, 0)
 			source.now = func() time.Time { return now }
@@ -49,6 +53,7 @@ func TestDoorPlayerSlotSaveLoadAfterManualAndAutomaticOpening(t *testing.T) {
 			game.ConfigurePlayerSaveRepository(repository, func(c *config.UltimaVConfiguration, snapshot save_snapshot.SaveSnapshot) (Scene, error) {
 				candidate, buildErr := NewGameSceneFromSaveSnapshot(c, snapshot)
 				if buildErr == nil {
+					candidate.transientCommandInput.focused = func() bool { return true }
 					candidate.now = func() time.Time { return now }
 					t.Cleanup(candidate.Dispose)
 				}
@@ -70,6 +75,9 @@ func TestDoorPlayerSlotSaveLoadAfterManualAndAutomaticOpening(t *testing.T) {
 			press(source, ebiten.KeyRight)
 			if automatic {
 				require.True(t, source.autoOpenDoorState.IsActive(), "movement input must start the real orchestration")
+				// Losing focus after commitment rejects new input, but must not
+				// strand the real automatic-door phases or their save restriction.
+				focused = false
 				for frame := 0; source.autoOpenDoorState.IsActive() && frame < 12; frame++ {
 					_, err = game.quickSavePlayerSave()
 					require.ErrorIs(t, err, ErrGameSceneSnapshotNotRepresentable)
@@ -81,6 +89,7 @@ func TestDoorPlayerSlotSaveLoadAfterManualAndAutomaticOpening(t *testing.T) {
 					require.NoError(t, source.Update(game))
 				}
 				require.False(t, source.autoOpenDoorState.IsActive(), "all auto-open phases must really finish")
+				focused = true
 			}
 			require.Equal(t, PrimaryInput, source.secondaryKeyState)
 			require.True(t, source.gameState.MapState.HasTransientDoor())

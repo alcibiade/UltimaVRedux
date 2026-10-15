@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -210,18 +212,8 @@ func TestCombatAttackBracketsDenseComposition(t *testing.T) {
 							}
 						}
 						if aimCenter {
-							left, top, right, bottom := combatReticleBounds(options[4])
-							reference.Clear()
-							for _, target := range []*ebiten.Image{screen, reference} {
-								drawCombatReticle(target, left, top, right, bottom, ucolor.CombatAimEnemyBright)
-							}
-							reference.ReadPixels(wanted)
-							screen.ReadPixels(after)
-							for i := 0; i < len(wanted); i += 4 {
-								if wanted[i+3] != 0 && !bytes.Equal(wanted[i:i+4], after[i:i+4]) {
-									t.Fatalf("reticle lost foreground priority at (%d,%d)", i/4%width, i/4/width)
-								}
-							}
+							drawCombatReticle(screen, options[4], ucolor.CombatAimEnemyBright)
+							assertCombatMarkerPixels(t, screen, options[4], selectedReticleRaster, ucolor.EGAWhite, ucolor.CombatAimEnemyBright, nil)
 						}
 					})
 				}
@@ -239,4 +231,238 @@ func combatFixtureRasterBounds(options *ebiten.DrawImageOptions) image.Rectangle
 		bounds = bounds.Union(image.Rect(int(math.Floor(x)), int(math.Floor(y)), int(math.Ceil(x))+1, int(math.Ceil(y))+1))
 	}
 	return bounds
+}
+
+func newCombatMarkerTestScene(t *testing.T) (*GameScene, game_state.CombatTurnIdentity) {
+	t.Helper()
+	manager := display.GetManager()
+	saved := *manager
+	t.Cleanup(func() { *manager = saved })
+	manager.PublishLogicalSize(1366, 768)
+	scene, actor := setupCombatAutoAttackInputTest(t)
+	// Keep the fixture's sustaining enemy out of the marker sample. Dedicated
+	// dense-neighbor cases cover intentional HP/marker overlap separately.
+	scene.gameState.CombatScene.MonsterManager.ForEachActive(func(_ int, monster *game_state.CombatMonster) {
+		monster.SetPosition(references.Position{X: 10, Y: 0})
+	})
+	scene.gameConfig = scene.gameState.GameConfig
+	scene.spriteSheet = sharedPresentationTestSpriteSheet()
+	scene.mapImage = ebiten.NewImage(304, 208)
+	t.Cleanup(scene.mapImage.Dispose)
+
+	return scene, actor
+}
+
+// Independent source-pixel acceptance stencil: W=opaque frame, B=full backing,
+// C=semantic centre, .=untouched artwork. This deliberately does not call any
+// production geometry helper to construct its expected pixels. Rows 12..17
+// reserve the complete HP/allegiance region; the five disconnected components
+// include black end caps, concave joins and open gaps between their backing.
+const selectedReticleRaster = `..................
+.BBBBB......BBBBB.
+.BWWWB......BWWWB.
+.BWWWB......BWWWB.
+.BWWBB..BBB.BBWWB.
+.BBBB..BBCBB.BBBB.
+.......BCCCB......
+.BBBB..BBCBB.BBBB.
+.BWWBB..BBB.BBWWB.
+.BWWWB......BWWWB.
+.BWWWB......BWWWB.
+.BBBBB......BBBBB.
+..................
+..................
+..................
+..................
+..................
+..................`
+
+const wakeReticleRaster = `..................
+..................
+..................
+..................
+........BBB.......
+.......BBCBB......
+.......BCCCB......
+.......BBCBB......
+........BBB.......
+..................
+..................
+..................
+..................
+..................
+..................
+..................
+..................
+..................`
+
+// A nil before buffer checks only marker pixels in a production composition.
+// Supplying the pre-draw raster also checks every unmarked pixel, including
+// viewport guards, open sprite interior, HP and neighboring cells.
+func assertCombatMarkerPixels(
+	t *testing.T, screen *ebiten.Image, options *ebiten.DrawImageOptions,
+	stencil string, frameColor, centerColor color.Color, before []byte,
+) {
+	t.Helper()
+	bounds := screen.Bounds()
+	actual := make([]byte, bounds.Dx()*bounds.Dy()*4)
+	screen.ReadPixels(actual)
+	wanted := make([]byte, len(actual))
+	if before != nil {
+		require.Len(t, before, len(actual))
+		copy(wanted, before)
+	}
+	marked := make([]bool, len(actual)/4)
+	for y, row := range strings.Split(stencil, "\n") {
+		for x, pixel := range row {
+			if pixel == '.' {
+				continue
+			}
+			clr := color.Color(ucolor.EGABlack)
+			switch pixel {
+			case 'W':
+				clr = frameColor
+			case 'C':
+				clr = centerColor
+			case 'B':
+			default:
+				t.Fatalf("unknown stencil pixel %q", pixel)
+			}
+			r, g, b, a := ucolor.ExtractRGBA(clr)
+			left, top := options.GeoM.Apply(float64(x), float64(y))
+			right, bottom := options.GeoM.Apply(float64(x+1), float64(y+1))
+			for sy := max(int(math.Round(top)), bounds.Min.Y); sy < min(int(math.Round(bottom)), bounds.Max.Y); sy++ {
+				for sx := max(int(math.Round(left)), bounds.Min.X); sx < min(int(math.Round(right)), bounds.Max.X); sx++ {
+					offset := (sy-bounds.Min.Y)*bounds.Dx() + sx - bounds.Min.X
+					marked[offset] = true
+					copy(wanted[offset*4:offset*4+4], []byte{r, g, b, a})
+				}
+			}
+		}
+	}
+	count := 0
+	for pixel, isMarked := range marked {
+		if isMarked {
+			count++
+		}
+		if (isMarked || before != nil) && !bytes.Equal(wanted[pixel*4:pixel*4+4], actual[pixel*4:pixel*4+4]) {
+			t.Fatalf("marker raster at (%d,%d), marked=%t: want %v got %v",
+				bounds.Min.X+pixel%bounds.Dx(), bounds.Min.Y+pixel/bounds.Dx(), isMarked,
+				wanted[pixel*4:pixel*4+4], actual[pixel*4:pixel*4+4])
+		}
+	}
+	require.Positive(t, count, "fixture must sample the marker")
+}
+
+func TestCombatReticleFullBackingAndClippedFractionalGeometry(t *testing.T) {
+	for _, scale := range []struct{ x, y float64 }{{1, 1}, {2, 3}, {1366 * 0.76 / 304, 768.0 / 208}} {
+		for _, background := range []string{"light", "dark", "brick"} {
+			for _, clipped := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%gx%g/%s/clip%t", scale.x, scale.y, background, clipped), func(t *testing.T) {
+					options := &ebiten.DrawImageOptions{}
+					options.GeoM.Scale(scale.x, scale.y)
+					options.GeoM.Translate(6.35, 6.65)
+					bounds := image.Rect(0, 0, 80, 80)
+					if clipped {
+						bounds = image.Rect(12, 12, 48, 40)
+					}
+					screen := ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{Unmanaged: true})
+					defer screen.Dispose()
+					pixels := make([]byte, bounds.Dx()*bounds.Dy()*4)
+					for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+						for x := bounds.Min.X; x < bounds.Max.X; x++ {
+							clr := ucolor.EGALightGray
+							if background == "dark" {
+								clr = ucolor.EGABlue
+							} else if background == "brick" {
+								clr = ucolor.EGABrown
+								if y%7 == 0 || (x+(y/7%2)*5)%11 == 0 {
+									clr = ucolor.EGARed
+								}
+							}
+							offset := ((y-bounds.Min.Y)*bounds.Dx() + x - bounds.Min.X) * 4
+							copy(pixels[offset:offset+4], []byte{clr.R, clr.G, clr.B, clr.A})
+						}
+					}
+					screen.WritePixels(pixels)
+					drawCombatReticle(screen, options, ucolor.CombatAimEnemyDim)
+					assertCombatMarkerPixels(t, screen, options, selectedReticleRaster, ucolor.EGAWhite, ucolor.CombatAimEnemyDim, pixels)
+				})
+			}
+		}
+	}
+}
+
+func TestCombatActiveCornersDenseProductionProtectsHealthAndSelectedAim(t *testing.T) {
+	scene, party := newCombatMarkerTestScene(t)
+	state, combat := scene.gameState, scene.gameState.CombatScene
+	combat.SetPartyMemberPosition(party.EntityIndex, references.Position{X: 1, Y: 1})
+	combat.MonsterManager.Clear()
+	combat.TurnQueue.RemoveAllMonsters()
+	var options [9]*ebiten.DrawImageOptions
+	var sample image.Rectangle
+	var centreIndex int
+	for index := range 9 {
+		position := references.Position{X: references.Coordinate(index%3 + 3), Y: references.Coordinate(index/3 + 3)}
+		monsterIndex, monster := signatureMonster(t, scene, references.MonsterOrc, position)
+		if index%2 == 0 {
+			monster.SetLoyalty(game_state.CombatMonsterLoyaltyParty)
+		}
+		if index == 4 {
+			centreIndex = monsterIndex
+		}
+		options[index] = scene.combatMonsterDrawOptions(position, monsterIndex)
+		sample = sample.Union(combatFixtureRasterBounds(options[index]))
+	}
+	combat.ActiveMonsterIndex = centreIndex
+	combat.CurrentTurnIdentity = game_state.CombatTurnIdentity{EntityIndex: centreIndex}
+	state.ElapsedMs = 450 // The expanded corners overlap the northern actor's HP rim.
+	require.LessOrEqual(t, sample.Dx()*sample.Dy(), 256*256)
+	screen := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+	protected := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+	defer screen.Dispose()
+	defer protected.Dispose()
+	scene.drawCombatHealthFrames(protected)
+	wantedHP := signaturePixels(protected)
+	before := snapshotBlockedCombatState(t, state)
+	scene.drawAvatarOverlay(screen)
+	assert.Equal(t, before, snapshotBlockedCombatState(t, state), "drawing selection must not advance gameplay")
+	actual := signaturePixels(screen)
+	protectedPixels := 0
+	for pixel := 0; pixel < len(actual); pixel += 4 {
+		if wantedHP[pixel+3] == 0 {
+			continue
+		}
+		protectedPixels++
+		require.Equal(t, wantedHP[pixel:pixel+4], actual[pixel:pixel+4], "raised corner covered HP/allegiance pixel %d", pixel/4)
+	}
+	require.Positive(t, protectedPixels)
+	// At this dense overlap, the lower part of both upper accents remains
+	// independently visible; the northern HP rim intentionally owns the top.
+	stencilRows := strings.Split(expandedActiveCornerRaster, "\n")
+	for row := range 3 {
+		stencilRows[row] = strings.Repeat(".", 20)
+	}
+	expectedOptions := &ebiten.DrawImageOptions{}
+	expectedOptions.GeoM.Translate(-1, -1)
+	expectedOptions.GeoM.Concat(options[4].GeoM)
+	assertCombatMarkerPixels(t, screen, expectedOptions, strings.Join(stencilRows, "\n"), ucolor.CombatActiveMonsterOutline, ucolor.CombatActiveMonsterOutline, nil)
+	combat.AttackTargeting = &game_state.CombatAttackTargeting{Cursor: references.Position{X: 4, Y: 4}}
+	screen.Clear()
+	scene.drawAvatarOverlay(screen)
+	assertCombatMarkerPixels(t, screen, options[4], selectedReticleRaster, ucolor.EGAWhite,
+		getCombatAimColor(game_state.CombatAimFriendly, combatAimPulse(state.ElapsedMs)), nil)
+	actual = signaturePixels(screen)
+	// The aim frame has priority, but must leave every actor's HP fill readable.
+	// Use the established fill rectangle, not another marker draw as an oracle.
+	for _, actorOptions := range options {
+		left, top := actorOptions.GeoM.Apply(3, 14)
+		right, bottom := actorOptions.GeoM.Apply(14, 16)
+		for y := int(math.Ceil(top)); y < int(math.Floor(bottom)); y++ {
+			for x := int(math.Ceil(left)); x < int(math.Floor(right)); x++ {
+				pixel := ((y-sample.Min.Y)*sample.Dx() + x - sample.Min.X) * 4
+				require.Equal(t, wantedHP[pixel:pixel+4], actual[pixel:pixel+4], "aim covered HP fill at %d,%d", x, y)
+			}
+		}
+	}
 }

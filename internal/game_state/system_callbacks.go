@@ -193,6 +193,8 @@ const (
 	SoundCorpserCapture
 	SoundCorpserRelease
 	SoundCombatInterrupted
+	// SoundElectricalDamage accompanies resolved electrical-field injury.
+	SoundElectricalDamage
 )
 
 // HarpsichordSoundEffectForDigit returns the note sound assigned to a digit.
@@ -324,6 +326,10 @@ type VisualCallbacks struct {
 	// ShowCombatImpact starts local feedback for one resolved combat result.
 	ShowCombatImpact func(CombatAttackFeedback)
 
+	// ShowDungeonInjury starts a dedicated HP-loss pulse; None clears it.
+	// Feedback owns sequencing/cleanup, independently of ordinary screen flashes.
+	ShowDungeonInjury func(DungeonInjuryKind)
+
 	// Note: Death scene apparition dissolve callbacks removed - now uses generic tile dissolve system
 	// See gamescene_dissolve.go: StartTileDissolveWithOptions(), UpdateTileDissolveProgress(), StopTileDissolve()
 }
@@ -450,6 +456,9 @@ func NewVisualCallbacks(callbacks VisualCallbacks) VisualCallbacks {
 	}
 	if callbacks.ShowCombatImpact == nil {
 		panic("VisualCallbacks.ShowCombatImpact is required - cannot be nil")
+	}
+	if callbacks.ShowDungeonInjury == nil {
+		panic("VisualCallbacks.ShowDungeonInjury is required - cannot be nil")
 	}
 
 	return callbacks

@@ -136,6 +136,7 @@ func catalogEffectNames() map[game_state.SoundEffect]string {
 		game_state.SoundCorpserCapture:        "SoundCorpserCapture",
 		game_state.SoundCorpserRelease:        "SoundCorpserRelease",
 		game_state.SoundCombatInterrupted:     "SoundCombatInterrupted",
+		game_state.SoundElectricalDamage:      "SoundElectricalDamage",
 	}
 }
 

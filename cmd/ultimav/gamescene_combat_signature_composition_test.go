@@ -45,10 +45,16 @@ func TestCombatSignatureTeleportSelectionAndStatusFollowPresentedActor(t *testin
 		scene.drawCombatSelectionUnderlays(screen)
 		scene.drawCombatMonsterOverlay(screen)
 		scene.drawCombatSignatureEffects(screen)
+		scene.drawCombatActiveSelectionAccents(screen)
 		assert.Equal(t, phase.fromVisible, opaquePixelCount(combatSignatureRegion(scene, screen, from)) > 0, "age=%d departure", phase.ageMs)
 		assert.Equal(t, phase.toVisible, opaquePixelCount(combatSignatureRegion(scene, screen, to)) > 0, "age=%d arrival", phase.ageMs)
 		if phase.fromVisible || phase.toVisible {
 			assert.Positive(t, countExactColor(screen, ucolor.CombatActiveMonsterOutline), "selection survives the blink")
+			position := from
+			if phase.toVisible {
+				position = to
+			}
+			assertActiveCornerPixels(t, screen, scene.combatMonsterDrawOptions(position, index), state.ElapsedMs, ucolor.CombatActiveMonsterOutline, nil)
 			assertSignatureHP(t, effect.Frame, monster.CurrentHP(), monster.MaxHP())
 		}
 		assert.False(t, scene.combatMovement.Active, "teleport must not add a walking/direction animation")
@@ -59,6 +65,7 @@ func TestCombatSignatureTeleportSelectionAndStatusFollowPresentedActor(t *testin
 	scene.drawCombatSelectionUnderlays(screen)
 	scene.drawCombatMonsterOverlay(screen)
 	scene.drawCombatSignatureEffects(screen)
+	scene.drawCombatActiveSelectionAccents(screen)
 	assert.Zero(t, opaquePixelCount(screen))
 	scene.updateCombatSignatureEffects()
 	assert.Nil(t, effect.Frame)
@@ -168,24 +175,16 @@ func TestCombatSignatureProductionCompositionKeepsTargetReticleOnTop(t *testing.
 	monster.SetAsleep(true)
 	require.True(t, state.BeginCombatAttack())
 	state.CombatScene.AttackTargeting.Cursor = monster.Position()
+	// Aim and active-turn ownership can coincide. The raised active corners and
+	// the signature actor still yield to the selected square's white frame.
+	state.CombatScene.ActiveMonsterIndex = index
 	scene.recordCombatEvent(signatureGateEvent(index, monster))
 	advanceSignatureForTest(scene, state.ElapsedMs+combatGateDurationMs/2)
 	sample := combatFixtureRasterBounds(scene.combatMonsterDrawOptions(monster.Position(), index))
 	screen := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
 	defer screen.Dispose()
 	scene.drawAvatarOverlay(screen)
-	reference := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
-	defer reference.Dispose()
-	scene.drawCombatAttackCrosshair(reference)
-	wanted, actual := signaturePixels(reference), signaturePixels(screen)
-	marked := 0
-	for pixel := 0; pixel < len(wanted); pixel += 4 {
-		if wanted[pixel+3] == 0 {
-			continue
-		}
-		marked++
-		require.Equal(t, wanted[pixel:pixel+4], actual[pixel:pixel+4], "signature/status frame covered aiming pixel %d", pixel/4)
-	}
-	assert.Positive(t, marked)
+	assertCombatMarkerPixels(t, screen, scene.combatSquareMarkerDrawOptions(monster.Position()), selectedReticleRaster,
+		ucolor.EGAWhite, getCombatAimColor(game_state.CombatAimEnemy, combatAimPulse(state.ElapsedMs)), nil)
 	scene.clearCombatSignatureEffects()
 }

@@ -2,10 +2,8 @@ package main
 
 import (
 	"image"
-	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -188,12 +186,7 @@ func (g *GameScene) drawInheritedDungeonHeader(screen *ebiten.Image) {
 	if origin.Location.GetMapType() != references.DungeonMapType {
 		return
 	}
-	output := g.dungeonHUD.level
-	height := int(math.Ceil(output.GetTotalHeightForLines(1)))
-	layout := calculateDungeonHUDLayout(screen.Bounds(), height, height, height)
-	output.Reset()
-	output.AppendLine().White((dungeonHUDStatus{floor: origin.Floor}).levelText()).Done()
-	output.DrawPanelContent(screen, layout.levelPoint, layout.frameBounds.Dx(), etext.AlignCenter)
+	g.drawDungeonLevelLabel(screen, dungeonHUDStatus{floor: origin.Floor})
 }
 
 func (g *GameScene) initializeSkyBorder() {

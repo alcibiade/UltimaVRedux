@@ -1,0 +1,227 @@
+package main
+
+import (
+	"github.com/bradhannah/UltimaVRedux/internal/camping"
+	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	"github.com/hajimehoshi/ebiten/v2"
+)
+
+// transientCommandInputState owns presentation/input intent, never gameplay.
+// The zero value supports detached scenes; production installs the focus source.
+type transientCommandInputState struct {
+	owner             *game_state.GameState
+	focused           func() bool
+	wasUnfocused      bool
+	sample            input.KeySample
+	pass              explorationPassRepeat
+	pending           pendingCombatCommand
+	campAtEntry       *camping.CampingScene
+	campRequest       bool
+	combatWaitSampled bool
+	status            *widgets.OverlayDialog
+	statusText        string
+}
+
+func (g *GameScene) initializeTransientCommandInput() {
+	g.transientCommandInput.focused = ebiten.IsFocused
+	// Keep the keyboard's independent adapter clock. Journal/Atlas freeze game
+	// elapsed time, but their fresh key presses must retain normal debounce timing.
+	// A newly hydrated/replacement scene must not reinterpret the key that
+	// activated it as its own first gameplay press.
+	g.ResetTransientCommandInput()
+}
+
+func (g *GameScene) commandInputFocused() bool {
+	source := g.transientCommandInput.focused
+
+	return source == nil || source()
+}
+
+// beginTransientCommandInputFrame is the sole edge sample, before any reader or
+// queue advances. Capturing an edge does not steal input from an earlier owner.
+func (g *GameScene) beginTransientCommandInputFrame() bool {
+	state := &g.transientCommandInput
+	if state.owner != nil && state.owner != g.gameState {
+		g.ResetTransientCommandInput()
+	}
+	state.owner = g.gameState
+	state.sample = g.keyboard.CaptureKeySample()
+	state.campAtEntry = nil
+	state.campRequest = false
+	state.combatWaitSampled = false
+	if !g.commandInputFocused() {
+		state.wasUnfocused = true
+		g.ResetTransientCommandInput()
+
+		return false
+	}
+	if state.wasUnfocused {
+		state.wasUnfocused = false
+		g.ResetTransientCommandInput()
+
+		return false
+	}
+	if !g.explorationPassEligible() || state.pass.active && state.pass.context != g.passInputContext() {
+		g.stopExplorationPass()
+	}
+
+	return true
+}
+
+// captureTransientCommandInput runs only after reader shortcuts have had their
+// opportunity, but before wind/queues can turn a blocked sample into ready input.
+func (g *GameScene) captureTransientCommandInput() {
+	if g.transientInputOwnedElsewhere() {
+		g.clearPendingCombatCommand()
+
+		return
+	}
+	g.capturePendingCombatCommand()
+	state := &g.transientCommandInput
+	state.campAtEntry = g.sleepingInputCamp()
+	if state.campAtEntry != nil && !state.sample.HasModifiers() &&
+		g.keyboard.ConsumePressEdge(state.sample, ebiten.KeySpace) {
+		state.campRequest = true
+		g.keyboard.SuppressUntilRelease(ebiten.KeySpace)
+	}
+}
+
+// handleCampingAcceleration runs after queue advancement and top-modal routing.
+// A completion/ambush in this frame must not accept a stale sleeping request.
+func (g *GameScene) handleCampingAcceleration() {
+	state := &g.transientCommandInput
+	if camp := g.sleepingInputCamp(); camp != nil && camp == state.campAtEntry && state.campRequest {
+		g.gameState.RequestCampingAcceleration()
+	}
+}
+
+// Stop the old hold before a modal newly installed by a queue gets its first
+// Update. End-of-frame cleanup alone would be too late for that handoff.
+func (g *GameScene) reconcileTransientInputAfterQueues() {
+	state := &g.transientCommandInput
+	if !g.explorationPassEligible() || state.pass.active && state.pass.context != g.passInputContext() {
+		g.stopExplorationPass()
+	}
+	if g.transientInputOwnedElsewhere() {
+		g.clearPendingCombatCommand()
+		g.setTransientCommandStatus("", "")
+	}
+}
+
+func (g *GameScene) sleepingInputCamp() *camping.CampingScene {
+	camp := g.gameState.CampingScene
+	if !camp.IsSleeping() || g.transientInputOwnedElsewhere() {
+		return nil
+	}
+	manager := g.gameState.EventQueueManager
+	if manager.HasOnlyWorkflow("camping_workflow") || manager.HasOnlyWorkflow("dungeon_hole_up") ||
+		manager.HasOnlyWorkflow("camping_debug_workflow") {
+		return camp
+	}
+
+	return nil
+}
+
+func (g *GameScene) transientInputOwnedElsewhere() bool {
+	return g.secondaryKeyState != PrimaryInput || g.atlasSession != nil || g.journalSession != nil ||
+		g.finalePresentation != nil || g.dialogStack.HasModalDialog() ||
+		g.autoOpenDoorState != nil && g.autoOpenDoorState.IsActive() ||
+		!g.gameState.CanAcceptGameplayCommands()
+}
+
+func (g *GameScene) finishTransientCommandInputFrame() {
+	state := &g.transientCommandInput
+	if !g.commandInputFocused() {
+		g.setTransientCommandStatus("", "")
+
+		return
+	}
+	if !g.explorationPassEligible() || state.pass.active && state.pass.context != g.passInputContext() {
+		g.stopExplorationPass()
+	}
+	g.validatePendingCombatCommand()
+	if projection, eligible := g.gameState.ProjectSoloCombatInput(); eligible && projection.Waiting &&
+		g.combatInputWaitOwned() && !g.transientInputOwnedElsewhere() && !state.combatWaitSampled {
+		// The enemy owner appeared after this sample (for example, from an
+		// own-action finalizer). Its carried letters are not fresh requests.
+		for _, key := range boundKeysGame {
+			if bufferedCombatVerb(key) != "" {
+				g.keyboard.SuppressUntilRelease(key)
+			}
+		}
+	}
+	if camp := g.sleepingInputCamp(); camp != nil {
+		if camp != state.campAtEntry {
+			// A press carried through setup/Bard is not a sleeping press.
+			g.keyboard.SuppressUntilRelease(ebiten.KeySpace)
+		}
+		if camp.IsAccelerated() {
+			g.setTransientCommandStatus("Resting — Fast", "")
+		} else {
+			g.setTransientCommandStatus("", "Space: Speed up")
+		}
+
+		return
+	}
+	if state.pending.active {
+		g.setTransientCommandStatus(g.pendingCombatCommandLabel(), "Esc: Clear")
+
+		return
+	}
+	g.setTransientCommandStatus("", "")
+}
+
+// ResetTransientCommandInput is the common teardown/load/focus boundary. Narrow
+// suppression survives clearing intent, so rejected held arrows cannot revive.
+func (g *GameScene) ResetTransientCommandInput() {
+	state := &g.transientCommandInput
+	g.stopExplorationPass()
+	g.clearPendingCombatCommand()
+	state.campAtEntry, state.campRequest = nil, false
+	if g.keyboard != nil {
+		for _, key := range boundKeysGame {
+			g.keyboard.SuppressUntilRelease(key)
+		}
+	}
+	g.setTransientCommandStatus("", "")
+}
+
+// One passive exact-instance card owns the sleeping hint or pending verb. It
+// never receives keyboard focus, advances a queue, or appends to enemy history.
+func (g *GameScene) setTransientCommandStatus(label, hint string) {
+	state := &g.transientCommandInput
+	combined := label + hint
+	if state.statusText == combined {
+		return
+	}
+	if state.status != nil {
+		g.dialogStack.RemoveWidgetInstance(state.status)
+		state.status = nil
+	}
+	state.statusText = combined
+	if combined == "" {
+		return
+	}
+	dialog := widgets.NewOverlayDialog("").AsOverlayFeedback().WithExternallyManagedDuration(1).Build()
+	if label == "Resting — Fast" {
+		dialog.AppendLineBuilder().LightGray("Resting — ").LightGreen("Fast").Done()
+	} else if label != "" {
+		pending := state.pending
+		name := g.gameState.PartyState.GetCharacter(pending.opportunity.Actor.EntityIndex).GetNameAsString()
+		dialog.AppendLineBuilder().LightGray("Pending: ").White(bufferedCombatVerb(pending.key)).
+			White(" (" + name + ")").LightGray(" — waiting for turn").Done()
+	}
+	if hint != "" {
+		// Key tokens and their explanations remain distinct in the shared Output.
+		key, description := commandKeyLabelSpace, ": Speed up"
+		if hint == "Esc: Clear" {
+			key, description = commandKeyLabelEscape, ": Clear"
+		}
+		dialog.AppendLineBuilder().Yellow(key).LightGray(description).Done()
+	}
+	state.status = dialog
+	g.dialogStack.PushNonBlockingDialog(dialog)
+	dialog.ShowWithoutAnimation()
+}

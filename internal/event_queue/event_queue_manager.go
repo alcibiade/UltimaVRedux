@@ -194,7 +194,8 @@ func (eqm *EventQueueManager) runContinuous(action func() EventResult) EventResu
 
 // Priority sets the execution priority for this event queue
 // Lower numbers indicate higher priority (can interrupt lower priority queues)
-// Use constants from priorities.go: PriorityCritical(1), PriorityHigh(2), PriorityMedium(3), PriorityNormal(5), PriorityLow(10)
+// Use the named constants from priorities.go: PriorityCritical, PriorityHigh,
+// PriorityMedium, PriorityNormal, and PriorityLow.
 // Must be called before Sequential()
 func (neq *NamedEventQueue) Priority(p int) *NamedEventQueue {
 	neq.priority = p
@@ -477,6 +478,14 @@ func (eqm *EventQueueManager) processInputWaiting(queue *NamedEventQueue, curren
 	if !queue.waitingForInput {
 		return false
 	}
+	if eqm.inputPollingSuspended {
+		// Losing focus must not manufacture a release edge. On return the
+		// owning wait still requires a real release before a fresh press.
+		queue.requireKeyRelease = true
+		queue.keyWasPressed = false
+
+		return true
+	}
 
 	keyPressed := false
 	if eqm.systemCallbacks != nil {
@@ -547,7 +556,9 @@ func (eqm *EventQueueManager) processPendingInputUnblock(
 	}
 
 	anyKeyPressed := false
-	if eqm.systemCallbacks != nil {
+	if queue.inputReleaseReady != nil {
+		anyKeyPressed = !queue.inputReleaseReady()
+	} else if eqm.systemCallbacks != nil {
 		anyKeyPressed = eqm.systemCallbacks.IsAnyKeyPressed()
 	}
 
@@ -572,6 +583,7 @@ func (eqm *EventQueueManager) processDelayedEvents(
 ) []*DelayedEvent {
 	remainingEvents := make([]*DelayedEvent, 0)
 
+	//nolint:intrange // Callbacks append chained events; re-read the length so due events run in this update.
 	for i := 0; i < len(queue.events); i++ {
 		event := queue.events[i]
 		if event.ExecuteAt <= currentTime {
@@ -974,8 +986,6 @@ func (eqm *EventQueueManager) RegisterBackgroundQueue(name string) *NamedEventQu
 // Called from gamescene_update.go after Update() to process visual effects.
 // Background queues never block input and run independently of main queue lifecycle.
 // All active background queues are processed in parallel - each fades independently.
-//
-//nolint:cyclop,funlen // Complexity/length from queue lifecycle management - extraction would hurt readability
 func (eqm *EventQueueManager) UpdateBackground() {
 	if eqm.shutdown {
 		return

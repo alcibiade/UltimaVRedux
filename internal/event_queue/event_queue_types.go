@@ -65,7 +65,8 @@ type NamedEventQueue struct {
 	requireKeyRelease bool // Debounce: must wait for all keys to be released before accepting new press
 
 	// Delayed input unblock state (Phase 1F: prevent key bleeding when queue finishes)
-	pendingInputUnblock bool // Queue finished but waiting for all keys to be released before unblocking
+	pendingInputUnblock bool        // Queue finished but waiting for all keys to be released before unblocking
+	inputReleaseReady   func() bool // Optional owner-specific release guard, never used by WaitForAnyKey.
 
 	// Dynamic chaining state
 	pendingNextAction func() error // Action waiting to be scheduled after input
@@ -106,6 +107,8 @@ type EventQueueManager struct {
 	activeQueue     *NamedEventQueue   // Currently executing queue (only one at a time)
 	pendingQueues   []*NamedEventQueue // Queues waiting for execution (sorted by priority)
 	deferredStarts  []*NamedEventQueue // Starts accepted inside callbacks and dispatched at a safe boundary
+	// Non-input work continues while acknowledgement waits cannot accept keys.
+	inputPollingSuspended bool
 
 	// Feedback queues serialize presentation-only effects independently of workflows.
 	feedbackQueues        map[string]*NamedEventQueue

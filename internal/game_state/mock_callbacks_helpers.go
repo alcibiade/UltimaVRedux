@@ -48,6 +48,7 @@ type MockSystemCallbacks struct {
 	CombatEvents            []CombatEvent      // Track durable combat event records
 	CombatConclusions       []CombatConclusion // Track completed encounter handoffs
 	TransientIconCalls      []TransientIconKind
+	DungeonInjuryCalls      []DungeonInjuryKind
 	VisualCallCount         int
 
 	// Screen tracking
@@ -212,6 +213,10 @@ func (m *MockSystemCallbacks) ToSystemCallbacks() *SystemCallbacks {
 		},
 		ShowCombatImpact: func(feedback CombatAttackFeedback) {
 			m.CombatImpactCalls = append(m.CombatImpactCalls, CombatImpactCall{Feedback: feedback})
+		},
+		ShowDungeonInjury: func(kind DungeonInjuryKind) {
+			m.DungeonInjuryCalls = append(m.DungeonInjuryCalls, kind)
+			m.VisualCallCount++
 		},
 	})
 	combatCallbacks := NewCombatCallbacks(
@@ -838,6 +843,7 @@ func (m *MockSystemCallbacks) Reset() {
 	m.CombatEvents = m.CombatEvents[:0]
 	m.CombatConclusions = m.CombatConclusions[:0]
 	m.TransientIconCalls = m.TransientIconCalls[:0]
+	m.DungeonInjuryCalls = m.DungeonInjuryCalls[:0]
 	m.InputBlocked = false
 	m.BlockInputCalls = 0
 	m.UnblockInputCalls = 0

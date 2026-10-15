@@ -21,7 +21,7 @@ func (g *GameState) applyCombatInZuAtPosition(position references.Position, cast
 	processed := make(map[CombatTurnIdentity]struct{}, 1)
 	target, found := g.CombatScene.combatConeVictimAt(position, processed)
 
-	return found && g.applyCombatInZuToTarget(target, casterIntelligence)
+	return found && g.applyCombatInZuToTarget(g.CombatScene.GetActiveCombatantIndex(), target, casterIntelligence).applied()
 }
 
 // countActivePartyMembers measures fixture occupancy, not effective allegiance.

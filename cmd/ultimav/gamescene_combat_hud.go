@@ -179,10 +179,18 @@ func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
 	g.combatHUD.sync(g.gameState.CombatScene)
 	g.updateCombatReportAttention()
 	disclosure := g.captureCombatReportIdentities(event)
+	if event.SpellTarget != nil && !event.SpellTarget.Disclosed {
+		disclosure.Target.Name = combatUnknownEntityLabel
+		disclosure.Target.Disclosed = false
+		disclosure.DetailsDisclosed = false
+	}
 	if slot := g.combatHUD.addEvent(event); slot >= 0 {
 		g.combatHUD.identities[slot] = disclosure
 	}
 	g.showCombatSignatureEffect(event)
+	if event.SpellTarget != nil {
+		g.showCombatAreaSpellImpact(event)
+	}
 	if event.Kind == game_state.CombatEventDivision {
 		g.showCombatDivisionEffect(event)
 	}
@@ -193,7 +201,7 @@ func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
 		g.showCombatFieldDispelEffect(event)
 	}
 	if ((event.Kind == game_state.CombatEventFieldTriggered && event.FieldKind == game_state.CombatFieldFire) ||
-		(event.Kind == game_state.CombatEventSpell && event.Diagnostics.Spell == references.InFlamHur)) &&
+		(event.Kind == game_state.CombatEventSpell && event.Diagnostics.Spell == references.InFlamHur && event.SpellTarget == nil)) &&
 		event.HPLost > 0 {
 		g.showCombatFireImpact(event)
 	}
@@ -846,6 +854,19 @@ func (g *GameScene) appendCombatUtilitySpellSentence(event game_state.CombatEven
 func (g *GameScene) appendCombatSpellSentence(event game_state.CombatEvent) {
 	line := g.appendCombatEntitySegment(g.newCombatEventLine(), event.Attacker)
 	line.White(" casts ").LightCyan(references.GetSpellInfo(event.Diagnostics.Spell).Name)
+	if event.SpellTarget != nil {
+		if !event.SpellTarget.Disclosed {
+			line.LightGray(" toward an unseen target").Done()
+
+			return
+		}
+		line.White(" on ")
+		g.appendCombatEntitySegment(line, event.Target)
+		suffix, clr := combatAreaSpellTargetSuffix(*event.SpellTarget)
+		line.Text(suffix, clr).Done()
+
+		return
+	}
 	if event.Diagnostics.ProjectileBlocked {
 		line.White(" but the missile is ").LightGray("blocked").Done()
 
@@ -997,6 +1018,14 @@ func (g *GameScene) combatEventPlainText(event game_state.CombatEvent) string {
 		actor := g.combatEntityEventName(combatTurnIdentityForFeedback(event.Attacker))
 		target := g.combatEntityEventName(combatTurnIdentityForFeedback(event.Target))
 		spellInfo := references.GetSpellInfo(event.Diagnostics.Spell)
+		if event.SpellTarget != nil {
+			if !event.SpellTarget.Disclosed {
+				return fmt.Sprintf("%s casts %s toward an unseen target", actor, spellInfo.Name)
+			}
+			suffix, _ := combatAreaSpellTargetSuffix(*event.SpellTarget)
+
+			return fmt.Sprintf("%s casts %s on %s%s", actor, spellInfo.Name, target, suffix)
+		}
 		if event.Diagnostics.ProjectileBlocked {
 			return fmt.Sprintf("%s casts %s but the missile is blocked", actor, spellInfo.Name)
 		}
@@ -1047,6 +1076,33 @@ func (g *GameScene) combatEventPlainText(event game_state.CombatEvent) string {
 	}
 
 	return combatGenericEventLabel
+}
+
+func combatAreaSpellTargetSuffix(result game_state.CombatAreaSpellTargetResult) (string, ucolor.EGAColor) {
+	switch result.Outcome {
+	case game_state.CombatSpellAvoided:
+		return " but they avoid it", ucolor.CombatMissText
+	case game_state.CombatSpellResisted:
+		return " but they resist", ucolor.CombatMissText
+	case game_state.CombatSpellImmune:
+		return " but they are immune", ucolor.CombatMissText
+	case game_state.CombatSpellZeroDamage:
+		return " but causes no damage", ucolor.CombatGrazeText
+	case game_state.CombatSpellSlept:
+		return " and puts them to sleep", ucolor.EGALightMagenta
+	case game_state.CombatSpellPoisoned:
+		return " and poisons them", ucolor.EGALightGreen
+	case game_state.CombatSpellDamaged:
+		if result.Fatal {
+			return fmt.Sprintf(" for %d fatal damage", result.HPLost), ucolor.CombatDamageText
+		}
+
+		return fmt.Sprintf(" for %d damage", result.HPLost), ucolor.CombatDamageText
+	case game_state.CombatSpellUnspecified:
+		panic("area spell report requires a resolved outcome")
+	default:
+		panic("unknown area spell report outcome")
+	}
 }
 
 func combatInterruptedActionText(event game_state.CombatEvent) string {
@@ -1123,7 +1179,7 @@ func combatAttackPlainText(event game_state.CombatEvent, actor, target string) s
 }
 
 func (g *GameScene) combatEventDetailText(event game_state.CombatEvent) string {
-	if !g.combatReportDisclosure(event).DetailsDisclosed {
+	if (event.SpellTarget != nil && !event.SpellTarget.Disclosed) || !g.combatReportDisclosure(event).DetailsDisclosed {
 		return ""
 	}
 	switch event.Kind {

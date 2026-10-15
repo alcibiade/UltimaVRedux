@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"math"
+	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -145,7 +147,7 @@ func (g *GameScene) thenCastCombatWisQuas() event_queue.Sequence {
 func (g *GameScene) thenCastCombatInVasPorYlem(casterIdx int) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		return q.Then(func() {
-			g.gameState.CastCombatInVasPorYlem(casterIdx)
+			g.presentCombatAreaSpellSummary(g.gameState.CastCombatEarthquakeResult(casterIdx))
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundEarthquake)
 		}).Animate(combatEarthquakeDurationMs, func(progress float32) {
 			phase := float64(progress) * math.Pi * 12
@@ -158,4 +160,59 @@ func (g *GameScene) thenCastCombatInVasPorYlem(casterIdx int) event_queue.Sequen
 			g.gameState.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
 		})
 	}
+}
+
+func (g *GameScene) presentCombatAreaSpellSummary(result game_state.CombatAreaSpellResult) {
+	if summary := combatAreaSpellSummary(result); summary != "" {
+		// Resolution already committed. This is informative feedback, never a
+		// casting validation failure or a second gameplay operation.
+		g.gameState.SystemCallbacks.UI.ShowActionFeedback(summary, true)
+	}
+}
+
+func combatAreaSpellSummary(result game_state.CombatAreaSpellResult) string {
+	if result.Outcome() == game_state.CombatAreaSpellNoTargets {
+		return "No targets reached."
+	}
+	concealed := false
+	avoided, resisted, immune, zeroDamage := 0, 0, 0, 0
+	for _, target := range result.Targets {
+		if !target.Disclosed {
+			concealed = true
+
+			continue
+		}
+		switch target.Outcome {
+		case game_state.CombatSpellDamaged, game_state.CombatSpellSlept, game_state.CombatSpellPoisoned:
+			return "" // Per-target success already explains the cast, including status-only success.
+		case game_state.CombatSpellAvoided:
+			avoided++
+		case game_state.CombatSpellResisted:
+			resisted++
+		case game_state.CombatSpellImmune:
+			immune++
+		case game_state.CombatSpellZeroDamage:
+			zeroDamage++
+		case game_state.CombatSpellUnspecified:
+			panic("area spell summary requires resolved outcomes")
+		}
+	}
+	if concealed {
+		return "No visible effect."
+	}
+	parts := make([]string, 0, 4)
+	if avoided > 0 {
+		parts = append(parts, fmt.Sprintf("%d avoided", avoided))
+	}
+	if resisted > 0 {
+		parts = append(parts, fmt.Sprintf("%d resisted", resisted))
+	}
+	if immune > 0 {
+		parts = append(parts, fmt.Sprintf("%d immune", immune))
+	}
+	if zeroDamage > 0 {
+		parts = append(parts, fmt.Sprintf("%d took no damage", zeroDamage))
+	}
+
+	return "No effect: " + strings.Join(parts, "; ") + "."
 }

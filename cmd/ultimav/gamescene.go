@@ -164,6 +164,9 @@ type GameScene struct {
 	dungeonGraffitiOutput   *text.Output
 	dungeonSkeletonCrumbles []dungeonSkeletonCrumbleEffect
 	dungeonPitReveals       []dungeonPitRevealEffect
+	dungeonFieldDispels     []dungeonFieldDispelEffect
+	dungeonInjury           dungeonInjuryPulse
+	actorAnimationClocks    actorAnimationClockSet
 	characterSummary        *mainscreen.CharacterSummary
 	provisionSummary        *mainscreen.ProvisionSummary
 	provisionChanges        provisionChangePresentation
@@ -204,9 +207,11 @@ type GameScene struct {
 	lastEffectsUpdate time.Time
 
 	secondaryKeyState             InputState
+	transientCommandInput         transientCommandInputState
 	surfaceSpellWorkflowOwnsCycle bool
 	castUseDirectionDialog        *widgets.MessageDialog
 	potionEffectDialog            *widgets.OverlayDialog
+	pocketWatchDialog             *widgets.OverlayDialog
 	dungeonOpenCommandToken       game_state.DungeonCommandCycle
 	dungeonJimmyCommandToken      game_state.DungeonCommandCycle
 	dungeonKlimbCommandToken      game_state.DungeonCommandCycle

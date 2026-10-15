@@ -31,6 +31,7 @@ const (
 	// iterations, not a certified wall-time duration. Redux keeps these cosmetic
 	// delays for readable presentation; gameplay advances only on logical cycles.
 	CampingCycleDelayMs      = 200
+	CampingFastCycleDelayMs  = 50
 	BardMusicDurationMs      = 5500
 	WandererFadeAnimationMs  = 3000 // Duration for wanderer fade in/out
 	WandererVisiblePauseMs   = 1000 // Pause when wanderer fully visible
@@ -299,9 +300,10 @@ func (g *GameState) addCampingSequenceToBuilder(
 			g.finishBardGuardPerformance(campingState)
 		})
 	}).
-		RepeatWithDelay(
+		Then(campingScene.BeginSleeping).
+		RepeatWithRuntimeDelay(
 			campingState.TotalCycles,
-			CampingCycleDelayMs,
+			func() int64 { return campingCycleDelay(campingScene) },
 			func(_ int) bool {
 				if campingState.Interrupted {
 					return false
@@ -324,6 +326,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 			},
 		).
 		Then(func() {
+			campingScene.EndSleeping()
 			result := g.resolveCampingRestAndWanderer(campingScene, campingState)
 			if !campingState.WandererEncountered && result != "" {
 				g.SystemCallbacks.Screen.CreateAndPushCampingResultDialog(result)
@@ -603,6 +606,7 @@ func (g *GameState) finalizeCampingSequence(
 	completionCleanup func(),
 ) {
 	logging.Debug(logging.CategoryGameState, "Camping: Finally() cleanup starting at time=%d", g.ElapsedMs)
+	campingScene.EndSleeping()
 	if g.CampingScene == nil {
 		logging.Warn(logging.CategoryGameState,
 			"Camping: Finally() called but CampingScene already nil - possible double cleanup?")

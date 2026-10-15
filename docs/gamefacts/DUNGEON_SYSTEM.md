@@ -241,6 +241,32 @@ without changing packed cells/game RNG; optional subdued unlit geometry differs
 from original black darkness. It selects tactical colors from displayed dungeon
 context, with finale color handling separate. Exact driver parity remains unverified.
 
+Redux field-removal feedback consumes a successful Sceptre or An Grav result
+after the packed cell has changed. A 600 ms pixel fizzle stays anchored to that
+cell and retains only the removed field, using a presentation-owned seed. Normal
+depth, occlusion, and black/subdued-light rules still apply. At most four remnants
+coexist; changing the affected cell, floor, dungeon visit, or combat context retires
+the old remnant. Movement and unrelated cell changes do not relocate or restart it.
+The fizzle adds no command wait or second completion. Each admitted success requests
+`SoundDispel` once; its intentionally empty recording slot is shared with combat
+An Grav. This is a success cue, not failure audio or a claim of audible playback.
+
+Actual fire-field, electrical-contact, and dungeon poison-tick HP loss has separate
+200 ms translucent light-red, light-blue, and light-green viewport feedback.
+Party losses aggregate per resolved source; zero loss, sleep contact, and poison
+onset alone do not produce an injury pulse. Repeated live requests coalesce by
+kind, limiting this family to three active/pending requests in the serialized,
+nonblocking feedback lane. Injury remains visible over an already-black viewport
+without revealing terrain or changing illumination. It retains visit/floor
+ownership and clears on expiry or invalidation. Audio is requested once per
+resolved injury source even when the visual coalesces; electrical and poison
+recordings are currently empty. These are Redux presentation contracts, not a
+new original-renderer equivalence claim. Hazard resolution remains
+[DNG-0006](#dng-0006); body-only Time Stop timing is
+[SPELL-0004](MAGIC_SPELLS.md#spell-0004).
+
+**Implementation:** `cmd/ultimav/dungeon_renderer.go`, `cmd/ultimav/dungeon_field_dispel.go`, `cmd/ultimav/gamescene_dungeon_injury.go`, `internal/game_state/dungeon_field_dispel_owner.go`, `internal/game_state/dungeon_injury_feedback.go`, `internal/game_state/dungeon_injury_owner.go`
+
 ### DNG-0010
 
 **Wanderer placement, movement, and generated combat**

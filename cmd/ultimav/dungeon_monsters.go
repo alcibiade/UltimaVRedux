@@ -23,7 +23,6 @@ func appendDungeonWanderer(
 	wanderer *game_state.DungeonWanderer,
 	position references.Position,
 	depth int,
-	timeStopped bool,
 	presentationTimeMs int64,
 ) {
 	if !plan.trueLight || wanderer == nil || depth < 1 || depth > 3 ||
@@ -39,7 +38,6 @@ func appendDungeonWanderer(
 		*wanderer,
 		monster,
 		definition.Animation,
-		timeStopped,
 		presentationTimeMs,
 	)
 	appendDungeonMonsterHalf(plan, *wanderer, monster, leftFrame, depth, false)
@@ -66,6 +64,8 @@ func appendDungeonMonsterHalf(
 		top:         wanderer.OnCeiling,
 		fieldColor:  0,
 		phase:       byte(halfFrame), //nolint:gosec // Frame 0..1 and depth 1..3 bound the source index to 0..5.
+		dissolve:    nil,
+		fieldTimeMs: 0,
 	})
 }
 
@@ -93,30 +93,28 @@ func dungeonMonsterHalfFrames(
 	wanderer game_state.DungeonWanderer,
 	monster int,
 	instruction byte,
-	timeStopped bool,
 	presentationTimeMs int64,
 ) (int, int) {
 	sync := instruction & 0x90
 	animationType := instruction & 0x60
-	left, right := 1, 1
-	if !timeStopped {
-		frame := uint64(max(presentationTimeMs, 0) / dungeonMonsterFrameMs)
+	var left, right int
+	frame := uint64(max(presentationTimeMs, 0) / dungeonMonsterFrameMs)
 
-		// REDUX DEVIATION: DNG-0009: original creature redraw consumes two shared RNG
-		// rolls on every redraw and persists animation in object[1].anim. Redux derives the
-		// cosmetic half-frames from ElapsedMs and snapshot identity so drawing cannot alter gameplay.
-		switch animationType {
-		case 0x20:
-			left = int((frame + 1) & 1)
-			right = left
-		case 0x60:
-			specialFrame := (3 - int(frame%4)) & 3
-			left = int(dungeonMonsterSpecialFrames[specialFrame] >> 1)
-			right = int(dungeonMonsterSpecialFrames[specialFrame] & 1)
-		default:
-			left = dungeonMonsterRandomHalf(plan, wanderer, monster, frame, 0)
-			right = dungeonMonsterRandomHalf(plan, wanderer, monster, frame, 1)
-		}
+	// REDUX DEVIATION: DNG-0009: original creature redraw consumes two shared RNG
+	// rolls on every redraw and persists animation in object[1].anim. Redux derives
+	// cosmetic half-frames from the actor clock and snapshot identity. Time Stop
+	// slows that clock instead of replacing the creature's pattern with a fixed pose.
+	switch animationType {
+	case 0x20:
+		left = int((frame + 1) & 1)
+		right = left
+	case 0x60:
+		specialFrame := (3 - int(frame%4)) & 3
+		left = int(dungeonMonsterSpecialFrames[specialFrame] >> 1)
+		right = int(dungeonMonsterSpecialFrames[specialFrame] & 1)
+	default:
+		left = dungeonMonsterRandomHalf(plan, wanderer, monster, frame, 0)
+		right = dungeonMonsterRandomHalf(plan, wanderer, monster, frame, 1)
 	}
 	if sync != 0 {
 		right = left

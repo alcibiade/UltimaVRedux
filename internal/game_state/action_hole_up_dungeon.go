@@ -54,7 +54,8 @@ func (g *GameState) AddDungeonCampingSequenceToBuilder(
 			g.finishBardGuardPerformance(state)
 		})
 	}).
-		RepeatWithDelay(scene.TotalCycles, CampingCycleDelayMs, func(_ int) bool {
+		Then(scene.BeginSleeping).
+		RepeatWithRuntimeDelay(scene.TotalCycles, func() int64 { return campingCycleDelay(scene) }, func(_ int) bool {
 			if state.Interrupted || !scene.AdvanceExactCycle() {
 				return false
 			}
@@ -63,6 +64,7 @@ func (g *GameState) AddDungeonCampingSequenceToBuilder(
 			return !g.processDungeonCampingCycle(scene, state, plan)
 		}).
 		Then(func() {
+			scene.EndSleeping()
 			if state.Interrupted {
 				g.SystemCallbacks.Screen.CreateAndPushMessageDialog()
 

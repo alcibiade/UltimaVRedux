@@ -145,7 +145,5 @@ func (g *GameScene) drawCombatPartySpellWakeMarker(screen *ebiten.Image) {
 	if !preview.Valid || !preview.ShowWakingPosition || preview.WakingPosition == g.gameState.CombatScene.SpellTargeting.Cursor {
 		return
 	}
-	op := g.combatEntityDrawOptions(preview.WakingPosition, false, 0, 0)
-	left, top, right, bottom := combatReticleBounds(op)
-	drawCombatReticle(screen, left, top, right, bottom, widgets.DialogHeaderColor)
+	drawCombatWakeReticle(screen, g.combatSquareMarkerDrawOptions(preview.WakingPosition))
 }

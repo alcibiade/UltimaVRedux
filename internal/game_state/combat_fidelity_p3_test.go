@@ -154,8 +154,12 @@ func TestFidelityF15SleepConeSavesBeforeImmunity(t *testing.T) {
 	assert.Equal(t, []references.Position{ordinary.Position()}, gs.resolveCombatInZu(caster, positions[:2]))
 	assert.False(t, immune.IsAsleep())
 	assert.True(t, ordinary.IsAsleep())
-	require.Len(t, mock.CombatEvents, 1)
-	assert.Equal(t, ordinary.Position(), mock.CombatEvents[0].To)
+	require.Len(t, mock.CombatEvents, 2)
+	assert.Equal(t, immune.Position(), mock.CombatEvents[0].To)
+	assert.Equal(t, CombatSpellResisted, mock.CombatEvents[0].SpellTarget.Outcome,
+		"a successful save terminates Sleep before the immunity gate")
+	assert.Equal(t, ordinary.Position(), mock.CombatEvents[1].To)
+	assert.Equal(t, CombatSpellSlept, mock.CombatEvents[1].SpellTarget.Outcome)
 	assert.Equal(t, uint64(2), gs.GetRNG().Calls())
 	assert.Equal(t, wantRNG.Intn(1000000), gs.GetRNG().Intn(1000000))
 }

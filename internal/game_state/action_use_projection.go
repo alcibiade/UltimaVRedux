@@ -288,7 +288,10 @@ func (g *GameState) addQuestItemUseGuidance(
 	case references.PocketWatch:
 		info.EffectSummary = "Shows the current Britannian time."
 		info.NextInteraction = "Dismiss the time display when finished."
-		info.Requirement = "Ready to use anywhere in exploration."
+		info.Requirement = "Ready to use in exploration or combat."
+		if context == UsageCombat {
+			info.Consumption = "Not consumed; reading it spends one combat action after dismissal."
+		}
 	case references.BlackBadge:
 		info.EffectSummary = "Wear or remove the Black Badge."
 		info.NextInteraction = "The Badge toggles immediately."
@@ -353,9 +356,14 @@ func (g *GameState) addProvisionUseGuidance(
 	}
 	info.EffectSummary = "Attempts to unlock a magically locked door."
 	info.NextInteraction = "Choose the adjacent door direction."
-	info.Requirement = "Requires an adjacent magically locked door on the Britannian surface or a small map."
+	info.Requirement = "Unlocks an adjacent magical door on the Britannian surface, a small map, or in combat."
 	info.Consumption = "One Skull Key is consumed on direction confirmation; cancellation is free."
-	if context != UsageField || g.ReviewSkullKeyUse().Result != SkullKeyUseReady {
+	info.Warning = "A confirmed direction consumes the key even if no door is unlocked."
+	if context == UsageCombat {
+		info.NextInteraction = "Choose a direction adjacent to the acting combatant."
+		info.Consumption = "One key and one combat action on direction confirmation, even with no effect; cancellation is free."
+	}
+	if (context != UsageField && context != UsageCombat) || g.ReviewSkullKeyUse().Result != SkullKeyUseReady {
 		markUseItemUnavailable(info, "Skull Keys cannot be used on this map.")
 	}
 }

@@ -1,3 +1,4 @@
+// Package color defines the EGA and semantic palettes and reusable color transformations.
 package color
 
 import "image/color"
@@ -18,6 +19,10 @@ const (
 	// maxUint16Float is the maximum value of a uint16 as float64.
 	// Used for converting color.RGBA() output (0-65535 range) to 0.0-1.0 range.
 	maxUint16Float = 65535.0
+	// RGBA expands an 8-bit channel by repeating its byte into a 16-bit value.
+	colorChannelExpansion = 0x101
+	colorChannelBits      = 8
+	maxColorChannel       = 255
 )
 
 // ============================================================================
@@ -32,8 +37,9 @@ type EGAColor struct {
 
 // RGBA implements color.Color interface.
 // Returns 16-bit premultiplied values as required by the interface.
-func (c EGAColor) RGBA() (r, g, b, a uint32) {
-	return uint32(c.R) * 0x101, uint32(c.G) * 0x101, uint32(c.B) * 0x101, uint32(c.A) * 0x101
+func (c EGAColor) RGBA() (uint32, uint32, uint32, uint32) {
+	return uint32(c.R) * colorChannelExpansion, uint32(c.G) * colorChannelExpansion,
+		uint32(c.B) * colorChannelExpansion, uint32(c.A) * colorChannelExpansion
 }
 
 // Matches returns true if the given RGB values exactly match this EGA color.
@@ -73,6 +79,7 @@ func intAbs(x int) int {
 // These are the exact colors available in the original EGA standard
 //
 //goland:noinspection GoUnusedGlobalVariable
+//nolint:gochecknoglobals // Fixed palette values are shared read-only; Go has no struct constants.
 var (
 	// Primary EGA Colors (0-7)
 	EGABlack     = EGAColor{0, 0, 0, AlphaOpaque}       // 0: Black
@@ -99,6 +106,8 @@ var (
 )
 
 // Legacy aliases for backward compatibility
+//
+//nolint:gochecknoglobals,mnd // Read-only compatibility palette; literal channel values preserve its exact colors.
 var (
 	Gray                   = EGADarkGray
 	Black                  = EGABlack
@@ -121,29 +130,33 @@ var (
 func ExtractRGBA(c color.Color) (uint8, uint8, uint8, uint8) {
 	r, g, b, a := c.RGBA()
 
-	return uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), uint8(a >> 8)
+	// Mask the selected byte explicitly before narrowing, preserving the RGBA conversion.
+	return uint8((r >> colorChannelBits) & maxColorChannel), uint8((g >> colorChannelBits) & maxColorChannel),
+		uint8((b >> colorChannelBits) & maxColorChannel), uint8((a >> colorChannelBits) & maxColorChannel)
 }
 
 // ToRGBFloats extracts RGB components from a color.Color as float32 values (0.0-1.0).
 // This is useful for bitmap font rendering with Ebitengine's ColorScale.
 // Alpha channel is ignored; use ExtractRGBA if you need all four components.
-func ToRGBFloats(c color.Color) (r, g, b float32) {
+func ToRGBFloats(c color.Color) (float32, float32, float32) {
 	r16, g16, b16, _ := c.RGBA()
 
 	return float32(r16) / maxUint16Float, float32(g16) / maxUint16Float, float32(b16) / maxUint16Float
 }
 
-// clampUint32 clamps a uint32 value to a maximum
-func clampUint32(value uint32, max uint32) uint32 {
-	if value > max {
-		return max
+// clampColorChannel narrows an intensity result only after enforcing its byte bound.
+func clampColorChannel(value uint32) uint8 {
+	if value > maxColorChannel {
+		return maxColorChannel
 	}
 
-	return value
+	return uint8(value)
 }
 
 // ColorBuilder provides a fluent interface for color transformations
 // Allows chaining of operations like alpha adjustment, intensity changes, etc.
+//
+//nolint:revive // Preserve the established public ColorBuilder name used throughout presentation code.
 type ColorBuilder struct {
 	r, g, b, a uint8
 }
@@ -198,9 +211,9 @@ func (cb *ColorBuilder) Opaque() *ColorBuilder {
 // Intensity adjusts color brightness by multiplying RGB components
 // factor: 0.0 = black, 1.0 = original color, >1.0 = brighter (clamped to 255)
 func (cb *ColorBuilder) Intensity(factor float32) *ColorBuilder {
-	newR := uint8(clampUint32(uint32(float32(cb.r)*factor), 255))
-	newG := uint8(clampUint32(uint32(float32(cb.g)*factor), 255))
-	newB := uint8(clampUint32(uint32(float32(cb.b)*factor), 255))
+	newR := clampColorChannel(uint32(float32(cb.r) * factor))
+	newG := clampColorChannel(uint32(float32(cb.g) * factor))
+	newB := clampColorChannel(uint32(float32(cb.b) * factor))
 
 	return &ColorBuilder{r: newR, g: newG, b: newB, a: cb.a}
 }
@@ -230,6 +243,8 @@ func (cb *ColorBuilder) RGBA() color.RGBA {
 
 // Semantic Color Categories - ColorBuilder Variables
 // UI Colors - Common interface elements (ColorBuilder instances for chaining)
+//
+//nolint:gochecknoglobals // Shared semantic palette; builder transformations return new values rather than mutating it.
 var (
 	// General UI
 	UIBackground     = From(EGABlack)
@@ -240,9 +255,9 @@ var (
 	UITextSecondary  = From(EGALightGray)
 	UITextDisabled   = From(EGADarkGray)
 	// Low stock remains readable on a dark supplies panel.
-	SupplyLow = EGAYellow //nolint:gochecknoglobals // Semantic palette values are immutable after package initialization.
+	SupplyLow = EGAYellow
 	// Empty stock, paired with explicit OUT text.
-	SupplyEmpty = EGALightRed //nolint:gochecknoglobals // Immutable semantic palette value.
+	SupplyEmpty = EGALightRed
 
 	// Button States
 	ButtonDefault      = From(EGADarkGray)
@@ -273,6 +288,8 @@ var (
 )
 
 // Visual Effect Colors
+//
+//nolint:gochecknoglobals // Shared read-only palette keeps visual effect identities consistent across callers.
 var (
 	// Explosion/Combat Effects
 	MissileYellow = EGAYellow  // Yellow projectile base
@@ -288,33 +305,33 @@ var (
 
 // Overlay Effect Colors - ColorBuilder Variables for pulsing glows and auras
 //
-//nolint:gochecknoglobals // Semantic palette values are immutable after package initialization.
+//nolint:gochecknoglobals,mnd // Read-only overlay palette; literal intensities and alpha values are visual tuning data.
 var (
 	// MoongateGlow is the pulsing blue glow for active moongates.
 	// Uses EGA Light Blue with semi-transparency for mystical effect.
-	MoongateGlow = From(EGALightBlue).SemiTransparent() //nolint:gochecknoglobals
+	MoongateGlow = From(EGALightBlue).SemiTransparent()
 
 	// Creature Glow Colors - subtle magical auras for NPCs (additive blending)
 	// Using non-light EGA base colors with low intensity to avoid washed-out look
 
 	// WispGlow is an ethereal cyan glow for energy beings (fast flicker)
-	WispGlow = From(EGACyan).Intensity(0.4).Alpha(50) //nolint:gochecknoglobals,mnd
+	WispGlow = From(EGACyan).Intensity(0.4).Alpha(50)
 
 	// DaemonGlow is a fiery red glow for fire creatures (fire flicker)
-	DaemonGlow = From(EGARed).Intensity(0.4).Alpha(50) //nolint:gochecknoglobals,mnd
+	DaemonGlow = From(EGARed).Intensity(0.4).Alpha(50)
 
 	// GhostGlow is a pale spectral glow for undead spirits (slow waver)
-	GhostGlow = From(EGALightGray).Intensity(0.3).Alpha(40) //nolint:gochecknoglobals,mnd
+	GhostGlow = From(EGALightGray).Intensity(0.3).Alpha(40)
 
 	// SeahorseGlow is a subtle aqua glow for mystical sea creatures
-	SeahorseGlow = From(EGACyan).Intensity(0.4).Alpha(50) //nolint:gochecknoglobals,mnd
+	SeahorseGlow = From(EGACyan).Intensity(0.4).Alpha(50)
 
 	// Quest Item Glow Colors - subtle but noticeable for collectible objects
 	// ShardGlow is a sinister purple glow for corrupted Shards of Evil
-	ShardGlow = From(EGAMagenta).Intensity(0.4).Alpha(50) //nolint:gochecknoglobals,mnd
+	ShardGlow = From(EGAMagenta).Intensity(0.4).Alpha(50)
 
 	// ArtifactGlow is a noble golden glow for Lord British's Artifacts
-	ArtifactGlow = From(EGABrown).Intensity(0.5).Alpha(60) //nolint:gochecknoglobals,mnd
+	ArtifactGlow = From(EGABrown).Intensity(0.5).Alpha(60)
 
 	// Combat Overlay Colors
 	// These semantic colors are intentionally centralized so combat readability
@@ -327,6 +344,11 @@ var (
 	CombatAimFriendlyDim    = EGACyan
 	CombatAimEnemyBright    = EGALightRed
 	CombatAimEnemyDim       = EGARed
+	// Selection location stays opaque independently of the semantic centre pulse.
+	CombatAimFrameFace       = EGAWhite
+	CombatAimFrameBorder     = EGABlack
+	CombatWakeMarkerFace     = EGALightMagenta
+	CombatActiveAccentBorder = EGABlack
 
 	CombatActivePCOutline          = EGALightGreen
 	CombatInactivePCOutline        = EGABlack
@@ -353,6 +375,8 @@ var (
 )
 
 // Debug Overlay Colors - ColorBuilder Variables
+//
+//nolint:gochecknoglobals,mnd // Read-only debug palette; alpha values are per-overlay visual tuning data.
 var (
 	// Debug Overlays
 	DebugLightOverlay     = From(EGAYellow).Subtle()         // Yellow for light areas
@@ -379,6 +403,8 @@ var (
 )
 
 // Widget-Specific Colors - ColorBuilder Variables
+//
+//nolint:gochecknoglobals,mnd // Read-only widget palette; intensity and alpha literals encode each named visual style.
 var (
 	// Button
 	ButtonTextDisabledGray = From(EGADarkGray).Heavy() // Gray text for disabled buttons

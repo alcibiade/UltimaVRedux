@@ -28,9 +28,11 @@ const (
 )
 
 type dungeonHUDOutputs struct {
-	level     *text.Output
-	direction *text.Output
-	debug     *text.Output
+	level          *text.Output
+	direction      *text.Output
+	debug          *text.Output
+	levelLabel     dungeonBorderLabel
+	directionLabel dungeonBorderLabel
 }
 
 type dungeonHUDStatus struct {
@@ -49,6 +51,7 @@ type dungeonHUDLayout struct {
 }
 
 func (g *GameScene) initializeDungeonHUDOutputs() {
+	g.releaseDungeonHUD()
 	_, g.dungeonHUD.level = widgets.GetScaledFontWithOutput(widgets.FontConfig{
 		Size:     widgets.FontSizeDefault,
 		MaxLines: 1,
@@ -64,6 +67,13 @@ func (g *GameScene) initializeDungeonHUDOutputs() {
 		MaxLines: 1,
 		MaxChars: dungeonDebugMaxChars,
 	})
+}
+
+// Called on resize before replacing fonts, and when the scene is disposed.
+func (g *GameScene) releaseDungeonHUD() {
+	g.dungeonHUD.levelLabel.release()
+	g.dungeonHUD.directionLabel.release()
+	g.dungeonHUD = dungeonHUDOutputs{}
 }
 
 func newDungeonHUDStatus(
@@ -165,23 +175,8 @@ func (g *GameScene) drawDungeonHUD(screen *ebiten.Image, status dungeonHUDStatus
 	debugHeight := int(math.Ceil(g.dungeonHUD.debug.GetTotalHeightForLines(1)))
 	layout := calculateDungeonHUDLayout(screen.Bounds(), levelHeight, directionHeight, debugHeight)
 
-	g.dungeonHUD.level.Reset()
-	g.dungeonHUD.level.AppendLine().White(status.levelText()).Done()
-	g.dungeonHUD.level.DrawPanelContent(
-		screen,
-		layout.levelPoint,
-		layout.frameBounds.Dx(),
-		etext.AlignCenter,
-	)
-
-	g.dungeonHUD.direction.Reset()
-	g.dungeonHUD.direction.AppendLine().White(status.directionText()).Done()
-	g.dungeonHUD.direction.DrawPanelContent(
-		screen,
-		layout.directionPoint,
-		layout.frameBounds.Dx(),
-		etext.AlignCenter,
-	)
+	g.drawDungeonLevelLabel(screen, status)
+	g.drawDungeonDirectionLabel(screen, status)
 
 	g.dungeonHUD.debug.Reset()
 	if !g.showRendererDiagnostics() {

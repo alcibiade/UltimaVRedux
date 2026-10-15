@@ -167,7 +167,7 @@ func TestDungeonMonsterAnimationMatchesSourceInstructionsAndTimeStop(t *testing.
 		require.True(t, found)
 		for frame := range 16 {
 			left, right := dungeonMonsterHalfFrames(
-				plan, wanderer, archive, definition.Animation, false, int64(frame*dungeonMonsterFrameMs),
+				plan, wanderer, archive, definition.Animation, int64(frame*dungeonMonsterFrameMs),
 			)
 			if monster == references.MonsterGhost {
 				assert.NotEqual(t, left, right)
@@ -183,7 +183,7 @@ func TestDungeonMonsterAnimationMatchesSourceInstructionsAndTimeStop(t *testing.
 	visibleByHalf := [2]int{}
 	for frame := range dungeonMonsterRandomRange {
 		left, right := dungeonMonsterHalfFrames(
-			plan, wanderer, spiderArchive, spider.Animation, false, int64(frame*dungeonMonsterFrameMs),
+			plan, wanderer, spiderArchive, spider.Animation, int64(frame*dungeonMonsterFrameMs),
 		)
 		seen[[2]int{left, right}] = struct{}{}
 		visibleByHalf[0] += left
@@ -195,11 +195,18 @@ func TestDungeonMonsterAnimationMatchesSourceInstructionsAndTimeStop(t *testing.
 	for archive := range references.DungeonWanderingMonsterCount {
 		definition, found := references.DungeonWanderingMonsterDefinitionAt(archive)
 		require.True(t, found)
-		atStart := monsterFramesAsSlice(plan, wanderer, archive, definition.Animation, true, 0)
-		muchLater := monsterFramesAsSlice(plan, wanderer, archive, definition.Animation, true, 999_999)
-		assert.Equal(t, atStart, muchLater)
-		assert.Equal(t, 1, atStart[0])
-		assert.Equal(t, map[bool]int{false: 1, true: 0}[definition.Animation&0x90 == 0x90], atStart[1])
+		var clock actorAnimationClock
+		clock.update(0, true)
+		seen := make(map[[2]int]bool)
+		for elapsed := int64(0); elapsed <= 20_000; elapsed += 10 {
+			clock.update(elapsed, true)
+			left, right := dungeonMonsterHalfFrames(plan, wanderer, archive, definition.Animation, clock.phaseMs)
+			normal := monsterFramesAsSlice(plan, wanderer, archive, definition.Animation, false,
+				elapsed/timeStopAnimationDivisor)
+			assert.Equal(t, normal, []int{left, right}, "archive=%d elapsed=%d", archive, elapsed)
+			seen[[2]int{left, right}] = true
+		}
+		assert.Greater(t, len(seen), 1, "Time Stop must retain each pattern, not hard-freeze archive %d", archive)
 	}
 }
 
@@ -345,8 +352,11 @@ func monsterFramesAsSlice(
 	timeStopped bool,
 	presentationTimeMs int64,
 ) []int {
+	var clock actorAnimationClock
+	clock.update(0, timeStopped)
+	clock.update(presentationTimeMs, timeStopped)
 	left, right := dungeonMonsterHalfFrames(
-		plan, wanderer, monster, instruction, timeStopped, presentationTimeMs,
+		plan, wanderer, monster, instruction, clock.phaseMs,
 	)
 
 	return []int{left, right}

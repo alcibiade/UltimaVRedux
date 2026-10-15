@@ -262,6 +262,9 @@ func (g *GameState) TransformDungeonCell(
 	dungeon.revision++
 	change.Revision = dungeon.revision
 	g.MapState.LayeredMaps.RebuildDungeonFloor(dungeon.cells, floor)
+	// Reconcile cell-owned presentation synchronously. A replacement followed by
+	// another removal in the same update must not revive the earlier remnant.
+	g.SystemCallbacks.Screen.UpdateDisplay()
 
 	return change, nil
 }

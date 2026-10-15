@@ -344,10 +344,7 @@ func (g *GameScene) startCombatConeSpellEffect(result game_state.CombatConeTarge
 		}).Animate(visual.PropagationDuration, func(progress float32) {
 		g.combatConeCast.progress = progress
 	}).Wait(visual.HoldDuration).Then(func() {
-		affected := g.gameState.ResolveCommittedCombatCone(result)
-		for _, position := range affected {
-			g.gameState.SystemCallbacks.Visual.PlayKapowAtPosition(position)
-		}
+		g.presentCombatAreaSpellSummary(g.gameState.ResolveCommittedCombatCone(result))
 	}).Finally(func() {
 		g.combatConeCast = nil
 		g.gameState.FinishCombatAction()

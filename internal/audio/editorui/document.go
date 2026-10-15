@@ -17,7 +17,7 @@ func (m *model) documentOperation(reload bool, summary string, apply func(*audio
 		err := apply(document)
 
 		return documentMsg{generation: generation, baseRevision: revision,
-			document: document, err: err, summary: summary, reload: reload}
+			document: document, err: err, summary: summary, reload: reload, calibration: nil}
 	}
 }
 
@@ -38,12 +38,30 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 
 		return nil
 	}
+	if message.calibration != nil {
+		if err := m.checkCalibrationDraft(message.calibration); err != nil {
+			m.quitAfterOperation = false
+			m.report(err)
+
+			return nil
+		}
+	}
 	publicationChanged := message.document.LastPublication().Sequence != m.doc.LastPublication().Sequence
 	m.doc = message.document
 	if message.err != nil {
 		return m.failedDocument(message, cropCommit, publicationChanged)
 	}
+
+	return m.completeDocument(message, cropCommit, publicationChanged)
+}
+
+func (m *model) completeDocument(message documentMsg, cropCommit, publicationChanged bool) tea.Cmd {
 	m.status, m.statusIsError = message.summary, false
+	if message.calibration != nil {
+		m.autoGainDraft = nil
+		m.preview.SetGain(m.livePreviewGain())
+		m.refreshMixGains()
+	}
 	selected := m.selectedID()
 	m.refreshKeys()
 	var refresh tea.Cmd
@@ -74,6 +92,9 @@ func (m *model) acceptDocument(message documentMsg) tea.Cmd {
 func (m *model) failedDocument(message documentMsg, cropCommit, publicationChanged bool) tea.Cmd {
 	if cropCommit && errors.Is(message.err, audio.ErrRecordingSourceChanged) {
 		m.rejectSourceSnapshot(m.crop.source, message.err)
+	}
+	if message.calibration != nil && errors.Is(message.err, audio.ErrRecordingSourceChanged) {
+		m.rejectSourceSnapshot(message.calibration.source, message.err)
 	}
 	m.quitAfterOperation = false
 	var reload tea.Cmd

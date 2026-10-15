@@ -64,7 +64,7 @@ func (g *GameState) applyCombatInFlamHurAtPosition(casterIdx int, position refer
 	processed := make(map[CombatTurnIdentity]struct{}, 1)
 	target, found := g.CombatScene.combatConeVictimAt(position, processed)
 
-	return found && g.applyCombatInFlamHurToTarget(casterIdx, target)
+	return found && g.applyCombatInFlamHurToTarget(casterIdx, target).applied()
 }
 
 func (g *GameState) applyCombatInNoxHurAtPosition(casterIdx int, position references.Position) (bool, bool) {
@@ -72,7 +72,9 @@ func (g *GameState) applyCombatInNoxHurAtPosition(casterIdx int, position refere
 	if target, found := g.CombatScene.combatConeVictimAt(position, processed); found {
 		hit := g.rollCombatDexterityThreshold(g.effectiveCombatDexterity(target))
 
-		return g.applyCombatPoisonWindToxify(casterIdx, target, hit)
+		result := g.applyCombatPoisonWindToxify(casterIdx, target, hit)
+
+		return result.applied(), result.Outcome == CombatSpellPoisoned
 	}
 
 	return false, false
@@ -82,7 +84,7 @@ func (g *GameState) applyCombatInVasGravCorpAtPosition(casterIdx int, position r
 	processed := make(map[CombatTurnIdentity]struct{}, 1)
 	target, found := g.CombatScene.combatConeVictimAt(position, processed)
 
-	return found && g.applyCombatInVasGravCorpToTarget(casterIdx, target)
+	return found && g.applyCombatInVasGravCorpToTarget(casterIdx, target).applied()
 }
 
 func TestTraceCombatCone_ClipsFootprintAtBlockingTerrain(t *testing.T) {
@@ -396,7 +398,11 @@ func TestCombatInZu_LeavesOriginalImmuneMonsterAwake(t *testing.T) {
 
 	assert.False(t, monster.IsAsleep())
 	assert.NotContains(t, affected, monster.Position())
-	assert.Empty(t, mock.CombatEvents)
+	require.NotEmpty(t, mock.CombatEvents)
+	for _, event := range mock.CombatEvents {
+		require.NotNil(t, event.SpellTarget)
+		assert.Equal(t, CombatSpellImmune, event.SpellTarget.Outcome)
+	}
 }
 
 func TestCombatInNoxHurToxifiesAtDexterityThreshold(t *testing.T) {

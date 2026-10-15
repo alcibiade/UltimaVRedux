@@ -1077,6 +1077,7 @@ func (g *GameState) commitCombatTransition(
 	// Overworld selection and combat solo selection have different meanings.
 	// Combat starts in round-robin mode with no explicit party member selected.
 	g.ClearActivePlayer()
+	g.SystemCallbacks.Screen.UpdateDisplay()
 }
 
 // TransitionToDungeonCombatMap loads a dungeon room combat map.
@@ -1139,6 +1140,7 @@ func (g *GameState) TransitionFromCombatMap() {
 	g.CombatScene = nil
 	// Restore after clearing combat so the stats callback sees exploration state.
 	g.restorePreCombatActivePlayer(activePlayerIndex)
+	g.SystemCallbacks.Screen.UpdateDisplay()
 
 	logging.Debug(logging.CategoryGameState,
 		"Transitioned from combat map %q back to normal view", combatMapName)

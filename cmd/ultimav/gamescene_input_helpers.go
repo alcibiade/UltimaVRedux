@@ -36,9 +36,10 @@ func (g *GameScene) GetPressedKey() *semantic_input.Key {
 // updateDisplay triggers immediate screen refresh to show new map items
 // This is the equivalent of the original game's losflag |= 2 mechanism
 func (g *GameScene) updateDisplay() {
-	// Trigger the layer refresh system to update all map layers immediately
-	// This ensures that newly added items in ItemStacksMap become visible on screen
-	// GetEffectiveTile() handles all tile overrides dynamically - no layer refresh needed
+	// Reconcile presentation synchronously: an intermediate cell replacement or
+	// visit change must retire old remnants even if the final cell matches again.
+	g.pruneDungeonFieldDispels()
+	g.updateActorAnimationClocks()
 }
 
 // processNPCAutoTalk consumes an NPC command handed off by the preceding NPC turn.

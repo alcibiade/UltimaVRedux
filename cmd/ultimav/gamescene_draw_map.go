@@ -203,8 +203,9 @@ func (g *GameScene) renderMapUnitSprite(
 	// Position-based hash for animation variety
 	posHash := worldPos.AnimationHash()
 
-	// Get animated sprite
-	npcSpriteImage := g.spriteSheet.GetAnimatedSprite(presentation.Sprite, posHash, animationTime)
+	// Only the actor body follows Time Stop. Tinting and glow keep ordinary time.
+	bodyTime := g.surfaceActorAnimationTime(*mapUnit, animationTime)
+	npcSpriteImage := g.spriteSheet.GetAnimatedSprite(presentation.Sprite, posHash, bodyTime)
 
 	// Apply the presentation-owned NPC pipeline.
 	// Skip for background-integrated sprites (sleeping in bed, sitting in chairs, climbing ladders)
@@ -295,11 +296,9 @@ func (g *GameScene) drawQuestItemsOverlay(screen *ebiten.Image) {
 		// Handle coordinate wrapping based on map type
 		if mapType == references.LargeMapType {
 			worldPos = worldPos.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
-		} else {
+		} else if worldPos.X < 0 || worldPos.Y < 0 {
 			// Small maps don't wrap, but ensure coordinates are valid
-			if worldPos.X < 0 || worldPos.Y < 0 {
-				continue
-			}
+			continue
 		}
 
 		// Calculate screen tile position relative to player
@@ -362,7 +361,7 @@ func (g *GameScene) drawQuestItemsOverlay(screen *ebiten.Image) {
 
 		// Apply pulsing alpha to base sprite (modulates visibility over time)
 		if glowOverlay != nil {
-			pulsingAlpha := glowOverlay.GetPulsingAlpha(int64(elapsedMs))
+			pulsingAlpha := glowOverlay.GetPulsingAlpha(elapsedMs)
 			questItemDo.ColorScale.ScaleAlpha(pulsingAlpha)
 		}
 
@@ -372,7 +371,7 @@ func (g *GameScene) drawQuestItemsOverlay(screen *ebiten.Image) {
 		// Apply static glow overlay on top using sprite mask (glow follows sprite shape)
 		if glowOverlay != nil {
 			spriteMask := sprites.GetSpriteMask(questItemSprite)
-			glowOverlay.ApplyOverlayWithMask(screen, &questItemDo, int64(elapsedMs), 1.0, spriteMask)
+			glowOverlay.ApplyOverlayWithMask(screen, &questItemDo, elapsedMs, 1.0, spriteMask)
 		}
 	}
 }

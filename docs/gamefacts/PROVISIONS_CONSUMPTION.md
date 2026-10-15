@@ -188,7 +188,11 @@ later pickup, records that day; month rollover resets the marker.
 
 Original Use consumes one after item selection but before context/direction/effect
 validation. Surface and tactical contexts invoke the two-variant magical-door
-unlock effect; dungeon exploration rejects it. Later cancellation or an
+unlock effect; dungeon exploration rejects it. In tactical combat, including a
+dungeon room, the adjacent cardinal target is measured from the acting PC entry,
+not the party's exploration/entry position. Each magical-door variant becomes
+its corresponding ordinary **closed** door, retaining whether it has a view.
+The effect does not open that door. Later cancellation or an
 ineffective target does not refund the key. Cancelling the item menu before
 selection consumes nothing. This is not a universal unlock for ordinary locks.
 
@@ -199,5 +203,16 @@ and no-effect/stale targeting does not manufacture a refund. This follows the
 existing validated-attempt policy so uncommitted rejection is atomic. Discovery
 marker equivalence is not claimed by this narrower Use review.
 
-**Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/cast_use_commit.go`
-**Tests:** `internal/game_state/action_use_commits_test.go`
+Redux makes owned Skull Keys selectable in tactical combat while retaining the
+first-person dungeon and Underworld exploration restrictions. A direction prompt
+retains the exact encounter, PC/clone entry, character, dispatch, actor origin,
+map identity, and inventory quantity. Changed ownership, movement, map, or stock
+before confirmation rejects the attempt for free. A confirmed cardinal direction
+spends one key and one combat action, including an ordinary physical lock, a
+non-door square, or a direction beyond the battlefield edge; edges do not wrap.
+Both authoritative combat terrain and its displayed map receive the unlock.
+The owning Use workflow completes only its own original actor action; neither
+key consumption nor unlocking adds a separate surface time/provision cycle.
+
+**Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/combat_skull_key.go`, `internal/game_state/combat_use_owner.go`, `cmd/ultimav/gamescene_skull_key.go`
+**Tests:** `internal/game_state/action_use_commits_test.go`, `internal/game_state/combat_key_watch_test.go`, `cmd/ultimav/gamescene_combat_key_watch_test.go`

@@ -9,6 +9,8 @@ import (
 const (
 	commandHelpMovementKeys = "Arrows / keypad"
 	commandHelpPartyKeys    = "0 / 1-6"
+	commandKeyLabelSpace    = "Space"
+	commandKeyLabelEscape   = "Esc"
 )
 
 func (g *GameScene) handleCommandHelpShortcut(key ebiten.Key) bool {
@@ -35,7 +37,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 	}
 	entries := []widgets.CommandHelpEntry{
 		{Key: commandHelpMovementKeys, Purpose: "Move", NextInput: "Move one step; hold to repeat."},
-		{Key: "Space", Purpose: "Pass", NextInput: "Wait one action."},
+		{Key: commandKeyLabelSpace, Purpose: "Pass", NextInput: "Wait once immediately; hold to repeat in exploration. Release after a dialog or context change."},
 		{Key: "A", Purpose: "Attack", NextInput: direction},
 		{Key: "B", Purpose: "Board a vehicle", NextInput: "Stand on a boardable vehicle."},
 		{Key: "C", Purpose: "Cast a prepared spell", NextInput: "Choose caster/spell, then the displayed target interaction. " +
@@ -43,7 +45,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 		{Key: "E", Purpose: "Enter a location", NextInput: "Stand on a town, dungeon or other entrance."},
 		{Key: "F", Purpose: "Fire a cannon", NextInput: direction},
 		{Key: "G", Purpose: "Get an item", NextInput: direction},
-		{Key: "H", Purpose: "Hole up and camp", NextInput: "Follow the camp prompts; safety and supplies are checked."},
+		{Key: "H", Purpose: "Hole up and camp", NextInput: "Follow the camp prompts. During sleeping, press Space once to speed up the remaining rest. Each new camp starts normally."},
 		{Key: "I", Purpose: "Ignite a torch", NextInput: "Requires a carried torch; consumes it immediately."},
 		{Key: "J", Purpose: "Jimmy a lock", NextInput: direction + " Choose a character when asked."},
 		{Key: "K", Purpose: "Klimb", NextInput: "Use a ladder or climbable terrain; choose direction when asked."},
@@ -54,7 +56,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 		{Key: "P", Purpose: "Push", NextInput: direction},
 		{Key: "Q", Purpose: "Quit / save", NextInput: "Answer the save prompt."},
 		{Key: "R", Purpose: "Ready equipment", NextInput: "Choose character/item; Space applies the displayed Equip/Unready operation immediately. Tab/Shift+Tab pages longer details."},
-		{Key: "S", Purpose: "Search", NextInput: direction},
+		{Key: "S", Purpose: commandLabelSearch, NextInput: direction},
 		{Key: "T", Purpose: "Talk", NextInput: direction + " Type topics or phrases; Enter submits. NAME/JOB/BYE; PgUp reviews this conversation only."},
 		{Key: "U", Purpose: "Use an item", NextInput: "Choose item/user, then follow its target prompt."},
 		{Key: "V", Purpose: "View with a gem", NextInput: "Requires a gem; acknowledge the map view."},
@@ -68,7 +70,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 		{Key: "Ctrl+M", Purpose: "Toggle music", NextInput: "Toggle music from primary input."},
 		{Key: "Ctrl+R", Purpose: "Runic alphabet reference", NextInput: "Toggle the right-side chart during exploration, sign reading or conversation. Translate the runes yourself; no time is spent."},
 		{Key: "/ or ?", Purpose: "Context command help", NextInput: "PgUp/PgDn to read; Space: Next page; Esc closes. Available only at primary input."},
-		{Key: "Esc", Purpose: "Game menu", NextInput: "Choose Help, Save, Load or Configure; Esc returns."},
+		{Key: commandKeyLabelEscape, Purpose: "Game menu", NextInput: "Choose Help, Save, Load or Configure; Esc returns."},
 		{Key: "D / W", Purpose: "Unassigned command keys", Unavailable: "No player action is assigned to these keys."},
 	}
 	for index := range entries {
@@ -83,8 +85,12 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 				entry.Unavailable = "Not available during combat."
 			}
 			switch entry.Key {
+			case commandKeyLabelSpace:
+				entry.NextInput = "Pass one action per fresh press; holding does not repeat in combat."
 			case "G", "J", "O", "P", "S":
-				entry.NextInput = "Arrow/keypad direction; Esc: Cancel without spending the action. Space: Pass spends the action."
+				entry.NextInput = "Arrow/keypad direction; Esc: Cancel for free. Space: Pass spends the action. " +
+					"In solo mode during enemy turns, queue one G/O/J/P/S verb; another replaces it, Esc clears. " +
+					"Early directions must be released and pressed afresh when ready."
 			case "K":
 				entry.NextInput = "Ordinary direction: Esc cancels for free; Space passes the action. Underfoot ladders and the U/D ladder selector use their displayed route."
 			case "A":
@@ -98,7 +104,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 				entry.NextInput = "Choose equipment for the acting character; Space applies the displayed Equip/Unready operation immediately."
 			case commandHelpPartyKeys:
 				entry.NextInput = "0 restores round-robin play. Selecting another PC passes the current actor until that PC can act."
-			case "Esc":
+			case commandKeyLabelEscape:
 				entry.Purpose, entry.NextInput = "Leave the battlefield", "Exit when permitted, normally after victory. Dungeon rooms require a chosen exit route."
 			}
 		case references.DungeonMapType:

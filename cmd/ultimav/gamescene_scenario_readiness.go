@@ -6,6 +6,8 @@ import "github.com/bradhannah/UltimaVRedux/internal/logging"
 // next command without overlapping interactive or scripted gameplay work.
 func (g *GameScene) ScenarioCommandsReady() bool {
 	return !g.gameState.IsInCombat() &&
+		!g.transientCommandInput.pass.active &&
+		!g.transientCommandInput.pending.active &&
 		!g.dialogStack.HasOpenDialog() &&
 		!g.gameState.EventQueueManager.HasActiveWorkflows() &&
 		g.miniMapScene == nil &&
@@ -21,6 +23,10 @@ func (g *GameScene) ScenarioRunsAllowed() bool {
 
 // PrepareForSceneReplacement stops live playback before the candidate is activated.
 func (g *GameScene) PrepareForSceneReplacement() {
+	g.ResetTransientCommandInput()
+	g.clearDungeonInjury()
+	g.clearDungeonFieldDispels()
+	g.clearActorAnimationClocks()
 	g.clearKnowledgeNotices()
 	g.clearBattleSummaries()
 	g.resetProvisionChanges()
@@ -44,6 +50,8 @@ func (g *GameScene) Dispose() {
 		return
 	}
 	g.disposed = true
+	g.ResetTransientCommandInput()
+	g.releaseDungeonHUD()
 	g.closeRunicReference()
 	g.sky = skyPresentation{}
 	if g.borders.skyBacking != nil {
@@ -75,7 +83,10 @@ func (g *GameScene) Dispose() {
 		}
 		g.gameState.EventQueueManager.Shutdown()
 	}
+	g.clearDungeonFieldDispels()
+	g.clearActorAnimationClocks()
 	g.clearTimedOverlay()
+	g.clearDungeonInjury()
 	g.clearTransientActionFeedback()
 	g.clearTransientIcons()
 	g.clearShadowlordPresentationForSceneTransition()

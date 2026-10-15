@@ -223,7 +223,7 @@ func TestCompletedPreviewDoesNotRestartOnCropEditOrCancel(t *testing.T) {
 func TestDraftAutoPreviewEqualsCreatedCalibrationAndSourceBytes(t *testing.T) {
 	m := fixture(t)
 	m.beginAutoCalibration()
-	m.autoCalibrationKey(keyEnter)
+	finish(m, m.autoCalibrationKey(keyEnter))
 	before := m.doc.Recording(m.recordingID())
 	selectHealMoment(t, m)
 	data, err := os.ReadFile(m.clip.Path)

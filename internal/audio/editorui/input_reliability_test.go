@@ -134,7 +134,7 @@ func TestLoadingAutoRecordingDoesNotAuthorOrDestroyRedo(t *testing.T) {
 func TestFamilyAndAutoCalibrationUndoAsOneEditThroughReload(t *testing.T) {
 	model := fixture(t)
 	model.beginAutoCalibration()
-	model.autoCalibrationKey(keyEnter)
+	finish(model, model.autoCalibrationKey(keyEnter))
 	before, family := model.doc.Recording(model.recordingID()), model.doc.RecordingFamily(model.recordingID())
 	dispatchRune(model, 'C')
 	model.form.fields[0].value = "nature"
@@ -178,7 +178,7 @@ func TestCalibrationConfirmationRejectsRetargetedDraft(t *testing.T) {
 	model := fixture(t)
 	model.beginAutoCalibration()
 	model.selectID("healing_02")
-	model.autoCalibrationKey(keyEnter)
+	finish(model, model.autoCalibrationKey(keyEnter))
 	require.False(t, model.doc.Dirty())
 	require.Contains(t, model.status, "stale")
 }

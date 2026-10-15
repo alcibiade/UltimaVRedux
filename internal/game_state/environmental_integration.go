@@ -105,24 +105,36 @@ func (g *GameState) cachePlayerUpdateStatuses() playerUpdateStatusCache {
 	return result
 }
 
-func (g *GameState) applyCachedPlayerUpdatePoison(cache playerUpdateStatusCache, playDamageSound bool) []int {
-	deadIndexes := make([]int, 0)
+func (g *GameState) applyCachedPlayerUpdatePoison(cache playerUpdateStatusCache, dungeonFeedback bool) []int {
+	result := g.resolveCachedPlayerUpdatePoison(cache)
+	if dungeonFeedback {
+		g.presentDungeonInjury(dungeonInjuryResult{kind: DungeonInjuryPoison, hpLost: result.hpLost})
+	}
+
+	return result.deadIndexes
+}
+
+type playerUpdatePoisonResult struct {
+	deadIndexes []int
+	hpLost      int
+}
+
+func (g *GameState) resolveCachedPlayerUpdatePoison(cache playerUpdateStatusCache) playerUpdatePoisonResult {
+	result := playerUpdatePoisonResult{deadIndexes: make([]int, 0), hpLost: 0}
 	for index := range party_state.MaxActiveParty {
 		if !cache.Active[index] || cache.Statuses[index] != party_state.Poisoned {
 			continue
 		}
 		character := g.PartyState.GetCharacter(index)
-		wasAlive := character.GetCurrentHp() > 0
+		before := character.GetCurrentHp()
 		character.SubtractHp(1)
-		if playDamageSound {
-			g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
-		}
-		if wasAlive && character.IsDead() {
-			deadIndexes = append(deadIndexes, index)
+		result.hpLost += int(before - character.GetCurrentHp())
+		if before > 0 && character.IsDead() {
+			result.deadIndexes = append(result.deadIndexes, index)
 		}
 	}
 
-	return deadIndexes
+	return result
 }
 
 // processPoisonedCharactersForPlayerUpdate applies the updateplayers poison step.

@@ -21,7 +21,6 @@ const (
 	windTextMaxChars  = 40
 	windTextPadding   = 8
 	windCenterDivisor = 2
-	windPixelBytes    = 4
 )
 
 // WindDisplay renders the context label at the bottom center of the map.
@@ -84,8 +83,8 @@ func (w *WindDisplay) DrawLabel(screen *ebiten.Image, label string) {
 }
 
 func (w *WindDisplay) ensureLayout() {
-	dm := display.GetManager()
-	screenWidth, screenHeight := dm.GetCurrentSize()
+	displayManager := display.GetManager()
+	screenWidth, screenHeight := displayManager.GetCurrentSize()
 	if screenWidth <= 0 || screenHeight <= 0 {
 		return
 	}
@@ -104,7 +103,7 @@ func (w *WindDisplay) ensureLayout() {
 	})
 	outer, aperture := surfaceMapBorderGeometry()
 	w.borderStroke, w.borderBlue = windBorderStyle(outer, aperture)
-	w.padding = max(1, int(math.Round(ultimatext.GetScaledNumberToResolution(dm, windTextPadding))))
+	w.padding = max(1, int(math.Round(ultimatext.GetScaledNumberToResolution(displayManager, windTextPadding))))
 	textHeight := int(math.Ceil(w.output.GetFontHeight()))
 	bandHeight := outer.Max.Y - aperture.Max.Y
 	w.verticalPadding = min(w.padding, max(0, (bandHeight-textHeight)/windCenterDivisor))
@@ -117,6 +116,7 @@ func (w *WindDisplay) ensureLayout() {
 	w.lastText = ""
 }
 
+//nolint:unused // Wind-layout regression tests use this direction adapter without drawing a screen.
 func (w *WindDisplay) ensureText(windDirection environment.WindDirection) {
 	w.ensureLabel(windDirection.GetUIString())
 }
@@ -156,29 +156,8 @@ func windBorderStyle(outer, aperture image.Rectangle) (int, color.RGBA) {
 	borders := sprites.NewBorderSprites()
 	frame, _ := borders.VeryPixelatedRoundedBlueWhite.CreateSizedAndScaledBorderSprite(
 		borderWidthScaling, gameScreenPercents)
-	center := outer.Dx() / windCenterDivisor
-	column, ok := frame.SubImage(image.Rect(center, aperture.Max.Y, center+1, outer.Max.Y)).(*ebiten.Image)
-	if !ok {
-		panic("Wind border sample has unexpected image type")
-	}
-	pixels := make([]byte, column.Bounds().Dy()*windPixelBytes)
-	column.ReadPixels(pixels)
-	stroke, run := 0, 0
-	blue := ucolor.EGABlue.ToRGBA()
-	for offset := 0; offset < len(pixels); offset += windPixelBytes {
-		pixel := color.RGBA{R: pixels[offset], G: pixels[offset+1], B: pixels[offset+2], A: pixels[offset+3]}
-		if pixel == ucolor.EGAWhite.ToRGBA() {
-			run++
-			stroke = max(stroke, run)
-		} else {
-			run = 0
-		}
-		if pixel.B > pixel.R && pixel.B > pixel.G && pixel.A == ucolor.AlphaOpaque {
-			blue = pixel
-		}
-	}
 
-	return max(1, stroke), blue
+	return mapBorderBandStyle(frame, image.Rect(outer.Min.X, aperture.Max.Y, outer.Max.X, outer.Max.Y))
 }
 
 // Update is called each frame for resolution-dependent resource updates.

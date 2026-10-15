@@ -114,10 +114,7 @@ func (m *model) dialogContent(width int) (editorDialog, bool) {
 	case ownerDuplicate, ownerCrop:
 		// Region drafts use the right pane so the waveform stays visible.
 	case ownerCalibration:
-		return editorDialog{title: "AUTO-GAIN", rows: []string{
-			fmt.Sprintf("Suggested recording calibration: %+.2f dB", m.autoGainDraft.GainDB),
-			"Apply this calibration and enable automatic gain updates?",
-		}, focus: 0, help: []string{"Enter: apply   Escape: keep existing calibration"}}, true
+		return m.calibrationDialog(), true
 	case ownerAmbientReplacement:
 		return editorDialog{title: "REPLACE AMBIENT LAYER", rows: []string{
 			"Both ambient slots are occupied. Choose which layer to replace.",

@@ -62,8 +62,9 @@ func TestDungeonPoisonFieldsPersistAndTickInSameCompletion(t *testing.T) {
 			assert.Equal(t, cell, currentDungeonInteractionCell(t, state))
 			assert.Equal(t, uint64(len(characters)), state.GetRNG().Calls()-beforeRNG)
 			assert.Equal(t, []string{"Poison!"}, callbacks.Messages)
-			assert.Equal(t, 4, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage),
-				"two field effects are followed by two poison ticks")
+			assert.Zero(t, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+			assert.Equal(t, 1, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundPoison),
+				"resolved party-wide poison injury requests one semantic cue")
 		})
 	}
 }
@@ -146,7 +147,8 @@ func TestDungeonFireFieldsDamageEveryNonDeadMemberAndPersist(t *testing.T) {
 			assert.Equal(t, cell, currentDungeonInteractionCell(t, state))
 			assert.Equal(t, uint64(3), state.GetRNG().Calls()-beforeRNG)
 			assert.Equal(t, []string{"Fire!!"}, callbacks.Messages)
-			assert.Equal(t, 3, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+			assert.Zero(t, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+			assert.Equal(t, 1, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundFireBurn))
 		})
 	}
 }

@@ -16,7 +16,7 @@ func (g *GameState) processDungeonCurrentCellField() {
 		g.processDungeonPoisonField()
 	case 0x82, 0x8a:
 		g.SystemCallbacks.Message.AddRowStr("Fire!!")
-		g.damageDungeonParty()
+		g.presentDungeonInjury(g.damageDungeonParty(DungeonInjuryFire))
 	}
 }
 
@@ -50,7 +50,6 @@ func (g *GameState) processDungeonPoisonField() {
 		statusBefore := character.GetStatus()
 		character.SetStatus(party_state.Poisoned)
 		changes.observePoison(statusBefore, character)
-		g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 	})
 	g.publishTransientStatusChanges(changes)
 	g.SystemCallbacks.Screen.UpdateStatsDisplay()
@@ -79,18 +78,22 @@ func (g *GameState) processDungeonElectricField() {
 	// See ref:DNG-0006.
 	g.SystemCallbacks.Message.AddRowStr("Ouch!")
 	g.SystemCallbacks.Message.AddRowStr("Electric field!")
-	g.SystemCallbacks.Audio.PlaySoundEffect(SoundStepOnTrap)
-	g.damageDungeonParty()
+	g.presentDungeonInjury(g.damageDungeonParty(DungeonInjuryElectrical))
 	g.SystemCallbacks.Screen.UpdateDisplay()
 }
 
-func (g *GameState) damageDungeonParty() {
+func (g *GameState) damageDungeonParty(kind DungeonInjuryKind) dungeonInjuryResult {
+	result := dungeonInjuryResult{kind: kind, hpLost: 0}
 	for _, index := range g.getAllLivingPartyIndices() {
 		damage := g.RollDice(8)
-		g.PartyState.GetCharacter(index).SubtractHp(uint16(damage)) //nolint:gosec // Source damage is 1d8.
-		g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
+		character := g.PartyState.GetCharacter(index)
+		before := character.GetCurrentHp()
+		character.SubtractHp(uint16(damage)) //nolint:gosec // Source damage is 1d8.
+		result.observe(before, character.GetCurrentHp())
 	}
 	g.SystemCallbacks.Screen.UpdateStatsDisplay()
+
+	return result
 }
 
 func (g *GameState) processDungeonPoisonDamage(cache playerUpdateStatusCache) {
