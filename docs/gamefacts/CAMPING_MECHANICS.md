@@ -115,6 +115,8 @@ cycles. The press does not advance a cycle or consume RNG, and a held key does n
 repeat or become an acknowledgement of the later result. Setup, Bard performance,
 ambush, Wanderer presentation, and results are outside this acceleration window.
 Completion/interruption and final cleanup reset the latch.
+Acceleration is silent: Space changes the sleeping cadence without adding a hint
+box, status box, message, sound, or acknowledgement.
 
 Acceleration changes presentation pacing, not five-minute cycle size, requested
 rest length, healing/cooldown rules, or the order of camp decisions. However,

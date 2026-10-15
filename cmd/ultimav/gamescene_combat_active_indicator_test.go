@@ -198,16 +198,33 @@ func TestCombatActiveSelectionProductionCompositionAndAimPriority(t *testing.T) 
 			state.ElapsedMs = elapsed
 			sample := combatFixtureRasterBounds(options)
 			screen := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+			scene.drawCombatThreatenedSelectionUnderlays(screen)
+			require.Zero(t, opaquePixelCount(screen), "the active frame must not also draw as an underlay")
 			scene.drawAvatarOverlay(screen)
 			assertActiveCornerPixels(t, screen, options, elapsed, face, nil)
+			assertActiveFrameEdges(t, screen, options, elapsed, face)
 			combat.AttackTargeting = &game_state.CombatAttackTargeting{Cursor: cursor}
 			screen.Clear()
 			scene.drawAvatarOverlay(screen)
-			assertCombatMarkerPixels(t, screen, scene.combatSquareMarkerDrawOptions(cursor), selectedReticleRaster,
-				ucolor.EGAWhite, getCombatAimColor(game_state.CombatAimFriendly, combatAimPulse(elapsed)), nil)
+			assertOriginalReticlePixels(t, screen, scene.combatSquareMarkerDrawOptions(cursor), nil)
 			combat.AttackTargeting = nil
 			screen.Dispose()
 		}
+	}
+}
+
+// Sample the middle of every familiar frame edge, not just the added upper
+// corners. In production scenes these points include the active actor's HP rim.
+func assertActiveFrameEdges(t *testing.T, screen *ebiten.Image, options *ebiten.DrawImageOptions, elapsed int64, face ucolor.EGAColor) {
+	t.Helper()
+	low, high := float64(1), float64(17)
+	if elapsed%900 >= 450 {
+		low, high = 0, 18
+	}
+	for _, point := range [4][2]float64{{low, 9}, {high, 9}, {9, low}, {9, high}} {
+		x, y := options.GeoM.Apply(point[0], point[1])
+		r, g, b, a := ucolor.ExtractRGBA(screen.At(int(x), int(y)))
+		assert.Equal(t, []uint8{face.R, face.G, face.B, face.A}, []uint8{r, g, b, a}, "foreground active edge at %v", point)
 	}
 }
 
@@ -334,14 +351,14 @@ func TestCombatThreatenedTargetKeepsSteadyUnderlayWithoutRaisedCorners(t *testin
 	options := scene.combatPartyIdentityDrawOptions(position, target)
 	screen := ebiten.NewImageWithOptions(combatFixtureRasterBounds(options), &ebiten.NewImageOptions{Unmanaged: true})
 	defer screen.Dispose()
-	scene.drawCombatActiveSelectionAccents(screen)
+	scene.drawCombatActiveSelection(screen)
 	assert.Zero(t, opaquePixelCount(screen), "the threatened actor never receives the active actor's raised accents")
 	scene.gameState.ElapsedMs = 0
-	scene.drawCombatSelectionUnderlays(screen)
+	scene.drawCombatThreatenedSelectionUnderlays(screen)
 	require.Positive(t, countExactColor(screen, ucolor.CombatThreatenedPCOutline))
 	before := signaturePixels(screen)
 	screen.Clear()
 	scene.gameState.ElapsedMs = 450
-	scene.drawCombatSelectionUnderlays(screen)
+	scene.drawCombatThreatenedSelectionUnderlays(screen)
 	assert.Equal(t, before, signaturePixels(screen), "only active turn ownership pulses; threatened intent remains steady")
 }

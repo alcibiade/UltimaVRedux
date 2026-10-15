@@ -13,36 +13,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
-
-func TestGetCombatAimColor_UsesSemanticPalette(t *testing.T) {
-	tests := []struct {
-		name        string
-		disposition game_state.CombatAimDisposition
-		intensity   float32
-		expected    ucolor.EGAColor
-	}{
-		{"empty bright", game_state.CombatAimEmpty, 1, ucolor.CombatAimEmptyBright},
-		{"empty dim", game_state.CombatAimEmpty, 0, ucolor.CombatAimEmptyDim},
-		{"friendly bright", game_state.CombatAimFriendly, 1, ucolor.CombatAimFriendlyBright},
-		{"friendly dim", game_state.CombatAimFriendly, 0, ucolor.CombatAimFriendlyDim},
-		{"enemy bright", game_state.CombatAimEnemy, 1, ucolor.CombatAimEnemyBright},
-		{"enemy dim", game_state.CombatAimEnemy, 0, ucolor.CombatAimEnemyDim},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected.ToRGBA(), getCombatAimColor(test.disposition, test.intensity))
-		})
-	}
-}
-
-func TestGetCombatAimColor_InterpolatesVGAIntermediate(t *testing.T) {
-	actual := getCombatAimColor(game_state.CombatAimEmpty, 0.5)
-	assert.Equal(t, color.RGBA{R: 212, G: 212, B: 0, A: 255}, actual)
-}
 
 func TestCombatOutlinePulses_AreQuantizedAndBounded(t *testing.T) {
 	tests := []struct {
@@ -90,7 +62,7 @@ func TestCombatReticleFrameHasIndependentOpaqueSemanticRoles(t *testing.T) {
 	assert.NotEqual(t, ucolor.CombatAimFrameFace, ucolor.CombatWakeMarkerFace)
 }
 
-func TestCombatReticleProductionDispositionAndPulseOnlyChangeCentre(t *testing.T) {
+func TestCombatReticleProductionStaysEntirelyWhiteAcrossDispositionsAndTime(t *testing.T) {
 	scene, actor := newCombatMarkerTestScene(t)
 	state := scene.gameState
 	_, monster := signatureMonster(t, scene, references.MonsterOrc, references.Position{X: 7, Y: 5})
@@ -119,8 +91,7 @@ func TestCombatReticleProductionDispositionAndPulseOnlyChangeCentre(t *testing.T
 				state.ElapsedMs = elapsed
 				screen.Clear()
 				scene.drawCombatAttackCrosshair(screen)
-				assertCombatMarkerPixels(t, screen, options, selectedReticleRaster, ucolor.EGAWhite,
-					getCombatAimColor(test.disposition, combatAimPulse(elapsed)), make([]byte, screen.Bounds().Dx()*screen.Bounds().Dy()*4))
+				assertOriginalReticlePixels(t, screen, options, make([]byte, screen.Bounds().Dx()*screen.Bounds().Dy()*4))
 			}
 			state.CombatScene.AttackTargeting = nil
 			screen.Clear()
@@ -171,7 +142,7 @@ func TestCombatPartySpellReticleSeparatesRecipientAndWakingCopy(t *testing.T) {
 		From: references.Position{X: 1, Y: 1}, To: references.Position{X: 2, Y: 1}, Progress: 0.5}
 	scene.drawCombatAttackCrosshair(cursorScreen)
 	scene.drawCombatAttackCrosshair(wakeScreen)
-	assertCombatMarkerPixels(t, cursorScreen, cursorOptions, selectedReticleRaster, ucolor.EGAWhite, widgets.DialogControlKeyColor, nil)
+	assertOriginalReticlePixels(t, cursorScreen, cursorOptions, nil)
 	assertCombatMarkerPixels(t, wakeScreen, wakeOptions, wakeReticleRaster, ucolor.CombatWakeMarkerFace, ucolor.CombatWakeMarkerFace, nil)
 	// The wake renderer itself has no selection corners, even when the original
 	// and clone share roster HP/status. Only the exact cursor has the white frame.
@@ -193,8 +164,7 @@ func TestCombatPartySpellReticleSeparatesRecipientAndWakingCopy(t *testing.T) {
 	combat.SpellTargeting.RecipientSet = false
 	cursorScreen.Clear()
 	scene.drawCombatAttackCrosshair(cursorScreen)
-	assertCombatMarkerPixels(t, cursorScreen, cursorOptions, selectedReticleRaster, ucolor.EGAWhite, widgets.DialogStatusWarningColor,
-		make([]byte, cursorPixels*4))
+	assertOriginalReticlePixels(t, cursorScreen, cursorOptions, make([]byte, cursorPixels*4))
 	wakeScreen.Clear()
 	scene.drawCombatPartySpellWakeMarker(wakeScreen)
 	assert.Zero(t, opaquePixelCount(wakeScreen), "an invalid recipient has no secondary wake cue")

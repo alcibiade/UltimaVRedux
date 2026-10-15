@@ -416,31 +416,39 @@ manager.Workflow("materialize_item").
 
 ## Combat Aim And Active Selection
 
-The selected physical/spell cursor uses four disconnected **steady white corner
-brackets**, each with a two-source-pixel face and a full one-source-pixel black
-rim, including joins and end caps. A smaller outlined centre cross retains
-semantic colour: cyan for friendly, red for enemy, yellow for empty; its existing
-colour pulse does not pulse the white selection frame. Party-spell targeting uses
-its valid/invalid semantic colours for that centre. When `An Zu` would awaken a
-different copy, the secondary square gets only a light-magenta outlined cross,
-without the selected cursor's white corners.
+The selected physical/spell cursor retains its familiar full-size geometry,
+with the **entire centre cross and all four corners steady opaque white**.
+The face follows the inset 16-source-pixel cell from `(1,1)` to `(17,17)`, with
+corner arms spanning 32% of each transformed dimension, two-source-pixel strokes,
+and a centred six-source-pixel cross at `(9,9)`. Stroke width and centre arms use
+the smaller transformed pixel scale, preserving the original unequal-scale
+appearance. Its original one-pixel down/right black shadow supplies contrast.
+It is not a compact inset or HP-reserved replacement. Friendly/enemy/empty and
+party-recipient meaning remain available in the existing semantic target and
+availability readouts. When `An Zu` would awaken a different copy, that secondary
+square gets only a small light-magenta outlined cross, without white corners.
 
-Both markers are square-anchored, include camera shake, and round transformed
-rectangle edges independently on each axis. Actor lunge/movement offsets cannot
-drag a cursor onto another square. The selected frame stays above artwork and
-eligibility cues while leaving the HP/allegiance band untouched; target legality,
-Tab cycling, cancellation, and resource commitment remain core/input contracts.
+Both markers are square-anchored and include camera shake. Actor lunge/movement
+offsets cannot drag either onto another square. The secondary cross uses rounded
+source-rectangle edges; the selected cursor retains the original stroked-line
+raster geometry. Target legality, Tab cycling, cancellation, and resource
+commitment remain core/input contracts.
 
-The active-turn actor keeps its complete pulsing selection square beneath actor
-artwork. Exactly **two upper corners** also render above actor artwork as the
-current visibility trial: four-pixel arms, two-pixel faces, and a full black rim,
-following the same 450 ms two-phase expansion and exact presented actor position.
-The accents retain active-PC green, active-monster/possessed-PC yellow, and
-auto-pass gray. Threatened-target frames do not receive raised accents. Direction
-cues, HP/allegiance, eligibility, and aim draw afterward. Hidden/retired actors,
-teleport hidden phases, and combat exit suppress the accents through the same
-live identity/disclosure projection as the underlay. Final manual acceptance of
-the raised-corner trial is not established by its implementation or raster tests.
+The active-turn actor's **complete pulsing square plus exactly two upper-corner
+accents** draws once, above HP/allegiance bars. The accents have four-pixel arms,
+two-pixel faces and a full black rim; they follow the square's 450 ms two-phase
+expansion and exact presented actor transform. Both use active-PC green,
+active-monster/possessed-PC yellow, or auto-pass gray. Threatened-target frames
+stay beneath actors, remain steady, and receive no raised accents.
+
+The combat order is threatened-target underlays, actor artwork and local effects,
+direction cues, HP/allegiance, the full active indicator, eligibility brackets,
+then selected aim. Active and selected indicators intentionally win where they
+overlap HP bars; selected aim has final priority. Hidden/retired actors, teleport
+hidden phases, and combat exit suppress the active indicator through live exact
+identity/disclosure checks, including clones and insect-stack presentation.
+Hands-on feedback chose the original-size all-white cursor and the active frame
+above HP; the corrected rendering still requires in-game visual confirmation.
 
 Entry points are `gamescene_draw_entities.go`,
 `gamescene_combat_active_indicator.go`, and `gamescene_combat_attack_preview.go`
@@ -469,8 +477,8 @@ sprite tint, full tile box, or dimming of unavailable enemies. In
 `drawAvatarOverlay`, the eligibility pass follows all actor artwork and direction
 indicators, immediately before `drawCombatAttackCrosshair`. The existing aiming
 reticle has priority; the aimed square's brackets are suppressed while other
-eligible enemies retain theirs. Reticle allegiance colours and HP/status cues
-keep their separate meanings.
+eligible enemies retain theirs. The white aiming cursor, semantic target text,
+and HP/status cues keep their separate meanings.
 
 Eligibility comes only from `GameState.PreviewCombatAttack`, shared with Tab.
 Before physical aiming, a target needs at least one currently available source;
@@ -531,9 +539,10 @@ once in that foreground pass. Gate health frames stay steady after the hidden
 prelude. The possession cap remains upper-right. Insect stacks emit one aggregate
 frame with their unchanged health segments and member order; pips sit on source
 row 2 so a northern neighbor's outline cannot cover them. Hidden members do not
-contribute pips or segments. Attack brackets sit above the health frame, selection
-keeps its full-square underlay plus the two raised upper accents described above;
-the aiming reticle retains foreground priority.
+contribute pips or segments. The full active selection square and its two upper
+accents draw above the health frame, followed by attack brackets and the aiming
+reticle. Threatened-target selection alone remains an underlay; selected aim
+retains final foreground priority.
 
 An encounter-local presentation observer compares only continuously disclosed
 exact identities. A visible side change immediately updates the outline and adds

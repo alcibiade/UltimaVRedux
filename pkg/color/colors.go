@@ -336,15 +336,8 @@ var (
 	// Combat Overlay Colors
 	// These semantic colors are intentionally centralized so combat readability
 	// can be tuned without changing rendering code.
-	// Empty targeting deliberately uses interpolated VGA-like yellows so its
-	// sine pulse changes luminance without shifting into white or brown.
-	CombatAimEmptyBright    = EGAColor{255, 255, 0, AlphaOpaque}
-	CombatAimEmptyDim       = EGAColor{170, 170, 0, AlphaOpaque}
-	CombatAimFriendlyBright = EGALightCyan
-	CombatAimFriendlyDim    = EGACyan
-	CombatAimEnemyBright    = EGALightRed
-	CombatAimEnemyDim       = EGARed
-	// Selection location stays opaque independently of the semantic centre pulse.
+	// The complete selected cursor stays white and opaque; target meaning and
+	// recipient availability remain in the semantic readouts, not a colour pulse.
 	CombatAimFrameFace       = EGAWhite
 	CombatAimFrameBorder     = EGABlack
 	CombatWakeMarkerFace     = EGALightMagenta

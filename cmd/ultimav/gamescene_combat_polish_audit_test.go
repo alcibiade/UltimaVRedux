@@ -241,28 +241,29 @@ func TestCombatFullHUDCombinedComposition(t *testing.T) {
 			scene.drawMainOutput(screen)
 			scene.characterSummary.Draw(&state.PartyState, screen, state.GetActivePlayerIndex(), false, -1)
 			scene.provisionSummary.Draw(state, screen)
-			// Complete HP fills and outlines must survive adjacent poisoned artwork and the
-			// complete HUD composition; the aimed reticle intentionally owns its cell.
+			// HP survives poisoned neighbors and the full HUD except for the exact
+			// approved foreground indicator pixels. Include the aimed actor too:
+			// selected aim owns overlapping pixels, not an exemption for its whole cell.
 			var sample image.Rectangle
+			var healthOptions []*ebiten.DrawImageOptions
 			state.ForEachDisclosedCombatActor(func(view game_state.CombatActorPresentation) {
-				if view.Position != target.Position() {
-					sample = sample.Union(combatFixtureRasterBounds(scene.combatEntityDrawOptions(view.Position, view.Identity.IsPartyMember, view.Identity.EntityIndex, view.Identity.Slot)))
-				}
+				options := scene.combatEntityDrawOptions(view.Position, view.Identity.IsPartyMember, view.Identity.EntityIndex, view.Identity.Slot)
+				healthOptions = append(healthOptions, options)
+				sample = sample.Union(combatFixtureRasterBounds(options))
 			})
 			sample = sample.Intersect(screen.Bounds())
 			reference := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+			foreground := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
 			t.Cleanup(reference.Dispose)
+			t.Cleanup(foreground.Dispose)
 			state.ForEachDisclosedCombatActor(func(view game_state.CombatActorPresentation) {
-				if view.Position != target.Position() {
-					scene.drawCombatActorHealthFrame(reference, scene.combatEntityDrawOptions(view.Position, view.Identity.IsPartyMember, view.Identity.EntityIndex, view.Identity.Slot), view)
-				}
+				scene.drawCombatActorHealthFrame(reference, scene.combatEntityDrawOptions(view.Position, view.Identity.IsPartyMember, view.Identity.EntityIndex, view.Identity.Slot), view)
 			})
-			wanted, actual := signaturePixels(reference), signaturePixels(screen.SubImage(sample).(*ebiten.Image))
-			for pixel := 0; pixel < len(wanted); pixel += 4 {
-				if wanted[pixel+3] != 0 && string(wanted[pixel:pixel+4]) != string(actual[pixel:pixel+4]) {
-					t.Fatalf("%dx%d full HUD/neighbor covered health frame at (%d,%d): %v -> %v", size.X, size.Y, sample.Min.X+pixel/4%sample.Dx(), sample.Min.Y+pixel/4/sample.Dx(), wanted[pixel:pixel+4], actual[pixel:pixel+4])
-				}
-			}
+			require.Equal(t, actor, state.CombatScene.GetCurrentTurnIdentity())
+			activeOptions := scene.combatPartyIdentityDrawOptions(state.CombatScene.GetCombatantPosition(actor), actor)
+			drawActiveSelectionReference(foreground, activeOptions, state.ElapsedMs, ucolor.CombatActivePCOutline)
+			drawOriginalReticleReference(foreground, scene.combatSquareMarkerDrawOptions(target.Position()))
+			assertCombatHealthSelectionComposition(t, screen.SubImage(sample).(*ebiten.Image), reference, foreground, healthOptions)
 			turn, _ := combatHUDStackedRectangles(screen.Bounds(), combatHUDRectangle(screen.Bounds()))
 			bounds := combatHUDContentBounds(screen.Bounds(), turn)
 			output := scene.combatHUD.turnOutput

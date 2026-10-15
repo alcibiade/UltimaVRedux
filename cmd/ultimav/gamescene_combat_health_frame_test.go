@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,6 +19,93 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
+
+// A pinned active-indicator reference, independent of scene identity resolution,
+// production selection geometry, and production corner rectangles. Together with
+// the recorded aim reference it specifies exact allowed foreground pixels, not
+// an exemption for an entire selected actor or a tolerance for changed HP.
+func drawActiveSelectionReference(screen *ebiten.Image, options *ebiten.DrawImageOptions, elapsed int64, face ucolor.EGAColor) {
+	low, high, offset := float64(1), float64(17), float64(0)
+	stencil := activeCornerRaster
+	if elapsed%900 >= 450 {
+		low, high, offset = 0, 18, -1
+		stencil = expandedActiveCornerRaster
+	}
+	left, top := options.GeoM.Apply(low, low)
+	right, bottom := options.GeoM.Apply(high, high)
+	x0, y0 := options.GeoM.Apply(0, 0)
+	x1, y1 := options.GeoM.Apply(1, 1)
+	scale := float32(math.Min(x1-x0, y1-y0))
+	vector.StrokeRect(screen, float32(left), float32(top), float32(right-left), float32(bottom-top), 2*scale, ucolor.EGABlack, false)
+	vector.StrokeRect(screen, float32(left), float32(top), float32(right-left), float32(bottom-top), scale, face, false)
+	for y, row := range strings.Split(stencil, "\n") {
+		for x, pixel := range row {
+			if pixel == '.' {
+				continue
+			}
+			clr := ucolor.EGABlack
+			if pixel == 'W' {
+				clr = face
+			}
+			left, top := options.GeoM.Apply(float64(x)+offset, float64(y)+offset)
+			right, bottom := options.GeoM.Apply(float64(x+1)+offset, float64(y+1)+offset)
+			left, top, right, bottom = math.Round(left), math.Round(top), math.Round(right), math.Round(bottom)
+			vector.FillRect(screen, float32(left), float32(top), float32(right-left), float32(bottom-top), clr, false)
+		}
+	}
+}
+
+func assertCombatHealthSelectionComposition(
+	t *testing.T, screen, health, foreground *ebiten.Image, actors []*ebiten.DrawImageOptions,
+) {
+	t.Helper()
+	bounds := health.Bounds()
+	require.Equal(t, bounds, screen.Bounds())
+	require.Equal(t, bounds, foreground.Bounds())
+	wantedHP, markers, actual := signaturePixels(health), signaturePixels(foreground), signaturePixels(screen)
+	unchangedHP, overlaidHP, markerPixels := 0, 0, 0
+	for pixel := 0; pixel < len(actual); pixel += 4 {
+		want := wantedHP[pixel : pixel+4]
+		if markers[pixel+3] != 0 {
+			want = markers[pixel : pixel+4]
+			markerPixels++
+			if wantedHP[pixel+3] != 0 && !bytes.Equal(want, wantedHP[pixel:pixel+4]) {
+				overlaidHP++
+			}
+		} else if wantedHP[pixel+3] != 0 {
+			unchangedHP++
+		} else {
+			continue
+		}
+		if !bytes.Equal(want, actual[pixel:pixel+4]) {
+			t.Fatalf("health/selection composition at (%d,%d), foreground=%t: want %v got %v",
+				bounds.Min.X+pixel/4%bounds.Dx(), bounds.Min.Y+pixel/4/bounds.Dx(), markers[pixel+3] != 0, want, actual[pixel:pixel+4])
+		}
+	}
+	require.Positive(t, markerPixels, "exercise the actual foreground indicator")
+	require.Positive(t, overlaidHP, "exercise selection taking priority over HP, not just a nearby marker")
+	require.Positive(t, unchangedHP, "uncovered health pixels must still be compared exactly")
+	// These fixture layouts leave the complete HP fill and a side of each
+	// allegiance outline uncovered, even on selected actors. Pin their readability
+	// for every neighbor, including 1-HP bars, rather than just counting colours
+	// somewhere in the whole battlefield.
+	for actor, options := range actors {
+		for _, source := range []image.Rectangle{image.Rect(3, 14, 14, 16), image.Rect(15, 14, 16, 16)} {
+			left, top := options.GeoM.Apply(float64(source.Min.X), float64(source.Min.Y))
+			right, bottom := options.GeoM.Apply(float64(source.Max.X), float64(source.Max.Y))
+			interior := image.Rect(int(math.Ceil(left)), int(math.Ceil(top)), int(math.Floor(right)), int(math.Floor(bottom))).Intersect(bounds)
+			require.False(t, interior.Empty(), "actor %d region %v must be sampled", actor, source)
+			for y := interior.Min.Y; y < interior.Max.Y; y++ {
+				for x := interior.Min.X; x < interior.Max.X; x++ {
+					pixel := ((y-bounds.Min.Y)*bounds.Dx() + x - bounds.Min.X) * 4
+					require.Zero(t, markers[pixel+3], "selection invaded actor %d protected fill/allegiance at %d,%d", actor, x, y)
+					require.Equal(t, byte(255), wantedHP[pixel+3], "fixture lost actor %d health at %d,%d", actor, x, y)
+					require.Equal(t, wantedHP[pixel:pixel+4], actual[pixel:pixel+4], "actor %d unreadable fill/allegiance at %d,%d", actor, x, y)
+				}
+			}
+		}
+	}
+}
 
 func TestCombatHealthOutlinePreservesEveryLegacyHPPixel(t *testing.T) {
 	for _, scale := range []float64{1, 1280 * 0.76 / 304, 1366 * 0.76 / 304} {

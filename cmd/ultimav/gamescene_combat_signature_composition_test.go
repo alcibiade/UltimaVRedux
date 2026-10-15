@@ -42,10 +42,10 @@ func TestCombatSignatureTeleportSelectionAndStatusFollowPresentedActor(t *testin
 		state.ElapsedMs = effect.StartedMs + phase.ageMs
 		scene.updateCombatSignatureEffects()
 		screen.Clear()
-		scene.drawCombatSelectionUnderlays(screen)
+		scene.drawCombatThreatenedSelectionUnderlays(screen)
 		scene.drawCombatMonsterOverlay(screen)
 		scene.drawCombatSignatureEffects(screen)
-		scene.drawCombatActiveSelectionAccents(screen)
+		scene.drawCombatActiveSelection(screen)
 		assert.Equal(t, phase.fromVisible, opaquePixelCount(combatSignatureRegion(scene, screen, from)) > 0, "age=%d departure", phase.ageMs)
 		assert.Equal(t, phase.toVisible, opaquePixelCount(combatSignatureRegion(scene, screen, to)) > 0, "age=%d arrival", phase.ageMs)
 		if phase.fromVisible || phase.toVisible {
@@ -62,10 +62,10 @@ func TestCombatSignatureTeleportSelectionAndStatusFollowPresentedActor(t *testin
 	// Magical invisibility suppresses both the replacement frame and selection.
 	monster.SetInvisible(true)
 	screen.Clear()
-	scene.drawCombatSelectionUnderlays(screen)
+	scene.drawCombatThreatenedSelectionUnderlays(screen)
 	scene.drawCombatMonsterOverlay(screen)
 	scene.drawCombatSignatureEffects(screen)
-	scene.drawCombatActiveSelectionAccents(screen)
+	scene.drawCombatActiveSelection(screen)
 	assert.Zero(t, opaquePixelCount(screen))
 	scene.updateCombatSignatureEffects()
 	assert.Nil(t, effect.Frame)
@@ -184,7 +184,6 @@ func TestCombatSignatureProductionCompositionKeepsTargetReticleOnTop(t *testing.
 	screen := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
 	defer screen.Dispose()
 	scene.drawAvatarOverlay(screen)
-	assertCombatMarkerPixels(t, screen, scene.combatSquareMarkerDrawOptions(monster.Position()), selectedReticleRaster,
-		ucolor.EGAWhite, getCombatAimColor(game_state.CombatAimEnemy, combatAimPulse(state.ElapsedMs)), nil)
+	assertOriginalReticlePixels(t, screen, scene.combatSquareMarkerDrawOptions(monster.Position()), nil)
 	scene.clearCombatSignatureEffects()
 }

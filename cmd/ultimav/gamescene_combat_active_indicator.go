@@ -111,7 +111,7 @@ func drawCombatSelectionFrame(
 	drawSelectionFrame(combatActivePCSelectionFace, faceColor)
 }
 
-func (g *GameScene) drawCombatSelectionUnderlays(screen *ebiten.Image) {
+func (g *GameScene) drawCombatThreatenedSelectionUnderlays(screen *ebiten.Image) {
 	combatScene := g.gameState.CombatScene
 	if combatScene == nil {
 		return
@@ -122,11 +122,6 @@ func (g *GameScene) drawCombatSelectionUnderlays(screen *ebiten.Image) {
 		combatScene.ActiveTargetPCIndex,
 	)
 
-	if activeCombatPCIndicatorStyle == combatActivePCIndicatorSelectionTile {
-		if options, faceColor := g.combatActiveSelectionOptions(); options != nil {
-			drawCombatSelectionFrame(screen, options, g.getElapsedMs(), faceColor)
-		}
-	}
 	if combatScene.ActiveTargetIdentitySet && combatScene.ActiveTargetIdentity.IsPartyMember {
 		g.drawMonsterTargetPCSelectionFrame(screen, combatScene.ActiveTargetIdentity)
 	} else {
@@ -137,7 +132,7 @@ func (g *GameScene) drawCombatSelectionUnderlays(screen *ebiten.Image) {
 	}
 }
 
-// Both layers resolve the same exact actor on every draw. No retained marker can
+// Resolve the exact actor on every draw. No retained marker can
 // survive a turn handoff, retirement, clone change, or combat exit.
 func (g *GameScene) combatActiveSelectionOptions() (*ebiten.DrawImageOptions, ucolor.EGAColor) {
 	combatScene := g.gameState.CombatScene
@@ -210,9 +205,9 @@ func (g *GameScene) combatActiveSelectionPositionVisible(position references.Pos
 		g.gameState.CombatTerrainAllowsObjectDisplay(position)
 }
 
-// The first trial raises exactly two upper corners. The complete square stays
-// beneath actors; direction, HP/allegiance, eligibility and aim still draw later.
-func (g *GameScene) drawCombatActiveSelectionAccents(screen *ebiten.Image) {
+// The complete familiar square and its two upper accents draw once, above HP.
+// Threatened intent remains an underlay; eligibility and selected aim draw later.
+func (g *GameScene) drawCombatActiveSelection(screen *ebiten.Image) {
 	if activeCombatPCIndicatorStyle != combatActivePCIndicatorSelectionTile {
 		return
 	}
@@ -220,7 +215,9 @@ func (g *GameScene) drawCombatActiveSelectionAccents(screen *ebiten.Image) {
 	if options == nil {
 		return
 	}
-	drawCombatActiveSelectionCorners(screen, options, g.getElapsedMs(), faceColor)
+	elapsedMs := g.getElapsedMs()
+	drawCombatSelectionFrame(screen, options, elapsedMs, faceColor)
+	drawCombatActiveSelectionCorners(screen, options, elapsedMs, faceColor)
 }
 
 func combatActiveSelectionCornerFaces(elapsedMs int64) [4]image.Rectangle {

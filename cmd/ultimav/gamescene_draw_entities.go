@@ -19,7 +19,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
 // drawAvatarOverlay renders the player avatar as an overlay on top of moongates
@@ -46,7 +45,7 @@ func (g *GameScene) drawAvatarOverlay(screen *ebiten.Image) {
 		g.drawCombatUtilitySpellEffects(screen)
 		g.drawCombatInvocationSiteEffects(screen)
 		g.drawCombatFieldDispelEffects(screen)
-		g.drawCombatSelectionUnderlays(screen)
+		g.drawCombatThreatenedSelectionUnderlays(screen)
 		g.drawCombatMonsterOverlay(screen)
 		g.drawCombatVanishEffects(screen)
 		g.drawCombatPartyOverlay(screen)
@@ -54,9 +53,9 @@ func (g *GameScene) drawAvatarOverlay(screen *ebiten.Image) {
 		g.drawCombatStrikeEffects(screen)
 		g.drawCombatInvocationActorEffects(screen)
 		g.drawCombatDivisionEffects(screen)
-		g.drawCombatActiveSelectionAccents(screen)
 		g.drawCombatDirectionIndicators(screen)
 		g.drawCombatHealthFrames(screen)
+		g.drawCombatActiveSelection(screen)
 		g.drawCombatAttackEligibility(screen)
 		g.drawCombatAttackCrosshair(screen)
 
@@ -174,11 +173,17 @@ func (g *GameScene) drawLargeMapPartyFrigateHealthBar(screen *ebiten.Image) {
 }
 
 const (
-	crosshairPulsePeriodMs   = 900
+	combatSourceTilePixels   = 16
+	combatSourceTileInset    = 1
+	crosshairStrokePixels    = 2
+	crosshairShadowPixels    = 1
+	crosshairPlusArmPixels   = 3
+	crosshairCornerFraction  = 0.32
+	crosshairCenterDivisor   = 2
 	combatMarkerBorderPixels = 1
 )
 
-// drawCombatAttackCrosshair draws steady white selection corners and a semantic centre.
+// drawCombatAttackCrosshair keeps the familiar full-size cursor uniformly white.
 // Eligibility and preview ownership are documented in ref:COMBAT-0012.
 func (g *GameScene) drawCombatAttackCrosshair(screen *ebiten.Image) {
 	var cursor references.Position
@@ -190,17 +195,11 @@ func (g *GameScene) drawCombatAttackCrosshair(screen *ebiten.Image) {
 	default:
 		return
 	}
-	disposition := g.gameState.GetCombatAimDisposition(cursor)
-	reticleColor := getCombatAimColor(disposition, combatAimPulse(g.gameState.ElapsedMs))
 	if g.gameState.IsCombatPartySpellTargeting() {
-		reticleColor = widgets.DialogStatusWarningColor
-		if g.gameState.ReviewCombatPartySpellRecipient().Valid {
-			reticleColor = widgets.DialogControlKeyColor
-		}
 		g.drawCombatPartySpellWakeMarker(screen)
 	}
 
-	drawCombatReticle(screen, g.combatSquareMarkerDrawOptions(cursor), reticleColor)
+	drawCombatReticle(screen, g.combatSquareMarkerDrawOptions(cursor))
 }
 
 // A square cursor has no actor identity: movement/impact offsets must not attach
@@ -217,48 +216,56 @@ func (g *GameScene) combatSquareMarkerDrawOptions(position references.Position) 
 	return options
 }
 
-// Two-source-pixel faces with a full one-pixel rim. All backing fits within
-// x1..17/y1..12, leaving the health/allegiance frame at y12..18 untouched.
-// Short disconnected arms reserve open sprite pixels and separate the centre.
-func combatReticleCornerFaces() [8]image.Rectangle {
-	return [8]image.Rectangle{
-		image.Rect(2, 2, 5, 4), image.Rect(2, 2, 4, 5),
-		image.Rect(13, 2, 16, 4), image.Rect(14, 2, 16, 5),
-		image.Rect(2, 9, 5, 11), image.Rect(2, 8, 4, 11),
-		image.Rect(13, 9, 16, 11), image.Rect(14, 8, 16, 11),
-	}
-}
-
-func combatReticleCenterFaces() [2]image.Rectangle {
+func combatWakeReticleFaces() [2]image.Rectangle {
 	return [2]image.Rectangle{image.Rect(8, 6, 11, 7), image.Rect(9, 5, 10, 8)}
 }
 
-func drawCombatReticle(screen *ebiten.Image, options *ebiten.DrawImageOptions, centerColor color.Color) {
-	corners, centre := combatReticleCornerFaces(), combatReticleCenterFaces()
-	// All backings precede every face, including joins and end caps.
-	for _, border := range []bool{true, false} {
-		for _, face := range corners {
-			clr := ucolor.CombatAimFrameFace
-			if border {
-				face, clr = face.Inset(-combatMarkerBorderPixels), ucolor.CombatAimFrameBorder
-			}
-			drawCombatMarkerRect(screen, options, face, clr)
-		}
-		for _, face := range centre {
-			clr := centerColor
-			if border {
-				face, clr = face.Inset(-combatMarkerBorderPixels), ucolor.CombatAimFrameBorder
-			}
-			drawCombatMarkerRect(screen, options, face, clr)
-		}
-	}
+// Restore the original cursor's face geometry: inset 16-pixel cell, 32% corner
+// arms, centred six-pixel cross and two-pixel strokes. Preserve its minimum-axis
+// stroke/centre scaling and offset black shadow rather than resizing for HP.
+func drawCombatReticle(screen *ebiten.Image, options *ebiten.DrawImageOptions) {
+	leftPos, topPos := options.GeoM.Apply(combatSourceTileInset, combatSourceTileInset)
+	rightPos, bottomPos := options.GeoM.Apply(combatSourceTileInset+combatSourceTilePixels, combatSourceTileInset+combatSourceTilePixels)
+	width, height := float32(rightPos-leftPos), float32(bottomPos-topPos)
+	sourcePixelScale := min(width, height) / combatSourceTilePixels
+	strokeWidth := float32(crosshairStrokePixels) * sourcePixelScale
+	shadowOffset := float32(crosshairShadowPixels) * sourcePixelScale
+	plusArmLength := float32(crosshairPlusArmPixels) * sourcePixelScale
+	cornerX, cornerY := width*crosshairCornerFraction, height*crosshairCornerFraction
+	left, top, right, bottom := float32(leftPos), float32(topPos), float32(rightPos), float32(bottomPos)
+	centerX, centerY := (left+right)/crosshairCenterDivisor, (top+bottom)/crosshairCenterDivisor
+	drawCrosshairCorners(screen, left+shadowOffset, top+shadowOffset, right+shadowOffset, bottom+shadowOffset,
+		cornerX, cornerY, strokeWidth, ucolor.CombatAimFrameBorder)
+	drawCrosshairPlus(screen, centerX+shadowOffset, centerY+shadowOffset, plusArmLength, strokeWidth, ucolor.CombatAimFrameBorder)
+	drawCrosshairCorners(screen, left, top, right, bottom, cornerX, cornerY, strokeWidth, ucolor.CombatAimFrameFace)
+	drawCrosshairPlus(screen, centerX, centerY, plusArmLength, strokeWidth, ucolor.CombatAimFrameFace)
+}
+
+func drawCrosshairCorners(
+	screen *ebiten.Image,
+	left, top, right, bottom, cornerX, cornerY, strokeWidth float32,
+	clr color.Color,
+) {
+	vector.StrokeLine(screen, left, top, left+cornerX, top, strokeWidth, clr, false)
+	vector.StrokeLine(screen, left, top, left, top+cornerY, strokeWidth, clr, false)
+	vector.StrokeLine(screen, right, top, right-cornerX, top, strokeWidth, clr, false)
+	vector.StrokeLine(screen, right, top, right, top+cornerY, strokeWidth, clr, false)
+	vector.StrokeLine(screen, left, bottom, left+cornerX, bottom, strokeWidth, clr, false)
+	vector.StrokeLine(screen, left, bottom, left, bottom-cornerY, strokeWidth, clr, false)
+	vector.StrokeLine(screen, right, bottom, right-cornerX, bottom, strokeWidth, clr, false)
+	vector.StrokeLine(screen, right, bottom, right, bottom-cornerY, strokeWidth, clr, false)
+}
+
+func drawCrosshairPlus(screen *ebiten.Image, centerX, centerY, armLength, strokeWidth float32, clr color.Color) {
+	vector.StrokeLine(screen, centerX-armLength, centerY, centerX+armLength, centerY, strokeWidth, clr, false)
+	vector.StrokeLine(screen, centerX, centerY-armLength, centerX, centerY+armLength, strokeWidth, clr, false)
 }
 
 // The waking position is secondary: a coloured, outlined centre without the
 // selected cursor's four white corners. This remains distinct in grayscale.
 func drawCombatWakeReticle(screen *ebiten.Image, options *ebiten.DrawImageOptions) {
 	for _, border := range []bool{true, false} {
-		for _, face := range combatReticleCenterFaces() {
+		for _, face := range combatWakeReticleFaces() {
 			clr := ucolor.CombatWakeMarkerFace
 			if border {
 				face, clr = face.Inset(-combatMarkerBorderPixels), ucolor.CombatAimFrameBorder
@@ -276,10 +283,6 @@ func drawCombatMarkerRect(screen *ebiten.Image, options *ebiten.DrawImageOptions
 	left, top = math.Round(left), math.Round(top)
 	right, bottom = math.Round(right), math.Round(bottom)
 	vector.FillRect(screen, float32(left), float32(top), float32(right-left), float32(bottom-top), clr, false)
-}
-
-func combatAimPulse(elapsedMs int64) float32 {
-	return sinePulse(elapsedMs, crosshairPulsePeriodMs)
 }
 
 func activePCOutlinePulse(elapsedMs int64) float32 {
@@ -318,37 +321,6 @@ func sinePulse(elapsedMs int64, periodMs int64) float32 {
 	phase := float64(elapsedMs%periodMs) / float64(periodMs)
 
 	return float32((math.Sin(phase*fullCircleRadians-math.Pi/pulseNormalizer) + 1) / pulseNormalizer)
-}
-
-func getCombatAimColor(disposition game_state.CombatAimDisposition, intensity float32) color.Color {
-	switch disposition {
-	case game_state.CombatAimFriendly:
-		return blendCombatAimColor(ucolor.CombatAimFriendlyDim, ucolor.CombatAimFriendlyBright, intensity)
-	case game_state.CombatAimEnemy:
-		return blendCombatAimColor(ucolor.CombatAimEnemyDim, ucolor.CombatAimEnemyBright, intensity)
-	case game_state.CombatAimEmpty:
-		return blendCombatAimColor(ucolor.CombatAimEmptyDim, ucolor.CombatAimEmptyBright, intensity)
-	default:
-		return ucolor.CombatAimEmptyBright
-	}
-}
-
-func blendCombatAimColor(from, toColor ucolor.EGAColor, intensity float32) color.RGBA {
-	if intensity < 0 {
-		intensity = 0
-	} else if intensity > 1 {
-		intensity = 1
-	}
-	blend := func(start, end uint8) uint8 {
-		return uint8(float32(start) + (float32(end)-float32(start))*intensity)
-	}
-
-	return color.RGBA{
-		R: blend(from.R, toColor.R),
-		G: blend(from.G, toColor.G),
-		B: blend(from.B, toColor.B),
-		A: blend(from.A, toColor.A),
-	}
 }
 
 // drawCombatPartyOverlay renders all party members at their combat positions on the 11x11 map.

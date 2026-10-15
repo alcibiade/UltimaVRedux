@@ -75,9 +75,9 @@ Space cannot bleed from a repeat into another prompt or command owner.
 Outdoor and dungeon Hole Up retain their workflow input block. Only a fresh
 unmodified Space edge sampled during logical sleeping can request acceleration;
 setup/Bard holds are suppressed through release. The post-queue check rejects a
-request if the same Update completed or interrupted sleep. The passive indication
-changes from **Space: Speed up** to **Resting — Fast**, then disappears before
-results/Wanderer/ambush interaction. Additional fast-sleep presses are consumed,
+request if the same Update completed or interrupted sleep. Acceleration is silent:
+it adds no hint/status box, message, sound, or acknowledgement.
+Additional fast-sleep presses are consumed,
 and raw any-key waits keep their release-before-press contract. No command cycle,
 calendar charge or RNG draw belongs to this input intent. See
 [camping acceleration](CAMPING_SYSTEM.md#on-demand-sleeping-acceleration).

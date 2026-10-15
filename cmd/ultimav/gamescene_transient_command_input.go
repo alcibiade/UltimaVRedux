@@ -157,11 +157,9 @@ func (g *GameScene) finishTransientCommandInputFrame() {
 			// A press carried through setup/Bard is not a sleeping press.
 			g.keyboard.SuppressUntilRelease(ebiten.KeySpace)
 		}
-		if camp.IsAccelerated() {
-			g.setTransientCommandStatus("Resting — Fast", "")
-		} else {
-			g.setTransientCommandStatus("", "Space: Speed up")
-		}
+		// Camping acceleration is deliberately silent. Only the sleeping cadence
+		// changes; it must not introduce a hint, acknowledgement, or status card.
+		g.setTransientCommandStatus("", "")
 
 		return
 	}
@@ -188,7 +186,7 @@ func (g *GameScene) ResetTransientCommandInput() {
 	g.setTransientCommandStatus("", "")
 }
 
-// One passive exact-instance card owns the sleeping hint or pending verb. It
+// One passive exact-instance card owns the pending combat verb. It
 // never receives keyboard focus, advances a queue, or appends to enemy history.
 func (g *GameScene) setTransientCommandStatus(label, hint string) {
 	state := &g.transientCommandInput
@@ -205,9 +203,7 @@ func (g *GameScene) setTransientCommandStatus(label, hint string) {
 		return
 	}
 	dialog := widgets.NewOverlayDialog("").AsOverlayFeedback().WithExternallyManagedDuration(1).Build()
-	if label == "Resting — Fast" {
-		dialog.AppendLineBuilder().LightGray("Resting — ").LightGreen("Fast").Done()
-	} else if label != "" {
+	if label != "" {
 		pending := state.pending
 		name := g.gameState.PartyState.GetCharacter(pending.opportunity.Actor.EntityIndex).GetNameAsString()
 		dialog.AppendLineBuilder().LightGray("Pending: ").White(bufferedCombatVerb(pending.key)).
@@ -215,11 +211,7 @@ func (g *GameScene) setTransientCommandStatus(label, hint string) {
 	}
 	if hint != "" {
 		// Key tokens and their explanations remain distinct in the shared Output.
-		key, description := commandKeyLabelSpace, ": Speed up"
-		if hint == "Esc: Clear" {
-			key, description = commandKeyLabelEscape, ": Clear"
-		}
-		dialog.AppendLineBuilder().Yellow(key).LightGray(description).Done()
+		dialog.AppendLineBuilder().Yellow(commandKeyLabelEscape).LightGray(": Clear").Done()
 	}
 	state.status = dialog
 	g.dialogStack.PushNonBlockingDialog(dialog)

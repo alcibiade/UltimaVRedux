@@ -95,9 +95,9 @@ Gameplay randomness uses `GameState` RNG helpers, and presentation timing uses `
 
 ### On-demand sleeping acceleration
 
-Each outdoor or dungeon camp begins normally. Only logical sleeping offers
-**Space: Speed up**; one fresh press changes the live indication to
-**Resting — Fast**. Releasing Space leaves that camp fast; further presses are
+Each outdoor or dungeon camp begins normally. During logical sleeping, a fresh
+**Space** press silently accelerates the remaining cycles. There is no hint box,
+status box, or acknowledgement. Releasing Space leaves that camp fast; further presses are
 idempotent. Setup/fades, Bard music, results, ambush combat, and Wanderer
 presentation retain their existing timing and ownership. This is a Redux
 presentation control, not an original-game command or a saved preference.
@@ -114,9 +114,8 @@ The scene admits only a fresh Space edge while the exact sleeping workflow owns
 input, after readers and top modals. A Space held through setup cannot accelerate;
 an accelerating press is suppressed through release, including at the final
 cycle or ambush handoff. Raw result/Wanderer acknowledgement still requires a
-release and fresh press. A single passive, non-input-owning Output card presents
-the hint/status and is removed when that phase closes. Completion, interruption,
-finalization and scene teardown discard pacing/indication state; the next camp
+release and fresh press. Acceleration adds no dialog, message, or sound.
+Completion, interruption, finalization and scene teardown discard pacing state; the next camp
 starts normally. Audio playback rates and cleanup owners are unchanged.
 
 Controlled camping RNG inputs yield identical ordered camping decisions at

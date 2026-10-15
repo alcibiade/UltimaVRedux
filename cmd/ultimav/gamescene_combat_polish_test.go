@@ -348,17 +348,28 @@ func TestCombatHealthFramesActualSizeLookalikes(t *testing.T) {
 	scene.drawAvatarOverlay(screen)
 	assert.Positive(t, countExactColor(screen, ucolor.CombatAllegianceAlly))
 	assert.Positive(t, countExactColor(screen, ucolor.CombatAllegianceEnemy))
-	reference := newPresentationRaster(1280, 720)
+	var sample image.Rectangle
+	var healthOptions []*ebiten.DrawImageOptions
+	scene.gameState.ForEachDisclosedCombatActor(func(view game_state.CombatActorPresentation) {
+		options := scene.combatEntityDrawOptions(view.Position, view.Identity.IsPartyMember, view.Identity.EntityIndex, view.Identity.Slot)
+		healthOptions = append(healthOptions, options)
+		sample = sample.Union(combatFixtureRasterBounds(options))
+	})
+	sample = sample.Intersect(screen.Bounds())
+	reference := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
+	foreground := ebiten.NewImageWithOptions(sample, &ebiten.NewImageOptions{Unmanaged: true})
 	t.Cleanup(reference.Dispose)
+	t.Cleanup(foreground.Dispose)
 	scene.gameState.ForEachDisclosedCombatActor(func(view game_state.CombatActorPresentation) {
 		scene.drawCombatActorHealthFrame(reference, scene.combatEntityDrawOptions(view.Position, view.Identity.IsPartyMember, view.Identity.EntityIndex, view.Identity.Slot), view)
 	})
-	want, actual := signaturePixels(reference), signaturePixels(screen)
-	for pixel := 0; pixel < len(want); pixel += 4 {
-		if want[pixel+3] != 0 {
-			require.Equal(t, want[pixel:pixel+4], actual[pixel:pixel+4], "low/full HP composition at pixel %d", pixel/4)
-		}
-	}
+	// The possessed PC's yellow full frame intentionally overlays its red
+	// allegiance rim. Every uncovered health pixel, the complete 1/25/100-HP
+	// fills and a readable side of every actor's allegiance outline remain exact.
+	require.Equal(t, actor, scene.gameState.CombatScene.GetCurrentTurnIdentity())
+	activeOptions := scene.combatPartyIdentityDrawOptions(scene.gameState.CombatScene.GetCombatantPosition(actor), actor)
+	drawActiveSelectionReference(foreground, activeOptions, scene.gameState.ElapsedMs, ucolor.CombatActiveMonsterOutline)
+	assertCombatHealthSelectionComposition(t, screen.SubImage(sample).(*ebiten.Image), reference, foreground, healthOptions)
 	captureCombatPolishFrame(t, scene, "health-frames-grass-low-hp", 0)
 	captureCombatPolishFrame(t, scene, "health-frames-water-low-hp", 0)
 }
