@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
 // Drain callback, deferred-sequence, animation and finalizer stages without
@@ -20,6 +22,47 @@ func drainCombatPacingAt(scene *GameScene, elapsedMs int64) {
 	scene.gameState.ElapsedMs = elapsedMs
 	for range 16 {
 		scene.gameState.EventQueueManager.Update()
+	}
+}
+
+func TestScheduledBatPacingFixtureHeldKeyRelease(t *testing.T) {
+	for _, polluted := range []bool{true, false} {
+		t.Run(fmt.Sprintf("foreignShift=%t", polluted), func(t *testing.T) {
+			scene, callbacks, step := newScheduledProjectileTestScene(t, references.MonsterBat, 6)
+			state := scene.gameState
+			t.Cleanup(state.EventQueueManager.Shutdown)
+			held := true
+			if polluted {
+				// Reproduce host contamination without reading or changing OS input.
+				scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool {
+					return held && key == ebiten.KeyShiftLeft
+				})
+			}
+			state.SetRandomSeed(42)
+			state.ElapsedMs = 900
+			scene.startScheduledMonsterTurn(step)
+			drainCombatPacingAt(scene, 900)
+			drainCombatPacingAt(scene, 975)
+			require.True(t, scene.combatMovement.Active)
+			drainCombatPacingAt(scene, 1150)
+			require.False(t, scene.combatMovement.Active)
+			require.Equal(t, polluted, callbacks.InputBlocked)
+			require.Equal(t, polluted, state.EventQueueManager.HasWorkflow("monster_turn_delay"))
+			require.ErrorIs(t, state.CompleteScheduledCombatStep(step.Token), game_state.ErrCombatPresentationDuplicate)
+			if polluted {
+				require.Zero(t, callbacks.UnblockInputCalls, "the real workflow release predicate must retain the hold")
+			}
+			beforeRelease := snapshotBlockedCombatState(t, state)
+			held = false
+			drainCombatPacingAt(scene, 1150)
+			require.False(t, callbacks.InputBlocked)
+			require.False(t, state.EventQueueManager.HasWorkflow("monster_turn_delay"))
+			require.Equal(t, 1, callbacks.UnblockInputCalls)
+			require.Equal(t, beforeRelease, snapshotBlockedCombatState(t, state), "release must not resolve another action")
+			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
+			require.True(t, scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter))
+			require.False(t, scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter))
+		})
 	}
 }
 

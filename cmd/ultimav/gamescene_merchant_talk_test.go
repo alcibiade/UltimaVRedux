@@ -1837,6 +1837,42 @@ func TestManualReagentTalkRepeatedPurchasesRefreshWithinOneMinute(t *testing.T) 
 	require.Equal(t, 1, fixture.callbacks.UnblockInputCalls)
 }
 
+func TestMerchantTalkFixtureShiftDoesNotLeakIntoScriptedNavigation(t *testing.T) {
+	for _, polluted := range []bool{true, false} {
+		t.Run(fmt.Sprintf("foreignShift=%t", polluted), func(t *testing.T) {
+			fixture := newMerchantTalkFixture(t, references.Yew, references.MerchantReagentYew)
+			t.Cleanup(fixture.state.EventQueueManager.Shutdown)
+			held := true
+			if polluted {
+				fixture.scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool {
+					return held && key == ebiten.KeyShiftLeft
+				})
+			}
+			fixture.scene.StartTalkWorkflow(fixture.direction)
+			shop := waitForReagentDialog(t, fixture)
+			quotes := shop.GetCatalogQuotes()
+			require.GreaterOrEqual(t, len(quotes), 2)
+			require.Equal(t, quotes[0].Reagent, shop.GetSelectedReagent())
+			pressMerchantDialogKey(fixture, ebiten.KeyDown)
+			if polluted {
+				// Shift converts the scripted Down into PageDown; this list has no paging.
+				require.Equal(t, quotes[0].Reagent, shop.GetSelectedReagent())
+				held = false
+				pressMerchantDialogKey(fixture, ebiten.KeyDown)
+			}
+			require.Equal(t, quotes[1].Reagent, shop.GetSelectedReagent())
+			pressMerchantDialogKey(fixture, ebiten.KeyEscape)
+			require.Equal(t, widgets.ReagentShopFarewell, shop.GetPhase())
+			pressMerchantDialogKey(fixture, ebiten.KeyEnter)
+			require.True(t, shop.IsDismissed(), "detached fixtures still accept scripted controls")
+			pumpMerchantWorkflowUntil(t, fixture, func() bool {
+				return !fixture.state.EventQueueManager.HasActiveWorkflows()
+			})
+			require.Equal(t, 1, fixture.callbacks.UnblockInputCalls)
+		})
+	}
+}
+
 func TestReagentPurchaseCancelReturnsToBrowseWithoutMutation(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Yew, references.MerchantReagentYew)
 	fixture.state.PartyState.Inventory.Gold.Set(500)
@@ -3048,7 +3084,9 @@ func newMerchantTalkFixture(
 
 	direction := placePlayerNextToMerchant(state, npc)
 
-	keyboard := input.NewKeyboard(0)
+	// Simulated controls still consult held keys for modifiers and navigation.
+	// Keep that source detached from the frame-advancing native test harness.
+	keyboard := input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false })
 	scene := &GameScene{
 		gameState: state,
 		keyboard:  keyboard,

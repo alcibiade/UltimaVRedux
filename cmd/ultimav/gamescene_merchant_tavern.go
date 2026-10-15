@@ -185,7 +185,7 @@ func (g *GameScene) thenRunTavernShopAuthority(
 				actionDialog := widgets.NewTavernActionDialog(widgets.TavernActionDialogConfig{
 					Keyboard:     g.keyboard,
 					Intent:       intent,
-					IsKeyPressed: nil,
+					IsKeyPressed: g.keyboard.IsKeyHeld,
 				})
 				workflowState.tavernAction = actionDialog
 				g.keyboard.PrepareForTransition(0)

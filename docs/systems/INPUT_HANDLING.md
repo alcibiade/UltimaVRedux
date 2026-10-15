@@ -111,6 +111,11 @@ replace native platform keyboard/IME acceptance.
 
 ### Merchant quantity adjustment
 
+Merchant parent and child release gates use the scene keyboard's `IsKeyHeld`
+source, including Ship, Inn and Tavern approvals. Native gameplay therefore
+shares one physical-key owner, while detached fixtures can exercise release and
+modifier boundaries without consulting the host keyboard.
+
 The Arms trade, Guild purchase, Reagent purchase, Ship purchase and Tavern ration
 approval forms share plain Left/Right quantity input: one immediate step, a
 300 ms initial hold delay, then nominal 120 ms repeats quantized to widget updates.
