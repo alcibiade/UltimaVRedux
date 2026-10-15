@@ -4,11 +4,13 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // StartSkullKeyWorkflow initiates the skull key unlock workflow with event queue.
-// Skull Keys unlock magic doors; consumption follows ref:INV-0003.
-// REDUX DEVIATION: CMD-0003: original Use pays before unlocking. Redux prompts
+// Skull Keys unlock magic doors; consumption follows ref:PROV-0006.
+// REDUX DEVIATION: PROV-0006: original Use pays before unlocking. Redux prompts
 // first, then pays for a confirmed direction even when no door is unlocked.
 func (g *GameScene) StartSkullKeyWorkflow(commit *game_state.SkullKeyUseCommit) {
 	g.startSkullKeyWorkflow(commit, nil)
@@ -37,16 +39,7 @@ func (g *GameScene) startSkullKeyWorkflow(commit *game_state.SkullKeyUseCommit, 
 				}
 				review := g.gameState.ReviewSkullKeyUnlock(commit, dir)
 				result := g.gameState.CommitSkullKeyUnlockForSurfaceUse(review)
-				if result != game_state.SkullKeyUnlockSuccess {
-					g.gameState.SystemCallbacks.UI.ShowActionFeedback("No effect!", true)
-
-					return
-				}
-				g.playKapowAtPosition(review.Target)
-
-				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundUnlock)
-
-				g.gameState.SystemCallbacks.UI.ShowActionFeedback("Unlocked!", true)
+				g.showSkullKeyResult(result, review.Target)
 			},
 			func() {},
 		))
@@ -63,4 +56,86 @@ func (g *GameScene) startSkullKeyWorkflow(commit *game_state.SkullKeyUseCommit, 
 			}
 		}).
 		Start()
+}
+
+// thenUseCombatSkullKey borrows the owning Use workflow's prompt and completion.
+func (g *GameScene) thenUseCombatSkullKey(canCommit func() bool, didCommit *bool) event_queue.Sequence {
+	commit, _ := g.gameState.BeginSkullKeyUse()
+	var dialog *widgets.MessageDialog
+	inputComplete := false
+
+	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+		return q.Then(func() {
+			if !canCommit() || commit == nil {
+				return
+			}
+			g.gameState.SystemCallbacks.Message.AddRowStr("Skull Key")
+			dialog = widgets.NewMessageDialog("Direction-\n\nArrow/keypad; Esc/Space cancels").
+				WithTextLines(5).
+				WithCharsPerLine(24).
+				WithContentTextAlignment(widgets.ContentAlignCenter).
+				WithTextHorizontalCenter(true).
+				WithVerticalPosition(defaultMessageVertical).
+				WithHorizontalPosition(widgets.DialogHorizontalMapOnly).
+				Build()
+			dialog.ShowWithoutAnimation()
+			g.castUseDirectionDialog = dialog
+			g.dialogStack.PushModalDialog(dialog)
+			g.keyboard.SetAllowKeyPressImmediately()
+		}).While(
+			func() bool { return dialog != nil && !inputComplete },
+			func() {
+				if g.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
+					inputComplete = true
+
+					return
+				}
+				input := g.ordinaryDirectionInput()
+				if !canCommit() {
+					inputComplete = true
+
+					return
+				}
+				switch input.Outcome {
+				case ordinaryDirectionActive:
+					return
+				case ordinaryDirectionPassed:
+					inputComplete = true
+				case ordinaryDirectionSelected:
+					inputComplete = true
+					g.commitCombatSkullKeyDirection(commit, input.Direction, didCommit)
+				}
+			},
+			DialogPollingRateMs,
+		).Then(func() {
+			g.clearCastUseDirectionPrompt()
+			g.keyboard.ResetReleaseDebouncing()
+		})
+	}
+}
+
+func (g *GameScene) commitCombatSkullKeyDirection(
+	commit *game_state.SkullKeyUseCommit,
+	direction references.Direction,
+	didCommit *bool,
+) {
+	review, committed := g.gameState.CommitCombatSkullKeyUse(commit, direction)
+	*didCommit = committed
+	if !committed {
+		g.gameState.SystemCallbacks.UI.ShowActionFeedback(staleUseSelectionMessage, true)
+
+		return
+	}
+	g.showSkullKeyResult(review.Result, review.Target)
+}
+
+func (g *GameScene) showSkullKeyResult(result game_state.SkullKeyUnlockResult, target references.Position) {
+	if result != game_state.SkullKeyUnlockSuccess {
+		g.gameState.SystemCallbacks.UI.ShowActionFeedback("No effect!", true)
+
+		return
+	}
+	g.playKapowAtPosition(target)
+	g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundUnlock)
+	g.gameState.SystemCallbacks.UI.ShowActionFeedback("Unlocked!", true)
 }

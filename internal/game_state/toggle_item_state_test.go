@@ -169,6 +169,35 @@ func TestIndependentArtifactTogglesPreserveSpell(t *testing.T) {
 	assert.Equal(t, want, gs.ActiveDurationEffect, "inactive Crown processing must not clear a spell")
 }
 
+func TestTimeStopDurationBoundariesNotifyForCrownReplacement(t *testing.T) {
+	gs := createMinimalGameStateForToggleTests(t)
+	gs.ElapsedMs = 12345
+	var observed []DurationEffectType
+	gs.SystemCallbacks.Screen.UpdateDisplay = func() {
+		observed = append(observed, gs.ActiveDurationEffect.EffectType)
+	}
+	require.True(t, gs.ActivateTimeStopEffect(20))
+	assert.Equal(t, []DurationEffectType{DurationEffectTimeStop}, observed)
+	require.True(t, gs.ActivateTimeStopEffect(10))
+	assert.Len(t, observed, 1, "refresh preserves the current animation episode")
+	gs.SystemCallbacks.Flow.Items.TriggerToggleItemFlash = func(itemType ToggleItemType) {
+		assert.Equal(t, ToggleItemCrown, itemType)
+		assert.Equal(t, []DurationEffectType{DurationEffectTimeStop, DurationEffectNone}, observed,
+			"Crown must publish the normal-rate boundary before its presentation feedback")
+	}
+	require.True(t, gs.ToggleCrown())
+	assert.False(t, gs.HasAnyDurationEffect())
+	assert.True(t, gs.IsCrownActive())
+	require.True(t, gs.ToggleCrown())
+	assert.Len(t, observed, 2, "removing Crown must not resume the replaced spell")
+	require.True(t, gs.ActivateTimeStopEffect(1))
+	gs.processDurationEffects()
+	assert.Equal(t, []DurationEffectType{
+		DurationEffectTimeStop, DurationEffectNone, DurationEffectTimeStop, DurationEffectNone,
+	}, observed)
+	assert.EqualValues(t, 12345, gs.ElapsedMs)
+}
+
 func TestDebugDurationActivationReplacesCrownButLightDoesNot(t *testing.T) {
 	gs, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
@@ -284,6 +313,9 @@ func createMinimalGameStateForToggleTests(t *testing.T) *GameState {
 // createMockSystemCallbacksForToggleTests creates mock callbacks for toggle item tests.
 func createMockSystemCallbacksForToggleTests() *SystemCallbacks {
 	return &SystemCallbacks{
+		Screen: ScreenCallbacks{
+			UpdateDisplay: func() {}, // Duration/Crown replacements publish presentation boundaries.
+		},
 		UI: UICallbacks{
 			ShowActionFeedback: func(message string, important bool) {
 				// No-op for tests

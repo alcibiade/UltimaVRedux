@@ -238,6 +238,8 @@ func TestCharacterCreationSceneDrainsPendingRunesAcrossTransitions(t *testing.T)
 	fixture.press(ebiten.KeyEnter)
 	fixture.queueRunes([]rune{'f', 'a'})
 	fixture.update()
+	assert.Equal(t, characterCreationSex, fixture.scene.state, "late text cannot choose a physical option")
+	fixture.press(ebiten.KeyF)
 	assert.Equal(t, characterCreationIntroduction, fixture.scene.state)
 
 	fixture.update()

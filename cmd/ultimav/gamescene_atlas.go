@@ -61,7 +61,10 @@ func (g *GameScene) openAtlas(game *Game) {
 		}
 	}
 	g.keyboard.PrepareForTransition(0)
-	session := &atlasSession{frozenMs: g.gameState.ElapsedMs, state: g.gameState}
+	session := &atlasSession{
+		dialog: nil, child: nil, noteDraft: nil, state: g.gameState,
+		frozenMs: g.gameState.ElapsedMs, closing: false, resumePresentation: nil,
+	}
 	if g.audioManager != nil {
 		g.audioManager.GetMusicManager().SetSuppressed(audio.MusicJournal, true)
 	}
@@ -140,7 +143,7 @@ func (g *GameScene) handleAtlasNoteIntent(intent widgets.AtlasNoteIntent) {
 	session.noteDraft = draft
 	session.child = widgets.NewAtlasNoteEditor(widgets.AtlasNoteEditorConfig{
 		Record: draft.Record(), Context: draft.ContextLabel(), Deleting: intent.Action == widgets.AtlasNoteDelete,
-		Keyboard: g.keyboard, Cancel: g.closeAtlasChild,
+		Keyboard: g.keyboard, Cancel: g.closeAtlasChild, AppendInputChars: g.appendInputChars,
 		Submit: func(label, description string) error {
 			if intent.Action == widgets.AtlasNoteDelete {
 				if err := g.gameState.DeleteAtlasNote(draft); err != nil {

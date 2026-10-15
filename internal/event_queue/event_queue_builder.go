@@ -1,3 +1,4 @@
+// Package event_queue coordinates timed workflows and presentation feedback using injected clocks.
 package event_queue
 
 import (
@@ -17,17 +18,25 @@ type SequentialEventBuilder struct {
 	priority     int           // Execution priority (lower number = higher priority)
 }
 
+// newDelayedEvent creates an unchained event; builders attach continuations explicitly.
+func newDelayedEvent(executeAt int64, action func() error) *DelayedEvent {
+	return &DelayedEvent{
+		ExecuteAt:   executeAt,
+		Action:      action,
+		NextAction:  nil,
+		NextDelay:   0,
+		IsWaitPoint: false,
+	}
+}
+
 // First schedules the first event in a sequential chain
 func (seb *SequentialEventBuilder) First(action func()) *SequentialEventBuilder {
 	// Create the first event and track it for chaining
-	seb.currentEvent = &DelayedEvent{
-		ExecuteAt: seb.queue.timeSource(),
-		Action: func() error {
-			action()
+	seb.currentEvent = newDelayedEvent(seb.queue.timeSource(), func() error {
+		action()
 
-			return nil
-		},
-	}
+		return nil
+	})
 	seb.queue.events = append(seb.queue.events, seb.currentEvent)
 	logging.Debug(logging.CategoryGameState, "EventQueue: First event created")
 
@@ -45,56 +54,50 @@ func (seb *SequentialEventBuilder) Then(action func()) *SequentialEventBuilder {
 		return seb.First(action)
 	}
 
-	if seb.currentEvent != nil {
-		// Create a placeholder event that will represent this Then action for further chaining
-		thenEvent := &DelayedEvent{
-			Action: func() error {
-				action()
+	// Create a placeholder event that will represent this Then action for further chaining
+	thenEvent := newDelayedEvent(0, func() error {
+		action()
 
-				return nil
-			},
-		}
+		return nil
+	})
 
-		// Create a wrapper action that executes the Then action and schedules further chaining
-		wrappedAction := func() error {
-			// Execute the Then action
-			action()
+	// Create a wrapper action that executes the Then action and schedules further chaining
+	wrappedAction := func() error {
+		// Execute the Then action
+		action()
 
-			// If there's a next action in the chain, schedule it dynamically
-			if thenEvent.NextAction != nil {
-				// Don't schedule next action if termination was requested
-				if seb.queue.terminateRequested {
-					logging.Debug(logging.CategoryGameState, "EventQueue: Then - skipping next action scheduling due to terminateRequested")
-				} else {
-					currentTime := seb.queue.timeSource()
-					nextEvent := &DelayedEvent{
-						ExecuteAt:   currentTime + thenEvent.NextDelay,
-						Action:      thenEvent.NextAction,
-						NextAction:  nil, // Will be set by subsequent Then() calls during scheduling
-						NextDelay:   0,
-						IsWaitPoint: thenEvent.IsWaitPoint,
-					}
-					seb.queue.events = append(seb.queue.events, nextEvent)
-					logging.Debug(logging.CategoryGameState, "EventQueue: Then action scheduled next at t=%d (current=%d + delay=%d)", nextEvent.ExecuteAt, currentTime, thenEvent.NextDelay)
-				}
-			} else if !seb.queue.terminateRequested {
-				// No more actions in chain - preserve any terminal delay before Finally.
-				// (Skip if terminateRequested - Phase 3.5 will handle lastAction directly)
-				seb.scheduleLastAction(thenEvent.NextDelay)
+		// If there's a next action in the chain, schedule it dynamically
+		if thenEvent.NextAction != nil {
+			// Don't schedule next action if termination was requested
+			if seb.queue.terminateRequested {
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: Then - skipping next action scheduling due to terminateRequested")
+			} else {
+				currentTime := seb.queue.timeSource()
+				nextEvent := newDelayedEvent(currentTime+thenEvent.NextDelay, thenEvent.NextAction)
+				nextEvent.IsWaitPoint = thenEvent.IsWaitPoint
+				seb.queue.events = append(seb.queue.events, nextEvent)
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: Then action scheduled next at t=%d (current=%d + delay=%d)",
+					nextEvent.ExecuteAt, currentTime, thenEvent.NextDelay)
 			}
-
-			return nil
+		} else if !seb.queue.terminateRequested {
+			// No more actions in chain - preserve any terminal delay before Finally.
+			// (Skip if terminateRequested - Phase 3.5 will handle lastAction directly)
+			seb.scheduleLastAction(thenEvent.NextDelay)
 		}
 
-		// Set the wrapped action as the NextAction of the current event
-		seb.currentEvent.NextAction = wrappedAction
-		// Use the delay that was set by Wait(), or 0 if no Wait() was called
-		delay := seb.currentEvent.NextDelay
-		logging.Debug(logging.CategoryGameState, "EventQueue: Chained Then action with %d ms delay", delay)
-
-		// Update currentEvent to the placeholder for further chaining
-		seb.currentEvent = thenEvent
+		return nil
 	}
+
+	// Set the wrapped action as the NextAction of the current event
+	seb.currentEvent.NextAction = wrappedAction
+	// Use the delay that was set by Wait(), or 0 if no Wait() was called
+	delay := seb.currentEvent.NextDelay
+	logging.Debug(logging.CategoryGameState, "EventQueue: Chained Then action with %d ms delay", delay)
+
+	// Update currentEvent to the placeholder for further chaining
+	seb.currentEvent = thenEvent
 
 	return seb
 }
@@ -119,7 +122,8 @@ func (seb *SequentialEventBuilder) Wait(delayMs int64) *SequentialEventBuilder {
 		// ALWAYS use += to accumulate delays, regardless of NextAction state
 		// This allows multiple Wait() calls to stack properly
 		seb.currentEvent.NextDelay += delayMs
-		logging.Debug(logging.CategoryGameState, "EventQueue: Accumulated delay to %d ms (+%d)", seb.currentEvent.NextDelay, delayMs)
+		logging.Debug(logging.CategoryGameState,
+			"EventQueue: Accumulated delay to %d ms (+%d)", seb.currentEvent.NextDelay, delayMs)
 	}
 
 	return seb
@@ -130,12 +134,10 @@ func (seb *SequentialEventBuilder) WaitForAnyKey() *SequentialEventBuilder {
 	seb.rejectFeedbackOperation("WaitForAnyKey")
 	if seb.currentEvent != nil {
 		// Create a special wait event that will capture the next action when Then() is called
-		waitEvent := &DelayedEvent{
-			Action: func() error {
-				// This action will be replaced by the actual wait logic when Then() is called
-				return nil
-			},
-		}
+		waitEvent := newDelayedEvent(0, func() error {
+			// This action will be replaced by the actual wait logic when Then() is called
+			return nil
+		})
 
 		// Create the wait action that sets up input waiting
 		waitAction := func() error {
@@ -152,7 +154,8 @@ func (seb *SequentialEventBuilder) WaitForAnyKey() *SequentialEventBuilder {
 				seb.queue.pendingNextDelay = waitEvent.NextDelay
 				logging.Debug(logging.CategoryGameState, "EventQueue: Stored pending action for WaitForAnyKey")
 			} else {
-				logging.Debug(logging.CategoryGameState, "EventQueue: No pending action to store (no Then() called after WaitForAnyKey)")
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: No pending action to store (no Then() called after WaitForAnyKey)")
 			}
 
 			return nil
@@ -204,8 +207,11 @@ func (seb *SequentialEventBuilder) If(
 				if originalNextAction != nil {
 					currentTime := seb.queue.timeSource()
 					continueEvent := &DelayedEvent{
-						ExecuteAt: currentTime + originalNextDelay,
-						Action:    originalNextAction,
+						ExecuteAt:   currentTime + originalNextDelay,
+						Action:      originalNextAction,
+						NextAction:  nil,
+						NextDelay:   0,
+						IsWaitPoint: false,
 					}
 					seb.queue.events = append(seb.queue.events, continueEvent)
 				} else {
@@ -222,12 +228,12 @@ func (seb *SequentialEventBuilder) If(
 			tempBuilder := &SequentialEventBuilder{
 				queue:        seb.queue,
 				currentEvent: nil,
+				lastAction:   nil,
+				priority:     0,
 			}
 
 			// Create a dummy first event to start the chain
-			firstEvent := &DelayedEvent{
-				Action: func() error { return nil }, // No-op starter
-			}
+			firstEvent := newDelayedEvent(0, func() error { return nil }) // No-op starter
 			tempBuilder.currentEvent = firstEvent
 
 			// Execute the build closure - this chains events via Then/Wait/etc
@@ -238,13 +244,11 @@ func (seb *SequentialEventBuilder) If(
 			if seb.queue.terminateRequested {
 				logging.Debug(logging.CategoryGameState,
 					"EventQueue: If sub-chain called HandoffTo - skipping continuation wiring")
-			} else {
+			} else if tempBuilder.currentEvent != nil {
 				// Wire the end of the sub-chain to continue with the original next action
-				if tempBuilder.currentEvent != nil {
-					tempBuilder.currentEvent.NextAction = originalNextAction
-					// Use += to preserve any trailing Wait() delays from sub-chain
-					tempBuilder.currentEvent.NextDelay += originalNextDelay
-				}
+				tempBuilder.currentEvent.NextAction = originalNextAction
+				// Use += to preserve any trailing Wait() delays from sub-chain
+				tempBuilder.currentEvent.NextDelay += originalNextDelay
 			}
 
 			// INJECT the sub-chain: Add the first sub-chain event directly to the queue
@@ -265,6 +269,10 @@ func (seb *SequentialEventBuilder) If(
 
 			return nil
 		},
+		ExecuteAt:   0,
+		NextAction:  nil,
+		NextDelay:   0,
+		IsWaitPoint: false,
 	}
 
 	// Chain this conditional event into the builder.
@@ -274,10 +282,7 @@ func (seb *SequentialEventBuilder) If(
 	} else {
 		// First event in the chain - add to queue directly
 		currentTime := seb.queue.timeSource()
-		seb.queue.events = append(seb.queue.events, &DelayedEvent{
-			ExecuteAt: currentTime,
-			Action:    whenEvent.Action,
-		})
+		seb.queue.events = append(seb.queue.events, newDelayedEvent(currentTime, whenEvent.Action))
 	}
 
 	// Update currentEvent to point to the conditional event for further chaining.
@@ -287,25 +292,6 @@ func (seb *SequentialEventBuilder) If(
 	return seb
 }
 
-// While repeats an action at regular intervals as long as condition returns true.
-// On each iteration:
-//  1. Checks condition() - if false, exits loop and continues to next event
-//  2. Executes action() - called EVERY iteration while condition is true
-//  3. Waits intervalMs milliseconds before next iteration
-//
-// Parameters:
-//   - condition: Checked before each iteration. Return false to exit loop.
-//   - action: Executed every iteration. Use func() {} for polling without side effects.
-//   - intervalMs: Delay between iterations in milliseconds (e.g., 16ms = ~60fps polling rate)
-//
-// Example - Wait for dialog dismissal:
-//
-//	While(
-//	    func() bool { return !dialog.IsDismissed() },  // Poll every frame
-//	    func() {},                                       // No action needed, just polling
-//	    16,                                              // Check ~60 times per second
-//	)
-//
 // whileLoopCore is the common infrastructure for all while-style loops.
 // It handles:
 // - Creating placeholder event for chaining
@@ -318,6 +304,8 @@ func (seb *SequentialEventBuilder) If(
 // - earlyExit: true if loop should exit immediately (e.g., no system callbacks)
 //
 // The loopName parameter is used for debug logging.
+//
+//nolint:funlen // Keep yielding, iteration, and late-bound completion together to preserve callback ordering.
 func (seb *SequentialEventBuilder) whileLoopCore(
 	iterationLogic func() (shouldContinue bool, earlyExit bool),
 	intervalMs int64,
@@ -329,29 +317,23 @@ func (seb *SequentialEventBuilder) whileLoopCore(
 
 	// Validate interval parameter - negative intervals are programming errors
 	if intervalMs < 0 {
-		logging.Warn(logging.CategoryGameState, "EventQueue: %s called with negative interval %d ms, using 0", loopName, intervalMs)
+		logging.Warn(logging.CategoryGameState,
+			"EventQueue: %s called with negative interval %d ms, using 0", loopName, intervalMs)
 		intervalMs = 0
 	}
 
 	// Create a placeholder event that represents the end of the while loop for chaining
-	whileEvent := &DelayedEvent{
-		Action: func() error {
-			// This placeholder should not execute - the while completion handles chaining
-			logging.Debug(logging.CategoryGameState, "EventQueue: %s placeholder executed (unexpected)", loopName)
+	whileEvent := newDelayedEvent(0, func() error {
+		// This placeholder should not execute - the while completion handles chaining
+		logging.Debug(logging.CategoryGameState, "EventQueue: %s placeholder executed (unexpected)", loopName)
 
-			return nil
-		},
-	}
+		return nil
+	})
 
 	// scheduleCompletion handles scheduling the next action or Finally() cleanup when loop exits
 	scheduleCompletion := func() {
 		if whileEvent.NextAction != nil {
-			nextEvent := &DelayedEvent{
-				ExecuteAt:  seb.queue.timeSource() + whileEvent.NextDelay,
-				Action:     whileEvent.NextAction,
-				NextAction: nil,
-				NextDelay:  0,
-			}
+			nextEvent := newDelayedEvent(seb.queue.timeSource()+whileEvent.NextDelay, whileEvent.NextAction)
 			seb.queue.events = append(seb.queue.events, nextEvent)
 			logging.Debug(logging.CategoryGameState, "EventQueue: %s loop completed, scheduled next action", loopName)
 		} else {
@@ -369,10 +351,7 @@ func (seb *SequentialEventBuilder) whileLoopCore(
 				seb.queue.manager.ShouldYield(seb.priority) {
 				logging.Debug(logging.CategoryGameState, "EventQueue: %s yielding to higher priority queue", loopName)
 				// Schedule another iteration of the loop to resume when promoted
-				nextIteration := &DelayedEvent{
-					ExecuteAt: seb.queue.timeSource() + intervalMs,
-					Action:    createWhileChain(),
-				}
+				nextIteration := newDelayedEvent(seb.queue.timeSource()+intervalMs, createWhileChain())
 				seb.queue.events = append(seb.queue.events, nextIteration)
 
 				return nil
@@ -390,10 +369,7 @@ func (seb *SequentialEventBuilder) whileLoopCore(
 
 			// Schedule next iteration or complete the loop
 			if shouldContinue {
-				nextIteration := &DelayedEvent{
-					ExecuteAt: seb.queue.timeSource() + intervalMs,
-					Action:    createWhileChain(),
-				}
+				nextIteration := newDelayedEvent(seb.queue.timeSource()+intervalMs, createWhileChain())
 				seb.queue.events = append(seb.queue.events, nextIteration)
 			} else {
 				scheduleCompletion()
@@ -414,6 +390,24 @@ func (seb *SequentialEventBuilder) whileLoopCore(
 	return seb
 }
 
+// While repeats an action at regular intervals as long as condition returns true.
+// On each iteration:
+//  1. Checks condition() - if false, exits loop and continues to next event
+//  2. Executes action() - called EVERY iteration while condition is true
+//  3. Waits intervalMs milliseconds before next iteration
+//
+// Parameters:
+//   - condition: Checked before each iteration. Return false to exit loop.
+//   - action: Executed every iteration. Use func() {} for polling without side effects.
+//   - intervalMs: Delay between iterations in milliseconds (e.g., 16ms = ~60fps polling rate)
+//
+// Example - Wait for dialog dismissal:
+//
+//	While(
+//	    func() bool { return !dialog.IsDismissed() }, // Poll every frame
+//	    func() {},                                 // No action needed, just polling
+//	    16,                                        // Check ~60 times per second
+//	)
 func (seb *SequentialEventBuilder) While(
 	condition func() bool,
 	action func(),
@@ -577,30 +571,25 @@ func (seb *SequentialEventBuilder) WhileAwaitingInput(
 func (seb *SequentialEventBuilder) Animate(durationMs uint64, onFrame func(float32)) *SequentialEventBuilder {
 	if seb.currentEvent != nil {
 		// Create a placeholder event that will represent this animation for further chaining
-		animateEvent := &DelayedEvent{
-			Action: func() error {
-				// This placeholder action should not execute - the animation completion handles chaining
-				logging.Debug(logging.CategoryGameState, "EventQueue: Animate placeholder event executed (unexpected)")
+		animateEvent := newDelayedEvent(0, func() error {
+			// This placeholder action should not execute - the animation completion handles chaining
+			logging.Debug(logging.CategoryGameState, "EventQueue: Animate placeholder event executed (unexpected)")
 
-				return nil
-			},
-		}
+			return nil
+		})
 
 		// Create the actual animation action that will be executed
 		animateAction := func() error {
 			// Create animation event and add it to continuous events
 			animateEventInternal := NewAnimateEventWithCallback(durationMs, onFrame, func() {
 				// Animation completed - schedule next action in chain if there is one
-				logging.Debug(logging.CategoryGameState, "EventQueue: Animate completed (duration=%dms), checking for next action", durationMs)
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: Animate completed (duration=%dms), checking for next action", durationMs)
 				if animateEvent.NextAction != nil {
-					nextEvent := &DelayedEvent{
-						ExecuteAt:  seb.queue.timeSource() + animateEvent.NextDelay,
-						Action:     animateEvent.NextAction,
-						NextAction: nil,
-						NextDelay:  0,
-					}
+					nextEvent := newDelayedEvent(seb.queue.timeSource()+animateEvent.NextDelay, animateEvent.NextAction)
 					seb.queue.events = append(seb.queue.events, nextEvent)
-					logging.Debug(logging.CategoryGameState, "EventQueue: Animate scheduled next action with delay=%d", animateEvent.NextDelay)
+					logging.Debug(logging.CategoryGameState,
+						"EventQueue: Animate scheduled next action with delay=%d", animateEvent.NextDelay)
 				} else {
 					// No more actions in chain - schedule Last cleanup action if present
 					// This matches Then() behavior for terminal events
@@ -628,104 +617,104 @@ func (seb *SequentialEventBuilder) Animate(durationMs uint64, onFrame func(float
 // RepeatWithDelay executes a function N times with a delay between each iteration
 // The function receives the current iteration (0-based) and returns true to continue, false to break early
 // Total duration will be approximately: iterations * delayMs
-func (seb *SequentialEventBuilder) RepeatWithDelay(iterations int, delayMs int64, fn func(iteration int) bool) *SequentialEventBuilder {
+func (seb *SequentialEventBuilder) RepeatWithDelay(
+	iterations int, delayMs int64, action func(iteration int) bool,
+) *SequentialEventBuilder {
+	return seb.RepeatWithRuntimeDelay(iterations, func() int64 { return delayMs }, action)
+}
+
+// RepeatWithRuntimeDelay reads delay at admission and after each continuing
+// iteration. Existing deadlines are never rewritten; a hitch schedules the next
+// interval from execution time rather than catching up missed iterations.
+// Providers must be side-effect free. Zero delay retains the fixed API's behavior.
+//
+//nolint:funlen // Keep runtime delay reads and late-bound continuation in the same recursive scheduling closure.
+func (seb *SequentialEventBuilder) RepeatWithRuntimeDelay(
+	iterations int, delay func() int64, action func(iteration int) bool,
+) *SequentialEventBuilder {
 	if iterations <= 0 {
 		return seb // No iterations to process
 	}
-
-	// Validate delay parameter - negative delays are programming errors
-	if delayMs < 0 {
-		logging.Warn(logging.CategoryGameState, "EventQueue: RepeatWithDelay() called with negative delay %d ms, using 0", delayMs)
-		delayMs = 0
+	if delay == nil {
+		panic("RepeatWithRuntimeDelay: delay provider is required")
+	}
+	if seb.currentEvent == nil {
+		return seb
 	}
 
 	// Create recursive chain where each iteration schedules the next
-	if seb.currentEvent != nil {
-		// Create a placeholder event that will represent the end of all iterations
-		// This event is used only for chaining setup, not for execution
-		finalEvent := &DelayedEvent{
-			Action: func() error {
-				// This should never execute - the last iteration handles chaining directly
-				logging.Debug(logging.CategoryGameState, "EventQueue: RepeatWithDelay finalEvent executed (unexpected)")
+	// This placeholder is used only for chaining setup, not for execution.
+	finalEvent := newDelayedEvent(0, func() error {
+		// This should never execute - the last iteration handles chaining directly
+		logging.Debug(logging.CategoryGameState, "EventQueue: RepeatWithDelay finalEvent executed (unexpected)")
 
-				return nil
-			},
-		}
+		return nil
+	})
 
-		// Create a recursive closure that schedules iterations
-		var createIterationChain func(currentIteration int) func() error
-		createIterationChain = func(currentIteration int) func() error {
-			return func() error {
-				// Execute this iteration
-				shouldContinue := fn(currentIteration)
-				if !shouldContinue {
-					// Break loop early - schedule the final event and stop iterations
-					logging.Debug(logging.CategoryGameState, "EventQueue: RepeatWithDelay breaking early at iteration %d", currentIteration)
-					if finalEvent.NextAction != nil {
-						nextEvent := &DelayedEvent{
-							ExecuteAt:   seb.queue.timeSource() + finalEvent.NextDelay,
-							Action:      finalEvent.NextAction,
-							NextAction:  nil,
-							NextDelay:   0,
-							IsWaitPoint: finalEvent.IsWaitPoint,
-						}
-						seb.queue.events = append(seb.queue.events, nextEvent)
-						logging.Debug(logging.CategoryGameState, "EventQueue: Early break scheduled next action for %d", nextEvent.ExecuteAt)
-					} else {
-						// No more actions - schedule Last cleanup action if present
-						seb.scheduleLastAction(finalEvent.NextDelay)
-					}
-
-					return nil // Continue chain after early break
-				}
-
-				// If there are more iterations, schedule the next one
-				if currentIteration < iterations-1 {
-					nextIteration := createIterationChain(currentIteration + 1)
-
-					// Dynamically create and schedule the next iteration event
-					nextEvent := &DelayedEvent{
-						ExecuteAt:  seb.queue.timeSource() + delayMs,
-						Action:     nextIteration,
-						NextAction: nil,
-						NextDelay:  0,
-					}
-
-					// Add the next iteration to the queue
+	// Create a recursive closure that schedules iterations
+	var createIterationChain func(currentIteration int) func() error
+	createIterationChain = func(currentIteration int) func() error {
+		return func() error {
+			// Execute this iteration
+			shouldContinue := action(currentIteration)
+			if !shouldContinue {
+				// Break loop early - schedule the final event and stop iterations
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: RepeatWithDelay breaking early at iteration %d", currentIteration)
+				if finalEvent.NextAction != nil {
+					nextEvent := newDelayedEvent(seb.queue.timeSource()+finalEvent.NextDelay, finalEvent.NextAction)
+					nextEvent.IsWaitPoint = finalEvent.IsWaitPoint
 					seb.queue.events = append(seb.queue.events, nextEvent)
-					logging.Debug(logging.CategoryGameState, "EventQueue: Scheduled iteration %d for execution at %d", currentIteration+1, nextEvent.ExecuteAt)
+					logging.Debug(logging.CategoryGameState,
+						"EventQueue: Early break scheduled next action for %d", nextEvent.ExecuteAt)
 				} else {
-					// This is the last iteration - directly schedule the next action if present
-					if finalEvent.NextAction != nil {
-						nextEvent := &DelayedEvent{
-							ExecuteAt:   seb.queue.timeSource() + finalEvent.NextDelay,
-							Action:      finalEvent.NextAction,
-							NextAction:  nil, // Will be set by subsequent Then() calls during scheduling
-							NextDelay:   0,
-							IsWaitPoint: finalEvent.IsWaitPoint,
-						}
-						seb.queue.events = append(seb.queue.events, nextEvent)
-						logging.Debug(logging.CategoryGameState, "EventQueue: Last iteration directly scheduled next action for %d", nextEvent.ExecuteAt)
-					} else {
-						// No more actions - schedule Last cleanup action if present
-						seb.scheduleLastAction(finalEvent.NextDelay)
-					}
+					// No more actions - schedule Last cleanup action if present
+					seb.scheduleLastAction(finalEvent.NextDelay)
 				}
 
-				return nil
+				return nil // Continue chain after early break
 			}
+
+			// If there are more iterations, schedule the next one
+			switch {
+			case currentIteration < iterations-1:
+				nextIteration := createIterationChain(currentIteration + 1)
+
+				// Dynamically create and schedule the next iteration event
+				nextEvent := newDelayedEvent(seb.queue.timeSource()+max(0, delay()), nextIteration)
+				seb.queue.events = append(seb.queue.events, nextEvent)
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: Scheduled iteration %d for execution at %d", currentIteration+1, nextEvent.ExecuteAt)
+			case finalEvent.NextAction != nil:
+				// This is the last iteration - directly schedule the next action if present
+				nextEvent := newDelayedEvent(seb.queue.timeSource()+finalEvent.NextDelay, finalEvent.NextAction)
+				nextEvent.IsWaitPoint = finalEvent.IsWaitPoint
+				seb.queue.events = append(seb.queue.events, nextEvent)
+				logging.Debug(logging.CategoryGameState,
+					"EventQueue: Last iteration directly scheduled next action for %d", nextEvent.ExecuteAt)
+			default:
+				// No more actions - schedule Last cleanup action if present
+				seb.scheduleLastAction(finalEvent.NextDelay)
+			}
+
+			return nil
 		}
-
-		// Set the first iteration as the NextAction of the current event
-		firstIteration := createIterationChain(0)
-		seb.currentEvent.NextAction = firstIteration
-		seb.currentEvent.NextDelay = delayMs
-
-		// Set the final event as the new current event for further chaining
-		seb.currentEvent = finalEvent
-
-		logging.Debug(logging.CategoryGameState, "EventQueue: RepeatWithDelay chained %d iterations in chain mode", iterations)
 	}
+
+	// Set the first iteration as the NextAction of the current event
+	firstIteration := createIterationChain(0)
+	seb.currentEvent.NextAction = func() error {
+		seb.queue.events = append(seb.queue.events,
+			newDelayedEvent(seb.queue.timeSource()+max(0, delay()), firstIteration))
+
+		return nil
+	}
+	seb.currentEvent.NextDelay = 0
+
+	// Set the final event as the new current event for further chaining
+	seb.currentEvent = finalEvent
+	logging.Debug(logging.CategoryGameState,
+		"EventQueue: RepeatWithDelay chained %d iterations in chain mode", iterations)
 
 	return seb
 }
@@ -840,11 +829,8 @@ func (seb *SequentialEventBuilder) AwaitFeedback(
 // scheduleLastAction preserves a terminal delay while leaving Finally execution to queue finalization.
 func (seb *SequentialEventBuilder) scheduleLastAction(delay int64) {
 	if seb.queue.lastAction != nil && delay > 0 {
-		//nolint:exhaustruct
-		seb.queue.events = append(seb.queue.events, &DelayedEvent{
-			ExecuteAt: seb.queue.timeSource() + delay,
-			Action:    func() error { return nil },
-		})
+		seb.queue.events = append(seb.queue.events,
+			newDelayedEvent(seb.queue.timeSource()+delay, func() error { return nil }))
 	}
 }
 
@@ -863,13 +849,15 @@ func (seb *SequentialEventBuilder) Start() {
 
 	// Safety check: Ensure Priority() was called before Start()
 	if seb.priority == 0 {
-		logging.Error(logging.CategoryGameState, "EventQueue.Start() called without Priority() - queue '%s' must have priority set", seb.queue.name)
+		logging.Error(logging.CategoryGameState,
+			"EventQueue.Start() called without Priority() - queue '%s' must have priority set", seb.queue.name)
 		panic("EventQueue.Start() called without Priority() - you must call Priority() before Start()")
 	}
 
 	// Safety check: Ensure First() was called before Start()
 	if len(seb.queue.events) == 0 {
-		logging.Error(logging.CategoryGameState, "EventQueue.Start() called without First() - queue '%s' has no events", seb.queue.name)
+		logging.Error(logging.CategoryGameState,
+			"EventQueue.Start() called without First() - queue '%s' has no events", seb.queue.name)
 		panic("EventQueue.Start() called without First() - you must call First() before Then() or other operations")
 	}
 

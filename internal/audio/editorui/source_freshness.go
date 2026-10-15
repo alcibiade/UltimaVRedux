@@ -75,7 +75,11 @@ func (m *model) acceptSourceProbe(results sourceProbeMsg) {
 
 func (m *model) rejectSourceSnapshot(clip *audio.RecordingAudio, failure error) {
 	affected := m.clip == clip
-	if affected {
+	if draft := m.autoGainDraft; draft != nil && draft.source == clip {
+		draft.err = failure
+		affected = true
+	}
+	if m.clip == clip {
 		m.sourceStale = true
 		m.markSourceAvailability(m.clipRecordingID, clip, failure)
 		if m.crop != nil {

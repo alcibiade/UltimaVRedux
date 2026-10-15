@@ -170,6 +170,12 @@ func (g *GameState) TransitionToLocation(
 		location.GetMapType() == references.DungeonMapType {
 		g.synchronizeDungeonRoomEncounterForStablePosition()
 	}
+	if transitionType != TransitionPositionOnly &&
+		(previousLocation.GetMapType() == references.DungeonMapType || location.GetMapType() == references.DungeonMapType) {
+		// Reconcile dungeon-owned remnants after authority replacement, including
+		// fresh same-coordinate visits, before another transition can return here.
+		g.SystemCallbacks.Screen.UpdateDisplay()
+	}
 
 	return result
 }
@@ -381,6 +387,7 @@ func (g *GameState) clearShadowlordIfLeavingKeep(
 		// NPC effects persist across floor changes within the same location
 		// Source: Original scheduled NPC placement does NOT reset loaded actor dialogue state values
 		// See ref:NPC-0002.
+	case TransitionPositionOnly:
+		// Keep both states while the player remains on the same floor.
 	}
-	// TransitionPositionOnly: Don't clear - player is still on same floor
 }

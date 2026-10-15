@@ -64,7 +64,18 @@ func newSkyTestScene(t *testing.T, origin references.PlayerLocation) *GameScene 
 		WithLocation(references.Britain).WithSystemCallbacks().WithRandomSeed(634).Build()
 	state.MapState.PlayerLocation = origin
 	state.DateTime = datetime.UltimaDate{Year: 139, Month: 4, Day: 8, Hour: 22}
-	return &GameScene{gameState: state}
+	scene := &GameScene{gameState: state}
+	// These partial scenes own only the presentation resources exercised here.
+	// Register cleanup before any assertion or later resize can exit the test.
+	t.Cleanup(func() {
+		scene.releaseDungeonHUD()
+		if scene.borders.skyBacking != nil {
+			scene.borders.skyBacking.Deallocate()
+			scene.borders.skyBacking = nil
+		}
+	})
+
+	return scene
 }
 
 func TestSkyContextAndInheritedLifecycle(t *testing.T) {
@@ -241,13 +252,18 @@ func TestSkyProductionTransitions(t *testing.T) {
 }
 
 func TestSkySuppressedPixelsAndInheritedDungeonHeader(t *testing.T) {
+	manager := display.GetManager()
+	saved := *manager
+	// Snapshot restoration preserves logicalDirty; PublishLogicalSize in
+	// cleanup would manufacture a pending resize for another scene's Update.
+	t.Cleanup(func() { *manager = saved })
+	manager.PublishLogicalSize(1001, 701)
 	g := newSkyTestScene(t, references.PlayerLocation{Location: references.Britain})
 	g.initializeDungeonHUDOutputs()
 	outer, aperture := surfaceMapBorderGeometry()
 	g.borders.surfaceAperture = aperture
 	g.borders.outsideBorder, _ = sprites.NewBorderSprites().VeryPixelatedRoundedBlueWhite.CreateSizedAndScaledBorderSprite(borderWidthScaling, gameScreenPercents)
 	g.initializeSkyBorder()
-	t.Cleanup(func() { g.borders.skyBacking.Deallocate() })
 	screen := newPresentationRaster(outer.Dx(), outer.Dy())
 	defer screen.Deallocate()
 	for _, origin := range []references.PlayerLocation{
@@ -275,12 +291,15 @@ func TestSkySuppressedPixelsAndInheritedDungeonHeader(t *testing.T) {
 		pixels := dissolveMaskPixels(screen)
 		assert.NotEqual(t, make([]byte, len(pixels)), pixels, "dungeon level retained on tactical view")
 		assert.False(t, g.sky.strip.visible)
-		// The retained top header must exactly equal the normal dungeon header.
+		// Compare the entire decorated band, including the lower frame rule and
+		// cap tips that a text-height slice would miss.
 		baseline := newPresentationRaster(outer.Dx(), outer.Dy())
 		g.drawDungeonHUD(baseline, newDungeonHUDStatus(origin, references.DungeonFacingNorth))
-		height := int(g.dungeonHUD.level.GetTotalHeightForLines(1))
+		height := aperture.Min.Y - outer.Min.Y
 		want := dissolveMaskPixels(baseline)
 		assert.Equal(t, want[:outer.Dx()*height*4], pixels[:outer.Dx()*height*4])
+		assert.Equal(t, make([]byte, len(pixels)-outer.Dx()*height*4), pixels[outer.Dx()*height*4:],
+			"inherited dungeon presentation adds neither a direction readout nor surface sky")
 		baseline.Deallocate()
 	}
 	g.gameState.CombatScene = nil
@@ -291,6 +310,66 @@ func TestSkySuppressedPixelsAndInheritedDungeonHeader(t *testing.T) {
 		g.drawSkyStrip(screen)
 		assert.Equal(t, make([]byte, outer.Dx()*outer.Dy()*4), dissolveMaskPixels(screen), "finale never leaks sky")
 	}
+}
+
+func TestInheritedDungeonHeaderMatchesAfterResizeAndLevelChanges(t *testing.T) {
+	manager := display.GetManager()
+	saved := *manager
+	t.Cleanup(func() { *manager = saved })
+	g := newSkyTestScene(t, references.PlayerLocation{Location: references.Deceit})
+	for _, size := range []image.Point{{X: 640, Y: 360}, {X: 1280, Y: 720}, {X: 1367, Y: 769}, {X: 1001, Y: 701}} {
+		manager.PublishLogicalSize(size.X, size.Y)
+		setDungeonBorderHUDTestSize(g)
+		outer := g.borders.outsideBorder.Bounds()
+		// Include two aperture rows and the whole right rail to catch leaks.
+		region := image.Rect(0, 0, size.X, g.borders.surfaceAperture.Min.Y+2)
+		ordinary := ebiten.NewImageWithOptions(region, &ebiten.NewImageOptions{Unmanaged: true})
+		t.Cleanup(ordinary.Deallocate)
+		inherited := ebiten.NewImageWithOptions(region, &ebiten.NewImageOptions{Unmanaged: true})
+		t.Cleanup(inherited.Deallocate)
+		for floor := range 8 {
+			origin := references.PlayerLocation{Location: references.Deceit, Floor: references.FloorNumber(floor)}
+			ordinary.Clear()
+			ordinary.DrawImage(g.borders.outsideBorder, g.borders.outsideBorderOp)
+			g.drawDungeonHUD(ordinary, newDungeonHUDStatus(origin, references.DungeonFacingWest))
+			want := dissolveMaskPixels(ordinary)
+			for _, combat := range []bool{false, true} {
+				g.gameState.CombatScene = nil
+				g.gameState.CampingScene = camping.NewDungeonCampingScene(2, -1, origin, nil)
+				g.gameState.MapState.PlayerLocation.Location = references.CampingLocation
+				if combat {
+					g.gameState.CampingScene = nil
+					g.gameState.CombatScene = &game_state.CombatState{PreCombatPlayerLocation: origin}
+					g.gameState.MapState.PlayerLocation.Location = references.CombatLocation
+				}
+				inherited.Clear()
+				inherited.DrawImage(g.borders.outsideBorder, g.borders.outsideBorderOp)
+				g.drawSkyStrip(inherited)
+				assert.Equal(t, want, dissolveMaskPixels(inherited), "size=%v level=%d combat=%t entire header", size, floor+1, combat)
+				assert.False(t, g.sky.strip.visible)
+				assert.Equal(t, fmt.Sprintf("L %d", floor+1), g.dungeonHUD.level.GetOutputStr(false))
+				assertDungeonBorderLabelLayout(t, &g.dungeonHUD.levelLabel,
+					image.Rect(outer.Min.X, outer.Min.Y, outer.Max.X, g.borders.surfaceAperture.Min.Y), size.X)
+			}
+		}
+		ordinary.Deallocate()
+		inherited.Deallocate()
+	}
+}
+
+func TestDungeonHUDSceneDisposalReleasesLabels(t *testing.T) {
+	g := newSkyTestScene(t, references.PlayerLocation{Location: references.Deceit})
+	setDungeonBorderHUDTestSize(g)
+	outer := g.borders.outsideBorder.Bounds()
+	screen := newPresentationRaster(outer.Dx(), outer.Dy())
+	defer screen.Deallocate()
+	g.drawDungeonHUD(screen, dungeonHUDStatus{floor: 0, facing: references.DungeonFacingNorth})
+	level, direction := g.dungeonHUD.levelLabel.backing, g.dungeonHUD.directionLabel.backing
+	g.Dispose()
+	assert.Zero(t, g.dungeonHUD)
+	assertDungeonBackingReleased(t, level)
+	assertDungeonBackingReleased(t, direction)
+	assert.NotPanics(t, g.Dispose)
 }
 
 func TestSkyGlyphPixelsMatchOriginalRunes(t *testing.T) {
@@ -421,7 +500,6 @@ func TestSkyPixelsScaleInsideStaticTopBorder(t *testing.T) {
 		})
 	}
 	require.True(t, lowerWhiteObserved, "test must exercise a white rule formerly visible below the sky strip")
-	g.borders.skyBacking.Deallocate()
 }
 
 func assertSkyCoversLowerBorderRule(t *testing.T, g *GameScene, outer, aperture image.Rectangle) bool {
@@ -470,6 +548,9 @@ func TestSkyFullDrawWorldEffectsDialogsAndResize(t *testing.T) {
 	t.Cleanup(func() { *manager = saved })
 	manager.PublishLogicalSize(1280, 720)
 	g := newJournalSnapshotOriginalScene(t)
+	// The graphics test runner deliberately starts unfocused. This detached
+	// fixture exercises presentation updates, independently of desktop focus.
+	g.transientCommandInput.focused = func() bool { return true }
 	g.gameConfig.DisplayConfiguration = &config.DisplayConfiguration{}
 	g.gameConfig.GameplayConfiguration = &config.GameplayConfiguration{}
 	require.True(t, skyEligible(g.gameState.MapState.PlayerLocation))

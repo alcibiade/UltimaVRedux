@@ -171,8 +171,26 @@ consume a fallback damage roll. Flame Wind requests 0..30 and toxify 0..20 under
 the source endpoint convention, not verified external-PRNG sequence equivalence.
 Original calls in a single expression do not establish argument evaluation order.
 
+Redux area-spell feedback retains authoritative, exact-entry outcomes separately
+from the processed positions. Earthquake reports eligible hostile entries that
+avoid their DEX roll; Sleep distinguishes a successful INT save from immunity
+reached after a failed save. Energy Vortex retains its save/immunity result and
+shows it locally as well as in the combat report. Flame Wind and Poison Wind
+report a resolved zero-damage roll as **no damage**, not a damaging impact.
+Poison Wind avoidance has one local result, and successful poison/sleep counts
+as an effect without HP loss. Cone candidates and both-side eligibility are
+unchanged; no feedback path rerolls a save or damage.
+
+A confirmed cone with no eligible targets says **No targets reached**. A wholly
+unaffected area cast summarizes avoidance, resistance, immunity, or no damage;
+casts with disclosed successful effects rely on their per-target results.
+Undisclosed targets do not acquire local markers, names, or diagnostic disclosure
+through this feedback, and aggregate wording does not reveal hidden outcomes.
+These are Redux presentation additions: confirmed casts retain their sound,
+animation, mixture/MP cost, and single action completion even when ineffective.
+
 **Implementation:** `internal/game_state/combat_cone.go`, `internal/game_state/combat_cone_spells.go`, `internal/game_state/combat_field_effects.go`, `internal/game_state/combat_remaining_spells.go`, `internal/game_state/combat_spell_targeting.go`
-**Tests:** `internal/game_state/combat_cone_test.go`, `internal/game_state/combat_spell_parity_test.go`
+**Tests:** `internal/game_state/combat_cone_test.go`, `internal/game_state/combat_spell_parity_test.go`, `internal/game_state/combat_area_spell_outcome_test.go`, `cmd/ultimav/gamescene_combat_area_spell_outcome_test.go`
 
 ### SPELL-0004
 
@@ -214,7 +232,24 @@ fields remain separate without legacy normalization. Redux also applies effectiv
 Protection +3 from live equipment defense; the original stored-armor synchronization
 gap remains EQUIP-0014, not proof of retail +3 behavior.
 
-**Implementation:** `internal/game_state/combat_duration_spells.go`, `internal/game_state/combat_protection.go`, `internal/game_state/duration_effect.go`, `internal/game_state/toggle_item_state.go`
+Redux additionally presents Time Stop with **5% normal-speed actor-body animation**.
+In combat the flag follows exact effective allegiance: monster-loyal monsters and
+possessed PCs/clones slow down, while party-loyal actors continue normally. Surface
+creature NPCs/monsters and the first-person dungeon wanderer also use slowed body
+clocks; vehicles, environmental hazards, and the exploration Avatar do not. Each
+live actor retains its animation phase, including fractional elapsed time, across
+activation, expiry, effect replacement, and allegiance changes. Leaving the
+viewport does not reset a surviving actor; retirement or scene replacement ends
+that presentation lifetime.
+
+This near-still rate is a Redux visual choice, not an established original
+animation rate. It adds no gameplay RNG draws and does not rescale duration
+counters, stored DEX, calendar rules, or action suppression. Fields, terrain,
+lighting, status overlays, projectiles, injury/impact feedback, and UI retain
+their ordinary timing. The An Tym scroll shares this presentation without changing
+its separate 20-unit duration under CONSUME-0003.
+
+**Implementation:** `internal/game_state/combat_duration_spells.go`, `internal/game_state/combat_protection.go`, `internal/game_state/duration_effect.go`, `internal/game_state/toggle_item_state.go`, `internal/game_state/actor_animation_presentation.go`, `cmd/ultimav/actor_animation_clock.go`
 **Tests:** `internal/game_state/combat_duration_spells_test.go`, `internal/game_state/combat_protection_test.go`
 
 ### SPELL-0005

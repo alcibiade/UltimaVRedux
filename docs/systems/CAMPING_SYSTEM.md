@@ -83,7 +83,8 @@ The parent workflow runs at normal priority with input blocked and guaranteed cl
 
 1. Enters the camping map, clears active duration magic and active-player selection, puts eligible active party members except the guard to sleep, hides exploration overlays, pauses map music, and starts wind. Fire crackle starts only when the presented center tile is a campfire.
 2. Starts the selected Bard guard's temporary lute performance and sprite override when applicable, then awaits `BardMusicDurationMs` and calls `finishBardGuardPerformance` before entering any logical cycle.
-3. Repeats logical cycles with a 200 ms presentation delay.
+3. Opens the logical sleeping phase and repeats cycles with a 200 ms presentation
+   delay. A fresh Space press latches 50 ms intervals for the remaining sleep.
 4. In each cycle, applies the noncombat Regeneration Ring sweep and checks the preceding nonterminal hour crossing for ambush. If uninterrupted, advances five Britannian minutes and processes guard wandering. It does not run intermediate ordinary player or provision updates.
 5. After uninterrupted camping, resolves eligible ordinary healing in party order. For outdoor camping longer than five hours and with `LastCamped < 1`, then checks the one-in-four Wanderer appearance roll without a once-per-month gate. A forced debug request bypasses the hour and cooldown gate.
 6. If selected, applies Wanderer restoration/level handling after those preceding rest rolls.
@@ -91,6 +92,37 @@ The parent workflow runs at normal priority with input blocked and guaranteed cl
 8. In `Finally`, stops camping audio, restores the exact exploration location, resumes map music, restores overlays, clears sprite overrides, and releases `CampingScene` and input ownership.
 
 Gameplay randomness uses `GameState` RNG helpers, and presentation timing uses `GameState.ElapsedMs` plus event-queue delays.
+
+### On-demand sleeping acceleration
+
+Each outdoor or dungeon camp begins normally. During logical sleeping, a fresh
+**Space** press silently accelerates the remaining cycles. There is no hint box,
+status box, or acknowledgement. Releasing Space leaves that camp fast; further presses are
+idempotent. Setup/fades, Bard music, results, ambush combat, and Wanderer
+presentation retain their existing timing and ownership. This is a Redux
+presentation control, not an original-game command or a saved preference.
+
+`CampingScene` owns the sleeping phase and one-way acceleration latch.
+`RequestCampingAcceleration` changes intent only. Both workflows use
+`RepeatWithRuntimeDelay`, evaluating the delay at admission and between cycles.
+An already scheduled 200 ms interval may finish; following intervals use 50 ms.
+Deadlines advance from execution time, so a slow frame never catches up by
+draining multiple sleep cycles. All required five-minute cycles, ring sweeps,
+guard rolls/steps, hour-crossing checks and final completion remain authoritative.
+
+The scene admits only a fresh Space edge while the exact sleeping workflow owns
+input, after readers and top modals. A Space held through setup cannot accelerate;
+an accelerating press is suppressed through release, including at the final
+cycle or ambush handoff. Raw result/Wanderer acknowledgement still requires a
+release and fresh press. Acceleration adds no dialog, message, or sound.
+Completion, interruption, finalization and scene teardown discard pacing state; the next camp
+starts normally. Audio playback rates and cleanup owners are unchanged.
+
+Controlled camping RNG inputs yield identical ordered camping decisions at
+normal and fast speed. Production wind uses the shared gameplay RNG before
+queues, so shorter actual sleep durations admit fewer wind ticks and can change
+later random results. Acceleration does not reseed, rewind, discard draws, or
+change either global clock. See [elapsed-time RNG scope](TIME_SYSTEM.md#elapsed-time-and-shared-rng-scope).
 
 The Bard wait belongs to the camping workflow, not an independent feedback lane
 or a timer checked inside `processSingleCampingCycle`. During the wait, logical

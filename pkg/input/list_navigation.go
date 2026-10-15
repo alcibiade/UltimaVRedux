@@ -72,6 +72,11 @@ func (n *ListNavigation) PollWithKeyState(
 		}
 	}
 	key, held, conflicting := listHeldKey(pressed, keys)
+	if held && keyboard.IsSuppressedUntilRelease(key) {
+		n.Reset()
+
+		return nil, true
+	}
 	for _, blocked := range n.blockedKeys {
 		if pressed(blocked) {
 			return nil, true
@@ -90,23 +95,33 @@ func (n *ListNavigation) PollWithKeyState(
 
 		return nil, true
 	}
-	if !n.active || n.key != key || !keyboard.consumedKeysUntilRelease[key] {
-		n.start(key)
-	} else {
-		ticks := ebiten.TPS()
-		if ticks <= 0 {
-			ticks = ebiten.DefaultTPS
-		}
-		n.remaining -= time.Second / time.Duration(ticks)
-		if n.remaining > time.Microsecond {
-			return nil, true
-		}
-		n.remaining += listRepeatDelay
+	if !n.holdReady(key, keyboard.consumedKeysUntilRelease[key]) {
+		return nil, true
 	}
 	keyboard.consumedKeysUntilRelease[key] = true
 	resolved := listNavigationKey(key, pressed)
 
 	return &resolved, true
+}
+
+// holdReady accepts a fresh hold immediately, then advances repeats by one update tick.
+func (n *ListNavigation) holdReady(key ebiten.Key, consumed bool) bool {
+	if !n.active || n.key != key || !consumed {
+		n.start(key)
+
+		return true
+	}
+	ticks := ebiten.TPS()
+	if ticks <= 0 {
+		ticks = ebiten.DefaultTPS
+	}
+	n.remaining -= time.Second / time.Duration(ticks)
+	if n.remaining > time.Microsecond {
+		return false
+	}
+	n.remaining += listRepeatDelay
+
+	return true
 }
 
 func (n *ListNavigation) start(key ebiten.Key) {
@@ -145,6 +160,9 @@ func listNavigationKey(key ebiten.Key, pressed func(ebiten.Key) bool) ebiten.Key
 }
 
 func (k *Keyboard) listNavigationReady() bool {
+	if k.inputPollingSuspended {
+		return false
+	}
 	if k.waitingForRelease {
 		if !k.areAllKeysReleased() {
 			return false
@@ -153,5 +171,5 @@ func (k *Keyboard) listNavigationReady() bool {
 		k.keysToRelease = nil
 	}
 
-	return time.Now().UnixMilli() >= k.timeToAllowNextKeypress
+	return k.elapsedMilliseconds() >= k.timeToAllowNextKeypress
 }

@@ -28,7 +28,7 @@ func BenchmarkCropArrowFeedback(b *testing.B) {
 			require.NoError(b, m.doc.SetRecording(m.recordingID(), recording))
 			if auto {
 				m.beginAutoCalibration()
-				m.autoCalibrationKey(keyEnter)
+				finish(m, m.autoCalibrationKey(keyEnter))
 			}
 			m.key(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'['}})
 			b.ReportAllocs()
@@ -55,7 +55,7 @@ func benchmarkSource(b *testing.B, path, family string) *model {
 	require.NotNil(b, m.clip)
 	m.beginAutoCalibration()
 	require.NotNil(b, m.autoGainDraft)
-	m.autoCalibrationKey(keyEnter)
+	finish(m, m.autoCalibrationKey(keyEnter))
 	start := m.clip.DurationMs / 3
 	m.setWindow(&audio.PlaybackWindow{StartMs: start, EndMs: min(start+5000, m.clip.DurationMs)})
 	b.Logf("source duration %.1fs; %d encoded bytes; backend playback excluded", float64(m.clip.DurationMs)/1000, len(data))

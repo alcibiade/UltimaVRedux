@@ -107,6 +107,17 @@ func TestNewSystemCallbacksRequiresJournalChanged(t *testing.T) {
 	require.ErrorIs(t, err, errJournalChangedCallbackRequired)
 }
 
+func TestDungeonInjuryCallbackIsRequiredAtBothConstructionBoundaries(t *testing.T) {
+	valid := NewMockSystemCallbacks(t).ToSystemCallbacks()
+	valid.Visual.ShowDungeonInjury = nil
+	want := "VisualCallbacks.ShowDungeonInjury is required - cannot be nil"
+	assert.PanicsWithValue(t, want, func() { NewVisualCallbacks(valid.Visual) })
+	assert.PanicsWithValue(t, want, func() {
+		_, _ = NewSystemCallbacks(valid.Message, valid.Visual, valid.Audio, valid.Screen,
+			valid.Flow, valid.Talk, valid.UI, valid.Combat)
+	})
+}
+
 func TestAudioCallbacksRequireEveryCapability(t *testing.T) {
 	valid := NewMockSystemCallbacks(t).ToSystemCallbacks()
 	tests := []struct {

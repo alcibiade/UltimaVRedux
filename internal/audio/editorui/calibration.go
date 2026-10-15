@@ -1,9 +1,12 @@
 package editorui
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
+
+	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 )
@@ -14,6 +17,8 @@ type calibrationDraft struct {
 	audio.CalibrationSuggestion
 	recordingID string
 	revision    uint64
+	source      *audio.RecordingAudio
+	err         error
 }
 
 type calibrationCache struct {
@@ -62,34 +67,97 @@ func (m *model) beginAutoCalibration() {
 		return
 	}
 	m.autoGainDraft = &calibrationDraft{CalibrationSuggestion: suggestion,
-		recordingID: m.recordingID(), revision: m.doc.Revision()}
+		recordingID: m.recordingID(), revision: m.doc.Revision(), source: m.clip, err: nil}
 	m.status = fmt.Sprintf("Apply %+.2f dB and enable AUTO? Enter confirms; Esc keeps calibration.", suggestion.GainDB)
+	m.statusIsError = false
 }
 
-func (m *model) autoCalibrationKey(key string) {
+func (m *model) autoCalibrationKey(key string) tea.Cmd {
 	switch key {
 	case keyEscape:
 		m.autoGainDraft = nil
-		m.status = "Calibration unchanged."
-	case keyEnter, "y":
-		if m.autoGainDraft.recordingID != m.recordingID() || m.autoGainDraft.revision != m.doc.Revision() {
-			m.status, m.statusIsError = "Calibration draft is stale. Escape and recalculate before applying.", true
-
-			return
+		m.status, m.statusIsError = "Calibration unchanged.", false
+		if m.sourceStale {
+			m.status = "Calibration unchanged. Source changed; F5 reloads before Shift+A recalculates."
 		}
-		recording := m.doc.Recording(m.recordingID())
-		gain := m.autoGainDraft.GainDB
-		recording.CalibrationGainDB, recording.CalibrationPolicy = &gain, audio.CalibrationAuto
-		if err := m.doc.SetRecording(m.recordingID(), recording); err != nil {
+	case keyEnter, "y":
+		draft := m.autoGainDraft
+		if err := m.checkCalibrationDraft(draft); err != nil {
 			m.report(err)
 
-			return
+			return nil
 		}
-		m.autoGainDraft = nil
-		m.preview.SetGain(m.livePreviewGain())
-		m.refreshMixGains()
-		m.status = "AUTO enabled. Trim edits follow; Recordings +/- or g locks calibration. Ctrl+s saves."
+		recording := m.doc.Recording(draft.recordingID)
+		gain := draft.GainDB
+		recording.CalibrationGainDB, recording.CalibrationPolicy = &gain, audio.CalibrationAuto
+		m.status = "Verifying source content and applying AUTO calibration…"
+		operation := m.documentOperation(false,
+			"AUTO enabled. Trim edits follow; Recordings +/- or g locks calibration. Ctrl+s saves.",
+			func(document *audio.LibraryEditor) error {
+				if err := draft.source.VerifySource(context.Background()); err != nil {
+					return fmt.Errorf("verify AUTO calibration source: %w", err)
+				}
+				if err := document.SetRecording(draft.recordingID, recording); err != nil {
+					return fmt.Errorf("apply AUTO calibration: %w", err)
+				}
+
+				return nil
+			})
+
+		return func() tea.Msg {
+			message, ok := operation().(documentMsg)
+			if !ok {
+				panic("document operation returned a non-document message")
+			}
+			message.calibration = draft
+
+			return message
+		}
 	}
+
+	return nil
+}
+
+// Recheck both before starting work and before accepting its detached result.
+// A probe or source reload delivered while verification runs invalidates approval.
+func (m *model) checkCalibrationDraft(draft *calibrationDraft) error {
+	if draft == nil || m.autoGainDraft != draft || draft.recordingID != m.recordingID() ||
+		draft.revision != m.doc.Revision() {
+		return fmt.Errorf("%w: calibration draft is stale; Escape and recalculate before applying", audio.ErrAudioLibrary)
+	}
+	if draft.err != nil {
+		return draft.err
+	}
+	if draft.source != m.clip || !m.selectedClipReady() {
+		return audio.ErrRecordingSourceChanged
+	}
+
+	return nil
+}
+
+func (m *model) calibrationDialog() editorDialog {
+	dialog := editorDialog{title: "AUTO-GAIN", rows: []string{
+		fmt.Sprintf("Suggested recording calibration: %+.2f dB", m.autoGainDraft.GainDB),
+		"Verify the source and apply this calibration with automatic gain updates?",
+	}, focus: 0, help: []string{"Enter: verify and apply   Escape: keep existing calibration"}}
+	if err := m.checkCalibrationDraft(m.autoGainDraft); err != nil {
+		dialog.rows = []string{
+			m.colors.warning.Render("This calibration approval is stale and cannot be applied."),
+			safe(err.Error()), "Escape keeps calibration; F5 reloads, then Shift+A recalculates.",
+		}
+		dialog.help = []string{"Escape: keep existing calibration   Ctrl+x: stop audio"}
+	}
+
+	return dialog
+}
+
+//nolint:goconst // Keep each input owner's complete shortcut table readable with the same rendered key labels.
+func (m *model) calibrationFooter() []string {
+	if m.checkCalibrationDraft(m.autoGainDraft) != nil {
+		return m.hintRows([]keyHint{{"Esc", "Keep calibration; reload and recalculate"}, {"x", hintStopAll}})
+	}
+
+	return m.hintRows([]keyHint{{"Enter", "Verify and apply auto-gain"}, {"Esc", "Keep calibration"}, {"x", hintStopAll}})
 }
 
 func (m *model) followAutoCalibration(recording *audio.Recording) bool {

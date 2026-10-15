@@ -91,7 +91,13 @@ Authentic action cost is a gameplay rule, not a property of `ElapsedMs`.
 - Small-map movement costs one minute.
 - Large-map completion applies terrain or vehicle movement cost. Raised-sail wind and HMS Cape timing belongs to the automatic sailing wait cadence; the eventual accepted movement receives ordinary outdoor completion.
 - Combat advances one calendar minute at each tenth selected actor action through the DEX turn queue.
-- Camping advances five game minutes per camping cycle; its 200 ms presentation delay is independent of that cost.
+- Camping advances five game minutes per camping cycle; its normal 200 ms or
+  one-way accelerated 50 ms presentation delay is independent of that cost.
+  Space changes only subsequent inter-cycle scheduling for the current sleeping
+  phase. A previously scheduled interval may finish, and a hitch never skips or
+  catches up logical cycles. Setup/Bard and results/Wanderer timing is separate.
+  Production wind still consumes the shared RNG before queues, so differently
+  paced rests do not promise unconditional seed-only result equality.
 - A complete merchant Talk owns one minute, including repeated family actions
   or cancellation. Inn Rest additionally owns its overnight steps; the normal
   Talk minute is still applied during final workflow cleanup after the Inn

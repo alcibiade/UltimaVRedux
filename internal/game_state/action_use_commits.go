@@ -571,6 +571,7 @@ type SkullKeyUseReview struct {
 type SkullKeyUseCommit struct {
 	state           *GameState
 	review          SkullKeyUseReview
+	owner           CombatUseOwner
 	committed       bool
 	consumed        bool
 	unlockCommitted bool
@@ -587,6 +588,11 @@ func (g *GameState) ReviewSkullKeyUse() SkullKeyUseReview {
 		return review
 	}
 	mapType := review.Location.Location.GetMapType()
+	if mapType == references.CombatMapType && !g.IsCurrentCombatUseOwner(g.CaptureCombatUseOwner()) {
+		review.Result = SkullKeyUseNotHere
+
+		return review
+	}
 	if mapType != references.SmallMapType &&
 		(mapType != references.LargeMapType || !g.MapState.IsOverworld()) &&
 		mapType != references.CombatMapType {
@@ -606,18 +612,18 @@ func (g *GameState) BeginSkullKeyUse() (*SkullKeyUseCommit, SkullKeyUseReview) {
 		return nil, review
 	}
 
-	return &SkullKeyUseCommit{state: g, review: review}, review
+	return &SkullKeyUseCommit{state: g, review: review, owner: g.CaptureCombatUseOwner()}, review
 }
 
 // CommitSkullKeyUse consumes one key after final direction confirmation.
 // REDUX DEVIATION: original item-use rules consume before magical unlocking; Redux cancellation is free.
-// See ref:CONSUME-0001.
+// See ref:PROV-0006.
 func (g *GameState) CommitSkullKeyUse(commit *SkullKeyUseCommit) SkullKeyUseResult {
 	if commit == nil || commit.state != g || commit.committed {
 		panic("invalid Skull Key use commit")
 	}
 	commit.committed = true
-	if g.ReviewSkullKeyUse() != commit.review {
+	if g.ReviewSkullKeyUse() != commit.review || !g.isRetainedUseContext(commit.owner) {
 		return SkullKeyUseStale
 	}
 	if commit.review.Result == SkullKeyUseNotHere {
@@ -667,17 +673,33 @@ func (g *GameState) ReviewSkullKeyUnlock(
 		return review
 	}
 	target := direction.GetNewPositionInDirection(&review.Location.Position)
+	if useCommit.owner.combat != nil {
+		if !g.IsCurrentCombatUseOwner(useCommit.owner) {
+			review.Result = SkullKeyUnlockStale
+
+			return review
+		}
+		target = direction.GetNewPositionInDirection(&useCommit.owner.origin)
+	}
 	if target == nil {
 		return review
 	}
 	review.Target = *target
-	tile := g.GetLayeredMapByCurrentLocation().GetTopTile(target)
-	if tile == nil {
-		return review
+	if useCommit.owner.combat != nil {
+		if target.X < 0 || target.Y < 0 ||
+			target.X >= references.XCombatMapTiles || target.Y >= references.YCombatMapTiles {
+			return review
+		}
+		review.LockedDoor = g.CombatScene.CombatMapRef.GetTileNumber(*target)
+	} else {
+		tile := g.GetLayeredMapByCurrentLocation().GetTopTile(target)
+		if tile == nil {
+			return review
+		}
+		review.LockedDoor = tile.Index
 	}
-	review.LockedDoor = tile.Index
 	//nolint:exhaustive // Every non-door sprite intentionally remains a no-effect result.
-	switch tile.Index {
+	switch review.LockedDoor {
 	case indexes.MagicLockDoor:
 		review.UnlockedDoor = indexes.RegularDoor
 	case indexes.MagicLockDoorWithView:
@@ -713,21 +735,26 @@ func (g *GameState) commitSkullKeyUnlock(
 
 		return SkullKeyUnlockNoEffect
 	}
-	current := g.ReviewSkullKeyUnlock(review.useCommit, directionBetween(
-		review.Location.Position,
-		review.Target,
-	))
+	origin := review.Location.Position
+	if review.useCommit.owner.combat != nil {
+		origin = review.useCommit.owner.origin
+	}
+	current := g.ReviewSkullKeyUnlock(review.useCommit, directionBetween(origin, review.Target))
 	review.useCommit.unlockCommitted = true
 	if g.MapState.PlayerLocation != review.Location || current != review {
 		return SkullKeyUnlockStale
 	}
-	g.GetLayeredMapByCurrentLocation().SetTileByLayer(
-		map_state.MapOverrideLayer,
-		&review.Target,
-		review.UnlockedDoor,
-	)
-	if advanceOrdinaryMinutes {
-		g.AdvanceOrdinarySurfaceCommandMinutes(1)
+	if review.useCommit.owner.combat != nil {
+		g.setCombatTerrain(review.Target, review.UnlockedDoor)
+	} else {
+		g.GetLayeredMapByCurrentLocation().SetTileByLayer(
+			map_state.MapOverrideLayer,
+			&review.Target,
+			review.UnlockedDoor,
+		)
+		if advanceOrdinaryMinutes {
+			g.AdvanceOrdinarySurfaceCommandMinutes(1)
+		}
 	}
 
 	return SkullKeyUnlockSuccess

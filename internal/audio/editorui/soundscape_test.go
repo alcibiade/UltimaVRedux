@@ -36,6 +36,10 @@ func selectSoundscapeMoment(t *testing.T, m *model, cueID string) {
 
 func TestSoundscapeTwoBedsMusicAndSFXContinueWhileBrowsing(t *testing.T) {
 	m := soundscapeFixture(t)
+	// Production Dispel Field is deliberately empty; this test needs a second
+	// audible SFX to exercise replacement, persistent slot gain/mute and layers.
+	require.NoError(t, m.doc.SetCueRecordings("sfx/SoundDispel", []string{"healing_02"}))
+	require.NoError(t, m.doc.Save())
 	m.browserKey("m")
 	require.True(t, m.soundscapeVisible, "empty soundscape must be discoverable")
 	for _, cue := range []string{"ambient/AmbientFire", "ambient/AmbientForest", "music/track/town"} {
@@ -137,6 +141,35 @@ func TestSoundscapeMusicCompletionLoopAndStopAreDistinct(t *testing.T) {
 	require.Len(t, m.mix, 1)
 	m.clearSoundscape()
 	require.Empty(t, m.mix)
+}
+
+func TestSoundscapeProductionDispelSlotIsSilentAndPreservesLayers(t *testing.T) {
+	m := soundscapeFixture(t)
+	for _, cue := range []string{"ambient/AmbientFire", "ambient/AmbientForest", "music/track/town"} {
+		selectSoundscapeMoment(t, m, cue)
+		dispatchRune(m, 'a')
+	}
+	selectSoundscapeMoment(t, m, "sfx/SoundHeal")
+	dispatchKey(m, tea.KeyMsg{Type: tea.KeyEnter})
+	fx := m.layerAt(sfxSlot)
+	require.NotNil(t, fx)
+	layers := append([]*mixLayer(nil), m.mix...)
+	m.selectID("sfx/SoundDispel")
+	finish(m, m.loadSelection())
+	require.Equal(t, "field_dispel_01", m.recordingID())
+	require.Nil(t, m.doc.Recording(m.recordingID()).File)
+	require.Nil(t, m.clip)
+	require.Equal(t, audio.RecordingNoFile, m.doc.FileAvailability(m.recordingID()).State)
+	dispatchKey(m, tea.KeyMsg{Type: tea.KeyEnter})
+	require.False(t, m.preview.Active(), "an empty slot cannot audition the previous loaded recording")
+	require.Same(t, fx, m.layerAt(sfxSlot), "a silent selection does not replace the existing comparison voice")
+	require.Len(t, m.mix, len(layers))
+	for _, layer := range layers {
+		require.Same(t, layer, m.layerAt(layer.slot))
+		require.True(t, layer.voice.Playing())
+		require.Equal(t, 1, layer.voice.(*fakeVoice).starts)
+	}
+	require.False(t, m.doc.Dirty())
 }
 
 type failingSoundscapeVoice struct{ fakeVoice }

@@ -117,6 +117,10 @@ func TestUseOwnershipAndCategoryMatrixAcrossContexts(t *testing.T) {
 				if item.UnavailableReason != "" {
 					require.False(t, item.AvailableNow)
 				}
+				if test.context == UsageCombat {
+					allowed := combatUseProjectionExpectedAvailable(item.ItemType)
+					require.Equal(t, allowed, item.UnavailableReason == "", "combat activation for %v", item.ItemType)
+				}
 			}
 			require.Equal(t, expected, seen)
 			require.Equal(t, map[UseItemCategory]int{
@@ -126,6 +130,63 @@ func TestUseOwnershipAndCategoryMatrixAcrossContexts(t *testing.T) {
 			require.Equal(t, inventory, state.PartyState.Inventory.LockerSnapshot())
 			require.Equal(t, rngCalls, state.GetRNG().Calls())
 			require.Equal(t, sequence, state.CastUseCommitSequence())
+		})
+	}
+}
+
+func combatUseProjectionExpectedAvailable(item references.Item) bool {
+	switch typed := item.(type) {
+	case references.Potion:
+		return true // White remains a permitted attempt with a warning and substitution.
+	case references.Scroll:
+		return typed != references.ScrollRelHur && typed != references.ScrollInQuasWis && typed != references.ScrollInManiCorp
+	case references.QuestItem:
+		return typed == references.Crown || typed == references.Amulet || typed == references.BlackBadge ||
+			typed == references.Sceptre || typed == references.HMSCape || typed == references.PocketWatch
+	case references.Provision:
+		return typed == references.SkullKeys
+	default:
+		return false
+	}
+}
+
+func TestKeyAndWatchUseGuidancePreservesContextRestrictions(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		location references.Location
+		floor    references.FloorNumber
+		context  UsageContext
+		keyReady bool
+	}{
+		{"town", references.Britain, 0, UsageField, true},
+		{"surface", references.BritanniaUnderworld, 0, UsageField, true},
+		{"underworld", references.BritanniaUnderworld, -1, UsageField, false},
+		{"dungeon exploration", references.Deceit, 0, UsageDungeon, false},
+		{"combat", references.Britain, 0, UsageCombat, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			state, _ := NewIntegrationTestBuilder(t).WithLocation(test.location).
+				WithFloor(test.floor).WithSystemCallbacks().Build()
+			if test.context == UsageCombat {
+				require.NoError(t, state.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+			}
+			state.PartyState.Inventory.Provisions.SkullKeys.Set(2)
+			state.PartyState.Inventory.QuestItems.Set(references.PocketWatch, 1)
+			items := state.GetUsableItemsForContext(test.context)
+			key := requireUsableItem(t, items, references.SkullKeys)
+			watch := requireUsableItem(t, items, references.PocketWatch)
+			require.Equal(t, test.keyReady, key.UnavailableReason == "")
+			require.Empty(t, watch.UnavailableReason)
+			_, valid := state.RevalidateUseItemSelection(key, test.context)
+			require.Equal(t, test.keyReady, valid)
+			_, valid = state.RevalidateUseItemSelection(watch, test.context)
+			require.True(t, valid)
+			if test.context == UsageCombat {
+				require.Contains(t, key.NextInteraction, "acting combatant")
+				require.Contains(t, key.Consumption, "one combat action")
+				require.Contains(t, key.Warning, "even if no door")
+				require.Contains(t, watch.Consumption, "after dismissal")
+			}
 		})
 	}
 }

@@ -345,53 +345,36 @@ func (g *GameState) resolveCombatInZu(
 	casterIdx int,
 	candidates []references.Position,
 ) []references.Position {
-	caster := g.PartyState.GetCharacter(casterIdx)
-	affected := make([]references.Position, 0)
-	processed := make(map[CombatTurnIdentity]struct{})
-	for _, position := range candidates {
-		target, found := g.CombatScene.combatConeVictimAt(position, processed)
-		if found && g.applyCombatInZuToTarget(target, caster.Intelligence) {
-			affected = append(affected, position)
-		}
-	}
-
-	return affected
+	return g.resolveCombatConeResults(references.InZu, casterIdx, candidates).processedPositions()
 }
 
-func (g *GameState) applyCombatInZuToTarget(target CombatTurnIdentity, casterIntelligence uint8) bool {
-	position := g.CombatScene.GetCombatantPosition(target)
+func (g *GameState) applyCombatInZuToTarget(casterIdx int, target CombatTurnIdentity, casterIntelligence uint8) CombatAreaSpellTargetResult {
+	result := g.combatSpellTargetResult(target)
+	result.Outcome = CombatSpellResisted
 	if !target.IsPartyMember {
-		monsterIdx := target.EntityIndex
-		monster := g.CombatScene.MonsterManager.GetMonster(monsterIdx)
+		monster := g.CombatScene.MonsterManager.GetMonster(target.EntityIndex)
 		// Original spell projection rules evaluates Intelligence saving throw before immunity, including for immune targets.
 		// See ref:COMBAT-0007.
-		if g.RollOriginalD30() < (30+monster.EnemyRef().Intelligence-int(casterIntelligence))/2 {
-			return false
+		hit := g.rollCombatIntelligenceSave(int(casterIntelligence), monster.EnemyRef().Intelligence)
+		if hit.Outcome != CombatHitMiss {
+			if isCombatSpellImmuneMonster(monster) {
+				result.Outcome = CombatSpellImmune
+			} else {
+				monster.SetAsleep(true)
+				result.Outcome = CombatSpellSlept
+			}
 		}
-		if isCombatSpellImmuneMonster(monster) {
-			return false
-		}
-		monster.SetAsleep(true)
-		g.publishCombatFieldTrigger(
-			NewCombatField(CombatFieldSleep, position), false, monsterIdx, 0, position, 0, false,
-		)
 
-		return true
+		return g.publishCombatAreaSpellTarget(casterIdx, references.InZu, result, CombatDiagnostics{Hit: hit})
 	}
-	if target.IsPartyMember {
-		character := g.PartyState.GetCharacter(target.EntityIndex)
-		if g.RollOriginalD30() < (30+int(character.Intelligence)-int(casterIntelligence))/2 {
-			return false
-		}
+	character := g.PartyState.GetCharacter(target.EntityIndex)
+	hit := g.rollCombatIntelligenceSave(int(casterIntelligence), int(character.Intelligence))
+	if hit.Outcome != CombatHitMiss {
 		g.setCombatPCSleeping(target, true)
-		g.publishCombatFieldTrigger(
-			NewCombatField(CombatFieldSleep, position), true, target.EntityIndex, target.Slot, position, 0, false,
-		)
-
-		return true
+		result.Outcome = CombatSpellSlept
 	}
 
-	return false
+	return g.publishCombatAreaSpellTarget(casterIdx, references.InZu, result, CombatDiagnostics{Hit: hit})
 }
 
 func isCombatSpellImmuneMonster(monster *CombatMonster) bool {

@@ -58,9 +58,53 @@ type combatStrikeLine struct {
 
 // CombatImpactEffect coordinates local sprite motion and floating damage text.
 type CombatImpactEffect struct {
-	Feedback game_state.CombatAttackFeedback
-	Elapsed  float64
-	Fire     bool
+	Feedback     game_state.CombatAttackFeedback
+	Elapsed      float64
+	Fire         bool
+	SpellOutcome game_state.CombatSpellOutcome
+	TargetID     game_state.CombatantID
+}
+
+func (g *GameScene) showCombatAreaSpellImpact(event game_state.CombatEvent) {
+	result := event.SpellTarget
+	if result == nil || !result.Disclosed {
+		return
+	}
+	g.combatImpactEffects = append(g.combatImpactEffects, CombatImpactEffect{
+		Feedback: game_state.CombatAttackFeedback{
+			Attacker: event.Attacker, Target: result.Target, Result: event.Result,
+			HPLost: result.HPLost, Fatal: result.Fatal,
+			Presentation: game_state.CombatAttackPresentation{
+				Delivery: game_state.CombatAttackDeliverySpell, Source: references.NoEquipment,
+			},
+		},
+		Fire:         event.Diagnostics.Spell == references.InFlamHur && result.HPLost > 0,
+		SpellOutcome: result.Outcome,
+		TargetID:     result.CombatantID,
+	})
+	// Retain the cone's successful arrival effect, owned by the same result as
+	// its label/tint. A processed zero-damage square is not a successful impact.
+	if event.Diagnostics.Spell != references.InVasPorYlem &&
+		(result.Outcome == game_state.CombatSpellDamaged || result.Outcome == game_state.CombatSpellSlept ||
+			result.Outcome == game_state.CombatSpellPoisoned) {
+		g.gameState.SystemCallbacks.Visual.PlayKapowAtPosition(result.Target.Position)
+	}
+}
+
+func (g *GameScene) combatAreaImpactStillDisclosed(effect CombatImpactEffect) bool {
+	if effect.SpellOutcome == game_state.CombatSpellUnspecified {
+		return true
+	}
+	target := effect.Feedback.Target
+	if !g.gameState.CombatTerrainAllowsObjectDisplay(target.Position) {
+		return false
+	}
+	if target.IsPartyMember {
+		return !g.gameState.CombatScene.IsCombatPCUnderground(combatTurnIdentityForFeedback(target))
+	}
+	monster := g.gameState.CombatScene.MonsterManager.GetMonster(target.Index)
+
+	return monster != nil && monster.CombatantID() == effect.TargetID && !monster.IsInvisible() && !monster.IsCorpserHidden()
 }
 
 func (g *GameScene) showCombatImpact(feedback game_state.CombatAttackFeedback) {
@@ -130,7 +174,7 @@ func (g *GameScene) updateCombatImpactEffects(deltaSeconds float64) {
 	for i := range g.combatImpactEffects {
 		effect := &g.combatImpactEffects[i]
 		effect.Elapsed += deltaSeconds
-		if effect.Elapsed >= combatImpactDurationSeconds {
+		if effect.Elapsed >= combatImpactDurationSeconds || !g.combatAreaImpactStillDisclosed(*effect) {
 			continue
 		}
 		g.combatImpactEffects[writeIndex] = *effect
@@ -397,7 +441,7 @@ func (g *GameScene) drawCombatDamageIndicator(
 	mapOptions.GeoM.Translate(g.screenShakeOffsetX, g.screenShakeOffsetY)
 	textX, textY := mapOptions.GeoM.Apply(float64(screenX+combatTileCenterPixels), float64(screenY)-rise)
 
-	label, textBaseColor := combatFeedbackText(effect.Feedback)
+	label, textBaseColor := combatImpactText(*effect)
 	textWidth, textHeight := g.combatDamageOutput.Font.MeasureString(label)
 	battlefield := combatBattlefieldRectangle(screen.Bounds())
 	textX = combatImpactLanePosition(
@@ -447,6 +491,23 @@ func combatFeedbackText(feedback game_state.CombatAttackFeedback) (string, ucolo
 		return "STOLEN", ucolor.EGALightCyan
 	default:
 		panic("unsupported combat feedback result")
+	}
+}
+
+func combatImpactText(effect CombatImpactEffect) (string, ucolor.EGAColor) {
+	switch effect.SpellOutcome {
+	case game_state.CombatSpellAvoided:
+		return "AVOIDED", ucolor.CombatMissText
+	case game_state.CombatSpellResisted:
+		return "RESIST", ucolor.CombatMissText
+	case game_state.CombatSpellImmune:
+		return "IMMUNE", ucolor.CombatMissText
+	case game_state.CombatSpellZeroDamage:
+		return "NO DAMAGE", ucolor.CombatGrazeText
+	case game_state.CombatSpellUnspecified, game_state.CombatSpellDamaged, game_state.CombatSpellSlept, game_state.CombatSpellPoisoned:
+		return combatFeedbackText(effect.Feedback)
+	default:
+		panic("unknown combat spell impact outcome")
 	}
 }
 

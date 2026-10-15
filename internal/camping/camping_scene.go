@@ -24,6 +24,8 @@ const (
 )
 
 // CampingScene manages the camping visual experience and state
+//
+//nolint:revive // Preserve the established domain name used by gameplay and presentation callers.
 type CampingScene struct {
 	// Current camping map
 	CampingMap *CampingMap
@@ -39,6 +41,8 @@ type CampingScene struct {
 	IsActive        bool
 	TimeElapsed     int // Minutes elapsed
 	LastHourMessage int // Last hour we showed a time message
+	sleeping        bool
+	accelerated     bool
 
 	// Original player location (to return to after camping)
 	OriginalPlayerLocation references.PlayerLocation
@@ -52,6 +56,7 @@ type CampingScene struct {
 // NewCampingScene creates a new camping scene
 func NewCampingScene(hours int, guardIndex int, originalPlayerLocation references.PlayerLocation) *CampingScene {
 	scene := &CampingScene{
+		CampingMap:             nil,
 		Hours:                  hours,
 		GuardIndex:             guardIndex,
 		TotalCycles:            hours * CyclesPerHour,
@@ -61,6 +66,10 @@ func NewCampingScene(hours int, guardIndex int, originalPlayerLocation reference
 		TimeElapsed:            0,
 		LastHourMessage:        NoHourMessageYet,
 		OriginalPlayerLocation: originalPlayerLocation,
+		sleeping:               false,
+		accelerated:            false,
+		WandererPresent:        false,
+		WandererDissolveLevel:  0,
 	}
 
 	// Create the camping map with guard configuration
@@ -72,8 +81,14 @@ func NewCampingScene(hours int, guardIndex int, originalPlayerLocation reference
 }
 
 // NewCampingSceneWithCombatRef creates a new camping scene with authentic positions from combat map
-func NewCampingSceneWithCombatRef(hours int, guardIndex int, originalPlayerLocation references.PlayerLocation, combatMapRef *references.CombatMapReference) *CampingScene {
+func NewCampingSceneWithCombatRef(
+	hours int,
+	guardIndex int,
+	originalPlayerLocation references.PlayerLocation,
+	combatMapRef *references.CombatMapReference,
+) *CampingScene {
 	scene := &CampingScene{
+		CampingMap:             nil,
 		Hours:                  hours,
 		GuardIndex:             guardIndex,
 		TotalCycles:            hours * CyclesPerHour,
@@ -83,12 +98,17 @@ func NewCampingSceneWithCombatRef(hours int, guardIndex int, originalPlayerLocat
 		TimeElapsed:            0,
 		LastHourMessage:        NoHourMessageYet,
 		OriginalPlayerLocation: originalPlayerLocation,
+		sleeping:               false,
+		accelerated:            false,
+		WandererPresent:        false,
+		WandererDissolveLevel:  0,
 	}
 
 	// Create the camping map with combat map reference for authentic positions
 	scene.CampingMap = NewCampingMapWithCombatRef(guardIndex, OutdoorCamping, combatMapRef)
 
-	logging.Debug(logging.CategoryGameState, "Created camping scene with authentic BRIT.CBT positions for %d hours with guard %d", hours, guardIndex)
+	logging.Debug(logging.CategoryGameState,
+		"Created camping scene with authentic BRIT.CBT positions for %d hours with guard %d", hours, guardIndex)
 
 	return scene
 }
@@ -113,11 +133,14 @@ func NewDungeonCampingScene(
 		OriginalPlayerLocation: originalPlayerLocation,
 		WandererPresent:        false,
 		WandererDissolveLevel:  0,
+		sleeping:               false,
+		accelerated:            false,
 	}
 }
 
 // StartCamping begins the camping scene
 func (cs *CampingScene) StartCamping() {
+	cs.EndSleeping()
 	cs.IsActive = true
 	cs.CurrentCycle = 0
 	cs.TimeElapsed = 0
@@ -168,13 +191,43 @@ func (cs *CampingScene) AdvanceExactCycle() bool {
 // CompleteCamping ends the camping scene
 func (cs *CampingScene) CompleteCamping() {
 	cs.IsActive = false
+	cs.EndSleeping()
 	logging.Debug(logging.CategoryGameState, "Camping scene completed after %d cycles", cs.CurrentCycle)
 }
 
 // InterruptCamping stops camping early (due to encounters or death)
 func (cs *CampingScene) InterruptCamping() {
 	cs.IsActive = false
+	cs.EndSleeping()
 	logging.Debug(logging.CategoryGameState, "Camping scene interrupted at cycle %d/%d", cs.CurrentCycle, cs.TotalCycles)
+}
+
+// BeginSleeping opens the transient pacing window after setup and Bard music.
+func (cs *CampingScene) BeginSleeping() {
+	cs.sleeping = cs.IsActive && cs.CurrentCycle < cs.TotalCycles
+	cs.accelerated = false
+}
+
+// EndSleeping closes the window before results, ambush or Wanderer presentation.
+func (cs *CampingScene) EndSleeping() {
+	cs.sleeping = false
+	cs.accelerated = false
+}
+
+// IsSleeping distinguishes logical sleep from setup and post-rest presentation.
+func (cs *CampingScene) IsSleeping() bool { return cs != nil && cs.sleeping }
+
+// IsAccelerated reports the current camp's one-way pacing latch.
+func (cs *CampingScene) IsAccelerated() bool { return cs != nil && cs.sleeping && cs.accelerated }
+
+// RequestAcceleration changes presentation intent only; no cycle or random draw.
+func (cs *CampingScene) RequestAcceleration() bool {
+	if !cs.IsSleeping() {
+		return false
+	}
+	cs.accelerated = true
+
+	return true
 }
 
 // GetPartyMemberPosition returns the position for a specific party member
@@ -203,7 +256,9 @@ func (cs *CampingScene) SetWandererDissolveLevel(level float64) {
 func (cs *CampingScene) GetWandererPosition() references.Position {
 	// Position wanderer on the opposite side of campfire from party
 	// This puts the wanderer in a visually prominent position
-	return references.Position{X: 5, Y: 5} // Top side of camping area
+	const wandererColumn, wandererRow = 5, 5
+
+	return references.Position{X: wandererColumn, Y: wandererRow} // Top side of camping area
 }
 
 // UpdateGuardPosition updates the guard's visual position during camping

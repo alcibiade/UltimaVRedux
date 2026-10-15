@@ -12,7 +12,7 @@ Visual effects cross three layers:
 | Presentation contract | Exposes required rendering mutations through `VisualCallbacks` | `internal/game_state/system_callbacks.go` |
 | Ebitengine adapter | Stores effect state and renders it in `GameScene.Draw` | `cmd/ultimav/gamescene_visual_effects.go`, `cmd/ultimav/gamescene_draw_effects.go` |
 
-`NewVisualCallbacks` validates its core callbacks. Code that receives initialized `SystemCallbacks` should call required visual callbacks directly rather than treating them as optional. Projectile callbacks are attached by `GameScene`, and `ShowCombatImpact` is validated by `NewSystemCallbacks`.
+`NewVisualCallbacks` validates its core callbacks. Code that receives initialized `SystemCallbacks` should call required visual callbacks directly rather than treating them as optional. Projectile callbacks are attached by `GameScene`, and `ShowCombatImpact` is validated by `NewSystemCallbacks`. The required `ShowDungeonInjury` callback is validated at both construction boundaries.
 
 The current visual/workflow callback surface is:
 
@@ -39,6 +39,7 @@ type VisualCallbacks struct {
     ClearProjectile                  func()
     PlayKapowAtPosition              func(references.Position)
     ShowCombatImpact                 func(game_state.CombatAttackFeedback)
+    ShowDungeonInjury                func(game_state.DungeonInjuryKind)
 }
 ```
 
@@ -102,11 +103,105 @@ consumes no RNG, and mutates no gameplay or save state. Scene replacement and
 disposal clear all records idempotently; ordinary same-scene map transitions do
 not.
 
+## Time Stop Actor Animation
+
+Time Stop has a body-only presentation clock: affected actors animate at **5%**
+of normal speed. `GameState` projects live actor identities and the slowdown flag;
+`cmd/ultimav/actor_animation_clock.go` integrates elapsed deltas for each lifetime.
+The clock retains fractional twentieths of a millisecond across activation,
+expiry, duration-effect replacement, and allegiance changes. Returning to normal
+speed continues the accumulated phase rather than jumping to the global frame.
+
+- Combat uses exact effective allegiance: monster-loyal monsters and possessed
+  PCs/clones slow down; party-loyal actors retain normal body timing. Clone slots
+  distinguish PC copies; stable monster IDs distinguish recycled monster slots
+  and retain a surviving monster's phase through storage compaction.
+- Surface creature NPCs and monsters use the same treatment on the active floor.
+  Vehicles, pirate ships, whirlpools, environmental hazards, and the ordinary
+  exploration Avatar keep their normal presentation timing.
+- The first-person dungeon wanderer has its own retained body clock. Dungeon
+  fields, fountains, stalactites, and atmospheric animation use ordinary elapsed
+  time.
+
+Updates and committed-state display refreshes settle the clocks; drawing only
+reads them. A surviving offscreen or hidden actor retains its phase without
+gaining disclosure. Retired actors, replaced scenes, and disposal release the
+associated state. These clocks are transient, consume no gameplay RNG, and do
+not rescale turns, duration counters, calendar rules, or actor movement.
+
+Status overlays, lighting, terrain, environmental animation, projectiles, hit
+feedback, spell effects, and UI animation retain their ordinary clocks. The
+gameplay rules and scope of this Redux presentation choice are
+[SPELL-0004](../gamefacts/MAGIC_SPELLS.md#spell-0004); the scroll shares it under
+[CONSUME-0003](../gamefacts/POTIONS_SCROLLS.md#consume-0003).
+
 ## Screen Flash
 
 `SetScreenFlashColor` selects RGB components in the `0.0` to `1.0` range. `SetScreenFlashIntensity` supplies the current alpha. `drawScreenFlashEffect` draws the color over the map area only; the right-side UI and dialogs remain unaffected. Flash rendering is skipped in a dungeon while no light source is active.
 
 The caller owns the intensity curve. Current effects commonly use a triangle or sine wave and explicitly restore intensity to zero. `PartyStateBuilder` provides `FlashRed`, `FlashWater`, `FlashGray`, `FlashLongGray`, `FlashGreen`, `FlashOrange`, `FlashPurple`, `FlashWhite`, and `FlashInverted` presets.
+
+### Dungeon Injury Feedback
+
+Dungeon injury uses `ShowDungeonInjury`, a separate map-viewport tint rather than
+the ordinary flash state. Core code aggregates actual clamped HP loss across the
+party before admitting one result for each resolved source:
+
+| Source | Tint | Audio request |
+|---|---|---|
+| Fire-field HP loss | Light red | `SoundFireBurn` |
+| Electrical-contact HP loss | Light blue | `SoundElectricalDamage` |
+| Dungeon poison HP tick | Light green | `SoundPoison` |
+
+Zero loss admits nothing. Poison onset alone and sleep-field contact do not own
+this injury pulse. Each pulse lasts **200 ms** on `GameState.ElapsedMs`: alpha
+starts at 100/255, holds for 40 ms, then fades to zero. It covers the already
+composed viewport, including black or subdued darkness, without drawing or
+illuminating terrain. It precedes chrome, transcript, and dialogs and neither
+borrows nor clears ordinary screen-flash state.
+
+The three stable feedback names coalesce repeats while live, bounding this family
+to three active/pending requests. Distinct kinds serialize through the feedback
+lane, alongside other feedback, with no input ownership or gameplay delay. Audio
+is requested once per resolved injury source at admission, even when its visual
+repeat coalesces; it is not replayed at each animation frame. Electrical injury
+and poison currently have empty recording slots, so cue requests do not establish
+audible feedback.
+
+Admission and drawing retain the game, dungeon visit, and floor. Queued or active
+feedback cannot cross visit/floor/combat replacement; expiry, cancellation,
+finalization, and scene disposal clear the pulse. Fatal HP loss can still present
+while that dungeon owner remains current. Damage, death, status, command
+completion, and RNG remain in the authoritative hazard path. See
+[DNG-0009](../gamefacts/DUNGEON_SYSTEM.md#dng-0009).
+
+### Dungeon Field Removal
+
+Successful dungeon Sceptre or `An Grav` removal supplies the committed
+`DungeonCellChange` to `presentDungeonFieldDispel`. The field is already gone for
+collision and hazards. A **600 ms**, cell-anchored pixel fizzle retains only the
+removed field's colour/pixels at its admission phase, not its background or
+opening-bit geometry. It reprojects at the cell's current visible depth during
+the normal far-to-near first-person traversal, before live cell contents. Turning
+or moving does not attach the remnant to the camera. Walls, clipping, black
+darkness, and optional subdued-light rendering keep their normal authority.
+
+At most **four** remnants coexist; a replacement for the same owner retires its
+predecessor, and a fifth evicts the oldest. Admission validates the committed
+revision, while later checks retain the dungeon visit, floor, position, and
+expected post-removal cell. Unrelated cell edits do not cancel it. A mismatching
+cell, floor/visit change, combat entry, elapsed expiry or rewind, or disposal
+releases its depth-specific masks and buffers. Once retired, it cannot revive
+when a cell later happens to match.
+
+The effect is nonblocking: it adds no wait, command completion, resource payment,
+or gameplay RNG draw. Its dissolve uses a presentation-owned seed. Each admitted
+success requests `SoundDispel` once; cancellation/no effect does not. That cue's
+recording is intentionally empty and shared with combat `An Grav`. It denotes
+successful removal, not spell failure. Combat retains its separate collapsing
+field cue and target kapow; the first-person fizzle does not replace those paths.
+See [DNG-0009](../gamefacts/DUNGEON_SYSTEM.md#dng-0009) and
+[Audio System](AUDIO_SYSTEM.md).
 
 ## Screen Shake
 
@@ -319,20 +414,59 @@ manager.Workflow("materialize_item").
     Start()
 ```
 
+## Combat Aim And Active Selection
+
+The selected physical/spell cursor retains its familiar full-size geometry,
+with the **entire centre cross and all four corners steady opaque white**.
+The face follows the inset 16-source-pixel cell from `(1,1)` to `(17,17)`, with
+corner arms spanning 32% of each transformed dimension, two-source-pixel strokes,
+and a centred six-source-pixel cross at `(9,9)`. Stroke width and centre arms use
+the smaller transformed pixel scale, preserving the original unequal-scale
+appearance. Its original one-pixel down/right black shadow supplies contrast.
+It is not a compact inset or HP-reserved replacement. Friendly/enemy/empty and
+party-recipient meaning remain available in the existing semantic target and
+availability readouts. When `An Zu` would awaken a different copy, that secondary
+square gets only a small light-magenta outlined cross, without white corners.
+
+Both markers are square-anchored and include camera shake. Actor lunge/movement
+offsets cannot drag either onto another square. The secondary cross uses rounded
+source-rectangle edges; the selected cursor retains the original stroked-line
+raster geometry. Target legality, Tab cycling, cancellation, and resource
+commitment remain core/input contracts.
+
+The active-turn actor's **complete pulsing square plus exactly two upper-corner
+accents** draws once, above HP/allegiance bars. The accents have four-pixel arms,
+two-pixel faces and a full black rim; they follow the square's 450 ms two-phase
+expansion and exact presented actor transform. Both use active-PC green,
+active-monster/possessed-PC yellow, or auto-pass gray. Threatened-target frames
+stay beneath actors, remain steady, and receive no raised accents.
+
+The combat order is threatened-target underlays, actor artwork and local effects,
+direction cues, HP/allegiance, the full active indicator, eligibility brackets,
+then selected aim. Active and selected indicators intentionally win where they
+overlap HP bars; selected aim has final priority. Hidden/retired actors, teleport
+hidden phases, and combat exit suppress the active indicator through live exact
+identity/disclosure checks, including clones and insect-stack presentation.
+Hands-on feedback chose the original-size all-white cursor and the active frame
+above HP; the corrected rendering still requires in-game visual confirmation.
+
+Entry points are `gamescene_draw_entities.go`,
+`gamescene_combat_active_indicator.go`, and `gamescene_combat_attack_preview.go`
+under `cmd/ultimav`. [COMBAT-0012](../gamefacts/COMBAT.md#combat-0012) owns the public
+combat presentation comparison.
+
 ## Combat Attack Eligibility
 
 `cmd/ultimav/gamescene_combat_attack_preview.go` draws two disconnected,
 compact foot-corner brackets above monster artwork and below the aiming reticle.
-The user approved this foreground placement after dense-swarm composition showed
-that neighboring sprites could hide every blue pixel in the strict under-sprite
-design. This supersedes the earlier underlay requirement, not the eligibility or
-colour contract.
+Foreground placement keeps neighboring sprites from hiding every eligibility
+pixel in a dense group.
 
 The face uses semantic `CombatAttackEligibleFace` (EGA light blue);
 `CombatAttackEligibleBorder` is black. Each arm is two source pixels long and
 one pixel thick, surrounded on all sides by a full one-pixel black border, not
 an offset shadow. Both complete brackets fit inside the 16-pixel cell, inward
-of flee/status cues. Their faces moved up one source pixel (Y=9..10), so the
+of flee/status cues. Their faces occupy source rows Y=9..10, so the
 backing ends at Y=12 exclusive, before the allegiance outline beginning at Y=12.
 The original HP strip still begins at Y=13. Faces and
 expanded backing rectangles follow `combatEntityDrawOptions`, including
@@ -343,8 +477,8 @@ sprite tint, full tile box, or dimming of unavailable enemies. In
 `drawAvatarOverlay`, the eligibility pass follows all actor artwork and direction
 indicators, immediately before `drawCombatAttackCrosshair`. The existing aiming
 reticle has priority; the aimed square's brackets are suppressed while other
-eligible enemies retain theirs. Reticle allegiance colours and HP/status cues
-keep their separate meanings.
+eligible enemies retain theirs. The white aiming cursor, semantic target text,
+and HP/status cues keep their separate meanings.
 
 Eligibility comes only from `GameState.PreviewCombatAttack`, shared with Tab.
 Before physical aiming, a target needs at least one currently available source;
@@ -390,8 +524,7 @@ monster creates a fresh hostile child without inheriting those flags.
 
 Every disclosed battlefield actor uses a steady one-source-pixel **cyan Ally /
 red Enemy exterior outline around its black HP frame**, paired with explicit
-Ally/Enemy text. This is the revised design following visual review of the larger
-upper-left symbols. The exterior is `(x=1, y=12, width=15, height=6)` inside the
+Ally/Enemy text. The exterior is `(x=1, y=12, width=15, height=6)` inside the
 18-pixel replacement sprite. The existing black HP frame remains exactly
 `(x=2, y=13, width=13, height=4)`, including its separator, fill dimensions,
 health-threshold colours and opacity. The outline never recolours or covers the
@@ -406,8 +539,10 @@ once in that foreground pass. Gate health frames stay steady after the hidden
 prelude. The possession cap remains upper-right. Insect stacks emit one aggregate
 frame with their unchanged health segments and member order; pips sit on source
 row 2 so a northern neighbor's outline cannot cover them. Hidden members do not
-contribute pips or segments. Attack brackets sit above the health frame, selection
-remains underneath and the aiming reticle retains foreground priority.
+contribute pips or segments. The full active selection square and its two upper
+accents draw above the health frame, followed by attack brackets and the aiming
+reticle. Threatened-target selection alone remains an underlay; selected aim
+retains final foreground priority.
 
 An encounter-local presentation observer compares only continuously disclosed
 exact identities. A visible side change immediately updates the outline and adds
@@ -628,6 +763,32 @@ events above exercise authoritative producer-to-presentation routing. Neither
 previewing a primitive nor reading an automated assertion constitutes a live
 keyboard/audiovisual acceptance pass.
 
+## Area-Spell Outcome Feedback
+
+Earthquake, Sleep, Poison Wind, Flame Wind, and Energy Vortex publish typed
+`CombatAreaSpellTargetResult` records for exact resolved entries, separately from
+processed positions. `showCombatAreaSpellImpact` consumes those records rather
+than treating every processed square as a successful hit. Local labels distinguish
+`AVOIDED`, `RESIST`, `IMMUNE`, and `NO DAMAGE`; actual damage/fatality and successful
+poison/sleep retain their corresponding result labels. Only successful cone
+damage or status application produces its arrival kapow, and Flame Wind's fire
+tint requires actual HP loss. Poison Wind avoidance produces one local result.
+
+The combat report consumes the same outcomes. `presentCombatAreaSpellSummary`
+says `No targets reached.` for an empty resolved target set. With no disclosed
+successful effect, it summarizes avoidance, resistance, immunity, and no damage;
+concealed results instead use `No visible effect.` without revealing counts or
+identities. Local effects require admission-time disclosure and remain subject to
+live terrain/hidden-actor checks. A disclosed successful HP or status effect
+already explains the cast, so it suppresses the aggregate no-effect message.
+
+Feedback never rerolls saves or damage, changes cone candidate collection, or
+repeats commitment. Confirmed ineffective casts retain their audio request,
+animation, payment, and one action completion. Entry points are
+`gamescene_combat_cone.go`, `gamescene_combat_spell_effects.go`,
+`gamescene_combat_impact.go`, and `gamescene_combat_hud.go` under `cmd/ultimav`;
+[SPELL-0003](../gamefacts/MAGIC_SPELLS.md#spell-0003) owns the public comparison.
+
 ## Projectile Travel
 
 `gamescene_projectile.go` renders the source, resolved endpoint, and missile
@@ -697,9 +858,10 @@ primitive preview substitutes for a recorded gameplay observation.
   environmental delivery while retaining source equipment for future presets.
   Melee feedback draws a short concurrent EGA strike above battlefield actors;
   projectile, spell, and environmental feedback never reuses the melee strike
-  or attacker lunge. Projectiles, cone footprints and generic impacts remain
-  event feedback and are not suppressed by authored-terrain occupant admission.
-  Player reports separately apply the admission-time disclosure rules above.
+  or attacker lunge. Projectiles and cone footprints remain event feedback rather
+  than actor disclosure. Generic impacts retain their existing admission path;
+  typed area-spell target effects apply the disclosure gates described above.
+  Player reports separately apply admission-time disclosure rules.
 - Combat actor-local silhouettes, selection frames, division tethers, field
   removal cues, and summon/repel/teleport identity cues consult the actor's live
   map-only underlay. `BlackSquare` and `BrickWallArchway` suppress those direct
@@ -722,6 +884,20 @@ Focused tests live beside the owning packages:
 - `internal/sprites/tile_overlays_test.go` for sprite-mask caching
 - `internal/game_state/party_state_builder_test.go` for flash and shake callbacks
 - `cmd/ultimav/gamescene_draw_effects_test.go` for rendering calculations
+- `internal/game_state/actor_animation_presentation_test.go` and
+  `cmd/ultimav/actor_animation_clock_test.go` for actor classification, retained
+  phase, rate boundaries, and read-only draw clocks
+- `cmd/ultimav/dungeon_field_dispel_test.go` for committed-removal projection,
+  lighting, bounded remnants, and owner cleanup
+- `internal/game_state/dungeon_injury_feedback_test.go` and
+  `cmd/ultimav/gamescene_dungeon_injury_test.go` for actual-loss admission,
+  coalescing, serialized presentation, darkness, and cleanup
+- `cmd/ultimav/gamescene_combat_colors_test.go` and
+  `cmd/ultimav/gamescene_combat_active_indicator_test.go` for aim/wake geometry,
+  two-corner active accents, and marker identity
+- `internal/game_state/combat_area_spell_outcome_test.go` and
+  `cmd/ultimav/gamescene_combat_area_spell_outcome_test.go` for exact target results,
+  disclosure-safe summaries, and ineffective-cast presentation
 - `cmd/ultimav/gamescene_input_combat_test.go` for combat effect integration
 - `cmd/ultimav/gamescene_combat_sceptre_effect_test.go` for Sceptre actor and
   producer-neutral field-dispel cue lifecycle

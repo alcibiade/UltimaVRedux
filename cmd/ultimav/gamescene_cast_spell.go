@@ -424,7 +424,7 @@ func (g *GameScene) thenCastDungeonPackedSpell(
 				}
 				g.gameState.SystemCallbacks.Message.AddRowStr("Chest opened!")
 			case references.AnGrav:
-				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundDispel)
+				g.presentDungeonFieldDispel(result.Change)
 				g.gameState.SystemCallbacks.Message.AddRowStr("Field destroyed!")
 			case references.InFlamGrav,
 				references.InNoxGrav,
@@ -446,61 +446,65 @@ func (g *GameScene) thenCastDungeonPackedSpell(
 // Magically locks a door in the specified direction.
 // Circle 5 spell, TargetDirection, ContextTown | ContextCombat.
 func (g *GameScene) thenCastAnExPor(direction references.Direction) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		// Get target position
-		playerPos := &g.gameState.MapState.PlayerLocation.Position
-		targetPos := direction.GetNewPositionInDirection(playerPos)
-
-		result := g.gameState.MagicLockDoor(targetPos)
-
-		switch result {
-		case game_state.MagicLockSuccess:
-			return q.ThenSequence(
-				game_state.NewPartyStateBuilder(g.gameState).
-					FlashInverted().
-					WithSound(game_state.SoundMagicLock).
-					Build()).ThenSequence(
-
-				g.thenShowSpellSuccess("Locked!"))
-
-		case game_state.MagicLockAlreadyMagic:
-			return g.thenShowSpellFeedback("Already magic locked!", game_state.SoundSpellFailure)(q)
-		case game_state.MagicLockNotADoor:
-			return g.thenShowSpellFeedback("Not a door!", game_state.SoundSpellFailure)(q)
-		default:
-			return g.thenShowSpellNoEffect()(q)
-		}
-	}
+	return g.thenCastMagicDoorSpell(direction, game_state.SoundMagicLock, g.castMagicLockDoor)
 }
 
 // thenCastInExPor applies the In Ex Por (Magic Unlock) spell effect.
 // Unlocks a magically locked door in the specified direction.
 // Circle 5 spell, TargetDirection, ContextTown | ContextCombat.
 func (g *GameScene) thenCastInExPor(direction references.Direction) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+	return g.thenCastMagicDoorSpell(direction, game_state.SoundMagicUnlock, g.castMagicUnlockDoor)
+}
+
+// Resolve the target and mutate the door only when the owning sequence reaches
+// this step. Successful casts share the inverted flash followed by confirmation.
+func (g *GameScene) thenCastMagicDoorSpell(
+	direction references.Direction,
+	sound game_state.SoundEffect,
+	cast func(*references.Position) (bool, string),
+) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		// Get target position
-		playerPos := &g.gameState.MapState.PlayerLocation.Position
-		targetPos := direction.GetNewPositionInDirection(playerPos)
-
-		result := g.gameState.MagicUnlockDoor(targetPos)
-
-		switch result {
-		case game_state.MagicUnlockSuccess:
+		targetPos := direction.GetNewPositionInDirection(&g.gameState.MapState.PlayerLocation.Position)
+		success, message := cast(targetPos)
+		if success {
 			return q.ThenSequence(
 				game_state.NewPartyStateBuilder(g.gameState).
 					FlashInverted().
-					WithSound(game_state.SoundMagicUnlock).
+					WithSound(sound).
 					Build()).ThenSequence(
-
-				g.thenShowSpellSuccess("Unlocked!"))
-
-		case game_state.MagicUnlockNotMagicDoor:
-			return g.thenShowSpellFeedback("Not a magic door!", game_state.SoundSpellFailure)(q)
-		case game_state.MagicUnlockNotADoor:
-			return g.thenShowSpellFeedback("Not a door!", game_state.SoundSpellFailure)(q)
-		default:
+				g.thenShowSpellSuccess(message))
+		}
+		if message == "" {
 			return g.thenShowSpellNoEffect()(q)
 		}
+
+		return g.thenShowSpellFeedback(message, game_state.SoundSpellFailure)(q)
+	}
+}
+
+func (g *GameScene) castMagicLockDoor(targetPos *references.Position) (bool, string) {
+	switch g.gameState.MagicLockDoor(targetPos) {
+	case game_state.MagicLockSuccess:
+		return true, "Locked!"
+	case game_state.MagicLockAlreadyMagic:
+		return false, "Already magic locked!"
+	case game_state.MagicLockNotADoor:
+		return false, "Not a door!"
+	default:
+		return false, ""
+	}
+}
+
+func (g *GameScene) castMagicUnlockDoor(targetPos *references.Position) (bool, string) {
+	switch g.gameState.MagicUnlockDoor(targetPos) {
+	case game_state.MagicUnlockSuccess:
+		return true, "Unlocked!"
+	case game_state.MagicUnlockNotMagicDoor:
+		return false, "Not a magic door!"
+	case game_state.MagicUnlockNotADoor:
+		return false, "Not a door!"
+	default:
+		return false, ""
 	}
 }
 

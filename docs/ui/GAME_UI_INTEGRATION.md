@@ -33,6 +33,21 @@ Combat, camping, shrine/Codex and other non-surface-frame scenes suppress the
 label. `WindDisplay.DrawLabel` measures and rebuilds its Output/chrome when the
 label or layout changes.
 
+First-person dungeon exploration uses the same inward-pointing blue/white
+bookends around `L <level>` in the upper frame band and `Dir: <cardinal>` in the
+lower band. Each complete label is centred on the rasterized map frame with an
+opaque black backing and scaled clearance around its `text.Output` text. Level
+numbering remains one-based; the four facing names retain their existing meaning.
+The cached label graphics rebuild when text, font, frame or band geometry changes,
+releasing the replaced image. Resizing and disposal share that cache lifecycle.
+The labels are static chrome: camera shake and dungeon world effects do not move
+them or cover the surrounding status panels.
+
+Dungeon-origin camping and tactical combat reuse the same decorated level header
+where the inherited header is already visible. They do not gain an exploration
+direction readout or surface sky. Existing cinematic/header suppression and
+diagnostic bounds remain separate from this label presentation.
+
 ## Initialization
 
 `wireSystemCallbacks` constructs the required message, visual, audio, screen, flow, talk, UI, and combat callback groups. Constructors validate mandatory functions before `NewSystemCallbacks` accepts the aggregate. Code running after successful initialization should use those callbacks directly.
@@ -51,18 +66,34 @@ frame; see [Journal pause](../systems/TIME_SYSTEM.md#journal-pause) and
 [input routing](../systems/INPUT_HANDLING.md#routing-order). Ordinary modals do
 not imply that full pause.
 
-1. Clear per-frame keyboard consumption.
-2. In `updateWindAndEffects`, update ambient audio and audio fades.
-3. Publish current elapsed time to `GameState.ElapsedMs`, then update wind and lighthouse state.
-4. Update workflow, background, and feedback event-queue lanes.
-5. Reconcile scene-owned transient-feedback clocks, then update non-blocking dialogs, timed overlays, visual effects, and the wind display.
-6. Update the transient status icon overlay.
-7. Handle temporary animation locks such as auto-open doors and rising moongates.
-8. Update only the highest modal dialog; return if one exists.
-9. Honor the global `inputBlocked` flag.
-10. Resolve pending combat, turn, and auto-talk state.
-11. Update moongate presentation.
-12. Route secondary command input before primary command input.
+1. Sample physical key edges and reconcile focus/input ownership before queues
+   can change it. Register deferred audio servicing and actor-clock reconciliation.
+   Native editors release their sessions before unfocused reader returns.
+2. Give retained readers and their reserved shortcuts precedence. Atlas/Journal
+   keep their gameplay pause, including dismissal; ordinary scene presentation
+   and shortcut handling otherwise continue in the established input order.
+3. Capture only eligible pending-combat and sleeping-Space intentions before
+   queue advancement, retaining the owner and blocked/ready state of that sample.
+4. In `updateWindAndEffects`, publish elapsed time, settle actor-body clocks,
+   process wind/moongate/lighthouse state, and update workflow, background and
+   feedback queues. Then update moongate presentation, ambient source discovery,
+   transient/non-blocking presentation, dungeon effects and the wind display.
+5. Revalidate transient input after queues, update status icons, and advance
+   any committed automatic-door animation before accepting ordinary input.
+6. Update only the highest modal and return while it owns input. Unfocused
+   frames advance the permitted passive dialog animations without polling an
+   input-owning selector; native editor suspension remains explicit.
+7. Revalidate the narrowly admitted camping acceleration request, retain workflow
+   input blocks, and resolve pending encounter, combat-scheduler and auto-talk
+   ownership before ordinary commands. The request itself adds no command cost.
+8. Accept an eligible pending solo verb through its normal direction-prompt route
+   before movement, then route secondary command input before primary input.
+
+Audio fades/retirement are serviced on exit even when a reader or modal returns
+early; source discovery and transport servicing are separate. Reader pauses keep
+gameplay elapsed time fixed. Actor-body clock reconciliation consumes that fixed
+time rather than advancing gameplay. See the [audio lifecycle](../systems/AUDIO_SYSTEM.md)
+and [input ownership](../systems/INPUT_HANDLING.md) for their detailed contracts.
 
 This order lets modal dissolve and dismissal state advance while a workflow owns the global input block. Do not update a modal from both the feature and `GameScene`; the stack is its frame owner.
 
@@ -455,7 +486,11 @@ Mandatory callbacks are supplied as complete named values and checked during ini
 `GameScene.Draw` currently composes these major layers:
 
 1. Map image with camera shake.
-2. Moongates, item stacks, world quest items, map units, and Avatar; combat selection underlays precede actors, while eligibility brackets follow actor artwork and precede the aiming reticle.
+2. Moongates, item stacks, world quest items, map units, and Avatar. In combat,
+   threatened-target underlays precede actors and actor-local effects; direction
+   cues and HP/allegiance frames follow. The complete active-turn indicator then
+   draws above HP frames, followed by eligibility brackets and the selected aiming
+   cursor. See [combat aim and active selection](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-aim-and-active-selection).
 3. Default tile dissolves.
 4. Map fade.
 5. Over-fade tile dissolves.

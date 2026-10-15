@@ -247,6 +247,16 @@ The shortcut/editor add no gameplay time, RNG draws or resource costs.
 Parent close, disposal and GameState replacement remove the child and invalidate
 the draft. Widgets neither choose authoritative coordinates nor mutate gameplay.
 
+Both fields use owned native text sessions compatible with save-description and
+Tavern editing. Only the top modal starts a session; changing fields or losing
+focus releases it while preserving accepted text and selection. The scene calls
+`SuspendTextInput` before skipping a native child during an unfocused Atlas
+frame. Composition precedes control keys, and candidate-confirming controls
+remain owned until release. Committed text retains the existing ASCII and length
+policies; rejected replacements preserve the untouched suffix. Native failures
+keep the draft and expose cancellation. `atlas_note_editor_native_test.go`
+exercises the handoff, field switching, selection, composition and cleanup.
+
 Both editor fields use `ClassicUIPixelUnit` for their classic stepped border
 thickness and corners, with matching scaled interior padding and caret width.
 `internal/ui/widgets/atlas_note_editor_layout.go` supplies one measured interior
@@ -427,6 +437,51 @@ See [player slots](../details/SAVE_SNAPSHOT_SCHEMA.md#player-slots) for persiste
 authority. Tests include `save_slot_browser_test.go`,
 `save_description_submit_input_test.go`, `save_description_lifecycle_test.go`,
 and `save_description_native_input_test.go`.
+
+### Tavern Subject Native Session
+
+`TavernShopDialog` uses the same native field protocol as the save description
+editor. A native save session can leave macOS character delivery outside
+`AppendInputChars` after blur; the Tavern therefore acquires its own native
+session rather than relying on raw character input being restored. The shared
+`native_text_field.go` contains only the field interface and factory.
+
+The Subject field is the single text authority and focuses only while the visible
+Tavern is the top modal, the window is focused, and an eligible customer is in
+Conversation/Browse. Quote, approval, result, notices, Order, session errors,
+Hide, dismissal and loss of focus release it. Returning to Browse or from a
+nested modal retains the committed draft and requires held transition controls
+to release. The Tavern focus listener also preserves the existing list-navigation
+reset. Workflows still own exact stack removal and all merchant authority.
+
+When the scene skips input Updates, it must call
+`TavernShopDialog.SuspendTextInput()` from its suspended-dialog path. The hook
+does not poll keys or change modal ownership: it releases native focus, resets
+local control/navigation holds, and leaves the next allowed Update release-gated.
+It is safe under suspended keyboard polling and repeated calls. Blur preserves a
+bounded committed draft and byte selection captured before release; native commits
+flushed by Blur and uncommitted preedit cannot leak into a resumed draft, cancelled
+subject or already emitted intent.
+
+Native text is pumped before speech paging or control routing. Composition owns
+Enter, Escape, Backspace and navigation through physical release; accepting a
+candidate cannot submit a subject, leave Conversation, or page history. Committed
+input retains at most 15 printable Unicode runes, including whitespace verbatim;
+replacement capacity is applied to inserted text without truncating an untouched
+suffix. Preedit remains visible without premature truncation. Selection uses native byte
+offsets, with a measured visible caret and candidate rectangle. Left/Right and
+Home/End edit the eligible native Subject; Ctrl/Cmd+A selects it. Shift+Left/Right
+retain merchant speech paging outside composition. Tab/Escape return to Order.
+Native errors retain the draft, release focus and display an acknowledged failure.
+
+Leave `TavernShopDialogConfig.AppendInputChars` nil in production. A supplied
+function explicitly selects the detached rune adapter, with no native field or
+second authoritative buffer. `IsKeyPressed` should use the scene keyboard's
+`IsKeyHeld` adapter so control release checks and routed keys share one source.
+Regression coverage is in `tavern_native_input_test.go`: simulated save-session
+handoff with raw delivery still empty, modal/phase ownership, Unicode selection,
+preedit control precedence and bounded candidate placement. This simulation does
+not establish native OS runtime acceptance.
 
 ## QuestJournalDialog
 

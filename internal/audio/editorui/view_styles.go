@@ -99,7 +99,7 @@ func (m *model) footerLines() []string {
 		return m.hintRows([]keyHint{{"↑↓", "Control"}, {"←→ or +/-", "Change"},
 			{"r", "Game Mix/Reference"}, {"Enter/Esc", "Close"}, {"x", hintStopAll}})
 	case ownerCalibration:
-		return m.hintRows([]keyHint{{"Enter", "Apply auto-gain"}, {"Esc", "Keep calibration"}, {"x", hintStopAll}})
+		return m.calibrationFooter()
 	case ownerForm:
 		return m.hintRows(m.formKeyHints())
 	case ownerRoutingPicker:

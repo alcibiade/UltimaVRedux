@@ -99,6 +99,11 @@ type TurnQueueEntry struct {
 	// Reset to (turnCountdownBase - dex) after acting.
 	turnCountdown int
 
+	// dispatchGeneration counts this exact entry's actual scheduled opportunities,
+	// including turns later skipped by sleep, captivity, loyalty or temporal rules.
+	// It is encounter-local input identity, not a forecast or a gameplay clock.
+	dispatchGeneration uint64
+
 	// status tracks whether this entry remains active or how it left combat.
 	status turnQueueEntryStatus
 
@@ -221,7 +226,9 @@ func (q *CombatTurnQueue) addCombatant(
 		sourceSlotReleased: false,
 		originalObjectSlot: 0,
 		turnCountdown:      countdown,
+		dispatchGeneration: 0,
 		status:             turnQueueActive,
+		ratAppearance:      false,
 	}
 
 	insertAt := len(q.entries)
@@ -366,6 +373,9 @@ func (q *CombatTurnQueue) AdvanceToNextActor() *TurnQueueEntry {
 
 		// Track action count for time advancement
 		q.actionCount++
+		// Record the reached opportunity before turn-start rules may skip it.
+		// Other entries' dispatches never advance this entry's generation.
+		entry.dispatchGeneration++
 
 		logging.Debug(logging.CategoryGameState,
 			"CombatTurnQueue: actor entityIndex=%d isPC=%t dex=%d (action #%d)",
@@ -628,7 +638,8 @@ func (q *CombatTurnQueue) MarkAbsorbed(identity CombatTurnIdentity) {
 
 // CountRemaining returns active player-loyal and monster-loyal combatant
 // counts separately as (pcCount, monsterCount). ref:COMBAT-0011
-func (q *CombatTurnQueue) CountRemaining() (pcCount int, monsterCount int) {
+func (q *CombatTurnQueue) CountRemaining() (int, int) {
+	var pcCount, monsterCount int
 	for _, entry := range q.entries {
 		if entry.status != turnQueueActive {
 			continue

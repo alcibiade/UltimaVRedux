@@ -157,6 +157,7 @@ func newGameScene(
 	}
 
 	gameScene.keyboard = input.NewKeyboard(keyPressDelay)
+	gameScene.initializeTransientCommandInput()
 	gameScene.initializeResizeableVisualElements()
 
 	gameScene.autoOpenDoorState = &AutoOpenDoorState{}
@@ -218,6 +219,8 @@ func (g *GameScene) Activate() {
 	g.elapsedBaseMs = g.gameState.ElapsedMs
 	g.lastEffectsUpdate = now
 	g.active = true
+	g.clearActorAnimationClocks()
+	g.updateActorAnimationClocks()
 	g.resetProvisionChanges()
 
 	if g.audioManager != nil {

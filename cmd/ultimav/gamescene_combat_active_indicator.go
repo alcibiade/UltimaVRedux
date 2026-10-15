@@ -1,12 +1,15 @@
 package main
 
 import (
+	"image"
 	"math"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
@@ -108,7 +111,7 @@ func drawCombatSelectionFrame(
 	drawSelectionFrame(combatActivePCSelectionFace, faceColor)
 }
 
-func (g *GameScene) drawCombatSelectionUnderlays(screen *ebiten.Image) {
+func (g *GameScene) drawCombatThreatenedSelectionUnderlays(screen *ebiten.Image) {
 	combatScene := g.gameState.CombatScene
 	if combatScene == nil {
 		return
@@ -119,9 +122,6 @@ func (g *GameScene) drawCombatSelectionUnderlays(screen *ebiten.Image) {
 		combatScene.ActiveTargetPCIndex,
 	)
 
-	if activeCombatPCIndicatorStyle == combatActivePCIndicatorSelectionTile {
-		g.drawActiveCombatantSelectionFrame(screen, actors)
-	}
 	if combatScene.ActiveTargetIdentitySet && combatScene.ActiveTargetIdentity.IsPartyMember {
 		g.drawMonsterTargetPCSelectionFrame(screen, combatScene.ActiveTargetIdentity)
 	} else {
@@ -132,56 +132,116 @@ func (g *GameScene) drawCombatSelectionUnderlays(screen *ebiten.Image) {
 	}
 }
 
-func (g *GameScene) drawActiveCombatantSelectionFrame(
-	screen *ebiten.Image,
-	actors combatSelectionActors,
-) {
+// Resolve the exact actor on every draw. No retained marker can
+// survive a turn handoff, retirement, clone change, or combat exit.
+func (g *GameScene) combatActiveSelectionOptions() (*ebiten.DrawImageOptions, ucolor.EGAColor) {
 	combatScene := g.gameState.CombatScene
-	if actors.ActiveMonsterIndex != game_state.NoActiveMonster {
-		monster := combatScene.MonsterManager.GetMonster(actors.ActiveMonsterIndex)
-		if monster == nil || !monster.IsActive() || monster.IsDead() || monster.IsInvisible() {
-			return
-		}
-		position, visible := g.combatSelectionPresentation(
-			game_state.CombatTurnIdentity{EntityIndex: actors.ActiveMonsterIndex}, monster.Position())
-		if !visible || !g.gameState.CombatTerrainAllowsObjectDisplay(position) {
-			return
-		}
-		drawOptions := g.combatMonsterDrawOptions(position, actors.ActiveMonsterIndex)
-		drawCombatSelectionFrame(
-			screen,
-			drawOptions,
-			g.getElapsedMs(),
-			combatActiveSelectionFaceColor(actors.ActiveMonsterIndex),
-		)
-
-		return
+	if combatScene == nil {
+		return nil, ucolor.CombatActivePCOutline
+	}
+	faceColor := combatActiveSelectionFaceColor(combatScene.ActiveMonsterIndex)
+	if combatScene.ActiveMonsterIndex != game_state.NoActiveMonster {
+		return g.combatActiveMonsterSelectionOptions(combatScene.ActiveMonsterIndex), faceColor
 	}
 
 	identity := combatScene.GetCurrentTurnIdentity()
 	activeIndex := identity.EntityIndex
-	if actors.ActivePartyIndex < 0 || !identity.IsPartyMember ||
+	if !identity.IsPartyMember ||
 		activeIndex < 0 || activeIndex >= g.gameState.PartyState.GetCharacterCount() ||
 		!combatScene.IsCombatPCActive(identity) {
-		return
+		return nil, ucolor.CombatActivePCOutline
 	}
 	character := g.gameState.PartyState.GetCharacter(activeIndex)
 	position, visible := g.combatSelectionPresentation(identity, combatScene.GetCombatantPosition(identity))
-	if visible && !character.IsDead() && character.IsInParty() && g.gameState.CombatTerrainAllowsObjectDisplay(position) {
-		drawOptions := g.combatPartyIdentityDrawOptions(position, identity)
-		faceColor := combatActiveSelectionFaceColor(game_state.NoActiveMonster)
-		if combatScene.IsCombatPCPossessed(identity) {
-			faceColor = ucolor.CombatActiveMonsterOutline
+	if !visible || character.IsDead() || !character.IsInParty() || !g.combatActiveSelectionPositionVisible(position) {
+		return nil, ucolor.CombatActivePCOutline
+	}
+	if g.combatTeleportEffect != nil && g.combatTeleportEffect.Caster == identity &&
+		g.combatTeleportEffect.Phase == combatTeleportHidden {
+		return nil, ucolor.CombatActivePCOutline
+	}
+	if combatScene.IsCombatPCPossessed(identity) {
+		faceColor = ucolor.CombatActiveMonsterOutline
+	}
+	if combatScene.IsPartyTurnAutoPass(activeIndex) {
+		faceColor = ucolor.EGALightGray
+	}
+
+	return g.combatPartyIdentityDrawOptions(position, identity), faceColor
+}
+
+func (g *GameScene) combatActiveMonsterSelectionOptions(index int) *ebiten.DrawImageOptions {
+	monster := g.gameState.CombatScene.MonsterManager.GetMonster(index)
+	if monster == nil || !monster.IsActive() || monster.IsDead() || monster.IsInvisible() || monster.IsCorpserHidden() ||
+		monster.EnemyRef() == nil || monster.EnemyRef().KeyFrameTile == nil {
+		return nil
+	}
+	if g.combatSummonEffect != nil && g.combatSummonEffect.hidesMonster(index) {
+		return nil
+	}
+	identity := game_state.CombatTurnIdentity{EntityIndex: index}
+	position, visible := g.combatSelectionPresentation(identity, monster.Position())
+	if !visible || !g.combatActiveSelectionPositionVisible(position) {
+		return nil
+	}
+	if !g.combatSignatureHidesActor(identity) {
+		if stack := g.combatPartyInsectStack(position); len(stack) > 0 {
+			if !slices.Contains(stack, index) {
+				return nil // The actor pass presents only the insect aggregate here.
+			}
+			// Any exact member's turn marks the one presented aggregate, using the
+			// representative sprite's movement/impact transform, as its HP frame does.
+			index = stack[0]
 		}
-		if combatScene.IsPartyTurnAutoPass(activeIndex) {
-			faceColor = ucolor.EGALightGray
+	}
+
+	return g.combatMonsterDrawOptions(position, index)
+}
+
+func (g *GameScene) combatActiveSelectionPositionVisible(position references.Position) bool {
+	tileX, tileY := combatPositionToViewportTile(position)
+
+	return tileX >= 0 && tileX < xTilesVisibleOnGameScreen && tileY >= 0 && tileY < yTilesVisibleOnGameScreen &&
+		g.gameState.CombatTerrainAllowsObjectDisplay(position)
+}
+
+// The complete familiar square and its two upper accents draw once, above HP.
+// Threatened intent remains an underlay; eligibility and selected aim draw later.
+func (g *GameScene) drawCombatActiveSelection(screen *ebiten.Image) {
+	if activeCombatPCIndicatorStyle != combatActivePCIndicatorSelectionTile {
+		return
+	}
+	options, faceColor := g.combatActiveSelectionOptions()
+	if options == nil {
+		return
+	}
+	elapsedMs := g.getElapsedMs()
+	drawCombatSelectionFrame(screen, options, elapsedMs, faceColor)
+	drawCombatActiveSelectionCorners(screen, options, elapsedMs, faceColor)
+}
+
+func combatActiveSelectionCornerFaces(elapsedMs int64) [4]image.Rectangle {
+	geometry := combatActivePCSelectionSourceGeometry(combatActivePCSelectionPhase(elapsedMs))
+	left, top, right := int(geometry.Left), int(geometry.Top), int(geometry.Left+geometry.Width)
+
+	return [4]image.Rectangle{
+		image.Rect(left, top, left+4, top+2), image.Rect(left, top, left+2, top+4),
+		image.Rect(right-4, top, right, top+2), image.Rect(right-2, top, right, top+4),
+	}
+}
+
+func drawCombatActiveSelectionCorners(
+	screen *ebiten.Image, options *ebiten.DrawImageOptions, elapsedMs int64, faceColor ucolor.EGAColor,
+) {
+	faces := combatActiveSelectionCornerFaces(elapsedMs)
+	for _, border := range []bool{true, false} {
+		for _, face := range faces {
+			clr := faceColor
+			if border {
+				face, clr = face.Inset(-combatMarkerBorderPixels), ucolor.CombatActiveAccentBorder
+			}
+			drawCombatMarkerRect(screen, options, face, clr)
 		}
-		drawCombatSelectionFrame(
-			screen,
-			drawOptions,
-			g.getElapsedMs(),
-			faceColor,
-		)
 	}
 }
 

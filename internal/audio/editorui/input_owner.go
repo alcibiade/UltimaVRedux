@@ -136,7 +136,7 @@ func (m *model) modalKey(key tea.KeyMsg) (tea.Cmd, bool) {
 	case ownerAmbientReplacement:
 		m.ambientReplacementKey(key.String())
 	case ownerCalibration:
-		m.autoCalibrationKey(key.String())
+		return m.autoCalibrationKey(key.String()), true
 	case ownerDuplicate:
 		return m.duplicateKey(key.String()), true
 	case ownerCrop:

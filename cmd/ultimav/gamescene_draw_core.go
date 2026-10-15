@@ -173,12 +173,7 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 
 	// Render screen flash effect (for fire damage, etc.)
 	viewportLit := !isDungeon || g.gameState.MapState.Lighting.HasAnyLight()
-	if viewportLit {
-		g.drawScreenFlashEffect(mapEffectsTarget)
-
-		// Render screen invert effect (for level-up X-ray style feedback)
-		g.drawScreenInvertEffect(mapEffectsTarget)
-	}
+	g.drawViewportFlashEffects(mapEffectsTarget, viewportLit)
 
 	// Render debug overlays on top of the map but below UI elements
 	if !isDungeon && !surfaceFrame {
@@ -246,6 +241,17 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 	if !isDungeon && !usesCinematicSplit && g.showRendererDiagnostics() {
 		ebitenutil.DebugPrint(screen, g.debugMessage)
 	}
+}
+
+// drawViewportFlashEffects follows the composed viewport and precedes chrome.
+// Ordinary flash/invert effects retain the dungeon light guard. Injury colours
+// cover the already-black/subdued image without drawing any hidden terrain.
+func (g *GameScene) drawViewportFlashEffects(screen *ebiten.Image, viewportLit bool) {
+	if viewportLit {
+		g.drawScreenFlashEffect(screen)
+		g.drawScreenInvertEffect(screen)
+	}
+	g.drawDungeonInjury(screen)
 }
 
 func (g *GameScene) worldRenderTarget(screen *ebiten.Image) *ebiten.Image {

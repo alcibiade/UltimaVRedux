@@ -155,6 +155,7 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 			g.cleanupHMSCapeConfirmation(hmsCapeConfirmation)
 			if context == game_state.UsageCombat {
 				g.clearCastUseDirectionPrompt()
+				g.clearPocketWatchDialog()
 				g.clearPotionEffectDialog()
 				g.clearCombatInvocationEffects()
 			}
@@ -395,8 +396,10 @@ func (g *GameScene) dispatchDungeonQuestItem(
 	case references.Sceptre:
 		g.gameState.SystemCallbacks.Message.AddRowStr("Sceptre")
 		g.gameState.SystemCallbacks.Message.AddRowStr("Wielding the Sceptre of Lord British...")
-		g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
-		g.gameState.UseDungeonSceptre()
+		result := g.gameState.UseDungeonSceptre()
+		if result.Cleared {
+			g.presentDungeonFieldDispel(result.Change)
+		}
 		complete()
 	case references.Carpet, references.Spyglass:
 		g.gameState.SystemCallbacks.Message.AddRowStr("Not here!")
@@ -432,7 +435,14 @@ func (g *GameScene) thenUseCombatItem(
 		return g.thenUseCombatPotion(itemType, canCommit, didCommit)
 	case references.Scroll:
 		return g.thenUseCombatScroll(itemType, canCommit, didCommit)
+	case references.Provision:
+		if itemType == references.SkullKeys {
+			return g.thenUseCombatSkullKey(canCommit, didCommit)
+		}
 	case references.QuestItem:
+		if itemType == references.PocketWatch {
+			return g.thenUseCombatPocketWatch(canCommit, didCommit)
+		}
 		if itemType == references.Crown || itemType == references.Amulet || itemType == references.BlackBadge {
 			return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 				return q.Then(func() {

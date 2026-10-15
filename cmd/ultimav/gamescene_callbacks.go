@@ -41,6 +41,7 @@ func (g *GameScene) wireSystemCallbacks() error {
 		ClearProjectile:                           g.clearProjectile,
 		PlayKapowAtPosition:                       g.playKapowAtPosition,
 		ShowCombatImpact:                          g.showCombatImpact,
+		ShowDungeonInjury:                         g.showDungeonInjury,
 	})
 
 	// Note: Death scene dissolve callbacks removed - now uses generic tile dissolve system

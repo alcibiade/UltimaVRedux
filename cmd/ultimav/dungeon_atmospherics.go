@@ -107,6 +107,7 @@ func appendDungeonDepthOneWallAtmospherics(
 				x:           sign.column*dungeonGraffitiCharacterSize - 16,
 				y:           sign.row*dungeonGraffitiCharacterSize - 14,
 				mirror:      false, top: false, fieldColor: 0, phase: 0,
+				dissolve: nil, fieldTimeMs: 0,
 			})
 		}
 
@@ -117,6 +118,7 @@ func appendDungeonDepthOneWallAtmospherics(
 		plan.append(dungeonRenderOp{
 			kind: dungeonRenderSkeletonEyes, role: dungeonRenderCenter, position: position, depth: 1,
 			spriteIndex: 0, x: 75, y: 73, mirror: false, top: false, fieldColor: 0, phase: 0,
+			dissolve: nil, fieldTimeMs: 0,
 		})
 	}
 }
@@ -155,6 +157,7 @@ func appendDungeonStalactite(
 	plan.append(dungeonRenderOp{
 		kind: dungeonRenderStalactite, role: role, position: position, depth: depth,
 		spriteIndex: 0, x: xPosition, y: yPosition, mirror: right, top: false, fieldColor: 0, phase: phase,
+		dissolve: nil, fieldTimeMs: 0,
 	})
 }
 

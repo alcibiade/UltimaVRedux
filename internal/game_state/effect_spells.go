@@ -64,7 +64,9 @@ func (gs *GameState) ActivateNegateMagicEffect(turns int) bool {
 	return true
 }
 
-// ActivateTimeStopEffect freezes time, NPC movement, and animations.
+// ActivateTimeStopEffect suppresses affected actors' actions and calendar time.
+// Presentation independently slows their body animations to a near standstill;
+// feedback and environmental clocks continue normally. See ref:SPELL-0004.
 // Called by: An Tym scroll (20 turns), An Tym spell (10 turns).
 // Returns true if the effect was activated or refreshed.
 // NOTE: Does NOT show message - caller (UI layer) handles popup dialog.
@@ -246,7 +248,7 @@ func (gs *GameState) CastAnNox(characterIndex int) PartySpellEffectResult {
 // GetPartyCoordinates returns the party's current world coordinates.
 // Called by: In Wis spell, Sextant item.
 // Returns x, y coordinates on the current map.
-func (gs *GameState) GetPartyCoordinates() (x, y int) {
+func (gs *GameState) GetPartyCoordinates() (int, int) {
 	pos := gs.MapState.PlayerLocation.Position
 
 	return int(pos.X), int(pos.Y)

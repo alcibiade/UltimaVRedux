@@ -102,12 +102,30 @@ according to its context; that does not replay intermediate hours or universally
 preserve the final hunger comparison.
 
 **REDUX DEVIATION: CAMP-0003:** all camping randomness remains on the controlled
-game RNG rather than reseeding from wall time, preserving deterministic replay.
-Logical cycles and guard/ring/ambush ordering are independent of presentation
-update size. Full requested-duration behavior is separately described below and
-can change how many hour crossings are tested.
+game RNG rather than reseeding from wall time. Each logical cycle retains its
+guard/ring/ambush ordering. Full requested-duration behavior is separately
+described below and can change how many hour crossings are tested.
 
-**Implementation:** `internal/game_state/action_hole_up_camping.go`, `internal/game_state/action_hole_up_dungeon.go`, `internal/game_state/combat_dungeon_camping.go`
+Outdoor and dungeon camping schedule each sleep-cycle presentation interval at
+200 ms. A fresh unmodified **Space** press during the sleeping loop latches 50 ms
+intervals for the rest of that camp. It takes effect when the next interval is
+scheduled; an already-scheduled deadline is not shortened. A hitch runs the due
+cycle and schedules from its execution time, rather than catching up multiple
+cycles. The press does not advance a cycle or consume RNG, and a held key does not
+repeat or become an acknowledgement of the later result. Setup, Bard performance,
+ambush, Wanderer presentation, and results are outside this acceleration window.
+Completion/interruption and final cleanup reset the latch.
+Acceleration is silent: Space changes the sleeping cadence without adding a hint
+box, status box, message, sound, or acknowledgement.
+
+Acceleration changes presentation pacing, not five-minute cycle size, requested
+rest length, healing/cooldown rules, or the order of camp decisions. However,
+elapsed wind processing shares the gameplay RNG: normal and accelerated runs
+can interleave different wind draws. Reproducibility requires the same elapsed,
+input, and action timeline as well as seed/state; equal seeds alone do not promise
+equal guard, ambush, healing, or later gameplay outcomes.
+
+**Implementation:** `internal/game_state/action_hole_up_camping.go`, `internal/game_state/action_hole_up_dungeon.go`, `internal/game_state/combat_dungeon_camping.go`, `internal/game_state/camping_pacing.go`, `internal/camping/camping_scene.go`, `internal/event_queue/event_queue_builder.go`, `cmd/ultimav/gamescene_transient_command_input.go`
 **Tests:** `internal/game_state/action_hole_up_camping_determinism_test.go`
 
 ### CAMP-0004

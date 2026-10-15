@@ -25,7 +25,12 @@ func TestAtlasNoteChildOwnsInputAndContinuousPause(t *testing.T) {
 	keys := map[ebiten.Key]bool{}
 	keyboard := input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return keys[key] })
 	now := time.Unix(100, 0)
-	scene := &GameScene{gameState: state, gameConfig: state.GameConfig, keyboard: keyboard, now: func() time.Time { return now }, startTime: now}
+	scene := &GameScene{
+		gameState: state, gameConfig: state.GameConfig, keyboard: keyboard,
+		now: func() time.Time { return now }, startTime: now,
+		// This detached control/pause fixture must not poll a live native text session.
+		appendInputChars: func(chars []rune) []rune { return chars },
+	}
 	scene.openAtlas(nil)
 	step := func(held ...ebiten.Key) {
 		clear(keys)

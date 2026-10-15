@@ -23,6 +23,7 @@ const (
 	dungeonViewDepth         = 4
 	dungeonMaxRenderOps      = 72
 	dungeonFieldFrameMs      = 100
+	dungeonFieldColorMask    = 0x03
 	dungeonNormalCenterBase  = 8
 	dungeonCenterPanelBase   = 12
 	dungeonSpecialSideBase   = 20
@@ -79,6 +80,7 @@ const (
 	dungeonRenderSkeletonEyes
 	dungeonRenderStalactite
 	dungeonRenderSkeletonCrumble
+	dungeonRenderFieldDispel
 )
 
 type dungeonRenderRole byte
@@ -103,6 +105,7 @@ type dungeonRenderOp struct {
 	fieldColor  byte
 	phase       byte
 	dissolve    *DissolveEffectState
+	fieldTimeMs int64
 }
 
 type dungeonRenderPlan struct {
@@ -165,6 +168,7 @@ func dungeonWallSetForLocation(location references.Location) (int, bool) {
 	}
 }
 
+//nolint:unused // Fixed-epoch entry point is used by rendering regression tests; production retains actor clocks.
 func buildDungeonRenderPlan(
 	snapshot *game_state.DungeonStateSnapshot,
 	player references.PlayerLocation,
@@ -173,12 +177,38 @@ func buildDungeonRenderPlan(
 	timeStopped bool,
 	presentationTimeMs int64,
 ) dungeonRenderPlan {
+	// Compatibility entry point for detached, fixed-epoch callers. Production
+	// supplies the persistent actor clock to the extended builder below.
+	var clock actorAnimationClock
+	clock.update(0, timeStopped)
+	clock.update(presentationTimeMs, timeStopped)
+
+	return buildDungeonRenderPlanWithPresentation(snapshot, player, lit, showSubduedUnlit, dungeonRenderPresentation{
+		environmentTimeMs: presentationTimeMs, creatureTimeMs: clock.phaseMs,
+		state: nil, fieldDispels: nil,
+	})
+}
+
+type dungeonRenderPresentation struct {
+	environmentTimeMs int64
+	creatureTimeMs    int64
+	state             *game_state.GameState
+	fieldDispels      []dungeonFieldDispelEffect
+}
+
+func buildDungeonRenderPlanWithPresentation(
+	snapshot *game_state.DungeonStateSnapshot,
+	player references.PlayerLocation,
+	lit bool,
+	showSubduedUnlit bool,
+	presentation dungeonRenderPresentation,
+) dungeonRenderPlan {
 	wallSet := validateDungeonRenderSource(snapshot, player.Location)
 	plan := dungeonRenderPlan{ //nolint:exhaustruct // Count and operations begin at their required zero values.
 		wallSet:         wallSet,
 		location:        player.Location,
 		floor:           player.Floor,
-		atmosphereFrame: uint64(max(presentationTimeMs, 0) / dungeonAtmosphereFrameMs),
+		atmosphereFrame: uint64(max(presentation.environmentTimeMs, 0) / dungeonAtmosphereFrameMs),
 		trueLight:       lit,
 		dark:            !lit && !showSubduedUnlit,
 		brightness:      1,
@@ -211,14 +241,15 @@ func buildDungeonRenderPlan(
 	}
 
 	for index := contentCount - 1; index >= 0; index-- {
+		appendDungeonFieldDispels(&plan, presentation.state, presentation.fieldDispels,
+			contentPositions[index], index, presentation.environmentTimeMs)
 		appendDungeonContents(&plan, contentCells[index], contentPositions[index], index)
 		appendDungeonWanderer(
 			&plan,
 			snapshot.Wanderer,
 			contentPositions[index],
 			index,
-			timeStopped,
-			presentationTimeMs,
+			presentation.creatureTimeMs,
 		)
 	}
 
@@ -418,6 +449,8 @@ func appendDungeonPanel(
 		top:         false,
 		fieldColor:  0,
 		phase:       0,
+		dissolve:    nil,
+		fieldTimeMs: 0,
 	})
 }
 
@@ -474,8 +507,10 @@ func appendDungeonContents(
 			y:           0,
 			mirror:      false,
 			top:         false,
-			fieldColor:  cell.Payload() & 0x03,
+			fieldColor:  cell.Payload() & dungeonFieldColorMask,
 			phase:       0,
+			dissolve:    nil,
+			fieldTimeMs: 0,
 		})
 	}
 
@@ -548,6 +583,8 @@ func appendDungeonItemPair(
 		top:         top,
 		fieldColor:  0,
 		phase:       0,
+		dissolve:    nil,
+		fieldTimeMs: 0,
 	})
 	xPosition, yPosition = dungeonItemPosition(item, depth, top, true)
 	plan.append(dungeonRenderOp{
@@ -562,6 +599,8 @@ func appendDungeonItemPair(
 		top:         top,
 		fieldColor:  0,
 		phase:       0,
+		dissolve:    nil,
+		fieldTimeMs: 0,
 	})
 }
 
@@ -668,15 +707,7 @@ func drawDungeonRenderOp(
 		}
 		drawDungeonSprite(canvas, panel, command, brightness)
 	case dungeonRenderItem:
-		item, ok := source.Item(command.spriteIndex)
-		if !ok {
-			panic(fmt.Sprintf("dungeon item %d is unavailable", command.spriteIndex))
-		}
-		if command.dissolve != nil {
-			drawDungeonPitReveal(canvas, item, command, brightness)
-		} else {
-			drawDungeonSprite(canvas, item, command, brightness)
-		}
+		drawDungeonItem(canvas, source, command, brightness)
 	case dungeonRenderMonster:
 		monster, ok := source.Monster(command.spriteIndex, int(command.phase))
 		if !ok {
@@ -689,6 +720,8 @@ func drawDungeonRenderOp(
 		drawDungeonSprite(canvas, monster, command, brightness)
 	case dungeonRenderField:
 		drawDungeonField(canvas, command, presentationTimeMs, brightness)
+	case dungeonRenderFieldDispel:
+		drawDungeonFieldDispel(canvas, command, brightness)
 	case dungeonRenderGraffiti:
 		drawDungeonGraffiti(canvas, graffitiOutput, command)
 	case dungeonRenderSkeletonEyes:
@@ -703,6 +736,18 @@ func drawDungeonRenderOp(
 		drawDungeonSkeletonCrumble(canvas, delta, command, brightness)
 	default:
 		panic("unknown dungeon render operation")
+	}
+}
+
+func drawDungeonItem(canvas *ebiten.Image, source dungeonSpriteSource, command dungeonRenderOp, brightness float32) {
+	item, ok := source.Item(command.spriteIndex)
+	if !ok {
+		panic(fmt.Sprintf("dungeon item %d is unavailable", command.spriteIndex))
+	}
+	if command.dissolve != nil {
+		drawDungeonPitReveal(canvas, item, command, brightness)
+	} else {
+		drawDungeonSprite(canvas, item, command, brightness)
 	}
 }
 
@@ -732,6 +777,18 @@ func drawDungeonField(
 	presentationTimeMs int64,
 	brightness float32,
 ) {
+	drawDungeonFieldAt(canvas, command, presentationTimeMs, brightness, 0, 0)
+}
+
+// drawDungeonFieldAt keeps the ordinary seed and inclusive stripe geometry;
+// offsets allow the identical field to be reconstructed in a cropped buffer.
+func drawDungeonFieldAt(
+	canvas *ebiten.Image,
+	command dungeonRenderOp,
+	presentationTimeMs int64,
+	brightness float32,
+	offsetX, offsetY int,
+) {
 	minimumX, maximumX, minimumY, maximumY, count, lineLength := dungeonFieldGeometry(command.depth)
 	fieldColor := dungeonFieldColor(command.fieldColor)
 	fieldColor.R = uint8(float32(fieldColor.R) * brightness)
@@ -755,8 +812,8 @@ func drawDungeonField(
 		yPosition := minimumY + int(seed%ySpan) //nolint:gosec // Modulo result is bounded by the field canvas.
 		vector.FillRect(
 			canvas,
-			float32(xPosition),
-			float32(yPosition),
+			float32(xPosition+offsetX),
+			float32(yPosition+offsetY),
 			float32(lineLength+1),
 			1,
 			fieldColor,
@@ -819,13 +876,15 @@ func (g *GameScene) drawDungeonViewport(screen *ebiten.Image) dungeonHUDStatus {
 	showSubduedUnlit := g.gameState.GameConfig != nil &&
 		g.gameState.GameConfig.GameplayConfiguration != nil &&
 		g.gameState.GameConfig.GameplayConfiguration.ShowSubduedUnlitDungeons
-	plan := buildDungeonRenderPlan(
+	plan := buildDungeonRenderPlanWithPresentation(
 		&snapshot,
 		player,
 		lit,
 		showSubduedUnlit,
-		g.gameState.HasActiveDurationEffect(game_state.DurationEffectTimeStop),
-		g.gameState.ElapsedMs,
+		dungeonRenderPresentation{
+			environmentTimeMs: g.gameState.ElapsedMs, creatureTimeMs: g.dungeonActorAnimationTime(),
+			state: g.gameState, fieldDispels: g.dungeonFieldDispels,
+		},
 	)
 	for index := range g.dungeonSkeletonCrumbles {
 		appendDungeonSkeletonCrumble(&plan, &g.dungeonSkeletonCrumbles[index], g.gameState.ElapsedMs)

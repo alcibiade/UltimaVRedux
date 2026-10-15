@@ -63,6 +63,7 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 	queue := g.gameState.EventQueueManager.Workflow("monster_turn_delay").
 		Priority(event_queue.PriorityHigh).
 		Sequential().BlockInput().
+		InputReleaseReady(func() bool { return !g.keyboard.HasUnprotectedHeldKey() }).
 		First(func() {}).
 		Wait(delayMs).
 		Then(func() {
@@ -138,6 +139,7 @@ func (g *GameScene) startScheduledCombatAutoPass(step game_state.CombatPresentat
 	g.gameState.EventQueueManager.Workflow("combat_pc_auto_pass").
 		Priority(event_queue.PriorityHigh).
 		Sequential().BlockInput().
+		InputReleaseReady(func() bool { return !g.keyboard.HasUnprotectedHeldKey() }).
 		First(func() {}).
 		// The validated speed factor bounds this 250ms base duration to 63-1000ms.
 		Wait(int64(g.combatMovementDuration(combatAutoPassPCDurationMs))). //nolint:gosec // Bounded well below int64.

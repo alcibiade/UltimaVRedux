@@ -250,13 +250,16 @@ type CombatEvent struct {
 	Visibility CombatVisibilityResult
 	FieldKind  CombatFieldKind
 	// FieldFizzled distinguishes a field expiring during the same action that created it.
-	FieldFizzled            bool
-	UtilityResult           CombatUtilityResult
-	Summon                  CombatSummonEvent
-	AnXenCorp               CombatAnXenCorpEvent
-	Created                 CombatSummonedMonster
-	Vanished                CombatVanishedMonster
-	Diagnostics             CombatDiagnostics
+	FieldFizzled  bool
+	UtilityResult CombatUtilityResult
+	Summon        CombatSummonEvent
+	AnXenCorp     CombatAnXenCorpEvent
+	Created       CombatSummonedMonster
+	Vanished      CombatVanishedMonster
+	Diagnostics   CombatDiagnostics
+	// SpellTarget is the authoritative area-spell outcome, including disclosure
+	// captured before damage/death can retire the exact target entry.
+	SpellTarget             *CombatAreaSpellTargetResult
 	Pickup                  CombatPickupEvent
 	LootReveal              CombatLootReveal
 	ChestTrap               CombatChestTrapResult

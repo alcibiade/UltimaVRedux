@@ -95,8 +95,24 @@ var boundKeysGame = []ebiten.Key{
 //
 //nolint:cyclop,gocyclo,funlen,maintidx // Ordered input-owner precedence stays together so early returns are auditable.
 func (g *GameScene) Update(game *Game) error {
+	defer g.updateActorAnimationClocks()
 	// Presentation service must run even when a reader consumes the whole frame.
 	defer g.updateSceneMusic()
+	inputAllowed := g.beginTransientCommandInputFrame()
+	if inputAllowed {
+		defer g.finishTransientCommandInputFrame()
+	} else {
+		// Reject input, not presentation. Keep the ordinary sky, wind, queue,
+		// automatic-door and effect path; retained readers still own a full pause.
+		restoreKeyboard := g.keyboard.SuspendInputPolling()
+		defer restoreKeyboard()
+		g.suspendNativeDialogInput()
+		if g.atlasSession != nil || g.journalSession != nil {
+			return nil
+		}
+		restoreQueueInput := g.gameState.EventQueueManager.SuspendInputPolling()
+		defer restoreQueueInput()
+	}
 	defer g.updateJournalNoticeAfterFrame(g.knowledgeNoticeBlocked())
 	g.observeProvisionChanges()
 	defer g.observeProvisionChanges()
@@ -157,6 +173,7 @@ func (g *GameScene) Update(game *Game) error {
 	}
 	if g.finalePresentation == nil && g.keyboard.IsModifierComboPressed(input.ModifierShift, ebiten.KeyJ) &&
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyJ) {
+		g.ResetTransientCommandInput()
 		g.gameState.ActionQuestJournal()
 
 		return nil
@@ -179,8 +196,12 @@ func (g *GameScene) Update(game *Game) error {
 	case finaleInputNone:
 	}
 
+	if inputAllowed {
+		g.captureTransientCommandInput()
+	}
 	// Update wind and visual effects using real time
 	g.updateWindAndEffects()
+	g.reconcileTransientInputAfterQueues()
 	consumedFinaleHandoff, err := g.consumeDoomMirrorFinaleHandoff()
 	if err != nil {
 		return err
@@ -202,10 +223,14 @@ func (g *GameScene) Update(game *Game) error {
 	// (updated automatically via EventQueueManager.Update() in GameState)
 
 	// Update dialogs BEFORE input blocking check - dissolve animations must progress even when input blocked
+	if !inputAllowed && g.updateDialogsWithoutInput() {
+		return nil
+	}
 	if g.updateDialogs() {
 		// only run a single update routine at a time
 		return nil
 	}
+	g.handleCampingAcceleration()
 
 	// Block all input during teleportation sequence
 	if g.inputBlocked {
@@ -264,6 +289,9 @@ func (g *GameScene) Update(game *Game) error {
 	if g.autoOpenDoorState.IsActive() {
 		return nil
 	}
+	if !inputAllowed {
+		return nil
+	}
 
 	mapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
 	if g.atlasChordHeld || g.atlasMarkChordHeld {
@@ -271,6 +299,7 @@ func (g *GameScene) Update(game *Game) error {
 		// or smashed movement. Higher-priority owners have already updated.
 		return nil
 	}
+	g.acceptPendingCombatCommand()
 
 	if g.secondaryKeyState != PrimaryInput {
 		if g.secondaryKeyState == SurfaceQuitInput {
@@ -295,7 +324,10 @@ func (g *GameScene) Update(game *Game) error {
 	}
 
 	// Handle gameplay logic here
-	boundKey := g.keyboard.GetBoundKeyPressed(&boundKeysGame)
+	boundKey, passOwned := g.explorationPassKey()
+	if !passOwned {
+		boundKey = g.keyboard.GetBoundKeyPressed(&boundKeysGame)
+	}
 	if boundKey == nil {
 		// allow quick tapping
 		g.keyboard.SetAllowKeyPressImmediately()
@@ -309,11 +341,13 @@ func (g *GameScene) Update(game *Game) error {
 		*boundKey == ebiten.KeyLeft || *boundKey == ebiten.KeyRight ||
 		(!g.gameState.CanPlayHarpsichord() && primaryMovementKey(*boundKey) != *boundKey)
 
-	if isArrowKey {
+	// The scene-owned Pass cadence already accepted its sample.
+	switch {
+	case !passOwned && isArrowKey:
 		if !g.keyboard.TryToRegisterRepeatableKeyPress(*boundKey) {
 			return nil
 		}
-	} else {
+	case !passOwned:
 		if !g.keyboard.TryToRegisterKeyPress(*boundKey) {
 			return nil
 		}

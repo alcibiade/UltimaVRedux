@@ -57,7 +57,13 @@ func (g *GameState) CastCombatWisQuas() []references.Position {
 // CastCombatInVasPorYlem applies the original earthquake to hostile combatants
 // whose DEX does not exceed their individual D30 roll.
 func (g *GameState) CastCombatInVasPorYlem(casterIdx int) []references.Position {
-	affected := make([]references.Position, 0)
+	return g.CastCombatEarthquakeResult(casterIdx).processedPositions()
+}
+
+// CastCombatEarthquakeResult resolves each eligible hostile entry once, retaining
+// avoidance as well as actual HP damage. Friendly/inactive entries are excluded.
+func (g *GameState) CastCombatEarthquakeResult(casterIdx int) CombatAreaSpellResult {
+	result := CombatAreaSpellResult{Spell: references.InVasPorYlem}
 	// Original prepared-spell rules scan combat queue upward, including possessed PC entries.
 	// See ref:SPELL-0002.
 	for sourceSlot := range sourceCombatQueueSlots {
@@ -66,22 +72,30 @@ func (g *GameState) CastCombatInVasPorYlem(casterIdx int) []references.Position 
 			continue
 		}
 		target := turnQueueIdentity(entry)
-		if g.combatIdentityLoyalty(target) != CombatMonsterLoyaltyMonster ||
-			g.effectiveCombatDexterity(target) > g.RollOriginalD30() {
+		if g.combatIdentityLoyalty(target) != CombatMonsterLoyaltyMonster {
+			continue
+		}
+		outcome := g.combatSpellTargetResult(target)
+		hit := g.rollCombatDexterityThreshold(g.effectiveCombatDexterity(target))
+		if hit.Outcome == CombatHitMiss {
+			outcome.Outcome = CombatSpellAvoided
+			result.Targets = append(result.Targets, g.publishCombatAreaSpellTarget(
+				casterIdx, references.InVasPorYlem, outcome, CombatDiagnostics{Hit: hit},
+			))
+
 			continue
 		}
 		damage := g.RollDice(20)
-		position := g.CombatScene.GetCombatantPosition(target)
 		if target.IsPartyMember {
 			character := g.PartyState.GetCharacter(target.EntityIndex)
 			hpBefore := character.GetCurrentHp()
 			character.SubtractHp(uint16(damage))
 			hpLost := int(hpBefore - character.GetCurrentHp())
-			g.publishCombatEarthquakeResult(casterIdx, target, position, damage, damage, hpLost, character.IsDead())
+			outcome.HPLost, outcome.Fatal = hpLost, character.IsDead()
+			result.Targets = append(result.Targets, g.publishCombatEarthquakeResult(casterIdx, outcome, hit, damage, damage))
 			if character.IsDead() {
 				g.markCombatPCDead(target.EntityIndex)
 			}
-			affected = append(affected, position)
 
 			continue
 		}
@@ -91,38 +105,25 @@ func (g *GameState) CastCombatInVasPorYlem(casterIdx int) []references.Position 
 		hpBefore := monster.CurrentHP()
 		monster.TakeDamage(finalDamage)
 		hpLost := hpBefore - monster.CurrentHP()
-		g.publishCombatEarthquakeResult(casterIdx, target, position, damage, finalDamage, hpLost, monster.IsDead())
+		outcome.HPLost, outcome.Fatal = hpLost, monster.IsDead()
+		result.Targets = append(result.Targets, g.publishCombatEarthquakeResult(casterIdx, outcome, hit, damage, finalDamage))
 		if hpBefore > 0 && monster.IsDead() {
 			g.finalizeCombatMonsterDeath(monster, monsterIdx, g.PartyState.GetCharacter(casterIdx), casterIdx)
 		} else if hpLost > 0 {
 			g.tryDivideCombatMonster(monster, monsterIdx)
 		}
-		affected = append(affected, position)
 	}
 
-	return affected
+	return result
 }
 
-func (g *GameState) publishCombatEarthquakeResult(casterIdx int, identity CombatTurnIdentity, position references.Position, damage, finalDamage, hpLost int, fatal bool) {
-	casterIdentity := g.combatPartyAttackerIdentity(casterIdx)
-	attacker := combatFeedbackIdentity(casterIdentity, g.CombatScene.GetCombatantPosition(casterIdentity))
-	target := combatFeedbackIdentity(identity, position)
-	result := CombatFeedbackDamage
-	if hpLost == 0 {
-		result = CombatFeedbackGraze
-	}
-	if hpLost > 0 {
-		g.SystemCallbacks.Visual.ShowCombatImpact(CombatAttackFeedback{
-			Attacker: attacker, Target: target, Result: result, HPLost: hpLost, Fatal: fatal,
-			Presentation: CombatAttackPresentation{
-				Delivery: CombatAttackDeliverySpell,
-				Source:   references.NoEquipment,
-			},
-		})
-	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Earthquake has no physical attack diagnostics.
-		Kind: CombatEventSpell, Attacker: attacker, Target: target, Result: result, HPLost: hpLost, Fatal: fatal, From: attacker.Position, To: position,
-		Diagnostics: CombatDiagnostics{Spell: references.InVasPorYlem, FinalDamage: finalDamage, MagicDamage: true,
-			Damage: CombatDamageResult{Damage: damage, AttackMax: 20, AttackRoll: damage, AttackRolled: true}},
+func (g *GameState) publishCombatEarthquakeResult(
+	casterIdx int, result CombatAreaSpellTargetResult, hit CombatHitResult, damage, finalDamage int,
+) CombatAreaSpellTargetResult {
+	result.Outcome = combatSpellDamageOutcome(result.HPLost)
+
+	return g.publishCombatAreaSpellTarget(casterIdx, references.InVasPorYlem, result, CombatDiagnostics{
+		Hit: hit, FinalDamage: finalDamage,
+		Damage: CombatDamageResult{Damage: damage, AttackMax: 20, AttackRoll: damage, AttackRolled: true},
 	})
 }

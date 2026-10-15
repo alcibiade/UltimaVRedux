@@ -10,6 +10,7 @@ import (
 func (g *GameScene) updateWindAndEffects() {
 	currentMs := g.getElapsedMs()
 	g.gameState.ElapsedMs = currentMs
+	g.updateActorAnimationClocks()
 	g.gameState.ProcessWindThroughElapsed(currentMs)
 	g.gameState.UpdateMoongateTransition()
 
@@ -42,6 +43,8 @@ func (g *GameScene) updateWindAndEffects() {
 	g.updateNonBlockingDialogs()
 	g.updateDungeonSkeletonCrumble()
 	g.updateDungeonPitReveals()
+	g.updateDungeonFieldDispels()
+	g.updateDungeonInjury()
 
 	// Update timed overlay auto-dismissal (checked independently of event queue)
 	g.updateTimedOverlay()

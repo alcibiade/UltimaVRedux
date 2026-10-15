@@ -307,6 +307,30 @@ slots are silent until filled. The original DOS routines use generic damage nois
 without distinguishing fall severity; this semantic split is Redux presentation
 policy rather than an original sound distinction.
 
+Resolved dungeon field injuries reuse `SoundFireBurn` for fire and `SoundPoison`
+for poison. Electrical injury has the dedicated `sfx/SoundElectricalDamage`
+cue, displayed as **Electrical Injury**, with the `electrical_injury_01` empty
+recording slot. It is classified as an environmental injury impact, independently
+of sustained field ambience. It is intentionally silent until a recording is
+supplied; the intended trigger is actual resolved injury, not merely entering or
+viewing a field. Its 0.8 cue gain is provisional.
+
+`sfx/SoundDispel` is displayed as **Dispel Field** and uses the dedicated
+`field_dispel_01` empty recording in the magic acoustic family. Successful dungeon
+Sceptre and An Grav removal request this shared cue once; cancelled or no-effect
+attempts request no success cue. Existing combat An Grav also uses this slot and
+is intentionally silent until it is populated. The previous shared `healing_02`
+recording, its provenance/calibration and `SoundAbsorb` assignment are retained.
+The intended future recording is a short magical field-collapse fizzle with a
+restrained tail, communicating success; `SoundSpellFailure` remains distinct.
+The existing 0.8 cue gain is provisional pending recording selection and listening.
+
+Both new slots use `file: null`, literal unknown provenance, empty processing
+history, and no calibration or playback window. Find them in the editor by name,
+Sceptre/An Grav, or electrical injury/dungeon search terms. Their trigger guidance
+describes intended authoring context. Catalog, source-routing and silence checks
+do not establish audible acceptance for recordings that have not been supplied.
+
 Each playback request creates one fresh decoded stream and one Ebitengine player.
 Preparation must succeed before replacing the preceding same-effect voice or
 evicting for capacity. Rejected, failed and dropped requests advance neither the
@@ -1105,8 +1129,18 @@ only its cue gain. Ctrl+S saves; undo/redo retain both the gain and ownership mo
 Existing numeric gains without a mode are treated as manual, protecting prior edits.
 Loading a source, refreshing availability, and undo/redo hydration do not author
 calibration. A family change recomputes an existing AUTO gain in the same document
-transaction as the family edit. AUTO confirmation is bound to its recording and
-document revision; a stale suggestion cannot be applied to another target.
+transaction as the family edit. AUTO confirmation is bound to its recording,
+document revision, draft identity and immutable loaded source. Enter verifies the
+current file's content in a background document transaction, including replacements
+that preserve size and timestamps. Acceptance rechecks the target and source snapshot
+so an intervening reload, invalidation or newer document edit cannot publish the
+old suggestion. A source probe invalidates its pending approval and stops affected
+playback. Rejection preserves authored settings and Undo/Redo; Escape dismisses the
+draft, then F5 reloads and Shift+A obtains a new suggestion for explicit confirmation.
+Successful confirmation is one undoable edit and updates live gain without restarting
+playback or writing the source/manifest. Ctrl+S remains separate. Content verification
+is not a lock against an external writer changing a file afterward, matching the
+region-transaction boundary.
 `calibrationMode` is `auto` or `manual` and requires `calibrationGainDb`.
 Optional `calibrationTargetDb` overrides the family default and is restricted to
 `[-60,-6]` dB. Invalid or silent selections have no suggestion.
@@ -1403,8 +1437,9 @@ crop adjustment remains about 0.75 microseconds per Right/Left pair; measured
 key-plus-render p95 is 2.34 ms WAV, 2.43 ms MP3 and 2.23 ms OGG. Measurements use
 100 iterations on Apple M3 Pro and exclude terminal delivery and device buffering.
 
-Physical terminal-key acceptance still uses the real editing tasks: ordinary and
-modified arrows, held repeat, pause/crop/resume, invalid/crossed bounds, cancelled
+Physical terminal-key acceptance remains owner-deferred. It requires the real
+editing tasks: ordinary and modified arrows, held repeat, pause/crop/resume,
+invalid/crossed bounds, cancelled
 import, Save/Undo/Redo and safe Quit. Tests feed the pinned terminal decoder's raw
 bytes and adversarial controller messages, but cannot certify an untested terminal
 or replace user-observed keyboard behavior. Long native sessions and broader mix/

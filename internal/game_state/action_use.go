@@ -103,7 +103,7 @@ func (g *GameState) GetUsableItems() []UseableItemInfo {
 		if qty > 0 {
 			itemRef := g.GameReferences.InventoryItemReferences.QuestItem[questItem]
 			usageContext := UsageField
-			if questItem == references.HMSCape || questItem == references.BlackBadge {
+			if questItem == references.HMSCape || questItem == references.BlackBadge || questItem == references.PocketWatch {
 				usageContext = UsageAnytime
 			}
 			items = append(items, g.newUseableItemInfo(
@@ -189,7 +189,7 @@ func (g *GameState) GetUsableItems() []UseableItemInfo {
 		items = append(items, g.newUseableItemInfo(
 			itemRef,
 			UseItemCategoryKeys,
-			UsageField,
+			UsageAnytime,
 			int(g.PartyState.Inventory.Provisions.SkullKeys.Get()),
 			references.SkullKeys,
 		))
@@ -823,7 +823,7 @@ func (g *GameState) useCarpet(complete func()) bool {
 // useSkullKey handles skull key usage for unlocking magically locked doors.
 // Based on original item-use rules and magical unlocking.
 // Note: Key consumption happens in the event queue workflow.
-// See ref:CONSUME-0001.
+// See ref:PROV-0006.
 func (g *GameState) useSkullKey(complete func()) bool {
 	commit, _ := g.BeginSkullKeyUse()
 	if commit == nil {
