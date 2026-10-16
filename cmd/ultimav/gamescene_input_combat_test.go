@@ -1535,40 +1535,92 @@ func TestCombatRelTymEffectUsesTwoLightBluePulsesAndCleansUp(t *testing.T) {
 }
 
 func TestCombatMagicLockEffectMutatesAtSealClimaxAndCleansUp(t *testing.T) {
-	gs, mock := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-	if gs == nil {
-		return
-	}
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
+	scene, mock := newCombatDoorSpellScene(t, references.AnExPor)
+	baseline, _ := newCombatDoorSpellScene(t, references.AnExPor)
+	gs, expected := scene.gameState, baseline.gameState
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
-	target := references.Position{X: 5, Y: 5}
-	gs.CombatScene.CombatMapRef.SetTileNumber(target, indexes.RegularDoor)
-	mock.Reset()
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused utility-effect fixture.
+	caster := gs.PartyState.GetCharacter(casterIdx)
+	target := references.Position{X: 6, Y: 5}
+	for _, state := range []*game_state.GameState{gs, expected} {
+		setProductionCombatPushTerrain(state, target, indexes.RegularDoor)
+	}
+	mp, stock := caster.GetCurrentMp(), gs.PartyState.Inventory.Spells.Get(references.AnExPor)
+	commits, rng := gs.CastUseCommitSequence(), gs.GetRNG().Calls()
+	before := snapshotBlockedCombatState(t, gs)
+	require.True(t, gs.BeginCombatAdjacentSpellTargeting(game_state.CastRequest{
+		Spell: references.AnExPor, CasterIdx: casterIdx,
+	}).Valid)
+	require.Equal(t, game_state.CombatAdjacentSpellTargetAwaitingDirection,
+		gs.SetCombatAdjacentSpellDirection(references.Right))
+	assert.Equal(t, before, snapshotBlockedCombatState(t, gs), "selection is free")
+	assert.Equal(t, mp, caster.GetCurrentMp())
+	assert.Equal(t, commits, gs.CastUseCommitSequence())
+	result := gs.ConfirmCombatAdjacentSpellTarget()
+	require.Equal(t, game_state.CombatAdjacentSpellTargetResolved, result.Outcome)
+	require.NotNil(t, result.Utility)
+	require.Equal(t, target, result.Target)
+	wantMP := mp - byte(references.GetSpellCircle(references.AnExPor))
+	assert.Equal(t, wantMP, caster.GetCurrentMp())
+	assert.Equal(t, stock-1, gs.PartyState.Inventory.Spells.Get(references.AnExPor))
+	assert.Equal(t, commits+1, gs.CastUseCommitSequence())
+	assert.Equal(t, game_state.CombatAdjacentSpellTargetIgnored, gs.ConfirmCombatAdjacentSpellTarget().Outcome)
+	assertSceneCombatDoorTerrain(t, gs, target, indexes.RegularDoor)
 
-	scene.startCombatUtilitySpellEffect(game_state.CombatAdjacentSpellTargetResult{
-		Outcome: game_state.CombatAdjacentSpellTargetResolved,
-		Request: game_state.CastRequest{Spell: references.AnExPor, CasterIdx: casterIdx},
-		Target:  target,
-	})
+	scene.startCombatUtilitySpellEffect(result)
+	scene.startCombatUtilitySpellEffect(result) // A repeated delivery cannot start another workflow.
 	gs.EventQueueManager.Update()
 	require.NotNil(t, scene.combatUtilityEffect)
 	assert.True(t, mock.SoundEffectWasPlayed(game_state.SoundMagicLock))
-	assert.Equal(t, indexes.SpriteIndex(indexes.RegularDoor), gs.CombatScene.CombatMapRef.GetTileNumber(target))
+	assert.Equal(t, combatUtilityApproach, scene.combatUtilityEffect.Phase)
+	assertSceneCombatDoorTerrain(t, gs, target, indexes.RegularDoor)
+	assert.True(t, mock.InputBlocked)
 
-	gs.ElapsedMs += combatUtilityApproachDurationMs
+	gs.ElapsedMs += combatUtilityApproachDurationMs - 1
+	gs.EventQueueManager.Update()
+	assertSceneCombatDoorTerrain(t, gs, target, indexes.RegularDoor)
+	assert.Empty(t, combatDoorSpellEvents(mock))
+	assertCombatMatchesSingleFinish(t, gs, expected)
+	assert.Equal(t, rng, gs.GetRNG().Calls())
+	gs.ElapsedMs++
 	gs.EventQueueManager.Update()
 	gs.EventQueueManager.Update()
-	assert.Equal(t, indexes.SpriteIndex(indexes.MagicLockDoor), gs.CombatScene.CombatMapRef.GetTileNumber(target))
+	assertSceneCombatDoorTerrain(t, gs, target, indexes.MagicLockDoor)
+	require.NotNil(t, scene.combatUtilityEffect)
 	assert.Equal(t, combatUtilityResult, scene.combatUtilityEffect.Phase)
+	require.Len(t, combatDoorSpellEvents(mock), 1)
+	assert.Equal(t, game_state.CombatUtilityDoorMagicLocked, combatDoorSpellEvents(mock)[0].UtilityResult)
+	assertCombatMatchesSingleFinish(t, gs, expected)
 
-	gs.ElapsedMs += combatUtilityResultDurationMs
+	gs.ElapsedMs += combatUtilityResultDurationMs - 1
+	gs.EventQueueManager.Update()
+	require.NotNil(t, scene.combatUtilityEffect)
+	assert.True(t, mock.InputBlocked)
+	assertCombatMatchesSingleFinish(t, gs, expected)
+	gs.ElapsedMs++
 	gs.EventQueueManager.Update()
 	gs.EventQueueManager.Update()
 	assert.Nil(t, scene.combatUtilityEffect)
+	assert.Nil(t, gs.CombatScene.AdjacentSpellTargeting)
+	assert.False(t, mock.InputBlocked)
+	assert.False(t, gs.EventQueueManager.HasWorkflow("combat_utility_spell_effect"))
+	expected.FinishCombatAction()
+	assertCombatMatchesSingleFinish(t, gs, expected)
+	assert.Equal(t, expected.GetRNG().Calls(), gs.GetRNG().Calls())
+
+	scene.startCombatUtilitySpellEffect(result)
+	assert.False(t, gs.ResolveCombatUtilitySpell(result.Utility))
+	gs.FinishCombatUtilitySpell(result.Utility)
+	gs.EventQueueManager.Update()
+	assertCombatMatchesSingleFinish(t, gs, expected)
+	assertSceneCombatDoorTerrain(t, gs, target, indexes.MagicLockDoor)
+	assert.Equal(t, wantMP, caster.GetCurrentMp())
+	assert.Equal(t, stock-1, gs.PartyState.Inventory.Spells.Get(references.AnExPor))
+	assert.Equal(t, commits+1, gs.CastUseCommitSequence())
+	require.Len(t, combatDoorSpellEvents(mock), 1)
+	assert.Equal(t, []game_state.SoundEffect{game_state.SoundMagicLock}, mock.SoundEffectsPlayed)
+	assert.Equal(t, 1, mock.BlockInputCalls)
+	assert.Equal(t, 1, mock.UnblockInputCalls)
+	assert.False(t, gs.EventQueueManager.HasWorkflow("combat_utility_spell_effect"))
 }
 
 func TestCombatInPorEffectConcealsMovesAndRevealsCaster(t *testing.T) {

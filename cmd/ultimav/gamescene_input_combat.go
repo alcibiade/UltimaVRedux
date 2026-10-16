@@ -548,8 +548,17 @@ func (g *GameScene) handleCombatAdjacentSpellTargetInput() {
 
 		return
 	}
+	doorSpell := game_state.IsCombatDoorSpell(g.gameState.CombatScene.AdjacentSpellTargeting.Request.Spell)
+	if doorSpell {
+		g.showCombatDoorSpellAimPrompt()
+	}
 	if direction, selected := g.combatConeDirectionInput(); selected {
 		g.gameState.SetCombatAdjacentSpellDirection(direction)
+		if doorSpell {
+			g.showCombatDoorSpellAimPrompt()
+
+			return
+		}
 		target, valid, _ := g.gameState.CombatAdjacentSpellPreview()
 		spell := g.gameState.CombatScene.AdjacentSpellTargeting.Request.Spell
 		spellName := references.GetSpellName(spell)
@@ -571,6 +580,11 @@ func (g *GameScene) handleCombatAdjacentSpellTargetInput() {
 	confirm := g.keyboard.IsKeyPressedAndRegister(ebiten.KeyC) ||
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) ||
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter)
+	if doorSpell && g.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace) {
+		// The door cursor always occupies a neighbour, never the caster square.
+		// Space therefore confirms just as it does away from the attack origin.
+		confirm = true
+	}
 	if !confirm {
 		return
 	}
@@ -583,16 +597,27 @@ func (g *GameScene) handleCombatAdjacentSpellTargetInput() {
 		g.gameState.SystemCallbacks.UI.ShowActionFeedback("Invalid target.", true)
 	case game_state.CombatAdjacentSpellTargetValidationFailed:
 		g.secondaryKeyState = PrimaryInput
+		g.gameState.SystemCallbacks.Message.ShowCommandPrompt("")
 		g.gameState.SystemCallbacks.UI.ShowActionFeedback(result.Validation.ErrorMsg, true)
 	case game_state.CombatAdjacentSpellTargetResolved:
 		g.secondaryKeyState = PrimaryInput
+		g.gameState.SystemCallbacks.Message.ShowCommandPrompt("")
 		g.startCombatAdjacentSpellEffect(result)
 	}
 }
 
+func (g *GameScene) showCombatDoorSpellAimPrompt() {
+	targeting := g.gameState.CombatScene.AdjacentSpellTargeting
+	// Deliberately no lock/trap/validity description: aiming must not inspect
+	// concealed terrain or disclose whether an unassessed chest is trapped.
+	g.gameState.SystemCallbacks.Message.ShowCommandPrompt(
+		references.GetSpellName(targeting.Request.Spell) +
+			" - Arrows/keypad: adjacent target; Enter/C/Space: cast; Esc: cancel",
+	)
+}
+
 func (g *GameScene) startCombatAdjacentSpellEffect(result game_state.CombatAdjacentSpellTargetResult) {
-	if result.Request.Spell == references.AnSanct || result.Request.Spell == references.AnExPor ||
-		result.Request.Spell == references.InExPor {
+	if game_state.IsCombatDoorSpell(result.Request.Spell) {
 		g.startCombatUtilitySpellEffect(result)
 
 		return
@@ -1031,7 +1056,9 @@ func (g *GameScene) combatMapOpenSecondary(direction references.Direction) bool 
 }
 
 func (g *GameScene) combatMapJimmySecondary(direction references.Direction) {
-	handled := g.gameState.ActionJimmyCombatMap(direction)
+	handled := g.captureCombatChestJimmyFeedback(func() (bool, *game_state.CombatChestIdentity) {
+		return g.gameState.ActionJimmyCombatMapWithDisarm(direction)
+	})
 	if !handled {
 		g.addRowStr("Nothing to jimmy!")
 	}

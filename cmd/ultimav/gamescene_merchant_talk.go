@@ -237,7 +237,7 @@ func (g *GameScene) thenRunArmsShopAuthority(
 				State:          state,
 				Prose:          prose,
 				Preview:        preview,
-				IsKeyPressed:   nil,
+				IsKeyPressed:   g.keyboard.IsKeyHeld,
 			})
 			workflowState.armsDialog = dialog
 			g.keyboard.PrepareForTransition(0)
@@ -766,7 +766,7 @@ func (g *GameScene) thenRunShipShopAuthority(
 				State:          state,
 				Prose:          prose.dialog,
 				Preview:        preview,
-				IsKeyPressed:   nil,
+				IsKeyPressed:   g.keyboard.IsKeyHeld,
 			})
 			workflowState.shipDialog = dialog
 			g.keyboard.PrepareForTransition(0)
@@ -1083,7 +1083,7 @@ func (g *GameScene) thenRunGuildShopAuthority(
 				State:          state,
 				Prose:          prose,
 				Preview:        preview,
-				IsKeyPressed:   nil,
+				IsKeyPressed:   g.keyboard.IsKeyHeld,
 			})
 			workflowState.guildDialog = dialog
 			g.keyboard.PrepareForTransition(0)
@@ -1469,7 +1469,7 @@ func (g *GameScene) thenRunInnShopAuthority(
 				State:          state,
 				Prose:          prose.dialog,
 				Preview:        preview,
-				IsKeyPressed:   nil,
+				IsKeyPressed:   g.keyboard.IsKeyHeld,
 			})
 			workflowState.innDialog = dialog
 			g.keyboard.PrepareForTransition(0)
@@ -1525,7 +1525,7 @@ func (g *GameScene) thenRunInnShopAuthority(
 				actionDialog := widgets.NewInnActionDialog(widgets.InnActionDialogConfig{
 					Keyboard:     g.keyboard,
 					Intent:       intent,
-					IsKeyPressed: nil,
+					IsKeyPressed: g.keyboard.IsKeyHeld,
 				})
 				workflowState.innAction = actionDialog
 				g.keyboard.PrepareForTransition(0)

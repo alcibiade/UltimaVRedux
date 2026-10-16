@@ -456,8 +456,17 @@ uninspected. Dungeon tactical chests use this object model, not first-person
 dungeon DEX/depth inspection. This avoids repeated guesswork without merging
 distinct objects or allowing presentation to own trap state.
 
-**Implementation:** `internal/game_state/combat_loot_presentation.go`, `internal/game_state/combat_collection.go`, `internal/game_state/combat_chest.go`
-**Tests:** `internal/game_state/combat_ground_display_test.go`, `internal/game_state/combat_chest_assessment_test.go`
+Each admitted Redux combat object also receives a monotonically increasing,
+nonzero lifetime ID within its encounter. All admission paths share this allocator,
+including authored objects, generated loot, transferred corpses and replacements.
+Value copies and storage compaction preserve identity; removal followed by admission
+always creates a new lifetime, even with identical contents and a reused original
+slot. Delayed chest effects and feedback retain that lifetime rather than relying
+on slot or position equality. These IDs and their allocator exist only in combat
+memory; no saved format, original slot ordering or gameplay RNG is changed.
+
+**Implementation:** `internal/game_state/combat_loot_presentation.go`, `internal/game_state/combat_collection.go`, `internal/game_state/combat_chest.go`, `internal/game_state/combat_object.go`
+**Tests:** `internal/game_state/combat_ground_display_test.go`, `internal/game_state/combat_chest_assessment_test.go`, `internal/game_state/combat_object_test.go`, `internal/game_state/combat_door_spell_test.go`
 
 ### COMBAT-0011
 
@@ -555,5 +564,19 @@ outside the black HP frame show current side; HP size/color/opacity still expres
 health. Exact clone identity, visibility, possession, and recorded summon/charm
 provenance come from the authoritative projection, never presentation writes.
 
-**Implementation:** `internal/game_state/combat_attack_preview.go`, `internal/game_state/combat_auto_action.go`, `cmd/ultimav/gamescene_projectile.go`
-**Tests:** `internal/game_state/combat_attack_preview_test.go`, `internal/game_state/combat_auto_action_test.go`, `internal/game_state/combat_interruption_test.go`
+Redux fire feedback likewise consumes a detached resolved injury with actual HP
+loss, fatality and exact actor/clone disclosure. It adds no damage or RNG and does
+not change COMBAT-0007's direct/standing hazard rules or SPELL-0003's Flame Wind
+resolution. For a movement-bound injury, the burn begins at 50% interpolation
+progress and holds through arrival, then receives a 450 ms silhouette-tint fade
+and 1250 ms floating-result lifetime. Stationary injuries start at admission;
+zero HP loss admits no burn. One injury produces one local result, including
+direct fire-field hits; fatal labels may outlive the sprite but cannot identify a
+replacement or concealed actor. This timing is Redux presentation for readable
+contact, not an original damage-timing claim. Input and action completion stay
+with the existing workflow. See the
+[fire feedback contract](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-fire-injury-feedback)
+for identity, disclosure and cleanup boundaries.
+
+**Implementation:** `internal/game_state/combat_attack_preview.go`, `internal/game_state/combat_auto_action.go`, `cmd/ultimav/gamescene_projectile.go`, `internal/game_state/combat_fire_injury.go`, `cmd/ultimav/gamescene_combat_fire.go`
+**Tests:** `internal/game_state/combat_attack_preview_test.go`, `internal/game_state/combat_auto_action_test.go`, `internal/game_state/combat_interruption_test.go`, `internal/game_state/combat_fire_injury_test.go`, `cmd/ultimav/gamescene_combat_fire_test.go`

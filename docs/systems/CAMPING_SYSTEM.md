@@ -57,6 +57,36 @@ rest complete `DungeonFullEndPlayer`, retaining the precharged dungeon-minute
 policy; an ambush retains the same token through
 combat and completes it only after dungeon restoration.
 
+### Guard comparison and confirmation
+
+Both outdoor and dungeon guard prompts explicitly enable the character selector's
+`GuardResources` layout. Its detached opening snapshot shows Name, current/max HP,
+current/max MP and Condition for all active party members, including unavailable
+rows. All six party rows plus **No One** fit together; No One has blank resource
+and condition cells. A measured explanation below the roster and the control
+footer retain their space when inspecting another row or resizing. These are
+current resources, not predicted rest gains. Reopening takes a fresh snapshot.
+
+Arrows and number keys inspect without confirmation; Enter accepts an actionable
+or warning row, and Escape cancels. No resource-based guard recommendation or
+automatic choice is made. Good members can stand watch; their explanation notes
+that guarding forfeits ordinary rest HP/MP recovery. Poisoned members remain
+warning rows, now accurately saying **A poisoned selection cancels camping.**
+The scene rechecks Good status when accepting a character; a non-Good selection
+cancels setup rather than silently choosing No One. Other unavailable rows stay
+inspectable but cannot confirm. Only explicit No One starts an unguarded camp.
+
+The poisoned-selection cancellation is an existing Redux discrepancy from the
+original non-Good-selection-to-unguarded rule, not a newly approved fidelity
+deviation. The corrected warning preserves that behavior and the surface/dungeon
+cancellation costs above. See [CAMP-0001](../gamefacts/CAMPING_MECHANICS.md#camp-0001)
+and [detached selectors](../ui/WIDGET_COMPONENTS.md#detached-selectors).
+
+Projection, detached snapshots, measured full-party layout and input/workflow
+ownership are covered by `cmd/ultimav/gamescene_guard_resources_test.go`,
+`cmd/ultimav/gamescene_camping_cancellation_test.go` and
+`internal/ui/widgets/character_guard_resources_test.go`.
+
 ## Map And Scene Model
 
 `TransitionToCampingMap` creates an 11 by 11 `LayeredMap` through

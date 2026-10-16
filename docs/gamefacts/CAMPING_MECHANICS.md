@@ -30,8 +30,23 @@ ambush/death and leaves it carried afterward. No ground carpet is created.
 Cancelling before commitment leaves it mounted; full carpet stock refuses the
 transfer without loss. Water/skiff rejection and frigate repair stay separate.
 
-**Implementation:** `internal/game_state/action_hole_up_camping.go`, `internal/game_state/action_hole_up_dungeon.go`
-**Tests:** `internal/game_state/camping_carpet_stow_test.go`
+**Known discrepancy — watch selection:** Redux's explicit No One row confirms an
+unguarded camp, while Escape cancels setup. Confirming a Poisoned warning row
+also cancels setup because the scene rechecks that a selected guard is Good.
+Unlike the original non-Good-selection fallback, it does not start an unguarded
+camp. The warning now describes that existing cancellation accurately and directs
+the player to No One for unguarded rest; this wording correction does not fix or
+reclassify the discrepancy as an intentional fidelity deviation. Surface
+cancellation has no ordinary completion cycle; dungeon cancellation retains its
+accepted precharge and exact full end-player cleanup without camp setup RNG.
+
+The guard comparison presents detached current/max HP and MP for every party row,
+with blank resource cells for No One. Inspection does not choose a guard or predict
+healing. Layout and confirmation ownership are described in the
+[camping system](../systems/CAMPING_SYSTEM.md#guard-comparison-and-confirmation).
+
+**Implementation:** `internal/game_state/action_hole_up_camping.go`, `internal/game_state/action_hole_up_dungeon.go`, `cmd/ultimav/gamescene_dialog_helpers.go`, `cmd/ultimav/gamescene_character_selection.go`, `internal/ui/widgets/character_guard_resources.go`
+**Tests:** `internal/game_state/camping_carpet_stow_test.go`, `cmd/ultimav/gamescene_camping_cancellation_test.go`, `cmd/ultimav/gamescene_guard_resources_test.go`, `internal/ui/widgets/character_guard_resources_test.go`
 
 ### CAMP-0002
 

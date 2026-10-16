@@ -311,10 +311,11 @@ func newCombatUseTestScene(t *testing.T) (*GameScene, *game_state.MockSystemCall
 	))
 	require.True(t, state.CombatScene.GetCurrentTurnIdentity().IsPartyMember)
 
+	// Workflow release predicates must see fixture-owned held keys, not host input.
 	return &GameScene{
 		gameState:   state,
 		output:      text.NewOutput(nil, 1, 10, 80),
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false }),
 		spriteSheet: &sprites.SpriteSheet{},
 	}, mock
 }

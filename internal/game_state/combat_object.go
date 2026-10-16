@@ -7,9 +7,21 @@ import (
 
 const combatChestLockTrapBit = 0x80
 
+// CombatObjectID identifies one object lifetime within an encounter. Zero is unassigned.
+// Slots, positions and object contents may repeat; an admitted lifetime never does.
+type CombatObjectID uint64
+
+// CombatChestIdentity is a detached reference to the exact chest selected by an action.
+// Its identity is meaningful only in the CombatState that admitted the chest.
+type CombatChestIdentity struct {
+	Position references.Position
+	ObjectID CombatObjectID
+}
+
 // CombatObject is an encounter-local object rendered above combat terrain.
 // Number preserves the original object-number encoding used by chest mechanics.
 type CombatObject struct {
+	lifetimeID     CombatObjectID
 	position       references.Position
 	sprite         indexes.SpriteIndex
 	number         int
@@ -20,6 +32,23 @@ type CombatObject struct {
 	// originalObjectSlot is one-based; zero means the object has not been admitted.
 	originalObjectSlot uint8
 	chestAssessment    references.ChestAssessment
+}
+
+// LifetimeID survives value copies and slice movement, but not removal and readmission.
+func (object CombatObject) LifetimeID() CombatObjectID { return object.lifetimeID }
+
+// HasChestIdentity checks a live chest without substituting another object in its slot.
+func (combatState *CombatState) HasChestIdentity(identity CombatChestIdentity) bool {
+	if identity.ObjectID == 0 {
+		return false
+	}
+	for _, object := range combatState.objects {
+		if object.lifetimeID == identity.ObjectID && object.Position() == identity.Position && object.IsChest() {
+			return true
+		}
+	}
+
+	return false
 }
 
 // NewCombatChest creates a chest using the original value and shared lock/trap bit.
@@ -169,11 +198,11 @@ func (object CombatObject) ChestAssessment() references.ChestAssessment {
 	return object.chestAssessment
 }
 
-// liveChest resolves the exact selected slot, never a different overlapping chest.
+// liveChest resolves the exact selected lifetime, never a replacement in its slot.
 func (combatState *CombatState) liveChest(selected CombatObject) *CombatObject {
 	for index := range combatState.objects {
 		object := &combatState.objects[index]
-		if object.originalObjectSlot == selected.originalObjectSlot && object.IsChest() &&
+		if selected.lifetimeID != 0 && object.lifetimeID == selected.lifetimeID && object.IsChest() &&
 			object.Position() == selected.Position() {
 			return object
 		}
@@ -212,6 +241,13 @@ func (combatState *CombatState) addLootObject(object CombatObject) bool {
 }
 
 func (combatState *CombatState) insertObjectByOriginalSlot(object CombatObject) {
+	// Every admission path (authored objects, loot, corpses and replacements)
+	// passes here. Even readmitting a removed value creates a new lifetime.
+	if combatState.lastObjectID == ^CombatObjectID(0) {
+		panic("combat object lifetime IDs exhausted")
+	}
+	combatState.lastObjectID++
+	object.lifetimeID = combatState.lastObjectID
 	insertAt := len(combatState.objects)
 	for index, existing := range combatState.objects {
 		if existing.originalObjectSlot > object.originalObjectSlot {

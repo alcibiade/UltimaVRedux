@@ -12,6 +12,7 @@ import (
 // chest Open, floored at zero. No ownership exemption is applied. ref:KARMA-0005
 const chestTheftKarmaPenalty = 2
 
+// ActionOpenSmallMap opens the target using the surface acting-character selector.
 func (g *GameState) ActionOpenSmallMap(direction references.Direction) bool {
 	return g.actionOpenSmallMap(direction, g.SelectCharacterForJimmy())
 }
@@ -87,6 +88,7 @@ func (g *GameState) actionOpenSmallMap(
 	return false
 }
 
+// ActionOpenLargeMap opens the outdoor target using the surface acting-character selector.
 func (g *GameState) ActionOpenLargeMap(direction references.Direction) bool {
 	return g.actionOpenLargeMap(direction, g.SelectCharacterForJimmy())
 }
@@ -276,7 +278,9 @@ type CombatOpenResult struct {
 	RevealItems []CombatLootReveal
 	Position    references.Position
 	OpenedChest bool
-	Trap        CombatChestTrapResult
+	// ChestID survives removal so presentation can identify the opened lifetime.
+	ChestID CombatObjectID
+	Trap    CombatChestTrapResult
 }
 
 // ActionOpenCombatMap opens an adjacent combat chest or door and returns any
@@ -284,7 +288,7 @@ type CombatOpenResult struct {
 func (g *GameState) ActionOpenCombatMap(direction references.Direction) CombatOpenResult {
 	combatantPos := g.getActiveCombatantPosition()
 	targetPos := direction.GetNewPositionInDirection(&combatantPos)
-	if targetPos == nil {
+	if targetPos == nil || !combatAdjacentPositionInBounds(*targetPos) {
 		return CombatOpenResult{Handled: false, RevealLines: nil}
 	}
 
@@ -305,12 +309,13 @@ func (g *GameState) ActionOpenCombatMap(direction references.Direction) CombatOp
 
 		return CombatOpenResult{
 			Handled: true, RevealLines: revealLines, RevealItems: reveals, Position: *targetPos,
-			OpenedChest: true, Trap: trap,
+			OpenedChest: true, ChestID: chest.LifetimeID(), Trap: trap,
 		}
 	}
 
 	switch map_state.OpenDoorAt(g.GetCurrentLayeredMap(), targetPos) {
 	case map_state.OpenDoorOpened:
+		g.setCombatTerrain(*targetPos, indexes.BrickFloor)
 		g.SystemCallbacks.Message.AddRowStr("Opened!")
 		g.SystemCallbacks.Audio.Play(SoundOpenDoor).Start()
 	case map_state.OpenDoorLocked:

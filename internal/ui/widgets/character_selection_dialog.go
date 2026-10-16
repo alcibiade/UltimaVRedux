@@ -22,6 +22,9 @@ type CharacterSelectionConfig struct {
 	Placement    sprites.PercentBasedPlacement
 	ConfirmLabel string
 	CancelLabel  string
+
+	// GuardResources explicitly selects the camping watch's HP/MP comparison layout.
+	GuardResources bool
 }
 
 // CharacterSelectionDialog owns ordinary character inspection and confirmation.
@@ -77,11 +80,13 @@ func NewCharacterSelectionDialog(config CharacterSelectionConfig) *CharacterSele
 	}
 	dialog.keyboard.SetForceWaitAnyKey(DialogDismissalDelayMs)
 
-	dialog.shell.healthRoster = config.Options[0].Health != nil
+	dialog.shell.healthRoster = !config.GuardResources && config.Options[0].Health != nil
+	dialog.shell.guardResources = config.GuardResources
 
 	return dialog
 }
 
+// Draw renders the detached roster and the currently inspected option.
 func (d *CharacterSelectionDialog) Draw(screen *ebiten.Image) {
 	d.shell.draw(screen, characterRosterDialogView{
 		title:       d.title,
@@ -92,6 +97,7 @@ func (d *CharacterSelectionDialog) Draw(screen *ebiten.Image) {
 	})
 }
 
+// Update routes keyboard inspection, confirmation, and cancellation to the dialog owner.
 func (d *CharacterSelectionDialog) Update() {
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		d.HandleEscape()
@@ -232,6 +238,10 @@ func cloneCharacterSelectionOptions(options []CharacterSelectionOption) []Charac
 }
 
 func cloneCharacterSelectionOption(option CharacterSelectionOption) CharacterSelectionOption {
+	if option.Resources != nil {
+		resources := *option.Resources
+		option.Resources = &resources
+	}
 	if option.Health != nil {
 		health := *option.Health
 		option.Health = &health

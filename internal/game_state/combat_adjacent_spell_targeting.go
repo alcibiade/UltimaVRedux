@@ -8,6 +8,8 @@ type CombatAdjacentSpellTargeting struct {
 	Caster    CombatTurnIdentity
 	Origin    references.Position
 	Direction references.Direction
+	owner     CombatUseOwner
+	utility   *CombatUtilitySpellCommit
 }
 
 // CombatAdjacentSpellTargetOutcome describes an adjacent spell targeting action.
@@ -20,7 +22,7 @@ const (
 	CombatAdjacentSpellTargetAwaitingDirection
 	// CombatAdjacentSpellTargetInvalid means the selected square is not a valid spell target.
 	CombatAdjacentSpellTargetInvalid
-	// CombatAdjacentSpellTargetCancelled is terminal for the accepted Cast action but preserves resources.
+	// CombatAdjacentSpellTargetCancelled ends selection without spending resources or the combat action.
 	CombatAdjacentSpellTargetCancelled
 	// CombatAdjacentSpellTargetValidationFailed means final resource validation rejected the cast.
 	CombatAdjacentSpellTargetValidationFailed
@@ -35,6 +37,7 @@ type CombatAdjacentSpellTargetResult struct {
 	Request    CastRequest
 	Origin     references.Position
 	Target     references.Position
+	Utility    *CombatUtilitySpellCommit
 }
 
 // BeginCombatAdjacentSpellTargeting validates and starts an adjacent-square combat spell preview.
@@ -60,6 +63,16 @@ func (g *GameState) BeginCombatAdjacentSpellTargeting(request CastRequest) Spell
 		Caster:  g.CombatScene.GetCurrentTurnIdentity(),
 		Request: request,
 		Origin:  g.CombatScene.GetCombatantPosition(g.CombatScene.GetCurrentTurnIdentity()),
+		owner:   g.CaptureCombatUseOwner(),
+	}
+	// Pick a geometric neighbour, never a target-dependent default that could
+	// disclose concealed terrain or chest state.
+	if IsCombatDoorSpell(request.Spell) {
+		for _, direction := range []references.Direction{references.Up, references.Right, references.Down, references.Left} {
+			if g.SetCombatAdjacentSpellDirection(direction) != CombatAdjacentSpellTargetInvalid {
+				break
+			}
+		}
 	}
 
 	return validation
@@ -67,13 +80,19 @@ func (g *GameState) BeginCombatAdjacentSpellTargeting(request CastRequest) Spell
 
 // SetCombatAdjacentSpellDirection updates the selected adjacent square without consuming resources.
 func (g *GameState) SetCombatAdjacentSpellDirection(direction references.Direction) CombatAdjacentSpellTargetOutcome {
-	if g.CombatScene == nil || g.CombatScene.AdjacentSpellTargeting == nil {
+	if g.CombatScene == nil || g.CombatScene.AdjacentSpellTargeting == nil ||
+		g.CombatScene.AdjacentSpellTargeting.utility != nil {
 		return CombatAdjacentSpellTargetIgnored
 	}
 	if direction == references.NoneDirection {
 		return CombatAdjacentSpellTargetAwaitingDirection
 	}
-	g.CombatScene.AdjacentSpellTargeting.Direction = direction
+	targeting := g.CombatScene.AdjacentSpellTargeting
+	target := direction.GetNewPositionInDirection(&targeting.Origin)
+	if target == nil || !combatAdjacentPositionInBounds(*target) {
+		return CombatAdjacentSpellTargetInvalid
+	}
+	targeting.Direction = direction
 
 	return CombatAdjacentSpellTargetAwaitingDirection
 }
@@ -81,7 +100,8 @@ func (g *GameState) SetCombatAdjacentSpellDirection(direction references.Directi
 // CancelCombatAdjacentSpellTargeting clears an unresolved adjacent spell without resource cost.
 // Cancellation also preserves the current combat action.
 func (g *GameState) CancelCombatAdjacentSpellTargeting() CombatAdjacentSpellTargetOutcome {
-	if g.CombatScene == nil || g.CombatScene.AdjacentSpellTargeting == nil {
+	if g.CombatScene == nil || g.CombatScene.AdjacentSpellTargeting == nil ||
+		g.CombatScene.AdjacentSpellTargeting.utility != nil {
 		return CombatAdjacentSpellTargetIgnored
 	}
 	g.CombatScene.AdjacentSpellTargeting = nil
@@ -95,12 +115,15 @@ func (g *GameState) CombatAdjacentSpellPreview() (references.Position, bool, boo
 		return references.Position{}, false, false
 	}
 	targeting := g.CombatScene.AdjacentSpellTargeting
+	if targeting.utility != nil || !g.IsCurrentCombatUseOwner(targeting.owner) {
+		return references.Position{}, false, false
+	}
 	if targeting.Direction == references.NoneDirection {
 		return references.Position{}, false, true
 	}
 	target := targeting.Direction.GetNewPositionInDirection(&targeting.Origin)
-	if target == nil {
-		panic("adjacent spell targeting requires a cardinal direction")
+	if target == nil || !combatAdjacentPositionInBounds(*target) {
+		return references.Position{}, false, false
 	}
 
 	// Confirmation revalidates the target independently so concealment does not change spell semantics.
@@ -111,6 +134,9 @@ func (g *GameState) CombatAdjacentSpellPreview() (references.Position, bool, boo
 }
 
 func (g *GameState) isValidCombatAdjacentSpellTarget(spell references.Spell, target references.Position) bool {
+	if !combatAdjacentPositionInBounds(target) {
+		return false
+	}
 	//nolint:exhaustive // Only implemented adjacent combat spells require a target rule.
 	switch spell {
 	case references.AnGrav:
@@ -130,12 +156,12 @@ func (g *GameState) isValidCombatAdjacentSpellTarget(spell references.Spell, tar
 
 // ConfirmCombatAdjacentSpellTarget validates the selected target before consuming resources.
 func (g *GameState) ConfirmCombatAdjacentSpellTarget() CombatAdjacentSpellTargetResult {
-	target, _, active := g.CombatAdjacentSpellPreview()
-	if !active {
+	if g.CombatScene == nil || g.CombatScene.AdjacentSpellTargeting == nil ||
+		g.CombatScene.AdjacentSpellTargeting.utility != nil {
 		return CombatAdjacentSpellTargetResult{Outcome: CombatAdjacentSpellTargetIgnored}
 	}
 	targeting := g.CombatScene.AdjacentSpellTargeting
-	if g.CombatScene.GetCurrentTurnIdentity() != targeting.Caster {
+	if !g.IsCurrentCombatUseOwner(targeting.owner) {
 		g.CombatScene.AdjacentSpellTargeting = nil
 
 		return CombatAdjacentSpellTargetResult{Outcome: CombatAdjacentSpellTargetValidationFailed,
@@ -144,8 +170,9 @@ func (g *GameState) ConfirmCombatAdjacentSpellTarget() CombatAdjacentSpellTarget
 	if targeting.Direction == references.NoneDirection {
 		return CombatAdjacentSpellTargetResult{Outcome: CombatAdjacentSpellTargetAwaitingDirection}
 	}
-	if !g.isValidCombatAdjacentSpellTarget(targeting.Request.Spell, target) {
-		return CombatAdjacentSpellTargetResult{Outcome: CombatAdjacentSpellTargetInvalid, Target: target}
+	target := targeting.Direction.GetNewPositionInDirection(&targeting.Origin)
+	if target == nil || !g.isValidCombatAdjacentSpellTarget(targeting.Request.Spell, *target) {
+		return CombatAdjacentSpellTargetResult{Outcome: CombatAdjacentSpellTargetInvalid}
 	}
 	targeting.Request.Direction = targeting.Direction
 	validation := g.ValidateAndConsumeSpellResources(targeting.Request)
@@ -156,9 +183,25 @@ func (g *GameState) ConfirmCombatAdjacentSpellTarget() CombatAdjacentSpellTarget
 	}
 	result := CombatAdjacentSpellTargetResult{
 		Outcome: CombatAdjacentSpellTargetResolved, Validation: validation,
-		Request: targeting.Request, Origin: targeting.Origin, Target: target,
+		Request: targeting.Request, Origin: targeting.Origin, Target: *target,
+	}
+	if IsCombatDoorSpell(targeting.Request.Spell) {
+		targeting.utility = g.newCombatUtilitySpellCommit(targeting, *target)
+		result.Utility = targeting.utility
+
+		return result
 	}
 	g.CombatScene.AdjacentSpellTargeting = nil
 
 	return result
+}
+
+func combatAdjacentPositionInBounds(position references.Position) bool {
+	return position.X >= 0 && position.Y >= 0 &&
+		position.X < references.XCombatMapTiles && position.Y < references.YCombatMapTiles
+}
+
+// IsCombatDoorSpell identifies the adjacent lock/disarm family sharing a retained workflow.
+func IsCombatDoorSpell(spell references.Spell) bool {
+	return spell == references.AnSanct || spell == references.AnExPor || spell == references.InExPor
 }

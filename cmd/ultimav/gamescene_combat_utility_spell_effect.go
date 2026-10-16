@@ -172,6 +172,9 @@ func combatCornerCueSourceBounds(origin, size, inset float32) (float64, float64,
 }
 
 func (g *GameScene) startCombatUtilitySpellEffect(result game_state.CombatAdjacentSpellTargetResult) {
+	if !g.gameState.StartCombatUtilitySpell(result.Utility) {
+		return
+	}
 	var sound game_state.SoundEffect
 	//nolint:exhaustive // Targeting dispatch limits this workflow to the three adjacent utility spells.
 	switch result.Request.Spell {
@@ -184,35 +187,34 @@ func (g *GameScene) startCombatUtilitySpellEffect(result game_state.CombatAdjace
 	default:
 		panic("unsupported combat utility spell")
 	}
+	effect := &combatUtilitySpellEffect{
+		Spell: result.Request.Spell, Position: result.Target, Phase: combatUtilityApproach,
+	}
 	g.gameState.EventQueueManager.Workflow("combat_utility_spell_effect").
 		Priority(event_queue.PriorityHigh).
 		Sequential().BlockInput().
 		First(func() {
-			g.combatUtilityEffect = &combatUtilitySpellEffect{
-				Spell: result.Request.Spell, Position: result.Target, Phase: combatUtilityApproach,
-			}
+			g.combatUtilityEffect = effect
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(sound)
 		}).Animate(combatUtilityApproachDurationMs, func(progress float32) {
-		g.combatUtilityEffect.Progress = progress
+		effect.Progress = progress
 	}).Then(func() {
-		//nolint:exhaustive // Targeting dispatch limits this workflow to the three adjacent utility spells.
-		switch result.Request.Spell {
-		case references.AnSanct:
-			g.gameState.CastCombatAnSanct(result.Request.CasterIdx, result.Target)
-		case references.AnExPor:
-			g.gameState.CastCombatAnExPor(result.Request.CasterIdx, result.Target)
-		case references.InExPor:
-			g.gameState.CastCombatInExPor(result.Request.CasterIdx, result.Target)
-		default:
-			panic("unsupported combat utility spell")
+		if !g.gameState.ResolveCombatUtilitySpell(result.Utility) {
+			if g.combatUtilityEffect == effect {
+				g.combatUtilityEffect = nil
+			}
+
+			return
 		}
-		g.combatUtilityEffect.Phase = combatUtilityResult
-		g.combatUtilityEffect.Progress = 0
+		effect.Phase = combatUtilityResult
+		effect.Progress = 0
 	}).Animate(combatUtilityResultDurationMs, func(progress float32) {
-		g.combatUtilityEffect.Progress = progress
+		effect.Progress = progress
 	}).Finally(func() {
-		g.combatUtilityEffect = nil
-		g.gameState.FinishCombatAction()
+		if g.combatUtilityEffect == effect {
+			g.combatUtilityEffect = nil
+		}
+		g.gameState.FinishCombatUtilitySpell(result.Utility)
 	}).Start()
 }
 

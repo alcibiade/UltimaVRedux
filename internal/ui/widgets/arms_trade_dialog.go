@@ -64,6 +64,7 @@ type ArmsTradeDialogConfig struct {
 
 // ArmsTradeDialog confirms one bounded buy or sell request.
 type ArmsTradeDialog struct {
+	quantityInput
 	keyboard  *input.Keyboard
 	intent    ArmsTradeIntent
 	prose     ArmsTradeDialogProse
@@ -111,6 +112,11 @@ func NewArmsTradeDialog(config ArmsTradeDialogConfig) *ArmsTradeDialog {
 			footerMinimumLines:    armsTradeFooterLines,
 		}),
 	}
+	if config.Intent.Mode == ArmsShopSell {
+		dialog.quantityInput = newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld, ebiten.KeyA)
+	} else {
+		dialog.quantityInput = newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld)
+	}
 	dialog.ensureLayout()
 
 	return dialog
@@ -140,14 +146,14 @@ func (d *ArmsTradeDialog) Update() {
 	d.ensureLayout()
 	if d.refusal != ArmsTradeNoRefusal {
 		if d.enterPressed() || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-			d.dismissed = true
+			d.Dismiss()
 		}
 
 		return
 	}
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		d.cancelled = true
-		d.dismissed = true
+		d.Dismiss()
 
 		return
 	}
@@ -157,7 +163,7 @@ func (d *ArmsTradeDialog) Update() {
 	if d.enterPressed() {
 		request := d.makeRequest()
 		d.pending = &request
-		d.dismissed = true
+		d.Dismiss()
 	}
 }
 
@@ -228,30 +234,30 @@ func (d *ArmsTradeDialog) IsDismissed() bool { return d.dismissed }
 func (d *ArmsTradeDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
-func (d *ArmsTradeDialog) Dismiss() { d.dismissed = true }
+func (d *ArmsTradeDialog) Dismiss() {
+	d.onDialogFocusChanged(false)
+	d.dismissed = true
+}
 
 func (d *ArmsTradeDialog) handleQuantityInput() bool {
+	key, owned := d.pollQuantityInput()
+	if key == nil {
+		return owned
+	}
 	if d.intent.Mode == ArmsShopBuy && d.intent.BuyQuote.AmmoRefill {
-		return false
+		return owned
 	}
 	maximum := d.maximumQuantity()
-	if d.intent.Mode == ArmsShopSell && d.keyboard.IsKeyPressedAndRegister(ebiten.KeyA) {
+	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
+	case ebiten.KeyA:
 		d.setQuantity(maximum)
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) {
+	case ebiten.KeyLeft:
 		d.setQuantity(max(uint16(1), d.quantity-1))
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight) {
+	case ebiten.KeyRight:
 		d.setQuantity(min(maximum, d.quantity+1))
-
-		return true
 	}
 
-	return false
+	return owned
 }
 
 func (d *ArmsTradeDialog) maximumQuantity() uint16 {
@@ -287,6 +293,7 @@ func (d *ArmsTradeDialog) enterPressed() bool {
 		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter)
 }
 
+//nolint:dupl // Keep Arms-specific font budgets and output population with its approval layout.
 func (d *ArmsTradeDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return

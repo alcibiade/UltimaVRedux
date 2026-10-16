@@ -25,6 +25,7 @@ const (
 	surfaceChestLockBit       byte = 0x80
 )
 
+// NewNPCFriendly creates a map unit with its own copy of the authored NPC reference.
 func NewNPCFriendly(npcReference references.NPCReference, npcNum int) *NPCFriendly {
 	var friendly NPCFriendly
 	friendly.NPCReference = npcReference
@@ -109,6 +110,7 @@ func (friendly *NPCFriendly) RestoreSurfaceChestAssessment(assessment references
 	friendly.surfaceChestAssessment = assessment
 }
 
+// NewNPCFriendlyVehicle creates a visible vehicle from an NPC reference.
 func NewNPCFriendlyVehicle(vehicleType references.VehicleType, npcRef references.NPCReference) *NPCFriendly {
 	friendly := NewNPCFriendly(npcRef, int(npcRef.DialogNumber))
 
@@ -116,18 +118,25 @@ func NewNPCFriendlyVehicle(vehicleType references.VehicleType, npcRef references
 	if vehicleType == references.HorseVehicle && npcRef.GetSpriteIndex() == indexes.HorseLeft {
 		friendly.vehicleDetails.SetPartyVehicleDirection(references.Left)
 	}
+	//nolint:gosec // Schedule bytes encode signed floors; 0xff must decode to basement (-1).
 	friendly.SetFloor(references.FloorNumber(npcRef.Schedule.Floor[0]))
 	friendly.SetVisible(true)
 
 	return friendly
 }
 
-func NewNPCFriendlyVehiceNewRef(vehicletype references.VehicleType, pos references.Position, floor references.FloorNumber) *NPCFriendly {
+// NewNPCFriendlyVehiceNewRef creates a vehicle with a generated NPC reference.
+func NewNPCFriendlyVehiceNewRef(
+	vehicletype references.VehicleType,
+	pos references.Position,
+	floor references.FloorNumber,
+) *NPCFriendly {
 	npcRef := references.NewNPCReferenceForVehicle(vehicletype, pos, floor)
 
 	return NewNPCFriendlyVehicle(vehicletype, *npcRef)
 }
 
+// NewNPCFriendlyVehiceNoVehicle creates the empty party-vehicle placeholder.
 func NewNPCFriendlyVehiceNoVehicle() NPCFriendly {
 	return *NewNPCFriendlyVehiceNewRef(references.NoPartyVehicle, references.Position{X: 0, Y: 0}, 0)
 }
@@ -154,38 +163,48 @@ func (friendly *NPCFriendly) IsAuthoredSurfaceChest() bool {
 	return friendly.IsSurfaceChest() && !friendly.syntheticSurfaceChest
 }
 
+// IsEmptyMapUnit reports whether the authored reference represents an unused slot.
 func (friendly *NPCFriendly) IsEmptyMapUnit() bool {
-	return friendly.NPCReference.GetNPCType() == 0 || (friendly.NPCReference.Schedule.X[0] == 0 && friendly.NPCReference.Schedule.Y[0] == 0)
+	return friendly.NPCReference.GetNPCType() == 0 ||
+		(friendly.NPCReference.Schedule.X[0] == 0 && friendly.NPCReference.Schedule.Y[0] == 0)
 }
 
+// GetMapUnitType identifies friendly NPCs and vehicles as non-player characters.
 func (friendly *NPCFriendly) GetMapUnitType() MapUnitType {
 	return NonPlayerCharacter
 }
 
+// Pos returns the current map position by value.
 func (friendly *NPCFriendly) Pos() references.Position {
 	return friendly.mapUnitDetails.Position
 }
 
+// MapUnitDetails returns the mutable state owned by this map unit.
 func (friendly *NPCFriendly) MapUnitDetails() *MapUnitDetails {
 	return &friendly.mapUnitDetails
 }
 
+// SetVisible sets whether the unit is visible on the map.
 func (friendly *NPCFriendly) SetVisible(visible bool) {
 	friendly.mapUnitDetails.Visible = visible
 }
 
+// IsVisible reports whether the unit is visible on the map.
 func (friendly *NPCFriendly) IsVisible() bool {
 	return friendly.mapUnitDetails.Visible
 }
 
+// Floor returns the unit's current floor.
 func (friendly *NPCFriendly) Floor() references.FloorNumber {
 	return friendly.mapUnitDetails.Floor
 }
 
+// PosPtr returns the unit's mutable position.
 func (friendly *NPCFriendly) PosPtr() *references.Position {
 	return &friendly.mapUnitDetails.Position
 }
 
+// SetPositionByIndividualNPCBehaviour copies the behavior's position and floor.
 func (friendly *NPCFriendly) SetPositionByIndividualNPCBehaviour(indiv references.IndividualNPCBehaviour) {
 	friendly.mapUnitDetails.Position = indiv.Position
 	friendly.mapUnitDetails.Floor = indiv.Floor
@@ -194,11 +213,12 @@ func (friendly *NPCFriendly) SetPositionByIndividualNPCBehaviour(indiv reference
 
 // PlaceAtScheduleSlot teleports an NPC to a schedule destination and records
 // that destination as arrived. It is used for initial placement and hard
-// resets as well as schedule-driven floor teleports.
+// resets and hidden schedule relocation, never for observed-floor entry.
 func (friendly *NPCFriendly) PlaceAtScheduleSlot(slot references.NPCScheduleSlot) {
 	indiv := friendly.NPCReference.Schedule.GetIndividualNPCBehaviourBySlot(slot)
 	friendly.SetPositionByIndividualNPCBehaviour(indiv)
 	friendly.mapUnitDetails.RestoreArrivedScheduleSlot(slot)
+	friendly.mapUnitDetails.SetCurrentPath(nil)
 }
 
 // RecordScheduleArrival records the desired slot only when the NPC is
@@ -258,6 +278,7 @@ func (friendly *NPCFriendly) RestoreTalk3OneShot(slot references.NPCScheduleSlot
 	return true
 }
 
+// SetDirectionBasedOnNewPos turns a vehicle toward its proposed destination.
 func (friendly *NPCFriendly) SetDirectionBasedOnNewPos(position references.Position) {
 	if friendly.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
 		// we change the direction of the vehicle based on the dominate direction
@@ -266,28 +287,37 @@ func (friendly *NPCFriendly) SetDirectionBasedOnNewPos(position references.Posit
 	}
 }
 
+// SetDirection updates the vehicle's facing direction.
 func (friendly *NPCFriendly) SetDirection(direction references.Direction) {
 	friendly.GetVehicleDetails().SetPartyVehicleDirection(direction)
 }
 
+// SetPos updates vehicle facing before storing the new position.
 func (friendly *NPCFriendly) SetPos(position references.Position) {
 	friendly.SetDirectionBasedOnNewPos(position)
 	friendly.mapUnitDetails.Position = position
 }
 
+// SetFloor stores the unit's current floor.
 func (friendly *NPCFriendly) SetFloor(floor references.FloorNumber) {
 	friendly.mapUnitDetails.Floor = floor
 }
 
+// GetVehicleDetails returns owned vehicle state, or a fresh zero value for a non-vehicle.
 func (friendly *NPCFriendly) GetVehicleDetails() *VehicleDetails {
 	if friendly.NPCReference.GetNPCType() == references.Vehicle {
 		return &friendly.vehicleDetails
 	}
 
-	return &VehicleDetails{}
+	var details VehicleDetails
+
+	return &details
 }
 
-func (friendly *NPCFriendly) GetIndividualBehaviourByUltimaData(ultimaData datetime.UltimaDate) references.IndividualNPCBehaviour {
+// GetIndividualBehaviourByUltimaData resolves an AI override before the timed schedule.
+func (friendly *NPCFriendly) GetIndividualBehaviourByUltimaData(
+	ultimaData datetime.UltimaDate,
+) references.IndividualNPCBehaviour {
 	if friendly.MapUnitDetails().overriddenAiType != references.Unset {
 		// When AI is overridden (e.g., freed prisoner), use current position as "assigned"
 		// This ensures the NPC takes the correct AI processing path
@@ -301,6 +331,7 @@ func (friendly *NPCFriendly) GetIndividualBehaviourByUltimaData(ultimaData datet
 	return friendly.NPCReference.Schedule.GetIndividualNPCBehaviourByUltimaDate(ultimaData)
 }
 
+// GetKeySpriteIndex returns the unboarded vehicle sprite or the authored NPC sprite.
 func (friendly *NPCFriendly) GetKeySpriteIndex() indexes.SpriteIndex {
 	// For vehicles, use the unboarded sprite from VehicleDetails
 	// This prevents vehicles from rendering as corpse/splat sprites (indices 286-287)

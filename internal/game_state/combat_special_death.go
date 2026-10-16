@@ -55,5 +55,10 @@ func (g *GameState) resolveGazerDeath(gazer *CombatMonster, monsterIdx int) {
 
 func (g *GameState) setCombatTerrain(position references.Position, tile indexes.SpriteIndex) {
 	g.CombatScene.CombatMapRef.SetTileNumber(position, tile)
-	g.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &position, tile)
+	layer := g.GetCurrentLayeredMap()
+	layer.SetTileByLayer(map_state.MapLayer, &position, tile)
+	// Combat terrain is encounter-local. An earlier Open/Jimmy override must
+	// not mask a later authoritative replacement (including Skull Key unlocks).
+	layer.UnSetTileByLayer(map_state.MapOverrideLayer, &position)
+	layer.InvalidateLightSourceCache()
 }

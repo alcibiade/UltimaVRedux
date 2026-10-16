@@ -75,6 +75,11 @@ func (g *GameState) applyCombatFieldToMonster(field CombatField, monster *Combat
 		return
 	}
 	hpBefore := monster.CurrentHP()
+	var injury CombatFireInjury
+	if field.Kind() == CombatFieldFire {
+		injury = g.captureCombatFireInjury(CombatTurnIdentity{EntityIndex: monsterIdx})
+	}
+	var diagnostics CombatDiagnostics
 	switch field.Kind() {
 	case CombatFieldSleep:
 		monster.SetAsleep(true)
@@ -101,14 +106,12 @@ func (g *GameState) applyCombatFieldToMonster(field CombatField, monster *Combat
 			finalDamage := CombatApplyMagicDamageModifiers(
 				damage.Damage, monster.MonsterType().IsUndead(), monster.HasAbility(references.Immortal),
 			)
-			g.applyCombatDamageToMonster(
-				monster, monsterIdx, finalDamage, false, g.PartyState.GetCharacter(casterIdx), casterIdx,
-				CombatDiagnostics{
-					Damage: damage, FinalDamage: finalDamage,
-					TargetUndead: monster.MonsterType().IsUndead(), TargetImmortal: monster.HasAbility(references.Immortal),
-					MagicDamage: true,
-				},
-			)
+			diagnostics = CombatDiagnostics{
+				Damage: damage, FinalDamage: finalDamage,
+				TargetUndead: monster.MonsterType().IsUndead(), TargetImmortal: monster.HasAbility(references.Immortal),
+				MagicDamage: true, Spell: references.InFlamGrav,
+			}
+			g.applyDirectCombatFireDamageToMonster(monster, monsterIdx, finalDamage, casterIdx)
 		} else {
 			g.applyCombatFieldDamageToMonster(monster, monsterIdx, g.RandomIntInRange(0, 10))
 		}
@@ -123,7 +126,22 @@ func (g *GameState) applyCombatFieldToMonster(field CombatField, monster *Combat
 		monster.Position(),
 		max(hpBefore-monster.CurrentHP(), 0),
 		monster.IsDead(),
+		injury,
+		diagnostics,
 	)
+}
+
+// Keep the existing direct magic damage/death/survivor rules, but publish only
+// the resolved field event below. The generic attack helper also emitted an
+// impact callback, producing two floating labels for this single injury.
+func (g *GameState) applyDirectCombatFireDamageToMonster(monster *CombatMonster, monsterIdx, damage, casterIdx int) {
+	hpBefore := monster.CurrentHP()
+	monster.TakeDamage(damage)
+	if hpBefore > 0 && monster.IsDead() {
+		g.finalizeCombatMonsterDeath(monster, monsterIdx, g.PartyState.GetCharacter(casterIdx), casterIdx)
+	} else if !monster.IsDead() {
+		g.resolveSurvivingCombatMonsterHit(monster, monsterIdx, false)
+	}
 }
 
 func (g *GameState) applyCombatFieldDamageToMonster(monster *CombatMonster, monsterIdx, damage int) {
@@ -146,6 +164,11 @@ func (g *GameState) applyCombatFieldToPC(field CombatField, identity CombatTurnI
 	character := g.PartyState.GetCharacter(pcIdx)
 	position := g.CombatScene.GetCombatantPosition(identity)
 	hpBefore := character.GetCurrentHp()
+	var injury CombatFireInjury
+	if field.Kind() == CombatFieldFire {
+		injury = g.captureCombatFireInjury(identity)
+	}
+	var diagnostics CombatDiagnostics
 	statusBefore := character.GetStatus()
 	switch field.Kind() {
 	case CombatFieldSleep:
@@ -165,6 +188,9 @@ func (g *GameState) applyCombatFieldToPC(field CombatField, identity CombatTurnI
 	case CombatFieldFire:
 		if direct {
 			damage := CombatCalcMagicDamage(21, g.combatPartyDefense(character), g.AsRandomProvider())
+			diagnostics = CombatDiagnostics{
+				Damage: damage, FinalDamage: damage.Damage, MagicDamage: true, Spell: references.InFlamGrav,
+			}
 			character.SubtractHp(uint16(damage.Damage))
 		} else {
 			character.SubtractHp(uint16(g.RandomIntInRange(0, 10)))
@@ -187,6 +213,8 @@ func (g *GameState) applyCombatFieldToPC(field CombatField, identity CombatTurnI
 		position,
 		int(hpBefore-character.GetCurrentHp()),
 		character.GetCurrentHp() == 0,
+		injury,
+		diagnostics,
 	)
 }
 
@@ -197,16 +225,25 @@ func (g *GameState) publishCombatFieldTrigger(
 	position references.Position,
 	hpLost int,
 	fatal bool,
+	injury CombatFireInjury,
+	diagnostics CombatDiagnostics,
 ) {
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Field trigger has no physical attack diagnostics.
+	var fireInjury *CombatFireInjury
+	if field.Kind() == CombatFieldFire {
+		injury.HPLost, injury.Fatal = hpLost, fatal
+		fireInjury = &injury
+	}
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Direct fire retains magic diagnostics; standing/status fields have none.
 		Kind: CombatEventFieldTriggered,
 		Target: CombatFeedbackEntity{
 			IsPartyMember: partyMember, Index: index, Slot: slot, Position: position,
 		},
-		HPLost:    hpLost,
-		Fatal:     fatal,
-		To:        position,
-		FieldKind: field.Kind(),
+		HPLost:      hpLost,
+		Fatal:       fatal,
+		To:          position,
+		FieldKind:   field.Kind(),
+		FireInjury:  fireInjury,
+		Diagnostics: diagnostics,
 	})
 }
 

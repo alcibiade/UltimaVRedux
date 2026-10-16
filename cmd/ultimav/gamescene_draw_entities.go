@@ -193,7 +193,11 @@ func (g *GameScene) drawCombatAttackCrosshair(screen *ebiten.Image) {
 	case g.gameState.CombatScene.AttackTargeting != nil:
 		cursor = g.gameState.CombatScene.AttackTargeting.Cursor
 	default:
-		return
+		var active bool
+		cursor, active = g.combatDoorSpellCursor()
+		if !active {
+			return
+		}
 	}
 	if g.gameState.IsCombatPartySpellTargeting() {
 		g.drawCombatPartySpellWakeMarker(screen)
@@ -465,8 +469,8 @@ func (g *GameScene) drawCombatMonsterOverlay(screen *ebiten.Image) {
 		}
 
 		screen.DrawImage(monsterSprite, monsterDrawOptions)
-		g.drawCombatFireImpactOverlay(screen, sleepMaskSprite, monsterDrawOptions, false, idx, 0)
 		g.drawCombatMonsterConditions(screen, monsterSprite, sleepMaskSprite, monsterDrawOptions, monster, animationTime)
+		g.drawCombatFireImpactOverlay(screen, sleepMaskSprite, monsterDrawOptions, false, idx, 0)
 	})
 }
 
@@ -556,8 +560,8 @@ func (g *GameScene) drawCombatCharacterSprite(
 	}
 
 	screen.DrawImage(characterSprite, partyDrawOptions)
-	g.drawCombatFireImpactOverlay(screen, poisonMaskSprite, partyDrawOptions, true, memberIndex, identity.Slot)
 	g.drawCombatPartyConditions(screen, poisonMaskSprite, partyDrawOptions, identity, animationTime)
+	g.drawCombatFireImpactOverlay(screen, poisonMaskSprite, partyDrawOptions, true, memberIndex, identity.Slot)
 	if isActive {
 		drawCombatActivePCIndicatorOverlay(screen, partyDrawOptions, animationTime)
 	}

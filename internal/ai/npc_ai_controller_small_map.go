@@ -23,7 +23,6 @@ package ai
 import (
 	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/astar"
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
@@ -542,11 +541,22 @@ func (n *NPCAIControllerSmallMap) calculateNextNPCPosition(friendly *map_units.N
 
 	slot := friendly.NPCReference.Schedule.DesiredSlot(*n.dateTime)
 	refBehaviour := friendly.NPCReference.Schedule.GetIndividualNPCBehaviourBySlot(slot)
-	if friendly.ArrivedScheduleSlot() == slot {
+	// Incoming travel retains the prior arrival even after changing actual floor.
+	// Returning to that slot still requires floor travel; same-floor wandering
+	// remains settled without requiring the actor to stand on its anchor.
+	if friendly.ArrivedScheduleSlot() == slot && friendly.Floor() == refBehaviour.Floor {
 		friendly.MapUnitDetails().SetCurrentPath(nil)
 		if friendly.Floor() == n.mapState.PlayerLocation.Floor {
 			n.performOriginalScheduleAction(friendly, refBehaviour)
 		}
+
+		return
+	}
+	// NPC-0002: hidden schedules relocate directly, including a new destination
+	// on the same hidden floor. Never try visible-floor A* or unseen wandering.
+	observedFloor := n.mapState.PlayerLocation.Floor
+	if friendly.Floor() != observedFloor && refBehaviour.Floor != observedFloor {
+		friendly.PlaceAtScheduleSlot(slot)
 
 		return
 	}
@@ -911,59 +921,47 @@ func isSmallMapPosition(position references.Position) bool {
 		position.Y >= 0 && position.Y < references.YSmallMapTiles
 }
 
-// performAiMovementFromCurrentFloorToDifferentFloor From a DIFFERENT floor to OUR floor
+// Incoming travel enters at a receiving-floor connection, retaining last arrival
+// until the actor physically reaches the destination; ref:NPC-0002.
 func (n *NPCAIControllerSmallMap) performAiMovementFromDifferentFloorToOurFloor(friendly *map_units.NPCFriendly) bool {
-	// called if the NPC is currently on a different floor then the current floor
 	refBehaviour := friendly.GetIndividualBehaviourByUltimaData(*n.dateTime)
+	friendly.MapUnitDetails().SetCurrentPath(nil)
+	// Reverse the direction at the receiving end: arriving from above needs up.
+	for _, entry := range n.scheduleLadders(refBehaviour.Position, friendly.Floor()) {
+		if n.schedulePositionOccupied(friendly, entry) {
+			continue
+		}
+		path := n.findScheduledPath(friendly, entry, refBehaviour.Position)
+		if len(path) == 0 {
+			continue
+		}
+		friendly.SetFloor(n.mapState.PlayerLocation.Floor)
+		friendly.SetPos(entry)
+		friendly.MapUnitDetails().SetCurrentPath(path[1:])
 
-	// current floor matters - if they are coming to your floor - then teleport them
-	closestLadderPos := n.slr.GetClosestLadder(refBehaviour.Position, friendly.Floor(), n.mapState.PlayerLocation.Floor)
-
-	// check if something or someone else is on the ladder, if so then we skip it for this turn
-	// and try again next turn
-	tile := n.mapState.GetLayeredMapByCurrentLocation().GetTopTile(&closestLadderPos)
-	if !tile.IsWalkingPassable() {
-		return false
+		return true
 	}
-
-	// Change floor first, then move to destination
-	slot := friendly.NPCReference.Schedule.DesiredSlot(*n.dateTime)
-	friendly.PlaceAtScheduleSlot(slot)
-
-	return true
+	// A finite candidate scan per update; no recovery RNG or destination teleport.
+	return false
 }
 
 // performAiMovementFromCurrentFloorToDifferentFloor From OUR floor to DIFFERENT floor
 func (n *NPCAIControllerSmallMap) performAiMovementFromCurrentFloorToDifferentFloor(
 	friendly *map_units.NPCFriendly,
 ) bool {
-	// called if the NPC is currently on a different floor then the current floor
 	refBehaviour := friendly.GetIndividualBehaviourByUltimaData(*n.dateTime)
 
-	currentNpcMapTile := n.mapState.GetLayeredMapByCurrentLocation().GetTileTopMapOnlyTile(friendly.PosPtr())
+	currentNpcMapTile := n.npcTerrainAt(friendly.Pos())
 	if references.IsSpecificLadderOrStairs(currentNpcMapTile.Index,
 		references.GetLadderOfStairsType(friendly.Floor(), refBehaviour.Floor)) {
-		// we have arrived at the ladder, so we will change their position as well
-		// to make sure they "come down from" the correct spot as well
+		// Departure reaches its connection before relocating to the hidden anchor.
 		slot := friendly.NPCReference.Schedule.DesiredSlot(*n.dateTime)
 		friendly.PlaceAtScheduleSlot(slot)
 
 		return true
 	}
 
-	// // current floor matters - if they are coming to your floor - then teleport them
-	closestLadderPos := n.slr.GetClosestLadder(refBehaviour.Position, friendly.Floor(), refBehaviour.Floor)
-	tile := n.mapState.GetLayeredMapByCurrentLocation().GetTopTile(&closestLadderPos)
-	if !tile.IsWalkingPassable() {
-		return false
-	}
-
-	// the ladder is not used, so let's build a path
-	if n.createFreshPathToScheduledLocation(friendly) {
-		return true
-	}
-
-	return false
+	return n.createFreshPathToScheduledLocation(friendly)
 }
 
 func (n *NPCAIControllerSmallMap) performAiMovementOnAssignedPosition(friendly *map_units.NPCFriendly) bool {
@@ -1116,57 +1114,27 @@ func (n *NPCAIControllerSmallMap) moveNPCOnCalculatedPath(friendly *map_units.NP
 	return false
 }
 
-func (n *NPCAIControllerSmallMap) scheduledPathGoal(
-	friendly *map_units.NPCFriendly,
-	behavior references.IndividualNPCBehaviour,
-) references.Position {
-	if behavior.Floor != friendly.Floor() {
-		return n.slr.GetClosestLadder(friendly.Pos(), friendly.Floor(), behavior.Floor)
-	}
-
-	return behavior.Position
-}
-
 func (n *NPCAIControllerSmallMap) createFreshPathToScheduledLocation(friendly *map_units.NPCFriendly) bool {
 	muDetails := friendly.MapUnitDetails()
-	npcBehaviour := friendly.NPCReference.Schedule.GetIndividualNPCBehaviourByUltimaDate(*n.dateTime)
-	aStarMap := astar.NewAStarMap()
-	aStarMap.InitializeByMovementCost(
-		friendly.Pos(), references.XSmallMapTiles, references.YSmallMapTiles,
-		func(position references.Position) int {
-			// REDUX DEVIATION: Original planning only marks certain nearby objects (ref:NPC-0002).
-			// Plan around all occupied squares to avoid knowingly unusable routes.
-			if position == n.mapState.PlayerLocation.Position ||
-				(position != friendly.Pos() && n.isPositionOccupiedOnFloor(position, friendly.Floor())) {
-				return -1
-			}
-			// Original planning uses ordinary terrain admission (ref:NPC-0004): no beach or
-			// Shadowlord exception, but the exact schedule destination is legal.
-			if npcBehaviour.Floor == friendly.Floor() && npcBehaviour.Position == position {
-				return 1
-			}
-			terrain := n.npcTerrainAt(position)
-			// REDUX DEVIATION: Original planning permits chairs on ladder routes and
-			// recovers blocked steps with randstep. Exclude them while planning
-			// ladder travel so deterministic A* cannot retry the same blocked route.
-			if npcBehaviour.Floor != friendly.Floor() && terrain.IsChair() {
-				return -1
-			}
-
-			return terrain.GetNPCWalkableWeight()
-		},
-	)
-
-	path := aStarMap.AStar(n.scheduledPathGoal(friendly, npcBehaviour))
-
-	muDetails.CurrentPath = path
-	if len(path) == 0 {
+	muDetails.SetCurrentPath(nil)
+	if friendly.Floor() != n.mapState.PlayerLocation.Floor {
 		return false
 	}
-	// always pop the first because it is the current tile
-	muDetails.DequeueNextPosition()
+	npcBehaviour := friendly.NPCReference.Schedule.GetIndividualNPCBehaviourByUltimaDate(*n.dateTime)
+	goals := []references.Position{npcBehaviour.Position}
+	if npcBehaviour.Floor != friendly.Floor() {
+		goals = n.scheduleLadders(friendly.Pos(), npcBehaviour.Floor)
+	}
+	for _, goal := range goals {
+		path := n.findScheduledPath(friendly, friendly.Pos(), goal)
+		if len(path) > 1 {
+			muDetails.SetCurrentPath(path[1:])
 
-	return muDetails.HasAPathAlreadyCalculated()
+			return true
+		}
+	}
+
+	return false
 }
 
 func (n *NPCAIControllerSmallMap) wanderOneTileWithinN(

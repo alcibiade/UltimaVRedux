@@ -127,6 +127,39 @@ func TestHydrateUnitsRestoresConsumedTalk3Mutation(t *testing.T) {
 	require.False(t, restoredNPC.ApplyTalk3OneShot())
 }
 
+func TestHydrateUnitsRetainsIncomingWalkAndLastArrival(t *testing.T) {
+	reference := references.NPCReference{
+		Location: references.Trinsic,
+		NpcType:  references.NoStatedNpc,
+		Schedule: references.NPCSchedule{
+			X: [3]byte{3, 13, 20}, Y: [3]byte{3, 10, 20}, Floor: [3]byte{1, 0, 0},
+		},
+	}
+	source := map_units.NewNPCFriendly(reference, 7)
+	source.PlaceAtScheduleSlot(0)
+	// A receiving-floor entry keeps the previous arrival and its walking route.
+	entry := references.Position{X: 10, Y: 10}
+	path := []references.Position{{X: 11, Y: 10}, {X: 12, Y: 10}, {X: 13, Y: 10}}
+	source.SetFloor(0)
+	source.SetPos(entry)
+	source.MapUnitDetails().SetCurrentPath(path)
+	saved, err := captureControllerUnits(&map_units.MapUnits{source}, 0, references.Trinsic)
+	require.NoError(t, err)
+	generated := map_units.MapUnits{map_units.NewNPCFriendly(reference, 7)}
+	restored, err := (&GameState{}).hydrateUnits(saved, &generated)
+	require.NoError(t, err)
+	npc, ok := restored[0].(*map_units.NPCFriendly)
+	require.True(t, ok)
+	require.Equal(t, entry, npc.Pos())
+	require.Equal(t, references.FloorNumber(0), npc.Floor())
+	require.Equal(t, references.NPCScheduleSlot(0), npc.ArrivedScheduleSlot())
+	require.Equal(t, path, npc.MapUnitDetails().CurrentPath)
+	// Hidden relocation/reset retires that saved route rather than reviving it.
+	npc.PlaceAtScheduleSlot(2)
+	require.Equal(t, references.NPCScheduleSlot(2), npc.ArrivedScheduleSlot())
+	require.Empty(t, npc.MapUnitDetails().CurrentPath)
+}
+
 func TestHydrateUnitsReconstructsTypedInteractionFromLegacyAutoTalk(t *testing.T) {
 	for _, test := range []struct {
 		name       string

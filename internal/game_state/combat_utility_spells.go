@@ -60,10 +60,10 @@ func (g *GameState) CastCombatAnSanct(casterIdx int, target references.Position)
 	//nolint:exhaustive // All non-door tiles fall through to the validated chest target.
 	switch tile {
 	case indexes.LockedDoor:
-		g.CombatScene.CombatMapRef.SetTileNumber(target, indexes.RegularDoor)
+		g.setCombatTerrain(target, indexes.RegularDoor)
 		result = CombatUtilityDoorUnlocked
 	case indexes.LockedDoorView:
-		g.CombatScene.CombatMapRef.SetTileNumber(target, indexes.RegularDoorView)
+		g.setCombatTerrain(target, indexes.RegularDoorView)
 		result = CombatUtilityDoorUnlocked
 	default:
 		if !g.CombatScene.unlockChestAt(target) {
@@ -82,9 +82,9 @@ func (g *GameState) CastCombatAnExPor(casterIdx int, target references.Position)
 	//nolint:exhaustive // The default detects a stale or invalid target selection.
 	switch tile {
 	case indexes.RegularDoor, indexes.LockedDoor:
-		g.CombatScene.CombatMapRef.SetTileNumber(target, indexes.MagicLockDoor)
+		g.setCombatTerrain(target, indexes.MagicLockDoor)
 	case indexes.RegularDoorView, indexes.LockedDoorView:
-		g.CombatScene.CombatMapRef.SetTileNumber(target, indexes.MagicLockDoorWithView)
+		g.setCombatTerrain(target, indexes.MagicLockDoorWithView)
 	default:
 		panic("combat An Ex Por resolved without a valid target")
 	}
@@ -98,9 +98,9 @@ func (g *GameState) CastCombatInExPor(casterIdx int, target references.Position)
 	//nolint:exhaustive // The default detects a stale or invalid target selection.
 	switch g.CombatScene.CombatMapRef.GetTileNumber(target) {
 	case indexes.MagicLockDoor:
-		g.CombatScene.CombatMapRef.SetTileNumber(target, indexes.RegularDoor)
+		g.setCombatTerrain(target, indexes.RegularDoor)
 	case indexes.MagicLockDoorWithView:
-		g.CombatScene.CombatMapRef.SetTileNumber(target, indexes.RegularDoorView)
+		g.setCombatTerrain(target, indexes.RegularDoorView)
 	default:
 		panic("combat In Ex Por resolved without a valid target")
 	}

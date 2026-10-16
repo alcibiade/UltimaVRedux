@@ -455,6 +455,17 @@ Entry points are `gamescene_draw_entities.go`,
 under `cmd/ultimav`. [COMBAT-0012](../gamefacts/COMBAT.md#combat-0012) owns the public
 combat presentation comparison.
 
+Combat An Sanct, An Ex Por and In Ex Por reuse this exact selected cursor in the
+final aim layer. It occupies one of four cardinal neighbours, with a geometric
+in-bounds default rather than a target-dependent choice. These spells suppress
+both the older adjacent-target coloured underlay and the generic direction
+arrows, so one white cursor owns selection. Cursor geometry/colour and prompt text
+do not expose a concealed door's eligibility or an unassessed chest's trap state.
+The active actor indicator retains its foreground placement above HP. Other
+adjacent and cone spells keep their existing previews. Commitment and cleanup
+belong to [combat door/disarm input](INPUT_HANDLING.md#combat-door-and-disarm-spells),
+with composed cursor coverage in `cmd/ultimav/gamescene_combat_door_spell_test.go`.
+
 ## Combat Attack Eligibility
 
 `cmd/ultimav/gamescene_combat_attack_preview.go` draws two disconnected,
@@ -747,7 +758,13 @@ This is a repeatable inspection procedure, not a record of manual acceptance.
    their exact selected chest's knowledge independently of display order. Check
    uncertain-safe key loss, armed failure/success, and known-safe refusal; use
    surface/first-person dungeon chests for save/load and fresh-visit lifetime
-   checks because combat saves are unsupported.
+   checks because combat saves are unsupported. For two co-located combat chests,
+   Jimmy's last-selected chest card must survive the first-selected chest's Open
+   summary and retire only at its own summary. Association uses encounter plus
+   non-reused object lifetime identity, not square or original slot. A pending
+   reveal retains the opened chest's detached identity between removal and modal
+   admission; other removed-owner cards retire even under a modal, and identical
+   replacements cannot inherit them. See [combat loot feedback](../ui/GAME_UI_INTEGRATION.md#combat-loot-feedback).
 7. Ready a Bow and a melee off-hand, then let an adjacent hostile creature make
    a melee attack against that PC. While the remembered attacker remains eligible,
    use keyboard `A`: one classic interference message and one Battle Report entry
@@ -788,6 +805,92 @@ animation, payment, and one action completion. Entry points are
 `gamescene_combat_cone.go`, `gamescene_combat_spell_effects.go`,
 `gamescene_combat_impact.go`, and `gamescene_combat_hud.go` under `cmd/ultimav`;
 [SPELL-0003](../gamefacts/MAGIC_SPELLS.md#spell-0003) owns the public comparison.
+
+## Combat Fire Injury Feedback
+
+Fireplace, lava and magical fire-field injuries publish a `CombatFireInjury`
+alongside the resolved field event. It captures the exact PC/clone or monster
+identity and disclosure before damage can retire the entry, then records actual
+clamped HP loss and fatality. This durable result contains only value data:
+target/position, encounter ID, queue-entry lifetime ID, monster birth ID,
+disclosure, HP loss and fatality. It retains no combat, queue or provider pointers,
+so later gameplay or presentation-mode differences cannot alter historical tape
+equality. Entry lifetime IDs are assigned deterministically on registration and
+replacement, and remain unchanged by dispatch or death. Flame Wind adapts its
+existing typed
+`CombatAreaSpellTargetResult` into the same presentation family. Report admission
+and the effect each retain their own value copy; later mutation of the producer's
+record cannot rewrite an admitted result. Zero HP loss admits no burn tint or
+damage label. Flame Wind's avoidance/resistance/no-damage labels remain part of
+its separate typed outcome contract.
+
+One resolved injury owns one local result. Direct fire-field damage to monsters
+retains authoritative damage, death/XP and surviving-hit processing but no longer
+also emits the generic attack-impact callback. The field event supplies its burn
+feedback once and retains the direct spell's attack/armor rolls, pre-protection
+damage, final damage, undead/immortal flags and magic/spell identity. Presentation
+never infers damage from touching a tile, repeats a standing-hazard check, or
+consumes gameplay RNG. Terrain/field precedence and
+direct-versus-standing formulas remain
+[COMBAT-0007](../gamefacts/COMBAT.md#combat-0007); the presentation comparison is
+[COMBAT-0012](../gamefacts/COMBAT.md#combat-0012).
+
+### Contact and lifetime
+
+Fire effects timestamp admission from `GameState.ElapsedMs`; the preceding frame's
+delta cannot age a newly admitted effect after a hitch. A stationary injury starts
+its lifetime immediately. When movement has already resolved damage before its
+interpolation is installed, only the fresh injury for that exact actor/clone and
+destination binds to the move. A new authoritative move closes older injuries'
+binding eligibility, including moves in the same millisecond or with zero damage.
+
+For a bound move, burn tint and label become visible at **50% movement progress**,
+when the smooth interpolation reaches the destination tile's near edge. Their
+age stays zero through the remaining movement. Completed arrival starts a full
+**450 ms tint fade** and **1250 ms floating-result lifetime**; movement speed does
+not consume that post-arrival budget. The tint begins at alpha 0.72 and fades
+linearly. It covers only the sprite silhouette, after persistent condition
+artwork, while the normal HP/allegiance and selection passes keep their ownership.
+Fire adds no attack lunge or damage jolt. Living labels follow the exact disclosed
+actor and its movement offset, including camera shake; fatal labels retain the
+resolved square after sprite retirement (`FALLEN` for a PC, `SLAIN` for a monster).
+
+The effect owns neither input nor a new workflow. Movement's existing finalizer
+starts the arrival lifetime or discards only the injury bound to a cancelled move.
+The later tint/label never extends movement's input block or completes another
+action. Unrelated impacts retain their own lifetimes.
+
+### Disclosure and cleanup
+
+The scene binds a separate opaque `CombatFireInjuryOwner` synchronously when
+consuming the result. Only that transient effect owner retains the live combat
+and queue references; the report and event payload never retain it. Projection
+checks that owner together with the result's scalar lifetime IDs, so same-slot
+replacement is rejected even if it occurs before effect admission or reuses the
+same provider. Reconstructing a combat/queue with equal numeric IDs cannot keep
+an already admitted effect alive.
+
+Admission-time concealment is permanent for that result; later revealing an actor
+cannot reveal a previously hidden burn. Live checks also reject changed encounters,
+replaced queue-entry lifetimes, reused monster identities, invisible/underground
+actors and concealed terrain. PC clones remain separate even though HP is shared.
+A disclosed fatal result can survive retirement at its recorded square, but not a
+replacement occupant or revival. Once update removes an invalidated effect it
+cannot reappear on a later reveal.
+
+At most 64 fire impacts coexist; admitting another evicts the oldest fire impact
+without evicting unrelated effect families. Expiry, invalidated ownership or
+disclosure, movement cancellation, combat exit/replacement and scene cleanup
+release retained fire state. These records are transient and add no save fields.
+
+Entry points are `internal/game_state/combat_fire_injury.go`,
+`internal/game_state/combat_field_effects.go`, and
+`cmd/ultimav/gamescene_combat_fire.go`, alongside combat impact/movement handling.
+`combat_fire_injury_test.go` and `gamescene_combat_fire_test.go` cover actual-loss
+admission, direct-field single delivery, clone/fatal identity, concealment, contact,
+speed/hitch timing, bounds and cleanup. Their controlled RNG and rendered-mask
+assertions do not establish live visual acceptance or equal-seed equivalence under
+different production wind timelines; see [elapsed-time RNG scope](TIME_SYSTEM.md#elapsed-time-and-shared-rng-scope).
 
 ## Projectile Travel
 
@@ -860,7 +963,7 @@ primitive preview substitutes for a recorded gameplay observation.
   projectile, spell, and environmental feedback never reuses the melee strike
   or attacker lunge. Projectiles and cone footprints remain event feedback rather
   than actor disclosure. Generic impacts retain their existing admission path;
-  typed area-spell target effects apply the disclosure gates described above.
+  typed area-spell and fire-injury effects apply the disclosure gates described above.
   Player reports separately apply admission-time disclosure rules.
 - Combat actor-local silhouettes, selection frames, division tethers, field
   removal cues, and summon/repel/teleport identity cues consult the actor's live

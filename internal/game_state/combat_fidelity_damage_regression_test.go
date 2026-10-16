@@ -107,23 +107,39 @@ func TestCombatDirectFieldDamageAppliesMagicalMonsterProtectionOnce(t *testing.T
 			assert.Equal(t, experienceBefore, state.PartyState.GetAvatar().Exp)
 			assert.Equal(t, callsBefore+test.expectedCalls, state.GetRNG().Calls())
 			assert.Len(t, state.CombatScene.Fields(), 1)
-			var attackEvent *CombatEvent
+			resultKind := CombatEventAttack
+			if test.spell == references.InFlamGrav {
+				resultKind = CombatEventFieldTriggered
+				assert.Empty(t, callbacks.CombatImpactCalls, "direct fire has only its field-event presentation owner")
+				assert.Zero(t, countCombatEvents(callbacks.CombatEvents, CombatEventAttack))
+			}
+			var resultEvent *CombatEvent
 			for index := range callbacks.CombatEvents {
-				if callbacks.CombatEvents[index].Kind == CombatEventAttack {
-					attackEvent = &callbacks.CombatEvents[index]
+				if callbacks.CombatEvents[index].Kind == resultKind {
+					resultEvent = &callbacks.CombatEvents[index]
 					break
 				}
 			}
-			require.NotNil(t, attackEvent)
-			assert.Equal(t, targetIndex, attackEvent.Target.Index)
+			require.NotNil(t, resultEvent)
+			assert.Equal(t, 1, countCombatEvents(callbacks.CombatEvents, resultKind))
+			assert.Equal(t, targetIndex, resultEvent.Target.Index)
 			if test.spell == references.InFlamGrav {
-				assert.Equal(t, test.rawDamage, attackEvent.Diagnostics.Damage.Damage)
+				assert.Equal(t, test.rawDamage, resultEvent.Diagnostics.Damage.Damage)
+				assert.Equal(t, test.values[0]+1, resultEvent.Diagnostics.Damage.AttackRoll)
+				assert.True(t, resultEvent.Diagnostics.Damage.AttackRolled)
+				assert.Equal(t, len(test.values) > 1, resultEvent.Diagnostics.Damage.ArmorRolled)
+				if len(test.values) > 1 {
+					assert.Equal(t, test.values[1]+1, resultEvent.Diagnostics.Damage.ArmorRoll)
+				}
+				assert.Equal(t, test.spell, resultEvent.Diagnostics.Spell)
+				require.NotNil(t, resultEvent.FireInjury)
+				assert.Equal(t, test.expectedDamage, resultEvent.FireInjury.HPLost)
 			}
-			assert.Equal(t, test.expectedDamage, attackEvent.Diagnostics.FinalDamage)
-			assert.Equal(t, test.undead, attackEvent.Diagnostics.TargetUndead)
-			assert.Equal(t, test.immortal, attackEvent.Diagnostics.TargetImmortal)
-			assert.True(t, attackEvent.Diagnostics.MagicDamage)
-			assert.Equal(t, test.expectedDamage, attackEvent.HPLost)
+			assert.Equal(t, test.expectedDamage, resultEvent.Diagnostics.FinalDamage)
+			assert.Equal(t, test.undead, resultEvent.Diagnostics.TargetUndead)
+			assert.Equal(t, test.immortal, resultEvent.Diagnostics.TargetImmortal)
+			assert.True(t, resultEvent.Diagnostics.MagicDamage)
+			assert.Equal(t, test.expectedDamage, resultEvent.HPLost)
 		})
 	}
 }

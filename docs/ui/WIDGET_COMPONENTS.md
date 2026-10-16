@@ -364,9 +364,10 @@ page chord cannot become a single-row move or trigger both actions.
   independent. Changing Shift during a hold changes the next scheduled action.
 - Opposing/simultaneous navigation keys produce no movement. Focus changes require
   releasing held navigation keys. Input-mode changes reset the repeat state.
-- Activation, dismissal, spell letters, numeric shortcuts, tab selection, and
-  quantity entry remain separate, one-shot policies. Native text editors retain
-  their text-selection semantics.
+- Activation, dismissal, spell letters, numeric shortcuts and tab selection
+  remain separate, one-shot policies. Merchant quantity forms have their own
+  [horizontal-repeat policy](#merchant-quantity-controls); native text editors
+  retain their text-selection semantics.
 - Advertised Enter acceptance supports both Return and keypad Enter. Tab/Shift+Tab
   traverses sections/casters in opposite directions where cycling is supported.
 - Compact footers prioritize Shift+Up/Down; physical Page Up/Down remains available
@@ -687,6 +688,42 @@ All approval dialogs consume requests once. Do not normalize distinct family
 refusal/termination policies into a generic modal rule. Inspect the family tests
 for navigation, terminal/nonterminal refusals, duplicate suppression, and refresh.
 
+### Merchant Quantity Controls
+
+`quantity_input.go` shares input ownership across five approval forms; each form
+retains its existing quote-derived bounds and request type:
+
+| Form | Repeating adjustment | Existing one-shot shortcuts / limits |
+|---|---|---|
+| `ArmsTradeDialog` | Left/Right item count | Sell uses A for All; ordinary Buy has no maximum shortcut; ammunition remains a fixed refill. |
+| `GuildPurchaseDialog` | Left/Right bundle count | Up/Down decrement/increment once; M selects the quoted maximum, including the existing saturating final bundle. |
+| `ReagentPurchaseDialog` | Left/Right bundle count | Up/Down decrement/increment once; M selects the maximum supplied approval view. |
+| `ShipPurchaseDialog` | Left/Right loaded-skiff count | Up/Down decrement/increment once; M selects the maximum supplied approval view. Standalone vessel delivery remains one. |
+| `TavernActionDialog` | Left/Right ration-pack count | M selects MaximumUsefulPacks; other Tavern approvals keep their existing controls. |
+
+A fresh plain Left/Right press steps immediately, then waits 300 ms before nominal
+120 ms repeats, quantized to Update ticks. Release stops repetition; rapid taps
+and switching direction are immediate. Bounds clamp without wrapping. Shift,
+Control, Alt or Meta blocks quantity adjustment rather than invoking list paging.
+Conflicting quantity keys are suppressed until release; releasing only a modifier
+or one conflicting key cannot replay the remaining hold. Up/Down aliases never
+inherit list-navigation repeat or Shift paging.
+
+A throttled hold still owns the update. Enter/keypad Enter pressed during quantity
+adjustment must release before a fresh confirmation; holding an arrow never emits
+a transaction. Escape keeps cancellation. Modal focus notifications reset repeat
+and suppress held adjustment, shortcut and confirmation controls on cover, return,
+dismissal or removal, even when no Update ran while covered. Application focus
+suspension uses the shared keyboard's release protection. Resize preserves the
+quantity and current repeat cadence. The helper changes neither pricing nor
+authority: confirmation emits one existing reviewed request, and workflow cleanup
+returns control with release protection.
+
+`quantity_input_test.go` exercises injected physical-held input, cadence, aliases,
+conflicts, focus suspension, removal and resize across these forms. Family dialog
+tests retain bounds, fixed-quantity and single-request assertions. These tests do
+not substitute for a live keyboard acceptance pass.
+
 ## Detached Selectors
 
 `CharacterSelectionDialog` and `NewOrderDialog` share a roster/detail renderer
@@ -701,6 +738,25 @@ Those selectors use a wider roster with current/max HP, missing HP, and conditio
 columns for every candidate. Dead members show no recoverable-HP estimate; the
 existing warning/availability rules and resource commitment remain authoritative.
 The detail pane prioritizes the action explanation over a portrait in this mode.
+
+Camping watch selection instead explicitly sets
+`CharacterSelectionConfig.GuardResources`. `CharacterSelectionResources` carries
+typed current/max HP (`uint16`) and MP (`byte`) values copied from the party's
+getters. Construction and option access copy the resource value: an open selector
+is a detached snapshot, refreshed only by reopening, and never parses free-form
+Facts to obtain numbers. Supplying Resources alone does not select this layout;
+the explicit flag also takes precedence over healing Health data.
+
+The guard layout places a full-width Name/HP/MP/Condition roster above its measured
+explanation and footer. Every party member remains visible, including all six
+members plus No One; No One has blank HP/MP/Condition cells. Complete numeric
+values and condition colours survive selection and resize. Arrows/number keys
+inspect and Enter confirms; there is no automatic guard choice or recovery
+prediction. Poisoned remains a confirmable warning row whose scene-owned result
+is cancellation; Good guards and explicit No One retain their separate meanings.
+Healing selectors and New Order keep their own layouts. See
+[guard confirmation](../systems/CAMPING_SYSTEM.md#guard-comparison-and-confirmation)
+and `character_guard_resources_test.go` for the detached/layout contract.
 
 `ItemSelectionDialog` receives detached `UseableItemInfo` values containing stable
 identity, quantity, applicability, guidance, consumption, lore, and sprite. The

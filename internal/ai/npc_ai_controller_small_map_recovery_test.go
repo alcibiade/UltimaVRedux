@@ -158,7 +158,9 @@ func TestNPCScheduledTravelRecoveryDoesNotRunOffFloor(t *testing.T) {
 
 	controller.AdvanceNextTurnCalcAndMoveNPCs()
 
-	assert.Equal(t, start, npc.Pos())
+	assert.Equal(t, goal, npc.Pos())
 	assert.Equal(t, references.FloorNumber(1), npc.Floor())
+	assert.Equal(t, references.NPCScheduleSlot(1), npc.ArrivedScheduleSlot())
+	assert.Empty(t, npc.MapUnitDetails().CurrentPath)
 	assert.Empty(t, rng.calls)
 }

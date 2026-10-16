@@ -58,8 +58,21 @@ and resolve exactly once; presentation never commits again. Dungeon casting keep
 its dungeon command-cycle token until cleanup and charges it only on commitment.
 It must not complete a surface cycle.
 
-**Implementation:** `internal/references/spell_metadata.go`, `internal/game_state/action_cast.go`, `internal/game_state/combat_spell_targeting.go`, `internal/game_state/combat_adjacent_spell_targeting.go`, `internal/game_state/combat_cone_targeting.go`, `cmd/ultimav/gamescene_input_dungeon.go`
-**Tests:** `internal/game_state/cast_use_commit_test.go`, `internal/game_state/combat_spell_targeting_test.go`
+Combat An Sanct, An Ex Por, and In Ex Por retain the exact encounter, scheduled
+PC/clone, origin, dispatch and map instances from selection through delayed
+resolution and completion. Confirmation consumes one prepared spell and its MP
+once. The paid cast keeps ownership until cleanup; duplicate confirmation or
+effect callbacks cannot pay, mutate, or finish again. Presentation shutdown settles
+an already-paid cast only while that original owner is still current. A changed
+owner/map never mutates or finishes a replacement action. A changed target after
+payment produces no success event; it still completes the original paid action.
+For a chest, An Sanct retains both the selected lifetime ID and its value snapshot.
+Removing and readmitting identical contents at the same position and original slot
+invalidates the paid effect. Moving the original value within object storage does
+not. Encounter-local lifetime allocation is described in COMBAT-0010.
+
+**Implementation:** `internal/references/spell_metadata.go`, `internal/game_state/action_cast.go`, `internal/game_state/combat_spell_targeting.go`, `internal/game_state/combat_adjacent_spell_targeting.go`, `internal/game_state/combat_utility_spell_commit.go`, `internal/game_state/combat_cone_targeting.go`, `cmd/ultimav/gamescene_combat_utility_spell_effect.go`, `cmd/ultimav/gamescene_input_dungeon.go`
+**Tests:** `internal/game_state/cast_use_commit_test.go`, `internal/game_state/combat_spell_targeting_test.go`, `internal/game_state/combat_door_spell_test.go`, `cmd/ultimav/gamescene_combat_door_spell_test.go`
 
 ### SPELL-0002
 
@@ -127,7 +140,18 @@ all listed contexts, but that fact alone does not establish full effect parity.
 | 46 | 8 | Vas Rel Por | O/T/D | Reject ship-shape family, including skiff; choose phase 1–8 and attempt that moongate destination. Invalid/unavailable travel fails after payment. |
 | 47 | 8 | An Tym | O/T/D/C | An object with exact base Shadowlord tile 0xFC absorbs it; the other three family frames do not satisfy this test. Otherwise shared Time Stop duration 10 suppresses hostile activity and supplies effective monster DEX 1 without rewriting stored countdown DEX. |
 
-**Implementation:** `internal/references/spell_metadata.go`, `internal/game_state/action_cast.go`
+In Redux combat, An Sanct mundane unlocking, An Ex Por magical locking, and In Ex
+Por magical unlocking update the encounter reference and layered terrain together,
+retiring any older terrain override at that square. Plain and windowed doors keep
+their family. A successful unlock event therefore corresponds to the effective
+unlocked door seen by rendering and ordinary Open. Open changes both terrain views
+to floor; successful Jimmy changes both to the matching regular door, retaining
+its existing physical-unlock roll and key-consumption rules. An Ex Por cannot
+re-lock an already-open floor square. Chest objects and Skull Key resource rules
+remain separate from these terrain transitions.
+
+**Implementation:** `internal/references/spell_metadata.go`, `internal/game_state/action_cast.go`, `internal/game_state/combat_utility_spells.go`, `internal/game_state/combat_utility_spell_commit.go`, `internal/game_state/combat_special_death.go`
+**Tests:** `internal/game_state/combat_door_spell_test.go`, `cmd/ultimav/gamescene_combat_door_spell_test.go`
 
 ### SPELL-0003
 
@@ -321,6 +345,19 @@ An Sanct resolves and disarms a live authoritative chest, not merely a rendered
 chest tile. Validation and mutation retain the same object slot, including piles.
 Redux also records party-shared safe knowledge; dungeon opening retires closed-
 chest assessment without an inspection roll. This knowledge is Redux assistance.
+
+Combat An Sanct, An Ex Por, and In Ex Por use the familiar full-size, uniformly
+white attack cursor on one of the caster's four cardinal neighbours. Arrow keys
+and keypad 8/2/4/6 select that neighbour directly; repeated input never extends
+range, diagonals are ignored, and map edges do not wrap. The initial neighbour is
+chosen geometrically (north, then east/south/west if clipped), without inspecting
+terrain or objects. Enter, keypad Enter, C, or Space confirms; Escape cancels
+without spending MP, a prepared spell, RNG or the combat action. Invalid targets
+remain in selection without cost. Cursor colour and aim text do not disclose
+concealed terrain, lock eligibility, or unassessed chest traps. The active actor
+indicator remains above its HP bar; these spells do not also draw directional
+arrows or the older coloured adjacent underlay. Other adjacent and cone selectors
+retain their existing previews.
 
 Directed offensive magic shares the intuitive attack-awakening policy of
 COMBAT-0006, including resisted/blocked/absorbed attacks. Direct fire/poison field

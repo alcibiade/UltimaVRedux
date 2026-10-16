@@ -3,8 +3,8 @@
 These rules describe the inspected DOS source model. Its version label does not
 identify an immutable retail build. Authored actors require separately verified
 NPC data; source algorithms alone do not establish every town's population.
-Redux comparisons describe the current application, not application availability
-in this documentation staging repository.
+Redux comparisons describe the current application; configured-data fixtures
+establish actor-specific behavior only for the installation they actually test.
 
 ### NPC-0001
 
@@ -53,6 +53,25 @@ arrival from another floor, and off-floor relocation. Desired destination and
 last arrival are different facts; wandering away from an arrived work anchor
 does not itself mean the actor never arrived.
 
+Floor travel is classified relative to the floor observed by the party:
+
+| Current actor floor | Selected destination floor | Schedule transition |
+| --- | --- | --- |
+| Observed | Observed | Walk to the scheduled destination. |
+| Observed | Hidden | Walk to a suitable departure ladder/stair, then relocate to the hidden destination and record arrival. |
+| Hidden | Observed | Find a suitable receiving-floor entry using the destination as search anchor, establish an entry-to-destination route, place at the entry, then walk on later updates. |
+| Hidden | Hidden | Relocate directly to the destination and record arrival, even when both endpoints are on the same hidden floor. |
+
+Arrival from above uses the receiving floor's upward connection; arrival from
+below uses its downward connection, with stairs following the established
+directional rules. Merely entering the observed floor does not change the
+last-arrived slot: the actor must reach the selected destination (an entry that
+is itself the destination already satisfies that condition). Settled hidden
+actors do not wander. These schedule transitions are separate from changing the
+**player's** floor, which resets NPC positions to their current scheduled
+destinations. That same-location reset retains loaded dialogue mutations and AI
+overrides; overrides retain their precedence over ordinary scheduled travel.
+
 Original movement retains an active travel operation, uses shared path-search
 budget and pause counters, and can attempt a gated random recovery after blocked
 movement or failed search. Its planner tests terrain differently from actual
@@ -66,15 +85,60 @@ Occupied goals are excluded, as are chairs when routing to another floor. This
 avoids repeatedly planning unusable routes rather than preserving original
 path activity, limited nearby-object planning, and pause counters.
 
+Redux searches connections on the observed floor's authoritative persistent
+terrain, including overrides, independently of visual object sprites. Entry and
+route occupancy use actual same-floor actors and the party. It checks candidates
+in stable nearest-anchor order and tries alternatives when a nearer connection
+is occupied or unreachable. The full 32×32 map is included, including the origin
+and final row/column. Missing connections or blocked entry routes leave the actor
+on its prior floor, discard obsolete paths, and retry on the next update without
+recovery RNG or destination teleportation. Each update has a finite candidate
+scan and bounded map search; this does not reproduce the original shared search
+budget. Direct hidden relocation clears old routes. Incoming entry retains its
+route and prior arrival until physical destination arrival; native persistence
+retains those distinct facts. A matching last-arrived slot counts as settled only
+on that slot's destination floor. If an incoming walk from A to B is interrupted
+by selecting A again before reaching B, the retained arrival at A does not cancel
+the required departure from B's floor. The actor must still reach a usable
+departure connection before relocating back to A. This floor check does not
+require a same-floor arrived wanderer to return to its anchor.
+
 After unsuccessful same-floor travel on the active floor, Redux tries one
 original-style gated cardinal recovery step, retaining scheduled-travel terrain
 permissions. It does not cross occupants or unrelated beds. Settled fixed actors
 consume no recovery RNG; failed ladder travel does not use this recovery. Redux
-replans each turn. A seeded Serpent's Hold 05:00 regression covers eight ground
-floor guards reaching their shift destinations without a reload.
+retains usable cached routes and retries failed planning on later updates without
+the original pause counters. A seeded Serpent's Hold 05:00 regression covers eight
+ground-floor guards reaching their shift destinations without a reload.
 
-**Implementation:** `internal/ai/npc_ai_controller_small_map.go`
-**Tests:** `internal/ai/npc_ai_controller_small_map_recovery_test.go`, `internal/ai/npc_ai_controller_small_map_recovery_original_test.go`
+The Sindar regression resolves a Trinsic actor slot through its installed town
+conversation identity (dialogue 32), rather than treating the dialogue number as
+an actor index. It checks the configured schedule, destination terrain, and
+physical travel during ordinary Pass from 23:50 through 07:30 without a floor
+change or sleep; a separate sequence compares the deliberate player-floor reset.
+Each Pass logs time, actor identity, position/floor, selected and arrived slots,
+remaining route, and the transition class inferred from the pre-update state.
+It also checks same-floor occupancy throughout the observed walk. The party
+stays at ground-floor coordinate (15,15); this is a controlled schedule trace,
+not a rendered line-of-sight test at the healer entrance.
+The fixture expects a fixed upper-floor destination at midnight, a different
+upper-floor wandering destination at 01:00, the first upper-floor destination at
+05:00, and a ground-floor bed destination at 06:00. The configured installation's
+first upper-floor anchor is a fireplace at (25,7), not ordinary passable terrain.
+An exact schedule destination has the NPC-0004 terrain exception; hidden-floor
+relocation also does not require a walkable route on the observed floor. The
+fixture logs all installed anchor tiles and checks the actual morning receiving
+route, including cardinal steps, map bounds, intermediate terrain and its final
+destination. These are schedule-selection times, not guaranteed arrival times.
+A different installation must be reviewed
+rather than silently accepted as the same actor-data proof. This controlled
+ground-floor observation does not establish the reporter's unspecified position,
+hours, or whether their playthrough included a floor change or sleeping.
+Actor-data acceptance requires a passing configured-data run; an unavailable-data
+skip does not verify Sindar's installed itinerary or route.
+
+**Implementation:** `internal/ai/npc_ai_controller_small_map.go`, `internal/ai/npc_schedule_paths.go`, `internal/map_units/npc_friendly.go`, `internal/references/small_location_reference.go`
+**Tests:** `internal/ai/npc_schedule_floors_test.go`, `internal/ai/npc_ai_controller_small_map_recovery_test.go`, `internal/ai/npc_ai_controller_small_map_recovery_original_test.go`, `internal/references/small_location_ladders_test.go`, `internal/game_state/npc_schedule_state_test.go`, `internal/game_state/npc_sindar_integration_test.go`
 
 ### NPC-0003
 

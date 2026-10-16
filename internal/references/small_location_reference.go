@@ -2,6 +2,7 @@ package references
 
 import "github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 
+// SmallLocationReference holds authored map floors, location metadata and NPC references.
 type SmallLocationReference struct {
 	rawData              map[int]*[XSmallMapTiles][YSmallMapTiles]byte
 	Location             Location
@@ -13,6 +14,7 @@ type SmallLocationReference struct {
 	npcRefs *[]NPCReference
 }
 
+// NewSingleSmallMapReference initializes location metadata before floor data is loaded.
 func NewSingleSmallMapReference(
 	location Location,
 	npcRefs *[]NPCReference,
@@ -42,6 +44,7 @@ func (s *SmallLocationReference) addBlankFloor(index int) {
 	s.ListOfFloors = s.getListOfFloors()
 }
 
+// GetFloorMinMax returns the inclusive floor range, accounting for a basement.
 func (s *SmallLocationReference) GetFloorMinMax() (FloorNumber, FloorNumber) {
 	if s.HasBasement() {
 		return -1, FloorNumber(len(s.rawData) - 2)
@@ -50,12 +53,14 @@ func (s *SmallLocationReference) GetFloorMinMax() (FloorNumber, FloorNumber) {
 	return 0, FloorNumber(len(s.rawData) - 1)
 }
 
+// HasBasement reports whether floor -1 has authored map data.
 func (s *SmallLocationReference) HasBasement() bool {
 	_, ok := s.rawData[-1]
 
 	return ok
 }
 
+// GetTileNumber returns an authored sprite index; packed dungeon cells use GetDungeonCell.
 func (s *SmallLocationReference) GetTileNumber(xy Position, nFloor FloorNumber) indexes.SpriteIndex {
 	if s.Location.GetMapType() == DungeonMapType {
 		panic("packed dungeon cells are not sprite indexes")
@@ -104,6 +109,7 @@ func (s *SmallLocationReference) CopyDungeonCells() (DungeonCells, bool) {
 // 	return indexes.SpriteIndex(s.rawData[int(nFloor)][x][y])
 // }
 
+// GetEnteringText returns the location's display name.
 func (s *SmallLocationReference) GetEnteringText() string {
 	return s.Location.String()
 }
@@ -132,7 +138,8 @@ func (s *SmallLocationReference) GetExitingText() string {
 		return "Leaving Keep\n\n" + s.FriendlyLocationName
 	case Deceit, Despise, Destard, Wrong, Covetous, Shame, Hythloth, Doom:
 		return "Leaving Dungeon\n\n" + s.FriendlyLocationName
-	case EmptyLocation, CampingLocation, BritanniaUnderworld, CombatRestingShrine:
+	case EmptyLocation, CampingLocation, BritanniaUnderworld, CombatRestingShrine,
+		ShrineLocation, CodexLocation, CombatLocation, BlackthornPrison, FinaleLocation:
 		// Non-interactive locations use generic message
 		return "Leaving..."
 	}
@@ -160,12 +167,17 @@ func (s *SmallLocationReference) getEnteringText() string {
 		return "Enter Keep\n\n" + s.FriendlyLocationName
 	case Deceit, Despise, Destard, Wrong, Covetous, Shame, Hythloth, Doom:
 		return "Enter Dungeon\n\n" + s.FriendlyLocationName
+	case EmptyLocation, CampingLocation, ShrineLocation, CodexLocation, CombatLocation,
+		BlackthornPrison, FinaleLocation, BritanniaUnderworld, CombatRestingShrine:
+		// These locations have no authored small-map entry message.
 	}
 
 	return "NOT IMPLEMENTED"
 }
 
+// GetOuterTile returns the terrain surrounding the small map.
 func (s *SmallLocationReference) GetOuterTile() indexes.SpriteIndex {
+	//nolint:exhaustive // Only these two locations override the default grass surround.
 	switch s.Location {
 	case SinVraalsHut:
 		return indexes.Desert1
@@ -176,14 +188,17 @@ func (s *SmallLocationReference) GetOuterTile() indexes.SpriteIndex {
 	}
 }
 
+// GetNumberOfFloors returns the number of loaded authored floors.
 func (s *SmallLocationReference) GetNumberOfFloors() int {
 	return len(s.rawData)
 }
 
+// GetMaxY returns the inclusive vertical bound of the square map.
 func (s *SmallLocationReference) GetMaxY() Coordinate {
 	return s.GetMaxX()
 }
 
+// GetMaxX returns the inclusive horizontal bound for the location's map type.
 func (s *SmallLocationReference) GetMaxX() Coordinate {
 	switch s.Location.GetMapType() {
 	case LargeMapType:
@@ -216,6 +231,7 @@ func (s *SmallLocationReference) getListOfFloors() []FloorNumber {
 	return floors
 }
 
+// CanGoUpOneFloor reports whether the next higher floor is below the loaded upper bound.
 func (s *SmallLocationReference) CanGoUpOneFloor(currentFloor FloorNumber) bool {
 	floorIndex := 0
 	if s.HasBasement() {
@@ -226,6 +242,7 @@ func (s *SmallLocationReference) CanGoUpOneFloor(currentFloor FloorNumber) bool 
 	return int(nextFloor) < s.GetNumberOfFloors()+floorIndex
 }
 
+// CanGoDownOneFloor permits nonnegative floors and requires a basement for negative floors.
 func (s *SmallLocationReference) CanGoDownOneFloor(currentFloor FloorNumber) bool {
 	if currentFloor < 0 {
 		return s.HasBasement()
@@ -234,31 +251,27 @@ func (s *SmallLocationReference) CanGoDownOneFloor(currentFloor FloorNumber) boo
 	return true
 }
 
+// GetNPCReferences returns the location's authored NPC reference collection.
 func (s *SmallLocationReference) GetNPCReferences() *[]NPCReference {
 	return s.npcRefs
 }
 
+// GetClosestLadder returns the closest authored directional connection, or
+// (-1,-1) when none exists. Runtime route selection must additionally check
+// persistent terrain overrides, occupancy and reachability.
 func (s *SmallLocationReference) GetClosestLadder(npcCurrentPosition Position, nCurrentFloor, nTargetFloor FloorNumber) Position {
-	ladderOrStairType := LadderOrStairDown
-	if nCurrentFloor < nTargetFloor {
-		ladderOrStairType = LadderOrStairUp
-	}
+	ladderOrStairType := GetLadderOfStairsType(nCurrentFloor, nTargetFloor)
 	ls := s.getListOfAllLaddersAndStairs(nCurrentFloor, ladderOrStairType)
 
-	bestPosition := Position{}
-	for _, pos := range ls {
-		if bestPosition.IsZeros() {
-			bestPosition = pos
-
-			continue
-		}
+	if len(ls) == 0 {
+		// Runtime routes must handle missing connections as pending travel.
+		return Position{X: -1, Y: -1}
+	}
+	bestPosition := ls[0]
+	for _, pos := range ls[1:] {
 		if npcCurrentPosition.HeuristicTileDistance(pos) < npcCurrentPosition.HeuristicTileDistance(bestPosition) {
 			bestPosition = pos
 		}
-	}
-
-	if bestPosition.IsZeros() {
-		panic("every NPC should have a ladder or stair close to them")
 	}
 
 	return bestPosition
@@ -266,9 +279,12 @@ func (s *SmallLocationReference) GetClosestLadder(npcCurrentPosition Position, n
 
 func (s *SmallLocationReference) getListOfAllLaddersAndStairs(nFloor FloorNumber, ladderOrStairType LadderOrStairType) []Position {
 	positions := make([]Position, 0)
+	if s.rawData[int(nFloor)] == nil {
+		return positions
+	}
 
-	for x := Coordinate(0); x < s.GetMaxX(); x++ {
-		for y := Coordinate(0); y < s.GetMaxY(); y++ {
+	for x := Coordinate(0); x <= s.GetMaxX(); x++ {
+		for y := Coordinate(0); y <= s.GetMaxY(); y++ {
 			pos := Position{X: x, Y: y}
 			isLadderOrStair := IsSpecificLadderOrStairs(s.GetTileNumber(pos, nFloor), ladderOrStairType)
 			if isLadderOrStair {

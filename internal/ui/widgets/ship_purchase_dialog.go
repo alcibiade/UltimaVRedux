@@ -39,6 +39,7 @@ type ShipPurchaseDialogConfig struct {
 
 // ShipPurchaseDialog displays only detached quote consequences and emits the reviewed request.
 type ShipPurchaseDialog struct {
+	quantityInput
 	keyboard  *input.Keyboard
 	intent    ShipPurchaseIntent
 	quantity  int
@@ -59,13 +60,18 @@ func NewShipPurchaseDialog(config ShipPurchaseDialogConfig) *ShipPurchaseDialog 
 	}
 	validateShipPurchaseIntent(config.Intent)
 	dialog := &ShipPurchaseDialog{
-		keyboard:  config.Keyboard,
-		intent:    config.Intent,
-		quantity:  1,
-		dismissed: false,
-		cancelled: false,
-		pending:   nil,
-		frame:     newShipMerchantModalFrame(shipPurchasePlacement()),
+		quantityInput: newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld,
+			ebiten.KeyM, ebiten.KeyUp, ebiten.KeyDown),
+		keyboard:     config.Keyboard,
+		intent:       config.Intent,
+		quantity:     1,
+		dismissed:    false,
+		cancelled:    false,
+		pending:      nil,
+		frame:        newShipMerchantModalFrame(shipPurchasePlacement()),
+		headerOutput: nil,
+		bodyOutput:   nil,
+		footerOutput: nil,
 	}
 	config.Keyboard.PrepareForTransition(0)
 	dialog.ensureLayout()
@@ -96,7 +102,7 @@ func (d *ShipPurchaseDialog) Update() {
 	}
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		d.cancelled = true
-		d.dismissed = true
+		d.Dismiss()
 
 		return
 	}
@@ -110,33 +116,28 @@ func (d *ShipPurchaseDialog) Update() {
 		request.Quantity = approval.Quantity
 		request.ReviewedTotalPrice = approval.TotalPrice
 		d.pending = &request
-		d.dismissed = true
+		d.Dismiss()
 	}
 }
 
 func (d *ShipPurchaseDialog) handleQuantityInput() bool {
+	key, owned := d.pollQuantityInput()
+	if key == nil {
+		return owned
+	}
 	if d.intent.Quote.Action != game_state.ShipPurchaseLoadSkiff || len(d.intent.Quote.ApprovalViews) <= 1 {
-		return false
+		return owned
 	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyM) {
+	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
+	case ebiten.KeyM:
 		d.setQuantity(len(d.intent.Quote.ApprovalViews))
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyUp) {
+	case ebiten.KeyLeft, ebiten.KeyUp:
 		d.setQuantity(max(1, d.quantity-1))
-
-		return true
-	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyDown) {
+	case ebiten.KeyRight, ebiten.KeyDown:
 		d.setQuantity(min(len(d.intent.Quote.ApprovalViews), d.quantity+1))
-
-		return true
 	}
 
-	return false
+	return owned
 }
 
 func (d *ShipPurchaseDialog) setQuantity(quantity int) {
@@ -225,7 +226,10 @@ func (d *ShipPurchaseDialog) IsDismissed() bool { return d.dismissed }
 func (d *ShipPurchaseDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
-func (d *ShipPurchaseDialog) Dismiss() { d.dismissed = true }
+func (d *ShipPurchaseDialog) Dismiss() {
+	d.onDialogFocusChanged(false)
+	d.dismissed = true
+}
 
 func (d *ShipPurchaseDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {

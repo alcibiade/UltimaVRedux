@@ -56,6 +56,67 @@ func TestCombatStateSupportsMultipleObjectsAtSamePosition(t *testing.T) {
 	assert.Equal(t, 2, combatState.ObjectCount())
 }
 
+func TestCombatObjectLifetimeIDsSurviveCopiesButNeverReadmission(t *testing.T) {
+	combat := &CombatState{}
+	position := references.Position{X: 2, Y: 2}
+	chest := NewCombatChest(position, 20, true)
+	require.Zero(t, chest.LifetimeID())
+	require.True(t, combat.AddObject(chest))
+	first, found := combat.ObjectAt(position)
+	require.True(t, found)
+	require.NotZero(t, first.LifetimeID())
+	require.True(t, combat.AddObject(first), "admitting a value copy creates a distinct lifetime")
+	second, found := combat.ObjectAt(position)
+	require.True(t, found)
+	require.Greater(t, second.LifetimeID(), first.LifetimeID())
+	firstIdentity := CombatChestIdentity{Position: position, ObjectID: first.LifetimeID()}
+	secondIdentity := CombatChestIdentity{Position: position, ObjectID: second.LifetimeID()}
+	removed, found := combat.takeFirstObjectAt(position, CombatObject.IsChest)
+	require.True(t, found)
+	require.Equal(t, first, removed)
+	assert.False(t, combat.HasChestIdentity(firstIdentity))
+	assert.True(t, combat.HasChestIdentity(secondIdentity), "slice compaction retains the surviving lifetime")
+	compacted, found := combat.ObjectAt(position)
+	require.True(t, found)
+	assert.Equal(t, second, compacted)
+	copyOfCombat := *combat
+	assert.True(t, copyOfCombat.HasChestIdentity(secondIdentity), "value copying does not re-admit objects")
+	require.True(t, combat.AddObject(removed))
+	replacement := combat.objects[0]
+	assert.Equal(t, first.originalObjectSlot, replacement.originalObjectSlot)
+	assert.Greater(t, replacement.LifetimeID(), second.LifetimeID())
+	assert.False(t, combat.HasChestIdentity(firstIdentity), "identical slot and contents cannot resurrect an owner")
+	assert.Panics(t, func() { combat.liveChest(first) }, "stale live mutation cannot target a reused slot")
+	assert.True(t, replacement.IsLockedAndTrapped())
+}
+
+func TestCombatObjectLifetimeIDsCoverLootReplacementAndTransferredCorpses(t *testing.T) {
+	combat := &CombatState{}
+	position := references.Position{X: 2, Y: 2}
+	require.True(t, combat.addLootObject(NewCombatChest(position, 20, true)))
+	loot, found := combat.takeObjectAt(position, CombatObject.IsChest)
+	require.True(t, found)
+	require.NotZero(t, loot.LifetimeID())
+	combat.replaceObjectInOriginalSlot(loot, NewCombatCorpse(position))
+	corpse, found := combat.ObjectAt(position)
+	require.True(t, found)
+	assert.Equal(t, loot.originalObjectSlot, corpse.originalObjectSlot)
+	assert.Greater(t, corpse.LifetimeID(), loot.LifetimeID())
+	queue := NewCombatTurnQueue()
+	queue.AddCombatant(newMockMonster(15), 0)
+	combat.TurnQueue = queue
+	actor := CombatTurnIdentity{EntityIndex: 0}
+	require.True(t, combat.registerCombatantObject(actor))
+	require.True(t, combat.transferCombatantObjectTo(actor, NewCombatCorpse(references.Position{X: 3, Y: 2})))
+	transferred, found := combat.ObjectAt(references.Position{X: 3, Y: 2})
+	require.True(t, found)
+	assert.Greater(t, transferred.LifetimeID(), corpse.LifetimeID())
+	combat.lastObjectID = ^CombatObjectID(0)
+	count := combat.ObjectCount()
+	assert.Panics(t, func() { combat.AddObject(NewCombatChest(position, 20, true)) })
+	assert.Equal(t, count, combat.ObjectCount(), "exhaustion must not wrap and reuse an ID")
+}
+
 func TestCombatStateOnlyBlocksMovementForBlockingObjects(t *testing.T) {
 	t.Parallel()
 

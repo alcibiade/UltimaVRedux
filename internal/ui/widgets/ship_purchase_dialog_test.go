@@ -195,3 +195,29 @@ func pressShipPurchaseKey(dialog *ShipPurchaseDialog, keyboard *input.Keyboard, 
 	keyboard.SimulateKeyPress(key)
 	dialog.Update()
 }
+
+func TestShipPurchaseDialogPhysicalFixedVesselsKeepReviewedRequest(t *testing.T) {
+	state := testShipShopState()
+	setShipShopGold(&state, 100)
+	for _, quote := range []game_state.ShipPurchaseQuote{state.FrigateQuote, state.SkiffQuote} {
+		t.Run(shipActionLabel(quote.Action), func(t *testing.T) {
+			keys := newPhysicalQuantityKeys()
+			intent := testShipPurchaseIntent(state, quote, false)
+			dialog := NewShipPurchaseDialog(ShipPurchaseDialogConfig{Keyboard: keys.keyboard, Intent: intent})
+			require.False(t, dialog.GetApprovalView().Affordable)
+			for _, key := range []ebiten.Key{ebiten.KeyRight, ebiten.KeyLeft, ebiten.KeyM} {
+				keys.held[key] = true
+				for range 60 {
+					keys.tick(dialog)
+				}
+				require.Equal(t, 1, dialog.GetQuantity())
+				keys.release(dialog)
+			}
+			keys.held[ebiten.KeyEnter] = true
+			keys.tick(dialog)
+			request, ok := dialog.ConsumePendingPurchaseRequest()
+			require.True(t, ok)
+			require.Equal(t, intent.Request, request, "fixed unaffordable attempts still reach authority")
+		})
+	}
+}

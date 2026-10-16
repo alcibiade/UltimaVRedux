@@ -7,6 +7,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
+	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
@@ -42,7 +43,7 @@ func enterCampingDuration(t *testing.T, scene *GameScene, update func()) {
 }
 
 func TestSurfaceCampingGuardCancellationAndExplicitChoices(t *testing.T) {
-	for _, choice := range []string{"cancel", "no one", "guard"} {
+	for _, choice := range []string{"cancel", "no one", "guard", "poisoned"} {
 		t.Run(choice, func(t *testing.T) {
 			scene, _, advance, callbacks := newRunicReferenceTestScene(t, references.BritanniaUnderworld)
 			windOnly, _, _, _ := newRunicReferenceTestScene(t, references.BritanniaUnderworld)
@@ -51,6 +52,9 @@ func TestSurfaceCampingGuardCancellationAndExplicitChoices(t *testing.T) {
 				windOnly.gameState.ProcessWindThroughElapsed(scene.gameState.ElapsedMs)
 			}
 			state := scene.gameState
+			if choice == "poisoned" {
+				state.PartyState.GetCharacter(1).SetStatus(party_state.Poisoned)
+			}
 			state.SystemCallbacks.Flow.Rest.RequestCampDuration = scene.RequestCampDuration
 			state.CurrentNPCAIController.GetNpcs().ClearAllMapUnits()
 			position := state.MapState.PlayerLocation.Position
@@ -67,8 +71,17 @@ func TestSurfaceCampingGuardCancellationAndExplicitChoices(t *testing.T) {
 			require.False(t, state.EventQueueManager.HasWorkflow("surface_command_completion"))
 			enterCampingDuration(t, scene, update)
 			guard := waitForCampingGuard(t, scene, update)
+			requireGuardResourceSnapshot(t, state, guard)
 			selected := guard.GetCurrentSelection()
 			switch choice {
+			case "poisoned":
+				scene.keyboard.SimulateKeyPress(ebiten.Key2)
+				update()
+				require.Equal(t, 1, guard.GetCurrentSelection())
+				require.Equal(t, "A poisoned selection cancels camping.", guard.GetCurrentOption().Details[0])
+				require.Same(t, guard, scene.dialogStack.PeekTopModalDialog())
+				require.Nil(t, state.CampingScene)
+				scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			case "cancel":
 				scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 			case "no one":
@@ -88,7 +101,7 @@ func TestSurfaceCampingGuardCancellationAndExplicitChoices(t *testing.T) {
 					break
 				}
 			}
-			if choice != "cancel" {
+			if choice != "cancel" && choice != "poisoned" {
 				require.NotNil(t, state.CampingScene)
 				require.Equal(t, selected, state.CampingScene.GuardIndex)
 				require.Equal(t, 1, state.CampingScene.Hours)
@@ -156,7 +169,8 @@ func TestDungeonCampingGuardEscapeCleansUpRetainedCycle(t *testing.T) {
 	scene.keyboard.SimulateKeyPress(ebiten.KeyH)
 	update()
 	enterCampingDuration(t, scene, update)
-	waitForCampingGuard(t, scene, update)
+	guard := waitForCampingGuard(t, scene, update)
+	requireGuardResourceSnapshot(t, state, guard)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	update()
 	drainDungeonInputWorkflowThroughUpdate(t, scene, state, "dungeon_hole_up")

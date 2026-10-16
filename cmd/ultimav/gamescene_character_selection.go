@@ -266,15 +266,19 @@ func populateActorOption(option *widgets.CharacterSelectionOption, character *pa
 }
 
 func populateGuardOption(option *widgets.CharacterSelectionOption, character *party_state.PlayerCharacter) {
+	option.Resources = &widgets.CharacterSelectionResources{
+		CurrentHP: character.GetCurrentHp(), MaximumHP: character.GetMaxHp(),
+		CurrentMP: character.GetCurrentMp(), MaximumMP: character.GetMaxMp(),
+	}
 	option.Facts = []widgets.CharacterSelectionFact{
-		hpSelectionFact(character),
-		{Label: "MP", Value: fmt.Sprintf("%d/%d", character.GetCurrentMp(), character.GetMaxMp())},
+		{Label: "HP", Value: fmt.Sprintf("%d/%d", option.Resources.CurrentHP, option.Resources.MaximumHP)},
+		{Label: "MP", Value: fmt.Sprintf("%d/%d", option.Resources.CurrentMP, option.Resources.MaximumMP)},
 	}
 	switch {
 	case character.IsGood():
 		option.Details = []string{"Standing guard means no rest HP or MP recovery."}
 	case character.IsPoisoned():
-		markCharacterWarning(option, "A poisoned selection resolves as no guard.", "Everyone will sleep without a watch.")
+		markCharacterWarning(option, "A poisoned selection cancels camping.", "Choose No One to camp without a watch.")
 	default:
 		markCharacterUnavailable(option, characterActorUnavailableReason(character))
 	}
