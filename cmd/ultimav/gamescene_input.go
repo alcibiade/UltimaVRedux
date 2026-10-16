@@ -95,6 +95,7 @@ var boundKeysGame = []ebiten.Key{
 //
 //nolint:cyclop,gocyclo,funlen,maintidx // Ordered input-owner precedence stays together so early returns are auditable.
 func (g *GameScene) Update(game *Game) error {
+	g.syncAutomaticSailingInterruption()
 	defer g.updateActorAnimationClocks()
 	// Presentation service must run even when a reader consumes the whole frame.
 	defer g.updateSceneMusic()
@@ -201,6 +202,7 @@ func (g *GameScene) Update(game *Game) error {
 	}
 	// Update wind and visual effects using real time
 	g.updateWindAndEffects()
+	g.syncAutomaticSailingInterruption()
 	g.reconcileTransientInputAfterQueues()
 	consumedFinaleHandoff, err := g.consumeDoomMirrorFinaleHandoff()
 	if err != nil {
@@ -279,6 +281,12 @@ func (g *GameScene) Update(game *Game) error {
 	// Process NPC auto-conversation before player input (original Ultima V behavior)
 	// NPC contact is processed before player commands (ref:NPC-0005).
 	if g.processNPCAutoTalk() {
+		return nil
+	}
+	// A waterfall may have yielded its physical input owner to the initiating
+	// outdoor actor phase. Reacquire only after contact/scheduler/auto-talk work,
+	// before either secondary input or an ordinary movement/Pass can run.
+	if g.gameState.ResumeWaterfallContinuation() {
 		return nil
 	}
 

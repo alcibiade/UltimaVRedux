@@ -14,9 +14,7 @@ func (g *GameState) SelectCombatPlayer(index int) bool {
 		return false
 	}
 	if index == -1 {
-		g.ClearActivePlayer()
-		combat.ClearSoloMoveMode()
-		g.SystemCallbacks.Message.AddRowStr("Round-robin mode")
+		g.clearCombatSoloSelection()
 
 		return true
 	}
@@ -32,6 +30,15 @@ func (g *GameState) SelectCombatPlayer(index int) bool {
 	}
 
 	return true
+}
+
+func (g *GameState) clearCombatSoloSelection() {
+	if !g.CombatScene.IsSoloMoveActive() {
+		return
+	}
+	g.ClearActivePlayer()
+	g.CombatScene.ClearSoloMoveMode()
+	g.SystemCallbacks.Message.AddRowStr("Round-robin mode")
 }
 
 func (g *GameState) canSelectCombatPlayer(index int) bool {

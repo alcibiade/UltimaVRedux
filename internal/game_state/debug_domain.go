@@ -99,6 +99,7 @@ func (g *GameState) TeleportPlayerOnCurrentMap(xCoordinate, yCoordinate int) (Pl
 		Y: references.Coordinate(yCoordinate), //nolint:gosec // G115: bounded by the active map dimensions.
 	}
 	g.SetPlayerPosition(change.After)
+	g.InitializeOutdoorWindow()
 
 	return change, nil
 }

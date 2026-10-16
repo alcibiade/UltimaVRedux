@@ -11,6 +11,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
@@ -153,7 +154,8 @@ func (g *GameScene) combatActiveSelectionOptions() (*ebiten.DrawImageOptions, uc
 	}
 	character := g.gameState.PartyState.GetCharacter(activeIndex)
 	position, visible := g.combatSelectionPresentation(identity, combatScene.GetCombatantPosition(identity))
-	if !visible || character.IsDead() || !character.IsInParty() || !g.combatActiveSelectionPositionVisible(position) {
+	if !visible || character.IsDead() || !character.IsInParty() ||
+		!g.combatActivePartySelectionPositionVisible(identity, position) {
 		return nil, ucolor.CombatActivePCOutline
 	}
 	if g.combatTeleportEffect != nil && g.combatTeleportEffect.Caster == identity &&
@@ -205,6 +207,82 @@ func (g *GameScene) combatActiveSelectionPositionVisible(position references.Pos
 		g.gameState.CombatTerrainAllowsObjectDisplay(position)
 }
 
+// REDUX DEVIATION: COMBAT-0001, COMBAT-0012: original arch terrain conceals
+// actor bodies. Redux adds only the current party entry's hollow contour and
+// selection square above an arch to keep the acting character locatable.
+// Body, monster, HP, target and spell-recipient admission keep the shared gate.
+func (g *GameScene) combatActivePartySelectionPositionVisible(
+	identity game_state.CombatTurnIdentity, position references.Position,
+) bool {
+	if g.combatActiveSelectionPositionVisible(position) {
+		return true
+	}
+	tileX, tileY := combatPositionToViewportTile(position)
+
+	return tileX >= 0 && tileX < xTilesVisibleOnGameScreen && tileY >= 0 && tileY < yTilesVisibleOnGameScreen &&
+		!g.gameState.CombatScene.IsCombatPCUnderground(identity) && g.combatSelectionOnArch(position)
+}
+
+func (g *GameScene) combatSelectionOnArch(position references.Position) bool {
+	tile := g.gameState.GetCurrentLayeredMap().GetTileTopMapOnlyTile(&position)
+
+	return tile != nil && tile.Index == indexes.BrickWallArchway
+}
+
+// Called only after current-turn identity, life, viewport and hidden-phase
+// admission. The processor caches pixels, never actor ownership or position.
+func (g *GameScene) drawCombatActiveArchContour(
+	screen *ebiten.Image, options *ebiten.DrawImageOptions, faceColor ucolor.EGAColor,
+) {
+	combat := g.gameState.CombatScene
+	if combat.ActiveMonsterIndex != game_state.NoActiveMonster {
+		return
+	}
+	identity := combat.GetCurrentTurnIdentity()
+	position, visible := g.combatSelectionPresentation(identity, combat.GetCombatantPosition(identity))
+	if !visible || !g.combatSelectionOnArch(position) {
+		return
+	}
+	character := g.gameState.PartyState.GetCharacter(identity.EntityIndex)
+	body := g.combatPartyBodySprite(character, identity)
+	contour := g.spriteSheet.GetTileEffectProcessor().ApplyDynamicOutlineOnly(body, faceColor.ToRGBA())
+	if contour == nil {
+		return
+	}
+	contourOptions := *options
+	contour, opacity := g.combatActiveArchContourPresentation(identity, contour)
+	contourOptions.ColorScale.ScaleAlpha(opacity)
+	screen.DrawImage(contour, &contourOptions)
+}
+
+// Preserve the signature compositor's visible phase without caching a mutable
+// dissolve buffer or restoring pixels hidden by its mask. The existing effect
+// owns that buffer and its cleanup; the ordinary body/selection clocks stay separate.
+func (g *GameScene) combatActiveArchContourPresentation(
+	identity game_state.CombatTurnIdentity, contour *ebiten.Image,
+) (*ebiten.Image, float32) {
+	for _, effect := range g.combatSignatureEffects {
+		if effect.Actor != identity || effect.Kind == game_state.CombatEventPossession || !g.combatSignatureEffectCurrent(effect) {
+			continue
+		}
+		if effect.Kind == game_state.CombatEventTeleport {
+			phase, progress := combatSignatureBlink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
+			if phase == combatTeleportDeparture {
+				return contour, 1 - progress
+			}
+			if phase == combatTeleportHidden {
+				return contour, 0
+			}
+
+			return contour, progress
+		}
+
+		return spriteWithDissolveMask(contour, &effect.Dissolve), 1
+	}
+
+	return contour, 1
+}
+
 // The complete familiar square and its two upper accents draw once, above HP.
 // Threatened intent remains an underlay; eligibility and selected aim draw later.
 func (g *GameScene) drawCombatActiveSelection(screen *ebiten.Image) {
@@ -215,6 +293,7 @@ func (g *GameScene) drawCombatActiveSelection(screen *ebiten.Image) {
 	if options == nil {
 		return
 	}
+	g.drawCombatActiveArchContour(screen, options, faceColor)
 	elapsedMs := g.getElapsedMs()
 	drawCombatSelectionFrame(screen, options, elapsedMs, faceColor)
 	drawCombatActiveSelectionCorners(screen, options, elapsedMs, faceColor)

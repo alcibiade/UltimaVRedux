@@ -72,8 +72,10 @@ not imply that full pause.
 2. Give retained readers and their reserved shortcuts precedence. Atlas/Journal
    keep their gameplay pause, including dismissal; ordinary scene presentation
    and shortcut handling otherwise continue in the established input order.
-3. Capture only eligible pending-combat and sleeping-Space intentions before
+3. Admit an eligible fresh top-row 0 all-party reset before pending-combat verbs,
+   then capture eligible pending-combat and sleeping-Space intentions before
    queue advancement, retaining the owner and blocked/ready state of that sample.
+   Reset changes future solo selection, never the currently presented turn token.
 4. In `updateWindAndEffects`, publish elapsed time, settle actor-body clocks,
    process wind/moongate/lighthouse state, and update workflow, background and
    feedback queues. Then update moongate presentation, ambient source discovery,
@@ -84,10 +86,19 @@ not imply that full pause.
    frames advance the permitted passive dialog animations without polling an
    input-owning selector; native editor suspension remains explicit.
 7. Revalidate the narrowly admitted camping acceleration request, retain workflow
-   input blocks, and resolve pending encounter, combat-scheduler and auto-talk
-   ownership before ordinary commands. The request itself adds no command cost.
-8. Accept an eligible pending solo verb through its normal direction-prompt route
+    input blocks, and resolve pending encounter, combat-scheduler and auto-talk
+    ownership before ordinary commands. The request itself adds no command cost.
+8. Call `ResumeWaterfallContinuation` after those owners, before secondary input
+   or ordinary movement/Pass. A retained surface cascade consumes the frame while
+   awaiting/resuming its next fall; an owned tactical encounter keeps normal input.
+9. Accept an eligible pending solo verb through its normal direction-prompt route
    before movement, then route secondary command input before primary input.
+
+Pending solo verbs have no status popup, queue overlay or acknowledgement. Capture
+and replacement are silent; cancellation/refusal can append one ordinary Output
+line. The buffer retains its exact opportunity and release guards, and acceptance
+opens the ordinary prompt. See [pending solo input](../systems/INPUT_HANDLING.md#one-pending-solo-combat-verb)
+and [early all-party reset](../systems/INPUT_HANDLING.md#early-all-party-combat-reset).
 
 Audio fades/retirement are serviced on exit even when a reader or modal returns
 early; source discovery and transport servicing are separate. Reader pauses keep
@@ -96,6 +107,15 @@ time rather than advancing gameplay. See the [audio lifecycle](../systems/AUDIO_
 and [input ownership](../systems/INPUT_HANDLING.md) for their detailed contracts.
 
 This order lets modal dissolve and dismissal state advance while a workflow owns the global input block. Do not update a modal from both the feature and `GameScene`; the stack is its frame owner.
+
+The waterfall checkpoint observes a core-owned logical continuation, not just
+whether `waterfall_hazard` is live. After the first complete fall, the initiating
+actor tail runs once and can yield the physical waterfall queue to projectile,
+combat or whirlpool ownership. `activeWaterfall` survives that explicit handoff;
+scene routing resumes it after the owed phase and before another surface command.
+No scene callback or physical finalizer manufactures another turn. See
+[cascade ownership](../systems/EVENT_QUEUE_SYSTEM.md#retained-waterfall-cascade)
+and [waterfall timing](../systems/TIME_SYSTEM.md#waterfall-completion-and-resumption).
 
 ## Dialog Integration
 
@@ -115,6 +135,23 @@ g.dialogStack.RemoveWidgetInstance(dialog)
 Avoid type-based removal and nonexistent pop APIs. Multiple overlays and message dialogs may coexist.
 
 Common event-queue helpers in `gamescene_dialog_helpers.go` return sequence modifiers for confirmation, yes/no, direction, text input, sleep duration, and party selection. Add them with `ThenSequence` so the parent workflow owns and waits for their steps.
+
+### Dungeon View Integration
+
+Gem View, prepared In Quas Wis and its scroll use the same `DungeonViewDialog`
+through `thenShowDungeonViewDialog`. The widget consumes a detached current-floor
+observation; its north-up 8×8 solid-wall map and matching feature key share one
+symbol renderer. Not-revealed hatching and known paired same-level wrap labels
+describe the supplied observation, not exploration history or safe routes.
+The [Dungeon View widget contract](WIDGET_COMPONENTS.md#dungeon-view) owns the
+artwork, dynamic key, responsive layout and documented inspection alternative.
+
+The invoking workflow owns costs and completion. Gem View retains its exact
+`DungeonCommandCycle` through fresh Enter/keypad-Enter dismissal and full
+end-player completion; prepared and scroll routes keep their own commitment
+owners. The scene pushes one exact modal and removes it after dismissal or in
+the owner's finalizer. Resize changes presentation resources without changing
+the observation, facing, dismissal state or release guard.
 
 ## Action Feedback
 
@@ -139,7 +176,23 @@ without clearing other cards or history.
 
 `Gameplay.Presentation.SmoothSurfaceMovement` changes only the camera projection after authoritative movement and synchronous completion. Walking, horses, carpets, manual skiff movement, and furled-frigate rowing use the configured ordinary duration and curve; only horses and carpets apply the 25-percent faster presentation factor.
 
+This camera projection is independent of the runtime outdoor window used by
+Blink and temporary Push terrain. Rendering does not scroll or initialize that
+gameplay state; [SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spell-0002) owns its
+movement, transition and normal-load reset boundaries. Saving and continuing keeps
+the live window; actual hydration initializes from the final loaded coordinates
+and plane. Window origins and quadrant retention are runtime-only, not serialized
+camera state. The two forced waterfall steps use the same step-owned window update.
+
 Automatic raised-sail frigate translations use the selected ordinary curve but finish within the existing 55 ms sailing phase. Heading changes, wind or calm waits, blocked attempts, contacts, hazards, and transitions do not fabricate movement. The automatic-sailing workflow is the only workflow admitted by that specialized projection, and every world layer shares the same wrapped camera offset. Presentation never delays movement completion, clock advancement, world actors, contact, or RNG.
+
+An actual sailing stop increments `AutomaticSailingStopEpoch`. The scene observes
+it before input and after queues to clear the camera projection and reject held
+arrow/cardinal-keypad movement through physical release, even while projectile
+presentation preempts sailing. This does not cancel owed attacks or suppress fresh
+Fire/Yell commands at their normal input boundary. The old sailing finalizer also
+clears its projection; a sunk frigate's fallback cannot inherit an automatic glide.
+See [sailing input](../systems/INPUT_HANDLING.md#automatic-sailing-interruption).
 
 `ShowTimedOverlayMessage` has separate GameScene ownership for one modal timed overlay. `installTimedOverlay` first removes the previously owned exact instance, shows and pushes the replacement, and derives one deadline from `GameState.ElapsedMs`. Expiry, scene replacement, and disposal converge on `clearTimedOverlay`, which cannot remove an unrelated or covering modal. These overlays use `WithExternallyManagedDuration`; their widget `Update` method does not run a competing frame-count timer. New feature code should use the established callback or these scene helpers rather than writing the timed-overlay slot directly.
 
@@ -521,7 +574,9 @@ Mandatory callbacks are supplied as complete named values and checked during ini
    threatened-target underlays precede actors and actor-local effects; direction
    cues and HP/allegiance frames follow. The complete active-turn indicator then
    draws above HP frames, followed by eligibility brackets and the selected aiming
-   cursor. See [combat aim and active selection](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-aim-and-active-selection).
+    cursor. The current party entry on ARCH gets only its hollow contour and active
+    frame in that foreground pass; body and HP remain concealed. See
+    [combat aim and active selection](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-aim-and-active-selection).
 3. Default tile dissolves.
 4. Map fade.
 5. Over-fade tile dissolves.
@@ -542,6 +597,10 @@ dialogs. Change either order only as an intentional presentation decision backed
 by tests.
 
 Screen shake is applied to world presentation, not the static HUD and dialog layers.
+Within combat, fields, cone footprints, utility target cues and aiming markers
+use the square transform; actor artwork and actor-local cues use real exact-entry
+motion. A field/list ordinal must never stand in for a monster identity. See
+[actor and square transforms](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-actor-and-square-transforms).
 
 ## Combat HUD
 
@@ -557,9 +616,11 @@ blank forecast slot. Players may disable the preference to omit and compact
 concealed entries within the same four-action forecast; this does not inspect
 beyond the forecast or mutate scheduling. A concealed player-controlled
 monster's command prompt uses the neutral `Unknown` label. The same admission
-rule suppresses actor-local battlefield decorations; a terrain trigger
-immediately restores the ordinary identity presentation without recreating the
-actor.
+rule suppresses ordinary actor-local battlefield decorations. Only the current
+party entry's [ARCH contour and active frame](../systems/VISUAL_EFFECTS_SYSTEM.md#active-party-entry-on-arch)
+have a narrow presentation exception; it grants no HUD identity, HP or targeting
+disclosure. A terrain trigger immediately restores the ordinary identity
+presentation without recreating the actor.
 
 The combat sidebar uses a fixed **45% Turn Order / 55% Events** split via
 `combatHUDTurnHeightPercent`, retaining the existing border overlap. This is

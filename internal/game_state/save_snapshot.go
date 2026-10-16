@@ -36,8 +36,6 @@ func (g *GameState) ValidateSaveSnapshotCompatibility(snapshot save_snapshot.Sav
 // ValidateSaveSnapshotCompatibility verifies that a structurally valid
 // snapshot can resolve every runtime identity and map represented by the
 // supplied game data without constructing a live GameState.
-//
-//nolint:cyclop // Compatibility checks enumerate persistent runtime references.
 func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, gameReferences *references.GameReferences) error {
 	if issues := save_snapshot.Validate(snapshot); len(issues) != 0 {
 		return &save_snapshot.ValidationError{Issues: issues}
@@ -57,24 +55,61 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 	if err := validateOpenDoorSnapshotCompatibility(snapshot.OpenDoor, snapshot.World.Position, snapshot.MapMutations, gameReferences); err != nil {
 		return err
 	}
-	if err := validateSnapshotPosition(gameReferences, "world.position", snapshot.World.Position); err != nil {
+	if err := validateSnapshotWorldCompatibility(snapshot.World, snapshot.Wind, gameReferences); err != nil {
 		return err
 	}
-	if err := validateSnapshotPosition(gameReferences, "world.lastLargeMapPosition", snapshot.World.LastLargeMapPosition); err != nil {
+	if err := validateSnapshotMapUnits(snapshot.MapUnits, snapshot.World.Position.Location, gameReferences); err != nil {
 		return err
 	}
-	lastLargeMapLocation := references.Location(snapshot.World.LastLargeMapPosition.Location)
+	if err := validateSnapshotItemStacks(snapshot.ItemStacks, snapshot.World.Position); err != nil {
+		return err
+	}
+	if err := validateSnapshotMapMutations(snapshot.MapMutations, snapshot.World.Position.Location, gameReferences); err != nil {
+		return err
+	}
+	if err := validateSnapshotDungeonDiscoveries(snapshot.Redux.DungeonDiscoveries, gameReferences); err != nil {
+		return err
+	}
+	if snapshot.Dungeon != nil && snapshot.Dungeon.Wanderer != nil &&
+		enemyReference(gameReferences.EnemyReferences, references.MonsterType(snapshot.Dungeon.Wanderer.Monster)) == nil {
+		return fmt.Errorf("dungeon.wanderer: enemy reference %d is unavailable", snapshot.Dungeon.Wanderer.Monster)
+	}
+
+	return nil
+}
+
+func validateSnapshotWorldCompatibility(
+	world save_snapshot.WorldSnapshot,
+	wind save_snapshot.WindSnapshot,
+	gameReferences *references.GameReferences,
+) error {
+	if err := validateSnapshotPosition(gameReferences, "world.position", world.Position); err != nil {
+		return err
+	}
+	if err := validateSnapshotPosition(gameReferences, "world.lastLargeMapPosition", world.LastLargeMapPosition); err != nil {
+		return err
+	}
+	lastLargeMapLocation := references.Location(world.LastLargeMapPosition.Location)
 	if lastLargeMapLocation != references.BritanniaUnderworld || lastLargeMapLocation.GetMapType() != references.LargeMapType {
 		return errors.New("world.lastLargeMapPosition: position is not on the large world map")
 	}
-	if snapshot.World.ElapsedMs > save_snapshot.MaxElapsedMs || snapshot.Wind.NextTickMs > save_snapshot.MaxElapsedMs+environment.WindTickIntervalMs {
+	if world.ElapsedMs > save_snapshot.MaxElapsedMs || wind.NextTickMs > save_snapshot.MaxElapsedMs+environment.WindTickIntervalMs {
 		return errors.New("world.elapsedMs/wind.nextTickMs: elapsed time exceeds the supported 100-year save domain")
 	}
-	windPhase := snapshot.Wind.NextTickMs - snapshot.World.ElapsedMs
+	windPhase := wind.NextTickMs - world.ElapsedMs
 	if windPhase <= 0 || windPhase > environment.WindTickIntervalMs {
 		return fmt.Errorf("wind.nextTickMs: tick phase must be within %d ms after world.elapsedMs", environment.WindTickIntervalMs)
 	}
-	for index, unit := range snapshot.MapUnits {
+
+	return nil
+}
+
+func validateSnapshotMapUnits(
+	units []save_snapshot.MapUnitSnapshot,
+	activeLocation int,
+	gameReferences *references.GameReferences,
+) error {
+	for index, unit := range units {
 		if err := validateSnapshotPosition(gameReferences, fmt.Sprintf("mapUnits[%d].position", index), unit.Position); err != nil {
 			return err
 		}
@@ -88,43 +123,56 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 			if unit.World != unit.Position.Floor {
 				return fmt.Errorf("mapUnits[%d]: large-map controller world must match the unit floor", index)
 			}
-		} else if unit.Position.Location != snapshot.World.Position.Location || unit.World != 0 {
+		} else if unit.Position.Location != activeLocation || unit.World != 0 {
 			return fmt.Errorf("mapUnits[%d]: only the active small-map controller (world 0) is loaded during hydration", index)
 		}
-		switch unit.Kind {
-		case "enemy":
-			if enemyReference(gameReferences.EnemyReferences, references.MonsterType(unit.ReferenceID)) == nil {
-				return fmt.Errorf("mapUnits[%d]: enemy reference %d is unavailable", index, unit.ReferenceID)
-			}
-			if err := validateSnapshotEnemyIdentity(index, unit); err != nil {
-				return err
-			}
-		case "npc":
-			location := gameReferences.LocationReferences.GetLocationReference(references.Location(unit.Position.Location))
-			if location == nil || unit.NPCNum < 0 || unit.NPCNum >= len(*location.GetNPCReferences()) {
-				return fmt.Errorf("mapUnits[%d]: NPC reference %d is unavailable", index, unit.NPCNum)
-			}
-			if unit.SurfaceChestNumber != nil && (*unit.SurfaceChestNumber < 0 || *unit.SurfaceChestNumber > 0xff) {
-				return fmt.Errorf("mapUnits[%d]: surface chest number is outside byte range", index)
-			}
-			if unit.SurfaceChestNumber != nil && (*location.GetNPCReferences())[unit.NPCNum].GetSpriteIndex() != indexes.Chest {
-				return fmt.Errorf("mapUnits[%d]: surface chest number belongs to a non-chest NPC", index)
-			}
-		case "chest":
-			if unit.SurfaceChestNumber == nil {
-				return fmt.Errorf("mapUnits[%d]: chest state is unavailable", index)
-			}
-		case "vehicle":
-			if unit.SurfaceChestNumber != nil {
-				return fmt.Errorf("mapUnits[%d]: vehicle cannot carry surface chest state", index)
-			}
-		}
-		if unit.Kind == "enemy" && unit.SurfaceChestNumber != nil {
-			return fmt.Errorf("mapUnits[%d]: enemy cannot carry surface chest state", index)
+		if err := validateSnapshotMapUnitIdentity(index, unit, gameReferences); err != nil {
+			return err
 		}
 	}
-	for index, stack := range snapshot.ItemStacks {
-		if stack.Position != snapshotPositionAt(snapshot.World.Position, stack.Position.X, stack.Position.Y) {
+
+	return nil
+}
+
+func validateSnapshotMapUnitIdentity(index int, unit save_snapshot.MapUnitSnapshot, gameReferences *references.GameReferences) error {
+	switch unit.Kind {
+	case "enemy":
+		if enemyReference(gameReferences.EnemyReferences, references.MonsterType(unit.ReferenceID)) == nil {
+			return fmt.Errorf("mapUnits[%d]: enemy reference %d is unavailable", index, unit.ReferenceID)
+		}
+		if err := validateSnapshotEnemyIdentity(index, unit); err != nil {
+			return err
+		}
+	case "npc":
+		location := gameReferences.LocationReferences.GetLocationReference(references.Location(unit.Position.Location))
+		if location == nil || unit.NPCNum < 0 || unit.NPCNum >= len(*location.GetNPCReferences()) {
+			return fmt.Errorf("mapUnits[%d]: NPC reference %d is unavailable", index, unit.NPCNum)
+		}
+		if unit.SurfaceChestNumber != nil && (*unit.SurfaceChestNumber < 0 || *unit.SurfaceChestNumber > 0xff) {
+			return fmt.Errorf("mapUnits[%d]: surface chest number is outside byte range", index)
+		}
+		if unit.SurfaceChestNumber != nil && (*location.GetNPCReferences())[unit.NPCNum].GetSpriteIndex() != indexes.Chest {
+			return fmt.Errorf("mapUnits[%d]: surface chest number belongs to a non-chest NPC", index)
+		}
+	case "chest":
+		if unit.SurfaceChestNumber == nil {
+			return fmt.Errorf("mapUnits[%d]: chest state is unavailable", index)
+		}
+	case "vehicle":
+		if unit.SurfaceChestNumber != nil {
+			return fmt.Errorf("mapUnits[%d]: vehicle cannot carry surface chest state", index)
+		}
+	}
+	if unit.Kind == "enemy" && unit.SurfaceChestNumber != nil {
+		return fmt.Errorf("mapUnits[%d]: enemy cannot carry surface chest state", index)
+	}
+
+	return nil
+}
+
+func validateSnapshotItemStacks(stacks []save_snapshot.ItemStackSnapshot, activePosition save_snapshot.PositionSnapshot) error {
+	for index, stack := range stacks {
+		if stack.Position != snapshotPositionAt(activePosition, stack.Position.X, stack.Position.Y) {
 			return fmt.Errorf("itemStacks[%d]: stack is not on the active snapshot map", index)
 		}
 		for itemIndex, item := range stack.Items {
@@ -133,7 +181,16 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 			}
 		}
 	}
-	for index, mutation := range snapshot.MapMutations {
+
+	return nil
+}
+
+func validateSnapshotMapMutations(
+	mutations []save_snapshot.MapMutationSnapshot,
+	activeLocation int,
+	gameReferences *references.GameReferences,
+) error {
+	for index, mutation := range mutations {
 		if err := validateSnapshotPosition(gameReferences, fmt.Sprintf("mapMutations[%d].position", index), mutation.Position); err != nil {
 			return err
 		}
@@ -141,7 +198,7 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 		if mapType == references.DungeonMapType {
 			return fmt.Errorf("mapMutations[%d]: derived dungeon projections cannot be restored", index)
 		}
-		if mapType != references.LargeMapType && mutation.Position.Location != snapshot.World.Position.Location {
+		if mapType != references.LargeMapType && mutation.Position.Location != activeLocation {
 			return fmt.Errorf("mapMutations[%d]: non-active small map is not loaded during hydration", index)
 		}
 		// Historical object overrides use both -1 and 0 for an empty layer.
@@ -154,7 +211,12 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 			return fmt.Errorf("mapMutations[%d].value: tile reference %d is unavailable", index, mutation.Value)
 		}
 	}
-	for index, discovery := range snapshot.Redux.DungeonDiscoveries {
+
+	return nil
+}
+
+func validateSnapshotDungeonDiscoveries(discoveries []save_snapshot.DungeonDiscoverySnapshot, gameReferences *references.GameReferences) error {
+	for index, discovery := range discoveries {
 		location := references.Location(discovery.Location)
 		locationReference := gameReferences.LocationReferences.GetLocationReference(location)
 		if locationReference == nil {
@@ -180,10 +242,6 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 		default:
 			return fmt.Errorf("redux.dungeonDiscoveries[%d]: unsupported discovery kind", index)
 		}
-	}
-	if snapshot.Dungeon != nil && snapshot.Dungeon.Wanderer != nil &&
-		enemyReference(gameReferences.EnemyReferences, references.MonsterType(snapshot.Dungeon.Wanderer.Monster)) == nil {
-		return fmt.Errorf("dungeon.wanderer: enemy reference %d is unavailable", snapshot.Dungeon.Wanderer.Monster)
 	}
 
 	return nil
@@ -465,6 +523,8 @@ func (g *GameState) ValidateSaveSnapshotEligibility() error {
 		return fmt.Errorf("%w: active ship repair", ErrSaveSnapshotNotRepresentable)
 	case g.activeSlowMovement != nil:
 		return fmt.Errorf("%w: pending slow movement completion", ErrSaveSnapshotNotRepresentable)
+	case g.activeWaterfall != nil:
+		return fmt.Errorf("%w: pending waterfall continuation", ErrSaveSnapshotNotRepresentable)
 	case !g.isValidActivePlayerIndex(g.activePlayerIndex):
 		return fmt.Errorf("%w: invalid active player selection", ErrSaveSnapshotNotRepresentable)
 	case len(g.pendingProvisionHours) != 0:
@@ -893,6 +953,7 @@ func NewGameStateFromSaveSnapshot(snapshot save_snapshot.SaveSnapshot, gameConfi
 	if err := g.restorePersonalSnapshot(snapshot); err != nil {
 		return nil, err
 	}
+	g.InitializeOutdoorWindow()
 
 	return g, nil
 }

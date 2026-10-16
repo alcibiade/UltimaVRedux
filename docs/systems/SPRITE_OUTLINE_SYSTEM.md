@@ -32,6 +32,7 @@ processor.ApplyDynamicSimple(sprite, sprites.YellowOutline)
 processor.ApplyDynamicSimpleWithIntensity(sprite, sprites.RedOutline, intensity)
 processor.ApplyDynamicMarchingOutline(sprite, phase)
 processor.ApplyDynamicOutlineRGBA(sprite, customColor, intensity)
+processor.ApplyDynamicOutlineOnly(sprite, faceRGBA)
 ```
 
 Animated intensity values should be quantized before calling the cached intensity API so they do not churn the bounded cache and repeatedly evict reusable entries.
@@ -43,6 +44,27 @@ Animated intensity values should be quantized before calling the cached intensit
 Predefined colors are represented by `OutlineColorType` in `internal/sprites/tile_effects.go`. They include general EGA colors plus combat-specific active, inactive, and threatened colors.
 
 Dynamic results are cached by source image and pipeline in a bounded LRU `EffectCache`. Reuse pipeline values and source images instead of rebuilding semantically unique effects every frame.
+
+### Outline-only contours
+
+`ApplyDynamicOutlineOnly` returns only a coloured outer contour and black backing.
+It reuses the existing edge/neighbor outline algorithm, adds the backing outside
+the face, then clears **every original nontransparent source pixel**, including
+partial-alpha pixels. It never copies body artwork into the returned contour.
+Source dimensions and alignment are preserved; both rings clip at the image bounds.
+Use the already bordered 18x18 character frame for normal combat alignment.
+
+The result is borrowed and read-only. It shares the processor's bounded dynamic
+LRU, keyed by the immutable source frame and face RGBA with a separate contour
+tag. Actor identity, position and animation time are not retained in this cache;
+callers select the actual frame first. Repeated frame/colour combinations reuse
+their image, while misses allocate and generate pixels. Nil or disposed input,
+transparent face colour or a failed pixel read returns nil, **never the original
+sprite**. Source bounds are checked before cache lookup, so a disposed source
+cannot reuse a cached contour. The bounds guard recovers only Ebitengine's
+disposed-image condition; unrelated programming failures still panic. Pixel reads
+retain the existing processor read guard. Callers skip the contour on nil rather
+than falling back to a concealed body.
 
 ## Sprite Storage
 
@@ -75,7 +97,23 @@ mutable copies, ordinary animation selection and generated-frame borrowing.
 - Background-integrated NPC sprites skip the map-unit pipeline.
 - Ground item stacks receive a yellow outline, except gems.
 - Lord British artifacts receive a black outline before their overlay glow; shards use their overlay glow without an outline.
-- Combat rendering uses dynamic outlines and marching or pulsing indicators for active, inactive, and threatened actors.
+- Combat bodies retain their ordinary black outlines; the current actor's animated
+  square draws above HP frames and below final aiming indicators. On an arch, only
+  the exact current party member or clone additionally receives the cached hollow
+  contour with black backing. Its face uses the selection's semantic colour:
+  light green normally, the monster-turn colour when possessed, and gray during
+  automatic passing. Ordinary floor rendering gets no extra contour.
+- The arch contour and square resolve exact identity and admission each draw.
+  They cannot persist across handoff, retirement, shared death or combat exit.
+  Black terrain, off-screen positions, underground entries and intentional hidden
+  teleport/signature phases stay hidden. Body sprites, monsters, HP frames and
+  target/recipient admission retain the shared terrain gate. This is the scoped
+  Redux presentation enhancement described by `COMBAT-0001` and `COMBAT-0012`.
+- Contours share the current sleep, rat and shimmer frame selection and settled
+  body-animation clock, including Time Stop. Movement, lunge, recoil, scaling and
+  screen shake follow the exact actor/clone. Signature-owned frames retain their
+  existing static-frame, fade and dissolve-mask treatment; only the immutable
+  unmasked contour is cached, and the existing effect owns mask-buffer cleanup.
 - Temporary scene effects can select an outline color through their own renderer-owned state.
 
 Map-unit pipelines are renderer-owned rules. `GameScene.renderMapUnitSprite`
@@ -99,6 +137,7 @@ Static outlines need no clock. Callers that pulse intensity or alternate marchin
 ## Implementation References
 
 - `internal/sprites/tile_effects.go`: pipeline builder, outline algorithms, and dynamic application.
+- `internal/sprites/tile_outline_only.go`: cached body-free contours and fail-closed admission.
 - `internal/sprites/effect_cache.go`: bounded dynamic-effect cache.
 - `internal/sprites/effect_presets.go`: standard map-unit pipelines.
 - `internal/sprites/sprite_wrapper.go`: 18x18 border wrapping.
@@ -106,3 +145,5 @@ Static outlines need no clock. Callers that pulse intensity or alternate marchin
 - `cmd/ultimav/gamescene_draw_entities.go`: Avatar and combat actor rendering.
 - `cmd/ultimav/gamescene_combat_active_indicator.go`: combat indicator selection.
 - `internal/sprites/tile_effects_test.go`: processor and outline behavior tests.
+- `internal/sprites/tile_outline_only_test.go`: transparent interiors, backing, alignment and bounded cache behavior.
+- `cmd/ultimav/gamescene_combat_arch_indicator_test.go`: arch composition, frame/identity selection and preserved concealment.

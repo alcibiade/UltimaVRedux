@@ -146,12 +146,12 @@ func (g *GameScene) drawAvatarOverlay(screen *ebiten.Image) {
 
 func (g *GameScene) drawCombatFieldOverlay(screen *ebiten.Image) {
 	combatScene := g.gameState.CombatScene
-	for index, field := range combatScene.Fields() {
+	for _, field := range combatScene.Fields() {
 		if !g.gameState.CombatFieldIsDisplayed(field) ||
 			(g.combatLootPreview != nil && g.combatLootPreview.position == field.Position()) {
 			continue
 		}
-		drawOptions := g.combatEntityDrawOptions(field.Position(), false, index, 0)
+		drawOptions := g.combatSquareMarkerDrawOptions(field.Position())
 		position := field.Position()
 		posHash := int32(position.X)*int32(references.YCombatMapTiles) + int32(position.Y)
 		sprite := g.spriteSheet.GetAnimatedSprite(field.Sprite(), posHash, g.getElapsedMs())
@@ -206,8 +206,8 @@ func (g *GameScene) drawCombatAttackCrosshair(screen *ebiten.Image) {
 	drawCombatReticle(screen, g.combatSquareMarkerDrawOptions(cursor))
 }
 
-// A square cursor has no actor identity: movement/impact offsets must not attach
-// either the aimed square or the secondary waking square to an unrelated actor.
+// Square visuals have no actor identity. Fields, footprints, utility cues and
+// aim/wake markers share battlefield placement and shake, never actor motion.
 func (g *GameScene) combatSquareMarkerDrawOptions(position references.Position) *ebiten.DrawImageOptions {
 	x, y := combatPositionToSourcePixels(position)
 	options := &ebiten.DrawImageOptions{}
@@ -328,8 +328,7 @@ func sinePulse(elapsedMs int64, periodMs int64) float32 {
 }
 
 // drawCombatPartyOverlay renders all party members at their combat positions on the 11x11 map.
-// The active character gets a pulsing green outline for clear identification.
-// Inactive characters get a black outline for visibility.
+// Body sprites retain black outlines; the active selection draws separately above HP.
 // The camera stays FIXED at the center (5,5) - actors move relative to this.
 func (g *GameScene) drawCombatPartyOverlay(screen *ebiten.Image) {
 	combatScene := g.gameState.CombatScene
@@ -504,7 +503,8 @@ func corpserExposedSpriteIndex(monsterIndex int, animationTime int64) indexes.Sp
 
 // drawCombatCharacterSprite renders a single combat party member sprite at the
 // correct screen position relative to the fixed camera center.
-// If this PC is the active monster's attack target, its border pulses red.
+// Body and condition pixels retain terrain admission; active arch hints are a
+// separate foreground pass, and threatened intent stays in its underlay.
 func (g *GameScene) drawCombatCharacterSprite(
 	screen *ebiten.Image,
 	character *party_state.PlayerCharacter,
@@ -527,19 +527,7 @@ func (g *GameScene) drawCombatCharacterSprite(
 
 	partyDrawOptions := g.combatPartyIdentityDrawOptions(memberPos, identity)
 
-	// Get character sprite. Sanct Lor uses the original visible shimmer tile,
-	// rather than removing the actor from the battlefield.
-	spriteIndex := combatPartySpriteIndex(character, g.gameState.CombatScene.IsCombatPCInvisible(identity), g.gameState.CombatScene.IsCombatPCRat(identity))
-	posHash := int32(memberIndex) //nolint:gosec // memberIndex is party member 0-5, no overflow risk
-	bodyTime := g.combatActorAnimationTime(identity, 0)
-	characterSprite := g.spriteSheet.GetAnimatedSprite(spriteIndex, posHash, bodyTime)
-	if spriteIndex == indexes.InvisiblePlayer {
-		characterSprite = g.spriteSheet.GetSprite(spriteIndex)
-	}
-	isSleeping := g.gameState.CombatScene.IsCombatPCSleeping(identity)
-	if isSleeping {
-		characterSprite = g.spriteSheet.GetSprite(indexes.DeadBody)
-	}
+	characterSprite := g.combatPartyBodySprite(character, identity)
 	poisonMaskSprite := characterSprite
 	isActive := hasActivePC && identity == activeIdentity
 
@@ -566,6 +554,27 @@ func (g *GameScene) drawCombatCharacterSprite(
 		drawCombatActivePCIndicatorOverlay(screen, partyDrawOptions, animationTime)
 	}
 	g.drawCombatSceptreActorEffects(screen, identity, partyDrawOptions)
+}
+
+// Body and arch contour select the same unoutlined frame using exact-entry
+// conditions and the settled body clock (including Time Stop).
+func (g *GameScene) combatPartyBodySprite(
+	character *party_state.PlayerCharacter,
+	identity game_state.CombatTurnIdentity,
+) *ebiten.Image {
+	combat := g.gameState.CombatScene
+	if combat.IsCombatPCSleeping(identity) {
+		return g.spriteSheet.GetSprite(indexes.DeadBody)
+	}
+	spriteIndex := combatPartySpriteIndex(character, combat.IsCombatPCInvisible(identity), combat.IsCombatPCRat(identity))
+	// Signature composition owns a static current-condition frame while its
+	// fade/mask is active. The arch contour must use that same silhouette.
+	if spriteIndex == indexes.InvisiblePlayer || g.combatSignatureHidesActor(identity) {
+		return g.spriteSheet.GetSprite(spriteIndex)
+	}
+	posHash := int32(identity.EntityIndex) //nolint:gosec // Party roster indices are bounded to 0-5.
+
+	return g.spriteSheet.GetAnimatedSprite(spriteIndex, posHash, g.combatActorAnimationTime(identity, 0))
 }
 
 func combatPartySpriteIndex(character *party_state.PlayerCharacter, invisible, rat bool) indexes.SpriteIndex {

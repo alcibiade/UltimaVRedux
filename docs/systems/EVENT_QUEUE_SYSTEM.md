@@ -49,14 +49,83 @@ must classify each reachable fixed-name entry rather than weakening it:
 
 | Entry | Ownership |
 |---|---|
-| `skiff_deep_water`, `waterfall_hazard` | Inherently single-flight: successful movement invokes each once and the workflow immediately blocks further movement input. |
-| `pirate_attack` | Serialized: every owed broadside is retained in FIFO order. |
+| `skiff_deep_water` | Serialized: one high-priority owner drains every admitted rough-seas hit, including programmatic requests received while presentation is active. |
+| `waterfall_hazard` | One logical `activeWaterfall` cascade, with at most one live physical workflow. The guard also covers actor/contact handoffs between workflow instances. |
+| `automatic_sailing` | Locally guarded through finalization; each cadence boundary revalidates sailing authority. Stopping travel does not discard another owner's owed work. |
+| `pirate_attack` | Serialized: retained pirate broadside and outdoor fireball results present in FIFO order; damage has already resolved in actor order. |
 | `ship_repair_workflow`, `climbing_fall_effect`, `small_cannon_fire`, `ship_cannon_fire` | Locally guarded before feedback, RNG, movement, flags, or resource mutation. |
 | Direct camping APIs | Reject while any gameplay workflow is active. |
 | Stonegate death handoff | Presents an already committed town-hazard outcome; the ordinary wipe callback defers while this workflow owns the handoff. Retains any independently queued resurrection workflow. |
 
 Use local guards only when a repeated trigger is redundant. If each invocation
 owes gameplay, serialize the requests instead of dropping them.
+
+### Rough-seas and travel ownership
+
+`BlockInput` excludes ordinary player input, not programmatic movement or repeated
+core calls. `ProcessSkiffDeepWaterDamage` therefore increments a pending-hit count
+for each qualifying request before checking for the existing fixed-name owner.
+That high-priority workflow preempts normal-priority travel and drains one damage
+sequence per request. Hits are not coalesced as cosmetic feedback. Its finalizer
+clears pending state, flash and shake without applying abandoned damage.
+
+A workflow that must await rough seas uses
+`ThenSequence(gs.SkiffDeepWaterDamageSequence(position))` and owns
+`ClearSkiffDeepWaterEffects` in its own `Finally`. Starting an independent child
+and waiting for its name can deadlock when the child has equal or lower priority;
+composition avoids that dependency even for critical-priority parents. This is
+an ownership contract, not an expansion of the current successful-movement-only
+hazard admission described in [SHIP-0003](../gamefacts/SHIP_MECHANICS.md#ship-0003).
+
+Automatic sailing's state is separate from the lifetime of `automatic_sailing`.
+An interruption stops future waits/movement immediately; the live workflow still
+finalizes and releases its name. Successful ranged hits retain their ordered
+`pirate_attack` presentation, and the already-started outdoor actor phase retains
+its owed lower-slot work. Cleanup must not restart sailing, replay damage, or add
+another actor phase. See [automatic sailing boundaries](TIME_SYSTEM.md#automatic-sailing-boundaries).
+
+### Retained Waterfall Cascade
+
+`GameState.activeWaterfall` owns the exact landing, visited trigger states and
+initiating actor-tail completion independently of the `waterfall_hazard` queue.
+`IsWaterfallHazardActive` includes that logical owner as well as pending, active
+and finalizing physical workflow ownership. Repeated admission cannot recharge
+the initiating command or create another cascade during an actor handoff.
+
+The first complete descent performs its two southward steps, presentation,
+damage and any canonical plane transition before running the initiating command's
+owed actor tail **once**. The tail is marked done before invoking callbacks.
+Further qualifying falls compose through `ThenSequence` and add no ordinary
+command, player update or actor phase. An already admitted high-priority rough-sea
+hit runs before the normal-priority waterfall workflow; the waterfall never
+requests a duplicate hit.
+
+If the owed phase produces projectile presentation, tactical contact or a
+whirlpool, the physical waterfall workflow reaches its normal end and releases
+presentation/input ownership. Its finalizer retains the logical cascade only for
+that explicit actor handoff. The outdoor cursor binds to the same cascade and
+preserves lower-slot work through successive contacts. It may accept a new landing
+only from a validated owned whirlpool return, not unrelated relocation.
+
+`ResumeWaterfallContinuation` runs after pending contacts, combat scheduling and
+auto-talk, before ordinary input. It waits for the old physical name and relevant
+interaction owners to clear, then reviews the current landing and starts another
+workflow instance if needed. It does not wait for all passive background work,
+resolve contact itself, or replay the initiating tail. Owned tactical combat keeps
+its ordinary input. Starting a workflow from `Finally`, or keeping the waterfall
+block while waiting on an independent equal/lower-priority child, would break this
+ownership contract. Strict duplicate-name failure remains unchanged.
+
+Visited `(location, floor, position)` triggers terminate a wrapped cycle at its
+committed landing with one nonmodal notice. Death, terminal takeover, invalid
+ownership or shutdown discards remaining work while retaining committed steps and
+damage. Each physical finalizer clears only its owned fade/flash; the manager's
+shutdown action also clears a logical cascade between physical instances. Native
+capture rejects that retained continuation even when no waterfall queue is live.
+The raw south-tile admission and original standing-tile/visible-buffer comparison
+limits remain explicit in [ENV-0003](../gamefacts/ENVIRONMENTAL_HAZARDS.md#env-0003).
+See [waterfall timing](TIME_SYSTEM.md#waterfall-completion-and-resumption) for the
+first-fall boundary and outdoor-window integration.
 
 ## Feedback Lane
 
@@ -206,9 +275,30 @@ workflow.HandoffTo(
 
 `Shutdown()` permanently cancels every lane, runs accepted `Finally` callbacks
 at most once, and releases input ownership. `GameState` registers one
-`SetShutdownAction` callback for transient continuation state, such as a ship
-repair paused between its workflow and deferred combat; that owner cleanup does
-not belong to an already-finalized queue.
+`SetShutdownAction` callback for transient continuation state, including a logical
+waterfall cascade between physical workflows and ship repair paused for deferred
+combat. That owner cleanup does not belong to an already-finalized queue and
+never resumes abandoned gameplay.
+
+### Normal-Completion Continuations
+
+`OnComplete(action)` registers a workflow's single normal-completion callback.
+It runs exactly once after `Finally`, release of that workflow's input ownership
+(including any key-release wait), and removal of its name. The callback may start
+a new workflow with the same name; its start reserves the name immediately and
+activation is deferred to the manager's safe callback boundary. Other workflows
+may still own an input block.
+
+Use `Finally` for cleanup and `OnComplete` for owed continuation after normal
+completion. `Shutdown` runs cleanup but discards completion callbacks, including
+when shutdown occurs inside `Finally` or while input release is pending.
+
+Nil callbacks, feedback/background queues, duplicate registration, and registration
+after finalization panic. Runtime sequence construction and `Finally` may register
+the callback before finalization completes. `HandoffTo` uses the same callback
+slot: if its event executes with an existing completion callback, it panics rather
+than replacing it, regardless of declaration order. An untaken conditional handoff
+does not claim the slot.
 
 ## Fluent API
 
@@ -231,6 +321,7 @@ not belong to an already-finalized queue.
 | `AwaitFeedback(name, priority, build)` | Trigger feedback and wait for finalization |
 | `HandoffTo(name, priority, build)` | Transfer to another workflow after cleanup |
 | `Finally(action)` | Register exact-once cleanup |
+| `OnComplete(action)` | Continue after normal cleanup, input release, and name removal |
 | `Start()` | Validate, reserve, and schedule |
 
 `IntroMenuScene` uses a scene-owned manager and `RunScript` for the startup

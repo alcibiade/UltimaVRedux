@@ -75,6 +75,12 @@ purple water substitution applies to classes 10–13. Exact pixel masks remain a
 narrower rendering-verification boundary. Redux scales the plot language into a
 responsive dialog; no pixel-identical Match is asserted.
 
+The current Redux surface View still derives its sample origin from the party's
+position; it does not consume the retained outdoor window used by
+[Blink](MAGIC_SPELLS.md#spell-0002). Opening View preserves that runtime window.
+The Blink correction does not establish surface View window-history parity or
+change its existing sample geometry; that comparison remains unverified.
+
 ### VIEW-0003
 
 **Dungeon symbolic flood**
@@ -94,11 +100,28 @@ The original clears 736 mark bytes but has a 22×22 effective domain and two
 first-person rendering. Glyph semantics are SIGN-0005.
 
 Redux's detached `BuildDungeonViewModel` preserves the reviewed wrapped flood,
-neighbor order, and blocker classes, validating coordinates first. Connected walls
-and vector icons replace many original glyphs; this Match is geometric, not visual.
+neighbor order, and blocker classes, validating coordinates first. It still emits
+the 22×22 display-space observation from live authoritative current-floor state;
+the widget alone collapses visible occurrences into one north-up 8×8 floor. This
+Match is geometric, not visual, and does not claim that revealed adjacency is safe
+or reachable.
 
-**Implementation:** `internal/game_state/dungeon_view.go`
-**Tests:** `internal/game_state/dungeon_view_test.go`
+**REDUX DEVIATION: VIEW-0003 (presentation):** Solid filled walls, dotted passages,
+hatched Not revealed space and shared map/key artwork replace the original glyph
+presentation for navigation clarity. Stalactites, skeletons and cave-ins retain
+ordinary wall rendering without separate decorative markers. A peripheral party
+frame/facing arrow preserves the central feature. The compact key keeps terrain
+and party entries, adding only features in the revealed collapsed plan, including
+ceiling openings and open/hidden pit-with-ceiling variants. Plain paired west/east
+and north/south edge labels describe only observed wrapped continuations on the
+same level; unknown endpoints supply neither feature artwork, key entries nor labels.
+The [Dungeon View contract](../ui/WIDGET_COMPONENTS.md#dungeon-view) defines the
+presentation and documents optional inspection as a considered, unimplemented
+alternative. These choices do not change flood geometry, source state authority,
+hidden-feature disclosure, or gem/prepared-spell/scroll commitment and lifecycle.
+
+**Implementation:** `internal/game_state/dungeon_view.go`, `internal/ui/widgets/dungeon_view_dialog.go`, `internal/ui/widgets/dungeon_view_plan.go`, `internal/ui/widgets/dungeon_view_layout.go`, `internal/ui/widgets/dungeon_view_symbols.go`
+**Tests:** `internal/game_state/dungeon_view_test.go`, `internal/ui/widgets/dungeon_view_dialog_test.go`
 
 ### VIEW-0004
 

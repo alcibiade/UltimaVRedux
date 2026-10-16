@@ -21,18 +21,23 @@ Search, tab changes, and loss of top-widget focus do not release the session's
 Outside that session, each frame follows this ownership order:
 
 1. Capture one detached physical-key edge sample before any owner advances;
-   after reader/shortcut precedence, capture eligible waiting combat intent.
+   after reader/shortcut precedence, admit an eligible early all-party reset
+   before capturing waiting combat intent.
    Then update event queues, effects, and non-blocking UI.
 2. Let an active auto-open animation or rising-moongate lock own the frame.
 3. Let the top modal dialog consume input exclusively. Admit a sleeping-only
    camping Space request after rechecking its exact owner, then honor the workflow
    block for all ordinary commands.
 4. Present pending ordinary battle summaries after exit/recovery workflows finish;
-   then resolve pending overworld/dungeon encounters, combat turn transitions, and NPC auto-talk before player input.
-5. Accept a still-valid pending combat verb through its normal handler before
-   ordinary movement; if `secondaryKeyState != PrimaryInput`, route only to the
-   current map's secondary handler and return.
-6. Otherwise read and debounce a bound key, intercept `/` (also shifted `/`, `?`)
+    then resolve pending overworld/dungeon encounters, combat turn transitions, and NPC auto-talk before player input.
+5. Run `ResumeWaterfallContinuation` after contact/scheduler/auto-talk handling.
+   It preserves owned tactical input but resumes a retained surface cascade before
+   any ordinary direction, movement or Pass. See
+   [waterfall ownership](EVENT_QUEUE_SYSTEM.md#retained-waterfall-cascade).
+6. Accept a still-valid pending combat verb through its normal handler before
+    ordinary movement; if `secondaryKeyState != PrimaryInput`, route only to the
+    current map's secondary handler and return.
+7. Otherwise read and debounce a bound key, intercept `/` (also shifted `/`, `?`)
    Help, F4 last-battle review, and global Shift+J journal routing, process active-player number keys, and call the large-, small-,
    dungeon-, or combat-map primary handler.
 
@@ -156,22 +161,27 @@ calendar charge or RNG draw belongs to this input intent. See
 While the selected ordinary party character waits for intervening enemy turns,
 fresh **G/O/J/P/S** may retain one Get/Open/Jimmy/Push/Search verb. Further
 supported edges replace it immediately, even while an earlier key remains held.
-A passive indication says **Pending: Open (Avatar) — waiting for turn; Esc: Clear**.
-It neither reveals enemy information nor pauses their workflows. This initial
-scope excludes all-party mode, controlled monsters, ambiguous clone selection,
-committed player-action presentation, retained targeting, readers and modals.
+Capture and replacement are silent: there is no pending-status popup, map overlay,
+queue hint or acknowledgement. Acceptance opens the ordinary command prompt once
+the selected character is ready. Waiting neither reveals enemy information nor
+pauses their workflows. This scope excludes all-party mode, controlled monsters,
+ambiguous clone selection, committed player-action presentation, retained targeting,
+readers and modals.
 Modified shortcuts retain precedence; Shift+J opens Journal and clears intent.
 
-Escape clears without cost. A plain unsupported gameplay letter, Space/Pass or
-Tab/Auto clears with a nonmodal explanation and is consumed through release.
+Escape clears without cost and writes one `Pending command cleared.` line to
+ordinary Output. A plain unsupported gameplay letter, Space/Pass or Tab/Auto
+clears with one ordinary Output explanation and is consumed through release.
+These one-off cancellation/refusal messages are not persistent queue feedback.
 Directions entered while waiting retain the verb but are suppressed through
 physical release, including cardinal keypad keys and the repeatable movement
 path. Clearing or invalidating the verb does not release an old arrow. With no
 pending intention, unrelated input keeps its existing behavior.
 
-One edge sample precedes wind/queues. Same-sample ties have no chronological
-ordering: Escape wins, then an unsupported action, then the alphabetically first
-supported verb. All losing action edges are consumed. A blocked-entry arrow
+One edge sample precedes wind/queues. After the early all-party reset has had
+precedence, buffer ties have no chronological ordering: Escape wins, then an
+unsupported action, then the alphabetically first supported verb. All losing
+action edges are consumed. A blocked-entry arrow
 stays early even if that Update finishes the last enemy. At an already-ready
 boundary a fresh direction reaches the installed secondary prompt in the same
 Update, without an extra release-all delay. Normal Escape cancellation and paid
@@ -187,7 +197,7 @@ not expire the selected character's pending opportunity. Death, departure, sleep
 captivity, possession, ambiguous clone selection, selection/control changes and
 encounter replacement still invalidate; a skipped selected opportunity cannot
 replay on its later recovery. Scene teardown/load and application focus
-loss clear intent and feedback. Production remains runnable without focus:
+loss clear intent. Production remains runnable without focus:
 sky synchronization, wind/queues, committed automatic-door phases, effects and
 audio service continue on the ordinary update path outside retained reader pauses.
 The keyboard is temporarily masked and raw acknowledgement waits retain a real
@@ -199,6 +209,50 @@ These fields and release guards are transient and never saved.
 The two combat presentation workflows use a narrow release guard that permits
 handoff over keys already suppressed until physical release. This does not alter
 raw `WaitForAnyKey` or camping release-before-unblock behavior.
+
+### Early all-party combat reset
+
+A fresh unmodified **top-row 0** can clear solo selection during a scheduled
+enemy turn or condition-driven auto-pass, even when the selected party member is
+sleeping, captive or possessed. `captureCombatSoloReset` runs before pending-verb
+capture and wind/queue advancement. It validates the exact scheduler boundary and
+its scene owner: an unclaimed scheduled step with no competing workflow, or only
+`monster_turn_delay` / `combat_pc_auto_pass` after presentation claims it.
+
+The reset clears the future solo filter and pending G/O/J/P/S verb. It preserves
+the current actor, completion token, target, countdowns and in-flight action;
+that owner still resolves and completes once. Future actors follow the existing
+DEX schedule, including intervening enemies. It grants no extra action, refunds
+no completed skip, and itself charges no time, resources or RNG. Original
+out-of-turn keyboard admission is not established; this Redux convenience is
+scoped in [COMBAT-0003](../gamefacts/COMBAT.md#combat-0003).
+
+Zero wins over buffered verbs in the same sample. Losing verbs and early held
+directions remain suppressed until physical release; held 0 cannot delay the
+workflow's release. Already-all-party reset is silent and idempotent. Readers,
+modals/text editors, retained targeting, focus barriers and player-owned committed
+action presentation retain their input. This adds neither early 1–6 selection nor
+keypad-0 admission. There is no delayed reset request to replay at a later boundary.
+
+### Automatic sailing interruption
+
+The automatic sailing owner checks input before each 55 ms cadence phase; normal
+large-map dispatch also catches short non-direction commands between phases.
+Space stops with `Sheets in irons!` and is consumed. Other commands stop automatic
+travel and retain their own normal dispatch and completion. Furl stops sailing
+before its feedback. Tactical entry stops and furls; successful outdoor enemy
+ranged hits stop automatic travel while preserving a surviving frigate's sails
+and facing. Sinking stops before fallback replacement or drowning.
+
+`AutomaticSailingStopEpoch` lets the scene clear the sailing camera and suppress
+held arrow/cardinal-keypad movement before input and after queue updates, including
+projectile preemption. Movement must release and be pressed afresh; Fire, Yell and
+other fresh commands remain usable once their ordinary input boundary is available.
+A live or finalizing `automatic_sailing` name prevents a second start. Stopping
+does not discard already owed actor work or projectile presentation. See
+[sailing timing](TIME_SYSTEM.md#automatic-sailing-boundaries) and
+[SHIP-0001](../gamefacts/SHIP_MECHANICS.md#ship-0001) /
+[SHIP-0005](../gamefacts/SHIP_MECHANICS.md#ship-0005).
 
 ### Traveller's Map
 
@@ -620,6 +674,17 @@ identifies a dungeon admission attempt. Rejection adds no outdoor turn, and
 successful dungeon entry adds no time in its transition workflow; the first
 accepted dungeon command owns the next precharge. Other Enter contexts retain
 their existing turn ownership.
+
+Outdoor movement and relocation use explicit gameplay-window boundaries:
+`MovePlayerOneStep` owns accepted cardinal steps, while `InitializeOutdoorWindow`
+owns fresh outdoor entry and successful Blink. Both forced waterfall southward
+steps use the step boundary individually. Generic position assignment is not a
+substitute for choosing that lifecycle. Push/Pull preserves window origins and
+tracks its temporary terrain separately. Saving alone preserves the live window;
+actual hydration initializes it from the loaded outdoor position and plane. The
+runtime 32×32 window, quadrant-local Push lifetime and load-reset contract are maintained once in
+[SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spell-0002); the scene's camera projection
+and ordinary command completion do not define Blink range.
 
 ## Secondary Resolution
 

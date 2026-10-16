@@ -78,6 +78,16 @@ quiet defaults; scene capture enriches and validates the whole snapshot. Scene
 hydration restores it without replaying notices or recording the transcript
 again. A headless rewrite must carry loaded presentation forward explicitly.
 
+Outdoor Blink's retained map window is deliberately runtime-only gameplay state.
+Normal original startup rebuilds it from loaded coordinates despite saving offsets.
+All actual native hydration therefore initializes the window from the final loaded
+position and plane, including player loads, Workbench load/rollback and named
+scenario baselines. Saving alone and a scenario using the current live baseline
+preserve it. A failed candidate leaves the old scene's history untouched. This
+bounded original-style reset can change the next Blink at unchanged coordinates;
+it is not a promise of byte-for-byte runtime continuation. It needs no new DTO or
+schema version and does not reset unrelated durable terrain, actors, or progression.
+
 Last Conversation and dungeon observations also follow the checkpoint.
 Deliberately kept excerpts instead belong to a playthrough-keyed notebook:
 loading an older checkpoint must not erase what the player chose to retain.

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
@@ -23,29 +24,22 @@ const mapExitPromptWorkflowName = "map_exit_prompt"
 // Now all callers use g.keyboard.GetPressedArrowKey() or g.keyboard.GetArrowKeyAsDirection()
 
 func (g *GameScene) moveToNewPositionByDirection(direction references.Direction) {
-	// TODO: dear future Brad - you will need to change this big time when dungeons and combat come in
-	bLargeMap := g.gameState.MapState.PlayerLocation.Location.GetMapType() == references.LargeMapType
 	before := g.gameState.MapState.PlayerLocation.Position
-
-	switch direction {
-	case references.Up:
-		g.gameState.MapState.PlayerLocation.Position.GoUp(bLargeMap)
-	case references.Down:
-		g.gameState.MapState.PlayerLocation.Position.GoDown(bLargeMap)
-	case references.Left:
-		g.gameState.MapState.PlayerLocation.Position.GoLeft(bLargeMap)
-	case references.Right:
-		g.gameState.MapState.PlayerLocation.Position.GoRight(bLargeMap)
-	case references.NoneDirection:
-	}
+	g.gameState.MovePlayerOneStep(direction)
+	after := g.gameState.MapState.PlayerLocation.Position
 
 	// GetEffectiveTile() handles all tile overrides dynamically - no layer refresh needed
 	if g.gameState.PartyVehicle.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
-		g.gameState.PartyVehicle.SetPos(g.gameState.MapState.PlayerLocation.Position)
-		g.gameState.PartyVehicle.NPCReference.Schedule.OverrideAllPositions(byte(g.gameState.MapState.PlayerLocation.Position.X), byte(g.gameState.MapState.PlayerLocation.Position.Y))
+		// Surface movement has already wrapped/clamped both axes to the map.
+		// Reject an impossible position rather than truncating its schedule bytes.
+		scheduleX, scheduleY := after.X, after.Y
+		if scheduleX < 0 || scheduleX > math.MaxUint8 || scheduleY < 0 || scheduleY > math.MaxUint8 {
+			panic("party vehicle movement has invalid schedule coordinates")
+		}
+		g.gameState.PartyVehicle.SetPos(after)
+		g.gameState.PartyVehicle.NPCReference.Schedule.OverrideAllPositions(byte(scheduleX), byte(scheduleY))
 		g.gameState.PartyVehicle.SetDirection(direction)
 	}
-	after := g.gameState.MapState.PlayerLocation.Position
 	if before != after {
 		logging.Debug(logging.CategoryMovement,
 			"Avatar moved: location=%s floor=%d direction=%s from=(%d,%d) to=(%d,%d) vehicle=%s",
@@ -160,7 +154,7 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 					yesQ.Then(func() { transitioned = true }).
 						ThenSequence(g.gameState.ThenExitLocationTransition())
 				},
-				func(noQ *event_queue.SequentialEventBuilder) {
+				func(_ *event_queue.SequentialEventBuilder) {
 					// NO - stay in building (no action needed)
 				},
 			)).Finally(func() {
@@ -209,8 +203,10 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMoveFrigate)
 			case references.CarpetVehicle:
 				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMoveCarpet)
+			case references.NPC:
+				// NPCs are not party vehicles and have no party movement sound.
 			default:
-				// NPC and other types are not valid party vehicles - no sound
+				// Unknown types retain the silent fallback.
 			}
 		}
 
@@ -220,12 +216,15 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 
 		// Update lighthouse positions on large map movement
 		// Rescan lighthouse emitters when the map buffer changes (ref:LIGHT-0003).
-		if mapType == references.LargeMapType {
+		switch mapType {
+		case references.LargeMapType:
 			g.gameState.UpdateLighthouseForLargeMap()
-		} else if mapType == references.SmallMapType {
+		case references.SmallMapType:
 			// Update lighthouse for small maps - scans current floor only
 			// Handles floor changes via klimb and player moving in/out of beacon range
 			g.gameState.UpdateLighthouseForSmallMap()
+		case references.DungeonMapType, references.CombatMapType, references.CampingMapType:
+			// Only surface maps have lighthouse emitters to refresh.
 		}
 
 		// Whirlpool contact owns the source hit and teleport; do not also apply
@@ -245,10 +244,6 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 
 		// Process skiff/carpet deep-water damage (ref:ENV-0003).
 		g.gameState.ProcessSkiffDeepWaterDamage(newPosition)
-
-		// Process the waterfall hazard (ref:ENV-0003).
-		// Applies to all movement types (on foot, carpet)
-		g.gameState.ProcessWaterfallHazard(newPosition)
 
 		// Process TRAP fall-through after movement (only in small maps)
 		if g.gameState.MapState.PlayerLocation.Location.GetMapType() == references.SmallMapType {
@@ -312,6 +307,7 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 // getKeyAsDirection converts UI input keys to game logic directions
 // Moved from internal/map_state to maintain package boundaries (UI layer handles input mapping)
 func (g *GameScene) getKeyAsDirection(key ebiten.Key) references.Direction {
+	//nolint:exhaustive // Only arrow keys represent movement here; other keys return NoneDirection.
 	switch key {
 	case ebiten.KeyUp:
 		return references.Up

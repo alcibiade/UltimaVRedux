@@ -1,4 +1,3 @@
-//nolint:mnd // Existing original-game waterfall timing is domain-specific.
 package game_state
 
 import (
@@ -7,160 +6,187 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// Waterfall effect timing constants (based on original outdoor effect rules)
-// See ref:ENV-0003.
+// Presentation delays do not charge gameplay minutes. ref:ENV-0003.
 const (
-	// glide(2500,800,1,300) from original - timing placeholders
-	waterfallGlideDurationMs   = 2500 // glide() first parameter
-	waterfallMessageDurationMs = 1500 // "F-A-L-L-S!!!" display time
+	waterfallWorkflowName    = "waterfall_hazard"
+	waterfallStepDelayMs     = 255
+	waterfallGlideDurationMs = 2500
+	waterfallFadeDurationMs  = 500
 
 	// Underworld entry point after the original two southward moves.
 	waterfallUnderworldEntryX = 54  // 0x36
 	waterfallUnderworldEntryY = 138 // 0x8a; the waterfall tile itself is at Y=137.
 )
 
-// ProcessWaterfallHazard handles waterfall encounter with DEX-based damage
-// Includes underworld transition at specific coordinates (54, 138)
-//
-// Triggered on waterfall tiles (0xd4-0xd7 = 212-215)
-// Applies to all movement types (on foot, carpet, skiff)
-// See ref:ENV-0003.
-func (g *GameState) ProcessWaterfallHazard(position *references.Position) {
-	// Waterfalls only exist on large maps (overworld/underworld)
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return
-	}
-
-	// Check tile BELOW the passed position (waterfall is below triggering tile)
-	tile := g.GetTileInDirectionWrapped(position, references.Down)
-	if tile == nil || !tile.IsWaterfall() {
-		return // Not a waterfall
-	}
-
-	// Local helper to move player down one tile with large map wrapping
-	movePlayerDownOneTile := func() {
-		downPosition := g.MapState.PlayerLocation.Position.GetPositionDown()
-		wrappedPosition := downPosition.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
-		g.SetPlayerPosition(*wrappedPosition)
-	}
-
-	// The successful-movement route calls this once per step, and this workflow
-	// blocks further movement input until the sequence completes.
-	// Start waterfall sequence via event queue
-	g.EventQueueManager.Workflow("waterfall_hazard").
-		Priority(event_queue.PriorityNormal).
-		Sequential().BlockInput().
-		First(func() {
-
-		}).
-		Then(func() {
-			g.SystemCallbacks.UI.ShowActionFeedback(
-				"F-A-L-L-S!!!", true,
-			)
-
-			movePlayerDownOneTile()
-		},
-		).
-		Wait(255).
-		Then(func() {
-			movePlayerDownOneTile()
-		}).ThenSequence(
-
-		g.thenWaterfallGlideDuration()).
-		Then(func() {
-
-		}).ThenSequence(
-
-		g.thenWaterfallDamageCheck()).ThenSequence(
-
-		g.thenUnderworldTransition()).Finally(
-
-		func() {
-			// Guaranteed cleanup: ensure fade is cleared
-			// g.SystemCallbacks.Visual.SetMapFadeLevel(0.0)
-		}).
-		Start()
+// ProcessWaterfallHazard starts a cascade without charging an ordinary turn.
+// The argument is retained for compatibility; eligibility always uses the current
+// authoritative map and position, never a cached movement destination. Production
+// commands enter through surface completion, which also retains their actor tail.
+// Returns true while the retained logical cascade owns completion. ref:ENV-0003.
+func (g *GameState) ProcessWaterfallHazard(_ *references.Position) bool {
+	return g.startWaterfallHazard(nil)
 }
 
-// thenWaterfallGlideDuration handles glide timing (screen black)
-// Original: glide(2500,800,1,300) - fade completed, now glide
-// TODO Phase 4: Add smooth camera/position interpolation during glide
-func (g *GameState) thenWaterfallGlideDuration() func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		// Wait while screen is black - "falling" duration
-		q = q.Wait(waterfallGlideDurationMs)
+// IsWaterfallHazardActive includes the actor/contact interlude between workflow
+// instances as well as pending, deferred and finalizing queue ownership.
+func (g *GameState) IsWaterfallHazardActive() bool {
+	return g.activeWaterfall != nil || g.EventQueueManager.HasWorkflow(waterfallWorkflowName)
+}
 
-		return q
+func (g *GameState) startWaterfallHazard(afterFirstFall func()) bool {
+	// Accepted deferred commands still complete during queue shutdown. Reject
+	// only new hazard ownership: a rejected Start would not run its finalizer,
+	// and the manager's transient-owner cleanup has already happened.
+	if g.EventQueueManager.IsShutdown() {
+		return false
 	}
+	if g.IsWaterfallHazardActive() {
+		return true
+	}
+	if !g.isWaterfallLandingEligible() {
+		return false
+	}
+	cascade := &waterfallCascade{
+		landing:        g.MapState.PlayerLocation,
+		visited:        make(map[references.PlayerLocation]struct{}),
+		afterFirstFall: afterFirstFall,
+	}
+	g.activeWaterfall = cascade
+	// Hazard ownership ends automatic travel, not the already owed command tail.
+	g.StopAutomaticSailing()
+
+	return g.startWaterfallWorkflow(cascade)
+}
+
+func (g *GameState) startWaterfallWorkflow(cascade *waterfallCascade) bool {
+	if g.EventQueueManager.IsShutdown() {
+		g.cancelWaterfallCascade(cascade)
+
+		return false
+	}
+	if cascade == nil || g.activeWaterfall != cascade || g.EventQueueManager.HasWorkflow(waterfallWorkflowName) {
+		panic("waterfall workflow requires its sole retained cascade and an available queue name")
+	}
+	// A real handoff must reach the sequence's normal end before its finalizer is
+	// allowed to retain the cascade. Shutdown never resumes an abandoned owner.
+	retainForActors := false
+	// Successful movement may already own a high-priority rough-sea hit. This
+	// normal-priority workflow waits behind that owner; never request the hit again
+	// or poll an equal-priority child from inside this sequence. ref:ENV-0003.
+	g.EventQueueManager.Workflow(waterfallWorkflowName).
+		Priority(event_queue.PriorityNormal).
+		Sequential().BlockInput().
+		First(func() {}).
+		ThenSequence(g.thenWaterfallCascade(cascade)).
+		Then(func() {
+			// If eligibility disappeared before the first step without a takeover,
+			// the already consumed command still owes its ordinary actor phase.
+			g.completeFirstWaterfallActorTail(cascade)
+			retainForActors = g.activeWaterfall == cascade && !cascade.interrupted && cascade.awaitingActors
+		}).
+		Finally(func() {
+			// Each physical workflow releases presentation/input once. The logical
+			// owner survives only an explicit actor handoff, never cancellation.
+			if cascade.fadeOwned {
+				g.SystemCallbacks.Visual.SetMapFadeLevel(0)
+				cascade.fadeOwned = false
+			}
+			if cascade.flashOwned {
+				g.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
+				cascade.flashOwned = false
+			}
+			if !retainForActors {
+				g.cancelWaterfallCascade(cascade)
+			}
+		}).
+		Start()
+	// Queue construction reads the injected clock, and activation can invoke
+	// callbacks. Reentrant shutdown must not report a rejected/cancelled Start
+	// as an accepted continuation or leave its logical state published.
+	if g.EventQueueManager.IsShutdown() {
+		g.cancelWaterfallCascade(cascade)
+
+		return false
+	}
+
+	return true
 }
 
 // thenWaterfallDamageCheck builds feedback for the Dexterity check.
 // A transformed d30 at least Dexterity fails. ref:ENV-0003
-func (g *GameState) thenWaterfallDamageCheck() func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		// Perform DEX checks to determine damage targets
-		damageTargets := g.performWaterfallDexterityChecks()
+func (g *GameState) thenWaterfallDamageCheck(cascade *waterfallCascade) event_queue.Sequence {
+	return func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+		var effects *PartyStateBuilder
 
-		// Apply damage + gray flash if anyone took damage
-		if len(damageTargets) == 0 {
-			return q
-		}
-
-		// Apply 1 HP damage to failed DEX checks with gray flash
-		// FlashGray() uses standard 200ms duration, 0.7 intensity (fall/impact pattern)
-		q = NewPartyStateBuilder(g).
-			WithFixedDamage(1).          // 1 HP damage (original)
-			ToCharacters(damageTargets). // Only those who failed DEX check
-			FlashGray().                 // Gray fall/impact flash
-			Build()(q)
-
-		return q
+		return sequence.Then(func() {
+			if !g.waterfallOwnsLanding(cascade) {
+				return
+			}
+			damageTargets := g.performWaterfallDexterityChecks()
+			if len(damageTargets) == 0 {
+				return
+			}
+			// Keep the existing ordered checks and fixed-damage builder RNG calls.
+			// Check and damage commit together, with no interruptible gap between them.
+			effects = NewPartyStateBuilder(g).WithFixedDamage(1).ToCharacters(damageTargets).FlashGray()
+			effects.applyDamage()
+			effects.setupEffects()
+			cascade.flashOwned = true
+			if g.PartyState.IsAllPartyDead() {
+				cascade.interrupted = true
+				g.checkForPartyWipe()
+			}
+		}).If(func() bool {
+			return effects != nil && g.waterfallOwnsLanding(cascade)
+		}, func(feedback *event_queue.SequentialEventBuilder) {
+			feedback.Animate(flashStandardDurationMs, func(progress float32) {
+				if g.waterfallOwnsLanding(cascade) {
+					effects.animateEffects(progress, flashStandardDurationMs)
+				}
+			}).Then(func() {
+				g.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
+				cascade.flashOwned = false
+			})
+		})
 	}
 }
 
-// thenUnderworldTransition returns event queue modifier for underworld transition with visual effects
-func (g *GameState) thenUnderworldTransition() func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		// Check if we're at the underworld entry coordinates
-		if g.MapState.PlayerLocation.Position.X != waterfallUnderworldEntryX ||
+// thenUnderworldTransition is owned by the waterfall workflow and installs no
+// Finally. Its canonical transition updates the landing before the next review.
+func (g *GameState) thenUnderworldTransition(cascade *waterfallCascade) event_queue.Sequence {
+	return func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+		if !g.waterfallOwnsLanding(cascade) || g.MapState.PlayerLocation.Floor != references.MainFloor ||
+			g.MapState.PlayerLocation.Position.X != waterfallUnderworldEntryX ||
 			g.MapState.PlayerLocation.Position.Y != waterfallUnderworldEntryY {
-			return q // Not at underworld entry, continue normal flow
+			return sequence
 		}
 
-		// Show underworld transition message
-		q = q.Then(func() {
-			g.SystemCallbacks.UI.ShowActionFeedback("Falling into underworld!!", true)
+		return sequence.Then(func() {
+			if g.waterfallOwnsLanding(cascade) {
+				g.SystemCallbacks.UI.ShowActionFeedback("Falling into underworld!!", true)
+			}
+		}).Animate(waterfallFadeDurationMs, func(progress float32) {
+			if g.waterfallOwnsLanding(cascade) {
+				cascade.fadeOwned = true
+				g.SystemCallbacks.Visual.SetMapFadeLevel(float64(progress))
+			}
+		}).Then(func() {
+			if !g.waterfallOwnsLanding(cascade) {
+				return
+			}
+			g.TransitionToLocation(references.BritanniaUnderworld, references.Basement,
+				g.MapState.PlayerLocation.Position, TransitionFullLocation, false)
+			cascade.landing = g.MapState.PlayerLocation
+		}).Animate(waterfallFadeDurationMs, func(progress float32) {
+			if g.waterfallOwnsLanding(cascade) {
+				g.SystemCallbacks.Visual.SetMapFadeLevel(1.0 - float64(progress))
+			}
+		}).Then(func() {
+			if cascade.fadeOwned {
+				g.SystemCallbacks.Visual.SetMapFadeLevel(0)
+				cascade.fadeOwned = false
+			}
 		})
-
-		// Fade out with Animate (500ms)
-		q = q.Animate(500, func(progress float32) {
-			// Fade from visible (0.0) to black (1.0)
-			g.SystemCallbacks.Visual.SetMapFadeLevel(float64(progress))
-		})
-
-		// Underworld transition (happens during black screen)
-		q = q.Then(func() {
-			g.TransitionToLocation(
-				references.BritanniaUnderworld,
-				references.Basement,
-				g.MapState.PlayerLocation.Position,
-				TransitionFullLocation,
-				false, // No entry music
-			)
-		})
-
-		// Fade in with Animate (500ms)
-		q = q.Animate(500, func(progress float32) {
-			// Fade from black (1.0) to visible (0.0)
-			g.SystemCallbacks.Visual.SetMapFadeLevel(1.0 - float64(progress))
-		})
-
-		// Final cleanup
-		q = q.Finally(func() {
-			g.SystemCallbacks.Visual.SetMapFadeLevel(0.0)
-		})
-
-		return q
 	}
 }
 

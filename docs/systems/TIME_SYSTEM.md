@@ -112,6 +112,37 @@ Authentic action cost is a gameplay rule, not a property of `ElapsedMs`.
 
 Individual action methods may charge time directly and therefore must not also receive an unconditional `FinishTurn` from the input layer. The authoritative original-game cost matrix and known deviations belong in [TIME_COSTS.md](../gamefacts/TIME_COSTS.md); this document describes how costs are applied.
 
+### Automatic Sailing Boundaries
+
+`CompleteAutomaticSailingWait` is distinct from ordinary movement completion:
+an eligible wait requests two gameplay minutes and its outdoor actor phase, or
+one minute with the HMS Cape's alternating actor gate. Normal temporal modifiers
+still apply. The scene's 55 ms cadence determines when that phase may run, not
+an additional calendar cost. Each wait/movement
+boundary revalidates an outdoor, raised-sail frigate and live party. Invalidated
+travel stops without another wait, movement, actor phase or gameplay RNG draw.
+
+Furling stops authority before feedback. Validated tactical entry stops and furls
+while preserving facing, including stationary and player-initiated encounters;
+normal return leaves sails down. A successful outdoor enemy ranged hit instead
+stops active automatic sailing with the surviving frigate's sail state/facing
+intact. Sinking stops before replacing the vessel or applying drowning. Warning,
+rotation, obstruction and failed firing opportunities do not create ranged-hit
+interruption. The original comparisons and deliberate differences remain in
+[SHIP-0001](../gamefacts/SHIP_MECHANICS.md#ship-0001),
+[SHIP-0003](../gamefacts/SHIP_MECHANICS.md#ship-0003) and
+[SHIP-0005](../gamefacts/SHIP_MECHANICS.md#ship-0005).
+
+Stopping is not a new command cycle and does not repeat the player update.
+Already-spent waits remain spent; a separately dispatched command keeps its own
+completion cost. The current descending actor phase still resolves every owed
+lower-slot hit once, including later sinking or fatal damage. Its retained
+projectile results drain without another sailing phase or damage roll. Terminal
+outcomes take precedence; a surviving fallback is not moved by the old sailing
+loop. Fresh movement after physical release is required to resume travel.
+Rough-seas damage has its own [workflow owner](EVENT_QUEUE_SYSTEM.md#rough-seas-and-travel-ownership),
+not a sailing wait or an extra ordinary command completion.
+
 ### Inn Calendar Maintenance And Overnight Time
 
 Every calendar advance through `advanceElapsedGameplayMinutes` compares the
@@ -188,7 +219,9 @@ toggle items, the noncombat Regeneration Ring sweep, and party-wipe detection.
 Completed, rejected, and cancelled surface results enter this seam by default
 when `ConsumesNormalCycle` is true. Explicitly free, deferred, still-active, and
 map-transition results bypass it. Camping's internal five-minute steps
-deliberately bypass it and its owner invokes one final player update.
+deliberately bypass it and its owner invokes one final player update. Waterfall
+admission retains the initiating actor phase until the
+[first complete fall](#waterfall-completion-and-resumption).
 
 Slow outdoor terrain is a distinct owner: its extra actor phases run before its
 extra calendar advance, followed by ordinary completion. Each extra phase's
@@ -255,6 +288,56 @@ Time stop deliberately separates these concerns:
 - The time-stop duration itself still counts down.
 
 Combat field effects and DEX scheduling are handled by combat-specific paths rather than by the small/large-map branch.
+
+### Waterfall Completion And Resumption
+
+At consumed surface completion, including stationary Pass, Redux first applies
+the initiating command's calendar charge and player update. A qualifying waterfall
+then retains the one owed actor tail. Blocked outdoor movement and explicitly free
+commands do not create this checkpoint. Repeated completion requests while the
+logical cascade is retained cannot charge that command again.
+
+The ordering is:
+
+```text
+initiating calendar charge and player update
+-> any already admitted movement-owned rough-sea work
+-> first complete fall: two south steps, presentation, damage, optional plane travel
+-> initiating actor tail once, including its retained contacts/presentation
+-> review the current landing for further automatic falls
+-> ordinary surface input after the cascade ends
+```
+
+`completeFirstWaterfallActorTail` marks completion before callbacks can suspend
+the phase. The ordinary actor cadence gates still apply at that boundary. If the
+phase owes a projectile, tactical encounter or whirlpool, the physical waterfall
+queue releases its input block while `activeWaterfall` retains the logical
+cascade. Existing outdoor cursors finish lower actors without repeating generation
+or cadence. Living retreat from an owned encounter can resume; actual party death,
+terminal takeover or invalid ownership cancels the continuation. A validated owned
+whirlpool may change its retained landing. The pre-input checkpoint resumes only
+after those owners finish, before an ordinary movement or Pass can intervene.
+
+Later falls perform only their own two steps, damage and optional plane travel:
+no new ordinary minute charge, food/status sweep or actor phase. Elapsed waits
+schedule presentation and do not themselves advance the calendar. Wind retains
+the [shared-RNG timing scope](#elapsed-time-and-shared-rng-scope). If eligibility
+disappears before the first step without a takeover, the already consumed command
+still runs its owed actor tail once.
+
+Both forced southward steps call `MovePlayerOneStep` separately, so each updates
+the runtime outdoor window; the special plane transition initializes it at the
+destination. Neither operation supplies another ordinary turn. The window and
+quadrant-local Push rules remain in [SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spell-0002).
+
+Redux checks the wrapped raw-map tile immediately south at consumed admission and
+landing rechecks. This is not the original standing-tile consumed checkpoint, and
+equivalence with its visible-buffer pre-input south-cell test is unverified.
+A visited `(location, floor, position)` trigger stops a wrapped cycle at the
+already committed landing with one notice. This bound does not establish original
+predicate parity. [ENV-0003](../gamefacts/ENVIRONMENTAL_HAZARDS.md#env-0003) retains
+those comparison limits; [cascade ownership](EVENT_QUEUE_SYSTEM.md#retained-waterfall-cascade)
+defines release, cancellation and shutdown cleanup.
 
 ## Daylight And Lunar State
 

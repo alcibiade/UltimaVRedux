@@ -109,6 +109,7 @@ func (g *GameState) TransitionToLocation(
 
 		// Update map system (calls UpdateLargeMap or UpdateSmallMap)
 		g.updateMapAfterFullTransition()
+		g.InitializeOutdoorWindow()
 		if previousLocation != location || previousFloor != floor {
 			g.MapState.ResetTransientDoor()
 		}
@@ -150,6 +151,7 @@ func (g *GameState) TransitionToLocation(
 		// Small maps: Reset NPCs (authentic Ultima V behavior)
 		// Large maps: Refresh quest items (shards)
 		g.updateMapAfterFloorChange()
+		g.InitializeOutdoorWindow()
 
 		// NO light cache invalidation (same location, just different floor)
 		// NO music update (same location theme)

@@ -777,6 +777,9 @@ func (seb *SequentialEventBuilder) HandoffTo(
 	// Add an action that sets the termination flag at EXECUTION time (not build time)
 	// This ensures the flag is only set when the previous action in the chain completes
 	return seb.Then(func() {
+		if queue.onComplete != nil {
+			panic("HandoffTo cannot replace an existing completion callback")
+		}
 		logging.Debug(logging.CategoryGameState,
 			"EventQueue: HandoffTo executing - marking queue '%s' for termination, will chain to '%s'",
 			queue.name, newQueueName)

@@ -11,7 +11,15 @@ import (
 const (
 	WaterShakePixels = 6.0 // Moderate camera shake
 	WaterDurationMs  = 200 // Standard impact duration
+
+	skiffDeepWaterWorkflowName = "skiff_deep_water"
 )
+
+// A terminal batch stays closed even if a higher-priority recovery workflow
+// revives or replaces the party before this owner's remaining steps run.
+type skiffDeepWaterBatch struct {
+	terminal bool
+}
 
 // ProcessSkiffDeepWaterDamage handles damage to party members when skiff or carpet
 // enters DEEP water (terrain type 1)
@@ -21,52 +29,121 @@ const (
 // - original world-creature rules - Calls party damage for non-ships
 // - original party-effect rules - Each party member takes 1-8 HP damage
 //
-// Original behavior:
+// Damage rules (the current Redux caller is successful movement only):
 //   - Triggers only in DEEP water (tile index 1), NOT SEA (2) or SHOALS (3)
 //   - Both skiffs and carpets are affected
 //   - Damages party members directly, not the vehicle
 //   - Shows "Rough seas!" message
-//   - Displays kapow visual effect
+//   - Presents water flash and shake feedback
 //   - Each alive party member takes random 1-8 HP damage
 //
 // See ref:SHIP-0003.
 func (g *GameState) ProcessSkiffDeepWaterDamage(position *references.Position) {
+	if !g.isSkiffDeepWaterDamageEligible(position) {
+		return
+	}
+
+	// Retain every admitted hit. Input blocking alone cannot protect this name
+	// against programmatic movement, and a same-priority child cannot preempt
+	// automatic sailing. One higher-priority owner drains all owed hits.
+	g.pendingSkiffDeepWaterHits++
+	g.startPendingSkiffDeepWaterDamage()
+}
+
+func (g *GameState) startPendingSkiffDeepWaterDamage() {
+	if g.pendingSkiffDeepWaterHits == 0 || g.EventQueueManager.HasWorkflow(skiffDeepWaterWorkflowName) {
+		return
+	}
+	completed := false
+	batch := &skiffDeepWaterBatch{}
+	queue := g.EventQueueManager.Workflow(skiffDeepWaterWorkflowName).
+		Priority(event_queue.PriorityHigh).
+		Sequential().BlockInput().First(func() {})
+	g.appendPendingSkiffDeepWaterDamage(queue, batch)
+	queue.Then(func() { completed = true }).Finally(func() {
+		if !completed && !batch.terminal {
+			g.pendingSkiffDeepWaterHits = 0
+		}
+		g.ClearSkiffDeepWaterEffects()
+	}).OnComplete(g.startPendingSkiffDeepWaterDamage).Start()
+	// A request arriving after Finally, during input-release cleanup, belongs
+	// to the next owner. OnComplete runs after the fixed name is unreserved;
+	// it preserves that request without bypassing duplicate-name protection.
+}
+
+func (g *GameState) isSkiffDeepWaterDamageEligible(position *references.Position) bool {
+	if position == nil || g.PartyState.IsAllPartyDead() {
+		return false
+	}
 	vehicle := g.PartyVehicle.GetVehicleDetails()
 
 	// Only process for skiffs and carpets
 	if vehicle.VehicleType != references.SkiffVehicle &&
 		vehicle.VehicleType != references.CarpetVehicle {
-		return
+		return false
 	}
 
 	// Check if in DEEP water (terrain type 1)
 	tile := g.GetCurrentLayeredMap().GetTopTile(position)
-	if tile == nil || tile.Index != indexes.Water1 {
-		return // Not DEEP water - no damage
-	}
 
-	// The successful-movement route calls this once per step, and this workflow
-	// blocks further movement input until the sequence completes.
-	// Trigger damage sequence via event queue
-	// Pattern: message → visual effect → damage (original Ultima V sequence)
-	g.EventQueueManager.Workflow("skiff_deep_water").
-		Priority(event_queue.PriorityNormal).
-		Sequential().BlockInput().
-		First(func() {
+	return tile != nil && tile.Index == indexes.Water1
+}
+
+func (g *GameState) appendPendingSkiffDeepWaterDamage(queue *event_queue.SequentialEventBuilder, batch *skiffDeepWaterBatch) {
+	queue.Then(func() {
+		if batch.terminal || g.pendingSkiffDeepWaterHits <= 0 {
+			panic("rough-seas hit requires a live batch and an admitted request")
+		}
+		// Consume before execution, never after a possible death handoff. An old
+		// continuation must not decrement a new post-recovery batch's request.
+		g.pendingSkiffDeepWaterHits--
+	}).ThenSequence(g.skiffDeepWaterDamageSequence(func() {
+		batch.terminal = true
+		g.pendingSkiffDeepWaterHits = 0
+	})).If(func() bool { return !batch.terminal && g.pendingSkiffDeepWaterHits > 0 }, func(next *event_queue.SequentialEventBuilder) {
+		g.appendPendingSkiffDeepWaterDamage(next, batch)
+	})
+}
+
+// SkiffDeepWaterDamageSequence lets a workflow own a qualifying hazard inline.
+// An owner that must await damage uses ThenSequence, never a child workflow plus
+// a wait for its name; that remains safe even for high/critical-priority callers.
+// The owner must clear transient visuals in Finally via ClearSkiffDeepWaterEffects.
+func (g *GameState) SkiffDeepWaterDamageSequence(position references.Position) event_queue.Sequence {
+	return func(queue *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+		if !g.isSkiffDeepWaterDamageEligible(&position) {
+			return queue
+		}
+
+		return queue.ThenSequence(g.skiffDeepWaterDamageSequence(func() {}))
+	}
+}
+
+func (g *GameState) skiffDeepWaterDamageSequence(onTerminal func()) event_queue.Sequence {
+	return func(queue *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+		var hadLivingParty bool
+
+		return queue.Then(func() {
+			hadLivingParty = !g.PartyState.IsAllPartyDead()
 			g.SystemCallbacks.Message.AddRowStr("Rough seas!")
 		}).ThenSequence(
+			NewPartyStateBuilder(g).
+				WithShake(WaterDurationMs, WaterShakePixels).
+				FlashWater().
+				ToAllParty().WithRandomDamage(1, 8).
+				Build()).Then(func() {
+			if hadLivingParty && g.PartyState.IsAllPartyDead() {
+				// Establish terminal authority before invoking a callback that can
+				// preempt this owner and return with a resurrected/replaced party.
+				onTerminal()
+				g.checkForPartyWipe()
+			}
+		}).Wait(25)
+	}
+}
 
-		NewPartyStateBuilder(g).
-			WithShake(WaterDurationMs, WaterShakePixels).
-			FlashWater().
-			ToAllParty().WithRandomDamage(1, 8).
-			Build()).Then(func() {
-		g.checkForPartyWipe()
-	}).
-		Wait(25). // Brief pause for impact realism
-		Finally(func() {
-			g.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
-			g.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
-		}).
-		Start()
+// ClearSkiffDeepWaterEffects is the inline workflow owner's cancellation cleanup.
+func (g *GameState) ClearSkiffDeepWaterEffects() {
+	g.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
+	g.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
 }

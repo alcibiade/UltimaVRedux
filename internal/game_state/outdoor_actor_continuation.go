@@ -10,12 +10,14 @@ import (
 // a pending contact; an encounter ID binds it to the actual tactical entry.
 // Explicit player attacks do not manufacture an actor-phase cursor.
 type outdoorActorContinuation struct {
-	beforeSlot  int
-	world       references.World
-	source      *map_units.NPCEnemy
-	encounterID CombatEncounterID
-	ready       bool
-	scanned     bool
+	beforeSlot        int
+	world             references.World
+	source            *map_units.NPCEnemy
+	encounterID       CombatEncounterID
+	ready             bool
+	scanned           bool
+	waterfall         *waterfallCascade
+	waterfallReturned bool
 }
 
 func (g *GameState) suspendOutdoorActorPhase(enemy *map_units.NPCEnemy) *outdoorActorContinuation {
@@ -27,16 +29,26 @@ func (g *GameState) suspendOutdoorActorPhase(enemy *map_units.NPCEnemy) *outdoor
 		world:      references.World(g.MapState.PlayerLocation.Floor),
 		source:     enemy,
 	}
+	if cascade := g.activeWaterfall; cascade != nil && cascade.awaitingActors {
+		phase.waterfall = cascade
+	}
 	g.outdoorActorContinuation = phase
 
 	return phase
+}
+
+func (g *GameState) discardOutdoorActorContinuation() {
+	if phase := g.outdoorActorContinuation; phase != nil {
+		g.cancelWaterfallCascade(phase.waterfall)
+	}
+	g.outdoorActorContinuation = nil
 }
 
 func (g *GameState) cancelOutdoorActorPhase() {
 	if phase := g.outdoorActorContinuation; phase != nil && g.pendingOverworldEncounter == phase.source {
 		g.pendingOverworldEncounter = nil
 	}
-	g.outdoorActorContinuation = nil
+	g.discardOutdoorActorContinuation()
 	// These callers retain their own stack-local work around monster_main.
 	// Cancellation/death must not run their next phase or command tail.
 	g.activeSlowMovement = nil
@@ -72,7 +84,17 @@ func (g *GameState) finishOutdoorCombatReturn(origin *OverworldEncounterOrigin, 
 
 func (g *GameState) resumeOutdoorActorPhase() {
 	phase := g.outdoorActorContinuation
-	if phase == nil || !phase.ready || g.ShouldDeferOverworldContact() {
+	if phase == nil || g.ShouldDeferOverworldContact() {
+		return
+	}
+	// Reject a replaced waterfall landing before admitting even the first
+	// queued battle, not just when its lower-slot continuation returns.
+	if !g.acceptWaterfallActorReturn(phase) {
+		g.cancelOutdoorActorPhase()
+
+		return
+	}
+	if !phase.ready {
 		return
 	}
 	if !phase.scanned {
@@ -92,7 +114,7 @@ func (g *GameState) continueOutdoorActorPhase(phase *outdoorActorContinuation) {
 	}
 	if g.PartyState.IsAllPartyDead() || g.finaleHandoffPending ||
 		g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType ||
-		references.World(g.MapState.PlayerLocation.Floor) != phase.world {
+		references.World(g.MapState.PlayerLocation.Floor) != phase.world || !g.acceptWaterfallActorReturn(phase) {
 		g.cancelOutdoorActorPhase()
 
 		return
@@ -100,6 +122,7 @@ func (g *GameState) continueOutdoorActorPhase(phase *outdoorActorContinuation) {
 	g.outdoorActorContinuation = nil
 	g.GetCurrentLargeMapNPCAIController().ContinueTurnAfterAttack(phase.beforeSlot, g.checkOutdoorActorAttack)
 	if g.PartyState.IsAllPartyDead() || g.finaleHandoffPending {
+		g.cancelWaterfallCascade(phase.waterfall)
 		g.cancelOutdoorActorPhase()
 
 		return

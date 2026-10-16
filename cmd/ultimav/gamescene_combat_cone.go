@@ -135,9 +135,7 @@ func (g *GameScene) drawCombatConeOverlay(screen *ebiten.Image) {
 			continue
 		}
 		opacity := combatDirectionalFootprintOpacity(visual, distance, maxDistance, casting)
-		drawOptions := g.combatEntityDrawOptions(
-			position, false, int(position.X)*int(references.YCombatMapTiles)+int(position.Y), 0,
-		)
+		drawOptions := g.combatSquareMarkerDrawOptions(position)
 		drawOptions.ColorScale.ScaleWithColor(visual.Color.ToRGBA())
 		drawOptions.ColorScale.ScaleAlpha(opacity)
 		screen.DrawImage(g.spriteSheet.GetSprite(combatDirectionalFootprintTile(visual, position)), drawOptions)
@@ -260,7 +258,7 @@ func (g *GameScene) drawCombatAdjacentSpellTargetPreview(screen *ebiten.Image) {
 	}
 	drawCombatSelectionFrame(
 		screen,
-		g.combatEntityDrawOptions(target, false, int(target.X)*int(references.YCombatMapTiles)+int(target.Y), 0),
+		g.combatSquareMarkerDrawOptions(target),
 		g.getElapsedMs(),
 		color,
 	)

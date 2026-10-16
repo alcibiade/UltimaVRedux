@@ -103,7 +103,7 @@ func TestMagicUnlockDoorRestoresOriginalDoorVariantsAndHandlesNil(t *testing.T) 
 	}
 }
 
-func TestBlinkTeleportSelectsFarthestGrassInWrappedVisibleWindow(t *testing.T) {
+func TestBlinkTeleportSelectsLastGrassWithInitialOnlyWrapping(t *testing.T) {
 	tests := []struct {
 		name      string
 		start     references.Position
@@ -119,32 +119,35 @@ func TestBlinkTeleportSelectsFarthestGrassInWrappedVisibleWindow(t *testing.T) {
 			[]references.Position{{X: 99, Y: 100}, {X: 80, Y: 100}}, references.Position{X: 80, Y: 100}},
 		{"right", references.Position{X: 100, Y: 100}, references.Right,
 			[]references.Position{{X: 101, Y: 100}, {X: 111, Y: 100}}, references.Position{X: 111, Y: 100}},
-		{"left wraps at west edge", references.Position{X: 1, Y: 100}, references.Left,
+		{"left initially wraps at west edge", references.Position{X: 0, Y: 100}, references.Left,
 			[]references.Position{{X: 0, Y: 100}, {X: 240, Y: 100}}, references.Position{X: 240, Y: 100}},
-		{"up wraps at north edge", references.Position{X: 100, Y: 1}, references.Up,
+		{"up initially wraps at north edge", references.Position{X: 100, Y: 0}, references.Up,
 			[]references.Position{{X: 100, Y: 0}, {X: 100, Y: 240}}, references.Position{X: 100, Y: 240}},
-		{"right wraps at east edge", references.Position{X: 254, Y: 100}, references.Right,
-			[]references.Position{{X: 255, Y: 100}, {X: 15, Y: 100}}, references.Position{X: 15, Y: 100}},
-		{"down wraps at south edge", references.Position{X: 100, Y: 254}, references.Down,
-			[]references.Position{{X: 100, Y: 255}, {X: 100, Y: 15}}, references.Position{X: 100, Y: 15}},
+		{"right clips at east edge", references.Position{X: 254, Y: 100}, references.Right,
+			[]references.Position{{X: 255, Y: 100}, {X: 15, Y: 100}}, references.Position{X: 255, Y: 100}},
+		{"down clips at south edge", references.Position{X: 100, Y: 254}, references.Down,
+			[]references.Position{{X: 100, Y: 255}, {X: 100, Y: 15}}, references.Position{X: 100, Y: 255}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			gs, _ := NewIntegrationTestBuilder(t).
-				WithLocation(references.BritanniaUnderworld).
-				WithPlayerAt(int(test.start.X), int(test.start.Y)).
-				WithSystemCallbacks().
-				Build()
-			theMap := gs.GetLayeredMapByCurrentLocation()
-			setBlinkRayTiles(t, theMap, test.start, test.direction, indexes.BrickFloor)
-			for _, position := range test.grass {
-				position := position
-				theMap.SetTileByLayer(map_state.MapOverrideLayer, &position, indexes.Grass)
-			}
+			for _, floor := range []references.FloorNumber{0, -1} {
+				gs, _ := NewIntegrationTestBuilder(t).
+					WithLocation(references.BritanniaUnderworld).
+					WithFloor(floor).
+					WithPlayerAt(int(test.start.X), int(test.start.Y)).
+					WithSystemCallbacks().
+					Build()
+				theMap := gs.GetLayeredMapByCurrentLocation()
+				setBlinkRayTiles(t, theMap, test.start, test.direction, indexes.BrickFloor)
+				for _, position := range test.grass {
+					position := position
+					theMap.SetTileByLayer(map_state.MapOverrideLayer, &position, indexes.Grass)
+				}
 
-			assert.Equal(t, BlinkSuccess, gs.BlinkTeleport(test.direction))
-			assert.Equal(t, test.want, gs.MapState.PlayerLocation.Position)
+				assert.Equal(t, BlinkSuccess, gs.BlinkTeleport(test.direction))
+				assert.Equal(t, test.want, gs.MapState.PlayerLocation.Position)
+			}
 		})
 	}
 }
@@ -171,33 +174,12 @@ func setBlinkRayTiles(
 	tile indexes.SpriteIndex,
 ) {
 	t.Helper()
-	dx, dy := references.Coordinate(0), references.Coordinate(0)
-	switch direction {
-	case references.Up:
-		dy = -1
-	case references.Down:
-		dy = 1
-	case references.Left:
-		dx = -1
-	case references.Right:
-		dx = 1
-	default:
-		t.Fatal("invalid test direction")
-	}
-	xOffset, yOffset := blinkWindowOffset(start.X), blinkWindowOffset(start.Y)
-	xInWindow := (start.X - xOffset + references.XLargeMapTiles) % references.XLargeMapTiles
-	yInWindow := (start.Y - yOffset + references.YLargeMapTiles) % references.YLargeMapTiles
-	steps := int(xInWindow)
-	if dx > 0 {
-		steps = 31 - int(xInWindow)
-	} else if dy < 0 {
-		steps = int(yInWindow)
-	} else if dy > 0 {
-		steps = 31 - int(yInWindow)
-	}
-	for step := 1; step <= steps; step++ {
-		position := references.Position{X: start.X + dx*references.Coordinate(step), Y: start.Y + dy*references.Coordinate(step)}
-		position.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
+	// Fill the whole row/column independently of production range arithmetic.
+	for coordinate := references.Coordinate(0); coordinate < 256; coordinate++ {
+		position := references.Position{X: coordinate, Y: start.Y}
+		if direction == references.Up || direction == references.Down {
+			position = references.Position{X: start.X, Y: coordinate}
+		}
 		theMap.SetTileByLayer(map_state.MapOverrideLayer, &position, tile)
 	}
 }

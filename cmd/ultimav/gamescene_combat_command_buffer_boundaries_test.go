@@ -87,7 +87,7 @@ func TestBufferedCombatModalAndModifiedInputKeepPrecedence(t *testing.T) {
 	held[ebiten.KeyO] = true
 	require.NoError(t, scene.Update(nil))
 	require.False(t, scene.transientCommandInput.pending.active)
-	require.Nil(t, scene.transientCommandInput.status)
+	require.Equal(t, 1, scene.dialogStack.Count(), "only Help owns a dialog")
 	require.True(t, scene.dialogStack.HasModalDialog())
 }
 

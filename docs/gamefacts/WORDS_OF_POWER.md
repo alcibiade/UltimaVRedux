@@ -83,6 +83,12 @@ checks, normalized matching, safe shrine dispatch, modern failure feedback and
 Escape differ. Feedback/cancellation are existing presentation choices; original
 plane and undefined-return equivalence remain unverified.
 
+For the frigate toggle, Redux stops automatic sailing before showing `FURL!`,
+preserves facing, and leaves subsequent movement to fresh manual input. Hoisting
+alone does not restart automatic sailing; a fresh direction does. This does not
+resolve the original sail-toggle completion-cost uncertainty in
+[SHIP-0001](SHIP_MECHANICS.md#ship-0001).
+
 **Implementation:** `internal/game_state/dungeon_words_of_power.go`, `internal/game_state/action_yell.go`
 
 ### WORD-0004

@@ -403,7 +403,7 @@ func (g *GameState) startPendingOverworldEncounter() error {
 	g.pendingOverworldEncounter = nil
 	if enemy.Floor() != g.MapState.PlayerLocation.Floor ||
 		!positionsAreOrthogonallyAdjacentWrapped(g.MapState.PlayerLocation.Position, enemy.Pos()) {
-		g.outdoorActorContinuation = nil
+		g.discardOutdoorActorContinuation()
 		g.activeSlowMovement = nil
 		g.abortShipRepairAfterUnresolvedCombat()
 
@@ -412,7 +412,7 @@ func (g *GameState) startPendingOverworldEncounter() error {
 
 	err := g.StartOverworldCombatEncounter(enemy)
 	if err != nil {
-		g.outdoorActorContinuation = nil
+		g.discardOutdoorActorContinuation()
 		g.activeSlowMovement = nil
 		g.abortShipRepairAfterUnresolvedCombat()
 	}

@@ -161,6 +161,7 @@ func (b *IntegrationTestBuilder) Build() (*GameState, *MockSystemCallbacks) {
 		b.gameState.UpdateSmallMap(b.gameRefs.TileReferences, b.gameRefs.LocationReferences)
 	case references.LargeMapType:
 		// For large maps, ensure quest items are properly placed
+		b.gameState.CurrentNPCAIController = b.gameState.GetCurrentLargeMapNPCAIController()
 		b.gameState.RefreshQuestItemsOnMap()
 	case references.CombatMapType, references.CampingMapType:
 		// Focused combat/camping builders materialize their own scene state.
@@ -171,6 +172,7 @@ func (b *IntegrationTestBuilder) Build() (*GameState, *MockSystemCallbacks) {
 	b.gameState.DateTime.Minute = 0
 	b.gameState.lastProcessedHour = int(b.gameState.DateTime.Hour)
 	b.gameState.initializeMoongateStage()
+	b.gameState.InitializeOutdoorWindow()
 	b.systemCallbacks.BindGameState(b.gameState)
 
 	b.t.Logf("Integration test initialized: location=%v, floor=%v, player=(%d,%d)",

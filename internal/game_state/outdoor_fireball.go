@@ -122,7 +122,7 @@ func (g *GameState) checkOutdoorFireball(enemy *map_units.NPCEnemy, target refer
 	result.ProjectileEnd, reached = g.traceOutdoorMissile(result.Source, target, references.MissileRed)
 	if reached {
 		result.Outcome = PirateAttackHit
-		result.Hit = g.ResolveSourceHit()
+		result.Hit = g.ResolveRangedSourceHit()
 	}
 	g.pirateAttackQueue = append(g.pirateAttackQueue, pirateAttackRequest{result: result, fireball: true})
 	g.startPirateAttackWorkflow()

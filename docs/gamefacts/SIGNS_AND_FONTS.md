@@ -172,8 +172,19 @@ Do not transfer those item restrictions to every caller of coordinate formatting
 window and pauses at each wait control. Redux presents a modal inscription with
 semantic colors and omits those intermediate waits for a coherent reading view.
 It resolves aliases into bounded independent buffers rather than trusting sentinel
-traversal. Its dungeon view also uses modern topology/icons instead of every
-original font symbol.
+traversal.
+
+Dungeon View's solid-wall presentation uses one north-up 8×8 current-floor map,
+collapsing the existing 22×22 revealed display occurrences by wrapped source cell.
+Map and key share the same opaque terrain and geometric feature artwork rather
+than every original font symbol: solid walls, dotted passages, and distinct
+Not-revealed hatching. The peripheral party frame/facing arrow preserves the
+feature beneath it. Additional key entries come only from revealed symbols;
+paired W-E / N-S edge labels require known same-level wrap adjacency and do not
+promise a safe route. This improves navigation clarity without expanding reveal
+authority. [VIEW-0003](VIEW_SYSTEM.md#view-0003) owns the reveal rules; the
+[Dungeon View widget contract](../ui/WIDGET_COMPONENTS.md#dungeon-view) owns the
+presentation and controls.
 
 An optional per-reading readable rendering is another presentation aid: understood
 Runic spans become English bitmap lettering while structural artwork, IBM cells,
@@ -183,5 +194,5 @@ prose. Translation state is local to the reading and does not grant journal
 knowledge, alter the stored inscription, or consume game time. Maintainer-only
 activation instructions remain separate from player Help.
 
-**Implementation:** `internal/text/sign_renderer.go`, `internal/text/sign_translation.go`
-**Tests:** none
+**Implementation:** `internal/text/sign_renderer.go`, `internal/text/sign_translation.go`, `internal/ui/widgets/dungeon_view_plan.go`, `internal/ui/widgets/dungeon_view_symbols.go`, `internal/ui/widgets/dungeon_view_dialog.go`
+**Tests:** `internal/ui/widgets/dungeon_view_dialog_test.go`, `cmd/ultimav/gamescene_dungeon_view_test.go`

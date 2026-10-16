@@ -168,7 +168,7 @@ func TestCampingSpaceThroughUpdateRequiresSleepingEdgeAndLatchesUntilResults(t *
 			}
 			require.True(t, camp.IsSleeping())
 			require.False(t, camp.IsAccelerated(), "setup hold cannot arm acceleration")
-			require.Nil(t, scene.transientCommandInput.status, "sleeping has no hint box")
+			require.Zero(t, scene.dialogStack.Count(), "sleeping has no hint box")
 			delete(held, ebiten.KeySpace)
 			update()
 			before := scene.gameState.DateTime
@@ -177,12 +177,12 @@ func TestCampingSpaceThroughUpdateRequiresSleepingEdgeAndLatchesUntilResults(t *
 			update()
 			require.True(t, camp.IsAccelerated())
 			require.Equal(t, before, scene.gameState.DateTime, "Space itself adds no logical cycle")
-			require.Nil(t, scene.transientCommandInput.status, "acceleration is silent")
+			require.Zero(t, scene.dialogStack.Count(), "acceleration is silent")
 			require.Equal(t, dialogsBefore, scene.dialogStack.Count(), "Space creates no feedback or acknowledgement box")
 			delete(held, ebiten.KeySpace)
 			update()
 			require.True(t, camp.IsAccelerated(), "release does not toggle speed")
-			require.Nil(t, scene.transientCommandInput.status)
+			require.Zero(t, scene.dialogStack.Count())
 			held[ebiten.KeySpace] = true
 			for range 1000 {
 				update()
@@ -192,7 +192,7 @@ func TestCampingSpaceThroughUpdateRequiresSleepingEdgeAndLatchesUntilResults(t *
 			}
 			require.Equal(t, camping.CyclesPerHour, camp.CurrentCycle)
 			require.False(t, camp.IsAccelerated())
-			require.Nil(t, scene.transientCommandInput.status)
+			require.Equal(t, 1, scene.dialogStack.Count(), "only the ordinary results dialog remains")
 			require.True(t, scene.dialogStack.HasModalDialog())
 			for range 50 {
 				update()

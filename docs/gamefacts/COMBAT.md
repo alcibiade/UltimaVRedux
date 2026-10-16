@@ -16,7 +16,7 @@ draw sites, not statistical independence or a general C argument-evaluation orde
 **Kind:** rule
 **Uses:** ENEMY-0003
 **Original:** Established
-**Redux:** Matches
+**Redux:** Intentional deviation
 
 Tactical maps are 11×11 and non-wrapping. Surface/town/ship encounters select a
 BRIT.CBT scenario; fixed dungeon rooms use DUNGEON.CBT. Dungeon wanderers and
@@ -39,8 +39,18 @@ capacity includes fields, loot, corpses, and combatants. Removing loot frees its
 object slot, not a retained dead combat source slot. Summoning capacity depends
 on available source/object slots, not historical manager length.
 
-**Implementation:** `internal/game_state/combat_terrain.go`, `internal/game_state/combat_object.go`, `internal/game_state/combat_collection.go`
-**Tests:** `internal/game_state/combat_terrain_test.go`, `internal/game_state/combat_object_test.go`
+**REDUX DEVIATION: COMBAT-0001:** To locate the acting party character on Arch,
+Redux adds only that exact current entry's hollow silhouette contour and existing
+active square/upper accents. The underlying arch remains visible through the
+contour; ordinary body, HP/status/allegiance artwork, HUD identity and targeting
+assistance remain concealed. Other party entries and monsters receive no
+exception. Nothing/BlackSquare, underground/captive state, retired identities
+and hidden teleport phases remain concealing. This changes presentation, not
+terrain, occupancy, turn scheduling or effect eligibility; COMBAT-0012 owns the
+corresponding cue contract.
+
+**Implementation:** `internal/game_state/combat_terrain.go`, `internal/game_state/combat_object.go`, `internal/game_state/combat_collection.go`, `cmd/ultimav/gamescene_combat_active_indicator.go`
+**Tests:** `internal/game_state/combat_terrain_test.go`, `internal/game_state/combat_object_test.go`, `cmd/ultimav/gamescene_combat_arch_indicator_test.go`
 
 ### COMBAT-0002
 
@@ -75,8 +85,16 @@ receives no player-side duration tail. Initial Chaos interception occurs before
 input. Immediate and presentation-stepped scheduling share that policy, preserving
 events, forecast, standing effects, draw count, and next RNG state.
 
-**Implementation:** `internal/game_state/combat_turn_queue.go`, `internal/game_state/combat_turn_scheduler.go`, `internal/game_state/combat_status.go`
-**Tests:** `internal/game_state/combat_turn_scheduler_test.go`, `internal/game_state/combat_turn_queue_test.go`
+Redux's early all-party reset changes only the solo-selection filter. During a
+scheduled enemy or condition-driven skipped turn, the current actor, completion
+token, target, countdowns and dispatch count remain owned by that turn. Its
+movement/projectile and effects finish normally exactly once. Subsequent eligible
+actors follow the existing DEX schedule, including any intervening hostiles; no
+completed skip is refunded, countdown rewound or additional action granted. The
+reset itself changes no resource, duration, calendar/elapsed time or RNG state.
+
+**Implementation:** `internal/game_state/combat_turn_queue.go`, `internal/game_state/combat_turn_scheduler.go`, `internal/game_state/combat_status.go`, `internal/game_state/combat_solo_reset.go`
+**Tests:** `internal/game_state/combat_turn_scheduler_test.go`, `internal/game_state/combat_turn_queue_test.go`, `internal/game_state/combat_solo_reset_test.go`
 
 ### COMBAT-0003
 
@@ -106,6 +124,21 @@ and unknown keys reprompt without ending the original action. Sleeping/swallowed
 PCs do not receive input. Redux deliberately keeps Z-stats read-only and free in
 all contexts, preserving current actor, queue, duration, and action for inspection.
 
+As a Redux input convenience, a fresh unmodified **top-row 0** restores all-party
+control during scheduled enemy or condition-driven skipped-turn presentation,
+including a sleeping, captive or possessed solo selection. This extends Redux's
+ready-turn selection interface; original out-of-turn keyboard admission is not
+established here. The reset clears any queued solo G/O/J/P/S intent, and wins over
+supported verbs pressed in the same sample. Held early directions remain rejected
+until release. It runs before queue advancement, so even a brief press on the
+completion frame affects future selection without interrupting the current action.
+Already-all-party input is silent and idempotent, and held 0 cannot delay workflow
+release. Readers, modal/text owners, retained targeting, focus barriers and
+player-owned action presentations keep their input. The shortcut adds neither
+out-of-turn 1–6 selection nor keypad-0 handling. Queued verbs remain silent until
+accepted into the ordinary prompt; there is no pending-status popup or extra
+acknowledgement.
+
 Movement checks: off-map coordinates enter flee handling; in-map terrain must
 admit the moving shape and not be Nothing. Then scan all 32 object/combat entries
 for occupancy. Corpses, underground entries, and fire/poison/sleep fields do not
@@ -126,8 +159,8 @@ Redux additionally offers a post-victory group exit after a route is established
 avoiding repetitive individual departures; original physical edges/ladders remove
 one PC at a time. Collision and established-route requirements remain authoritative.
 
-**Implementation:** `internal/game_state/combat_terrain.go`, `internal/game_state/combat_map_trigger.go`
-**Tests:** `internal/game_state/combat_map_trigger_test.go`, `internal/game_state/combat_flee_victory_test.go`
+**Implementation:** `internal/game_state/combat_terrain.go`, `internal/game_state/combat_map_trigger.go`, `internal/game_state/combat_player_selection.go`, `cmd/ultimav/gamescene_combat_solo_reset.go`, `cmd/ultimav/gamescene_combat_command_buffer.go`
+**Tests:** `internal/game_state/combat_map_trigger_test.go`, `internal/game_state/combat_flee_victory_test.go`, `cmd/ultimav/gamescene_combat_solo_reset_test.go`, `cmd/ultimav/gamescene_combat_solo_reset_workflows_test.go`, `cmd/ultimav/gamescene_combat_solo_reset_boundaries_test.go`, `cmd/ultimav/gamescene_combat_command_buffer_test.go`
 
 ### COMBAT-0004
 
@@ -564,6 +597,24 @@ outside the black HP frame show current side; HP size/color/opacity still expres
 health. Exact clone identity, visibility, possession, and recorded summon/charm
 provenance come from the authoritative projection, never presentation writes.
 
+Square-owned visuals remain anchored to battlefield coordinates: persistent
+fields, cone preview/cast footprints, adjacent/utility target cues and aim/wake
+markers receive map scaling and shake, never another actor's movement, lunge or
+jolt. Actor-local cues retain real exact-entry motion, including clone slots and
+teleport casters. Field/list ordinals and coordinate hashes are not actor IDs.
+Artwork animation, authoritative geometry, concealment and effect lifetimes keep
+their existing owners. See the [transform contract](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-actor-and-square-transforms).
+
+For COMBAT-0001's active-party Arch exception, the hollow contour uses the same
+current-condition sprite and body clock as that exact entry, with the existing
+green/yellow/gray active-selection colours. It follows the presented actor and
+signature fade/mask; a hidden interval cannot reveal the destination early.
+The contour precedes the existing foreground square/upper accents, with selected
+aim retaining final priority. Ordinary floor actors gain no extra contour and
+the exception grants no body or HP disclosure. Rendering does not mutate combat
+state, consume RNG or own an action. The [active ARCH contract](../systems/VISUAL_EFFECTS_SYSTEM.md#active-party-entry-on-arch)
+defines composition and cleanup; automated rendering is not live acceptance.
+
 Redux fire feedback likewise consumes a detached resolved injury with actual HP
 loss, fatality and exact actor/clone disclosure. It adds no damage or RNG and does
 not change COMBAT-0007's direct/standing hazard rules or SPELL-0003's Flame Wind
@@ -578,5 +629,5 @@ with the existing workflow. See the
 [fire feedback contract](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-fire-injury-feedback)
 for identity, disclosure and cleanup boundaries.
 
-**Implementation:** `internal/game_state/combat_attack_preview.go`, `internal/game_state/combat_auto_action.go`, `cmd/ultimav/gamescene_projectile.go`, `internal/game_state/combat_fire_injury.go`, `cmd/ultimav/gamescene_combat_fire.go`
-**Tests:** `internal/game_state/combat_attack_preview_test.go`, `internal/game_state/combat_auto_action_test.go`, `internal/game_state/combat_interruption_test.go`, `internal/game_state/combat_fire_injury_test.go`, `cmd/ultimav/gamescene_combat_fire_test.go`
+**Implementation:** `internal/game_state/combat_attack_preview.go`, `internal/game_state/combat_auto_action.go`, `cmd/ultimav/gamescene_projectile.go`, `internal/game_state/combat_fire_injury.go`, `cmd/ultimav/gamescene_combat_fire.go`, `cmd/ultimav/gamescene_draw_entities.go`, `cmd/ultimav/gamescene_combat_active_indicator.go`
+**Tests:** `internal/game_state/combat_attack_preview_test.go`, `internal/game_state/combat_auto_action_test.go`, `internal/game_state/combat_interruption_test.go`, `internal/game_state/combat_fire_injury_test.go`, `cmd/ultimav/gamescene_combat_fire_test.go`, `cmd/ultimav/gamescene_combat_square_visuals_test.go`, `cmd/ultimav/gamescene_combat_arch_indicator_test.go`

@@ -89,6 +89,9 @@ func (g *GameState) ResolveSourceHit() SourceHitResult {
 		return result
 	}
 
+	// Stop before replacing the vessel or applying drowning damage. No pending
+	// automatic phase may move the fallback or wait on its rough-seas workflow.
+	g.StopAutomaticSailing()
 	position := g.MapState.PlayerLocation.Position
 	floor := g.MapState.PlayerLocation.Floor
 	direction := vehicle.CurrentDirection()
@@ -135,6 +138,22 @@ func (g *GameState) ResolveSourceHit() SourceHitResult {
 	}
 
 	return result
+}
+
+// ResolveRangedSourceHit is called only after an enemy projectile reaches the
+// party. Contact/collision callers keep their own interruption policies.
+func (g *GameState) ResolveRangedSourceHit() SourceHitResult {
+	wasSailing := g.isSailing && g.PartyVehicle.GetVehicleDetails().VehicleType == references.FrigateVehicle
+	hit := g.ResolveSourceHit()
+	if wasSailing {
+		// REDUX DEVIATION: SHIP-0005: original ranged hits keep sailing.
+		// Redux offers a decision point without furling surviving sails or
+		// changing facing, so a fresh direction can resume at sailing speed.
+		g.StopAutomaticSailing()
+		g.SystemCallbacks.Message.AddRowStr("Under attack! Sailing interrupted.")
+	}
+
+	return hit
 }
 
 func (g *GameState) applySourcePartyDamageOnce() []SourceHitMemberDamage {

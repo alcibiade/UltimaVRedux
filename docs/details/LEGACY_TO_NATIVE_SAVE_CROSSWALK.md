@@ -161,6 +161,15 @@ The source pair is read-only. A private `INIT.GAM` template initializer remains
 only for scripted scenario setup that intentionally uses the one-file template
 path.
 
+Outdoor map-window offsets are not imported as durable history. Normal original
+startup overwrites loaded offsets by initializing from the final party position.
+Redux follows that behavior after legacy import and every native hydration,
+including player loads, Workbench rollback and named scenario baselines. The
+plane-tagged window and temporary Push arrangement remain runtime-only; saving
+and continuing does not reset the live window. See
+[SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spell-0002) for history-dependent Blink
+range and [the native contract](SAVE_SNAPSHOT_SCHEMA.md#capture-and-hydration).
+
 ## Decoded Field Coverage
 
 The documentation checker derives leaf paths from `SavedGame` and
