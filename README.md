@@ -1,17 +1,48 @@
 # Ultima V Redux
 
+![Ultima V Redux title screen, with the classic logo and Journey Onward menu](screenshots/title-screen.png)
+
+**Return to Britannia. Rediscover the world of Ultima V.**
+
 A modern Go recreation of **Ultima V: Warriors of Destiny**, with enhanced
 presentation, quality-of-life improvements, and a developer Debug Workbench.
 Playing requires files from your own copy of the original game.
 
-> **Public development preview:** the source is available and the game can be
-> installed from `main`. The application is unfinished and has known limitations.
-> No version tag or packaged release has been published.
+**[Download the preview](https://github.com/bradhannah/UltimaVRedux/releases/tag/v0.1.0-preview.2)**
+· [Installation & setup](docs/INSTALL.md)
+· [Report a bug](https://github.com/bradhannah/UltimaVRedux/issues/new/choose)
+
+> **Public development preview:** downloadable builds are available for macOS
+> Apple Silicon, Windows x64, Linux x64, and Linux ARM64. The application is
+> unfinished and has known limitations; platform verification is described below.
 
 This is a free, non-commercial fan project. Project-authored source code remains
 MIT-licensed; bundled media has separate terms described in [Asset credits](ASSET_CREDITS.md).
 
+## Journey onward
+
+Explore Britannia's towns, wilderness, and dungeons. Meet its inhabitants, assemble
+your party, and face tactical battles in a world of magic and mystery.
+
+![Overworld exploration near Lord British's castle, with party status and supplies alongside the map](screenshots/overworld-gameplay.png)
+
+*Britannia awaits: exploring the countryside near Lord British's castle.*
+
+These screenshots show existing development builds; details may differ in the
+current preview.
+
 ## Installation
+
+### Download and play
+
+Get the archive for your platform from the
+[preview release](https://github.com/bradhannah/UltimaVRedux/releases/tag/v0.1.0-preview.2),
+verify it against `SHA256SUMS`, and extract the whole archive. **Go is not required
+for downloaded builds.** From the extracted folder, run `./ultimav` on macOS/Linux
+or `.\ultimav.exe` in Windows PowerShell. These are unsigned preview binaries;
+see the release notes and [download guidance](docs/INSTALL.md#downloaded-binaries).
+
+### Install from source
 
 Install the latest patch of **Go 1.27** or newer. See the short
 [Windows, macOS, and Linux Go setup instructions](docs/INSTALL.md#install-go).
@@ -37,8 +68,9 @@ were verified on Apple Silicon macOS. The maintainer also tested the game on mac
 and reported that it looks good. Native Linux and Windows testing is deferred and
 their runtime behavior remains unverified; see
 [installation acceptance](docs/INSTALL.md#installation-acceptance).
-Players need Go, their original game files, and a desktop graphics/audio runtime.
-Installation does not require a source checkout, Node, Make, or a C compiler.
+Players need their original game files and a desktop graphics/audio runtime.
+Source installation also needs Go, but does not require a source checkout, Node,
+Make, or a C compiler.
 
 ## Original game files
 
