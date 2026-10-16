@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -170,14 +168,6 @@ func (g *GameScene) acceptPendingCombatCommand() {
 	}
 	key := g.transientCommandInput.pending.key
 	g.clearPendingCombatCommand()
-	g.setTransientCommandStatus("", "")
 	g.combatMapInputHandler(key)
 	g.appendOrdinaryDirectionHint(references.CombatMapType)
-}
-
-func (g *GameScene) pendingCombatCommandLabel() string {
-	pending := g.transientCommandInput.pending
-	name := g.gameState.PartyState.GetCharacter(pending.opportunity.Actor.EntityIndex).GetNameAsString()
-
-	return fmt.Sprintf("Pending: %s (%s) — waiting for turn", bufferedCombatVerb(pending.key), name)
 }

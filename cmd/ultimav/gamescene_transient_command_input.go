@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
-	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -20,8 +19,6 @@ type transientCommandInputState struct {
 	campAtEntry       *camping.CampingScene
 	campRequest       bool
 	combatWaitSampled bool
-	status            *widgets.OverlayDialog
-	statusText        string
 }
 
 func (g *GameScene) initializeTransientCommandInput() {
@@ -78,6 +75,9 @@ func (g *GameScene) captureTransientCommandInput() {
 
 		return
 	}
+	if g.captureCombatSoloReset() {
+		return
+	}
 	g.capturePendingCombatCommand()
 	state := &g.transientCommandInput
 	state.campAtEntry = g.sleepingInputCamp()
@@ -106,7 +106,6 @@ func (g *GameScene) reconcileTransientInputAfterQueues() {
 	}
 	if g.transientInputOwnedElsewhere() {
 		g.clearPendingCombatCommand()
-		g.setTransientCommandStatus("", "")
 	}
 }
 
@@ -134,9 +133,12 @@ func (g *GameScene) transientInputOwnedElsewhere() bool {
 func (g *GameScene) finishTransientCommandInputFrame() {
 	state := &g.transientCommandInput
 	if !g.commandInputFocused() {
-		g.setTransientCommandStatus("", "")
-
 		return
+	}
+	if g.gameState.CombatScene != nil && g.transientInputOwnedElsewhere() {
+		// This owner has already seen its input. A carried 0 must not become
+		// an all-party reset after its reader, modal or secondary prompt closes.
+		g.keyboard.SuppressUntilRelease(ebiten.Key0)
 	}
 	if !g.explorationPassEligible() || state.pass.active && state.pass.context != g.passInputContext() {
 		g.stopExplorationPass()
@@ -159,16 +161,7 @@ func (g *GameScene) finishTransientCommandInputFrame() {
 		}
 		// Camping acceleration is deliberately silent. Only the sleeping cadence
 		// changes; it must not introduce a hint, acknowledgement, or status card.
-		g.setTransientCommandStatus("", "")
-
-		return
 	}
-	if state.pending.active {
-		g.setTransientCommandStatus(g.pendingCombatCommandLabel(), "Esc: Clear")
-
-		return
-	}
-	g.setTransientCommandStatus("", "")
 }
 
 // ResetTransientCommandInput is the common teardown/load/focus boundary. Narrow
@@ -183,37 +176,4 @@ func (g *GameScene) ResetTransientCommandInput() {
 			g.keyboard.SuppressUntilRelease(key)
 		}
 	}
-	g.setTransientCommandStatus("", "")
-}
-
-// One passive exact-instance card owns the pending combat verb. It
-// never receives keyboard focus, advances a queue, or appends to enemy history.
-func (g *GameScene) setTransientCommandStatus(label, hint string) {
-	state := &g.transientCommandInput
-	combined := label + hint
-	if state.statusText == combined {
-		return
-	}
-	if state.status != nil {
-		g.dialogStack.RemoveWidgetInstance(state.status)
-		state.status = nil
-	}
-	state.statusText = combined
-	if combined == "" {
-		return
-	}
-	dialog := widgets.NewOverlayDialog("").AsOverlayFeedback().WithExternallyManagedDuration(1).Build()
-	if label != "" {
-		pending := state.pending
-		name := g.gameState.PartyState.GetCharacter(pending.opportunity.Actor.EntityIndex).GetNameAsString()
-		dialog.AppendLineBuilder().LightGray("Pending: ").White(bufferedCombatVerb(pending.key)).
-			White(" (" + name + ")").LightGray(" — waiting for turn").Done()
-	}
-	if hint != "" {
-		// Key tokens and their explanations remain distinct in the shared Output.
-		dialog.AppendLineBuilder().Yellow(commandKeyLabelEscape).LightGray(": Clear").Done()
-	}
-	state.status = dialog
-	g.dialogStack.PushNonBlockingDialog(dialog)
-	dialog.ShowWithoutAnimation()
 }

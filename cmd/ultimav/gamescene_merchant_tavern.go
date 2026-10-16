@@ -108,6 +108,7 @@ func (g *GameScene) thenRunTavernShopAuthority(
 				Prose:            prose.dialog,
 				Preview:          preview,
 				IsKeyPressed:     g.keyboard.IsKeyHeld,
+				IsWindowFocused:  g.commandInputFocused,
 				AppendInputChars: g.appendInputChars,
 			})
 			workflowState.tavernDialog = dialog

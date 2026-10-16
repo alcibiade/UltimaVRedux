@@ -39,6 +39,86 @@ Paths in this table are relative to `internal/ui/widgets/` unless stated.
 | Read-only views | `ztats_dossier_dialog.go`, `astronomy_dialog.go`, `sign_dialog.go`, `gem_view_dialog.go`, `dungeon_view_dialog.go` | Reuse domain-specific layout, Runic, and view behavior rather than a generic popup. |
 | Merchant workspace / approval | `merchant_dialog_shell.go`, `merchant_modal_frame.go`, family `*_shop_dialog.go` and approval dialogs | Detached quote → intent → reviewed request → authoritative result and complete refresh. |
 
+## Dungeon View
+
+`dungeon_view_dialog.go` is a glance-and-close observation of the **current
+dungeon floor**. Its detached model comes from live authoritative dungeon state.
+Gem View, prepared In Quas Wis, and the In Quas Wis scroll share the scene's modal
+presentation; the widget never consumes resources, advances time, changes facing,
+or owns dungeon command completion. Their existing costs, cancellation,
+exact-instance cleanup, shutdown handling and repeated-open input restoration
+remain the invoking workflow's responsibility.
+
+### Solid-wall presentation (A)
+
+- The map is one north-up 8×8 floor with dungeon name, level, party position and
+  authoritative facing. The **22×22 display-space reveal model remains intact**;
+  the renderer collapses its visible occurrences by wrapped source coordinate.
+  [VIEW-0003](../gamefacts/VIEW_SYSTEM.md#view-0003) owns that flood geometry.
+- Solid filled blocks are walls, dark dotted cells are passages, and diagonal
+  hatching means **Not revealed** by this observation. Shape/fill supplement colour.
+  This is not an exploration journal, and visible does not mean reachable or safe.
+- Stalactites, skeletons and cave-ins use the ordinary wall artwork, retaining
+  their blocked terrain without a decorative special-wall category. Secret doors
+  retain a solid wall background and a closed inset panel; they are not drawn as
+  open passages.
+- `dungeon_view_symbols.go` supplies the same opaque background and feature
+  artwork to map and key, with nearest-neighbour integer scaling. Ladders have
+  rails, rungs and directional heads; doorways, room entrances, chest, fountain,
+  wall writing and hazards have distinct geometry rather than letter placeholders.
+  Ceiling openings occupy the upper part of a symbol; floor pits occupy the lower
+  part, so open/hidden pits combined with a ceiling opening remain explainable.
+- A bright backed party frame and filled facing arrow sit at the cell perimeter.
+  They preserve the central feature artwork for all four facings. The key's party
+  entry uses the same orientation and explicitly names the facing direction.
+- The consistently ordered key starts with party, solid wall, passage and Not
+  revealed. Additional entries appear only for symbols in the **revealed,
+  collapsed** plan: doorways/secret doors, rooms, ladders, ceiling openings and pit
+  variants, traps, fields, chest, fountain and writing. Its rows, columns and
+  measured label space depend on that list and the available interior; it does
+  not reserve a fixed eighteen-entry legend. Key icons scale with key typography
+  rather than map cells, with compact row spacing so a dense key does not force
+  the primary map to shrink merely to accommodate oversized legend icons.
+- Plain paired `W-E1`…`W-E8` and `N-S1`…`N-S8` labels outside opposite map edges
+  identify known west/east or north/south continuations **on the same level**.
+  A pair requires adjacent revealed display occurrences with the expected wrapped
+  coordinates and non-wall endpoints; seeing endpoints separately is insufficient.
+  Hidden endpoints never supply labels. These are neither ladders nor exits, and
+  a labelled seam can still contain a hazard. The footer explains same-level
+  wrapping and makes no safe-route promise. The ordinary edge-label font is
+  independently scaled and measured; north/south tags are centered within their
+  own column, with separation even when all eight columns have known seams.
+
+The only close control is a fresh `Enter` or keypad `Enter`, after invoking keys
+have been released. Arrow keys do not move the party or inspect cells; Escape
+does not add a new cancellation path. Resizing rebuilds presentation resources
+while preserving dismissal and input-release state.
+
+Focused coverage separates classification/reveal boundaries, small exact-RGBA
+map/key checks, all-facing feature preservation, four-level greyscale distinctions,
+and measured layout at 720p and larger sizes. The opt-in
+`dungeon_view_wireframe_test.go` generator (`dungeonviewwireframe` build tag and
+`DUNGEON_VIEW_SAMPLE_DIR`) writes synthetic simple, dense, partly revealed and
+both-axis wrapping samples (including all eight seams on each axis) at 1280×720
+and 1920×1080, plus party-over-feature
+facings and reduced-colour versions. These samples support maintainer visual
+review; generating them or passing geometry checks does not establish visual
+acceptance or native gameplay/input acceptance.
+
+### Considered alternative C: optional inspection
+
+Keyboard inspection is **not implemented**. The considered C design would retain
+the A map and add an arrow-key inspection cursor visibly distinct from the party,
+with a plain-language side panel for the selected revealed cell. An unknown cell
+would say only that it is not shown by the current view. Inspection would have no
+gameplay effects or additional information authority, and closing would stay
+straightforward.
+
+Reconsider C only after visual testing A: if players understand terrain and
+orientation but still need explanations of uncommon features, optional inspection
+may help. If basic walls, passages or facing remain confusing, improve A first.
+C is a documented alternative, not a shipped control or required follow-on.
+
 ## Traveller's Map
 
 The keyboard-only atlas opens/toggles with exact `Shift+M` (either Shift, no

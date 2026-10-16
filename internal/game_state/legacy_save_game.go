@@ -15,10 +15,13 @@ import (
 
 const savedGamFileSize = 4192
 
+// ErrInvalidSaveGameSize indicates that a legacy save does not contain exactly 4192 bytes.
 var ErrInvalidSaveGameSize = errors.New("invalid save game file size, expected 4192 bytes")
 
 type (
-	StartingMemoryAddressUb  uint16
+	// StartingMemoryAddressUb identifies the offset of a legacy unsigned-byte value.
+	StartingMemoryAddressUb uint16
+	// StartingMemoryAddressU16 identifies the offset of a legacy unsigned 16-bit value.
 	StartingMemoryAddressU16 uint16
 )
 
@@ -55,6 +58,7 @@ func ReadLegacySaveFile(savedGamFilePath string) (data []byte, err error) {
 	return buffer, nil
 }
 
+// LoadLegacySaveGameFromBytes restores runtime state from an exact-size legacy save buffer.
 func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 	if !g.CanAcceptGameplayCommands() {
 		return fmt.Errorf("loading legacy save during Lord British finale: %w", ErrSaveSnapshotNotRepresentable)
@@ -63,9 +67,34 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 		return fmt.Errorf("%w: got %d bytes", ErrInvalidSaveGameSize, len(rawSaveData))
 	}
 
-	// var saveGame = GameState{}
 	g.RawSave = [savedGamFileSize]byte(rawSaveData)
+	g.loadLegacyPartyAndWorld(rawSaveData)
+	g.loadLegacyShadowlords(rawSaveData)
+	g.loadLegacyProvisionsAndQuestItems(rawSaveData)
+	g.initializeLegacyMaps()
+	g.loadLegacyActivePlayer(rawSaveData)
+	g.loadLegacyMoonstonesAndSearch(rawSaveData)
+	g.restoreSurfaceCorpsesForCurrentMap()
 
+	// Initialize dungeon states from save file data
+	g.InitializeDungeonStatesFromSave(rawSaveData)
+
+	// Initialize lastProcessedHour from loaded DateTime for food consumption tracking.
+	// Matches original U5 original party-effect rules "last processed hour = hour" pattern.
+	// See ref:SAVE-0004.
+	g.lastProcessedHour = int(g.DateTime.Hour)
+	g.initializeMoongateStage()
+	g.MagicState = NewMagicState()
+	g.playerKnowledge = newPlayerKnowledge()
+	g.inferMigratedHiddenSpellKnowledge()
+	g.questJournal = newQuestJournal()
+	g.inferMigratedQuestJournal()
+	g.InitializeOutdoorWindow()
+
+	return nil
+}
+
+func (g *GameState) loadLegacyPartyAndWorld(rawSaveData []byte) {
 	// Overlay player characters over memory rawSaveData to easily consume data
 	g.PartyState = *party_state.LoadFromRaw(g.RawSave)
 	const preparedSpellsOffset = 0x024a
@@ -108,7 +137,9 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 	g.smashed = int(rawSaveData[lbSmashed])
 	g.isCriminal = false
 	g.hmsCapeAutomaticWaitActorSkip = false
+}
 
+func (g *GameState) loadLegacyShadowlords(rawSaveData []byte) {
 	const (
 		shadowlordLordsOffset = 0x0322
 		lastCalledOffset      = 0x0325
@@ -136,7 +167,9 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 	if lastCalled < references.ShadowlordCount {
 		g.ShadowlordState.LastCalled = references.Shadowlord(lastCalled)
 	}
+}
 
+func (g *GameState) loadLegacyProvisionsAndQuestItems(rawSaveData []byte) {
 	// ProvisionsQuantity
 	const lsFood = 0x202
 	const lbKeys = 0x206
@@ -186,13 +219,19 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 		g.PartyState.SetDeadNpc(references.LordBritishsCastle, lordBritishSandalwoodBoxNPC)
 		g.lordBritishPassageOpen = true
 	}
+}
 
+func (g *GameState) initializeLegacyMaps() {
+	// The template replaces map storage; prior runtime Push ownership cannot
+	// apply to newly constructed terrain even when a tile value happens to match.
+	g.transientLargeMapPushTiles = nil
 	g.MapState.LayeredMaps = *map_state.NewLayeredMaps(g.GameReferences.TileReferences,
 		g.GameReferences.OverworldLargeMapReference,
 		g.GameReferences.UnderworldLargeMapReference,
 		g.MapState.XTilesVisibleOnGameScreen,
 		g.MapState.YTilesVisibleOnGameScreen)
 
+	// These controllers start empty; legacy NPC records are not restored here.
 	g.LargeMapNPCAIController = make(map[references.World]*ai.NPCAIControllerLargeMap)
 	overworldNPCAIInput := ai.NewNPCAIControllerLargeMapInput{
 		World:           references.OVERWORLD,
@@ -206,7 +245,6 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 		RandomProvider:  g.AsRandomProvider(),
 	}
 	g.LargeMapNPCAIController[references.OVERWORLD] = ai.NewNPCAIControllerLargeMap(overworldNPCAIInput)
-	// TODO: load the npcs from the save game
 	underworldNPCAIInput := ai.NewNPCAIControllerLargeMapInput{
 		World:           references.UNDERWORLD,
 		TileRefs:        g.GameReferences.TileReferences,
@@ -219,7 +257,6 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 		RandomProvider:  g.AsRandomProvider(),
 	}
 	g.LargeMapNPCAIController[references.UNDERWORLD] = ai.NewNPCAIControllerLargeMap(underworldNPCAIInput)
-	// TODO: load the npcs from the save game
 
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
 	case references.LargeMapType:
@@ -239,7 +276,9 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 		FreeMove:   false,
 		MonsterGen: true,
 	}
+}
 
+func (g *GameState) loadLegacyActivePlayer(rawSaveData []byte) {
 	const lbActivePlayer = 0x02d5
 	legacyActivePlayer := int(rawSaveData[lbActivePlayer])
 	if legacyActivePlayer == 0xff {
@@ -249,7 +288,9 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 		logging.Warn(logging.CategoryGameState, "legacy active player %d is unavailable; clearing selection", legacyActivePlayer)
 		g.activePlayerIndex = -1
 	}
+}
 
+func (g *GameState) loadLegacyMoonstonesAndSearch(rawSaveData []byte) {
 	// Load moonstone data from SAVED.GAM
 	const stonesXOffset = 0x028A
 	const stonesYOffset = 0x0292
@@ -274,23 +315,6 @@ func (g *GameState) LoadLegacySaveGameFromBytes(rawSaveData []byte) error {
 	var reagentDays [3]byte
 	copy(reagentDays[:], rawSaveData[reagentCacheDaysOffset:reagentCacheDaysOffset+len(reagentDays)])
 	g.SearchManager.restoreState(found, rawSaveData[skullKeysDayOffset], reagentDays)
-	g.restoreSurfaceCorpsesForCurrentMap()
-
-	// Initialize dungeon states from save file data
-	g.InitializeDungeonStatesFromSave(rawSaveData)
-
-	// Initialize lastProcessedHour from loaded DateTime for food consumption tracking.
-	// Matches original U5 original party-effect rules "last processed hour = hour" pattern.
-	// See ref:SAVE-0004.
-	g.lastProcessedHour = int(g.DateTime.Hour)
-	g.initializeMoongateStage()
-	g.MagicState = NewMagicState()
-	g.playerKnowledge = newPlayerKnowledge()
-	g.inferMigratedHiddenSpellKnowledge()
-	g.questJournal = newQuestJournal()
-	g.inferMigratedQuestJournal()
-
-	return nil
 }
 
 func getBytesAsUint16(data0, data1 byte) uint16 {

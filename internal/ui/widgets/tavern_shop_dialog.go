@@ -200,6 +200,9 @@ type TavernShopDialogConfig struct {
 	Prose          TavernShopDialogProse
 	Preview        bool
 	IsKeyPressed   func(ebiten.Key) bool
+	// IsWindowFocused defaults to the native window; detached scene fixtures
+	// supply their input owner's focus source.
+	IsWindowFocused func() bool
 
 	// AppendInputChars selects the detached rune-input test adapter. Nil uses
 	// a native field, compatible with the save description editor's session.
@@ -293,6 +296,10 @@ func newTavernShopDialog(config TavernShopDialogConfig, field nativeTextField) *
 	if isKeyPressed == nil {
 		isKeyPressed = ebiten.IsKeyPressed
 	}
+	isWindowFocused := config.IsWindowFocused
+	if isWindowFocused == nil {
+		isWindowFocused = ebiten.IsFocused
+	}
 	if config.AppendInputChars == nil && field == nil {
 		panic("TavernShopDialog: native text field is required")
 	}
@@ -306,7 +313,7 @@ func newTavernShopDialog(config TavernShopDialogConfig, field nativeTextField) *
 		isKeyPressed:     isKeyPressed,
 		appendInputChars: config.AppendInputChars,
 		topicField:       field,
-		isWindowFocused:  ebiten.IsFocused,
+		isWindowFocused:  isWindowFocused,
 		state:            state,
 		prose:            config.Prose,
 		preview:          config.Preview,

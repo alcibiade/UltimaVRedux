@@ -59,7 +59,7 @@ func (g *GameScene) drawCombatUtilitySpellEffects(screen *ebiten.Image) {
 			inset := combatUtilityEffectInset(effect.Spell, effect.Phase, effect.Progress)
 			drawCombatCornerCue(
 				screen,
-				g.combatEntityDrawOptions(effect.Position, false, int(effect.Position.X)*16+int(effect.Position.Y), 0),
+				g.combatSquareMarkerDrawOptions(effect.Position),
 				inset,
 				combatUtilityEffectColor(effect.Spell, effect.Phase),
 			)

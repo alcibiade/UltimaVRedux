@@ -541,7 +541,7 @@ func (g *GameScene) thenCastAnGrav(direction references.Direction) func(*event_q
 // thenCastInPor applies the In Por (Blink) spell effect.
 // Teleports the player to the farthest eligible grass in the selected direction.
 // Circle 3 spell, TargetDirection, ContextOverworld | ContextCombat.
-// Note: Combat mode is not yet implemented.
+// Combat uses its separate automatic random-destination effect.
 func (g *GameScene) thenCastInPor(direction references.Direction) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		result := g.gameState.BlinkTeleport(direction)
@@ -557,9 +557,9 @@ func (g *GameScene) thenCastInPor(direction references.Direction) func(*event_qu
 				g.thenShowSpellSuccess("Teleport!"))
 
 		case game_state.BlinkBlocked:
-			return g.thenShowSpellFeedback("Blocked!", game_state.SoundSpellFailure)(q)
+			return g.thenShowSpellFeedback("Failed!", game_state.SoundSpellFailure)(q)
 		case game_state.BlinkCombatNotSupported:
-			// Combat not implemented yet - shouldn't reach here due to context validation
+			// Combat dispatch must use the automatic effect instead of this direction route.
 			return g.thenShowSpellFeedback("Not in combat!", game_state.SoundSpellFailure)(q)
 		default:
 			return g.thenShowSpellNoEffect()(q)

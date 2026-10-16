@@ -89,7 +89,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 				entry.NextInput = "Pass one action per fresh press; holding does not repeat in combat."
 			case "G", "J", "O", "P", "S":
 				entry.NextInput = "Arrow/keypad direction; Esc: Cancel for free. Space: Pass spends the action. " +
-					"In solo mode during enemy turns, queue one G/O/J/P/S verb; another replaces it, Esc clears. " +
+					"In solo mode during enemy turns, silently queue one G/O/J/P/S verb; another replaces it, Esc clears. " +
 					"Early directions must be released and pressed afresh when ready."
 			case "K":
 				entry.NextInput = "Ordinary direction: Esc cancels for free; Space passes the action. Underfoot ladders and the U/D ladder selector use their displayed route."
@@ -103,7 +103,9 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 			case "R":
 				entry.NextInput = "Choose equipment for the acting character; Space applies the displayed Equip/Unready operation immediately."
 			case commandHelpPartyKeys:
-				entry.NextInput = "0 restores round-robin play. Selecting another PC passes the current actor until that PC can act."
+				entry.NextInput = "Top-row 0 restores all-party control even during enemy or skipped turns and clears any queued verb. " +
+					"The current action finishes normally; subsequent eligible turns follow DEX order. " +
+					"At a ready turn, 1-6 selects another PC and passes the current actor until that PC can act."
 			case commandKeyLabelEscape:
 				entry.Purpose, entry.NextInput = "Leave the battlefield", "Exit when permitted, normally after victory. Dungeon rooms require a chosen exit route."
 			}

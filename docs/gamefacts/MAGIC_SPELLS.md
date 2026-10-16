@@ -108,7 +108,7 @@ all listed contexts, but that fact alone does not establish full effect parity.
 | 14 | 3 | In Flam Grav | D/C | Facing dungeon fire field 0x82/0x8A. Combat range-15 field, direct rating 21, standing damage R(0,10). |
 | 15 | 3 | In Nox Grav | D/C | Facing dungeon poison field 0x81/0x89. Combat field poisons a directly hit Good PC; other direct targets take R(0,20). |
 | 16 | 3 | In Zu Grav | D/C | Facing dungeon sleep field 0x80/0x88. Combat direct/standing contact sleeps without a save. |
-| 17 | 3 | In Por | O/C | Outdoors reaches farthest exact Grass on selected ray in loaded 32×32 window. Combat tries up to seven random legal destinations; dungeon-combat fails. |
+| 17 | 3 | In Por | O/C | Outdoors reaches last exact Grass on selected ray in retained 32×32 window, with numeric clipping and initial-only coordinate wrapping. Combat tries up to seven random legal destinations; dungeon-combat fails. |
 | 18 | 4 | An Grav | D/C | Dungeon removes current field before testing facing field. Combat removes first adjacent field object in selected direction. |
 | 19 | 4 | In Sanct | O/T/D/C | Shared Protection duration 20; apparent +3 armor intent is subject to effective-armor uncertainty. |
 | 20 | 4 | In Sanct Grav | D/C | Facing dungeon electric field 0x83/0x8B; exact 0x83 contact damages party and pushes back. Combat range-15 movement-blocking protection field. |
@@ -150,8 +150,62 @@ its existing physical-unlock roll and key-consumption rules. An Ex Por cannot
 re-lock an already-open floor square. Chest objects and Skull Key resource rules
 remain separate from these terrain transitions.
 
-**Implementation:** `internal/references/spell_metadata.go`, `internal/game_state/action_cast.go`, `internal/game_state/combat_utility_spells.go`, `internal/game_state/combat_utility_spell_commit.go`, `internal/game_state/combat_special_death.go`
-**Tests:** `internal/game_state/combat_door_spell_test.go`, `cmd/ultimav/gamescene_combat_door_spell_test.go`
+#### Outdoor Blink window and lifecycle
+
+On both Britannia (floor 0) and the top-down Underworld (floor -1), Blink uses
+retained gameplay window origins, not the camera viewport or a fresh range derived
+at casting time. Each axis initializes to `(coordinate - 8) & 0xf0`. After **each
+actual cardinal step**, wrap the position to 0..255, then compute both relative
+coordinates modulo 32 against the old origins. If either is below 5 or above 26,
+shift the origins **once** by `(dx * 16, dy * 16)`, modulo 256. Blocked steps,
+turn cadence and rendering do not scroll this window.
+
+Blink starts at the adjacent square, masking that first candidate to 0..255.
+Both axes must lie in `[origin, min(origin + 32, 256))`. Remember the last exact
+Grass on the ray and advance by plain integer addition, without wrapping subsequent
+candidates. Mountains, water, and objects neither stop the scan nor disqualify an
+otherwise exact-Grass endpoint. No range or placement RNG is drawn outdoors.
+
+For example, initialization at `(119,120)` gives origins `(96,112)`. Walking east
+to `(120,120)` keeps them. With only `(100,120)`, `(124,120)`, and `(140,120)` grassy,
+alternative west/east casts land at 100/124. Fresh initialization at `(120,120)`
+instead gives X origin 112: west fails and east reaches 140. At the world seam,
+fresh X=254 east searches only 255; X=255 east searches nothing; X=0 west searches
+255 through 240. Fresh X=1 has no candidates in any direction. At `(0,0)` all
+directions fail because the perpendicular coordinate also lies outside the numeric
+bounds. These asymmetries are part of the inspected original behavior.
+
+| Boundary | Window behavior |
+|---|---|
+| Outdoor startup, town/dungeon exit, Gate/moongate, whirlpool, debug relocation | Initialize from final coordinates and plane, even for same-plane travel. |
+| Walking, riding, sailing, outdoor Klimb | Scroll after each actual step. |
+| Waterfall | Scroll after each of its two south steps; initialize after special plane travel. |
+| Successful outdoor Blink | Search the old window, relocate, then initialize. |
+| Failed/cancelled Blink, waiting, redraw, View | Preserve. |
+| Combat, camping, shrine/Codex return | Preserve across temporary scene coordinates. |
+| Outdoor Push/Pull | Direct displacement preserves origins. |
+| Guardian pushback | Preserve the attempted step's window, including any completed shift. |
+| Save and continue | Preserve the live window. |
+| Actual load/import/rollback/scenario hydration | Initialize from loaded coordinates. |
+
+Logical quadrants are NW/NE/SW/SE. East scrolling copies old NE→NW and SE→SW;
+west copies NW→NE and SW→SE; south copies SW→NW and SE→NE; north copies NW→SW
+and NE→SE. The outgoing half's temporary Push terrain expires; the copied half
+retains it. Re-entry reads fresh persistent terrain. Initialization reloads all
+four quadrants even if the origins are unchanged. Redux models this with owned
+before/after Push writes on its full maps: expiration restores only values still
+matching the owned write, preserving unrelated durable mutations, actors and flags.
+
+Redux implements these outdoor rules with runtime-only plane-tagged window state.
+Normal original loading rebuilds the outdoor window despite serialized offsets;
+native consumers share that reset contract rather than persisting movement history.
+A scenario using the current live state without hydration preserves history.
+See the [snapshot restoration contract](../details/SAVE_SNAPSHOT_SCHEMA.md#capture-and-hydration).
+First-person dungeon Blink remains unavailable; combat uses its separate placement
+rules in SPELL-0005.
+
+**Implementation:** `internal/references/spell_metadata.go`, `internal/game_state/action_cast.go`, `internal/game_state/action_cast_direction.go`, `internal/game_state/outdoor_window.go`, `internal/game_state/action_push.go`, `internal/game_state/combat_utility_spells.go`, `internal/game_state/combat_utility_spell_commit.go`, `internal/game_state/combat_special_death.go`
+**Tests:** `internal/game_state/action_cast_direction_test.go`, `internal/game_state/outdoor_window_test.go`, `internal/game_state/outdoor_window_push_test.go`, `internal/game_state/outdoor_window_lifecycle_test.go`, `cmd/ultimav/gamescene_outdoor_window_test.go`, `cmd/ultimav/gamescene_outdoor_window_snapshot_test.go`, `internal/game_state/combat_door_spell_test.go`, `cmd/ultimav/gamescene_combat_door_spell_test.go`
 
 ### SPELL-0003
 
@@ -291,6 +345,14 @@ chosen animal is another species; Daemon placement tests Daemon terrain. In Bet
 Xen puts up to four independently created insects on the one admitted square.
 Prepared Daemon binding draws only after successful placement; the scroll bypasses
 the binding draw. Redux preserves these placement-shape and binding distinctions.
+
+Outdoor Blink placement follows SPELL-0002. No eligible Grass reports **Failed!**,
+preserving both position and window; it does not mean an intervening obstacle
+stopped the ray. Under SPELL-0001's atomic prepared-Cast policy, a confirmed legal
+direction pays one mixture and 3 MP exactly once even on this failure. Precommit
+cancellation is free. Surface-combat Blink independently tries up to seven random
+legal unoccupied destinations. Dungeon rooms/encounters retain precommit rejection;
+outdoor occupancy and deterministic scanning do not alter combat legality.
 
 Original Clone reserves free slots and then has an unbounded random destination
 loop. No legal destination can mean nontermination. Clone tests Player terrain,

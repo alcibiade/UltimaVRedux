@@ -92,6 +92,8 @@ type GameState struct {
 
 	// Automatic sailing state (frigate with sails raised)
 	isSailing                     bool
+	automaticSailingStopEpoch     uint64
+	pendingSkiffDeepWaterHits     int
 	hmsCapeAutomaticWaitActorSkip bool
 
 	// hmsCapeActivated is the persisted global HMS Cape player preference.
@@ -222,6 +224,8 @@ type GameState struct {
 	pendingDirectMonsterContact  OverworldContactType
 	activeShipRepair             *shipRepairState
 	activeSlowMovement           *slowMovementState
+	activeWaterfall              *waterfallCascade
+	outdoorWindow                outdoorWindow
 	// LastCamped tracks hours until ordinary camping can restore the party again.
 	// It decrements at hour crossings and is set to 14 after successful camping.
 	// See ref:MOON-0003.
@@ -306,6 +310,7 @@ func initBlankGameState(gameReferences *references.GameReferences, gameConfig *c
 		&eventQueueSystemCallbacks{gameState},
 	)
 	gameState.EventQueueManager.SetShutdownAction(func() {
+		gameState.cancelWaterfallCascade(gameState.activeWaterfall)
 		gameState.cancelOutdoorActorPhase()
 		gameState.pendingOverworldEncounter = nil
 	})

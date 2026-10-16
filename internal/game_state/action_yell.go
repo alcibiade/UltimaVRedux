@@ -9,6 +9,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// ActionYellSmallMap attempts Keep summoning and reports other words' local effects.
 func (g *GameState) ActionYellSmallMap(word string) bool {
 	// Small map yell handles Shadowlord summoning at Keeps
 	// Sailing commands are handled on large map only (frigates don't exist on small maps)
@@ -113,6 +114,7 @@ func (g *GameState) TrySummonShadowlord(word string) bool {
 	return true
 }
 
+// ActionYellLargeMap toggles frigate sails or prompts for a Word of Power.
 func (g *GameState) ActionYellLargeMap() bool {
 	vehicleType := g.PartyVehicle.GetVehicleDetails().VehicleType
 
@@ -130,6 +132,7 @@ func (g *GameState) ActionYellLargeMap() bool {
 
 	if vehicleDetails.SailState == map_units.SailRaised {
 		// Furl sails (sailing → anchored) - immediate state change
+		g.StopAutomaticSailing()
 		vehicleDetails.SetSailState(map_units.SailFurled)
 		g.SystemCallbacks.UI.ShowActionFeedback("FURL!", true)
 	} else {
@@ -248,6 +251,7 @@ func (g *GameState) GetAdjacentRuinedShrine(word string) *ShrineData {
 	return nil
 }
 
+// ActionYellCombatMap reports a combat yell without applying a gameplay effect.
 func (g *GameState) ActionYellCombatMap(word string) bool {
 	if word == "" {
 		g.SystemCallbacks.Message.AddRowStr("Nothing")
@@ -259,6 +263,7 @@ func (g *GameState) ActionYellCombatMap(word string) bool {
 	return true
 }
 
+// ActionYellDungeonMap reports a dungeon yell without applying a gameplay effect.
 func (g *GameState) ActionYellDungeonMap(word string) bool {
 	if word == "" {
 		g.SystemCallbacks.Message.AddRowStr("Nothing")

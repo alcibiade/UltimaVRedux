@@ -56,14 +56,16 @@ func TestBufferedCombatVerbsEnterNormalPromptsThroughUpdate(t *testing.T) {
 		t.Run(test.key.String(), func(t *testing.T) {
 			scene, held := newBufferedCombatUpdateScene(t)
 			before := snapshotBlockedCombatState(t, scene.gameState)
+			outputBefore := scene.output.GetOutputStr(true)
 			held[test.key] = true
 			require.NoError(t, scene.Update(nil))
 			require.True(t, scene.transientCommandInput.pending.active)
-			require.Contains(t, scene.transientCommandInput.status.GetContentText(), "Pending: "+bufferedCombatVerb(test.key))
+			require.Zero(t, scene.dialogStack.Count(), "enqueue has no status dialog")
+			require.Equal(t, outputBefore, scene.output.GetOutputStr(true), "enqueue is silent")
 			require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState), "recording intent is not an action")
 			advanceBufferedCombatToPrompt(t, scene, test.state)
 			require.False(t, scene.transientCommandInput.pending.active)
-			require.Nil(t, scene.transientCommandInput.status)
+			require.Zero(t, scene.dialogStack.Count(), "only the ordinary direction prompt is needed")
 			actor := scene.gameState.CombatScene.GetCurrentTurnIdentity()
 			position := scene.gameState.CombatScene.GetCombatantPosition(actor)
 			beforeCancel := snapshotBlockedCombatState(t, scene.gameState)
@@ -82,6 +84,7 @@ func TestBufferedCombatReplacementHeldFirstKeyAndEarlyDirections(t *testing.T) {
 	for _, direction := range []ebiten.Key{ebiten.KeyRight, ebiten.KeyNumpad6} {
 		t.Run(direction.String(), func(t *testing.T) {
 			scene, held := newBufferedCombatUpdateScene(t)
+			outputBefore := scene.output.GetOutputStr(true)
 			held[ebiten.KeyG] = true
 			require.NoError(t, scene.Update(nil))
 			held[ebiten.KeyO] = true
@@ -90,6 +93,8 @@ func TestBufferedCombatReplacementHeldFirstKeyAndEarlyDirections(t *testing.T) {
 			held[ebiten.KeyJ], held[direction] = true, true
 			require.NoError(t, scene.Update(nil))
 			require.Equal(t, ebiten.KeyJ, scene.transientCommandInput.pending.key)
+			require.Zero(t, scene.dialogStack.Count(), "replacement has no status dialog")
+			require.Equal(t, outputBefore, scene.output.GetOutputStr(true), "replacement is silent")
 			require.True(t, scene.keyboard.IsSuppressedUntilRelease(direction))
 			advanceBufferedCombatToPrompt(t, scene, JimmyDoorDirectionInput)
 			before := snapshotBlockedCombatState(t, scene.gameState)
@@ -116,6 +121,7 @@ func TestBufferedCombatCancellationUnsupportedAndSameSampleEscapeWin(t *testing.
 			held[clearKey], held[ebiten.KeyO] = true, true
 			require.NoError(t, scene.Update(nil))
 			require.False(t, scene.transientCommandInput.pending.active)
+			require.Zero(t, scene.dialogStack.Count(), "clearing has no status dialog")
 			require.True(t, scene.keyboard.IsSuppressedUntilRelease(clearKey))
 			require.True(t, scene.keyboard.IsSuppressedUntilRelease(ebiten.KeyRight))
 			for range 100 {
@@ -155,6 +161,27 @@ func TestBufferedCombatReadyHandoffDirectionUsesNewPromptInSameUpdate(t *testing
 	require.False(t, scene.transientCommandInput.pending.active)
 }
 
+func TestBufferedCombatGetThenOpenNeedsOnlyOrdinaryPrompt(t *testing.T) {
+	scene, held := newBufferedCombatUpdateScene(t)
+	outputBefore := scene.output.GetOutputStr(true)
+	held[ebiten.KeyG] = true
+	require.NoError(t, scene.Update(nil))
+	held[ebiten.KeyO] = true
+	require.NoError(t, scene.Update(nil))
+	require.Equal(t, ebiten.KeyO, scene.transientCommandInput.pending.key)
+	require.Zero(t, scene.dialogStack.Count())
+	require.Equal(t, outputBefore, scene.output.GetOutputStr(true))
+	advanceBufferedCombatToPrompt(t, scene, OpenDirectionInput)
+	require.False(t, scene.transientCommandInput.pending.active)
+	require.Zero(t, scene.dialogStack.Count(), "Open is ready without dismissing a queue card")
+	before := snapshotBlockedCombatState(t, scene.gameState)
+	for range 3 {
+		require.NoError(t, scene.Update(nil))
+	}
+	require.Equal(t, OpenDirectionInput, scene.secondaryKeyState)
+	require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
+}
+
 func TestBufferedCombatFocusAndActorInvalidationCannotRevive(t *testing.T) {
 	for _, invalidate := range []string{"focus", "sleep", "selection", "encounter"} {
 		t.Run(invalidate, func(t *testing.T) {
@@ -176,7 +203,7 @@ func TestBufferedCombatFocusAndActorInvalidationCannotRevive(t *testing.T) {
 			}
 			require.NoError(t, scene.Update(nil))
 			require.False(t, scene.transientCommandInput.pending.active)
-			require.Nil(t, scene.transientCommandInput.status)
+			require.Zero(t, scene.dialogStack.Count(), "invalidation has no status dialog")
 			focused = true
 			scene.gameState.CombatScene.PartySleeping[actor.EntityIndex] = false
 			scene.gameState.CombatScene.SetSoloMoveCharacter(actor.EntityIndex)

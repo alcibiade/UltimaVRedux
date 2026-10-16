@@ -769,11 +769,16 @@ func TestSaveSnapshotRoundTripPreservesCrownOrSpellWithIndependentArtifacts(t *t
 }
 
 func TestSaveSnapshotRoundTripPreservesContinuationState(t *testing.T) {
-	state, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(15, 15).
+	state, callbacks := NewIntegrationTestBuilder(t).
+		WithLocation(references.BritanniaUnderworld).
+		WithPlayerAt(50, 50).
 		WithSystemCallbacks().
 		Build()
+	state.PartyVehicle = *map_units.NewNPCFriendlyVehiceNewRef(
+		references.FrigateVehicle, state.MapState.PlayerLocation.Position, state.MapState.PlayerLocation.Floor,
+	)
+	state.PartyVehicle.GetVehicleDetails().SetSailState(map_units.SailRaised)
+	state.PartyVehicle.GetVehicleDetails().SetHullHP(77)
 	require.True(t, state.SetActivePlayer(0))
 	state.isCriminal = true
 	state.hmsCapeAutomaticWaitActorSkip = true
@@ -819,14 +824,27 @@ func TestSaveSnapshotRoundTripPreservesContinuationState(t *testing.T) {
 	restored.configureCombatTurnQueue(combat)
 	assert.Equal(t, 5, combat.TurnQueue.actionCount)
 
+	restoredCallbacks := NewMockSystemCallbacks(t)
+	restored.SystemCallbacks = restoredCallbacks.ToSystemCallbacks()
+	restored.SetupEnvironmentalSystemCallbacks()
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectTimeStop, TurnsRemaining: 1}
 	restored.ActiveDurationEffect = state.ActiveDurationEffect
-	state.isSailing = true
-	restored.isSailing = true
+	assert.False(t, restored.IsSailing(), "hydration must not restart automatic travel")
+	require.True(t, state.StartAutomaticSailing(references.Right))
+	require.True(t, restored.StartAutomaticSailing(references.Right))
+	assert.True(t, restored.hmsCapeAutomaticWaitActorSkip, "starting sailing must retain the restored Cape cadence")
+	callbacks.Reset()
+	restoredCallbacks.Reset()
+	beforeWait := state.DateTime
 	state.CompleteAutomaticSailingWait()
 	restored.CompleteAutomaticSailingWait()
 	assert.Equal(t, state.hmsCapeAutomaticWaitActorSkip, restored.hmsCapeAutomaticWaitActorSkip)
 	assert.False(t, restored.hmsCapeAutomaticWaitActorSkip, "restored cadence must process the same next actor phase")
+	assert.Empty(t, callbacks.TimeAdvanced())
+	assert.Empty(t, restoredCallbacks.TimeAdvanced())
+	assert.Equal(t, beforeWait, state.DateTime, "Time Stop suppresses the Cape wait's requested minute")
+	assert.Equal(t, state.DateTime, restored.DateTime)
+	assert.Equal(t, 77, restored.PartyVehicle.GetVehicleDetails().GetHullHP())
 }
 
 func TestMatchLegacyGeneratedObjectsDoesNotGuessAmongSavedVehicles(t *testing.T) {

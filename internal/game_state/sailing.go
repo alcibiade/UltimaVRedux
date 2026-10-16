@@ -16,7 +16,7 @@ func (g *GameState) IsSailing() bool {
 // Returns true if sailing started successfully, false if requirements not met
 //
 // Requirements:
-// - Must be on a frigate
+// - Must be outdoors in exploration on a frigate
 // - Sails must be raised
 // - Not already sailing
 func (g *GameState) StartAutomaticSailing(direction references.Direction) bool {
@@ -27,27 +27,12 @@ func (g *GameState) StartAutomaticSailing(direction references.Direction) bool {
 		return false
 	}
 
-	// Get vehicle details
-	vehicle := g.PartyVehicle.GetVehicleDetails()
-
-	// Validate frigate requirement
-	if vehicle.VehicleType != references.FrigateVehicle {
-		logging.Debug(logging.CategoryGameState, "Sailing: Not on a frigate (vehicle type: %v)", vehicle.VehicleType)
-
-		return false
-	}
-
-	// Validate sails raised requirement
-	if vehicle.SailState != map_units.SailRaised {
-		logging.Debug(logging.CategoryGameState, "Sailing: Sails not raised (sail state: %v)", vehicle.SailState)
-
-		return false
-	}
-	if direction == references.NoneDirection {
+	if !g.automaticSailingEligible() || direction == references.NoneDirection {
 		return false
 	}
 
 	// All requirements met - start sailing
+	vehicle := g.PartyVehicle.GetVehicleDetails()
 	vehicle.SetPartyVehicleDirection(direction)
 	g.isSailing = true
 	logging.Debug(logging.CategoryGameState, "Sailing: Started automatic sailing mode")
@@ -60,8 +45,54 @@ func (g *GameState) StartAutomaticSailing(direction references.Direction) bool {
 func (g *GameState) StopAutomaticSailing() {
 	if g.isSailing {
 		logging.Debug(logging.CategoryGameState, "Sailing: Stopped automatic sailing mode")
+		g.automaticSailingStopEpoch++
 	}
 	g.isSailing = false
+}
+
+// AutomaticSailingStopEpoch identifies actual stops for presentation/input cleanup.
+// Reading it neither changes gameplay nor hides a stale sailing flag.
+func (g *GameState) AutomaticSailingStopEpoch() uint64 {
+	return g.automaticSailingStopEpoch
+}
+
+// ContinueAutomaticSailing validates each wait/movement boundary. Invalidated
+// eligibility clears authoritative state without spending time or randomness.
+func (g *GameState) ContinueAutomaticSailing() bool {
+	if !g.isSailing {
+		return false
+	}
+	if !g.automaticSailingEligible() || g.PartyState.IsAllPartyDead() {
+		g.StopAutomaticSailing()
+
+		return false
+	}
+
+	return true
+}
+
+func (g *GameState) automaticSailingEligible() bool {
+	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType ||
+		g.CombatScene != nil || g.IsInCamping() || g.IsInMiniMap() ||
+		g.IsFalling() || g.IsTeleportationActive() {
+		return false
+	}
+	vehicle := g.PartyVehicle.GetVehicleDetails()
+
+	return vehicle.VehicleType == references.FrigateVehicle && vehicle.SailState == map_units.SailRaised
+}
+
+// StopAutomaticSailingForCombat runs at the validated tactical-entry commit,
+// including stationary and player-initiated entries. Normal return retains furl.
+func (g *GameState) StopAutomaticSailingForCombat() {
+	// REDUX DEVIATION: SHIP-0001: original tactical entry retains the party's
+	// sails and sailing direction. Redux stops and furls for a manual decision
+	// after combat, while preserving facing.
+	g.StopAutomaticSailing()
+	vehicle := g.PartyVehicle.GetVehicleDetails()
+	if vehicle.VehicleType == references.FrigateVehicle {
+		vehicle.SetSailState(map_units.SailFurled)
+	}
 }
 
 // CompleteAutomaticSailingInterruption returns to command input without an extra
@@ -84,8 +115,8 @@ func (g *GameState) AutomaticSailingWaitPhases(direction references.Direction) (
 // intentionally separate from ordinary movement completion because HMS Cape
 // changes wait timing and actor cadence rather than movement completion.
 func (g *GameState) CompleteAutomaticSailingWait() {
-	if !g.isSailing {
-		panic("automatic sailing wait requires active sailing")
+	if !g.ContinueAutomaticSailing() {
+		return
 	}
 
 	minutes := DefaultLargeMapMinutesPerTurn

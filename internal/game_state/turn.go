@@ -47,6 +47,9 @@ func (g *GameState) FinishTurn() {
 		// updates would incorrectly apply poison, food, and duration work here.
 		return
 	}
+	if g.IsWaterfallHazardActive() {
+		return
+	}
 	if !g.completingSurfaceCycle && (mapType == references.SmallMapType || mapType == references.LargeMapType) {
 		largeMapMinutes := DefaultLargeMapMinutesPerTurn
 		if mapType == references.LargeMapType {
@@ -101,6 +104,9 @@ func (g *GameState) FinishTurn() {
 // CompleteSurfaceCommandCycle runs the normal endplayer cycle for a completed
 // town or overworld command. Overworld movement costs are deliberately absent.
 func (g *GameState) CompleteSurfaceCommandCycle(originMapType references.GeneralMapType) {
+	if g.IsWaterfallHazardActive() {
+		return
+	}
 	if g.deferSurfaceCommandCycleForShipRepair(originMapType) {
 		return
 	}
@@ -113,6 +119,9 @@ func (g *GameState) CompleteSurfaceCommandCycle(originMapType references.General
 // CompleteSurfaceMovementCycle runs movement completion separately from
 // command completion. The calculator supplies the total overworld movement cost.
 func (g *GameState) CompleteSurfaceMovementCycle(originMapType references.GeneralMapType, moved bool) {
+	if g.IsWaterfallHazardActive() {
+		return
+	}
 	largeMapMinutes := DefaultLargeMapMinutesPerTurn
 	if originMapType == references.LargeMapType {
 		if !moved {
@@ -204,6 +213,11 @@ func (g *GameState) completeSurfaceCycleWithActorPhase(
 func (g *GameState) completeSurfaceCycleForCommand(
 	originMapType references.GeneralMapType, largeMapMinutes int, processActorPhase, pass bool,
 ) {
+	// Repeated reviews cannot recharge the initiating command while its cascade
+	// is queued, active, or awaiting input release.
+	if g.IsWaterfallHazardActive() {
+		return
+	}
 	g.completingSurfaceCycle = true
 	defer func() { g.completingSurfaceCycle = false }()
 
@@ -218,6 +232,19 @@ func (g *GameState) completeSurfaceCycleForCommand(
 		panic("surface cycle requires a small-map or overworld origin")
 	}
 	g.processNonCombatPlayerTurnEffects()
+	// Waterfalls are a consumed surface-cycle checkpoint, including stationary
+	// Pass. The initiating charge/player update occurs once; forced descents own
+	// only their existing fall consequences. The initiating actor tail runs after
+	// the first complete descent, before later automatic falls. A retained logical
+	// cascade releases its workflow for actor/contact handoffs and resumes before
+	// ordinary input, without replaying this cycle. ref:ENV-0003, TIME-0002.
+	if g.startWaterfallHazard(func() { g.completeSurfaceActorPhase(processActorPhase, pass) }) {
+		return
+	}
+	g.completeSurfaceActorPhase(processActorPhase, pass)
+}
+
+func (g *GameState) completeSurfaceActorPhase(processActorPhase, pass bool) {
 	if processActorPhase {
 		g.processNonCombatWorldActorPhaseForCommand(pass)
 	}

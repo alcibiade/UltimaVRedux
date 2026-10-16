@@ -32,8 +32,25 @@ and actor work until interrupted. This is not a universal manual or startup cost
 Redux retains this wait cadence and definitely charges normal outdoor completion
 for production sail toggling; undefined original returns cannot prove that cost.
 
+Redux furling stops automatic sailing before its feedback, preserving facing.
+Each automatic wait/movement boundary revalidates outdoor exploration and a
+raised-sail frigate; invalidation clears the sailing state without another wait,
+movement, actor phase, or random draw. Command presses between cadence phases
+also stop sailing. Space stops with sails raised and no extra sailing phase;
+other commands retain their own ordinary completion costs. Finalization clears
+the sailing camera projection and releases the workflow name. A held movement
+key across interruption must be released before it can resume movement.
+
+**REDUX DEVIATION: SHIP-0001:** The inspected original tactical-entry/normal-return
+path retains the party's sail state and stored sailing direction. Redux stops
+automatic sailing and furls the party frigate at every validated tactical entry,
+including stationary raised sails and player-initiated encounters. Normal return
+leaves sails down and movement under manual control, giving the player a decision
+point after combat. Facing is preserved. Ranged-hit interruption instead preserves
+sails, as described in [SHIP-0005](#ship-0005).
+
 **Implementation:** `internal/game_state/sailing.go`, `internal/game_state/action_yell.go`
-**Tests:** `internal/game_state/sailing_state_test.go`
+**Tests:** `internal/game_state/sailing_state_test.go`, `internal/game_state/sailing_interruption_test.go`, `cmd/ultimav/gamescene_sailing_interruption_test.go`
 
 ### SHIP-0002
 
@@ -85,8 +102,33 @@ damage separately. Exact byte-transfer equivalence is not implied.
 Its destroyed frigate is not kept. Rough seas on deep water damage skiff/carpet
 riders through party damage, separately from hull damage and additional turn costs.
 
+Redux cancels automatic sailing immediately before a sinking frigate is replaced
+by a skiff/carpet or drowning begins. The original leaves sailing cleanup to a
+later outer-command boundary; Redux does not retain that stale interval. Fallback
+movement requires fresh input after the owed attack presentation finishes. Cannon
+hits on occupied skiffs damage their riders, not a separate skiff hull; a surviving
+skiff is not evidence that the hit was ignored.
+
+Rough-seas requests retain one damage pass per qualifying movement, even when a
+programmatic caller submits more while presentation is active. The fixed-name
+workflow serializes those passes and preempts normal-priority travel. A request
+admitted while the previous owner is finishing input-release cleanup is retained;
+normal completion starts its next owner only after releasing the fixed name.
+Workflows that need to await the hazard compose its sequence inline, with owner cleanup,
+instead of waiting on an independently started child of equal/lower priority.
+If a rough-seas pass wipes the party, its batch is closed and remaining old-batch
+requests are canceled **before** requesting death recovery. Resurrection cannot
+reactivate that batch or damage the recovered party at its new location. A fresh
+qualifying request admitted after recovery belongs to a new batch, even while the
+old workflow is still releasing ownership; old cleanup does not decrement it.
+All surviving passes preceding the terminal hit still resolve exactly once.
+Duplicate live workflow names remain programming errors. Current Redux rough-seas
+admission remains successful-movement-only; the inspected original also checks
+deep water on completed stationary outdoor turns such as Pass. This lifecycle fix
+does not establish cadence equivalence.
+
 **Implementation:** `internal/game_state/ship_collision.go`
-**Tests:** `internal/game_state/source_hit_test.go`, `cmd/ultimav/gamescene_input_largemap_sailing_test.go`
+**Tests:** `internal/game_state/source_hit_test.go`, `internal/game_state/skiff_deep_water_ownership_test.go`, `cmd/ultimav/gamescene_input_largemap_sailing_test.go`
 
 ### SHIP-0004
 
@@ -139,8 +181,24 @@ the original zero-survivor defect. A misaligned pirate uses one warning/rotation
 phase and may fire on a later eligible phase; already aligned pirates fire in
 descending source-slot order. The warning is an existing deliberate policy.
 
+**REDUX DEVIATION: SHIP-0005:** Original outdoor ranged hits do not cancel automatic
+sailing or furl sails. A successful pirate cannonball or outdoor dragon/sea-serpent
+projectile in Redux stops active automatic sailing, preserving a surviving
+frigate's facing and sail state. Warnings, rotation, blocked shots, and missed
+firing opportunities do not cause this interruption. A concise nonmodal message
+is emitted only when sailing actually stops; interruption costs no additional
+turn or acknowledgement. Fire and manual furl remain ordinary commands. Releasing
+movement and pressing a fresh direction can resume with sails still raised, so
+the decision point imposes no required rowing/hoisting escape penalty.
+
+Stopping sailing does not abort the already-started descending outdoor actor
+phase: remaining owed hits still resolve exactly once, in order, including a
+later sinking or fatal hit. Their retained projectile presentation drains without
+starting another sailing wait, movement, or actor phase. Terminal outcomes take
+precedence over resumption.
+
 **Implementation:** `internal/game_state/action_fire.go`, `internal/game_state/pirate.go`
-**Tests:** `internal/game_state/pirate_test.go`
+**Tests:** `internal/game_state/pirate_test.go`, `internal/game_state/sailing_interruption_test.go`
 
 ### SHIP-0006
 

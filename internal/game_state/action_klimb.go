@@ -130,6 +130,7 @@ func (g *GameState) ActionKlimbSmallMap(direction references.Direction) bool {
 	return false
 }
 
+// ActionKlimbLargeMap attempts a grapple climb and resolves any party falls.
 func (g *GameState) ActionKlimbLargeMap(direction references.Direction) bool {
 	// Large map Klimb = mountain climbing with grapple (overworld only)
 	if g.EventQueueManager.HasWorkflow(climbingFallWorkflowName) {
@@ -179,7 +180,7 @@ func (g *GameState) ActionKlimbLargeMap(direction references.Direction) bool {
 	injuredMembers := g.performClimbingDexterityChecks()
 
 	// IMMEDIATE movement - player reaches destination regardless of falls
-	g.MapState.PlayerLocation.Position = *newPosition
+	g.MovePlayerOneStep(direction)
 
 	if len(injuredMembers) == 0 {
 		// Successful climbing - immediate feedback
@@ -250,6 +251,7 @@ func (g *GameState) BeginCombatKlimb() CombatKlimbStartOutcome {
 	return CombatKlimbCompleted
 }
 
+// ActionKlimbCombatMap attempts a ladder exit or adjacent-rock climb for the active combatant.
 func (g *GameState) ActionKlimbCombatMap(direction references.Direction) bool {
 	if g.CombatScene == nil {
 		return false
@@ -377,9 +379,10 @@ func (g *GameState) CanGoUpOneFloor() bool {
 
 		return locationRef.CanGoUpOneFloor(g.MapState.PlayerLocation.Floor)
 	case references.CombatMapType, references.DungeonMapType:
-		// TODO: Implement floor validation logic for combat/dungeon maps
-		// For now, assume you can always go up one floor in combat/dungeon
+		// Combat and dungeon floor bounds are not validated by this helper.
 		return true
+	case references.LargeMapType, references.CampingMapType:
+		return false
 	default:
 		return false
 	}
@@ -393,9 +396,10 @@ func (g *GameState) CanGoDownOneFloor() bool {
 
 		return locationRef.CanGoDownOneFloor(g.MapState.PlayerLocation.Floor)
 	case references.CombatMapType, references.DungeonMapType:
-		// TODO: Implement floor validation logic for combat/dungeon maps
-		// For now, assume you can always go down one floor in combat/dungeon
+		// Combat and dungeon floor bounds are not validated by this helper.
 		return true
+	case references.LargeMapType, references.CampingMapType:
+		return false
 	default:
 		return false
 	}
@@ -422,9 +426,8 @@ func (g *GameState) GoUpOneFloor() bool {
 	case references.LargeMapType:
 		// Refresh quest items (shards) on large maps when changing floors
 		g.RefreshQuestItemsOnMap()
-	case references.CombatMapType, references.DungeonMapType:
-		// TODO: Update combat/dungeon map when systems are available
-		// For now, just increment floor - no map update needed
+	case references.CombatMapType, references.DungeonMapType, references.CampingMapType:
+		// This helper changes the floor without rebuilding these map types.
 	}
 	g.restoreSurfaceCorpsesForCurrentMap()
 	g.reconcileBasementChestsOnEntry()
@@ -453,9 +456,8 @@ func (g *GameState) GoDownOneFloor() bool {
 	case references.LargeMapType:
 		// Refresh quest items (shards) on large maps when changing floors
 		g.RefreshQuestItemsOnMap()
-	case references.CombatMapType, references.DungeonMapType:
-		// TODO: Update combat/dungeon map when systems are available
-		// For now, just decrement floor - no map update needed
+	case references.CombatMapType, references.DungeonMapType, references.CampingMapType:
+		// This helper changes the floor without rebuilding these map types.
 	}
 	g.restoreSurfaceCorpsesForCurrentMap()
 	g.reconcileBasementChestsOnEntry()

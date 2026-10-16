@@ -79,6 +79,7 @@ func (g *GameState) CastAnSanct(pos *references.Position) AnSanctResult {
 // MagicUnlockResult represents the result of attempting to magic-unlock a door.
 type MagicUnlockResult int
 
+// Magic-unlock outcomes distinguish magical doors, ordinary doors, and other tiles.
 const (
 	MagicUnlockSuccess MagicUnlockResult = iota
 	MagicUnlockNotMagicDoor
@@ -97,7 +98,7 @@ func (g *GameState) MagicUnlockDoor(pos *references.Position) MagicUnlockResult 
 		return MagicUnlockNotADoor
 	}
 
-	switch targetTile.Index {
+	switch targetTile.Index { //nolint:exhaustive // Only door tiles have unlock outcomes; other tiles are not doors.
 	case indexes.MagicLockDoor:
 		theMap.SetTileByLayer(map_state.MapOverrideLayer, pos, indexes.RegularDoor)
 
@@ -121,6 +122,7 @@ func (g *GameState) MagicUnlockDoor(pos *references.Position) MagicUnlockResult 
 // MagicLockResult represents the result of attempting to magic-lock a door.
 type MagicLockResult int
 
+// Magic-lock outcomes distinguish newly locked doors, existing locks, and other tiles.
 const (
 	MagicLockSuccess MagicLockResult = iota
 	MagicLockAlreadyMagic
@@ -133,7 +135,7 @@ func (g *GameState) MagicLockDoor(pos *references.Position) MagicLockResult {
 	theMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, g.MapState.PlayerLocation.Floor)
 	targetTile := theMap.GetTileTopMapOnlyTile(pos)
 
-	switch targetTile.Index {
+	switch targetTile.Index { //nolint:exhaustive // Only door tiles can be locked; other tiles are not doors.
 	case indexes.MagicLockDoor, indexes.MagicLockDoorWithView:
 		// Already magic locked
 		return MagicLockAlreadyMagic
@@ -159,6 +161,7 @@ func (g *GameState) MagicLockDoor(pos *references.Position) MagicLockResult {
 // DispelFieldResult represents the result of attempting to dispel a field.
 type DispelFieldResult int
 
+// Dispel outcomes report whether an eligible field was removed.
 const (
 	DispelFieldSuccess DispelFieldResult = iota
 	DispelFieldNotAField
@@ -171,15 +174,14 @@ func (g *GameState) DispelField(pos *references.Position) DispelFieldResult {
 	theMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, g.MapState.PlayerLocation.Floor)
 	targetTile := theMap.GetTileTopMapOnlyTile(pos)
 
-	switch targetTile.Index {
-	case indexes.PoisonField, indexes.MagicField, indexes.FireField:
+	if targetTile.Index == indexes.PoisonField || targetTile.Index == indexes.MagicField || targetTile.Index == indexes.FireField {
 		// Dispel the field - replace with floor
 		theMap.SetTileByLayer(map_state.MapOverrideLayer, pos, indexes.BrickFloor)
 
 		return DispelFieldSuccess
-	default:
-		return DispelFieldNotAField
 	}
+
+	return DispelFieldNotAField
 }
 
 // =============================================================================
@@ -189,21 +191,25 @@ func (g *GameState) DispelField(pos *references.Position) DispelFieldResult {
 // BlinkResult represents the result of attempting to blink teleport.
 type BlinkResult int
 
+// Blink outcomes distinguish successful travel, blocked travel, and combat routing.
 const (
 	BlinkSuccess            BlinkResult = iota
-	BlinkBlocked                        // Destination is not passable
-	BlinkCombatNotSupported             // Combat mode not implemented yet
+	BlinkBlocked                        // No eligible grass in the retained outdoor window
+	BlinkCombatNotSupported             // Combat uses its independent automatic targeting route
 )
 
 // BlinkTeleport moves the party to the farthest grass tile in the selected
-// direction within the original 32x32 overworld search window.
+// direction within the retained 32x32 outdoor window. See ref:SPELL-0002.
 // Returns the result of the attempt.
 func (g *GameState) BlinkTeleport(direction references.Direction) BlinkResult {
 	mapType := g.MapState.PlayerLocation.Location.GetMapType()
 
-	// Combat mode not implemented yet
+	// Surface combat has a separate random destination effect.
 	if mapType == references.CombatMapType {
 		return BlinkCombatNotSupported
+	}
+	if mapType != references.LargeMapType {
+		return BlinkBlocked
 	}
 
 	dx, dy := references.Coordinate(0), references.Coordinate(0)
@@ -223,48 +229,30 @@ func (g *GameState) BlinkTeleport(direction references.Direction) BlinkResult {
 	}
 
 	playerPos := g.MapState.PlayerLocation.Position
-	xOffset := blinkWindowOffset(playerPos.X)
-	yOffset := blinkWindowOffset(playerPos.Y)
-	xInWindow := (playerPos.X - xOffset + references.XLargeMapTiles) % references.XLargeMapTiles
-	yInWindow := (playerPos.Y - yOffset + references.YLargeMapTiles) % references.YLargeMapTiles
-	steps := int(xInWindow)
-	switch {
-	case dx > 0:
-		steps = 31 - int(xInWindow)
-	case dy < 0:
-		steps = int(yInWindow)
-	case dy > 0:
-		steps = 31 - int(yInWindow)
-	}
-
+	window := g.requireOutdoorWindow()
+	xLimit := min(window.origin.X+outdoorWindowSize, references.XLargeMapTiles)
+	yLimit := min(window.origin.Y+outdoorWindowSize, references.YLargeMapTiles)
 	theMap := g.GetLayeredMapByCurrentLocation()
 	var destination *references.Position
-	for step := 1; step <= steps; step++ {
-		candidate := references.Position{
-			X: playerPos.X + dx*references.Coordinate(step),
-			Y: playerPos.Y + dy*references.Coordinate(step),
-		}
-		candidate.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
+	// Only the initial adjacent candidate wraps. Both axes must then satisfy
+	// numeric bounds, even the perpendicular axis. Obstacles do not stop the ray.
+	candidate := references.Position{X: (playerPos.X + dx) & outdoorWorldMask, Y: (playerPos.Y + dy) & outdoorWorldMask}
+	for candidate.X >= window.origin.X && candidate.X < xLimit &&
+		candidate.Y >= window.origin.Y && candidate.Y < yLimit {
 		tile := theMap.GetTileTopMapOnlyTile(&candidate)
-		if tile != nil && tile.Is(indexes.Grass) && !g.ObjectPresentAt(&candidate) {
+		if tile != nil && tile.Is(indexes.Grass) {
 			candidateCopy := candidate
 			destination = &candidateCopy
 		}
+		candidate.X += dx
+		candidate.Y += dy
 	}
 	if destination == nil {
 		return BlinkBlocked
 	}
 
 	g.MapState.PlayerLocation.Position = *destination
+	g.InitializeOutdoorWindow()
 
 	return BlinkSuccess
-}
-
-func blinkWindowOffset(coordinate references.Coordinate) references.Coordinate {
-	offset := coordinate & 0xf0
-	if coordinate&0x0f < 8 {
-		offset = (offset - 0x10) & 0xf0
-	}
-
-	return offset
 }

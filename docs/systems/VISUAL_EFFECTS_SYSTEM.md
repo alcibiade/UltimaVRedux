@@ -414,6 +414,29 @@ manager.Workflow("materialize_item").
     Start()
 ```
 
+## Combat Actor And Square Transforms
+
+Choose the transform by the visual's owner:
+
+- `combatEntityDrawOptions(position, isPartyMember, entityIndex, slot)` follows
+  the exact actor's movement interpolation, attack lunge and damage jolt, then
+  the shared battlefield placement/scale and camera shake. Actor-local cues keep
+  real identities, including distinct PC clone slots and teleport casters.
+- `combatSquareMarkerDrawOptions(position)` applies only battlefield
+  placement/scale and camera shake. Persistent fields, cone preview/cast
+  footprints, adjacent-square previews, utility target cues, and aim/wake markers
+  remain on their authoritative squares through any actor's motion.
+
+Collection ordinals, field indexes and coordinate hashes are not actor identities.
+Do not pass them to the actor transform to position terrain or spell footprints.
+Field artwork still uses its position-based animation phase and elapsed clock;
+square anchoring removes borrowed actor offsets, not animation. Existing ground
+display precedence, terrain concealment, cone geometry and effect lifetimes remain
+with their owners. The renderer introduces no gameplay mutation or RNG draw.
+`cmd/ultimav/gamescene_combat_square_visuals_test.go` covers these distinctions,
+including square effects during unrelated actor motion and actor-following
+teleport cues.
+
 ## Combat Aim And Active Selection
 
 The selected physical/spell cursor retains its familiar full-size geometry,
@@ -446,7 +469,8 @@ direction cues, HP/allegiance, the full active indicator, eligibility brackets,
 then selected aim. Active and selected indicators intentionally win where they
 overlap HP bars; selected aim has final priority. Hidden/retired actors, teleport
 hidden phases, and combat exit suppress the active indicator through live exact
-identity/disclosure checks, including clones and insect-stack presentation.
+identity/disclosure checks, including clones and insect-stack presentation. The
+active-party ARCH exception below is limited to its contour and selection frame.
 Hands-on feedback chose the original-size all-white cursor and the active frame
 above HP; the corrected rendering still requires in-game visual confirmation.
 
@@ -454,6 +478,37 @@ Entry points are `gamescene_draw_entities.go`,
 `gamescene_combat_active_indicator.go`, and `gamescene_combat_attack_preview.go`
 under `cmd/ultimav`. [COMBAT-0012](../gamefacts/COMBAT.md#combat-0012) owns the public
 combat presentation comparison.
+
+### Active Party Entry On ARCH
+
+When the exact current party entry stands on live `BrickWallArchway` terrain,
+Redux draws a **hollow silhouette contour plus the existing active square and
+upper accents** to make the acting character locatable. It does not reveal the
+body or HP/allegiance/status artwork, change targeting assistance, or reveal other
+occupants. `BlackSquare` remains fully concealing; active monsters, inactive party
+entries, underground/captive actors, retired identities and hidden teleport phases
+receive no exception. A possessed current PC keeps its existing yellow selection
+colour; an auto-pass keeps gray, and ordinary active PCs keep green.
+
+The contour uses the same unoutlined, current-condition sprite and settled body
+clock as ordinary party rendering, including sleeping, invisible-player and rat
+forms and exact clone state. `ApplyDynamicOutlineOnly` retains only the coloured
+edge with black backing and clears all source-body pixels, including partial
+alpha, leaving the arch visible through the interior. Its bounded sprite/colour cache holds artwork,
+not actor ownership or position. Live identity is resolved on every draw. The
+contour follows the exact actor transform and presented signature endpoint;
+signature fade/dissolve masks still apply without mutating cached artwork.
+
+The foreground selection pass draws the contour before the existing square,
+then eligibility and selected aim retain their normal priority. Ordinary floor
+rendering gets no extra contour or duplicate frame. This narrow presentation
+deviation is recorded in [COMBAT-0001](../gamefacts/COMBAT.md#combat-0001) and
+[COMBAT-0012](../gamefacts/COMBAT.md#combat-0012). Source and regression entry points
+are `gamescene_combat_active_indicator.go`, `gamescene_combat_arch_indicator_test.go`
+under `cmd/ultimav`, and `tile_outline_only.go` / `tile_outline_only_test.go` under
+`internal/sprites`; rendered assertions do not establish in-game visual acceptance.
+
+### Door And Disarm Selection
 
 Combat An Sanct, An Ex Por and In Ex Por reuse this exact selected cursor in the
 final aim layer. It occupies one of four cardinal neighbours, with a geometric
@@ -968,7 +1023,8 @@ primitive preview substitutes for a recorded gameplay observation.
 - Combat actor-local silhouettes, selection frames, division tethers, field
   removal cues, and summon/repel/teleport identity cues consult the actor's live
   map-only underlay. `BlackSquare` and `BrickWallArchway` suppress those direct
-  location disclosures without cancelling or delaying the underlying effect.
+  location disclosures without cancelling or delaying the underlying effect,
+  except for the [current party entry's ARCH contour and active frame](#active-party-entry-on-arch).
 - Committed combat Sceptre use records a short actor cue with the exact combat
   identity and position before barrier or direction resolution. Successful
   `CombatEventFieldDispelled` events independently record a collapsing cue at

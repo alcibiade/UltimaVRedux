@@ -6,6 +6,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// ActionPushSmallMap pushes or pulls adjacent town furniture onto an eligible floor.
 func (g *GameState) ActionPushSmallMap(direction references.Direction) bool {
 	// Auto-shut doors if needed (equivalent to shut_previous_door)
 	doorClosed := g.MapState.SmallMapProcessTurnDoors(g.isSmallMapDoorOccupied)
@@ -100,6 +101,7 @@ func (g *GameState) swapIt(smallMap *map_state.LayeredMap, objTile *references.T
 	}
 }
 
+// ActionPushLargeMap pushes or pulls outdoor terrain with temporary write ownership.
 func (g *GameState) ActionPushLargeMap(direction references.Direction) bool {
 	defer g.AdvanceOrdinarySurfaceCommandMinutes(DefaultLargeMapMinutesPerTurn)
 
@@ -268,6 +270,21 @@ func (g *GameState) persistentTileWithoutTransientLargeMapPush(
 	return actual
 }
 
+// expireOutdoorPushTiles models logical quadrant reloads without rebuilding the
+// full plane. Restore a write only while Push still owns its current value.
+func (g *GameState) expireOutdoorPushTiles(expired func(transientLargeMapPushTileKey) bool) {
+	for key, record := range g.transientLargeMapPushTiles {
+		if !expired(key) {
+			continue
+		}
+		layer := g.MapState.LayeredMaps.GetLayeredMap(references.LargeMapType, key.floor)
+		if layer.SpriteIndexByLayer(map_state.MapLayer, key.position) == record.after {
+			layer.SetTileByLayer(map_state.MapLayer, &key.position, record.before)
+		}
+		delete(g.transientLargeMapPushTiles, key)
+	}
+}
+
 // ActionPushDungeonMap reports the original immediate dungeon rejection.
 func (g *GameState) ActionPushDungeonMap() bool {
 	g.SystemCallbacks.Message.AddRowStr("Not here!")
@@ -275,6 +292,7 @@ func (g *GameState) ActionPushDungeonMap() bool {
 	return false
 }
 
+// ActionPushCombatMap pushes or pulls terrain using the active combatant's identity.
 func (g *GameState) ActionPushCombatMap(direction references.Direction) bool {
 	if g.CombatScene == nil || g.CombatScene.CombatMapRef == nil {
 		g.SystemCallbacks.Message.AddRowStr("Won't budge!")
@@ -391,6 +409,7 @@ func (g *GameState) moveCombatPushActor(
 // Helper methods - These could be moved to more appropriate files (map_state or collision system)
 // when the codebase is restructured, but are kept here for now to support push functionality.
 
+// ObjectPresentAt reports a visible map unit on the player's current floor.
 func (g *GameState) ObjectPresentAt(position *references.Position) bool {
 	if position == nil {
 		return false

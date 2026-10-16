@@ -836,6 +836,9 @@ for the next command; it is not silently discarded just to permit a save.
 
 - Active combat, camping, or shrine scenes.
 - Active event-queue workflows or background queues.
+- A retained waterfall continuation (`activeWaterfall`), including actor/contact
+  handoffs between physical waterfall workflows. Capture remains ineligible even
+  when no waterfall workflow is currently live.
 - Pending overworld encounters or direct monster contact.
 - Pending pirate attack presentation or an active surface command cycle.
 - Active automatic sailing.
@@ -883,6 +886,18 @@ Never include:
 - Tavern customer-session identity and all Tavern presentation, including the transient table-food overlay and paid-information transcript.
 
 Deterministic continuation stores the runtime RNG seed and source-call count, never a `*rand.Rand` pointer.
+
+Outdoor Blink window origins and quadrant retention are runtime-only gameplay
+state, not serialized camera state. Every actual hydration initializes them from
+the final loaded outdoor position and plane, following normal original startup.
+This includes legacy import, player loads, Workbench loads/rollback and named
+scenario baselines. Saving alone preserves live history; a current-state scenario
+without hydration also preserves it. Thus the next Blink may differ after a load
+at unchanged coordinates. Failed candidate construction/activation preserves the
+old scene's window. No schema change is required for this explicit reset contract.
+Temporary outdoor Push writes are already excluded from capture; initialization
+expires only writes still owned by Push, never unrelated durable map mutations,
+NPCs, objects, or progression. See [SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spell-0002).
 
 ## Validation
 

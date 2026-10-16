@@ -285,7 +285,7 @@ func (g *GameState) resolvePirateCannon(
 	}
 
 	result.Outcome = PirateAttackHit
-	result.Hit = g.ResolveSourceHit()
+	result.Hit = g.ResolveRangedSourceHit()
 
 	return result
 }

@@ -1,4 +1,3 @@
-//nolint:maintidx,mnd,varnamelen // Central key routing and domain-specific cadence are clearer together.
 package main
 
 import (
@@ -23,7 +22,15 @@ const (
 	shipBadlyDamagedHullThreshold   = 10
 )
 
+//nolint:maintidx // Keep outdoor command routing and each command's completion ownership together.
 func (g *GameScene) largeMapInputHandlerWithGame(game *Game, key ebiten.Key) {
+	g.syncAutomaticSailingInterruption()
+	if g.sailingMovementHeldBeforeInterruption(key) {
+		return
+	}
+	if g.interruptAutomaticSailingForCommand(key) {
+		return
+	}
 	g.clearSurfaceCameraForInput(key)
 	if g.keyboard.IsModifierComboPressed(input.ModifierCtrl, ebiten.KeyM) {
 		g.toggleMusic()
@@ -41,6 +48,7 @@ func (g *GameScene) largeMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 	originMapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
 	result := newSurfaceCommandResult(surfaceCommandStillActive, originMapType)
 
+	//nolint:exhaustive // Only outdoor command keys are admitted; unbound keys return without completing a command.
 	switch key {
 	case ebiten.KeyD, ebiten.KeyW:
 		g.gameState.SystemCallbacks.Message.AddRowStr(key.String() + "-What?")
@@ -287,6 +295,7 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 	}
 	direction := directionInput.Direction
 
+	//nolint:exhaustive // Only outdoor direction prompts dispatch here; other input owners reset to primary input.
 	switch g.secondaryKeyState {
 	case JimmyDoorDirectionInput:
 		state := g.largeMapJimmySecondaryWithDialog(direction, func(state surfaceCommandState) {
@@ -383,7 +392,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 		Sequential().
 		First(func() {}).
 		While(
-			func() bool { return !stopped && g.gameState.IsSailing() },
+			func() bool { return !stopped && g.gameState.ContinueAutomaticSailing() },
 			func() {
 				g.surfaceCamera = surfaceCameraProjection{}
 				key := g.GetPressedKey()
@@ -416,7 +425,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 					waitCounter++
 					if g.gameState.HasPendingOverworldContact() {
 						hadEnemyContact = true
-						g.gameState.StopAutomaticSailing()
+						g.gameState.StopAutomaticSailingForCombat()
 						stopped = true
 					}
 
@@ -433,7 +442,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 				g.completeSurfaceMovement(result)
 				if g.gameState.HasPendingOverworldContact() {
 					hadEnemyContact = true
-					g.gameState.StopAutomaticSailing()
+					g.gameState.StopAutomaticSailingForCombat()
 					stopped = true
 
 					return
@@ -446,7 +455,10 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 					return
 				}
 				if result.MovementOccurred && g.gameState.IsPlayerCurrentlyOnWhirlpool() {
-					g.gameState.PartyVehicle.GetVehicleDetails().SetSailState(map_units.SailFurled)
+					vehicle := g.gameState.PartyVehicle.GetVehicleDetails()
+					if vehicle.VehicleType == references.FrigateVehicle {
+						vehicle.SetSailState(map_units.SailFurled)
+					}
 					g.gameState.StopAutomaticSailing()
 					stopped = true
 				}
@@ -459,7 +471,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 
 		func() bool { return hadEnemyContact }, func(q *event_queue.SequentialEventBuilder) {
 			q.Then(func() {
-				g.gameState.PartyVehicle.GetVehicleDetails().SetSailState(map_units.SailFurled)
+				g.gameState.StopAutomaticSailingForCombat()
 			})
 		}).If(
 
@@ -554,6 +566,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 			if consumeStopInput {
 				g.keyboard.PrepareForTransition(0)
 			}
+			g.syncAutomaticSailingInterruption()
 		}).
 		Start()
 

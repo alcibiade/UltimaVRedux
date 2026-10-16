@@ -14,6 +14,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
 func TestMovementPromptUsesVehicleConfigurationWithoutAutomaticSailing(t *testing.T) {
@@ -54,6 +55,7 @@ func TestFrigateHeadingChangeFinishesExactlyOneTurn(t *testing.T) {
 	gs.DebugOptions.MonsterGen = false
 	scene := &GameScene{ //nolint:exhaustruct // Focused heading-turn input fixture.
 		gameState:            gs,
+		keyboard:             input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false }),
 		output:               text.NewOutput(nil, 1, 10, 80),
 		dialogStack:          widgets.DialogStack{},
 		moongateVisualSystem: NewMoongateVisualSystem(gs),

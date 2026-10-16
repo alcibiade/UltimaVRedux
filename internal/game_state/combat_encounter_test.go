@@ -704,7 +704,7 @@ func TestPirateDefeatDoesNotCreateSalvageFrigate(t *testing.T) {
 		GetVehicleAtPositionAndFloorOrNil(sourcePosition, gs.MapState.PlayerLocation.Floor))
 }
 
-func TestFrigateEncounterPreservesPartyVehicleState(t *testing.T) {
+func TestFrigateEncounterFurlsSailsAndPreservesRemainingPartyVehicleState(t *testing.T) {
 	gs, _ := NewIntegrationTestBuilder(t).
 		WithRandomSeed(179).
 		WithSystemCallbacks().
@@ -726,13 +726,16 @@ func TestFrigateEncounterPreservesPartyVehicleState(t *testing.T) {
 	sourceEnemy := addOverworldTestEnemy(t, gs, references.MonsterShark, enemyPosition)
 
 	require.NoError(t, gs.StartOverworldCombatEncounter(sourceEnemy))
+	assert.Equal(t, map_units.SailFurled, gs.PartyVehicle.GetVehicleDetails().GetSailState())
+	assert.False(t, gs.IsSailing())
 	gs.EndCombat(CombatDefeat)
 
 	restoredDetails := gs.PartyVehicle.GetVehicleDetails()
 	assert.Equal(t, references.FrigateVehicle, restoredDetails.VehicleType)
 	assert.Equal(t, 77, restoredDetails.GetHullHP())
 	assert.Equal(t, 1, restoredDetails.GetSkiffQuantity())
-	assert.Equal(t, map_units.SailRaised, restoredDetails.GetSailState())
+	assert.Equal(t, map_units.SailFurled, restoredDetails.GetSailState())
+	assert.False(t, gs.IsSailing(), "combat return leaves movement under manual control")
 	assert.Equal(t, references.Left, restoredDetails.CurrentDirection())
 	assert.True(t, restoredDetails.HasHMSCape)
 }

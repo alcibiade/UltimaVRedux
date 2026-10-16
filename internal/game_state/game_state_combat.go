@@ -1050,6 +1050,8 @@ func (g *GameState) commitCombatTransition(
 	if !combatState.specialRingsInitialized {
 		panic("combat transition committed before special ring initialization")
 	}
+	g.reconcileWaterfallCombatEntry(combatState)
+	g.StopAutomaticSailingForCombat()
 	g.resetHarpsichordMelody()
 	g.combatEncounterSequence++
 	combatState.EncounterID = CombatEncounterID(g.combatEncounterSequence)

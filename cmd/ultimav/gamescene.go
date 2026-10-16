@@ -209,6 +209,7 @@ type GameScene struct {
 
 	secondaryKeyState             InputState
 	transientCommandInput         transientCommandInputState
+	observedSailingStopEpoch      uint64
 	surfaceSpellWorkflowOwnsCycle bool
 	castUseDirectionDialog        *widgets.MessageDialog
 	potionEffectDialog            *widgets.OverlayDialog
