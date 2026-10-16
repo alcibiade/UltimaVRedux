@@ -24,9 +24,9 @@ MIT-licensed; bundled media has separate terms described in [Asset credits](ASSE
 Explore Britannia's towns, wilderness, and dungeons. Meet its inhabitants, assemble
 your party, and face tactical battles in a world of magic and mystery.
 
-![Overworld exploration near Lord British's castle, with party status and supplies alongside the map](screenshots/overworld-gameplay.png)
+![The party explores the wooded coastline of West Winds by torchlight, with six companions and supplies alongside the map](screenshots/overworld-gameplay.png)
 
-*Britannia awaits: exploring the countryside near Lord British's castle.*
+*Explore West Winds by torchlight: a wooded coastline, a full party, and the journey ahead.*
 
 These screenshots show existing development builds; details may differ in the
 current preview.
