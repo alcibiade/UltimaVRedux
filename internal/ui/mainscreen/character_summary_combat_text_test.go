@@ -77,6 +77,15 @@ func TestCharacterSummaryCombatTextApplyClearMultipleMembersAndRenderCache(t *te
 			party := summaryBaselineParty()
 			summary := NewCharacterSummaryForWidth(sprites.NewSpriteSheet(), width)
 			t.Cleanup(summary.Dispose)
+			// Even portrait sizes keep the 18x18 artwork off exact nearest-neighbour
+			// texel boundaries, whose rounding can change with native atlas placement.
+			// Keep the resolution's font and status-cell width for the text/fit assertions;
+			// the separate layout baseline test covers the original row geometry.
+			bounds := summary.bounds
+			rowHeight := bounds.Dy() / party_state.MaxCharactersInParty
+			rowHeight -= rowHeight % 2
+			bounds.Max.Y = bounds.Min.Y + rowHeight*party_state.MaxCharactersInParty
+			summary.SetBounds(bounds)
 			screen := ebiten.NewImage(width, width*9/16)
 			t.Cleanup(screen.Dispose)
 			draw := func() {
