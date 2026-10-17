@@ -202,11 +202,26 @@ func (g *GameState) IsFalling() bool {
 // with lava; the original town floor is 32 by 32. ref:ENV-0002
 func (g *GameState) FloodFloorWithLava() {
 	currentMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, g.MapState.PlayerLocation.Floor)
+	trackedDoor := g.MapState.TrackedOpenDoor()
+	trackedOnFloor := trackedDoor != nil && trackedDoor.Position.Location == g.MapState.PlayerLocation.Location &&
+		trackedDoor.Position.Floor == g.MapState.PlayerLocation.Floor
+	if trackedOnFloor {
+		// Destructive replacement retires the timer without writing its old tile.
+		// REDUX DEVIATION: CMD-0006 / ENV-0002: an original pending closure can
+		// recreate a door after the flood. Redux retires that superseded door so
+		// the lethal lava scene cannot retain or resurrect room-door graphics.
+		g.MapState.ResetTransientDoor()
+	}
 
 	// Fill all 32-by-32 current-floor terrain cells with lava. ref:ENV-0002
 	for x := range 32 {
 		for y := range 32 {
 			pos := &references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}
+			base := currentMap.SpriteIndexByLayer(map_state.MapLayer, *pos)
+			override := currentMap.SpriteIndexByLayer(map_state.MapOverrideLayer, *pos)
+			if base.IsDoor() || override.IsDoor() || trackedOnFloor && trackedDoor.Position.Position == *pos {
+				currentMap.UnSetTileByLayer(map_state.MapOverrideLayer, pos)
+			}
 			currentMap.SetTileByLayer(map_state.MapLayer, pos, indexes.Lava)
 		}
 	}

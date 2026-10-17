@@ -8,10 +8,9 @@ import (
 
 // Presentation delays do not charge gameplay minutes. ref:ENV-0003.
 const (
-	waterfallWorkflowName    = "waterfall_hazard"
-	waterfallStepDelayMs     = 255
-	waterfallGlideDurationMs = 2500
-	waterfallFadeDurationMs  = 500
+	waterfallWorkflowName   = "waterfall_hazard"
+	waterfallStepDelayMs    = 255
+	waterfallFadeDurationMs = 500
 
 	// Underworld entry point after the original two southward moves.
 	waterfallUnderworldEntryX = 54  // 0x36

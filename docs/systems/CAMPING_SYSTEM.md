@@ -66,6 +66,10 @@ rows. All six party rows plus **No One** fit together; No One has blank resource
 and condition cells. A measured explanation below the roster and the control
 footer retain their space when inspecting another row or resizing. These are
 current resources, not predicted rest gains. Reopening takes a fresh snapshot.
+The content-sized card is centred inside the map area. Measured columns stay
+grouped on large/ultrawide windows; extra workspace stays outside the card. Width
+precedes explanation wrapping, selection never resizes it, and narrow screens keep
+the existing two-line fallback.
 
 Arrows and number keys inspect without confirmation; Enter accepts an actionable
 or warning row, and Escape cancels. No resource-based guard recommendation or

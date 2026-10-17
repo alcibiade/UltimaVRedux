@@ -142,19 +142,6 @@ func (d *QuestJournalDialog) revealSearchMatch() {
 
 		return
 	}
-	if d.activeTab == QuestJournalHistoryTab {
-		span := d.history.spans[d.history.selectedSpan()]
-		for index := span.start; index < span.end; index++ {
-			if journalHasMatch(d.history.rows[index].Text, d.readingQuery) {
-				d.history.top = d.history.clampTop(index)
-				d.history.rememberAnchor()
-
-				return
-			}
-		}
-
-		return
-	}
 	for page, lines := range d.detailPages() {
 		for _, line := range lines {
 			value := line.value

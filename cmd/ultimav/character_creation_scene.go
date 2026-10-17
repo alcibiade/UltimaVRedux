@@ -157,6 +157,7 @@ type CharacterCreationScene struct {
 	onCancel             func()
 	terminalAction       func()
 	terminalNotice       string
+	terminalHint         string
 	active               bool
 	terminal             bool
 	disposed             bool
@@ -255,6 +256,7 @@ func newCharacterCreationScene(
 		onCancel:       callbacks.OnCancel,
 		terminalAction: nil,
 		terminalNotice: "",
+		terminalHint:   "",
 		active:         false,
 		terminal:       false,
 		disposed:       false,
@@ -417,20 +419,22 @@ func (scene *CharacterCreationScene) updateTerminal() {
 	action()
 }
 
-func (scene *CharacterCreationScene) configureTerminalAction(action func(), notice string) {
+func (scene *CharacterCreationScene) configureTerminalAction(action func(), notice, hint string) {
 	if !scene.terminal || action == nil {
 		panic("CharacterCreationScene.configureTerminalAction: terminal scene and action are required")
 	}
 	scene.terminalAction = action
 	scene.terminalNotice = notice
+	scene.terminalHint = hint
 	scene.keyboard.PrepareForTransition(0)
 }
 
-func (scene *CharacterCreationScene) setTerminalNotice(notice string) {
+func (scene *CharacterCreationScene) setTerminalNotice(notice, hint string) {
 	if !scene.terminal {
 		panic("CharacterCreationScene.setTerminalNotice: terminal scene is required")
 	}
 	scene.terminalNotice = notice
+	scene.terminalHint = hint
 	scene.keyboard.PrepareForTransition(0)
 }
 
@@ -799,20 +803,28 @@ func (scene *CharacterCreationScene) Draw(screen *ebiten.Image) {
 	default:
 		panic("CharacterCreationScene.Draw: unknown state")
 	}
-	if scene.terminalNotice != "" {
-		scene.promptOutput.Reset()
-		line := scene.promptOutput.AppendLine().Yellow(scene.terminalNotice)
-		if scene.state == characterCreationComplete {
-			widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), "Esc: Discard.")
-		}
-		line.Done()
-		scene.promptOutput.DrawPanelContent(scene.canvas, image.Pt(8, 176), 304, textv2.AlignCenter)
-	}
+	scene.drawTerminalNotice()
 	drawNarrativeCanvas(screen, scene.canvas)
 	if scene.state == characterCreationDiscardConfirmation {
 		scene.drawDiscardConfirmation(screen)
 	}
 	scene.dialogStack.Draw(screen)
+}
+
+func (scene *CharacterCreationScene) drawTerminalNotice() {
+	if scene.terminalNotice == "" {
+		return
+	}
+	scene.promptOutput.Reset()
+	line := scene.promptOutput.AppendLine().Yellow(scene.terminalNotice)
+	if scene.terminalHint != "" {
+		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), scene.terminalHint)
+	}
+	if scene.state == characterCreationComplete {
+		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), "Esc: Discard.")
+	}
+	line.Done()
+	scene.promptOutput.DrawPanelContent(scene.canvas, image.Pt(8, 176), 304, textv2.AlignCenter)
 }
 
 func (scene *CharacterCreationScene) drawName() {
@@ -992,8 +1004,10 @@ func (scene *CharacterCreationScene) prepareDiscardConfirmation(screen image.Rec
 			MaxLines: 3, MaxChars: max(len(title), len(choices), len(hint)),
 		}, width)
 		scene.discardOutput.AppendLine().White(title).Done()
-		scene.discardOutput.AppendLine().Yellow(choices).Done()
-		scene.discardOutput.AppendLine().LightGray(hint).Done()
+		scene.discardOutput.AppendLine().Text("Y", widgets.DialogControlKeyColor).
+			Text(" / ", widgets.DialogControlHintColor).Text("N", widgets.DialogControlKeyColor).Done()
+		scene.discardOutput.AppendLine().Text("Escape", widgets.DialogControlKeyColor).
+			Text(" continues creation.", widgets.DialogControlHintColor).Done()
 		scene.discardScreenWidth = width
 	}
 	output := scene.discardOutput

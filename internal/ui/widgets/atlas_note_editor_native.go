@@ -77,7 +77,7 @@ func (e *AtlasNoteEditor) prepareNativeInput() bool {
 	_, _, wasComposing := field.CompositionSelection()
 	handled, err := field.HandleInputWithBounds(e.nativeCaretBounds())
 	if err != nil {
-		e.message = fmt.Sprintf("Note text input failed: %v. Press Esc to cancel.", err)
+		e.message = fmt.Sprintf("Note text input failed: %v.", err)
 		e.inputFailed = true
 		e.releaseNativeFields()
 		e.blockNativeControls(true)

@@ -341,7 +341,7 @@ func (d *ConfigurationDialog) persistConfiguration() bool {
 		Display:  d.stagedDisplay,
 		Gameplay: d.stagedGameplay,
 	}); err != nil {
-		d.saveError = "Could not save configuration. Enter retries; Esc cancels."
+		d.saveError = "Could not save configuration."
 		logging.Warn(logging.CategoryConfig, "Failed to save player configuration: %v", err)
 
 		return false

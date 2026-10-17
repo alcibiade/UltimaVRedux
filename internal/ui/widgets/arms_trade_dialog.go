@@ -23,7 +23,7 @@ const (
 	armsTradeMinimumInset     = 5
 	armsTradeLineSpacing      = 1.1
 	armsTradeMaximumBodyLines = 12
-	armsTradeFooterLines      = 2
+	armsTradeFooterLines      = 3 // Quantity/Sell All wraps once before the explicit confirm/back row.
 	armsTradeMinimumTextChars = 8
 )
 

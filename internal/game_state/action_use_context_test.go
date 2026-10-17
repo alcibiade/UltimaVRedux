@@ -1,7 +1,6 @@
 package game_state
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,7 +80,7 @@ func TestHMSCapeUseIsAvailableAnywhereAndActionDefersMutation(t *testing.T) {
 			assert.NotNil(t, callbacks.HMSCapeUseCommit)
 			assert.False(t, state.IsHMSCapeActivated(), "the action must leave mutation to confirmed authority")
 			assert.True(t, item.AvailableNow)
-			assert.Contains(t, item.EffectSummary, "all frigates")
+			assert.Equal(t, "Consult the plans.", item.EffectSummary)
 		})
 	}
 }
@@ -107,10 +106,8 @@ func TestGetUsableItemsForContextDungeonIncludesSourceBackedItems(t *testing.T) 
 	assert.True(t, usableItemsContain(items, references.ScrollVasLor))
 	assert.True(t, usableItemsContain(items, references.Amulet))
 	for _, item := range items {
-		assert.NotEmpty(t, item.EffectSummary)
-		assert.NotEmpty(t, item.NextInteraction)
-		assert.NotEmpty(t, item.Requirement)
-		assert.NotEmpty(t, item.Consumption)
+		assert.NotEmpty(t, item.Description)
+		assert.Empty(t, item.UnavailableReason)
 	}
 }
 
@@ -131,11 +128,11 @@ func TestDungeonUseProjectionDescribesPreTargetConsumptionAndWhitePotionRejectio
 	woodenBox := requireUsableItem(t, items, references.WoodenBox)
 
 	assert.False(t, whitePotion.AvailableNow)
-	assert.Equal(t, "No noticeable effect in a dungeon; it is still consumed.", whitePotion.Warning)
-	assert.Equal(t, "Consumed on target confirmation, even with no effect; cancellation is free.", resurrection.Consumption)
+	assert.Contains(t, whitePotion.Warning, "still be consumed")
+	assert.Equal(t, "Single use.", resurrection.Consumption)
 	assert.False(t, shard.AvailableNow)
-	assert.Equal(t, "No effect in a dungeon; the shard is retained.", shard.Warning)
-	assert.Equal(t, "Selecting it in a dungeon reports 'How?'.", woodenBox.Warning)
+	assert.Equal(t, "You cannot use it here.", shard.UnavailableReason)
+	assert.Equal(t, "You cannot use it here.", woodenBox.UnavailableReason)
 }
 
 func TestGetUsableItemsForContextProjectsCanonicalNamesKeysAndApplicability(t *testing.T) {
@@ -159,17 +156,17 @@ func TestGetUsableItemsForContextProjectsCanonicalNamesKeysAndApplicability(t *t
 
 	assert.Equal(t, "Crown of Lord British", crown.FullName)
 	assert.False(t, fieldPurple.AvailableNow)
-	assert.Contains(t, fieldPurple.Warning, "outside combat")
-	assert.Equal(t, "Choose a party member.", fieldYellow.NextInteraction)
+	assert.Contains(t, fieldPurple.Warning, "may have no effect")
+	assert.Equal(t, "Choose who will drink it.", fieldYellow.EffectSummary)
 	assert.True(t, combatPurple.AvailableNow)
-	assert.Equal(t, "Affects the active combatant immediately.", combatPurple.NextInteraction)
-	assert.Equal(t, "Affects the active combatant immediately.", combatYellow.NextInteraction)
-	assert.Equal(t, "Most useful when the active combatant is living and wounded.", combatYellow.Requirement)
+	assert.Equal(t, "Drink.", combatPurple.EffectSummary)
+	assert.Equal(t, "Drink.", combatYellow.EffectSummary)
+	assert.Empty(t, combatYellow.Requirement, "colour does not promise an effect")
 	assert.Equal(t, UseItemCategoryKeys, keys.Category)
 	assert.Equal(t, "Skull Keys", keys.FullName)
 	assert.Equal(t, 2, keys.Quantity)
 	assert.True(t, keys.AvailableNow, "Britain is a small-map location")
-	assert.True(t, strings.Contains(keys.Consumption, "consumed"))
+	assert.Contains(t, keys.Consumption, "Each attempt uses one key")
 }
 
 func TestRevalidateUseItemSelectionRejectsRemovedInventory(t *testing.T) {
@@ -202,7 +199,7 @@ func TestUseItemProjectionLimitsLocationFailureToNonCombatTimeStop(t *testing.T)
 
 			assert.True(t, scroll.AvailableNow)
 			assert.Empty(t, scroll.Warning)
-			assert.Equal(t, "Ready to use.", scroll.Requirement)
+			assert.Empty(t, scroll.Requirement)
 		})
 	}
 
@@ -213,8 +210,7 @@ func TestUseItemProjectionLimitsLocationFailureToNonCombatTimeStop(t *testing.T)
 	state.PartyState.Inventory.Scrolls.Set(references.ScrollAnTym, 1)
 	timeStop := requireUsableItem(t, state.GetUsableItemsForContext(UsageField), references.ScrollAnTym)
 	assert.False(t, timeStop.AvailableNow)
-	assert.Equal(t, "No effect here; this scroll is still consumed.", timeStop.Warning)
-	assert.Equal(t, "Reports 'No effect!' after consumption.", timeStop.NextInteraction)
+	assert.Equal(t, "It has no effect here, but will still be consumed.", timeStop.Warning)
 
 	for _, origin := range []references.Location{references.Stonegate, references.Doom} {
 		t.Run(origin.String()+" combat origin", func(t *testing.T) {
@@ -238,7 +234,7 @@ func TestUseItemProjectionLimitsLocationFailureToNonCombatTimeStop(t *testing.T)
 				combatState.PartyState.Inventory.Scrolls.Set(scroll, 1)
 				item := requireUsableItem(t, combatState.GetUsableItemsForContext(UsageCombat), scroll)
 				assert.True(t, item.AvailableNow, "%v should be available from %v combat", scroll, origin)
-				assert.Empty(t, item.Warning)
+				assert.NotContains(t, item.Warning, "no effect here")
 			}
 		})
 	}

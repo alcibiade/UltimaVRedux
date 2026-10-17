@@ -234,6 +234,12 @@ Expected:
 - The NPC spawns two tiles north of the Avatar on the current floor.
 - The successful Yell does not advance game time, and the Shadowlord remains at
   that initial position until a subsequent action advances NPCs.
+- Repeat on foot and carpet, in each mounted cadence phase. Wait through the
+  entire appearance and input release: no extra step or encounter may occur.
+  From directly south of the matching Flame, with no temporal modifier, one
+  explicit Pass should move the lord onto the Flame without attacking in the same
+  step; the next matching shard Use should remain available. Record the build,
+  platform and observed result. Injected-input tests are not this native check.
 - World Diagnostics reports the selected Shadowlord as summoned.
 - Yell summoning does not apply automatic town NPC or crop effects.
 - Yell summoning does not display the automatic-presence `An air of ...`

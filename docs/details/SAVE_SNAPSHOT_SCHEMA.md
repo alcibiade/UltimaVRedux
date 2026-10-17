@@ -806,6 +806,10 @@ Saved values are rejected rather than normalized. The live collector's rune-safe
 shortening and assembly rules are documented in
 [Message Output](../systems/MESSAGE_OUTPUT_SYSTEM.md#journal-history).
 
+Journal no longer offers a History reader. This field and its strict validation
+remain for live main-output rail restoration and compatibility with supported
+older saves; the UI removal changes neither the snapshot version nor retained text.
+
 `visits` stores only finite change keys/revisions and three independent seen
 baselines. Tab identities are Chronicle `0`, Virtues `1`, and Shadowlords `2`;
 History has no visit metadata. Entry identities are Chronicle sequence `1..48`,

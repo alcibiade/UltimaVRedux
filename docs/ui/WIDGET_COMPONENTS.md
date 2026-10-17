@@ -30,7 +30,7 @@ Paths in this table are relative to `internal/ui/widgets/` unless stated.
 | Tabs / scrolling selection | `tabbed_interface.go`, `scrollable_list_state.go` | List state is not a widget or input owner. |
 | Focus decoration | `focus_indicator.go` | FocusManager does not read keys; owner maps traversal and updates/draws it. |
 | Player checkpoint selection | `save_slot_browser.go` | Detached views; no persistence or revision authority. |
-| Journal reading | `quest_journal_dialog.go`, `quest_journal_history.go`, `quest_journal_search.go`, `quest_journal_excerpts.go` | Detached opening snapshot; scene owns pause, acknowledgements, and persistence. |
+| Journal reading | `quest_journal_dialog.go`, `quest_journal_search.go`, `quest_journal_excerpts.go` | Detached opening snapshot; scene owns pause, acknowledgements, and persistence. |
 | Traveller's map / personal notes | `atlas_dialog.go`, `atlas_panels.go`, `atlas_view.go`, `atlas_render.go`, `atlas_note_editor.go` | Detached point authorities and separate supplied artwork; scene owns pause/preferences and note intents; application lends one geography texture. |
 | Commands / status reference | `command_help_dialog.go` | Detached command and visible-status snapshots; Tab switches pages without gameplay actions. |
 | Party selection/reordering | `character_selection_dialog.go`, `character_roster_dialog.go`, `new_order_dialog.go` | Inspectable and actionable rows differ; preserve stable character identity. |
@@ -306,8 +306,12 @@ explanation without a child editor. The shortcut's narrower context and held-N
 release guard belong to [input routing](../systems/INPUT_HANDLING.md#travellers-map).
 
 Creating a note needs a valid current fix; editing/deleting an existing note does
-not. GameState owns single-use, checkpoint-bound drafts and revalidates before
-commit. Editing preserves the original point and date. There are at most 256
+not. Personal-note map markers use the existing paper silhouette in green, with
+its dark outline and independent yellow selection brackets. Existing notes need
+no migration. Places-row text and vessel colours retain their existing roles;
+green note ink grants no discovery. GameState owns single-use, checkpoint-bound
+drafts and revalidates before commit. Editing preserves the original point and
+date. There are at most 256
 notes, with a required trimmed label of 1–32 printable ASCII characters and an
 optional description of at most 500 characters (printable ASCII plus LF).
 Creation refusals explain unavailable fixes or capacity in the atlas. Validation
@@ -459,7 +463,6 @@ Paging and boundary exceptions are explicit:
 |---|---|
 | Z-Stats ordinary lists, Use, Ready, Mix ingredients, Arms catalog | Half a visible list; clamp at first/last item. |
 | Shared spell finder (Z-Stats, Cast, Mix), ordinary Journal lists/search | Full visible list; clamp. |
-| Journal History | Read message pages while preserving its oversized-message rules. |
 | Journal Last Conversation / Excerpts | No Page-key or Shift+arrow action; Space/Shift+Space pages within an exchange. Arrows select exchanges. |
 | Talk history / Tavern transcript / Command Help | Page the reader's text using its existing measured page boundaries. Talk's Shift+Up also opens history. |
 | Button menus | Page the selected description; arrows retain wraparound selection. |
@@ -491,7 +494,9 @@ The caller retains the reviewed revision and draft and removes the exact editor
 and browser before gameplay capture. `OnResult` runs before automatic stack
 removal. Invalid/oversized input preserves the prior value rather than truncating;
 native input errors retain text and show a failure instead of silently cancelling.
-Ctrl+U clears without submitting; Backspace has delayed repeat, and native
+Ctrl+U clears without submitting, recognizing either `u` or `U` accompanying the
+physical chord, including at the rune limit and with a selection. Native
+composition remains the owner until its controls release. Backspace has delayed repeat, and native
 composition edits must not replay as local deletion. Opening Enter is release-
 gated; focus loss/dismissal resets repeat and native text focus follows top-modal
 ownership.
@@ -567,7 +572,7 @@ not establish native OS runtime acceptance.
 ## QuestJournalDialog
 
 The Journal is a modal over a detached opening snapshot, with Chronicle, Virtues,
-Shadowlords, History, Dungeons, Last Conversation, Excerpts, and Moonstones tabs. The scene
+Shadowlords, Dungeons, Last Conversation, Excerpts, and Moonstones tabs. The scene
 owns the [Journal pause](../systems/TIME_SYSTEM.md#journal-pause), exact removal,
 visit acknowledgements, and excerpt persistence. Browsing never mutates gameplay.
 
@@ -581,13 +586,13 @@ visit acknowledgements, and excerpt persistence. Browsing never mutates gameplay
 - Stars mean new since the last visit to a curated tab, not individually unread.
   They stay frozen during browsing/search/resize. `VisitedTabs` records actual
   visits, including opening Chronicle. Dismissal acknowledges only visited tabs,
-  only through the opening revision. History has no stars. Do not repurpose
+  only through the opening revision. Do not repurpose
   spell Unread or Chronicle Acknowledged state for these baselines.
 
 ### Search And Discovery
 
-`/` searches display-safe title/detail values in readable entries, accessible
-History, Last Conversation, and visible kept Excerpts. Archived excerpts are
+`/` searches display-safe title/detail values in readable entries,
+Last Conversation, and visible kept Excerpts. Archived excerpts are
 excluded unless Show Archived is on; Last Conversation remains searchable
 independently of notebook archive state. Every case-insensitive query word
 must match, in any order. Hidden IDs, unlearned values, and Runic transliterations
@@ -629,7 +634,7 @@ Rows, search-result titles, and the persistent detail heading use the actual
 `0x30 + phase` Runic glyph through mixed-font `text.Output`; full names are
 measured to fit, never ellipsized or wrapped away in one-row buffers. Selected
 glyphs use the selected text foreground, preserving the New Moon outline against
-both backgrounds. The eighth tab occupies the second measured header row.
+both backgrounds. Moonstones occupies the second measured header row.
 
 Moonstone details distinguish carried, current last-observed placement, and
 unmeasured states. Coordinates appear only from public current surveyed records,
@@ -642,24 +647,14 @@ fallback. Neither widgets nor search receive private recognition sites or observ
 [moonstone knowledge](../gamefacts/MOONSTONE_LOCATIONS.md#moon-0006) and
 [surveys](../gamefacts/MOONSTONE_LOCATIONS.md#moon-0008).
 
-### History Reader
+### Main Output Compatibility
 
-History reflows the detached [plain main-output source](../systems/MESSAGE_OUTPUT_SYSTEM.md#journal-history)
-at measured width and exposes the newest `3*C` wrapped rows (`C` is pane row
-capacity). Separators consume space but are not selectable. Arrows select whole
-messages, including repeated identical emissions; all visible rows of the selected
-message invert. Page keys read accessible portions of an oversized message before
-moving beyond it. Home/End exposes oldest/newest available text.
-
-Cancelling search preserves the previous reading anchor; search explicitly states
-its recent-history and archived-excerpt scope. Curated detail footers show page
-position only for multi-page entries.
-
-Entering History selects newest and shows the tail, except a search result reveals
-its matching message. Resize preserves message identity/source anchor where still
-available without trimming retained source. The window may start inside a message.
-Enter has no History action. Plain history does not restore source colors, Runic
-styling, or graphical prompt markers.
+History is no longer a Journal reader, tab or search source. The bounded
+[plain main-output source](../systems/MESSAGE_OUTPUT_SYSTEM.md#journal-history)
+remains necessary for restoring the live message rail from supported saves.
+Its canonical collection, validation and snapshot field are retained; this UI
+removal requires no save-schema change. Curated visit IDs remain 0, 1 and 2.
+Talk's own history, Last Conversation and save-owned Excerpts remain separate.
 
 ### Conversation Readers
 
@@ -703,8 +698,7 @@ captured speech. The original Shadowlord sprite is integer-scaled without
 invented per-lord palettes. Shared footers distinguish keys from descriptions;
 Shift abbreviations must not become an ambiguous bare S.
 
-Verification: `quest_journal_dialog_test.go`, `quest_journal_history.go` and its
-reader coverage in `quest_journal_dialog_test.go`, `quest_journal_excerpts_test.go`,
+Verification: `quest_journal_dialog_test.go`, `quest_journal_feature_test.go`, `quest_journal_excerpts_test.go`,
 and the scene-owned Journal tests. Conversation capture semantics are in
 [the conversation system](../systems/LINEAR_CONVERSATION_SYSTEM.md).
 
@@ -830,8 +824,13 @@ is a detached snapshot, refreshed only by reopening, and never parses free-form
 Facts to obtain numbers. Supplying Resources alone does not select this layout;
 the explicit flag also takes precedence over healing Health data.
 
-The guard layout places a full-width Name/HP/MP/Condition roster above its measured
-explanation and footer. Every party member remains visible, including all six
+The guard layout measures all names/identity markers, HP/MP fractions and
+conditions, then centres a content-sized card inside the supplied map workspace.
+Larger windows add space around the card, not between the resource columns.
+Title/footer requirements may widen the card without spreading the column group.
+Width is selected before wrapping the longest explanation, reserving stable
+height across selection. Constrained screens retain the measured two-line
+fallback and typography-fit policy. Every party member remains visible, including all six
 members plus No One; No One has blank HP/MP/Condition cells. Complete numeric
 values and condition colours survive selection and resize. Arrows/number keys
 inspect and Enter confirms; there is no automatic guard choice or recovery
@@ -849,8 +848,22 @@ All owned Use-category items appear even when none can be activated. An explicit
 applicability. Such rows are muted and marked `[No]` with an `Unavailable` legend;
 selection keeps readable contrast. Enter retains the picker/selection and returns
 to the first detail page's concrete restriction. Likely no-effect but permitted
-items remain selectable with explicit warnings and expenditure text. Action detail
-pages precede lore.
+items remain selectable with explicit warnings and expenditure text. The ordinary
+view combines concise handling/current state with atmospheric lore. Long lore
+fills remaining space and continues through measured paging without clipping or
+shrinking text. Page counts/Space hints appear only for overflow. There is no
+Action/Effect/Next/Now/Consumed form stack or separate "Why unavailable" layer.
+Wearables say worn/not worn; names include item families and the artifact tab is
+labelled Artifacts.
+
+Owning/highlighting an item grants no knowledge of hidden powers, rituals, required
+quest locations/objects or conversation-earned clues. This applies to lore,
+restrictions, warnings and pre-use prompts. Without reliable earned-knowledge
+tracking, Use-specific copy is conservative; no knowledge flags are added.
+Technical catalog descriptions stay separate. Retained borrowed lore keeps its
+attribution; rewritten original descriptions are not presented as quotations.
+Actual deliberate-use feedback may describe what happened. Potion colour promises
+no particular effect, and warning-only attempts retain their availability/costs.
 Nonempty categories retain independent selection/scroll; item/category changes
 reset details. Tabs/Left/Right wrap categories, arrows browse, page keys move half
 a viewport, Space pages details, Enter selects, and Escape cancels. There are no

@@ -109,7 +109,16 @@ Blocked fallback contains a source-array hazard, so intended greedy behavior is
 not a complete runtime specification. Redux separates summoned/automatic actors
 and validates placement; unusual collision/failed insertion equivalence is unverified.
 
-**Implementation:** `internal/game_state/shadowlord_spawn.go`
+Redux successful small-map Yell completes without a normal town cycle: appearance
+and input cleanup owe no calendar, duration, mounted-cadence, NPC or gameplay-RNG
+advance. Calling directly south of an unblocked Flame leaves the lord two squares
+north. Without temporal modifiers, the next explicit Pass permits one pursuit
+step onto the Flame without attacking in that same step, leaving the matching
+shard usable. Foot/carpet share this completion rule; subsequent pursuit and
+temporal modifiers retain ordinary cadence. Production input/queue regressions
+cover all three Flames; native play and unusual blocked pursuit remain separate.
+
+**Implementation:** `internal/game_state/shadowlord_spawn.go`, `cmd/ultimav/gamescene_dialogs.go`, `cmd/ultimav/gamescene_summon_turn_test.go`
 
 ### SHADOW-0005
 

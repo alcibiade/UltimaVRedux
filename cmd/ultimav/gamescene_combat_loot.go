@@ -30,7 +30,9 @@ func (g *GameScene) startCombatChestRevealWorkflow(result game_state.CombatOpenR
 		First(func() {
 			dialog = widgets.NewCombatLootDialog(result.RevealItems, g.keyboard, g.spriteSheet)
 			dialog.SetTrapNotice(combatChestTrapText(result.Trap))
-			g.retireCombatChestFeedback(scope)
+			// Contents replace all completed-action cards at actual admission.
+			// Finalization remains scope-owned so later feedback survives cleanup.
+			g.clearTransientActionFeedback()
 			g.dialogStack.PushModalDialog(dialog)
 			g.gameState.SystemCallbacks.Message.AddRowStr("Found:")
 		}).RepeatWithDelay(len(result.RevealItems), combatChestRevealDelayMs, func(index int) bool {

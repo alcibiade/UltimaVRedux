@@ -45,6 +45,13 @@ retain inventory, location, and the exact encounter/actor/dispatch boundary.
 Combat action completion belongs to the workflow's own committed attempt, not another operation's
 global commit-counter change.
 
+The picker now keeps browsing copy concise and spoiler-safe: atmospheric lore,
+basic handling, a relevant current restriction and exceptional expenditure
+warnings. Potion colour does not promise a particular effect; numeric formulas
+and complete rules remain in Game Facts. Owned artifacts do not disclose hidden
+powers or ritual solutions. This presentation policy changes no activation gate,
+substitution, consumption, target ownership or action cost.
+
 Skull Keys and Pocket Watch are also actionable through this combat picker and
 dispatch route. Keys use the acting PC's adjacent square and consume on final
 direction confirmation under PROV-0006. Watch reads the current time at execution,
@@ -54,7 +61,7 @@ owner, without an additional surface minute or provision pass; TIME-0005 owns th
 clock rule. Stale precommit selections are free. Replacement owners cannot inherit
 either item's deferred completion, and disposal removes the owned prompts/dialogs.
 
-**Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/action_use.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/combat_use_owner.go`, `cmd/ultimav/gamescene_use.go`
+**Implementation:** `internal/game_state/action_use_commits.go`, `internal/game_state/action_use.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/action_use_lore.go`, `internal/game_state/action_use_projection_test.go`, `internal/game_state/combat_use_owner.go`, `cmd/ultimav/gamescene_use.go`
 **Tests:** `internal/game_state/action_use_commits_test.go`, `internal/game_state/cast_use_commit_test.go`, `internal/game_state/action_use_stale_test.go`, `cmd/ultimav/gamescene_use_stale_test.go`, `cmd/ultimav/gamescene_combat_key_watch_test.go`
 
 ### CONSUME-0002

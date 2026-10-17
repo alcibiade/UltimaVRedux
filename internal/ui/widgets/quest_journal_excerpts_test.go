@@ -275,10 +275,9 @@ func TestExchangeInversionCoversOnlySelectedRowsAndPreservesRunic(t *testing.T) 
 	require.Positive(t, white, "saved excerpt text must be readable in white")
 }
 
-func TestJournalSearchIncludesHistoryAndExcerptsWithoutRunicTranslation(t *testing.T) {
+func TestJournalSearchIncludesConversationAndExcerptsWithoutRunicTranslation(t *testing.T) {
 	setQuestJournalTestResolution(t, 640, 400)
 	config := testQuestJournalConfig(newWidgetTestKeyboard(0))
-	config.History = "Earlier midnight warning\nNewest message"
 	config.LastConversation = journal.Conversation{Exchanges: []journal.Exchange{{
 		ID: "one", Speaker: "Speaker", Location: "Britain", Input: "WORD",
 		Passages: []journal.Passage{{Text: "A mysterious saying", Runic: false}, {Text: "SECRETRUNES", Runic: true}},
@@ -287,12 +286,6 @@ func TestJournalSearchIncludesHistoryAndExcerptsWithoutRunicTranslation(t *testi
 		return []journal.Exchange{exchange}, nil
 	}
 	dialog := NewQuestJournalDialog(testQuestJournalDossier(), config)
-	dialog.beginSearch()
-	dialog.setSearchQuery("midnight")
-	require.Len(t, dialog.searchResults, 1)
-	dialog.openSearchResult()
-	require.Equal(t, QuestJournalHistoryTab, dialog.activeTab)
-	require.Equal(t, 0, dialog.history.selected, "opening a result must not jump to newest")
 	dialog.beginSearch()
 	dialog.setSearchQuery("secretrunes")
 	require.Empty(t, dialog.searchResults)

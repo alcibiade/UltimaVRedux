@@ -38,7 +38,7 @@ const (
 	saveDescriptionValidationLines   = 2
 	saveDescriptionBackspaceDelay    = 21 // 350ms at Ebitengine's default 60 update ticks/second.
 	saveDescriptionBackspaceInterval = 3  // 50ms; no global keyboard repeat changes.
-	saveDescriptionInputErrorMessage = "Text input failed. Press Esc to go back."
+	saveDescriptionInputErrorMessage = "Text input failed."
 )
 
 var (
@@ -418,7 +418,8 @@ func (m *SaveDescriptionEntryModal) acceptPlatformText(previous string, anchor, 
 func (m *SaveDescriptionEntryModal) isNativeShortcutEdit(previous string, anchor, caret int) bool {
 	start, end := min(anchor, caret), max(anchor, caret)
 	if m.controlModifierPressed() && m.isKeyPressed(ebiten.KeyU) {
-		return m.field.Text() == previous[:start]+"u"+previous[end:]
+		return m.field.Text() == previous[:start]+"u"+previous[end:] ||
+			m.field.Text() == previous[:start]+"U"+previous[end:]
 	}
 	if !m.isKeyPressed(ebiten.KeyBackspace) {
 		return false

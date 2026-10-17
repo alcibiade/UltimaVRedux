@@ -83,6 +83,11 @@ checks, normalized matching, safe shrine dispatch, modern failure feedback and
 Escape differ. Feedback/cancellation are existing presentation choices; original
 plane and undefined-return equivalence remain unverified.
 
+Successful Keep summoning is the explicit no-normal-cycle result in
+[SHADOW-0004](SHADOWLORDS.md#shadow-0004). Its input workflow does not enqueue
+deferred ordinary completion after appearance; failures/cancellation retain
+their separately established Redux costs.
+
 For the frigate toggle, Redux stops automatic sailing before showing `FURL!`,
 preserves facing, and leaves subsequent movement to fresh manual input. Hoisting
 alone does not restart automatic sailing; a fresh direction does. This does not

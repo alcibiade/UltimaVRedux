@@ -594,10 +594,7 @@ func parseMerchantFooterGuidance(guidance string) [][]merchantFooterSegment {
 		for cursor := 0; cursor < len(sourceLine); {
 			openingOffset := strings.IndexByte(sourceLine[cursor:], '[')
 			if openingOffset < 0 {
-				segments = append(segments, merchantFooterSegment{
-					Text:  sourceLine[cursor:],
-					Color: DialogControlHintColor,
-				})
+				segments = append(segments, colonControlHintSegments(sourceLine[cursor:])...)
 
 				break
 			}
@@ -612,10 +609,7 @@ func parseMerchantFooterGuidance(guidance string) [][]merchantFooterSegment {
 				break
 			}
 			if opening > cursor {
-				segments = append(segments, merchantFooterSegment{
-					Text:  sourceLine[cursor:opening],
-					Color: DialogControlHintColor,
-				})
+				segments = append(segments, colonControlHintSegments(sourceLine[cursor:opening])...)
 			}
 			closing := opening + 1 + closingOffset
 			segments = append(segments, merchantFooterSegment{

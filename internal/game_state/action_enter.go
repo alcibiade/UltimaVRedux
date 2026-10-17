@@ -19,9 +19,8 @@ const (
 
 // Enter location transition timing constants
 const (
-	EnterFadeOutMs       = 500  // Fade to black duration
-	EnterFadeInMs        = 500  // Fade from black duration
-	EnterPopupDurationMs = 2000 // How long to show entering text popup
+	EnterFadeOutMs = 500 // Fade to black duration
+	EnterFadeInMs  = 500 // Fade from black duration
 )
 
 // EnterLargeMapOutcome identifies the authoritative result of one Enter command.
@@ -288,7 +287,7 @@ func (g *GameState) StartEnterLocationWorkflow(slr *references.SmallLocationRefe
 				g.generateDungeonWandererAfterFreshEntry()
 			}
 
-			g.SystemCallbacks.UI.ShowTimedOverlayMessage(slr.EnteringText, EnterPopupDurationMs, true, false)
+			g.SystemCallbacks.UI.ShowActionFeedback(slr.EnteringText, false)
 			if preparedDungeon == nil {
 				g.observeAtlasLandmark(entranceLocation.Position, entranceKind,
 					atlasPresentedEntryName(slr.EnteringText), journal.AtlasSourceEnter, entranceObservation)
@@ -411,7 +410,7 @@ func (g *GameState) ThenExitLocationTransition() func(
 					false,
 				)
 
-				g.SystemCallbacks.UI.ShowTimedOverlayMessage(strings.TrimSpace(exitingText), EnterPopupDurationMs, true, false)
+				g.SystemCallbacks.UI.ShowActionFeedback(strings.TrimSpace(exitingText), false)
 			}).
 			Animate(EnterFadeInMs, func(progress float32) {
 				g.SystemCallbacks.Visual.SetMapFadeLevel(1.0 - float64(progress))

@@ -46,7 +46,8 @@ func TestTalkFooterIsConnectedBelowUnchangedInlineInput(t *testing.T) {
 	require.Equal(t, before, dialog.Output.GetOutputStr(true), "hints must not enter speech or its retained history")
 	require.Equal(t, "FLAM", dialog.TextInput.GetText())
 	require.NotContains(t, interestPlaceholder, "|")
-	require.Contains(t, interestPlaceholder, "bye - PgUp: history")
+	require.Equal(t, " name, job, bye", interestPlaceholder)
+	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "History")
 }
 
 func TestTalkFooterStatesFitAndDoNotMoveInlineInput(t *testing.T) {

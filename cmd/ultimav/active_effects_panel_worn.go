@@ -4,13 +4,11 @@ import (
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	gametext "github.com/bradhannah/UltimaVRedux/internal/text"
-	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
 const (
@@ -18,7 +16,6 @@ const (
 )
 
 func (p *ActiveEffectsPanel) drawStatusBand(screen *ebiten.Image) {
-	drawStatusSeparator(screen, p.separatorBounds)
 	for index, artifact := range p.worn {
 		bounds := p.wornBounds[index]
 		if bounds.Empty() {
@@ -29,17 +26,6 @@ func (p *ActiveEffectsPanel) drawStatusBand(screen *ebiten.Image) {
 			sprite: 0, animated: false, tintR: fullTint, tintG: fullTint, tintB: fullTint,
 		})
 	}
-}
-
-func drawStatusSeparator(screen *ebiten.Image, bounds image.Rectangle) {
-	if bounds.Empty() {
-		return
-	}
-	stroke := max(1, bounds.Dx()/layoutCenterDivisor)
-	vector.FillRect(screen, float32(bounds.Min.X), float32(bounds.Min.Y),
-		float32(bounds.Dx()), float32(bounds.Dy()), ucolor.EGABlue, false)
-	vector.FillRect(screen, float32(bounds.Min.X), float32(bounds.Min.Y),
-		float32(stroke), float32(bounds.Dy()), ucolor.EGAWhite, false)
 }
 
 func wornArtifactImage(spriteSheet *sprites.SpriteSheet, id game_state.ToggleItemType) *ebiten.Image {

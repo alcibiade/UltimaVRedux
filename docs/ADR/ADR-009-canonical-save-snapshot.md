@@ -77,6 +77,9 @@ without becoming quest authority or serializing widgets. Core capture supplies
 quiet defaults; scene capture enriches and validates the whole snapshot. Scene
 hydration restores it without replaying notices or recording the transcript
 again. A headless rewrite must carry loaded presentation forward explicitly.
+The Journal History reader has since been removed. Retaining the bounded source
+is still justified by live output-rail restoration and supported-save compatibility;
+no snapshot field/version changes are needed for that presentation simplification.
 
 Outdoor Blink's retained map window is deliberately runtime-only gameplay state.
 Normal original startup rebuilds it from loaded coordinates despite saving offsets.

@@ -20,8 +20,8 @@ import (
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
-var _ widgets.Widget = &LinearTalkDialog{}
-var _ game_state.TalkDialog = &LinearTalkDialog{}
+var _ widgets.Widget = (*LinearTalkDialog)(nil)
+var _ game_state.TalkDialog = (*LinearTalkDialog)(nil)
 
 const (
 	// Talk dialog uses FontSizeLarge (20pt) with 1.3x line spacing (26pt) for readability
@@ -69,9 +69,9 @@ const (
 const (
 	maxPauseSplits = 2 // Split at first pause marker only (before + after)
 	// UI text constants
-	promptSpaceSuffix     = " "                               // Space appended after input prompts
-	interestPlaceholder   = " name, job, bye - PgUp: history" // Placeholder text for interest input
-	backgroundInsetPixels = 5                                 // Inset from border for background rect
+	promptSpaceSuffix     = " "               // Space appended after input prompts
+	interestPlaceholder   = " name, job, bye" // Topic suggestions; controls belong to the styled footer.
+	backgroundInsetPixels = 5                 // Inset from border for background rect
 )
 
 // LinearTalkDialog presents one stateful conversation engine.
@@ -215,6 +215,18 @@ func (d *LinearTalkDialog) Refresh() {
 // initializeResizeableVisualElements rebuilds resolution-dependent text resources.
 func (d *LinearTalkDialog) initializeResizeableVisualElements() {
 	d.lastScreenWidth, d.lastScreenHeight = display.GetManager().GetCurrentSize()
+	d.reflowTranscriptOutput()
+
+	// Share the transcript font and spacing so controls never outsize speech.
+	d.footerOutput = text.NewOutput(d.font, d.Output.GetLineSpacing(), talkFooterLines, talkMaxCharsInput)
+	d.Output.SetDebugOptions(&d.gameScene.gameState.DebugOptions)
+	if d.callbacks != nil {
+		d.callbacks.SetDialogOutput(d.Output)
+	}
+	d.initializeConversationTextInput()
+}
+
+func (d *LinearTalkDialog) reflowTranscriptOutput() {
 	maxLines := linearTalkOutputMaxLines(activeLinearTalkPresentation)
 	if d.Output == nil {
 		d.font, d.Output = widgets.GetScaledFontWithOutput(widgets.FontConfig{
@@ -235,27 +247,24 @@ func (d *LinearTalkDialog) initializeResizeableVisualElements() {
 		})
 		d.font = font
 		d.Output.ReflowRetained(font, output.GetLineSpacing(), talkMaxCharsInput)
-		if d.historyPanel != nil {
-			row := d.historyRow
-			if len(d.gameScene.lastConversation.Exchanges) > 0 {
-				d.showJournalHistoryExchange()
-			} else {
-				d.historyPanel = d.Output.RetainedHistoryPanel()
-			}
-			d.historyRow = min(row, max(0, d.historyPanel.GetPanelContentLineCount()-1))
-		}
+		d.reflowConversationHistory()
 	}
+}
 
-	// Share the transcript font and spacing so controls never outsize speech.
-	d.footerOutput = text.NewOutput(d.font, d.Output.GetLineSpacing(), talkFooterLines, talkMaxCharsInput)
-	// Connect debug options for empty line placeholders.
-	d.Output.SetDebugOptions(&d.gameScene.gameState.DebugOptions)
-
-	// Wire up the dialog output reference for Crout() calls
-	if d.callbacks != nil {
-		d.callbacks.SetDialogOutput(d.Output)
+func (d *LinearTalkDialog) reflowConversationHistory() {
+	if d.historyPanel == nil {
+		return
 	}
+	row := d.historyRow
+	if len(d.gameScene.lastConversation.Exchanges) > 0 {
+		d.showJournalHistoryExchange()
+	} else {
+		d.historyPanel = d.Output.RetainedHistoryPanel()
+	}
+	d.historyRow = min(row, max(0, d.historyPanel.GetPanelContentLineCount()-1))
+}
 
+func (d *LinearTalkDialog) initializeConversationTextInput() {
 	if d.TextInput == nil {
 		d.TextInput = widgets.NewTextInput(
 			sprites.PercentBasedPlacement{
@@ -271,7 +280,7 @@ func (d *LinearTalkDialog) initializeResizeableVisualElements() {
 				AmbiguousAutoComplete: func(message string) {
 					d.Output.AddTextRaw(message)
 				},
-				OnEnter: d.onEnter,
+				OnEnter: d.onEnter, OnCommandExecuted: nil, ShowCommandList: nil,
 			},
 			d.gameScene.keyboard)
 		d.TextInput.SetFreeTextMode()
@@ -400,31 +409,26 @@ func (d *LinearTalkDialog) displayResponseOutput() {
 
 			d.beginPauseAnimation()
 
-			logging.Debug(logging.CategoryUI, "Started segment-based pause animation, pending: %d segments", len(d.pendingSegments))
+			logging.Debug(logging.CategoryUI,
+				"Started segment-based pause animation, pending: %d segments", len(d.pendingSegments))
 		} else {
 			// No pause marker - render all segments
 			d.outputSegmentsToDialog(segments, d.currentResponse.ContinuesPreviousOutput)
 		}
+
+		return
+	}
+	// Preserve the engine's authored whitespace and first-marker boundary.
+	if beforePause, afterPause, hasPause := splitAtFirstPauseMarker(d.currentResponse.Output); hasPause {
+		d.animatedText = beforePause
+		d.outputTextToDialog(d.animatedText, d.currentResponse.ContinuesPreviousOutput)
+		d.pendingOutput = afterPause
+		d.pendingSegments = nil
+		d.pendingContinues = outputContinuesAfterText(beforePause, d.currentResponse.ContinuesPreviousOutput)
+		d.beginPauseAnimation()
+		logging.Debug(logging.CategoryUI, "Started pause animation, pending: %d chars", len(d.pendingOutput))
 	} else {
-		// String-based rendering (no runic text)
-		// Use engine output directly - the conversation engine's formatting (including
-		// intentional leading newlines for spacing) should be preserved as-is.
-
-		if beforePause, afterPause, hasPause := splitAtFirstPauseMarker(d.currentResponse.Output); hasPause {
-			// Start pause animation for FIRST marker only
-			d.animatedText = beforePause
-			d.outputTextToDialog(d.animatedText, d.currentResponse.ContinuesPreviousOutput)
-			d.pendingOutput = afterPause
-			d.pendingSegments = nil // Clear segment-based pending output
-			d.pendingContinues = outputContinuesAfterText(beforePause, d.currentResponse.ContinuesPreviousOutput)
-
-			d.beginPauseAnimation()
-
-			logging.Debug(logging.CategoryUI, "Started pause animation, pending: %d chars", len(d.pendingOutput))
-		} else {
-			// No pause marker - normal output
-			d.outputTextToDialog(d.currentResponse.Output, d.currentResponse.ContinuesPreviousOutput)
-		}
+		d.outputTextToDialog(d.currentResponse.Output, d.currentResponse.ContinuesPreviousOutput)
 	}
 }
 
@@ -534,19 +538,8 @@ func (d *LinearTalkDialog) onEnter() {
 
 // splitAtFirstPauseMarker splits text at the first pause marker occurrence.
 // Returns the text before the marker, the text after the marker, and whether a marker was found.
-func splitAtFirstPauseMarker(text string) (before, after string, hasPause bool) {
-	if !strings.Contains(text, conversation.PauseMarker) {
-		return text, "", false
-	}
-
-	parts := strings.SplitN(text, conversation.PauseMarker, maxPauseSplits)
-	before = parts[0]
-	after = ""
-	if len(parts) > 1 {
-		after = parts[1]
-	}
-
-	return before, after, true
+func splitAtFirstPauseMarker(value string) (string, string, bool) {
+	return strings.Cut(value, conversation.PauseMarker)
 }
 
 // hasRunicSegments checks if any segment in the slice requires runic font rendering.
@@ -562,25 +555,27 @@ func hasRunicSegments(segments []conversation.TextSegment) bool {
 
 // splitSegmentsAtPause splits segments at the first pause marker, preserving runic info.
 // Returns segments before the pause, segments after the pause, and whether a pause was found.
-func splitSegmentsAtPause(segments []conversation.TextSegment) (before, after []conversation.TextSegment, hasPause bool) {
-	for i, seg := range segments {
+func splitSegmentsAtPause(
+	segments []conversation.TextSegment,
+) ([]conversation.TextSegment, []conversation.TextSegment, bool) {
+	for index, seg := range segments {
 		if strings.Contains(seg.Text, conversation.PauseMarker) {
 			// Found pause marker in this segment
 			parts := strings.SplitN(seg.Text, conversation.PauseMarker, maxPauseSplits)
 
 			// Build "before" segments: all previous segments + text before pause in current segment
-			before = make([]conversation.TextSegment, 0, i+1)
-			before = append(before, segments[:i]...)
+			before := make([]conversation.TextSegment, 0, index+1)
+			before = append(before, segments[:index]...)
 			if parts[0] != "" {
 				before = append(before, conversation.TextSegment{Text: parts[0], IsRunic: seg.IsRunic})
 			}
 
 			// Build "after" segments: text after pause in current segment + all following segments
-			after = make([]conversation.TextSegment, 0, len(segments)-i)
+			after := make([]conversation.TextSegment, 0, len(segments)-index)
 			if len(parts) > 1 && parts[1] != "" {
 				after = append(after, conversation.TextSegment{Text: parts[1], IsRunic: seg.IsRunic})
 			}
-			after = append(after, segments[i+1:]...)
+			after = append(after, segments[index+1:]...)
 
 			return before, after, true
 		}

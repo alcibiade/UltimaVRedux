@@ -130,7 +130,7 @@ func (d *DungeonViewDialog) prepareOutputs(screenWidth, width int) {
 		d.footerOutput.AppendLine().LightCyan("Matching W-E / N-S labels join opposite edges on this level.").Done()
 	}
 	d.footerOutput.AppendLine().LightGray("Current view only. Visible does not mean safe or reachable.").Done()
-	d.footerOutput.AppendLine().Yellow("Enter").LightGray("  Return").Done()
+	d.footerOutput.AppendLine().Text("Enter", DialogControlKeyColor).Text("  Return", DialogControlHintColor).Done()
 	d.footerOutput = d.footerOutput.WrappedCopyForWidth(width)
 }
 

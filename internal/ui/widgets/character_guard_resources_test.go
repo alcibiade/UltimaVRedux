@@ -309,7 +309,7 @@ func TestGuardResourcesNoOneFirstOrAloneKeepsExplicitLayout(t *testing.T) {
 }
 
 func TestGuardResourcesNativeRenderingKeepsCellsAndHUDContained(t *testing.T) {
-	for _, resolution := range []image.Point{{X: 320, Y: 200}, {X: 1280, Y: 720}} {
+	for _, resolution := range []image.Point{{X: 320, Y: 200}, {X: 1280, Y: 720}, {X: 3440, Y: 1440}} {
 		t.Run(resolution.String(), func(t *testing.T) {
 			setResponsiveDialogTestResolution(t, resolution.X, resolution.Y)
 			dialog := newGuardResourceTestDialog(guardResourceTestOptions(), func(int) {}, func() {})

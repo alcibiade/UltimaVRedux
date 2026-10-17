@@ -1,6 +1,7 @@
 package game_state
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func TestUseProjectionCarpetAvailableInUnderworld(t *testing.T) {
 	for _, item := range state.GetUsableItems() {
 		if item.ItemType == references.Carpet {
 			require.True(t, item.AvailableNow)
-			assert.Contains(t, item.Requirement, "Underworld")
+			assert.Empty(t, item.UnavailableReason)
 			assert.Empty(t, item.Warning)
 			return
 		}
@@ -34,29 +35,28 @@ func TestUseProjectionApprovedGuidance(t *testing.T) {
 		references.ShardOfFalsehood, references.ShardOfHatred, references.ShardOfCowardice,
 	} {
 		info := state.withUseItemGuidance(UseableItemInfo{ItemType: shard}, UsageField)
-		assert.Equal(t, "Consumed on successful destruction.", info.Consumption)
-		assert.Equal(t, "Begin the ritual.", info.NextInteraction)
-		assert.Equal(t, "The ritual requires the right conditions.", info.Requirement)
-		assert.Equal(t, "Destruction is permanent. The shard is retained if there is no effect.", info.Warning)
+		assert.Empty(t, info.Consumption, "browsing must not disclose the destruction ritual")
+		assert.Empty(t, info.EffectSummary)
+		assert.Empty(t, info.Requirement)
+		assert.Empty(t, info.Warning)
 		info = state.withUseItemGuidance(info, UsageDungeon)
 		assert.False(t, info.AvailableNow)
-		assert.Equal(t, "No effect in a dungeon; the shard is retained.", info.Warning)
+		assert.Equal(t, "You cannot use it here.", info.UnavailableReason)
 	}
 	for _, test := range []struct {
 		item references.QuestItem
 		want string
 	}{
-		{references.Amulet, "Wear or remove the Amulet."},
-		{references.BlackBadge, "Wear or remove the Black Badge."},
+		{references.Amulet, "Wear the Amulet."},
+		{references.BlackBadge, "Wear the Badge."},
 	} {
 		info := state.withUseItemGuidance(UseableItemInfo{ItemType: test.item}, UsageField)
 		assert.Equal(t, test.want, info.EffectSummary)
 	}
 	info := state.withUseItemGuidance(UseableItemInfo{ItemType: references.Sceptre}, UsageField)
-	assert.Equal(t, "A magical field must be within reach.", info.Requirement)
+	assert.Empty(t, info.Requirement, "ownership does not disclose the Sceptre's powers")
 	state.addMoonstoneUseGuidance(&info, UsageField)
-	assert.Equal(t, "The current terrain cannot hold a buried moonstone.", info.UnavailableReason)
-	assert.Equal(t, "Unavailable: inspect this restriction or choose another item.", info.NextInteraction)
+	assert.Equal(t, "This ground cannot hold a buried moonstone.", info.UnavailableReason)
 }
 
 func TestUseOwnershipAndCategoryMatrixAcrossContexts(t *testing.T) {
@@ -113,7 +113,8 @@ func TestUseOwnershipAndCategoryMatrixAcrossContexts(t *testing.T) {
 				require.NotContains(t, seen, item.ItemType, "each owned identity appears once")
 				seen[item.ItemType] = item.Quantity
 				categories[item.Category]++
-				require.NotEmpty(t, item.Consumption)
+				require.NotEmpty(t, item.Description)
+				assertUseBrowsingDisclosure(t, item)
 				if item.UnavailableReason != "" {
 					require.False(t, item.AvailableNow)
 				}
@@ -131,6 +132,37 @@ func TestUseOwnershipAndCategoryMatrixAcrossContexts(t *testing.T) {
 			require.Equal(t, rngCalls, state.GetRNG().Calls())
 			require.Equal(t, sequence, state.CastUseCommitSequence())
 		})
+	}
+}
+
+func assertUseBrowsingDisclosure(t *testing.T, item UseableItemInfo) {
+	t.Helper()
+	copy := strings.ToLower(strings.Join([]string{item.Name, item.FullName, item.Description,
+		item.EffectSummary, item.Requirement, item.Consumption, item.Warning,
+		item.UnavailableReason, item.ItemRef.ItemDescriptionAttribution}, "\n"))
+	for _, technical := range []string{"endgame", "global setting", "effect commits", "active combatant", "small map", "verified dos"} {
+		require.NotContains(t, copy, technical, "%v browsing copy", item.ItemType)
+	}
+	require.NotRegexp(t, `\b[a-z]+-[0-9]{4}\b`, copy, "rule identifiers do not belong in browsing copy")
+	switch item.ItemType {
+	case references.Crown:
+		require.NotContains(t, copy, "suppress")
+		require.Contains(t, item.Requirement, "worn")
+	case references.Sceptre:
+		require.NotContains(t, copy, "field")
+		require.NotContains(t, copy, "dispel")
+	case references.Amulet:
+		require.NotContains(t, copy, "darkness")
+		require.NotContains(t, copy, "moongate")
+	case references.BlackBadge:
+		require.NotContains(t, copy, "oppression")
+	case references.ShardOfFalsehood, references.ShardOfHatred, references.ShardOfCowardice:
+		require.NotContains(t, copy, "ritual")
+		require.NotContains(t, copy, "flame")
+		require.NotContains(t, copy, "shadowlord")
+		require.Equal(t, "The Book of Lore (Ultima V)", item.ItemRef.ItemDescriptionAttribution)
+	case references.HMSCape:
+		require.Equal(t, "H.M.S. Cape Plans", item.Name)
 	}
 }
 
@@ -182,10 +214,8 @@ func TestKeyAndWatchUseGuidancePreservesContextRestrictions(t *testing.T) {
 			_, valid = state.RevalidateUseItemSelection(watch, test.context)
 			require.True(t, valid)
 			if test.context == UsageCombat {
-				require.Contains(t, key.NextInteraction, "acting combatant")
-				require.Contains(t, key.Consumption, "one combat action")
-				require.Contains(t, key.Warning, "even if no door")
-				require.Contains(t, watch.Consumption, "after dismissal")
+				require.Contains(t, key.Consumption, "Each attempt uses one key and your turn")
+				require.Equal(t, "Uses your turn.", watch.Consumption)
 			}
 		})
 	}
@@ -208,12 +238,12 @@ func TestUseWarningsDoNotBecomeActivationRestrictions(t *testing.T) {
 		for _, potion := range []references.Potion{references.Purple, references.Black, references.White} {
 			item := requireUsableItem(t, items, potion)
 			require.Empty(t, item.UnavailableReason, "potion substitution remains possible in every context")
-			require.Contains(t, item.Consumption, "consumed")
+			require.Equal(t, "Single use.", item.Consumption)
 			ineffective := (potion == references.White && context != UsageField) ||
 				(potion != references.White && context != UsageCombat)
 			require.Equal(t, !ineffective, item.AvailableNow)
 			if ineffective {
-				require.Contains(t, item.Warning, "still consumed")
+				require.Contains(t, item.Warning, "still be consumed")
 			}
 		}
 	}

@@ -667,7 +667,9 @@ func (d *HorseShopDialog) populateNonBrowseStatusOutput() {
 	case HorseShopAwaitingResult:
 		d.statusOutput.AppendLine().Text(horseShopProcessingText+".", DialogNavHintColor).Done()
 	case HorseShopFarewell:
-		d.statusOutput.AppendLine().Text("Press Enter or Esc to leave.", DialogControlHintColor).Done()
+		d.statusOutput.AppendLine().Text("Press ", DialogControlHintColor).
+			Text("Enter", DialogControlKeyColor).Text(" or ", DialogControlHintColor).
+			Text("Esc", DialogControlKeyColor).Text(" to leave.", DialogControlHintColor).Done()
 	case HorseShopSuccess, HorseShopFundsRefusal, HorseShopSessionError:
 		statusColor := DialogStatusWarningColor
 		if d.phase == HorseShopSuccess {
@@ -695,9 +697,8 @@ func (d *HorseShopDialog) populateBrowseStatusOutput() {
 			"Availability will be checked in Live.", DialogControlHintColor,
 		).WordWrap().Done()
 	}
-	d.statusOutput.AppendLine().Text(
-		"Enter to review this purchase.", DialogControlKeyColor,
-	).WordWrap().Done()
+	d.statusOutput.AppendLine().Text("Enter", DialogControlKeyColor).
+		Text(" to review this purchase.", DialogControlHintColor).WordWrap().Done()
 }
 
 func (d *HorseShopDialog) syncPresentation() {

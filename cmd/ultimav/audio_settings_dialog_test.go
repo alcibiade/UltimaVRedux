@@ -288,12 +288,11 @@ func TestConfigurationDialogSelectionsUseNaturalTextHeight(t *testing.T) {
 	)
 	dialog.ensureLayout(1280, 720)
 
-	inset := max(1, dialog.layout.pixelUnit*audioSettingsCenterDivisor)
-	textWidth := dialog.layout.gameplayListRect.Dx() - inset*audioSettingsCenterDivisor
+	textWidth := dialog.gameplayLabelWidth(dialog.layout.gameplayListRect.Dx(), dialog.layout.pixelUnit)
 	maxChars := dialog.gameplayOutput.Font.CharsForWidth(textWidth)
 	for index, setting := range gameplaySettings() {
 		measurement := gametext.MeasureText(
-			"[X] "+setting.label,
+			setting.label,
 			dialog.gameplayOutput.Font,
 			dialog.gameplayOutput.GetLineSpacing(),
 			maxChars,
@@ -302,7 +301,7 @@ func TestConfigurationDialogSelectionsUseNaturalTextHeight(t *testing.T) {
 			dialog.layout.pixelUnit*audioSettingsGameplayRowPaddingUnits
 		assert.Equal(t, expectedHeight, dialog.layout.gameplayRows[index].Dy())
 	}
-	assert.Equal(t, dialog.layout.gameplayListRect.Min.Y, dialog.layout.gameplayRows[0].Min.Y)
+	assert.Greater(t, dialog.layout.gameplayRows[0].Min.Y, dialog.layout.gameplayListRect.Min.Y+dialog.layout.pixelUnit)
 	assert.Less(t, dialog.layout.gameplayRows[len(dialog.layout.gameplayRows)-1].Max.Y,
 		dialog.layout.gameplayListRect.Max.Y)
 
@@ -564,7 +563,7 @@ func TestConfigurationDialogStagesGameplayAndPreservesSectionSelections(t *testi
 	assert.Equal(t, 1, dialog.focusedGameplayIndex)
 
 	dialog.prepareGameplayDetail()
-	assert.Contains(t, dialog.detailOutput.GetOutputStr(false), "Original:")
+	assert.Contains(t, strings.Join(strings.Fields(dialog.detailOutput.GetOutputStr(false)), " "), "hidden doors and pits between visits")
 }
 
 func TestConfigurationDialogFitsEverySupportedResolution(t *testing.T) {
@@ -588,7 +587,7 @@ func TestConfigurationDialogFitsEverySupportedResolution(t *testing.T) {
 		assert.Len(t, dialog.layout.gameplayRows, audioSettingsGameplayCount)
 		assert.LessOrEqual(t, dialog.layout.gameplayRows[len(dialog.layout.gameplayRows)-1].Max.Y,
 			dialog.layout.gameplayListRect.Max.Y)
-		assert.Equal(t, dialog.layout.gameplayListRect.Min.Y, dialog.layout.gameplayRows[0].Min.Y)
+		assert.Greater(t, dialog.layout.gameplayRows[0].Min.Y, dialog.layout.gameplayListRect.Min.Y+dialog.layout.pixelUnit)
 		assert.LessOrEqual(t, dialog.layout.displayRows[len(dialog.layout.displayRows)-1].Max.Y,
 			dialog.layout.bodyRect.Max.Y)
 		assert.Equal(t, 1, dialog.focusedGameplayIndex)
