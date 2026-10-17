@@ -27,7 +27,13 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 			return err
 		}
 		var snapshot SaveSnapshot
-		if version == 23 {
+		if version == 24 {
+			var previous saveSnapshotV24
+			if err = decodeRequiredJSON(data, &previous); err != nil {
+				return err
+			}
+			snapshot = previous.validationView()
+		} else if version == 23 {
 			var previous saveSnapshotV23
 			if err = decodeRequiredJSON(data, &previous); err != nil {
 				return err
@@ -65,6 +71,11 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 		validateOpenDoor(snapshot, add)
 		if version >= 24 {
 			validatePersonalStateV24(snapshot, add)
+		}
+		if version >= 25 {
+			if err = snapshot.Excerpts.Validate(); err != nil {
+				add("excerpts", "invalid", err.Error())
+			}
 		}
 		if len(issues) != 0 {
 			return &ValidationError{Issues: issues}
@@ -321,6 +332,7 @@ func TestJournalV16HistoricalPromotionIsQuietAndHonest(t *testing.T) {
 			require.NoError(t, err)
 			reloaded, err := Decode(canonical)
 			require.NoError(t, err)
+			decoded.legacyExcerpts = false
 			assert.Equal(t, decoded, reloaded, "do not duplicate backfill on current reload")
 		})
 	}

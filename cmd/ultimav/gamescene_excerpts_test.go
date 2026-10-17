@@ -17,7 +17,7 @@ import (
 func TestGardnerJournalRetainsSubmittedExchanges(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.SerpentsHold).
 		WithRandomSeed(42).WithSystemCallbacks().Build()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(-1), notebookRoot: t.TempDir(),
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(-1),
 		activePlaythrough: playthroughMetadata{id: "0123456789abcdef0123456789abcdef", userDescription: ""}}
 	var actor *map_units.NPCFriendly
 	for _, unit := range *state.CurrentNPCAIController.GetNpcs() {
@@ -107,7 +107,6 @@ func TestConversationExcerptWaitIsolationAndPresentedTail(t *testing.T) {
 		&semantic.NarrateAction{Content: semantic.RichText{&semantic.TextPart{Text: "Unseen tail"}}},
 	}))
 	scene := dialog.gameScene
-	scene.notebookRoot = t.TempDir()
 	scene.activePlaythrough = playthroughMetadata{id: "0123456789abcdef0123456789abcdef", userDescription: ""}
 	require.Empty(t, scene.lastConversation.Exchanges, "unmounted construction is not presented")
 	scene.dialogStack.PushModalDialog(dialog)

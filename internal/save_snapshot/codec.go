@@ -66,7 +66,12 @@ type Envelope struct {
 	EnvelopeVersion int          `json:"envelopeVersion"`
 	Metadata        Metadata     `json:"metadata"`
 	Snapshot        SaveSnapshot `json:"snapshot"`
+	legacyExcerpts  bool
 }
+
+// NeedsExcerptMigration reports decode-only old-format provenance. It cannot
+// be requested by JSON or inferred from an empty current collection.
+func (envelope Envelope) NeedsExcerptMigration() bool { return envelope.legacyExcerpts }
 
 // UnmarshalJSON enforces required fields on the strict current snapshot object.
 func (snapshot *SaveSnapshot) UnmarshalJSON(data []byte) error {
@@ -187,30 +192,35 @@ func Decode(data []byte) (Envelope, error) {
 	if err != nil {
 		return Envelope{}, err
 	}
+	if version < 12 || version > CurrentVersion {
+		return Envelope{}, &UnsupportedVersionError{Version: version}
+	}
+	if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
+		return Envelope{}, err
+	}
+	if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
+		return Envelope{}, err
+	}
+	if version >= 17 {
+		if err = validateConversationJSONMembers(snapshotFields["lastConversation"]); err != nil {
+			return Envelope{}, err
+		}
+	}
 
 	var snapshot SaveSnapshot
 	switch version {
 	case CurrentVersion:
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		if err = decodeRequiredJSON(encoded.Snapshot, &snapshot); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode JSON: %w", ErrInvalidEnvelope, err)
 		}
-	case 23, 22, 21, 20:
-		if err = validateConversationJSONMembers(snapshotFields["lastConversation"]); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
+	case 24, 23, 22, 21, 20:
 		switch version {
+		case 24:
+			var previous saveSnapshotV24
+			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
+				return Envelope{}, fmt.Errorf("%w: decode version 24 snapshot: %w", ErrInvalidEnvelope, err)
+			}
+			snapshot = previous.validationView()
 		case 23:
 			var previous saveSnapshotV23
 			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
@@ -241,15 +251,6 @@ func Decode(data []byte) (Envelope, error) {
 		}
 		snapshot.Version = CurrentVersion
 	case 19, 18, 17:
-		if err = validateConversationJSONMembers(snapshotFields["lastConversation"]); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		var previous saveSnapshotV19
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version %d snapshot: %w", ErrInvalidEnvelope, version, err)
@@ -261,12 +262,6 @@ func Decode(data []byte) (Envelope, error) {
 		}
 		snapshot.Version = CurrentVersion
 	case 16:
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		var previous saveSnapshotV16
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version 16 snapshot: %w", ErrInvalidEnvelope, err)
@@ -277,12 +272,6 @@ func Decode(data []byte) (Envelope, error) {
 		}
 		snapshot.Version = CurrentVersion
 	case 12:
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		var previous saveSnapshotV12
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version 12 snapshot: %w", ErrInvalidEnvelope, err)
@@ -292,12 +281,6 @@ func Decode(data []byte) (Envelope, error) {
 		}
 		snapshot = previous.promote()
 	case 13:
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		var previous saveSnapshotV13
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version 13 snapshot: %w", ErrInvalidEnvelope, err)
@@ -307,12 +290,6 @@ func Decode(data []byte) (Envelope, error) {
 		}
 		snapshot = previous.promote()
 	case 14:
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		var previous saveSnapshotV14
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version 14 snapshot: %w", ErrInvalidEnvelope, err)
@@ -322,12 +299,6 @@ func Decode(data []byte) (Envelope, error) {
 		}
 		snapshot = previous.promote()
 	case 15:
-		if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
-			return Envelope{}, err
-		}
-		if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
-			return Envelope{}, err
-		}
 		var previous saveSnapshotV15
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version 15 snapshot: %w", ErrInvalidEnvelope, err)
@@ -352,6 +323,7 @@ func Decode(data []byte) (Envelope, error) {
 		EnvelopeVersion: encoded.EnvelopeVersion,
 		Metadata:        encoded.Metadata,
 		Snapshot:        snapshot,
+		legacyExcerpts:  version < 25,
 	}
 	if err = validateEnvelope(envelope); err != nil {
 		return Envelope{}, err
@@ -409,7 +381,7 @@ func DecodeUnsupportedVersion(data []byte) (Envelope, error) {
 		return Envelope{}, err
 	}
 	switch version {
-	case CurrentVersion, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23:
+	case CurrentVersion, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24:
 		return Envelope{}, fmt.Errorf("%w: snapshot version %d is supported", ErrInvalidEnvelope, version)
 	}
 

@@ -260,6 +260,8 @@ func compileNativeSaveSchemaFile(t *testing.T, filename string) (*jsonschema.Sch
 		formatVersion = 22
 	case "native-save-e2-s23.schema.json":
 		formatVersion = 23
+	case "native-save-e2-s24.schema.json":
+		formatVersion = 24
 	}
 	registerJournalSchemaFormats(compiler, formatVersion)
 	var dependencies []string
@@ -286,6 +288,9 @@ func compileNativeSaveSchemaFile(t *testing.T, filename string) (*jsonschema.Sch
 	}
 	if formatVersion >= 24 && strings.HasPrefix(filename, "native-save-e2-") {
 		dependencies = append(dependencies, "native-save-e2-s23.schema.json")
+	}
+	if formatVersion >= 25 && strings.HasPrefix(filename, "native-save-e2-") {
+		dependencies = append(dependencies, "native-save-e2-s24.schema.json")
 	}
 	for _, dependency := range dependencies {
 		frozenData, readErr := os.ReadFile(filepath.Join(filepath.Dir(path), dependency))

@@ -182,7 +182,11 @@ func (g *Game) loadSnapshot(request debugging.Request) debugging.Result {
 	if !ok {
 		return debugging.FailureResult(request, snapshotIneligibleError, "the active scene cannot verify runtime snapshot references")
 	}
-	if err = validator.ValidateSaveSnapshotCompatibility(record.Envelope.Snapshot); err != nil {
+	snapshot, err := g.prepareExcerptMigration(record.Envelope)
+	if err != nil {
+		return snapshotRepositoryFailure(request, snapshotReadError, err)
+	}
+	if err = validator.ValidateSaveSnapshotCompatibility(snapshot); err != nil {
 		return debugging.FailureResult(request, snapshotIneligibleError, "snapshot is incompatible with the active runtime: "+err.Error())
 	}
 	rollbackSnapshot, err := active.CaptureSaveSnapshot()
@@ -194,7 +198,7 @@ func (g *Game) loadSnapshot(request debugging.Request) debugging.Result {
 		return snapshotRepositoryFailure(request, snapshotRollbackError, err)
 	}
 	configuration := g.currentScene.GetUltimaConfiguration()
-	candidate, err := g.snapshotSceneBuilder(configuration, record.Envelope.Snapshot)
+	candidate, err := g.snapshotSceneBuilder(configuration, snapshot)
 	if err != nil {
 		return snapshotLoadFailureAfterRollback(request, record, rollback, err.Error(), g.sceneGeneration.Load())
 	}

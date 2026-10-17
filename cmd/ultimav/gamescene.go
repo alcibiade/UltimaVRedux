@@ -174,7 +174,7 @@ type GameScene struct {
 	dialogStack                      widgets.DialogStack
 	journalVisits                    journal.Visits
 	lastConversation                 journal.Conversation
-	notebookRoot                     string
+	excerpts                         journal.Excerpts
 	journalSession                   *journalSession
 	atlasSession                     *atlasSession
 	atlasView                        widgets.AtlasViewState

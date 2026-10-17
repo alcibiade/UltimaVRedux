@@ -93,15 +93,15 @@ func TestSkyContextAndInheritedLifecycle(t *testing.T) {
 			g.syncSkyPresentation()
 			initial := g.sky.strip
 			assert.Equal(t, skyEligible(origin), initial.visible)
-			// Ordinary combat inherits even across midnight and subsequent hours.
+			// Combat retains the sun only, including across midnight/subsequent hours.
 			g.gameState.CombatScene = &game_state.CombatState{PreCombatPlayerLocation: origin}
 			g.gameState.MapState.PlayerLocation = references.PlayerLocation{Location: references.CombatLocation}
 			g.gameState.DateTime.Advance(180)
 			g.syncSkyPresentation()
-			assert.Equal(t, initial, g.sky.strip)
+			assert.Equal(t, initial.withoutMoons(), g.sky.strip)
 			g.gameState.DateTime.Advance(60)
 			g.syncSkyPresentation()
-			assert.Equal(t, initial, g.sky.strip)
+			assert.Equal(t, initial.withoutMoons(), g.sky.strip)
 			g.gameState.CombatScene = nil
 			g.gameState.MapState.PlayerLocation = origin
 			g.syncSkyPresentation()
@@ -120,14 +120,14 @@ func TestSkyContextAndInheritedLifecycle(t *testing.T) {
 					assert.Equal(t, projectSky(g.gameState.DateTime), g.sky.strip)
 				}
 			}
-			// Ambush freezes the last live camping display.
+			// Ambush removes moons from the last live camping display.
 			campSky := g.sky.strip
 			g.gameState.CampingScene = nil
 			g.gameState.CombatScene = &game_state.CombatState{PreCombatPlayerLocation: origin}
 			g.gameState.MapState.PlayerLocation.Location = references.CombatLocation
 			g.gameState.DateTime.Advance(65)
 			g.syncSkyPresentation()
-			assert.Equal(t, campSky, g.sky.strip)
+			assert.Equal(t, campSky.withoutMoons(), g.sky.strip)
 		})
 	}
 }
@@ -235,7 +235,7 @@ func TestSkyProductionTransitions(t *testing.T) {
 		require.NoError(t, g.gameState.TransitionToCombatMap(int(references.GladeCombatMap), references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 		g.gameState.DateTime.Advance(181)
 		g.syncSkyPresentation()
-		assert.Equal(t, inherited, g.sky.strip)
+		assert.Equal(t, inherited.withoutMoons(), g.sky.strip)
 		g.gameState.EndCombat(game_state.CombatEvacuated)
 		g.syncSkyPresentation()
 		assert.Equal(t, projectSky(g.gameState.DateTime), g.sky.strip)
@@ -554,7 +554,7 @@ func TestSkyFullDrawWorldEffectsDialogsAndResize(t *testing.T) {
 	g.gameConfig.DisplayConfiguration = &config.DisplayConfiguration{}
 	g.gameConfig.GameplayConfiguration = &config.GameplayConfiguration{}
 	require.True(t, skyEligible(g.gameState.MapState.PlayerLocation))
-	g.gameState.DateTime = datetime.UltimaDate{Year: 139, Month: 4, Day: 8, Hour: 22}
+	g.gameState.DateTime = datetime.UltimaDate{Year: 139, Month: 4, Day: 8, Hour: 16}
 	require.NoError(t, g.Update(nil))
 	assert.Equal(t, projectSky(g.gameState.DateTime), g.sky.strip, "Update captures inheritance even before the first Draw")
 	width, height := display.GetManager().GetCurrentSize()
@@ -581,7 +581,7 @@ func TestSkyFullDrawWorldEffectsDialogsAndResize(t *testing.T) {
 	resized := ebiten.NewImage(1920, 1080)
 	defer resized.Deallocate()
 	g.Draw(resized)
-	assert.Equal(t, inherited, g.sky.strip, "resize during combat preserves inherited phases and positions")
+	assert.Equal(t, inherited, g.sky.strip, "resize preserves only the inherited sun")
 	assertSkyRenderedCells(t, resized, g.borders.skyBounds, g.sky.strip)
 	screen = resized
 	g.dialogStack.PushModalDialog(&provisionOpaqueModal{bounds: g.borders.skyBounds})
@@ -589,6 +589,60 @@ func TestSkyFullDrawWorldEffectsDialogsAndResize(t *testing.T) {
 	for y := g.borders.skyBounds.Min.Y; y < g.borders.skyBounds.Max.Y; y++ {
 		for x := g.borders.skyBounds.Min.X; x < g.borders.skyBounds.Max.X; x++ {
 			require.Equal(t, ucolor.EGABlue.ToRGBA(), color.RGBAModel.Convert(screen.At(x, y)), "dialog must cover HUD")
+		}
+	}
+}
+
+func TestCombatMoonSuppressionPixelsAndColdEntry(t *testing.T) {
+	manager := display.GetManager()
+	saved := *manager
+	t.Cleanup(func() { *manager = saved })
+	origin := references.PlayerLocation{Location: references.Britain}
+	g := newSkyTestScene(t, origin)
+	for _, size := range []image.Point{{X: 640, Y: 360}, {X: 1280, Y: 720}} {
+		manager.PublishLogicalSize(size.X, size.Y)
+		_, aperture := surfaceMapBorderGeometry()
+		g.borders.surfaceAperture = aperture
+		g.borders.outsideBorder, _ = sprites.NewBorderSprites().VeryPixelatedRoundedBlueWhite.CreateSizedAndScaledBorderSprite(borderWidthScaling, gameScreenPercents)
+		g.initializeSkyBorder()
+		for _, hour := range []byte{5, 16, 22} { // one moon, sun plus moon, two moons
+			for _, warm := range []bool{false, true} {
+				g.gameState.CombatScene = nil
+				g.gameState.MapState.PlayerLocation = origin
+				g.gameState.DateTime = datetime.UltimaDate{Year: 139, Month: 4, Day: 8, Hour: hour}
+				g.sky = skyPresentation{}
+				if warm {
+					g.syncSkyPresentation()
+				}
+				g.gameState.CombatScene = &game_state.CombatState{PreCombatPlayerLocation: origin}
+				g.gameState.MapState.PlayerLocation.Location = references.CombatLocation
+				date, rng, stage := g.gameState.DateTime, g.gameState.GetRNG().Calls(), g.gameState.MoongateStage()
+				for range 3 {
+					g.syncSkyPresentation()
+				}
+				want := skyStrip{}
+				if hour == 16 {
+					want.visible = true
+					want.glyphs[1] = skySunGlyph
+				}
+				require.Equal(t, want, g.sky.strip)
+				screen := newPresentationRaster(size.X, size.Y)
+				g.drawSkyStrip(screen)
+				if hour == 16 {
+					assertSkyRenderedCells(t, screen, g.borders.skyBounds, want)
+				} else {
+					require.Equal(t, make([]byte, size.X*size.Y*4), dissolveMaskPixels(screen), "no glyph or orphan backing")
+				}
+				screen.Deallocate()
+				require.Equal(t, date, g.gameState.DateTime)
+				require.Equal(t, rng, g.gameState.GetRNG().Calls())
+				require.Equal(t, stage, g.gameState.MoongateStage())
+				g.gameState.CombatScene = nil
+				g.gameState.MapState.PlayerLocation = origin
+				g.gameState.DateTime.Advance(65)
+				g.syncSkyPresentation()
+				require.Equal(t, projectSky(g.gameState.DateTime), g.sky.strip, "exit recomputes actual phases and positions")
+			}
 		}
 	}
 }

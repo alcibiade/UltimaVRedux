@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes native envelope version 2 and canonical `SaveSnapshot` version 24 in
+This document describes native envelope version 2 and canonical `SaveSnapshot` version 25 in
 `internal/save_snapshot`, its strict native envelope, and the runtime
 capture/hydration boundary.
 
@@ -12,12 +12,12 @@ Original-save conversion dispositions are recorded in the
 For headless command-line conversion and loading either a standalone snapshot or
 a player slot, follow the [save converter procedure](SAVE_CONVERTER.md).
 The executable Draft 2020-12 contract is
-[`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json), with
-frozen V16–V23 sibling resources loaded locally. Assert its version-aware
+[`native-save-e2-s25.schema.json`](../schemas/native-save-e2-s25.schema.json), with
+frozen V16–V24 sibling resources loaded locally. Assert its version-aware
 `ultima5-world-journal` format as well as structural validation. Go DTOs and the
 strict codec in `internal/save_snapshot` own the current wire contract.
-Versions 12 through 23 remain frozen strict promotion sources, including
-[`native-save-e2-s23.schema.json`](../schemas/native-save-e2-s23.schema.json). The
+Versions 12 through 24 remain frozen strict promotion sources, including
+[`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json). The
 envelope-2/snapshot-15 schema and archived envelope-1 validation shapes remain frozen.
 Snapshot-body promotion does not make an envelope-1 file loadable.
 Versions 4 through 11 remain archived schemas but are not runtime decode paths.
@@ -32,11 +32,49 @@ envelope or snapshot versions, or promotion.
 
 ## Principles
 
+### Snapshot 25 Save-Owned Excerpts
+
+The required `excerpts` member contains the complete kept-exchange collection:
+stable `id`, `speaker`, `location`, Avatar `input`, ordered `passages` (`text`,
+`runic`), and optional `archived` (missing means false). Explicit null or `[]`
+means no excerpts. Missing the member is invalid in V25. Duplicate IDs, malformed
+text and retention-limit violations are rejected. Last Conversation still rejects
+archive metadata. Assert `ultima5-world-journal` with the version-appropriate Go
+validator to enforce excerpt identity, UTF-8 byte and aggregate bounds as well as
+the structural schema.
+
+`GameScene` owns `journal.Excerpts`, captures a detached copy and restores it
+without merging the departing scene. Keep, archive, restore, delete and attribution
+changes are unsaved state until a normal save. This also applies to Quick Save,
+named snapshots, scenario baselines, rollback and pre-Doom recovery. Two saves
+with the same playthrough ID are independent. Current-format loads and Journal
+browsing never access external notebooks, including when the saved list is empty.
+An unsaved game can keep excerpts; a portable save needs no companion notebook.
+
+**Temporary old-save compatibility:** strict V12–V24 decode records transient
+envelope provenance through `NeedsExcerptMigration()`. Pure schema migration
+does no I/O. Before constructing a replacement scene, the application imports
+the matching `<player-save-dir>/excerpts/<playthrough-id>.json` through the
+read-only legacy repository. Each old save imports independently. Missing files
+produce an empty collection; missing identity/configuration produces an empty
+collection with a diagnostic rather than guessing another notebook. Invalid,
+unreadable or oversized files fail preparation without replacing the scene or
+rewriting either input. Resave normally to embed the result. Until resaved, an
+untouched old file can import again; no global migration ledger is used.
+
+The old notebook contains the latest shared notes, **not historical per-save
+lists**. Initial import may include later discoveries; it cannot recover deleted
+notes or reconstruct earlier archive choices. Independence starts at import and
+is durable after resaving. Original-game conversions and new games start empty.
+Legacy files remain untouched for other old saves. The importer is explicitly
+marked temporary in code and can be removed in a future iteration when support
+for external-notebook saves is retired; embedded persistence remains independent.
+
 ### Snapshot 24 Personal State And Chest Lifetimes
 
 These additions share **one snapshot version, 24**, within unchanged envelope 2.
-They are checkpoint state, distinct from scene-local readers and the
-playthrough-wide excerpt notebook. Root names below are defined in `snapshot.go`;
+They are checkpoint state, distinct from transient readers; excerpts now also
+follow their checkpoint under V25. Root names below are defined in `snapshot.go`;
 `migration_v24.go` and `validation_v24.go` in `internal/save_snapshot` own promotion
 and cross-field validation.
 
@@ -376,19 +414,17 @@ existing Journal formats plus `ultima5-journal-conversation`, implemented by
 
 #### Playthrough-wide excerpts
 
-Kept excerpts are not checkpoint state. `journal.NotebookRepository` stores
-versioned JSON at `<player-save-dir>/excerpts/<playthrough-id>.json`. Capture,
-archive/restore, and deletion use locked read-modify-write and atomic publication.
-Older checkpoint loads never overwrite this repository. New playthrough IDs
-select distinct notebooks; identity-free/unconfigured scenes report capture as unavailable.
-Unreadable notebooks are not overwritten. Deleting slots does not delete notes.
-Notebook version 1 accepts an optional `archived` boolean on each excerpt;
-missing means active, retaining compatibility with existing notebooks. Archived
-entries retain their source and count against the same limits. Keeping an
-archived identity restores it while preserving the existing longest-speech and
-known-speaker deduplication rules. Archive visibility is Journal-session state,
-not persisted in notebooks or checkpoints. Archive changes never modify Last
-Conversation or learned Chronicle facts.
+This historical V17–V24 ownership model is superseded by
+[save-owned excerpts](#snapshot-25-save-owned-excerpts). The external version-1
+JSON format survives solely as a read-only compatibility input. Its optional
+`archived` boolean defaults false and is preserved during import.
+
+Archived entries retain their source and count against the same limits. Keeping
+an archived identity restores it while preserving longest-speech and known-speaker
+deduplication **within the active game**. Loading a checkpoint replaces the whole
+collection instead of extending it. Show Archived is Journal-session state, not
+persisted in checkpoints. Archive changes never modify Last Conversation or learned
+Chronicle facts.
 
 Last Conversation retains 256 exchanges/256 KiB including attribution, evicting
 oldest complete exchanges with an indication. An individually oversized exchange
@@ -444,7 +480,7 @@ Fixed collection sizes are 16 roster slots, 48 equipment entries, 48 spells, 8 s
 checkpoint-local `presentation`, `lastConversation`, `dungeonJournal`,
 `moonstoneJournal`, `atlasLandmarks`, `openDoor`, `basementChestHistory`,
 `atlasNotes`, `atlasFleet`, and `codexRevelationComplete` values.
-The current [JSON schema](../schemas/native-save-e2-s24.schema.json) and `codec.go`
+The current [JSON schema](../schemas/native-save-e2-s25.schema.json) and `codec.go`
 own required/null/unknown-member rules;
 `validation.go` and the version-specific validators own semantic
 constraints. Use those executable definitions when changing the wire shape.
@@ -1013,8 +1049,10 @@ Quick Save authority over a player slot.
 
 ### Snapshot Version Compatibility
 
-Within a valid envelope 2, strict decode accepts snapshot version 24 and promotes
-snapshot versions 12 through 23 through frozen historical contracts. All receive
+Within a valid envelope 2, strict decode accepts snapshot version 25 and promotes
+snapshot versions 12 through 24 through frozen historical contracts. V12–V24
+receive empty excerpt defaults plus application-level import eligibility described
+[above](#snapshot-25-save-owned-excerpts); V24 retains all other state. V12–V23 receive
 the conservative personal-state defaults and exact chest-flag migration described
 [above](#snapshot-24-personal-state-and-chest-lifetimes). V23 preserves its timed
 door and atlas evidence. V12–V22 default `openDoor` to null and infer no Guardians or receipt

@@ -157,9 +157,6 @@ func (g *GameScene) Update(game *Game) error {
 	if g.handleRunicReferenceShortcut() {
 		return nil
 	}
-	if game != nil && game.notebookRoot != "" {
-		g.notebookRoot = game.notebookRoot
-	}
 	if g.journalSession != nil {
 		if g.journalSession.closing {
 			if !g.keyboard.IsWaitingForRelease() {

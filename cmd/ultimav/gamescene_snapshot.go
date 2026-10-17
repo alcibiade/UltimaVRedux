@@ -63,6 +63,7 @@ func (g *GameScene) CaptureSaveSnapshot() (save_snapshot.SaveSnapshot, error) {
 	}
 	snapshot.Presentation = journal.Presentation{History: g.output.JournalHistory(), Visits: g.journalVisits.Clone()}
 	snapshot.LastConversation = g.lastConversation.Clone()
+	snapshot.Excerpts = g.excerpts.Clone()
 	if issues := save_snapshot.Validate(snapshot); len(issues) != 0 {
 		return save_snapshot.SaveSnapshot{}, &save_snapshot.ValidationError{Issues: issues}
 	}

@@ -20,7 +20,10 @@ Last Conversation is a continuous transcript with selectable exchange boundaries
 for capture. Met-NPC flags describe the NPC recognizing the Avatar; journal
 attribution never changes those flags. See the
 [save contract](../details/SAVE_SNAPSHOT_SCHEMA.md#snapshot-17-journal-extensions)
-for bounded retention and playthrough-wide excerpt ownership.
+for bounded retention and the [save-owned excerpt contract](../details/SAVE_SNAPSHOT_SCHEMA.md#snapshot-25-save-owned-excerpts).
+Keeping or managing an excerpt changes only the active game; saving persists it
+inside that checkpoint. Loading restores its text and archive choices without
+merging later notes. Older native saves have a temporary read-only notebook importer.
 
 Normal NPC conversations execute validated semantic definitions. Original
 `DATA.OVL` and the four TLK families are

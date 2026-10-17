@@ -1002,7 +1002,8 @@ func TestCombatAutoPassSchedulerBlocksInputUntilNonActionablePCTurnIsShown(t *te
 		references.BritanniaCombatTerritory,
 		game_state.CombatEntryNorth,
 	))
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused scheduler fixture.
+	// The unblock gate queries held keys; never inherit live desktop input.
+	scene := &GameScene{gameState: gs, keyboard: input.NewKeyboardWithKeyStateSource(-1, func(ebiten.Key) bool { return false })} //nolint:exhaustruct // Focused scheduler fixture.
 	gs.ElapsedMs = 0
 	step := nextNonActionablePCPresentationStep(t, gs)
 

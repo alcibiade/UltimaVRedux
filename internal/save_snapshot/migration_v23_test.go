@@ -55,7 +55,7 @@ func v23DoorSnapshot() SaveSnapshot {
 }
 
 func TestV23OpenDoorRoundTripAndSchema(t *testing.T) {
-	require.Equal(t, 24, CurrentVersion)
+	require.Equal(t, 25, CurrentVersion)
 	require.Equal(t, 2, CurrentEnvelopeVersion)
 	schema, _ := compileCurrentNativeSaveSchema(t)
 	requireV23RoundTrip(t, schema, validSnapshot()) // Required openDoor: null.
@@ -443,6 +443,7 @@ func TestV23FrozenV22PreservesFlexibleSurveyFamilies(t *testing.T) {
 	want.Metadata.PlaythroughID = "0123456789abcdef0123456789abcdef"
 	want.Metadata.DoomRunID = "abcdef0123456789abcdef0123456789"
 	want.Metadata.UserDescription = "Mixed historical measurements"
+	want.legacyExcerpts = true
 	document["metadata"] = want.Metadata
 	data, err := json.Marshal(document)
 	require.NoError(t, err)

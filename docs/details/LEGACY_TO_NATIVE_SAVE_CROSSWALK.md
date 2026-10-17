@@ -71,6 +71,13 @@ a Look observation at Guardians. Imported `atlasLandmarks` remains empty and
 all unmeasured surveys retain `flexible: false`. These are quiet native defaults,
 not inferred acquisition events or new conversion warnings.
 
+### Snapshot 25 Excerpt Defaults
+
+Original saves do not contain Redux kept excerpts. Conversion initializes an
+empty `excerpts` collection in the native snapshot and never reads an external
+notebook. Temporary notebook import applies only to older **native** snapshots;
+see [save-owned excerpts](SAVE_SNAPSHOT_SCHEMA.md#snapshot-25-save-owned-excerpts).
+
 ### Snapshot 24 Native-Only Defaults
 
 Original files contain no player-authored atlas notes, registered fleet identities

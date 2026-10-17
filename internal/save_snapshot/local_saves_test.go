@@ -56,6 +56,7 @@ func TestLocalNativeSaves(t *testing.T) {
 			require.NoError(t, err)
 			reloaded, err := Decode(current)
 			require.NoError(t, err)
+			decoded.legacyExcerpts = false
 			require.Equal(t, decoded, reloaded, "every promoted field and metadata value survives current encoding")
 			t.Logf("v%d source decoded and re-encoded in memory as v%d without changing source bytes", source.Snapshot.Version, CurrentVersion)
 		})

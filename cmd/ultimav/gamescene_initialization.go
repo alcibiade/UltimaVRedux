@@ -115,6 +115,7 @@ func NewGameSceneFromSaveSnapshot(
 	}
 	scene.journalVisits = snapshot.Presentation.Visits.Clone()
 	scene.lastConversation = snapshot.LastConversation.Clone()
+	scene.excerpts = snapshot.Excerpts.Clone()
 
 	return scene, nil
 }

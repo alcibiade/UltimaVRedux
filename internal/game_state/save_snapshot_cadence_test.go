@@ -133,6 +133,7 @@ func TestSaveSnapshotCadenceHistoricalQuicknessPreservesNextReachedGate(t *testi
 				require.NoError(t, json.Unmarshal(data, &document))
 				wire := document["snapshot"].(map[string]any)
 				wire["version"] = 14
+				delete(wire, "excerpts")
 				removeSnapshotV24Fields(wire)
 				delete(wire, "openDoor")
 				delete(wire, "presentation")
