@@ -128,7 +128,12 @@ func (d *AtlasDialog) drawPoint(screen *ebiten.Image, e journal.AtlasEntry, sele
 	if selected {
 		d.drawSelectionBrackets(mapScreen, center)
 	}
-	d.drawAtlasMarker(mapScreen, e, center, atlasPlaceColor(e), true)
+	colour := atlasPlaceColor(e)
+	if e.Note.ID != 0 {
+		// Personal-note map ink is independent of discovery and Places-row text.
+		colour = DialogAtlasDiscoveredColor
+	}
+	d.drawAtlasMarker(mapScreen, e, center, colour, true)
 }
 
 // Selection stays centred on the actual marker, with integer classic-pixel corners.

@@ -281,7 +281,7 @@ func (m *IntroMenuScene) PrepareInputForSceneActivation() {
 //nolint:gochecknoglobals // Fixed input map.
 var boundKeysIntro = []ebiten.Key{ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter}
 
-//nolint:gochecknoglobals // Original presentations accept every Ebitengine keyboard key.
+//nolint:gochecknoglobals // All-key presentations use the keyboard adapter; Caps Lock is not actionable input.
 var boundKeysAny = func() []ebiten.Key {
 	keys := make([]ebiten.Key, 0, int(ebiten.KeyMax-ebiten.KeyA)+1)
 	for key := ebiten.KeyA; key <= ebiten.KeyMax; key++ {
@@ -718,7 +718,7 @@ func (m *IntroMenuScene) startLegacySavePreparation(
 	m.legacyPrepareActive = true
 	m.legacyPrepareOnFailure = onFailure
 	m.legacyPrepareOnCancel = onCancel
-	m.notice = "Checking the original save in the active game folder... Esc: Cancel"
+	m.notice = "Checking the original save in the active game folder..."
 	results := make(chan introLegacyPrepareResult, 1)
 	m.legacyPrepareResults = results
 	prepare := m.prepareLegacySave
@@ -1271,6 +1271,10 @@ func (m *IntroMenuScene) prepareNotice(bounds image.Rectangle) {
 	m.noticeOutput.Reset()
 	m.noticeOutput.SetMaxCharsPerLine(max(1, m.ultimaFont.CharsForWidth(bounds.Dx()*8/10)))
 	if m.notice != "" {
-		m.noticeOutput.AppendLine().WithAlignment(textv2.AlignCenter).Yellow(m.notice).WordWrap().Done()
+		line := m.noticeOutput.AppendLine().WithAlignment(textv2.AlignCenter).Yellow(m.notice)
+		if m.legacyPrepareActive {
+			widgets.AppendControlHints(line.Text("  ", widgets.DialogControlHintColor), "Esc: Cancel")
+		}
+		line.WordWrap().Done()
 	}
 }

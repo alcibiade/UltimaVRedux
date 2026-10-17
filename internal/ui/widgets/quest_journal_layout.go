@@ -33,34 +33,11 @@ func (d *QuestJournalDialog) handleNavigationInput() bool {
 	return owned
 }
 
-//nolint:cyclop // Two local navigation modes share the same six keyboard intents.
 func (d *QuestJournalDialog) navigate(key ebiten.Key) {
 	if d.isConversationTab() && !d.searching {
 		if key == ebiten.KeyPageUp || key == ebiten.KeyPageDown || d.keyboard.IsModifierPressed(input.ModifierCtrl) {
 			return
 		}
-	}
-	if d.activeTab == QuestJournalHistoryTab && !d.searching {
-		previous := d.history.selected
-		switch key { //nolint:exhaustive // Only navigation keys enter this method.
-		case ebiten.KeyUp:
-			d.history.move(-1)
-		case ebiten.KeyDown:
-			d.history.move(1)
-		case ebiten.KeyPageUp:
-			d.history.page(-1)
-		case ebiten.KeyPageDown:
-			d.history.page(1)
-		case ebiten.KeyHome:
-			d.history.edge(false)
-		case ebiten.KeyEnd:
-			d.history.edge(true)
-		}
-		if previous != d.history.selected {
-			d.readingQuery = ""
-		}
-
-		return
 	}
 	capacity, count := d.visibleRows(d.listContentRect()), d.currentItemCount()
 	if d.searching {
@@ -91,7 +68,7 @@ func (d *QuestJournalDialog) navigate(key ebiten.Key) {
 
 func (d *QuestJournalDialog) rebuildFrames() {
 	body := []image.Rectangle{d.layout.listRect, d.layout.detailRect}
-	if d.searching || d.activeTab == QuestJournalHistoryTab {
+	if d.searching {
 		body = []image.Rectangle{d.layout.bodyRect}
 	}
 	d.frameRects = connectClassicPaneGrid([][]image.Rectangle{
@@ -100,11 +77,11 @@ func (d *QuestJournalDialog) rebuildFrames() {
 }
 
 func (d *QuestJournalDialog) entryIsNew(tab QuestJournalTab, row int) bool {
-	return tab < QuestJournalHistoryTab && row >= 0 && row < len(d.newEntries[tab]) && d.newEntries[tab][row]
+	return tab >= 0 && int(tab) < len(d.newEntries) && row >= 0 && row < len(d.newEntries[tab]) && d.newEntries[tab][row]
 }
 
 func (d *QuestJournalDialog) tabIsNew(tab QuestJournalTab) bool {
-	if tab >= QuestJournalHistoryTab {
+	if tab < 0 || int(tab) >= len(d.newEntries) {
 		return false
 	}
 	for _, isNew := range d.newEntries[tab] {
@@ -128,7 +105,7 @@ func (d *QuestJournalDialog) tabTitle(tab QuestJournalTab) string {
 func (d *QuestJournalDialog) calculateTabs() {
 	const headerRows = 2
 	for row, tabs := range [][]QuestJournalTab{
-		{QuestJournalChronicleTab, QuestJournalVirtuesTab, QuestJournalShadowlordsTab, QuestJournalHistoryTab},
+		{QuestJournalChronicleTab, QuestJournalVirtuesTab, QuestJournalShadowlordsTab},
 		{QuestJournalDungeonsTab, QuestJournalConversationTab, QuestJournalExcerptsTab, QuestJournalMoonstonesTab},
 	} {
 		total := 0
@@ -248,10 +225,6 @@ func (d *QuestJournalDialog) footerGuidance() string {
 	if d.searching {
 		return "[Up/Dn] Select  [Shift+Up/Dn] Page  [Home/End] First/Last  " +
 			"[Enter] Open  [Esc] Back  [Shift-J] Close"
-	}
-	if d.activeTab == QuestJournalHistoryTab {
-		return "[Up/Dn] Message  [Shift+Up/Dn] Page  [Home/End] First/Last  " +
-			"[/] Search  [Tab/Shift-Tab] Tab  [Esc/Shift-J] Close"
 	}
 
 	paging := ""

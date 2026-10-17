@@ -27,10 +27,9 @@ func TestHMSCapeWorkflowCancellationDoesNotMutate(t *testing.T) {
 	scene.startHMSCapeWorkflow(commit, func() { completed++ })
 	dialog := waitForHMSCapeDialog(t, scene)
 
-	assert.Contains(t, dialog.Question, "global setting")
-	assert.Contains(t, dialog.Question, "all frigates going forward")
-	assert.Contains(t, dialog.Question, "makes them faster")
-	assert.Contains(t, dialog.Question, "Enable it? (Y/N)")
+	assert.NotContains(t, dialog.Question, "global setting")
+	assert.NotContains(t, dialog.Question, "makes them faster")
+	assert.Contains(t, dialog.Question, "Put these plans to use? (Y/N)")
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	dialog.Update()
 	drainNamedSurfaceUseWorkflow(t, scene, hmsCapeWorkflowName)
@@ -57,7 +56,7 @@ func TestHMSCapeWorkflowConfirmsEnableAndDisable(t *testing.T) {
 	drainNamedSurfaceUseWorkflow(t, scene, hmsCapeWorkflowName)
 
 	assert.True(t, state.IsHMSCapeActivated())
-	assert.Contains(t, callbacks.Messages, "H.M.S. Cape enabled!")
+	assert.Contains(t, callbacks.Messages, "You put the H.M.S. Cape plans to use.")
 	assert.Equal(t, []game_state.SoundEffect{game_state.SoundSummon}, callbacks.SoundEffectsPlayed)
 
 	callbacks.Reset()
@@ -65,12 +64,12 @@ func TestHMSCapeWorkflowConfirmsEnableAndDisable(t *testing.T) {
 	require.NotNil(t, commit)
 	scene.startHMSCapeWorkflow(commit, func() {})
 	dialog = waitForHMSCapeDialog(t, scene)
-	assert.Contains(t, dialog.Question, "Disable it? (Y/N)")
+	assert.Contains(t, dialog.Question, "Put these plans aside? (Y/N)")
 	confirmHMSCapeDialog(t, scene, dialog)
 	drainNamedSurfaceUseWorkflow(t, scene, hmsCapeWorkflowName)
 
 	assert.False(t, state.IsHMSCapeActivated())
-	assert.Contains(t, callbacks.Messages, "H.M.S. Cape disabled!")
+	assert.Contains(t, callbacks.Messages, "You put the H.M.S. Cape plans aside.")
 	assert.Equal(t, []game_state.SoundEffect{game_state.SoundSummon}, callbacks.SoundEffectsPlayed)
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.HMSCape))
 }

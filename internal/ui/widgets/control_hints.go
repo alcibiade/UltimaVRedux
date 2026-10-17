@@ -3,6 +3,7 @@ package widgets
 import (
 	"image"
 	"math"
+	"strconv"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
@@ -16,19 +17,66 @@ import (
 // AppendControlHints styles existing "Key: Action" hints separated by two or
 // more spaces without changing their wording, spacing, or line ownership.
 func AppendControlHints(line *text.LineBuilder, guidance string) *text.LineBuilder {
-	for index, hint := range strings.Split(guidance, "  ") {
-		if index > 0 {
-			line.Text("  ", DialogControlHintColor)
-		}
-		key, action, found := strings.Cut(hint, ":")
-		if found {
-			line.Text(key, DialogControlKeyColor).Text(":"+action, DialogControlHintColor)
-		} else {
-			line.Text(hint, DialogControlHintColor)
-		}
+	for _, segment := range colonControlHintSegments(guidance) {
+		line.Text(segment.Text, segment.Color)
 	}
 
 	return line
+}
+
+// Only recognized control labels get key ink. Plain status prose containing a
+// colon stays prose; parse logical source lines before their descriptions wrap.
+func colonControlHintSegments(guidance string) []merchantFooterSegment {
+	if !strings.Contains(guidance, ":") {
+		return []merchantFooterSegment{{Text: guidance, Color: DialogControlHintColor}}
+	}
+	var segments []merchantFooterSegment
+	for index, hint := range strings.Split(guidance, "  ") {
+		if index > 0 {
+			segments = append(segments, merchantFooterSegment{Text: "  ", Color: DialogControlHintColor})
+		}
+		key, action, found := strings.Cut(hint, ":")
+		if found && isControlHintLabel(key) {
+			segments = append(segments, merchantFooterSegment{Text: key, Color: DialogControlKeyColor},
+				merchantFooterSegment{Text: ":" + action, Color: DialogControlHintColor})
+		} else {
+			segments = append(segments, merchantFooterSegment{Text: hint, Color: DialogControlHintColor})
+		}
+	}
+
+	return segments
+}
+
+func isControlHintLabel(label string) bool {
+	if strings.EqualFold(strings.TrimSpace(label), "Any key") {
+		return true
+	}
+	parts := strings.FieldsFunc(label, func(r rune) bool { return r == '/' || r == '+' || r == '-' || r == ' ' })
+	if len(parts) == 0 {
+		return false
+	}
+	for _, part := range parts {
+		if !isControlHintKey(part) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isControlHintKey(part string) bool {
+	if len(part) == 1 && (part[0] >= 'A' && part[0] <= 'Z' || part[0] >= '0' && part[0] <= '9') {
+		return true
+	}
+	switch strings.ToLower(part) {
+	case "enter", "esc", "escape", "tab", "space", "up", "dn", "down", "left", "right", "home", "end",
+		"pgup", "pgdn", "pageup", "pagedown", "backspace", "delete", "ctrl", "shift", "shft", "shf", "alt", "meta", "or":
+		return true
+	}
+	const lastFunctionKey = 12
+	number, err := strconv.Atoi(strings.TrimPrefix(part, "F"))
+
+	return strings.HasPrefix(part, "F") && err == nil && number >= 1 && number <= lastFunctionKey
 }
 
 // staticViewerHint keeps return guidance outside the original artwork.

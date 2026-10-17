@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	questJournalTabCount              = 8
+	questJournalTabCount              = 7
 	questJournalMarginX               = 0.06
 	questJournalMarginY               = 0.04
 	questJournalFooterLines           = 2
@@ -50,8 +50,6 @@ const (
 	QuestJournalVirtuesTab
 	// QuestJournalShadowlordsTab displays current Shadowlord life authority.
 	QuestJournalShadowlordsTab
-	// QuestJournalHistoryTab displays detached recent main-output messages.
-	QuestJournalHistoryTab
 	// QuestJournalDungeonsTab shows discovered dungeon facts.
 	QuestJournalDungeonsTab
 	// QuestJournalConversationTab retains the last actually presented conversation.
@@ -67,7 +65,6 @@ type QuestJournalDialogConfig struct {
 	Keyboard         *input.Keyboard
 	Placement        sprites.PercentBasedPlacement
 	OnDismiss        func()
-	History          string
 	NewEntries       [3][]bool
 	ShadowlordSprite *ebiten.Image
 	LastConversation journal.Conversation
@@ -114,7 +111,6 @@ type QuestJournalDialog struct {
 	newEntries        [3][]bool
 	visitedTabs       [3]bool
 	shadowlordSprite  *ebiten.Image
-	history           questJournalHistory
 	searching         bool
 	searchQuery       string
 	readingQuery      string
@@ -193,8 +189,6 @@ func NewQuestJournalDialog(
 		archiveExcerpt:   config.ArchiveExcerpt,
 		excerptStatus:    config.ExcerptError,
 		visitedTabs:      [3]bool{true, false, false},
-		//nolint:exhaustruct // Reflow initializes reading state.
-		history: questJournalHistory{source: config.History, selected: -1},
 	}
 	for tab := range dialog.newEntries {
 		dialog.newEntries[tab] = append([]bool(nil), config.NewEntries[tab]...)
@@ -271,9 +265,6 @@ func (d *QuestJournalDialog) handleBrowseInput() {
 	if d.handleNavigationInput() {
 		return
 	}
-	if d.activeTab == QuestJournalHistoryTab {
-		return
-	}
 	if !d.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace) {
 		return
 	}
@@ -314,8 +305,6 @@ func (d *QuestJournalDialog) Draw(screen *ebiten.Image) {
 	switch {
 	case d.searching:
 		d.drawSearch(screen)
-	case d.activeTab == QuestJournalHistoryTab:
-		d.drawHistory(screen)
 	case d.isConversationTab():
 		if d.runicReferenceOpen {
 			d.runicReference.Draw(screen, d.layout.listRect, d.font, d.rowOutput.GetLineSpacing())
@@ -366,9 +355,6 @@ func (d *QuestJournalDialog) GetSelectedIndex() int {
 
 		return d.searchSelection
 	}
-	if d.activeTab == QuestJournalHistoryTab {
-		return d.history.selected
-	}
 	if d.currentItemCount() == 0 {
 		return -1
 	}
@@ -407,9 +393,7 @@ func (d *QuestJournalDialog) enterTab() {
 	d.readingQuery = ""
 	d.runicReferenceOpen = false
 	d.ensureLayout()
-	if d.activeTab == QuestJournalHistoryTab {
-		d.history.edge(true)
-	} else if d.activeTab < QuestJournalHistoryTab {
+	if d.activeTab < QuestJournalDungeonsTab {
 		d.visitedTabs[d.activeTab] = true
 	}
 	d.passageRow = 0
@@ -494,7 +478,6 @@ func (d *QuestJournalDialog) ensureLayout() {
 	d.rebuildOutputs()
 	d.calculateLayout()
 	d.cachedDetailPages = nil
-	d.history.reflow(d.font, d.historyContentRect().Dx(), d.visibleRows(d.historyContentRect()))
 	d.clampAllSelections()
 	if d.isConversationTab() {
 		d.detailPage = previousPage
@@ -839,6 +822,8 @@ func (d *QuestJournalDialog) detailLines() []questJournalDetailLine {
 		return questJournalDungeonDetail(d.dossier.Dungeons[selection])
 	case QuestJournalMoonstonesTab:
 		return questJournalMoonstoneDetail(d.dossier.Moonstones[selection])
+	case QuestJournalConversationTab, QuestJournalExcerptsTab:
+		return nil // Conversation readers own their measured exchange output.
 	default:
 		return nil
 	}
@@ -903,8 +888,6 @@ func questJournalTabTitle(tab QuestJournalTab) string {
 		return "Virtues"
 	case QuestJournalShadowlordsTab:
 		return "Shadowlords"
-	case QuestJournalHistoryTab:
-		return "History"
 	case QuestJournalDungeonsTab:
 		return "Dungeons"
 	case QuestJournalConversationTab:

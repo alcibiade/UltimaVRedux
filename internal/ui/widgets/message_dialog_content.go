@@ -4,8 +4,9 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"unicode/utf8"
 
-	"golang.org/x/exp/rand"
+	"golang.org/x/exp/rand" //nolint:staticcheck // Retain the established injectable dissolve RNG contract.
 
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
@@ -46,7 +47,23 @@ func (md *MessageDialog) Clear() {
 // SetAcknowledgementPrompt uses the shared guidance styling without taking input
 // ownership. Workflow-owned waits reserve the area with WithSeparatePromptArea.
 func (md *MessageDialog) SetAcknowledgementPrompt(hint string) {
-	md.SetPromptWithColor(hint, DialogControlHintColor)
+	if !md.hasPromptOutput() {
+		panic("SetAcknowledgementPrompt() requires WithSeparatePromptArea()")
+	}
+	md.promptColor = DialogControlHintColor
+	md.promptOutput.Reset()
+	// Keep the complete logical hint; the measured popup layout wraps a styled
+	// copy. A tiny content-width source buffer must not overwrite its key prefix.
+	md.promptOutput.SetMaxCharsPerLine(max(1, utf8.RuneCountInString(hint)))
+	md.promptOutput.SetColor(DialogControlHintColor)
+	for _, segments := range parseMerchantFooterGuidance(hint) {
+		line := md.promptOutput.AppendLine()
+		for _, segment := range segments {
+			line.Text(segment.Text, segment.Color)
+		}
+		line.Done()
+	}
+	md.contentDirty = true
 }
 
 // SetPrompt sets the prompt text in the separate prompt area.

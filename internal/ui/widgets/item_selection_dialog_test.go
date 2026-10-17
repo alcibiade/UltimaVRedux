@@ -110,26 +110,25 @@ func TestItemSelectionDialogNavigationPreservesPerTabSelectionAndScroll(t *testi
 	assert.Equal(t, 1, itemDialogCategoryDelta(false))
 }
 
-func TestItemSelectionDialogActionPagesPrecedeMeasuredLorePages(t *testing.T) {
+func TestItemSelectionDialogLongLoreSharesNormalDetailsAndPagesWithoutLoss(t *testing.T) {
 	setItemDialogTestResolution(t, 320, 200)
 	item := testUseItem("Shard", game_state.UseItemCategoryQuest, references.ShardOfFalsehood)
 	item.FullName = "Shard of Falsehood"
-	item.Warning = "Destruction is permanent once the ritual commits."
+	item.EffectSummary, item.Requirement, item.Consumption = "", "", ""
 	item.Description = strings.Repeat("Long lore remains readable at the standard font size. ", 60)
 	dialog := NewItemSelectionDialog(testItemSelectionConfig(newWidgetTestKeyboard(0), []game_state.UseableItemInfo{item}))
 
 	pages := dialog.detailPages()
 	require.Greater(t, len(pages), 2)
-	require.Equal(t, "Action", pages[0][0].value)
-	lorePage := -1
-	for pageIndex, page := range pages {
+	require.Contains(t, pages[0][0].value, "Long lore")
+	var recovered strings.Builder
+	for _, page := range pages {
 		for _, line := range page {
-			if line.header && line.value == "Lore" {
-				lorePage = pageIndex
-			}
+			recovered.WriteString(line.value)
+			recovered.WriteByte(' ')
 		}
 	}
-	require.Positive(t, lorePage)
+	require.Equal(t, strings.Fields(item.Description), strings.Fields(recovered.String()))
 	capacity := dialog.detailOutput.GetLineCapacity(dialog.detailTextRect().Dy())
 	for _, page := range pages {
 		require.LessOrEqual(t, dialog.detailLineCount(page), capacity)
@@ -182,7 +181,7 @@ func TestItemSelectionDialogUnavailableEnterStaysOpenAndShowsReason(t *testing.T
 		require.False(t, dialog.IsDismissed())
 		require.Zero(t, dialog.detailPage)
 		require.Equal(t, item, *dialog.selectedItem())
-		require.Equal(t, "Unavailable", dialog.actionDetailLines(item)[0].label)
+		require.Empty(t, dialog.actionDetailLines(item)[0].label)
 		require.Equal(t, item.UnavailableReason, dialog.actionDetailLines(item)[0].value)
 		require.Equal(t, "[No] Resurrection", useItemRowLabel(item))
 		pressItemDialogKey(dialog, keyboard, ebiten.KeyEscape)
@@ -310,7 +309,7 @@ func TestItemSelectionCategoriesIncludeUnavailableOwnershipAndWarningRowsStayAct
 	warningDialog := NewItemSelectionDialog(config)
 	require.Equal(t, "White", useItemRowLabel(warning))
 	require.Contains(t, warningDialog.actionDetailLines(warning), itemSelectionDetailLine{
-		label: "Warning", value: warning.Warning, color: DialogWarningColor, header: false,
+		label: "", value: warning.Warning, color: DialogWarningColor, header: false,
 	})
 	warningDialog.HandleEnter()
 	require.True(t, warningDialog.IsDismissed())
@@ -396,21 +395,20 @@ func testUseItem(
 	item references.Item,
 ) game_state.UseableItemInfo {
 	return game_state.UseableItemInfo{
-		Name:            name,
-		FullName:        name,
-		Description:     "Lore for " + name + ".",
-		EffectSummary:   "Produces the expected effect.",
-		NextInteraction: "The effect resolves immediately.",
-		Requirement:     "Ready to use.",
-		Consumption:     "Not consumed.",
-		Warning:         "",
-		AvailableNow:    true,
-		Category:        category,
-		UsageContext:    game_state.UsageField,
-		Quantity:        1,
-		SpriteIndex:     indexes.ItemKey,
-		ItemRef:         references.InventoryItem{},
-		ItemType:        item,
+		Name:          name,
+		FullName:      name,
+		Description:   "Lore for " + name + ".",
+		EffectSummary: "Produces the expected effect.",
+		Requirement:   "Ready to use.",
+		Consumption:   "Not consumed.",
+		Warning:       "",
+		AvailableNow:  true,
+		Category:      category,
+		UsageContext:  game_state.UsageField,
+		Quantity:      1,
+		SpriteIndex:   indexes.ItemKey,
+		ItemRef:       references.InventoryItem{},
+		ItemType:      item,
 	}
 }
 

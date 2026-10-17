@@ -1229,7 +1229,8 @@ func (d *InnShopDialog) populateLeaveDetail() {
 			DialogStatusWarningColor,
 		).WordWrap().Done()
 	default:
-		d.detailOutput.AppendLine().Text("Eligible. Enter to review Leave.", DialogDeltaPositive).Done()
+		d.detailOutput.AppendLine().Text("Eligible. ", DialogDeltaPositive).
+			Text("Enter", DialogControlKeyColor).Text(" to review Leave.", DialogControlHintColor).Done()
 	}
 	d.appendInlineFeedback()
 }

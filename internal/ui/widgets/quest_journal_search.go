@@ -37,6 +37,22 @@ func (d *QuestJournalDialog) buildSearchEntries() {
 	d.searchResults = nil
 	d.searchSelection = 0
 	d.searchEntries = nil
+	d.appendCuratedSearchEntries()
+	d.appendConversationSearchEntries()
+	d.setSearchQuery(query)
+	if hasSelection {
+		for index, result := range d.searchResults {
+			entry := d.searchEntries[result]
+			if entry.tab == selected.tab && entry.row == selected.row && entry.title == selected.title {
+				d.searchSelection = index
+
+				break
+			}
+		}
+	}
+}
+
+func (d *QuestJournalDialog) appendCuratedSearchEntries() {
 	active := d.activeTab
 	for _, tab := range []QuestJournalTab{QuestJournalChronicleTab, QuestJournalVirtuesTab,
 		QuestJournalShadowlordsTab, QuestJournalDungeonsTab, QuestJournalMoonstonesTab} {
@@ -67,18 +83,9 @@ func (d *QuestJournalDialog) buildSearchEntries() {
 		d.selections[tab] = selected
 	}
 	d.activeTab = active
-	for _, span := range d.history.spans {
-		var content strings.Builder
-		for _, row := range d.history.rows[span.start:span.end] {
-			content.WriteString(row.Text)
-			content.WriteByte(' ')
-		}
-		value := strings.TrimSpace(content.String())
-		d.searchEntries = append(d.searchEntries, questJournalSearchEntry{
-			tab: QuestJournalHistoryTab, row: span.message, title: value, text: strings.ToLower(value),
-			source: "Recent history", body: value, snippet: "",
-		})
-	}
+}
+
+func (d *QuestJournalDialog) appendConversationSearchEntries() {
 	for row, exchange := range d.lastConversation.Exchanges {
 		d.searchEntries = append(d.searchEntries, questJournalSearchEntry{
 			tab: QuestJournalConversationTab, row: row, title: exchange.Title(), text: strings.ToLower(exchange.SearchText()),
@@ -95,17 +102,6 @@ func (d *QuestJournalDialog) buildSearchEntries() {
 			tab: QuestJournalExcerptsTab, row: row, title: excerptTitle(exchange), text: strings.ToLower(searchable),
 			source: exchange.Speaker + " - " + exchange.Location, body: journalSnippetSource(exchange), snippet: "",
 		})
-	}
-	d.setSearchQuery(query)
-	if hasSelection {
-		for index, result := range d.searchResults {
-			entry := d.searchEntries[result]
-			if entry.tab == selected.tab && entry.row == selected.row && entry.title == selected.title {
-				d.searchSelection = index
-
-				break
-			}
-		}
 	}
 }
 
@@ -191,11 +187,6 @@ func (d *QuestJournalDialog) openSearchResult() {
 	d.enterTab()
 	d.readingQuery = d.searchQuery
 	d.exchangeOutput, d.cachedDetailPages = nil, nil
-	if entry.tab == QuestJournalHistoryTab {
-		d.history.selected = entry.row
-		d.history.center(d.history.spans[d.history.selectedSpan()])
-		d.history.rememberAnchor()
-	}
 	d.revealSearchMatch()
 }
 
@@ -225,6 +216,7 @@ func (d *QuestJournalDialog) searchStatus() string {
 	return fmt.Sprintf("%d matching entries", len(d.searchResults))
 }
 
+//nolint:funlen // Query, result rows and scroll cues share one measured viewport and clipping contract.
 func (d *QuestJournalDialog) drawSearch(screen *ebiten.Image) {
 	content := d.searchContentRect()
 	prompt := image.Rect(content.Min.X, content.Min.Y-d.rowHeight()*questJournalSearchHeaderRows,

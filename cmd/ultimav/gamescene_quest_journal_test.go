@@ -14,7 +14,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
-	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
 func TestGameSceneQuestJournalModalIsNoTimeAcrossGameplayContexts(t *testing.T) {
@@ -53,7 +52,7 @@ func TestGameSceneQuestJournalModalIsNoTimeAcrossGameplayContexts(t *testing.T) 
 				EffectType:     game_state.DurationEffectProtection,
 				TurnsRemaining: 7,
 			}
-			keyboard := input.NewKeyboard(0)
+			keyboard := newPresentationTestKeyboard()
 			scene := &GameScene{ //nolint:exhaustruct // Focused journal routing fixture.
 				gameState:   state,
 				keyboard:    keyboard,
@@ -125,7 +124,7 @@ func TestGameSceneQuestJournalModalIsNoTimeAcrossGameplayContexts(t *testing.T) 
 
 func TestGameSceneQuestJournalOwnsExactModalAndInputIsolation(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
-	keyboard := input.NewKeyboard(0)
+	keyboard := newPresentationTestKeyboard()
 	scene := &GameScene{ //nolint:exhaustruct // Focused modal lifecycle fixture.
 		gameState:   state,
 		keyboard:    keyboard,
@@ -153,7 +152,7 @@ func TestGameSceneQuestJournalOwnsExactModalAndInputIsolation(t *testing.T) {
 
 func TestJournalSessionAcknowledgesOnlyVisitedOpeningRevision(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0),
+	scene := &GameScene{gameState: state, keyboard: newPresentationTestKeyboard(),
 		output: text.NewOutput(nil, 1, 64, 80), spriteSheet: sharedPresentationTestSpriteSheet()}
 	scene.journalChanged(0, 1)
 	scene.journalChanged(1, 0)
@@ -177,7 +176,7 @@ func TestJournalFullUpdatePausesReadyQueuesAndResumesWithoutCatchup(t *testing.T
 	state := newGameActionCallbacksKnowledgeState(t)
 	now := time.Unix(100, 0)
 	scene := &GameScene{
-		gameState: state, gameConfig: state.GameConfig, keyboard: input.NewKeyboard(0),
+		gameState: state, gameConfig: state.GameConfig, keyboard: newPresentationTestKeyboard(),
 		output: text.NewOutput(nil, 1, 64, 80), spriteSheet: sharedPresentationTestSpriteSheet(),
 		now: func() time.Time { return now }, startTime: now,
 		moongateVisualSystem: NewMoongateVisualSystem(state),
@@ -269,7 +268,7 @@ func TestJournalNoticeCoalescesWithoutInputOrSaveRestriction(t *testing.T) {
 
 func TestJournalDisposeDoesNotAcknowledgeAndReleasesPauseOnce(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0),
+	scene := &GameScene{gameState: state, keyboard: newPresentationTestKeyboard(),
 		output: text.NewOutput(nil, 1, 64, 80), spriteSheet: sharedPresentationTestSpriteSheet()}
 	scene.journalChanged(journal.ChronicleTab, 1)
 	scene.ShowQuestJournalDossier(state.CurrentQuestJournalDossier())
@@ -288,7 +287,7 @@ func TestPlainJStillStartsJimmyOnSmallMap(t *testing.T) {
 		Build()
 	scene := &GameScene{ //nolint:exhaustruct // Focused plain-J regression fixture.
 		gameState:         state,
-		keyboard:          input.NewKeyboard(0),
+		keyboard:          newPresentationTestKeyboard(),
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}
 

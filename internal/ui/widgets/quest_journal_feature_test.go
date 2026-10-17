@@ -2,7 +2,6 @@ package widgets
 
 import (
 	"fmt"
-	"image"
 	"strings"
 	"testing"
 
@@ -14,92 +13,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
-
-func TestQuestJournalHistoryStrictWindowAndWholeMessageNavigation(t *testing.T) {
-	font := text.NewUltimaFont(16)
-	for _, capacity := range []int{1, 10} {
-		for _, count := range []int{capacity, 3 * capacity, 3*capacity + 1} {
-			t.Run(fmt.Sprintf("C%d_rows%d", capacity, count), func(t *testing.T) {
-				history := questJournalHistory{source: strings.TrimSuffix(strings.Repeat("same\n", count), "\n"), selected: -1}
-				history.reflow(font, 500, capacity)
-				require.Len(t, history.rows, count)
-				require.Equal(t, max(0, count-3*capacity), history.window)
-				require.Equal(t, count-1, history.selected)
-				require.Equal(t, max(0, count-capacity), history.top)
-				history.edge(false)
-				require.Equal(t, history.window, history.selected)
-				history.move(-1)
-				require.Equal(t, history.window, history.selected)
-				history.edge(true)
-				history.move(1)
-				require.Equal(t, count-1, history.selected)
-			})
-		}
-	}
-}
-
-func TestQuestJournalHistoryOneRowWindowStartingOnSeparator(t *testing.T) {
-	history := questJournalHistory{source: "old\n\nmiddle\nnew", selected: -1}
-	history.reflow(text.NewUltimaFont(16), 500, 1)
-	require.Equal(t, 1, history.window)
-	require.Equal(t, -1, history.rows[history.window].Message)
-	history.edge(false)
-	require.Equal(t, 1, history.selected)
-	require.Equal(t, "middle", history.rows[history.top].Text, "Home must reveal the selected message, not its preceding blank")
-	history.move(-1)
-	require.Equal(t, "middle", history.rows[history.top].Text)
-}
-
-func TestQuestJournalHistoryOversizedMessageEveryAccessibleRow(t *testing.T) {
-	font := text.NewUltimaFont(16)
-	for _, capacity := range []int{1, 10} {
-		for _, words := range []int{20, 100} {
-			history := questJournalHistory{source: "old\n\n" + strings.Repeat("wide ", words) + "\nnew", selected: -1}
-			history.reflow(font, 80, capacity)
-			history.edge(false)
-			seen := make(map[int]bool)
-			for step := 0; step < len(history.rows)*2; step++ {
-				for row := history.top; row < min(len(history.rows), history.top+capacity); row++ {
-					seen[row] = true
-				}
-				history.page(1)
-			}
-			for row := history.window; row < len(history.rows); row++ {
-				require.True(t, seen[row], "C=%d words=%d row=%d", capacity, words, row)
-			}
-			require.Equal(t, history.spans[len(history.spans)-1].message, history.selected)
-			clear(seen)
-			for step := 0; step < len(history.rows)*2; step++ {
-				for row := history.top; row < min(len(history.rows), history.top+capacity); row++ {
-					seen[row] = true
-				}
-				history.page(-1)
-			}
-			for row := history.window; row < len(history.rows); row++ {
-				require.True(t, seen[row], "reverse C=%d row=%d", capacity, row)
-			}
-		}
-	}
-}
-
-func TestQuestJournalHistoryReflowKeepsIdentitySourceAndAnchor(t *testing.T) {
-	font := text.NewUltimaFont(16)
-	history := questJournalHistory{source: "old\n" + strings.Repeat("readable words ", 100) + "\ntail", selected: -1}
-	history.reflow(font, 180, 10)
-	history.move(-1)
-	history.page(-1)
-	selected, anchor, source := history.selected, history.anchor, history.source
-	history.reflow(font, 240, 10)
-	require.Equal(t, selected, history.selected)
-	require.Equal(t, anchor, history.anchor)
-	require.Equal(t, source, history.source)
-	history.reflow(font, 80, 1)
-	require.GreaterOrEqual(t, history.anchor, anchor)
-	require.GreaterOrEqual(t, history.top, history.window)
-	require.Equal(t, source, history.source)
-	history.reflow(font, 180, 100)
-	require.Zero(t, history.window, "source was not destructively trimmed")
-}
 
 func TestQuestJournalSearchRedactionStableIdentityAndVisits(t *testing.T) {
 	setQuestJournalTestResolution(t, 640, 400)
@@ -175,28 +88,23 @@ func TestQuestJournalSearchTypingDoesNotRunTabOrDetailCommands(t *testing.T) {
 	require.True(t, dialog.dismissed)
 }
 
-func TestQuestJournalHistoryEntryAlwaysShowsNewestAndEnterDoesNothing(t *testing.T) {
+func TestQuestJournalTabCycleContainsOnlyRetainedReaders(t *testing.T) {
 	setQuestJournalTestResolution(t, 640, 400)
 	keyboard := newWidgetTestKeyboard(0)
 	configuration := testQuestJournalConfig(keyboard)
-	configuration.History = strings.TrimSuffix(strings.Repeat("same\n", 64), "\n")
 	dialog := NewQuestJournalDialog(testQuestJournalDossier(), configuration)
-	dialog.switchTabBy(int(QuestJournalHistoryTab))
-	require.Equal(t, QuestJournalHistoryTab, dialog.activeTab)
-	require.Equal(t, 63, dialog.GetSelectedIndex())
-	pressQuestJournalKey(dialog, keyboard, ebiten.KeyHome)
-	require.Less(t, dialog.GetSelectedIndex(), 63)
-	selected := dialog.GetSelectedIndex()
-	pressQuestJournalKey(dialog, keyboard, ebiten.KeyEnter)
-	require.Equal(t, selected, dialog.GetSelectedIndex())
-	dialog.beginSearch()
-	dialog.leaveSearch()
-	require.Equal(t, selected, dialog.GetSelectedIndex(), "cancelled search must retain the reading anchor")
-	pressQuestJournalKey(dialog, keyboard, ebiten.KeyHome)
-	dialog.switchTabBy(1)
-	dialog.switchTabBy(-1)
-	require.Equal(t, 63, dialog.GetSelectedIndex())
-	require.Len(t, dialog.frameRects, 3)
+	var titles []string
+	for range 7 {
+		titles = append(titles, questJournalTabTitle(dialog.activeTab))
+		pressQuestJournalKey(dialog, keyboard, ebiten.KeyTab)
+	}
+	require.Equal(t, []string{"Chronicle", "Virtues", "Shadowlords", "Dungeons", "Last Conversation", "Excerpts", "Moonstones"}, titles)
+	require.Equal(t, QuestJournalChronicleTab, dialog.activeTab)
+	for range 7 {
+		dialog.switchTabBy(-1)
+		require.NotEqual(t, "History", questJournalTabTitle(dialog.activeTab))
+	}
+	require.Equal(t, QuestJournalChronicleTab, dialog.activeTab)
 }
 
 func TestQuestJournalLayoutAndCompleteFooterAtAllSizes(t *testing.T) {
@@ -260,7 +168,6 @@ func TestQuestJournalHeldNavigationUsesRepeatRegistration(t *testing.T) {
 	held := map[ebiten.Key]bool{}
 	keyboard := input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return held[key] })
 	configuration := testQuestJournalConfig(keyboard)
-	configuration.History = "first\nsecond\nthird"
 	dialog := NewQuestJournalDialog(testQuestJournalDossier(), configuration)
 	dialog.switchTabBy(1)
 	held[ebiten.KeyDown] = true
@@ -271,14 +178,14 @@ func TestQuestJournalHeldNavigationUsesRepeatRegistration(t *testing.T) {
 	}
 	require.Equal(t, 2, dialog.GetSelectedIndex(), "held Down does not require physical release")
 	delete(held, ebiten.KeyDown)
-	dialog.switchTabBy(2)
+	dialog.navigate(ebiten.KeyDown)
 	held[ebiten.KeyUp] = true
 	dialog.Update()
-	require.Equal(t, 1, dialog.GetSelectedIndex())
+	require.Equal(t, 2, dialog.GetSelectedIndex())
 	for range 18 {
 		dialog.Update()
 	}
-	require.Zero(t, dialog.GetSelectedIndex(), "held Up selects previous messages, not wrapped rows")
+	require.Equal(t, 1, dialog.GetSelectedIndex(), "held Up retains ordinary list repeat")
 }
 
 func TestQuestJournalSearchHeldPageKeysRespectRepeatDelay(t *testing.T) {
@@ -322,18 +229,15 @@ func TestQuestJournalSearchHeldPageKeysRespectRepeatDelay(t *testing.T) {
 	}
 }
 
-func TestQuestJournalEmptyHistoryAndFocusOwnership(t *testing.T) {
+func TestQuestJournalEmptyChronicleAndFocusOwnership(t *testing.T) {
 	setQuestJournalTestResolution(t, 640, 400)
 	held := map[ebiten.Key]bool{}
 	keyboard := input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return held[key] })
 	dialog := NewQuestJournalDialog(game_state.QuestJournalDossier{}, testQuestJournalConfig(keyboard))
-	dialog.switchTabBy(int(QuestJournalHistoryTab))
 	require.Equal(t, -1, dialog.GetSelectedIndex())
 	for _, key := range []ebiten.Key{ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyPageDown, ebiten.KeyHome, ebiten.KeyEnd, ebiten.KeyEnter} {
 		pressQuestJournalKey(dialog, keyboard, key)
 	}
-	dialog.prepareSingleLine(dialog.historyContentRect(), "No recent messages.", DialogEmptyColor)
-	require.Equal(t, "No recent messages.", dialog.rowOutput.GetOutputStr(false))
 	stack := DialogStack{}
 	stack.PushModalDialog(dialog)
 	other := NewQuestJournalDialog(testQuestJournalDossier(), testQuestJournalConfig(keyboard))
@@ -355,32 +259,14 @@ func TestQuestJournalEmptyHistoryAndFocusOwnership(t *testing.T) {
 	require.True(t, dialog.dismissed, "Shift-J closes even while searching")
 }
 
-func TestQuestJournalWholeMessageBackingAndSelectedStarAreMonochrome(t *testing.T) {
+func TestQuestJournalSelectedStarIsMonochrome(t *testing.T) {
 	setQuestJournalTestResolution(t, 640, 400)
 	configuration := testQuestJournalConfig(newWidgetTestKeyboard(0))
-	configuration.History = "first\n\n" + strings.Repeat("wide message ", 40) + "\nlast"
 	configuration.NewEntries = [3][]bool{{true}, nil, nil}
 	dialog := NewQuestJournalDialog(testQuestJournalDossier(), configuration)
-	dialog.switchTabBy(int(QuestJournalHistoryTab))
-	dialog.history.move(-1)
 	screen := ebiten.NewImage(640, 400)
+	t.Cleanup(screen.Deallocate)
 	dialog.Draw(screen)
-	content := dialog.historyContentRect()
-	visibleSelected := 0
-	for row := dialog.history.top; row < min(len(dialog.history.rows), dialog.history.top+dialog.history.capacity); row++ {
-		point := image.Pt(content.Max.X-1, content.Min.Y+(row-dialog.history.top)*dialog.rowHeight()+1)
-		red, green, blue, _ := screen.At(point.X, point.Y).RGBA()
-		if dialog.history.rows[row].Message == dialog.history.selected {
-			visibleSelected++
-			require.Equal(t, uint32(65535), red)
-			require.Equal(t, red, green)
-			require.Equal(t, red, blue)
-		} else {
-			require.Zero(t, red)
-		}
-	}
-	require.Greater(t, visibleSelected, 1, "the entire visible message, not one cursor row, is inverted")
-	dialog.switchTabBy(-int(QuestJournalHistoryTab))
 	rect := dialog.listContentRect()
 	rect.Max.Y = rect.Min.Y + dialog.rowHeight()
 	dialog.drawListRow(screen, rect, 0, true)

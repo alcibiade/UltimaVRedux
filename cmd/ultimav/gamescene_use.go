@@ -7,7 +7,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
-const staleUseSelectionMessage = "Use selection changed!"
+const staleUseSelectionMessage = "You cannot use that now."
 
 // StartUseWorkflow initiates the Use command workflow, showing the item selection dialog.
 // Shows "No usable items!" if the inventory is empty.
@@ -88,7 +88,7 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 				SpriteSheet: g.spriteSheet,
 				OnSelect: func(item game_state.UseableItemInfo) {
 					if g.gameState.MapState.PlayerLocation != origin {
-						g.gameState.SystemCallbacks.UI.ShowActionFeedback("Use context changed!", true)
+						g.gameState.SystemCallbacks.UI.ShowActionFeedback("You cannot use that here.", true)
 
 						return
 					}
@@ -254,7 +254,7 @@ func (g *GameScene) StartDungeonUseWorkflow(token game_state.DungeonCommandCycle
 		func(q *event_queue.SequentialEventBuilder) {
 			q.Then(func() {
 				if g.gameState.MapState.PlayerLocation != origin {
-					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Use context changed!", true)
+					g.gameState.SystemCallbacks.UI.ShowActionFeedback("You cannot use that here.", true)
 
 					return
 				}

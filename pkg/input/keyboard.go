@@ -207,6 +207,12 @@ func (k *Keyboard) consumeSimulatedKey(key ebiten.Key) bool {
 }
 
 func (k *Keyboard) isKeyPressed(key ebiten.Key) bool {
+	// Caps Lock is lock state, never a gameplay hold or acknowledgement. Some
+	// backends report it continuously while enabled; it must not own release
+	// gates, focus-return suppression, samples, or all-key prompts.
+	if key == ebiten.KeyCapsLock {
+		return false
+	}
 	if k != nil && k.inputPollingSuspended {
 		return false
 	}

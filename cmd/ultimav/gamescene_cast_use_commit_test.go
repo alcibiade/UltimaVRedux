@@ -213,7 +213,7 @@ func TestDungeonUseRejectsMovedSelectorWithoutCommitment(t *testing.T) {
 	assert.Equal(t, before, state.DateTime)
 	assert.Equal(t, calls, state.GetRNG().Calls())
 	assert.Empty(t, callbacks.TimeAdvanced())
-	assert.Contains(t, callbacks.Messages, "Use context changed!")
+	assert.Contains(t, callbacks.Messages, "You cannot use that here.")
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.False(t, state.EventQueueManager.HasActiveWorkflows())
 	assert.Zero(t, scene.dialogStack.Count())

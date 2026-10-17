@@ -16,7 +16,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
-	"github.com/bradhannah/UltimaVRedux/pkg/input"
 	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
 )
 
@@ -501,7 +500,7 @@ func newShrineTranscriptTestScene(t *testing.T) (*GameScene, *game_state.MockSys
 
 	return &GameScene{ //nolint:exhaustruct // Focused shrine transcript fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  newPresentationTestKeyboard(),
 		output:    text.NewOutput(nil, 1, 20, 80),
 	}, callbacks
 }

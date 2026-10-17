@@ -167,10 +167,10 @@ the observation, facing, dismissal state or release guard.
 
 Rapid feedback calls remain independently owned and never block gameplay. Fitting cards retain complete content and visible gaps; an oversized newest singleton keeps its beginning visible and clips at the lower feedback boundary. Resize and map-mode changes remeasure and retarget the live stack without refreshing lifetime. Scene replacement and disposal remove every retained exact instance.
 
-A successful combat chest Jimmy card can retire earlier at its matching contents
-modal's admission or when its object lifetime ends without a pending reveal;
-[combat loot feedback](#combat-loot-feedback) defines that exact-handle handoff
-without clearing other cards or history.
+Chest contents admission retires all scene-owned action-feedback cards. A
+successful Jimmy card also retires if its chest lifetime ends without a pending
+reveal. [Combat loot feedback](#combat-loot-feedback) distinguishes scoped cleanup
+from admission's broader retirement; persistent history survives.
 
 ## Smooth Surface Movement
 
@@ -246,8 +246,8 @@ snapshots of party equipment stock, independent of readied weapons.
 `ProvisionSummaryHeight` reserves the four scaled rows. The supplies area grows
 upward into the message panel, retaining the bottom inset and the map, party and
 status-band geometry. The shortened transcript clip fits **11 visible message
-rows**, with 16-character wrapping and the same 64-row buffer and Journal
-History through resize.
+rows**, with 16-character wrapping and the same 64-row buffer and saved plain
+output history through resize. History is not a Journal tab.
 
 Scene before/after observation emits one nonblocking action-feedback
 notice, also appended to ordinary Output, when stock crosses from above 20 into
@@ -378,10 +378,11 @@ action-feedback handle from that synchronous action. The association retains the
 exact combat instance, encounter ID, selected chest position and non-reused object
 lifetime ID; it is not inferred from message text, widget type or a reusable object
 slot. Jimmy selects the last matching chest while Open selects the first, so
-co-located chests retain independent feedback. Immediately before pushing the matching contents
-modal, its workflow retires only those captured cards. They cannot reappear after
-acknowledgement, and unrelated cards, other chest lifetimes and transcript/report
-history retain their ordinary ownership. Open returns the removed chest's detached
+co-located chests retain independent lifetime associations. Immediately before
+pushing contents, the workflow clears all scene-owned action cards, including
+Search, Look, failures and other chest cards. They cannot reappear afterward.
+Unrelated workflow-owned dialogs, the current trap notice and transcript/report
+history survive. Open returns the removed chest's detached
 identity. A pending reveal retains that exact snapshot until modal admission;
 object absence alone must not retire its card during this handoff. Empty Open
 results create no contents modal and leave no pending reveal: feedback for the
@@ -394,7 +395,8 @@ encounters retire stale associations even while another modal pauses ordinary
 feedback lifetime. Readmission assigns a fresh lifetime ID even for identical
 contents at the same position and original slot; repeated cleanup cannot remove
 the replacement's card. Pending-reveal cancellation also retires its captured
-cards. This changes presentation only, leaving
+cards; it does not purge unrelated cards before admission or newer cards during
+finalization. This changes presentation only, leaving
 keys, trap/loot RNG, action completion and contents acknowledgement with their
 existing owners. The scope and production Jimmy-to-Open handoff are exercised in
 `cmd/ultimav/gamescene_combat_chest_feedback_test.go`.
@@ -657,9 +659,9 @@ also exercise long names, multiple sources, resize, HiDPI, and crowded fights.
 `rightRail.activeBorder`; `calculateStatusBandLayout` preserves the established
 interior padding as one shared row. Actually worn artifacts compact from the
 left, while ongoing effects compact from the right. Both groups use the same
-measured cell size. A short blue-white separator appears only when both groups
-have entries; there are no section captions, inactive wells, or fixed midpoint
-rule. Band height, party summary and map viewport stay fixed. The provisions
+measured cell size and retain a clear empty gap, with no separator, section
+captions, inactive wells or midpoint rule. Band height, party summary and map
+viewport stay fixed. The provisions
 footer's [four-row layout](#ammunition-summary-and-shortages) takes its additional
 height from the message panel, whose transcript has 11 visible lines,
 16-character wrapping, clipping, and the same history buffer through resize.

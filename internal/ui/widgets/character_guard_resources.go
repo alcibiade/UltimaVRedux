@@ -47,7 +47,7 @@ func characterGuardResourceValues(option CharacterSelectionOption) [3]string {
 	}
 }
 
-// The guard alone uses a full-width ledger above its explanation. A side-by-side
+// The guard uses a content-sized ledger above its explanation. A side-by-side
 // detail pane would steal space from names or complete resource values at 320x200.
 func (s *characterRosterDialogShell) ensureGuardResourceLayout(width, height int, view characterRosterDialogView) {
 	if s.titleOutput != nil && width == s.lastScreenWidth && height == s.lastScreenHeight &&
@@ -164,6 +164,8 @@ func (s *characterRosterDialogShell) appendGuardFooter(footer [2]string) {
 
 // All seven rows and the longest explanation reserve measured space at opening
 // and resize. Inspection never resizes the card or displaces its footer.
+//
+//nolint:funlen // Publish the mutually constrained roster, explanation and footer geometry in one measured pass.
 func (s *characterRosterDialogShell) calculateGuardResourceLayout(width, height int, view characterRosterDialogView) {
 	workspace := s.guardResourceWorkspace(width, height)
 	unit := getClassicUIPixelUnit(width, height)
@@ -174,6 +176,9 @@ func (s *characterRosterDialogShell) calculateGuardResourceLayout(width, height 
 		padding = unit
 	}
 	panel := workspace.Inset(unit * characterRosterDialogMarginUnits)
+	panelWidth := min(panel.Dx(), s.guardResourcePreferredWidth(view, padding))
+	panel.Min.X = workspace.Min.X + (workspace.Dx()-panelWidth)/characterRosterDialogCenterDivisor
+	panel.Max.X = panel.Min.X + panelWidth
 	contentWidth := panel.Dx() - padding*characterRosterDialogCenterDivisor
 	s.detailOutput.SetMaxCharsPerLine(max(1, s.bodyFont.CharsForWidth(contentWidth)))
 	s.footerOutput.SetMaxCharsPerLine(max(1, s.footerOutput.Font.CharsForWidth(contentWidth)))
@@ -218,39 +223,69 @@ func (s *characterRosterDialogShell) calculateGuardResourceLayout(width, height 
 	}
 }
 
-func (s *characterRosterDialogShell) guardResourceColumns(
-	row image.Rectangle, options []CharacterSelectionOption,
-) [4]image.Rectangle {
-	widths := [3]int{}
-	for index, label := range [3]string{"HP", "MP", guardResourceConditionLabel} {
+func (s *characterRosterDialogShell) guardResourcePreferredWidth(view characterRosterDialogView, padding int) int {
+	widths := s.guardResourceColumnWidths(view.options)
+	gap := padding * characterRosterDialogCenterDivisor
+	preferred := (len(widths) - 1) * gap
+	for _, width := range widths {
+		preferred += width
+	}
+	if s.guardResourcesCompact {
+		preferred = max(widths[0]+widths[3], widths[1]+widths[2]) + gap
+	}
+	titleWidth, _ := s.titleOutput.Font.MeasureString(view.title)
+	preferred = max(preferred, int(math.Ceil(titleWidth)))
+	for _, line := range view.footer {
+		footerWidth, _ := s.footerOutput.Font.MeasureString(line)
+		preferred = max(preferred, int(math.Ceil(footerWidth)))
+	}
+
+	return preferred + padding*characterRosterDialogCenterDivisor
+}
+
+func (s *characterRosterDialogShell) guardResourceColumnWidths(options []CharacterSelectionOption) [4]int {
+	widths := [4]int{}
+	for index, label := range [4]string{guardResourceNameLabel, "HP", "MP", guardResourceConditionLabel} {
 		width, _ := s.headerOutput.Font.MeasureString(label)
 		widths[index] = int(math.Ceil(width))
 	}
 	for _, option := range options {
+		nameWidth, _ := s.bodyFont.MeasureString(fmt.Sprintf(">X%d %s*", max(0, option.PartyPosition), option.Name))
+		widths[0] = max(widths[0], int(math.Ceil(nameWidth)))
 		for index, value := range characterGuardResourceValues(option) {
 			width, _ := s.bodyFont.MeasureString(value)
-			widths[index] = max(widths[index], int(math.Ceil(width)))
+			widths[index+1] = max(widths[index+1], int(math.Ceil(width)))
 		}
 	}
+
+	return widths
+}
+
+func (s *characterRosterDialogShell) guardResourceColumns(
+	row image.Rectangle, options []CharacterSelectionOption,
+) [4]image.Rectangle {
+	widths := s.guardResourceColumnWidths(options)
+	gap := s.layout.padding * characterRosterDialogCenterDivisor
 	if s.guardResourcesCompact {
 		middle := row.Min.Y + row.Dy()/characterRosterDialogCenterDivisor
-		conditionLeft := row.Max.X - widths[guardResourceConditionColumn]
-		gap := s.layout.padding * characterRosterDialogCenterDivisor
+		nameWidth := max(0, min(widths[0], row.Dx()-widths[3]-gap))
+		conditionLeft := row.Min.X + nameWidth + gap
+		mpLeft := row.Min.X + widths[1] + gap
 
 		return [4]image.Rectangle{
-			image.Rect(row.Min.X, row.Min.Y, max(row.Min.X, conditionLeft-gap), middle),
-			image.Rect(row.Min.X, middle, row.Min.X+widths[0], row.Max.Y),
-			image.Rect(row.Max.X-widths[1], middle, row.Max.X, row.Max.Y),
-			image.Rect(conditionLeft, row.Min.Y, row.Max.X, middle),
+			image.Rect(row.Min.X, row.Min.Y, row.Min.X+nameWidth, middle),
+			image.Rect(row.Min.X, middle, row.Min.X+widths[1], row.Max.Y),
+			image.Rect(mpLeft, middle, mpLeft+widths[2], row.Max.Y),
+			image.Rect(conditionLeft, row.Min.Y, conditionLeft+widths[3], middle),
 		}
 	}
 	columns := [4]image.Rectangle{}
-	right := row.Max.X
-	for index := len(widths) - 1; index >= 0; index-- {
-		columns[index+1] = image.Rect(right-widths[index], row.Min.Y, right, row.Max.Y)
-		right -= widths[index] + s.layout.padding*characterRosterDialogCenterDivisor
+	widths[0] = max(0, min(widths[0], row.Dx()-widths[1]-widths[2]-widths[3]-(len(widths)-1)*gap))
+	left := row.Min.X
+	for index, width := range widths {
+		columns[index] = image.Rect(left, row.Min.Y, left+width, row.Max.Y)
+		left += width + gap
 	}
-	columns[0] = image.Rect(row.Min.X, row.Min.Y, max(row.Min.X, right), row.Max.Y)
 
 	return columns
 }

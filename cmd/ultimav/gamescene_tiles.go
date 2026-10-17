@@ -149,6 +149,14 @@ func (g *GameScene) refreshStaticMapTiles(pos *references.Position, mapLayer *ma
 	if g.surfaceCamera.active {
 		target = g.surfaceTerrainImage
 	}
+	if spriteIndex == indexes.Splat && g.gameState.IsInCombat() && !bonus &&
+		g.gameState.CombatTerrainAllowsObjectDisplay(*pos) {
+		// The selected corpse is transparent artwork, not replacement terrain.
+		// Selection above already excludes losing corpses and chest previews.
+		terrain := g.gameState.GetBonusTerrainTile(pos)
+		underlay := g.spriteSheet.GetAnimatedSprite(terrain, posHash, animationTime)
+		g.drawTilePaletteSprite(target, underlay, drawOptions, terrain)
+	}
 	g.drawTilePaletteSprite(target, oof, drawOptions, spriteIndex)
 
 	// Reset color scale if any tint was applied (for next tile)

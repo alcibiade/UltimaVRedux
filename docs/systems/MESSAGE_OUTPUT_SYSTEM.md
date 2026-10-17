@@ -113,6 +113,8 @@ The main right-rail Output separately opts into `EnableJournalHistory`.
 mutation seams, before 16-character rail wrapping. Modal-only speech is excluded;
 dual-output callbacks record only the mutation reaching the main Output. The
 live rail and Talk's styled history retain their existing behavior.
+The API retains its historical name, but Journal no longer has a History reader
+or search source.
 
 - Retain at most 64 nonblank logical entries, 4,096 UTF-8 bytes per logical line,
   and 65,536 bytes of canonical retained text including separators, not JSON
@@ -143,9 +145,8 @@ Add of `B` retains `A\n\nB`. These API distinctions are covered in
 `RestoreJournalHistory` validates before replacing the collector and rail,
 rebuilding monochrome wrapped rail rows without callback mirroring or recording
 them again. Accepted canonical source recaptures exactly. The scene snapshots
-this source when Journal opens, not on first entering History. The widget's
-[whole-message three-screen reader](../ui/WIDGET_COMPONENTS.md#questjournaldialog)
-does not destructively trim it. Permanent Chronicle discoveries are a separate
+this source in saves for main-rail restoration; it is not passed into the Journal
+widget. Permanent Chronicle discoveries are a separate
 authority and are never subject to History retention limits. See
 [native presentation](../details/SAVE_SNAPSHOT_SCHEMA.md#presentation) for save
 ownership and strict byte-aware validation.
@@ -165,6 +166,16 @@ Mandatory callbacks are invariants. Gameplay code calls them directly; it must n
 Some explicitly documented extension callbacks are optional. Code that requires one must establish that stronger contract during feature initialization, not repeatedly probe it at each message site.
 
 ## Ownership Rules
+
+Keyboard guidance separates key/chord ink (`DialogControlKeyColor`, white) from
+action descriptions (`DialogControlHintColor`, light grey). Shared merchant
+footers accept bracketed keys and recognized colon-style controls, preserving
+text, spacing and logical newlines before wrapping; ordinary status prose with a
+colon is not a shortcut. `SetAcknowledgementPrompt` composes these semantic
+segments in its reserved output without taking workflow input ownership.
+Generic `SetPromptWithColor` remains a single-colour prose API. Error/status text
+retains its meaning; retry/cancel controls live in the visible styled footer or
+an explicitly separate hint, not duplicated inside the error.
 
 - Authoritative gameplay outcomes are decided in `GameState`; callbacks only present those outcomes.
 - Do not duplicate an action result in both `GameState` and its input handler.

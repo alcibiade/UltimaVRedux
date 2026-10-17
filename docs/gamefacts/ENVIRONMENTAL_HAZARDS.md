@@ -67,8 +67,13 @@ preserving inactive roster members and rejecting stale review without RNG.
 **REDUX DEVIATION: ENV-0002:** its owned cinematic presents an already committed
 outcome, rather than interleaving blocking original effects and mutation. Cleanup
 cannot undo consequences or add another minute; one owner hands off recovery.
+The flood clears superseded door/doorway overrides on that floor and retires its
+tracked door timer without restoring the closed tile. Unrelated overrides and
+other-floor timers remain. **REDUX DEVIATION: ENV-0002 / CMD-0006:** an original
+pending closure can write a door after the flood; Redux prevents that resurrection
+so the lava reveal contains no superseded room doors.
 
-**Implementation:** `internal/game_state/stonegate_trap_service.go`, `internal/game_state/environmental_integration.go`
+**Implementation:** `internal/game_state/stonegate_trap_service.go`, `internal/game_state/environmental_integration.go`, `internal/game_state/action_fall_through.go`, `internal/game_state/stonegate_doors_test.go`, `cmd/ultimav/gamescene_stonegate_doors_render_test.go`
 
 ### ENV-0003
 
@@ -110,13 +115,16 @@ not create a checkpoint or charge. Movement's existing terrain costs remain with
 its completion owner; the waterfall does not replay ordinary turns.
 
 One retained logical owner controls the cascade, with at most one live waterfall
-workflow. Each descent makes two wrapped southward steps, waits for its
-presentation, applies the existing ordered Dexterity checks and one-HP failure
+workflow. Each descent makes two wrapped southward steps with the short inter-step
+delay, then applies the existing ordered Dexterity checks and one-HP failure
 damage, and performs the canonical surface
 entrance transition when appropriate. The initiating command's actor phase runs
 **once after the first completed descent**, before another automatic fall.
 Automatic sailing stops when the hazard takes ownership. Later falls add no new
 input requirement, calendar charge, food/status sweep, or actor phase.
+There is no extra 2.5-second post-step presentation wait. Damage feedback, required
+transitions and owed actor work finish before input returns; the nonblocking falls
+notice may remain. Held movement must release before a fresh press resumes travel.
 
 If that phase yields to a projectile, tactical contact or whirlpool, the current
 waterfall workflow finalizes and releases input while the logical cascade retains

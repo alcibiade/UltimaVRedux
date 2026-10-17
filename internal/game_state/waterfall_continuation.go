@@ -182,7 +182,7 @@ func (g *GameState) acceptWaterfallActorReturn(phase *outdoorActorContinuation) 
 }
 
 // thenWaterfallCascade inserts one complete asynchronous descent at runtime.
-// Its final ThenSequence reviews the UPDATED landing only after steps, glide,
+// Its final ThenSequence reviews the UPDATED landing only after forced steps,
 // damage feedback and any canonical map transition have all completed. This is
 // queue continuation, not recursive ordinary turn completion or a polling loop
 // that starts independent workflows for successive falls. ref:ENV-0003.
@@ -207,7 +207,6 @@ func (g *GameState) thenWaterfallCascade(cascade *waterfallCascade) event_queue.
 			}
 		}).Wait(waterfallStepDelayMs).
 			Then(func() { g.advanceWaterfallSouthStep(cascade) }).
-			Wait(waterfallGlideDurationMs).
 			ThenSequence(g.thenWaterfallDamageCheck(cascade)).
 			ThenSequence(g.thenUnderworldTransition(cascade)).
 			Then(func() { g.completeFirstWaterfallActorTail(cascade) }).

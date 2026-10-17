@@ -73,14 +73,13 @@ func (u UsageContext) String() string {
 
 // UseableItemInfo contains information about a usable item for the UI
 type UseableItemInfo struct {
-	Name            string
-	FullName        string
-	Description     string
-	EffectSummary   string
-	NextInteraction string
-	Requirement     string
-	Consumption     string
-	Warning         string
+	Name          string
+	FullName      string
+	Description   string
+	EffectSummary string
+	Requirement   string
+	Consumption   string
+	Warning       string
 	// UnavailableReason blocks activation; AvailableNow describes effect applicability only.
 	UnavailableReason string
 	AvailableNow      bool

@@ -177,7 +177,11 @@ func TestSaveDescriptionEntryModalInputErrorStaysVisibleUntilCancelled(t *testin
 	require.False(t, modal.IsFinished())
 	require.Zero(t, callbackCalls)
 	require.Equal(t, "b_skiff", modal.GetText())
-	require.Equal(t, "Text input failed. Press Esc to go back.", modal.GetValidationMessage())
+	require.Equal(t, "Text input failed.", modal.GetValidationMessage())
+	modal.preparePresentation(1280, 720)
+	require.Contains(t, modal.hintOutput.GetOutputStr(false), "Esc: Back")
+	_, hasControlInk := modal.hintOutput.FirstPanelLineWithColor(0, modal.hintOutput.GetPanelContentLineCount(), DialogControlKeyColor)
+	require.True(t, hasControlInk, "the recovery control remains in the styled hint area")
 	modal.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	modal.Update()
 

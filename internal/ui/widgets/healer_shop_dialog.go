@@ -513,6 +513,7 @@ func (d *HealerShopDialog) ensureLayout() {
 	d.populateDetailOutput()
 }
 
+//nolint:funlen // The shared column and pane geometry is measured together before publication.
 func (d *HealerShopDialog) calculateLayout() {
 	workspace := d.shell.GetWorkspaceBounds()
 	inset := max(healerShopMinimumInset, min(workspace.Dx(), workspace.Dy())/healerShopInsetDivisor)
@@ -820,7 +821,17 @@ func (d *HealerShopDialog) populateDetailOutput() {
 	priceText, priceColor := healerChargeText(service, d.state.Gold)
 	d.detailOutput.AppendLine().Text(priceText, priceColor).Done()
 	statusText, statusColor := d.detailStatusText(service, projection)
-	d.detailOutput.AppendLine().Text(statusText, statusColor).Done()
+	line = d.detailOutput.AppendLine()
+	switch {
+	case d.phase == HealerShopSessionError:
+		line.Text("Enter", DialogControlKeyColor).Text(" or ", DialogControlHintColor).
+			Text("Esc", DialogControlKeyColor).Text(" to leave.", DialogControlHintColor)
+	case d.phase == HealerShopBrowse && d.receiptText == "" && projection.Eligibility.IsEligible() && service.Affordable:
+		line.Text("Enter", DialogControlKeyColor).Text(" to review.", DialogControlHintColor)
+	default:
+		line.Text(statusText, statusColor)
+	}
+	line.Done()
 }
 func (d *HealerShopDialog) populateServiceDetail(service game_state.HealerServiceQuote) {
 	line := d.detailOutput.AppendLine()

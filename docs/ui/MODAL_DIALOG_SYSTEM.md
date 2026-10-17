@@ -200,16 +200,24 @@ GameScene timed overlays instead use `WithExternallyManagedDuration`. `OverlayDi
 
 Non-blocking action feedback has separate GameScene ownership. The owner retains stable exact instances, reconciles protected lifecycle and movement before the stack's one non-blocking update, and promptly retires an instance removed elsewhere. Capacity eviction, expiry, scene replacement, and disposal remove only owned feedback and tolerate idempotent cleanup.
 
-Combat chest contents have one scoped handoff: just before their modal is pushed,
-retire surviving successful-Jimmy cards captured for the same combat instance,
-encounter ID, chest position and non-reused object lifetime ID. Do not clear all
-feedback or remove by text/type/slot. Co-located chests are separate owners.
-Other cards and persistent history survive. Already expired/evicted handles are
-harmless. Open removes its chest before admission, so only its exact pending reveal
-snapshot bridges that interval; cancellation retires the same captured handles.
+Combat chest contents retire all scene-owned informational action-feedback cards
+immediately before modal admission: Search, Look, Jimmy, failures and completed
+actions alike, without fade overlap. Other workflow-owned choices/acknowledgements,
+persistent history and the current trap notice inside contents survive. Do not
+clear the whole stack or match text/type. Starting Open is not admission:
+failed/empty attempts or earlier cancellation do not purge unrelated cards.
+Finalization remains chest-scoped so newer feedback survives. Expired/evicted
+handles are harmless. Open removes its chest before admission, so its exact
+pending reveal bridges that interval; cancellation retires only those handles.
 Removed owners without that pending snapshot (including empty Open results) retire
 on reconciliation, even beneath a modal. Identical readmission cannot inherit them.
 See [combat loot feedback](GAME_UI_INTEGRATION.md#combat-loot-feedback).
+
+Ordinary entry/exit notices use nonblocking action feedback, preserving text and
+the existing no-extra-output-copy policy. Required fades/map changes still own
+input; fresh movement works afterward while the notice remains visible. Falls
+likewise retain authoritative cascade ownership but no extra post-step dwell.
+Other timed overlays and special acknowledgements keep their existing ownership.
 
 ## Event Workflow Pattern
 
@@ -276,8 +284,12 @@ Gameplay includes **Flexible Sextant Use**, an off-by-default Redux option for
 daytime and indoor surface-settlement readings. It requires a sextant and excludes
 dungeons and the Underworld. It stages the existing
 `Gameplay.Navigation.FlexibleSextantUse` preference with the same Apply/Cancel
-transaction as the other settings. The seven measured Gameplay rows use compact
-vertical padding and gaps, preserving normal typography at supported sizes.
+transaction as the other settings. The seven measured Gameplay rows reserve top
+and bottom frame clearance. Each checkbox has a separate measured column; label
+continuations align with the label. Complete label buffers and measured detail
+heights prevent leading-line loss. Row gaps preserve normal typography.
+**Remember Hidden Dungeon Discoveries** retains its name and preference: On keeps
+discovered hidden doors/pits between visits; Off resets them on a fresh visit.
 The responsive card uses the
 complete host pane, equal-width tabs, and independently measured Display label
 and value columns.

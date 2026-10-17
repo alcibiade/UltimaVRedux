@@ -249,7 +249,12 @@ scenes suspend it. Native saves carry closed-door mutations and the timer
 separately; actor holds are derived anew. Key/spell costs and completion remain
 with their command authorities.
 
-**Implementation:** `internal/game_state/small_map.go`, `internal/map_state/action_open_door.go`
+Stonegate's destructive flood discards superseded door overrides and its current-
+floor timer without restoring a door. Other floors and unrelated overrides remain;
+[ENV-0002](ENVIRONMENTAL_HAZARDS.md#env-0002) owns the intentional original-timer
+edge-case difference and unchanged trap consequences.
+
+**Implementation:** `internal/game_state/small_map.go`, `internal/map_state/action_open_door.go`, `internal/game_state/action_fall_through.go`
 
 ### CMD-0007
 

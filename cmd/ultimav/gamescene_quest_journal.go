@@ -60,7 +60,6 @@ func (g *GameScene) ShowQuestJournalDossier(dossier game_state.QuestJournalDossi
 	}
 	session.dialog = widgets.NewQuestJournalDialog(dossier, widgets.QuestJournalDialogConfig{
 		Keyboard:         g.keyboard,
-		History:          g.output.JournalHistory(),
 		NewEntries:       newEntries,
 		ShadowlordSprite: g.spriteSheet.GetSprite(indexes.ShadowLord1),
 		OnDismiss:        func() { g.closeJournalSession(session, true) },

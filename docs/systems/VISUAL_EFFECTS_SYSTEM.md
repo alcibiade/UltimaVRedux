@@ -437,6 +437,16 @@ with their owners. The renderer introduces no gameplay mutation or RNG draw.
 including square effects during unrelated actor motion and actor-following
 teleport cues.
 
+Combat Splat artwork is alpha-composited over the effective map-only terrain at
+the same logical square, below actors and markers. The pile/preview winner is
+selected first; losing corpses never appear beneath a field or temporary chest
+reveal. Underlays retain overrides, animation and their own dungeon palette
+treatment; blood keeps its own palette. The shipped Splat has transparent
+background pixels, so no atlas-wide black-to-transparent conversion is needed.
+`gamescene_corpse_composition_test.go` exercises actual tile rendering and atlas
+alpha over contrasting and animated terrain in both combat palettes without
+changing objects, time or RNG. Native visual acceptance remains separate.
+
 ## Combat Aim And Active Selection
 
 The selected physical/spell cursor retains its familiar full-size geometry,

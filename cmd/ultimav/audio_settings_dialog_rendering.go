@@ -46,8 +46,8 @@ func gameplaySettings() [audioSettingsGameplayCount]gameplaySettingDefinition {
 		},
 		{
 			label: "Remember Hidden Dungeon Discoveries",
-			detail: "Original: hidden dungeon doors and pits reset on each visit. " +
-				"On keeps Redux discoveries between visits; Off restores the per-visit reset.",
+			detail: "Remember discovered hidden doors and pits between visits. " +
+				"On: keep discoveries. Off: reset each fresh visit.",
 		},
 		{
 			label: "Show Subdued Unlit Dungeons",
@@ -389,6 +389,8 @@ func (d *ConfigurationDialog) drawWindowPresetAvailability(screen *ebiten.Image,
 }
 
 func (d *ConfigurationDialog) drawDisplayConfirmation(screen *ebiten.Image) {
+	// This view owns the whole body, not the Gameplay detail column.
+	d.detailOutput.SetMaxCharsPerLine(max(1, d.detailOutput.Font.CharsForWidth(d.layout.bodyRect.Dx())))
 	widgets.FillClassicPixelRoundedRect(
 		screen, d.layout.cardRect, d.layout.pixelUnit, ucolor.DialogBackground.RGBA(),
 	)
@@ -480,16 +482,19 @@ func (d *ConfigurationDialog) drawGameplayContent(screen *ebiten.Image) {
 			markColor = widgets.DialogSelectedCheckedMarkColor
 		}
 		d.gameplayOutput.Reset()
-		d.gameplayOutput.AppendLine().
-			Text("[", textColor).Text(d.gameplayCheckmark(index), markColor).
-			Text("] "+settings[index].label, textColor).
-			WordWrap().
-			Done()
+		d.gameplayOutput.AppendLine().Text(settings[index].label, textColor).WordWrap().Done()
 		inset := max(1, d.layout.pixelUnit*audioSettingsCenterDivisor)
+		top := centeredAudioOutputY(rect, d.gameplayOutput)
+		d.labelOutput.Reset()
+		d.labelOutput.AppendLine().
+			Text("[", textColor).Text(d.gameplayCheckmark(index), markColor).
+			Text("]", textColor).
+			Done()
+		d.labelOutput.DrawPanelContent(screen, image.Pt(rect.Min.X+inset, top), d.gameplayCheckboxWidth(), etext.AlignStart)
 		d.gameplayOutput.DrawPanelContent(
 			screen,
-			image.Pt(rect.Min.X+inset, centeredAudioOutputY(rect, d.gameplayOutput)),
-			max(1, rect.Dx()-inset*audioSettingsCenterDivisor),
+			image.Pt(rect.Min.X+inset+d.gameplayCheckboxWidth(), top),
+			d.gameplayLabelWidth(rect.Dx(), d.layout.pixelUnit),
 			etext.AlignStart,
 		)
 	}
@@ -513,6 +518,9 @@ func (d *ConfigurationDialog) drawGameplayContent(screen *ebiten.Image) {
 // prepareGameplayDetail uses the measured layout's wrapping capacity without
 // rasterizing. Selection and staged settings remain owned by Update.
 func (d *ConfigurationDialog) prepareGameplayDetail() {
+	inset := max(1, d.layout.pixelUnit*audioSettingsCenterDivisor)
+	d.detailOutput.SetMaxCharsPerLine(max(1,
+		d.detailOutput.Font.CharsForWidth(d.layout.gameplayDetail.Dx()-inset*audioSettingsCenterDivisor)))
 	d.detailOutput.Reset()
 	selected := gameplaySettings()[d.focusedGameplayIndex]
 	d.detailOutput.AppendLine().Text(selected.label, widgets.DialogHeaderColor).WordWrap().Done()

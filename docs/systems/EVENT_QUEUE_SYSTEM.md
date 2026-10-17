@@ -99,6 +99,10 @@ Further qualifying falls compose through `ThenSequence` and add no ordinary
 command, player update or actor phase. An already admitted high-priority rough-sea
 hit runs before the normal-priority waterfall workflow; the waterfall never
 requests a duplicate hit.
+Only the short interval between forced steps remains; there is no post-step
+presentation-only dwell. The falls notice is nonblocking and may outlive the
+cascade. Damage, transitions and owed actor processing retain input ownership
+until safe completion, including physical key release.
 
 If the owed phase produces projectile presentation, tactical contact or a
 whirlpool, the physical waterfall workflow reaches its normal end and releases

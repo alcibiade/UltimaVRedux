@@ -324,6 +324,10 @@ schedule presentation and do not themselves advance the calendar. Wind retains
 the [shared-RNG timing scope](#elapsed-time-and-shared-rng-scope). If eligibility
 disappears before the first step without a takeover, the already consumed command
 still runs its owed actor tail once.
+The two forced steps retain their 255 ms spacing, but no additional 2.5-second
+post-step dwell. Damage feedback and required transitions still complete under the
+cascade owner. Its notice expires independently, allowing fresh-key movement after
+the cascade and owed actors finish without waiting for the card to disappear.
 
 Both forced southward steps call `MovePlayerOneStep` separately, so each updates
 the runtime outdoor window; the special plane transition initializes it at the

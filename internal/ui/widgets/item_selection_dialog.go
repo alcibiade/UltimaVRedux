@@ -65,15 +65,15 @@ func (c ItemCategory) String() string {
 	case ItemCategoryAll:
 		return "All"
 	case ItemCategoryQuest:
-		return "Quest"
+		return "Artifacts"
 	case ItemCategoryPotion:
-		return "Potion"
+		return "Potions"
 	case ItemCategoryScroll:
-		return "Scroll"
+		return "Scrolls"
 	case ItemCategoryTools:
 		return "Tools"
 	case ItemCategoryMoonstone:
-		return "Moon"
+		return "Moonstones"
 	case ItemCategoryKeys:
 		return "Keys"
 	default:
@@ -764,6 +764,9 @@ func (d *ItemSelectionDialog) drawDetail(screen *ebiten.Image) {
 	d.detailOutput.DrawPanelContent(screen, content.Min, content.Dx(), etext.AlignStart)
 
 	d.pageOutput.Reset()
+	if len(pages) <= 1 {
+		return
+	}
 	d.pageOutput.AppendLine().
 		WithAlignment(etext.AlignCenter).
 		Text(fmt.Sprintf("Page %d/%d", d.detailPage+1, len(pages)), DialogNavHintColor).
@@ -807,12 +810,16 @@ func (d *ItemSelectionDialog) drawFooter(screen *ebiten.Image) {
 	content := d.footerContentRect()
 	enter := "Use"
 	if item := d.selectedItem(); item != nil && item.UnavailableReason != "" {
-		enter = "Why unavailable"
+		enter = "Unavailable"
+	}
+	details := ""
+	if len(d.detailPages()) > 1 {
+		details = "  [Space] Details"
 	}
 	drawModifierFooter(
 		screen,
 		content,
-		"[Tab/Shift-Tab] Category  [Space] Details\n"+
+		"[Tab/Shift-Tab] Category"+details+"\n"+
 			"[Up/Dn] Item  [Shift+Up/Dn] Page  [Enter] "+enter+"  [Esc] Cancel",
 		itemDialogFooterLines,
 		d.footerOutput,
@@ -827,10 +834,8 @@ func (d *ItemSelectionDialog) detailPages() [][]itemSelectionDetailLine {
 		}}}
 	}
 
-	pages := d.paginateDetailLines(d.actionDetailLines(*item))
-	if lore := d.loreDetailLines(*item); len(lore) > 0 {
-		pages = append(pages, d.paginateDetailLines(lore)...)
-	}
+	lines := append(d.actionDetailLines(*item), d.loreDetailLines(*item)...)
+	pages := d.paginateDetailLines(lines)
 	if len(pages) == 0 {
 		return [][]itemSelectionDetailLine{{}}
 	}
@@ -839,26 +844,20 @@ func (d *ItemSelectionDialog) detailPages() [][]itemSelectionDetailLine {
 }
 
 func (d *ItemSelectionDialog) actionDetailLines(item game_state.UseableItemInfo) []itemSelectionDetailLine {
-	statusColor := DialogStatusOKColor
-	if !item.AvailableNow {
-		statusColor = DialogStatusWarningColor
-	}
-	lines := []itemSelectionDetailLine{
-		{label: "", value: "Action", color: DialogHeaderColor, header: true},
-		{label: "Effect", value: item.EffectSummary, color: DialogValueColor, header: false},
-		{label: "Next", value: item.NextInteraction, color: DialogValueColor, header: false},
-		{label: "Now", value: item.Requirement, color: statusColor, header: false},
-		{label: "Consumed", value: item.Consumption, color: DialogValueColor, header: false},
-	}
+	var lines []itemSelectionDetailLine
 	if item.UnavailableReason != "" {
-		lines = append([]itemSelectionDetailLine{{
-			label: "Unavailable", value: item.UnavailableReason, color: DialogStatusWarningColor, header: false,
-		}}, lines...)
-	}
-	if warning := strings.TrimSpace(item.Warning); warning != "" {
 		lines = append(lines, itemSelectionDetailLine{
-			label: "Warning", value: warning, color: DialogWarningColor, header: false,
+			label: "", value: item.UnavailableReason, color: DialogStatusWarningColor, header: false,
 		})
+	} else {
+		for _, hint := range []string{item.EffectSummary, item.Requirement, item.Consumption} {
+			if hint != "" {
+				lines = append(lines, itemSelectionDetailLine{label: "", value: hint, color: DialogControlHintColor, header: false})
+			}
+		}
+		if warning := strings.TrimSpace(item.Warning); warning != "" {
+			lines = append(lines, itemSelectionDetailLine{label: "", value: warning, color: DialogWarningColor, header: false})
+		}
 	}
 
 	return lines
@@ -878,7 +877,6 @@ func (d *ItemSelectionDialog) loreDetailLines(item game_state.UseableItemInfo) [
 		return nil
 	}
 	lines := []itemSelectionDetailLine{
-		{label: "", value: "Lore", color: DialogHeaderColor, header: true},
 		{label: "", value: description, color: DialogValueColor, header: false},
 	}
 	if attribution := strings.TrimSpace(item.ItemRef.ItemDescriptionAttribution); attribution != "" {
@@ -911,6 +909,15 @@ func (d *ItemSelectionDialog) paginateDetailLines(lines []itemSelectionDetailLin
 			continue
 		}
 		if len(page) > 0 {
+			if remainingRows := lineCapacity - d.detailLineCount(page); remainingRows > 0 {
+				first, remainder := d.splitDetailLine(remaining[0], remainingRows)
+				page = append(page, first)
+				if remainder == nil {
+					remaining = remaining[1:]
+				} else {
+					remaining[0] = *remainder
+				}
+			}
 			pages = append(pages, page)
 			page = nil
 

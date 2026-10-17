@@ -209,7 +209,7 @@ func TestCombatChestJimmyThenOpenRetiresDisarmBeforeSummary(t *testing.T) {
 	require.True(t, ok)
 	assert.False(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog))
 	assert.Empty(t, scene.combatChestFeedback)
-	assert.True(t, scene.dialogStack.ContainsWidgetInstance(unrelated.dialog))
+	assert.False(t, scene.dialogStack.ContainsWidgetInstance(unrelated.dialog), "contents admission retires all action feedback")
 	assert.Contains(t, scene.output.GetOutputStr(false), history, "retiring presentation must retain history")
 	inventory, calls := state.PartyState.Inventory.LockerSnapshot(), state.GetRNG().Calls()
 	for range 30 {
@@ -218,7 +218,7 @@ func TestCombatChestJimmyThenOpenRetiresDisarmBeforeSummary(t *testing.T) {
 		scene.updateTransientActionFeedback()
 	}
 	assert.False(t, dialog.IsDismissed(), "summary still requires ordinary acknowledgement")
-	assert.True(t, scene.dialogStack.ContainsWidgetInstance(unrelated.dialog), "unrelated toast remains modal-paused")
+	assert.False(t, scene.dialogStack.ContainsWidgetInstance(unrelated.dialog), "old cards cannot return during contents")
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	dialog.Update()
 	require.True(t, dialog.IsDismissed())
@@ -272,17 +272,20 @@ func TestCombatChestFeedbackSummaryCancellationPreservesOtherOwners(t *testing.T
 	}, token)
 	state.EventQueueManager.Update()
 	require.True(t, scene.dialogStack.HasModalDialog())
+	require.False(t, scene.dialogStack.ContainsWidgetInstance(unrelated.dialog))
+	scene.ShowActionFeedback("later feedback", false)
+	later := scene.transientActionFeedback[0]
 	state.EventQueueManager.Shutdown()
 	state.EventQueueManager.Shutdown()
 	assert.False(t, scene.dialogStack.HasModalDialog())
 	assert.False(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog))
-	assert.True(t, scene.dialogStack.ContainsWidgetInstance(unrelated.dialog))
+	assert.True(t, scene.dialogStack.ContainsWidgetInstance(later.dialog), "finalization preserves feedback created after admission")
 	assert.Empty(t, scene.combatChestFeedback)
 	assert.Nil(t, scene.combatLootPreview)
 	assert.False(t, state.CombatScene.HasScheduledCombatStep())
 }
 
-func TestCombatChestFeedbackColocatedOpenRetiresOnlyItsLifetime(t *testing.T) {
+func TestCombatChestFeedbackColocatedOpenRetiresAllCardsAtAdmission(t *testing.T) {
 	scene := newCombatReportTestScene(t)
 	state := scene.gameState
 	state.SystemCallbacks.UI.ShowActionFeedback = scene.ShowActionFeedback
@@ -309,17 +312,17 @@ func TestCombatChestFeedbackColocatedOpenRetiresOnlyItsLifetime(t *testing.T) {
 	state.EventQueueManager.Update()
 	scene.updateTransientActionFeedback()
 	require.True(t, scene.dialogStack.HasModalDialog())
-	assert.True(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog), "opening FIRST must not retire Jimmy's LAST chest card")
+	assert.False(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog), "contents retire even another chest's completed-action card")
 	finishChestFeedbackSummaryForTest(t, scene)
-	assert.True(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog))
-	require.Len(t, scene.combatChestFeedback, 1)
+	assert.False(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog))
+	require.Empty(t, scene.combatChestFeedback)
 	actor = state.CombatScene.GetActiveCombatantIndex()
 	state.CombatScene.SetPartyMemberPosition(actor, references.Position{X: 5, Y: 9})
 	state.SetRandomSeed(624)
 	require.True(t, scene.combatMapOpenSecondary(references.Down))
 	assert.Equal(t, last.LifetimeID(), scene.combatLootPreview.chestScope.chest.ObjectID)
 	scene.updateTransientActionFeedback()
-	assert.True(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog), "only its pending reveal preserves the removed owner until admission")
+	assert.False(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog), "the first contents already retired this card")
 	state.EventQueueManager.Update()
 	assert.False(t, scene.dialogStack.ContainsWidgetInstance(owned.dialog))
 	assert.Empty(t, scene.combatChestFeedback)

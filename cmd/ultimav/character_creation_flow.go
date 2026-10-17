@@ -130,7 +130,7 @@ func (g *Game) cancelCharacterCreation(configuration *config.UltimaVConfiguratio
 	retry = func() {
 		if err := g.returnToMainMenu(configuration); err != nil {
 			logging.Warn(logging.CategoryUI, "Returning from character creation failed: %v", err)
-			scene.configureTerminalAction(retry, "The main menu could not be restored. Press Enter to retry.")
+			scene.configureTerminalAction(retry, "The main menu could not be restored.", "Enter: Retry.")
 		}
 	}
 	retry()
@@ -141,7 +141,7 @@ func (g *Game) completeCharacterCreation(result character_creation.Result) {
 	if g.characterCreationSnapshotPreparer == nil {
 		scene.configureTerminalAction(
 			func() { g.completeCharacterCreation(result) },
-			"New-game preparation is unavailable. Press Enter to retry.",
+			"New-game preparation is unavailable.", "Enter: Retry.",
 		)
 
 		return
@@ -154,13 +154,13 @@ func (g *Game) completeCharacterCreation(result character_creation.Result) {
 		)
 		if err != nil {
 			logging.Warn(logging.CategoryUI, "Preparing completed character creation failed: %v", err)
-			scene.configureTerminalAction(retry, "New game could not be prepared. Press Enter to retry.")
+			scene.configureTerminalAction(retry, "New game could not be prepared.", "Enter: Retry.")
 
 			return
 		}
 		g.configureCharacterCreationSaveSelection(scene, snapshot)
 	}
-	scene.configureTerminalAction(retry, "")
+	scene.configureTerminalAction(retry, "", "")
 	retry()
 }
 
@@ -172,7 +172,7 @@ func (g *Game) configureCharacterCreationSaveSelection(
 	if err != nil {
 		logging.Warn(logging.CategoryUI, "Preparing new playthrough identity failed: %v", err)
 		scene.configureTerminalAction(func() { g.configureCharacterCreationSaveSelection(scene, snapshot) },
-			"New game could not be prepared. Press Enter to retry.")
+			"New game could not be prepared.", "Enter: Retry.")
 
 		return
 	}
@@ -186,7 +186,7 @@ func (g *Game) configureCharacterCreationSaveSelection(
 	reopen := func() {
 		g.openCharacterCreationSaveBrowser(scene, prepared, "", "")
 	}
-	scene.configureTerminalAction(reopen, "")
+	scene.configureTerminalAction(reopen, "", "")
 	reopen()
 }
 
@@ -202,7 +202,7 @@ func (g *Game) openCharacterCreationSaveBrowser(
 	summaries, err := g.listPlayerSaveSlots()
 	if err != nil {
 		logging.Warn(logging.CategoryUI, "Listing character creation save slots failed: %v", err)
-		scene.setTerminalNotice("Save slots could not be listed. Press Enter to retry.")
+		scene.setTerminalNotice("Save slots could not be listed.", "Enter: Retry.")
 
 		return
 	}
@@ -215,6 +215,8 @@ func (g *Game) openCharacterCreationSaveBrowser(
 	browser = widgets.NewSaveSlotBrowser(model.views, widgets.SaveSlotBrowserConfig{
 		Title:                    characterCreationSaveTitle,
 		PrimaryActionLabel:       characterCreationSaveAction,
+		CancelActionLabel:        "",
+		ReviewLabel:              "",
 		FontSize:                 defaultOutputFontSize,
 		InitialSelectionID:       model.initialSelectionID,
 		NewestLegend:             model.newestLegend,
@@ -236,7 +238,7 @@ func (g *Game) openCharacterCreationSaveBrowser(
 		},
 		OnCancel: func() {
 			scene.dialogStack.MustRemoveWidgetInstance(browser)
-			scene.setTerminalNotice("Character complete. Press Enter to choose a save slot.")
+			scene.setTerminalNotice("Character complete.", "Enter: Choose a save slot.")
 		},
 		IsKeyPressed: nil,
 	})

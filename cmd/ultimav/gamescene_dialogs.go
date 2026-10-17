@@ -580,6 +580,7 @@ func (g *GameScene) dispatchSpellEffect(
 	request game_state.CastRequest,
 	state *spellCastingWorkflowState,
 ) {
+	//nolint:exhaustive // Context validation routes combat-only spells elsewhere; unsupported consumed spells panic.
 	switch request.Spell {
 	// Self-target spells
 	case references.InLor:
@@ -701,6 +702,8 @@ func parseMoonPhaseInput(text string, submitted bool) (datetime.MoonPhase, bool)
 }
 
 // buildReagentInventory creates the reagent inventory list from party state.
+//
+//nolint:goconst // Canonical reagent labels stay together with their ordered identities.
 func (g *GameScene) buildReagentInventory() []widgets.ReagentInfo {
 	// Define reagent display info
 	type reagentDef struct {
@@ -758,6 +761,8 @@ func (g *GameScene) applyMixTrapEffects(q *event_queue.SequentialEventBuilder, t
 	// Preserve the trap's own failure message.
 	var effectDesc string
 	switch trap.TrapType {
+	case game_state.TrapNone:
+		// No additional injury description.
 	case game_state.TrapAcid:
 		effectDesc = g.gameState.PartyState.GetCharacter(trap.TargetIndex).GetNameAsString() + " burned!"
 	case game_state.TrapPoison:
@@ -776,6 +781,8 @@ func (g *GameScene) applyMixTrapEffects(q *event_queue.SequentialEventBuilder, t
 
 	// Apply trap effects via PartyStateBuilder
 	switch trap.TrapType {
+	case game_state.TrapNone:
+		return q
 	case game_state.TrapAcid:
 		return q.ThenSequence(
 			game_state.NewPartyStateBuilder(g.gameState).
@@ -850,6 +857,8 @@ func (g *GameScene) toggleMusic() {
 }
 
 // TalkCallbacks interface implementation
+//
+//nolint:ireturn // The core callback contract must not depend on concrete presentation widgets.
 func (g *GameScene) CreateTalkDialog(npc *map_units.NPCFriendly) game_state.TalkDialog {
 	// Create the dialog
 	dialog := NewLinearTalkDialog(g, npc)
@@ -873,7 +882,7 @@ func (g *GameScene) PushDialog(dialog game_state.TalkDialog) {
 		g.dialogStack.PushModalDialog(linearDialog)
 		linearDialog.mount()
 	} else {
-		// TODO: Handle other dialog types when implemented
+		// The current presentation adapter supports only semantic linear Talk.
 		g.output.AddText("Dialog system error.")
 	}
 }
@@ -1006,10 +1015,10 @@ func (g *GameScene) ShowYellDialogLargeMap() {
 		Start()
 }
 
-// ShowYellDialogSmallMap displays the yell dialog for small map (future shadowlord summoning)
+// ShowYellDialogSmallMap owns the submitted word and its ordinary-turn outcome.
 func (g *GameScene) ShowYellDialogSmallMap() {
 	originMapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
-	completionState := surfaceCommandCancelled
+	completion := newSurfaceCommandResult(surfaceCommandCancelled, originMapType)
 
 	g.gameState.EventQueueManager.Workflow("yell_small_map").
 		Priority(event_queue.PriorityLow).
@@ -1020,19 +1029,16 @@ func (g *GameScene) ShowYellDialogSmallMap() {
 			"^[a-zA-Z]{0,10}$",
 			func(text string, submitted bool) {
 				if submitted {
-					completionState = surfaceCommandCompleted
+					completion.State = surfaceCommandCompleted
 					if g.gameState.ActionYellSmallMap(text) {
-						completionState = surfaceCommandDeferred
+						// Successful summoning deliberately returns without an ordinary
+						// town cycle. Appearance feedback owns no actor step. ref:SHADOW-0004.
+						completion.ConsumesNormalCycle = false
 					}
 				}
 			},
 		)).Finally(func() {
-		if completionState == surfaceCommandDeferred {
-			g.deferSurfaceCommandCompletion(newSurfaceCommandResult(surfaceCommandDeferred, originMapType))
-
-			return
-		}
-		g.completeSurfaceCommand(newSurfaceCommandResult(completionState, originMapType))
+		g.completeSurfaceCommand(completion)
 	}).
 		Start()
 }
@@ -1163,7 +1169,7 @@ func (g *GameScene) actionFeedbackPosition() widgets.Position {
 // Used to determine if "Who will cast?" dialog should be shown.
 func (g *GameScene) countSpellCapableCharacters() int {
 	count := 0
-	g.gameState.PartyState.ForEachCharacter(func(i int, c *party_state.PlayerCharacter) {
+	g.gameState.PartyState.ForEachCharacter(func(_ int, c *party_state.PlayerCharacter) {
 		if c.PartyMap == party_state.PartyMapActive && isSpellCapable(c) {
 			count++
 		}

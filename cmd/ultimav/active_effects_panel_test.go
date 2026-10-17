@@ -143,10 +143,7 @@ func TestStatusBandSevenEffectsAndThreeWornFitEverySupportedSize(t *testing.T) {
 			assert.Less(t, fullEffects[len(fullEffects)-1].Max.X, layout.content.Max.X)
 			assert.Equal(t, fullWorn[0].Size(), fullEffects[0].Size())
 			assert.False(t, fullWorn[len(fullWorn)-1].Overlaps(fullEffects[0]))
-			separator := statusSeparatorBounds(fullWorn, fullEffects)
-			assert.False(t, separator.Empty())
-			assert.LessOrEqual(t, fullWorn[len(fullWorn)-1].Max.X, separator.Min.X)
-			assert.LessOrEqual(t, separator.Max.X, fullEffects[0].Min.X)
+			assert.Less(t, fullWorn[len(fullWorn)-1].Max.X, fullEffects[0].Min.X)
 			for count := range 8 {
 				icons := activeEffectIconLayout(layout.content, count)
 				assert.Len(t, icons, count)
@@ -213,14 +210,12 @@ func TestStatusBandDrawsOnlyActuallyWornArtifactsInCompactOrder(t *testing.T) {
 	panel.Draw(screen)
 	assert.Empty(t, panel.worn)
 	assert.Empty(t, panel.wornBounds)
-	assert.True(t, panel.separatorBounds.Empty())
 	assertStatusPixelsEmpty(t, screen, panel.layout.content)
 
 	state.PartyState.Inventory.QuestItems.Set(references.Crown, 1)
 	screen.Clear()
 	panel.Draw(screen)
 	assert.Empty(t, panel.worn, "owned but unworn artifacts are not previewed")
-	assert.True(t, panel.separatorBounds.Empty())
 	assertStatusPixelsEmpty(t, screen, panel.layout.content)
 
 	state.AmuletState = game_state.ToggleItemState{IsActive: true, TurnsRemaining: 255}
@@ -273,7 +268,7 @@ func TestStatusArtworkPreservesAspectAndNearestNativePixels(t *testing.T) {
 	require.Positive(t, cyan)
 }
 
-func TestStatusBandFullCapacityRenderIsContainedAndUsesConditionalSeparator(t *testing.T) {
+func TestStatusBandFullCapacityRenderIsContainedAndLeavesGapClear(t *testing.T) {
 	state := &game_state.GameState{ElapsedMs: 1234}
 	sheet := sharedPresentationTestSpriteSheet()
 	for _, size := range []image.Point{{1280, 720}, {3840, 2160}} {
@@ -290,7 +285,6 @@ func TestStatusBandFullCapacityRenderIsContainedAndUsesConditionalSeparator(t *t
 				{ID: game_state.ToggleItemBadge, Owned: true, Worn: true},
 			}
 			panel.wornBounds = statusIconRow(panel.layout.content, len(panel.worn), maximumWornArtifacts, false)
-			panel.separatorBounds = statusSeparatorBounds(panel.wornBounds, panel.iconBounds)
 			screen := newPresentationRaster(band.Dx(), band.Dy())
 			t.Cleanup(screen.Dispose)
 			panel.drawStatusBand(screen)
@@ -309,9 +303,10 @@ func TestStatusBandFullCapacityRenderIsContainedAndUsesConditionalSeparator(t *t
 				inset := statusCellInset(icon)
 				assertStatusPixelsPresent(t, screen, icon.Inset(inset))
 			}
-			require.False(t, panel.separatorBounds.Empty())
-			assert.Equal(t, ucolor.EGAWhite.ToRGBA(), screen.At(panel.separatorBounds.Min.X, panel.separatorBounds.Min.Y))
-			assert.Equal(t, ucolor.EGABlue.ToRGBA(), screen.At(panel.separatorBounds.Max.X-1, panel.separatorBounds.Min.Y))
+			gap := image.Rect(panel.wornBounds[len(panel.wornBounds)-1].Max.X, panel.layout.content.Min.Y,
+				panel.iconBounds[0].Min.X, panel.layout.content.Max.Y)
+			require.False(t, gap.Empty())
+			assertStatusPixelsEmpty(t, screen, gap)
 			pixels := make([]byte, band.Dx()*band.Dy()*4)
 			screen.ReadPixels(pixels)
 			for y := range band.Dy() {
@@ -321,13 +316,6 @@ func TestStatusBandFullCapacityRenderIsContainedAndUsesConditionalSeparator(t *t
 					}
 				}
 			}
-			panel.worn, panel.wornBounds = nil, nil
-			panel.separatorBounds = statusSeparatorBounds(panel.wornBounds, panel.iconBounds)
-			require.True(t, panel.separatorBounds.Empty(), "effects alone have no separator")
-			panel.iconBounds = nil
-			panel.wornBounds = statusIconRow(panel.layout.content, 1, maximumWornArtifacts, false)
-			panel.separatorBounds = statusSeparatorBounds(panel.wornBounds, panel.iconBounds)
-			require.True(t, panel.separatorBounds.Empty(), "worn artwork alone has no separator")
 		})
 	}
 }
@@ -344,7 +332,6 @@ func TestStatusBandRendersCrownOnceWithoutRemovingAuthoritativeSuppression(t *te
 	assert.Equal(t, game_state.ToggleItemCrown, panel.worn[0].ID)
 	assert.Empty(t, panel.visibleEffects)
 	assert.Empty(t, panel.iconBounds)
-	assert.True(t, panel.separatorBounds.Empty())
 
 	state.CrownState = game_state.ToggleItemState{}
 	state.ActiveDurationEffect = game_state.DurationEffect{
@@ -354,7 +341,6 @@ func TestStatusBandRendersCrownOnceWithoutRemovingAuthoritativeSuppression(t *te
 	assert.Empty(t, panel.worn)
 	require.Len(t, panel.visibleEffects, 1)
 	assert.Equal(t, game_state.PersistentEffectNegateMagic, panel.visibleEffects[0].ID)
-	assert.True(t, panel.separatorBounds.Empty())
 }
 
 func fullStatusBandTestEffects() []game_state.PersistentEffectStatus {

@@ -4,6 +4,18 @@ Gameplay input is routed by `GameScene.Update` through a primary/secondary state
 
 ## Routing Order
 
+Caps Lock is transparent to game-control polling: the shared Keyboard adapter
+excludes it before native/injected polling, including nil-receiver fallback. It
+cannot acknowledge all-key prompts, count as intro activity, hold release gates,
+or enter focus-return suppression. Real held controls still require release.
+Native committed text and composition keep their existing case policies.
+**Shift+M/Shift+J require physically held left or right Shift**, with existing
+context/other-modifier rules. Caps Lock alone routes M/J to Mix/Jimmy; Caps Lock
+plus physical Shift opens readers even if native text is lowercase. Native
+save-description Ctrl+U accepts either ASCII shortcut insertion (`u`/`U`) without
+changing composition ownership. Injected held-key and production reader round-trip
+tests cover these contracts; physical-keyboard/OS acceptance is separate.
+
 An active Traveller's Map session has the earliest frozen-reader path, before
 all gameplay updates below. Fresh exact Shift+M and Ctrl+N requests are checked
 against the safe openers described in [Traveller's Map](#travellers-map).
@@ -494,8 +506,8 @@ Journal without beginning a dungeon command cycle, calling `FinishTurn`, or
 finishing a combat action. Plain J continues to reach the existing Jimmy path.
 The top modal isolates Tab/Shift+Tab, repeatable Up/Down and Page Up/Page Down,
 Home/End, Space detail paging, `/` Journal search, Escape, and Shift+J.
-Curated page keys move selection a full viewport; History arrows select whole
-messages and page keys read oversized messages without becoming a line cursor.
+Curated page keys move selection a full viewport. The seven-section Journal no
+longer exposes main-output History through tabs, navigation or search.
 Search owns text input, Enter opens a matching Journal destination, and Escape
 returns to the previous tab without closing Journal. Shift+J closes from either
 mode. `PrepareForTransition` prevents the opening or closing chord from bleeding
@@ -522,7 +534,7 @@ navigation. K captures the complete highlighted exchange without moving its page
 
 The Use item modal similarly owns keyboard input while open. Tab/Shift+Tab and
 Left/Right select non-empty categories; Up/Down and Page Up/Page Down browse;
-Space pages effect-first details and lore; Enter selects; Escape cancels. The
+Space pages overflowing details and lore; Enter selects; Escape cancels. The
 modal has no number-key shortcuts or mouse handling. It emits a detached item
 identity only, and the owning workflow revalidates current inventory before
 mutation. All contexts show every owned identity in the existing Use categories,
@@ -531,6 +543,11 @@ blocks activation independently of effect-applicability warnings. Unavailable
 rows use muted text and a `[No]` marker with an explicit legend; selected rows
 retain contrast. Enter shows the specific restriction on the first detail page
 without dismissing or dispatching. Warning-only consumables remain selectable.
+Normal details combine concise handling/current state with atmospheric lore;
+there are no separate mechanical pages before lore. Page hints/counts appear
+only for overflow. Ownership does not reveal mysterious powers, ritual recipes
+or conversation-earned clues, including through browsing warnings or pre-use
+prompts. Actual deliberate-use feedback may describe the observed result.
 Cancellation before final confirmation preserves resources, surface time,
 dungeon charge, combat action, and gameplay RNG. Surface Use transfers a
 confirmed asynchronous item to an exact-once completion callback; selection

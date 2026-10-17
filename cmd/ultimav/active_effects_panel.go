@@ -103,15 +103,14 @@ func contextualEffectPresentation(id game_state.PersistentEffectID) (persistentE
 }
 
 type ActiveEffectsPanel struct {
-	gameState       *game_state.GameState
-	spriteSheet     *sprites.SpriteSheet
-	bounds          image.Rectangle
-	visibleEffects  []game_state.PersistentEffectStatus
-	iconBounds      []image.Rectangle
-	worn            []game_state.WornArtifactStatus
-	wornBounds      []image.Rectangle
-	separatorBounds image.Rectangle
-	layout          statusBandLayout
+	gameState      *game_state.GameState
+	spriteSheet    *sprites.SpriteSheet
+	bounds         image.Rectangle
+	visibleEffects []game_state.PersistentEffectStatus
+	iconBounds     []image.Rectangle
+	worn           []game_state.WornArtifactStatus
+	wornBounds     []image.Rectangle
+	layout         statusBandLayout
 }
 
 func NewActiveEffectsPanel(
@@ -203,7 +202,6 @@ func (p *ActiveEffectsPanel) refreshLayout() {
 		}
 	}
 	p.wornBounds = statusIconRow(p.layout.content, len(p.worn), maximumWornArtifacts, false)
-	p.separatorBounds = statusSeparatorBounds(p.wornBounds, p.iconBounds)
 }
 
 func statusIconRow(bounds image.Rectangle, count, capacity int, alignRight bool) []image.Rectangle {
@@ -225,33 +223,15 @@ func statusIconRow(bounds image.Rectangle, count, capacity int, alignRight bool)
 	availableSize := max(0, (bounds.Dx()-(maximumStatusCells-1)*gap)/maximumStatusCells)
 	iconSize := min(preferredSize, availableSize)
 	gap = max(0, statusGapPixels*iconSize/statusCellPixels)
-	y := bounds.Min.Y + (bounds.Dy()-iconSize)/layoutCenterDivisor
+	top := bounds.Min.Y + (bounds.Dy()-iconSize)/layoutCenterDivisor
 	x := bounds.Min.X
 	if alignRight {
 		x = bounds.Max.X - count*iconSize - (count-1)*gap
 	}
 	for i := range count {
 		left := x + i*(iconSize+gap)
-		result[i] = image.Rect(left, y, left+iconSize, y+iconSize)
+		result[i] = image.Rect(left, top, left+iconSize, top+iconSize)
 	}
 
 	return result
-}
-
-func statusSeparatorBounds(wornBounds, effectBounds []image.Rectangle) image.Rectangle {
-	if len(wornBounds) == 0 || len(effectBounds) == 0 {
-		return image.Rect(0, 0, 0, 0)
-	}
-	left := wornBounds[len(wornBounds)-1].Max.X
-	right := effectBounds[0].Min.X
-	stroke := statusCellInset(wornBounds[0])
-	width := stroke * layoutCenterDivisor
-	if right-left < width+stroke*layoutCenterDivisor {
-		return image.Rect(0, 0, 0, 0)
-	}
-	height := min(wornBounds[0].Dy(), effectBounds[0].Dy())
-	x := left + (right-left-width)/layoutCenterDivisor
-	y := wornBounds[0].Min.Y + (wornBounds[0].Dy()-height)/layoutCenterDivisor
-
-	return image.Rect(x, y, x+width, y+height)
 }

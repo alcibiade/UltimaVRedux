@@ -170,7 +170,8 @@ func TestCompletedCharacterCreationRetriesPreparationAndSaveSelection(t *testing
 
 	game.completeCharacterCreation(result)
 	assert.Zero(t, scene.dialogStack.Count())
-	assert.Equal(t, "New game could not be prepared. Press Enter to retry.", scene.terminalNotice)
+	assert.Equal(t, "New game could not be prepared.", scene.terminalNotice)
+	assert.Equal(t, "Enter: Retry.", scene.terminalHint)
 	assertCharacterCreationResultRetained(t, scene, result)
 
 	pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEnter)
@@ -179,7 +180,8 @@ func TestCompletedCharacterCreationRetriesPreparationAndSaveSelection(t *testing
 
 	pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEscape)
 	assert.Zero(t, scene.dialogStack.Count())
-	assert.Equal(t, "Character complete. Press Enter to choose a save slot.", scene.terminalNotice)
+	assert.Equal(t, "Character complete.", scene.terminalNotice)
+	assert.Equal(t, "Enter: Choose a save slot.", scene.terminalHint)
 	assertCharacterCreationResultRetained(t, scene, result)
 
 	pressCharacterCreationFlowKey(t, game, scene, ebiten.KeyEnter)
@@ -240,7 +242,8 @@ func TestCharacterCreationCancellationReturnsToFreshMenuAndRetriesBuildFailure(t
 	pressCharacterCreationFlowKey(t, game, fixture.scene, ebiten.KeyEscape)
 	assert.Same(t, fixture.scene, game.currentScene)
 	assert.Equal(t, characterCreationCancelled, fixture.scene.state)
-	assert.Equal(t, "The main menu could not be restored. Press Enter to retry.", fixture.scene.terminalNotice)
+	assert.Equal(t, "The main menu could not be restored.", fixture.scene.terminalNotice)
+	assert.Equal(t, "Enter: Retry.", fixture.scene.terminalHint)
 	_, available := fixture.scene.Result()
 	assert.False(t, available)
 
