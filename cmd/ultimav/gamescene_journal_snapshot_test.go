@@ -91,7 +91,6 @@ func TestJournalPlayerSlotAndQuickSaveFullSceneRoundtrip(t *testing.T) {
 func TestJournalNamedSnapshotRollbackFullSceneRoundtrip(t *testing.T) {
 	source := newJournalSnapshotOriginalScene(t)
 	source.setPlaythroughMetadata(playthroughMetadata{id: testPlaythroughID})
-	source.notebookRoot = t.TempDir()
 	exchange := journal.Exchange{
 		ID: "rollback-conversation-1", Speaker: journal.UnknownSpeaker, Location: "Britain", Input: "JOB",
 		Passages: []journal.Passage{{Text: "Original clue", Runic: false}},
@@ -125,24 +124,23 @@ func TestJournalNamedSnapshotRollbackFullSceneRoundtrip(t *testing.T) {
 	restored, ok := game.currentScene.(*GameScene)
 	require.True(t, ok)
 	t.Cleanup(restored.Dispose)
-	restored.notebookRoot = source.notebookRoot
 	after, err := restored.CaptureSaveSnapshot()
 	require.NoError(t, err)
 	require.Equal(t, target.Envelope.Snapshot, after)
 	require.Equal(t, journalNotice{}, restored.journalNotice)
 	excerpts, err := restored.loadExcerpts()
 	require.NoError(t, err)
-	displayExtended := extended.Clone()
-	displayExtended.Location = restored.journalLocationLabel(displayExtended.Location)
-	require.Equal(t, []journal.Exchange{displayExtended}, excerpts, "older checkpoint rollback must not shorten the notebook")
+	displayOriginal := exchange.Clone()
+	displayOriginal.Location = restored.journalLocationLabel(displayOriginal.Location)
+	require.Equal(t, []journal.Exchange{displayOriginal}, excerpts, "older checkpoint restores its own speech")
 	restored.setPlaythroughMetadata(playthroughMetadata{id: otherTestPlaythroughID})
 	excerpts, err = restored.loadExcerpts()
 	require.NoError(t, err)
-	require.Empty(t, excerpts, "another player slot must not inherit excerpts")
+	require.Equal(t, []journal.Exchange{displayOriginal}, excerpts, "identity metadata does not select external notes")
 	restored.setPlaythroughMetadata(playthroughMetadata{id: testPlaythroughID})
 	excerpts, err = restored.loadExcerpts()
 	require.NoError(t, err)
-	require.Equal(t, []journal.Exchange{displayExtended}, excerpts)
+	require.Equal(t, []journal.Exchange{displayOriginal}, excerpts)
 }
 
 func TestJournalFPSLimitedFullDrawUsesIndependentClock(t *testing.T) {

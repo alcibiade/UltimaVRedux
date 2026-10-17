@@ -36,6 +36,23 @@ type skyPresentation struct {
 	initialized bool
 }
 
+// REDUX DEVIATION: ASTRO-0002: original combat inherits the full sky. Redux
+// hides both moons to keep the tactical view uncluttered, retaining the sun and
+// dungeon headers. With no remaining body, do not draw an empty sky backing.
+func (strip skyStrip) withoutMoons() skyStrip {
+	sunPresent := false
+	for cell, glyph := range strip.glyphs {
+		if glyph == skySunGlyph {
+			sunPresent = true
+		} else {
+			strip.glyphs[cell] = 0
+		}
+	}
+	strip.visible = strip.visible && sunPresent
+
+	return strip
+}
+
 // ref:ASTRO-0001: positions are hourly and independent of the 28-day phases.
 func projectSky(date datetime.UltimaDate) skyStrip {
 	strip := skyStrip{visible: true}
@@ -110,6 +127,10 @@ func (g *GameScene) syncSkyPresentation() {
 		return
 	}
 	if g.sky.initialized && (g.gameState.IsInCombat() || g.gameState.IsInShrine()) {
+		if g.gameState.IsInCombat() {
+			g.sky.strip = g.sky.strip.withoutMoons()
+		}
+
 		return
 	}
 	// REDUX DEVIATION: ASTRO-0002: original outdoor return charges zero minutes and
@@ -117,6 +138,9 @@ func (g *GameScene) syncSkyPresentation() {
 	// inherited sky stale. Refresh immediately from the current authoritative
 	// date on return, so navigation information is reliable.
 	g.sky.strip = projectSky(g.gameState.DateTime)
+	if g.gameState.IsInCombat() {
+		g.sky.strip = g.sky.strip.withoutMoons()
+	}
 	g.sky.initialized = true
 }
 

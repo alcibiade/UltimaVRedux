@@ -79,6 +79,7 @@ func TestV22SurveyPolicyAllHoursRoundTripAndSchema(t *testing.T) {
 				require.Equal(t, snapshot, decoded.Snapshot, "policy, dates, sites and source tags are value-owned")
 				reloaded, err := Decode(canonical)
 				require.NoError(t, err)
+				decoded.legacyExcerpts = false
 				require.Equal(t, decoded, reloaded)
 			})
 		}

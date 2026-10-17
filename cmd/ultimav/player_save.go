@@ -147,7 +147,11 @@ func (g *Game) loadPlayerSaveRecord(record player_save.Record) error {
 		return fmt.Errorf("loading player save record: %w: repository returned invalid provenance", ErrPlayerSaveUnavailable)
 	}
 	configuration := g.currentScene.GetUltimaConfiguration()
-	candidate, err := g.playerSaveSceneBuilder(configuration, record.Envelope.Snapshot)
+	snapshot, err := g.prepareExcerptMigration(record.Envelope)
+	if err != nil {
+		return fmt.Errorf("preparing player save %s: %w", record.Slot, err)
+	}
+	candidate, err := g.playerSaveSceneBuilder(configuration, snapshot)
 	if err != nil {
 		return fmt.Errorf("constructing player save %s scene: %w", record.Slot, err)
 	}
@@ -407,18 +411,17 @@ func (g *Game) buildPreparedPlayerSaveCandidate(
 		return emptyCandidate, fmt.Errorf("constructing prepared player save %s scene: %w", slot, err)
 	}
 	if candidate == nil {
-		return emptyCandidate, fmt.Errorf(
-			"constructing prepared player save %s scene: %w",
-			slot,
-			ErrPlayerSaveSceneIneligible,
-		)
+		return emptyCandidate, fmt.Errorf("constructing prepared player save %s scene: %w",
+			slot, ErrPlayerSaveSceneIneligible)
 	}
-	provenance, ok := candidate.(playerSaveProvenanceOwner)
-	if !ok {
-		if disposer, disposable := candidate.(sceneDisposer); disposable {
+	owned := true
+	defer func() {
+		if disposer, disposable := candidate.(sceneDisposer); owned && disposable {
 			disposer.Dispose()
 		}
-
+	}()
+	provenance, hasProvenance := candidate.(playerSaveProvenanceOwner)
+	if !hasProvenance {
 		return emptyCandidate, fmt.Errorf(
 			"constructing prepared player save %s scene: %w",
 			slot,
@@ -427,19 +430,11 @@ func (g *Game) buildPreparedPlayerSaveCandidate(
 	}
 	if preflight, ok := candidate.(sceneActivationPreflighter); ok {
 		if err = preflight.PreflightActivation(); err != nil {
-			if disposer, disposable := candidate.(sceneDisposer); disposable {
-				disposer.Dispose()
-			}
-
 			return emptyCandidate, fmt.Errorf("preflighting prepared player save %s scene: %w", slot, err)
 		}
 	}
 	capture, ok := candidate.(playerSaveCaptureScene)
 	if !ok {
-		if disposer, disposable := candidate.(sceneDisposer); disposable {
-			disposer.Dispose()
-		}
-
 		return emptyCandidate, fmt.Errorf(
 			"capturing prepared player save %s scene: %w",
 			slot,
@@ -448,23 +443,17 @@ func (g *Game) buildPreparedPlayerSaveCandidate(
 	}
 	canonicalSnapshot, err := capture.CaptureSaveSnapshot()
 	if err != nil {
-		if disposer, disposable := candidate.(sceneDisposer); disposable {
-			disposer.Dispose()
-		}
-
 		return emptyCandidate, fmt.Errorf("capturing prepared player save %s scene: %w", slot, err)
 	}
 	if canonicalSnapshot.NeedsMapUnitReconstruction() || canonicalSnapshot.MapUnits == nil {
-		if disposer, disposable := candidate.(sceneDisposer); disposable {
-			disposer.Dispose()
-		}
-
 		return emptyCandidate, fmt.Errorf(
 			"capturing prepared player save %s scene: %w: capture did not contain concrete map units",
 			slot,
 			ErrPlayerSaveSceneIneligible,
 		)
 	}
+
+	owned = false
 
 	return preparedPlayerSaveCandidate{
 		scene:      candidate,

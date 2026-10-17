@@ -9,51 +9,22 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 )
 
-func (g *GameScene) excerptRepository() (journal.NotebookRepository, error) {
-	if g.notebookRoot == "" || g.activePlaythrough.id == "" {
-		return journal.NotebookRepository{}, fmt.Errorf("%w: excerpts require a configured playthrough", journal.ErrInvalidNotebook)
-	}
-
-	return journal.NotebookRepository{Root: g.notebookRoot}, nil
-}
-
 func (g *GameScene) loadExcerpts() ([]journal.Exchange, error) {
-	repository, err := g.excerptRepository()
-	if err != nil {
-		return nil, err
-	}
-	notebook, err := repository.Load(g.activePlaythrough.id)
-	if err != nil {
-		return nil, fmt.Errorf("load excerpts: %w", err)
-	}
-
-	return g.journalExcerptsForDisplay(notebook.Excerpts), nil
+	return g.journalExcerptsForDisplay(g.excerpts.Clone()), nil
 }
 
 func (g *GameScene) keepExcerpt(exchange journal.Exchange) ([]journal.Exchange, error) {
-	repository, err := g.excerptRepository()
-	if err != nil {
-		return nil, err
-	}
-	notebook, err := repository.Keep(g.activePlaythrough.id, exchange)
-	if err != nil {
+	if err := g.excerpts.Keep(exchange); err != nil {
 		logging.Error(logging.CategoryConversation, "Unable to keep conversation excerpt: %v", err)
 
 		return nil, fmt.Errorf("keep excerpt: %w", err)
 	}
 
-	return g.journalExcerptsForDisplay(notebook.Excerpts), nil
+	return g.loadExcerpts()
 }
 
 func (g *GameScene) attributeKeptConversation(conversationID, speaker string) error {
-	if g.notebookRoot == "" || g.activePlaythrough.id == "" {
-		return nil
-	}
-	repository, err := g.excerptRepository()
-	if err != nil {
-		return err
-	}
-	if _, err = repository.AttributeConversation(g.activePlaythrough.id, conversationID, speaker); err != nil {
+	if err := g.excerpts.AttributeConversation(conversationID, speaker); err != nil {
 		logging.Error(logging.CategoryConversation, "Unable to attribute kept conversation excerpts: %v", err)
 
 		return fmt.Errorf("attribute excerpts: %w", err)
@@ -63,18 +34,9 @@ func (g *GameScene) attributeKeptConversation(conversationID, speaker string) er
 }
 
 func (g *GameScene) deleteExcerpt(id string) ([]journal.Exchange, error) {
-	repository, err := g.excerptRepository()
-	if err != nil {
-		return nil, err
-	}
-	notebook, err := repository.Delete(g.activePlaythrough.id, id)
-	if err != nil {
-		logging.Error(logging.CategoryConversation, "Unable to delete conversation excerpt: %v", err)
+	g.excerpts.Delete(id)
 
-		return nil, fmt.Errorf("delete excerpt: %w", err)
-	}
-
-	return g.journalExcerptsForDisplay(notebook.Excerpts), nil
+	return g.loadExcerpts()
 }
 
 func (d *LinearTalkDialog) beginJournalExchange(input string) {

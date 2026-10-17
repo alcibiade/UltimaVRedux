@@ -12,6 +12,7 @@ import (
 )
 
 func removeV24Fields(body map[string]any) {
+	delete(body, "excerpts")
 	for _, member := range []string{"basementChestHistory", "atlasNotes", "atlasFleet", "codexRevelationComplete"} {
 		delete(body, member)
 	}
@@ -211,7 +212,7 @@ func TestV24EveryHistoricalVersionPromotesConservatively(t *testing.T) {
 			decoded, err := Decode(data)
 			require.NoError(t, err)
 			got := decoded.Snapshot
-			require.Equal(t, 24, got.Version)
+			require.Equal(t, CurrentVersion, got.Version)
 			require.Equal(t, flags[2:], got.Party.DeadNPCs)
 			date := &BritannianDateSnapshot{Year: source.World.Calendar.Year, Month: source.World.Calendar.Month, Day: source.World.Calendar.Day}
 			require.Equal(t, date, got.BasementChestHistory[0].LastOpened)

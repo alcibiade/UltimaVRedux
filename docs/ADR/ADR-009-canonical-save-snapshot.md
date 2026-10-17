@@ -88,15 +88,24 @@ bounded original-style reset can change the next Blink at unchanged coordinates;
 it is not a promise of byte-for-byte runtime continuation. It needs no new DTO or
 schema version and does not reset unrelated durable terrain, actors, or progression.
 
-Last Conversation and dungeon observations also follow the checkpoint.
-Deliberately kept excerpts instead belong to a playthrough-keyed notebook:
-loading an older checkpoint must not erase what the player chose to retain.
-This notebook is reference material, never gameplay knowledge or rollback
-authority. Active Talk and input/search/selection state remain transient.
+Last Conversation, dungeon observations and deliberately kept excerpts follow
+the checkpoint. The original excerpt design used a playthrough-keyed external
+notebook to retain notes across older loads. That decision is superseded: carrying
+later clues and archived/deleted choices into earlier saves violates independent
+saved games. Full text, attribution and archive flags now rewind together, even
+when two saves share an identity. Excerpts remain reference material, never
+gameplay knowledge. Active Talk and input/search/selection state remain transient.
 
-Player-authored atlas notes instead follow their checkpoint: their recorded
+A temporary read-only importer preserves available notes for old native saves
+before scene activation. It cannot reconstruct historical per-save lists. The
+next normal save embeds the imported collection; current saves never consult or
+update the old notebook. Retaining the source allows each old checkpoint to import
+independently, without a shared migration ledger. The compatibility entry point is
+marked for removal when support for external-notebook saves is retired.
+
+Player-authored atlas notes likewise follow their checkpoint: their recorded
 position, creation date, text, stable ID and allocation watermark rewind together.
-They are neither learned landmark surveys nor playthrough-wide excerpts. A
+They are distinct from learned landmark surveys and captured conversation excerpts. A
 captured note draft belongs to one authoritative state and cannot survive restore.
 Fleet identity likewise follows each actual vehicle across parked/boarded forms,
 with one checkpoint allocation watermark and no duplicate position/history store.

@@ -18,7 +18,7 @@ import (
 func TestTalkResizeKeepsDisplayedExchangeAndExcerptIdentity(t *testing.T) {
 	setTalkHistoryTestResolution(t, 1920, 1080)
 	scene := &GameScene{gameState: &game_state.GameState{}, keyboard: newPresentationTestKeyboard(),
-		notebookRoot: t.TempDir(), activePlaythrough: playthroughMetadata{id: "0123456789abcdef0123456789abcdef"},
+		activePlaythrough: playthroughMetadata{id: "0123456789abcdef0123456789abcdef"},
 		lastConversation: journal.Conversation{Exchanges: []journal.Exchange{
 			{ID: "first", Speaker: "Iolo", Location: "Britain", Passages: []journal.Passage{{Text: "First clue"}}},
 			{ID: "second", Speaker: "Iolo", Location: "Britain", Passages: []journal.Passage{{Text: "Second clue"}}},

@@ -134,6 +134,7 @@ func TestV20RetirementMigrationUsesOnlyProvenEvidence(t *testing.T) {
 			require.NoError(t, currentSchema.Validate(decodeJSONSchemaInstance(t, current)))
 			reloaded, err := Decode(current)
 			require.NoError(t, err)
+			decoded.legacyExcerpts = false
 			require.Equal(t, decoded, reloaded)
 		})
 	}

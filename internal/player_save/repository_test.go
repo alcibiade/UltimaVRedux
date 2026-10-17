@@ -844,6 +844,9 @@ func historicalPlayerSaveEnvelopeData(t *testing.T, version int, envelope save_s
 	}
 	snapshot := document["snapshot"].(map[string]any)
 	snapshot["version"] = float64(version)
+	if version < 25 {
+		delete(snapshot, "excerpts")
+	}
 	if version <= 23 {
 		for _, field := range []string{"basementChestHistory", "atlasNotes", "atlasFleet", "codexRevelationComplete"} {
 			delete(snapshot, field)
@@ -968,8 +971,8 @@ func historicalPlayerSaveEnvelopeData(t *testing.T, version int, envelope save_s
 	return data
 }
 
-func TestHistoricalPlayerSaveFixturesRemainLoadableThroughV23(t *testing.T) {
-	for version := 12; version <= 23; version++ {
+func TestHistoricalPlayerSaveFixturesRemainLoadableThroughV24(t *testing.T) {
+	for version := 12; version <= 24; version++ {
 		t.Run(fmt.Sprint(version), func(t *testing.T) {
 			data := historicalPlayerSaveData(t, version)
 			envelope, err := save_snapshot.Decode(data)
@@ -981,15 +984,16 @@ func TestHistoricalPlayerSaveFixturesRemainLoadableThroughV23(t *testing.T) {
 				expected.Snapshot.Continuation.ActivePlayerIndex = -1
 				expected.Snapshot.Continuation.BeggarKarmaCounter = 100
 			}
-			if !reflect.DeepEqual(expected, envelope) {
+			if !reflect.DeepEqual(expected.Snapshot, envelope.Snapshot) || expected.Metadata != envelope.Metadata ||
+				!envelope.NeedsExcerptMigration() {
 				t.Fatalf("historical v%d fixture changed authoritative state", version)
 			}
 		})
 	}
 }
 
-func TestHistoricalPlayerSaveFixturesPreserveVehiclesAndChestThroughV23(t *testing.T) {
-	for version := 12; version <= 23; version++ {
+func TestHistoricalPlayerSaveFixturesPreserveVehiclesAndChestThroughV24(t *testing.T) {
+	for version := 12; version <= 24; version++ {
 		t.Run(fmt.Sprint(version), func(t *testing.T) {
 			source := testEnvelope(testTime(1))
 			source.Snapshot.AtlasFleet.LastID = 2
@@ -1022,14 +1026,17 @@ func TestHistoricalPlayerSaveFixturesPreserveVehiclesAndChestThroughV23(t *testi
 				t.Fatalf("Load(v%d vehicles/chest) error = %v", version, err)
 			}
 			expected := source
-			expected.Snapshot.AtlasFleet.LastID = 0
-			expected.Snapshot.PartyVehicle.VesselID = 0
-			expected.Snapshot.MapUnits[0].Vehicle.VesselID = 0
+			if version < 24 {
+				expected.Snapshot.AtlasFleet.LastID = 0
+				expected.Snapshot.PartyVehicle.VesselID = 0
+				expected.Snapshot.MapUnits[0].Vehicle.VesselID = 0
+			}
 			if version == 12 {
 				expected.Snapshot.Continuation.ActivePlayerIndex = -1
 				expected.Snapshot.Continuation.BeggarKarmaCounter = 100
 			}
-			if !reflect.DeepEqual(expected, record.Envelope) {
+			if !reflect.DeepEqual(expected.Snapshot, record.Envelope.Snapshot) || expected.Metadata != record.Envelope.Metadata ||
+				!record.Envelope.NeedsExcerptMigration() {
 				t.Fatalf("historical v%d fixture changed vehicle/chest state beyond empty registration defaults", version)
 			}
 		})

@@ -18,7 +18,7 @@ const (
 	MaxConversationBytes = 256 * 1024
 	// MaxExcerpts and MaxNotebookBytes never evict deliberately kept passages.
 	MaxExcerpts = 512
-	// MaxNotebookBytes bounds all kept source text in a playthrough.
+	// MaxNotebookBytes bounds all kept source text in one saved game.
 	MaxNotebookBytes    = 4 * 1024 * 1024
 	maxAttributionBytes = 256
 )

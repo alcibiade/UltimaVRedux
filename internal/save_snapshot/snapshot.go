@@ -6,7 +6,7 @@ import "github.com/bradhannah/UltimaVRedux/internal/journal"
 
 const (
 	// CurrentVersion is the native snapshot schema version.
-	CurrentVersion = 24
+	CurrentVersion = 25
 	// MaxElapsedMs bounds runtime-compatible saves to 100 years of play. This
 	// conservative finite domain leaves ample int64 headroom for activation
 	// epochs and gameplay deadlines without rebasing clock phase or RNG state.
@@ -52,6 +52,7 @@ type SaveSnapshot struct {
 	Redux                   ReduxSnapshot                       `json:"redux"`
 	Presentation            journal.Presentation                `json:"presentation"`
 	LastConversation        journal.Conversation                `json:"lastConversation"`
+	Excerpts                journal.Excerpts                    `json:"excerpts"`
 	DungeonJournal          [8]journal.DungeonObservation       `json:"dungeonJournal"`
 	MoonstoneJournal        [8]journal.MoonstoneObservation     `json:"moonstoneJournal"`
 	AtlasLandmarks          []journal.AtlasLandmarkObservation  `json:"atlasLandmarks"`

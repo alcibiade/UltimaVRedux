@@ -74,6 +74,7 @@ func TestCadenceV15HistoricalMigrationContextAndDefaults(t *testing.T) {
 						require.NoError(t, err)
 						reloaded, err := Decode(canonical)
 						require.NoError(t, err)
+						decoded.legacyExcerpts = false // Decode-only provenance is consumed by current encoding.
 						assert.Equal(t, decoded, reloaded, "v15 reload must not apply the inversion again")
 					})
 				}

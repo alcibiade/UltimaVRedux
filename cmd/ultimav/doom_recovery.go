@@ -150,7 +150,11 @@ func (g *Game) returnBeforeDoom(source *GameScene) error {
 		return ErrDoomRecoveryOrigin
 	}
 
-	candidate, err := g.doomRecoverySceneBuilder(source.gameConfig, record.Envelope.Snapshot)
+	snapshot, err := g.prepareExcerptMigration(record.Envelope)
+	if err != nil {
+		return fmt.Errorf("prepare pre-Doom recovery excerpts: %w", err)
+	}
+	candidate, err := g.doomRecoverySceneBuilder(source.gameConfig, snapshot)
 	if err != nil {
 		return fmt.Errorf("construct pre-Doom recovery scene: %w", err)
 	}
@@ -190,7 +194,7 @@ func (g *Game) returnBeforeDoom(source *GameScene) error {
 	if err != nil {
 		return fmt.Errorf("validate pre-Doom recovery scene: %w", err)
 	}
-	if !reflect.DeepEqual(recaptured, record.Envelope.Snapshot) {
+	if !reflect.DeepEqual(recaptured, snapshot) {
 		return ErrDoomRecoveryHydrationMismatch
 	}
 

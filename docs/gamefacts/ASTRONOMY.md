@@ -67,13 +67,18 @@ retail executable. The same original refresh also assigns stored moon phases.
 Redux owns a scene presentation snapshot. Normal draws read the authoritative date,
 including debug edits and rollovers; replacing GameState resets snapshot ownership.
 Synchronization before input/workflows preserves inheritance even without an
-intervening draw. Ordinary combat/shrine visits freeze it; camping uses its origin
-and live date. Death, non-shrine scripted scenes, and finale layouts suppress a
+intervening draw. Shrine visits freeze it; combat retains only an inherited sun,
+suppressing both moons, including camping ambushes and first draws without a prior
+snapshot. If no sun remains, the sky backing is omitted as well. Camping outside
+combat uses its origin and live date. Death, non-shrine scripted scenes, and finale layouts suppress a
 surface sky; dungeon contexts retain their header.
 
 **REDUX DEVIATION: ASTRO-0002:** outdoor-combat return refreshes immediately from
 the current date rather than retaining the original stale-border possibility,
-so navigation information is reliable.
+so navigation information is reliable. Original combat inherits the complete sky;
+Redux deliberately hides both moon indicators during combat to avoid visual clutter
+in the tactical view. It preserves the inherited sun and dungeon level headers.
+This is presentation-only and changes neither time, phases, RNG nor moongates.
 
 **Implementation:** `cmd/ultimav/gamescene_sky.go`
 **Tests:** `cmd/ultimav/gamescene_sky_test.go`

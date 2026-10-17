@@ -313,7 +313,7 @@ optional description of at most 500 characters (printable ASCII plus LF).
 Creation refusals explain unavailable fixes or capacity in the atlas. Validation
 or stale-commit errors preserve an open editor rather than truncating or evicting
 notes. Stable IDs and their allocation watermark belong to checkpoint
-state, unlike the Journal's playthrough-wide excerpts.
+state, as do the Journal's kept excerpts.
 
 `AtlasNoteEditor` is an exact-instance scene-owned child within the paused atlas.
 Tab/Shift+Tab changes fields, Enter adds a description paragraph, Ctrl+Enter
@@ -682,7 +682,10 @@ text on yellow when selected. The Excerpts footer reserves an extra row for thes
 controls. Selection retains its identity when visible, otherwise clamps to a
 remaining row. Keeping an already archived exchange restores it without
 duplicating or shortening its captured speech. Scene callbacks persist changes
-and report errors in the reader. No free-form editor is provided. Kept exchanges
+in the active game and report errors in the reader. Normal saving embeds the
+collection and archive flags in that save; loading another save replaces them,
+even within one playthrough. The scene never reads a notebook while browsing.
+No free-form editor is provided. Kept exchanges
 are marked in the last conversation list.
 
 For a selected exchange containing Runic text, Ctrl+R shows the existing alphabet

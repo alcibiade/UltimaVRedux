@@ -180,7 +180,11 @@ func (g *Game) startScenarioRun(request debugging.Request) debugging.Result {
 		if baselineRecord.Revision != expectedBaselineRevision {
 			return debugging.FailureResult(request, scenarioBaselineRevisionStale, save_snapshot.ErrSnapshotStale.Error())
 		}
-		baselineSnapshot, err = cloneScenarioBaselineSnapshot(baselineRecord.Envelope.Snapshot)
+		prepared, migrationErr := g.prepareExcerptMigration(baselineRecord.Envelope)
+		if migrationErr != nil {
+			return debugging.FailureResult(request, scenarioSnapshotBaselineError, migrationErr.Error())
+		}
+		baselineSnapshot, err = cloneScenarioBaselineSnapshot(prepared)
 		if err != nil {
 			return debugging.FailureResult(request, scenarioSnapshotBaselineError, err.Error())
 		}

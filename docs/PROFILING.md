@@ -327,7 +327,7 @@ Simulation and false-positive boundaries:
 | Gameplay dungeon | Decoded assets and retained canvases | Snapshot/render plan and scene composition; field stripes repeat within the same 100ms animation phase |
 | Intro/character creation | Loaded glyphs/artwork and retained canvases | Static prose rewrap/glyph composition, transition buffers |
 | Credits | Size-gated reflow and visible-row body cache | Fractional-scroll composition and fixed chrome |
-| Audio/persistence | Embedded assets, retained resources, explicit save boundaries | Decoder/voice creation and seeks; synchronous save/browser/notebook/Doom-recovery work. No periodic ordinary-frame autosave established |
+| Audio/persistence | Embedded assets, retained resources, explicit save boundaries | Decoder/voice creation and seeks; synchronous save/browser/legacy-notebook-import/Doom-recovery work. Excerpt edits are in-memory until saved. No periodic ordinary-frame autosave established |
 
 Dormant helper implementations are not evidence of a hot path. Follow production
 callers before assigning pixel loops, focus helpers, or scaled-font creation to

@@ -16,7 +16,7 @@ import (
 func TestEbExcerptAttributionWithoutNameQuestion(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.Britain).
 		WithRandomSeed(42).WithSystemCallbacks().Build()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(-1), notebookRoot: t.TempDir(),
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(-1),
 		activePlaythrough: playthroughMetadata{id: "0123456789abcdef0123456789abcdef"}}
 	var actor *map_units.NPCFriendly
 	for _, unit := range *state.CurrentNPCAIController.GetNpcs() {
@@ -50,7 +50,7 @@ func TestEbExcerptAttributionWithoutNameQuestion(t *testing.T) {
 	require.Equal(t, "Eb", dialog.knownSpeaker)
 	dialog.Close()
 	// Simulate a reloaded scene whose Last Conversation was replaced. Existing
-	// kept notes remain independently stored in the playthrough notebook.
+	// kept notes remain independently stored in the active game.
 	scene.lastConversation = journal.Conversation{}
 	dialog = NewLinearTalkDialog(scene, actor)
 	scene.PushDialog(dialog)
@@ -68,7 +68,7 @@ func TestEbExcerptAttributionWithoutNameQuestion(t *testing.T) {
 	require.Equal(t, passages, excerpts[1].Passages)
 	dialog.Close()
 	// Even removing all retained notes must not bring back the confusing label.
-	scene.notebookRoot = t.TempDir()
+	scene.excerpts = nil
 	scene.lastConversation = journal.Conversation{}
 	dialog = NewLinearTalkDialog(scene, actor)
 	require.Equal(t, "Eb", dialog.knownSpeaker)
@@ -91,7 +91,6 @@ func TestExcerptNameLabelDoesNotCaptureUnpresentedSpeech(t *testing.T) {
 	}
 	dialog := newBoundaryTalkDialog(t, definition)
 	scene := dialog.gameScene
-	scene.notebookRoot = t.TempDir()
 	scene.activePlaythrough = playthroughMetadata{id: "0123456789abcdef0123456789abcdef"}
 	scene.dialogStack.PushModalDialog(dialog)
 	dialog.mount()

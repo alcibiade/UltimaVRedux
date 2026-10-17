@@ -149,8 +149,8 @@ separate catalog entries; they are not additional behavioral topics.
 | [`testing/SHADOWLORD_MANUAL_TESTS.md`](testing/SHADOWLORD_MANUAL_TESTS.md) | Provide reproducible manual Workbench checks for Shadowlord behavior. | `testing` | Procedure |
 
 The versioned JSON files under `schemas/` are native-save support assets owned
-by the saves domain. Snapshot version 24 is current within envelope 2; versions
-12 through 23 are frozen promotion sources. Versioned schema dependencies
-V16–V23 load locally; older envelope-1 schemas are archival contracts, not accepted
+by the saves domain. Snapshot version 25 is current within envelope 2; versions
+12 through 24 are frozen promotion sources. Versioned schema dependencies
+V16–V24 load locally; older envelope-1 schemas are archival contracts, not accepted
 envelope transports. See the snapshot contract for executable schema and promotion
 boundaries.
