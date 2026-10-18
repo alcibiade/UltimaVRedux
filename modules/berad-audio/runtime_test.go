@@ -514,3 +514,34 @@ func TestWindowLoopAndBoostPreservePCM(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteReleaseTailBeginsAtRecordingEndAndCanBeShortened(t *testing.T) {
+	state := newFixture(t, 1, 2)
+	options := audio.DefaultPlayOptions()
+	options.ReleaseTail = time.Millisecond
+	handle := play(t, state.runtime, options) // Two milliseconds of synthetic PCM.
+	if handle.Status().State != audio.VoicePlaying || handle.Status().Gain != 0.5 {
+		t.Fatal(handle.Status())
+	}
+	state.time = state.time.Add(1500 * time.Microsecond)
+	if err := state.runtime.Update(); err != nil {
+		t.Fatal(err)
+	}
+	if handle.Status().State != audio.VoiceReleasing || handle.Status().Gain != 0.25 {
+		t.Fatal(handle.Status())
+	}
+	if err := handle.Stop(100 * time.Microsecond); err != nil {
+		t.Fatal(err)
+	}
+	state.time = state.time.Add(100 * time.Microsecond)
+	if err := state.runtime.Update(); err != nil {
+		t.Fatal(err)
+	}
+	if handle.Status().State != audio.VoiceStopped {
+		t.Fatal(handle.Status())
+	}
+	options.Loop = true
+	if _, err := state.runtime.Play("panel/accept", options); !errors.Is(err, audio.ErrInvalidRequest) {
+		t.Fatal(err)
+	}
+}

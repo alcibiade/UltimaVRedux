@@ -10,8 +10,8 @@ import "github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengin
 
 No independently published version is claimed. Redux still uses its existing
 implementation during staging; it has no local replacement or workspace dependency.
-The ambient controller is available; music integration and the existing Bubble
-Tea editor are not yet module APIs. The API is pre-stability; applications should
+Ambient and finite music transports are available; the existing Bubble Tea editor
+is not yet a module API. The API is pre-stability; applications should
 pin reviewed revisions once they are available remotely.
 
 ## Ownership and usage
@@ -50,6 +50,9 @@ result, err := owner.Play("hangar/motor", request)
   voice while category-muted so later volume changes preserve continuity.
 - Owner-local named slots replace only after preparation succeeds. Independent
   `Runtime.Play` rejects slots. Empty slots allow overlap.
+- `ReleaseTail` optionally fades the final portion of a finite recording using
+  presentation time, clamped to the recording duration. It does not authorize
+  gameplay timing and is invalid for loops. Explicit Stop can shorten the tail.
 - `Voice.Stop` affects one instance; `Owner.Release` terminally rejects new play
   and releases its voices; `Owner.Close` finishes its tails. `StopCue` is explicitly
   cue-wide across owners. Zero/stale voice handles are safe.
@@ -91,6 +94,29 @@ Redux's schema-3 manifest, provenance, taxonomy and routing remain authoritative
 for its TUI. Do not serialize `Definition` as a replacement authoring document.
 All production recordings/notices remain game-owned. Examples/tests generate
 their PCM/WAV; no bundled game media or original installation is required.
+
+## Finite music transport
+
+`NewMusicPlayer(library, options)` owns one finite transport, separate from SFX
+and ambience. It uses the same decoding/gain/retirement machinery. The caller owns
+score selection, scheduling, quiet periods, interruption owners and session history.
+Only single-recording cues are accepted. There are no fixed track names/prefixes.
+
+- `Play` prepares a fresh stream before replacing the current one. Unknown cues
+  and preparation failures retain the working transport; a known empty recording
+  intentionally stops it.
+- `SetGain` controls the application's contextual/envelope coefficient and
+  `SetVolume` controls the independent category preference. Zero-gain finite music
+  remains admitted: applications can start silently and fade in without losing it.
+- `Pause` retains the player and returns a bounded, window-relative position.
+  `Resume(cue, position)` restores that position even after a same-cue preview;
+  it reuses a healthy paused player or prepares/seeks a replacement transactionally.
+- `Update` retires natural completion and failed decoders, including faults while
+  paused. Healthy paused transport is not mistaken for completion. Errors remain
+  observable once through the service/closure boundary.
+- `Snapshot` reports actual cue/status/position and both gain coefficients without
+  sampling presentation time. `Stop` clears playback; `Close` is terminal and leaves
+  the host device and sibling lanes alive.
 
 ## Ambient sources
 

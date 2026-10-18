@@ -50,10 +50,15 @@ type PlayOptions struct {
 	Gain   float64
 	FadeIn time.Duration
 	Slot   string
+	// ReleaseTail fades the final portion of a finite recording using presentation
+	// time. Zero leaves natural EOF unchanged; loops cannot have a release tail.
+	ReleaseTail time.Duration
 }
 
 // DefaultPlayOptions selects a finite, independent, unity-gain instance.
-func DefaultPlayOptions() PlayOptions { return PlayOptions{Loop: false, Gain: 1, FadeIn: 0, Slot: ""} }
+func DefaultPlayOptions() PlayOptions {
+	return PlayOptions{Loop: false, Gain: 1, FadeIn: 0, Slot: "", ReleaseTail: 0}
+}
 
 // Outcome explains successful admission or deliberate absence of a new voice.
 type Outcome string
@@ -137,8 +142,8 @@ func (runtime *Runtime) play(cueID CueID, options PlayOptions, owner *Owner) (Pl
 	if owner != nil && owner.closed {
 		return PlayResult{}, ErrOwnerClosed
 	}
-	if !unitGain(options.Gain) || options.FadeIn < 0 {
-		return PlayResult{}, fmt.Errorf("%w: invalid gain/fade", ErrInvalidRequest)
+	if err := options.validate(); err != nil {
+		return PlayResult{}, err
 	}
 	cue, exists := runtime.library.definition.Cues[cueID]
 	if !exists {
@@ -172,6 +177,15 @@ func (runtime *Runtime) play(cueID CueID, options PlayOptions, owner *Owner) (Pl
 	return PlayResult{Outcome: Admitted, Voice: handle}, nil
 }
 
+func (options PlayOptions) validate() error {
+	if !unitGain(options.Gain) || options.FadeIn < 0 || options.ReleaseTail < 0 ||
+		(options.Loop && options.ReleaseTail > 0) {
+		return fmt.Errorf("%w: invalid gain/fade/release tail", ErrInvalidRequest)
+	}
+
+	return nil
+}
+
 // startPrepared shares playback machinery; admission belongs to the controller.
 func (runtime *Runtime) startPrepared(prepared *voice, cueID CueID, recordingID RecordingID,
 	options PlayOptions, owner *Owner, sourceGain float64, now time.Duration,
@@ -185,6 +199,15 @@ func (runtime *Runtime) startPrepared(prepared *voice, cueID CueID, recordingID 
 	prepared.envelope = 1
 	if options.FadeIn > 0 {
 		prepared.envelope = 0
+	}
+	if options.ReleaseTail > 0 {
+		duration := voiceDuration(prepared, runtime.rate)
+		prepared.releaseDuration = min(options.ReleaseTail, duration)
+		prepared.releaseStart = now + duration - prepared.releaseDuration
+		prepared.releaseGain = 1
+		if options.FadeIn > 0 {
+			prepared.releaseGain = min(1, float64(duration-prepared.releaseDuration)/float64(options.FadeIn))
+		}
 	}
 	prepared.result = new(VoiceStatus)
 	runtime.applyGain(prepared)

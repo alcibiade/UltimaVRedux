@@ -169,7 +169,7 @@ func (runtime *Runtime) envelope(playing *voice, now time.Duration) {
 		progress := min(1, float64(max(0, now-playing.started))/float64(playing.fadeIn))
 		playing.envelope = playing.fadeFrom + (1-playing.fadeFrom)*progress
 	}
-	if playing.releaseDuration > 0 {
+	if playing.releaseDuration > 0 && now >= playing.releaseStart {
 		progress := min(1, float64(max(0, now-playing.releaseStart))/float64(playing.releaseDuration))
 		playing.envelope = playing.releaseGain * (1 - progress)
 	}
@@ -221,11 +221,17 @@ func (runtime *Runtime) attack(playing *voice, now, fade time.Duration) {
 // VoiceSnapshot is detached and reports the last serviced gain. Reading it does
 // not sample the clock, service a fade, consume PCM or advance variant selection.
 type VoiceSnapshot struct {
-	ID        uint64
-	Cue       CueID
-	Recording RecordingID
-	Loop      bool
-	Gain      float64
+	ID          uint64
+	Cue         CueID
+	Recording   RecordingID
+	Loop        bool
+	Gain        float64
+	RequestGain float64
+	Envelope    float64
+	TargetGain  float64
+	State       VoiceState
+	Position    time.Duration
+	Duration    time.Duration
 }
 
 // Snapshot returns a stable voice-ID-ordered observational view.
@@ -234,8 +240,12 @@ func (runtime *Runtime) Snapshot() []VoiceSnapshot {
 	defer runtime.mu.Unlock()
 	result := make([]VoiceSnapshot, 0, len(runtime.voices))
 	for id, playing := range runtime.voices {
+		status := runtime.voiceStatus(Voice{runtime: runtime, id: id, result: playing.result})
 		result = append(result, VoiceSnapshot{ID: id, Cue: playing.cue, Recording: playing.recording,
-			Loop: playing.loop, Gain: playing.gain})
+			Loop: playing.loop, Gain: playing.gain, RequestGain: playing.requestGain, Envelope: playing.envelope,
+			TargetGain: playing.targetGain(runtime.options.Volume), State: status.State,
+			Position: boundedPosition(playing, runtime.rate, playing.device.Position()),
+			Duration: voiceDuration(playing, runtime.rate)})
 	}
 	slices.SortFunc(result, func(a, b VoiceSnapshot) int {
 		if a.ID < b.ID {

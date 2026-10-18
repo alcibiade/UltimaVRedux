@@ -27,6 +27,8 @@ type AmbientSnapshot struct {
 	Closed  bool
 	Desired int
 	Sources []AmbientSourceStatus
+	// At is the last controller clock sample, not a fresh clock read.
+	At time.Time
 }
 
 // Snapshot neither samples time nor services playback. RetryAfter is relative to
@@ -43,7 +45,7 @@ func (controller *AmbientController) Snapshot() AmbientSnapshot {
 		identities[sourceID] = true
 	}
 	result := AmbientSnapshot{Enabled: controller.enabled, Closed: runtime.closed,
-		Desired: len(controller.desired), Sources: make([]AmbientSourceStatus, 0, len(identities))}
+		Desired: len(controller.desired), Sources: make([]AmbientSourceStatus, 0, len(identities)), At: runtime.latest}
 	for _, sourceID := range slices.SortedFunc(maps.Keys(identities), cmp.Compare) {
 		source, desired := controller.desired[sourceID]
 		attempt := controller.attempts[sourceID]

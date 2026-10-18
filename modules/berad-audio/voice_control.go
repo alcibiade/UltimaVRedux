@@ -47,7 +47,7 @@ func (handle Voice) Status() VoiceStatus {
 func (runtime *Runtime) voiceStatus(handle Voice) VoiceStatus {
 	if playing := runtime.voices[handle.id]; playing != nil {
 		state := VoicePlaying
-		if playing.releaseDuration > 0 {
+		if playing.releaseDuration > 0 && runtime.latest.Sub(runtime.origin) >= playing.releaseStart {
 			state = VoiceReleasing
 		}
 		if playing.paused {
@@ -129,10 +129,7 @@ func (handle Voice) Seek(position time.Duration) error {
 func (handle Voice) Position() (time.Duration, error) {
 	var position time.Duration
 	err := handle.control(func(runtime *Runtime, playing *voice) error {
-		frames := playing.stream.source.size / bytesPerFrame
-		duration := time.Duration(frames/int64(runtime.rate))*time.Second +
-			time.Duration(frames%int64(runtime.rate))*time.Second/time.Duration(runtime.rate)
-		position = max(0, min(playing.device.Position(), duration))
+		position = boundedPosition(playing, runtime.rate, playing.device.Position())
 
 		return nil
 	})
