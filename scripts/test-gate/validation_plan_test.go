@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,10 +20,10 @@ func TestValidationPlanRunsGoChecksOnce(t *testing.T) {
 	command.Env = cleanMakeEnvironment()
 	output, err := command.CombinedOutput()
 	require.NoError(t, err, "%s", output)
-	plan := string(output)
+	plan := strings.Join(strings.Fields(string(output)), " ")
 	for _, step := range []string{
-		"go run -p=1 ./scripts/test-gate", "go vet -p=1 ./...", "go build -p=1 ./...",
-		"go run -p=1 ./scripts/check-lint-config", "go run -p=1 ./scripts/check-documentation",
+		"go run ./scripts/test-gate -profile=host", "go vet ./...", "go build ./...",
+		"go run ./scripts/check-lint-config", "go run ./scripts/check-documentation",
 		"./scripts/pre-commit-checks.sh --policy-only", "python3 scripts/check-gamefacts.py",
 		"python3 -m unittest discover -s scripts",
 	} {
@@ -68,12 +70,78 @@ func TestQualityGateSchedulesRequiredScopesWithoutAggregateRepeat(t *testing.T) 
 	}
 	// Each platform branch executes one native pass and one debug race pass.
 	require.Equal(t, 1, strings.Count(plan, "xvfb-run -a make test-render\n"))
-	require.Equal(t, 1, strings.Count(plan, "    make test-render\n"))
+	require.Equal(t, 1, strings.Count(plan, "    run_stage native make test-render\n"))
 	require.Equal(t, 2, strings.Count(plan, "-parallel=1 -race ./internal/debugging/..."))
 	require.Less(t, strings.Index(plan, "make validate"), strings.Index(plan, "make test-render"))
 	require.Less(t, strings.Index(plan, "make test-render"), strings.Index(plan, "make web-build"))
 	for _, duplicate := range []string{"make test-all", "make test-provisioned", "go test ./...", "make check"} {
 		require.NotContains(t, plan, duplicate)
+	}
+}
+
+func TestQualityGateReportsStagesAndStopsOnFailureOrCancellation(t *testing.T) {
+	root, err := filepath.Abs("../..")
+	require.NoError(t, err)
+	directory := t.TempDir()
+	tool := `#!/bin/sh
+printf 'CALLED %s %s\n' "${0##*/}" "$*"
+if [ "$1" = "$CANCEL_TARGET" ]; then kill -TERM "$PPID"; exit 0; fi
+if [ "$1" = "$FAIL_TARGET" ]; then exit 37; fi
+`
+	for name, body := range map[string]string{
+		"make": tool, "go": tool,
+		"uname":    "#!/bin/sh\nprintf '%s\\n' \"$FAKE_OS\"\n",
+		"xvfb-run": "#!/bin/sh\nshift\nexec \"$@\"\n",
+	} {
+		require.NoError(t, os.WriteFile(filepath.Join(directory, name), []byte(body), 0o700))
+	}
+	stages := []string{"validate", "native", "frontend", "browser", "race"}
+	targets := []string{"validate", "test-render", "web-build", "web-test-browser", "test"}
+	for _, test := range []struct {
+		name, goos, fail, cancel string
+		last, status             int
+	}{
+		{name: "native success", goos: "Darwin", last: 4},
+		{name: "Xvfb success", goos: "Linux", last: 4},
+		{name: "validate failure", goos: "Darwin", fail: "validate", last: 0, status: 37},
+		{name: "native failure", goos: "Linux", fail: "test-render", last: 1, status: 37},
+		{name: "frontend failure", goos: "Darwin", fail: "web-build", last: 2, status: 37},
+		{name: "browser failure", goos: "Darwin", fail: "web-test-browser", last: 3, status: 37},
+		{name: "race failure", goos: "Linux", fail: "test", last: 4, status: 37},
+		{name: "cancel", goos: "Darwin", cancel: "test-render", last: 1, status: 143},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			command := exec.CommandContext(t.Context(), "bash", "scripts/quality-gate.sh")
+			command.Dir = root
+			command.Env = append(cleanMakeEnvironment(), "PATH="+directory+string(os.PathListSeparator)+os.Getenv("PATH"),
+				"FAKE_OS="+test.goos, "FAIL_TARGET="+test.fail, "CANCEL_TARGET="+test.cancel)
+			output, err := command.CombinedOutput()
+			if test.status == 0 {
+				require.NoError(t, err, "%s", output)
+			} else {
+				var exitError *exec.ExitError
+				require.True(t, errors.As(err, &exitError), "%v: %s", err, output)
+				require.Equal(t, test.status, exitError.ExitCode(), "%s", output)
+			}
+			for index, stage := range stages {
+				if index > test.last {
+					require.NotContains(t, string(output), "STAGE START "+stage)
+					continue
+				}
+				status := 0
+				if index == test.last {
+					status = test.status
+				}
+				require.Equal(t, 1, strings.Count(string(output), "STAGE START "+stage+"\n"))
+				require.Regexp(t, "STAGE END "+stage+" status="+strconv.Itoa(status)+` DURATION=\d+s`, string(output))
+				toolName := "make"
+				if stage == "race" {
+					toolName = "go"
+				}
+				require.Equal(t, 1, strings.Count(string(output), "CALLED "+toolName+" "+targets[index]))
+			}
+			require.Equal(t, test.last+1, strings.Count(string(output), "CALLED "), "no repeated or extra workloads")
+		})
 	}
 }
 
@@ -93,7 +161,7 @@ func cleanMakeEnvironment() []string {
 		key, _, _ := strings.Cut(entry, "=")
 		switch strings.ToUpper(key) {
 		case "MAKEFLAGS", "MFLAGS", "MAKEOVERRIDES", "GOFLAGS", "GOENV", "TEST_PROFILE", "TEST_GO_BUILD_FLAGS",
-			"GOMAXPROCS", "GOMEMLIMIT", "ULTIMA5_REQUIRE_DATA":
+			"GOMAXPROCS", "GOMEMLIMIT", "GOGC", "ULTIMA5_REQUIRE_DATA":
 			continue
 		}
 		environment = append(environment, entry)
@@ -104,7 +172,7 @@ func cleanMakeEnvironment() []string {
 func TestMakeForwardsProfilesAndStrictRaceFlags(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	require.NoError(t, err)
-	for _, profile := range []string{profileConstrained, profileThroughput} {
+	for _, profile := range []string{profileHost, profileConstrained, profileThroughput} {
 		for _, target := range []string{"test", "test-render", "test-all", "test-race", "test-provisioned", "test-race-provisioned"} {
 			t.Run(profile+"/"+target, func(t *testing.T) {
 				command := exec.CommandContext(t.Context(), "make", "--no-print-directory", "-n", target, "GO=go", "TEST_PROFILE="+profile)
@@ -112,9 +180,13 @@ func TestMakeForwardsProfilesAndStrictRaceFlags(t *testing.T) {
 				command.Env = append(cleanMakeEnvironment(), "MAKEFLAGS=-j8", "ULTIMA5_REQUIRE_DATA=1")
 				output, err := command.CombinedOutput()
 				require.NoError(t, err, "%s", output)
-				plan := string(output)
-				require.Equal(t, 1, strings.Count(plan, "go run -p=1 ./scripts/test-gate"))
-				require.Contains(t, plan, "go run -p=1 ./scripts/test-gate -profile="+profile+" -strict")
+				plan := strings.Join(strings.Fields(string(output)), " ")
+				bootstrap := "go run -p=1 ./scripts/test-gate"
+				if profile == profileHost {
+					bootstrap = "go run ./scripts/test-gate"
+				}
+				require.Equal(t, 1, strings.Count(plan, bootstrap))
+				require.Contains(t, plan, bootstrap+" -profile="+profile+" -strict")
 				suite := "all"
 				if target == "test" {
 					suite = "logic"
@@ -138,7 +210,7 @@ func TestMakeProfileEnvironmentAndPreflight(t *testing.T) {
 	probe := filepath.Join(t.TempDir(), "probe.mk")
 	// Replace only the test recipe with a tiny shell probe. No Go command runs.
 	require.NoError(t, os.WriteFile(probe, []byte(`test:
-	@printf 'PROFILE=%s CPU=%s MEMORY=%s\nGOFLAGS=%s\nBUILD_FLAGS=%s\n' "$$TEST_PROFILE" "$$GOMAXPROCS" "$$GOMEMLIMIT" "$$GOFLAGS" "$(TEST_GO_BUILD_FLAGS)"
+	@printf 'PROFILE=%s CPU=%s MEMORY=%s GC=%s\nGOFLAGS=%s\nBUILD_FLAGS=%s\n' "$$TEST_PROFILE" "$$GOMAXPROCS" "$$GOMEMLIMIT" "$$GOGC" "$$GOFLAGS" "$(TEST_GO_BUILD_FLAGS)"
 `), 0o600))
 	const callerFlags = "-tags='one two' -mod=readonly -p=9 -parallel=9"
 	for _, test := range []struct {
@@ -147,18 +219,22 @@ func TestMakeProfileEnvironmentAndPreflight(t *testing.T) {
 		environment []string
 		want        string
 		fail        bool
+		bounded     bool
 	}{
-		{name: "default", want: "PROFILE=constrained CPU=2 MEMORY=256MiB"},
-		{name: "throughput", arguments: []string{"TEST_PROFILE=throughput"}, want: "PROFILE=throughput CPU=4 MEMORY=2GiB"},
-		{name: "exported selection", environment: []string{"TEST_PROFILE=throughput"}, want: "PROFILE=throughput CPU=4 MEMORY=2GiB"},
-		{name: "command-line build flags", arguments: []string{"GOFLAGS=" + callerFlags}, want: "PROFILE=constrained CPU=2 MEMORY=256MiB"},
-		{name: "matching explicit", environment: []string{"GOMAXPROCS=2", "GOMEMLIMIT=256MiB"}, want: "PROFILE=constrained CPU=2 MEMORY=256MiB"},
-		{name: "lower CPU", environment: []string{"GOMAXPROCS=1"}, want: "requires GOMAXPROCS=2", fail: true},
-		{name: "higher memory", environment: []string{"GOMEMLIMIT=512MiB"}, want: "requires GOMEMLIMIT=256MiB", fail: true},
-		{name: "higher CPU", arguments: []string{"GOMAXPROCS=8"}, want: "requires GOMAXPROCS=2", fail: true},
-		{name: "empty memory", environment: []string{"GOMEMLIMIT="}, want: "requires GOMEMLIMIT=256MiB", fail: true},
-		{name: "Windows lowercase memory", environment: []string{"OS=Windows_NT", "gomemlimit=512MiB"}, want: "Windows resource variables must use uppercase names", fail: true},
-		{name: "Windows mixed CPU", environment: []string{"OS=Windows_NT", "GoMaxProcs=1"}, want: "Windows resource variables must use uppercase names", fail: true},
+		{name: "default", want: "PROFILE=host CPU= MEMORY= GC="},
+		{name: "host explicit environment", environment: []string{"GOMAXPROCS=7", "GOMEMLIMIT=768MiB", "GOGC=150"}, want: "PROFILE=host CPU=7 MEMORY=768MiB GC=150"},
+		{name: "host explicit command-line", arguments: []string{"GOMAXPROCS=6", "GOMEMLIMIT=off", "GOGC=125"}, want: "PROFILE=host CPU=6 MEMORY=off GC=125"},
+		{name: "constrained", arguments: []string{"TEST_PROFILE=constrained"}, want: "PROFILE=constrained CPU=2 MEMORY=256MiB GC=50", bounded: true},
+		{name: "throughput", arguments: []string{"TEST_PROFILE=throughput"}, want: "PROFILE=throughput CPU=4 MEMORY=2GiB GC=50", bounded: true},
+		{name: "exported selection", environment: []string{"TEST_PROFILE=throughput"}, want: "PROFILE=throughput CPU=4 MEMORY=2GiB GC=50", bounded: true},
+		{name: "command-line build flags", arguments: []string{"GOFLAGS=" + callerFlags}, want: "PROFILE=host CPU= MEMORY= GC="},
+		{name: "matching explicit", arguments: []string{"TEST_PROFILE=constrained"}, environment: []string{"GOMAXPROCS=2", "GOMEMLIMIT=256MiB", "GOGC=125"}, want: "PROFILE=constrained CPU=2 MEMORY=256MiB GC=125", bounded: true},
+		{name: "lower CPU", arguments: []string{"TEST_PROFILE=constrained"}, environment: []string{"GOMAXPROCS=1"}, want: "requires GOMAXPROCS=2", fail: true},
+		{name: "higher memory", arguments: []string{"TEST_PROFILE=constrained"}, environment: []string{"GOMEMLIMIT=512MiB"}, want: "requires GOMEMLIMIT=256MiB", fail: true},
+		{name: "higher CPU", arguments: []string{"TEST_PROFILE=constrained", "GOMAXPROCS=8"}, want: "requires GOMAXPROCS=2", fail: true},
+		{name: "empty memory", arguments: []string{"TEST_PROFILE=constrained"}, environment: []string{"GOMEMLIMIT="}, want: "requires GOMEMLIMIT=256MiB", fail: true},
+		{name: "Windows lowercase memory", arguments: []string{"TEST_PROFILE=constrained"}, environment: []string{"OS=Windows_NT", "gomemlimit=512MiB"}, want: "Windows resource variables must use uppercase names", fail: true},
+		{name: "Windows mixed CPU", arguments: []string{"TEST_PROFILE=constrained"}, environment: []string{"OS=Windows_NT", "GoMaxProcs=1"}, want: "Windows resource variables must use uppercase names", fail: true},
 		{name: "wrong profile", arguments: []string{"TEST_PROFILE=typo"}, want: "Unknown TEST_PROFILE", fail: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -173,7 +249,11 @@ func TestMakeProfileEnvironmentAndPreflight(t *testing.T) {
 				require.NotContains(t, string(output), " CPU=", "the workload must not start before preflight succeeds")
 			} else {
 				require.NoError(t, err, "%s", output)
-				require.Contains(t, string(output), "GOFLAGS="+callerFlags+"\nBUILD_FLAGS=-p=1\n")
+				buildFlags := ""
+				if test.bounded {
+					buildFlags = "-p=1"
+				}
+				require.Contains(t, string(output), "GOFLAGS="+callerFlags+"\nBUILD_FLAGS="+buildFlags+"\n")
 			}
 			require.Contains(t, string(output), test.want)
 		})
@@ -212,7 +292,7 @@ func TestMakeDoesNotShadowPersistedGoFlags(t *testing.T) {
 	command.Env = append(cleanMakeEnvironment(), "MAKEFLAGS=-j8", "GOENV="+goenv)
 	output, err := command.CombinedOutput()
 	require.NoError(t, err, "%s", output)
-	require.Contains(t, string(output), "GOENV="+goenv+"\nGOFLAGS_SET=\nBUILD_FLAGS=-p=1\n",
+	require.Contains(t, string(output), "GOENV="+goenv+"\nGOFLAGS_SET=\nBUILD_FLAGS=\n",
 		"Make must not synthesize GOFLAGS and hide the selected Go environment file")
 }
 

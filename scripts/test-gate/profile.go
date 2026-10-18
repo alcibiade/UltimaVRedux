@@ -6,10 +6,12 @@ import (
 	"maps"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 )
 
 const (
+	profileHost        = "host"
 	profileConstrained = "constrained"
 	profileThroughput  = "throughput"
 	osWindows          = "windows"
@@ -22,11 +24,13 @@ func profileEnvironment(profile string, environment []string) ([]string, error) 
 func profileEnvironmentForOS(profile, goos string, environment []string) ([]string, error) {
 	cpus, memory := "2", "256MiB"
 	switch profile {
+	case profileHost:
+		return slices.Clone(environment), nil
 	case profileConstrained:
 	case profileThroughput:
 		cpus, memory = "4", "2GiB"
 	default:
-		return nil, fmt.Errorf("%w: unknown profile %q; use constrained or throughput", errGate, profile)
+		return nil, fmt.Errorf("%w: unknown profile %q; use host, constrained or throughput", errGate, profile)
 	}
 	for _, setting := range []string{"GOMAXPROCS=" + cpus, "GOMEMLIMIT=" + memory} {
 		key, wanted, _ := strings.Cut(setting, "=")
@@ -46,6 +50,67 @@ func profileEnvironmentForOS(profile, goos string, environment []string) ([]stri
 	}
 
 	return append(slices.Clone(environment), "GOMAXPROCS="+cpus, "GOMEMLIMIT="+memory), nil
+}
+
+func resourceSetting(environment []string, key, fallback string) string {
+	for _, entry := range slices.Backward(environment) {
+		name, value, _ := strings.Cut(entry, "=")
+		if name == key || (runtime.GOOS == osWindows && strings.EqualFold(name, key)) {
+			if value != "" {
+				return value
+			}
+
+			break
+		}
+	}
+
+	return fallback
+}
+
+func logicParallelism(profile string, environment []string) string {
+	switch profile {
+	case profileConstrained:
+		return "1"
+	case profileThroughput:
+		return "2"
+	default:
+		// GOMAXPROCS is quota/affinity-aware on current Go. A positive explicit
+		// caller setting also governs child commands (and fake-runner tests).
+		cpus, err := strconv.Atoi(resourceSetting(environment, "GOMAXPROCS", ""))
+		if err != nil || cpus < 1 {
+			cpus = runtime.GOMAXPROCS(0)
+		}
+
+		return strconv.Itoa(cpus)
+	}
+}
+
+func inventoryArguments(settings options, testDependencies bool) []string {
+	arguments := []string{"list", goJSONFlag}
+	if testDependencies {
+		arguments = append(arguments, "-test")
+	}
+	if settings.profile != profileHost {
+		arguments = append(arguments, goSerialFlag)
+	}
+
+	return append(arguments, goRaceFlagPrefix+strconv.FormatBool(settings.race), allPackages)
+}
+
+func writeProfile(writer io.Writer, profile string, environment []string) error {
+	parallelism := logicParallelism(profile, environment)
+	cpus := resourceSetting(environment, "GOMAXPROCS", "auto (current "+strconv.Itoa(runtime.GOMAXPROCS(0))+")")
+	_, err := fmt.Fprintf(writer,
+		"Test profile %s: GOMAXPROCS=%q; logic -p=%s -parallel=%s; "+
+			"native -p=1 -parallel=1; GOMEMLIMIT=%q GOGC=%q native GOGC=%q\n",
+		profile, cpus, parallelism, parallelism, resourceSetting(environment, "GOMEMLIMIT", "off (Go default)"),
+		resourceSetting(environment, "GOGC", "100 (Go default)"),
+		resourceSetting(nativeGCEnvironment(profile, environment), "GOGC", "100 (Go default)"))
+	if err != nil {
+		return fmt.Errorf("reporting resource profile: %w", err)
+	}
+
+	return nil
 }
 
 func partitionPackages(reader io.Reader, expected map[string]*packageResult) ([]map[string]*packageResult, error) {

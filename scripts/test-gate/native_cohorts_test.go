@@ -41,12 +41,13 @@ func nativeAssertionFixture(t *testing.T, name, terminal string) string {
 }
 
 func TestNativeCohortsBuildOnceAndExecuteDiscoveredWorkloadsExactlyOnce(t *testing.T) {
-	settings := options{race: true, short: true, strict: true}
+	settings := options{profile: profileHost, race: true, short: true, strict: true}
 	result := &packageResult{hasTests: true, tests: make(map[string]*testResult), directory: t.TempDir()}
 	var stdout, stderr bytes.Buffer
 	builds, listings := 0, 0
 	seen := make(map[string]int)
-	runner := func(_ context.Context, arguments, _ []string, output, _ io.Writer) error {
+	runner := func(_ context.Context, arguments, environment []string, output, _ io.Writer) error {
+		require.Empty(t, environment, "host native cohorts must not inject heap/GC settings")
 		if arguments[0] == "test" {
 			builds++
 			require.Contains(t, arguments, "-c")
@@ -79,6 +80,18 @@ func TestNativeCohortsBuildOnceAndExecuteDiscoveredWorkloadsExactlyOnce(t *testi
 	require.Equal(t, map[string]int{"TestCombatPaint": 1, "ExampleTerrain": 1, "FuzzPlain": 1}, seen)
 	require.Len(t, result.tests, 6)
 	require.Equal(t, actionPass, result.terminal)
+}
+
+func TestNativeGCOnlyDefaultsForConstrainedProfile(t *testing.T) {
+	for _, profile := range []string{profileHost, profileConstrained, profileThroughput} {
+		environment := []string{"GOGC=125", "GOMEMLIMIT=off"}
+		require.Equal(t, environment, nativeGCEnvironment(profile, environment))
+		if profile == profileConstrained {
+			require.Equal(t, []string{"GOGC=50"}, nativeGCEnvironment(profile, nil))
+		} else {
+			require.Empty(t, nativeGCEnvironment(profile, nil))
+		}
+	}
 }
 
 func TestNativeDiscoveryRejectsEmptyDuplicateFailedAndUnexpectedStreams(t *testing.T) {

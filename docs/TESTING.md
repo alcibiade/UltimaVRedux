@@ -332,7 +332,7 @@ The `Makefile` is the command authority:
 | `make gamefacts-check` | Validate the public Game Facts catalog, canonical rule IDs, relationships, and public references with Python 3.9+. |
 | `make tooling-test` | Run pure Python developer-tool regressions. |
 | `make validate` | Run `check`, `policy-check`, `build-check`, documentation, public Game Facts, and developer-tool validation locally with `GOPROXY=off`, `GOSUMDB=off`, and `GOTOOLCHAIN=local`. Missing prerequisites fail, not download. |
-| `make quality-gate` | Run validation, render tests, frontend build/browser tests, and bounded debug race tests once each. |
+| `make quality-gate` | Run validation, render tests, frontend build/browser tests, and serial debug race tests once each, with named stage timings. |
 
 Useful focused Go commands:
 
@@ -446,41 +446,64 @@ with bounded build and test concurrency, especially for asset-heavy adapter test
 GOMAXPROCS=2 GOMEMLIMIT=256MiB go test -p=1 -parallel=1 ./internal/game_state -run '^TestSpecificBehavior$' -count=1
 ```
 
-For canonical non-race validation, use `GOMAXPROCS=2 GOMEMLIMIT=256MiB
-GOFLAGS='-p=1 -parallel=1' make validate`. `GOMEMLIMIT` is a per-process soft Go
-heap limit, not a hard system-memory cap; graphics/native allocations are not
-covered. Full asset-backed race runs need separate resource planning and should
-not run beside other test suites. An aborted or timed-out run is not validation
-evidence for the tests it did not finish.
+For a deliberately constrained canonical run, use
+`make validate TEST_PROFILE=constrained`. Normal `make validate` uses the host
+profile described below. `GOMEMLIMIT` is a per-process soft Go-runtime memory
+target, not a hard system-memory cap; graphics/native allocations are not covered.
+Full asset-backed race runs need separate resource planning and should not run
+beside other test suites. An aborted or timed-out run is not validation evidence
+for the tests it did not finish.
 
 ### Explicit Resource Profiles
 
-Canonical test/validation Make targets accept `TEST_PROFILE=constrained` (the
-default) or `TEST_PROFILE=throughput`. The direct inventory command accepts the
-corresponding `-profile` flag; use Make to bound the outer `go run` bootstrap too.
+Canonical test/validation Make targets default to `TEST_PROFILE=host`.
+`constrained` and `throughput` remain explicit opt-ins. The direct inventory
+command accepts the corresponding `-profile` flag and also defaults to `host`.
+Host leaves the outer `go run` bootstrap, vet, and build commands at normal Go
+package-compilation defaults; the bounded profiles retain bootstrap `-p=1`.
+Make stages remain serial, independently of concurrency inside a Go command.
 
 | Profile | Go CPUs / soft memory per process | Logic scope | Native/Ebitengine-linked scope |
 |---|---|---|---|
+| `host` (default) | Go automatic CPU selection / no injected memory target | `-p=N -parallel=N`, where N is available Go CPUs | `-p=1 -parallel=1` |
 | `constrained` | 2 / 256MiB | `-p=1 -parallel=1` | `-p=1 -parallel=1` |
 | `throughput` | 4 / 2GiB | `-p=2 -parallel=2` | `-p=1 -parallel=1` |
 
 ```bash
-make test TEST_PROFILE=throughput
-make test-provisioned TEST_PROFILE=throughput
-ULTIMA5_REQUIRE_DATA=1 make validate TEST_PROFILE=throughput
-make quality-gate TEST_PROFILE=throughput
+make test
+make test-provisioned TEST_PROFILE=host
+ULTIMA5_REQUIRE_DATA=1 make validate
+make quality-gate TEST_PROFILE=constrained
 ```
 
-Absent CPU/memory settings receive the selected defaults. Explicit inherited or
-command-line `GOMAXPROCS`/`GOMEMLIMIT` must match the profile (canonical `256MiB` or
-`2GiB` spelling); conflicts fail rather than silently overriding a smaller
-budget. Unset conflicting values before selecting another profile. These exports
-apply to canonical validation, not normal game execution. Caller GOFLAGS build
-settings are retained; explicit gate arguments enforce concurrency and the
-existing anti-filter/uncached/race/short rules.
+Host injects neither `GOMAXPROCS`, `GOMEMLIMIT`, nor `GOGC`. It uses Go's current
+`runtime.GOMAXPROCS(0)` automatic CPU selection (including runtime-supported CPU
+quota/affinity limits), or a positive explicitly selected `GOMAXPROCS`. Explicit
+inherited or Make command-line resource settings remain effective and are reported;
+host does not silently replace them with the old two-CPU/256MiB/50 settings.
+Absent overrides, memory and GC retain normal Go defaults (`GOMEMLIMIT=off`,
+`GOGC=100`). This policy enables a host-resource performance experiment; it is not
+evidence of a speedup or an aggregate native-memory bound.
+
+For constrained/throughput, absent CPU/memory settings receive the selected
+defaults. Explicit inherited or command-line `GOMAXPROCS`/`GOMEMLIMIT` must match
+that profile (canonical `256MiB` or `2GiB` spelling); conflicts fail rather than
+silently overriding a budget. Unset conflicting values before selecting another
+bounded profile. Both bounded Make profiles default `GOGC` to 50 and preserve an
+explicit caller value. These exports apply to validation, not game execution.
+Caller GOFLAGS build settings, including persisted GOENV settings, are retained;
+explicit test-gate arguments enforce lane concurrency and the existing
+anti-filter/uncached/race/short rules. A caller-supplied compilation limit remains
+effective outside the test lanes.
+
+Make reports selected resource settings before canonical work. The test gate
+reports the effective profile, CPU selection, logic/native package and test
+parallelism, memory target, and GC settings to stderr; stdout retains raw test
+JSON. Only resource settings are included in these diagnostics, not the complete
+environment or original-data paths.
 
 The aggregate gate first runs logic packages, waits for completion, then runs the
-render scope serially. Throughput raises concurrency only in the logic scope.
+render scope serially. Host and throughput raise test concurrency only in the logic scope.
 Classification uses Go's production and generated test-binary dependency
 closures, including internal/external tests and
 transitive Ebitengine subpackage imports. It is not a hardcoded list of three
@@ -489,8 +512,22 @@ the package to render: this is an honest linked-dependency scope, not a claim
 that every assertion in that package needs native rendering.
 Missing/incomplete dependency metadata fails closed. The original
 repository inventory, including no-test packages, remains authoritative; a failed
-lane leaves unexecuted work visibly incomplete. The profile never changes tests
-to `t.Parallel`.
+lane leaves unexecuted work visibly incomplete. Test-level concurrency applies
+only to tests that explicitly opt into `t.Parallel`; changing the profile does
+not make other tests parallel.
+
+Host lint resolves the complete requested package inventory once, then runs the
+pinned configured linters in one invocation over that exact inventory. Linter
+concurrency uses its available-CPU/quota-aware automatic default, or explicit
+positive `GOMAXPROCS`. Cross-package duplicate detection runs once within that
+same full invocation. Constrained and throughput lint retain serial four-package
+batches with `--concurrency=1`; those batches defer duplicate detection to one
+full-inventory `dupl` pass so cross-batch duplicates cannot disappear. Ordinary
+findings do not stop later batches; cancellation does. These scheduling choices
+do not change configured linters, package selection, exclusions, the immutable
+new-code cutoff, or the unfiltered `lint-all` policy. The lint planner's
+`--profile=host|constrained|throughput` defaults to `TEST_PROFILE`, then `host`;
+Make passes its selected profile explicitly.
 
 Large native application packages (main packages with at least 128 internal test
 files) compile once and execute in at most seven serial feature contexts: combat,
@@ -504,14 +541,14 @@ process exits. No discovery run is counted as validation. All contexts use the
 package's original working directory and preserve the selected race/short/data
 policy. Temporary test binaries are removed after the pass.
 
-Constrained native contexts default `GOGC` to 50 when the caller has not selected
+Direct constrained native contexts default `GOGC` to 50 when the caller has not selected
 a value. This makes unreachable Go owners eligible for native resource cleanup
 sooner; it neither forces GC after each test nor caps driver memory. Explicit
 caller settings remain visible and unchanged. The 256 MiB soft Go memory target
 is still separate from measured process and native-memory budgets.
 
-Canonical validation/test Make targets also default `GOGC` to 50; caller-selected
-values are preserved. Normal game execution does not receive these test defaults.
+Host native contexts do not add a GC or heap target; they keep serial execution
+and preserve ordinary Go defaults or explicit caller settings.
 
 Make recipes are serialized even under inherited `-j`; this does not prevent two
 separate validation commands from overlapping. The final quality-gate debugging
@@ -520,6 +557,30 @@ gates or agent test jobs together. A 2GiB target is per process, not an aggregat
 native-memory cap. Use external supervision and host headroom assessment; the
 profile is not a memory watchdog. Interrupted or unexecuted lanes are not
 validation evidence.
+
+### Quality-Gate Stage Progress
+
+`scripts/quality-gate.sh` emits `STAGE START <name>` and
+`STAGE END <name> status=<exit> DURATION=<seconds>s` to stderr for these ordered
+stages:
+
+1. `validate`: exactly one canonical `make validate`, including format, lint
+   schema/fixtures and package lint, vet, logic tests, policy/dependency checks,
+   build, documentation, Game Facts, and tooling regressions.
+2. `native`: one `make test-render`, under Xvfb on Linux; existing native cohort
+   names and assertion/package inventories remain visible within the stage.
+3. `frontend`: one `make web-build`, including its install, test, and build steps.
+4. `browser`: one `make web-test-browser`.
+5. `race`: the existing uncached, serial race pass over `./internal/debugging/...`,
+   under Xvfb on Linux.
+
+Durations measure each actual command invocation in whole seconds. The validate
+duration includes its subtargets; the script does not claim separate subtarget
+timings or rerun them to collect timings. A failing stage reports its nonzero
+status and stops subsequent stages. Interrupt/termination handling exits nonzero
+(130/143); incomplete stages or missing END records are not passing evidence.
+Stage markers contain fixed stage names, timing and status, not command arguments
+or arbitrary environment values.
 
 ## Continuous Integration
 

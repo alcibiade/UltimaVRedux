@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"slices"
 	"testing"
 
@@ -88,6 +89,7 @@ func TestCombatFieldsRenderSquareAnchoredThroughActorMotion(t *testing.T) {
 					got, _ := signatureMonster(t, scene, references.MonsterOrc, references.Position{X: 3 + references.Coordinate(index), Y: 5})
 					require.Equal(t, index, got)
 				}
+				fieldOracle := newCombatFieldSquareOracle(t, scene)
 				for _, index := range []int{0, 1} {
 					for _, coLocated := range []bool{false, true} {
 						monster := combat.MonsterManager.GetMonster(index)
@@ -107,9 +109,7 @@ func TestCombatFieldsRenderSquareAnchoredThroughActorMotion(t *testing.T) {
 							actorScreen.Clear()
 							scene.drawCombatMonsterOverlay(actorScreen)
 							assert.Equal(t, mode == "move-end", bytes.Equal(actorBefore, signaturePixels(actorScreen)), "actor control %s", mode)
-							for _, field := range combat.Fields() {
-								assertCombatFieldAtSquare(t, scene, field)
-							}
+							fieldOracle.assertFields(t, scene)
 						}
 					}
 				}
@@ -117,16 +117,12 @@ func TestCombatFieldsRenderSquareAnchoredThroughActorMotion(t *testing.T) {
 				// the real dispel path. Neither ordinal change may change placement.
 				slices.Reverse(combat.Fields())
 				setSquareVisualTestMotion(scene, 1, references.Position{X: 4, Y: 5}, "recoil")
-				for _, field := range combat.Fields() {
-					assertCombatFieldAtSquare(t, scene, field)
-				}
+				fieldOracle.assertFields(t, scene)
 				actor := combat.GetCurrentTurnIdentity()
 				combat.SetPartyMemberPosition(actor.EntityIndex, references.Position{X: 3, Y: 8})
 				require.True(t, state.CastCombatAnGrav(actor.EntityIndex, references.Down))
 				require.Len(t, combat.Fields(), 2)
-				for _, field := range combat.Fields() {
-					assertCombatFieldAtSquare(t, scene, field)
-				}
+				fieldOracle.assertFields(t, scene)
 			})
 		}
 	}
@@ -229,6 +225,74 @@ func TestCombatTeleportCueRetainsExactActorMotion(t *testing.T) {
 	screen.Clear()
 	scene.drawCombatUtilitySpellEffects(screen)
 	assert.Equal(t, before, signaturePixels(screen), "another exact entry cannot move the clone's cue")
+}
+
+// The motion matrix holds artwork time, field positions and display transforms
+// fixed. Cache only its independent per-square artwork oracle, never production
+// output. A union target batches readback while retaining every original guarded
+// rectangle in native screen coordinates (including fractional screen shake).
+type combatFieldSquareOracle struct {
+	screen    *ebiten.Image
+	pixels    *image.RGBA
+	expected  map[references.Position]*image.RGBA
+	elapsedMs int64
+}
+
+func newCombatFieldSquareOracle(t *testing.T, scene *GameScene) *combatFieldSquareOracle {
+	t.Helper()
+	oracle := &combatFieldSquareOracle{
+		expected: make(map[references.Position]*image.RGBA), elapsedMs: scene.getElapsedMs(),
+	}
+	var bounds image.Rectangle
+	for _, field := range scene.gameState.CombatScene.Fields() {
+		position := field.Position()
+		options := scene.combatSquareMarkerDrawOptions(position)
+		region := combatFixtureRasterBounds(options)
+		expected := ebiten.NewImageWithOptions(region, &ebiten.NewImageOptions{Unmanaged: true})
+		hash := int32(position.X)*int32(references.YCombatMapTiles) + int32(position.Y)
+		expected.DrawImage(scene.spriteSheet.GetAnimatedSprite(field.Sprite(), hash, oracle.elapsedMs), options)
+		pixels := image.NewRGBA(region)
+		expected.ReadPixels(pixels.Pix)
+		expected.Dispose()
+		opaque := 0
+		for offset := 3; offset < len(pixels.Pix); offset += 4 {
+			if pixels.Pix[offset] != 0 {
+				opaque++
+			}
+		}
+		require.Positive(t, opaque, "oracle for field %v must actually draw", position)
+		oracle.expected[position] = pixels
+		bounds = bounds.Union(region)
+	}
+	oracle.screen = ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{Unmanaged: true})
+	t.Cleanup(oracle.screen.Dispose)
+	oracle.pixels = image.NewRGBA(bounds)
+
+	return oracle
+}
+
+func (oracle *combatFieldSquareOracle) assertFields(t *testing.T, scene *GameScene) {
+	t.Helper()
+	require.Equal(t, oracle.elapsedMs, scene.getElapsedMs(), "cached artwork time must remain fixed")
+	oracle.screen.Clear()
+	scene.drawCombatFieldOverlay(oracle.screen)
+	oracle.screen.ReadPixels(oracle.pixels.Pix)
+	for _, field := range scene.gameState.CombatScene.Fields() {
+		position := field.Position()
+		want, found := oracle.expected[position]
+		require.True(t, found, "field %v needs its own oracle", position)
+		require.Equal(t, want.Rect, combatFixtureRasterBounds(scene.combatSquareMarkerDrawOptions(position)))
+		// Compare every RGBA byte, including transparent guard pixels. Reading
+		// the union once is equivalent to reading these same rectangles separately.
+		equal := true
+		for y := want.Rect.Min.Y; y < want.Rect.Max.Y; y++ {
+			wantOffset := want.PixOffset(want.Rect.Min.X, y)
+			gotOffset := oracle.pixels.PixOffset(want.Rect.Min.X, y)
+			equal = equal && bytes.Equal(want.Pix[wantOffset:wantOffset+want.Stride],
+				oracle.pixels.Pix[gotOffset:gotOffset+want.Stride])
+		}
+		assert.True(t, equal, "field %v stays square anchored", position)
+	}
 }
 
 func assertCombatFieldAtSquare(t *testing.T, scene *GameScene, field game_state.CombatField) {

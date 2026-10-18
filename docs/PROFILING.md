@@ -478,6 +478,85 @@ standard sizes. Current provision observation and initialization use the
 published logical dimensions directly. Performance improvement still requires
 matching captures; the historical baseline above remains unchanged.
 
+## Native Combat Square Test: Measured Results
+
+On 2026-10-17, two serial before/after captures of
+`TestCombatFieldsRenderSquareAnchoredThroughActorMotion` on Go 1.27.1,
+darwin/arm64 measured a test-only readback optimization against `e853af1`.
+Both sides used `GOMAXPROCS=2`, `GOMEMLIMIT=256MiB`, `GOGC=50`, package
+parallelism one, and an uncached focused test invocation:
+
+```sh
+go test -p 1 ./cmd/ultimav -run TestCombatFieldsRenderSquareAnchoredThroughActorMotion -count=1
+```
+
+The supervised runs enforced a 1024 MiB aggregate RSS budget, 25% minimum free
+host memory, critical-pressure abort, 0.2-second sampling and a 900-second
+deadline. Tooling transitioned from fixed limits to named profiles during the
+measurement; the after runs explicitly selected the matching constrained profile.
+No resource threshold, native frame cadence, or VSync setting was relaxed.
+
+Temporary test instrumentation collected phase wall times, CPU samples and
+process allocation deltas; it was removed after capture. Test-body time includes
+fixture cleanup but excludes CPU-profile finalization. Package elapsed includes
+the native harness and profiler shutdown, but excludes compilation. Raw captures
+remain local and are not source artifacts.
+
+| Measurement | Before, runs 1 / 2 | After, runs 1 / 2 |
+|---|---|---|
+| Instrumented test body | 21.573 / 21.565 s | 7.573 / 7.643 s |
+| Package elapsed | 22.990 / 22.876 s | 8.805 / 8.848 s |
+| Fixture setup | 0.105 / 0.132 s | 0.094 / 0.111 s |
+| Field target creation | 0.00189 / 0.00228 s | 0.00026 / 0.00029 s |
+| Expected artwork acquisition/draw | 1.121 / 1.201 s | 0.942 / 0.991 s |
+| Expected readback, including nonempty check | 8.928 / 8.913 s | 0.370 / 0.372 s |
+| Actual field readback | 8.132 / 8.017 s | 2.942 / 2.936 s |
+| Field comparisons and their invariant checks | 0.00099 / 0.00121 s | 0.00245 / 0.00272 s |
+| Sampled process CPU | 1.29 / 1.52 s | 0.56 / 0.53 s |
+| Process allocation delta | 290,939,016 / 290,697,832 bytes | 277,880,888 / 277,433,576 bytes |
+| Process allocation count | 2,300,156 / 2,289,238 | 1,382,378 / 1,386,723 |
+
+The mean test-body reduction is approximately **65%** (2.84 times faster).
+A final focused run after removing all profiling instrumentation passed with
+9.112 s package elapsed; no test-body timer remains in the retained test.
+Readbacks, rather than fixture I/O or byte comparison, dominated the baseline.
+The second read of each unchanged expected image was already cheap; eliminating
+repeated oracle rendering and batching actual readbacks provided the useful gain.
+Allocation deltas cover all Go activity during the test, including artwork
+generation, native-loop work and profiler overhead; they are not retained heap
+or GPU-memory measurements. This is evidence for this test, not a gameplay FPS
+or full-suite speedup claim.
+
+Coverage remains four field kinds times two logical sizes (400x208, 1366x768),
+with fractional shake `(0.35, -0.65)` and artwork time held at 225 ms. Each of
+the eight fixtures still exercises two actor identities, both separate and
+co-located positions, and recoil, missed lunge, movement start/middle/end.
+There are **520 exact field pixel comparisons**, **160 actor-motion comparisons**
+and **32 actor nonempty controls** per run, including field-slice reversal and
+removal through the real dispel path.
+
+The test caches three independent per-square oracle images as CPU pixels per
+fixture. Each is checked nonempty once; its artwork inputs remain fixed while
+actor conditions change. Production output is freshly rendered into one cleared,
+bounded union target per scenario. Comparison visits every RGBA byte of each
+original guarded rectangle using native screen coordinates; ordering never keys
+the oracle. Time and rectangle invariants are checked on use. This preserves the
+pixel oracle rather than substituting geometry-only assertions. The separate
+animation/concealment test retains its fresh per-time oracle.
+
+Field-only image creation falls from **1040 to 32** (24 expected images and eight
+reused actual targets); field read calls fall from **1560 to 200** (24 expected
+and 176 actual). Actor controls retain their 224 read calls. The largest union
+pixel buffer is 460,900 bytes; the target is bounded to these field footprints,
+not the whole display. Expected GPU images are disposed immediately after
+readback, and fixture cleanup disposes each owned actual target. Borrowed sprite
+artwork is never disposed, and no forced GC was added.
+
+The remaining measured costs are approximately 3.31 s of field readbacks,
+3.22 s for the unchanged actor baseline/control rendering and readbacks, and
+0.94–0.99 s for initial expected artwork acquisition/draw. They remain bounded
+test costs; no runtime rendering algorithm was changed.
+
 ## Benchmarks
 
 Use a benchmark when a narrow function can be measured independently. Keep setup outside the timed loop and report allocations:

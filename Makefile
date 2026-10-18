@@ -9,7 +9,7 @@ TOOLS_BIN := $(CURDIR)/$(BIN_DIR)/tools
 GOIMPORTS ?= $(TOOLS_BIN)/goimports
 GOLANGCI_LINT ?= $(TOOLS_BIN)/golangci-lint
 LINT_PACKAGES ?= ./...
-TEST_PROFILE ?= constrained
+TEST_PROFILE ?= host
 TEST_GATE_FLAGS = -profile=$(TEST_PROFILE) $(if $(filter 1,$(ULTIMA5_REQUIRE_DATA)),-strict,)
 TEST_PROFILE_CPUS = $(if $(filter throughput,$(TEST_PROFILE)),4,2)
 TEST_PROFILE_MEMORY = $(if $(filter throughput,$(TEST_PROFILE)),2GiB,256MiB)
@@ -26,22 +26,29 @@ CONVERSATION_PATCH_DIR ?= data/conversation-patches
 
 .DEFAULT_GOAL := help
 
-# Serialize Make recipes even with inherited -j; only the gate's non-graphics
-# lane raises Go package concurrency. Separate Make processes still need one owner.
+# Serialize Make stages even with inherited -j, without limiting host package
+# compilation or the non-graphics lane. Separate Make processes need one owner.
 .NOTPARALLEL:
 
 $(TEST_PROFILE_TARGETS): export TEST_PROFILE := $(TEST_PROFILE)
+ifneq ($(TEST_PROFILE),host)
 $(TEST_PROFILE_TARGETS): export GOMAXPROCS ?= $(TEST_PROFILE_CPUS)
 $(TEST_PROFILE_TARGETS): export GOMEMLIMIT ?= $(TEST_PROFILE_MEMORY)
 $(TEST_PROFILE_TARGETS): export GOGC ?= 50
-# Keep GOFLAGS untouched, including settings persisted in the user's GOENV file.
 $(TEST_PROFILE_TARGETS): export TEST_GO_BUILD_FLAGS := -p=1
+endif
+# Host leaves Go resource defaults and explicit caller settings intact. Keep
+# GOFLAGS untouched, including settings persisted in the user's GOENV file.
 $(TEST_PROFILE_TARGETS): test-profile-check
 
 .PHONY: test-profile-check
 test-profile-check:
-	@case "$(TEST_PROFILE)" in constrained|throughput) ;; *) \
-		printf 'Unknown TEST_PROFILE: %s; use constrained or throughput\n' "$(TEST_PROFILE)" >&2; exit 1;; esac; \
+	@case "$(TEST_PROFILE)" in host|constrained|throughput) ;; *) \
+		printf 'Unknown TEST_PROFILE: %s; use host, constrained or throughput\n' "$(TEST_PROFILE)" >&2; exit 1;; esac; \
+	if [ "$(TEST_PROFILE)" = host ]; then \
+		printf 'TEST_PROFILE=host GOMAXPROCS=%s GOMEMLIMIT=%s GOGC=%s (caller settings or Go defaults; logic uses available Go CPUs, native -p=1 -parallel=1)\n' \
+			"$${GOMAXPROCS:-auto}" "$${GOMEMLIMIT:-off}" "$${GOGC:-100}"; exit 0; \
+	fi; \
 	if [ -n "$(TEST_PROFILE_CASE_KEYS)" ]; then \
 		printf 'Windows resource variables must use uppercase names before Make: %s\n' "$(TEST_PROFILE_CASE_KEYS)" >&2; exit 1; \
 	fi; \
@@ -88,10 +95,10 @@ lint-config-check: ## Verify the pinned linter schema and executable errcheck se
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-lint-config "$(GOLANGCI_LINT)"
 
 lint: lint-config-check ## Run golangci-lint using the repository configuration
-	@$(PYTHON) scripts/lint_gate.py --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
+	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
 
 lint-all: lint-config-check ## Report all configured lint findings without revision filtering or output caps
-	@$(PYTHON) scripts/lint_gate.py --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
+	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
 
 core-dependencies-check: ## Reject transitive graphics/input dependencies in core code and tests
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-core-dependencies

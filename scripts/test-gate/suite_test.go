@@ -38,7 +38,7 @@ func TestSuiteSelectionInventoriesOtherRequiredScopeWithoutClaimingExecution(t *
 				return err
 			}
 			var stdout, stderr bytes.Buffer
-			require.NoError(t, run(t.Context(), []string{"-suite=" + suite}, &stdout, &stderr, fakeRunner))
+			require.NoError(t, run(t.Context(), []string{"-profile=constrained", "-suite=" + suite}, &stdout, &stderr, fakeRunner))
 			require.Contains(t, stderr.String(), "inventory packages=3")
 			require.NotContains(t, stderr.String(), "MISSING")
 			switch suite {

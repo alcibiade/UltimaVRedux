@@ -6,7 +6,9 @@ import (
 	"errors"
 	"io"
 	"maps"
+	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -68,6 +70,78 @@ func TestProfileEnvironment(t *testing.T) {
 			require.NoError(t, err, "the last inherited environment entry wins, as with exec.Cmd")
 		})
 	}
+}
+
+func TestHostProfilePreservesCallerResourcesOnEveryPlatform(t *testing.T) {
+	for _, goos := range []string{"darwin", "linux", "windows"} {
+		for _, environment := range [][]string{
+			nil,
+			{"GOFLAGS=-tags=fixture -p=9", "GOMAXPROCS=7", "GOMEMLIMIT=off", "GOGC=125"},
+			{"GoMaxProcs=3", "gomemlimit=512MiB", "gogc=80"},
+		} {
+			actual, err := profileEnvironmentForOS(profileHost, goos, environment)
+			require.NoError(t, err)
+			require.Equal(t, environment, actual, "host must not inject CPU, heap or GC settings")
+		}
+	}
+}
+
+func TestHostDefaultUsesAvailableCPUsOnlyForLogic(t *testing.T) {
+	for _, cpus := range []string{"", "3"} {
+		t.Run("GOMAXPROCS="+cpus, func(t *testing.T) {
+			t.Setenv("GOMAXPROCS", cpus)
+			t.Setenv("GOMEMLIMIT", "")
+			t.Setenv("GOGC", "")
+			t.Setenv("GOFLAGS", "-p=99 -parallel=99 -run=Nothing -skip=. -count=99 -list=. -bench=. -fuzz=FuzzHidden")
+			t.Setenv("ULTIMA5_DATA_PATH", t.TempDir())
+			parallelism := cpus
+			if parallelism == "" {
+				parallelism = strconv.Itoa(runtime.GOMAXPROCS(0))
+			}
+			var calls [][]string
+			fakeGo := func(_ context.Context, arguments, environment []string, output, _ io.Writer) error {
+				calls = append(calls, slices.Clone(arguments))
+				assert.Contains(t, environment, "GOMAXPROCS="+cpus)
+				assert.Contains(t, environment, "GOMEMLIMIT=")
+				assert.Contains(t, environment, "GOGC=")
+				assert.NotContains(t, environment, "GOGC=50")
+				fixture := fixtureGraphicsInventory
+				if slices.Contains(arguments, "-test") {
+					fixture = fixtureTestDependencies
+				} else if arguments[0] == "test" {
+					fixture = fixturePass + "\n"
+					if arguments[len(arguments)-1] == "graphics" {
+						fixture = fixtureGraphicsPass
+					}
+				}
+				_, err := io.WriteString(output, fixture)
+				return err
+			}
+			var stdout, stderr bytes.Buffer
+			require.NoError(t, run(t.Context(), []string{"-strict", "-race", "-short"}, &stdout, &stderr, fakeGo))
+			require.Equal(t, [][]string{
+				{"list", "-json", "-race=true", "./..."},
+				{"list", "-json", "-test", "-race=true", "./..."},
+				{"test", "-json", "-count=1", "-run=.", "-skip=^$", "-list=", "-bench=", "-fuzz=", "-race=true", "-short=true", "-p=" + parallelism, "-parallel=" + parallelism, "assets", "core"},
+				{"test", "-json", "-count=1", "-run=.", "-skip=^$", "-list=", "-bench=", "-fuzz=", "-race=true", "-short=true", "-p=1", "-parallel=1", "graphics"},
+			}, calls)
+			require.Equal(t, fixturePass+"\n"+fixtureGraphicsPass, stdout.String())
+			require.Contains(t, stderr.String(), "Test profile host:")
+			require.Contains(t, stderr.String(), "logic -p="+parallelism+" -parallel="+parallelism)
+			require.Contains(t, stderr.String(), `GOMEMLIMIT="off (Go default)" GOGC="100 (Go default)"`)
+			require.NotContains(t, stderr.String(), "-run=Nothing", "only resource settings belong in profile diagnostics")
+			require.Contains(t, stderr.String(), "packages=3/3 tests/subtests=3 skipped tests=0")
+		})
+	}
+}
+
+func TestProfileReportsExplicitResourcesWithoutPrivateEnvironment(t *testing.T) {
+	var report bytes.Buffer
+	require.NoError(t, writeProfile(&report, profileHost,
+		[]string{"GOMAXPROCS=5", "GOMEMLIMIT=768MiB", "GOGC=150", "PRIVATE_TOKEN=secret"}))
+	require.Contains(t, report.String(), `GOMAXPROCS="5"; logic -p=5 -parallel=5`)
+	require.Contains(t, report.String(), `GOMEMLIMIT="768MiB" GOGC="150" native GOGC="150"`)
+	require.NotContains(t, report.String(), "secret")
 }
 
 func TestProfileEnvironmentUsesPlatformKeySemantics(t *testing.T) {

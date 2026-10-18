@@ -119,7 +119,7 @@ func collectNativeNames(output string, names map[string]bool) error {
 }
 
 func nativeGCEnvironment(profile string, environment []string) []string {
-	if profile == profileThroughput {
+	if profile != profileConstrained {
 		return environment
 	}
 	for _, entry := range environment {
@@ -135,9 +135,9 @@ func nativeGCEnvironment(profile string, environment []string) []string {
 func runNativeCohorts(ctx context.Context, settings options, environment []string, name string,
 	result *packageResult, stdout, stderr io.Writer, runner goRunner,
 ) (returnErr error) {
-	// Native caches are outside the Go heap. Collect transient Go owners sooner
-	// so their native cleanup can run between draws; retain an explicit caller's
-	// setting. This matches the bounded diagnostic pass without forced per-test GC.
+	// The opt-in constrained profile collects transient Go owners sooner so
+	// native cleanup can run between draws. Host retains ordinary Go defaults;
+	// every profile preserves an explicit caller's GC setting.
 	environment = nativeGCEnvironment(settings.profile, environment)
 	if result.directory == "" {
 		return fmt.Errorf("%w: native application lacks its package directory", errGate)
