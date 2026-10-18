@@ -47,6 +47,7 @@ func TestConfigurationSettingsPersistAtomicallyAndPreservePointers(t *testing.T)
 			AllowRepeatedMonsterDivision: true, PersistHiddenDungeonDiscoveries: true,
 			ShowSubduedUnlitDungeons: true, SmoothSurfaceMovement: true,
 			ShowConcealedTurnOrderSlots: true, FlexibleSextantUse: true,
+			CombatSpeedFactor: 1, ConfirmQuickSave: true, ShowCombatHPBars: true, MaxVisibleActionPopups: 3,
 		},
 	}
 	require.NoError(t, configuration.SaveConfigurationSettings(settings))
@@ -111,7 +112,7 @@ func TestConfigurationSettingsFailurePreservesModelsSourceAndFiles(t *testing.T)
 	err := configuration.SaveConfigurationSettings(ConfigurationSettings{
 		Audio:    AudioConfiguration{MusicVolume: 7},
 		Display:  DisplayConfiguration{Mode: ModeFullscreen, WindowWidth: 1920, WindowHeight: 1080},
-		Gameplay: GameplayConfiguration{SmoothSurfaceMovement: true},
+		Gameplay: GameplayConfiguration{SmoothSurfaceMovement: true, CombatSpeedFactor: 1, MaxVisibleActionPopups: 3},
 	})
 	require.ErrorContains(t, err, "saving configuration settings")
 	assert.Same(t, audio, configuration.AudioConfiguration)
@@ -166,8 +167,8 @@ func TestConfigurationSectionSavesAreAtomic(t *testing.T) {
 			configuration.AudioConfiguration.MusicVolume = 3
 			configuration.DebugConfiguration.CombatDetailSet = true
 			configuration.DebugConfiguration.CombatDetailShown = false
-			configuration.DebugConfiguration.CombatMovementSpeedFactor = 2
 			configuration.LoggingConfiguration.CategoryStates["combat"] = true
+			configuration.LoggingConfiguration.CategoryStates["audio"] = false
 			configuration.GameplayConfiguration.SmoothSurfaceMovement = true
 			require.NoError(t, save(configuration))
 			loaded, err := LoadUltimaVConfiguration(file, filepath.Dir(file))
@@ -183,7 +184,7 @@ func TestConfigurationSectionSavesAreAtomic(t *testing.T) {
 				assert.Equal(t, originalDebug, *loaded.DebugConfiguration)
 			}
 			if name == "logging" || name == "all" {
-				assert.True(t, loaded.LoggingConfiguration.CategoryStates["combat"])
+				assert.Equal(t, map[string]bool{"combat": true, "audio": false}, loaded.LoggingConfiguration.CategoryStates)
 			} else {
 				assert.Empty(t, loaded.LoggingConfiguration.CategoryStates)
 			}

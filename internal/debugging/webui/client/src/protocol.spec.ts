@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import type { CommandResult } from "./protocol"
+import type { CommandDefinition, CommandResult } from "./protocol"
+import catalog from "./initial_catalog.fixture.json"
 
 describe("CommandResult protocol", () => {
+  it("carries numeric step metadata and preference scenario exclusion losslessly", () => {
+    const command = (JSON.parse(JSON.stringify(catalog)) as CommandDefinition[]).find(command => command.id === "combat.presentation.speed.set")!
+    expect(command.parameters?.[0]).toMatchObject({ kind: "integer", minimum: 50, maximum: 400, step: 50 })
+    expect(command.scenarioExcluded).toBe(true)
+  })
   it("preserves a normalized typed invocation without transport ownership fields", () => {
     const result = JSON.parse(`{
       "sessionId":"session-1",

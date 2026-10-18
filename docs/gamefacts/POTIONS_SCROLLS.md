@@ -52,6 +52,13 @@ and complete rules remain in Game Facts. Owned artifacts do not disclose hidden
 powers or ritual solutions. This presentation policy changes no activation gate,
 substitution, consumption, target ownership or action cost.
 
+Identified labels follow [INV-0003](INVENTORY_SYSTEM.md#inv-0003): colour plus
+**Potion**, or the complete incantation plus **Scroll**, exactly once. For example,
+**Blue Potion** never becomes an effect guarantee, and **Kal Xen Corp Scroll**
+does not expose its internal underscore-separated name. The full scroll labels
+are editorial expansions of the established incantation identities, not literal
+quotations of every original menu. Generic discovery prose remains generic.
+
 Skull Keys and Pocket Watch are also actionable through this combat picker and
 dispatch route. Keys use the acting PC's adjacent square and consume on final
 direction confirmation under PROV-0006. Watch reads the current time at execution,

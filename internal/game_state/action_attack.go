@@ -677,6 +677,7 @@ func (g *GameState) publishPlayerCombatFeedbackWithDelivery(
 ) {
 	monster := g.CombatScene.MonsterManager.GetMonster(monsterIdx)
 	attackerIdentity := g.combatPartyAttackerIdentity(pcIdx)
+	injury := g.captureCombatMonsterInjury(CombatTurnIdentity{EntityIndex: monsterIdx}, hpLost)
 	feedback := CombatAttackFeedback{
 		Attacker: CombatFeedbackEntity{
 			IsPartyMember: true,
@@ -696,15 +697,16 @@ func (g *GameState) publishPlayerCombatFeedbackWithDelivery(
 	}
 	g.SystemCallbacks.Visual.ShowCombatImpact(feedback)
 	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
-		Kind:        eventKind,
-		Attacker:    feedback.Attacker,
-		Target:      feedback.Target,
-		Result:      result,
-		HPLost:      hpLost,
-		Fatal:       fatal,
-		From:        feedback.Attacker.Position,
-		To:          feedback.Target.Position,
-		Diagnostics: diagnostics,
+		Kind:          eventKind,
+		Attacker:      feedback.Attacker,
+		Target:        feedback.Target,
+		Result:        result,
+		HPLost:        hpLost,
+		Fatal:         fatal,
+		From:          feedback.Attacker.Position,
+		To:            feedback.Target.Position,
+		Diagnostics:   diagnostics,
+		MonsterInjury: injury,
 	})
 }
 

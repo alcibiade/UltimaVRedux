@@ -175,7 +175,7 @@ func newCombatConcealmentTestState(t *testing.T) *GameScene {
 	scene.mapImage = ebiten.NewImage(304, 208)
 	scene.combatHUD = newCombatHUD()
 	scene.gameConfig = &config.UltimaVConfiguration{
-		GameplayConfiguration: &config.GameplayConfiguration{ShowConcealedTurnOrderSlots: true},
+		GameplayConfiguration: config.DefaultGameplayConfiguration(),
 	}
 	t.Cleanup(scene.mapImage.Dispose)
 

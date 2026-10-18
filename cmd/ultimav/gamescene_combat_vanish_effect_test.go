@@ -26,9 +26,11 @@ func TestCombatVanishEffectUsesTypedEventWithoutGameplayRNG(t *testing.T) {
 	assert.True(t, effect.Dissolve.IsActive())
 	assert.Equal(t, randomCallsBefore, scene.gameState.GetRNG().Calls())
 
-	scene.updateCombatVanishEffects(combatVanishDurationSeconds / 2)
+	scene.gameState.ElapsedMs += combatVanishDurationMs / 2
+	scene.updateCombatVanishEffects(0)
 	assert.InDelta(t, 0.5, effect.Dissolve.GetLevel(), 0.001)
-	scene.updateCombatVanishEffects(combatVanishDurationSeconds / 2)
+	scene.gameState.ElapsedMs += combatVanishDurationMs / 2
+	scene.updateCombatVanishEffects(0)
 	assert.Empty(t, scene.combatVanishEffects)
 	assert.False(t, effect.Dissolve.IsActive())
 }
@@ -61,11 +63,13 @@ func TestCombatVanishEffectCompactionClearsStaleTailResources(t *testing.T) {
 	second := combatVanishTestEvent(t, scene, references.Position{X: 6, Y: 5})
 
 	scene.recordCombatEvent(first)
-	scene.updateCombatVanishEffects(combatVanishDurationSeconds / 2)
+	scene.gameState.ElapsedMs += combatVanishDurationMs / 2
+	scene.updateCombatVanishEffects(0)
 	scene.recordCombatEvent(second)
 	require.Len(t, scene.combatVanishEffects, 2)
 
-	scene.updateCombatVanishEffects(combatVanishDurationSeconds / 2)
+	scene.gameState.ElapsedMs += combatVanishDurationMs / 2
+	scene.updateCombatVanishEffects(0)
 
 	require.Len(t, scene.combatVanishEffects, 1)
 	assert.Equal(t, second.Vanished.CombatantID, scene.combatVanishEffects[0].CombatantID)

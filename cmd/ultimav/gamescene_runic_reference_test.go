@@ -19,7 +19,7 @@ func newRunicReferenceTestScene(t *testing.T, location references.Location) (
 	state, callbacks := game_state.NewIntegrationTestBuilder(t).
 		WithLocation(location).WithPlayerAt(1, 1).WithRandomSeed(42).WithSystemCallbacks().Build()
 	state.DebugOptions.MonsterGen = false
-	scene := newSurfaceCompletionTestScene(state)
+	scene := newOwnedSurfaceCompletionTestScene(t, state)
 	initializeDungeonUpdateTestScene(scene, state)
 	state.SystemCallbacks.Visual.BlockAllInput = scene.blockAllInput
 	held := make(map[ebiten.Key]bool)

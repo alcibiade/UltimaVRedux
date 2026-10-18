@@ -196,7 +196,7 @@ func newPotionTestScene(t *testing.T) *GameScene {
 
 	return &GameScene{
 		gameState:   state,
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
 	}
 }

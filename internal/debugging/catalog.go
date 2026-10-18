@@ -217,6 +217,10 @@ func validateParameterDefinition(commandID string, parameter ParameterDefinition
 }
 
 func validateParameterConstraints(commandID string, parameter ParameterDefinition) error {
+	if parameter.Step != nil && (*parameter.Step <= 0 || parameter.Minimum == nil ||
+		(parameter.Kind != ParameterInteger && parameter.Kind != ParameterIntegerList)) {
+		return fmt.Errorf("%w: command %q parameter %q requires a positive integer step and minimum", ErrInvalidCatalog, commandID, parameter.ID)
+	}
 	if parameter.Minimum != nil && parameter.Maximum != nil && *parameter.Minimum > *parameter.Maximum {
 		return fmt.Errorf(
 			"%w: command %q parameter %q has minimum above maximum",
@@ -296,6 +300,10 @@ func validateIntegerArgument(parameter ParameterDefinition, raw json.RawMessage)
 	if parameter.Maximum != nil && value > *parameter.Maximum {
 		return fmt.Errorf("%w: must be at most %d", ErrInvalidArgument, *parameter.Maximum)
 	}
+	// Unsigned subtraction preserves distances spanning the signed integer range.
+	if parameter.Step != nil && (uint(value)-uint(*parameter.Minimum))%uint(*parameter.Step) != 0 { //nolint:gosec // Lower bound and positive step are validated first.
+		return fmt.Errorf("%w: must advance from %d in steps of %d", ErrInvalidArgument, *parameter.Minimum, *parameter.Step)
+	}
 
 	return nil
 }
@@ -357,6 +365,7 @@ func cloneDefinition(definition CommandDefinition) CommandDefinition {
 		definition.Parameters[i].Availability = append([]string(nil), definition.Parameters[i].Availability...)
 		definition.Parameters[i].Minimum = cloneIntPointer(definition.Parameters[i].Minimum)
 		definition.Parameters[i].Maximum = cloneIntPointer(definition.Parameters[i].Maximum)
+		definition.Parameters[i].Step = cloneIntPointer(definition.Parameters[i].Step)
 	}
 
 	return definition

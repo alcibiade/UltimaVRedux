@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -40,7 +41,7 @@ func TestRunUsesAllPackagesUncachedAndControlsLaneEnvironment(t *testing.T) {
 				_, err := io.WriteString(stdout, output)
 				return err
 			}
-			arguments := []string{"-race", "-short"}
+			arguments := []string{"-profile=constrained", "-race", "-short"}
 			if strict {
 				arguments = append(arguments, "-strict")
 			}
@@ -72,7 +73,7 @@ func TestRunPreservesCommandFailuresAndDiagnostics(t *testing.T) {
 			fakeGo := func(_ context.Context, arguments, _ []string, stdout, stderr io.Writer) error {
 				if arguments[0] == "list" {
 					inventory := fixtureInventory
-					if len(arguments) == 6 {
+					if slices.Contains(arguments, "-test") {
 						inventory = fixtureLogicDependencies
 					}
 					_, err := io.WriteString(stdout, inventory)
@@ -99,7 +100,7 @@ func TestStrictCannotSilentlyLoseCoreAssertion(t *testing.T) {
 		output := strings.Replace(fixturePass, `"pass","Package":"core","Test"`, `"skip","Package":"core","Test"`, 1)
 		if arguments[0] == "list" {
 			output = fixtureInventory
-			if len(arguments) == 6 {
+			if slices.Contains(arguments, "-test") {
 				output = fixtureLogicDependencies
 			}
 		}
@@ -212,7 +213,7 @@ func TestPersistedBuildTag(t *testing.T) { t.Log("persisted build tag assertion 
 		require.NoError(t, os.MkdirAll(filepath.Dir(name), 0o700))
 		require.NoError(t, os.WriteFile(name, []byte(source), 0o600))
 	}
-	for _, profile := range []string{profileConstrained, profileThroughput} {
+	for _, profile := range []string{profileHost, profileConstrained, profileThroughput} {
 		t.Run(profile, func(t *testing.T) {
 			setProfileEnvironment(t, profile)
 			var stdout, stderr bytes.Buffer

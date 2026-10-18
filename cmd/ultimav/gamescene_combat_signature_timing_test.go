@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,7 +24,23 @@ func TestCombatSignatureAdmissionAfterHitchRetainsFullScheduledLifetime(t *testi
 }
 
 func testProductionGateTiming(t *testing.T, kind references.MonsterType) {
+	testProductionGateTimingAtRate(t, kind, 1)
+}
+
+func TestCombatSignatureProductionEveryRateWindTimeline(t *testing.T) {
+	for _, rate := range combatTimingTestRates() {
+		t.Run(fmt.Sprint(rate), func(t *testing.T) { testProductionGateTimingAtRate(t, references.MonsterDevil, rate) })
+	}
+}
+
+func testProductionGateTimingAtRate(t *testing.T, kind references.MonsterType, rate float64) {
 	scene, callbacks := newCombatUseTestScene(t)
+	setCombatTimingTestRate(scene, rate)
+	timing := newCombatPresentationTiming(rate)
+	arrival := timing.durationMs(combatGateArrivalMs)
+	materialize := timing.durationMs(combatGateMaterializeMs)
+	settle := timing.durationMs(combatGateSettleMs)
+	duration := arrival + materialize + settle
 	state := scene.gameState
 	scene.spriteSheet = sharedPresentationTestSpriteSheet()
 	scene.mapImage = ebiten.NewImage(304, 208)
@@ -62,7 +79,8 @@ func testProductionGateTiming(t *testing.T, kind references.MonsterType) {
 	scene.startTime, scene.lastEffectsUpdate, scene.now = now, now, func() time.Time { return now }
 	state.ElapsedMs = 0
 	scene.startScheduledMonsterTurn(step)
-	scene.updateWindAndEffects() // Schedule the authoritative action after anticipation.
+	setCombatTimingTestRate(scene, 4) // Deferred publication must retain the action's rate.
+	scene.updateWindAndEffects()      // Schedule the authoritative action after anticipation.
 	now = now.Add(700 * time.Millisecond)
 	scene.updateWindAndEffects() // Publish the gate, then updateVisualEffects in the SAME frame.
 	oracleWind.AdvanceThrough(700)
@@ -74,6 +92,7 @@ func testProductionGateTiming(t *testing.T, kind references.MonsterType) {
 	oracleRNG.Intn(8) // Creation DEX draw after successful placement (ref:ENEMY-0003).
 	require.Len(t, scene.combatSignatureEffects, 1)
 	effect := scene.combatSignatureEffects[0]
+	assert.Equal(t, duration, effect.DurationMs)
 	require.Equal(t, game_state.CombatEventGating, effect.Kind)
 	assert.Equal(t, gatePosition, effect.To)
 	assert.Equal(t, oracleRNG.Calls(), state.GetRNG().Calls(), "only due wind ticks and committed gate creation consumed RNG")
@@ -82,7 +101,7 @@ func testProductionGateTiming(t *testing.T, kind references.MonsterType) {
 	assert.True(t, effect.Dissolve.IsActive())
 	require.True(t, callbacks.InputBlocked)
 	// Pump the complete production ordering repeatedly at each fixed clock value.
-	for _, ageMs := range []int64{0, 124, 125, 185, 425, 724, 725, 849} {
+	for _, ageMs := range []int64{0, arrival - 1, arrival, arrival + materialize/10, arrival + materialize/2, arrival + materialize - 1, arrival + materialize, duration - 1} {
 		now = scene.startTime.Add(time.Duration(700+ageMs) * time.Millisecond)
 		oracleWind.AdvanceThrough(700 + ageMs)
 		for range 8 {
@@ -104,22 +123,22 @@ func testProductionGateTiming(t *testing.T, kind references.MonsterType) {
 		assert.Positive(t, opaquePixelCount(combatSignatureRegion(scene, screen, effect.To)))
 		screen.Clear()
 		scene.drawAvatarOverlay(screen)
-		if ageMs < combatGateArrivalMs {
+		if ageMs < arrival {
 			assert.Zero(t, countExactColor(combatSignatureRegion(scene, screen, effect.To), ucolor.CombatAllegianceEnemy), "foreground health frames must not disclose the hidden prelude")
 		} else {
 			assert.Positive(t, countExactColor(combatSignatureRegion(scene, screen, effect.To), ucolor.CombatAllegianceEnemy))
 		}
-		if ageMs == 185 || ageMs == 425 {
+		if ageMs == arrival+materialize/10 || ageMs == arrival+materialize/2 {
 			assert.Positive(t, opaquePixelCount(effect.Highlight), "real %s gate has leading silhouette fragments", kind.Name())
 		}
 		captureCombatPolishFrame(t, scene, kind.Name(), ageMs)
 	}
 	// The workflow polls at its declared interval. It cannot release early, and
 	// completes at the first polling boundary at/after the effect's own deadline.
-	now = scene.startTime.Add(time.Duration(700+combatGateDurationMs) * time.Millisecond)
+	now = scene.startTime.Add(time.Duration(700+duration) * time.Millisecond)
 	scene.updateWindAndEffects() // Effects complete AFTER this frame's workflow poll.
 	now = now.Add(DialogPollingRateMs * time.Millisecond)
-	oracleWind.AdvanceThrough(700 + combatGateDurationMs + DialogPollingRateMs)
+	oracleWind.AdvanceThrough(700 + duration + DialogPollingRateMs)
 	for range 8 {
 		scene.updateWindAndEffects()
 	}

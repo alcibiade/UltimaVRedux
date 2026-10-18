@@ -10,6 +10,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// ActionGetSmallMap collects an adjacent town item through its domain pickup handler.
 func (g *GameState) ActionGetSmallMap(direction references.Direction) bool {
 	getThingPos := direction.GetNewPositionInDirection(&g.MapState.PlayerLocation.Position)
 	if getThingPos == nil {
@@ -47,6 +48,7 @@ func (g *GameState) ActionGetSmallMap(direction references.Direction) bool {
 		}
 	}
 
+	//nolint:exhaustive // Only collectible terrain has a Get handler; all other sprites report nothing to get.
 	switch getThingTile.Index {
 	case indexes.WheatInField:
 		g.SystemCallbacks.UI.ShowActionFeedback("Crops picked!", true)
@@ -176,7 +178,7 @@ func (g *GameState) getFromItemStack(position *references.Position) bool {
 		item.Quantity -= quantity
 	}
 	itemRef := g.GameReferences.InventoryItemReferences.GetReferenceByItem(item.Item)
-	pickupMessage := formatItemName(itemRef.ItemName) + "!"
+	pickupMessage := itemRef.FullDisplayName() + "!"
 	if questItem, quest := item.Item.(references.QuestItem); quest {
 		pickupMessage = g.GameReferences.InventoryItemReferences.GetQuestItemPickupMessage(questItem)
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundQuestPickup)
@@ -257,21 +259,24 @@ func (g *GameState) getFoodFromTable(direction references.Direction, getThingPos
 	getThingTile *references.Tile, mapLayers *map_state.LayeredMap) bool {
 	var newTileIndex indexes.SpriteIndex
 
+	//nolint:exhaustive // Table food can be taken only from its north or south edge.
 	switch direction {
 	case references.Down:
-		if getThingTile.Is(indexes.TableFoodBoth) {
+		switch {
+		case getThingTile.Is(indexes.TableFoodBoth):
 			newTileIndex = indexes.TableFoodBottom
-		} else if getThingTile.Is(indexes.TableFoodTop) {
+		case getThingTile.Is(indexes.TableFoodTop):
 			newTileIndex = indexes.TableMiddle
-		} else {
+		default:
 			return false
 		}
 	case references.Up:
-		if getThingTile.Is(indexes.TableFoodBoth) {
+		switch {
+		case getThingTile.Is(indexes.TableFoodBoth):
 			newTileIndex = indexes.TableFoodTop
-		} else if getThingTile.Is(indexes.TableFoodBottom) {
+		case getThingTile.Is(indexes.TableFoodBottom):
 			newTileIndex = indexes.TableMiddle
-		} else {
+		default:
 			return false
 		}
 	default:
@@ -385,6 +390,7 @@ func (g *GameState) getMoonstoneFromPosition(pos *references.Position) bool {
 func (g *GameState) getQuestItem(getThingPos *references.Position, getThingTile *references.Tile, mapLayers *map_state.LayeredMap) bool {
 	// Determine which quest item this is
 	var questItem references.QuestItem
+	//nolint:exhaustive // Only these three world sprites represent tile-backed royal artifacts.
 	switch getThingTile.Index {
 	case indexes.Crown:
 		questItem = references.Crown
@@ -433,7 +439,7 @@ func (g *GameState) getQuestItem(getThingPos *references.Position, getThingTile 
 // Uses placement logic to determine which shard type and handles collection tracking
 //
 //nolint:unparam // mapLayers parameter maintained for API consistency with other item handlers
-func (g *GameState) getShardOfEvil(getThingPos *references.Position, mapLayers *map_state.LayeredMap) bool {
+func (g *GameState) getShardOfEvil(getThingPos *references.Position, _ *map_state.LayeredMap) bool {
 	// Check if there should be a shard at this position
 	hasShardHere, questItem := g.IsShardAtPosition(*getThingPos)
 	if !hasShardHere || !g.IsShardVisible(*getThingPos, questItem) {
@@ -509,6 +515,7 @@ func (g *GameState) getQuestItemFromOverlay(questItem references.QuestItem) bool
 	return true
 }
 
+// ActionGetLargeMap collects an adjacent loose item, artifact or discovered moonstone.
 func (g *GameState) ActionGetLargeMap(direction references.Direction) bool {
 	getThingPos := direction.GetNewPositionInDirection(&g.MapState.PlayerLocation.Position)
 	if getThingPos == nil {
@@ -538,23 +545,18 @@ func (g *GameState) ActionGetLargeMap(direction references.Direction) bool {
 	// So we need to check by position rather than tile index
 	if hasQuestItem, questItem := g.IsQuestItemAtPosition(*getThingPos); hasQuestItem {
 		// Handle shards and Amulet (the only quest items that can be in large maps)
-		if questItem == references.ShardOfFalsehood || questItem == references.ShardOfHatred || questItem == references.ShardOfCowardice {
+		//nolint:exhaustive // Only shards and the Amulet have large-map overlay pickups.
+		switch questItem {
+		case references.ShardOfFalsehood, references.ShardOfHatred, references.ShardOfCowardice:
 			return g.getShardOfEvil(getThingPos, mapLayers)
-		} else if questItem == references.Amulet {
+		case references.Amulet:
 			return g.getQuestItemFromOverlay(questItem)
 		}
 	}
 
-	switch getThingTile.Index {
-	case indexes.Moon:
+	if getThingTile.Index == indexes.Moon {
 		// Getting a found moonstone (discovered via search)
 		return g.getMoonstoneFromPosition(getThingPos)
-
-		// case indexes.Crown, indexes.Sceptre, indexes.Amulet:
-		//	// Getting quest items (Crown, Sceptre, Amulet of Lord British)
-		//	return g.getQuestItem(getThingPos, getThingTile, mapLayers)
-
-		// Note: Shard case removed because shards are now overlays, checked above
 	}
 
 	// Nothing to get
@@ -563,6 +565,7 @@ func (g *GameState) ActionGetLargeMap(direction references.Direction) bool {
 	return false
 }
 
+// ActionGetCombatMap delegates collection and reports whether combat handled the request.
 func (g *GameState) ActionGetCombatMap(direction references.Direction) bool {
 	return g.GetCombatItem(direction).Handled
 }
@@ -607,7 +610,7 @@ func (g *GameState) getCombatItem(direction references.Direction) CombatPickupRe
 		return result
 	}
 	result.ItemType, result.ItemID = item.Item.Type(), item.Item.ID()
-	result.ItemName = formatItemName(g.GameReferences.InventoryItemReferences.GetReferenceByItem(item.Item).ItemName)
+	result.ItemName = g.GameReferences.InventoryItemReferences.GetReferenceByItem(item.Item).FullDisplayName()
 	before := g.combatPickupQuantity(item.Item)
 	message, err := g.collectCombatItem(item)
 	if err != nil {
@@ -618,7 +621,7 @@ func (g *GameState) getCombatItem(direction references.Direction) CombatPickupRe
 	}
 	result.Acquired = g.combatPickupQuantity(item.Item) - before
 	if _, unique := item.Item.(references.QuestItem); !unique {
-		name := formatItemName(g.GameReferences.InventoryItemReferences.GetReferenceByItem(item.Item).ItemName)
+		name := g.GameReferences.InventoryItemReferences.GetReferenceByItem(item.Item).FullDisplayName()
 		message = fmt.Sprintf("Picked up %s +%d", name, result.Acquired)
 		if result.Acquired == 0 {
 			message = "No room for " + name + "."
@@ -668,7 +671,7 @@ func (g *GameState) collectCombatItem(item references.ItemAndQuantity) (string, 
 		itemReference := g.GameReferences.InventoryItemReferences.GetReferenceByItem(item.Item)
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundItemPickup)
 
-		return fmt.Sprintf("Got %d %s!", item.Quantity, formatItemName(itemReference.ItemName)), nil
+		return fmt.Sprintf("Got %d %s!", item.Quantity, itemReference.FullDisplayName()), nil
 	}
 
 	acquired := false

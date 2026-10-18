@@ -62,7 +62,7 @@ func run(ctx context.Context, arguments []string, stdout, stderr io.Writer, runn
 	flags.BoolVar(&settings.race, "race", false, "enable the Go race detector")
 	flags.BoolVar(&settings.short, "short", false, "run tests in short mode")
 	flags.BoolVar(&settings.strict, "strict", false, "require explicit original data and reject every test skip")
-	flags.StringVar(&settings.profile, "profile", profileConstrained, "resource profile: constrained or throughput")
+	flags.StringVar(&settings.profile, "profile", profileHost, "resource profile: host, constrained or throughput")
 	flags.StringVar(&settings.suite, "suite", suiteAll, "required scope: logic, render, or all")
 	if err := flags.Parse(arguments); err != nil {
 		return fmt.Errorf("parsing test-gate flags: %w", err)
@@ -93,10 +93,11 @@ func run(ctx context.Context, arguments []string, stdout, stderr io.Writer, runn
 		return err
 	}
 	environment = append(environment, requireData)
+	if err := writeProfile(stderr, settings.profile, environment); err != nil {
+		return err
+	}
 	var listed bytes.Buffer
-	if err := runner(ctx, []string{
-		"list", goJSONFlag, goSerialFlag, goRaceFlagPrefix + strconv.FormatBool(settings.race), allPackages,
-	}, environment, &listed, stderr); err != nil {
+	if err := runner(ctx, inventoryArguments(settings, false), environment, &listed, stderr); err != nil {
 		return fmt.Errorf("collecting expected package inventory: %w", err)
 	}
 	expected, err := readPackages(&listed)
@@ -124,9 +125,7 @@ func runTests(ctx context.Context, settings options, environment []string, expec
 	stdout, stderr io.Writer, runner goRunner,
 ) error {
 	var listed bytes.Buffer
-	arguments := []string{
-		"list", goJSONFlag, "-test", goSerialFlag, goRaceFlagPrefix + strconv.FormatBool(settings.race), allPackages,
-	}
+	arguments := inventoryArguments(settings, true)
 	if err := runner(ctx, arguments, environment, &listed, stderr); err != nil {
 		return fmt.Errorf("collecting test dependency closures: %w", err)
 	}
@@ -174,8 +173,8 @@ func runTests(ctx context.Context, settings options, environment []string, expec
 		}
 		parallelism := "1"
 		targets := slices.Sorted(maps.Keys(ordinary))
-		if settings.profile == profileThroughput && index == 0 {
-			parallelism = "2"
+		if index == 0 {
+			parallelism = logicParallelism(settings.profile, environment)
 		}
 		// Explicit flags prevent inherited GOFLAGS from selecting a subset,
 		// returning cached results, or raising graphics concurrency.

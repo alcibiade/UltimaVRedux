@@ -654,7 +654,7 @@ func (d *ArmsShopDialog) rowView(index int, selected bool) ArmsShopRowView {
 	if d.mode == ArmsShopBuy {
 		quote := d.activeMode().buyRows[index]
 		view.Equipment = quote.Equipment
-		view.Name = quote.Equipment.ShortString()
+		view.Name = quote.Equipment.String()
 		view.Quantity = quote.QuantityBefore
 		view.Readied = quote.ReadiedQuantity
 		view.Value = quote.UnitPrice
@@ -670,7 +670,7 @@ func (d *ArmsShopDialog) rowView(index int, selected bool) ArmsShopRowView {
 	}
 	quote := d.activeMode().sellRows[index]
 	view.Equipment = quote.Equipment
-	view.Name = quote.Equipment.ShortString()
+	view.Name = quote.Equipment.String()
 	view.Quantity = quote.QuantityBefore
 	view.Readied = quote.ReadiedQuantity
 	view.Value = quote.UnitOffer
@@ -979,7 +979,7 @@ func (d *ArmsShopDialog) ensureLayout() {
 	})
 	d.rowFont, d.rowOutput = GetScaledFontWithOutput(FontConfig{
 		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
-		MaxLines: 1, MaxChars: armsShopMinimumTextChars,
+		MaxLines: armsShopDetailLines, MaxChars: armsShopMinimumTextChars,
 	})
 	_, d.detailOutput = GetScaledFontWithOutput(FontConfig{
 		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
@@ -989,10 +989,12 @@ func (d *ArmsShopDialog) ensureLayout() {
 	d.populateWorkspaceOutput()
 }
 
+//nolint:funlen // One geometry pass budgets header, complete item rows, sort strip and remaining detail space together.
 func (d *ArmsShopDialog) calculateLayout() {
 	workspace := d.shell.GetWorkspaceBounds()
 	inset := max(armsShopMinimumInset, min(workspace.Dx(), workspace.Dy())/armsShopInsetDivisor)
 	d.workspaceContent = insetRectangle(workspace, inset)
+	d.configureTableColumns()
 	fontHeight := max(1, int(math.Ceil(d.rowOutput.GetFontHeight())))
 	lineHeight := fontHeight + inset
 	modeHeight := lineHeight
@@ -1016,13 +1018,13 @@ func (d *ArmsShopDialog) calculateLayout() {
 		)
 	}
 	rowSpace := max(1, tableBudget-bottomInset)
-	rowHeight := min(lineHeight, max(1, rowSpace/(visible+1)))
-	if visible > 0 && rowHeight < fontHeight {
-		visible = min(visible, max(1, rowSpace/fontHeight-1))
-		rowHeight = min(lineHeight, max(1, rowSpace/(visible+1)))
-	}
+	rowHeight := max(lineHeight, d.measuredItemRowHeight()+inset)
+	visible = min(visible, max(1, (rowSpace-lineHeight)/rowHeight))
+	// Below supported sizes retain bounded geometry; supported sizes preserve
+	// the full measured row height and scroll whole item rows.
+	rowHeight = min(rowHeight, max(1, (rowSpace-lineHeight)/max(1, visible)))
 	d.tableHeader = image.Rect(d.workspaceContent.Min.X, d.modeHeader.Max.Y,
-		d.workspaceContent.Max.X, d.modeHeader.Max.Y+rowHeight)
+		d.workspaceContent.Max.X, d.modeHeader.Max.Y+min(lineHeight, rowSpace))
 	d.rowBounds = make([]image.Rectangle, visible)
 	for row := range visible {
 		top := d.tableHeader.Max.Y + row*rowHeight
@@ -1054,15 +1056,21 @@ func (d *ArmsShopDialog) calculateLayout() {
 	d.configureTableLayout(inset)
 }
 
+func (d *ArmsShopDialog) measuredItemRowHeight() int {
+	nameLines := 1
+	for index := range d.rowCount() {
+		row := d.rowView(index, false)
+		d.prepareCellOutput(" "+row.Name, DialogItemNameColor, row.Equipment)
+		nameLines = max(nameLines, d.rowOutput.GetPanelContentLineCount())
+	}
+
+	return int(math.Ceil(d.rowOutput.GetTotalHeightForLines(nameLines)))
+}
+
 func (d *ArmsShopDialog) configureTableLayout(inset int) {
-	ratios := [...]float64{0, 0.35, 0.58, 0.75, 1}
 	for index := range armsShopColumnCount {
-		d.columns[index] = image.Rect(
-			d.tableBounds.Min.X+int(math.Round(float64(d.tableBounds.Dx())*ratios[index])),
-			d.tableBounds.Min.Y,
-			d.tableBounds.Min.X+int(math.Round(float64(d.tableBounds.Dx())*ratios[index+1])),
-			d.tableBounds.Max.Y,
-		)
+		d.columns[index].Min.Y = d.tableBounds.Min.Y
+		d.columns[index].Max.Y = d.tableBounds.Max.Y
 	}
 	for mode := ArmsShopBuy; mode <= ArmsShopSell; mode++ {
 		selected := d.modeSelectedEquipment(mode)
@@ -1075,6 +1083,23 @@ func (d *ArmsShopDialog) configureTableLayout(inset int) {
 		d.sortOutput.Font.CharsForWidth(max(1, d.sortBounds.Dx()-inset*2))))
 	d.detailOutput.SetMaxCharsPerLine(max(armsShopMinimumTextChars,
 		d.detailOutput.Font.CharsForWidth(max(1, d.detailTextBounds.Dx()))))
+}
+
+// Numeric columns reserve measured headings and worst-case values. The item
+// column gets all remaining space; long identities wrap without reducing type.
+func (d *ArmsShopDialog) configureTableColumns() {
+	labels := [...]string{"", "CARRIED", "READY", "NO OFFER"}
+	right := d.workspaceContent.Max.X
+	inset := max(1, d.pixelUnit()*armsShopCellInsetUnits)
+	for index := armsShopColumnCount - 1; index > 0; index-- {
+		width, _ := d.rowFont.MeasureString(labels[index])
+		columnWidth := int(math.Ceil(width)) + inset*armsShopCenterDivisor
+		left := max(d.workspaceContent.Min.X, right-columnWidth)
+		d.columns[index] = image.Rect(left, d.workspaceContent.Min.Y, right, d.workspaceContent.Max.Y)
+		right = left
+	}
+	d.columns[0] = image.Rect(d.workspaceContent.Min.X, d.workspaceContent.Min.Y,
+		max(d.workspaceContent.Min.X+1, right), d.workspaceContent.Max.Y)
 }
 
 func (d *ArmsShopDialog) drawWorkspace(screen *ebiten.Image) {
@@ -1140,9 +1165,10 @@ func (d *ArmsShopDialog) drawCell(
 ) {
 	cell := d.cellContentBounds(row, column, equipment)
 	d.prepareCellOutput(value, color, equipment)
+	height := int(math.Ceil(d.rowOutput.GetTotalHeightForLines(d.rowOutput.GetPanelContentLineCount())))
 	y := cell.Min.Y + max(
 		0,
-		(cell.Dy()-int(math.Ceil(d.rowOutput.GetFontHeight())))/armsShopCenterDivisor,
+		(cell.Dy()-height)/armsShopCenterDivisor,
 	)
 	d.rowOutput.DrawPanelContent(screen, image.Pt(cell.Min.X, y), max(1, cell.Dx()), align)
 }
@@ -1157,8 +1183,12 @@ func (d *ArmsShopDialog) prepareCellOutput(value string, color stdcolor.Color, e
 			iconColor = pkgcolor.EGAYellow
 		}
 		line.EquipmentIconWithColor(equipment, iconColor)
+		glyphWidth, _ := d.rowFont.MeasureString("M")
+		glyphWidth = max(glyphWidth, d.rowOutput.MeasureLineSegments(line.GetSegments()))
+		cell := d.cellContentBounds(d.workspaceContent, d.columns[0], equipment)
+		d.rowOutput.SetMaxCharsPerLine(max(1, int(float64(cell.Dx())/glyphWidth)))
 	}
-	line.Text(value, color).Done()
+	line.Text(value, color).WordWrap().Done()
 }
 
 func (d *ArmsShopDialog) cellContentBounds(
@@ -1210,7 +1240,7 @@ func (d *ArmsShopDialog) populateWorkspaceOutput() {
 		return
 	}
 	d.detailOutput.AppendLine().
-		Yellow(equipment.ShortString()).LightGray("  " + equipment.GetCategory().String()).Done()
+		Yellow(equipment.String()).LightGray("  " + equipment.GetCategory().String()).WordWrap().Done()
 	d.detailOutput.AppendLine().Whitef(
 		"ATK %d  DEF %d  RNG %d",
 		equipment.GetAttackValue(), equipment.GetDefenseValue(), equipment.GetAttackRange(),

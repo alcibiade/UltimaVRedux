@@ -28,9 +28,70 @@ elapsed/action timeline, accounting for due wind ticks and authoritative action
 draws; it does not promise duration-independent replay.
 `cmd/ultimav/gamescene_combat_signature_timing_test.go` exercises the production
 wind/queue/effect update ordering after a 700 ms hitch, retaining a newly admitted
-gate's 125/600/125 ms phases and original turn token for Dragon and Daemon
-summoners. Its oracle includes
+gate's authored-at-1x 125/600/125 ms phases and original turn token for Dragon
+and Daemon summoners, including captured-rate cases. Its oracle includes
 `WindSystem.AdvanceThrough`, gate creation draws and next-RNG equality.
+
+### Combat Presentation Speed
+
+Combat uses one canonical preference, `GetCombatSpeedFactor()`: 0.5x through
+4x in 0.5 steps, default 1x. `combatPresentationTiming` captures a validated
+value for the committed action. Included authored millisecond durations are
+divided **once**, rounded to the nearest millisecond (positive halves upward),
+with zero preserved and a 1 ms technical minimum for positive work. A zero-valued
+policy or detached fixture deliberately defaults to 1x. Other invalid nonzero
+factors are programming errors at this boundary; configuration owns validation
+of explicit preferences. No old debug factor is multiplied in.
+
+| Stage | Authored at 1x | At 4x |
+| --- | ---: | ---: |
+| Ordinary / targeted enemy anticipation | 250 / 1000 ms | 63 / 250 ms |
+| Ordinary enemy movement | 650 ms | 163 ms |
+| Player or controlled-monster movement | 333 ms | 83 ms |
+| AI bat/mongbat anticipation / movement | 75 / 175 ms | 19 / 44 ms |
+| Condition-driven party auto-pass | 250 ms | 63 ms |
+| Tab non-projectile source hold | 1250 ms | 313 ms |
+| Minimum projectile flight | 100 ms | 25 ms |
+| Chest reveal interval / victory departure per member | 500 / 180 ms | 125 / 45 ms |
+
+The same snapshot covers deferred anticipation, every source of a multi-source
+attack, outbound/impact/return travel, and all phases of a committed Cast/Use or
+victory departure. Speed changes affect the next action. Capture occurs before
+synchronous resolution can publish effect events. Deferred closures retain the
+value explicitly; a narrowly scoped, restored synchronous resolution context
+lets event consumers capture it without a mutable workflow-wide current rate.
+Manual attack snapshots are guarded by encounter and targeting identity.
+
+Combat spells, finite signatures, lunge/jolt/strike motion, division, vanish,
+field-dispel and combat impact bursts use the same policy. Renderer phase
+boundaries and workflow animation progress use the admitted effective durations.
+Concurrent impacts, division, disappearance and combat Kapow bursts timestamp
+admission with `GameState.ElapsedMs`; age is the elapsed time since that timestamp,
+not the preceding frame's delta. Queue publication before the same frame's effect
+update therefore starts at age zero even after a hitch. Repeated updates at the
+same timestamp cannot age these effects.
+Shared world projectile and spell helpers retain 1x unless explicitly in the
+combat presentation path. The projectile's authored 100 ms minimum is applied
+before scaling, with no second perceptibility floor.
+
+Floating result text retains its **1250 ms reading lifetime** independently of
+the Tab source hold. Movement-bound fire still admits at 50% progress and keeps
+its post-arrival 450 ms tint / 1250 ms label budget. Reports, action-card
+reveal/hold/fade, status/selection/idle pulses, targeting, held-key protection,
+player acknowledgements, polling and audio keep their own clocks. Camping,
+death/resurrection narratives, bridge-troll narration and dungeon-owned
+pre-entry contact are outside this tactical policy.
+
+Neither `ElapsedMs` nor the event queue is globally rescaled. Admission, hitches,
+polling and human input mean total wall-clock action length need not have an exact
+speed ratio. Wind continues every due shared-RNG tick as described above; shorter
+waits can change subsequent gameplay rolls without changing rules or action costs.
+Queue-only timing tests are not cross-speed production replay proof.
+
+The field-spell continuation retains its existing lone dynamically inserted
+`Wait(200)`. That leading-only delay has no action node to anchor it and is
+ineffective; the focused boundary regression preserves the 1x baseline rather
+than silently introducing an additional hold.
 
 ### Journal Pause
 

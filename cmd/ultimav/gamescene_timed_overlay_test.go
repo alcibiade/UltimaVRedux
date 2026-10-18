@@ -114,7 +114,7 @@ func newTimedOverlayTestScene() *GameScene {
 func newTimedOverlayTestCover() *widgets.OverlayDialog {
 	return widgets.NewOverlayDialog("cover").
 		AsConfirmation().
-		WithUserDismissed(input.NewKeyboard(0)).
+		WithUserDismissed(input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)).
 		Build()
 }
 

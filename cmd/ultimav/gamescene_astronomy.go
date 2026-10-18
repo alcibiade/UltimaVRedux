@@ -38,13 +38,13 @@ func (g *GameScene) startTelescopeWorkflow(advanceTime bool) {
 		func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 			if !isTelescopeDaytime(g.gameState.DateTime.Hour) {
 				q.Then(func() {
-					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the night sky!", false)
+					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the night sky!", true)
 				}).ThenSequence(
 
 					g.thenShowAstronomyDialog(&astronomyDialog))
 			} else {
 				q.Then(func() {
-					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the sun!", false)
+					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the sun!", true)
 				}).ThenSequence(
 
 					g.thenApplySunDamage())
@@ -144,7 +144,7 @@ func (g *GameScene) startSpyglassWorkflow(complete func()) {
 	// Check inventory
 	spyglassQuantity := g.gameState.PartyState.Inventory.QuestItems.GetQuantity(references.Spyglass)
 	if spyglassQuantity == nil || !(*spyglassQuantity).HasSome() {
-		g.gameState.SystemCallbacks.UI.ShowActionFeedback("No spyglass!", false)
+		g.gameState.SystemCallbacks.UI.ShowActionFeedback("No spyglass!", true)
 		if complete != nil {
 			complete()
 		}
@@ -153,7 +153,7 @@ func (g *GameScene) startSpyglassWorkflow(complete func()) {
 	}
 
 	if !g.gameState.IsSpyglassLocationValid() {
-		g.gameState.SystemCallbacks.UI.ShowActionFeedback("Not here!", false)
+		g.gameState.SystemCallbacks.UI.ShowActionFeedback("Not here!", true)
 		if complete != nil {
 			complete()
 		}
@@ -172,13 +172,13 @@ func (g *GameScene) startSpyglassWorkflow(complete func()) {
 		func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 			if g.gameState.IsUseAstronomyNight() {
 				q.Then(func() {
-					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the night sky!", false)
+					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Thou dost see the night sky!", true)
 				}).ThenSequence(
 
 					g.thenShowAstronomyDialog(&astronomyDialog))
 			} else {
 				q.Then(func() {
-					g.gameState.SystemCallbacks.UI.ShowActionFeedback("No stars!", false)
+					g.gameState.SystemCallbacks.UI.ShowActionFeedback("No stars!", true)
 				})
 			}
 

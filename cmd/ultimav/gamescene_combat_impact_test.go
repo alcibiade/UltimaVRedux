@@ -34,7 +34,7 @@ func newTestCombatFeedback(result game_state.CombatFeedbackResult) game_state.Co
 }
 
 func TestShowCombatImpact_TargetJoltsAwayFromAttacker(t *testing.T) {
-	g := &GameScene{}
+	g := &GameScene{gameState: &game_state.GameState{}}
 	g.showCombatImpact(newTestCombatFeedback(game_state.CombatFeedbackDamage))
 	g.combatImpactEffects[0].Elapsed = combatJoltDurationSeconds / 6
 
@@ -47,7 +47,7 @@ func TestShowCombatImpact_TargetJoltsAwayFromAttacker(t *testing.T) {
 }
 
 func TestCombatEntityOffset_AttackerLungesTowardTarget(t *testing.T) {
-	g := &GameScene{}
+	g := &GameScene{gameState: &game_state.GameState{}}
 	g.showCombatImpact(newTestCombatFeedback(game_state.CombatFeedbackMiss))
 	g.combatImpactEffects[0].Elapsed = combatLungeDurationSeconds / 2
 
@@ -66,7 +66,7 @@ func TestCombatEntityOffset_AttackerLungesOnlyForMelee(t *testing.T) {
 		game_state.CombatAttackDeliverySpell,
 		game_state.CombatAttackDeliveryEnvironmental,
 	} {
-		g := &GameScene{}
+		g := &GameScene{gameState: &game_state.GameState{}}
 		feedback := newTestCombatFeedback(game_state.CombatFeedbackMiss)
 		feedback.Presentation.Delivery = delivery
 		g.showCombatImpact(feedback)
@@ -87,7 +87,7 @@ func TestCombatEntityOffset_TargetJoltsOnlyWhenDamageLands(t *testing.T) {
 		game_state.CombatFeedbackSleep,
 		game_state.CombatFeedbackTheft,
 	} {
-		g := &GameScene{}
+		g := &GameScene{gameState: &game_state.GameState{}}
 		g.showCombatImpact(newTestCombatFeedback(result))
 		g.combatImpactEffects[0].Elapsed = combatJoltDurationSeconds / 6
 
@@ -123,7 +123,7 @@ func TestCombatImpactLanePositionFansInwardAtEdges(t *testing.T) {
 }
 
 func TestCombatEntityOffset_IsDeterministicAndReturnsToZero(t *testing.T) {
-	g := &GameScene{}
+	g := &GameScene{gameState: &game_state.GameState{}}
 	g.showCombatImpact(newTestCombatFeedback(game_state.CombatFeedbackDamage))
 	g.combatImpactEffects[0].Elapsed = 0.04
 
@@ -141,7 +141,7 @@ func TestCombatEntityOffset_IsDeterministicAndReturnsToZero(t *testing.T) {
 func TestCombatImpactOffset_UsesExactCloneSlot(t *testing.T) {
 	feedback := newTestCombatFeedback(game_state.CombatFeedbackDamage)
 	feedback.Target.Slot = 1
-	g := &GameScene{}
+	g := &GameScene{gameState: &game_state.GameState{}}
 	g.showCombatImpact(feedback)
 	g.combatImpactEffects[0].Elapsed = combatJoltDurationSeconds / 6
 
@@ -242,7 +242,7 @@ func TestCombatStrikeLineExpiresAtFixedBoundary(t *testing.T) {
 }
 
 func TestShowCombatImpactKeepsConcurrentMeleeStrikesIndependent(t *testing.T) {
-	g := &GameScene{}
+	g := &GameScene{gameState: &game_state.GameState{}}
 	first := newTestCombatFeedback(game_state.CombatFeedbackMiss)
 	second := newTestCombatFeedback(game_state.CombatFeedbackDamage)
 	second.Attacker.Index = 1

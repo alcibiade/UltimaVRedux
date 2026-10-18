@@ -35,6 +35,7 @@ func (g *GameScene) handleCombatPartySpellInput() {
 	if !g.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) && !g.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
 		return
 	}
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	result := g.gameState.ConfirmCombatPartySpellRecipient()
 	switch result.Outcome {
 	case game_state.CombatSpellTargetInvalid:
@@ -52,6 +53,7 @@ func (g *GameScene) handleCombatPartySpellInput() {
 }
 
 func (g *GameScene) presentCombatPartySpell(result game_state.CombatPartySpellResult) {
+	timing := g.captureCombatTiming()
 	message, sound := "No effect!", game_state.SoundMagic
 	if result.Applied {
 		switch result.Spell { //nolint:exhaustive // Validated party-spell selector.
@@ -84,9 +86,11 @@ func (g *GameScene) presentCombatPartySpell(result game_state.CombatPartySpellRe
 			feedback.FlashInverted()
 		}
 
-		return q.ThenSequence(feedback.Build())
+		return q.ThenSequence(feedback.BuildWithPresentationTiming(timing.duration))
 	}).
 		Finally(func() {
+			g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
+			g.gameState.SystemCallbacks.Visual.SetScreenInvert(0, 0)
 			if g.gameState.CombatScene == combat {
 				g.gameState.FinishCombatAction()
 			}

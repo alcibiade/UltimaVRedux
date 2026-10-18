@@ -23,6 +23,8 @@ import (
 )
 
 // Ready Equipment Dialog specific colors (unexported - unique to this dialog)
+//
+//nolint:gochecknoglobals // Immutable semantic palette values retain the color.Color interface for mixed styles.
 var (
 	// readyEquippedMarkerColor is for the "[E]" marker showing items currently equipped
 	readyEquippedMarkerColor stdcolor.Color = color.EGALightGreen
@@ -32,7 +34,7 @@ var (
 	readyUnequippableColor stdcolor.Color = color.EGALightRed
 )
 
-var _ Widget = &ReadyEquipmentDialog{}
+var _ Widget = (*ReadyEquipmentDialog)(nil)
 
 // ReadyEquipmentDialog presents an allowance header, equipped/available/comparison
 // panes, and a footer. It emits reviewed intents; the scene commits gameplay changes.
@@ -124,6 +126,7 @@ func NewReadyEquipmentDialog(
 		panic("ReadyEquipmentDialog: keyboard is required")
 	}
 
+	//nolint:exhaustruct // Layout is initialized below; transient selection and cache start empty.
 	dialog := &ReadyEquipmentDialog{
 		navigation:      newNavigation(keyboard.IsKeyHeld),
 		keyboard:        keyboard,
@@ -150,47 +153,51 @@ func (d *ReadyEquipmentDialog) initializeTypography() {
 	// Intentional compact typography: Ready's dense gear columns need the original
 	// 20-size body, not the 23-size main-screen body used by broader readers.
 	d.font, _ = GetScaledFontWithOutput(FontConfig{
-		Size:     FontSizeLarge,
-		MaxLines: 1,
-		MaxChars: 25,
+		Size:        FontSizeLarge,
+		MaxLines:    1,
+		MaxChars:    readyInitialChars,
+		LineSpacing: 0, LineSpacingMultiplier: 0,
 	})
 
 	// Title font for panel headers
 	d.titleFont, d.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size:     26,
-		MaxLines: 1,
-		MaxChars: 25,
+		Size:        FontSizeDialogTitle,
+		MaxLines:    1,
+		MaxChars:    readyInitialChars,
+		LineSpacing: 0, LineSpacingMultiplier: 0,
 	})
 }
 
 // initializeOutputs creates text outputs with proper maxCharsPerLine
 func (d *ReadyEquipmentDialog) initializeOutputs() {
-	lineSpacing := float64(d.font.TextFace.Size * 1.2)
+	lineSpacing := d.font.TextFace.Size * readyLineSpacingMultiplier
 
 	// Character panel output
 	charBounds := d.charBorder.GetInteriorBounds()
-	charChars := d.font.CharsForWidth(charBounds.Dx() - itemDialogTextPadding*2)
-	d.charOutput = text.NewOutput(d.font, lineSpacing, 12, charChars)
+	charChars := d.font.CharsForWidth(charBounds.Dx() - itemDialogTextPadding*readyCenterDivisor)
+	d.charOutput = text.NewOutput(d.font, lineSpacing, readyCharacterLines, charChars)
 	d.indicatorOutput = text.NewOutput(d.font, lineSpacing, 1, readyIndicatorChars)
 
 	// Slots panel output (used for row-by-row rendering)
-	d.slotsOutput = text.NewOutput(d.font, lineSpacing, 1, 30)
+	d.slotsOutput = text.NewOutput(d.font, lineSpacing, 1, readyInitialSlotChars)
 
 	// Items list output (single line at a time)
-	d.itemsOutput = text.NewOutput(d.font, lineSpacing, 1, 50)
+	d.itemsOutput = text.NewOutput(d.font, lineSpacing, 1, readyInitialItemChars)
 
 	// Status bar output
 	statusBounds := d.statusBorder.GetInteriorBounds()
-	statusChars := d.font.CharsForWidth(statusBounds.Dx() - itemDialogTextPadding*2)
+	statusChars := d.font.CharsForWidth(statusBounds.Dx() - itemDialogTextPadding*readyCenterDivisor)
 	d.statusOutput = text.NewOutput(d.font, lineSpacing, readyStatusLines, statusChars)
 
 	// Retain all wrapped details; the detail viewport exposes them through paging.
 	detailBounds := d.detailBorder.GetInteriorBounds()
-	detailChars := d.font.CharsForWidth(detailBounds.Dx() - itemDialogTextPadding*2)
+	detailChars := d.font.CharsForWidth(detailBounds.Dx() - itemDialogTextPadding*readyCenterDivisor)
 	d.detailOutput = text.NewOutput(d.font, lineSpacing, readyDetailLines, detailChars)
 }
 
 // createBorders creates a summary, three gear panes, and a controls footer.
+//
+//nolint:funlen // Keep the interdependent pane placements and shared frame grid in one geometry pass.
 func (d *ReadyEquipmentDialog) createBorders() {
 	// Dialog positioning (5% margin on each side = 90% width, 10% wider than standard)
 	const readyDialogMarginX = 0.05
@@ -204,15 +211,13 @@ func (d *ReadyEquipmentDialog) createBorders() {
 	// Outer dialog border
 	d.outerBorder = NewOpaqueBorder(dialogPlacement, itemDialogBorderWidth, color.DialogBackground.RGBA())
 
-	// Keep the proven available-list budget; reclaim the character column for comparison.
-	dialogWidth := 1.0 - 2*readyDialogMarginX
-	col1Width := 0.27
-	col2Width := 0.38
+	// Size the two identity columns from full names, icons and quantities.
+	slotsWidth, itemsWidth := d.readyColumnWidths(d.outerBorder.GetBounds().Dx())
 
 	// X coordinates for column boundaries
 	xStart := readyDialogMarginX
-	xSplit1 := xStart + dialogWidth*col1Width
-	xSplit2 := xSplit1 + dialogWidth*col2Width
+	xSplit1 := xStart + float64(slotsWidth)/float64(d.lastScreenWidth)
+	xSplit2 := xSplit1 + float64(itemsWidth)/float64(d.lastScreenWidth)
 	xEnd := 1.0 - readyDialogMarginX
 
 	// Horizontal overlap for vertical borders between columns
@@ -221,12 +226,12 @@ func (d *ReadyEquipmentDialog) createBorders() {
 	// Reserve space for wrapped controls and the persistent Strength summary.
 	statusHeightPercent := 0.16
 	summaryHeightPercent := 0.13
-	dialogHeight := 1.0 - 2*itemDialogMarginY
+	dialogHeight := 1.0 - readyCenterDivisor*itemDialogMarginY
 	mainPaneStartY := itemDialogMarginY + dialogHeight*summaryHeightPercent
 	mainPaneEndY := (1.0 - itemDialogMarginY) - dialogHeight*statusHeightPercent
 
 	// Vertical overlap for horizontal border between main panes and status bar
-	verticalOverlap := LayoutSpacingMedium - 0.01
+	verticalOverlap := LayoutSpacingMedium - LayoutSpacingSmall
 	statusStartY := mainPaneEndY - verticalOverlap
 
 	// Full-width character and Strength summary.
@@ -363,7 +368,7 @@ func (d *ReadyEquipmentDialog) updateAvailableItems() {
 // calculateVisibleItemSlots calculates how many items can fit in the items panel
 func (d *ReadyEquipmentDialog) calculateVisibleItemSlots() int {
 	itemsRect := d.itemsBorder.GetInteriorBounds()
-	headerHeight := int(d.titleFont.TextFace.Size) + itemDialogTextPadding*2
+	headerHeight := int(d.titleFont.TextFace.Size) + itemDialogTextPadding*readyCenterDivisor
 	lineHeight := d.itemRowHeight()
 
 	availableHeight := itemsRect.Dy() - headerHeight
@@ -412,55 +417,11 @@ func (d *ReadyEquipmentDialog) Update() {
 		return
 	}
 
-	if !d.request.LockCharacter {
-		if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyTab) {
-			delta := 1
-			if d.keyboard.IsModifierPressed(input.ModifierShift) {
-				delta = -1
-			}
-			d.cycleCharacter(delta)
-
-			return
-		}
-		// Handle Left/Right for character cycling
-		if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) {
-			d.cycleCharacter(-1)
-
-			return
-		}
-		if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight) {
-			d.cycleCharacter(1)
-
-			return
-		}
-
-		// Handle 1-6 for direct character selection
-		numKeys := []ebiten.Key{
-			ebiten.Key1, ebiten.Key2, ebiten.Key3,
-			ebiten.Key4, ebiten.Key5, ebiten.Key6,
-		}
-		for i, key := range numKeys {
-			if !d.keyboard.IsKeyPressedAndRegister(key) {
-				continue
-			}
-			d.selectCharacter(i)
-
-			return
-		}
+	if d.handleCharacterSelectionInput() {
+		return
 	}
 
-	if key, owned := d.Poll(d.keyboard); owned {
-		if key != nil {
-			previous := d.itemListNav.GetCurrentIndex()
-			navigateScrollableList(d.itemListNav, *key)
-			if previous != d.itemListNav.GetCurrentIndex() {
-				d.detailPage = 0
-				profiling.Count(profiling.ReadySelections)
-				d.selectionDrawStarted = profiling.Begin()
-			}
-			d.warningMessage = ""
-		}
-
+	if d.handleItemNavigationInput() {
 		return
 	}
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyBracketLeft) {
@@ -491,6 +452,58 @@ func (d *ReadyEquipmentDialog) Update() {
 
 		return
 	}
+}
+
+func (d *ReadyEquipmentDialog) handleCharacterSelectionInput() bool {
+	if d.request.LockCharacter {
+		return false
+	}
+	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyTab) {
+		delta := 1
+		if d.keyboard.IsModifierPressed(input.ModifierShift) {
+			delta = -1
+		}
+		d.cycleCharacter(delta)
+
+		return true
+	}
+	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyLeft) {
+		d.cycleCharacter(-1)
+
+		return true
+	}
+	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyRight) {
+		d.cycleCharacter(1)
+
+		return true
+	}
+	for index, key := range []ebiten.Key{
+		ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4, ebiten.Key5, ebiten.Key6,
+	} {
+		if d.keyboard.IsKeyPressedAndRegister(key) {
+			d.selectCharacter(index)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+func (d *ReadyEquipmentDialog) handleItemNavigationInput() bool {
+	key, owned := d.Poll(d.keyboard)
+	if owned && key != nil {
+		previous := d.itemListNav.GetCurrentIndex()
+		navigateScrollableList(d.itemListNav, *key)
+		if previous != d.itemListNav.GetCurrentIndex() {
+			d.detailPage = 0
+			profiling.Count(profiling.ReadySelections)
+			d.selectionDrawStarted = profiling.Begin()
+		}
+		d.warningMessage = ""
+	}
+
+	return owned
 }
 
 // cycleCharacter cycles through party members
@@ -612,9 +625,9 @@ func (d *ReadyEquipmentDialog) ensureLayout() {
 // drawPanelHeader draws a header title at the top of a panel
 func (d *ReadyEquipmentDialog) drawPanelHeader(screen *ebiten.Image, border *Border, headerText string) {
 	headerBounds := border.GetInteriorBounds()
-	leftPadding := itemDialogTextPadding + 4
+	leftPadding := itemDialogTextPadding + itemDialogMinimumPadding
 	headerY := headerBounds.Min.Y + itemDialogTextPadding
-	contentWidth := headerBounds.Dx() - leftPadding*2
+	contentWidth := headerBounds.Dx() - leftPadding*readyCenterDivisor
 
 	d.titleOutput.Reset()
 	d.titleOutput.AppendLine().Text(headerText, DialogHeaderColor).Done()
@@ -627,17 +640,19 @@ func (d *ReadyEquipmentDialog) drawPanelHeader(screen *ebiten.Image, border *Bor
 }
 
 // drawSlotsPanel draws the equipment slots panel (Pane 2)
+//
+//nolint:funlen // Render the six paired slot rows and bottom-anchored ammunition in their shared pane coordinates.
 func (d *ReadyEquipmentDialog) drawSlotsPanel(screen *ebiten.Image) {
 	d.drawPanelHeader(screen, d.slotsBorder, "EQUIPPED")
 
 	bounds := d.slotsBorder.GetInteriorBounds()
 	headerFontSize := d.titleFont.TextFace.Size
-	leftPadding := itemDialogTextPadding + 6
+	leftPadding := itemDialogTextPadding + readyDetailInset
 	fontSize := d.font.TextFace.Size
-	lineHeight := int(fontSize * 1.2)
+	lineHeight := int(fontSize * readyLineSpacingMultiplier)
 
 	contentStartY := bounds.Min.Y + itemDialogTextPadding + int(headerFontSize) + itemDialogTextPadding
-	x := bounds.Min.X + leftPadding
+	textLeft := bounds.Min.X + leftPadding
 
 	char := d.getSelectedCharacter()
 	if char == nil {
@@ -667,20 +682,20 @@ func (d *ReadyEquipmentDialog) drawSlotsPanel(screen *ebiten.Image) {
 			Text(availability, DialogValueColor).Done()
 		d.slotsOutput.DrawPanelContent(
 			screen,
-			image.Pt(x, currentY),
-			bounds.Dx()-leftPadding*2,
+			image.Pt(textLeft, currentY),
+			bounds.Dx()-leftPadding*readyCenterDivisor,
 			etext.AlignStart,
 		)
 		currentY += lineHeight
 
 		// Line 2: Occupying item, including the full two-handed reservation label.
 		d.slotsOutput.Reset()
-		name := FitDialogLine(itemName, d.font, bounds.Dx()-leftPadding*2)
-		d.slotsOutput.AppendLine().Text(name, DialogValueColor).Done()
+		d.slotsOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(bounds.Dx()-leftPadding*readyCenterDivisor)))
+		d.slotsOutput.AppendLine().Text(itemName, DialogValueColor).Done()
 		d.slotsOutput.DrawPanelContent(
 			screen,
-			image.Pt(x, currentY),
-			bounds.Dx()-leftPadding*2,
+			image.Pt(textLeft, currentY),
+			bounds.Dx()-leftPadding*readyCenterDivisor,
 			etext.AlignStart,
 		)
 		currentY += lineHeight
@@ -701,8 +716,8 @@ func (d *ReadyEquipmentDialog) drawSlotsPanel(screen *ebiten.Image) {
 	d.slotsOutput.AppendLine().Text("Arrows: ", DialogLabelColor).Textf("%d", DialogValueColor, arrowQty).Done()
 	d.slotsOutput.DrawPanelContent(
 		screen,
-		image.Pt(x, arrowsY),
-		bounds.Dx()-leftPadding*2,
+		image.Pt(textLeft, arrowsY),
+		bounds.Dx()-leftPadding*readyCenterDivisor,
 		etext.AlignStart,
 	)
 
@@ -711,8 +726,8 @@ func (d *ReadyEquipmentDialog) drawSlotsPanel(screen *ebiten.Image) {
 	d.slotsOutput.AppendLine().Text("Quarrels: ", DialogLabelColor).Textf("%d", DialogValueColor, quarrelQty).Done()
 	d.slotsOutput.DrawPanelContent(
 		screen,
-		image.Pt(x, quarrelsY),
-		bounds.Dx()-leftPadding*2,
+		image.Pt(textLeft, quarrelsY),
+		bounds.Dx()-leftPadding*readyCenterDivisor,
 		etext.AlignStart,
 	)
 }
@@ -723,12 +738,12 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 
 	bounds := d.itemsBorder.GetInteriorBounds()
 	headerFontSize := d.titleFont.TextFace.Size
-	leftPadding := itemDialogTextPadding + 6
+	leftPadding := itemDialogTextPadding + readyDetailInset
 	fontSize := d.font.TextFace.Size
 	lineHeight := d.itemRowHeight()
 
 	contentStartY := bounds.Min.Y + itemDialogTextPadding + int(headerFontSize) + itemDialogTextPadding
-	x := bounds.Min.X + leftPadding
+	textLeft := bounds.Min.X + leftPadding
 
 	// Handle empty list
 	if len(d.availableItems) == 0 {
@@ -736,8 +751,8 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 		d.itemsOutput.AppendLine().Text("No equipment", DialogEmptyColor).Done()
 		d.itemsOutput.DrawPanelContent(
 			screen,
-			image.Pt(x, contentStartY),
-			bounds.Dx()-leftPadding*2,
+			image.Pt(textLeft, contentStartY),
+			bounds.Dx()-leftPadding*readyCenterDivisor,
 			etext.AlignStart,
 		)
 
@@ -751,23 +766,23 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 	for i := startIdx; i < endIdx; i++ {
 		item := d.availableItems[i]
 		screenRow := i - startIdx
-		y := contentStartY + screenRow*lineHeight
+		rowTop := contentStartY + screenRow*lineHeight
 
 		isSelected := screenRow == cursorPos
 
 		// Draw selection highlight
 		if isSelected {
-			highlightPadding := float32(fontSize * 0.1)
+			highlightPadding := float32(fontSize * readyHighlightPaddingRatio)
 			vector.FillRect(screen,
 				float32(bounds.Min.X),
-				float32(y)-highlightPadding,
+				float32(rowTop)-highlightPadding,
 				float32(bounds.Dx()),
-				float32(fontSize)+highlightPadding*2,
+				float32(fontSize)+highlightPadding*readyCenterDivisor,
 				color.EGAWhite,
 				false)
 		}
 
-		row := d.itemTextRect(bounds, y)
+		row := d.itemTextRect(bounds, rowTop)
 		d.populateItemRow(item, isSelected, row.Dx())
 		clipBounds := row.Intersect(screen.Bounds())
 		if !clipBounds.Empty() {
@@ -784,8 +799,10 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 }
 
 // drawScrollIndicators draws up/down arrows if there are more items
-func (d *ReadyEquipmentDialog) drawScrollIndicators(screen *ebiten.Image, bounds image.Rectangle, contentStartY int, lineHeight int) {
-	rightPadding := itemDialogTextPadding + 6
+func (d *ReadyEquipmentDialog) drawScrollIndicators(
+	screen *ebiten.Image, bounds image.Rectangle, contentStartY int, lineHeight int,
+) {
+	rightPadding := itemDialogTextPadding + readyDetailInset
 	indicatorWidth := d.itemScrollGutter()
 	indicatorX := bounds.Max.X - rightPadding - indicatorWidth
 
@@ -851,7 +868,7 @@ func (d *ReadyEquipmentDialog) cycleDetailPage(delta int) {
 func (d *ReadyEquipmentDialog) detailContentRect() image.Rectangle {
 	bounds := d.detailBorder.GetInteriorBounds()
 	padding := itemDialogTextPadding + readyDetailInset
-	top := bounds.Min.Y + itemDialogTextPadding*2 + int(d.titleOutput.GetTotalHeightForLines(1))
+	top := bounds.Min.Y + itemDialogTextPadding*readyCenterDivisor + int(d.titleOutput.GetTotalHeightForLines(1))
 
 	return image.Rect(bounds.Min.X+padding, top, bounds.Max.X-padding, bounds.Max.Y-itemDialogTextPadding)
 }
@@ -881,7 +898,7 @@ func (d *ReadyEquipmentDialog) populateDetailOutput() {
 func (d *ReadyEquipmentDialog) appendEquipmentFacts(item *availableEquipment) {
 	equip := item.Equipment
 	// Item name
-	d.detailOutput.AppendLine().Text(equip.String(), DialogHeaderColor).Done()
+	d.detailOutput.AppendLine().Text(equip.String(), DialogHeaderColor).WordWrap().Done()
 
 	d.appendReplacementTargets(item)
 	if equip.IsWeapon() {
@@ -930,27 +947,34 @@ func (d *ReadyEquipmentDialog) appendEquipmentWarnings(item *availableEquipment)
 }
 
 const (
-	readyDetailLines    = 128
-	readyDetailInset    = 6
-	readyIndicatorChars = 24
-	readyStatusLines    = 4
-	readyCenterDivisor  = 2
+	readyDetailLines           = 128
+	readyDetailInset           = 6
+	readyIndicatorChars        = 24
+	readyStatusLines           = 4
+	readyCenterDivisor         = 2
+	readyInitialChars          = 25
+	readyInitialSlotChars      = 30
+	readyInitialItemChars      = 50
+	readyCharacterLines        = 12
+	readyLineSpacingMultiplier = 1.2
+	readyHighlightPaddingRatio = 0.1
+	readyItemNavigationKey     = "Up/Down"
 )
 
 // drawStatusBar draws the status bar (bottom)
 func (d *ReadyEquipmentDialog) drawStatusBar(screen *ebiten.Image) {
 	bounds := d.statusBorder.GetInteriorBounds()
-	leftPadding := itemDialogTextPadding + 4
+	leftPadding := itemDialogTextPadding + itemDialogMinimumPadding
 
-	x := bounds.Min.X + leftPadding
-	contentWidth := bounds.Dx() - leftPadding*2
+	textLeft := bounds.Min.X + leftPadding
+	contentWidth := bounds.Dx() - leftPadding*readyCenterDivisor
 	d.populateStatusOutput(contentWidth)
 	totalTextHeight := d.statusOutput.GetTotalHeightForLines(d.statusOutput.GetPanelContentLineCount())
 	startY := bounds.Min.Y + max(0, (bounds.Dy()-int(totalTextHeight))/readyCenterDivisor)
 
 	d.statusOutput.DrawPanelContent(
 		screen,
-		image.Pt(x, startY),
+		image.Pt(textLeft, startY),
 		contentWidth,
 		etext.AlignStart,
 	)
@@ -986,7 +1010,7 @@ func (d *ReadyEquipmentDialog) appendStatusControls(action string, width int) {
 	if !d.request.LockCharacter {
 		hints = append(hints, readyControlHint{"Tab", "Next character"}, readyControlHint{"Shift-Tab", "Previous"})
 	}
-	hints = append(hints, readyControlHint{"Up/Down", "Item"}, readyControlHint{"Enter/Space", action},
+	hints = append(hints, readyControlHint{readyItemNavigationKey, "Item"}, readyControlHint{"Enter/Space", action},
 		readyControlHint{"H", "Hand"}, readyControlHint{"B", "Strength breakdown"})
 	if d.detailPageCount() > 1 {
 		hints = append(hints, readyControlHint{"[ / ]", "Details"})

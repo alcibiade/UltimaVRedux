@@ -14,7 +14,7 @@ const (
 	audioSettingsPreferredHeightScale    = 1.30
 	audioSettingsCenterDivisor           = 2
 	audioSettingsSliderCount             = 3
-	audioSettingsGameplayCount           = 7
+	audioSettingsGameplayCount           = 11
 	audioSettingsCardSectionGapCount     = 3
 	audioSettingsPaddingUnits            = 2
 	audioSettingsSectionGapUnits         = 2
@@ -76,14 +76,7 @@ func (d *ConfigurationDialog) ensureLayout(width, height int) {
 	contentWidth := max(1, cardWidth-metrics.padding*audioSettingsCenterDivisor)
 	d.configureLayoutOutputs(contentWidth)
 	metrics = d.measureLayout(pixelUnit, contentWidth)
-	preferredCardHeight := min(
-		placementRect.Dy(),
-		int(math.Ceil(float64(metrics.cardHeight)*audioSettingsPreferredHeightScale)),
-	)
-	if preferredCardHeight > metrics.cardHeight {
-		metrics.bodyHeight += preferredCardHeight - metrics.cardHeight
-		metrics.cardHeight = preferredCardHeight
-	}
+	metrics.fitCardHeight(placementRect.Dy())
 	cardRect := centeredAudioSettingsCard(placementRect, cardWidth, metrics.cardHeight)
 	titleRect, tabRects, bodyRect, footerRect := d.buildSections(cardRect, metrics, pixelUnit)
 	labelRects, valueRects, sliderRects := d.buildSliderRects(bodyRect, metrics)
@@ -119,6 +112,20 @@ func (d *ConfigurationDialog) ensureLayout(width, height int) {
 	d.sfxSlider.SetBounds(sliderRects[1])
 	d.ambientSlider.SetBounds(sliderRects[2])
 	d.configurePaneTextWidths(textInset)
+	d.ensureGameplaySelectionVisible()
+}
+
+func (metrics *audioSettingsMetrics) fitCardHeight(availableHeight int) {
+	preferredCardHeight := min(availableHeight,
+		int(math.Ceil(float64(metrics.cardHeight)*audioSettingsPreferredHeightScale)))
+	if preferredCardHeight > metrics.cardHeight {
+		metrics.bodyHeight += preferredCardHeight - metrics.cardHeight
+		metrics.cardHeight = preferredCardHeight
+	}
+	if metrics.cardHeight > availableHeight {
+		metrics.bodyHeight -= metrics.cardHeight - availableHeight
+		metrics.cardHeight = availableHeight
+	}
 }
 
 func (d *ConfigurationDialog) configurePaneTextWidths(textInset int) {
@@ -286,6 +293,27 @@ func (d *ConfigurationDialog) measureLayout(pixelUnit, contentWidth int) audioSe
 	sliderRowGap := max(1, pixelUnit*audioSettingsSliderRowGapUnits)
 	soundHeight := sliderRowHeight*audioSettingsSliderCount +
 		sliderRowGap*(audioSettingsSliderCount-1)
+	bodyHeight := max(soundHeight, d.measureGameplayHeight(pixelUnit, contentWidth, padding))
+	footerHeight := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(audioSettingsFooterLines)))
+	cardHeight := padding*audioSettingsCenterDivisor + titleHeight + tabHeight + bodyHeight + footerHeight +
+		sectionGap*audioSettingsCardSectionGapCount
+
+	return audioSettingsMetrics{
+		padding:         padding,
+		sectionGap:      sectionGap,
+		titleHeight:     titleHeight,
+		tabHeight:       tabHeight,
+		bodyHeight:      bodyHeight,
+		footerHeight:    footerHeight,
+		labelHeight:     labelHeight,
+		sliderLabelGap:  sliderLabelGap,
+		sliderRowHeight: sliderRowHeight,
+		sliderRowGap:    sliderRowGap,
+		cardHeight:      cardHeight,
+	}
+}
+
+func (d *ConfigurationDialog) measureGameplayHeight(pixelUnit, contentWidth, padding int) int {
 	gameplayListWidth := int(math.Round(float64(contentWidth) * audioSettingsGameplayListRatio))
 	gameplayInset := max(1, pixelUnit*audioSettingsCenterDivisor)
 	gameplayMaxChars := max(1, d.gameplayOutput.Font.CharsForWidth(
@@ -305,32 +333,19 @@ func (d *ConfigurationDialog) measureLayout(pixelUnit, contentWidth int) audioSe
 	}
 	detailWidth := contentWidth - gameplayListWidth - gameplayInset*audioSettingsCenterDivisor
 	detailChars := max(1, d.detailOutput.Font.CharsForWidth(detailWidth))
+	d.detailOutput.SetMaxCharsPerLine(detailChars)
 	detailLines := 1
 	for _, setting := range gameplaySettings() {
-		title := text.MeasureText(setting.label, d.detailOutput.Font, d.detailOutput.GetLineSpacing(), detailChars)
-		detail := text.MeasureText(setting.detail, d.detailOutput.Font, d.detailOutput.GetLineSpacing(), detailChars)
-		detailLines = max(detailLines, title.Lines+detail.Lines)
+		value := gameplaySettingOffLabel
+		if setting.numeric != nil {
+			value = setting.numeric.format(setting.numeric.spec.Max)
+		}
+		populateGameplayDetail(d.detailOutput, setting, value)
+		detailLines = max(detailLines, d.detailOutput.GetPanelContentLineCount())
 	}
-	gameplayHeight = max(gameplayHeight, int(math.Ceil(d.detailOutput.GetTotalHeightForLines(detailLines)))+
-		padding*audioSettingsCenterDivisor)
-	bodyHeight := max(soundHeight, gameplayHeight)
-	footerHeight := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(audioSettingsFooterLines)))
-	cardHeight := padding*audioSettingsCenterDivisor + titleHeight + tabHeight + bodyHeight + footerHeight +
-		sectionGap*audioSettingsCardSectionGapCount
 
-	return audioSettingsMetrics{
-		padding:         padding,
-		sectionGap:      sectionGap,
-		titleHeight:     titleHeight,
-		tabHeight:       tabHeight,
-		bodyHeight:      bodyHeight,
-		footerHeight:    footerHeight,
-		labelHeight:     labelHeight,
-		sliderLabelGap:  sliderLabelGap,
-		sliderRowHeight: sliderRowHeight,
-		sliderRowGap:    sliderRowGap,
-		cardHeight:      cardHeight,
-	}
+	return max(gameplayHeight, int(math.Ceil(d.detailOutput.GetTotalHeightForLines(detailLines)))+
+		padding*audioSettingsCenterDivisor)
 }
 
 func (d *ConfigurationDialog) buildGameplayRects(
@@ -357,7 +372,7 @@ func (d *ConfigurationDialog) buildGameplayRects(
 	}
 	rowTop := listRect.Min.Y + inset
 	for index, rowHeight := range rowHeights {
-		rows[index] = image.Rect(listRect.Min.X, rowTop, listRect.Max.X, rowTop+rowHeight)
+		rows[index] = image.Rect(listRect.Min.X, rowTop, listRect.Max.X-inset, rowTop+rowHeight)
 		rowTop += rowHeight + rowGap
 	}
 
@@ -365,7 +380,7 @@ func (d *ConfigurationDialog) buildGameplayRects(
 }
 
 func (d *ConfigurationDialog) gameplayCheckboxWidth() int {
-	width, _ := d.gameplayOutput.Font.MeasureString("[X] ")
+	width, _ := d.gameplayOutput.Font.MeasureString("4.0x ")
 
 	return int(math.Ceil(width))
 }
@@ -373,7 +388,31 @@ func (d *ConfigurationDialog) gameplayCheckboxWidth() int {
 func (d *ConfigurationDialog) gameplayLabelWidth(listWidth, pixelUnit int) int {
 	inset := max(1, pixelUnit*audioSettingsCenterDivisor)
 
-	return max(1, listWidth-inset*audioSettingsCenterDivisor-d.gameplayCheckboxWidth())
+	return max(1, listWidth-inset*(audioSettingsCenterDivisor+1)-d.gameplayCheckboxWidth())
+}
+
+func (d *ConfigurationDialog) gameplayViewport() image.Rectangle {
+	inset := max(1, d.layout.pixelUnit*audioSettingsCenterDivisor)
+
+	return image.Rect(d.layout.gameplayListRect.Min.X, d.layout.gameplayListRect.Min.Y+inset,
+		d.layout.gameplayListRect.Max.X-inset, d.layout.gameplayListRect.Max.Y-inset)
+}
+
+func (d *ConfigurationDialog) gameplayVisibleRow(index int) image.Rectangle {
+	offset := d.layout.gameplayRows[d.firstGameplayIndex].Min.Y - d.gameplayViewport().Min.Y
+
+	return d.layout.gameplayRows[index].Sub(image.Pt(0, offset))
+}
+
+func (d *ConfigurationDialog) ensureGameplaySelectionVisible() {
+	if len(d.layout.gameplayRows) == 0 {
+		return
+	}
+	d.firstGameplayIndex = min(d.firstGameplayIndex, d.focusedGameplayIndex)
+	for d.firstGameplayIndex < d.focusedGameplayIndex &&
+		d.gameplayVisibleRow(d.focusedGameplayIndex).Max.Y > d.gameplayViewport().Max.Y {
+		d.firstGameplayIndex++
+	}
 }
 
 func centeredAudioSettingsCard(placement image.Rectangle, width, height int) image.Rectangle {

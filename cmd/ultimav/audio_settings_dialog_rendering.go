@@ -17,14 +17,24 @@ import (
 )
 
 type gameplaySettingDefinition struct {
-	label  string
-	detail string
+	label     string
+	detail    string
+	helpLines []string
+	numeric   *gameplayNumericSetting
+}
+
+type gameplayNumericSetting struct {
+	spec   config.NumericSettingSpec
+	get    func(config.GameplayConfiguration) float64
+	set    func(*config.GameplayConfiguration, float64)
+	format func(float64) string
 }
 
 const (
-	displayPresetStatusRow = 2
-	displayPresetsPerLine  = 3
-	displayResizingRow     = 4
+	gameplaySettingOffLabel = "Off"
+	displayPresetStatusRow  = 2
+	displayPresetsPerLine   = 3
+	displayResizingRow      = 4
 )
 
 const (
@@ -35,8 +45,13 @@ const (
 	gameplaySmoothSurfaceMovementIndex
 	gameplayConcealedTurnSlotsIndex
 	gameplayFlexibleSextantUseIndex
+	gameplayCombatSpeedIndex
+	gameplayConfirmQuickSaveIndex
+	gameplayShowCombatHPBarsIndex
+	gameplayMaxActionPopupsIndex
 )
 
+//nolint:exhaustruct,funlen // Explicit row catalog; boolean rows have no numeric accessors.
 func gameplaySettings() [audioSettingsGameplayCount]gameplaySettingDefinition {
 	return [...]gameplaySettingDefinition{
 		{
@@ -75,6 +90,50 @@ func gameplaySettings() [audioSettingsGameplayCount]gameplaySettingDefinition {
 			label: "Flexible Sextant Use",
 			detail: "Redux: day or night, including surface settlement interiors. Sextant required. " +
 				"No dungeons or Underworld. Off: night world-map use.",
+		},
+		{
+			label:     "Combat Speed",
+			helpLines: combatSpeedHelpLines(config.CombatSpeedSpec()),
+			numeric: &gameplayNumericSetting{
+				spec:   config.CombatSpeedSpec(),
+				get:    func(s config.GameplayConfiguration) float64 { return s.CombatSpeedFactor },
+				set:    func(s *config.GameplayConfiguration, value float64) { s.CombatSpeedFactor = value },
+				format: func(value float64) string { return fmt.Sprintf("%.1fx", value) },
+			},
+		},
+		{
+			label: "Confirm Quick Save",
+			helpLines: []string{
+				"Ask before saving with Q.", "",
+				"On: Ask before saving.", "Off: Save immediately.", "",
+				"Q saves to the last slot you loaded or saved.", "",
+				"Default: On",
+			},
+		},
+		{
+			label: "Show Combat HP Bars",
+			helpLines: []string{
+				"Show health bars during combat.", "",
+				"Off hides the bars and adds injury descriptions to the battle report.", "",
+				"Damage numbers and fleeing indicators remain visible.", "",
+				"Default: On",
+			},
+		},
+		{
+			label:     "Maximum Action Popups",
+			helpLines: actionPopupsHelpLines(config.ActionPopupsSpec()),
+			numeric: &gameplayNumericSetting{
+				spec: config.ActionPopupsSpec(),
+				get:  func(s config.GameplayConfiguration) float64 { return float64(s.MaxVisibleActionPopups) },
+				set:  func(s *config.GameplayConfiguration, value float64) { s.MaxVisibleActionPopups = int(value) },
+				format: func(value float64) string {
+					if value == 0 {
+						return gameplaySettingOffLabel
+					}
+
+					return strconv.Itoa(int(value))
+				},
+			},
 		},
 	}
 }
@@ -134,6 +193,8 @@ func (d *ConfigurationDialog) updateGameplayTab() {
 		ebiten.KeyNumpadEnter,
 		ebiten.KeyTab,
 		ebiten.KeySpace,
+		ebiten.KeyLeft,
+		ebiten.KeyRight,
 	}
 	boundKey := d.keyboard.GetBoundKeyPressed(&boundKeys)
 	if boundKey == nil || !d.keyboard.TryToRegisterKeyPress(*boundKey) {
@@ -161,9 +222,23 @@ func (d *ConfigurationDialog) updateGameplayControl(key ebiten.Key) {
 		}
 	case ebiten.KeySpace:
 		d.toggleFocusedGameplaySetting()
+	case ebiten.KeyLeft:
+		d.adjustGameplaySetting(-1)
+	case ebiten.KeyRight:
+		d.adjustGameplaySetting(1)
 	default:
 		return
 	}
+	d.ensureGameplaySelectionVisible()
+}
+
+func (d *ConfigurationDialog) adjustGameplaySetting(direction int) {
+	numeric := gameplaySettings()[d.focusedGameplayIndex].numeric
+	if numeric == nil {
+		return
+	}
+	numeric.set(&d.stagedGameplay, numeric.spec.Advance(numeric.get(d.stagedGameplay), direction))
+	d.saveError = ""
 }
 
 func (d *ConfigurationDialog) updateAudioTab() {
@@ -471,12 +546,21 @@ func (d *ConfigurationDialog) drawTabs(screen *ebiten.Image) {
 
 func (d *ConfigurationDialog) drawGameplayContent(screen *ebiten.Image) {
 	settings := gameplaySettings()
-	for index, rect := range d.layout.gameplayRows {
+	viewport := d.gameplayViewport()
+	clipped, ok := screen.SubImage(viewport).(*ebiten.Image)
+	if !ok {
+		panic("Ebitengine SubImage must return an image")
+	}
+	for index := range d.layout.gameplayRows {
+		rect := d.gameplayVisibleRow(index)
+		if !rect.Overlaps(viewport) {
+			continue
+		}
 		textColor := widgets.DialogValueColor
 		markColor := widgets.DialogCheckedMarkColor
 		if index == d.focusedGameplayIndex {
 			widgets.FillClassicPixelRoundedRect(
-				screen, rect, d.layout.pixelUnit, widgets.DialogSelectedBackground,
+				clipped, rect, d.layout.pixelUnit, widgets.DialogSelectedBackground,
 			)
 			textColor = widgets.DialogSelectedText
 			markColor = widgets.DialogSelectedCheckedMarkColor
@@ -486,19 +570,22 @@ func (d *ConfigurationDialog) drawGameplayContent(screen *ebiten.Image) {
 		inset := max(1, d.layout.pixelUnit*audioSettingsCenterDivisor)
 		top := centeredAudioOutputY(rect, d.gameplayOutput)
 		d.labelOutput.Reset()
-		d.labelOutput.AppendLine().
-			Text("[", textColor).Text(d.gameplayCheckmark(index), markColor).
-			Text("]", textColor).
-			Done()
-		d.labelOutput.DrawPanelContent(screen, image.Pt(rect.Min.X+inset, top), d.gameplayCheckboxWidth(), etext.AlignStart)
+		if numeric := settings[index].numeric; numeric != nil {
+			d.labelOutput.AppendLine().Text(numeric.format(numeric.get(d.stagedGameplay)), textColor).Done()
+		} else {
+			d.labelOutput.AppendLine().Text("[", textColor).
+				Text(d.gameplayCheckmark(index), markColor).Text("]", textColor).Done()
+		}
+		d.labelOutput.DrawPanelContent(clipped, image.Pt(rect.Min.X+inset, top), d.gameplayCheckboxWidth(), etext.AlignStart)
 		d.gameplayOutput.DrawPanelContent(
-			screen,
+			clipped,
 			image.Pt(rect.Min.X+inset+d.gameplayCheckboxWidth(), top),
-			d.gameplayLabelWidth(rect.Dx(), d.layout.pixelUnit),
+			d.gameplayLabelWidth(d.layout.gameplayListRect.Dx(), d.layout.pixelUnit),
 			etext.AlignStart,
 		)
 	}
 
+	d.drawGameplayScrollIndicator(screen)
 	d.prepareGameplayDetail()
 	inset := max(1, d.layout.pixelUnit*audioSettingsCenterDivisor)
 	d.detailOutput.DrawPanelContent(
@@ -521,10 +608,34 @@ func (d *ConfigurationDialog) prepareGameplayDetail() {
 	inset := max(1, d.layout.pixelUnit*audioSettingsCenterDivisor)
 	d.detailOutput.SetMaxCharsPerLine(max(1,
 		d.detailOutput.Font.CharsForWidth(d.layout.gameplayDetail.Dx()-inset*audioSettingsCenterDivisor)))
-	d.detailOutput.Reset()
 	selected := gameplaySettings()[d.focusedGameplayIndex]
-	d.detailOutput.AppendLine().Text(selected.label, widgets.DialogHeaderColor).WordWrap().Done()
-	d.detailOutput.AppendLine().Text(selected.detail, widgets.DialogValueColor).WordWrap().Done()
+	populateGameplayDetail(d.detailOutput, selected, d.gameplaySettingDisplayValue())
+}
+
+func (d *ConfigurationDialog) gameplaySettingDisplayValue() string {
+	if numeric := gameplaySettings()[d.focusedGameplayIndex].numeric; numeric != nil {
+		return numeric.format(numeric.get(d.stagedGameplay))
+	}
+	if d.gameplaySettingValue(d.focusedGameplayIndex) {
+		return "On"
+	}
+
+	return gameplaySettingOffLabel
+}
+
+func (d *ConfigurationDialog) drawGameplayScrollIndicator(screen *ebiten.Image) {
+	viewport := d.gameplayViewport()
+	last := d.layout.gameplayRows[len(d.layout.gameplayRows)-1]
+	contentHeight := last.Max.Y - d.layout.gameplayRows[0].Min.Y
+	if contentHeight <= viewport.Dy() {
+		return
+	}
+	width := max(1, d.layout.pixelUnit)
+	height := max(width, viewport.Dy()*viewport.Dy()/contentHeight)
+	offset := d.layout.gameplayRows[d.firstGameplayIndex].Min.Y - d.layout.gameplayRows[0].Min.Y
+	top := viewport.Min.Y + min(viewport.Dy()-height, offset*viewport.Dy()/contentHeight)
+	widgets.FillClassicPixelRoundedRect(screen,
+		image.Rect(viewport.Max.X, top, viewport.Max.X+width, top+height), 1, widgets.DialogRuleColor)
 }
 
 func (d *ConfigurationDialog) drawAudioContent(screen *ebiten.Image) {
@@ -578,7 +689,7 @@ func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 		var adjust string
 		switch d.currentTab {
 		case audioSettingsGameplayTab:
-			adjust = "Space: Toggle"
+			adjust = "Space: Toggle  Left/Right: Adjust"
 		case audioSettingsAudioTab:
 			adjust = "Left/Right: Adjust  D: Diagnostics"
 		case audioSettingsDisplayTab:
@@ -633,6 +744,10 @@ func (d *ConfigurationDialog) gameplaySettingValue(index int) bool {
 		return d.stagedGameplay.ShowConcealedTurnOrderSlots
 	case gameplayFlexibleSextantUseIndex:
 		return d.stagedGameplay.FlexibleSextantUse
+	case gameplayConfirmQuickSaveIndex:
+		return d.stagedGameplay.ConfirmQuickSave
+	case gameplayShowCombatHPBarsIndex:
+		return d.stagedGameplay.ShowCombatHPBars
 	default:
 		panic("unsupported Gameplay setting index")
 	}
@@ -654,6 +769,12 @@ func (d *ConfigurationDialog) toggleFocusedGameplaySetting() {
 		d.stagedGameplay.ShowConcealedTurnOrderSlots = !d.stagedGameplay.ShowConcealedTurnOrderSlots
 	case gameplayFlexibleSextantUseIndex:
 		d.stagedGameplay.FlexibleSextantUse = !d.stagedGameplay.FlexibleSextantUse
+	case gameplayConfirmQuickSaveIndex:
+		d.stagedGameplay.ConfirmQuickSave = !d.stagedGameplay.ConfirmQuickSave
+	case gameplayShowCombatHPBarsIndex:
+		d.stagedGameplay.ShowCombatHPBars = !d.stagedGameplay.ShowCombatHPBars
+	case gameplayCombatSpeedIndex, gameplayMaxActionPopupsIndex:
+		return
 	default:
 		panic("unsupported Gameplay setting index")
 	}

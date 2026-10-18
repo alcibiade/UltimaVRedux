@@ -9,10 +9,16 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
-func (g *GameScene) smallMapInputHandler(key ebiten.Key) {
+//nolint:maintidx // Keep pre-cycle shortcuts, town command routing, and each command's completion ownership together.
+func (g *GameScene) smallMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 	g.clearSurfaceCameraForInput(key)
 	if key == ebiten.KeyM && g.keyboard.IsModifierComboPressed(input.ModifierCtrl, ebiten.KeyM) {
 		g.toggleMusic()
+
+		return
+	}
+	if key == ebiten.KeyQ {
+		g.surfaceQuickSaveInput(game)
 
 		return
 	}
@@ -21,6 +27,7 @@ func (g *GameScene) smallMapInputHandler(key ebiten.Key) {
 	originMapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
 	result := newSurfaceCommandResult(surfaceCommandStillActive, originMapType)
 
+	//nolint:exhaustive // Only town command keys belong here; Q is handled before routing and unbound keys return without completion.
 	switch key {
 	case ebiten.KeyD, ebiten.KeyW:
 		g.gameState.SystemCallbacks.Message.AddRowStr(key.String() + "-What?")
@@ -211,8 +218,6 @@ func (g *GameScene) smallMapInputHandler(key ebiten.Key) {
 		} else {
 			result = newSurfaceCommandResult(surfaceCommandRejected, originMapType)
 		}
-	case ebiten.KeyQ:
-		g.startSurfaceQuitInput()
 	default:
 		return
 	}
@@ -260,6 +265,7 @@ func (g *GameScene) smallMapHandleSecondaryInput() {
 	}
 	direction := directionInput.Direction
 
+	//nolint:exhaustive // Only town direction states are actionable here; other owners route separately or recover via default.
 	switch g.secondaryKeyState {
 	case JimmyDoorDirectionInput:
 		state := g.smallMapJimmySecondary(direction, func(state surfaceCommandState) {
@@ -394,7 +400,7 @@ func (g *GameScene) smallMapAttackSecondary(direction references.Direction) bool
 }
 
 func (g *GameScene) smallMapUseSecondary(direction references.Direction) {
-	// TODO: Implement Use secondary action
+	// Legacy direction-state recovery; the primary Use command owns the item-picker workflow.
 	success := g.gameState.ActionUseSmallMap(direction)
 	if !success {
 		g.addRowStr("Cannot use!")

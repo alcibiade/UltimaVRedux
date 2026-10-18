@@ -19,6 +19,12 @@ The original recipe byte uses high-bit-first inventory order. Redux represents
 the same ingredient sets using enum-index bits, beginning with Ash at bit zero;
 numeric Redux masks must not be compared directly to the original bytes.
 
+Reagent labels use the full Redux display vocabulary. **Sulfurous Ash** is an
+editorial expansion of original shop **Sulfur Ash**; **Nightshade** follows the
+original one-word spelling. Original shop **Mandrake** and gathering **mandrake
+root** identify the same ingredient, displayed as **Mandrake Root**. These label
+choices do not change ingredient indexes, recipe masks or the scoped recipe match.
+
 | Inventory index | Reagent | Abbreviation | Original bit |
 |---:|---|---|---:|
 | 0 | Sulfurous Ash | SA | 0x80 |
@@ -89,8 +95,8 @@ five ingredients without Nightshade. Native continuation normalizes persisted
 known-recipe selections to that canonical set. The non-player Nox effect is not
 a 49th mixable spell.
 
-**Implementation:** `internal/references/spell_reagents.go`
-**Tests:** `internal/references/spell_reagents_fidelity_test.go`
+**Implementation:** `internal/references/spell_reagents.go`, `internal/references/item_reagent_data.go`
+**Tests:** `internal/references/spell_reagents_fidelity_test.go`, `internal/references/reagent_test.go`
 
 ### MIX-0002
 

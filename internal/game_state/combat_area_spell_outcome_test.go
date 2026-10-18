@@ -93,8 +93,11 @@ func TestCombatAreaEarthquakePythonOutcomesAndRNG(t *testing.T) {
 				assert.Equal(t, target, *event.SpellTarget)
 				if test.hits[index] {
 					assert.Equal(t, CombatFeedbackDamage, event.Result)
+					assert.Equal(t, ClassifyCombatMonsterInjury(10-wantDamage, 10), event.MonsterInjury.Severity)
+					assert.Equal(t, target.MonsterInjury, event.MonsterInjury)
 				} else {
 					assert.Equal(t, CombatFeedbackMiss, event.Result)
+					assert.Equal(t, CombatInjuryNone, event.MonsterInjury.Severity)
 				}
 				assert.Equal(t, roll, event.Diagnostics.Hit.D30Roll)
 				assert.Equal(t, 18, event.Diagnostics.Hit.Threshold)
@@ -162,6 +165,7 @@ func TestCombatAreaEarthquakePythonDeathAwardsXPAndPreservesRNG(t *testing.T) {
 	assert.Zero(t, python.CurrentHP())
 	assert.Equal(t, 10, result.Targets[0].HPLost)
 	assert.True(t, result.Targets[0].Fatal)
+	assert.Equal(t, CombatInjuryNone, result.Targets[0].MonsterInjury.Severity)
 	assert.True(t, result.Targets[0].Disclosed)
 	assert.Equal(t, python.CombatantID(), result.Targets[0].CombatantID)
 	assert.Equal(t, index, result.Targets[0].Target.Index)
@@ -195,6 +199,8 @@ func TestCombatAreaFlameDamageKeepsDivisionAndRNGOrder(t *testing.T) {
 	require.Equal(t, 2, state.CombatScene.MonsterManager.Count())
 	require.Len(t, callbacks.CombatEvents, 2)
 	assert.Equal(t, CombatEventSpell, callbacks.CombatEvents[0].Kind)
+	assert.Equal(t, ClassifyCombatMonsterInjury(100-damage, 100), callbacks.CombatEvents[0].MonsterInjury.Severity)
+	assert.Equal(t, result.Targets[0].MonsterInjury, callbacks.CombatEvents[0].MonsterInjury)
 	assert.Equal(t, CombatEventDivision, callbacks.CombatEvents[1].Kind)
 	child := state.CombatScene.MonsterManager.GetMonster(1)
 	assert.Equal(t, monster.CurrentHP(), child.CurrentHP())

@@ -99,7 +99,7 @@ func newOutdoorYellWorkflowScene(t *testing.T) (*GameScene, *game_state.MockSyst
 		Build()
 	scene := &GameScene{ //nolint:exhaustruct // Focused production Yell workflow fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 20, 80),
 	}
 	state.SystemCallbacks.UI.ShowYellDialogLargeMap = scene.ShowYellDialogLargeMap

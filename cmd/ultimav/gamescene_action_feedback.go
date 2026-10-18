@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	transientFeedbackLimit             = 3
+	transientFeedbackLimit             = 3 // Default for scenes without configuration (focused fixtures).
 	transientFeedbackMoveDurationMs    = int64(180)
 	transientFeedbackGapPixelUnits     = 2
 	transientFeedbackPaddingPixelUnits = 2
@@ -105,6 +105,12 @@ func (g *GameScene) admitTransientActionFeedback(dialog *widgets.MessageDialog, 
 	g.reconcileTransientActionFeedback(now, false)
 	g.retireExternallyRemovedActionFeedback()
 	g.retireStaleCombatChestFeedback()
+	if g.actionFeedbackLimit() == 0 {
+		g.clearTransientActionFeedback()
+		dialog.HideWithoutAnimation()
+
+		return
+	}
 
 	feedback := &transientActionFeedback{
 		dialog: dialog, startedAt: now, phase: transientFeedbackFadingIn,
@@ -113,10 +119,30 @@ func (g *GameScene) admitTransientActionFeedback(dialog *widgets.MessageDialog, 
 	dialog.Show()
 	g.dialogStack.PushNonBlockingDialog(dialog)
 	g.transientActionFeedback = append(g.transientActionFeedback, feedback)
-	for len(g.transientActionFeedback) > transientFeedbackLimit {
-		g.evictTransientActionFeedback(0)
-	}
 	g.layoutTransientActionFeedback(now, g.currentTransientFeedbackLayout())
+}
+
+// actionFeedbackLimit reads only the successfully applied preference. An explicit
+// zero is Off; only an absent configuration uses the historical default.
+func (g *GameScene) actionFeedbackLimit() int {
+	if g.gameConfig == nil {
+		return transientFeedbackLimit
+	}
+
+	return g.gameConfig.GetMaxVisibleActionPopups()
+}
+
+// reconcileTransientFeedbackCapacity runs independently of admission, geometry
+// changes and modal-paused lifetimes. The slice is in oldest-first arrival order.
+func (g *GameScene) reconcileTransientFeedbackCapacity() bool {
+	limit := g.actionFeedbackLimit()
+	removed := false
+	for len(g.transientActionFeedback) > limit {
+		g.evictTransientActionFeedback(0)
+		removed = true
+	}
+
+	return removed
 }
 
 func (g *GameScene) updateTransientActionFeedback() {
@@ -127,7 +153,10 @@ func (g *GameScene) updateTransientActionFeedback() {
 	g.reconcileTransientActionFeedback(now, true)
 	removed := g.retireExternallyRemovedActionFeedback()
 	removed = g.retireStaleCombatChestFeedback() || removed
+	removed = g.reconcileTransientFeedbackCapacity() || removed
 	if len(g.transientActionFeedback) == 0 {
+		g.clearTransientActionFeedback()
+
 		return
 	}
 	context := g.currentTransientFeedbackLayout()
@@ -291,9 +320,7 @@ func (feedback *transientActionFeedback) samplePosition(now int64) {
 }
 
 func (g *GameScene) layoutTransientActionFeedback(now int64, context transientFeedbackLayoutContext) {
-	for len(g.transientActionFeedback) > transientFeedbackLimit {
-		g.evictTransientActionFeedback(0)
-	}
+	g.reconcileTransientFeedbackCapacity()
 	for _, feedback := range g.transientActionFeedback {
 		feedback.samplePosition(now)
 		bounds := feedback.dialog.MeasureCompleteCard(context.screen, context.available, context.preferredCenter.X)
@@ -305,8 +332,8 @@ func (g *GameScene) layoutTransientActionFeedback(now int64, context transientFe
 		g.evictTransientActionFeedback(0)
 	}
 	if len(g.transientActionFeedback) == 0 {
-		g.transientActionFeedbackLayout = context
-		g.transientActionFeedbackLayoutSet = true
+		g.transientActionFeedbackLayout = transientFeedbackLayoutContext{}
+		g.transientActionFeedbackLayoutSet = false
 
 		return
 	}

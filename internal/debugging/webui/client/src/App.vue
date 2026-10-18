@@ -285,12 +285,17 @@ const persistentDungeonDiscoveriesSetCommandID = "redux.dungeons.persist-hidden-
 const subduedUnlitDungeonVisibilitySetCommandID = "redux.dungeons.subdued-unlit-visibility.set"
 const smoothSurfaceMovementSetCommandID = "redux.presentation.smooth-surface-movement.set"
 const flexibleSextantUseSetCommandID = "redux.navigation.flexible_sextant_use.set"
+const combatPresentationSpeedSetCommandID = "combat.presentation.speed.set"
 const reduxModificationCommandIDs = [
   repeatedMonsterDivisionSetCommandID,
   persistentDungeonDiscoveriesSetCommandID,
   subduedUnlitDungeonVisibilitySetCommandID,
   smoothSurfaceMovementSetCommandID,
   flexibleSextantUseSetCommandID,
+	combatPresentationSpeedSetCommandID,
+	"redux.saves.confirm-quick-save.set",
+	"redux.combat.health-bars.set",
+	"redux.presentation.action-popups.set",
 ]
 const guardStatusCommandID = "guards.status"
 const shadowlordStatusCommandID = "shadowlord.status"
@@ -314,7 +319,6 @@ const activeCombatKillCommandID = "combat.monster.kill"
 const activeCombatKillAllCommandID = "combat.monster.kill-all"
 const activeCombatDungeonRoomClearCommandID = "combat.dungeon-room.clear"
 const activeCombatClearCommandID = "combat.monster.clear"
-const combatPresentationSpeedSetCommandID = "combat.presentation.speed.set"
 const activeCombatMutationCommandIDs = [
 	activeCombatSleepCommandID, activeCombatExitCommandID, activeCombatSpawnCommandID, activeCombatRNGSeedSetCommandID,
 	activeCombatDamageCommandID, activeCombatKillCommandID, activeCombatKillAllCommandID,
@@ -1487,6 +1491,7 @@ function workspaceCommandDescription(command: CommandDefinition, workspace = act
 }
 
 function companionOwnerCommandID(commandID: string): string {
+	if (commandID === combatPresentationSpeedSetCommandID && selectedCommandID.value === activeCombatStatusCommandID) return activeCombatStatusCommandID
   if (loggingMutationCommandIDs.includes(commandID)) return loggingStatusCommandID
   if (commandID === windSetCommandID) return windStatusCommandID
   if ([shrineProgressCommandID, codexQuestStateSetAllCommandID].includes(commandID)) return shrineStatusCommandID
@@ -3316,6 +3321,8 @@ onBeforeUnmount(() => {
 		  />
 		  <ReduxModificationsConsole
 			v-else-if="selectedCommand.id === reduxModificationsStatusCommandID"
+			:commands="commands"
+			@mutate="(mutation) => runSpecializedMutation(mutation.commandID, mutation.argumentsByID)"
 			:data="latestReduxModificationsResult?.data ? reduxModificationsStatusData(latestReduxModificationsResult.data) : undefined"
 			:updated-at="latestReduxModificationsResult?.receivedAt"
 			:pending="reduxModificationCommandIDs.some(commandPending)"
@@ -3366,6 +3373,7 @@ onBeforeUnmount(() => {
           />
           <ActiveCombatConsole
             v-else-if="selectedCommand.id === activeCombatStatusCommandID"
+			:commands="commands"
             :data="latestActiveCombatResult?.data ? activeCombatStatusData(latestActiveCombatResult.data) : undefined"
             :updated-at="latestActiveCombatResult?.receivedAt"
             :pending="activeCombatMutationCommandIDs.some(commandPending)"
@@ -3409,7 +3417,7 @@ onBeforeUnmount(() => {
                   v-else-if="parameter.kind === 'integer'"
                   :id="`${selectedCommand.id}-${parameter.id}`"
                   type="number"
-                  step="1"
+                  :step="parameter.step ?? 1"
                   :min="parameter.minimum"
                   :max="parameter.maximum"
                   :value="draftFor(selectedCommand)[parameter.id] ?? ''"

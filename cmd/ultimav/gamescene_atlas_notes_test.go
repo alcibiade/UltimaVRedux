@@ -91,7 +91,7 @@ func TestAtlasGameReplacementRemovesExactChild(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.BritanniaUnderworld).WithSystemCallbacks().Build()
 	state.PartyState.Inventory.QuestItems.Set(references.Sextant, 1)
 	state.DateTime.Hour = 19
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0), now: func() time.Time { return time.Unix(100, 0) }}
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), now: func() time.Time { return time.Unix(100, 0) }}
 	other := &countingDialog{}
 	scene.dialogStack.PushNonBlockingDialog(other)
 	scene.openAtlas(nil)

@@ -127,7 +127,7 @@ func TestActionGetSurfaceScrollUsesReadableName(t *testing.T) {
 			}
 
 			assert.True(t, action(references.Up))
-			assert.Equal(t, []string{"Kal Xen Corp!"}, callbacks.Messages)
+			assert.Equal(t, []string{"Kal Xen Corp Scroll!"}, callbacks.Messages)
 			assert.False(t, state.ItemStacksMap.HasItemStackAtPosition(target))
 		})
 	}

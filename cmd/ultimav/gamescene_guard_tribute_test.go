@@ -381,7 +381,7 @@ func newGuardTributeFixture(
 
 	scene := &GameScene{
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 	}
 
 	return &guardTributeFixture{state: state, callbacks: callbacks, scene: scene, guard: guard}

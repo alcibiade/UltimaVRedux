@@ -115,6 +115,8 @@ func (g *GameScene) thenCastVasLor() func(*event_queue.SequentialEventBuilder) *
 // Creates 1-CreateFoodDiceSize units of food for the party.
 // Circle 2 spell, TargetAutomatic (affects party), ContextAll.
 func (g *GameScene) thenCastInXenMani() func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+	timing := g.capturePresentationTiming(g.gameState.IsInCombat())
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		foodAmount := g.gameState.CreateFood()
 
@@ -123,7 +125,7 @@ func (g *GameScene) thenCastInXenMani() func(*event_queue.SequentialEventBuilder
 			game_state.NewPartyStateBuilder(g.gameState).
 				FlashInverted().
 				WithSound(game_state.SoundCreateFood).
-				Build()).ThenSequence(
+				BuildWithPresentationTiming(timing.duration)).ThenSequence(
 
 			g.thenShowSpellSuccess(fmt.Sprintf("Created %d food!", foodAmount)))
 	}

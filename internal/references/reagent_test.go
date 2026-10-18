@@ -95,7 +95,7 @@ func TestReagentOffersReturnDefensiveCopiesAndReuseCanonicalNames(t *testing.T) 
 	assert.Equal(t, ReagentOffer{Reagent: Ginseng, BundleQuantity: 10, BasePrice: 20}, again[0])
 
 	inventoryRefs := NewInventoryItemsReferences()
-	wantNames := []string{"Ginseng", "Garlic", "Spider Silk", "Night Shade", "Mandrake Root"}
+	wantNames := []string{"Ginseng", "Garlic", "Spider Silk", "Nightshade", "Mandrake Root"}
 	for index, offer := range again {
 		assert.Equal(t, wantNames[index], inventoryRefs.Reagent[offer.Reagent].ItemName)
 	}

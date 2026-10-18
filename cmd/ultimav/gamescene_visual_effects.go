@@ -9,17 +9,20 @@ import (
 // Visual effect system implementation
 
 // playKapowAtPosition shows an explosion sprite at the specified world position.
-// Scale animates 0.5 → 1.0 → 0.5 over 1.5 seconds, centered on position.
+// Scale animates 0.5 → 1.0 → 0.5 over an authored 500ms, centered on position.
 // Used for cannon hits, combat impacts, etc.
 func (g *GameScene) playKapowAtPosition(pos references.Position) {
+	timing := g.capturePresentationTiming(g.gameState.IsInCombat())
 	effect := VisualEffect{
-		WorldPos:    &pos,
-		SpriteIndex: indexes.Explosion,
-		ScaleMin:    0.5,
-		ScaleMax:    1.0,
-		Type:        "kapow",
-		Duration:    0.5,
-		Elapsed:     0.0,
+		WorldPos:        &pos,
+		SpriteIndex:     indexes.Explosion,
+		ScaleMin:        0.5,
+		ScaleMax:        1.0,
+		Type:            "kapow",
+		Duration:        timing.seconds(500),
+		Elapsed:         0.0,
+		combatClock:     g.gameState.IsInCombat(),
+		combatStartedMs: g.gameState.ElapsedMs,
 	}
 	g.visualEffects = append(g.visualEffects, effect)
 }

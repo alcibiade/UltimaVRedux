@@ -164,7 +164,7 @@ func TestCombatSignatureTeleportPhaseBoundaries(t *testing.T) {
 		{360, combatTeleportArrival, 0.5},
 		{460, combatTeleportArrival, 1},
 	} {
-		phase, progress := combatSignatureBlink(test.elapsedMs)
+		phase, progress := (&combatSignatureEffect{}).blink(test.elapsedMs)
 		assert.Equal(t, test.phase, phase)
 		assert.InDelta(t, test.progress, progress, 0.001)
 	}

@@ -70,6 +70,9 @@ func (g *GameScene) beginTransientCommandInputFrame() bool {
 // captureTransientCommandInput runs only after reader shortcuts have had their
 // opportunity, but before wind/queues can turn a blocked sample into ready input.
 func (g *GameScene) captureTransientCommandInput() {
+	if g.quickLoadChordHeld {
+		return
+	}
 	if g.transientInputOwnedElsewhere() {
 		g.clearPendingCombatCommand()
 

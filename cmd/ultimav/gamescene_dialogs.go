@@ -71,6 +71,7 @@ type spellCastingWorkflowState struct {
 	commitSequence                uint64
 	castOrigin                    references.PlayerLocation
 	combatCaster                  game_state.CombatTurnIdentity
+	combatTiming                  combatPresentationTiming
 }
 
 const castFailureDialogDurationMs = 2000
@@ -456,10 +457,18 @@ func (g *GameScene) commitWorkflowSpell(state *spellCastingWorkflowState) game_s
 		return game_state.SpellValidationResult{ErrorMsg: "Casting context changed!"}
 	}
 
+	state.combatTiming = g.capturePresentationTiming(state.ownsCombatAction)
+	defer g.combatTimingScope(state.combatTiming)()
+
 	return g.gameState.ValidateAndConsumeSpellResources(state.pendingRequest)
 }
 
 func (g *GameScene) finishSpellCastingWorkflow(state *spellCastingWorkflowState) {
+	if state.ownsCombatAction {
+		g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
+		g.gameState.SystemCallbacks.Visual.SetScreenInvert(0, 0)
+		g.gameState.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
+	}
 	if state.mixSession != nil {
 		g.cleanupSpellMixSession(state.mixSession)
 	}
@@ -580,6 +589,7 @@ func (g *GameScene) dispatchSpellEffect(
 	request game_state.CastRequest,
 	state *spellCastingWorkflowState,
 ) {
+	defer g.combatTimingScope(state.combatTiming)()
 	//nolint:exhaustive // Context validation routes combat-only spells elsewhere; unsupported consumed spells panic.
 	switch request.Spell {
 	// Self-target spells
@@ -1126,7 +1136,7 @@ func (g *GameScene) updateTimedOverlay() {
 //
 // Features:
 //   - 400ms fade-in, 1600ms hold, and 300ms fade-out
-//   - At most three measured cards in a newest-first animated stack
+//   - The applied 0–3 popup limit bounds a shared newest-first action/Search stack
 //   - Never blocks input: game continues normally while popup displays
 //
 // Parameters:
@@ -1144,11 +1154,21 @@ func (g *GameScene) ShowActionFeedback(message string, alsoAddToOutput bool) {
 		g.output.AddText(message)
 	}
 
+	if g.actionFeedbackLimit() == 0 {
+		g.clearTransientActionFeedback()
+
+		return
+	}
 	g.showTransientActionFeedback(widgets.NewActionFeedbackDialog(message, g.actionFeedbackPosition()))
 }
 
 // ShowSearchFeedback displays the complete Search result without duplicating output-pane text.
 func (g *GameScene) ShowSearchFeedback(message string) {
+	if g.actionFeedbackLimit() == 0 {
+		g.clearTransientActionFeedback()
+
+		return
+	}
 	g.showTransientActionFeedback(widgets.NewSearchFeedbackDialog(message, g.actionFeedbackPosition()))
 }
 

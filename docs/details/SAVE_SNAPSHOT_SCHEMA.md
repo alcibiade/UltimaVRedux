@@ -1162,10 +1162,36 @@ Check Again and Back actions.
 The workflow removes its exact editor and browser before snapshot capture so
 the scene is representable. Failed capture/write reopens the browser with the
 reviewed slot, draft, and error notice; success leaves it closed. Transient UI
-never enters durable state. Quick Save stays prompt-free and preserves the last
-committed note, including an intentionally cleared one. Escape-menu Quick Save
-opens selection without slot provenance; the existing Quit/save command instead
-reports the missing-slot failure.
+never enters durable state. Quick Save preserves the last committed note,
+including an intentionally cleared one. Escape-menu Quick Save remains
+prompt-free and opens selection without slot provenance.
+
+The **Q** command always uses the active player slot/revision established by the
+last successful player-slot save/load in this scene. **Confirm Quick Save** defaults
+On: Q asks `Save game?` (Y/N/Escape) and acknowledges success. Off performs the save
+immediately and reports success in normal output without another key press. Both
+settings show acknowledged errors; absent provenance explains that a player slot
+must first be saved or loaded. Neither path changes the description or chooses a
+slot automatically. Surface capture runs before surface command routing owns a
+cycle. Dungeon Q completes its accepted precharged command-only token exactly
+once before capture, retaining the Quickness phase without a full end-player
+pass. Existing snapshot eligibility and optimistic revision protection remain
+mandatory; combat Q cannot save.
+
+**Ctrl+Q** directly reloads that same active slot and stored reviewed revision,
+independent of the Q preference, without confirmation, slot selection, outgoing
+save, or rollback capture. This Redux shortcut is available at normal exploration
+input and player-controlled combat turns, including controlled monsters. Input
+owners such as enemy actions, targeting, readers, modals and workflows block it;
+incidental damage labels/action cards do not. Blocked/held chords are suppressed
+through release, never deferred or interpreted as Q. Loading itself charges no
+turn/time/resource/RNG. The canonical native loader constructs, preflights and
+activates a dormant candidate before retiring the old scene, then publishes the
+replacement and reports success there. Old finalizers run before publication.
+Failures report in normal output and retain the old scene/generation, source input
+and active provenance; changed, missing,
+corrupt or incompatible checkpoints require ordinary reviewed Load instead of
+silently adopting a new revision. No snapshot schema/version change is involved.
 
 Rows use `Slot N`, Avatar, and a secondary note when measured space permits;
 Details retains the full wrapped note. Main title and DETAILS use the Z-Stats

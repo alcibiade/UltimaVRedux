@@ -4521,6 +4521,7 @@ function activeCombatCompletion(requestId: string, fingerprint: string, asleep: 
 		activeMonsterCount: 1, activeHostileMonsterCount: 1, totalMonsterCount: 1,
 		fixedDungeonRoom, ...(fixedDungeonRoom ? { dungeonIndex: 0, dungeonRoom: 10 } : {}),
 		defeatedExperience: 0, rngSeed: 41, workflowActive: false,
+		presentationSpeedPercent: 100, configurationEditing: false,
   })
 }
 

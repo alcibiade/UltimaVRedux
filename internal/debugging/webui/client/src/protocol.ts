@@ -27,6 +27,7 @@ export interface ParameterDefinition {
   default?: unknown
   minimum?: number
   maximum?: number
+	step?: number
   pattern?: string
   choices?: Choice[]
   optionsProvider?: string

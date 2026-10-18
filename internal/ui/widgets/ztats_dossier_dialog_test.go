@@ -2,17 +2,21 @@ package widgets
 
 import (
 	"image"
+	stdcolor "image/color"
 	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/internal/text"
 	pkgcolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
@@ -609,7 +613,7 @@ func TestZStatsDossierDialogArmoryNamesAndSpellCounts(t *testing.T) {
 	dialog.switchTab(ZStatsDossierArmoryTab)
 	dialog.prepareListRow(rowRect, 0, false)
 	armoryRow := dialog.rowOutput.GetOutputStr(false)
-	require.Contains(t, armoryRow, references.LongSword.ShortString())
+	require.Contains(t, armoryRow, references.LongSword.String())
 	require.NotContains(t, armoryRow, "(")
 
 	dialog.switchTab(ZStatsDossierSpellsTab)
@@ -765,7 +769,8 @@ func testZStatsDossier() game_state.ZStatsDossier {
 		},
 		Items: []game_state.ZStatsOwnedItem{
 			{ID: 1, SpriteIndex: indexes.SpriteIndex(437), Category: "Quest Item", Name: "Crown", Quantity: 1, Description: "An artifact"},
-			{ID: 2, SpriteIndex: indexes.SpriteIndex(281), Category: "Moonstone", Name: "Blue Moonstone", Quantity: 1, Description: "A moonstone"},
+			{ID: 2, SpriteIndex: indexes.SpriteIndex(281), Category: "Moonstone", Name: "Blue Moonstone", Quantity: 1, Description: "A moonstone",
+				MoonPhase: game_state.ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhaseFirstQuarter}},
 			{ID: 3, Category: "Quest Item", Name: "Unowned", Quantity: 0},
 			{ID: 4, Category: "Other", Name: "Ordinary", Quantity: 1},
 		},
@@ -780,5 +785,150 @@ func testZStatsEquipment() []game_state.ZStatsEquippedItem {
 		{Slot: "Shield", ItemID: references.SmallShield.ID(), Name: "Small Shield", Category: "Shield", StrengthRequired: 2},
 		{Slot: "Ring", ItemID: references.RingProtection.ID(), Name: "Ring of Protection", Category: "Ring"},
 		{Slot: "Amulet", ItemID: references.AmuletOfTurning.ID(), Name: "Amulet of Turning", Category: "Amulet"},
+	}
+}
+
+func TestZStatsMoonstonePixelsUseIntegerPhaseArtAndSelectionContrast(t *testing.T) {
+	for _, size := range []image.Point{{320, 200}, {1280, 720}, {2560, 1440}} {
+		t.Run(size.String(), func(t *testing.T) {
+			setZStatsTestResolution(t, size.X, size.Y)
+			dossier := testZStatsDossier()
+			dossier.Items = dossier.Items[1:2]
+			dialog := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
+			t.Cleanup(dialog.outerBorder.Dispose)
+			dialog.switchTab(ZStatsDossierItemsTab)
+			row := dialog.panelBodyRect(dialog.layout.globalListRect)
+			row.Max.Y = row.Min.Y + dialog.listRowHeight(dialog.layout.globalListRect)
+			for _, selected := range []bool{false, true} {
+				foreground := DialogItemNameColor
+				var background stdcolor.Color = pkgcolor.DialogBackground.RGBA()
+				if selected {
+					foreground, background = DialogSelectedText, DialogSelectedBackground
+				}
+				counts := make([]int, 8)
+				for phase := datetime.MoonPhaseNew; phase <= datetime.MoonPhaseCrescentWaning; phase++ {
+					dialog.dossier.Items[0].MoonPhase.Phase = phase
+					screen := ebiten.NewImageWithOptions(row, nil)
+					screen.Fill(background)
+					dialog.drawListRow(screen, row, 0, selected)
+					left := row.Min.X + dialog.layout.padding
+					glyph := image.Rect(left, row.Min.Y, left+dialog.rowIconWidth, row.Min.Y+dialog.rowIconWidth)
+					counts[phase] = requireZStatsIntegerPhasePixels(t, screen, glyph, phase, foreground, background)
+					screen.Dispose()
+				}
+				require.Positive(t, counts[0], "New Moon outline is visible, selected=%v", selected)
+				require.Greater(t, counts[4], counts[0], "Full Moon is filled, selected=%v", selected)
+			}
+			for phase := datetime.MoonPhaseNew; phase <= datetime.MoonPhaseCrescentWaning; phase++ {
+				dialog.dossier.Items[0].MoonPhase.Phase = phase
+				prepared := dialog.prepareItemDetail(dialog.layout.globalDetailRect)
+				screen := ebiten.NewImageWithOptions(dialog.layout.globalDetailRect, nil)
+				screen.Fill(pkgcolor.DialogBackground.RGBA())
+				dialog.drawItemDetail(screen, dialog.layout.globalDetailRect)
+				glyph := prepared.phaseIcon.Inset(dialog.pixelUnit() * zStatsDossierPortraitInsetUnits)
+				requireZStatsIntegerPhasePixels(t, screen, glyph, phase, DialogHeaderColor, pkgcolor.DialogBackground.RGBA())
+				screen.Dispose()
+			}
+		})
+	}
+}
+
+// Compare the actual list/detail renderer against a native 8x8 phase cell. Each
+// source pixel must expand into an identical whole-number square, including the
+// background holes that make New Moon's outline distinct from Full Moon.
+func requireZStatsIntegerPhasePixels(
+	t *testing.T, screen *ebiten.Image, glyph image.Rectangle, phase datetime.MoonPhase,
+	foreground, background stdcolor.Color,
+) int {
+	t.Helper()
+	require.Equal(t, glyph.Dx(), glyph.Dy())
+	require.Zero(t, glyph.Dx()%text.BitmapCharWidth)
+	scale := glyph.Dx() / text.BitmapCharWidth
+	require.Positive(t, scale)
+	baseline := ebiten.NewImage(text.BitmapCharWidth, text.BitmapCharHeight)
+	defer baseline.Dispose()
+	baseline.Fill(background)
+	output := text.NewOutput(text.NewUltimaFont(8), 8, 1, 1)
+	output.AppendLine().RunicWithColor(string(rune(0x30+phase)), foreground).Done()
+	output.DrawPanelContent(baseline, image.Point{}, 8, etext.AlignStart)
+	count := 0
+	for y := range text.BitmapCharHeight {
+		for x := range text.BitmapCharWidth {
+			expected := baseline.At(x, y)
+			r, g, b, a := expected.RGBA()
+			fr, fg, fb, fa := foreground.RGBA()
+			if r == fr && g == fg && b == fb && a == fa {
+				count++
+			}
+			for dy := range scale {
+				for dx := range scale {
+					requireColorRGBA(t, expected, screen.At(glyph.Min.X+x*scale+dx, glyph.Min.Y+y*scale+dy))
+				}
+			}
+		}
+	}
+	return count
+}
+
+func TestZStatsMoonstoneLorePagingKeepsFullCompactHeading(t *testing.T) {
+	setZStatsTestResolution(t, 1280, 720)
+	dossier := testZStatsDossier()
+	dossier.Items = dossier.Items[1:2]
+	dossier.Items[0].Name = references.NewInventoryItemsReferences().GetReferenceByItem(references.CrescentWaning).FullDisplayName()
+	dossier.Items[0].MoonPhase.Phase = datetime.MoonPhaseCrescentWaning
+	dossier.Items[0].Description = strings.Repeat("Preserved moonstone lore. ", 100)
+	keyboard := newWidgetTestKeyboard(0)
+	dialog := newTestZStatsDossierDialog(dossier, keyboard)
+	t.Cleanup(dialog.outerBorder.Dispose)
+	dialog.switchTab(ZStatsDossierItemsTab)
+	prepared := dialog.prepareItemDetail(dialog.layout.globalDetailRect)
+	summary := dialog.summaryOutput.GetOutputStr(false)
+	require.Contains(t, summary, dossier.Items[0].Name)
+	require.Greater(t, dialog.detailPageCount(), 1)
+	screen := ebiten.NewImageWithOptions(dialog.layout.globalDetailRect, nil)
+	t.Cleanup(screen.Dispose)
+	dialog.drawItemDetail(screen, dialog.layout.globalDetailRect)
+	header := prepared.phaseIcon.Union(prepared.summary)
+	before := make([]byte, header.Dx()*header.Dy()*4)
+	screen.SubImage(header).(*ebiten.Image).ReadPixels(before)
+	pages := dialog.detailPageCount()
+	for page := 1; page < pages; page++ {
+		pressZStatsDossierKey(dialog, keyboard, ebiten.KeySpace)
+		screen.Clear()
+		dialog.drawItemDetail(screen, dialog.layout.globalDetailRect)
+		require.Equal(t, page, dialog.detailPage)
+		require.Equal(t, summary, dialog.summaryOutput.GetOutputStr(false))
+		after := make([]byte, len(before))
+		screen.SubImage(header).(*ebiten.Image).ReadPixels(after)
+		require.Equal(t, before, after, "paging lore must retain the compact phase header")
+	}
+	pressZStatsDossierKey(dialog, keyboard, ebiten.KeySpace)
+	require.Zero(t, dialog.detailPage)
+}
+
+func TestZStatsMoonstoneBypassesSpriteWhileQuestPortraitStillDraws(t *testing.T) {
+	setZStatsTestResolution(t, 1280, 720)
+	configuration := testZStatsDossierConfig(newWidgetTestKeyboard(0))
+	sheet := ebiten.NewImage(512, 256)
+	t.Cleanup(sheet.Dispose)
+	sheet.Fill(pkgcolor.EGALightGreen)
+	configuration.SpriteSheet = &sprites.SpriteSheet{SpriteImage: sheet}
+	dialog := NewZStatsDossierDialog(testZStatsDossier(), configuration)
+	t.Cleanup(dialog.outerBorder.Dispose)
+	dialog.switchTab(ZStatsDossierItemsTab)
+	screen := ebiten.NewImageWithOptions(dialog.layout.globalDetailRect, nil)
+	t.Cleanup(screen.Dispose)
+	dialog.drawItemDetail(screen, dialog.layout.globalDetailRect)
+	prepared := dialog.prepareItemDetail(dialog.layout.globalDetailRect)
+	requireImageRegionContainsColor(t, screen, prepared.portrait, pkgcolor.EGALightGreen)
+	dialog.setCurrentSelection(1)
+	screen.Clear()
+	dialog.drawItemDetail(screen, dialog.layout.globalDetailRect)
+	prepared = dialog.prepareItemDetail(dialog.layout.globalDetailRect)
+	require.True(t, prepared.portrait.Empty())
+	for y := prepared.phaseIcon.Min.Y; y < prepared.phaseIcon.Max.Y; y++ {
+		for x := prepared.phaseIcon.Min.X; x < prepared.phaseIcon.Max.X; x++ {
+			requireColorNotRGBA(t, pkgcolor.EGALightGreen, screen.At(x, y))
+		}
 	}
 }

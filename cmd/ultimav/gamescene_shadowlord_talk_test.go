@@ -251,7 +251,7 @@ func newFaulineiNormalTalkFixture(t *testing.T) *merchantTalkFixture {
 	state.PartyState.Inventory.Provisions.Gems.Set(0)
 	state.PartyState.Inventory.Provisions.Torches.Set(0)
 	direction := placePlayerNextToMerchant(state, npc)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)}
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	return &merchantTalkFixture{
 		state: state, callbacks: callbacks, scene: scene, npc: npc, direction: direction,

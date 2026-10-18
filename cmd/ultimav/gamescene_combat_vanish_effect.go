@@ -11,7 +11,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 )
 
-const combatVanishDurationSeconds = 0.75
+const combatVanishDurationMs = 750
 
 // combatVanishEffect is presentation-only FIZZ feedback for an already removed monster.
 type combatVanishEffect struct {
@@ -19,8 +19,10 @@ type combatVanishEffect struct {
 	Index       int
 	Position    references.Position
 	SpriteIndex indexes.SpriteIndex
+	StartedMs   int64
 	Elapsed     float64
 	Dissolve    DissolveEffectState
+	timing      combatPresentationTiming
 }
 
 func (g *GameScene) showCombatVanishEffect(event game_state.CombatEvent) {
@@ -43,6 +45,8 @@ func (g *GameScene) showCombatVanishEffect(event game_state.CombatEvent) {
 		return
 	}
 	effect := combatVanishEffect{
+		StartedMs:   g.gameState.ElapsedMs,
+		timing:      g.captureCombatTiming(),
 		CombatantID: vanished.CombatantID,
 		Index:       vanished.Index,
 		Position:    vanished.Position,
@@ -65,7 +69,7 @@ func combatVanishSeed(vanished game_state.CombatVanishedMonster) uint64 {
 	return presentationMix64(value)
 }
 
-func (g *GameScene) updateCombatVanishEffects(deltaSeconds float64) {
+func (g *GameScene) updateCombatVanishEffects(_ float64) {
 	if g.gameState == nil || !g.gameState.IsInCombat() {
 		g.clearCombatVanishEffects()
 
@@ -74,10 +78,10 @@ func (g *GameScene) updateCombatVanishEffects(deltaSeconds float64) {
 	writeIndex := 0
 	for index := range g.combatVanishEffects {
 		effect := &g.combatVanishEffects[index]
-		effect.Elapsed += deltaSeconds
-		progress := min(effect.Elapsed/combatVanishDurationSeconds, 1)
+		effect.Elapsed = float64(max(g.gameState.ElapsedMs-effect.StartedMs, 0)) / 1000
+		progress := min(effect.Elapsed/effect.timing.seconds(combatVanishDurationMs), 1)
 		effect.Dissolve.UpdateProgress(progress)
-		if effect.Elapsed >= combatVanishDurationSeconds {
+		if effect.Elapsed >= effect.timing.seconds(combatVanishDurationMs) {
 			effect.Dissolve.Cleanup()
 
 			continue

@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	combatDivisionTetherDurationSeconds = 0.28
-	combatDivisionDurationSeconds       = 0.72
+	combatDivisionTetherDurationMs      = 280
+	combatDivisionDurationMs            = 720
+	combatDivisionTetherDurationSeconds = float64(combatDivisionTetherDurationMs) / 1000
 	combatDivisionBudSourcePixels       = 3.0
 	combatDivisionTetherShadowPixels    = 2.0
 	combatDivisionTetherFacePixels      = 1.0
@@ -22,17 +23,21 @@ const (
 type CombatDivisionEffect struct {
 	ParentIndex, ChildIndex       int
 	ParentPosition, ChildPosition references.Position
+	StartedMs                     int64
 	Elapsed                       float64
+	timing                        combatPresentationTiming
 }
 
 func (g *GameScene) showCombatDivisionEffect(event game_state.CombatEvent) {
 	g.combatDivisionEffects = append(g.combatDivisionEffects, CombatDivisionEffect{
+		StartedMs:   g.gameState.ElapsedMs,
+		timing:      g.captureCombatTiming(),
 		ParentIndex: event.Attacker.Index, ChildIndex: event.Target.Index,
 		ParentPosition: event.From, ChildPosition: event.To,
 	})
 }
 
-func (g *GameScene) updateCombatDivisionEffects(deltaSeconds float64) {
+func (g *GameScene) updateCombatDivisionEffects(_ float64) {
 	if !g.gameState.IsInCombat() {
 		g.combatDivisionEffects = g.combatDivisionEffects[:0]
 
@@ -41,8 +46,8 @@ func (g *GameScene) updateCombatDivisionEffects(deltaSeconds float64) {
 	writeIndex := 0
 	for index := range g.combatDivisionEffects {
 		effect := &g.combatDivisionEffects[index]
-		effect.Elapsed += deltaSeconds
-		if effect.Elapsed >= combatDivisionDurationSeconds {
+		effect.Elapsed = float64(max(g.gameState.ElapsedMs-effect.StartedMs, 0)) / 1000
+		if effect.Elapsed >= effect.timing.seconds(combatDivisionDurationMs) {
 			continue
 		}
 		g.combatDivisionEffects[writeIndex] = *effect
@@ -54,11 +59,11 @@ func (g *GameScene) updateCombatDivisionEffects(deltaSeconds float64) {
 func (g *GameScene) combatDivisionChildOutlinePhase(monsterIndex int) (int, bool) {
 	for index := len(g.combatDivisionEffects) - 1; index >= 0; index-- {
 		effect := g.combatDivisionEffects[index]
-		if effect.ChildIndex != monsterIndex || effect.Elapsed < combatDivisionTetherDurationSeconds {
+		if effect.ChildIndex != monsterIndex || effect.Elapsed < effect.timing.seconds(combatDivisionTetherDurationMs) {
 			continue
 		}
 
-		return int(effect.Elapsed*1000/combatDivisionOutlineIntervalMs) % 2, true
+		return int(effect.Elapsed*1000/float64(effect.timing.durationMs(combatDivisionOutlineIntervalMs))) % 2, true
 	}
 
 	return 0, false
@@ -67,7 +72,7 @@ func (g *GameScene) combatDivisionChildOutlinePhase(monsterIndex int) (int, bool
 func (g *GameScene) drawCombatDivisionEffects(screen *ebiten.Image) {
 	for index := range g.combatDivisionEffects {
 		effect := g.combatDivisionEffects[index]
-		if effect.Elapsed >= combatDivisionTetherDurationSeconds {
+		if effect.Elapsed >= effect.timing.seconds(combatDivisionTetherDurationMs) {
 			continue
 		}
 		if !g.gameState.CombatTerrainAllowsObjectDisplay(effect.ParentPosition) ||
@@ -87,7 +92,7 @@ func (g *GameScene) drawCombatDivisionTether(screen *ebiten.Image, effect Combat
 	childX, childY := childOptions.GeoM.Apply(
 		combatEntityCenterSourcePixels, combatEntityCenterSourcePixels,
 	)
-	progress := effect.Elapsed / combatDivisionTetherDurationSeconds
+	progress := effect.Elapsed / effect.timing.seconds(combatDivisionTetherDurationMs)
 	headX := parentX + (childX-parentX)*progress
 	headY := parentY + (childY-parentY)*progress
 	scale := combatActivePCSourcePixelScale(parentOptions)

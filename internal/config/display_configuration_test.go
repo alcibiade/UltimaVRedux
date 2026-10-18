@@ -154,7 +154,7 @@ func TestSaveConfigurationSettingsPreservesDisplayWhenLegacyCallerOmitsIt(t *tes
 	}
 	configuration.DisplayConfiguration = displayConfiguration
 
-	require.NoError(t, configuration.SaveConfigurationSettings(ConfigurationSettings{}))
+	require.NoError(t, configuration.SaveConfigurationSettings(ConfigurationSettings{Gameplay: *DefaultGameplayConfiguration()}))
 	assert.Equal(t, DisplayConfiguration{
 		Mode:              ModeMaximized,
 		WindowWidth:       1700,

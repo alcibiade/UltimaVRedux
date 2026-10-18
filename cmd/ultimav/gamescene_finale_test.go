@@ -140,7 +140,7 @@ func TestLordBritishFinaleNonMissingBoxFailureDoesNotOfferRecovery(t *testing.T)
 	presentation.mode = finaleFailureScreen
 	presentation.recoveryOffered = false
 	presentation.dialog.SetControlHint("Any key: Return to Main Menu")
-	scene.keyboard = input.NewKeyboard(0)
+	scene.keyboard = input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
 
 	assert.Equal(t, finaleFailureScreen, presentation.mode)
 	assert.False(t, presentation.recoveryOffered)

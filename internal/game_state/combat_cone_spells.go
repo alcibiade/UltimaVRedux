@@ -109,6 +109,7 @@ func (g *GameState) applyCombatInFlamHurToTarget(casterIdx int, target CombatTur
 		monster.TakeDamage(finalDamage)
 		hpLost := hpBefore - monster.CurrentHP()
 		result.HPLost, result.Fatal = hpLost, monster.IsDead()
+		result.MonsterInjury = g.captureCombatMonsterInjury(target, hpLost)
 		result = g.publishCombatWindDamageResult(references.InFlamHur, CombatHitResult{}, casterIdx, result, damage, finalDamage)
 		if hpBefore > 0 && monster.IsDead() {
 			g.finalizeCombatMonsterDeath(monster, monsterIdx, g.PartyState.GetCharacter(casterIdx), casterIdx)
@@ -202,6 +203,7 @@ func (g *GameState) applyCombatPoisonWindToxify(casterIdx int, target CombatTurn
 		hpBefore := monster.CurrentHP()
 		monster.TakeDamage(finalDamage)
 		hpLost, fatal = hpBefore-monster.CurrentHP(), monster.IsDead()
+		result.MonsterInjury = g.captureCombatMonsterInjury(target, hpLost)
 	}
 	result.HPLost, result.Fatal = hpLost, fatal
 	result = g.publishCombatWindDamageResult(references.InNoxHur, hit, casterIdx, result, damage, finalDamage)

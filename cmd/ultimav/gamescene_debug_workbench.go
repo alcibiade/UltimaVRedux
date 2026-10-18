@@ -64,6 +64,7 @@ var (
 	errInvalidDebugCharacterSelection = errors.New("invalid debug character selection")
 )
 
+//nolint:interfacebloat // This adapter seam groups the existing Workbench state operations and their shared test doubles.
 type debugWorkbenchState interface {
 	GetCurrentWind() environment.WindDirection
 	SetWindDirection(direction environment.WindDirection, immediate bool)
@@ -553,6 +554,7 @@ func (g *GameScene) PreserveScenarioAvatarName(name string) error {
 	return nil
 }
 
+//nolint:maintidx // Explicit command dispatch keeps each stable wire ID adjacent to its authority call and result mapping.
 func executeDebugCommand(gameState debugWorkbenchState, request debugging.Request) debugging.Result {
 	switch request.CommandID {
 	case debugging.CommandEnvironmentWindStatus:
@@ -1401,8 +1403,8 @@ func debugQuestItemName(state *game_state.GameState, item references.QuestItem) 
 	}
 	names := []string{
 		"Amulet of Lord British", "Crown of Lord British", "Sceptre of Lord British", "Shard of Falsehood",
-		"Shard of Hatred", "Shard of Cowardice", "Magic Carpet", "Grapple", "Spyglass", "HMS Cape Plans",
-		"Pocket Watch", "Black Badge", "Wooden Box", "Sextant",
+		"Shard of Hatred", "Shard of Cowardice", "Magic Carpet", "Grapple", "Spyglass", "H.M.S. Cape Plans",
+		"Pocket Watch", "Black Badge", "Sandalwood Box", "Sextant",
 	}
 
 	return names[item]

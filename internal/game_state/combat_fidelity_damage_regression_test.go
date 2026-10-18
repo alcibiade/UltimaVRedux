@@ -96,7 +96,12 @@ func TestCombatDirectFieldDamageAppliesMagicalMonsterProtectionOnce(t *testing.T
 			)
 			hpBefore := target.CurrentHP()
 			experienceBefore := state.PartyState.GetAvatar().Exp
-			state.SetRandomSeed(seedForExactCombatDraws(t, test.ranges, test.values))
+			seed := seedForExactCombatDraws(t, test.ranges, test.values)
+			state.SetRandomSeed(seed)
+			oracle := deterministic_random.New(seed)
+			for index, maximum := range test.ranges {
+				require.Equal(t, test.values[index], oracle.Intn(maximum))
+			}
 			callsBefore := state.GetRNG().Calls()
 			callbacks.Reset()
 			installSyntheticPendingFieldSpell(state, test.spell, target.Position())
@@ -106,23 +111,28 @@ func TestCombatDirectFieldDamageAppliesMagicalMonsterProtectionOnce(t *testing.T
 			assert.Equal(t, hpBefore-test.expectedDamage, target.CurrentHP())
 			assert.Equal(t, experienceBefore, state.PartyState.GetAvatar().Exp)
 			assert.Equal(t, callsBefore+test.expectedCalls, state.GetRNG().Calls())
+			assert.Equal(t, oracle.Intn(1000000), state.GetRNG().Intn(1000000), "field reporting preserves the next gameplay draw")
 			assert.Len(t, state.CombatScene.Fields(), 1)
-			resultKind := CombatEventAttack
+			require.Len(t, callbacks.CombatEvents, 2, "one creation and one resolved field result, without duplicate attack narration")
+			assert.Equal(t, CombatEventFieldCreated, callbacks.CombatEvents[0].Kind)
+			assert.Zero(t, countCombatEvents(callbacks.CombatEvents, CombatEventAttack))
 			if test.spell == references.InFlamGrav {
-				resultKind = CombatEventFieldTriggered
 				assert.Empty(t, callbacks.CombatImpactCalls, "direct fire has only its field-event presentation owner")
-				assert.Zero(t, countCombatEvents(callbacks.CombatEvents, CombatEventAttack))
+			} else {
+				require.Len(t, callbacks.CombatImpactCalls, 1, "direct poison retains one floating damage callback")
+				impact := callbacks.CombatImpactCalls[0].Feedback
+				assert.Equal(t, targetIndex, impact.Target.Index)
+				assert.Equal(t, test.expectedDamage, impact.HPLost)
+				assert.False(t, impact.Fatal)
+				assert.Equal(t, CombatAttackDeliveryEnvironmental, impact.Presentation.Delivery)
 			}
-			var resultEvent *CombatEvent
-			for index := range callbacks.CombatEvents {
-				if callbacks.CombatEvents[index].Kind == resultKind {
-					resultEvent = &callbacks.CombatEvents[index]
-					break
-				}
-			}
-			require.NotNil(t, resultEvent)
-			assert.Equal(t, 1, countCombatEvents(callbacks.CombatEvents, resultKind))
+			resultEvent := callbacks.CombatEvents[1]
+			require.Equal(t, CombatEventFieldTriggered, resultEvent.Kind)
+			assert.Equal(t, 1, countCombatEvents(callbacks.CombatEvents, CombatEventFieldTriggered))
+			assert.Equal(t, combatFieldKindForSpell(test.spell), resultEvent.FieldKind)
 			assert.Equal(t, targetIndex, resultEvent.Target.Index)
+			assert.Equal(t, test.spell, resultEvent.Diagnostics.Spell)
+			assert.False(t, resultEvent.Fatal)
 			if test.spell == references.InFlamGrav {
 				assert.Equal(t, test.rawDamage, resultEvent.Diagnostics.Damage.Damage)
 				assert.Equal(t, test.values[0]+1, resultEvent.Diagnostics.Damage.AttackRoll)
@@ -131,15 +141,22 @@ func TestCombatDirectFieldDamageAppliesMagicalMonsterProtectionOnce(t *testing.T
 				if len(test.values) > 1 {
 					assert.Equal(t, test.values[1]+1, resultEvent.Diagnostics.Damage.ArmorRoll)
 				}
-				assert.Equal(t, test.spell, resultEvent.Diagnostics.Spell)
 				require.NotNil(t, resultEvent.FireInjury)
 				assert.Equal(t, test.expectedDamage, resultEvent.FireInjury.HPLost)
+			} else {
+				assert.Nil(t, resultEvent.FireInjury, "poison's floating callback must not gain a second fire-impact owner")
 			}
 			assert.Equal(t, test.expectedDamage, resultEvent.Diagnostics.FinalDamage)
 			assert.Equal(t, test.undead, resultEvent.Diagnostics.TargetUndead)
 			assert.Equal(t, test.immortal, resultEvent.Diagnostics.TargetImmortal)
 			assert.True(t, resultEvent.Diagnostics.MagicDamage)
 			assert.Equal(t, test.expectedDamage, resultEvent.HPLost)
+			if test.immortal {
+				assert.Equal(t, CombatInjuryNone, resultEvent.MonsterInjury.Severity, "zero-loss immunity must not fabricate injury text")
+			} else {
+				assert.Equal(t, ClassifyCombatMonsterInjury(hpBefore-test.expectedDamage, target.MaxHP()), resultEvent.MonsterInjury.Severity)
+				assert.Equal(t, target.CombatantID(), resultEvent.MonsterInjury.CombatantID)
+			}
 		})
 	}
 }

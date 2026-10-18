@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -76,7 +75,7 @@ func TestScheduledBatPacingProductionQueueBoundaries(t *testing.T) {
 		changeSpeed bool
 		fleeing     bool
 	}{
-		{"bat quarter", references.MonsterBat, 0.25, 300, 700, false, false},
+		{"bat half", references.MonsterBat, 0.5, 150, 350, false, false},
 		{"bat normal", references.MonsterBat, 1, 75, 175, false, false},
 		{"mongbat double", references.MonsterMongbat, 2, 38, 88, false, false},
 		{"mongbat quadruple", references.MonsterMongbat, 4, 19, 44, false, false},
@@ -90,16 +89,14 @@ func TestScheduledBatPacingProductionQueueBoundaries(t *testing.T) {
 			state := scene.gameState
 			state.CombatScene.MonsterManager.GetMonster(step.Actor.EntityIndex).SetFleeing(test.fleeing)
 			state.SetRandomSeed(42)
-			scene.gameConfig = &config.UltimaVConfiguration{
-				DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: test.factor},
-			}
+			setCombatTimingTestRate(scene, test.factor)
 			const startMs int64 = 900
 			state.ElapsedMs = startMs
 			before := snapshotBlockedCombatState(t, state)
 			from := state.CombatScene.GetCombatantPosition(step.Actor)
 			scene.startScheduledMonsterTurn(step)
 			if test.changeSpeed {
-				require.True(t, scene.gameConfig.DebugConfiguration.SetCombatMovementSpeedFactor(4))
+				scene.gameConfig.GameplayConfiguration.CombatSpeedFactor = 4
 			}
 			for _, age := range []int64{0, test.anticipate / 2, test.anticipate - 1} {
 				drainCombatPacingAt(scene, startMs+age)
@@ -149,9 +146,17 @@ func TestScheduledBatPacingProductionQueueBoundaries(t *testing.T) {
 }
 
 func TestScheduledBatPacingIdleAndBlockedCompleteAtAnticipation(t *testing.T) {
+	for _, rate := range combatTimingTestRates() {
+		t.Run(fmt.Sprint(rate), func(t *testing.T) { testScheduledBatIdleAndBlockedAtRate(t, rate) })
+	}
+}
+
+func testScheduledBatIdleAndBlockedAtRate(t *testing.T, rate float64) {
 	for _, blocked := range []bool{false, true} {
 		t.Run(fmt.Sprintf("blocked=%t", blocked), func(t *testing.T) {
 			scene, callbacks, step := newScheduledProjectileTestScene(t, references.MonsterBat, 6)
+			setCombatTimingTestRate(scene, rate)
+			anticipation := newCombatPresentationTiming(rate).durationMs(75)
 			state := scene.gameState
 			monster := state.CombatScene.MonsterManager.GetMonster(step.Actor.EntityIndex)
 			from := monster.Position()
@@ -172,9 +177,9 @@ func TestScheduledBatPacingIdleAndBlockedCompleteAtAnticipation(t *testing.T) {
 			state.ElapsedMs = 900
 			scene.startScheduledMonsterTurn(step)
 			drainCombatPacingAt(scene, 900)
-			drainCombatPacingAt(scene, 974)
+			drainCombatPacingAt(scene, 900+anticipation-1)
 			require.True(t, callbacks.InputBlocked)
-			drainCombatPacingAt(scene, 975)
+			drainCombatPacingAt(scene, 900+anticipation)
 			assert.Equal(t, from, monster.Position())
 			assert.False(t, scene.combatMovement.Active)
 			assert.False(t, callbacks.InputBlocked)
@@ -185,10 +190,15 @@ func TestScheduledBatPacingIdleAndBlockedCompleteAtAnticipation(t *testing.T) {
 }
 
 func TestScheduledBatPacingTargetedAttackRetainsAnticipation(t *testing.T) {
-	scene, callbacks, first := newScheduledProjectileTestScene(t, references.MonsterBat, 6)
-	scene.gameConfig = &config.UltimaVConfiguration{
-		DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: 4},
+	for _, rate := range combatTimingTestRates() {
+		t.Run(fmt.Sprint(rate), func(t *testing.T) { testScheduledTargetedAnticipationAtRate(t, rate) })
 	}
+}
+
+func testScheduledTargetedAnticipationAtRate(t *testing.T, rate float64) {
+	scene, callbacks, first := newScheduledProjectileTestScene(t, references.MonsterBat, 6)
+	setCombatTimingTestRate(scene, rate)
+	anticipation := newCombatPresentationTiming(rate).durationMs(game_state.MonsterAttackDelayMs)
 	state := scene.gameState
 	_, err := state.ResolveScheduledCombatStep(first.Token)
 	require.NoError(t, err)
@@ -201,14 +211,15 @@ func TestScheduledBatPacingTargetedAttackRetainsAnticipation(t *testing.T) {
 	callbacks.Reset()
 	state.ElapsedMs = 900
 	scene.startScheduledMonsterTurn(step)
+	setCombatTimingTestRate(scene, 1)
 	rngBefore := state.GetRNG().Calls()
-	for _, age := range []int64{0, 75, 999} {
+	for _, age := range []int64{0, anticipation / 2, anticipation - 1} {
 		drainCombatPacingAt(scene, 900+age)
 		require.True(t, callbacks.InputBlocked)
 		assert.Empty(t, callbacks.CombatEvents)
 		assert.Equal(t, rngBefore, state.GetRNG().Calls())
 	}
-	drainCombatPacingAt(scene, 1900)
+	drainCombatPacingAt(scene, 900+anticipation)
 	assert.NotEmpty(t, callbacks.CombatEvents)
 	assert.Equal(t, position, monster.Position())
 	assert.False(t, scene.combatMovement.Active)
@@ -217,16 +228,23 @@ func TestScheduledBatPacingTargetedAttackRetainsAnticipation(t *testing.T) {
 }
 
 func TestScheduledBatPacingCancellationAndEncounterExit(t *testing.T) {
+	for _, rate := range combatTimingTestRates() {
+		t.Run(fmt.Sprint(rate), func(t *testing.T) { testScheduledCancellationAtRate(t, rate) })
+	}
+}
+
+func testScheduledCancellationAtRate(t *testing.T, rate float64) {
 	for _, resolve := range []bool{false, true} {
 		for _, exit := range []bool{false, true} {
 			t.Run(fmt.Sprintf("resolved=%t/exit=%t", resolve, exit), func(t *testing.T) {
 				scene, callbacks, step := newScheduledProjectileTestScene(t, references.MonsterBat, 6)
+				setCombatTimingTestRate(scene, rate)
 				state := scene.gameState
 				state.ElapsedMs = 900
 				scene.startScheduledMonsterTurn(step)
 				drainCombatPacingAt(scene, 900)
 				if resolve {
-					drainCombatPacingAt(scene, 1000)
+					drainCombatPacingAt(scene, 900+newCombatPresentationTiming(rate).durationMs(75))
 					require.True(t, scene.combatMovement.Active)
 				}
 				rngBeforeCancel := state.GetRNG().Calls()
@@ -295,13 +313,18 @@ func combatPacingTeleportSeed(t *testing.T) uint64 {
 }
 
 func TestCombatPacingPlayerAndControlledBatRetainMovementDuration(t *testing.T) {
+	for _, rate := range combatTimingTestRates() {
+		t.Run(fmt.Sprint(rate), func(t *testing.T) { testPlayerAndControlledMovementAtRate(t, rate) })
+	}
+}
+
+func testPlayerAndControlledMovementAtRate(t *testing.T, rate float64) {
 	for _, controlled := range []bool{false, true} {
 		t.Run(fmt.Sprintf("controlled=%t", controlled), func(t *testing.T) {
 			scene, callbacks := newCombatUseTestScene(t)
 			state := scene.gameState
-			scene.gameConfig = &config.UltimaVConfiguration{
-				DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: 2},
-			}
+			setCombatTimingTestRate(scene, rate)
+			duration := newCombatPresentationTiming(rate).durationMs(333)
 			actor := state.CombatScene.GetCurrentTurnIdentity()
 			from, to := references.Position{X: 2, Y: 3}, references.Position{X: 3, Y: 3}
 			reference := (*state.GameReferences.EnemyReferences)[references.MonsterBat]
@@ -318,11 +341,12 @@ func TestCombatPacingPlayerAndControlledBatRetainMovementDuration(t *testing.T) 
 			} else {
 				scene.startPlayerCombatMovementWorkflow(actor, from, to, token)
 			}
+			setCombatTimingTestRate(scene, 1)
 			drainCombatPacingAt(scene, 900)
-			drainCombatPacingAt(scene, 1066)
-			require.True(t, callbacks.InputBlocked, "333ms at 2x rounds to 167ms")
+			drainCombatPacingAt(scene, 900+duration-1)
+			require.True(t, callbacks.InputBlocked)
 			require.True(t, scene.combatMovement.Active)
-			drainCombatPacingAt(scene, 1067)
+			drainCombatPacingAt(scene, 900+duration)
 			assert.False(t, callbacks.InputBlocked)
 			assert.False(t, scene.combatMovement.Active)
 			assert.ErrorIs(t, state.CompleteScheduledCombatStep(token), game_state.ErrCombatPresentationDuplicate)

@@ -102,6 +102,28 @@ func TestSelectedConfigurationErrorsAreRecoverable(t *testing.T) {
 	require.ErrorContains(t, err, "DATA.OVL")
 }
 
+func TestMalformedLoggingCategorySourceRejectedBeforeSave(t *testing.T) {
+	for _, categories := range []string{`true`, `[combat]`, `null`, `{combat: "true"}`, `{combat: 1}`, `{combat: null}`} {
+		t.Run(categories, func(t *testing.T) {
+			configuration, file := configurationFixture(t, "unknown: retained\n")
+			configuration.LoggingConfiguration.CategoryStates["combat"] = true
+			beforeSource := configuration.source.AllSettings()
+			contents := []byte("Logging:\n  CategoryStates: " + categories + "\n")
+			require.NoError(t, os.WriteFile(file, contents, 0o600))
+
+			_, err := LoadUltimaVConfiguration(file, filepath.Dir(file))
+			require.ErrorIs(t, err, errConfigurationType)
+			require.ErrorContains(t, err, "Logging.CategoryStates")
+			require.ErrorIs(t, configuration.SaveLoggingConfiguration(), errConfigurationType,
+				"normalizing the candidate must not hide malformed source being overwritten")
+			assert.Equal(t, beforeSource, configuration.source.AllSettings())
+			unchanged, err := os.ReadFile(file)
+			require.NoError(t, err)
+			assert.Equal(t, contents, unchanged)
+		})
+	}
+}
+
 func TestSelectedConfigurationPathRemainsBoundAfterDirectoryChange(t *testing.T) {
 	directory := t.TempDir()
 	t.Chdir(directory)
@@ -133,4 +155,20 @@ func TestStartupCreatesOnlyMissingDefaultConfiguration(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, configuration.SetSmoothSurfaceMovement(true))
 	assert.True(t, readConfigurationFixture(t, file).GetBool(gameplaySmoothSurfaceMovementKey))
+}
+
+func TestQoLMigrationDoesNotWriteOnLoadAndKeepsExternalDataPath(t *testing.T) {
+	contents := "# keep until save\nDebug:\n  CombatMovementSpeedFactor: 0.75\nDataFilePath: old\nUnknown: retained\n"
+	configuration, file := configurationFixture(t, contents)
+	loadedBytes, err := os.ReadFile(file)
+	require.NoError(t, err)
+	assert.Equal(t, contents, string(loadedBytes))
+	assert.Equal(t, 1.0, configuration.GetCombatSpeedFactor())
+	external := "Debug:\n  CombatMovementSpeedFactor: 0.75\nDataFilePath: new-selection\nUnknown: external\n"
+	require.NoError(t, os.WriteFile(file, []byte(external), 0o600))
+	require.NoError(t, configuration.SetCombatSpeedFactor(2.5))
+	source := readConfigurationFixture(t, file)
+	assert.Equal(t, "new-selection", source.GetString("DataFilePath"))
+	assert.Equal(t, "external", source.GetString("Unknown"))
+	assert.Equal(t, 2.5, source.GetFloat64(gameplayCombatSpeedKey))
 }

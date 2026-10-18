@@ -1,10 +1,6 @@
 package game_state
 
-import (
-	"strings"
-
-	"github.com/bradhannah/UltimaVRedux/internal/references"
-)
+import "github.com/bradhannah/UltimaVRedux/internal/references"
 
 func (g *GameState) newUseableItemInfo(
 	itemRef references.InventoryItem,
@@ -13,18 +9,7 @@ func (g *GameState) newUseableItemInfo(
 	quantity int,
 	item references.Item,
 ) UseableItemInfo {
-	name := strings.TrimSpace(itemRef.ItemDisplayName)
-	if name == "" {
-		name = formatItemName(itemRef.ItemName)
-	}
-	switch item.(type) {
-	case references.Potion:
-		name += " Potion"
-	case references.Scroll:
-		name += " Scroll"
-	case references.Moonstone:
-		name += " Moonstone"
-	}
+	name := itemRef.FullDisplayName()
 	info := UseableItemInfo{
 		Name: name, FullName: name, Description: itemRef.ItemDescription,
 		EffectSummary: "", Requirement: "", Consumption: "", Warning: "", UnavailableReason: "",

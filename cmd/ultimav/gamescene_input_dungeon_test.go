@@ -50,7 +50,7 @@ func newDungeonInputTestScene(
 
 	return &GameScene{ //nolint:exhaustruct // Focused dungeon-input fixture.
 		gameState:   state,
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
 	}, state, callbacks
 }
@@ -955,9 +955,9 @@ func TestDungeonQuitSaveFailureRestoresCommandBoundary(t *testing.T) {
 	assert.Equal(t, PrimaryInput, scene.secondaryKeyState)
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.Equal(t, byte(1), state.DateTime.Minute)
-	assert.Contains(t, callbacks.Messages, "Save failed: Choose a slot using Save first.")
+	assert.Contains(t, callbacks.Messages, "Save failed: Save or load a player slot first.")
 	overlay := requireEscapeMenuDialog[*widgets.OverlayDialog](t, scene)
-	assert.Equal(t, "Save failed: Choose a slot using Save first.", overlay.GetMessage())
+	assert.Equal(t, "Save failed: Save or load a player slot first.", overlay.GetMessage())
 }
 
 func TestDungeonQuitPersistenceFailureRestoresCommandBoundary(t *testing.T) {

@@ -41,6 +41,7 @@ func (g *GameScene) thenUseCombatPotion(
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var effect game_state.PotionEffectResult
 		var outcome *game_state.PotionUseOutcome
+		var timing combatPresentationTiming
 		committed := false
 		casterIdx := g.gameState.CombatScene.GetActiveCombatantIndex()
 
@@ -48,6 +49,8 @@ func (g *GameScene) thenUseCombatPotion(
 			if !canCommit() {
 				return
 			}
+			timing = g.captureCombatTiming()
+			defer g.combatTimingScope(timing)()
 			commit, _ := g.gameState.BeginPotionUse(potion, game_state.UsageCombat)
 			if commit == nil {
 				g.gameState.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
@@ -69,13 +72,21 @@ func (g *GameScene) thenUseCombatPotion(
 			}
 		}).If(func() bool { return committed }, func(effectQ *event_queue.SequentialEventBuilder) {
 			effectQ.ThenSequence(func(presentationQ *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-				return g.thenPresentPotionEffect(effect, casterIdx)(presentationQ)
+				return g.thenPresentPotionEffectWithTiming(timing, effect, casterIdx)(presentationQ)
 			})
 		})
 	}
 }
 
 func (g *GameScene) thenPresentPotionEffect(
+	effect game_state.PotionEffectResult,
+	characterIndex int,
+) event_queue.Sequence {
+	return g.thenPresentPotionEffectWithTiming(g.capturePresentationTiming(g.gameState.IsInCombat()), effect, characterIndex)
+}
+
+func (g *GameScene) thenPresentPotionEffectWithTiming(
+	timing combatPresentationTiming,
 	effect game_state.PotionEffectResult,
 	characterIndex int,
 ) event_queue.Sequence {
@@ -87,30 +98,30 @@ func (g *GameScene) thenPresentPotionEffect(
 			}).ThenSequence(g.thenShowPotionEffectDialog("No effect!"))
 		case game_state.PotionEffectAwakened:
 			return q.ThenSequence(game_state.NewPartyStateBuilder(g.gameState).
-				ToCharacter(characterIndex).FlashWhite().WithSound(game_state.SoundAwaken).Build()).
+				ToCharacter(characterIndex).FlashWhite().WithSound(game_state.SoundAwaken).BuildWithPresentationTiming(timing.duration)).
 				ThenSequence(g.thenShowPotionEffectDialog("Awakened!"))
 		case game_state.PotionEffectHealed:
 			return q.ThenSequence(game_state.NewPartyStateBuilder(g.gameState).
-				ToCharacter(characterIndex).FlashInverted().WithSound(game_state.SoundHeal).Build()).
+				ToCharacter(characterIndex).FlashInverted().WithSound(game_state.SoundHeal).BuildWithPresentationTiming(timing.duration)).
 				ThenSequence(g.thenShowPotionEffectDialog("Healed!"))
 		case game_state.PotionEffectCured:
 			return q.ThenSequence(game_state.NewPartyStateBuilder(g.gameState).
-				ToCharacter(characterIndex).FlashInverted().WithSound(game_state.SoundCure).Build()).
+				ToCharacter(characterIndex).FlashInverted().WithSound(game_state.SoundCure).BuildWithPresentationTiming(timing.duration)).
 				ThenSequence(g.thenShowPotionEffectDialog("Poison cured!"))
 		case game_state.PotionEffectPoisoned:
 			return q.ThenSequence(game_state.NewPartyStateBuilder(g.gameState).
-				ToCharacter(characterIndex).FlashGreen().WithSound(game_state.SoundPoison).Build()).
+				ToCharacter(characterIndex).FlashGreen().WithSound(game_state.SoundPoison).BuildWithPresentationTiming(timing.duration)).
 				ThenSequence(g.thenShowPotionEffectDialog("POISONED!"))
 		case game_state.PotionEffectSlept:
 			return q.ThenSequence(game_state.NewPartyStateBuilder(g.gameState).
-				ToCharacter(characterIndex).FlashPurple().WithSound(game_state.SoundSleep).Build()).
+				ToCharacter(characterIndex).FlashPurple().WithSound(game_state.SoundSleep).BuildWithPresentationTiming(timing.duration)).
 				ThenSequence(g.thenShowPotionEffectDialog("Slept!"))
 		case game_state.PotionEffectRat:
 			return q.Then(func() {
 				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
 			}).ThenSequence(g.thenShowPotionEffectDialog("Poof!"))
 		case game_state.PotionEffectInvisible:
-			pulse := g.thenCombatScreenPulse(
+			pulse := g.thenScreenPulseWithTiming(timing,
 				combatLightBlueFlashRed,
 				combatLightBlueFlashGreen,
 				combatLightBlueFlashBlue,
@@ -120,7 +131,7 @@ func (g *GameScene) thenPresentPotionEffect(
 			return q.Then(func() {
 				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
 			}).ThenSequence(pulse).
-				Wait(combatRelTymPulseGapMs).
+				Wait(timing.durationMs(combatRelTymPulseGapMs)).
 				ThenSequence(pulse).
 				ThenSequence(g.thenShowPotionEffectDialog("Invisible!"))
 		case game_state.PotionEffectNoNotice:

@@ -27,11 +27,11 @@ var (
 	// ErrPlayerSaveSceneIneligible indicates that the active or candidate scene
 	// does not support the required player-save operation.
 	ErrPlayerSaveSceneIneligible = errors.New("scene does not support player saves")
-	// ErrNoActivePlayerSaveSlot indicates that quick-save has no loaded or saved slot.
+	// ErrNoActivePlayerSaveSlot indicates that quick-save/load has no loaded or saved slot.
 	ErrNoActivePlayerSaveSlot = errors.New("no active player save slot")
 )
 
-// NoActivePlayerSaveSlotError is the typed quick-save failure for a gameplay
+// NoActivePlayerSaveSlotError is the typed quick-save/load failure for a gameplay
 // scene that has not been loaded from or committed to a player slot.
 type NoActivePlayerSaveSlotError struct{}
 
@@ -153,6 +153,10 @@ func (g *Game) loadPlayerSaveRecord(record player_save.Record) error {
 	}
 	candidate, err := g.playerSaveSceneBuilder(configuration, snapshot)
 	if err != nil {
+		if disposer, ok := candidate.(sceneDisposer); ok {
+			disposer.Dispose()
+		}
+
 		return fmt.Errorf("constructing player save %s scene: %w", record.Slot, err)
 	}
 	if candidate == nil {
@@ -239,6 +243,24 @@ func (g *Game) quickSavePlayerSave() (player_save.Record, error) {
 	}
 
 	return g.savePlayerSaveSlot(slot, revision, scene.playthroughMetadata().userDescription)
+}
+
+// quickLoadPlayerSave uses the scene's reviewed provenance, never Latest or a
+// newly adopted revision. Loading does not require capturing the outgoing scene.
+func (g *Game) quickLoadPlayerSave() (player_save.SlotID, error) {
+	scene, ok := g.currentScene.(playerSaveProvenanceOwner)
+	if !ok {
+		return "", fmt.Errorf("quick-loading player save: %w", ErrPlayerSaveSceneIneligible)
+	}
+	slot, revision, active := scene.playerSaveProvenance()
+	if !active {
+		return "", fmt.Errorf("quick-loading player save: %w", &NoActivePlayerSaveSlotError{})
+	}
+	if err := g.loadPlayerSaveSlot(slot, revision); err != nil {
+		return "", err
+	}
+
+	return slot, nil
 }
 
 func (g *Game) prepareLegacyPlayerSaveContext(

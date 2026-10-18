@@ -213,9 +213,17 @@ Removed owners without that pending snapshot (including empty Open results) reti
 on reconciliation, even beneath a modal. Identical readmission cannot inherit them.
 See [combat loot feedback](GAME_UI_INTEGRATION.md#combat-loot-feedback).
 
-Ordinary entry/exit notices use nonblocking action feedback, preserving text and
-the existing no-extra-output-copy policy. Required fades/map changes still own
-input; fresh movement works afterward while the notice remains visible. Falls
+Maximum Action Popups bounds the shared action/Search collection to 0–3 cards,
+default 3. Off admits no card; every affected result retains exactly one ordinary
+output/history owner. Successful Apply reconciles a lower capacity on the next
+scene update even beneath a modal or without a new message. Oldest exact instances
+are removed immediately, including associations and stack ownership; raising the
+limit cannot restore retired cards. This preference does not suppress workflow-owned
+choices, acknowledgements or chest-content reveals.
+
+Ordinary entry/exit notices use nonblocking action feedback and one output copy,
+so their results remain readable with action popups Off. Required fades/map changes
+still own input; fresh movement works afterward while the notice remains visible. Falls
 likewise retain authoritative cascade ownership but no extra post-step dwell.
 Other timed overlays and special acknowledgements keep their existing ownership.
 
@@ -278,14 +286,18 @@ menu and the in-game Escape menu. It keeps detached original and staged copies
 of Sound, Display, and Gameplay settings. The title-menu route opens on Display;
 the Escape-menu route opens on Sound. Sound changes may preview through the
 audio manager, but no persisted configuration model changes before Apply. Tab
-changes section; Up/Down changes the active row; Left/Right changes discrete
-Sound values or Display choices; Space toggles the selected Gameplay value.
+and Shift-Tab change section in either direction; Up/Down changes the active row;
+Left/Right changes stepped Gameplay values, Sound values or Display choices;
+Space toggles a selected Gameplay checkbox. Numeric boundaries clamp without
+wrapping and do not require entering a separate editor.
 Gameplay includes **Flexible Sextant Use**, an off-by-default Redux option for
 daytime and indoor surface-settlement readings. It requires a sextant and excludes
 dungeons and the Underworld. It stages the existing
 `Gameplay.Navigation.FlexibleSextantUse` preference with the same Apply/Cancel
-transaction as the other settings. The seven measured Gameplay rows reserve top
-and bottom frame clearance. Each checkbox has a separate measured column; label
+transaction as the other settings. The eleven measured Gameplay rows use a
+clipped scrolling viewport that keeps the selected row visible and reserves top
+and bottom frame clearance plus a scrollbar gutter. Each checkbox or numeric
+value has a separate measured column; label
 continuations align with the label. Complete label buffers and measured detail
 heights prevent leading-line loss. Row gaps preserve normal typography.
 **Remember Hidden Dungeon Discoveries** retains its name and preference: On keeps
@@ -293,6 +305,42 @@ discovered hidden doors/pits between visits; Off resets them on a fresh visit.
 The responsive card uses the
 complete host pane, equal-width tabs, and independently measured Display label
 and value columns.
+
+The additional Gameplay preferences are:
+
+| Preference | Persisted key | Allowed values | Default |
+|---|---|---|---|
+| Combat Speed | `Gameplay.Combat.SpeedFactor` | 0.5x–4.0x, step 0.5x | 1.0x |
+| Confirm Quick Save | `Gameplay.Saves.ConfirmQuickSave` | On / Off | On |
+| Show Combat HP Bars | `Gameplay.Combat.ShowHealthBars` | On / Off | On |
+| Maximum Action Popups | `Gameplay.Presentation.MaxVisibleActionPopups` | integer 0–3; 0 is Off | 3 |
+
+The details pane uses short player-facing sentences and blank paragraph rows,
+appended as separate `Output` lines with natural wrapping. Measurement uses the
+same populated Output as drawing, including blank rows, at the established font
+size. Numeric choices, adjustments and defaults derive from the shared specs:
+for example, "Choose 0.5x to 4.0x." and "Choose Off, 1, 2 or 3." UI copy uses
+font-safe ASCII punctuation rather than an en dash or compact technical range
+syntax. The current value remains separately labeled. Combat speed shortens animations and action pauses while
+preserving combat rules; different elapsed timelines need not produce identical
+seeded outcomes. Popup Off retains messages in the lower-right output. Quick-save
+confirmation Off still reports success. HP-bars Off adds general monster injury
+descriptions to numeric reports and retains fleeing indicators.
+
+`NumericSettingSpec` owns numeric bounds, step and default for both controls and
+persistence. Runtime fields remain typed, including an integer popup count.
+Defaults apply only to absent source keys: explicit false and zero are retained.
+Invalid explicit speed/count values fail loading and saving before mutation.
+Tests constructing detached models should use `config.DefaultGameplayConfiguration`.
+Nil configuration or a missing Gameplay section gives consumers legacy defaults.
+
+The new combat-speed key takes precedence over the legacy Debug movement key.
+When only a valid legacy speed exists, it rounds to the nearest half-step and
+clamps to 0.5x–4.0x; positive midpoints round upward (0.25→0.5, 0.75→1.0,
+1.25→1.5). Normalization is diagnosed, and the canonical key is written on the
+next successful save. F2 detail persistence and full saves never write the old
+speed authority. Immediate Workbench gameplay preference setters reject writes
+while this dialog owns a staged transaction; Apply/Cancel releases that reservation.
 
 Display offers Windowed, Maximized Window, and Borderless Fullscreen. Windowed
 mode also offers preset sizes and preserves a valid custom size; presets larger
@@ -317,7 +365,10 @@ underlying Escape menu remains stack-owned, so game audio stays disabled until
 that menu closes. When opened from the title, dismissal restores title-menu
 audio and returns input ownership to the title menu.
 
-The section and row selections survive section changes and responsive relayout. Each update accepts at most one bound key, and dismissal is guarded so cleanup cannot remove the same instance twice.
+The section, row selection and first visible row survive section changes and
+responsive relayout; relayout scrolls only as needed to keep selection visible.
+Each update accepts at most one bound key, and dismissal is guarded so cleanup
+cannot remove the same instance twice.
 
 ## Invariants
 

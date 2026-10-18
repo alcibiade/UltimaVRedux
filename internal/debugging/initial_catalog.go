@@ -162,7 +162,16 @@ const (
 	ShrineQuestOffering = "offering"
 )
 
+const (
+	initialExperienceParameter = "experience"
+	initialSourceParameter     = "source"
+	initialSourceLabel         = "Source"
+	initialMovementCategory    = "Movement"
+)
+
 // NewInitialCatalog creates the first transport-neutral command slice.
+//
+//nolint:maintidx // Declarative catalog keeps parameter constraints beside stable commands in fixture order.
 func NewInitialCatalog() *Catalog {
 	minimumStat := 1
 	maximumStat := 30
@@ -357,7 +366,7 @@ func NewInitialCatalog() *Catalog {
 		},
 		{
 			ID:             CommandPartyCharacterInspect,
-			Category:       "Party",
+			Category:       partyEquipmentCategory,
 			Name:           "Party Character Roster",
 			Description:    "Inspect the detached full roster, stable numeric indices, and review fingerprint.",
 			Aliases:        []string{"pc inspect", "party status"},
@@ -367,7 +376,7 @@ func NewInitialCatalog() *Catalog {
 		},
 		{
 			ID:          CommandPartyCharacterUpdate,
-			Category:    "Party",
+			Category:    partyEquipmentCategory,
 			Name:        "Character Alteration",
 			Description: "Atomically update safe character attributes, resources, status, or party position. Combat permits current HP and MP only.",
 			Aliases:     []string{"pc stats", "pc status", "new order"},
@@ -472,7 +481,7 @@ func NewInitialCatalog() *Catalog {
 					Availability:    nil,
 				},
 				{
-					ID:              "experience",
+					ID:              initialExperienceParameter,
 					Name:            "Experience",
 					Description:     "Exact XP without forcing level or maximum-HP progression.",
 					Kind:            ParameterInteger,
@@ -536,14 +545,14 @@ func NewInitialCatalog() *Catalog {
 			Destructive:    false,
 		},
 		{
-			ID: CommandPartyMaximizeLevels, Category: "Party", Name: "Maximize Active Levels",
+			ID: CommandPartyMaximizeLevels, Category: partyEquipmentCategory, Name: "Maximize Active Levels",
 			Description:    "Raise every reviewed active roster member to level eight and restore progression-derived resources.",
 			Aliases:        []string{"pc stats maxlevels"},
 			Parameters:     []ParameterDefinition{{ID: expectedFingerprintID, Name: reviewedRosterFingerprintName, Kind: ParameterString, Required: true, Availability: []string{contextGameplay, contextOutsideCombat}, ScenarioRuntime: true}},
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandPartyStatusSet, Category: "Party", Name: "Set Party Status",
+			ID: CommandPartyStatusSet, Category: partyEquipmentCategory, Name: "Set Party Status",
 			Description: "Atomically set an explicit status for one or a reviewed list of stable active roster indices.",
 			Aliases:     []string{"pc status"},
 			Parameters: []ParameterDefinition{
@@ -554,14 +563,14 @@ func NewInitialCatalog() *Catalog {
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized}, Destructive: true,
 		},
 		{
-			ID: CommandPartyFill, Category: "Party", Name: "Fill Active Party",
+			ID: CommandPartyFill, Category: partyEquipmentCategory, Name: "Fill Active Party",
 			Description:    "Fill every open active-party position from the reviewed roster using authoritative composition rules.",
 			Aliases:        []string{"pc party fill"},
 			Parameters:     []ParameterDefinition{{ID: expectedFingerprintID, Name: reviewedRosterFingerprintName, Kind: ParameterString, Required: true, Availability: []string{contextGameplay, contextOutsideCombat}, ScenarioRuntime: true}},
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandPartyMemberAdd, Category: "Party", Name: "Add Roster Member",
+			ID: CommandPartyMemberAdd, Category: partyEquipmentCategory, Name: "Add Roster Member",
 			Description: "Add one reviewed inactive member by stable numeric roster index.",
 			Aliases:     []string{"pc party add"},
 			Parameters: []ParameterDefinition{
@@ -622,8 +631,8 @@ func applyCommandSearchTerms(definitions []CommandDefinition) {
 		CommandMonsterEcosystemStatus:                    {"spawn", "enemies", "generation", "pirate", "whirlpool", "monsters"},
 		CommandCombatStatus:                              {"battle", "tactical", "monsters", "turn", "dex", "encounter", "combat"},
 		CommandSearchStatus:                              {"find", "nearby", "hidden", "secret", "item stacks", "search overlay"},
-		CommandPartyCharacterInspect:                     {"party", "characters", "stats", "hp", "mp", "experience", "roster", "karma"},
-		CommandPartyCharacterUpdate:                      {"party", "characters", "stats", "hp", "mp", "experience", "roster", "karma"},
+		CommandPartyCharacterInspect:                     {"party", "characters", "stats", "hp", "mp", initialExperienceParameter, "roster", "karma"},
+		CommandPartyCharacterUpdate:                      {"party", "characters", "stats", "hp", "mp", initialExperienceParameter, "roster", "karma"},
 		CommandQuestItemStatus:                           {"artifacts", "shards", "quest inventory", "special items"},
 		CommandVehicleStatus:                             {"ships", "frigate", "skiff", "hull", "boat", "vehicle"},
 		CommandScenarioStatus:                            {"test setup", "reproduce", "starvation", "guards", "waterfall", "bridge troll", "word of power", "death"},
@@ -655,7 +664,7 @@ func partyKarmaCommands() []CommandDefinition {
 	minimum, maximum := 0, 99
 
 	return []CommandDefinition{{
-		ID: CommandPartyKarmaSet, Category: "Party", Name: "Set Party Karma",
+		ID: CommandPartyKarmaSet, Category: partyEquipmentCategory, Name: "Set Party Karma",
 		Description: "Set party-wide karma exactly without applying a moral event or advancing time.", Aliases: []string{"pc stats karma"},
 		Parameters: []ParameterDefinition{{
 			ID: "value", Name: "Karma", Kind: ParameterInteger, Required: true,
@@ -696,14 +705,14 @@ func secondBatchToolCommands() []CommandDefinition {
 		{
 			ID: CommandConversationScriptCatalog, Category: "Conversations", Name: "Conversation Script Catalog",
 			Description:    "List loaded runtime semantic conversations for one original source.",
-			Parameters:     []ParameterDefinition{{ID: "source", Name: "Source", Kind: ParameterEnum, Default: json.RawMessage(`"towne"`), Choices: sources, ControlHint: controlHintSelect, Availability: []string{contextGameplay}}},
+			Parameters:     []ParameterDefinition{{ID: initialSourceParameter, Name: initialSourceLabel, Kind: ParameterEnum, Default: json.RawMessage(`"towne"`), Choices: sources, ControlHint: controlHintSelect, Availability: []string{contextGameplay}}},
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
 			ID: CommandConversationScriptInspect, Category: "Conversations", Name: "Inspect Conversation Script",
 			Description: "Inspect the exact patched semantic document executed by Redux.",
 			Parameters: []ParameterDefinition{
-				{ID: "source", Name: "Source", Kind: ParameterEnum, Required: true, Choices: sources, ControlHint: controlHintSelect, Availability: []string{contextGameplay}},
+				{ID: initialSourceParameter, Name: initialSourceLabel, Kind: ParameterEnum, Required: true, Choices: sources, ControlHint: controlHintSelect, Availability: []string{contextGameplay}},
 				{ID: parameterIndex, Name: "Script Index", Kind: ParameterInteger, Required: true, Minimum: &minimumIndex, Maximum: &maximumScriptIndex, ControlHint: controlHintNumber},
 			},
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
@@ -957,13 +966,13 @@ func approvedToolCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandMovementTeleport, Category: "Movement", Name: "Same-Map Teleport",
+			ID: CommandMovementTeleport, Category: initialMovementCategory, Name: "Same-Map Teleport",
 			Description:    "Teleport to a validated coordinate on the current map without changing map or floor.",
 			Parameters:     []ParameterDefinition{coordinateParameter("x", "X"), coordinateParameter("y", "Y")},
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 		},
 		{
-			ID: CommandMovementEnterLocation, Category: "Movement", Name: "Enter Named Location",
+			ID: CommandMovementEnterLocation, Category: initialMovementCategory, Name: "Enter Named Location",
 			Description: "Transition directly to a supported small-map entry point without simulating travel time.", Aliases: []string{"mv gos"},
 			Parameters: []ParameterDefinition{{
 				ID: "location", Name: "Location", Kind: ParameterEnum, Required: true,
@@ -972,7 +981,7 @@ func approvedToolCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 		},
 		{
-			ID: CommandMovementFloorSet, Category: "Movement", Name: "Set Exact Floor",
+			ID: CommandMovementFloorSet, Category: initialMovementCategory, Name: "Set Exact Floor",
 			Description: "Transition to one exact valid floor without climbing or advancing time.", Aliases: []string{"mv floor", "mv floor up", "mv floor down"},
 			Parameters: []ParameterDefinition{{
 				ID: "floor", Name: "Floor", Kind: ParameterInteger, Required: true,
@@ -981,7 +990,7 @@ func approvedToolCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 		},
 		{
-			ID: CommandMovementLandmarkTravel, Category: "Movement", Name: "Travel to Landmark",
+			ID: CommandMovementLandmarkTravel, Category: initialMovementCategory, Name: "Travel to Landmark",
 			Description: "Transition to a curated shrine, quest, or Flame landmark without simulating travel time.", Aliases: []string{"mv special shrine"},
 			Parameters: []ParameterDefinition{{
 				ID: "landmark", Name: "Landmark", Kind: ParameterEnum, Required: true,
@@ -1043,10 +1052,10 @@ func questItemChoices() []Choice {
 		{Value: "carpet", Label: "Magic Carpet", Metadata: nil},
 		{Value: "grapple", Label: "Grapple", Metadata: nil},
 		{Value: "spyglass", Label: "Spyglass", Metadata: nil},
-		{Value: "hms_cape", Label: "HMS Cape Plans", Metadata: nil},
+		{Value: "hms_cape", Label: "H.M.S. Cape Plans", Metadata: nil},
 		{Value: "pocket_watch", Label: "Pocket Watch", Metadata: nil},
 		{Value: "black_badge", Label: "Black Badge", Metadata: nil},
-		{Value: "wooden_box", Label: "Wooden Box", Metadata: nil},
+		{Value: "wooden_box", Label: "Sandalwood Box", Metadata: nil},
 		{Value: "sextant", Label: "Sextant", Metadata: nil},
 	}
 }

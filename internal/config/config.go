@@ -4,7 +4,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"math"
 	"os"
 	"path"
@@ -103,7 +102,11 @@ type GameplayConfiguration struct {
 	// SmoothSurfaceMovement enables optional surface camera scrolling, including boats.
 	SmoothSurfaceMovement bool
 	// FlexibleSextantUse opts into daytime and settlement sextant navigation.
-	FlexibleSextantUse bool
+	FlexibleSextantUse     bool
+	CombatSpeedFactor      float64
+	ConfirmQuickSave       bool
+	ShowCombatHPBars       bool
+	MaxVisibleActionPopups int
 }
 
 // ConfigurationSettings is the complete player-facing Configuration transaction.
@@ -137,7 +140,7 @@ type DebugConfiguration struct {
 	SurfaceMovementCurve      string
 	CombatDetailShown         bool    // Show authentic combat rolls and initiative detail
 	CombatDetailSet           bool    // True after loading or explicitly changing the setting
-	CombatMovementSpeedFactor float64 // Visual combat movement multiplier; higher is faster
+	CombatMovementSpeedFactor float64 // Deprecated legacy snapshot; runtime speed belongs to Gameplay.
 }
 
 // Combat movement speed factors define the supported persisted debug range and default.
@@ -147,7 +150,9 @@ const (
 	MaxCombatMovementSpeedFactor     = 4.0
 )
 
-// GetCombatMovementSpeedFactor returns a safe persisted movement multiplier.
+// GetCombatMovementSpeedFactor reads the legacy snapshot only.
+//
+// Deprecated: use UltimaVConfiguration.GetCombatSpeedFactor for runtime behavior.
 func (d *DebugConfiguration) GetCombatMovementSpeedFactor() float64 {
 	if d == nil || !validCombatMovementSpeedFactor(d.CombatMovementSpeedFactor) {
 		return DefaultCombatMovementSpeedFactor
@@ -156,7 +161,9 @@ func (d *DebugConfiguration) GetCombatMovementSpeedFactor() float64 {
 	return d.CombatMovementSpeedFactor
 }
 
-// SetCombatMovementSpeedFactor updates the multiplier when it is in the supported range.
+// SetCombatMovementSpeedFactor updates the inert legacy snapshot without persistence.
+//
+// Deprecated: use UltimaVConfiguration.SetCombatSpeedFactor for player preferences.
 func (d *DebugConfiguration) SetCombatMovementSpeedFactor(factor float64) bool {
 	if d == nil || !validCombatMovementSpeedFactor(factor) {
 		return false
@@ -251,7 +258,9 @@ type UltimaVConfiguration struct {
 	source *viper.Viper
 	// Track preferences last loaded or deliberately saved by this session so an
 	// exit-time save cannot undo external edits that take effect next launch.
-	runtimeBaseline *viper.Viper
+	runtimeBaseline          *viper.Viper
+	configurationEditors     int
+	configurationDiagnostics []string
 
 	// Audio configuration for volume settings
 	AudioConfiguration *AudioConfiguration
@@ -386,7 +395,9 @@ func newUltimaVConfiguration(
 		ShowSubduedUnlitDungeons: configuration.gameplayBooleanDefaultTrue(
 			gameplayShowSubduedUnlitDungeonsKey,
 		),
+		CombatSpeedFactor: 0, ConfirmQuickSave: false, ShowCombatHPBars: false, MaxVisibleActionPopups: 0,
 	}
+	configuration.loadGameplayPreferences()
 
 	configuration.loadLoggingConfiguration()
 	configuration.loadDebugConfiguration()
@@ -550,14 +561,11 @@ func (uc *UltimaVConfiguration) loadDebugConfiguration() {
 	uc.DebugConfiguration = &DebugConfiguration{ //nolint:exhaustruct // Remaining fields intentionally use defaults.
 		SurfaceMovementDurationMs: uc.source.GetInt("Debug.SurfaceMovementDurationMs"),
 		SurfaceMovementCurve:      uc.source.GetString("Debug.SurfaceMovementCurve"),
-		CombatMovementSpeedFactor: DefaultCombatMovementSpeedFactor,
+		CombatMovementSpeedFactor: uc.GetCombatSpeedFactor(),
 	}
 	if uc.source.IsSet("Debug.CombatDetailShown") {
 		uc.DebugConfiguration.CombatDetailShown = uc.source.GetBool("Debug.CombatDetailShown")
 		uc.DebugConfiguration.CombatDetailSet = true
-	}
-	if uc.source.IsSet("Debug.CombatMovementSpeedFactor") {
-		uc.DebugConfiguration.SetCombatMovementSpeedFactor(uc.source.GetFloat64("Debug.CombatMovementSpeedFactor"))
 	}
 }
 
@@ -716,6 +724,11 @@ func (uc *UltimaVConfiguration) UpdateSaveFile() error {
 
 // Stage changes independently so a failed write cannot leak Viper overrides.
 func (uc *UltimaVConfiguration) saveConfiguration(update func(*viper.Viper)) error {
+	if uc.GameplayConfiguration != nil {
+		if err := ValidateGameplayConfiguration(*uc.GameplayConfiguration); err != nil {
+			return err
+		}
+	}
 	if uc.source == nil || uc.source.ConfigFileUsed() == "" {
 		return ErrConfigFileUnknown
 	}
@@ -735,6 +748,12 @@ func (uc *UltimaVConfiguration) saveConfiguration(update func(*viper.Viper)) err
 		return err
 	}
 	update(candidate)
+	if !candidate.IsSet(gameplayCombatSpeedKey) && uc.GameplayConfiguration != nil {
+		candidate.Set(gameplayCombatSpeedKey, uc.GetCombatSpeedFactor())
+	}
+	if err := validateConfigurationTypes(candidate); err != nil {
+		return err
+	}
 	if err := writeViperConfigAtomically(candidate, configurationPath); err != nil {
 		return err
 	}
@@ -797,6 +816,9 @@ func (uc *UltimaVConfiguration) SaveConfigurationSettings(settings Configuration
 	if uc.GameplayConfiguration == nil {
 		return ErrGameplayConfigNil
 	}
+	if err := ValidateGameplayConfiguration(settings.Gameplay); err != nil {
+		return err
+	}
 	if isZeroDisplayConfiguration(settings.Display) {
 		settings.Display = *uc.DisplayConfiguration
 	}
@@ -851,6 +873,10 @@ func setDisplayConfiguration(configuration *viper.Viper, displayConfiguration Di
 }
 
 func setGameplayConfiguration(configuration *viper.Viper, gameplay GameplayConfiguration) {
+	configuration.Set(gameplayCombatSpeedKey, gameplay.CombatSpeedFactor)
+	configuration.Set(gameplayConfirmQuickSaveKey, gameplay.ConfirmQuickSave)
+	configuration.Set(gameplayShowCombatHPBarsKey, gameplay.ShowCombatHPBars)
+	configuration.Set(gameplayMaxActionPopupsKey, gameplay.MaxVisibleActionPopups)
 	configuration.Set(gameplayBatchMerchantTheftKey, gameplay.BatchMerchantTheft)
 	configuration.Set(
 		"Gameplay.Combat.AllowRepeatedMonsterDivision",
@@ -937,6 +963,9 @@ func (uc *UltimaVConfiguration) SaveDebugConfiguration() error {
 
 // SaveGameplayConfiguration immediately persists current gameplay settings.
 func (uc *UltimaVConfiguration) SaveGameplayConfiguration() error {
+	if uc.ConfigurationEditing() {
+		return ErrConfigurationEditing
+	}
 	if uc.GameplayConfiguration == nil {
 		return ErrGameplayConfigNil
 	}
@@ -950,100 +979,51 @@ func (uc *UltimaVConfiguration) SaveGameplayConfiguration() error {
 }
 
 func setLoggingConfiguration(configuration *viper.Viper, logging LoggingConfiguration) {
+	// Keep the detached candidate in the same mapping shape as decoded YAML.
+	// Viper preserves a map[string]bool passed to Set rather than normalizing it.
+	categoryStates := make(map[string]any, len(logging.CategoryStates))
+	for category, enabled := range logging.CategoryStates {
+		categoryStates[category] = enabled
+	}
 	configuration.Set("Logging.Enabled", logging.Enabled)
 	configuration.Set("Logging.StdoutEnabled", logging.StdoutEnabled)
 	configuration.Set("Logging.MinLevel", logging.MinLevel)
-	configuration.Set("Logging.CategoryStates", maps.Clone(logging.CategoryStates))
+	configuration.Set("Logging.CategoryStates", categoryStates)
 }
 
 func setDebugConfiguration(configuration *viper.Viper, debug DebugConfiguration) {
 	if debug.CombatDetailSet {
 		configuration.Set("Debug.CombatDetailShown", debug.CombatDetailShown)
 	}
-	configuration.Set("Debug.CombatMovementSpeedFactor", debug.GetCombatMovementSpeedFactor())
 }
 
 // SetAllowRepeatedMonsterDivision updates and persists the repeated-division rule atomically.
 func (uc *UltimaVConfiguration) SetAllowRepeatedMonsterDivision(enabled bool) error {
-	if uc.GameplayConfiguration == nil {
-		return ErrGameplayConfigNil
-	}
-
-	before := uc.GameplayConfiguration.AllowRepeatedMonsterDivision
-	uc.GameplayConfiguration.AllowRepeatedMonsterDivision = enabled
-	if err := uc.SaveGameplayConfiguration(); err != nil {
-		uc.GameplayConfiguration.AllowRepeatedMonsterDivision = before
-
-		return err
-	}
-
-	return nil
+	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) {
+		settings.AllowRepeatedMonsterDivision = enabled
+	})
 }
 
 // SetPersistHiddenDungeonDiscoveries updates and persists hidden-discovery retention atomically.
 func (uc *UltimaVConfiguration) SetPersistHiddenDungeonDiscoveries(enabled bool) error {
-	if uc.GameplayConfiguration == nil {
-		return ErrGameplayConfigNil
-	}
-
-	before := uc.GameplayConfiguration.PersistHiddenDungeonDiscoveries
-	uc.GameplayConfiguration.PersistHiddenDungeonDiscoveries = enabled
-	if err := uc.SaveGameplayConfiguration(); err != nil {
-		uc.GameplayConfiguration.PersistHiddenDungeonDiscoveries = before
-
-		return err
-	}
-
-	return nil
+	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) {
+		settings.PersistHiddenDungeonDiscoveries = enabled
+	})
 }
 
 // SetShowSubduedUnlitDungeons updates and persists subdued unlit rendering atomically.
 func (uc *UltimaVConfiguration) SetShowSubduedUnlitDungeons(enabled bool) error {
-	if uc.GameplayConfiguration == nil {
-		return ErrGameplayConfigNil
-	}
-
-	before := uc.GameplayConfiguration.ShowSubduedUnlitDungeons
-	uc.GameplayConfiguration.ShowSubduedUnlitDungeons = enabled
-	if err := uc.SaveGameplayConfiguration(); err != nil {
-		uc.GameplayConfiguration.ShowSubduedUnlitDungeons = before
-
-		return err
-	}
-
-	return nil
+	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) { settings.ShowSubduedUnlitDungeons = enabled })
 }
 
 // SetSmoothSurfaceMovement updates and persists optional surface scrolling atomically.
 func (uc *UltimaVConfiguration) SetSmoothSurfaceMovement(enabled bool) error {
-	if uc.GameplayConfiguration == nil {
-		return ErrGameplayConfigNil
-	}
-	before := uc.GameplayConfiguration.SmoothSurfaceMovement
-	uc.GameplayConfiguration.SmoothSurfaceMovement = enabled
-	if err := uc.SaveGameplayConfiguration(); err != nil {
-		uc.GameplayConfiguration.SmoothSurfaceMovement = before
-
-		return err
-	}
-
-	return nil
+	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) { settings.SmoothSurfaceMovement = enabled })
 }
 
 // SetFlexibleSextantUse updates and persists optional sextant navigation atomically.
 func (uc *UltimaVConfiguration) SetFlexibleSextantUse(enabled bool) error {
-	if uc.GameplayConfiguration == nil {
-		return ErrGameplayConfigNil
-	}
-	before := uc.GameplayConfiguration.FlexibleSextantUse
-	uc.GameplayConfiguration.FlexibleSextantUse = enabled
-	if err := uc.SaveGameplayConfiguration(); err != nil {
-		uc.GameplayConfiguration.FlexibleSextantUse = before
-
-		return err
-	}
-
-	return nil
+	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) { settings.FlexibleSextantUse = enabled })
 }
 
 func (uc *UltimaVConfiguration) gameplayBooleanDefaultTrue(key string) bool {

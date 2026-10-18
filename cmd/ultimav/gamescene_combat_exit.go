@@ -8,6 +8,8 @@ import (
 const combatVictoryExitDelayMs int64 = 180
 
 func (g *GameScene) startCombatVictoryExitWorkflow() {
+	timing := g.captureCombatTiming()
+	combat := g.gameState.CombatScene
 	members := g.gameState.ActiveCombatPartyMembers()
 	if len(members) == 0 {
 		g.gameState.ActionEscapeCombatMap()
@@ -21,11 +23,13 @@ func (g *GameScene) startCombatVictoryExitWorkflow() {
 	for _, memberIndex := range members {
 		index := memberIndex
 		queue.Then(func() {
-			g.gameState.DepartCombatPartyMemberAfterVictory(index)
-		}).Wait(combatVictoryExitDelayMs)
+			if g.gameState.CombatScene == combat {
+				g.gameState.DepartCombatPartyMemberAfterVictory(index)
+			}
+		}).Wait(timing.durationMs(combatVictoryExitDelayMs))
 	}
 	queue.Finally(func() {
-		if g.gameState.CombatScene != nil {
+		if g.gameState.CombatScene != nil && g.gameState.CombatScene == combat {
 			g.gameState.EndCombat(game_state.CombatVictory)
 		}
 	}).

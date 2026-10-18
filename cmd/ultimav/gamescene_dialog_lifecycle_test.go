@@ -46,7 +46,7 @@ func TestFinishSpellCastingWorkflowRemovesOwnedPhaseInput(t *testing.T) {
 		WithLocation(references.BritanniaUnderworld).
 		WithSystemCallbacks().
 		Build()
-	keyboard := input.NewKeyboard(0)
+	keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
 	scene := &GameScene{gameState: gs, keyboard: keyboard} //nolint:exhaustruct // Focused spell cleanup fixture.
 	dialog := widgets.NewInputBox("To phase:", nil, keyboard).
 		WithRegexValidation("^[1-8]$").

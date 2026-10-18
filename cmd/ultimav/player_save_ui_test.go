@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
+	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
@@ -99,7 +100,7 @@ func TestPlayerSaveFailureMessagesUseTypedErrors(t *testing.T) {
 				{player_save.ErrSlotNotFound, "could not be found"},
 				{player_save.ErrIncompatible, "compatible game version"},
 				{ErrGameSceneSnapshotNotRepresentable, "Finish the current action"},
-				{ErrNoActivePlayerSaveSlot, "Choose a slot using Save first"},
+				{ErrNoActivePlayerSaveSlot, "Save or load a player slot first"},
 				{errors.New("secret path: low-level failure"), "check the game log"},
 			} {
 				message := playerSaveFailureMessage(action, fmt.Errorf("private diagnostic: %w", test.err))
@@ -108,6 +109,28 @@ func TestPlayerSaveFailureMessagesUseTypedErrors(t *testing.T) {
 				assert.NotContains(t, message, "secret path")
 			}
 		})
+	}
+}
+
+func TestQuickLoadErrorsDescribeLoadRecoveryWithoutBrowserOrSaveClaims(t *testing.T) {
+	for _, test := range []struct {
+		err  error
+		want string
+	}{
+		{ErrNoActivePlayerSaveSlot, "Save or load a player slot first"},
+		{player_save.ErrStaleRevision, "Use Load to review"},
+		{player_save.ErrSlotNotFound, "Use Load to review"},
+		{save_snapshot.ErrInvalidEnvelope, "could not be validated"},
+		{save_snapshot.ErrInvalidSnapshot, "could not be validated"},
+		{player_save.ErrIncompatible, "compatible game"},
+		{ErrPlayerSaveUnavailable, "Load services are unavailable"},
+		{fs.ErrPermission, "Check file permissions"},
+	} {
+		message := playerQuickLoadErrorDetail(fmt.Errorf("private-path: %w", test.err))
+		assert.Contains(t, message, test.want)
+		assert.NotContains(t, message, "since you opened")
+		assert.NotContains(t, message, "Saving is not available")
+		assert.NotContains(t, message, "private-path")
 	}
 }
 

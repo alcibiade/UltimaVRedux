@@ -317,6 +317,7 @@ func (g *GameState) ResolvePendingMonsterMissile() bool {
 	result := CombatFeedbackMiss
 	hpLost := 0
 	fatal := false
+	var injury CombatMonsterInjury
 	if !pending.launch.Blocked {
 		g.CheckTrap(&pending.launch.Impact)
 	}
@@ -327,7 +328,7 @@ func (g *GameState) ResolvePendingMonsterMissile() bool {
 		if resolution.replacedDamage {
 			result = resolution.feedback
 			if resolution.damageSelected {
-				hpLost, fatal = g.applyMonsterDamageToTarget(
+				hpLost, fatal, injury = g.applyMonsterDamageToTarget(
 					pending.target, resolution.damage, attacker, pending.attackerIndex, diagnostics,
 				)
 			}
@@ -353,7 +354,7 @@ func (g *GameState) ResolvePendingMonsterMissile() bool {
 				result = CombatFeedbackGraze
 			} else {
 				result = CombatFeedbackDamage
-				hpLost, fatal = g.applyMonsterDamageToTarget(
+				hpLost, fatal, injury = g.applyMonsterDamageToTarget(
 					pending.target, diagnostics.FinalDamage, attacker, pending.attackerIndex, diagnostics,
 				)
 			}
@@ -374,6 +375,7 @@ func (g *GameState) ResolvePendingMonsterMissile() bool {
 		Attacker: combatMonsterFeedbackEntity(pending.attackerIndex, pending.launch.From),
 		Result:   result, HPLost: hpLost, Fatal: fatal,
 		From: pending.launch.From, To: pending.launch.Impact, Diagnostics: diagnostics,
+		MonsterInjury: injury,
 	}
 	if pending.targetSet {
 		event.Target = combatFeedbackIdentity(pending.target, pending.launch.Impact)
@@ -403,7 +405,7 @@ func (g *GameState) resolveMonsterMeleeAgainstMonster(
 	if hit.Outcome == CombatHitMiss {
 		g.publishMonsterAttackEvent(CombatEventAttack, attackerIndex,
 			CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex},
-			CombatFeedbackMiss, 0, false, diagnostics)
+			CombatFeedbackMiss, 0, false, diagnostics, CombatMonsterInjury{})
 
 		return
 	}
@@ -411,14 +413,15 @@ func (g *GameState) resolveMonsterMeleeAgainstMonster(
 	if resolution.replacedDamage {
 		hpLost := 0
 		fatal := false
+		var injury CombatMonsterInjury
 		if resolution.damageSelected {
-			hpLost, fatal = g.applyMonsterDamageToTarget(
+			hpLost, fatal, injury = g.applyMonsterDamageToTarget(
 				targetIdentity, resolution.damage, attacker, attackerIndex, diagnostics,
 			)
 		}
 		g.publishMonsterAttackEvent(
 			CombatEventAttack, attackerIndex, targetIdentity,
-			resolution.feedback, hpLost, fatal, diagnostics,
+			resolution.feedback, hpLost, fatal, diagnostics, injury,
 		)
 
 		return
@@ -432,12 +435,12 @@ func (g *GameState) resolveMonsterMeleeAgainstMonster(
 	if damage.Deflected {
 		result = CombatFeedbackGraze
 	}
-	hpLost, fatal := g.applyMonsterDamageToTarget(
+	hpLost, fatal, injury := g.applyMonsterDamageToTarget(
 		CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex},
 		diagnostics.FinalDamage, attacker, attackerIndex, diagnostics,
 	)
 	g.publishMonsterAttackEvent(CombatEventAttack, attackerIndex,
-		CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex}, result, hpLost, fatal, diagnostics)
+		CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex}, result, hpLost, fatal, diagnostics, injury)
 }
 
 func (g *GameState) applyMonsterDamageToTarget(
@@ -446,7 +449,7 @@ func (g *GameState) applyMonsterDamageToTarget(
 	_ *CombatMonster,
 	_ int,
 	diagnostics CombatDiagnostics,
-) (int, bool) {
+) (int, bool, CombatMonsterInjury) {
 	if target.IsPartyMember {
 		character := g.PartyState.GetCharacter(target.EntityIndex)
 		hpBefore := character.GetCurrentHp()
@@ -457,20 +460,22 @@ func (g *GameState) applyMonsterDamageToTarget(
 			g.markCombatPCDead(target.EntityIndex)
 		}
 
-		return int(hpBefore - character.GetCurrentHp()), character.IsDead()
+		return int(hpBefore - character.GetCurrentHp()), character.IsDead(), CombatMonsterInjury{}
 	}
 	monster := g.CombatScene.MonsterManager.GetMonster(target.EntityIndex)
 	hpBefore := monster.CurrentHP()
 	monster.TakeDamage(combatMonsterDamageToApply(
 		hpBefore, damage, diagnostics.Damage.InstantKill,
 	))
+	hpLost, fatal := hpBefore-monster.CurrentHP(), monster.IsDead()
+	injury := g.captureCombatMonsterInjury(target, hpLost)
 	if hpBefore > 0 && monster.IsDead() {
 		g.finalizeCombatMonsterDeathWithPolicy(monster, target.EntityIndex, nil, NoTargetPC, false, true)
 	} else if !monster.IsDead() {
 		g.resolveSurvivingCombatMonsterHit(monster, target.EntityIndex, !diagnostics.MagicDamage)
 	}
 
-	return hpBefore - monster.CurrentHP(), monster.IsDead()
+	return hpLost, fatal, injury
 }
 
 func (g *GameState) publishMonsterAttackEvent(
@@ -481,6 +486,7 @@ func (g *GameState) publishMonsterAttackEvent(
 	hpLost int,
 	fatal bool,
 	diagnostics CombatDiagnostics,
+	injury CombatMonsterInjury,
 ) {
 	attacker := g.CombatScene.MonsterManager.GetMonster(attackerIndex)
 	feedback := CombatAttackFeedback{
@@ -498,6 +504,7 @@ func (g *GameState) publishMonsterAttackEvent(
 		Kind: kind, Attacker: feedback.Attacker, Target: feedback.Target,
 		Result: result, HPLost: hpLost, Fatal: fatal,
 		From: feedback.Attacker.Position, To: feedback.Target.Position, Diagnostics: diagnostics,
+		MonsterInjury: injury,
 	})
 }
 
@@ -636,6 +643,7 @@ func (g *GameState) possessedPCMeleeAttack(attackerIdentity, target CombatTurnId
 	result := CombatFeedbackMiss
 	hpLost := 0
 	fatal := false
+	var injury CombatMonsterInjury
 	if hit.Outcome != CombatHitMiss {
 		damage := CombatCalcDamage(references.TwoHSword, defense.Armor, rng)
 		diagnostics.Damage = damage
@@ -659,6 +667,7 @@ func (g *GameState) possessedPCMeleeAttack(attackerIdentity, target CombatTurnId
 				monster.TakeDamage(monster.ApplyDamageModifiers(damage.Damage, references.TwoHSword))
 				hpLost = hpBefore - monster.CurrentHP()
 				fatal = monster.IsDead()
+				injury = g.captureCombatMonsterInjury(target, hpLost)
 				if fatal {
 					g.finalizeCombatMonsterDeathWithPolicy(monster, target.EntityIndex, nil, NoTargetPC, false, true)
 				} else {
@@ -681,6 +690,7 @@ func (g *GameState) possessedPCMeleeAttack(attackerIdentity, target CombatTurnId
 		Kind: CombatEventAttack, Attacker: attackerEntity, Target: targetEntity,
 		Result: result, HPLost: hpLost, Fatal: fatal,
 		From: attackerEntity.Position, To: targetEntity.Position, Diagnostics: diagnostics,
+		MonsterInjury: injury,
 	})
 }
 

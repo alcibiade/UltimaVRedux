@@ -30,7 +30,7 @@ func TestSurfaceSceptreClearsBarriersWithoutDirectionAndCompletesTurn(t *testing
 	scene := &GameScene{
 		gameState:   state,
 		output:      text.NewOutput(nil, 1, 10, 80),
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
 	}
 	state.SystemCallbacks.Flow.Items.StartSceptreWorkflow = scene.startSceptreWorkflow
@@ -67,7 +67,7 @@ func TestSurfaceSceptreSafeFallbackReportsNoEffectAndCompletesTurn(t *testing.T)
 	expectedTime := state.DateTime
 	expectedTime.Advance(1)
 	mock.Reset()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)}
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartSceptreWorkflow()
 	drainSceptreWorkflow(t, scene)
@@ -93,7 +93,7 @@ func TestLargeMapSceptreUsesWrappedScanAndSurfaceTurnCost(t *testing.T) {
 	expectedTime := state.DateTime
 	expectedTime.Advance(2)
 	mock.Reset()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)}
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartSceptreWorkflow()
 	drainSceptreWorkflow(t, scene)

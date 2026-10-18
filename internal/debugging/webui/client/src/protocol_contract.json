@@ -49,6 +49,7 @@
         "default": true,
         "minimum": true,
         "maximum": true,
+        "step": true,
         "pattern": true,
         "choices": true,
         "optionsProvider": true,

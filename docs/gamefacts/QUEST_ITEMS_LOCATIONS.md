@@ -19,7 +19,15 @@ Grapples are quantities. Plans mix presence and operational high-bit state. The
 generator starts Watch held and these other listed items zero, not verified shipped
 INIT.GAM bytes. Four shard bytes are allocated despite three named identities.
 Redux IDs 0–13 order Amulet, Crown, Sceptre, three shards, Carpet, Grapple, Spyglass,
-HMS Cape, Watch, Badge, Box, Sextant; that model is not the original save structure.
+plans, Watch, Badge, Box, Sextant; that model is not the original save structure.
+
+Identified Redux labels retain Amulet/Crown/Sceptre **of Lord British**, **Shard of
+Falsehood/Hatred/Cowardice**, **Magic Carpet**, **Grapple**, **Spyglass**, **H.M.S.
+Cape Plans**, **Pocket Watch**, **Black Badge**, **Sandalwood Box** and **Sextant**.
+Magic Carpet and Sandalwood Box are supported by original longer labels. The
+plans' punctuation is editorial. These labels do not rename stable typed IDs or
+saved fields. Descriptive pickup prose may still say “a grappling hook” or “a
+sandalwood box”; labels and authored discovery sentences are separate under INV-0003.
 
 ### QUEST-0002
 
@@ -34,14 +42,14 @@ On nonzero world level, original fixed objects are written at encoded level FF:
 
 | Item | X,Y | Slot/object number, hex | Presence |
 | --- | --- | --- | --- |
-| Amulet | 105,225 | 1C/F3 | Not owned |
-| Falsehood shard | 192,80 | 1D/F0 | Not owned and identity 0 state below 128 |
-| Hatred shard | 130,65 | 1E/F1 | Not owned and identity 1 state below 128 |
-| Cowardice shard | 176,184 | 1F/F2 | Not owned and identity 2 state below 128 |
+| Amulet of Lord British | 105,225 | 1C/F3 | Not owned |
+| Shard of Falsehood | 192,80 | 1D/F0 | Not owned and identity 0 state below 128 |
+| Shard of Hatred | 130,65 | 1E/F1 | Not owned and identity 1 state below 128 |
+| Shard of Cowardice | 176,184 | 1F/F2 | Not owned and identity 2 state below 128 |
 
 Pickup identifies Amulet by B7 hex and shards by B4 plus low-two object-number bits.
 Other evidence is narrower: held Sceptre removes Stonegate NPC 9; Castle Britannia
-carpet pickup removes NPC 22; Box pickup sets castle NPC-31 persistence. Crown
+carpet pickup removes NPC 22; Sandalwood Box pickup sets castle NPC-31 persistence. Crown
 pickup records/removes its source NPC but does not identify its exact placement.
 Talk grants quantities of Grapple/Carpet capped 99 or held Sextant/Spyglass/Badge;
 special plans pickup writes FF. Granting conversations and exact remaining sites

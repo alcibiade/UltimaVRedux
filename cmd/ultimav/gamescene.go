@@ -81,6 +81,10 @@ type VisualEffect struct {
 	Type     string  // Effect type (for example, kapow)
 	Duration float64 // Duration in seconds
 	Elapsed  float64 // Time elapsed since creation
+
+	// Combat bursts use admission time, never the preceding frame's delta.
+	combatClock     bool
+	combatStartedMs int64
 }
 
 // DissolveEffectState encapsulates all state needed for a sprite dissolve effect.
@@ -180,6 +184,7 @@ type GameScene struct {
 	atlasView                        widgets.AtlasViewState
 	atlasChordHeld                   bool
 	atlasMarkChordHeld               bool
+	quickLoadChordHeld               bool
 	journalNotice                    journalNotice
 	journalNoticeSuppressed          bool
 	transientActionFeedback          []*transientActionFeedback
@@ -245,6 +250,8 @@ type GameScene struct {
 	combatFieldDispels     []combatFieldDispelEffect
 	combatVanishEffects    []combatVanishEffect
 	combatSignatureEffects []*combatSignatureEffect
+	combatResolutionTiming *combatPresentationTiming
+	combatAttackTiming     combatAttackTimingSnapshot
 	combatAllegiance       combatAllegianceState
 	combatRenderFrame      combatRenderFrame
 	combatMovement         CombatMovementAnimation

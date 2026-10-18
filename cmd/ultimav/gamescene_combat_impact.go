@@ -19,8 +19,10 @@ import (
 const (
 	combatImpactDurationMs         int64 = 1250
 	combatImpactDurationSeconds          = float64(combatImpactDurationMs) / 1000
-	combatJoltDurationSeconds            = 0.32
-	combatLungeDurationSeconds           = 0.3
+	combatJoltDurationMs                 = 320
+	combatLungeDurationMs                = 300
+	combatJoltDurationSeconds            = float64(combatJoltDurationMs) / 1000
+	combatLungeDurationSeconds           = float64(combatLungeDurationMs) / 1000
 	combatJoltDistancePixels             = 3.5
 	combatLungeDistancePixels            = 4.0
 	combatJoltOscillations               = 1.5
@@ -35,7 +37,8 @@ const (
 	combatImpactLanePixels               = 10
 	combatFireTintDurationSeconds        = 0.45
 	combatFireTintMaximumAlpha           = 0.72
-	combatStrikeDurationSeconds          = 0.18
+	combatStrikeDurationMs               = 180
+	combatStrikeDurationSeconds          = float64(combatStrikeDurationMs) / 1000
 	combatStrikeRevealFraction           = 0.55
 	combatStrikeRouteStart               = 0.24
 	combatStrikeRouteEnd                 = 0.76
@@ -59,6 +62,7 @@ type combatStrikeLine struct {
 // CombatImpactEffect coordinates local sprite motion and floating damage text.
 type CombatImpactEffect struct {
 	Feedback          game_state.CombatAttackFeedback
+	StartedMs         int64
 	Elapsed           float64
 	Fire              bool
 	SpellOutcome      game_state.CombatSpellOutcome
@@ -69,6 +73,28 @@ type CombatImpactEffect struct {
 	fireAdmittedAt    int64
 	fireMovement      bool
 	fireMovementBound bool
+	timing            combatPresentationTiming
+	motion            combatImpactMotion
+}
+
+// Motion has its own admitted durations; label age retains the reading budget.
+type combatImpactMotion struct {
+	jolt, lunge, strike float64
+}
+
+func newCombatImpactMotion(timing combatPresentationTiming) combatImpactMotion {
+	return combatImpactMotion{
+		jolt: timing.seconds(combatJoltDurationMs), lunge: timing.seconds(combatLungeDurationMs),
+		strike: timing.seconds(combatStrikeDurationMs),
+	}
+}
+
+func (effect CombatImpactEffect) motionDurations() combatImpactMotion {
+	if effect.motion.jolt == 0 {
+		return newCombatImpactMotion(effect.timing)
+	}
+
+	return effect.motion
 }
 
 func (g *GameScene) showCombatAreaSpellImpact(event game_state.CombatEvent) {
@@ -77,6 +103,9 @@ func (g *GameScene) showCombatAreaSpellImpact(event game_state.CombatEvent) {
 		return
 	}
 	effect := CombatImpactEffect{
+		StartedMs: g.gameState.ElapsedMs,
+		timing:    g.captureCombatTiming(),
+		motion:    newCombatImpactMotion(g.captureCombatTiming()),
 		Feedback: game_state.CombatAttackFeedback{
 			Attacker: event.Attacker, Target: result.Target, Result: event.Result,
 			HPLost: result.HPLost, Fatal: result.Fatal,
@@ -126,9 +155,12 @@ func (g *GameScene) showCombatImpact(feedback game_state.CombatAttackFeedback) {
 		return
 	}
 	g.combatImpactEffects = append(g.combatImpactEffects, CombatImpactEffect{
-		Feedback: feedback,
-		Elapsed:  0,
-		Fire:     false,
+		StartedMs: g.gameState.ElapsedMs,
+		timing:    g.captureCombatTiming(),
+		motion:    newCombatImpactMotion(g.captureCombatTiming()),
+		Feedback:  feedback,
+		Elapsed:   0,
+		Fire:      false,
 	})
 }
 
@@ -179,7 +211,7 @@ func compareCoordinate(target, attacker references.Coordinate) int {
 	}
 }
 
-func (g *GameScene) updateCombatImpactEffects(deltaSeconds float64) {
+func (g *GameScene) updateCombatImpactEffects(_ float64) {
 	if !g.gameState.IsInCombat() {
 		clear(g.combatImpactEffects)
 		g.combatImpactEffects = g.combatImpactEffects[:0]
@@ -199,7 +231,9 @@ func (g *GameScene) updateCombatImpactEffects(deltaSeconds float64) {
 				effect.Elapsed = 0
 			}
 		} else {
-			effect.Elapsed += deltaSeconds
+			// Queues can admit impacts earlier in this same update. Only time
+			// after admission belongs to their motion and unscaled reading clock.
+			effect.Elapsed = float64(max(g.gameState.ElapsedMs-effect.StartedMs, 0)) / 1000
 			if !g.combatAreaImpactStillDisclosed(*effect) {
 				continue
 			}
@@ -230,13 +264,13 @@ func (g *GameScene) combatImpactEntityOffset(isPartyMember bool, index, slot int
 		}
 		if feedback.Target.IsPartyMember == isPartyMember && feedback.Target.Index == index &&
 			(!isPartyMember || feedback.Target.Slot == slot) &&
-			feedback.Result == game_state.CombatFeedbackDamage && effect.Elapsed < combatJoltDurationSeconds {
+			feedback.Result == game_state.CombatFeedbackDamage && effect.Elapsed < effect.motionDurations().jolt {
 			return combatTargetJoltOffset(effect)
 		}
 		if !effect.Fire && feedback.Presentation.Delivery == game_state.CombatAttackDeliveryMelee &&
 			feedback.Attacker.IsPartyMember == isPartyMember && feedback.Attacker.Index == index &&
 			(!isPartyMember || feedback.Attacker.Slot == slot) &&
-			effect.Elapsed < combatLungeDurationSeconds {
+			effect.Elapsed < effect.motionDurations().lunge {
 			return combatAttackerLungeOffset(effect)
 		}
 	}
@@ -281,7 +315,7 @@ func (g *GameScene) combatFireImpactAlpha(isPartyMember bool, index, slot int) f
 }
 
 func combatTargetJoltOffset(effect CombatImpactEffect) (float64, float64) {
-	progress := effect.Elapsed / combatJoltDurationSeconds
+	progress := effect.Elapsed / effect.motionDurations().jolt
 	damping := 1 - progress
 	wave := math.Sin(progress * math.Pi * 2 * combatJoltOscillations)
 	distance := combatJoltDistancePixels * damping * wave
@@ -291,7 +325,7 @@ func combatTargetJoltOffset(effect CombatImpactEffect) (float64, float64) {
 }
 
 func combatAttackerLungeOffset(effect CombatImpactEffect) (float64, float64) {
-	progress := effect.Elapsed / combatLungeDurationSeconds
+	progress := effect.Elapsed / effect.motionDurations().lunge
 	distance := combatLungeDistancePixels * math.Sin(progress*math.Pi)
 	directionX, directionY := combatEffectDirection(effect)
 
@@ -359,6 +393,7 @@ func (g *GameScene) drawCombatStrikeEffects(screen *ebiten.Image) {
 	for index := range g.combatImpactEffects {
 		effect := g.combatImpactEffects[index]
 		visual, ok := combatStrikeVisualFor(effect.Feedback.Presentation)
+		visual.Duration = effect.motionDurations().strike
 		if !ok {
 			continue
 		}

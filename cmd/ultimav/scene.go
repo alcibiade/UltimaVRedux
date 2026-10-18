@@ -404,6 +404,12 @@ func (g *Game) commitSceneReplacement(scene Scene) error {
 	if preparer, ok := oldScene.(sceneReplacementPreparer); ok {
 		preparer.PrepareForSceneReplacement()
 	}
+	// Retire old queues while application callbacks still resolve their owner.
+	// Publishing the candidate first would let a shutdown finalizer address the
+	// new scene. Candidate failure above never reaches this destructive boundary.
+	if disposer, ok := oldScene.(sceneDisposer); ok {
+		disposer.Dispose()
+	}
 	g.currentScene = scene
 	g.musicHistory = history
 	g.sceneGeneration.Add(1)
@@ -414,9 +420,6 @@ func (g *Game) commitSceneReplacement(scene Scene) error {
 		optionsRevision = previous.OptionsRevision + 1
 	}
 	g.publishDebugDiscovery(nil, optionsRevision)
-	if disposer, ok := oldScene.(sceneDisposer); ok {
-		disposer.Dispose()
-	}
 
 	return nil
 }

@@ -32,7 +32,7 @@ func TestProductionCastPathCreatesAndOwnsSpellCastingDialog(t *testing.T) {
 	scene := &GameScene{
 		gameState:         state,
 		output:            text.NewOutput(nil, 1, 10, 80),
-		keyboard:          input.NewKeyboard(0),
+		keyboard:          input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}
@@ -582,7 +582,7 @@ func newCastFailureTestScene(t *testing.T) *GameScene {
 	return &GameScene{
 		gameState:         state,
 		output:            text.NewOutput(nil, 1, 10, 80),
-		keyboard:          input.NewKeyboard(0),
+		keyboard:          input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}
@@ -590,9 +590,11 @@ func newCastFailureTestScene(t *testing.T) *GameScene {
 
 func newProductionCastTestScene(state *game_state.GameState) *GameScene {
 	return &GameScene{
-		gameState:         state,
-		output:            text.NewOutput(nil, 1, 10, 80),
-		keyboard:          input.NewKeyboard(0),
+		gameState: state,
+		output:    text.NewOutput(nil, 1, 10, 80),
+		// SimulateKeyPress supplies the command, but modifiers/navigation are
+		// still polled. Host-held Ctrl must not turn fixture syllables into chords.
+		keyboard:          input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false }),
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}

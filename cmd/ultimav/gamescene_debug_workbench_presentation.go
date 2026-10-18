@@ -1,10 +1,6 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/bradhannah/UltimaVRedux/internal/debugging"
-)
+import "github.com/bradhannah/UltimaVRedux/internal/debugging"
 
 func (g *GameScene) executePresentationDebugCommand(request debugging.Request) (debugging.Result, bool) {
 	switch request.CommandID {
@@ -27,25 +23,7 @@ func (g *GameScene) executePresentationDebugCommand(request debugging.Request) (
 
 		return presentationBooleanResult(request, "Moongate overlay updated.", "presentation.overlays.moongate", before, after), true
 	case debugging.CommandCombatPresentationSpeedSet:
-		before := g.gameConfig.DebugConfiguration.GetCombatMovementSpeedFactor()
-		percent := mustDebugIntegerArgument(request, "percent")
-		after := float64(percent) / 100
-		if !g.gameConfig.DebugConfiguration.SetCombatMovementSpeedFactor(after) {
-			panic("validated combat presentation speed was rejected by configuration")
-		}
-		if err := g.gameConfig.SaveDebugConfiguration(); err != nil {
-			if !g.gameConfig.DebugConfiguration.SetCombatMovementSpeedFactor(before) {
-				panic("previous combat presentation speed became invalid")
-			}
-
-			return debugging.FailureResult(request, "configuration_save_failed", fmt.Sprintf("saving combat presentation speed: %v", err)), true
-		}
-		result := debugSuccessResultWithMode(request, debugging.ExecutionPresentation, "Combat presentation speed updated.", struct {
-			Percent int `json:"percent"`
-		}{Percent: percent})
-		appendSemanticChange(&result.Changes, "presentation.combatMovementSpeedPercent", int(before*100), percent)
-
-		return result, true
+		return executeReduxModificationsDebugCommand(request, g.gameConfig)
 	default:
 		return debugging.Result{}, false
 	}

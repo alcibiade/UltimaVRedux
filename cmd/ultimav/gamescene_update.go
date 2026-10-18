@@ -68,7 +68,8 @@ func (g *GameScene) updateNonBlockingDialogs() {
 
 // updateVisualEffects updates and removes expired visual effects
 func (g *GameScene) updateVisualEffects() {
-	// Calculate real deltaTime since last update for smooth visual effects
+	// Noncombat cosmetics retain a frame-delta clock. Combat effects use their
+	// own admission/arrival timestamps, including work queued earlier this frame.
 	now := g.sceneNow()
 	deltaTime := now.Sub(g.lastEffectsUpdate).Seconds()
 	g.lastEffectsUpdate = now
@@ -82,7 +83,11 @@ func (g *GameScene) updateVisualEffects() {
 	// Update existing effects in-place and compact the slice (no allocation)
 	writeIndex := 0
 	for i := range g.visualEffects {
-		g.visualEffects[i].Elapsed += deltaTime
+		if g.visualEffects[i].combatClock {
+			g.visualEffects[i].Elapsed = float64(max(g.gameState.ElapsedMs-g.visualEffects[i].combatStartedMs, 0)) / 1000
+		} else {
+			g.visualEffects[i].Elapsed += deltaTime
+		}
 		if g.visualEffects[i].Elapsed < g.visualEffects[i].Duration {
 			// Keep this effect by moving it to the write position
 			if writeIndex != i {

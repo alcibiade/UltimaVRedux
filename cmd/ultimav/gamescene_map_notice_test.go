@@ -23,7 +23,7 @@ func newMapNoticeScene(t *testing.T) (*GameScene, *time.Time) {
 	t.Helper()
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.BritanniaUnderworld).WithSystemCallbacks().Build()
 	now := time.Unix(100, 0)
-	scene := &GameScene{gameState: state, gameConfig: state.GameConfig, keyboard: input.NewKeyboard(0),
+	scene := &GameScene{gameState: state, gameConfig: state.GameConfig, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output: text.NewOutput(nil, 1, 64, 80), now: func() time.Time { return now }}
 	scene.output.EnableJournalHistory()
 	return scene, &now

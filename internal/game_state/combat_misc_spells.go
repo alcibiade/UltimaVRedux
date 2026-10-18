@@ -106,6 +106,7 @@ func (g *GameState) CastCombatEarthquakeResult(casterIdx int) CombatAreaSpellRes
 		monster.TakeDamage(finalDamage)
 		hpLost := hpBefore - monster.CurrentHP()
 		outcome.HPLost, outcome.Fatal = hpLost, monster.IsDead()
+		outcome.MonsterInjury = g.captureCombatMonsterInjury(target, hpLost)
 		result.Targets = append(result.Targets, g.publishCombatEarthquakeResult(casterIdx, outcome, hit, damage, finalDamage))
 		if hpBefore > 0 && monster.IsDead() {
 			g.finalizeCombatMonsterDeath(monster, monsterIdx, g.PartyState.GetCharacter(casterIdx), casterIdx)

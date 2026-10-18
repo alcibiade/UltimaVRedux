@@ -591,6 +591,9 @@ export interface DebugOptionsStatusData {
 }
 
 export interface ReduxModificationsStatusData {
+	configurationDiagnostics?: string[]
+	configurationEditing: boolean
+	confirmQuickSave: boolean
   combat: ReduxCombatModificationsData
   dungeons: ReduxDungeonModificationsData
   presentation: ReduxPresentationModificationsData
@@ -602,10 +605,13 @@ export interface ReduxNavigationModificationsData {
 }
 
 export interface ReduxPresentationModificationsData {
+	maxVisibleActionPopups: number
   smoothSurfaceMovement: boolean
 }
 
 export interface ReduxCombatModificationsData {
+	speedPercent: number
+	showHealthBars: boolean
   allowRepeatedMonsterDivision: boolean
 }
 
@@ -862,4 +868,5 @@ export interface ActiveCombatStatusData {
 	  rngSeed: number
   workflowActive: boolean
   presentationSpeedPercent: number
+	configurationEditing: boolean
 }

@@ -16,7 +16,7 @@ import (
 func TestAtlasSafeOpeningContexts(t *testing.T) {
 	for _, location := range []references.Location{references.BritanniaUnderworld, references.Britain, references.Deceit} {
 		state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(location).WithSystemCallbacks().Build()
-		scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)}
+		scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 		require.True(t, scene.canOpenAtlas(), "%s", location)
 		scene.secondaryKeyState = LookDirectionInput
 		require.False(t, scene.canOpenAtlas())

@@ -23,11 +23,13 @@ type combatSceptreActorEffect struct {
 	Identity    game_state.CombatTurnIdentity
 	Position    references.Position
 	StartedAtMs int64
+	timing      combatPresentationTiming
 }
 
 type combatFieldDispelEffect struct {
 	Position    references.Position
 	StartedAtMs int64
+	timing      combatPresentationTiming
 }
 
 func (g *GameScene) showCombatSceptreActorEffect() {
@@ -36,6 +38,7 @@ func (g *GameScene) showCombatSceptreActorEffect() {
 		panic("combat Sceptre effect requires an active party member")
 	}
 	g.combatSceptreEffects = append(g.combatSceptreEffects, combatSceptreActorEffect{
+		timing:      g.captureCombatTiming(),
 		Identity:    identity,
 		Position:    g.gameState.CombatScene.GetCombatantPosition(identity),
 		StartedAtMs: g.gameState.ElapsedMs,
@@ -44,6 +47,7 @@ func (g *GameScene) showCombatSceptreActorEffect() {
 
 func (g *GameScene) showCombatFieldDispelEffect(event game_state.CombatEvent) {
 	g.combatFieldDispels = append(g.combatFieldDispels, combatFieldDispelEffect{
+		timing:      g.captureCombatTiming(),
 		Position:    event.To,
 		StartedAtMs: g.gameState.ElapsedMs,
 	})
@@ -60,7 +64,7 @@ func (g *GameScene) updateCombatSceptreEffects() {
 	actorWriteIndex := 0
 	for index := range g.combatSceptreEffects {
 		effect := g.combatSceptreEffects[index]
-		if !combatSceptreEffectActive(effect.StartedAtMs, g.gameState.ElapsedMs, combatSceptreActorDurationMs) {
+		if !combatSceptreEffectActive(effect.StartedAtMs, g.gameState.ElapsedMs, effect.timing.durationMs(combatSceptreActorDurationMs)) {
 			continue
 		}
 		g.combatSceptreEffects[actorWriteIndex] = effect
@@ -71,7 +75,7 @@ func (g *GameScene) updateCombatSceptreEffects() {
 	fieldWriteIndex := 0
 	for index := range g.combatFieldDispels {
 		effect := g.combatFieldDispels[index]
-		if !combatSceptreEffectActive(effect.StartedAtMs, g.gameState.ElapsedMs, combatFieldDispelDurationMs) {
+		if !combatSceptreEffectActive(effect.StartedAtMs, g.gameState.ElapsedMs, effect.timing.durationMs(combatFieldDispelDurationMs)) {
 			continue
 		}
 		g.combatFieldDispels[fieldWriteIndex] = effect
@@ -107,7 +111,7 @@ func (g *GameScene) drawCombatFieldDispelEffects(screen *ebiten.Image) {
 		progress := combatSceptreEffectProgress(
 			effect.StartedAtMs,
 			g.gameState.ElapsedMs,
-			combatFieldDispelDurationMs,
+			effect.timing.durationMs(combatFieldDispelDurationMs),
 		)
 		drawCombatCornerCueWithin(
 			screen,
@@ -133,7 +137,7 @@ func (g *GameScene) drawCombatSceptreActorEffects(
 		progress := combatSceptreEffectProgress(
 			effect.StartedAtMs,
 			g.gameState.ElapsedMs,
-			combatSceptreActorDurationMs,
+			effect.timing.durationMs(combatSceptreActorDurationMs),
 		)
 		drawCombatCornerCueWithin(
 			screen,

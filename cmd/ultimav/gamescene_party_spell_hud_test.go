@@ -63,7 +63,7 @@ func TestCombatLootAndSavePromptReviewFrames(t *testing.T) {
 		{Sprite: indexes.ItemPotion, Description: "a potion!"},
 		{Sprite: indexes.ItemWeapon, Description: "a weapon!"},
 	}
-	dialog := widgets.NewCombatLootDialog(entries, input.NewKeyboard(0), sheet)
+	dialog := widgets.NewCombatLootDialog(entries, input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), sheet)
 	dialog.Reveal(len(entries))
 	dialog.FinishReveal()
 	screen := newPresentationRaster(1280, 720)

@@ -55,9 +55,11 @@ type combatSignatureEffect struct {
 	Highlight           *ebiten.Image
 	GatePhase           combatGatePhase
 	PhaseStartedMs      int64
+	PhaseDurationsMs    [3]int64
 }
 
 func (g *GameScene) showCombatSignatureEffect(event game_state.CombatEvent) {
+	timing := g.captureCombatTiming()
 	var sound game_state.SoundEffect
 	effect := combatSignatureEffect{Encounter: g.gameState.CombatScene, Kind: event.Kind,
 		Condition: event.Condition, From: event.From, To: event.To, StartedMs: g.gameState.ElapsedMs}
@@ -67,18 +69,20 @@ func (g *GameScene) showCombatSignatureEffect(event game_state.CombatEvent) {
 		effect.Actor = game_state.CombatTurnIdentity{EntityIndex: event.Created.Index}
 		effect.CombatantID = event.Created.CombatantID
 		effect.From, effect.To = event.Created.Position, event.Created.Position
-		effect.DurationMs = combatGateDurationMs
+		effect.PhaseDurationsMs = [3]int64{timing.durationMs(combatGateArrivalMs), timing.durationMs(combatGateMaterializeMs), timing.durationMs(combatGateSettleMs)}
+		effect.DurationMs = effect.PhaseDurationsMs[0] + effect.PhaseDurationsMs[1] + effect.PhaseDurationsMs[2]
 		effect.PhaseStartedMs = effect.StartedMs
 	case game_state.CombatEventPossession:
 		effect.PossessionEpisodeID = event.PossessionEpisodeID
 		sound = game_state.SoundMonsterPossession
 		effect.Actor = combatTurnIdentityForFeedback(event.Target)
-		effect.DurationMs = combatPossessionDurationMs
+		effect.DurationMs = timing.durationMs(combatPossessionDurationMs)
 		effect.OriginDisclosed = g.captureCombatReportIdentity(event.Attacker).Disclosed
 	case game_state.CombatEventTeleport:
 		sound = game_state.SoundMonsterTeleport
 		effect.Actor = combatTurnIdentityForFeedback(event.Attacker)
-		effect.DurationMs = combatBlinkDurationMs
+		effect.PhaseDurationsMs = [3]int64{timing.durationMs(combatTeleportDepartureMs), timing.durationMs(combatTeleportHiddenMs), timing.durationMs(combatTeleportArrivalMs)}
+		effect.DurationMs = effect.PhaseDurationsMs[0] + effect.PhaseDurationsMs[1] + effect.PhaseDurationsMs[2]
 	case game_state.CombatEventCondition:
 		switch event.Condition { //nolint:exhaustive // Routine captivity/sleep turns have no onset cue.
 		case game_state.CombatConditionDraggedUnder:
@@ -90,7 +94,7 @@ func (g *GameScene) showCombatSignatureEffect(event game_state.CombatEvent) {
 		}
 		effect.Actor = combatTurnIdentityForFeedback(event.Target)
 		effect.From, effect.To = event.Target.Position, event.Target.Position
-		effect.DurationMs = combatCorpserDurationMs
+		effect.DurationMs = timing.durationMs(combatCorpserDurationMs)
 	default:
 		return
 	}
@@ -215,11 +219,11 @@ func (g *GameScene) updateCombatGatePhase(effect *combatSignatureEffect) {
 	var duration int64
 	switch effect.GatePhase {
 	case combatGateArrival:
-		duration = combatGateArrivalMs
+		duration = effect.phaseDuration(0, combatGateArrivalMs)
 	case combatGateMaterialize:
-		duration = combatGateMaterializeMs
+		duration = effect.phaseDuration(1, combatGateMaterializeMs)
 	case combatGateSettle:
-		duration = combatGateSettleMs
+		duration = effect.phaseDuration(2, combatGateSettleMs)
 	case combatGateComplete:
 		return
 	}
@@ -238,7 +242,7 @@ func (effect *combatSignatureEffect) gateRevealProgress(nowMs int64) float64 {
 	case combatGateArrival:
 		return 0
 	case combatGateMaterialize:
-		return min(float64(max(nowMs-effect.PhaseStartedMs, 0))/combatGateMaterializeMs, 1)
+		return min(float64(max(nowMs-effect.PhaseStartedMs, 0))/float64(effect.phaseDuration(1, combatGateMaterializeMs)), 1)
 	case combatGateSettle, combatGateComplete:
 		return 1
 	default:
@@ -298,16 +302,27 @@ func (g *GameScene) combatSignatureHidesActor(identity game_state.CombatTurnIden
 	return false
 }
 
-func combatSignatureBlink(milliseconds int64) (combatTeleportPhase, float32) {
-	if milliseconds < combatTeleportDepartureMs {
-		return combatTeleportDeparture, float32(milliseconds) / combatTeleportDepartureMs
+func (effect *combatSignatureEffect) phaseDuration(index int, authored int64) int64 {
+	if effect.PhaseDurationsMs[index] > 0 {
+		return effect.PhaseDurationsMs[index]
 	}
-	milliseconds -= combatTeleportDepartureMs
-	if milliseconds < combatTeleportHiddenMs {
+
+	return authored // Zero-valued presentation fixtures retain the 1x baseline.
+}
+
+func (effect *combatSignatureEffect) blink(milliseconds int64) (combatTeleportPhase, float32) {
+	departure := effect.phaseDuration(0, combatTeleportDepartureMs)
+	hidden := effect.phaseDuration(1, combatTeleportHiddenMs)
+	arrival := effect.phaseDuration(2, combatTeleportArrivalMs)
+	if milliseconds < departure {
+		return combatTeleportDeparture, float32(milliseconds) / float32(departure)
+	}
+	milliseconds -= departure
+	if milliseconds < hidden {
 		return combatTeleportHidden, 0
 	}
 
-	return combatTeleportArrival, min(float32(milliseconds-combatTeleportHiddenMs)/combatTeleportArrivalMs, 1)
+	return combatTeleportArrival, min(float32(milliseconds-hidden)/float32(arrival), 1)
 }
 
 func (g *GameScene) drawCombatSignatureEffects(screen *ebiten.Image) {
@@ -324,7 +339,7 @@ func (g *GameScene) drawCombatSignatureEffects(screen *ebiten.Image) {
 		position, opacity := effect.To, float32(1)
 		inset, clr := (1-progress)*4, ucolor.CombatMaterialization
 		if effect.Kind == game_state.CombatEventTeleport {
-			phase, phaseProgress := combatSignatureBlink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
+			phase, phaseProgress := effect.blink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
 			if phase == combatTeleportHidden {
 				continue
 			}
@@ -340,7 +355,7 @@ func (g *GameScene) drawCombatSignatureEffects(screen *ebiten.Image) {
 		options := g.combatEntityDrawOptions(position, effect.Actor.IsPartyMember, effect.Actor.EntityIndex, effect.Actor.Slot)
 		if effect.Kind == game_state.CombatEventGating {
 			if effect.GatePhase == combatGateArrival {
-				drawCombatSeal(screen, options, float32(min(float64(max(g.gameState.ElapsedMs-effect.PhaseStartedMs, 0))/combatGateArrivalMs, 1)), true)
+				drawCombatSeal(screen, options, float32(min(float64(max(g.gameState.ElapsedMs-effect.PhaseStartedMs, 0))/float64(effect.phaseDuration(0, combatGateArrivalMs)), 1)), true)
 
 				continue
 			}

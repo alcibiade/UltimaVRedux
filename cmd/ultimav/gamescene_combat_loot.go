@@ -15,6 +15,7 @@ type combatLootProjection struct {
 }
 
 func (g *GameScene) startCombatChestRevealWorkflow(result game_state.CombatOpenResult, token game_state.CombatPresentationToken) {
+	timing := g.captureCombatTiming()
 	var dialog *widgets.CombatLootDialog
 	combat := g.gameState.CombatScene
 	scope := combatChestFeedbackScope{
@@ -35,7 +36,7 @@ func (g *GameScene) startCombatChestRevealWorkflow(result game_state.CombatOpenR
 			g.clearTransientActionFeedback()
 			g.dialogStack.PushModalDialog(dialog)
 			g.gameState.SystemCallbacks.Message.AddRowStr("Found:")
-		}).RepeatWithDelay(len(result.RevealItems), combatChestRevealDelayMs, func(index int) bool {
+		}).RepeatWithDelay(len(result.RevealItems), timing.durationMs(combatChestRevealDelayMs), func(index int) bool {
 		entry := result.RevealItems[index]
 		dialog.Reveal(index + 1)
 		preview.sprite = entry.Sprite

@@ -555,6 +555,7 @@ func (g *GameState) publishCombatProjectileSpellResult(
 	targetImmortal bool,
 ) {
 	feedbackResult := CombatFeedbackDamage
+	injury := g.captureCombatMonsterInjury(targetIdentity, hpLost)
 	if hit.Outcome == CombatHitMiss {
 		feedbackResult = CombatFeedbackMiss
 	} else if hpLost == 0 {
@@ -573,14 +574,15 @@ func (g *GameState) publishCombatProjectileSpellResult(
 	}
 	g.SystemCallbacks.Visual.ShowCombatImpact(feedback)
 	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
-		Kind:     CombatEventSpell,
-		Attacker: feedback.Attacker,
-		Target:   feedback.Target,
-		Result:   feedback.Result,
-		HPLost:   feedback.HPLost,
-		Fatal:    feedback.Fatal,
-		From:     feedback.Attacker.Position,
-		To:       feedback.Target.Position,
+		Kind:          CombatEventSpell,
+		Attacker:      feedback.Attacker,
+		Target:        feedback.Target,
+		Result:        feedback.Result,
+		HPLost:        feedback.HPLost,
+		Fatal:         feedback.Fatal,
+		MonsterInjury: injury,
+		From:          feedback.Attacker.Position,
+		To:            feedback.Target.Position,
 		Diagnostics: CombatDiagnostics{ //nolint:exhaustruct // Physical attack fields do not apply to spells.
 			Hit:            hit,
 			Damage:         damage,

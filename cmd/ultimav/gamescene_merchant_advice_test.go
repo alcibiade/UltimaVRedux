@@ -13,7 +13,7 @@ import (
 
 func TestMerchantAdviceNoticeWorkflowCleanup(t *testing.T) {
 	for _, cancel := range []bool{false, true} {
-		keyboard := input.NewKeyboard(0)
+		keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
 		scene := &GameScene{keyboard: keyboard}
 		parent := &merchantRegistryTestDialog{name: "merchant"}
 		decoy := &merchantRegistryTestDialog{name: "unrelated"}

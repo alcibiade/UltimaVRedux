@@ -118,6 +118,13 @@ func TestMagePhysicalDamagePolicyMatchesHostileAndControlledAttacks(t *testing.T
 					event := mock.CombatEvents[0]
 					assert.False(t, event.Diagnostics.ProjectileBlocked)
 					assert.Equal(t, wantDamage, event.HPLost)
+					if wantDamage == 0 {
+						assert.Equal(t, CombatInjuryNone, event.MonsterInjury.Severity)
+					} else {
+						assert.Equal(t, ClassifyCombatMonsterInjury(wantHP, 200), event.MonsterInjury.Severity)
+						assert.Equal(t, target.CombatantID(), event.MonsterInjury.CombatantID)
+						assert.True(t, event.MonsterInjury.Disclosed)
+					}
 					assert.False(t, event.Diagnostics.MagicDamage)
 					assert.False(t, event.Diagnostics.MagicWeapon)
 					assert.Equal(t, test.poison, event.Diagnostics.PoisonFallbackRolled)

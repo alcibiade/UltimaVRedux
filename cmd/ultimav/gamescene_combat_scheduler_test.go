@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 )
 
@@ -16,15 +15,18 @@ func TestCombatAutoPassWithoutSignatureHonorsSpeedAdjustedDelay(t *testing.T) {
 		speed      float64
 		durationMs int64
 	}{
-		{name: "slow", speed: 0.25, durationMs: 1000},
+		{name: "slow", speed: 0.5, durationMs: 500},
 		{name: "normal", speed: 1, durationMs: 250},
+		{name: "one and half", speed: 1.5, durationMs: 167},
+		{name: "double", speed: 2, durationMs: 125},
+		{name: "two and half", speed: 2.5, durationMs: 100},
+		{name: "triple", speed: 3, durationMs: 83},
+		{name: "three and half", speed: 3.5, durationMs: 71},
 		{name: "fast", speed: 4, durationMs: 63},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			scene, callbacks := newCombatUseTestScene(t)
-			scene.gameConfig = &config.UltimaVConfiguration{
-				DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: test.speed},
-			}
+			setCombatTimingTestRate(scene, test.speed)
 			state := scene.gameState
 			step := nextNonActionablePCPresentationStep(t, state)
 			require.Equal(t, game_state.CombatPresentationAutoPass, step.Kind)
@@ -38,6 +40,7 @@ func TestCombatAutoPassWithoutSignatureHonorsSpeedAdjustedDelay(t *testing.T) {
 			const startMs int64 = 900
 			state.ElapsedMs = startMs
 			scene.startScheduledCombatAutoPass(step)
+			scene.gameConfig.GameplayConfiguration.CombatSpeedFactor = 1
 			require.True(t, callbacks.InputBlocked)
 
 			// Drain every immediately runnable stage at the same clock value.

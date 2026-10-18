@@ -325,7 +325,7 @@ func TestRejectedAndModalCombatCommandsDoNotTriggerDoomMirrorImmediately(t *test
 			callbacks.Reset()
 			scene := &GameScene{ //nolint:exhaustruct // Focused production command completion path.
 				gameState: gs,
-				keyboard:  input.NewKeyboard(0),
+				keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 				output:    text.NewOutput(nil, 1, 10, 80),
 			}
 
@@ -560,7 +560,7 @@ func TestControlledMonsterCombatPushUsesProductionDirectionAndCompletesOnce(t *t
 	}
 	actualScene := &GameScene{ //nolint:exhaustruct // Focused production Push route.
 		gameState: actualState,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),
 	}
 	configureProductionCombatPush(t, actualState, indexes.Barrel, indexes.BrickFloor)
@@ -720,7 +720,7 @@ func newStartedDungeonCombatPushTrapScene(
 
 	return &GameScene{ //nolint:exhaustruct // Focused production trap route.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),
 	}, callbacks, direction
 }
@@ -951,7 +951,7 @@ func TestCombatChestRevealWorkflowPacesRightPanelMessages(t *testing.T) {
 	))
 	activeBefore := gs.CombatScene.GetActiveCombatantIndex()
 	mockCallbacks.Reset()
-	scene := &GameScene{gameState: gs, keyboard: input.NewKeyboard(0), spriteSheet: sharedPresentationTestSpriteSheet()} //nolint:exhaustruct // Focused reveal-workflow fixture.
+	scene := &GameScene{gameState: gs, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), spriteSheet: sharedPresentationTestSpriteSheet()} //nolint:exhaustruct // Focused reveal-workflow fixture.
 
 	token := gs.FinishCombatTurnDeferred()
 	scene.startCombatChestRevealWorkflow(game_state.CombatOpenResult{RevealItems: []game_state.CombatLootReveal{
@@ -1056,7 +1056,7 @@ func TestCombatProjectileSequencePreservesPhysicalProjectileIdentity(t *testing.
 				Priority(event_queue.PriorityHigh).
 				Sequential().
 				First(func() {}).
-				ThenSequence(scene.combatProjectileAnimationSequence(launch, func() {
+				ThenSequence(scene.combatProjectileAnimationSequenceWithTiming(scene.captureCombatTiming(), launch, func() {
 					impactCalled = true
 				})).
 				Finally(func() {}).
@@ -1225,7 +1225,7 @@ func TestCombatAdjacentSpellConcealedTargetUsesNeutralConfirmationPrompt(t *test
 	}).Valid)
 	mock.Reset()
 	scene := &GameScene{ //nolint:exhaustruct // Focused adjacent-target prompt fixture.
-		gameState: state, keyboard: input.NewKeyboard(0), secondaryKeyState: CombatAdjacentSpellTargetInput,
+		gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), secondaryKeyState: CombatAdjacentSpellTargetInput,
 	}
 	scene.keyboard.SimulateKeyPress(ebiten.KeyDown)
 
@@ -1287,7 +1287,7 @@ func TestCombatSpellTargetCancellationRoutesPreserveActionAndResources(t *testin
 			mpBefore := caster.GetCurrentMp()
 			actualMock.Reset()
 			scene := &GameScene{ //nolint:exhaustruct // Focused terminal targeting-input fixture.
-				gameState: actual, keyboard: input.NewKeyboard(0), secondaryKeyState: test.input,
+				gameState: actual, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), secondaryKeyState: test.input,
 			}
 
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
@@ -1332,7 +1332,7 @@ func TestCombatProjectileAnimationSequenceOwnsOnlyProjectileLifecycle(t *testing
 		Priority(event_queue.PriorityHigh).
 		Sequential().
 		First(func() {}).
-		ThenSequence(scene.combatProjectileAnimationSequence(launch, func() {
+		ThenSequence(scene.combatProjectileAnimationSequenceWithTiming(scene.captureCombatTiming(), launch, func() {
 			impactCalled = true
 			clearedAtImpact = mock.ProjectilesClearedCount > 0
 		})).
@@ -1807,7 +1807,7 @@ func TestCombatEscapeBeforeVictoryReportsRefusalInsteadOfOpeningMenu(t *testing.
 	mockCallbacks.Reset()
 	scene := &GameScene{ //nolint:exhaustruct // Focused Escape-routing fixture.
 		gameState: gs,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 	}
 
 	scene.combatMapInputHandler(ebiten.KeyEscape)

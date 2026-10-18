@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -70,13 +69,11 @@ func combatFireEvents(events []game_state.CombatEvent) []game_state.CombatEvent 
 }
 
 func TestCombatFireKeyboardMovementSurvivesContactAndArrival(t *testing.T) {
-	for _, speed := range []float64{0.25, 1, 4} {
+	for _, speed := range []float64{0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4} {
 		t.Run(fmt.Sprint(speed), func(t *testing.T) {
 			scene, actor, events := newCombatFireMovementTest(t, indexes.Fireplace)
 			state := scene.gameState
-			scene.gameConfig = &config.UltimaVConfiguration{
-				DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: speed},
-			}
+			setCombatTimingTestRate(scene, speed)
 			hpBefore := state.PartyState.GetCharacter(actor.EntityIndex).GetCurrentHp()
 			callsBefore := state.GetRNG().Calls()
 			scene.combatMapInputHandler(ebiten.KeyRight)

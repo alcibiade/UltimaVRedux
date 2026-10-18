@@ -45,7 +45,7 @@ var boundKeysGame = []ebiten.Key{
 	ebiten.KeyN, // New order / Ctrl+N: mark current position
 	ebiten.KeyO, // Open
 	ebiten.KeyP, // Push
-	ebiten.KeyQ, // Quit/Escape
+	ebiten.KeyQ, // Quick save / Ctrl+Q: reload the active slot
 	ebiten.KeyR, // Ready weapon/Resurrect
 	ebiten.KeyS, // Search
 	ebiten.KeyT, // Talk
@@ -95,11 +95,23 @@ var boundKeysGame = []ebiten.Key{
 //
 //nolint:cyclop,gocyclo,funlen,maintidx // Ordered input-owner precedence stays together so early returns are auditable.
 func (g *GameScene) Update(game *Game) error {
+	inputAllowed := g.beginTransientCommandInputFrame()
+	// Sample before readers, queues or buffered commands can change ownership.
+	// A ready quickload returns before outgoing clocks, RNG, or update finalizers.
+	if g.captureQuickLoadRequest(inputAllowed) && g.quickLoadInputEligible() {
+		g.handleQuickLoad(game)
+
+		return nil
+	}
+	if g.quickLoadChordHeld {
+		// Mask raw any-key/text readers too, not just bound gameplay Q. The
+		// current owner may advance presentation, but cannot accept this chord.
+		inputAllowed = false
+	}
 	g.syncAutomaticSailingInterruption()
 	defer g.updateActorAnimationClocks()
 	// Presentation service must run even when a reader consumes the whole frame.
 	defer g.updateSceneMusic()
-	inputAllowed := g.beginTransientCommandInputFrame()
 	if inputAllowed {
 		defer g.finishTransientCommandInputFrame()
 	} else {
@@ -299,7 +311,7 @@ func (g *GameScene) Update(game *Game) error {
 	}
 
 	mapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
-	if g.atlasChordHeld || g.atlasMarkChordHeld {
+	if g.atlasChordHeld || g.atlasMarkChordHeld || g.quickLoadChordHeld {
 		// Unavailable exact chords never become secondary input, Mix, New Order
 		// or smashed movement. Higher-priority owners have already updated.
 		return nil
@@ -406,11 +418,11 @@ func (g *GameScene) Update(game *Game) error {
 	case references.LargeMapType:
 		g.largeMapInputHandlerWithGame(game, acceptedKey)
 	case references.SmallMapType:
-		g.smallMapInputHandler(acceptedKey)
+		g.smallMapInputHandlerWithGame(game, acceptedKey)
 	case references.CombatMapType:
 		g.combatMapInputHandler(acceptedKey)
 	case references.DungeonMapType:
-		g.dungeonMapInputHandler(acceptedKey)
+		g.dungeonMapInputHandlerWithGame(game, acceptedKey)
 	case references.CampingMapType:
 	default:
 	}

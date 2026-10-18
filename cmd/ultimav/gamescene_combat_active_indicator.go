@@ -266,7 +266,7 @@ func (g *GameScene) combatActiveArchContourPresentation(
 			continue
 		}
 		if effect.Kind == game_state.CombatEventTeleport {
-			phase, progress := combatSignatureBlink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
+			phase, progress := effect.blink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
 			if phase == combatTeleportDeparture {
 				return contour, 1 - progress
 			}

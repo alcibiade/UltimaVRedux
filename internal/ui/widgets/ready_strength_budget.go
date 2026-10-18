@@ -26,7 +26,7 @@ func (d *ReadyEquipmentDialog) appendStrengthBudget(item *availableEquipment) {
 	rows := []readyReviewLine{
 		{d.getSelectedCharacter().GetNameAsString() + "'s Strength", strconv.Itoa(preview.Strength)},
 		{"Other equipment", other},
-		{item.Equipment.ShortString(), itemCost},
+		{item.Equipment.String(), itemCost},
 		{resultLabel, strconv.Itoa(remaining)},
 	}
 	labelWidth, valueWidth := 0.0, 0.0
@@ -44,14 +44,19 @@ func (d *ReadyEquipmentDialog) appendStrengthBudget(item *availableEquipment) {
 			d.detailOutput.AppendLine().Text("---", DialogRuleColor).Done()
 		}
 		value, _ := d.font.MeasureString(row.value)
-		label := FitDialogLine(row.label, d.font, max(1, int(width-value-space)))
+		label := row.label
 		measured, _ := d.font.MeasureString(label)
+		if measured+value+space > width {
+			d.detailOutput.AppendLine().Text(" "+label, DialogLabelColor).
+				WithContinuationIndent(1).WordWrap().Done()
+			label, measured = "", 0
+		}
 		padding := max(1, int(math.Floor((width-measured-value)/space)))
 		valueColor := DialogValueColor
 		if index == len(rows)-1 && preview.Resulting.Strength > preview.Strength {
 			valueColor = DialogWarningColor
 		}
 		d.detailOutput.AppendLine().Text(" "+label+strings.Repeat(" ", padding), DialogLabelColor).
-			Text(row.value, valueColor).Done()
+			Text(row.value, valueColor).WithContinuationIndent(1).Done()
 	}
 }

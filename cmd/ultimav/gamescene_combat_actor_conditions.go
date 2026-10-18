@@ -77,9 +77,11 @@ func (g *GameScene) composeCombatSignatureFrame(effect *combatSignatureEffect) *
 	}
 	if effect.Actor.IsPartyMember {
 		g.drawCombatPartyConditions(frame, sprite, options, effect.Actor, elapsedMs)
-		g.drawCombatAllegianceHealthOutline(frame, options, effect.Actor)
-		character := g.gameState.PartyState.GetCharacter(effect.Actor.EntityIndex)
-		drawCombatHealthBar(frame, options, int(character.GetCurrentHp()), int(character.GetMaxHp()))
+		if g.showCombatHPBars() {
+			g.drawCombatAllegianceHealthOutline(frame, options, effect.Actor)
+			character := g.gameState.PartyState.GetCharacter(effect.Actor.EntityIndex)
+			drawCombatHealthBar(frame, options, int(character.GetCurrentHp()), int(character.GetMaxHp()))
+		}
 	} else {
 		monster := effect.Encounter.MonsterManager.GetMonster(effect.Actor.EntityIndex)
 		g.drawCombatMonsterConditions(frame, outlined, sprite, options, monster, elapsedMs)
@@ -88,8 +90,10 @@ func (g *GameScene) composeCombatSignatureFrame(effect *combatSignatureEffect) *
 			// daemon underneath sparse fragments. Health-frame semantics follow.
 			frame.DrawImage(effect.Dissolve.effect.GetMask(), &ebiten.DrawImageOptions{Blend: ebiten.BlendDestinationIn})
 		}
-		g.drawCombatAllegianceHealthOutline(frame, options, effect.Actor)
-		drawCombatHealthBar(frame, options, monster.CurrentHP(), monster.MaxHP())
+		if g.showCombatHPBars() {
+			g.drawCombatAllegianceHealthOutline(frame, options, effect.Actor)
+			drawCombatHealthBar(frame, options, monster.CurrentHP(), monster.MaxHP())
+		}
 	}
 
 	return frame
@@ -105,7 +109,7 @@ func (g *GameScene) combatSelectionPresentation(
 			continue
 		}
 		if effect.Kind == game_state.CombatEventTeleport {
-			phase, _ := combatSignatureBlink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
+			phase, _ := effect.blink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
 			if phase == combatTeleportHidden {
 				return effect.To, false
 			}

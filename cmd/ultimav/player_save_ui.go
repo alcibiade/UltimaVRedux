@@ -152,7 +152,7 @@ func playerSaveErrorDetail(err error) string {
 	case errors.Is(err, player_save.ErrStaleRevision):
 		return "This save changed since you opened the screen. Review the slot and try again."
 	case errors.Is(err, ErrNoActivePlayerSaveSlot):
-		return "Choose a slot using Save first."
+		return "Save or load a player slot first."
 	case errors.Is(err, game_state.ErrSaveSnapshotNotRepresentable),
 		errors.Is(err, ErrGameSceneSnapshotNotRepresentable):
 		return "Saving is not available right now. Finish the current action and try again."
@@ -170,6 +170,25 @@ func playerSaveErrorDetail(err error) string {
 		return "Save storage is unavailable. Check the configured save directory and try again."
 	default:
 		return "Please try again. If the problem continues, check the game log for details."
+	}
+}
+
+func playerQuickLoadErrorDetail(err error) string {
+	switch {
+	case errors.Is(err, ErrNoActivePlayerSaveSlot):
+		return "Save or load a player slot first."
+	case errors.Is(err, player_save.ErrStaleRevision):
+		return "The active save changed. Use Load to review the slot before loading it."
+	case errors.Is(err, player_save.ErrSlotNotFound), errors.Is(err, fs.ErrNotExist):
+		return "The active save could not be found. Use Load to review your slots."
+	case errors.Is(err, ErrPlayerSaveUnavailable):
+		return "Load services are unavailable. Check the configured save directory and try again."
+	case errors.Is(err, player_save.ErrIncompatible), errors.Is(err, save_snapshot.ErrUnsupportedSnapshotVersion):
+		return "The active save needs compatible game data or a compatible game version. Use Load to review your slots."
+	case errors.Is(err, save_snapshot.ErrInvalidEnvelope), errors.Is(err, save_snapshot.ErrInvalidSnapshot):
+		return "The active save could not be validated. Use Load to review your slots."
+	default:
+		return playerSaveErrorDetail(err)
 	}
 }
 

@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"image"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -84,20 +85,22 @@ func TestReadyReviewEmitsOneIntentAndShowsComparisonBudget(t *testing.T) {
 	for _, expected := range []string{"Replaces: Silver Sword", "Attack: 15 (+3)", "Strength budget", "Other equipment -4", "Long Sword -9", "Remaining 7"} {
 		require.Contains(t, content, expected)
 	}
-	lines := strings.Split(detail, " \n")
-	for index, line := range lines {
-		if line != "Strength budget" {
+	beforeBudget, budget, found := strings.Cut(detail, "Strength budget \n")
+	require.True(t, found, "the budget heading must remain present")
+	require.True(t, strings.HasSuffix(beforeBudget, "  \n"), "retain the blank separator before the budget")
+	require.Equal(t, dialog.getSelectedCharacter().GetNameAsString()+"'s Strength 20 Other equipment -4 Long Sword -9 --- Remaining 7",
+		strings.Join(strings.Fields(budget), " "), "wrapped labels must retain every complete label and its value in order")
+	for _, row := range strings.Split(budget, " \n") {
+		trimmed := strings.TrimSpace(row)
+		if trimmed == "" || trimmed == "---" {
 			continue
 		}
-		require.Greater(t, index, 0)
-		require.Empty(t, strings.TrimSpace(lines[index-1]))
-		for _, row := range lines[index+1 : index+6] {
-			if row == "---" {
-				continue
-			}
-			require.True(t, strings.HasPrefix(row, " ") && !strings.HasPrefix(row, "  "), "budget row %q needs one leading space", row)
+		width, _ := dialog.font.MeasureString(row)
+		require.LessOrEqual(t, width, float64(dialog.detailContentRect().Dx()), row)
+		require.True(t, strings.HasPrefix(row, " "), "budget row %q retains its inset", row)
+		if _, err := strconv.Atoi(trimmed); err != nil {
+			require.False(t, strings.HasPrefix(row, "  "), "label continuation %q needs exactly one leading space", row)
 		}
-		break
 	}
 	require.NotContains(t, content, "Defense:")
 	dialog.switchComparisonHand()

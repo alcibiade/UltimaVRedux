@@ -92,13 +92,24 @@ func (g *GameScene) thenCastCombatSummon(spell references.Spell, casterIdx int) 
 func (g *GameScene) thenUseCombatDaemonScroll(canCommit func() bool, didCommit *bool) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		casterIdx := g.gameState.CombatScene.GetActiveCombatantIndex()
+		owner := g.gameState.CaptureCombatUseOwner()
+		origin := g.gameState.MapState.PlayerLocation
 
 		return g.thenCommitCombatScroll(references.ScrollKalXenCorp,
-			g.thenCombatSummon(references.KalXenCorp, casterIdx, true), canCommit, didCommit)(q)
+			func() event_queue.Sequence {
+				return func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+					if !g.gameState.IsCurrentCombatUseOwner(owner) || g.gameState.MapState.PlayerLocation != origin {
+						return sequence
+					}
+
+					return g.thenCombatSummon(references.KalXenCorp, casterIdx, true)(sequence)
+				}
+			}, canCommit, didCommit)(q)
 	}
 }
 
 func (g *GameScene) thenCombatSummon(spell references.Spell, casterIdx int, fromScroll bool) event_queue.Sequence {
+	timing := g.captureCombatTiming()
 	owner := g.gameState.CaptureCombatUseOwner()
 	origin := g.gameState.MapState.PlayerLocation
 
@@ -106,7 +117,7 @@ func (g *GameScene) thenCombatSummon(spell references.Spell, casterIdx int, from
 		var result game_state.CombatSummonResult
 		invocationMs, sealMs, manifestationMs, allegianceMs := combatSummonDurations(spell)
 
-		return q.Then(func() {
+		return q.Then(g.combatTimingStep(timing, func() {
 			if fromScroll && (!g.gameState.IsCurrentCombatUseOwner(owner) ||
 				g.gameState.MapState.PlayerLocation != origin) {
 				result.Outcome = game_state.CombatSummonInvalidCaster
@@ -144,18 +155,18 @@ func (g *GameScene) thenCombatSummon(spell references.Spell, casterIdx int, from
 				Result:     result,
 				Phase:      combatSummonInvocation,
 			}
-		}).If(func() bool { return result.Outcome == game_state.CombatSummonSucceeded }, func(effectQ *event_queue.SequentialEventBuilder) {
-			effectQ.Animate(invocationMs, g.updateCombatSummonProgress).
+		})).If(func() bool { return result.Outcome == game_state.CombatSummonSucceeded }, func(effectQ *event_queue.SequentialEventBuilder) {
+			effectQ.Animate(timing.duration(invocationMs), g.updateCombatSummonProgress).
 				Then(func() { g.setCombatSummonPhase(combatSummonSeal) }).
-				Animate(sealMs, g.updateCombatSummonProgress).
+				Animate(timing.duration(sealMs), g.updateCombatSummonProgress).
 				Then(func() { g.setCombatSummonPhase(combatSummonManifestation) }).
-				Animate(manifestationMs, g.updateCombatSummonProgress).
+				Animate(timing.duration(manifestationMs), g.updateCombatSummonProgress).
 				Then(func() {
 					g.setCombatSummonPhase(combatSummonAllegiance)
 					if result.Binding == game_state.CombatSummonBindingFailed {
 						g.gameState.SystemCallbacks.UI.ShowActionFeedback("Oops...", true)
 					}
-				}).Animate(allegianceMs, g.updateCombatSummonProgress).
+				}).Animate(timing.duration(allegianceMs), g.updateCombatSummonProgress).
 				Then(func() { g.combatSummonEffect = nil })
 		})
 	}
@@ -182,10 +193,12 @@ func (g *GameScene) setCombatSummonPhase(phase combatSummonEffectPhase) {
 
 //nolint:dupl // Fear deliberately reuses repel's aggregate presentation timing.
 func (g *GameScene) thenCastCombatAnXenCorp(casterIdx int) event_queue.Sequence {
+	timing := g.captureCombatTiming()
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var result game_state.CombatAnXenCorpResult
 
-		return q.Then(func() {
+		return q.Then(g.combatTimingStep(timing, func() {
 			result = g.gameState.CastCombatAnXenCorp(casterIdx)
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
 			g.gameState.SystemCallbacks.Message.AddRowStr(combatRepelFeedbackText(result))
@@ -197,13 +210,13 @@ func (g *GameScene) thenCastCombatAnXenCorp(casterIdx int) event_queue.Sequence 
 				Result:     result,
 				Phase:      combatRepelCasterCue,
 			}
-		}).Animate(combatRepelCasterCueMs, func(progress float32) {
+		})).Animate(timing.duration(combatRepelCasterCueMs), func(progress float32) {
 			g.combatRepelEffect.Progress = progress
 		}).Then(func() {
 			g.combatRepelEffect.Phase = combatRepelTargets
 			g.combatRepelEffect.Progress = 0
 		}).If(func() bool { return combatRepelHasTargets(result) }, func(effectQ *event_queue.SequentialEventBuilder) {
-			effectQ.Animate(combatRepelTargetsMs, func(progress float32) {
+			effectQ.Animate(timing.duration(combatRepelTargetsMs), func(progress float32) {
 				g.combatRepelEffect.Progress = progress
 			})
 		}).Then(func() {
@@ -214,22 +227,24 @@ func (g *GameScene) thenCastCombatAnXenCorp(casterIdx int) event_queue.Sequence 
 
 //nolint:dupl // Fear deliberately reuses repel's aggregate presentation timing.
 func (g *GameScene) thenCastCombatInQuasCorp(casterIdx int) event_queue.Sequence {
+	timing := g.captureCombatTiming()
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var result game_state.CombatAnXenCorpResult
 
-		return q.Then(func() {
+		return q.Then(g.combatTimingStep(timing, func() {
 			result = g.gameState.CastCombatInQuasCorp(casterIdx)
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
 			g.gameState.SystemCallbacks.Message.AddRowStr(combatFearFeedbackText(result))
 			caster := g.activeCombatCasterIdentity(casterIdx)
 			g.combatRepelEffect = &combatRepelSpellEffect{CasterIdx: casterIdx, CasterSlot: caster.Slot, Caster: g.gameState.CombatScene.GetCombatantPosition(caster), Result: result, Phase: combatRepelCasterCue}
-		}).Animate(combatRepelCasterCueMs, func(progress float32) {
+		})).Animate(timing.duration(combatRepelCasterCueMs), func(progress float32) {
 			g.combatRepelEffect.Progress = progress
 		}).Then(func() {
 			g.combatRepelEffect.Phase = combatRepelTargets
 			g.combatRepelEffect.Progress = 0
 		}).If(func() bool { return combatRepelHasTargets(result) }, func(effectQ *event_queue.SequentialEventBuilder) {
-			effectQ.Animate(combatRepelTargetsMs, func(progress float32) { g.combatRepelEffect.Progress = progress })
+			effectQ.Animate(timing.duration(combatRepelTargetsMs), func(progress float32) { g.combatRepelEffect.Progress = progress })
 		}).Finally(func() { g.combatRepelEffect = nil })
 	}
 }

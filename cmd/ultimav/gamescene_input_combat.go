@@ -16,6 +16,7 @@ import (
 const (
 	combatChestRevealDelayMs          int64 = 500
 	combatFieldCreationHoldDurationMs int64 = 200
+	combatAutoAttackHoldDurationMs    int64 = 1250
 	combatAutoAttackWorkflowName            = "combat_auto_attack"
 	combatAimCancelLabel                    = "Cancel"
 	combatAttackActionLabel                 = "Attack"
@@ -188,6 +189,8 @@ func (g *GameScene) combatMapInputHandler(key ebiten.Key) {
 }
 
 func (g *GameScene) resolveCombatAutoAttack(target references.Position) {
+	timing := g.captureCombatTiming()
+	defer g.combatTimingScope(timing)()
 	if !g.gameState.BeginCombatAutoAttack(target) {
 		return
 	}
@@ -201,6 +204,7 @@ func (g *GameScene) resolveCombatAutoAttack(target references.Position) {
 	// Later steps review live ammo, obstruction and the exact original victim.
 	for range targeting.Sources {
 		queue.ThenSequence(func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+			defer g.combatTimingScope(timing)()
 			if g.gameState.CombatScene != combat || combat.AttackTargeting != targeting {
 				return q
 			}
@@ -219,7 +223,7 @@ func (g *GameScene) resolveCombatAutoAttack(target references.Position) {
 			if len(impacts) > 0 {
 				// Dynamic insertion starts its temporary first node immediately.
 				// Anchor the hold to a real step, not that node's ignored leading delay.
-				return q.Then(func() {}).Wait(combatImpactDurationMs).Then(func() {})
+				return q.Then(func() {}).Wait(timing.durationMs(combatAutoAttackHoldDurationMs)).Then(func() {})
 			}
 
 			return q
@@ -231,7 +235,7 @@ func (g *GameScene) resolveCombatAutoAttack(target references.Position) {
 		if g.gameState.CombatScene != combat {
 			return
 		}
-		g.gameState.ResolvePendingCombatAttack()
+		g.withCombatTiming(timing, func() { g.gameState.ResolvePendingCombatAttack() })
 		for combat.AttackTargeting == targeting {
 			g.gameState.CancelCombatAttackSource()
 		}
@@ -588,6 +592,7 @@ func (g *GameScene) handleCombatAdjacentSpellTargetInput() {
 	if !confirm {
 		return
 	}
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	result := g.gameState.ConfirmCombatAdjacentSpellTarget()
 	//nolint:exhaustive // Ignored and cancelled outcomes cannot originate from confirmation.
 	switch result.Outcome {
@@ -617,6 +622,7 @@ func (g *GameScene) showCombatDoorSpellAimPrompt() {
 }
 
 func (g *GameScene) startCombatAdjacentSpellEffect(result game_state.CombatAdjacentSpellTargetResult) {
+	timing := g.captureCombatTiming()
 	if game_state.IsCombatDoorSpell(result.Request.Spell) {
 		g.startCombatUtilitySpellEffect(result)
 
@@ -625,7 +631,7 @@ func (g *GameScene) startCombatAdjacentSpellEffect(result game_state.CombatAdjac
 	g.gameState.EventQueueManager.Workflow("combat_adjacent_spell_effect").
 		Priority(event_queue.PriorityHigh).
 		Sequential().BlockInput().
-		First(func() {
+		First(g.combatTimingStep(timing, func() {
 			//nolint:exhaustive // Adjacent targeting admits only implemented spells.
 			switch result.Request.Spell {
 			case references.AnGrav:
@@ -642,7 +648,7 @@ func (g *GameScene) startCombatAdjacentSpellEffect(result game_state.CombatAdjac
 				panic("unsupported adjacent combat spell")
 			}
 			g.gameState.SystemCallbacks.Visual.PlayKapowAtPosition(result.Target)
-		}).Finally(func() {
+		})).Finally(func() {
 		g.gameState.FinishCombatAction()
 	}).Start()
 }
@@ -675,6 +681,7 @@ func (g *GameScene) handleCombatConeTargetInput() {
 	if !confirm {
 		return
 	}
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	result := g.gameState.ConfirmCombatConeTarget()
 	//nolint:exhaustive // Ignored and cancelled outcomes cannot originate from confirmation.
 	switch result.Outcome {
@@ -731,6 +738,7 @@ func (g *GameScene) handleCombatAttackTargetInput() {
 		if targeting.SourceIndex == 0 {
 			g.finishCombatAttackTargetAction(g.gameState.CancelInitialCombatAttack())
 		} else {
+			g.captureCombatAttackTiming()
 			g.finishCombatAttackTargetAction(g.gameState.CancelCombatAttackSource())
 		}
 
@@ -746,6 +754,7 @@ func (g *GameScene) handleCombatAttackConfirmation(targeting *game_state.CombatA
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter)
 	if g.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace) {
 		if targeting.Cursor == targeting.Origin {
+			g.captureCombatAttackTiming()
 			g.finishCombatAttackTargetAction(g.gameState.CancelCombatAttackSource())
 
 			return
@@ -755,9 +764,16 @@ func (g *GameScene) handleCombatAttackConfirmation(targeting *game_state.CombatA
 	if !confirm {
 		return
 	}
-	result := g.gameState.ConfirmCombatAttackTarget()
+	if targeting.Cursor == targeting.Origin {
+		g.finishCombatAttackTargetAction(g.gameState.ConfirmCombatAttackTarget())
+
+		return
+	}
+	timing := g.captureCombatAttackTiming()
+	var result game_state.CombatAttackTargetResult
+	g.withCombatTiming(timing, func() { result = g.gameState.ConfirmCombatAttackTarget() })
 	if result.Launch != nil {
-		g.startCombatProjectileAttack(result)
+		g.withCombatTiming(timing, func() { g.startCombatProjectileAttack(result) })
 
 		return
 	}
@@ -765,6 +781,7 @@ func (g *GameScene) handleCombatAttackConfirmation(targeting *game_state.CombatA
 }
 
 func (g *GameScene) startCombatProjectileAttack(result game_state.CombatAttackTargetResult) {
+	timing := g.captureCombatTiming()
 	resolution := game_state.CombatAttackTargetResult{Outcome: game_state.CombatAttackTargetIgnored}
 	resolved := false
 
@@ -778,7 +795,7 @@ func (g *GameScene) startCombatProjectileAttack(result game_state.CombatAttackTa
 		})).Finally(func() {
 		g.gameState.SystemCallbacks.Visual.ClearProjectile()
 		if !resolved {
-			resolution = g.gameState.ResolvePendingCombatAttack()
+			g.withCombatTiming(timing, func() { resolution = g.gameState.ResolvePendingCombatAttack() })
 			resolved = resolution.Outcome != game_state.CombatAttackTargetIgnored
 		}
 		if resolved {
@@ -794,9 +811,10 @@ func (g *GameScene) combatPhysicalProjectileSequence(
 	onResolved func(game_state.CombatAttackTargetResult),
 ) event_queue.Sequence {
 	launch := *result.Launch
+	timing := g.captureCombatTiming()
 
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		return q.ThenSequence(g.combatProjectileAnimationSequence(launch, func() {
+		return q.ThenSequence(g.combatProjectileAnimationSequenceWithTiming(timing, launch, func() {
 			resolution := g.gameState.ResolvePendingCombatAttack()
 			if resolution.Outcome == game_state.CombatAttackTargetIgnored {
 				panic("combat projectile completed without a pending physical attack")
@@ -810,7 +828,7 @@ func (g *GameScene) combatPhysicalProjectileSequence(
 				return sequence
 			}
 
-			return sequence.ThenSequence(g.combatProjectileAnimationSequence(*result.ReturnLaunch, func() {}))
+			return sequence.ThenSequence(g.combatProjectileAnimationSequenceWithTiming(timing, *result.ReturnLaunch, func() {}))
 		}).Then(g.gameState.SystemCallbacks.Visual.ClearProjectile)
 	}
 }
@@ -847,12 +865,14 @@ func (g *GameScene) finishCombatAttackTargetAction(result game_state.CombatAttac
 		return
 	}
 	if result.Outcome == game_state.CombatAttackSequenceComplete {
+		g.combatAttackTiming = combatAttackTimingSnapshot{}
 		g.secondaryKeyState = PrimaryInput
 		g.gameState.FinishCombatAction()
 
 		return
 	}
 	if result.Outcome == game_state.CombatAttackSequenceCancelled {
+		g.combatAttackTiming = combatAttackTimingSnapshot{}
 		g.secondaryKeyState = PrimaryInput
 		g.gameState.SystemCallbacks.Message.ShowCommandPrompt("")
 
@@ -904,6 +924,7 @@ func (g *GameScene) handleCombatSpellTargetInput() {
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) ||
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace)
 	if confirm {
+		defer g.combatTimingScope(g.captureCombatTiming())()
 		g.finishCombatSpellTargetAction(g.gameState.ConfirmCombatSpellTarget())
 	}
 }
@@ -927,6 +948,7 @@ func (g *GameScene) finishCombatSpellTargetAction(result game_state.CombatSpellT
 }
 
 func (g *GameScene) startCombatSpellEffect(result game_state.CombatSpellTargetResult) {
+	timing := g.captureCombatTiming()
 	launch := result.Launch
 	launch.Missile = combatSpellMissile(result.Spell)
 
@@ -935,7 +957,7 @@ func (g *GameScene) startCombatSpellEffect(result game_state.CombatSpellTargetRe
 		Sequential().BlockInput().
 		First(func() {
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
-		}).ThenSequence(g.combatProjectileAnimationSequence(launch, func() {
+		}).ThenSequence(g.combatProjectileAnimationSequenceWithTiming(timing, launch, func() {
 		if !g.gameState.ResolvePendingCombatSpell() {
 			panic("combat spell effect completed without a pending spell")
 		}
@@ -947,13 +969,15 @@ func (g *GameScene) startCombatSpellEffect(result game_state.CombatSpellTargetRe
 		}
 	})).ThenSequence(func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		if isCombatFieldSpell(result.Spell) {
-			return q.Wait(combatFieldCreationHoldDurationMs)
+			// This legacy leading-only dynamic delay is ineffective. Preserve the
+			// reviewed 1x behavior rather than silently add a new field-spell hold.
+			return q.Wait(timing.durationMs(combatFieldCreationHoldDurationMs))
 		}
 
 		return q
 	}).Finally(func() {
 		g.gameState.SystemCallbacks.Visual.ClearProjectile()
-		g.gameState.ResolvePendingCombatSpell()
+		g.withCombatTiming(timing, func() { g.gameState.ResolvePendingCombatSpell() })
 		g.gameState.FinishCombatAction()
 	}).Start()
 }
@@ -1032,6 +1056,7 @@ func (g *GameScene) combatMapPushSecondary(direction references.Direction) {
 }
 
 func (g *GameScene) combatMapOpenSecondary(direction references.Direction) bool {
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	result := g.gameState.ActionOpenCombatMap(direction)
 	if !result.Handled {
 		g.addRowStr("Nothing to open!")
@@ -1077,6 +1102,7 @@ func (g *GameScene) combatMapSearchSecondary(direction references.Direction) {
 }
 
 func (g *GameScene) combatMapAttackSecondary(direction references.Direction) {
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	success := g.gameState.ActionAttackCombatMap(direction)
 	if !success {
 		g.addRowStr("Nothing to attack!")
@@ -1088,6 +1114,7 @@ func (g *GameScene) combatMapAttackSecondary(direction references.Direction) {
 }
 
 func (g *GameScene) combatMapUseSecondary(direction references.Direction) bool {
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	success := g.gameState.ActionUseCombatMap(direction)
 	if !success {
 		g.addRowStr("Can't use that!")
@@ -1100,6 +1127,7 @@ func (g *GameScene) combatMapUseSecondary(direction references.Direction) bool {
 // Returns true when the caller should finish the turn. Flee finalizes internally
 // before advancing, so it returns false to prevent a second or post-combat finish.
 func (g *GameScene) handleCombatMovement(direction references.Direction) bool {
+	defer g.combatTimingScope(g.captureCombatTiming())()
 	if g.gameState.CombatScene == nil {
 		return false
 	}

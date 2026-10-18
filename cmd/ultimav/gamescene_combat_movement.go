@@ -3,7 +3,6 @@ package main
 import (
 	"math"
 
-	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -110,22 +109,7 @@ func (g *GameScene) startControlledMonsterCombatMovementWorkflow(
 }
 
 func (g *GameScene) combatMovementDuration(baseDurationMs uint64) uint64 {
-	if g.gameConfig == nil {
-		return baseDurationMs
-	}
-
-	return scaledCombatMovementDuration(baseDurationMs, g.gameConfig.DebugConfiguration)
-}
-
-func scaledCombatMovementDuration(
-	baseDurationMs uint64,
-	debugConfiguration *config.DebugConfiguration,
-) uint64 {
-	return scaleCombatMovementDuration(baseDurationMs, debugConfiguration.GetCombatMovementSpeedFactor())
-}
-
-func scaleCombatMovementDuration(baseDurationMs uint64, factor float64) uint64 {
-	return max(uint64(math.Round(float64(baseDurationMs)/factor)), 1)
+	return g.captureCombatTiming().duration(baseDurationMs)
 }
 
 type combatMonsterPacing struct {
@@ -146,15 +130,11 @@ func (g *GameScene) fastScheduledMonsterPacing(actor game_state.CombatTurnIdenti
 		return combatMonsterPacing{}, false
 	}
 
-	var debugConfiguration *config.DebugConfiguration
-	if g.gameConfig != nil {
-		debugConfiguration = g.gameConfig.DebugConfiguration
-	}
-	factor := debugConfiguration.GetCombatMovementSpeedFactor()
+	timing := g.captureCombatTiming()
 
 	return combatMonsterPacing{
-		anticipationMs: scaleCombatMovementDuration(combatBatAnticipationMs, factor),
-		movementMs:     scaleCombatMovementDuration(combatBatMovementDurationMs, factor),
+		anticipationMs: timing.duration(combatBatAnticipationMs),
+		movementMs:     timing.duration(combatBatMovementDurationMs),
 	}, true
 }
 
