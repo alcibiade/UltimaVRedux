@@ -236,11 +236,15 @@ func runApplication() error {
 			identityErr = transferScenePlaythrough(initialScene, metadata)
 		}
 		if identityErr != nil {
+			if disposer, ok := initialScene.(sceneDisposer); ok {
+				disposer.Dispose()
+			}
 			// Application-level fatal: scenario startup requires a valid fresh playthrough identity.
 			return fmt.Errorf("creating scenario identity: %w", identityErr)
 		}
 	}
 	game := NewGame(initialScene)
+	defer game.disposeActiveScene()
 	if _, setup := initialScene.(*dataSetupScene); !setup {
 		if err := configureRuntimeServices(game, playerSaveOptions, snapshotOptions, scenarioOptions); err != nil {
 			// Application-level fatal: an explicitly requested startup scenario cannot be configured or queued.
@@ -258,7 +262,6 @@ func runApplication() error {
 
 	// Run the game
 	runErr := ebiten.RunGame(game)
-	game.atlasTexture.dispose()
 	if runErr == nil {
 		windowWidth, windowHeight = displayManager.PersistableWindowSize()
 		activeConfiguration := game.currentScene.GetUltimaConfiguration()
@@ -273,6 +276,7 @@ func runApplication() error {
 	if err := shutdownDebugWorkbench(debugServer); err != nil {
 		logging.Warn(logging.CategorySystem, "Debug workbench shutdown failed: %v", err)
 	}
+	game.disposeActiveScene()
 
 	// Write memory profile if requested (after game ends)
 	if *memprofile != "" {

@@ -8,8 +8,9 @@ import audio "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
 import "github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengine"
 ```
 
-No independently published version is claimed. Redux still uses its existing
-implementation during staging; it has no local replacement or workspace dependency.
+Redux's live scene adapter now imports a pinned revision from this nested module;
+it has no local replacement or workspace dependency. There is no stable release
+or separate-repository publication claim.
 Ambient and finite music transports are available; the existing Bubble Tea editor
 is not yet a module API. The API is pre-stability; applications should
 pin reviewed revisions once they are available remotely.
@@ -167,11 +168,10 @@ ambient curve, including its one-unit inner range and radius-zero background
 convention. The caller resolves world wrapping first. Positional SFX may use a
 different profile; no stereo pan or occlusion is implied.
 
-Redux owns the JSON-to-playback bridge. During staging it is compiled in the
-game-owned `testdata/berad-audio-redux` integration fixture, alongside a source
-planner shared with the old source-collection policy. It is not a dependency or
-part of this module. The live application cutover still needs a resolvable pinned
-module revision.
+Redux owns the JSON-to-playback bridge and its `GameAudioManager` facade. The
+game-owned `testdata/berad-audio-redux` fixture independently verifies that bridge,
+alongside a source planner shared with the compatibility baseline. Neither the
+game facade nor its JSON/media is a dependency or part of this module.
 
 ## Validation
 

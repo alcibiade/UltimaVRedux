@@ -1,22 +1,9 @@
 package audio
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"sync/atomic"
 )
-
-type streamFailure struct{ err error }
-
-// ownedRuntimeStream preserves a decoder's close ownership through loop/window
-// adapters, which expose seeking but do not forward io.Closer.
-type ownedRuntimeStream struct {
-	io.ReadSeeker
-	owner io.ReadSeeker
-}
-
-func (stream *ownedRuntimeStream) Close() error { return closeRuntimeSource(stream.owner) }
 
 func closeRuntimeSource(source io.ReadSeeker) error {
 	if closer, ok := source.(io.Closer); ok {
@@ -68,54 +55,4 @@ func (reader *progressingReader) Read(buffer []byte) (int, error) {
 	}
 
 	return count, err
-}
-
-// runtimeStream contains decoder/PCM read failures before they reach the
-// Ebitengine context-wide error hook. The backend sees finite EOF; the owning
-// service sees the original failure and terminally retires the voice.
-// Backend read/seek serialization is retained; failure inspection is concurrent.
-type runtimeStream struct {
-	source  io.ReadSeeker
-	failure atomic.Pointer[streamFailure]
-}
-
-func (stream *runtimeStream) Failure() error {
-	if failure := stream.failure.Load(); failure != nil {
-		return failure.err
-	}
-
-	return nil
-}
-
-//nolint:wrapcheck // EOF and original source errors are part of the reader contract.
-func (stream *runtimeStream) Read(buffer []byte) (int, error) {
-	if stream.Failure() != nil {
-		return 0, io.EOF
-	}
-	count, err := stream.source.Read(buffer)
-	if errors.Is(err, io.EOF) {
-		return count, io.EOF
-	}
-	if err != nil {
-		stream.failure.CompareAndSwap(nil, &streamFailure{err: fmt.Errorf("runtime audio read: %w", err)})
-
-		return count, io.EOF
-	}
-
-	return count, err
-}
-
-func (stream *runtimeStream) Seek(offset int64, whence int) (int64, error) {
-	if err := stream.Failure(); err != nil {
-		return 0, err
-	}
-	position, err := stream.source.Seek(offset, whence)
-	if err != nil {
-		failure := fmt.Errorf("runtime audio seek: %w", err)
-		stream.failure.CompareAndSwap(nil, &streamFailure{err: failure})
-
-		return position, failure
-	}
-
-	return position, nil
 }

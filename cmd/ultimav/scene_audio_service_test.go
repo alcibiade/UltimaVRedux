@@ -28,7 +28,7 @@ func TestReadersServiceAudioThroughOpeningReadingAndDismissal(t *testing.T) {
 			if context == nil {
 				context = eaudio.NewContext(44100)
 			}
-			manager, err := audio.NewAudioManagerWithRuntime(config, context, func() time.Time { return now })
+			manager, err := audio.NewGameAudioManagerWithRuntime(config, context, func() time.Time { return now })
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, manager.Close()); state.EventQueueManager.Shutdown() })
 			keys := map[ebiten.Key]bool{ebiten.KeyShiftLeft: true}

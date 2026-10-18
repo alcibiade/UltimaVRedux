@@ -44,8 +44,11 @@ The experimental [Berad Audio module](../modules/berad-audio/README.md) has its
 own `go.mod` under `modules/berad-audio`. `make tools` provisions both modules.
 Root logic tests invoke its isolated tests/build/vet and separate consumer;
 root lint checks it explicitly without the game's inherited-debt cutoff.
-Use `make audio-module-check` for the focused combination. No workspace or
-local replacement is required to build/install the game during staging.
+Use `make audio-module-check` for the focused combination. The game imports a
+remotely available pinned module revision; no workspace or local replacement is
+required. Changes inside the nested module need an independently available
+revision before updating the game pin. Temporary substitutions belong only to
+the integration fixtures.
 
 Use [original-data setup](INSTALL.md#locate-the-original-game-data) to discover an
 existing GOG/Heroic installation, use the displayed home/UltimaV folder,

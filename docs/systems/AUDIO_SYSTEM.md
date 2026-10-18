@@ -4,6 +4,57 @@
 
 ## Current Architecture
 
+The live title/game scenes now construct `internal/audio.GameAudioManager`, a
+Redux adapter over the pinned **Berad Audio** module. It creates module SFX,
+finite-music, ambient and settings-preview lanes on one borrowed Ebitengine
+context. JSON catalogs, assets, cue identities, source grouping, world projection,
+footstep selection, slider conversion and `MusicManager` scheduling/history remain
+Redux-owned. There is no live fallback to the old playback engines.
+
+| Live component | Responsibility |
+| --- | --- |
+| `GameAudioManager` | Adapt required gameplay callbacks, preferences, world sources and diagnostics |
+| Berad `Runtime` | SFX and preview admission, ownership, gain, fades, decoding and retirement |
+| Berad `MusicPlayer` | One finite track, zero-gain onset, pause/seek/resume and transactional replacement |
+| Berad `AmbientController` | Desired-source reconciliation, reversible envelopes, budgets, retries and completion |
+| Redux `MusicManager` | Location/combat/sailing selection, interruption ownership and session history |
+| Redux `AmbientPlanner` | JSON-driven grouping, source identity and gain-factor projection |
+
+`Library.PlaybackLibrary()` caches one immutable module projection per game
+library. The authoring snapshot and playback snapshot currently retain separate
+encoded copies; managers share the projection rather than duplicating it per
+scene/lane. `EncodedBytes` reports one projection's unique encoded bytes, not
+total application heap. JSON and recordings remain under `internal/audio/assets`.
+
+The existing validated `SystemCallbacks.Audio` boundary is unchanged. Owned game
+voices expose cleanup only; device completion never decides gameplay. Disabled
+sound or recoverable initialization failure still permits a nil scene manager
+with all required callbacks wired. The live facade services lanes on modal/reader
+frames, preserves effect-wide stopping and owner-local replacement, and retains
+the Fire Burn recording's bounded release tail. Category changes and settings
+previews use the same module gain/calibration path.
+
+Application shutdown disposes the current scene exactly once on normal exit and
+errors after Game allocation. Scene finalizers still resolve their owning scene;
+workflow shutdown precedes audio retirement. The borrowed host device is not closed.
+Window-setting persistence and Workbench shutdown finish before ordinary disposal;
+the deferred cleanup also covers early configuration failures.
+
+The native runtime/soak commands in `cmd/audio-editor` now exercise the module
+directly. Ordinary TUI authoring/audition remains in the application for its later
+extraction. See the [module contract](../../modules/berad-audio/README.md).
+
+### Compatibility and shared authoring implementation
+
+The legacy `AudioManager`, `SoundEffectPlayer`, `BackgroundMusicSystem` and
+`AmbientSoundManager` now exist only in `legacy_*_test.go` compatibility fixtures.
+Normal builds cannot contain/select those engines; a declaration guard prevents
+their accidental return to production files. Existing low-level regressions still
+exercise that test baseline while new facade/module tests verify current behavior.
+Shared TUI analysis, windowing and audition helpers remain production code.
+The detailed legacy API references below describe the test-only baseline and
+shared authoring semantics, not an alternative live backend.
+
 `internal/audio.AudioManager` borrows the process-wide Ebitengine audio context
 and owns its voices. A host may create the context first, choosing its sample
 rate; otherwise the first manager creates the 44.1 kHz default. Managers never
@@ -60,8 +111,9 @@ are rejected. Each unique referenced encoded file is copied once into the
 immutable snapshot, so later filesystem or caller-metadata edits cannot retarget
 existing playback. `Document()` returns detached metadata. `EncodedBytes()` counts
 the retained unique payload, excluding decoder/device buffers. The default Redux
-snapshot currently retains about 48.4 MB of encoded media and is shared by its
-managers; independent projects retain their own assets.
+snapshot historically retained about 48.4 MB of encoded media and is shared by its
+managers; independent projects retain their own assets. The cached module projection
+adds a separate encoded snapshot during the authoring migration, as noted above.
 
 Shared validation owns JSON integrity, recording/cue references, provenance,
 windows, gains, cycles and classification structure. `LibraryValidator` adds
@@ -72,9 +124,9 @@ always select it. Neutral projects may use other cue names, asset folders,
 classification vocabulary and target labels without satisfying Redux completeness.
 The schema remains version 3; the production manifest and existing IDs are retained.
 
-`NewRuntime(library, backend, clock, volume)` exposes neutral `CueRequest` playback,
+The test-only legacy `NewRuntime(library, backend, clock, volume)` exposes `CueRequest` playback,
 owned lifetimes, live volume, servicing, diagnostics and terminal Close through
-the same playback implementation used by the game. A `PlaybackBackend` supplies
+the retained compatibility implementation. A `PlaybackBackend` supplies
 sample rate and stopped transports; it must serialize read/seek operations and
 provide a retirement read barrier. `EbitengineBackend` borrows a host context.
 Each runtime owns its decoders, variant cursors, handles and preferences; closing
@@ -83,7 +135,7 @@ lazily and cache immutable preparation failures rather than repeatedly decoding
 bad assets. Game effect enums, world scanning/projection, score selection/holds,
 and settings persistence remain in the Redux-facing adapters.
 
-`NewAudioManagerWithLibrary` applies those adapters to an independently frozen
+The test-only `NewAudioManagerWithLibrary` applies those adapters to an independently frozen
 Redux-valid library, including SFX, music, ambient definitions and routing. Runtime
 subsystems use that instance rather than consulting the default embedded cache.
 Default catalog metadata is lazy and remains a Redux-specific inspection surface.
@@ -103,12 +155,13 @@ caller mutation after freezing, consumer validation, separate asset roots, durab
 authoring, shared preview/runtime PCM and a fresh process whose production-library
 loaders are forbidden. These establish in-repository dependency boundaries. The
 package still contains the Redux adapters and bundled media. The independent
-[Berad Audio module](../../modules/berad-audio/README.md) now stages a media-free
+[Berad Audio module](../../modules/berad-audio/README.md) supplies the live media-free
 cue runtime with explicit owner-local replacement slots and playback outcomes.
 It now also contains a neutral ambient lane, reversible controller envelopes,
-live instance gain, pause/resume/seek and distinct terminal voice status. Redux
-has not switched to it: authoring/TUI and music integration, remote dependency
-availability and public API/schema stability remain later work.
+live instance gain, pause/resume/seek, finite music and distinct terminal voice
+status. Redux imports a remotely resolvable pinned revision with no local
+replacement. Authoring/TUI extraction, further migration of legacy test cases and
+public API/schema stability remain later work.
 [ADR-010](../ADR/ADR-010-reusable-audio-module.md) records the staging boundary.
 
 Shared schema-3 validation rejects ambient profiles assigned a cycle cue because
@@ -174,7 +227,7 @@ type SoundVoice interface {
 playback, and three music lifecycle functions. The constructor adds `Play`, `Stop`,
 and the widely used `PlaySoundEffect` one-shot convenience. Gameplay still depends
 only on `game_state` types; the `GameScene` adapter translates requests to
-`AudioManager` operations.
+`GameAudioManager` operations.
 
 Both `NewAudioCallbacks` and `NewSystemCallbacks` validate all nine resulting
 capabilities. Missing wiring is a programming error and panics during
@@ -218,17 +271,16 @@ completion or use a handle to determine time, RNG, costs or outcomes. Random/deb
 earthquake feedback and the harpsichord earthquake workflow use this boundary.
 Ordinary `Start` and `Stop(effect)` retain their existing effect-wide behavior.
 
-Application presentation code can use `AudioManager.PlayVoice` to obtain one
-opaque `VoiceHandle`, or `NewVoiceOwner` to group several sounds under one lifetime.
-`VoiceOwner.Play` follows normal admission rules; `Stop(fadeMs)` terminally rejects
-later playback and releases just that owner's live voices. `Close` immediately
-finishes any remaining release tails. Owners retain no list of completed handles.
-Zero/stale handles safely stop nothing, and `StopVoice` rejects a handle issued by
-another manager even if its numeric sequence matches. Disable removes current
-voices without reusing their IDs; Close ends the manager permanently. Repeated
-handle fades never extend an existing release. Same-effect footfall/burn replacement
-is restricted to the requesting owner; legacy effect-wide Stop still reaches all
-owners deliberately. These capabilities are transient and excluded from saves.
+Application presentation uses `GameAudioManager.PlayVoice` to obtain a `GameVoice`,
+the cleanup-only wrapper supplied to gameplay. Berad Audio owns the underlying
+instance and group lifetimes. Its explicit owners terminally reject playback
+after Release/Close, and Close immediately finishes remaining tails. Zero/stale
+handles safely stop nothing; a handle cannot address another runtime's voice.
+Disable retires current effects without reusing IDs; Close ends each lane.
+Repeated fades cannot extend a release. Redux's ordinary footfall/burn replacement
+uses an application-owned slot; an independently owned workflow voice cannot
+replace that unrelated slot. Explicit effect-wide Stop still reaches all owners.
+These capabilities remain transient and excluded from saves.
 
 `SoundBuilder.Start` emits exactly one `SoundPlaybackRequest`. The request mode is
 authoritative: `OneShot()` creates a finite stream and `Loop()` creates an infinite
@@ -279,8 +331,10 @@ type SoundEffectMetadata struct {
 }
 ```
 
-The manifest is validated once when constructing derived metadata. Asset streams
-are lazy-loaded under the manager's exclusive lock on first use. Every known cue
+The manifest is validated when constructing immutable metadata/asset snapshots.
+Live module decoders prepare on playback requests before transactional admission,
+after applicable metadata-only mute checks, rather than through the legacy
+manager's global LoadAssets pass. Every known cue
 must reference a registered recording. A recording with `file: null` is an
 intentional silent slot, including formerly metadata-less SFX. An unknown cue,
 unknown recording reference, non-null missing/unsupported file, malformed JSON,
@@ -347,8 +401,8 @@ do not establish audible acceptance for recordings that have not been supplied.
 Each playback request creates one fresh decoded stream and one Ebitengine player.
 Preparation must succeed before replacing the preceding same-effect voice or
 evicting for capacity. Rejected, failed and dropped requests advance neither the
-variant cursor nor the instance sequence. `SoundEffectPlayer` tracks active
-instances by generated ID and request mode. `AudioManager.Update` advances fades
+variant cursor nor the instance sequence. Berad Audio tracks active
+instances by generated ID and request mode. `GameAudioManager.Update` advances fades
 and retires failed or completed voices; there is no cleanup goroutine. The
 eight-voice limit evicts the oldest finite voice, not an existing workflow-owned
 loop. A new loop fails explicitly if all eight slots are loops; a routine one-shot
@@ -417,7 +471,7 @@ queues. Long presentation gaps finish expired release envelopes on the next tick
 
 Ambient source discovery and voice servicing are independent. An explicit empty
 snapshot means departure and starts release; no new snapshot retains the previous
-desired sources while `AudioManager.Update` advances envelopes, failure retirement,
+desired sources while `GameAudioManager.Update` advances envelopes, failure retirement,
 completion and retries. Disable/suppression clears desired/attempt state, and
 lifting it requires a fresh world snapshot. Re-entry reverses an in-progress
 release continuously. Successfully completed finite ambient sources remain
@@ -427,14 +481,14 @@ A desired ambient source that fails is retired and retried after 1, 2, 4, 8, 16,
 then at most once per 30 seconds. Repeated source snapshots do not reset backoff.
 The backoff level is bounded per presence/asset epoch, including after a successful
 reopen that fails later; a long gap permits one new attempt, never catch-up bursts.
-`AmbientSoundManager.Failures` returns detached current diagnostics (the attempt
+The module's ambient snapshot returns detached current diagnostics (the attempt
 level saturates at six). Departure/suppression removes that bookkeeping. Failed
 replacement preparation retains the existing voice; an explicitly empty recording
 slot retires it without retrying.
 
 ## Music
 
-`BackgroundMusicSystem` plays one finite embedded track and reports actual device
+Berad Audio's `MusicPlayer` plays one finite recording and reports actual device
 completion. `MusicManager` maps locations and named contexts to tracks and owns
 the presentation-only policy in `internal/audio/music_policy.go`. Scheduling uses
 an injected presentation clock and fakeable playback boundary; it never reads or
@@ -528,7 +582,7 @@ recorded in the owning issue.
 
 ## Ambient And Positional Audio
 
-### Game-owned planning and staged Berad Audio adapter
+### Game-owned planning and Berad Audio adapter
 
 Redux owns `assets/library.json`, its source-to-cue routing and world eligibility.
 `AmbientPlanner` derives immutable tile definitions from an explicit `Library`
@@ -539,12 +593,13 @@ from the source multiplier so the playback library applies them exactly once.
 Source intensity/range overrides remain game-owned; relative gain up to 200% is
 preserved. Plans carry emitter roles for game policy, not engine interpretation.
 
-The staged game-owned bridge in `testdata/berad-audio-redux` projects recording
+The game-owned bridge verification in `testdata/berad-audio-redux` projects recording
 paths, windows, calibration, null slots and ordered cue assignments to the module's
 in-memory definition. It converts plans to neutral ambient source requests. The
-bridge is built/tested by the audio-module gate using temporary module substitutions;
-the published game's `go.mod`, production paths and live playback implementation
-remain unchanged until a resolvable pinned module revision is available.
+bridge is built/tested by the audio-module gate using temporary module substitutions.
+Live scenes use `GameAudioManager` and the real pinned dependency. The fixture's
+substitutions are not part of published application metadata. Production JSON
+paths and assets remain unchanged.
 
 Berad Audio owns reconciliation, retained/releasing voices, reversible re-entry,
 admission, completion, retries and diagnostics. Its source IDs do not encode a
@@ -576,7 +631,7 @@ Ambience volume, mute and suppression apply normally.
 
 `GameScene.updateAmbientSounds` gathers terrain tiles and dynamic sources such as
 visible moongates and seated bards. Its scan radius follows authored ambient
-ranges; occupants do not hide terrain sources. `AmbientSoundManager` coalesces
+ranges; occupants do not hide terrain sources. Redux's `AmbientPlanner` coalesces
 static sources to the strongest audible source per cue identity, after each tile
 family's range and relative-level overrides. A quieter nearby torch cannot mask
 a louder brazier using the same sound. Ties prefer the nearer source; changes in
@@ -615,7 +670,7 @@ count against the cap until retirement, so new arrivals can wait for release.
 Failed sources in backoff and completed finite sources do not reserve admission
 slots. Retry eligibility is still bounded by the presentation-clock policy.
 
-The reproducible synthetic `BenchmarkAmbientReconciliationAndService` measures
+The retained legacy `BenchmarkAmbientReconciliationAndService` measured
 warm reconciliation plus service, excluding native device/mixer work and initial
 decoding. On Apple M3 Pro, 100 iterations with 8/32/128 desired sources measured
 approximately 5/23/80 microseconds per iteration with 8/16/16 voices. The preceding
@@ -623,7 +678,8 @@ uncapped path measured 5/23/94 microseconds with 8/32/128 voices. Ranking adds s
 allocation overhead (about 98 KB versus 80 KB at 128 sources); the demonstrated
 benefit is bounded live playback and predictable selection, not a claim of lower
 allocation in every case. Native mix headroom, device latency, audible transitions
-and long-session plateaus require their separate acceptance.
+and long-session plateaus require their separate acceptance. These historical
+measurements do not characterize the new module-backed controller.
 
 ### Backend adapter conformance
 
@@ -730,7 +786,7 @@ the separate, finite Music-category Sailing moment, not the onboard loop.
 Skiffs have no sails and never trigger Sailing music. Per-step `SoundMoveSkiff`
 and `SoundMoveFrigate` effects remain independent authorable cues.
 
-`AudioManager.PlaySoundEffectAt` uses `PositionalAudioCalculator` for distance volume. The calculator also returns stereo pan, but Ebitengine playback does not currently apply that pan. Do not claim stereo positioning until that TODO is implemented.
+`GameAudioManager.PlaySoundEffectAt` uses `PositionalAudioCalculator` for distance volume. The calculator also returns stereo pan, but Ebitengine playback does not currently apply that pan. Do not claim stereo positioning until that TODO is implemented.
 
 ## Volume Settings
 

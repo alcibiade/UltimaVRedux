@@ -192,7 +192,7 @@ func newGameScene(
 
 	// Audio resources may be allocated while dormant, but playback begins only on activation.
 	if !gameConfig.SoundDisabled {
-		gameScene.audioManager, err = audio.NewAudioManagerWithConfig(gameConfig.AudioConfiguration)
+		gameScene.audioManager, err = audio.NewGameAudioManagerWithConfig(gameConfig.AudioConfiguration)
 		if err != nil {
 			logging.Warn(logging.CategoryAudio, "Failed to initialize audio system: %v", err)
 			gameScene.audioManager = nil

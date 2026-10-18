@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
@@ -20,7 +22,7 @@ const (
 )
 
 type runtimeSoakState struct {
-	owner     *audio.VoiceOwner
+	owner     *berad.Owner
 	nextCycle time.Time
 	cycles    int
 	baseline  uint64
@@ -32,13 +34,12 @@ func (probe *runtimeProbeGame) updateSoak() error {
 	if probe.started.IsZero() {
 		probe.started = now
 	}
-	probe.runtime.Update()
+	if err := probe.runtime.Update(); err != nil {
+		return fmt.Errorf("service native soak: %w", err)
+	}
 	snapshot := probe.runtime.Snapshot()
-	for _, voice := range snapshot.Voices {
-		if voice.Failure != "" {
-			return fmt.Errorf("%w: native soak: %s", audio.ErrAudioLibrary, voice.Failure)
-		}
-		probe.advanced = probe.advanced || voice.PositionMs > 0
+	for _, voice := range snapshot {
+		probe.advanced = probe.advanced || voice.Position > 0
 	}
 	elapsed := now.Sub(probe.started)
 	if elapsed >= nativeSoakDuration {
@@ -58,10 +59,11 @@ func (probe *runtimeProbeGame) updateSoak() error {
 			return fmt.Errorf("retire native soak cycle: %w", err)
 		}
 	}
-	probe.soak.owner = probe.runtime.NewVoiceOwner()
+	probe.soak.owner = probe.runtime.NewOwner()
 	for range nativeSoakVoices {
-		request := audio.CueRequest{CueID: probe.cue, Loop: true, Volume: 1, FadeInMs: 0, ReplacePrevious: false}
-		_, err := probe.soak.owner.PlayCue(request)
+		request := berad.DefaultPlayOptions()
+		request.Loop = true
+		_, err := probe.soak.owner.Play(berad.CueID(probe.cue), request)
 		if err != nil {
 			return fmt.Errorf("start native soak cycle: %w", err)
 		}
@@ -79,8 +81,10 @@ func (probe *runtimeProbeGame) finishSoak() error {
 	if err := probe.soak.owner.Close(); err != nil {
 		return fmt.Errorf("finish native soak: %w", err)
 	}
-	probe.runtime.Update()
-	if len(probe.runtime.Snapshot().Voices) != 0 {
+	if err := probe.runtime.Update(); err != nil {
+		return fmt.Errorf("finish module soak: %w", err)
+	}
+	if len(probe.runtime.Snapshot()) != 0 {
 		return fmt.Errorf("%w: native soak retained active voices", audio.ErrAudioLibrary)
 	}
 	runtime.GC()

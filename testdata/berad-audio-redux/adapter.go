@@ -6,8 +6,6 @@ package reduxadapter
 import (
 	"fmt"
 	"io/fs"
-	"math"
-	"time"
 
 	gameaudio "github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -48,34 +46,9 @@ func NewAmbient(project *gameaudio.Library, files fs.FS,
 // PlaybackDefinition projects playback properties only. JSON taxonomy, routing,
 // names, provenance and credits remain in the caller's Redux document.
 func PlaybackDefinition(document gameaudio.LibraryDocument) (audio.Definition, error) {
-	definition := audio.Definition{Recordings: make(map[audio.RecordingID]audio.Recording),
-		Cues: make(map[audio.CueID]audio.Cue)}
-	for identity, source := range document.Recordings {
-		var recording audio.Recording
-		if source.File != nil {
-			recording.File = *source.File
-		}
-		if source.CalibrationGainDB != nil {
-			recording.CalibrationDB = *source.CalibrationGainDB
-		}
-		if source.PlaybackWindow != nil {
-			const maximumMilliseconds = math.MaxInt64 / int64(time.Millisecond)
-			if source.PlaybackWindow.StartMs < 0 || source.PlaybackWindow.EndMs <= source.PlaybackWindow.StartMs ||
-				source.PlaybackWindow.StartMs > maximumMilliseconds || source.PlaybackWindow.EndMs > maximumMilliseconds {
-				return audio.Definition{}, fmt.Errorf("%w: recording %s window exceeds duration range",
-					audio.ErrInvalidLibrary, identity)
-			}
-			recording.Window = &audio.Window{Start: time.Duration(source.PlaybackWindow.StartMs) * time.Millisecond,
-				End: time.Duration(source.PlaybackWindow.EndMs) * time.Millisecond}
-		}
-		definition.Recordings[audio.RecordingID(identity)] = recording
-	}
-	for identity, source := range document.Cues {
-		cue := audio.Cue{Recordings: make([]audio.RecordingID, 0, len(source.Recordings())), Gain: source.VolumeModifier}
-		for _, recording := range source.Recordings() {
-			cue.Recordings = append(cue.Recordings, audio.RecordingID(recording))
-		}
-		definition.Cues[audio.CueID(identity)] = cue
+	definition, err := gameaudio.PlaybackDefinition(document)
+	if err != nil {
+		return audio.Definition{}, fmt.Errorf("project Redux playback: %w", err)
 	}
 
 	return definition, nil

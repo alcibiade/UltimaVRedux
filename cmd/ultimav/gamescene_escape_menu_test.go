@@ -215,7 +215,7 @@ func TestEscapeMenuConfigureSupportsNoSound(t *testing.T) {
 
 func TestEscapeMenuConfigurationReturnsToPausedEscapeMenu(t *testing.T) {
 	scene := newEscapeMenuTestScene()
-	manager, err := audio.NewAudioManager()
+	manager, err := audio.NewGameAudioManager()
 	require.NoError(t, err)
 	scene.audioManager = manager
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
@@ -583,7 +583,7 @@ func TestEscapeMenuCancelAndFailureResumeAudio(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ui := newEscapeMenuTestScene()
-			manager, err := audio.NewAudioManager()
+			manager, err := audio.NewGameAudioManager()
 			require.NoError(t, err)
 			ui.audioManager = manager
 			t.Cleanup(func() { require.NoError(t, manager.Close()) })

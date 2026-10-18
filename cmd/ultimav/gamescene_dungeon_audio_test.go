@@ -14,7 +14,7 @@ func TestProductionDungeonAudioFollowsStyleFloorsAndCombatOwner(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).WithSystemCallbacks().WithRandomSeed(42).Build()
 	scene := &GameScene{gameState: state}
-	manager, err := audio.NewAudioManager()
+	manager, err := audio.NewGameAudioManager()
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 	for location := references.Deceit; location <= references.Doom; location++ {

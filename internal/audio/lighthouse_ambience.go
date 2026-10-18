@@ -4,16 +4,14 @@ import "github.com/bradhannah/UltimaVRedux/internal/references"
 
 const lighthouseEmitter = "lighthouse"
 
-// LighthouseAmbientSource follows the location, independent of floor or visible
-// coastal tiles. The manager shares its voice with nearby lighthouse tile cues.
-func (am *AudioManager) LighthouseAmbientSource(
+func lighthouseAmbientSource(definitions map[AmbientSoundType]AmbientSoundDefinition,
 	location references.Location, listener references.Position,
 ) (AmbientSoundSource, bool) {
 	if location != references.Fogsbane && location != references.Stormcrow &&
 		location != references.Greyhaven && location != references.Waveguide {
 		return AmbientSoundSource{}, false //nolint:exhaustruct // No lighthouse location source.
 	}
-	definition, exists := am.GetAmbientSoundDefinition(AmbientLighthouse)
+	definition, exists := definitions[AmbientLighthouse]
 	if !exists {
 		panic("lighthouse ambient cue has no definition")
 	}

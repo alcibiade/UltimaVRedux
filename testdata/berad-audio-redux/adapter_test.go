@@ -262,7 +262,7 @@ func TestReduxProjectionPreservesNullSlotsAndOrderedVariants(t *testing.T) {
 	recording := document.Recordings[fire.RecordingID]
 	recording.PlaybackWindow.EndMs = math.MaxInt64
 	document.Recordings[fire.RecordingID] = recording
-	if _, err := PlaybackDefinition(document); !errors.Is(err, audio.ErrInvalidLibrary) {
+	if _, err := PlaybackDefinition(document); !errors.Is(err, gameaudio.ErrAudioLibrary) {
 		t.Fatal("overflowed authored window accepted", err)
 	}
 }

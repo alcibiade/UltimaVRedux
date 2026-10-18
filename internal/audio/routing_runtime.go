@@ -1,53 +1,19 @@
 package audio
 
 import (
-	"math"
-
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// AmbientScanRadius follows authored ranges rather than a fixed scene constant.
-func (am *AudioManager) AmbientScanRadius() int {
-	var radius float64
-	for _, profile := range am.library.document.Routing.Ambient {
-		radius = max(radius, profile.RadiusTiles)
-	}
-	for _, tile := range am.library.document.Routing.Tiles {
-		if tile.RadiusTiles != nil {
-			radius = max(radius, *tile.RadiusTiles)
-		}
-	}
-
-	return int(math.Ceil(radius))
-}
-
-// AmbientEmitterDefinition resolves the two code-owned dynamic emitter roles.
-func (am *AudioManager) AmbientEmitterDefinition(emitter string) AmbientSoundDefinition {
-	id, exists := am.library.document.Routing.Emitters[emitter]
-	if !exists {
-		panic("unknown ambient emitter: " + emitter)
-	}
-	definition, exists := am.GetAmbientSoundDefinition(AmbientSoundType(id))
-	if !exists {
-		panic("validated ambient emitter has no definition")
-	}
-
-	return definition
-}
-
-// DungeonAmbientSource returns a stable non-spatial source at the listener.
-// Its playback key is the cue, not the listener's changing coordinates.
-//
 //nolint:godox // The owner intentionally deferred recordings for these wired slots.
-func (am *AudioManager) DungeonAmbientSource(
+func dungeonAmbientSource(library *Library, definitions map[AmbientSoundType]AmbientSoundDefinition,
 	location references.Location, listener references.Position,
 ) (AmbientSoundSource, bool) {
 	// TODO(audio): Supply cave/brick recordings; loop through floors/combat, fade on exit.
-	id := am.library.document.Routing.dungeonCue(location)
+	id := library.document.Routing.dungeonCue(location)
 	if id == "" {
 		return AmbientSoundSource{}, false //nolint:exhaustruct // Explicit or inherited silence.
 	}
-	definition, exists := am.GetAmbientSoundDefinition(AmbientSoundType(id))
+	definition, exists := definitions[AmbientSoundType(id)]
 	if !exists {
 		panic("validated dungeon background has no definition")
 	}
@@ -58,12 +24,6 @@ func (am *AudioManager) DungeonAmbientSource(
 		SoundFile: definition.FileName, MaxDistance: 0, baseVolume: definition.BaseVolume,
 		VolumeModifier: 1, FadeInTime: definition.FadeInTime, FadeOutTime: definition.FadeOutTime,
 	}, true
-}
-
-// NavalAmbientSource follows the boarded vessel, not the visible water tiles.
-// Its stable cue key retains the loop through travel, turns and combat.
-func (am *AudioManager) NavalAmbientSource(vessel string, listener references.Position) (AmbientSoundSource, bool) {
-	return navalAmbientSource(am.library.document.Routing, am.ambientSounds.soundTypeDefinitions, vessel, listener)
 }
 
 func navalAmbientSource(

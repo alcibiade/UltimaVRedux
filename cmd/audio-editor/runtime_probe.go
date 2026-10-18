@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	"github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengine"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	eaudio "github.com/hajimehoshi/ebiten/v2/audio"
 
@@ -14,10 +17,10 @@ import (
 
 type runtimeProbeGame struct {
 	soak      *runtimeSoakState
-	runtime   *audio.Runtime
+	runtime   *berad.Runtime
 	cue       string
 	started   time.Time
-	voice     audio.VoiceHandle
+	voice     berad.Voice
 	advanced  bool
 	releasing bool
 	complete  bool
@@ -46,11 +49,17 @@ func runRuntimeProbe(editor *audio.LibraryEditor, cue string, soak bool) error {
 	if soak {
 		probeGain = 0
 	}
-	engine, err := audio.NewRuntime(library, audio.EbitengineBackend{Context: context}, time.Now, probeGain)
+	playback, err := library.PlaybackLibrary()
+	if err != nil {
+		return fmt.Errorf("project probe playback: %w", err)
+	}
+	options := berad.DefaultOptions(ebitengine.Backend{Context: context}, ebitengine.Decode)
+	options.Volume = probeGain
+	engine, err := berad.NewRuntime(playback, options)
 	if err != nil {
 		return fmt.Errorf("initialize native runtime: %w", err)
 	}
-	probe := &runtimeProbeGame{soak: nil, runtime: engine, cue: cue, started: time.Time{}, voice: audio.VoiceHandle{},
+	probe := &runtimeProbeGame{soak: nil, runtime: engine, cue: cue, started: time.Time{}, voice: berad.Voice{},
 		advanced: false, releasing: false, complete: false}
 	if soak {
 		probe.soak = new(runtimeSoakState)
@@ -75,33 +84,35 @@ func (probe *runtimeProbeGame) Update() error {
 		return probe.updateSoak()
 	}
 	if probe.started.IsZero() {
-		voice, err := probe.runtime.Play(audio.CueRequest{CueID: probe.cue, Loop: true, Volume: 1,
-			FadeInMs: runtimeProbeFadeMs, ReplacePrevious: false})
+		options := berad.DefaultPlayOptions()
+		options.Loop, options.FadeIn = true, runtimeProbeFadeMs*time.Millisecond
+		result, err := probe.runtime.Play(berad.CueID(probe.cue), options)
 		if err != nil {
 			return fmt.Errorf("start native probe cue: %w", err)
 		}
-		probe.voice, probe.started = voice, time.Now()
+		probe.voice, probe.started = result.Voice, time.Now()
 	}
-	probe.runtime.Update()
+	if err := probe.runtime.Update(); err != nil {
+		return fmt.Errorf("service native probe: %w", err)
+	}
 	elapsed := time.Since(probe.started)
 	snapshot := probe.runtime.Snapshot()
-	for _, voice := range snapshot.Voices {
-		if voice.Failure != "" {
-			return fmt.Errorf("%w: %s", audio.ErrAudioLibrary, voice.Failure)
-		}
-		probe.advanced = probe.advanced || voice.PositionMs > 0
+	for _, voice := range snapshot {
+		probe.advanced = probe.advanced || voice.Position > 0
 	}
 	if elapsed >= time.Second && !probe.releasing {
 		if !probe.advanced {
 			return fmt.Errorf("%w: device position did not advance", audio.ErrAudioLibrary)
 		}
-		logging.Info(logging.CategoryAudio, "Native runtime snapshot:\n%s", snapshot.String())
-		probe.voice.Stop(runtimeProbeFadeMs)
+		logging.Info(logging.CategoryAudio, "Native module snapshot: %+v", snapshot)
+		if err := probe.voice.Stop(runtimeProbeFadeMs * time.Millisecond); err != nil {
+			return fmt.Errorf("release native probe: %w", err)
+		}
 		probe.releasing = true
 	}
 	const completionDelay = 1500 * time.Millisecond
 	if elapsed >= completionDelay {
-		if len(snapshot.Voices) != 0 {
+		if len(snapshot) != 0 {
 			return fmt.Errorf("%w: owned release did not retire", audio.ErrAudioLibrary)
 		}
 		probe.complete = true

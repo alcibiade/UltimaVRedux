@@ -14,13 +14,16 @@ import (
 // source overrides/intensity/distance, never cue gain or recording calibration.
 // Emitter is game policy metadata (for example bard precedence), not an engine role.
 type AmbientSourcePlan struct {
-	ID      string
-	CueID   string
-	Gain    float64
-	Loop    bool
-	FadeIn  time.Duration
-	FadeOut time.Duration
-	Emitter string
+	ID           string
+	CueID        string
+	Gain         float64
+	Loop         bool
+	FadeIn       time.Duration
+	FadeOut      time.Duration
+	Emitter      string
+	SourceGain   float64
+	DistanceGain float64
+	Intensity    float64
 }
 
 // AmbientPlanner projects Redux JSON/world sources without constructing players,
@@ -68,17 +71,18 @@ func (planner *AmbientPlanner) Sources(listener references.Position,
 			return nil, fmt.Errorf("%w: ambient source %s overrides its cue's recording", ErrAudioLibrary, sourceID)
 		}
 		authored := cue.VolumeModifier * planner.library.document.recordingCalibration(cue.RecordingID)
-		gain := 0.0
+		sourceGain := 0.0
 		if authored > 0 {
-			gain = definition.BaseVolume / authored * candidate.modifier *
-				AmbientDistanceGain(candidate.distance, definition.MaxDistance)
+			sourceGain = definition.BaseVolume / authored
 		}
+		distanceGain := AmbientDistanceGain(candidate.distance, definition.MaxDistance)
+		gain := sourceGain * candidate.modifier * distanceGain
 		if !finiteSourceGain(gain) {
 			return nil, fmt.Errorf("%w: ambient source %s gain must be in [0,2]", ErrAudioLibrary, sourceID)
 		}
 		plans = append(plans, AmbientSourcePlan{ID: string(sourceID), CueID: cueID, Gain: gain,
 			Loop: definition.LoopSound, FadeIn: definition.FadeInTime, FadeOut: definition.FadeOutTime,
-			Emitter: candidate.emitter})
+			Emitter: candidate.emitter, SourceGain: sourceGain, DistanceGain: distanceGain, Intensity: candidate.modifier})
 	}
 	slices.SortFunc(plans, func(left, right AmbientSourcePlan) int { return cmp.Compare(left.ID, right.ID) })
 

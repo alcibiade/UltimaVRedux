@@ -41,7 +41,7 @@ func TestAcknowledgmentsRetainOriginalAndSuppliedAudioCredits(t *testing.T) {
 
 func TestIntroAcknowledgmentsLeaveTitleAudioOwnershipAlone(t *testing.T) {
 	scene := newIntroInputTestScene()
-	manager, err := audio.NewAudioManager()
+	manager, err := audio.NewGameAudioManager()
 	require.NoError(t, err)
 	scene.audioManager = manager
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })

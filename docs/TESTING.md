@@ -448,6 +448,12 @@ that throwaway fixture omits the linter's blanket local-replacement prohibition.
 Published game/module lint retains it. Copied-module analyzer caches are scoped
 to each temporary tree so results cannot point into a prior deleted copy.
 `make audio-module-check` combines those focused checks.
+
+The live scene adapter uses the real pinned module revision. Legacy runtime
+classes reside only in `internal/audio/legacy_*_test.go` to retain the older
+low-level regression baseline during migration; they are not a gameplay fallback.
+`TestGameBuildCannotContainLegacyPlaybackEngines` guards the production declaration
+boundary. New facade tests and scene tests exercise module-backed playback.
 Race-instrumenting the harness also instruments both module and consumer tests;
 the complete quality gate includes it in the race stage. These synthetic transport
 and WAV tests do not initialize a native device or establish listening acceptance.
