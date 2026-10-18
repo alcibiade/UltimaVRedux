@@ -44,6 +44,7 @@ type transport struct {
 	gain           float64
 	barriers       int
 	barrierEntered chan struct{}
+	position       time.Duration
 }
 
 func (device *transport) Play()  { device.playing = true }
@@ -58,10 +59,16 @@ func (device *transport) PauseAndStopReading() {
 	device.playing = false
 	device.barriers++
 }
-func (device *transport) IsPlaying() bool          { return device.playing }
-func (device *transport) SetVolume(gain float64)   { device.gain = gain }
-func (*transport) SetPosition(time.Duration) error { return nil }
-func (*transport) Position() time.Duration         { return 0 }
+func (device *transport) IsPlaying() bool        { return device.playing }
+func (device *transport) SetVolume(gain float64) { device.gain = gain }
+func (device *transport) SetPosition(position time.Duration) error {
+	_, err := device.source.Seek(int64(position/time.Millisecond)*4, io.SeekStart)
+	if err == nil {
+		device.position = position
+	}
+	return err
+}
+func (device *transport) Position() time.Duration { return device.position }
 func (device *transport) read(count int) ([]byte, error) {
 	device.mu.Lock()
 	defer device.mu.Unlock()

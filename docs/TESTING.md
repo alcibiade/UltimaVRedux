@@ -438,7 +438,16 @@ workspace/network resolution, reject game imports/replacements, verify uncached
 test-package completion and zero skips, then run vet/build and an independent
 consumer. Its local replacement exists only in the throwaway consumer, never in
 the game's module. Root lint separately applies the pinned unfiltered rules to
-the copied module. `make audio-module-check` combines those focused checks.
+the copied module. A separate game-owned bridge fixture in
+`testdata/berad-audio-redux` imports both the current game and copied module using
+temporary substitutions. It tests real Redux JSON routing with synthetic audio;
+it is not part of the unrelated-consumer independence proof. Its package completion
+and zero skips are checked too, and root lint checks the staged adapter.
+The fixture's two exact temporary replacements are explicitly verified; only
+that throwaway fixture omits the linter's blanket local-replacement prohibition.
+Published game/module lint retains it. Copied-module analyzer caches are scoped
+to each temporary tree so results cannot point into a prior deleted copy.
+`make audio-module-check` combines those focused checks.
 Race-instrumenting the harness also instruments both module and consumer tests;
 the complete quality gate includes it in the race stage. These synthetic transport
 and WAV tests do not initialize a native device or establish listening acceptance.

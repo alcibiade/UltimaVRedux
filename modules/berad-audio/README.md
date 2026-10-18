@@ -10,9 +10,9 @@ import "github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengin
 
 No independently published version is claimed. Redux still uses its existing
 implementation during staging; it has no local replacement or workspace dependency.
-Music/ambient controllers and the existing Bubble Tea editor are not yet module
-APIs. The API is pre-stability; applications should pin reviewed revisions once
-they are available remotely.
+The ambient controller is available; music integration and the existing Bubble
+Tea editor are not yet module APIs. The API is pre-stability; applications should
+pin reviewed revisions once they are available remotely.
 
 ## Ownership and usage
 
@@ -53,6 +53,13 @@ result, err := owner.Play("hangar/motor", request)
 - `Voice.Stop` affects one instance; `Owner.Release` terminally rejects new play
   and releases its voices; `Owner.Close` finishes its tails. `StopCue` is explicitly
   cue-wide across owners. Zero/stale voice handles are safe.
+- `Voice.SetGain`, `Pause`, `Resume`, `Seek` and `Position` provide presentation
+  control without reopening retired voices. Pause retains the decoder and freezes
+  its envelope; category changes still update a paused voice's mix. Positions are
+  relative to the selected window. Invalid seeks do not change it.
+- `Voice.Status` distinguishes playing, paused, releasing, completed, stopped,
+  evicted and failed states. Retirement stores status without retaining its decoder.
+  Unexpected loop completion is a failure, unlike healthy finite completion.
 - Admission evicts the oldest finite voice; loops are protected. A new finite
   voice is dropped when all slots are loops; a new loop returns `ErrVoiceLimit`.
   Failed/dropped requests never advance the recording cycle.
@@ -78,12 +85,65 @@ this is not a mixer limiter or a claim of headroom across concurrent voices.
 recordings (exact file, calibration, optional source-relative window) and cues
 (ordered recording IDs and explicit linear gain). Empty file means intentional
 silence; cycle members cannot be empty. The caller supplies category/policy by
-choosing runtimes and gains; richer music/ambient controllers remain separate work.
+choosing runtimes/controllers and gains; score-selection policy remains game-owned.
 
 Redux's schema-3 manifest, provenance, taxonomy and routing remain authoritative
 for its TUI. Do not serialize `Definition` as a replacement authoring document.
 All production recordings/notices remain game-owned. Examples/tests generate
 their PCM/WAV; no bundled game media or original installation is required.
+
+## Ambient sources
+
+`NewAmbientController(library, DefaultAmbientOptions(backend, decode))` owns an
+exclusive lane using the same decoder/voice/gain/envelope machinery as ordinary
+playback. Defaults are 16 active-or-releasing voices, at most 4096 desired sources,
+and retry delays of 1, 2, 4, 8, 16, then 30 seconds. Options are explicit/copied.
+
+Submit a full `[]AmbientSource` to `Reconcile`, and call `Update` on presentation
+frames independently of discovery. Each source supplies a stable ID, cue, loop
+mode, fade durations and source gain in `[0,2]`. Source gain contains only intensity,
+distance and caller overrides; the library applies cue gain/calibration exactly
+once. Only single-recording cues are currently accepted. Finite ambient sources
+have immediate onset and play once per presence or Cue/Loop change.
+
+- Skipping Reconcile retains the preceding desired snapshot; an explicitly empty
+  snapshot means departure and starts releases. All input is validated before
+  desired state changes; a duplicate ID, unknown/cycle cue or invalid gain/fade
+  rejects the entire snapshot. Playback failures after acceptance enter backoff,
+  not rollback of the desired snapshot.
+- Sources with different IDs remain independent even when sharing a cue. The
+  consumer owns grouping, map queries/projection and source eligibility. The
+  controller has no tile, lighthouse, bard, dungeon, vessel or JSON vocabulary.
+- Live gain changes keep the decoder. Re-entry during release reverses its
+  envelope from its current value, without restarting. This controller operation
+  does not reopen a terminal `Owner.Release` or stopped voice.
+- Admission ranks pre-category/pre-envelope gain, then retained voices, then ID.
+  Category mute does not change rank or restart loops. Zero-intensity sources may
+  retain loops for later intensity changes. Release tails occupy capacity; this
+  lane never uses the SFX oldest-finite eviction rule.
+- Failed replacement preparation keeps the old cue sounding. Retry attempts are
+  presence/Cue/Loop-scoped and capped; repeated snapshots and temporarily successful
+  reopenings do not reset recurring-failure backoff. Long gaps allow one attempt,
+  not catch-up bursts. Backoff/completed sources do not reserve empty capacity.
+- Empty recording slots retire prior voices without retries. `SetEnabled(false)`
+  clears desired/active/retry state immediately; re-enable requires a fresh
+  snapshot. `Reset` clears the lane without changing enabled preference. `Close`
+  is terminal and does not close shared devices or sibling runtimes.
+- `Snapshot` separates desired cue from actual voice (important after a failed
+  replacement), includes completion/retry diagnostics, and never samples time.
+  `Voice.TargetGain` excludes fade gain: a game can distinguish a muted source
+  from the first zero-volume attack frame when implementing local-music priority.
+
+`QuadraticDistanceGain` is an optional unit-agnostic helper preserving Redux's
+ambient curve, including its one-unit inner range and radius-zero background
+convention. The caller resolves world wrapping first. Positional SFX may use a
+different profile; no stereo pan or occlusion is implied.
+
+Redux owns the JSON-to-playback bridge. During staging it is compiled in the
+game-owned `testdata/berad-audio-redux` integration fixture, alongside a source
+planner shared with the old source-collection policy. It is not a dependency or
+part of this module. The live application cutover still needs a resolvable pinned
+module revision.
 
 ## Validation
 
@@ -93,8 +153,15 @@ include the nested module. It copies only this module into a temporary tree,
 disables workspaces/network resolution, rejects game imports/replacements, runs
 uncached tests, vet, build and a separate consumer with a test-only local
 replacement. Package completion and zero skips are checked from JSON events.
-The root lint targets check the isolated module with the pinned repository linter
-without a revision cutoff. The full gate's race stage repeats the consumer/module
+An additional game-owned bridge fixture projects the actual Redux JSON with
+synthetic audio payloads and verifies grouping, gains, windows, variants and
+source identity against this module. That integration build may import Redux;
+the independent-module and unrelated-consumer proofs remain separate.
+The root lint targets check the isolated module and staged bridge with the pinned
+linter without a revision cutoff. The bridge's two test-only replacements are
+checked explicitly instead of applying the blanket replacement prohibition to
+that temporary fixture. The module itself permits no replacements. Analyzer
+caches are scoped to each temporary tree. The full gate's race stage repeats the consumer/module
 tests with race instrumentation; ordinary logic tests do not require race tools.
 This establishes local independence, not remote publication/installation proof.
 

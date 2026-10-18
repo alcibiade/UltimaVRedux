@@ -57,16 +57,18 @@ def validate(lint=False, race=False):
                 raise ValueError(f"Berad Audio imports game code: {path}")
             if owner.get("Replace"):
                 raise ValueError(f"Berad Audio relies on a replacement: {path}")
+        bridge = root / "redux-consumer"
+        shutil.copytree(ROOT / "testdata/berad-audio-redux", bridge)
+        # Staged, game-owned adapter proof only. Application go.mod is unchanged;
+        # the reusable module's isolation check above never sees this replacement.
+        run(["go", "mod", "edit", "-replace=github.com/bradhannah/UltimaVRedux=" + str(ROOT)], bridge, environment)
+        bridge_environment = dict(environment, BERAD_AUDIO_REDUX_ROOT=str(ROOT))
+        run(["go", "list", "-mod=mod", "./..."], bridge, bridge_environment, True)
+        bridge_metadata = json.loads(run(["go", "mod", "edit", "-json"], bridge, bridge_environment, True))
+        verify_bridge_replacements(bridge_metadata)
         if lint:
-            concurrency = []
-            if environment.get("TEST_PROFILE", "host") != "host":
-                concurrency = ["--concurrency=1"]
-            elif environment.get("GOMAXPROCS", "").isdigit() and int(environment["GOMAXPROCS"]) > 0:
-                concurrency = ["--concurrency=" + environment["GOMAXPROCS"]]
-            run([str(ROOT / "bin/tools/golangci-lint"), "run", *concurrency,
-                 "--config", str(ROOT / ".golangci.yml"),
-                 "--new=false", "--new-from-rev=", "--max-issues-per-linter=0", "--max-same-issues=0",
-                 "--uniq-by-line=false", "./..."], library, environment)
+            lint_module(library, environment)
+            lint_module(bridge, bridge_environment, fixture=True)
             return
         expected = {item["ImportPath"] for item in json_objects(dependencies)
                     if item.get("Module", {}).get("Path") == MODULE and not item.get("ForTest")
@@ -79,7 +81,38 @@ def validate(lint=False, race=False):
         # This throwaway harness alone replaces the dependency with the isolated
         # library. It has no Redux tree and cannot mask undeclared game imports.
         check_tests(consumer, environment, {"example.com/berad-audio-consumer"}, race, "mod")
+        check_tests(bridge, bridge_environment,
+                    {"github.com/bradhannah/UltimaVRedux/testdata/berad-audio-redux"}, race)
     print(f"Berad Audio: isolated module test/vet/build and external consumer passed; race={race}", flush=True)
+
+
+def verify_bridge_replacements(metadata):
+    replacements = {(item["Old"]["Path"], item["New"]["Path"],
+                     item["Old"].get("Version", ""), item["New"].get("Version", ""))
+                    for item in metadata.get("Replace", [])}
+    expected = {(MODULE, "../library", "", ""),
+                ("github.com/bradhannah/UltimaVRedux", str(ROOT), "", "")}
+    if replacements != expected or len(metadata.get("Replace", [])) != 2:
+        raise ValueError("staged bridge must use exactly the two reviewed test-only replacements")
+
+
+def lint_module(directory, environment, fixture=False):
+    # Analyzer caches contain absolute filenames. A cache from a prior temporary
+    # copy can otherwise emit findings for deleted paths and miss nolint context.
+    environment = dict(environment, GOLANGCI_LINT_CACHE=str(directory.parent / "lint-cache" / directory.name))
+    concurrency = []
+    if environment.get("TEST_PROFILE", "host") != "host":
+        concurrency = ["--concurrency=1"]
+    elif environment.get("GOMAXPROCS", "").isdigit() and int(environment["GOMAXPROCS"]) > 0:
+        concurrency = ["--concurrency=" + environment["GOMAXPROCS"]]
+    # The copied integration fixture deliberately substitutes the two reviewed
+    # checkouts. Verify them above instead of asking gomoddirectives to forbid
+    # this test setup. Published game/module lint retains that linter unchanged.
+    fixture_flags = ["--disable=gomoddirectives"] if fixture else []
+    run([str(ROOT / "bin/tools/golangci-lint"), "run", *concurrency, *fixture_flags,
+         "--config", str(ROOT / ".golangci.yml"),
+         "--new=false", "--new-from-rev=", "--max-issues-per-linter=0", "--max-same-issues=0",
+         "--uniq-by-line=false", "./..."], directory, environment)
 
 
 def check_tests(directory, environment, expected, race, mode="readonly"):

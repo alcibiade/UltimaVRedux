@@ -105,8 +105,10 @@ loaders are forbidden. These establish in-repository dependency boundaries. The
 package still contains the Redux adapters and bundled media. The independent
 [Berad Audio module](../../modules/berad-audio/README.md) now stages a media-free
 cue runtime with explicit owner-local replacement slots and playback outcomes.
-Redux has not switched to it: authoring/TUI, music/ambient controller extraction,
-remote dependency availability and public API/schema stability remain later work.
+It now also contains a neutral ambient lane, reversible controller envelopes,
+live instance gain, pause/resume/seek and distinct terminal voice status. Redux
+has not switched to it: authoring/TUI and music integration, remote dependency
+availability and public API/schema stability remain later work.
 [ADR-010](../ADR/ADR-010-reusable-audio-module.md) records the staging boundary.
 
 Shared schema-3 validation rejects ambient profiles assigned a cycle cue because
@@ -525,6 +527,34 @@ recording identities, category sliders, listening setup and accepted policy valu
 recorded in the owning issue.
 
 ## Ambient And Positional Audio
+
+### Game-owned planning and staged Berad Audio adapter
+
+Redux owns `assets/library.json`, its source-to-cue routing and world eligibility.
+`AmbientPlanner` derives immutable tile definitions from an explicit `Library`
+and uses the same source collector as the current manager. Its sorted plans retain
+strongest-static-cue grouping, stable dynamic identities, cue-owned background
+beds and shared lighthouse continuity. It removes authored cue/calibration factors
+from the source multiplier so the playback library applies them exactly once.
+Source intensity/range overrides remain game-owned; relative gain up to 200% is
+preserved. Plans carry emitter roles for game policy, not engine interpretation.
+
+The staged game-owned bridge in `testdata/berad-audio-redux` projects recording
+paths, windows, calibration, null slots and ordered cue assignments to the module's
+in-memory definition. It converts plans to neutral ambient source requests. The
+bridge is built/tested by the audio-module gate using temporary module substitutions;
+the published game's `go.mod`, production paths and live playback implementation
+remain unchanged until a resolvable pinned module revision is available.
+
+Berad Audio owns reconciliation, retained/releasing voices, reversible re-entry,
+admission, completion, retries and diagnostics. Its source IDs do not encode a
+particular game's tiles, locations or roles. It shares playback mechanisms with
+SFX, but has its own capacity/ranking policy. The caller still services audio when
+world discovery is paused. See the [ambient module contract](../../modules/berad-audio/README.md#ambient-sources).
+
+The adapter proof reads Redux's real JSON with synthetic audio assignments and
+checks grouping/gain/window/identity behavior. It does not change the authored
+manifest, audition production media or establish native listening acceptance.
 
 All seated tavern bards use the dedicated `tavern_lute_01` recording slot through
 `ambient/AmbientBard`; `sfx/SoundTavernBardMusic` shares that slot. It deliberately

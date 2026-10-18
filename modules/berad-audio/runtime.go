@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"sync"
 	"time"
@@ -14,6 +15,8 @@ var (
 	ErrInvalidRequest = errors.New("invalid audio request")
 	// ErrClosed rejects new work after terminal runtime closure.
 	ErrClosed = errors.New("audio runtime is closed")
+	// ErrVoiceClosed rejects control operations on a retired or zero voice.
+	ErrVoiceClosed = errors.New("audio voice is closed")
 	// ErrOwnerClosed rejects playback through a released owner.
 	ErrOwnerClosed = errors.New("audio owner is closed")
 	// ErrVoiceLimit reports that a loop cannot displace protected loops.
@@ -145,12 +148,12 @@ func (runtime *Runtime) play(cueID CueID, options PlayOptions, owner *Owner) (Pl
 	recordingID := cue.Recordings[index]
 	recording := runtime.library.definition.Recordings[recordingID]
 	if recording.File == "" {
-		return PlayResult{Outcome: Empty, Voice: Voice{runtime: nil, id: 0}}, nil
+		return PlayResult{Outcome: Empty, Voice: Voice{runtime: nil, id: 0, result: nil}}, nil
 	}
 	const decibelBase, amplitudeFactor = 10, 20
 	base := options.Gain * cue.Gain * math.Pow(decibelBase, recording.CalibrationDB/amplitudeFactor)
 	if !options.Loop && base*runtime.options.Volume == 0 {
-		return PlayResult{Outcome: Inaudible, Voice: Voice{runtime: nil, id: 0}}, nil
+		return PlayResult{Outcome: Inaudible, Voice: Voice{runtime: nil, id: 0, result: nil}}, nil
 	}
 	prepared, err := runtime.prepare(recording, options.Loop)
 	if err != nil {
@@ -161,22 +164,56 @@ func (runtime *Runtime) play(cueID CueID, options PlayOptions, owner *Owner) (Pl
 			return PlayResult{}, ErrVoiceLimit
 		}
 
-		return PlayResult{Outcome: Dropped, Voice: Voice{runtime: nil, id: 0}}, nil
+		return PlayResult{Outcome: Dropped, Voice: Voice{runtime: nil, id: 0, result: nil}}, nil
 	}
+	handle := runtime.startPrepared(prepared, cueID, recordingID, options, owner, 1, runtime.now())
+	runtime.next[cueID] = (index + 1) % len(cue.Recordings)
+
+	return PlayResult{Outcome: Admitted, Voice: handle}, nil
+}
+
+// startPrepared shares playback machinery; admission belongs to the controller.
+func (runtime *Runtime) startPrepared(prepared *voice, cueID CueID, recordingID RecordingID,
+	options PlayOptions, owner *Owner, sourceGain float64, now time.Duration,
+) Voice {
 	runtime.sequence++
-	prepared.cue, prepared.recording, prepared.base = cueID, recordingID, base
+	prepared.cue, prepared.recording = cueID, recordingID
+	prepared.authoredGain = runtime.library.authoredGain(cueID, recordingID)
+	prepared.requestGain, prepared.sourceGain = options.Gain, sourceGain
 	prepared.owner, prepared.slot, prepared.loop = owner, options.Slot, options.Loop
-	prepared.started, prepared.fadeIn = runtime.now(), options.FadeIn
+	prepared.started, prepared.fadeIn = now, options.FadeIn
 	prepared.envelope = 1
 	if options.FadeIn > 0 {
 		prepared.envelope = 0
 	}
+	prepared.result = new(VoiceStatus)
 	runtime.applyGain(prepared)
 	runtime.voices[runtime.sequence] = prepared
 	prepared.device.Play()
-	runtime.next[cueID] = (index + 1) % len(cue.Recordings)
 
-	return PlayResult{Outcome: Admitted, Voice: Voice{runtime: runtime, id: runtime.sequence}}, nil
+	return Voice{runtime: runtime, id: runtime.sequence, result: prepared.result}
+}
+
+func (library *Library) authoredGain(cue CueID, recording RecordingID) float64 {
+	const decibelBase, amplitudeFactor = 10, 20
+
+	return library.definition.Cues[cue].Gain *
+		math.Pow(decibelBase, library.definition.Recordings[recording].CalibrationDB/amplitudeFactor)
+}
+
+func (runtime *Runtime) terminalReason(playing *voice) (VoiceState, error) {
+	if err := playing.stream.Failure(); err != nil {
+		return VoiceFailed, err
+	}
+	if !playing.paused && !playing.device.IsPlaying() {
+		if playing.loop {
+			return VoiceFailed, io.ErrUnexpectedEOF
+		}
+
+		return VoiceCompleted, nil
+	}
+
+	return "", nil
 }
 
 func (runtime *Runtime) prepare(recording Recording, loop bool) (*voice, error) {
@@ -241,7 +278,7 @@ func (runtime *Runtime) admit(prepared *voice, owner *Owner, slot string) bool {
 		}
 	}
 	if oldest != 0 {
-		runtime.retire(oldest)
+		runtime.finish(oldest, VoiceEvicted, nil)
 
 		return true
 	}

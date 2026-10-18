@@ -24,10 +24,17 @@ window/gain/read-failure/admission/ownership mechanisms rather than exporting th
 game manager's subsystem graph. Explicit owner-local slots and playback outcomes
 remove ambiguity at the application boundary.
 
+The ambient controller uses the same voice primitives but owns its own admission,
+reconciliation and retry policy. A game-owned source planner retains grouping and
+world interpretation, passing source multipliers without duplicating the module's
+authored cue/calibration gain. The staged Redux bridge is tested in a separate
+consumer before the pinned-dependency cutover; it does not make the core depend
+on the game. Paused, completed, failed and releasing voices have distinct states.
+
 The playback definition is an in-memory projection, not another persisted asset
 format. Schema-3 authoring data and the existing editor are retained while the
-generic authoring/routing contracts are established. Music/ambient mechanisms
-will be separated from their game policies without adding a speculative mixer,
+generic authoring/routing contracts are established. Remaining music integration
+will separate transport from game policy without adding a speculative mixer,
 new codecs, engine framework or frontend.
 
 Initially the game does not import the nested module. Once an authorized module

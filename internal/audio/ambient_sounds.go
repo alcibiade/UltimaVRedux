@@ -398,15 +398,7 @@ func (asm *AmbientSoundManager) RefreshVolume() {
 	}
 }
 
-// calculateDistance calculates the Euclidean distance between two positions
-func (asm *AmbientSoundManager) calculateDistance(pos1, pos2 references.Position) float64 {
-	dx := float64(pos1.X - pos2.X)
-	dy := float64(pos1.Y - pos2.Y)
-
-	return math.Sqrt(dx*dx + dy*dy)
-}
-
-// calculateVolumeFromDistance calculates volume based on distance using inverse square law
+// calculateVolumeFromDistance applies the shared quadratic ambient profile.
 func (asm *AmbientSoundManager) calculateVolumeFromDistance(distance, maxDistance, baseVolume float64) float64 {
 	return baseVolume * AmbientDistanceGain(distance, maxDistance)
 }

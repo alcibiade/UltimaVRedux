@@ -2,9 +2,11 @@ package audio
 
 import (
 	"fmt"
+	"math"
 	"slices"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 type ambientCandidate struct {
@@ -21,13 +23,22 @@ func sameAmbientAsset(left, right AmbientSoundDefinition) bool {
 func (asm *AmbientSoundManager) collectSources(
 	position references.Position, tiles []TileWithPosition, dynamic []AmbientSoundSource,
 ) map[AmbientSoundType]ambientCandidate {
+	return collectAmbientSources(asm.soundDefinitions, asm.soundTypeDefinitions, position, tiles, dynamic)
+}
+
+// collectAmbientSources is Redux's world-to-soundscape policy. Both the existing
+// manager and the staged module adapter use this same grouping/identity logic.
+func collectAmbientSources(tileDefinitions map[indexes.SpriteIndex]AmbientSoundDefinition,
+	definitions map[AmbientSoundType]AmbientSoundDefinition, position references.Position,
+	tiles []TileWithPosition, dynamic []AmbientSoundSource,
+) map[AmbientSoundType]ambientCandidate {
 	sources := make(map[AmbientSoundType]ambientCandidate)
 	for _, tile := range tiles {
-		definition, exists := asm.soundDefinitions[tile.Tile.Index]
+		definition, exists := tileDefinitions[tile.Tile.Index]
 		if !exists {
 			continue
 		}
-		distance := asm.calculateDistance(position, tile.Position)
+		distance := ambientSourceDistance(position, tile.Position)
 		previous, exists := sources[definition.SoundType]
 		if strongerAmbientSource(definition, distance, previous.definition, previous.distance, exists) {
 			sources[definition.SoundType] = ambientCandidate{
@@ -37,25 +48,26 @@ func (asm *AmbientSoundManager) collectSources(
 		}
 	}
 	for _, source := range dynamic {
-		asm.collectDynamicSource(sources, position, source)
+		collectDynamicAmbientSource(sources, definitions, position, source)
 	}
 
 	return sources
 }
 
-func (asm *AmbientSoundManager) collectDynamicSource(
-	sources map[AmbientSoundType]ambientCandidate, listener references.Position, source AmbientSoundSource,
+func collectDynamicAmbientSource(
+	sources map[AmbientSoundType]ambientCandidate, definitions map[AmbientSoundType]AmbientSoundDefinition,
+	listener references.Position, source AmbientSoundSource,
 ) {
 	if !source.IsActive {
 		return
 	}
-	base := asm.soundTypeDefinitions[source.SoundType]
+	base := definitions[source.SoundType]
 	definition := AmbientSoundDefinition{
 		SoundType: source.SoundType, FileName: source.SoundFile, MaxDistance: source.MaxDistance,
 		BaseVolume: source.GetBaseVolume(), LoopSound: base.LoopSound,
 		FadeInTime: source.FadeInTime, FadeOutTime: source.FadeOutTime,
 	}
-	distance := asm.calculateDistance(listener, source.Position)
+	distance := ambientSourceDistance(listener, source.Position)
 	if definition.MaxDistance == 0 {
 		distance = 0 // A background source is non-spatial, not tied to the last listener snapshot.
 	}
@@ -84,6 +96,12 @@ func (asm *AmbientSoundManager) collectDynamicSource(
 			definition: definition, position: source.Position, distance: distance, modifier: modifier,
 		}
 	}
+}
+
+func ambientSourceDistance(left, right references.Position) float64 {
+	dx, dy := float64(left.X-right.X), float64(left.Y-right.Y)
+
+	return math.Sqrt(dx*dx + dy*dy)
 }
 
 func (asm *AmbientSoundManager) reconcileSourcesLocked(sources map[AmbientSoundType]ambientCandidate) {

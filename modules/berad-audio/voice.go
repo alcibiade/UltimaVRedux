@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"slices"
@@ -15,15 +16,20 @@ type voice struct {
 	owner                                          *Owner
 	slot                                           string
 	loop                                           bool
-	base, envelope, gain                           float64
+	authoredGain, requestGain, sourceGain          float64
+	envelope, gain, fadeFrom                       float64
 	started, fadeIn, releaseStart, releaseDuration time.Duration
 	releaseGain                                    float64
+	paused                                         bool
+	pausedAt                                       time.Duration
+	result                                         *VoiceStatus
 }
 
 // Voice is an opaque cleanup capability. Zero/stale values stop nothing.
 type Voice struct {
 	runtime *Runtime
 	id      uint64
+	result  *VoiceStatus
 }
 
 // Stop releases only this instance; repeated requests cannot extend its tail.
@@ -127,6 +133,9 @@ func (runtime *Runtime) stop(voiceID uint64, fade, now time.Duration) {
 
 		return
 	}
+	if playing.paused {
+		now = playing.pausedAt
+	}
 	if playing.releaseDuration > 0 && playing.releaseDuration-(now-playing.releaseStart) <= fade {
 		return
 	}
@@ -136,18 +145,29 @@ func (runtime *Runtime) stop(voiceID uint64, fade, now time.Duration) {
 }
 
 func (runtime *Runtime) service(now time.Duration) {
-	for id, playing := range runtime.voices {
+	for voiceID, playing := range runtime.voices {
+		if reason, err := runtime.terminalReason(playing); reason != "" {
+			runtime.finish(voiceID, reason, err)
+
+			continue
+		}
+		if playing.paused {
+			runtime.applyGain(playing)
+
+			continue
+		}
 		runtime.envelope(playing, now)
 		released := playing.releaseDuration > 0 && now-playing.releaseStart >= playing.releaseDuration
-		if released || playing.stream.Failure() != nil || !playing.device.IsPlaying() {
-			runtime.retire(id)
+		if released {
+			runtime.retire(voiceID)
 		}
 	}
 }
 
 func (runtime *Runtime) envelope(playing *voice, now time.Duration) {
 	if playing.fadeIn > 0 {
-		playing.envelope = min(1, float64(max(0, now-playing.started))/float64(playing.fadeIn))
+		progress := min(1, float64(max(0, now-playing.started))/float64(playing.fadeIn))
+		playing.envelope = playing.fadeFrom + (1-playing.fadeFrom)*progress
 	}
 	if playing.releaseDuration > 0 {
 		progress := min(1, float64(max(0, now-playing.releaseStart))/float64(playing.releaseDuration))
@@ -157,19 +177,45 @@ func (runtime *Runtime) envelope(playing *voice, now time.Duration) {
 }
 
 func (runtime *Runtime) applyGain(playing *voice) {
-	playing.gain = playing.base * playing.envelope * runtime.options.Volume
+	playing.gain = playing.targetGain(runtime.options.Volume) * playing.envelope
 	playing.stream.gain.Store(math.Float64bits(math.Max(1, playing.gain)))
 	playing.device.SetVolume(math.Min(1, playing.gain))
 }
 
 func (runtime *Runtime) retire(voiceID uint64) {
+	runtime.finish(voiceID, VoiceStopped, nil)
+}
+
+func (runtime *Runtime) finish(voiceID uint64, reason VoiceState, failure error) {
 	playing := runtime.voices[voiceID]
 	playing.device.PauseAndStopReading()
-	if err := playing.stream.Failure(); err != nil {
-		runtime.remember(fmt.Errorf("cue %s recording %s: %w", playing.cue, playing.recording, err))
+	if failure == nil {
+		failure = playing.stream.Failure()
 	}
-	runtime.remember(closeSource(playing.stream.source.source))
+	failure = errors.Join(failure, closeSource(playing.stream.source.source))
+	if failure != nil {
+		reason = VoiceFailed
+		failure = fmt.Errorf("cue %s recording %s: %w", playing.cue, playing.recording, failure)
+		runtime.remember(failure)
+	}
+	*playing.result = VoiceStatus{State: reason, Cue: playing.cue, Recording: playing.recording,
+		Gain: 0, TargetGain: 0, Failure: failure}
 	delete(runtime.voices, voiceID)
+}
+
+func (playing *voice) targetGain(category float64) float64 {
+	return playing.authoredGain * playing.requestGain * playing.sourceGain * category
+}
+
+// attack revives a controller's releasing voice, never a terminal Owner/Voice.
+func (runtime *Runtime) attack(playing *voice, now, fade time.Duration) {
+	runtime.envelope(playing, now)
+	playing.releaseDuration = 0
+	playing.started, playing.fadeIn, playing.fadeFrom = now, fade, playing.envelope
+	if fade == 0 {
+		playing.envelope = 1
+	}
+	runtime.applyGain(playing)
 }
 
 // VoiceSnapshot is detached and reports the last serviced gain. Reading it does
