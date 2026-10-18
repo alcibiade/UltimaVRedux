@@ -50,6 +50,8 @@ func (f *fakeDebugDisplayManager) ContainerSize() (int, int) {
 func (f *fakeDebugDisplayManager) LogicalSize() (int, int) {
 	return f.logicalWidth, f.logicalHeight
 }
+func (f *fakeDebugDisplayManager) DeviceScaleFactor() float64 { return 1.5 }
+func (f *fakeDebugDisplayManager) OutputSize() (int, int)     { return 2880, 1560 }
 func (f *fakeDebugDisplayManager) RequestMode(mode config.Mode, width, height int) error {
 	f.requestMode, f.requestWidth, f.requestHeight = mode, width, height
 	if f.requestErr == nil {
@@ -87,6 +89,9 @@ func TestDisplayStatusReportsManagerTelemetryAndPresets(t *testing.T) {
 	assert.Equal(t, 1040, status.ContainerHeight)
 	assert.Equal(t, 1848, status.LogicalWidth)
 	assert.Equal(t, 1040, status.LogicalHeight)
+	assert.Equal(t, 1.5, status.DeviceScaleFactor)
+	assert.Equal(t, 2880, status.OutputWidth)
+	assert.Equal(t, 1560, status.OutputHeight)
 	require.Len(t, status.PresetResolutions, 5)
 	assert.Equal(t, displayResolutionResult{Index: 0, Width: 1280, Height: 720}, status.PresetResolutions[0])
 }

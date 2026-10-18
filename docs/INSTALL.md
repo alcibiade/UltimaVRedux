@@ -290,6 +290,30 @@ pair stored elsewhere or create a standalone native snapshot, follow the
 
 ## Troubleshooting
 
+### Window size and desktop scaling
+
+Configuration → Display offers Windowed, Maximized Window, and Fullscreen.
+Window sizes are image/output pixels, converted automatically for Windows desktop
+scaling and macOS Retina displays. For example, 1920×1080 pixels at 150% scaling
+uses 1280×720 logical window units. `About` marks fractional-scale pixel rounding;
+manually resizing produces a Custom size. Saved window geometry remains logical,
+so moving to another display can change its output-pixel dimensions.
+
+Presets reserve desktop headroom. Use Maximized for the available desktop area,
+or Fullscreen to fill the desktop output; a full-monitor client image cannot also
+leave room for a title bar/taskbar. The game keeps a 16:9 shape with black bars
+where needed. Rendering automatically follows display density with a 720p minimum
+canvas and a 4K cap. Backing/output pixels on scaled macOS desktops do not always
+correspond one-to-one to physical panel pixels.
+
+Press Enter to apply, then Keep or Revert; unconfirmed display changes revert
+after 12 seconds. Review the window size again after moving between differently
+scaled displays. Report OS scaling, selected mode/size, and observed behavior for
+display problems. Automated scale/layout checks do not establish native Windows
+or mixed-display macOS acceptance; see [installation acceptance](#installation-acceptance).
+
+### Common problems
+
 | Problem | First step |
 | --- | --- |
 | `ultimav` is not found | Check `GOBIN`/`GOPATH` and use the executable's full path. |

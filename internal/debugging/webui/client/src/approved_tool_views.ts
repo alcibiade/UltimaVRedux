@@ -642,6 +642,9 @@ export interface DisplayStatusData {
   containerHeight: number
   logicalWidth: number
   logicalHeight: number
+  deviceScaleFactor: number
+  outputWidth: number
+  outputHeight: number
   presetResolutions: DisplayResolutionData[]
 }
 

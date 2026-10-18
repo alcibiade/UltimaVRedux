@@ -8,6 +8,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 )
 
+//nolint:interfacebloat // Cohesive read/request boundary mirrors the display manager's typed telemetry.
 type debugDisplayManager interface {
 	Mode() config.Mode
 	RequestedMode() config.Mode
@@ -17,6 +18,8 @@ type debugDisplayManager interface {
 	MonitorSize() (int, int)
 	ContainerSize() (int, int)
 	LogicalSize() (int, int)
+	DeviceScaleFactor() float64
+	OutputSize() (int, int)
 	RequestMode(mode config.Mode, width, height int) error
 }
 
@@ -40,6 +43,9 @@ type displayStatusResult struct {
 	ContainerHeight    int                       `json:"containerHeight"`
 	LogicalWidth       int                       `json:"logicalWidth"`
 	LogicalHeight      int                       `json:"logicalHeight"`
+	DeviceScaleFactor  float64                   `json:"deviceScaleFactor"`
+	OutputWidth        int                       `json:"outputWidth"`
+	OutputHeight       int                       `json:"outputHeight"`
 	PresetResolutions  []displayResolutionResult `json:"presetResolutions"`
 }
 
@@ -94,6 +100,7 @@ func newDisplayStatusResult(manager debugDisplayManager) displayStatusResult {
 	monitorWidth, monitorHeight := manager.MonitorSize()
 	containerWidth, containerHeight := manager.ContainerSize()
 	logicalWidth, logicalHeight := manager.LogicalSize()
+	outputWidth, outputHeight := manager.OutputSize()
 	presets := config.SupportedWindowResolutions()
 	presetResults := make([]displayResolutionResult, 0, len(presets))
 	for index, preset := range presets {
@@ -115,7 +122,9 @@ func newDisplayStatusResult(manager debugDisplayManager) displayStatusResult {
 		ContainerHeight:    containerHeight,
 		LogicalWidth:       logicalWidth,
 		LogicalHeight:      logicalHeight,
-		PresetResolutions:  presetResults,
+		DeviceScaleFactor:  manager.DeviceScaleFactor(),
+		OutputWidth:        outputWidth, OutputHeight: outputHeight,
+		PresetResolutions: presetResults,
 	}
 }
 

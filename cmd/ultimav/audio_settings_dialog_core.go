@@ -36,6 +36,8 @@ const (
 type configurationDisplayManager interface {
 	Mode() config.Mode
 	MonitorSize() (int, int)
+	DeviceScaleFactor() float64
+	OutputSize() (int, int)
 	LogicalSize() (int, int)
 	LastNormalWindowSize() (int, int)
 	PersistableWindowSize() (int, int)
@@ -104,6 +106,8 @@ type ConfigurationDialog struct {
 	resetDisplayAfterRollback bool
 	displayRollbackRetry      bool
 	displaySizeDirty          bool
+	displayModeDirty          bool
+	displayEditScale          float64
 
 	// Text rendering and responsive layout
 	titleOutput    *text.Output
@@ -165,10 +169,12 @@ func newConfigurationDialogForTab(
 		tabNames:         []string{"Gameplay", "Sound", "Display"},
 	}
 	windowWidth, windowHeight := dialog.displayManager.PersistableWindowSize()
-	if windowWidth >= config.MinimumWindowWidth && windowHeight >= config.MinimumWindowHeight {
+	if windowWidth >= config.MinimumWindowUnitsWidth && windowHeight >= config.MinimumWindowUnitsHeight {
 		dialog.stagedDisplay.WindowWidth = windowWidth
 		dialog.stagedDisplay.WindowHeight = windowHeight
 	}
+	dialog.stagedDisplay.Mode = dialog.displayManager.Mode()
+	dialog.displayEditScale = dialog.displayManager.DeviceScaleFactor()
 
 	dialog.initializeComponents()
 	dialog.releaseConfigurationEdit = ultimaConfig.BeginConfigurationEditing()

@@ -5,10 +5,13 @@ import (
 	"fmt"
 )
 
-// Minimum decorated window dimensions supported by player settings.
+// MinimumWindowWidth/Height retain the default DIP geometry and also define
+// the minimum render canvas in pixels. Saved DIPs have a smaller absolute floor.
 const (
-	MinimumWindowWidth  = 1280
-	MinimumWindowHeight = 720
+	MinimumWindowWidth       = 1280
+	MinimumWindowHeight      = 720
+	MinimumWindowUnitsWidth  = 320
+	MinimumWindowUnitsHeight = 180
 )
 
 // Mode identifies the persisted desktop window mode without a graphics dependency.

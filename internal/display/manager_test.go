@@ -22,6 +22,8 @@ type fakeBackend struct {
 	positionCalls               int
 	restoreCalls                int
 	operations                  []string
+	scale                       float64
+	limits                      [4]int
 }
 
 func newFakeBackend() *fakeBackend {
@@ -33,8 +35,9 @@ func newFakeBackend() *fakeBackend {
 	}
 }
 
-func (f *fakeBackend) WindowSize() (int, int)  { return f.windowWidth, f.windowHeight }
-func (f *fakeBackend) MonitorSize() (int, int) { return f.monitorWidth, f.monitorHeight }
+func (f *fakeBackend) WindowSize() (int, int)     { return f.windowWidth, f.windowHeight }
+func (f *fakeBackend) MonitorSize() (int, int)    { return f.monitorWidth, f.monitorHeight }
+func (f *fakeBackend) DeviceScaleFactor() float64 { return ValidScale(f.scale) }
 func (f *fakeBackend) WindowPosition() (int, int) {
 	f.positionReads++
 
@@ -51,7 +54,8 @@ func (f *fakeBackend) SetWindowSize(width, height int) {
 func (f *fakeBackend) SetWindowResizingEnabled() {
 	f.operations = append(f.operations, "resizable")
 }
-func (f *fakeBackend) SetWindowSizeLimits(_, _, _, _ int) {
+func (f *fakeBackend) SetWindowSizeLimits(minw, minh, maxw, maxh int) {
+	f.limits = [4]int{minw, minh, maxw, maxh}
 	f.operations = append(f.operations, "limits")
 }
 func (f *fakeBackend) SetFullscreen(fullscreen bool) {

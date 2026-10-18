@@ -85,17 +85,6 @@ func calculateRightRailLayout(bounds image.Rectangle) rightRailLayout {
 	return layout
 }
 
-func logicalGameBounds(outsideWidth, outsideHeight int) image.Rectangle {
-	if outsideWidth < gameAspectWidth || outsideHeight < gameAspectHeight {
-		return image.Rect(0, 0, gameAspectWidth, gameAspectHeight)
-	}
-	if outsideWidth*gameAspectHeight > outsideHeight*gameAspectWidth {
-		return image.Rect(0, 0, outsideHeight*gameAspectWidth/gameAspectHeight, outsideHeight)
-	}
-
-	return image.Rect(0, 0, outsideWidth, outsideWidth*gameAspectHeight/gameAspectWidth)
-}
-
 func newMainOutput(screenWidth int) (*gametext.UltimaFont, *gametext.Output) {
 	scale := float64(screenWidth) / referenceGameWidth
 	font := gametext.NewUltimaFont(float64(defaultOutputFontSize) * scale)

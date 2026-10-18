@@ -789,15 +789,20 @@ and modal coverage; execution results belong in the relevant issue.
 
 ## Resolution Changes
 
-`Game.Layout` computes the largest positive 16:9 logical surface that fits the
-outer container and publishes it through `DisplayManager`. `DrawFinalScreen`
+`Game.LayoutF` preserves fractional outside dimensions in DIPs, multiplies by
+the current Ebitengine display scale, and chooses an aspect-safe 16:9 drawing
+surface. The canvas is at least 1280×720 for layout/readability and at most
+3840×2160 to bound rendering buffers; smaller/larger outputs scale that canvas.
+It publishes the dimensions through `DisplayManager`. `DrawFinalScreen` records
+the actual drawable pixels (zero before the first observed frame),
 clears the physical target to black and uniformly centers that logical surface;
 non-16:9 windows and monitors therefore produce stable bars rather than stretch
 or crop game content.
 
 `Game.Update` observes platform display state once per frame and invalidates the
 active scene when mode, window, monitor, container, or logical dimensions
-change. `Draw` compares the logical size with `lastCheckedResolution` and calls
+change, including scale-only changes. Native monitor movement does not itself
+recenter the window or save a new pixel-size preference. `Draw` compares the logical size with `lastCheckedResolution` and calls
 `initializeResizeableVisualElements` when required. That method rebuilds
 GameScene-owned borders and scaled fonts while preserving the main transcript
 buffer. It also recalculates one bounds-driven right-rail layout shared by the

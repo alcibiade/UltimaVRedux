@@ -32,6 +32,13 @@ make build
 
 The game supports `-cpuprofile` and `-memprofile`. Both profiles are finalized when the game exits, so close the game normally before analysis.
 
+Startup/profile failures return through the application boundary so deferred CPU
+profile cleanup still runs. Profile-status diagnostics use the centralized
+`system` logging category rather than unconditional terminal prints; enable the
+applicable logging controls to see those messages. Profile capture itself does
+not depend on logging being enabled. The opt-in loopback HTTP server limits header
+and idle waits, while leaving long CPU captures free of a response-write deadline.
+
 ```bash
 ./bin/ultimav \
   -cpuprofile=PROFILING/movement_cpu.prof \

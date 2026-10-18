@@ -11,6 +11,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	gametext "github.com/bradhannah/UltimaVRedux/internal/text"
@@ -264,9 +265,6 @@ func TestConfigurationDialogDisplayTextFitsAllocatedColumns(t *testing.T) {
 			dialog.stagedDisplay.Mode = mode
 			labels, values := dialog.displayContentRows()
 			for index := range labels {
-				if index == displayPresetStatusRow {
-					continue
-				}
 				labelWidth, _ := dialog.labelOutput.Font.MeasureString(labels[index])
 				valueWidth, _ := dialog.valueOutput.Font.MeasureString(values[index])
 				assert.LessOrEqual(t, int(math.Ceil(labelWidth)), dialog.layout.displayLabels[index].Dx(), labels[index])
@@ -308,15 +306,11 @@ func TestConfigurationDialogSelectionsUseNaturalTextHeight(t *testing.T) {
 		dialog.layout.pixelUnit*audioSettingsCenterDivisor
 	for index, selection := range dialog.layout.displaySelections {
 		assert.Equal(t, expectedDisplayHeight, selection.Dy())
-		if index == displayPresetStatusRow {
-			assert.Less(t, selection.Dy(), dialog.layout.displayRows[index].Dy())
-		} else {
-			assert.Equal(t, selection.Dy(), dialog.layout.displayRows[index].Dy())
-		}
+		assert.Less(t, selection.Dy(), dialog.layout.displayRows[index].Dy())
 		assert.Equal(t, dialog.layout.displayRows[index].Min.Y+dialog.layout.displayRows[index].Dy()/2,
 			selection.Min.Y+selection.Dy()/2)
 	}
-	assert.Equal(t, dialog.layout.bodyRect.Min.Y, dialog.layout.displayRows[0].Min.Y)
+	assert.Greater(t, dialog.layout.displayRows[0].Min.Y, dialog.layout.displayHeading.Max.Y)
 	assert.Less(t, dialog.layout.displayRows[len(dialog.layout.displayRows)-1].Max.Y,
 		dialog.layout.bodyRect.Max.Y)
 }
@@ -338,7 +332,7 @@ func TestConfigurationDialogKeepsStableCardSizeAcrossTabs(t *testing.T) {
 	assert.Equal(t, gameplayHeight, dialog.layout.cardRect.Dy())
 	assert.Len(t, dialog.layout.sliderRects, audioSettingsSliderCount)
 	assert.Len(t, dialog.layout.gameplayRows, audioSettingsGameplayCount)
-	assert.Len(t, dialog.layout.displayRows, 5)
+	assert.Len(t, dialog.layout.displayRows, 2)
 	pressAudioSettingsKey(dialog, ebiten.KeyTab)
 	assert.Equal(t, audioSettingsDisplayTab, dialog.GetActiveTab())
 	assert.Equal(t, gameplayHeight, dialog.layout.cardRect.Dy())
@@ -870,10 +864,10 @@ func TestConfigurationDialogDisplayNavigationStagesModesAndAvailableSizes(t *tes
 	assert.Equal(t, []config.ScreenResolution{
 		{X: 1280, Y: 720},
 		{X: 1366, Y: 768},
-		{X: 1920, Y: 1080},
+		{X: 1600, Y: 900},
 	}, dialog.availableWindowSizes())
 	choices := dialog.windowSizeChoices()
-	require.Len(t, choices, 5)
+	require.Len(t, choices, 6)
 	assert.True(t, choices[2].available)
 	assert.False(t, choices[3].available)
 	assert.False(t, choices[4].available)
@@ -888,7 +882,7 @@ func TestConfigurationDialogTracksDraggedWindowUntilSizeIsStaged(t *testing.T) {
 	dialog.Update()
 	assert.Equal(t, 1700, dialog.stagedDisplay.WindowWidth)
 	assert.Equal(t, 950, dialog.stagedDisplay.WindowHeight)
-	assert.Equal(t, "Custom: 1700 x 950", dialog.displaySizeLabel())
+	assert.Equal(t, "Custom: 1700 x 950 pixels", dialog.displaySizeLabel())
 
 	pressAudioSettingsKey(dialog, ebiten.KeyDown)
 	pressAudioSettingsKey(dialog, ebiten.KeyLeft)
@@ -997,6 +991,7 @@ func TestConfigurationDialogRevertStagesCapturedActualState(t *testing.T) {
 	displayManager.normalHeight = 950
 	dialog, configuration := newDisplayTestDialog(displayManager, func() {})
 	pressAudioSettingsKey(dialog, ebiten.KeyTab)
+	pressAudioSettingsKey(dialog, ebiten.KeyLeft)
 
 	pressAudioSettingsKey(dialog, ebiten.KeyEnter)
 	assert.Equal(t, config.ModeWindowed, displayManager.requestedMode)
@@ -1127,10 +1122,12 @@ func TestConfigurationDialogNonWindowedRowsKeepAspectLockedAndDisableResizing(t 
 	dialog.stagedDisplay.Mode = config.ModeFullscreen
 
 	labels, values := dialog.displayContentRows()
-	assert.Equal(t, "Screen Size", labels[configurationDisplaySizeRow])
-	assert.Equal(t, "16:9  LOCKED", values[3])
-	assert.Equal(t, "Desktop managed", values[displayResizingRow])
-	assert.Equal(t, "2560 x 1440", values[configurationDisplaySizeRow])
+	assert.Equal(t, "Output size", labels[configurationDisplaySizeRow])
+	assert.Equal(t, "Automatic after Apply", values[configurationDisplaySizeRow])
+	displayManager.mode = config.ModeFullscreen
+	displayManager.outputWidth, displayManager.outputHeight = 2560, 1440
+	_, values = dialog.displayContentRows()
+	assert.Equal(t, "2560 x 1440 pixels (Auto)", values[configurationDisplaySizeRow])
 }
 
 func pressAudioSettingsKey(dialog *ConfigurationDialog, key ebiten.Key) {
@@ -1180,6 +1177,9 @@ type configurationDisplayManagerStub struct {
 	mode          config.Mode
 	requestedMode config.Mode
 	pending       bool
+	scale         float64
+	outputWidth   int
+	outputHeight  int
 	normalWidth   int
 	normalHeight  int
 	monitorWidth  int
@@ -1208,6 +1208,12 @@ func newConfigurationDisplayManagerStub() *configurationDisplayManagerStub {
 }
 
 func (m *configurationDisplayManagerStub) Mode() config.Mode { return m.mode }
+func (m *configurationDisplayManagerStub) DeviceScaleFactor() float64 {
+	return display.ValidScale(m.scale)
+}
+func (m *configurationDisplayManagerStub) OutputSize() (int, int) {
+	return m.outputWidth, m.outputHeight
+}
 
 func (m *configurationDisplayManagerStub) MonitorSize() (int, int) {
 	return m.monitorWidth, m.monitorHeight

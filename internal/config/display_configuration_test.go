@@ -94,7 +94,7 @@ func TestLoadDisplayConfigurationFallsBackForInvalidPersistedValues(t *testing.T
 			name: "below minimum",
 			settings: map[string]any{
 				"Display.Mode":         "windowed",
-				"Display.WindowWidth":  MinimumWindowWidth - 1,
+				"Display.WindowWidth":  MinimumWindowUnitsWidth - 1,
 				"Display.WindowHeight": MinimumWindowHeight,
 			},
 		},

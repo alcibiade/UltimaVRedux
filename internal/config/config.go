@@ -524,7 +524,7 @@ func defaultDisplayConfiguration() *DisplayConfiguration {
 }
 
 func validDisplayDimensions(width, height int) bool {
-	return width >= MinimumWindowWidth && height >= MinimumWindowHeight
+	return width >= MinimumWindowUnitsWidth && height >= MinimumWindowUnitsHeight
 }
 
 func validDisplayConfiguration(configuration DisplayConfiguration) bool {

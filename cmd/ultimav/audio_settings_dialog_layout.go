@@ -23,10 +23,10 @@ const (
 	audioSettingsSliderRowGapUnits       = 2
 	audioSettingsGameplayRowPaddingUnits = 0
 	audioSettingsDetailLines             = 32
-	audioSettingsFooterLines             = 3
+	audioSettingsFooterLines             = 4
 	audioSettingsDisplayPresetLines      = 3
 	audioSettingsGameplayListRatio       = 0.50
-	audioSettingsDisplayLabelRatio       = 0.32
+	audioSettingsDisplayLabelRatio       = 0.36
 )
 
 type audioSettingsLayout struct {
@@ -44,6 +44,8 @@ type audioSettingsLayout struct {
 	displaySelections []image.Rectangle
 	displayLabels     []image.Rectangle
 	displayValues     []image.Rectangle
+	displayHeading    image.Rectangle
+	displayHelp       image.Rectangle
 	footerRect        image.Rectangle
 	pixelUnit         int
 }
@@ -88,6 +90,10 @@ func (d *ConfigurationDialog) ensureLayout(width, height int) {
 		pixelUnit,
 	)
 	textInset := max(1, pixelUnit*audioSettingsCenterDivisor)
+	headingTop := bodyRect.Min.Y + metrics.labelHeight*audioSettingsSectionGapUnits
+	headingRect := image.Rect(bodyRect.Min.X, headingTop, bodyRect.Max.X, headingTop+metrics.labelHeight)
+	helpTop := displayRows[1].Max.Y + metrics.labelHeight
+	helpRect := image.Rect(bodyRect.Min.X, helpTop, bodyRect.Max.X, bodyRect.Max.Y)
 	displayLabels, displayValues := buildDisplayTextRects(displayRows, textInset)
 	displaySelections := buildDisplaySelectionRects(displayRows, metrics.labelHeight, pixelUnit)
 	d.layout = audioSettingsLayout{
@@ -105,6 +111,8 @@ func (d *ConfigurationDialog) ensureLayout(width, height int) {
 		displaySelections: displaySelections,
 		displayLabels:     displayLabels,
 		displayValues:     displayValues,
+		displayHeading:    headingRect,
+		displayHelp:       helpRect,
 		footerRect:        footerRect,
 		pixelUnit:         pixelUnit,
 	}
@@ -141,17 +149,14 @@ func (d *ConfigurationDialog) configurePaneTextWidths(textInset int) {
 	d.valueOutput.SetMaxCharsPerLine(max(1, d.valueOutput.Font.CharsForWidth(d.layout.displayValues[0].Dx())))
 }
 
-func buildDisplayRects(bodyRect image.Rectangle, textHeight, presetHeight, pixelUnit int) []image.Rectangle {
-	const displayVisualRowCount = 5
-	selectionHeight := textHeight + pixelUnit*audioSettingsCenterDivisor
-	rowGap := max(1, pixelUnit)
+func buildDisplayRects(bodyRect image.Rectangle, textHeight, _, pixelUnit int) []image.Rectangle {
+	const displayVisualRowCount = 2
+	selectionHeight := textHeight + pixelUnit*audioSettingsPaddingUnits*audioSettingsCenterDivisor
+	rowGap := max(textHeight/audioSettingsCenterDivisor, pixelUnit)
 	rows := make([]image.Rectangle, displayVisualRowCount)
-	rowTop := bodyRect.Min.Y
+	rowTop := bodyRect.Min.Y + textHeight*(audioSettingsSectionGapUnits+1) + rowGap
 	for index := range rows {
 		rowHeight := selectionHeight
-		if index == displayPresetStatusRow {
-			rowHeight = presetHeight
-		}
 		rows[index] = image.Rect(bodyRect.Min.X, rowTop, bodyRect.Max.X, rowTop+rowHeight)
 		rowTop += rowHeight + rowGap
 	}
@@ -294,6 +299,10 @@ func (d *ConfigurationDialog) measureLayout(pixelUnit, contentWidth int) audioSe
 	soundHeight := sliderRowHeight*audioSettingsSliderCount +
 		sliderRowGap*(audioSettingsSliderCount-1)
 	bodyHeight := max(soundHeight, d.measureGameplayHeight(pixelUnit, contentWidth, padding))
+	const displayBodyLines = 14
+	displayHeight := int(math.Ceil(d.detailOutput.GetTotalHeightForLines(displayBodyLines))) +
+		padding*audioSettingsCenterDivisor
+	bodyHeight = max(bodyHeight, displayHeight)
 	footerHeight := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(audioSettingsFooterLines)))
 	cardHeight := padding*audioSettingsCenterDivisor + titleHeight + tabHeight + bodyHeight + footerHeight +
 		sectionGap*audioSettingsCardSectionGapCount

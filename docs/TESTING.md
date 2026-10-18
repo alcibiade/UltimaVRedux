@@ -96,6 +96,15 @@ and scene timing mean VM tick counts alone do not prove gameplay determinism.
 
 ### Regression Tests
 
+Display DPI regression checks distinguish logical window DIPs, scale, canvas
+pixels, and observed final output. Cover 100%, 125%, 150%, 175%, and 200%, odd
+pixel rounding, 90%-monitor preset eligibility, saved geometry/legacy indices,
+scale-only changes, and apply/Keep/Revert. Review Display at title and in-game
+placements, including custom sizes, long mode labels, errors, and confirmation.
+Native acceptance separately requires Windows 2560×1440 at 150%, macOS Retina
+and scaled modes, mixed-DPI movement, resize/maximize/fullscreen/restore, and
+restart. Fake-backend, render-harness and VM success are not native DPI acceptance.
+
 A regression test should state the user-visible failure or violated invariant, the root cause when it is not obvious, and why the assertion prevents recurrence. An issue link is useful when one exists. Avoid dates and historical counts in names unless the date is part of the domain behavior.
 
 ## Real Game Data

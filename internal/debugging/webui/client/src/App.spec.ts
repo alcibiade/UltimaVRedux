@@ -2442,11 +2442,14 @@ describe("debug workbench connection", () => {
 			monitorWidth: 2560, monitorHeight: 1440,
 			containerWidth: 1280, containerHeight: 720,
 			logicalWidth: 1280, logicalHeight: 720,
+			deviceScaleFactor: 1.5, outputWidth: 1920, outputHeight: 1080,
 			presetResolutions: [{ index: 0, width: 1280, height: 720 }, { index: 1, width: 1366, height: 768 }],
 		}
 		connection.message(successfulQueryCompletion(status.id, "display.status", "Display loaded.", displayData))
 		await flushUI()
-		expect(root.querySelector('[aria-label="Game window display controls"]')?.textContent).toContain("Logical game 1280 × 720")
+		expect(root.querySelector('[aria-label="Game window display controls"]')?.textContent).toContain("Game canvas 1280 × 720 px")
+		expect(root.querySelector('[aria-label="Game window display controls"]')?.textContent).toContain("Display scale 1.5×")
+		expect(root.querySelector('[aria-label="Game window display controls"]')?.textContent).toContain("Final output 1920 × 1080 px")
 		expect(root.querySelector('[aria-label="Game window display controls"]')?.textContent).toContain("Runtime-only controls")
 
 		const mode = root.querySelector<HTMLSelectElement>("[data-display-mode]")

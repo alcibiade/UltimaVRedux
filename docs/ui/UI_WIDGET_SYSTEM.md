@@ -49,6 +49,11 @@ Most widgets use `sprites.PercentBasedPlacement` or `sprites.PercentBasedCenterP
 
 Percent placement is the dominant convention, but cached pixel geometry and scaled text resources still require invalidation. There is no shared flex/grid layout or resolution-scaler API. Active responsive dialogs use dimension-remembering layout at construction and update/draw boundaries. A size change rebuilds only derived borders, fonts, outputs, and viewport capacity while preserving selection, workflow, input, pending-result, visibility, and dismissal state. `MessageDialog` refreshes those resources automatically during draw; `Refresh` remains available for explicit reinitialization.
 
+High-DPI conversion is already applied to the published render canvas: do not multiply
+widget coordinates or fonts by device scale a second time. OS window DIPs,
+canvas pixels, and final-output pixels are distinct. There is no independent
+player UI-scale setting.
+
 `Border` captures logical dimensions and placement during construction, but creates
 its background and shared frame only when their draw methods are used. Bounds and
 interior measurement do not allocate textures. Deferred drawing retains those
