@@ -9,8 +9,12 @@ import (
 // supplying a game's targets, names, required defaults or map vocabulary.
 func validateRoutingStructure(library *audioLibrary) error {
 	for cueID, profile := range library.Routing.Ambient {
-		if _, exists := library.Cues[cueID]; !exists {
+		cue, exists := library.Cues[cueID]
+		if !exists {
 			return fmt.Errorf("%w: ambient profile references unknown cue %s", ErrAudioLibrary, cueID)
+		}
+		if cue.RecordingID == "" {
+			return fmt.Errorf("%w: ambient profile %s requires one recording, not a cycle", ErrAudioLibrary, cueID)
 		}
 		if math.IsNaN(profile.RadiusTiles) || math.IsInf(profile.RadiusTiles, 0) || profile.RadiusTiles < 0 ||
 			profile.FadeInMs < 0 || profile.FadeOutMs < 0 {

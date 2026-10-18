@@ -358,11 +358,8 @@ func (sep *SoundEffectPlayer) assetForCue(request game_state.SoundPlaybackReques
 	if legacy {
 		return sep.assetForRequest(request)
 	}
-	if err := sep.validateRequest(request); err != nil {
-		return nil, false, err
-	}
-	if _, exists := sep.library.document.Cues[cueID]; !exists {
-		return nil, false, fmt.Errorf("%w: unknown cue %s", ErrAudioLibrary, cueID)
+	if skip, err := sep.skipInaudibleCue(request, cueID); skip || err != nil {
+		return nil, skip, err
 	}
 	if err := sep.assetErrors[cueID]; err != nil {
 		return nil, false, err

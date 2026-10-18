@@ -102,8 +102,19 @@ Synthetic project tests exercise same-named cues/paths in distinct libraries,
 caller mutation after freezing, consumer validation, separate asset roots, durable
 authoring, shared preview/runtime PCM and a fresh process whose production-library
 loaders are forbidden. These establish in-repository dependency boundaries. The
-package still contains the Redux adapters and bundled media; separate-module
-extraction, media-free distribution and public API/schema stability are later work.
+package still contains the Redux adapters and bundled media. The independent
+[Berad Audio module](../../modules/berad-audio/README.md) now stages a media-free
+cue runtime with explicit owner-local replacement slots and playback outcomes.
+Redux has not switched to it: authoring/TUI, music/ambient controller extraction,
+remote dependency availability and public API/schema stability remain later work.
+[ADR-010](../ADR/ADR-010-reusable-audio-module.md) records the staging boundary.
+
+Shared schema-3 validation rejects ambient profiles assigned a cycle cue because
+the ambient controller requires one recording. This returns a contextual library
+error rather than allowing runtime construction to panic. Neutral finite requests
+check metadata-only mute before lazy preparation, while unknown IDs remain errors.
+`Runtime.Play` rejects `ReplacePrevious` with `ErrVoiceOwnerRequired`; use an
+explicit `VoiceOwner.PlayCue` for owner-local replacement.
 
 ### Explaining current playback
 

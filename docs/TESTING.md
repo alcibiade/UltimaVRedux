@@ -431,6 +431,18 @@ fidelity acceptance. Inherited GOFLAGS build settings remain intact; explicit
 `-run`, `-skip`, `-list`, `-bench`, `-fuzz=`, count, short, race, and concurrency
 flags prevent inherited selection or fuzz campaigns from changing the gate.
 
+Go's root `./...` inventory excludes the independent `modules/berad-audio`
+module. `scripts/check-audio-module` explicitly runs `scripts/audio_module_gate.py`
+from the logic lane: copy only the module into a temporary directory, disable
+workspace/network resolution, reject game imports/replacements, verify uncached
+test-package completion and zero skips, then run vet/build and an independent
+consumer. Its local replacement exists only in the throwaway consumer, never in
+the game's module. Root lint separately applies the pinned unfiltered rules to
+the copied module. `make audio-module-check` combines those focused checks.
+Race-instrumenting the harness also instruments both module and consumer tests;
+the complete quality gate includes it in the race stage. These synthetic transport
+and WAV tests do not initialize a native device or establish listening acceptance.
+
 Native pixel tests must use bounded offscreen targets, explicit owned-image
 cleanup, and a positive visual oracle. Keep broad state/layout/resolution matrices
 in non-raster assertions, with only representative native cases for clipping,
@@ -580,8 +592,8 @@ stages:
    names and assertion/package inventories remain visible within the stage.
 3. `frontend`: one `make web-build`, including its install, test, and build steps.
 4. `browser`: one `make web-test-browser`.
-5. `race`: the existing uncached, serial race pass over `./internal/debugging/...`,
-   under Xvfb on Linux.
+5. `race`: the uncached, serial race pass over `./internal/debugging/...` and the
+   independent Berad Audio harness, under Xvfb on Linux.
 
 Durations measure each actual command invocation in whole seconds. The validate
 duration includes its subtargets; the script does not claim separate subtarget

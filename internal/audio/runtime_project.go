@@ -1,12 +1,16 @@
 package audio
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
 
 	eaudio "github.com/hajimehoshi/ebiten/v2/audio"
 )
+
+// ErrVoiceOwnerRequired rejects replacement without an explicitly shared lifetime.
+var ErrVoiceOwnerRequired = errors.New("cue replacement requires an explicit voice owner")
 
 // PlayerTransport is the host's serialized audio transport contract. Retirement
 // must wait for in-flight reads; creating a transport must not start playback.
@@ -79,8 +83,13 @@ func NewRuntime(library *Library, backend PlaybackBackend, now func() time.Time,
 	return &Runtime{manager: manager}, nil
 }
 
-// Play starts an independently owned neutral cue instance.
+// Play starts an independently owned neutral cue instance. Replacement requires
+// NewVoiceOwner().PlayCue so the lifetime being replaced is explicit.
 func (runtime *Runtime) Play(request CueRequest) (VoiceHandle, error) {
+	if request.ReplacePrevious {
+		return VoiceHandle{}, ErrVoiceOwnerRequired
+	}
+
 	return runtime.manager.playCueVoice(request, runtime.manager.NewVoiceOwner())
 }
 

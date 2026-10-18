@@ -77,6 +77,7 @@ run: ## Run the existing game binary (pass options with ARGS="...")
 tools: ## Provision pinned Go validation tools and module dependencies (networked setup)
 	@mkdir -p "$(TOOLS_BIN)"
 	@$(GO) mod download
+	@$(GO) -C modules/berad-audio mod download
 	@GOBIN="$(TOOLS_BIN)" $(GO) install golang.org/x/tools/cmd/goimports@v0.37.0
 	@GOBIN="$(TOOLS_BIN)" $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
@@ -96,9 +97,11 @@ lint-config-check: ## Verify the pinned linter schema and executable errcheck se
 
 lint: lint-config-check ## Run golangci-lint using the repository configuration
 	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
+	@$(PYTHON) scripts/audio_module_gate.py --lint
 
 lint-all: lint-config-check ## Report all configured lint findings without revision filtering or output caps
 	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
+	@$(PYTHON) scripts/audio_module_gate.py --lint
 
 core-dependencies-check: ## Reject transitive graphics/input dependencies in core code and tests
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-core-dependencies
@@ -151,6 +154,11 @@ build: ## Build the game into bin/ultimav using shipped assets
 audio-editor: ## Build the standalone Bubble Tea audio editor into bin/audio-editor
 	@mkdir -p $(BIN_DIR)
 	@$(GO) build -o $(BIN_DIR)/audio-editor ./cmd/audio-editor
+
+.PHONY: audio-module-check
+audio-module-check: ## Check the isolated Berad Audio module and independent consumer
+	@$(GO) test $(TEST_GO_BUILD_FLAGS) -count=1 -run '^TestBeradAudioModule$$' ./scripts/check-audio-module
+	@$(PYTHON) scripts/audio_module_gate.py --lint
 
 .PHONY: vm-settings-proof
 vm-settings-proof: ## Run the opt-in Ebitengine VM keyboard/settings rollback proof (requires original data and graphics)

@@ -40,6 +40,13 @@ separately. `make validate` is local/offline and fails rather than downloading a
 missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
+The experimental [Berad Audio module](../modules/berad-audio/README.md) has its
+own `go.mod` under `modules/berad-audio`. `make tools` provisions both modules.
+Root logic tests invoke its isolated tests/build/vet and separate consumer;
+root lint checks it explicitly without the game's inherited-debt cutoff.
+Use `make audio-module-check` for the focused combination. No workspace or
+local replacement is required to build/install the game during staging.
+
 Use [original-data setup](INSTALL.md#locate-the-original-game-data) to discover an
 existing GOG/Heroic installation, use the displayed home/UltimaV folder,
 or edit the settings file externally and recheck. Fresh setup requires explicit
