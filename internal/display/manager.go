@@ -27,6 +27,7 @@ var (
 type backend interface {
 	WindowSize() (int, int)
 	MonitorSize() (int, int)
+	DeviceScaleFactor() float64
 	WindowPosition() (int, int)
 	SetWindowPosition(x, y int)
 	SetWindowSize(width, height int)
@@ -41,8 +42,15 @@ type backend interface {
 
 type ebitenBackend struct{}
 
-func (ebitenBackend) WindowSize() (int, int)     { return ebiten.WindowSize() }
-func (ebitenBackend) MonitorSize() (int, int)    { return ebiten.Monitor().Size() }
+func (ebitenBackend) WindowSize() (int, int)  { return ebiten.WindowSize() }
+func (ebitenBackend) MonitorSize() (int, int) { return ebiten.Monitor().Size() }
+func (ebitenBackend) DeviceScaleFactor() float64 {
+	if monitor := ebiten.Monitor(); monitor != nil {
+		return monitor.DeviceScaleFactor()
+	}
+
+	return 1
+}
 func (ebitenBackend) WindowPosition() (int, int) { return ebiten.WindowPosition() }
 func (ebitenBackend) SetWindowPosition(x, y int) { ebiten.SetWindowPosition(x, y) }
 func (ebitenBackend) SetWindowSize(w, h int)     { ebiten.SetWindowSize(w, h) }
@@ -59,6 +67,8 @@ func (ebitenBackend) IsWindowMaximized() bool       { return ebiten.IsWindowMaxi
 func (ebitenBackend) RestoreWindow()                { ebiten.RestoreWindow() }
 
 // DisplayManager owns desktop display requests and observes their actual result.
+//
+//nolint:revive // Preserve the established display boundary's public name.
 type DisplayManager struct {
 	backend backend
 
@@ -68,13 +78,18 @@ type DisplayManager struct {
 	requestActive bool
 	requestTicks  int
 
-	windowWidth   int
-	windowHeight  int
-	monitorWidth  int
-	monitorHeight int
-	logicalWidth  int
-	logicalHeight int
-	logicalDirty  bool
+	windowWidth     int
+	windowHeight    int
+	monitorWidth    int
+	monitorHeight   int
+	logicalWidth    int
+	logicalHeight   int
+	logicalDirty    bool
+	deviceScale     float64
+	containerWidth  int
+	containerHeight int
+	outputWidth     int
+	outputHeight    int
 
 	requestedWindowWidth  int
 	requestedWindowHeight int
@@ -89,8 +104,10 @@ type DisplayManager struct {
 }
 
 var (
+	//nolint:gochecknoglobals // One process-wide display identity is the accepted application boundary.
 	globalManager *DisplayManager
-	once          sync.Once
+	//nolint:gochecknoglobals // Synchronizes construction of that process-wide identity.
+	once sync.Once
 )
 
 // GetManager returns the canonical process display manager.
@@ -112,6 +129,7 @@ func newDisplayManager(backends ...backend) *DisplayManager {
 	mode := observedMode(displayBackend)
 	lastWidth, lastHeight := validNormalSize(windowWidth, windowHeight)
 
+	//nolint:exhaustruct // Transition counters and unpublished frame metrics intentionally start at zero.
 	return &DisplayManager{
 		backend:               displayBackend,
 		mode:                  mode,
@@ -120,6 +138,7 @@ func newDisplayManager(backends ...backend) *DisplayManager {
 		windowHeight:          windowHeight,
 		monitorWidth:          monitorWidth,
 		monitorHeight:         monitorHeight,
+		deviceScale:           ValidScale(displayBackend.DeviceScaleFactor()),
 		requestedWindowWidth:  lastWidth,
 		requestedWindowHeight: lastHeight,
 		lastNormalWidth:       lastWidth,
@@ -141,7 +160,7 @@ func observedMode(b backend) config.Mode {
 }
 
 func validNormalSize(width, height int) (int, int) {
-	if width < config.MinimumWindowWidth || height < config.MinimumWindowHeight {
+	if width < config.MinimumWindowUnitsWidth || height < config.MinimumWindowUnitsHeight {
 		return config.MinimumWindowWidth, config.MinimumWindowHeight
 	}
 
@@ -151,7 +170,8 @@ func validNormalSize(width, height int) (int, int) {
 // ConfigureResizable enables decorated window resizing with the supported minimum size.
 func (dm *DisplayManager) ConfigureResizable() {
 	dm.backend.SetWindowResizingEnabled()
-	dm.backend.SetWindowSizeLimits(config.MinimumWindowWidth, config.MinimumWindowHeight, -1, -1)
+	width, height := WindowMinimum(dm.monitorWidth, dm.monitorHeight, dm.deviceScale)
+	dm.backend.SetWindowSizeLimits(width, height, -1, -1)
 }
 
 // PublishLogicalSize publishes the authoritative draw-surface dimensions.
@@ -178,32 +198,27 @@ func (dm *DisplayManager) PublishLogicalSize(width, height int) {
 func (dm *DisplayManager) Update() bool {
 	windowWidth, windowHeight := dm.backend.WindowSize()
 	monitorWidth, monitorHeight := dm.backend.MonitorSize()
+	scale := ValidScale(dm.backend.DeviceScaleFactor())
+	scaleChanged := scale != dm.deviceScale
+	monitorChanged := monitorWidth != dm.monitorWidth || monitorHeight != dm.monitorHeight
 	mode := observedMode(dm.backend)
 
 	changed := mode != dm.mode ||
 		windowWidth != dm.windowWidth || windowHeight != dm.windowHeight ||
 		monitorWidth != dm.monitorWidth || monitorHeight != dm.monitorHeight ||
-		dm.logicalDirty
+		dm.logicalDirty || scaleChanged
 
-	windowSizeChanged := windowWidth != dm.windowWidth || windowHeight != dm.windowHeight
-	requestWasActive := dm.requestActive
-	if mode == config.ModeWindowed &&
-		windowWidth >= config.MinimumWindowWidth && windowHeight >= config.MinimumWindowHeight {
-		if !requestWasActive || dm.requestedMode == config.ModeWindowed {
-			dm.lastNormalWidth = windowWidth
-			dm.lastNormalHeight = windowHeight
-		}
-		if windowSizeChanged && !requestWasActive {
-			dm.persistableWidth = windowWidth
-			dm.persistableHeight = windowHeight
-		}
-	}
+	dm.observeNormalWindow(mode, windowWidth, windowHeight)
 
 	dm.mode = mode
 	dm.windowWidth = windowWidth
 	dm.windowHeight = windowHeight
 	dm.monitorWidth = monitorWidth
 	dm.monitorHeight = monitorHeight
+	dm.deviceScale = scale
+	if scaleChanged || monitorChanged {
+		dm.ConfigureResizable()
+	}
 	dm.logicalDirty = false
 
 	if dm.requestActive && dm.requestedMode == config.ModeMaximized &&
@@ -232,6 +247,18 @@ func (dm *DisplayManager) Update() bool {
 	}
 
 	return changed
+}
+
+func (dm *DisplayManager) observeNormalWindow(mode config.Mode, width, height int) {
+	if mode != config.ModeWindowed || width < config.MinimumWindowUnitsWidth || height < config.MinimumWindowUnitsHeight {
+		return
+	}
+	if !dm.requestActive || dm.requestedMode == config.ModeWindowed {
+		dm.lastNormalWidth, dm.lastNormalHeight = width, height
+	}
+	if !dm.requestActive && (width != dm.windowWidth || height != dm.windowHeight) {
+		dm.persistableWidth, dm.persistableHeight = width, height
+	}
 }
 
 func (dm *DisplayManager) requestObserved() bool {
@@ -272,6 +299,9 @@ func (dm *DisplayManager) MonitorSize() (int, int) {
 
 // ContainerSize returns the current outer container dimensions.
 func (dm *DisplayManager) ContainerSize() (int, int) {
+	if dm.containerWidth > 0 && dm.containerHeight > 0 {
+		return dm.containerWidth, dm.containerHeight
+	}
 	if dm.mode == config.ModeFullscreen {
 		return dm.monitorWidth, dm.monitorHeight
 	}
@@ -312,7 +342,7 @@ func (dm *DisplayManager) PersistableWindowSize() (int, int) {
 
 // CommitNormalWindowSize marks validated normal dimensions as player settings.
 func (dm *DisplayManager) CommitNormalWindowSize(width, height int) {
-	if width < config.MinimumWindowWidth || height < config.MinimumWindowHeight {
+	if width < config.MinimumWindowUnitsWidth || height < config.MinimumWindowUnitsHeight {
 		panic("display: cannot commit an undersized normal window")
 	}
 	dm.persistableWidth = width
@@ -322,7 +352,7 @@ func (dm *DisplayManager) CommitNormalWindowSize(width, height int) {
 // InitializeMode configures the initial desktop mode before Ebitengine's main
 // loop starts. It avoids runtime-only reads such as WindowPosition.
 func (dm *DisplayManager) InitializeMode(mode config.Mode, width, height int) error {
-	if err := validateModeRequest(mode, width, height); err != nil {
+	if err := dm.validateModeRequest(mode, width, height); err != nil {
 		return err
 	}
 
@@ -348,10 +378,8 @@ func (dm *DisplayManager) InitializeMode(mode config.Mode, width, height int) er
 }
 
 // RequestMode requests a validated mode transition and normal window size.
-//
-
 func (dm *DisplayManager) RequestMode(mode config.Mode, width, height int) error {
-	if err := validateModeRequest(mode, width, height); err != nil {
+	if err := dm.validateModeRequest(mode, width, height); err != nil {
 		return err
 	}
 
@@ -393,18 +421,19 @@ func (dm *DisplayManager) RequestMode(mode config.Mode, width, height int) error
 	return nil
 }
 
-func validateModeRequest(mode config.Mode, width, height int) error {
+func (dm *DisplayManager) validateModeRequest(mode config.Mode, width, height int) error {
 	if !mode.IsValid() {
 		return fmt.Errorf("%w: %q", config.ErrInvalidMode, mode)
 	}
-	if width < config.MinimumWindowWidth || height < config.MinimumWindowHeight {
+	minWidth, minHeight := WindowMinimum(dm.monitorWidth, dm.monitorHeight, dm.deviceScale)
+	if width < minWidth || height < minHeight {
 		return fmt.Errorf(
 			"%w: got %dx%d, minimum is %dx%d",
 			ErrWindowSizeBelowMinimum,
 			width,
 			height,
-			config.MinimumWindowWidth,
-			config.MinimumWindowHeight,
+			minWidth,
+			minHeight,
 		)
 	}
 
@@ -423,7 +452,7 @@ func (dm *DisplayManager) beginRequest(mode config.Mode, width, height int) {
 
 func (dm *DisplayManager) cancelUnobservedRequest() {
 	if dm.mode == config.ModeWindowed &&
-		dm.windowWidth >= config.MinimumWindowWidth && dm.windowHeight >= config.MinimumWindowHeight {
+		dm.windowWidth >= config.MinimumWindowUnitsWidth && dm.windowHeight >= config.MinimumWindowUnitsHeight {
 		dm.lastNormalWidth = dm.windowWidth
 		dm.lastNormalHeight = dm.windowHeight
 	}

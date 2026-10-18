@@ -56,7 +56,7 @@ function requestResolution(): void {
       </section>
       <section class="approved-panel">
         <header><strong>Normal window size</strong><small>{{ data.normalWindowWidth }} × {{ data.normalWindowHeight }}</small></header>
-        <label>Preset resolution
+        <label>Legacy window preset (DIPs)
 			<select v-model.number="resolutionIndex" data-display-resolution @change="resolutionDirty = true">
             <option v-for="resolution in data.presetResolutions" :key="resolution.index" :value="resolution.index">{{ resolution.width }} × {{ resolution.height }}</option>
           </select>
@@ -65,10 +65,12 @@ function requestResolution(): void {
       </section>
       <section class="approved-panel">
         <header><strong>Observed dimensions</strong><small>{{ data.transitionPending ? 'AWAITING OS' : 'STABLE' }}</small></header>
-        <p>Window {{ data.actualWindowWidth }} × {{ data.actualWindowHeight }}</p>
-        <p>Monitor {{ data.monitorWidth }} × {{ data.monitorHeight }}</p>
-        <p>Container {{ data.containerWidth }} × {{ data.containerHeight }}</p>
-        <p>Logical game {{ data.logicalWidth }} × {{ data.logicalHeight }}</p>
+        <p>Window {{ data.actualWindowWidth }} × {{ data.actualWindowHeight }} DIPs</p>
+        <p>Monitor {{ data.monitorWidth }} × {{ data.monitorHeight }} DIPs</p>
+        <p>Container {{ data.containerWidth }} × {{ data.containerHeight }} DIPs</p>
+        <p>Display scale {{ data.deviceScaleFactor }}×</p>
+        <p>Game canvas {{ data.logicalWidth }} × {{ data.logicalHeight }} px</p>
+        <p>Final output {{ data.outputWidth }} × {{ data.outputHeight }} px (0 before first frame)</p>
       </section>
     </div>
     <p v-if="data" class="instrument-note">Runtime-only controls. Player display settings are unchanged and require confirmation in the game Configuration dialog.</p>

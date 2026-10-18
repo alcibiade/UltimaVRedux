@@ -98,8 +98,8 @@ func TestLogicalGameBoundsAlwaysReturnsPositiveSixteenByNineSurface(t *testing.T
 		{name: "four three", width: 1600, height: 1200, expected: image.Rect(0, 0, 1600, 900)},
 		{name: "ultrawide", width: 3440, height: 1440, expected: image.Rect(0, 0, 2560, 1440)},
 		{name: "odd", width: 1366, height: 768, expected: image.Rect(0, 0, 1365, 768)},
-		{name: "tiny", width: 1, height: 1, expected: image.Rect(0, 0, 16, 9)},
-		{name: "invalid", width: 0, height: -1, expected: image.Rect(0, 0, 16, 9)},
+		{name: "tiny", width: 1, height: 1, expected: image.Rect(0, 0, 1280, 720)},
+		{name: "invalid", width: 0, height: -1, expected: image.Rect(0, 0, 1280, 720)},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, logicalGameBounds(test.width, test.height))

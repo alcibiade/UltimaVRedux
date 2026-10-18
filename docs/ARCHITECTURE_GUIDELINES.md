@@ -81,7 +81,10 @@ missing mandatory callback is a programming error, not an optional feature.
 dimensions, windowed/maximized/borderless-fullscreen requests, and observed
 display-change behavior. `GetCurrentSize` means the published logical render
 surface; platform-state callers use the explicit window, monitor, or container
-size APIs. Core packages must not query Ebitengine display state directly.
+size APIs (DIPs). Display scale and actual final-output pixels are separate
+metrics. High-DPI conversion uses Ebitengine's cross-platform APIs at this boundary,
+not native OS libraries or per-widget DPI multiplication. Core packages must not
+query Ebitengine display state directly.
 
 See [SystemCallbacks ADR](ADR/ADR-003-systemcallbacks-decoupling.md),
 [DisplayManager ADR](ADR/ADR-002-displaymanager-pattern.md), and [Game UI

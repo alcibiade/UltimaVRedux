@@ -28,15 +28,26 @@ behind `DisplayManager`.
 - Startup uses `InitializeMode`, which is restricted to Ebitengine operations
   valid before the main loop. Runtime changes use `RequestMode`, which may also
   preserve the existing window center.
-- The minimum decorated window size is 1280x720. `DisplayManager` remembers the
+- Saved window geometry remains in device-independent pixels (DIPs). The default
+  window is 1280x720 DIPs; the ordinary resizing minimum targets 1280x720 output
+  pixels, converted for the current display scale and reduced on small desktops.
+  Configuration has an absolute floor of 320x180 DIPs. The game canvas stays at
+  least 1280x720 and at most 3840x2160 pixels; smaller/larger outputs are fitted.
+  `DisplayManager` remembers the
   last normal window size across maximized and fullscreen transitions. It
   separately tracks the player-persistable normal size: observed manual drags
   and successful configuration commits update it, while runtime-only display
   requests do not.
-- `Game.Layout` publishes the aspect-safe logical draw size to the manager.
+- `Game.LayoutF` converts fractional outside DIPs to the automatic, aspect-safe
+  drawing surface using Ebitengine's cross-platform scale API. No platform-specific
+  display library is used. It publishes the draw size to the manager.
   `GetCurrentSize` is the logical-size compatibility API used by layout
   consumers; window, monitor, and outer-container dimensions use the explicit
   `WindowSize`, `MonitorSize`, and `ContainerSize` APIs.
+- Ordinary presets reserve 10% of monitor dimensions for portable window
+  headroom. This is not a work-area measurement or a guarantee about decorations.
+  Maximize delegates available desktop geometry to the operating system. Final
+  output pixels are observed separately, never inferred to be native panel pixels.
 - Deprecated compatibility helpers are not the pattern for new callers.
 
 The current implementation in `internal/display/` is authoritative for API

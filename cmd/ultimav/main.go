@@ -14,7 +14,9 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
+	//nolint:gosec // Profiling handlers are served only by the explicit opt-in loopback profiler below.
 	_ "net/http/pprof"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -29,16 +31,23 @@ import (
 
 // Layout sets the game's screen size.
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	bounds := logicalGameBounds(outsideWidth, outsideHeight)
-	display.GetManager().PublishLogicalSize(bounds.Dx(), bounds.Dy())
+	width, height := g.LayoutF(float64(outsideWidth), float64(outsideHeight))
 
-	return bounds.Dx(), bounds.Dy()
+	return int(width), int(height)
+}
+
+// LayoutF preserves fractional window units before converting to output density.
+func (g *Game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
+	width, height := display.GetManager().LayoutSize(outsideWidth, outsideHeight)
+
+	return float64(width), float64(height)
 }
 
 // DrawFinalScreen explicitly clears aspect-fit bars and assigns odd-pixel
 // remainders to the right or bottom edge.
 func (g *Game) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebiten.Image, _ ebiten.GeoM) {
 	screen.Fill(color.Black)
+	display.GetManager().PublishOutputSize(screen.Bounds().Dx(), screen.Bounds().Dy())
 	geometry := finalScreenGeometry(screen.Bounds(), offscreen.Bounds())
 	ebiten.DefaultDrawFinalScreen(screen, offscreen, geometry)
 }
@@ -66,7 +75,14 @@ func finalScreenGeometry(destination, source image.Rectangle) ebiten.GeoM {
 
 func main() {
 	configureCrashOutput()
+	if err := runApplication(); err != nil {
+		// Application-level fatal: launch/game failure is reported only after deferred cleanup has run.
+		log.Fatal(err)
+	}
+}
 
+//nolint:cyclop,funlen,gocognit,gocyclo,maintidx,nestif // Ordered launch/recovery and diagnostic cleanup.
+func runApplication() error {
 	var scenarioOptions scenarioStartupOptions
 	addScenarioFlags(&scenarioOptions)
 	var snapshotOptions snapshotStartupOptions
@@ -89,25 +105,22 @@ func main() {
 
 	// Start CPU profiling if requested
 	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+		profileFile, err := os.Create(*cpuprofile)
 		if err != nil {
 			// System failure: Cannot create profiling file - fatal for profiling mode
-			log.Fatal("could not create CPU profile: ", err)
+			return fmt.Errorf("creating CPU profile: %w", err)
 		}
 		defer func() {
-			if closeErr := f.Close(); closeErr != nil {
+			if closeErr := profileFile.Close(); closeErr != nil {
 				logging.Warn(logging.CategorySystem, "Closing CPU profile: %v", closeErr)
 			}
 		}()
-		if err := pprof.StartCPUProfile(f); err != nil {
-			if closeErr := f.Close(); closeErr != nil {
-				logging.Warn(logging.CategorySystem, "Closing failed CPU profile: %v", closeErr)
-			}
+		if err := pprof.StartCPUProfile(profileFile); err != nil {
 			// System failure: Cannot initialize profiling - fatal for profiling mode
-			log.Fatal("could not start CPU profile: ", err)
+			return fmt.Errorf("starting CPU profile: %w", err)
 		}
 		defer pprof.StopCPUProfile()
-		fmt.Printf("CPU profiling enabled, writing to %s\n", *cpuprofile)
+		logging.Info(logging.CategorySystem, "CPU profiling enabled, writing to %s", *cpuprofile)
 	}
 
 	// Enable web-based profiling if requested
@@ -120,11 +133,11 @@ func main() {
 			}
 		})
 		go func() {
-			fmt.Println("Starting profiling server on http://localhost:6060/debug/pprof")
-			fmt.Println("  View CPU profile: go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30")
-			fmt.Println("  View Heap profile: go tool pprof http://localhost:6060/debug/pprof/heap")
-			fmt.Println("  View Goroutines: go tool pprof http://localhost:6060/debug/pprof/goroutine")
-			logging.Debug(logging.CategorySystem, "pprof server result: %v", http.ListenAndServe("localhost:6060", nil))
+			const profilerHeaderTimeout = 10 * time.Second
+			logging.Info(logging.CategorySystem, "Profiling server: http://localhost:6060/debug/pprof")
+			//nolint:exhaustruct // Loopback diagnostic server uses standard defaults except header/idle deadlines.
+			server := &http.Server{Addr: "localhost:6060", ReadHeaderTimeout: profilerHeaderTimeout, IdleTimeout: time.Minute}
+			logging.Debug(logging.CategorySystem, "pprof server result: %v", server.ListenAndServe())
 		}()
 	}
 
@@ -136,27 +149,23 @@ func main() {
 	gameConfig := startup.Configuration
 	if gameConfig == nil {
 		// Application-level fatal: even the bundled recovery UI requires a preference model.
-		log.Fatal(startup.ConfigurationError)
+		return fmt.Errorf("loading startup configuration: %w", startup.ConfigurationError)
 	}
 	applySavedLoggingConfiguration(gameConfig)
 	gameConfig.SoundDisabled = *noSound
 	windowWidth := gameConfig.DisplayConfiguration.WindowWidth
 	windowHeight := gameConfig.DisplayConfiguration.WindowHeight
 	displayManager := display.GetManager()
-	monitorWidth, monitorHeight := displayManager.MonitorSize()
-	if windowWidth > monitorWidth || windowHeight > monitorHeight {
-		windowWidth = config.MinimumWindowWidth
-		windowHeight = config.MinimumWindowHeight
-		gameConfig.DisplayConfiguration.WindowWidth = windowWidth
-		gameConfig.DisplayConfiguration.WindowHeight = windowHeight
-	}
+	windowWidth, windowHeight = displayManager.FitWindowSize(windowWidth, windowHeight)
+	gameConfig.DisplayConfiguration.WindowWidth = windowWidth
+	gameConfig.DisplayConfiguration.WindowHeight = windowHeight
 	if err := displayManager.InitializeMode(
 		gameConfig.DisplayConfiguration.Mode,
 		windowWidth,
 		windowHeight,
 	); err != nil {
 		// Application-level fatal: validated display configuration is required before the game loop starts.
-		log.Fatal(fmt.Errorf("applying display configuration: %w", err))
+		return fmt.Errorf("applying display configuration: %w", err)
 	}
 	var initialScene Scene
 	var err error
@@ -187,7 +196,7 @@ func main() {
 			host, hostErr := originaldata.CurrentHostProfile()
 			if hostErr != nil {
 				// Application-level fatal: setup cannot offer deterministic host paths without a home or executable location.
-				log.Fatal(hostErr)
+				return fmt.Errorf("resolving setup host: %w", hostErr)
 			}
 			initialScene = newDataSetupScene(
 				gameConfig,
@@ -212,13 +221,13 @@ func main() {
 		gameConfig, err = config.NewUltimaVConfiguration()
 		if err != nil {
 			// Application-level fatal: an explicitly requested scenario cannot enter interactive setup.
-			log.Fatal(err)
+			return fmt.Errorf("loading scenario configuration: %w", err)
 		}
 		gameConfig.SoundDisabled = *noSound
 		initialScene, err = NewGameScene(gameConfig)
 		if err != nil {
 			// Application-level fatal: an explicitly requested scenario requires a playable game scene.
-			log.Fatal(err)
+			return fmt.Errorf("creating scenario scene: %w", err)
 		}
 		// Direct original-save startup is a fresh application playthrough, not
 		// a property of the identity-free snapshot/legacy constructors.
@@ -228,14 +237,14 @@ func main() {
 		}
 		if identityErr != nil {
 			// Application-level fatal: scenario startup requires a valid fresh playthrough identity.
-			log.Fatal(identityErr)
+			return fmt.Errorf("creating scenario identity: %w", identityErr)
 		}
 	}
 	game := NewGame(initialScene)
 	if _, setup := initialScene.(*dataSetupScene); !setup {
 		if err := configureRuntimeServices(game, playerSaveOptions, snapshotOptions, scenarioOptions); err != nil {
 			// Application-level fatal: an explicitly requested startup scenario cannot be configured or queued.
-			log.Fatal(err)
+			return fmt.Errorf("configuring runtime services: %w", err)
 		}
 	}
 	var debugServer *runningDebugWorkbench
@@ -267,29 +276,31 @@ func main() {
 
 	// Write memory profile if requested (after game ends)
 	if *memprofile != "" {
-		f, err := os.Create(*memprofile)
+		profileFile, err := os.Create(*memprofile)
 		if err != nil {
 			// System failure: Cannot create memory profile file - fatal for profiling mode
-			log.Fatal("could not create memory profile: ", err)
+			return fmt.Errorf("creating memory profile: %w", err)
 		}
 		runtime.GC() // get up-to-date statistics
-		writeErr := pprof.WriteHeapProfile(f)
-		closeErr := f.Close()
+		writeErr := pprof.WriteHeapProfile(profileFile)
+		closeErr := profileFile.Close()
 		if writeErr != nil {
 			// System failure: Cannot write memory profile - fatal for profiling mode
-			log.Fatal("could not write memory profile: ", writeErr)
+			return fmt.Errorf("writing memory profile: %w", writeErr)
 		}
 		if closeErr != nil {
 			// System failure: An incomplete requested profile cannot be reported as successful.
-			log.Fatal("could not close memory profile: ", closeErr)
+			return fmt.Errorf("closing memory profile: %w", closeErr)
 		}
-		fmt.Printf("Memory profile written to %s\n", *memprofile)
+		logging.Info(logging.CategorySystem, "Memory profile written to %s", *memprofile)
 	}
 
 	if runErr != nil {
 		// Critical system corruption: game engine failure prevents operation
-		log.Fatal(runErr)
+		return fmt.Errorf("running game: %w", runErr)
 	}
+
+	return nil
 }
 
 func configureRuntimeServices(

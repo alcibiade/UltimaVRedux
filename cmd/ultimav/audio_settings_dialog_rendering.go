@@ -10,6 +10,7 @@ import (
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
@@ -32,9 +33,6 @@ type gameplayNumericSetting struct {
 
 const (
 	gameplaySettingOffLabel = "Off"
-	displayPresetStatusRow  = 2
-	displayPresetsPerLine   = 3
-	displayResizingRow      = 4
 )
 
 const (
@@ -360,15 +358,11 @@ func (d *ConfigurationDialog) Draw(screen *ebiten.Image) {
 }
 
 func (d *ConfigurationDialog) drawDisplayContent(screen *ebiten.Image) {
+	d.presetOutput.Reset()
+	d.presetOutput.AppendLine().Text("WINDOW", widgets.DialogHeaderColor).Done()
+	d.presetOutput.DrawPanelContent(screen, d.layout.displayHeading.Min, d.layout.displayHeading.Dx(), etext.AlignStart)
 	labels, values := d.displayContentRows()
-	for index, rect := range d.layout.displayRows {
-		if index == displayPresetStatusRow {
-			if d.stagedDisplay.Mode == config.ModeWindowed {
-				d.drawWindowPresetAvailability(screen, rect)
-			}
-
-			continue
-		}
+	for index := range d.layout.displayRows {
 		selected := index == d.focusedDisplayIndex &&
 			(index == configurationDisplayModeRow || d.stagedDisplay.Mode == config.ModeWindowed)
 		textColor := widgets.DialogValueColor
@@ -396,71 +390,49 @@ func (d *ConfigurationDialog) drawDisplayContent(screen *ebiten.Image) {
 			screen,
 			image.Pt(valueRect.Min.X, centeredAudioOutputY(valueRect, d.valueOutput)),
 			valueRect.Dx(),
-			etext.AlignEnd,
+			etext.AlignStart,
 		)
 	}
-	widgets.DrawClassicPixelRoundedFrame(
-		screen, d.layout.bodyRect, d.layout.pixelUnit, widgets.DialogRuleColor,
-	)
+	d.drawDisplayHelp(screen)
 }
 
-func (d *ConfigurationDialog) displayContentRows() ([5]string, [5]string) {
-	labels := [...]string{"Display Mode", "Window Size", "", "Aspect", "Resize"}
+func (d *ConfigurationDialog) displayContentRows() ([2]string, [2]string) {
+	labels := [...]string{"Display mode", "Window size"}
 	values := [...]string{
 		"<  " + displayModeLabel(d.stagedDisplay.Mode) + "  >",
-		d.displaySizeLabel(),
-		"",
-		"16:9  LOCKED",
-		"Enabled",
+		"<  " + d.displaySizeLabel() + "  >",
 	}
 	if d.stagedDisplay.Mode != config.ModeWindowed {
-		labels[configurationDisplaySizeRow] = "Screen Size"
-		values[displayResizingRow] = "Desktop managed"
+		labels[configurationDisplaySizeRow] = "Output size"
+		values[configurationDisplaySizeRow] = d.displaySizeLabel()
 	}
 
 	return labels, values
 }
 
-func (d *ConfigurationDialog) drawWindowPresetAvailability(screen *ebiten.Image, rect image.Rectangle) {
-	choices := d.windowSizeChoices()
-	unavailable := false
-	d.presetOutput.Reset()
-	for start := 0; start < len(choices); start += displayPresetsPerLine {
-		line := d.presetOutput.AppendLine()
-		if start == 0 {
-			line.Text("Presets: ", widgets.DialogLabelColor)
-		} else {
-			line.Text("         ", widgets.DialogLabelColor)
-		}
-		for index := start; index < min(start+displayPresetsPerLine, len(choices)); index++ {
-			if choices[index].custom {
-				continue
-			}
-			color := widgets.DialogValueColor
-			suffix := ""
-			if !choices[index].available {
-				color = ucolor.UITextDisabled.RGBA()
-				unavailable, suffix = true, "*"
-			}
-			if index > start {
-				line.Text("  ", color)
-			}
-			line.Text(
-				fmt.Sprintf("%dx%d%s", choices[index].X, choices[index].Y, suffix),
-				color,
-			)
-		}
-		line.Done()
+func (d *ConfigurationDialog) drawDisplayHelp(screen *ebiten.Image) {
+	rect := d.layout.displayHelp
+	d.detailOutput.SetMaxCharsPerLine(max(1, d.detailOutput.Font.CharsForWidth(rect.Dx())))
+	d.detailOutput.Reset()
+	lines := make([]string, 0, audioSettingsDetailLines)
+	lines = append(lines, "Display mode", "", "Windowed: choose a size or resize normally.", "",
+		"Maximized: use available desktop space.", "", "Fullscreen: fill the display.")
+	if d.focusedDisplayIndex == configurationDisplaySizeRow && d.stagedDisplay.Mode == config.ModeWindowed {
+		lines = append(lines[:0], "Window size", "", "Choose the image size on your desktop.",
+			"You can also resize the window normally.", "",
+			"Presets reserve desktop space. Use Maximize for the largest window.", "",
+			"About means pixel rounding at this display scale.")
 	}
-	if unavailable {
-		d.presetOutput.AppendLine().Text("* Too large for this display", widgets.DialogControlHintColor).Done()
+	lines = append(lines, "", "Automatic pixel density; 720p to 4K.",
+		"Game shape stays 16:9; black bars may appear.")
+	for index, line := range lines {
+		color := widgets.DialogControlHintColor
+		if index == 0 {
+			color = widgets.DialogLabelColor
+		}
+		d.detailOutput.AppendLine().Text(line, color).WordWrap().Done()
 	}
-	d.presetOutput.DrawPanelContent(
-		screen,
-		image.Pt(rect.Min.X, centeredAudioOutputY(rect, d.presetOutput)),
-		rect.Dx(),
-		etext.AlignCenter,
-	)
+	d.detailOutput.DrawPanelContent(screen, rect.Min, rect.Dx(), etext.AlignStart)
 }
 
 func (d *ConfigurationDialog) drawDisplayConfirmation(screen *ebiten.Image) {
@@ -482,6 +454,14 @@ func (d *ConfigurationDialog) drawDisplayConfirmation(screen *ebiten.Image) {
 		Text("Display Mode: "+displayModeLabel(d.stagedDisplay.Mode), widgets.DialogValueColor).
 		Done()
 	logicalWidth, logicalHeight := d.displayManager.LogicalSize()
+	windowWidth, windowHeight := display.WindowPixels(
+		d.stagedDisplay.WindowWidth, d.stagedDisplay.WindowHeight, d.displayManager.DeviceScaleFactor(),
+	)
+	if d.stagedDisplay.Mode == config.ModeWindowed {
+		d.detailOutput.AppendLine().Text(
+			fmt.Sprintf("Window: %d x %d pixels", windowWidth, windowHeight), widgets.DialogValueColor,
+		).Done()
+	}
 	d.detailOutput.AppendLine().Text(
 		fmt.Sprintf("Game Area: %d x %d (16:9)", logicalWidth, logicalHeight),
 		widgets.DialogValueColor,
@@ -697,7 +677,14 @@ func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 		default:
 			panic("unsupported Configuration section")
 		}
-		for _, hint := range []string{"Tab/Shift-Tab: Section  Up/Down: Select", adjust, "Enter: Apply  Esc: Cancel"} {
+		hints := []string{"Tab/Shift-Tab: Section  Up/Down: Select", adjust, "Enter: Apply  Esc: Cancel"}
+		if d.currentTab == audioSettingsDisplayTab {
+			hints = []string{
+				"Tab/Shift-Tab: Section  Up/Down: Select", "Left/Right: Change", "",
+				"Enter: Apply                    Esc: Cancel",
+			}
+		}
+		for _, hint := range hints {
 			widgets.AppendControlHints(d.footerOutput.AppendLine(), hint).Done()
 		}
 	}

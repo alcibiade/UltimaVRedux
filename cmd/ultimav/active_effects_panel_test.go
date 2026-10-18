@@ -172,7 +172,10 @@ func TestStatusBandSevenEffectsAndThreeWornFitEverySupportedSize(t *testing.T) {
 }
 
 func TestStatusBandTinyBoundsAreSafeWithoutDroppingProjectionEntries(t *testing.T) {
-	for _, bounds := range []image.Rectangle{{}, image.Rect(0, 0, 1, 1), calculateRightRailLayout(logicalGameBounds(1, 1)).activeBorder} {
+	// Deliberately test subminimum component geometry. Production render sizing
+	// now promotes tiny output containers to a 720p canvas before rail layout.
+	tinyRail := calculateRightRailLayout(image.Rect(0, 0, 16, 9)).activeBorder
+	for _, bounds := range []image.Rectangle{{}, image.Rect(0, 0, 1, 1), tinyRail} {
 		state := &game_state.GameState{CrownState: game_state.ToggleItemState{IsActive: true}}
 		panel := NewActiveEffectsPanel(state, nil, bounds)
 		assert.NotPanics(t, func() { panel.Draw(ebiten.NewImage(16, 9)) })

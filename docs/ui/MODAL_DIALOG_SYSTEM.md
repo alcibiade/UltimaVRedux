@@ -343,13 +343,39 @@ speed authority. Immediate Workbench gameplay preference setters reject writes
 while this dialog owns a staged transaction; Apply/Cancel releases that reservation.
 
 Display offers Windowed, Maximized Window, and Borderless Fullscreen. Windowed
-mode also offers preset sizes and preserves a valid custom size; presets larger
-than the current monitor remain visible as disabled choices. The other modes
-show platform-controlled dimensions. Applying a changed display
+mode offers output-pixel presets (including 1600×900), quantized to the nearest
+integer DIP window request, and preserves custom dragged sizes. An `About` prefix
+marks a preset whose observed pixel size differs because of rounding. Ordinary
+presets fit within 90% of the current monitor dimensions; this reserves portable
+headroom, not a measured work area. Custom sizes can use more of the monitor.
+Use Maximize for OS-managed available desktop space or Fullscreen for the desktop
+output. The other modes show the observed final output only when actually active;
+a staged mode says Automatic after Apply. Window dimensions remain saved in DIPs.
+
+The Display section has two padded control rows, near-label value alignment,
+focus-dependent wrapped help, a selected-row highlight, blank-line spacing,
+and a distinct Apply/Cancel hint line. Aspect/resizing information is prose, not
+an apparent interactive control. Layout measures its own content while keeping
+the card stable across tabs. Native mode changes are reflected until a mode is
+explicitly staged. A scale change clears staged size intent and asks the player
+to review it; a scale/mode/size change during confirmation triggers rollback.
+
+Explicit `Display.Mode`/`WindowWidth`/`WindowHeight` form a complete validated
+tuple and take precedence over legacy `Resolution`/`FullScreen`. Invalid/partial
+tuples fall back to defaults. Legacy indices 0–4 keep their old DIP sizes and
+ordering; the player pixel-preset list is separate. The absolute saved-geometry
+floor is 320×180 DIPs. Startup fits oversized geometry to conservative monitor
+bounds; automatic modes retain normal geometry separately. Rendering is automatic
+at current pixel density with a 720p minimum canvas and 4K cap, not an independent
+quality preference.
+
+Applying a changed display
 selection first requests the asynchronous platform transition. Once observed,
 the dialog requires Keep or Revert confirmation and automatically reverts after
 12 seconds. Transition timeout, explicit Revert, Escape, or persistence failure
 requests restoration of the prior mode and normal window size.
+Revert retains an already fitting custom size even when it exceeds the preset
+headroom; restoration is fitted only if desktop bounds or minimums now require it.
 
 `Enter` persists all settings through `SaveConfigurationSettings` after any
 display confirmation. Persistence writes a complete candidate configuration to

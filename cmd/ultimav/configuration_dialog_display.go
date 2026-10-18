@@ -22,19 +22,31 @@ const (
 
 type configurationWindowSizeChoice struct {
 	config.ScreenResolution
-	available bool
-	custom    bool
+	available   bool
+	custom      bool
+	pixelWidth  int
+	pixelHeight int
 }
 
 func (d *ConfigurationDialog) updateDisplayWorkflow() bool {
 	switch d.displayPhase {
 	case configurationDisplayEditing:
+		d.syncDisplayContext()
 		d.syncCurrentDraggedWindowSize()
 
 		return false
 	case configurationDisplayApplying:
 		return d.updateDisplayApplying()
 	case configurationDisplayConfirming:
+		if d.displayEditScale != d.displayManager.DeviceScaleFactor() || !d.displayStateObserved(
+			d.stagedDisplay.Mode, d.stagedDisplay.WindowWidth, d.stagedDisplay.WindowHeight,
+		) {
+			d.saveError = "Display changed during confirmation. Check the restored settings."
+			d.beginDisplayRollback(true)
+
+			return true
+		}
+
 		return d.updateDisplayConfirming()
 	case configurationDisplayReverting:
 		return d.updateDisplayReverting()
@@ -95,6 +107,7 @@ func (d *ConfigurationDialog) updateDisplayReverting() bool {
 				d.stagedDisplay.WindowWidth = d.rollbackWidth
 				d.stagedDisplay.WindowHeight = d.rollbackHeight
 				d.displaySizeDirty = false
+				d.displayModeDirty = false
 			}
 			d.keyboard.PrepareForTransition(0)
 
@@ -128,6 +141,19 @@ func (d *ConfigurationDialog) displayStateObserved(mode config.Mode, width, heig
 }
 
 func (d *ConfigurationDialog) beginDisplayApply() {
+	if d.stagedDisplay.Mode == config.ModeWindowed && d.displaySizeDirty {
+		found := false
+		for _, choice := range d.windowSizeChoices() {
+			found = found || (choice.available && choice.X == d.stagedDisplay.WindowWidth &&
+				choice.Y == d.stagedDisplay.WindowHeight)
+		}
+		if !found {
+			d.saveError = "Window size no longer fits this display. Choose another size or Maximize."
+
+			return
+		}
+	}
+	d.displayEditScale = d.displayManager.DeviceScaleFactor()
 	d.displayRollbackRetry = false
 	d.rollbackMode = d.displayManager.Mode()
 	d.rollbackWidth, d.rollbackHeight = d.displayManager.LastNormalWindowSize()
@@ -147,6 +173,10 @@ func (d *ConfigurationDialog) beginDisplayApply() {
 }
 
 func (d *ConfigurationDialog) beginDisplayRollback(resetStaged bool) {
+	monitorWidth, monitorHeight := d.displayManager.MonitorSize()
+	d.rollbackWidth, d.rollbackHeight = display.RestoreWindowSize(
+		d.rollbackWidth, d.rollbackHeight, monitorWidth, monitorHeight, d.displayManager.DeviceScaleFactor(),
+	)
 	d.resetDisplayAfterRollback = resetStaged
 	if err := d.displayManager.RequestMode(d.rollbackMode, d.rollbackWidth, d.rollbackHeight); err != nil {
 		d.displayPhase = configurationDisplayEditing
@@ -233,6 +263,7 @@ func (d *ConfigurationDialog) adjustFocusedDisplaySetting(delta int) {
 		}
 		current = (current + delta + len(modes)) % len(modes)
 		d.stagedDisplay.Mode = modes[current]
+		d.displayModeDirty = true
 		if d.stagedDisplay.Mode != config.ModeWindowed {
 			d.focusedDisplayIndex = configurationDisplayModeRow
 		}
@@ -268,7 +299,7 @@ func (d *ConfigurationDialog) syncCurrentDraggedWindowSize() {
 		return
 	}
 	width, height := d.displayManager.PersistableWindowSize()
-	if width < config.MinimumWindowWidth || height < config.MinimumWindowHeight {
+	if width < config.MinimumWindowUnitsWidth || height < config.MinimumWindowUnitsHeight {
 		return
 	}
 	d.stagedDisplay.WindowWidth = width
@@ -289,24 +320,32 @@ func (d *ConfigurationDialog) availableWindowSizes() []config.ScreenResolution {
 
 func (d *ConfigurationDialog) windowSizeChoices() []configurationWindowSizeChoice {
 	monitorWidth, monitorHeight := d.displayManager.MonitorSize()
-	choices := make([]configurationWindowSizeChoice, 0, len(d.ultimaConfig.GetWindowResolutionOptions())+1)
+	scale := d.displayManager.DeviceScaleFactor()
+	choices := make([]configurationWindowSizeChoice, 0, len(config.WindowPixelPresets())+1)
 	custom := config.ScreenResolution{X: d.stagedDisplay.WindowWidth, Y: d.stagedDisplay.WindowHeight}
 	customIsPreset := false
-	for _, resolution := range d.ultimaConfig.GetWindowResolutionOptions() {
+	for _, pixels := range config.WindowPixelPresets() {
+		width, height := display.WindowUnits(pixels.X, pixels.Y, scale)
+		resolution := config.ScreenResolution{X: width, Y: height}
 		if resolution == custom {
 			customIsPreset = true
 		}
 		choices = append(choices, configurationWindowSizeChoice{
 			ScreenResolution: resolution,
-			available:        resolution.X <= monitorWidth && resolution.Y <= monitorHeight,
-			custom:           false,
+			available: float64(width) <= float64(monitorWidth)*display.WindowFitFraction &&
+				float64(height) <= float64(monitorHeight)*display.WindowFitFraction &&
+				width >= config.MinimumWindowUnitsWidth && height >= config.MinimumWindowUnitsHeight,
+			custom:     false,
+			pixelWidth: pixels.X, pixelHeight: pixels.Y,
 		})
 	}
-	if !customIsPreset && custom.X >= config.MinimumWindowWidth && custom.Y >= config.MinimumWindowHeight {
+	if !customIsPreset && custom.X >= config.MinimumWindowUnitsWidth && custom.Y >= config.MinimumWindowUnitsHeight {
+		pixelWidth, pixelHeight := display.WindowPixels(custom.X, custom.Y, scale)
 		choices = append(choices, configurationWindowSizeChoice{
 			ScreenResolution: custom,
 			available:        custom.X <= monitorWidth && custom.Y <= monitorHeight,
 			custom:           true,
+			pixelWidth:       pixelWidth, pixelHeight: pixelHeight,
 		})
 	}
 
@@ -328,16 +367,42 @@ func displayModeLabel(mode config.Mode) string {
 
 func (d *ConfigurationDialog) displaySizeLabel() string {
 	if d.stagedDisplay.Mode == config.ModeMaximized || d.stagedDisplay.Mode == config.ModeFullscreen {
-		width, height := d.displayManager.MonitorSize()
+		if d.stagedDisplay.Mode != d.displayManager.Mode() {
+			return "Automatic after Apply"
+		}
+		width, height := d.displayManager.OutputSize()
+		if width <= 0 || height <= 0 {
+			return "Automatic (awaiting frame)"
+		}
 
-		return fmt.Sprintf("%d x %d", width, height)
+		return fmt.Sprintf("%d x %d pixels (Auto)", width, height)
 	}
-	label := fmt.Sprintf("%d x %d", d.stagedDisplay.WindowWidth, d.stagedDisplay.WindowHeight)
-	for _, resolution := range d.ultimaConfig.GetWindowResolutionOptions() {
-		if resolution.X == d.stagedDisplay.WindowWidth && resolution.Y == d.stagedDisplay.WindowHeight {
+	width, height := display.WindowPixels(
+		d.stagedDisplay.WindowWidth, d.stagedDisplay.WindowHeight, d.displayManager.DeviceScaleFactor(),
+	)
+	label := fmt.Sprintf("%d x %d pixels", width, height)
+	for _, choice := range d.windowSizeChoices() {
+		if !choice.custom && choice.X == d.stagedDisplay.WindowWidth && choice.Y == d.stagedDisplay.WindowHeight {
+			if width != choice.pixelWidth || height != choice.pixelHeight {
+				return "About " + label
+			}
+
 			return label
 		}
 	}
 
 	return "Custom: " + label
+}
+
+// syncDisplayContext follows native mode changes only until a player explicitly
+// stages a mode. A scale change invalidates staged pixel-size intent, not history.
+func (d *ConfigurationDialog) syncDisplayContext() {
+	if !d.displayModeDirty {
+		d.stagedDisplay.Mode = d.displayManager.Mode()
+	}
+	if scale := d.displayManager.DeviceScaleFactor(); scale != d.displayEditScale {
+		d.displayEditScale = scale
+		d.displaySizeDirty = false
+		d.saveError = "Display scale changed. Check the window size before applying."
+	}
 }

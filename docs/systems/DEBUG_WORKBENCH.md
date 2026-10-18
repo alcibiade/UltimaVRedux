@@ -224,7 +224,13 @@ Presentation adapters may render the summary, changes, and typed data differentl
 
 Display status distinguishes requested and observed mode, pending transition,
 last normal window size, actual window and monitor dimensions, outer container,
-and the published logical render surface. Display mode and preset-size commands
+and the published logical render surface. Window/monitor/container fields are
+DIPs; `deviceScaleFactor` is independent of those dimensions. `logicalWidth` and
+`logicalHeight` describe canvas pixels; `outputWidth` and `outputHeight` report
+actual final drawable pixels including bars (zero before the first frame).
+These are not a promise of the panel's physical resolution under scaled desktops.
+Preset-size commands retain the five legacy DIP indices, independently of the
+player Configuration dialog's pixel presets. Display mode and preset-size commands
 are presentation operations: they request runtime-only state through
 `DisplayManager` and never persist or bypass the player Configuration dialog's
 Keep/Revert transaction. Unobserved platform requests expire after a bounded
