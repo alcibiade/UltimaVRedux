@@ -136,13 +136,18 @@ greetings, farewells, sale remarks, provision pitches and hint forms did.
 | --- | --- | --- |
 | Britain | Iolo's Bows / Gwenneth | Dagger, Sling, Bow, Arrows, Crossbow, Quarrels, Magic Bow |
 | Jhelom | Naughty Nomaan's / Nomaan | Flaming Oil, Mace, Spiked Collar, Throwing Axe, Spiked Helm, Spiked Shield, Morning Star |
-| Yew | Arms of Justice / Ronan | Leather Helm, Cloth, Leather Armour, Club, Spear, Silver Sword, Magic Axe |
-| Minoc | Darkwatch Armoury / Shenstone | Iron Helm, Small Shield, Ring Mail, Short Sword, Long Sword, Mace, 2H Hammer |
-| Trinsic | The Paladin's Protectorate! / Paul | 2H Axe, 2H Sword, Halberd, Iron Helm, Large Shield, Scale, Plate |
-| Castle Britannia | North Star Armoury / Max | Chain Coif, Magic Shield, Chain, Plate, Long Sword, Silver Sword, Protection Ring |
-| Buccaneer's Den | Buccaneers Booty / Kitiara | Leather Helm, Leather Armour, Dagger, Main Gauche, Short Sword, Flaming Oil, Invisibility Ring |
-| Bordermarch | The Shattered Shield / Steve | Magic Shield, 2H Axe, Magic Bow, Arrows, 2H Hammer, Regeneration Ring, Turning Amulet |
-| Serpent's Hold | Siege Crafters / Thol | Chain Coif, Chain, Crossbow, Quarrels, Halberd, Throwing Axe, Morning Star |
+| Yew | Arms of Justice / Ronan | Leather Helm, Cloth Armour, Leather Armour, Club, Spear, Silver Sword, Magic Axe |
+| Minoc | Darkwatch Armoury / Shenstone | Iron Helm, Small Shield, Ring Mail, Short Sword, Long Sword, Mace, Two-Handed Hammer |
+| Trinsic | The Paladin's Protectorate! / Paul | Two-Handed Axe, Two-Handed Sword, Halberd, Iron Helm, Large Shield, Scale Mail, Plate Mail |
+| Castle Britannia | North Star Armoury / Max | Chain Coif, Magic Shield, Chain Mail, Plate Mail, Long Sword, Silver Sword, Ring of Protection |
+| Buccaneer's Den | Buccaneers Booty / Kitiara | Leather Helm, Leather Armour, Dagger, Main Gauche, Short Sword, Flaming Oil, Ring of Invisibility |
+| Bordermarch | The Shattered Shield / Steve | Magic Shield, Two-Handed Axe, Magic Bow, Arrows, Two-Handed Hammer, Ring of Regeneration, Amulet of Turning |
+| Serpent's Hold | Siege Crafters / Thol | Chain Coif, Chain Mail, Crossbow, Quarrels, Halberd, Throwing Axe, Morning Star |
+
+Stock labels above are complete semantic identities, not literal compact-menu
+quotations. Redux uses the full EQUIP-0003 names in Buy/Sell rows, selected headings
+and receipts. Measured columns reserve icons and carried/readied counts; long names
+wrap with whole-row scrolling rather than dropping qualifiers or shrinking type.
 
 Original Talk selects Buy or Sell once. Ordinary Buy quotes and confirms one item,
 then checks owned quantity 99 and affordability before paying, stealing,
@@ -184,6 +189,11 @@ Each entry is **base gold / units per bundle**; five active rows expose 22 offer
 | Cove | Mysticism / Enlor | Spider Silk 6/2; Blood Moss 8/2; Black Pearl 8/2; Nightshade 10/1; Mandrake 15/1 |
 | Lycaeum | The Sharper Mage / Virden | Blood Moss 50/4; Nightshade 30/1; Mandrake 40/1 |
 
+The table retains original shop reagent wording. Redux's identified shop rows
+and receipts use **Sulfurous Ash**, **Nightshade** and **Mandrake Root** consistently
+with MIX-0001. Sulfurous Ash is editorial expansion, not an original UI quotation;
+bundle identities, order, prices and quantities are unchanged by naming.
+
 Original quantity exactly 99 refuses before confirmation/payment and returns to
 catalog. Each Yes buys one bundle: pay adjusted price, steal, refresh, then grant
 saturated to 99. Full payment precedes saturation (95 owned plus eight purchased
@@ -199,7 +209,8 @@ rounded-up capacity preserves a paid partial final bundle. Zero affordability
 is blocked before confirmation without ending browsing or consuming RNG;
 cosmetic variants are deterministic.
 
-**Implementation:** `internal/game_state/reagent_shop.go`
+**Implementation:** `internal/game_state/reagent_shop.go`, `internal/references/item_reagent_data.go`
+**Tests:** `internal/game_state/reagent_shop_test.go`
 
 ### MERCH-0006
 

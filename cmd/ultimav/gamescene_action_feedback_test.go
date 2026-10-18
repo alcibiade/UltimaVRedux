@@ -365,24 +365,31 @@ func TestActionFeedbackOutputMirroringRemainsExactlyOnce(t *testing.T) {
 }
 
 func TestActionFeedbackDisposeClearsShutdownFinalizerAdmission(t *testing.T) {
-	state, _ := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-	scene := newProductionCastTestScene(state)
-	scene.ShowActionFeedback("existing", false)
-	state.EventQueueManager.Workflow("feedback_on_shutdown").
-		Priority(event_queue.PriorityNormal).
-		Sequential().
-		First(func() {}).
-		Wait(1000).
-		Finally(func() { scene.ShowActionFeedback("from finalizer", false) }).
-		Start()
+	for limit := range 4 {
+		t.Run(fmt.Sprint(limit), func(t *testing.T) {
+			state, _ := game_state.NewIntegrationTestBuilder(t).
+				WithLocation(references.Britain).
+				WithSystemCallbacks().
+				Build()
+			scene := newProductionCastTestScene(state)
+			setActionPopupLimitForTest(scene, limit)
+			scene.ShowActionFeedback("existing", false)
+			state.EventQueueManager.Workflow("feedback_on_shutdown").
+				Priority(event_queue.PriorityNormal).
+				Sequential().
+				First(func() {}).
+				Wait(1000).
+				Finally(func() { scene.ShowActionFeedback("from finalizer", false) }).
+				Start()
 
-	assert.NotPanics(t, scene.Dispose)
-	assert.NotPanics(t, scene.Dispose)
-	assert.Empty(t, scene.transientActionFeedback)
-	assert.Zero(t, scene.dialogStack.Count())
+			assert.NotPanics(t, scene.Dispose)
+			assert.NotPanics(t, scene.Dispose)
+			assert.Empty(t, scene.transientActionFeedback)
+			assert.Zero(t, scene.dialogStack.Count())
+			assert.Empty(t, scene.combatChestFeedback)
+			assert.False(t, scene.transientActionFeedbackLayoutSet)
+		})
+	}
 }
 
 func newTransientFeedbackTestScene(t *testing.T, location references.Location) (*GameScene, *game_state.GameState) {
@@ -395,6 +402,7 @@ func newTransientFeedbackTestScene(t *testing.T, location references.Location) (
 	state := &game_state.GameState{} //nolint:exhaustruct // Focused presentation fixture.
 	state.MapState.PlayerLocation.Location = location
 	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused presentation fixture.
+	t.Cleanup(scene.clearTransientActionFeedback)
 
 	return scene, state
 }

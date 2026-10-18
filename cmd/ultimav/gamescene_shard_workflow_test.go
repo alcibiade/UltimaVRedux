@@ -181,7 +181,7 @@ func TestShardWorkflowRevealsNameOnlyAtMountedDoomFeedback(t *testing.T) {
 }
 
 func TestShardConfirmationDiscoveryWaitsForVisibleOwnedDialog(t *testing.T) {
-	scene := &GameScene{gameState: newGameActionCallbacksKnowledgeState(t), keyboard: input.NewKeyboard(0)}
+	scene := &GameScene{gameState: newGameActionCallbacksKnowledgeState(t), keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 	called := 0
 	scene.gameState.EventQueueManager.Workflow("journal_shard_confirmation").Priority(event_queue.PriorityNormal).
 		Sequential().First(func() {}).ThenSequence(scene.thenShowShardConfirmationDialog("Named feedback", func() {
@@ -328,7 +328,7 @@ func newShardWorkflowTestScene(t *testing.T) (*GameScene, *game_state.MockSystem
 		gameState:         state,
 		output:            output,
 		gameReferences:    state.GameReferences,
-		keyboard:          input.NewKeyboard(0),
+		keyboard:          input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}, callbacks

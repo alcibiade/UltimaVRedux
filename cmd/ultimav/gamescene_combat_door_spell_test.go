@@ -13,6 +13,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
 func newCombatDoorSpellScene(t *testing.T, spell references.Spell) (*GameScene, *game_state.MockSystemCallbacks) {
@@ -63,6 +64,56 @@ func selectProductionCombatDoorSpell(t *testing.T, scene *GameScene, spell refer
 		}
 	}
 	t.Fatal("Cast did not hand off to adjacent targeting")
+}
+
+func TestCombatDoorSpellProductionSyllablesRespectInjectedControlAndRelease(t *testing.T) {
+	for _, control := range []ebiten.Key{ebiten.KeyControlLeft, ebiten.KeyControlRight} {
+		for _, test := range []struct {
+			spell references.Spell
+			keys  []ebiten.Key
+		}{
+			{references.AnSanct, []ebiten.Key{ebiten.KeyA, ebiten.KeyS}},
+			{references.AnExPor, []ebiten.Key{ebiten.KeyA, ebiten.KeyE, ebiten.KeyP}},
+			{references.InExPor, []ebiten.Key{ebiten.KeyI, ebiten.KeyE, ebiten.KeyP}},
+		} {
+			t.Run(fmt.Sprintf("%s/%s", control, references.GetSpellName(test.spell)), func(t *testing.T) {
+				scene, callbacks := newCombatDoorSpellScene(t, test.spell)
+				state := scene.gameState
+				t.Cleanup(state.EventQueueManager.Shutdown)
+				controlHeld := true
+				scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool {
+					return controlHeld && key == control
+				})
+				scene.combatMapInputHandler(ebiten.KeyC)
+				dialog := waitForProductionSpellDialog(t, scene)
+				initialSpell := dialog.GetSelectedSpell()
+				require.Equal(t, references.InLor, initialSpell)
+				commits := state.CastUseCommitSequence()
+				enterSpellSyllables(scene, dialog, test.keys)
+				assert.Equal(t, initialSpell, dialog.GetSelectedSpell(),
+					"a simulated letter does not override a polled Ctrl modifier: reproduce the failed fixture's selection 0")
+				assert.Nil(t, state.CombatScene.AdjacentSpellTargeting)
+				assert.Equal(t, commits, state.CastUseCommitSequence())
+
+				controlHeld = false
+				enterSpellSyllables(scene, dialog, test.keys)
+				require.Equal(t, test.spell, dialog.GetSelectedSpell(), "released Ctrl must permit the complete syllable sequence")
+				scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
+				dialog.Update()
+				for range 30 {
+					state.ElapsedMs += DialogPollingRateMs
+					state.EventQueueManager.Update()
+				}
+				require.NotNil(t, state.CombatScene.AdjacentSpellTargeting)
+				assert.Equal(t, test.spell, state.CombatScene.AdjacentSpellTargeting.Request.Spell)
+				assert.Equal(t, CombatAdjacentSpellTargetInput, scene.secondaryKeyState)
+				assert.Equal(t, commits, state.CastUseCommitSequence(), "aiming must still be uncommitted")
+				assert.False(t, callbacks.InputBlocked)
+				assert.False(t, state.EventQueueManager.HasWorkflow("spell_casting_workflow"))
+				assert.Zero(t, scene.dialogStack.Count())
+			})
+		}
+	}
 }
 
 func pressCombatDoorSpellKey(scene *GameScene, key ebiten.Key) {

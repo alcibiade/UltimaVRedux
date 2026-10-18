@@ -37,6 +37,11 @@ func (g *GameScene) largeMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 
 		return
 	}
+	if key == ebiten.KeyQ {
+		g.surfaceQuickSaveInput(game)
+
+		return
+	}
 	var doomCandidate save_snapshot.SaveSnapshot
 	var doomCandidateErr error
 	if game != nil && key == ebiten.KeyE && g.gameState.IsDoomEnterAttempt() {
@@ -258,8 +263,6 @@ func (g *GameScene) largeMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 		} else {
 			result = newSurfaceCommandResult(surfaceCommandRejected, originMapType)
 		}
-	case ebiten.KeyQ:
-		g.startSurfaceQuitInput()
 	default:
 		return
 	}

@@ -63,25 +63,24 @@ func TestFastScheduledMonsterPacingScalingAndFallback(t *testing.T) {
 		factor float64
 		want   combatMonsterPacing
 	}{
-		{"quarter", 0.25, combatMonsterPacing{300, 700}},
+		{"half", 0.5, combatMonsterPacing{150, 350}},
 		{"normal", 1, combatMonsterPacing{75, 175}},
 		{"double", 2, combatMonsterPacing{38, 88}},
 		{"quadruple", 4, combatMonsterPacing{19, 44}},
 		{"unset", 0, combatMonsterPacing{75, 175}},
-		{"negative", -1, combatMonsterPacing{75, 175}},
-		{"below minimum", 0.24, combatMonsterPacing{75, 175}},
-		{"above maximum", 4.01, combatMonsterPacing{75, 175}},
-		{"nan", math.NaN(), combatMonsterPacing{75, 175}},
-		{"infinity", math.Inf(1), combatMonsterPacing{75, 175}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			scene.gameConfig = &config.UltimaVConfiguration{
-				DebugConfiguration: &config.DebugConfiguration{CombatMovementSpeedFactor: test.factor},
+				GameplayConfiguration: &config.GameplayConfiguration{CombatSpeedFactor: test.factor},
 			}
 			pacing, fast := scene.fastScheduledMonsterPacing(step.Actor)
 			require.True(t, fast)
 			assert.Equal(t, test.want, pacing)
 		})
+	}
+	for _, invalid := range []float64{-1, 0.24, 4.01, math.NaN(), math.Inf(1)} {
+		scene.gameConfig.GameplayConfiguration.CombatSpeedFactor = invalid
+		assert.Panics(t, func() { scene.fastScheduledMonsterPacing(step.Actor) })
 	}
 	for _, configuration := range []*config.UltimaVConfiguration{nil, {DebugConfiguration: nil}} {
 		scene.gameConfig = configuration
@@ -89,8 +88,7 @@ func TestFastScheduledMonsterPacingScalingAndFallback(t *testing.T) {
 		require.True(t, fast)
 		assert.Equal(t, combatMonsterPacing{75, 175}, pacing)
 	}
-	assert.Equal(t, uint64(1), scaledCombatMovementDuration(1,
-		&config.DebugConfiguration{CombatMovementSpeedFactor: 4}), "rounding retains the minimum duration")
+	assert.Equal(t, uint64(1), newCombatPresentationTiming(4).duration(1), "rounding retains the minimum duration")
 }
 
 func TestCombatMovementOffset_OnlyMovesSelectedEntity(t *testing.T) {
@@ -136,19 +134,17 @@ func TestScaledCombatMovementDurationUsesConfiguredSpeedFactor(t *testing.T) {
 		playerDuration uint64
 		enemyDuration  uint64
 	}{
-		{factor: 0.25, playerDuration: 1332, enemyDuration: 2600},
+		{factor: 0.5, playerDuration: 666, enemyDuration: 1300},
 		{factor: 1.0, playerDuration: 333, enemyDuration: 650},
 		{factor: 2.0, playerDuration: 167, enemyDuration: 325},
 		{factor: 4.0, playerDuration: 83, enemyDuration: 163},
 	}
 
 	for _, test := range tests {
-		debugConfiguration := &config.DebugConfiguration{ //nolint:exhaustruct // Focused speed fixture.
-			CombatMovementSpeedFactor: test.factor,
-		}
+		timing := newCombatPresentationTiming(test.factor)
 		assert.Equal(t, test.playerDuration,
-			scaledCombatMovementDuration(combatPlayerMovementDurationMs, debugConfiguration))
+			timing.duration(combatPlayerMovementDurationMs))
 		assert.Equal(t, test.enemyDuration,
-			scaledCombatMovementDuration(combatEnemyMovementDurationMs, debugConfiguration))
+			timing.duration(combatEnemyMovementDurationMs))
 	}
 }

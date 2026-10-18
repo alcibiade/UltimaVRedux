@@ -2,34 +2,10 @@ package game_state
 
 import (
 	"fmt"
-	"strings"
-	"unicode"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
-
-// formatItemName cleans up item names:
-// - Replaces underscores with spaces
-// - Splits camelCase (inserts space before uppercase following lowercase)
-func formatItemName(name string) string {
-	// First replace underscores
-	name = strings.ReplaceAll(name, "_", " ")
-
-	// Then split camelCase
-	var result strings.Builder
-	for i, r := range name {
-		if i > 0 && unicode.IsUpper(r) {
-			prev := rune(name[i-1])
-			if unicode.IsLower(prev) {
-				result.WriteRune(' ')
-			}
-		}
-		result.WriteRune(r)
-	}
-
-	return result.String()
-}
 
 // UseItemCategory represents the category groupings for usable items
 type UseItemCategory int
@@ -421,7 +397,7 @@ func (g *GameState) useScrollWithCompletion(scroll references.Scroll, complete f
 		return true // Workflow handles success/failure
 	}
 
-	scrollName := g.GameReferences.InventoryItemReferences.Scroll[scroll].ItemName
+	scrollName := g.GameReferences.InventoryItemReferences.Scroll[scroll].FullDisplayName()
 
 	// Check location restrictions before attempting to use
 	if !g.isScrollLocationValid(scroll) {
@@ -436,7 +412,7 @@ func (g *GameState) useScrollWithCompletion(scroll references.Scroll, complete f
 	// Effect failure does not undo a confirmed attempt.
 	success := g.executeScrollEffect(scroll, complete)
 	if success {
-		g.SystemCallbacks.UI.ShowActionFeedback(formatItemName(scrollName)+"!", true)
+		g.SystemCallbacks.UI.ShowActionFeedback(scrollName+"!", true)
 	} else {
 		g.SystemCallbacks.UI.ShowActionFeedback("No effect!", true)
 	}

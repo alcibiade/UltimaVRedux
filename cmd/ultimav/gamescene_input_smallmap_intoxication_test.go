@@ -185,7 +185,7 @@ func newSmashedInputTestScene(
 	state.CurrentNPCAIController.GetNpcs().ReplaceWith(nil)
 	state.DateTime.Hour = 12
 
-	keyboard := input.NewKeyboard(0)
+	keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
 	scene := &GameScene{ //nolint:exhaustruct // Focused production Update routing fixture.
 		gameState:            state,
 		keyboard:             keyboard,

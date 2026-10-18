@@ -16,6 +16,11 @@ save-description Ctrl+U accepts either ASCII shortcut insertion (`u`/`U`) withou
 changing composition ownership. Injected held-key and production reader round-trip
 tests cover these contracts; physical-keyboard/OS acceptance is separate.
 
+The entry-frame physical sample reserves modified Q. A fresh eligible Ctrl+Q
+reload returns immediately, before clocks/queues or deferred update-tail work;
+an unavailable chord is suppressed through release. Its ownership policy is
+described in [Q quick save and Ctrl+Q quick load](#q-quick-save-and-ctrlq-quick-load).
+
 An active Traveller's Map session has the earliest frozen-reader path, before
 all gameplay updates below. Fresh exact Shift+M and Ctrl+N requests are checked
 against the safe openers described in [Traveller's Map](#travellers-map).
@@ -468,7 +473,7 @@ Dungeon exploration currently accepts these primary keys:
 | `M` / `N` / `R` | Mix / New Order / Ready modal workflow | Full end-player processing after workflow cleanup |
 | `O` | Open the current packed cell | Full completion after optional actor selection |
 | `P` | `Push` / `Not here!` | Command-only |
-| `Q` | Retained Save game? Yes/No prompt | Command-only after the answer and optional save |
+| `Q` | Save to the active player slot; optional Save game? Yes/No prompt | Command-only before capture, after the answer when confirmation is On |
 | `U` | Retained item workflow | Full completion; supported Sceptre/View routes commit authoritatively |
 | `V` | Gem symbolic View | Retained through dialog dismissal, then full completion |
 | `Y` | Retained editable Yell input | Full end-player processing after input cleanup |
@@ -563,23 +568,67 @@ actor/clone, and dispatch ownership. The workflow completes only its own committ
 attempt; another operation changing the global commit count cannot charge a
 cancelled or stale Use workflow.
 
-Surface and dungeon Quit present a map-relative `Save game?` overlay. Secondary
-input remains the sole owner; the overlay is removed before save capture, on
-cancellation, and on disposal. `Y` saves, `N` or `Escape` cancels, and other keys
-are ignored. Dismissal waits for key release before returning to map input.
-Dungeon Quit restores primary input
-and command-only completes before synchronously capturing a native quick save,
-so the snapshot contains the precharged minute at a stable boundary. A missing
-active save slot or persistence failure reports recoverable feedback and still
-returns to play. Dungeon Yell retains its token in the `dungeon_yell` workflow;
+### Q quick save and Ctrl+Q quick load
+
+Surface and dungeon **Q** save to the active player slot: the slot and reviewed
+revision established by the last successful player-slot save/load in this scene.
+They preserve the committed checkpoint description and optimistic revision checks;
+no slot picker or default-slot preference is involved. Without active provenance,
+the player must save or load a player slot first. Ordinary combat Q still reports
+`Quit-Not here` without saving or consuming the actor's action.
+
+**Confirm Quick Save** defaults On. On retains the map-relative `Save game?`
+overlay: secondary input owns the question, `Y` saves, `N`/`Escape` cancels, and
+other keys are ignored. The exact overlay is removed before capture, on
+cancellation, and on disposal. A successful save then needs acknowledgement.
+Off saves on the accepted Q press and writes the slot-specific success to the
+normal output, without a question, secondary input, or success acknowledgement.
+Both settings report failures in output and an acknowledged error overlay.
+Failed capture/write retains active provenance. Held Q/Y/acknowledgement keys
+cannot repeat the operation or leak into the next input owner; Caps Lock is neutral.
+
+Surface Q runs after ordinary command preprocessing (including intoxication and
+sailing handling) but before acquiring surface command routing. Neither answer
+nor direct save charges a surface cycle. Dungeon Q retains the accepted-command
+precharge, including its Quickness phase and Time Stop rules. With confirmation
+On the token remains owned until the answer; Off completes it immediately.
+Both routes restore primary input and complete exactly one **command-only** token
+before capture. The snapshot and resumed scene therefore share the same boundary,
+without a full dungeon end-player pass or surface completion. Save eligibility
+checks remain unchanged; a success message alone does not prohibit another save.
+
+**Ctrl+Q** is a Redux-only direct active-slot reload, independent of Confirm Quick
+Save. Either physical Control key works, without Shift/Alt/Meta; Caps Lock has no
+effect. It has no confirmation or slot selection. It uses the stored reviewed
+revision, never Latest or a newly adopted revision. Externally changed, deleted,
+corrupt, or incompatible slots require ordinary reviewed Load; failure retains
+the current scene, generation, provenance and source input, and reports a
+load-specific error in normal output without installing a new modal owner.
+
+The main scene samples modified Q before readers or queues can change ownership.
+Only a fresh exact chord at normal primary input is admitted: town, world,
+Underworld, dungeon, or a player-controlled combat turn (including a controlled
+monster). Enemy/scheduled turns, targeting, modal dialogs, readers and action
+workflows retain ownership. Harmless floating damage labels and nonblocking
+action cards do not prevent loading. A blocked chord is discarded, with raw
+reader/any-key polling masked until Q and its modifiers are released; it cannot
+become plain Q or a buffered combat command. It never waits to execute when an
+enemy turn or prompt ends. A fresh eligible quickload precedes pending buffered
+command activation and dungeon precharge.
+
+Quickload uses canonical native loading with a dormant candidate and no outgoing
+snapshot, save, or rollback capture. It consumes no action, calendar minute,
+resource or gameplay RNG draw. Construction/preflight/activation failure preserves
+the outgoing scene. Successful activation retires old scene-owned queues/effects
+before publishing the candidate, so shutdown finalizers still resolve their old
+owner. Success is reported on the replacement scene, with held-key transition
+protection. The outgoing Update returns immediately, before clocks or deferred
+update-tail work can mutate it.
+
+Dungeon Yell retains its token in the `dungeon_yell` workflow;
 submitted nonempty text reports `No effect!`, while empty input reports
 `Nothing`. Escape clears Yell text without completing the command; Return
 submits the current input.
-
-Surface Quit follows the same answer contract without starting a surface
-command cycle. It restores primary input before the optional native quick save,
-so the snapshot is captured at a stable boundary and declining or saving does
-not advance surface gameplay time.
 
 ## Combat Party Spell Recipients
 
@@ -819,15 +868,16 @@ The controls advertise Space to skip that item at the origin and confirm away
 from it. Initial Escape cancels the sequence; later Escape skips the current
 item. Source order, range, resources and completion ownership are unchanged.
 
-The three-row readout keeps full equipment `(RN)`, target `(DN)`, and compact
+The readout keeps full equipment `(RN)`, target `(DN)`, and compact
 `Attack` status, including `Ally`/`Enemy` for a disclosed actor. The accompanying
 prompt explains R/range and D/distance and gives the target's full name, side
 and known Charmed/Summoned/Possessed provenance. At the origin it says `Choose
 target`; otherwise an unnamed square says `No one seen`. This deliberately
 describes disclosure rather than occupancy, so an invisible actor cannot be
 detected by comparing an empty-tile label. It uses the core exact-actor
-projection rather than renderer-side occupancy rules. The fixed 45% turn pane,
-font size and measured single-row layout remain unchanged.
+projection rather than renderer-side occupancy rules. The fixed 45% turn pane
+and normal font size remain unchanged. Complete labels wrap to the measured
+pane width; their full physical height is reserved before placing NEXT.
 
 Core and scene regression assertions include resource deferral, impact,
 return-before-next-source, and shutdown cleanup in

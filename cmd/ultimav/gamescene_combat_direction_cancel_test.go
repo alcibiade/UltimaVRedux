@@ -227,7 +227,7 @@ func TestCombatDirectionPassStillCompletesExactlyOnce(t *testing.T) {
 
 func TestControlledMonsterPushCancellationPreservesExactAction(t *testing.T) {
 	state, _, _ := setupControlledMonsterInputTest(t)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0), output: text.NewOutput(nil, 1, 10, 80)}
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), output: text.NewOutput(nil, 1, 10, 80)}
 	before := snapshotBlockedCombatState(t, state)
 	scene.combatMapInputHandler(ebiten.KeyP)
 	require.Equal(t, PushDirectionInput, scene.secondaryKeyState)

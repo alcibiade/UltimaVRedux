@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { ReduxModificationsStatusData } from "./approved_tool_views"
+import type { CommandDefinition } from "./protocol"
+import PreferenceNumberControl from "./PreferenceNumberControl.vue"
 
-defineProps<{ data?: ReduxModificationsStatusData; updatedAt?: Date; pending: boolean }>()
+defineProps<{ data?: ReduxModificationsStatusData; updatedAt?: Date; pending: boolean; commands?: CommandDefinition[] }>()
 const emit = defineEmits<{
   setRepeatedDivision: [enabled: boolean]
   setPersistentDiscoveries: [enabled: boolean]
@@ -9,6 +11,7 @@ const emit = defineEmits<{
   setSmoothSurfaceMovement: [enabled: boolean]
   setFlexibleSextantUse: [enabled: boolean]
   refresh: []
+  mutate: [mutation: { commandID: string; argumentsByID: Record<string, string> }]
 }>()
 </script>
 
@@ -22,6 +25,16 @@ const emit = defineEmits<{
       </span>
     </header>
     <p class="redux-persistence-note">These deliberate Redux behavior choices are saved locally and persist across restarts. They are not temporary debug overrides.</p>
+	<p v-if="data?.configurationEditing" role="status">Close Configuration with Apply or Cancel before changing persistent preferences.</p>
+	<p v-for="message in data?.configurationDiagnostics ?? []" :key="message" role="status">{{ message }}</p>
+	<section v-if="data" class="approved-panel">
+	  <header><span>PLAYER PREFERENCES</span><strong>Combat, Saves and Feedback</strong></header>
+	  <PreferenceNumberControl command-id="combat.presentation.speed.set" :command="commands?.find(command => command.id === 'combat.presentation.speed.set')" :value="data.combat.speedPercent" :disabled="pending || data.configurationEditing" @apply="argumentsByID => emit('mutate', { commandID: 'combat.presentation.speed.set', argumentsByID })" />
+	  <PreferenceNumberControl command-id="redux.presentation.action-popups.set" :command="commands?.find(command => command.id === 'redux.presentation.action-popups.set')" :value="data.presentation.maxVisibleActionPopups" :disabled="pending || data.configurationEditing" @apply="argumentsByID => emit('mutate', { commandID: 'redux.presentation.action-popups.set', argumentsByID })" />
+	  <p>Maximum Action Popups: 0 means Off; messages remain in the lower-right output.</p>
+	  <button type="button" role="switch" :disabled="pending || data.configurationEditing" :aria-checked="data.confirmQuickSave" @click="emit('mutate', { commandID: 'redux.saves.confirm-quick-save.set', argumentsByID: { enabled: String(!data.confirmQuickSave) } })">Confirm Quick Save: {{ data.confirmQuickSave ? 'ON' : 'OFF' }}</button>
+	  <button type="button" role="switch" :disabled="pending || data.configurationEditing" :aria-checked="data.combat.showHealthBars" @click="emit('mutate', { commandID: 'redux.combat.health-bars.set', argumentsByID: { enabled: String(!data.combat.showHealthBars) } })">Show Combat HP Bars: {{ data.combat.showHealthBars ? 'ON' : 'OFF' }}</button>
+	</section>
     <p v-if="!data" class="empty-state">WAITING FOR REDUX MODIFICATIONS</p>
     <section v-else class="approved-panel">
       <header><span>COMBAT</span><strong>Monster Behavior</strong></header>
@@ -39,7 +52,7 @@ const emit = defineEmits<{
               role="switch"
               data-redux-repeated-division
               :aria-checked="data.combat.allowRepeatedMonsterDivision"
-              :disabled="pending"
+              :disabled="pending || data.configurationEditing"
               @click="emit('setRepeatedDivision', !data.combat.allowRepeatedMonsterDivision)"
             >{{ data.combat.allowRepeatedMonsterDivision ? "ON" : "OFF" }}</button>
           </div>
@@ -62,7 +75,7 @@ const emit = defineEmits<{
               role="switch"
               data-redux-persistent-discoveries
               :aria-checked="data.dungeons.persistHiddenDungeonDiscoveries"
-              :disabled="pending"
+              :disabled="pending || data.configurationEditing"
               @click="emit('setPersistentDiscoveries', !data.dungeons.persistHiddenDungeonDiscoveries)"
             >{{ data.dungeons.persistHiddenDungeonDiscoveries ? "ON" : "OFF" }}</button>
           </div>
@@ -80,7 +93,7 @@ const emit = defineEmits<{
               role="switch"
               data-redux-subdued-visibility
               :aria-checked="data.dungeons.showSubduedUnlitDungeons"
-              :disabled="pending"
+              :disabled="pending || data.configurationEditing"
               @click="emit('setSubduedVisibility', !data.dungeons.showSubduedUnlitDungeons)"
             >{{ data.dungeons.showSubduedUnlitDungeons ? "ON" : "OFF" }}</button>
           </div>
@@ -103,7 +116,7 @@ const emit = defineEmits<{
               role="switch"
               data-redux-flexible-sextant-use
               :aria-checked="data.navigation.flexibleSextantUse"
-              :disabled="pending"
+              :disabled="pending || data.configurationEditing"
               @click="emit('setFlexibleSextantUse', !data.navigation.flexibleSextantUse)"
             >{{ data.navigation.flexibleSextantUse ? "ON" : "OFF" }}</button>
           </div>
@@ -125,7 +138,7 @@ const emit = defineEmits<{
               role="switch"
               data-redux-smooth-surface-movement
               :aria-checked="data.presentation.smoothSurfaceMovement"
-              :disabled="pending"
+              :disabled="pending || data.configurationEditing"
               @click="emit('setSmoothSurfaceMovement', !data.presentation.smoothSurfaceMovement)"
             >{{ data.presentation.smoothSurfaceMovement ? "ON" : "OFF" }}</button>
           </div>

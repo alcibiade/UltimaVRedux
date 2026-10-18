@@ -778,7 +778,7 @@ func newIntroInputTestScene() *IntroMenuScene {
 			SavedConfigData:       &config.UltimaVConfigurationFlags{},
 			AudioConfiguration:    &config.AudioConfiguration{},
 			DisplayConfiguration:  &config.DisplayConfiguration{Mode: config.ModeWindowed, WindowWidth: 1280, WindowHeight: 720},
-			GameplayConfiguration: &config.GameplayConfiguration{},
+			GameplayConfiguration: config.DefaultGameplayConfiguration(),
 		},
 		nCurrentSelection: 0,
 		menuVisible:       true,

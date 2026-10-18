@@ -235,7 +235,7 @@ func TestCodexFinalPageInterruptionRetainsOnlyWordUntilRevisit(t *testing.T) {
 		scene.gameState.GameReferences, xTilesVisibleOnGameScreen, yTilesVisibleOnGameScreen)
 	require.NoError(t, err)
 	restored.SystemCallbacks = game_state.NewMockSystemCallbacks(t).ToSystemCallbacks()
-	revisit := &GameScene{gameState: restored, keyboard: input.NewKeyboard(0), output: text.NewOutput(nil, 1, 64, 80)}
+	revisit := &GameScene{gameState: restored, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), output: text.NewOutput(nil, 1, 64, 80)}
 	revisit.gameState.SystemCallbacks.UI.JournalChanged = revisit.journalChanged
 	t.Cleanup(revisit.Dispose)
 	revisit.journalVisits.Record(journal.ChronicleTab, 1)
@@ -276,7 +276,7 @@ func newCodexWordOfPowerTestScene(t *testing.T, completed bool) *GameScene {
 		state.SetShrineQuestCompleted(index, completed || index < game_state.TotalShrines-1)
 		state.SetShrineQuestActive(index, !completed && index == game_state.TotalShrines-1)
 	}
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0), output: text.NewOutput(nil, 1, 64, 80)}
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), output: text.NewOutput(nil, 1, 64, 80)}
 	state.SystemCallbacks.UI.JournalChanged = scene.journalChanged
 	t.Cleanup(scene.Dispose)
 	return scene

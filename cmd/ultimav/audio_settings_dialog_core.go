@@ -65,17 +65,18 @@ type ConfigurationDialog struct {
 	hasFocus  bool
 
 	// Detached configuration transaction
-	ultimaConfig     *config.UltimaVConfiguration
-	originalAudio    config.AudioConfiguration
-	stagedAudio      config.AudioConfiguration
-	originalGameplay config.GameplayConfiguration
-	stagedGameplay   config.GameplayConfiguration
-	originalDisplay  config.DisplayConfiguration
-	stagedDisplay    config.DisplayConfiguration
-	audioManager     ConfigurationAudioManager
-	displayManager   configurationDisplayManager
-	saveError        string
-	dismissed        bool
+	ultimaConfig             *config.UltimaVConfiguration
+	originalAudio            config.AudioConfiguration
+	stagedAudio              config.AudioConfiguration
+	originalGameplay         config.GameplayConfiguration
+	stagedGameplay           config.GameplayConfiguration
+	originalDisplay          config.DisplayConfiguration
+	stagedDisplay            config.DisplayConfiguration
+	audioManager             ConfigurationAudioManager
+	displayManager           configurationDisplayManager
+	saveError                string
+	dismissed                bool
+	releaseConfigurationEdit func()
 
 	// UI components
 	musicSlider   *widgets.Slider
@@ -89,6 +90,7 @@ type ConfigurationDialog struct {
 	// Slider focus management (for Audio tab)
 	focusedSliderIndex        int // 0=Music, 1=SFX, 2=Ambient (Master volume removed)
 	focusedGameplayIndex      int
+	firstGameplayIndex        int
 	focusedDisplayIndex       int
 	previewMusicPlaying       bool // Track if preview music is already playing
 	previewAmbientPlaying     bool // Track if preview ambient sound is already playing
@@ -169,6 +171,7 @@ func newConfigurationDialogForTab(
 	}
 
 	dialog.initializeComponents()
+	dialog.releaseConfigurationEdit = ultimaConfig.BeginConfigurationEditing()
 	width, height := display.GetManager().GetCurrentSize()
 	dialog.ensureLayout(width, height)
 	dialog.musicSlider.SetFocus(false)
@@ -371,6 +374,7 @@ func (d *ConfigurationDialog) dismiss() {
 		return
 	}
 	d.dismissed = true
+	d.releaseConfigurationEdit()
 	d.isVisible = false
 	d.hasFocus = false
 

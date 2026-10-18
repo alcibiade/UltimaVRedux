@@ -11,12 +11,25 @@ import (
 
 // These adapters let focused fixtures exercise production operations without
 // provisioning the surrounding application. They are not gameplay entry points.
+
+// noSceneTestKeyHeld isolates synthetic fixtures from the live desktop. Tests
+// exercising physical holds, modifiers or release gates inject their own key map.
+func noSceneTestKeyHeld(ebiten.Key) bool { return false }
+
 func activeEffectIconLayout(bounds image.Rectangle, count int) []image.Rectangle {
 	return statusIconRow(bounds, count, maximumPersistentEffects, true)
 }
 
 func (g *GameScene) largeMapInputHandler(key ebiten.Key) {
 	g.largeMapInputHandlerWithGame(nil, key)
+}
+
+func (g *GameScene) smallMapInputHandler(key ebiten.Key) {
+	g.smallMapInputHandlerWithGame(nil, key)
+}
+
+func (g *GameScene) dungeonMapInputHandler(key ebiten.Key) {
+	g.dungeonMapInputHandlerWithGame(nil, key)
 }
 
 // Ordinary direction-input fixtures exercise the non-Cast cancellation policy.

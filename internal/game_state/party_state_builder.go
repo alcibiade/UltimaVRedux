@@ -114,9 +114,9 @@ func NewPartyStateBuilder(gs *GameState) *PartyStateBuilder {
 }
 
 // WithRandomDamage sets random damage range
-func (b *PartyStateBuilder) WithRandomDamage(min, max int) *PartyStateBuilder {
-	b.damageMin = min
-	b.damageMax = max
+func (b *PartyStateBuilder) WithRandomDamage(minimum, maximum int) *PartyStateBuilder {
+	b.damageMin = minimum
+	b.damageMax = maximum
 
 	return b
 }
@@ -218,8 +218,8 @@ func (b *PartyStateBuilder) FlashGray() *PartyStateBuilder {
 	return b.WithFlash(flashStandardDurationMs, flashGrayR, flashGrayG, flashGrayB, flashStandardIntensity)
 }
 
-// FlashGray adds gray flash effect (fall/impact damage pattern)
-// Standard: 200ms duration, 0.7 intensity
+// FlashLongGray adds an extended gray flash effect (fall/impact damage pattern).
+// Standard: 1000ms duration, 0.7 intensity.
 func (b *PartyStateBuilder) FlashLongGray() *PartyStateBuilder {
 	return b.WithFlash(flashStandardDurationMs*5, flashGrayR, flashGrayG, flashGrayB, flashStandardIntensity)
 }
@@ -249,7 +249,7 @@ func (b *PartyStateBuilder) FlashWhite() *PartyStateBuilder {
 }
 
 // FlashInverted adds inverted screen flash effect (healing/cure pattern)
-// 200ms duration, inverts screen colors using triangle wave (0→1→0)
+// 500ms duration, inverts screen colors using triangle wave (0→1→0)
 func (b *PartyStateBuilder) FlashInverted() *PartyStateBuilder {
 	b.invertedLayer = &InvertedLayer{
 		Duration: uint64(flashInvertedDurationMs),

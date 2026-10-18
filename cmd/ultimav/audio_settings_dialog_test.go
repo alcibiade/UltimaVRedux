@@ -302,8 +302,7 @@ func TestConfigurationDialogSelectionsUseNaturalTextHeight(t *testing.T) {
 		assert.Equal(t, expectedHeight, dialog.layout.gameplayRows[index].Dy())
 	}
 	assert.Greater(t, dialog.layout.gameplayRows[0].Min.Y, dialog.layout.gameplayListRect.Min.Y+dialog.layout.pixelUnit)
-	assert.Less(t, dialog.layout.gameplayRows[len(dialog.layout.gameplayRows)-1].Max.Y,
-		dialog.layout.gameplayListRect.Max.Y)
+	assert.True(t, dialog.gameplayVisibleRow(dialog.focusedGameplayIndex).In(dialog.gameplayViewport()))
 
 	expectedDisplayHeight := int(math.Ceil(dialog.labelOutput.GetFontHeight())) +
 		dialog.layout.pixelUnit*audioSettingsCenterDivisor
@@ -585,8 +584,7 @@ func TestConfigurationDialogFitsEverySupportedResolution(t *testing.T) {
 		assert.True(t, dialog.layout.gameplayListRect.Min.In(dialog.layout.bodyRect))
 		assert.True(t, dialog.layout.gameplayDetail.Min.In(dialog.layout.bodyRect))
 		assert.Len(t, dialog.layout.gameplayRows, audioSettingsGameplayCount)
-		assert.LessOrEqual(t, dialog.layout.gameplayRows[len(dialog.layout.gameplayRows)-1].Max.Y,
-			dialog.layout.gameplayListRect.Max.Y)
+		assert.True(t, dialog.gameplayVisibleRow(dialog.focusedGameplayIndex).In(dialog.gameplayViewport()))
 		assert.Greater(t, dialog.layout.gameplayRows[0].Min.Y, dialog.layout.gameplayListRect.Min.Y+dialog.layout.pixelUnit)
 		assert.LessOrEqual(t, dialog.layout.displayRows[len(dialog.layout.displayRows)-1].Max.Y,
 			dialog.layout.bodyRect.Max.Y)
@@ -603,16 +601,17 @@ func TestConfigurationDialogFitsEverySupportedResolution(t *testing.T) {
 				dialog.detailOutput.GetLineSpacing(),
 				detailChars,
 			).Lines
-			detailLines := gametext.MeasureText(
-				setting.detail,
-				dialog.detailOutput.Font,
-				dialog.detailOutput.GetLineSpacing(),
-				detailChars,
-			).Lines
+			detailLines := 0
+			for _, line := range setting.detailLines() {
+				detailLines += max(1, gametext.MeasureText(line, dialog.detailOutput.Font,
+					dialog.detailOutput.GetLineSpacing(), detailChars).Lines)
+			}
 			assert.LessOrEqual(t, titleLines+detailLines, audioSettingsDetailLines, setting.label)
 			dialog.focusedGameplayIndex = index
 			dialog.prepareGameplayDetail()
-			assert.Equal(t, strings.Fields(setting.label+" "+setting.detail), strings.Fields(dialog.detailOutput.GetOutputStr(false)), "preparation must retain the complete setting text")
+			expected := setting.label + " " + strings.Join(setting.detailLines(), " ") + " Value: " + dialog.gameplaySettingDisplayValue()
+			assert.Equal(t, strings.Fields(expected), strings.Fields(dialog.detailOutput.GetOutputStr(false)), "preparation must retain the complete setting text")
+			assert.LessOrEqual(t, int(math.Ceil(dialog.detailOutput.GetTotalHeightForLines(dialog.detailOutput.GetPanelContentLineCount()))), dialog.layout.gameplayDetail.Dy()-detailInset*audioSettingsCenterDivisor)
 			assert.LessOrEqual(t, dialog.detailOutput.GetPanelContentLineCount(), audioSettingsDetailLines, setting.label)
 		}
 		dialog.focusedGameplayIndex = 1
@@ -708,7 +707,8 @@ func TestConfigurationDialogFlexibleSextantKeyboardApplyCancelAndReload(t *testi
 		}
 		require.Equal(t, gameplayFlexibleSextantUseIndex, dialog.focusedGameplayIndex)
 		pressAudioSettingsKey(dialog, ebiten.KeyDown)
-		require.Equal(t, gameplayFlexibleSextantUseIndex, dialog.focusedGameplayIndex, "last row is keyboard reachable and bounded")
+		require.Equal(t, gameplayCombatSpeedIndex, dialog.focusedGameplayIndex)
+		pressAudioSettingsKey(dialog, ebiten.KeyUp)
 
 		return dialog
 	}
@@ -1153,11 +1153,9 @@ func dialogConfiguration(audioConfig *config.AudioConfiguration) *config.UltimaV
 }
 
 func defaultDialogGameplayConfiguration() *config.GameplayConfiguration {
-	return &config.GameplayConfiguration{
-		PersistHiddenDungeonDiscoveries: true,
-		ShowSubduedUnlitDungeons:        true,
-		ShowConcealedTurnOrderSlots:     true,
-	}
+	settings := config.DefaultGameplayConfiguration()
+	settings.BatchMerchantTheft = false
+	return settings
 }
 
 func placementContainsRect(placement sprites.PercentBasedPlacement, rect image.Rectangle, width, height int) bool {

@@ -47,6 +47,7 @@ func (g *GameScene) startSceptreWorkflow(complete func()) {
 
 func (g *GameScene) thenUseCombatSceptre(canCommit func() bool, didCommit *bool) event_queue.Sequence {
 	var cleared []references.Position
+	var timing combatPresentationTiming
 	valid := false
 
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
@@ -54,11 +55,14 @@ func (g *GameScene) thenUseCombatSceptre(canCommit func() bool, didCommit *bool)
 			if !canCommit() {
 				return
 			}
+			timing = g.captureCombatTiming()
+			defer g.combatTimingScope(timing)()
 			g.showCombatSceptreActorEffect()
 			g.gameState.SystemCallbacks.Message.AddRowStr("Sceptre")
 			g.gameState.SystemCallbacks.Message.AddRowStr("Wielding the Sceptre of Lord British...")
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
 		}).Then(func() {
+			defer g.combatTimingScope(timing)()
 			valid = canCommit()
 			if !valid {
 				return
@@ -71,6 +75,7 @@ func (g *GameScene) thenUseCombatSceptre(canCommit func() bool, didCommit *bool)
 				fieldQ.ThenSequence(g.thenShowCastUseDirectionPrompt(
 					"Direction-",
 					func(direction references.Direction) {
+						defer g.combatTimingScope(timing)()
 						if canCommit() {
 							sequence := g.gameState.CastUseCommitSequence()
 							g.gameState.UseCombatSceptre(direction)

@@ -76,7 +76,7 @@ func newFountainWorkflowTestScene(t *testing.T) (*GameScene, *game_state.MockSys
 
 	return &GameScene{ //nolint:exhaustruct // Focused fountain workflow fixture.
 		gameState:   state,
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
 	}, callbacks
 }

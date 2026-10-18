@@ -292,7 +292,7 @@ func TestProductionWindemereDevilHostileContactQueuesOrdinaryCombat(t *testing.T
 	state.MapState.PlayerLocation.Position = source.Pos().Down()
 	scene := &GameScene{ //nolint:exhaustruct // Focused pending-interaction dispatcher fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 64, 128),
 	}
 	assert.Equal(t, TalkTypeNormal, scene.determineTalkType(source, false))
@@ -359,7 +359,7 @@ func TestProductionVisitLocalRatAndBatBlockedContactOwnsOnlyMovementTurn(t *test
 			callbacks.Reset()
 			scene := &GameScene{ //nolint:exhaustruct // Focused production movement/contact fixture.
 				gameState:            state,
-				keyboard:             input.NewKeyboard(0),
+				keyboard:             input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 				output:               text.NewOutput(nil, 1, 64, 128),
 				autoOpenDoorState:    &AutoOpenDoorState{},
 				moongateVisualSystem: NewMoongateVisualSystem(state),
@@ -459,7 +459,7 @@ func newSmallMapCombatCommandScene(
 	}
 	require.NotNil(t, source)
 
-	keyboard := input.NewKeyboard(0)
+	keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
 	scene := &GameScene{
 		gameState:         state,
 		keyboard:          keyboard,
@@ -518,7 +518,7 @@ func newProductionShadowlordAttackScene(
 	callbacks.Reset()
 	scene := &GameScene{ //nolint:exhaustruct // Focused production Attack input fixture.
 		gameState:         state,
-		keyboard:          input.NewKeyboard(0),
+		keyboard:          input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:            text.NewOutput(nil, 1, 64, 128),
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}

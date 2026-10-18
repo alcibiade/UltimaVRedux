@@ -22,8 +22,8 @@ const (
 	projectileTownPixelsPerMs = 0.15 // incr=6 per 40ms for every town missile.
 
 	// REDUX DEVIATION: COMBAT-0012: original missiles step a pixel path with a 40ms delay and no
-	// duration floor. Smooth Euclidean interpolation retains a 100ms minimum
-	// so short legal flights remain perceptible at modern display scales.
+	// duration floor. Smooth Euclidean interpolation retains an authored 100ms
+	// minimum before the combat action's timing policy is applied.
 	ProjectileMinDurationMs = 100
 )
 
@@ -223,16 +223,29 @@ func shortestWrappedProjectileDelta(from, to, mapSize references.Coordinate) int
 	return delta
 }
 
-func (g *GameScene) combatProjectileAnimationSequence(
+func (g *GameScene) combatProjectileAnimationSequenceWithTiming(
+	timing combatPresentationTiming,
 	launch game_state.CombatProjectileLaunch,
 	onImpact func(),
 ) event_queue.Sequence {
+	if onImpact == nil {
+		panic("projectile impact callback is required")
+	}
+
 	return func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		if !launch.Animate {
-			return sequence.Then(onImpact)
+			return sequence.Then(g.combatTimingStep(timing, onImpact))
 		}
+		var duration uint64
 
-		return g.gameState.ProjectileAnimationSequence(launch.From, launch.Impact, launch.Missile, onImpact)(sequence)
+		return sequence.Then(func() {
+			// StartProjectile returns the authored flight including its 100ms floor.
+			// Shared world cannon/pirate callers keep that unscaled callback contract.
+			duration = timing.duration(g.gameState.SystemCallbacks.Visual.StartProjectile(launch.From, launch.Impact, launch.Missile))
+		}).ThenSequence(func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+			return q.Animate(duration, g.gameState.SystemCallbacks.Visual.UpdateProjectileProgress)
+		}).Then(g.gameState.SystemCallbacks.Visual.ClearProjectile).
+			Then(g.combatTimingStep(timing, onImpact))
 	}
 }
 

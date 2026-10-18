@@ -16,19 +16,23 @@ func (g *GameScene) thenUseCombatScroll(
 	//nolint:exhaustive // Field-only scrolls are rejected by the default programming-error path.
 	switch scroll {
 	case references.ScrollVasLor:
-		return g.thenCommitCombatScroll(scroll, g.thenUseCombatLightScroll(), canCommit, didCommit)
+		return g.thenCommitCombatScroll(scroll, g.thenUseCombatLightScroll, canCommit, didCommit)
 	case references.ScrollInSanct:
-		return g.thenCommitCombatScroll(scroll, g.thenUseCombatDurationScroll(scroll, "Protection!", func(duration int) {
-			g.gameState.ActivateProtectionEffect(duration)
-		}), canCommit, didCommit)
+		return g.thenCommitCombatScroll(scroll, func() event_queue.Sequence {
+			return g.thenUseCombatDurationScroll(scroll, "Protection!", func(duration int) {
+				g.gameState.ActivateProtectionEffect(duration)
+			})
+		}, canCommit, didCommit)
 	case references.ScrollInAn:
-		return g.thenCommitCombatScroll(scroll, g.thenUseCombatDurationScroll(scroll, "Negate magic!", func(duration int) {
-			g.gameState.ActivateNegateMagicEffect(duration)
-		}), canCommit, didCommit)
+		return g.thenCommitCombatScroll(scroll, func() event_queue.Sequence {
+			return g.thenUseCombatDurationScroll(scroll, "Negate magic!", func(duration int) {
+				g.gameState.ActivateNegateMagicEffect(duration)
+			})
+		}, canCommit, didCommit)
 	case references.ScrollKalXenCorp:
 		return g.thenUseCombatDaemonScroll(canCommit, didCommit)
 	case references.ScrollAnTym:
-		return g.thenCommitCombatScroll(scroll, g.thenUseCombatTimeStopScroll(), canCommit, didCommit)
+		return g.thenCommitCombatScroll(scroll, g.thenUseCombatTimeStopScroll, canCommit, didCommit)
 	default:
 		panic("combat Use workflow received a field-only scroll")
 	}
@@ -36,34 +40,43 @@ func (g *GameScene) thenUseCombatScroll(
 
 func (g *GameScene) thenCommitCombatScroll(
 	scroll references.Scroll,
-	effect event_queue.Sequence,
+	effect func() event_queue.Sequence,
 	canCommit func() bool,
 	didCommit *bool,
 ) event_queue.Sequence {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		committed := false
+		var timing combatPresentationTiming
 
 		return q.Then(func() {
 			if !canCommit() {
 				return
 			}
+			timing = g.captureCombatTiming()
+			defer g.combatTimingScope(timing)()
 			committed = g.gameState.CommitScrollUse(scroll)
 			*didCommit = committed
 			if !committed {
 				g.gameState.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
 			}
 		}).If(func() bool { return committed }, func(effectQ *event_queue.SequentialEventBuilder) {
-			effectQ.ThenSequence(effect)
+			effectQ.ThenSequence(func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+				defer g.combatTimingScope(timing)()
+
+				return effect()(q)
+			})
 		})
 	}
 }
 
 func (g *GameScene) thenUseCombatLightScroll() event_queue.Sequence {
+	durationMs := g.captureCombatTiming().durationMs(lightScrollInvertDurationMs)
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		return q.Then(func() {
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
-			g.gameState.SystemCallbacks.Visual.SetScreenInvert(lightScrollInvertIntensity, lightScrollInvertDurationMs)
-		}).Wait(lightScrollInvertDurationMs).Then(func() {
+			g.gameState.SystemCallbacks.Visual.SetScreenInvert(lightScrollInvertIntensity, int(durationMs))
+		}).Wait(durationMs).Then(func() {
 			duration := g.gameState.GameReferences.InventoryItemReferences.GetScrollEffectDuration(references.ScrollVasLor)
 			g.gameState.ActivateLightEffect(duration)
 		})
@@ -85,11 +98,13 @@ func (g *GameScene) thenUseCombatDurationScroll(
 }
 
 func (g *GameScene) thenUseCombatTimeStopScroll() event_queue.Sequence {
+	durationMs := g.captureCombatTiming().durationMs(timeStopInvertDurationMs)
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		return q.Then(func() {
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
-			g.gameState.SystemCallbacks.Visual.SetScreenInvert(timeStopInvertIntensity, timeStopInvertDurationMs)
-		}).Wait(timeStopInvertDurationMs).Then(func() {
+			g.gameState.SystemCallbacks.Visual.SetScreenInvert(timeStopInvertIntensity, int(durationMs))
+		}).Wait(durationMs).Then(func() {
 			duration := g.gameState.GameReferences.InventoryItemReferences.GetScrollEffectDuration(references.ScrollAnTym)
 			g.gameState.ActivateTimeStopEffect(duration)
 		}).ThenSequence(g.thenShowConfirmationDialog("Negate time!"))

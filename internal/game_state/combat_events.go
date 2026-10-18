@@ -238,17 +238,19 @@ type CombatDiagnostics struct {
 
 // CombatEvent describes one meaningful combat result without presentation text.
 type CombatEvent struct {
-	Kind       CombatEventKind
-	Attacker   CombatFeedbackEntity
-	Target     CombatFeedbackEntity
-	Result     CombatFeedbackResult
-	HPLost     int
-	Fatal      bool
-	From       references.Position
-	To         references.Position
-	Condition  CombatConditionResult
-	Visibility CombatVisibilityResult
-	FieldKind  CombatFieldKind
+	Kind     CombatEventKind
+	Attacker CombatFeedbackEntity
+	Target   CombatFeedbackEntity
+	Result   CombatFeedbackResult
+	HPLost   int
+	Fatal    bool
+	// MonsterInjury is captured at damage resolution, even when HP bars are shown.
+	MonsterInjury CombatMonsterInjury
+	From          references.Position
+	To            references.Position
+	Condition     CombatConditionResult
+	Visibility    CombatVisibilityResult
+	FieldKind     CombatFieldKind
 	// FieldFizzled distinguishes a field expiring during the same action that created it.
 	FieldFizzled  bool
 	UtilityResult CombatUtilityResult

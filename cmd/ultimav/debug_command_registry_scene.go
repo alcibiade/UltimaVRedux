@@ -213,7 +213,6 @@ func registerPresentationDebugCommands(registry *debugCommandRegistry) {
 		debugging.CommandLightingOverlaySet,
 		debugging.CommandSearchOverlaySet,
 		debugging.CommandMoongateOverlaySet,
-		debugging.CommandCombatPresentationSpeedSet,
 	)
 }
 
@@ -273,8 +272,9 @@ func registerActiveCombatDebugCommands(registry *debugCommandRegistry) {
 	handler := func(context debugCommandContext, request debugging.Request) debugging.Result {
 		if request.CommandID == debugging.CommandCombatStatus {
 			data := newActiveCombatResult(context.scene.gameState)
+			data.ConfigurationEditing = context.scene.gameConfig.ConfigurationEditing()
 			data.PresentationSpeedPercent = int(
-				context.scene.gameConfig.DebugConfiguration.GetCombatMovementSpeedFactor() * debugPercentScale,
+				context.scene.gameConfig.GetCombatSpeedFactor() * debugPercentScale,
 			)
 
 			return debugSuccessResult(request, "Active combat status loaded.", data)

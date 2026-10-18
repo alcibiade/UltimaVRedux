@@ -30,7 +30,7 @@ examining the object class.
 |---:|---|---|---|
 | `0x02` | Gold | Pickup quantity | Gold provision |
 | `0x03` | Potion | Potion subtype `0..7` | One potion of that subtype |
-| `0x04` | Scroll | Scroll subtype `0..7`; `0xff` is HMS Cape Plans | One scroll or the Plans quest item |
+| `0x04` | Scroll | Scroll subtype `0..7`; `0xff` is H.M.S. Cape Plans | One scroll or the Plans quest item |
 | `0x05` | Weapon | Equipment ID | One exact weapon |
 | `0x06` | Shield | Equipment ID | One exact shield |
 | `0x07` | Key | Quantity; high bit selects Skull Keys | Keys or low-seven-bit Skull Key quantity |
@@ -55,7 +55,7 @@ armour quantities or 41-torch caches.
 
 | Index | Raw source record | Behavior |
 |---:|---|---|
-| 12 | Scroll class, payload `0xff`; map `0x15`, floor 0, `(15,2)` | HMS Cape Plans |
+| 12 | Scroll class, payload `0xff`; map `0x15`, floor 0, `(15,2)` | H.M.S. Cape Plans |
 | 13 | Key class, payload `0x09`; map `0x12`, floor -1, `(8,6)` | Available only with no ordinary Keys and no object already at the coordinate |
 | 14 | Key class, payload `0x85`; map `0x05`, floor 0, `(2,2)` | Five Skull Keys, available when the Britannian day differs from the saved last-found day |
 | 15 | Weapon class, payload `0x27`; map 0, floor 0, `(64,80)` | One Glass Sword, available only with no Glass Swords and no object already at the coordinate |
@@ -93,6 +93,14 @@ found bit only after placement succeeds. Items are then collected through the
 normal Get path. If multiple source records share a coordinate, repeated Search
 discovers them in source order and the item stack preserves the resulting Get
 order.
+
+Identified item lists and Get receipts use the full catalog labels from
+[INV-0003](../gamefacts/INVENTORY_SYSTEM.md#inv-0003), including potion colours and
+scroll incantations with their family suffixes. H.M.S. Cape Plans punctuation is
+editorial; its class/payload and stable quest ID are unchanged. Authored Search
+discovery sentences remain separate and may deliberately identify only a potion,
+weapon or strange rock. Naming normalization does not reveal hidden identities
+or powers before the existing discovery flow does.
 
 ## Corpse Semantics
 

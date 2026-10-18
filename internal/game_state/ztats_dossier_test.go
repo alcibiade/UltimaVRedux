@@ -1,6 +1,7 @@
 package game_state
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ func TestCurrentZStatsDossierIncludesCompleteZeroQuantityCatalogs(t *testing.T) 
 	assert.Equal(t, "Automatic", inLor.Targeting)
 	assert.Equal(t, "Non-Combat", inLor.Contexts)
 	assert.Equal(t, string(SpellFormulaConfirmed), inLor.FormulaState)
-	assert.Equal(t, []string{"Sulfur Ash"}, inLor.Reagents)
+	assert.Equal(t, []string{"Sulfurous Ash"}, inLor.Reagents)
 	assertCompleteZeroZStatsInventory(t, dossier.Magic.Reagents)
 	assertCompleteZeroZStatsInventory(t, dossier.Magic.Potions)
 	assertCompleteZeroZStatsInventory(t, dossier.Magic.Scrolls)
@@ -259,6 +260,65 @@ func TestCurrentZStatsDossierProjectsOwnedItems(t *testing.T) {
 	)
 	assert.NotEmpty(t, dossier.Items[0].Description)
 	assert.NotEmpty(t, dossier.Items[1].Description)
+	assert.False(t, dossier.Items[0].MoonPhase.Present)
+	assert.Equal(t, ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhaseFull}, dossier.Items[1].MoonPhase)
+}
+
+func TestCurrentZStatsDossierMoonstonePhasesUseStableIdentity(t *testing.T) {
+	state := newZStatsTestState(newZStatsTestCharacter("Avatar", party_state.Avatar, party_state.Good, 5, 900))
+	items := state.GameReferences.InventoryItemReferences
+	state.PartyState.Inventory.QuestItems.Set(references.Grapple, 1)
+	// A quest item can have the same sprite and label as a stone without a phase.
+	quest := items.QuestItem[references.Grapple]
+	quest.ItemDisplayName = "New Moon Moonstone"
+	quest.ItemSprite = items.Moonstone[references.NewMoon].ItemSprite
+	items.QuestItem[references.Grapple] = quest
+	for _, stone := range references.MoonstoneCatalog() {
+		state.PartyState.Inventory.Moonstones.Set(stone, uint16(stone.ID()+1))
+		item := items.Moonstone[stone]
+		item.ItemName = "UnrelatedInternalName"
+		item.ItemDisplayName = fmt.Sprintf("Renamed possession %d", 7-stone.ID())
+		items.Moonstone[stone] = item
+	}
+	dossier := state.CurrentZStatsDossier()
+	require.Len(t, dossier.Items, 9)
+	require.False(t, dossier.Items[0].MoonPhase.Present)
+	for index, item := range dossier.Items[1:] {
+		require.Equal(t, index, item.ID)
+		require.Equal(t, ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhase(index)}, item.MoonPhase)
+		require.Equal(t, uint16(index+1), item.Quantity)
+		require.Equal(t, fmt.Sprintf("Renamed possession %d", 7-index), item.Name)
+	}
+	// Filtered offsets are not phase identities, and phase zero remains present.
+	state.PartyState.Inventory.Moonstones.Set(references.CrescentWaxing, 0)
+	state.PartyState.Inventory.Moonstones.Set(references.FirstQuarter, 0)
+	filtered := state.CurrentZStatsDossier().Items
+	require.Len(t, filtered, 7)
+	require.Equal(t, ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhaseNew}, filtered[1].MoonPhase)
+	require.Equal(t, ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhaseGibbousWaxing}, filtered[2].MoonPhase)
+	dossier.Items[1].MoonPhase.Phase = datetime.MoonPhaseFull
+	require.Equal(t, datetime.MoonPhaseNew, state.CurrentZStatsDossier().Items[1].MoonPhase.Phase)
+}
+
+func TestZStatsProjectsFullCatalogNames(t *testing.T) {
+	state := newZStatsTestState(newZStatsTestCharacter("Avatar", party_state.Avatar, party_state.Good, 5, 900))
+	state.PartyState.GetCharacter(0).SetEquippedItem(references.SlotRing, references.RingRegeneration)
+	state.PartyState.Inventory.QuestItems.Set(references.Amulet, 1)
+	state.PartyState.Inventory.Moonstones.Set(references.CrescentWaning, 1)
+	dossier := state.CurrentZStatsDossier()
+	items := state.GameReferences.InventoryItemReferences
+	for _, item := range dossier.Armory {
+		require.Equal(t, references.Equipment(item.ID).String(), item.Name)
+	}
+	require.Equal(t, references.RingRegeneration.String(), dossier.Characters[0].Equipped[4].Name)
+	for _, item := range dossier.Magic.Potions {
+		require.Equal(t, items.GetReferenceByItem(references.Potion(item.ID)).FullDisplayName(), item.Name)
+	}
+	for _, item := range dossier.Magic.Scrolls {
+		require.Equal(t, items.GetReferenceByItem(references.Scroll(item.ID)).FullDisplayName(), item.Name)
+	}
+	require.Equal(t, items.GetReferenceByItem(references.Amulet).FullDisplayName(), dossier.Items[0].Name)
+	require.Equal(t, items.GetReferenceByItem(references.CrescentWaning).FullDisplayName(), dossier.Items[1].Name)
 }
 
 func newZStatsTestState(characters ...*party_state.PlayerCharacter) *GameState {

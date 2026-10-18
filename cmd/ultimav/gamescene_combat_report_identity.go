@@ -65,8 +65,26 @@ func (g *GameScene) combatMonsterDisclosed(index int, id game_state.CombatantID,
 
 func (g *GameScene) captureCombatReportIdentities(event game_state.CombatEvent) combatReportIdentities {
 	snapshot := combatReportIdentities{
-		Attacker: g.captureCombatReportIdentity(event.Attacker), Target: g.captureCombatReportIdentity(event.Target),
+		Target:           g.captureCombatReportIdentity(event.Target),
 		DetailsDisclosed: true, AggregateDisclosed: true,
+	}
+	// Field triggers have only a target. Their zero-valued attacker is absent,
+	// not monster slot zero at (0,0), whose disclosure can differ from the victim.
+	if event.Kind != game_state.CombatEventFieldTriggered {
+		snapshot.Attacker = g.captureCombatReportIdentity(event.Attacker)
+	}
+	// The core snapshot predates survivor effects and presentation callbacks.
+	// Do not let a healed/replaced/revealed live slot disclose or rename this hit.
+	if event.MonsterInjury.Severity != game_state.CombatInjuryNone && !event.Target.IsPartyMember {
+		snapshot.Target.Name = combatUnknownEntityLabel
+		snapshot.Target.Disclosed = event.MonsterInjury.Disclosed
+		snapshot.Target.Color = ucolor.EGARed
+		if event.MonsterInjury.Disclosed {
+			snapshot.Target.Name = event.MonsterInjury.MonsterType.Name()
+			if event.MonsterInjury.Loyalty == game_state.CombatMonsterLoyaltyParty {
+				snapshot.Target.Color = ucolor.EGALightCyan
+			}
+		}
 	}
 	visible := g.gameState.CombatTerrainAllowsObjectDisplay
 	switch event.Kind { //nolint:exhaustive // Events without actor/position diagnostics need no extra disclosure gate.
@@ -80,6 +98,8 @@ func (g *GameScene) captureCombatReportIdentities(event game_state.CombatEvent) 
 	case game_state.CombatEventRetired, game_state.CombatEventFled:
 		snapshot.DetailsDisclosed = snapshot.Attacker.Disclosed
 	case game_state.CombatEventRecovery, game_state.CombatEventPossessionResistance, game_state.CombatEventPossessionRelease:
+		snapshot.DetailsDisclosed = snapshot.Target.Disclosed
+	case game_state.CombatEventFieldTriggered:
 		snapshot.DetailsDisclosed = snapshot.Target.Disclosed
 	case game_state.CombatEventGating:
 		snapshot.CreatedDisclosed = g.combatMonsterDisclosed(event.Created.Index, event.Created.CombatantID, event.Created.Position)
@@ -162,7 +182,8 @@ func (g *GameScene) combatRepelReportResult(event game_state.CombatEvent) (strin
 func (hud *CombatHUD) reportIdentity(identity game_state.CombatTurnIdentity) (combatReportIdentity, bool) {
 	if hud.presentingIdentities != nil {
 		for _, snapshot := range []combatReportIdentity{hud.presentingIdentities.Attacker, hud.presentingIdentities.Target} {
-			if identity == snapshot.Identity {
+			// Empty names denote absent roles; concealed actors retain "Unknown".
+			if snapshot.Name != "" && identity == snapshot.Identity {
 				return snapshot, true
 			}
 		}
@@ -174,7 +195,7 @@ func (hud *CombatHUD) reportIdentity(identity game_state.CombatTurnIdentity) (co
 func (g *GameScene) withCombatHistoryEvent(slot int, present func(game_state.CombatEvent)) {
 	hud := g.combatHUD
 	previous := hud.presentingIdentities
-	if hud.identities[slot].Attacker.Name != "" {
+	if hud.identities[slot].Attacker.Name != "" || hud.identities[slot].Target.Name != "" {
 		hud.presentingIdentities = &hud.identities[slot]
 	}
 	defer func() { hud.presentingIdentities = previous }()

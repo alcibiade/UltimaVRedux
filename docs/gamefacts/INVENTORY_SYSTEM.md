@@ -53,6 +53,12 @@ These category indexes do not guarantee effect eligibility or reliability. Potio
 substitution and resource commitment are described below; effect-specific details
 belong in their owning consumable/magic rules.
 
+The table identifies the original indexed families. Redux displays the ash as
+**Sulfurous Ash**, an approved fuller editorial label; original shop text says
+**Sulfur Ash**. **Nightshade** remains one word. Standalone potion and scroll
+labels include their family, as described in INV-0003, rather than presenting the
+ordinary effect as a guaranteed identity.
+
 ### INV-0003
 
 **Runtime item-menu projection**
@@ -68,6 +74,27 @@ three named shards 29-31, Spyglass 32, plans 33, Sextant 34, Watch 35, Badge 36,
 and box 37. A special quantity value suppresses numeric display for unique items.
 This list is not another independently saved inventory, and a display marker does
 not establish every item's consumption or lifetime rules.
+
+Redux's `InventoryItem.FullDisplayName()` is the shared identified-label authority.
+It uses the family catalog's `ItemDisplayName` when supplied and otherwise its
+already-readable `ItemName`. Family metadata includes **Blue Potion**, **Vas Lor
+Scroll**, and **Crescent Waxing Moonstone**; consumers append no second suffix.
+Scroll names use the complete incantation as a faithful editorial expansion,
+not a claim that every original inventory printed the same full string. Moon
+phase vocabulary is unchanged. Equipment names follow EQUIP-0003; quest qualifiers
+follow QUEST-0001. Use, identified Get/combat receipts, generic chest lists and
+conversation gifts preserve these identities instead of leaking internal names
+or numeric equipment placeholders. Counts and grammatical pickup sentences are
+separate from the label.
+
+Internal names such as `WoodenBox`, `HMSCape` and `Vas_Lor` remain available for
+their existing internal purposes; typed IDs continue to own wire/save identity.
+Authored discovery text may intentionally reveal only a strange rock, a potion
+or a weapon. Full identified labels do not replace that text, disclose potion
+effects, reveal hidden powers, or rewrite attributed lore.
+
+**Implementation:** `internal/references/inventory_items.go`, `internal/references/inventory_item.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/action_get.go`, `cmd/ultimav/game_action_callbacks.go`, `internal/references/item_potion_data.go`, `internal/references/item_scroll_data.go`, `internal/references/item_moonstone_data.go`, `internal/references/item_quest_data.go`, `internal/references/item_reagent_data.go`, `internal/references/item_provisions_data.go`, `internal/game_state/action_use.go`
+**Tests:** `internal/references/inventory_display_name_test.go`, `internal/game_state/item_display_name_test.go`, `cmd/ultimav/game_action_callbacks_names_test.go`
 
 ### INV-0004
 

@@ -13,6 +13,21 @@ func (g *GameScene) startSurfaceQuitInput() {
 	g.keyboard.SetAllowKeyPressImmediately()
 }
 
+func (g *GameScene) confirmQuickSave() bool {
+	return g.gameConfig == nil || g.gameConfig.GetConfirmQuickSave()
+}
+
+// The caller has finished preprocessing, but must not yet own surface routing:
+// even a no-cost surface command token makes a native capture ineligible.
+func (g *GameScene) surfaceQuickSaveInput(game *Game) {
+	if g.confirmQuickSave() {
+		g.startSurfaceQuitInput()
+
+		return
+	}
+	g.saveCurrentPlayerWithConfirmation(game, "Surface", false)
+}
+
 func (g *GameScene) showSaveQuestion() {
 	if g.saveQuestionDialog != nil {
 		panic("save question already active")
@@ -60,7 +75,13 @@ func (g *GameScene) surfaceQuitSecondaryInput(game *Game) {
 }
 
 func (g *GameScene) saveCurrentPlayer(game *Game, context string) {
-	g.gameState.SystemCallbacks.Message.AddRowStr("Saving...")
+	g.saveCurrentPlayerWithConfirmation(game, context, true)
+}
+
+func (g *GameScene) saveCurrentPlayerWithConfirmation(game *Game, context string, acknowledgeSuccess bool) {
+	if acknowledgeSuccess {
+		g.gameState.SystemCallbacks.Message.AddRowStr("Saving...")
+	}
 	if game == nil {
 		g.showQuitSaveResult("Save failed: " + ErrPlayerSaveUnavailable.Error())
 
@@ -73,7 +94,13 @@ func (g *GameScene) saveCurrentPlayer(game *Game, context string) {
 
 		return
 	}
-	g.showQuitSaveResult("Game saved to " + playerSaveSlotName(record.Slot) + ".")
+	message := "Game saved to " + playerSaveSlotName(record.Slot) + "."
+	if acknowledgeSuccess {
+		g.showQuitSaveResult(message)
+
+		return
+	}
+	g.gameState.SystemCallbacks.Message.AddRowStr(message)
 }
 
 func (g *GameScene) showQuitSaveResult(message string) {

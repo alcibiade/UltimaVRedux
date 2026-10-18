@@ -39,7 +39,7 @@ func TestGetReagentShopStateProvidesCurrentPricesLimitsAndApprovalViews(t *testi
 		"Ginseng",
 		"Garlic",
 		"Spider Silk",
-		"Night Shade",
+		"Nightshade",
 		"Mandrake Root",
 	}, reagentQuoteNames(shop.Offers))
 

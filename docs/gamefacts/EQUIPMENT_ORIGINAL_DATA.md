@@ -18,6 +18,9 @@ IDs 00-2F below are hexadecimal. Strength is the contribution to cumulative Read
 cost; Attack and Defense are reference ratings. Reach 0 selects adjacent handling,
 not a zero-distance attack. A dash means the item is not an independently readied
 attack. Base is the merchant formula input, not final price or stock availability.
+Item labels below express full identities, not byte-for-byte quotations of every
+original menu. Original longer labels support Sword of Chaos and the two-handed
+weapon names; the shorter inventory forms do not define different equipment.
 
 | ID | Item | Slot | Strength | Attack | Defense | Reach | Base |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -52,9 +55,9 @@ attack. Base is the merchant formula input, not final price or stock availabilit
 | 1C | Crossbow | Both hands | 6 | 12 | 0 | 8 | 150 |
 | 1D | Quarrels | Cannot ready | 0 | 1 | 0 | - | 15 |
 | 1E | Long Sword | One hand | 9 | 15 | 0 | 0 | 70 |
-| 1F | 2H Hammer | Both hands | 16 | 20 | 0 | 0 | 85 |
-| 20 | 2H Axe | Both hands | 15 | 20 | 0 | 0 | 150 |
-| 21 | 2H Sword | Both hands | 13 | 20 | 0 | 0 | 200 |
+| 1F | Two-Handed Hammer | Both hands | 16 | 20 | 0 | 0 | 85 |
+| 20 | Two-Handed Axe | Both hands | 15 | 20 | 0 | 0 | 150 |
+| 21 | Two-Handed Sword | Both hands | 13 | 20 | 0 | 0 | 200 |
 | 22 | Halberd | Both hands | 18 | 30 | 0 | 2 | 250 |
 | 23 | Sword of Chaos | Both hands | 0 | 99 | 0 | 0 | 0 |
 | 24 | Magic Bow | Both hands | 0 | 15 | 0 | 15 | 800 |
@@ -66,12 +69,12 @@ attack. Base is the merchant formula input, not final price or stock availabilit
 | 2A | Ring of Invisibility | Ring | 0 | 0 | 0 | - | 450 |
 | 2B | Ring of Protection | Ring | 0 | 0 | 2 | - | 500 |
 | 2C | Ring of Regeneration | Ring | 0 | 0 | 0 | - | 200 |
-| 2D | Amulet/Turning | Neck | 0 | 0 | 0 | - | 900 |
+| 2D | Amulet of Turning | Neck | 0 | 0 | 0 | - | 900 |
 | 2E | Spiked Collar | Neck | 0 | 0 | 2 | - | 240 |
 | 2F | Ankh | Neck | 0 | 0 | 0 | - | 0 |
 
 Special behavior overrides some table values: Jeweled Sword's applied rating is
-zero; value 99 has special death handling; Chaos Sword commonly changes control
+zero; value 99 has special death handling; Sword of Chaos commonly changes control
 flow before a normal weapon attack. The table alone does not settle those effects.
 The complete row-by-row Redux transcription is not re-certified by this conversion.
 
@@ -91,7 +94,7 @@ slots are `FF`, not item zero. Neither usage nor Strength data establishes a
 profession/class restriction.
 
 Attack category 8 selects Strength for Spiked Helm, Spiked Shield, Club, Mace,
-and 2H Hammer. Ordinary other offensive items use Dexterity. Categories 0-7
+and Two-Handed Hammer. Ordinary other offensive items use Dexterity. Categories 0-7
 identify arrow, cannonball, axe, red, blue, green, violet, and rock presentation.
 Range zero, rather than that category, selects adjacent handling. Several combat
 tables continue with seven spell entries after equipment ID 2F; those entries
@@ -111,5 +114,17 @@ artwork is external presentation data. Base price zero does not establish a ques
 classification, acquisition route, free purchase, or merchant availability. Merchant
 stock lists and pricing formulas are separate from the identity table.
 
+Redux's `Equipment.String()` and identified inventory labels use the full names
+above, including Magic, Mystic, Silver, Spiked, Flaming and Glass qualifiers.
+Jewel Shield and Jeweled Sword retain their distinct original longer-table
+wording. Ready and arms-shop rows/headings reserve measured space or wrap complete
+names, with icons, quantities and hand/Strength information retained. Historical
+compact metadata is not a fallback for these normal lists. Bare Hands and empty
+slots remain contextual states, outside the 48 carried identities. Display changes
+do not change equipment IDs, stats, prices or saved slots.
+
 The reference table is canonical for these values. Mechanics documents should
 link to it rather than transcribe another set of arrays or rounded prices.
+
+**Implementation:** `internal/references/equipment_data.go`, `internal/ui/widgets/ready_equipment_dialog.go`, `internal/ui/widgets/ready_equipment_rows.go`, `internal/ui/widgets/ready_strength_budget.go`, `internal/ui/widgets/arms_shop_dialog.go`
+**Tests:** `internal/references/inventory_display_name_test.go`, `internal/ui/widgets/equipment_full_name_layout_test.go`, `internal/ui/widgets/ready_equipment_rows_test.go`, `internal/ui/widgets/arms_shop_dialog_test.go`

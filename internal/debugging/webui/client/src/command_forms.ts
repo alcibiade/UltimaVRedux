@@ -121,6 +121,7 @@ function validateInteger(parameter: ParameterDefinition, value: string): string 
   if (!Number.isSafeInteger(number)) return "Enter a whole number within the browser's exact integer range."
   if (parameter.minimum !== undefined && number < parameter.minimum) return `Must be at least ${parameter.minimum}.`
   if (parameter.maximum !== undefined && number > parameter.maximum) return `Must be at most ${parameter.maximum}.`
+	if (parameter.step !== undefined && (number - (parameter.minimum ?? 0)) % parameter.step !== 0) return `Use steps of ${parameter.step} from ${parameter.minimum ?? 0}.`
 
   return undefined
 }

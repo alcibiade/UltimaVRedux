@@ -414,8 +414,37 @@ give 5/257, but the external function is unavailable. Redux concretely draws
 0..255 and tests >251 (4/256). This difference is retained as a discrepancy/evidence
 limit, not relabeled an intentional fidelity adjustment.
 
-**Implementation:** `internal/game_state/combat_monster_condition.go`, `internal/game_state/combat_daemon_ai.go`
-**Tests:** `internal/game_state/combat_monster_condition_test.go`, `internal/game_state/combat_daemon_ai_test.go`
+**Original monster injury descriptions.** Ordinary post-effect diagnosis uses the
+monster type's static HP baseline H and current surviving HP h. Compute
+q=floor(H/4) first, then compare against its integer multiples:
+
+| Remaining HP | Description |
+|---|---|
+| h >= 3q | barely wounded! |
+| 2q <= h < 3q | lightly wounded! |
+| q <= h < 2q | heavily wounded! |
+| 0 < h < q | critical! |
+
+Equality belongs to the less-severe band; these are not independently rounded
+percentages. For H=11, q=2 and the thresholds are 2, 4 and 6. The reference is
+the type baseline even for a divided monster with reduced initial HP. There is
+no separate healthy band in this diagnosis path. PCs receive ordinary hit text
+instead; monster allegiance does not turn a monster into a PC.
+
+Diagnosis follows applicable melee, missile and effect paths rather than every
+possible HP mutation. Graze/deflection, vanishing, death, newly applied sleep and
+already-reported poison can supersede the ordinary injury text. An immortal
+target can reach diagnosis after damage was reduced to zero and receive the
+baseline barely-wounded wording. Thus the original message alone is not proof of
+actual HP loss. The original condition evaluation also updates fleeing, but a
+health description and an actual fleeing state are not interchangeable.
+
+Redux exposes the classification as a pure function and captures detached
+post-hit condition data without invoking the fleeing updater or consuming RNG.
+[COMBAT-0012](#combat-0012) defines when this optional presentation is shown.
+
+**Implementation:** `internal/game_state/combat_monster_condition.go`, `internal/game_state/combat_daemon_ai.go`, `internal/game_state/combat_monster_injury.go`
+**Tests:** `internal/game_state/combat_monster_condition_test.go`, `internal/game_state/combat_daemon_ai_test.go`, `internal/game_state/combat_monster_injury_test.go`
 
 ### COMBAT-0009
 
@@ -543,7 +572,7 @@ exact-once, consecutive-encounter, and unsupported-pending-save contract.
 **Redux attack assistance and presentation contracts**
 
 **Kind:** rule
-**Uses:** COMBAT-0004
+**Uses:** COMBAT-0004, COMBAT-0008
 **Original:** Established
 **Redux:** Intentional deviation
 
@@ -583,19 +612,70 @@ Report freezes identity/disclosure at event admission instead of renaming histor
 after slot reuse. An additional interrupted-action cue is an intentional
 presentation extension; its recording slot remains silent until assigned.
 
+**REDUX DEVIATION: configurable combat presentation.** Gameplay's Combat Speed
+selects 0.5x through 4.0x in 0.5 increments, default 1x. One immutable rate is
+captured for each committed action and divides its authored anticipation,
+movement, flight/return, action-effect and signature-phase durations once.
+Automatic passes, applicable Tab attack-source holds, chest reveal cadence and
+victorious departure use the same policy. Multi-source attacks retain their rate
+through subsequent sources; changing settings does not retime an admitted effect.
+Positive durations have a 1 ms technical minimum and round to nearest millisecond.
+Zero/no-animation paths remain immediate. Phase admission cannot inherit the
+preceding frame's elapsed time; hitches do not skip newly admitted signature phases.
+
+Numeric impact labels keep their reading lifetime independently of shortened
+lunges and auto-attack holds. Report emphasis, action-card lifetimes, input release
+protection, user acknowledgement, persistent idle/status animation and audio
+retain their own clocks. The setting does not alter combat formulas, turn costs or
+DEX scheduling. Existing wind ticks still consume the shared gameplay RNG during
+elapsed waits, so different presentation timelines do not promise identical
+seed-only outcomes. See [combat presentation speed](../systems/TIME_SYSTEM.md#combat-presentation-speed)
+for included timing families and
+[Configuration Transaction](../ui/MODAL_DIALOG_SYSTEM.md#configuration-transaction)
+for legacy debug-value migration.
+
 Original missile presentation advances ordinary shots 13 native pixels per 40 ms,
 rocks 8 outside towns, and town shots 6. Redux uses the corresponding 0.325, 0.2,
 and 0.15 pixels/ms rates without display-scale changes, but deliberately smooths
-Euclidean travel with a 100 ms minimum so short flights remain perceptible. This
-does not change resolved endpoints, damage, or gameplay RNG.
+Euclidean travel with an authored 100 ms minimum so short flights remain
+perceptible at 1x. Combat applies the captured rate after computing this base
+flight, including the minimum (25 ms at 4x); noncombat callers retain base timing.
+Presentation adds no damage calculation or RNG draw and preserves impact and
+resource commitment boundaries; the shared wind timeline qualification above applies.
 
 Committed possession, teleport, gating, and Corpser events drive feedback without
 rerolls or duplicate creation. Gate presentation intentionally uses 125 ms arrival,
-600 ms bright-leading-silhouette materialization, and 125 ms settling for readability;
+600 ms bright-leading-silhouette materialization, and 125 ms settling at 1x for readability;
 hitches retain all phases. Ally/Enemy text and a one-source-pixel cyan/red outline
 outside the black HP frame show current side; HP size/color/opacity still express
 health. Exact clone identity, visibility, possession, and recorded summon/charm
 provenance come from the authoritative projection, never presentation writes.
+
+**REDUX DEVIATION: optional HP artwork and supplemental injury text.** Show Combat
+HP Bars defaults On. Off removes battlefield HP fills/frames and their attached
+allegiance outline; independent Ally/Enemy text, statuses, selection/target cues,
+insect-member pips and the actual-fleeing `<>` marker remain. The shared health
+primitive's noncombat consumers are unaffected. Signature foreground layers still
+compose underlying actor pixels even when their HP artwork is disabled.
+
+Both modes retain numeric damage in Battle Report and floating results. With bars
+Off, a disclosed positive surviving monster damage result adds the
+[COMBAT-0008](#combat-0008) condition, such as "Orc is heavily wounded!" This is
+supplemental Redux feedback, not a wholesale reproduction of original diagnosis
+admission: no extra health sentence accompanies zero loss, death, status-only
+effects, PCs or PC clones. Allied monsters remain eligible monsters. The core
+records detached post-hit severity and identity/disclosure before presentation and
+survivor-side effects. History never reads a replacement monster's live HP or
+identity. Changing the preference may show/hide an old suffix, but cannot rewrite
+its severity. Styled text and plain-text layout use the same policy; field damage
+has one report owner and an absent attacker cannot alias target slot zero.
+
+Ctrl+Q can reload the active player slot at a normal player-controlled combat
+input boundary as a Redux retry convenience. It neither saves outgoing combat nor
+spends an action, and does not interrupt an enemy turn, targeting or an owning
+workflow. Blocked chords are suppressed through release rather than buffered;
+incidental labels/cards do not block loading. Slot/revision validation, atomic
+failure retention and confirmation semantics are owned by [CMD-0002](COMMANDS_REFERENCE.md#cmd-0002).
 
 Square-owned visuals remain anchored to battlefield coordinates: persistent
 fields, cone preview/cast footprints, adjacent/utility target cues and aim/wake
@@ -629,5 +709,5 @@ with the existing workflow. See the
 [fire feedback contract](../systems/VISUAL_EFFECTS_SYSTEM.md#combat-fire-injury-feedback)
 for identity, disclosure and cleanup boundaries.
 
-**Implementation:** `internal/game_state/combat_attack_preview.go`, `internal/game_state/combat_auto_action.go`, `cmd/ultimav/gamescene_projectile.go`, `internal/game_state/combat_fire_injury.go`, `cmd/ultimav/gamescene_combat_fire.go`, `cmd/ultimav/gamescene_draw_entities.go`, `cmd/ultimav/gamescene_combat_active_indicator.go`
-**Tests:** `internal/game_state/combat_attack_preview_test.go`, `internal/game_state/combat_auto_action_test.go`, `internal/game_state/combat_interruption_test.go`, `internal/game_state/combat_fire_injury_test.go`, `cmd/ultimav/gamescene_combat_fire_test.go`, `cmd/ultimav/gamescene_combat_square_visuals_test.go`, `cmd/ultimav/gamescene_combat_arch_indicator_test.go`
+**Implementation:** `internal/game_state/combat_attack_preview.go`, `internal/game_state/combat_auto_action.go`, `cmd/ultimav/gamescene_projectile.go`, `internal/game_state/combat_fire_injury.go`, `cmd/ultimav/gamescene_combat_fire.go`, `cmd/ultimav/gamescene_draw_entities.go`, `cmd/ultimav/gamescene_combat_active_indicator.go`, `cmd/ultimav/gamescene_combat_timing.go`, `cmd/ultimav/gamescene_combat_scheduler.go`, `cmd/ultimav/gamescene_combat_movement.go`, `cmd/ultimav/gamescene_input_combat.go`, `cmd/ultimav/gamescene_combat_signature_effect.go`, `cmd/ultimav/gamescene_combat_impact.go`, `cmd/ultimav/gamescene_combat_spell_effects.go`, `cmd/ultimav/gamescene_combat_invocation_effect.go`, `cmd/ultimav/gamescene_combat_utility_spell_effect.go`, `internal/game_state/party_state_builder_timing.go`, `internal/game_state/combat_events.go`, `internal/game_state/combat_monster_injury.go`, `cmd/ultimav/gamescene_combat_injury_report.go`, `cmd/ultimav/gamescene_combat_report_identity.go`, `cmd/ultimav/gamescene_combat_hud.go`, `cmd/ultimav/gamescene_combat_health_frame.go`, `cmd/ultimav/gamescene_combat_actor_conditions.go`, `cmd/ultimav/gamescene_combat_cone.go`, `cmd/ultimav/gamescene_combat_division_effect.go`, `cmd/ultimav/gamescene_combat_vanish_effect.go`, `cmd/ultimav/gamescene_combat_sceptre_effect.go`, `cmd/ultimav/gamescene_combat_party_spell.go`, `cmd/ultimav/gamescene_combat_loot.go`, `cmd/ultimav/gamescene_combat_exit.go`, `cmd/ultimav/gamescene_cast_spell.go`, `cmd/ultimav/gamescene_use_potion.go`, `cmd/ultimav/gamescene_use_scroll.go`, `cmd/ultimav/gamescene_visual_effects.go`, `cmd/ultimav/gamescene_update.go`, `internal/game_state/party_state_builder.go`, `internal/game_state/action_attack.go`, `internal/game_state/combat_spell_targeting.go`, `internal/game_state/combat_cone_spells.go`, `internal/game_state/combat_cone_outcomes.go`, `internal/game_state/combat_misc_spells.go`
+**Tests:** `internal/game_state/combat_attack_preview_test.go`, `internal/game_state/combat_auto_action_test.go`, `internal/game_state/combat_interruption_test.go`, `internal/game_state/combat_fire_injury_test.go`, `cmd/ultimav/gamescene_combat_fire_test.go`, `cmd/ultimav/gamescene_combat_square_visuals_test.go`, `cmd/ultimav/gamescene_combat_arch_indicator_test.go`, `cmd/ultimav/gamescene_combat_timing_test.go`, `cmd/ultimav/gamescene_combat_effect_timing_test.go`, `cmd/ultimav/gamescene_combat_spell_timing_test.go`, `cmd/ultimav/gamescene_combat_effect_admission_test.go`, `cmd/ultimav/gamescene_combat_signature_timing_test.go`, `internal/game_state/party_state_builder_timing_test.go`, `cmd/ultimav/gamescene_combat_injury_report_test.go`, `cmd/ultimav/gamescene_combat_health_preferences_test.go`, `cmd/ultimav/gamescene_combat_attack_preview_test.go`, `internal/game_state/combat_area_spell_outcome_test.go`, `internal/game_state/combat_fidelity_damage_regression_test.go`

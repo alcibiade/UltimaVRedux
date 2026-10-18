@@ -349,6 +349,7 @@ func drawCombatConeDirectionArrow(
 }
 
 func (g *GameScene) startCombatConeSpellEffect(result game_state.CombatConeTargetResult) {
+	timing := g.captureCombatTiming()
 	visual := combatDirectionalFootprintVisualForSpell(result.Request.Spell)
 	g.gameState.EventQueueManager.Workflow("combat_cone_spell_effect").
 		Priority(event_queue.PriorityHigh).
@@ -359,11 +360,11 @@ func (g *GameScene) startCombatConeSpellEffect(result game_state.CombatConeTarge
 				positions: result.Positions, progress: 0,
 			}
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundWhiteNoiseDamage)
-		}).Animate(visual.PropagationDuration, func(progress float32) {
+		}).Animate(timing.duration(visual.PropagationDuration), func(progress float32) {
 		g.combatConeCast.progress = progress
-	}).Wait(visual.HoldDuration).Then(func() {
+	}).Wait(timing.durationMs(visual.HoldDuration)).Then(g.combatTimingStep(timing, func() {
 		g.presentCombatAreaSpellSummary(g.gameState.ResolveCommittedCombatCone(result))
-	}).Finally(func() {
+	})).Finally(func() {
 		g.combatConeCast = nil
 		g.gameState.FinishCombatAction()
 	}).Start()

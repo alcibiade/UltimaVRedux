@@ -21,7 +21,7 @@ func TestGemViewWorkflowRemovesDialogAfterDismissal(t *testing.T) {
 		WithPlayerAt(10, 10).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused dialog fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused dialog fixture.
 	var dialog *widgets.GemViewDialog
 
 	state.EventQueueManager.Workflow("test_gem_view_lifecycle").
@@ -51,8 +51,8 @@ func TestGemViewWorkflowRemovesDialogAfterDismissal(t *testing.T) {
 }
 
 func TestFinishSpellCastingWorkflowRestoresOwnedViewState(t *testing.T) {
-	scene := &GameScene{keyboard: input.NewKeyboard(0)}             //nolint:exhaustruct // Focused cleanup fixture.
-	dialog := widgets.NewGemViewDialog(widgets.GemViewDialogConfig{ //nolint:exhaustruct // Rendering is not exercised.
+	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused cleanup fixture.
+	dialog := widgets.NewGemViewDialog(widgets.GemViewDialogConfig{                           //nolint:exhaustruct // Rendering is not exercised.
 		Placement: centeredGameDialogPercents,
 		Keyboard:  scene.keyboard,
 	})
@@ -74,7 +74,7 @@ func TestFinishSpellCastingWorkflowRestoresOwnedViewState(t *testing.T) {
 }
 
 func TestFinishSpellCastingWorkflowPreservesPreviousXRayState(t *testing.T) {
-	scene := &GameScene{keyboard: input.NewKeyboard(0), xRayVisionActive: true} //nolint:exhaustruct // Focused cleanup fixture.
+	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), xRayVisionActive: true} //nolint:exhaustruct // Focused cleanup fixture.
 	state := &spellCastingWorkflowState{restoreXRay: true, previousXRay: true}
 
 	scene.finishSpellCastingWorkflow(state)
@@ -107,7 +107,7 @@ func TestGemViewWorkflowDoesNotOwnTimeAdvancement(t *testing.T) {
 		WithPlayerAt(10, 10).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused dialog fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused dialog fixture.
 
 	scene.StartGemViewWorkflow()
 	state.EventQueueManager.Update()

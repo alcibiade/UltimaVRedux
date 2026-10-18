@@ -158,6 +158,8 @@ func (g *GameScene) startUseWorkflow(context game_state.UsageContext, completeSu
 				g.clearPocketWatchDialog()
 				g.clearPotionEffectDialog()
 				g.clearCombatInvocationEffects()
+				g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
+				g.gameState.SystemCallbacks.Visual.SetScreenInvert(0, 0)
 			}
 			g.keyboard.ResetReleaseDebouncing()
 			if hmsCapeConfirmation != nil && hmsCapeConfirmation.committed {

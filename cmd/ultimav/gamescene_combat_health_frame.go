@@ -14,6 +14,10 @@ import (
 // health frame. Drawing four disjoint strips never paints over its HP interior.
 func combatHealthFrameBounds() image.Rectangle { return image.Rect(1, 12, 16, 18) }
 
+func (g *GameScene) showCombatHPBars() bool {
+	return g.gameConfig == nil || g.gameConfig.GetShowCombatHPBars()
+}
+
 func drawCombatHealthFrameOutline(screen *ebiten.Image, options *ebiten.DrawImageOptions, loyalty game_state.CombatMonsterLoyalty) {
 	clr := ucolor.CombatAllegianceEnemy
 	if loyalty == game_state.CombatMonsterLoyaltyParty {
@@ -32,6 +36,9 @@ func drawCombatHealthFrameOutline(screen *ebiten.Image, options *ebiten.DrawImag
 }
 
 func (g *GameScene) drawCombatAllegianceHealthOutline(screen *ebiten.Image, options *ebiten.DrawImageOptions, identity game_state.CombatTurnIdentity) {
+	if !g.showCombatHPBars() {
+		return
+	}
 	if actor, disclosed := g.gameState.ProjectCombatActor(identity, 0); disclosed {
 		drawCombatHealthFrameOutline(screen, options, actor.Loyalty)
 	}
@@ -63,6 +70,9 @@ func (g *GameScene) drawCombatHealthFrames(screen *ebiten.Image) {
 
 func (g *GameScene) drawCombatActorHealthFrame(screen *ebiten.Image, options *ebiten.DrawImageOptions, actor game_state.CombatActorPresentation) {
 	if actor.Identity.IsPartyMember {
+		if !g.showCombatHPBars() {
+			return
+		}
 		character := g.gameState.PartyState.GetCharacter(actor.Identity.EntityIndex)
 		drawCombatHealthFrameOutline(screen, options, actor.Loyalty)
 		drawCombatHealthBar(screen, options, int(character.GetCurrentHp()), int(character.GetMaxHp()))
@@ -74,11 +84,16 @@ func (g *GameScene) drawCombatActorHealthFrame(screen *ebiten.Image, options *eb
 		if stack[0] != actor.Identity.EntityIndex {
 			return
 		}
-		drawCombatHealthFrameOutline(screen, options, actor.Loyalty)
-		drawCombatHealthBar(screen, options, 0, 1) // Black separator around the aggregate's unchanged segments.
-		g.drawCombatInsectStackHealth(screen, options, stack)
+		if g.showCombatHPBars() {
+			drawCombatHealthFrameOutline(screen, options, actor.Loyalty)
+			drawCombatHealthBar(screen, options, 0, 1) // Black separator around the aggregate's unchanged segments.
+			g.drawCombatInsectStackHealth(screen, options, stack)
+		}
 		g.drawCombatInsectStackIndicators(screen, options, stack)
 
+		return
+	}
+	if !g.showCombatHPBars() {
 		return
 	}
 	monster := g.gameState.CombatScene.MonsterManager.GetMonster(actor.Identity.EntityIndex)
@@ -93,7 +108,7 @@ func (g *GameScene) combatSignatureHealthOptions(effect *combatSignatureEffect) 
 	}
 	position, opacity := effect.To, float32(1)
 	if effect.Kind == game_state.CombatEventTeleport {
-		phase, progress := combatSignatureBlink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
+		phase, progress := effect.blink(max(g.gameState.ElapsedMs-effect.StartedMs, 0))
 		if phase == combatTeleportHidden {
 			return nil, false
 		}
@@ -123,6 +138,8 @@ func (g *GameScene) combatSignatureImage(effect *combatSignatureEffect) *ebiten.
 
 func (g *GameScene) prepareCombatSignatureLayers(effect *combatSignatureEffect) {
 	frame := g.combatSignatureImage(effect)
+	// Even with bars hidden this region contains sprite feet/status pixels.
+	// Always partition and draw both layers; only HP artwork is conditional.
 	// Keep both layers at the full source dimensions and use the same transform.
 	// Cropped-source quads can choose a different nearest texel at noninteger
 	// scaling ties. Partition at integral source pixels before scaling instead.

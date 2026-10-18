@@ -157,20 +157,39 @@ the observation, facing, dismissal state or release guard.
 
 `SystemCallbacks.UI.ShowActionFeedback` routes to `GameScene.ShowActionFeedback`:
 
-1. Optionally append the message to the main output.
-2. Create `widgets.NewActionFeedbackDialog`.
+1. If `alsoAddToOutput` is true, append the message once to the main output before checking popup admission.
+2. Read the successfully applied **Maximum Action Popups** (`Gameplay.Presentation.MaxVisibleActionPopups`): Off (0) creates no card; 1–3 permit that many, with default 3. Create `widgets.NewActionFeedbackDialog` only when enabled.
 3. Attach its scene-owned animation clock, show it, and push it as non-blocking.
-4. Measure complete wrapped content and admit it to a newest-first stack of at most three cards.
+4. Measure complete wrapped content and admit it to the shared newest-first action/Search stack, removing oldest exact instances above the configured limit.
 5. Place the stack within the surface, dungeon-HUD, or combat-battlefield safe area, evicting oldest cards when complete cards do not fit.
 6. Animate rearrangement from current positions while pausing only the affected cards' remaining reveal, hold, or hide budget.
 7. Remove the exact instance after its 400 ms reveal, 1600 ms readable hold, and 300 ms hide complete.
 
 Rapid feedback calls remain independently owned and never block gameplay. Fitting cards retain complete content and visible gaps; an oversized newest singleton keeps its beginning visible and clips at the lower feedback boundary. Resize and map-mode changes remeasure and retarget the live stack without refreshing lifetime. Scene replacement and disposal remove every retained exact instance.
 
+The ordinary transient update reconciles a lower applied cap even without another
+message or geometry change. This retirement works during reveal, hold and hide,
+and while a covering modal pauses the remaining lifetime. Retired cards hide
+immediately, leave the dialog stack, and release scene/chest references; Off keeps
+no invisible card or pending admission. Empty stacks reset their layout state.
+Increasing the cap never resurrects retired cards. Configuration staging, Cancel
+and failed Apply do not change live capacity or evict cards.
+
+`ShowSearchFeedback` uses the same admission and layout policy. Search and calls
+with `alsoAddToOutput == false` keep their caller-owned narration; the adapter
+never conditionally adds text when a popup is suppressed. Calls with `true`
+retain history at every limit, including location entry/exit and telescope or
+spyglass results/refusals. Identical messages from separate actions remain separate
+history entries. See [message ownership](../systems/MESSAGE_OUTPUT_SYSTEM.md#action-and-search-feedback-history).
+
 Chest contents admission retires all scene-owned action-feedback cards. A
 successful Jimmy card also retires if its chest lifetime ends without a pending
 reveal. [Combat loot feedback](#combat-loot-feedback) distinguishes scoped cleanup
 from admission's broader retirement; persistent history survives.
+At Off, successful Jimmy capture may have no admitted handles. Modal contents,
+current-opening trap notices, summaries, confirmations and their acknowledgement
+workflows remain outside this cap. Chest finalization cannot remove later cards,
+and closing contents cannot revive cards retired at admission or by a lower cap.
 
 ## Smooth Surface Movement
 
@@ -550,12 +569,21 @@ Supply details come from the embedded inventory catalog and explain each
 provision's source-backed gameplay purpose without changing quantities or
 mechanics.
 
-Catalog rows include parenthetical quantities, including zero for visible
-catalog entries. Spells show prepared counts; armory rows use compact typography
-and explicitly label available and readied counts. Width-aware name fitting
-keeps count suffixes visible at supported resolutions without wrapping a
-one-line output buffer. Character equipped-slot rows remain uncounted, and
-special possessions retain their owned-only filter.
+Counted catalog rows include parenthetical quantities, including zero for visible
+catalog entries. Spells show prepared counts. Armory and character equipped-slot
+rows show full equipment names at compact typography; available/readied counts
+belong in armory details rather than the uncounted equipment rows. Measured wrapping
+reserves glyphs, first-line quantity suffixes and the scroll gutter before laying
+out the complete name. Special possessions retain their owned-only filter and
+selection follows typed identity across refresh/reordering.
+
+Moonstone entries carry explicit optional typed phase data, with phase zero a
+present New Moon rather than absence. The Items list uses a small phase glyph;
+details use a compact framed phase icon beside the full heading and category/
+quantity summary, replacing the ordinary large catalog portrait allocation only
+for moonstones. Integer nearest-neighbour scaling follows bounded header/pixel
+units, not spare pane space. New Moon retains its outline. The fixed compact header
+stays visible while long lore pages below it; other item portraits remain intact.
 
 Spell details keep a compact, content-measured summary beside the portrait.
 Circle, MP, and prepared count share a summary row; the formula state remains
@@ -610,6 +638,18 @@ motion. A field/list ordinal must never stand in for a monster identity. See
 
 The forecast must not advance combat turns or consume gameplay RNG. The HUD remains static during battlefield shake while battlefield-local impact labels follow world transforms.
 
+Show Combat HP Bars defaults On. Off hides battlefield HP artwork and its attached
+allegiance outline while preserving actor pixels, independent Ally/Enemy text,
+status/selection/target cues, insect member pips and actual-fleeing `<>` markers.
+Numeric report damage and floating numbers remain in both modes. Off additionally
+shows the recorded [original monster injury band](../gamefacts/COMBAT.md#combat-0008)
+for disclosed positive surviving monster damage; PCs/clones, fatal, zero-loss and
+status-only results have no extra injury sentence. Core events capture severity,
+identity and disclosure at resolution. History never consults later HP or a reused
+slot. Toggling the preference changes suffix visibility, not historical content;
+styled/plain measurement and paging share the same suffix policy. Target-only
+field reports do not treat an absent attacker as monster slot zero.
+
 Combat terrain admission is a presentation filter, not a queue filter. A monster
 on authored `BlackSquare`/`BrickWallArchway` terrain retains its turn forecast
 slot, scheduling, and actions, but the HUD omits its portrait and identifying
@@ -635,11 +675,13 @@ height before placing equipment readouts and NEXT.
 `appendCombatAttackReadout` consumes the detached core preview through
 `GameScene.combatAttackPreview`. Before aiming it lists each attack source and
 its own effective range as `(RN)`; during physical aiming it lists only the
-current source, the target name (or `Square` without a revealed enemy) with
-distance `(DN)`, and a concise presentation-only shot status. The target itself
-labels the aiming row because an additional `Aim:` prefix cannot fit the longest
-visible names at 1280x720 without reducing the established font size. The core
-`CombatShotStatus` values remain unchanged.
+current source, the target name with distance `(DN)`, and a concise
+presentation-only shot status. The origin says `Choose target`; an unnamed
+square says `No one seen`, preserving disclosure rather than revealing occupancy.
+Complete equipment and target labels wrap to the measured pane width at the
+normal HUD font size. `prepareCombatAttackReadout` reserves their full physical
+height before placing NEXT. The target itself labels the aiming row without an
+additional `Aim:` prefix. The core `CombatShotStatus` values remain unchanged.
 It does not collapse mixed sources to their longest range or predict hit chance.
 Input-blocked workflows, enemy/auto-pass turns, and unrelated targeting suppress
 the assistance readout. The battlefield uses the same authoritative preview for

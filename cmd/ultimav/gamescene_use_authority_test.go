@@ -63,7 +63,7 @@ func newUseAuthorityTestScene(t *testing.T) (*GameScene, *game_state.MockSystemC
 
 	return &GameScene{
 		gameState:   state,
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
 		output:      text.NewOutput(nil, 1, 10, 80),
 	}, callbacks

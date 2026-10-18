@@ -172,6 +172,7 @@ func combatCornerCueSourceBounds(origin, size, inset float32) (float64, float64,
 }
 
 func (g *GameScene) startCombatUtilitySpellEffect(result game_state.CombatAdjacentSpellTargetResult) {
+	timing := g.captureCombatTiming()
 	if !g.gameState.StartCombatUtilitySpell(result.Utility) {
 		return
 	}
@@ -196,9 +197,9 @@ func (g *GameScene) startCombatUtilitySpellEffect(result game_state.CombatAdjace
 		First(func() {
 			g.combatUtilityEffect = effect
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(sound)
-		}).Animate(combatUtilityApproachDurationMs, func(progress float32) {
+		}).Animate(timing.duration(combatUtilityApproachDurationMs), func(progress float32) {
 		effect.Progress = progress
-	}).Then(func() {
+	}).Then(g.combatTimingStep(timing, func() {
 		if !g.gameState.ResolveCombatUtilitySpell(result.Utility) {
 			if g.combatUtilityEffect == effect {
 				g.combatUtilityEffect = nil
@@ -208,7 +209,7 @@ func (g *GameScene) startCombatUtilitySpellEffect(result game_state.CombatAdjace
 		}
 		effect.Phase = combatUtilityResult
 		effect.Progress = 0
-	}).Animate(combatUtilityResultDurationMs, func(progress float32) {
+	})).Animate(timing.duration(combatUtilityResultDurationMs), func(progress float32) {
 		effect.Progress = progress
 	}).Finally(func() {
 		if g.combatUtilityEffect == effect {
@@ -219,10 +220,12 @@ func (g *GameScene) startCombatUtilitySpellEffect(result game_state.CombatAdjace
 }
 
 func (g *GameScene) thenCastCombatInPor(casterIdx int) event_queue.Sequence {
+	timing := g.captureCombatTiming()
+
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var result game_state.CombatInPorResult
 
-		return q.Then(func() {
+		return q.Then(g.combatTimingStep(timing, func() {
 			result = g.gameState.PlanCombatInPor(casterIdx)
 			if result.Outcome == game_state.CombatInPorResolved {
 				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
@@ -230,19 +233,19 @@ func (g *GameScene) thenCastCombatInPor(casterIdx int) event_queue.Sequence {
 					Caster: result.Caster, From: result.From, To: result.To, Phase: combatTeleportDeparture,
 				}
 			}
-		}).If(func() bool { return result.Outcome == game_state.CombatInPorResolved }, func(effectQ *event_queue.SequentialEventBuilder) {
-			effectQ.Animate(combatTeleportDepartureMs, func(progress float32) {
+		})).If(func() bool { return result.Outcome == game_state.CombatInPorResolved }, func(effectQ *event_queue.SequentialEventBuilder) {
+			effectQ.Animate(timing.duration(combatTeleportDepartureMs), func(progress float32) {
 				g.combatTeleportEffect.Progress = progress
-			}).Then(func() {
+			}).Then(g.combatTimingStep(timing, func() {
 				g.gameState.ApplyCombatInPor(result)
 				g.combatTeleportEffect.Phase = combatTeleportHidden
 				g.gameState.SystemCallbacks.Visual.SetScreenFlashColor(0.5, 0.0, 0.5)
 				g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(combatTeleportFlashIntensity)
-			}).Wait(combatTeleportHiddenMs).Then(func() {
+			})).Wait(timing.durationMs(combatTeleportHiddenMs)).Then(func() {
 				g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
 				g.combatTeleportEffect.Phase = combatTeleportArrival
 				g.combatTeleportEffect.Progress = 0
-			}).Animate(combatTeleportArrivalMs, func(progress float32) {
+			}).Animate(timing.duration(combatTeleportArrivalMs), func(progress float32) {
 				g.combatTeleportEffect.Progress = progress
 			}).Then(func() {
 				g.combatTeleportEffect = nil

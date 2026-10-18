@@ -26,7 +26,7 @@ func TestWishingWellEscapeCompletesWorkflowAndPreservesResources(t *testing.T) {
 	state.PartyState.Inventory.Gold.Set(10)
 	scene := &GameScene{ //nolint:exhaustruct // Focused wishing-well workflow fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),
 	}
 	position := findWishingWellWorkflowPosition(t, state)
@@ -167,7 +167,7 @@ func TestSpellExpiredPopupCoalescesIdenticalLiveWorkflow(t *testing.T) {
 		Build()
 	scene := &GameScene{ //nolint:exhaustruct // Focused expiration-popup workflow fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 	}
 	workflowName := "spell_expired_Time Stop"
 
@@ -196,7 +196,7 @@ func TestShrineAndCodexWorkflowsCoalesceDuplicateStarts(t *testing.T) {
 			state, callbacks := game_state.NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
 			scene := &GameScene{ //nolint:exhaustruct // Duplicate reservation does not execute presentation.
 				gameState: state,
-				keyboard:  input.NewKeyboard(0),
+				keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 			}
 
 			test.start(scene)
@@ -211,7 +211,7 @@ func TestFailedDeathWorkflowRestoresEntityVisibility(t *testing.T) {
 	state, callbacks := game_state.NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
 	scene := &GameScene{ //nolint:exhaustruct // Focused death-workflow cleanup fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 	}
 	scene.HideNonAvatarEntities()
 
@@ -241,7 +241,7 @@ func TestDeathWorkflowReleasesAmbientOwnershipOnShutdown(t *testing.T) {
 			}
 			scene := &GameScene{ //nolint:exhaustruct // Focused death-workflow lifecycle fixture.
 				gameState: state,
-				keyboard:  input.NewKeyboard(0),
+				keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 			}
 			if initiallyHidden {
 				scene.HideAmbientSounds()
@@ -264,7 +264,7 @@ func TestStonegateKeepsAlreadyLiveDeathWorkflow(t *testing.T) {
 	require.True(t, state.GetCurrentLayeredMapAvatarTopTile().Is(indexes.BrickFloorHole))
 	scene := &GameScene{ //nolint:exhaustruct // Focused Stonegate workflow collision fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),
 	}
 
@@ -312,7 +312,7 @@ func newWishingWellWorkflowTestScene(t *testing.T, gold uint16) (*GameScene, *ga
 
 	return &GameScene{ //nolint:exhaustruct // Focused wishing-well workflow fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),
 	}, callbacks
 }

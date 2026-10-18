@@ -86,6 +86,10 @@ func registerReduxModificationsDebugCommands(registry *debugCommandRegistry) {
 		debugging.CommandReduxDungeonsSubduedUnlitVisibilitySet,
 		debugging.CommandReduxPresentationSmoothSurfaceMovementSet,
 		debugging.CommandReduxNavigationFlexibleSextantUseSet,
+		debugging.CommandCombatPresentationSpeedSet,
+		debugging.CommandReduxConfirmQuickSaveSet,
+		debugging.CommandReduxCombatHPBarsSet,
+		debugging.CommandReduxActionPopupsSet,
 	)
 }
 

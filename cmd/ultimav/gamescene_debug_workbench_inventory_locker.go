@@ -524,17 +524,13 @@ func inventoryProvisionMaximum(provision game_state.DebugInventoryProvision) uin
 }
 
 func inventoryReagentName(reagent references.Reagent) string {
-	return []string{
-		"Sulfurous Ash", "Ginseng", "Garlic", "Spider Silk", "Blood Moss", "Black Pearl", "Nightshade", "Mandrake Root",
-	}[reagent]
+	return references.NewInventoryItemsReferences().Reagent[reagent].FullDisplayName()
 }
 
 func inventoryPotionName(potion references.Potion) string {
-	return []string{"Blue", "Yellow", "Red", "Green", "Orange", "Purple", "Black", "White"}[potion]
+	return references.NewInventoryItemsReferences().Potion[potion].FullDisplayName()
 }
 
 func inventoryScrollName(scroll references.Scroll) string {
-	return []string{
-		"Vas Lor", "Rel Hur", "In Sanct", "In An", "In Quas Wis", "Kal Xen Corp", "In Mani Corp", "An Tym",
-	}[scroll]
+	return references.NewInventoryItemsReferences().Scroll[scroll].FullDisplayName()
 }

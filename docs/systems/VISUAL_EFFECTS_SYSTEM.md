@@ -598,7 +598,8 @@ PC clones retain their distinct `Slot`. Encounter-only charm and summon flags
 are recorded at successful producers, never inferred from loyalty. A dividing
 monster creates a fresh hostile child without inheriting those flags.
 
-Every disclosed battlefield actor uses a steady one-source-pixel **cyan Ally /
+With Show Combat HP Bars enabled (the default), every disclosed battlefield actor
+uses a steady one-source-pixel **cyan Ally /
 red Enemy exterior outline around its black HP frame**, paired with explicit
 Ally/Enemy text. The exterior is `(x=1, y=12, width=15, height=6)` inside the
 18-pixel replacement sprite. The existing black HP frame remains exactly
@@ -606,6 +607,15 @@ Ally/Enemy text. The exterior is `(x=1, y=12, width=15, height=6)` inside the
 health-threshold colours and opacity. The outline never recolours or covers the
 HP interior. Non-combat world/vehicle callers of `drawCombatHealthBar` receive
 no allegiance outline.
+
+Disabling Show Combat HP Bars removes the health fill/frame and attached outline,
+not the complete foreground pass. Signature health-region images can contain
+underlying actor pixels and must still receive their matching mask/opacity and
+position exactly once. Insect member/control pips, independent Ally/Enemy text,
+statuses, targeting, selection and actual-fleeing `<>` remain. Noncombat health
+consumers keep their existing rendering. Numeric damage remains readable; Battle
+Report adds a detached post-hit monster condition under the
+[conditional reporting contract](../gamefacts/COMBAT.md#combat-0012).
 
 HP and allegiance render together in a foreground pass after actor/status
 artwork, protecting both from overlapping 18-pixel neighbors. Teleport/capture
@@ -648,6 +658,14 @@ concealment and source/clone identity are covered by
 
 ## Combat Signature Feedback And Conditions
 
+All finite timings in this section are **authored at 1x**. The immutable
+[combat timing policy](TIME_SYSTEM.md#combat-presentation-speed) divides each
+included duration once using the committed action's master rate. The snapshot
+is captured before synchronous event publication and retained by every later
+phase; changing settings does not retime an admitted effect. Gate and monster
+teleport snapshots store their effective phase durations, shared by body,
+selection, health and actor-condition composition.
+
 `GameScene.recordCombatEvent` consumes already-committed `CombatEvent` results.
 `cmd/ultimav/gamescene_combat_signature_effect.go` owns concurrent, short-lived
 snapshots for these successful outcomes:
@@ -655,10 +673,10 @@ snapshots for these successful outcomes:
 | Event | Presentation | Audio cue request |
 |---|---|---|
 | `CombatEventGating` | 125 ms arrival disturbance, 600 ms scattered-pixel materialization, 125 ms settling of the **created** Daemon at its committed position. | `SoundMonsterGate`, once at materialization onset |
-| `CombatEventPossession` | Stepped blue caster-to-victim link and onset corners; a blue marker remains on the possessed entry afterward. | `SoundMonsterPossession` |
-| `CombatEventTeleport` | Departure, hidden interval and arrival at the published endpoints. | `SoundMonsterTeleport` |
-| `CombatConditionDraggedUnder` | Corpser victim hides/dissolves, with an Underground cue. | `SoundCorpserCapture` |
-| `CombatConditionRegurgitated` | The released exact victim reveals again. | `SoundCorpserRelease` |
+| `CombatEventPossession` | 600 ms stepped blue caster-to-victim link and onset corners; a blue marker remains on the possessed entry afterward. | `SoundMonsterPossession` |
+| `CombatEventTeleport` | 180/80/200 ms departure, hidden interval and arrival at the published endpoints. | `SoundMonsterTeleport` |
+| `CombatConditionDraggedUnder` | 420 ms Corpser victim hide/dissolve, with an Underground cue. | `SoundCorpserCapture` |
+| `CombatConditionRegurgitated` | The released exact victim reveals again over 420 ms. | `SoundCorpserRelease` |
 
 Routine underground turns do not replay capture. These snapshots never summon,
 move, charm, release, apply damage or complete a turn. They retain the encounter,
@@ -669,7 +687,8 @@ RNG. `StartedMs` is captured from `GameState.ElapsedMs` at admission. Gates
 advance at most one named phase per update and anchor the new phase to that
 update's clock; a hitch cannot consume an unpresented phase. Their live predicate
 remains true until effect update completes settling, including when the workflow
-polls before visual effects. Nominal duration is 850 ms; hitches extend it.
+polls before visual effects. Nominal duration is 850 ms at 1x; the three
+individually scaled phases determine other rates, and hitches extend it.
 Repeated updates at the same elapsed value do not age it. Wind continues on the shared main RNG during these
 waits: reproducibility requires the same elapsed/action timeline, not just the
 same seed. See [timing/RNG scope](TIME_SYSTEM.md#elapsed-time-and-shared-rng-scope).
@@ -977,8 +996,15 @@ previous update's pre-launch interval (see
 [animation admission](EVENT_QUEUE_SYSTEM.md#animation-admission-and-time)).
 Timing uses native pixels, independent of display scaling: ordinary missiles
 travel 13 pixels per 40 ms, rocks 8, and town missiles 6. The Euclidean path and
-100 ms minimum are deliberate Redux presentation choices; original evidence is
+100 ms authored minimum are deliberate Redux presentation choices; original evidence is
 recorded in [COMBAT-0012](../gamefacts/COMBAT.md#combat-0012).
+
+The combat sequence scales the calculated base duration **after** that floor.
+At 4x a minimum flight is 25 ms. One action snapshot covers every source and
+outbound/impact/return leg. `StartProjectile` itself continues to return an
+unscaled duration so shared surface cannon, pirate and world-missile workflows
+retain their own timing. Impact still follows arrival and clearing; presentation
+never spends a later source or reapplies a resolved hit.
 
 ### Rendering Families And Automated Probes
 
@@ -1016,6 +1042,52 @@ display settings, allow a normal Ettin turn, observe recognisable stone travel,
 and repeat representative physical, coloured and cannonball flights at supported
 window/fullscreen and display scales. Neither these pixel assertions nor a VFX
 primitive preview substitutes for a recorded gameplay observation.
+
+## Finite Combat Timing And Readability
+
+Cone propagation/hold (450/150 ms), party spell flashes (500 ms healing/cure
+inversion; 150 ms awakening flash), combat-scoped shared pulses (180 ms, with a
+60 ms gap where authored), reveal (600 ms), earthquake
+(1000 ms), utility approach/result (180/220 ms), and player teleport
+(180/80/200 ms) use the same captured policy. Summon phases retain their
+120/140/300/180 ms profile; Daemon invocation retains 150/180/420/280 ms;
+repel/fear retain 240/640 ms caster/target phases. Workflow animation progress
+drives the same phase state consumed by rendering. A phase still must be admitted
+before its time can be spent; faster rates do not skip phases after hitches.
+
+`PartyStateBuilder.BuildWithPresentationTiming` clones the authored visual layers
+and maps their durations together, preserving agreement between the longest
+animation and individual flash/inversion/shake progress. It retains existing
+gameplay mutation and audio ownership; ordinary `Build()` stays at its authored
+timing. Combat scroll inversion uses the same scaled duration for its expiry and
+owning wait. Confirmations remain player-dismissed.
+
+Concurrent motion is independent of result reading: impact snapshots store
+effective 300 ms lunge, 320 ms jolt and 180 ms strike durations, while floating
+labels always retain 1250 ms. Division's 280 ms tether / 720 ms total and 110 ms
+outline interval, 750 ms disappearance, 320 ms Sceptre / 420 ms field-dispel cues,
+and 500 ms combat Kapow bursts scale without acquiring input or a new completion
+dependency. Their noncombat callers and the movement-bound fire readability
+budget remain independent. Report emphasis, action cards, persistent conditions,
+selection/idle animation and audio are not accelerated.
+
+Concurrent impact (including area-spell labels), division, disappearance and
+combat Kapow snapshots record their admission timestamp. Updates calculate age
+from `GameState.ElapsedMs` rather than adding the previous frame's delta, so a
+50 ms or 200 ms frame cannot erase a newly admitted 4x strike, division or vanish
+before its first draw. Normal aging and expiry still use their captured durations;
+the 1250 ms reading budget remains unscaled. Movement-bound fire retains its
+separate contact/arrival clock. Sceptre, field-dispel and signature effects already
+use admission clocks; queued spell animations retain their animation-admission
+ownership. Noncombat Kapow effects retain their independent cosmetic delta clock.
+
+Chest contents reveal every authored 500 ms and victory departure waits an
+authored 180 ms per member, each with one sequence snapshot. Loot acknowledgement,
+turn completion, cancellation cleanup and input release retain their existing
+owners. The leading-only dynamic field-spell wait remains ineffective as
+documented in the [time contract](TIME_SYSTEM.md#combat-presentation-speed).
+Automated boundary, snapshot, return, hitch and cleanup tests do not substitute
+for native pacing and text-readability acceptance.
 
 ## Other Current Effects
 
@@ -1078,6 +1150,10 @@ Focused tests live beside the owning packages:
   scroll summon or `In Por` presentation phase
 - `cmd/ultimav/gamescene_combat_signature_timing_test.go` for hitch-time admission,
   full effect lifetime, exact turn-token ownership and the shared-wind RNG oracle
+- `cmd/ultimav/gamescene_combat_effect_admission_test.go` for production-order
+  concurrent effect publication after hitches, the first 16 ms strike draw with
+  an explicitly published logical display size,
+  exact expiry boundaries, same-time updates and unscaled label reading time
 - `cmd/ultimav/gamescene_combat_signature_disclosure_test.go` for concealed versus
   retired possession origins and immutable report disclosure after slot reuse
 - `cmd/ultimav/gamescene_combat_signature_composition_test.go` for teleport

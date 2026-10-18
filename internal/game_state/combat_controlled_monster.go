@@ -196,6 +196,7 @@ func (g *GameState) showControlledMonsterCombatFeedback(
 ) {
 	attacker := g.CombatScene.MonsterManager.GetMonster(attackerIndex)
 	target := g.CombatScene.MonsterManager.GetMonster(targetIndex)
+	injury := g.captureCombatMonsterInjury(CombatTurnIdentity{EntityIndex: targetIndex}, hpLost)
 	feedback := CombatAttackFeedback{
 		Attacker: CombatFeedbackEntity{
 			IsPartyMember: false,
@@ -218,14 +219,15 @@ func (g *GameState) showControlledMonsterCombatFeedback(
 	}
 	g.SystemCallbacks.Visual.ShowCombatImpact(feedback)
 	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
-		Kind:        eventKind,
-		Attacker:    feedback.Attacker,
-		Target:      feedback.Target,
-		Result:      result,
-		HPLost:      hpLost,
-		Fatal:       fatal,
-		From:        feedback.Attacker.Position,
-		To:          feedback.Target.Position,
-		Diagnostics: diagnostics,
+		Kind:          eventKind,
+		Attacker:      feedback.Attacker,
+		Target:        feedback.Target,
+		Result:        result,
+		HPLost:        hpLost,
+		Fatal:         fatal,
+		From:          feedback.Attacker.Position,
+		To:            feedback.Target.Position,
+		Diagnostics:   diagnostics,
+		MonsterInjury: injury,
 	})
 }

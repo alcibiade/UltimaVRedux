@@ -137,7 +137,7 @@ func newCommandWorkflowTestScene(t *testing.T) *GameScene {
 	return &GameScene{
 		gameState:   state,
 		output:      text.NewOutput(nil, 1, 10, 80),
-		keyboard:    input.NewKeyboard(0),
+		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// InventoryItemReferences holds detached metadata indexed by each typed item family.
 type InventoryItemReferences struct {
 	Equipment map[Equipment]InventoryItem
 	Reagent   map[Reagent]InventoryItem
@@ -33,6 +34,7 @@ func NewInventoryItemsReferences() *InventoryItemReferences {
 	}
 }
 
+// GetReferenceByItem resolves presentation metadata using the item's stable typed identity.
 func (i *InventoryItemReferences) GetReferenceByItem(item Item) InventoryItem {
 	switch item.Type() {
 	case ItemTypeEquipment:
@@ -57,14 +59,15 @@ func (i *InventoryItemReferences) GetReferenceByItem(item Item) InventoryItem {
 }
 
 func (i *InventoryItemReferences) getItemsAsStrings(itemStack *ItemStack) []string {
-	var items []string
+	items := make([]string, 0, len(itemStack.Items))
 	for _, item := range itemStack.Items {
-		items = append(items, i.GetReferenceByItem(item.Item).ItemName)
+		items = append(items, i.GetReferenceByItem(item.Item).FullDisplayName())
 	}
 
 	return items
 }
 
+// GetListOfItems lists complete identified labels in stack order, one per line.
 func (i *InventoryItemReferences) GetListOfItems(itemStack *ItemStack) string {
 	itemStrings := i.getItemsAsStrings(itemStack)
 
@@ -102,7 +105,7 @@ func (i *InventoryItemReferences) getQuestItem(q QuestItem) InventoryItem {
 // GetQuestItemDisplayName returns the full display name from the quest-item definition.
 // Panics if quest item not found (programming/data error).
 func (i *InventoryItemReferences) GetQuestItemDisplayName(q QuestItem) string {
-	return i.getQuestItem(q).ItemDisplayName
+	return i.getQuestItem(q).FullDisplayName()
 }
 
 // GetQuestItemPickupMessage returns the pickup message from the quest-item definition.

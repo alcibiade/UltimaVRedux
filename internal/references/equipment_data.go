@@ -17,6 +17,8 @@ package references
 // =============================================================================
 
 // equipmentDefinitions contains all static equipment data in a single source of truth.
+//
+//nolint:gochecknoglobals // Immutable equipment catalog shared by typed accessors; never mutated after initialization.
 var equipmentDefinitions = map[Equipment]equipmentDefinition{
 
 	// =========================================================================
@@ -184,17 +186,17 @@ var equipmentDefinitions = map[Equipment]equipmentDefinition{
 		BasePrice: 70, IconChar: 0x0B,
 	},
 	TwoHHammer: {
-		Name: "2H Hammer", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
+		Name: "Two-Handed Hammer", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
 		Attack: 20, StrRequired: 16, Range: 0, MissileType: MissileNone,
 		BasePrice: 85, IconChar: 0x11,
 	},
 	TwoHAxe: {
-		Name: "2H Axe", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
+		Name: "Two-Handed Axe", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
 		Attack: 20, StrRequired: 15, Range: 0, MissileType: MissileNone,
 		BasePrice: 150, IconChar: 0x12,
 	},
 	TwoHSword: {
-		Name: "2H Sword", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
+		Name: "Two-Handed Sword", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
 		Attack: 20, StrRequired: 13, Range: 0, MissileType: MissileNone,
 		BasePrice: 200, IconChar: 0x13,
 	},
@@ -208,7 +210,7 @@ var equipmentDefinitions = map[Equipment]equipmentDefinition{
 	// MAGIC WEAPONS (35-41)
 	// =========================================================================
 	ChaosSword: {
-		Name: "Chaos Sword", ShortName: "Chaos Swrd", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
+		Name: "Sword of Chaos", ShortName: "Chaos Swrd", Category: CategoryWeapon, Slot: SlotWeapon, TwoHanded: true,
 		Attack: 99, StrRequired: 0, Range: 0, MissileType: MissileNone,
 		BasePrice: 0, IconChar: 0x15,
 		Abilities: []EquipmentAbility{AbilityCharmsWielder},

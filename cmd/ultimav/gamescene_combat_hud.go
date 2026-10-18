@@ -139,6 +139,10 @@ func (hud *CombatHUD) addEvent(event game_state.CombatEvent) int {
 }
 
 func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
+	if event.SpellTarget != nil {
+		result := *event.SpellTarget
+		event.SpellTarget = &result
+	}
 	if event.FireInjury != nil {
 		injury := *event.FireInjury
 		event.FireInjury = &injury
@@ -153,9 +157,10 @@ func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
 			references.Provision(event.Pickup.Result.ItemID), event.Pickup.Result.Acquired,
 		)
 	}
-	// Authoritative result events own one impact request per attack. Field/cone
-	// events are deliberately excluded: they can publish once per affected actor.
-	switch event.Kind { //nolint:exhaustive // Only physical impacts and final outcomes request these sounds.
+	// Authoritative results own one impact cue per attack. Direct poison retains
+	// its former attack cue under its single field owner; other fields/cones use
+	// their own presentation paths, since they may publish once per affected actor.
+	switch event.Kind { //nolint:exhaustive // Only impact owners and final outcomes request these sounds.
 	case game_state.CombatEventAttack, game_state.CombatEventRangedAttack:
 		switch event.Result {
 		case game_state.CombatFeedbackMiss:
@@ -169,6 +174,12 @@ func (g *GameScene) recordCombatEvent(event game_state.CombatEvent) {
 		}
 	case game_state.CombatEventEquipmentShattered:
 		g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundCombatShatter)
+	case game_state.CombatEventFieldTriggered:
+		if event.FieldKind == game_state.CombatFieldPoison && event.Diagnostics.Spell == references.InNoxGrav && event.Diagnostics.MagicDamage {
+			// Direct poison's single field report retains the hit cue previously
+			// requested by its duplicate generic attack event.
+			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundCombatHit)
+		}
 	case game_state.CombatEventVictory:
 		g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundCombatVictory)
 	case game_state.CombatEventFled:
@@ -294,15 +305,23 @@ func (g *GameScene) drawCombatTurnForecast(screen *ebiten.Image, bounds image.Re
 	hud.turnOutput.DrawPanelContent(screen, bounds.Min, bounds.Dx(), etext.AlignStart)
 
 	currentBottom := g.drawCombatCurrentTurn(screen, bounds, lineHeight, lineGap)
-	hud.turnOutput.Reset()
-	hud.turnOutput.SetMaxCharsPerLine(combatHUDOutputChars)
-	appendCombatAttackReadout(hud.turnOutput, g.combatAttackPreview())
-	if lines := hud.turnOutput.GetPanelContentLineCount(); lines > 0 {
+	if height := prepareCombatAttackReadout(hud.turnOutput, g.combatAttackPreview(), bounds.Dx()); height > 0 {
 		currentBottom += lineGap
 		hud.turnOutput.DrawPanelContent(screen, image.Pt(bounds.Min.X, currentBottom), bounds.Dx(), etext.AlignStart)
-		currentBottom += int(math.Ceil(hud.turnOutput.GetTotalHeightForLines(lines)))
+		currentBottom += height
 	}
 	g.drawCombatForecastQueue(screen, bounds, currentBottom+lineHeight, lineHeight)
+}
+
+// Full attack identities and their range/distance labels wrap at the normal HUD
+// font's measured pane width. Reserve every physical row before placing NEXT.
+func prepareCombatAttackReadout(output *text.Output, preview game_state.CombatAttackPreview, width int) int {
+	output.Reset()
+	characterWidth, _ := output.Font.MeasureString("M")
+	output.SetMaxCharsPerLine(max(1, int(float64(width)/characterWidth)))
+	appendCombatAttackReadout(output, preview)
+
+	return int(math.Ceil(output.GetTotalHeightForLines(output.GetPanelContentLineCount())))
 }
 
 func (g *GameScene) drawCombatCurrentTurn(
@@ -824,7 +843,14 @@ func (g *GameScene) appendCombatEventSentence(event game_state.CombatEvent) {
 			return
 		}
 		if event.FieldKind == game_state.CombatFieldFire {
-			line.Redf(" is burned for %d damage", event.HPLost).Done()
+			line.Redf(" is burned for %d damage", event.HPLost)
+			g.appendCombatInjurySuffix(line, event).Done()
+
+			return
+		}
+		if event.HPLost > 0 || (event.FieldKind == game_state.CombatFieldPoison && event.Diagnostics.MagicDamage) {
+			line.White(" takes ").Redf("%d damage", event.HPLost).White(" from ").LightGreen(combatFieldName(event.FieldKind))
+			g.appendCombatInjurySuffix(line, event).Done()
 
 			return
 		}
@@ -873,7 +899,8 @@ func (g *GameScene) appendCombatSpellSentence(event game_state.CombatEvent) {
 		line.White(" on ")
 		g.appendCombatEntitySegment(line, event.Target)
 		suffix, clr := combatAreaSpellTargetSuffix(*event.SpellTarget)
-		line.Text(suffix, clr).Done()
+		line.Text(suffix, clr)
+		g.appendCombatInjurySuffix(line, event).Done()
 
 		return
 	}
@@ -902,7 +929,8 @@ func (g *GameScene) appendCombatSpellSentence(event game_state.CombatEvent) {
 	case event.HPLost == 0:
 		line.LightGray(" but causes no harm").Done()
 	default:
-		line.White(" for ").Redf("%d damage", event.HPLost).Done()
+		line.White(" for ").Redf("%d damage", event.HPLost)
+		g.appendCombatInjurySuffix(line, event).Done()
 	}
 }
 
@@ -931,7 +959,8 @@ func (g *GameScene) appendCombatAttackSentence(event game_state.CombatEvent) {
 	case event.Result == game_state.CombatFeedbackDamage:
 		line.White(" hits ")
 		g.appendCombatEntitySegment(line, event.Target).
-			White(" for ").Redf("%d damage", event.HPLost).Done()
+			White(" for ").Redf("%d damage", event.HPLost)
+		g.appendCombatInjurySuffix(line, event).Done()
 	}
 }
 
@@ -959,6 +988,10 @@ func (g *GameScene) appendCombatEntitySegment(
 }
 
 func (g *GameScene) combatEventPlainText(event game_state.CombatEvent) string {
+	return g.combatEventBasePlainText(event) + g.combatInjurySuffix(event)
+}
+
+func (g *GameScene) combatEventBasePlainText(event game_state.CombatEvent) string {
 	switch event.Kind {
 	case game_state.CombatEventInterruption:
 		actor := g.combatEntityEventName(combatTurnIdentityForFeedback(event.Attacker))
@@ -1045,6 +1078,12 @@ func (g *GameScene) combatEventPlainText(event game_state.CombatEvent) string {
 		if event.Result == game_state.CombatFeedbackMiss {
 			return fmt.Sprintf("%s casts %s on %s but they resist", actor, spellInfo.Name, target)
 		}
+		if event.Fatal {
+			return fmt.Sprintf("%s casts %s on %s for %d fatal damage", actor, spellInfo.Name, target, event.HPLost)
+		}
+		if event.HPLost == 0 {
+			return fmt.Sprintf("%s casts %s on %s but causes no harm", actor, spellInfo.Name, target)
+		}
 
 		return fmt.Sprintf("%s casts %s on %s for %d damage", actor, spellInfo.Name, target, event.HPLost)
 	case game_state.CombatEventCondition:
@@ -1066,6 +1105,9 @@ func (g *GameScene) combatEventPlainText(event game_state.CombatEvent) string {
 		}
 		if event.FieldKind == game_state.CombatFieldFire {
 			return fmt.Sprintf("%s is burned for %d damage", target, event.HPLost)
+		}
+		if event.HPLost > 0 || (event.FieldKind == game_state.CombatFieldPoison && event.Diagnostics.MagicDamage) {
+			return fmt.Sprintf("%s takes %d damage from %s", target, event.HPLost, combatFieldName(event.FieldKind))
 		}
 
 		return target + " is affected by " + combatFieldName(event.FieldKind)

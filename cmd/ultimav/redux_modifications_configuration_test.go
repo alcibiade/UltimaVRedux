@@ -23,9 +23,11 @@ func TestReduxModificationsStatusAndMutationPersist(t *testing.T) {
 	require.True(t, status.Success)
 	assert.Equal(t, debugging.ExecutionQuery, status.EffectiveExecutionMode)
 	assert.JSONEq(t, `{
-		"combat":{"allowRepeatedMonsterDivision":false},
+		"configurationEditing":false,
+		"confirmQuickSave":true,
+		"combat":{"allowRepeatedMonsterDivision":false,"speedPercent":100,"showHealthBars":true},
 		"dungeons":{"persistHiddenDungeonDiscoveries":true,"showSubduedUnlitDungeons":true},
-		"presentation":{"smoothSurfaceMovement":false},
+		"presentation":{"smoothSurfaceMovement":false,"maxVisibleActionPopups":3},
 		"navigation":{"flexibleSextantUse":false}
 	}`, string(status.Data))
 

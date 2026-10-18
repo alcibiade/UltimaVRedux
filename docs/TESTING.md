@@ -51,8 +51,13 @@ a reason to skip the package.
 
 Advancing frames also advances live input. Native fixtures must supply detached
 held-key and text sources rather than read the live keyboard from test goroutines.
-Existing application fixtures using `input.NewKeyboard` need separate review;
-the harness change alone does not establish input-fixture or native acceptance.
+Synthetic application fixtures use `NewKeyboardWithKeyStateSource` with the
+test-only `noSceneTestKeyHeld` source, or an explicitly owned held-key map when
+testing physical chord/release semantics. `SimulateKeyPress` alone does not isolate
+modifier or transition-release polling: a host Ctrl/Shift can alter simulated
+dialog input. Fixture regressions cover menu navigation, save selection and guard
+answers with controlled modifier contamination. This isolates automated tests;
+it does not establish physical-keyboard or native usability acceptance.
 
 ### VM Keyboard/Settings Proof
 

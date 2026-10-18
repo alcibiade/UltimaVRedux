@@ -881,7 +881,7 @@
           },
           {
             "value": "hms_cape",
-            "label": "HMS Cape Plans"
+            "label": "H.M.S. Cape Plans"
           },
           {
             "value": "pocket_watch",
@@ -893,7 +893,7 @@
           },
           {
             "value": "wooden_box",
-            "label": "Wooden Box"
+            "label": "Sandalwood Box"
           },
           {
             "value": "sextant",
@@ -962,7 +962,7 @@
           },
           {
             "value": "hms_cape",
-            "label": "HMS Cape Plans"
+            "label": "H.M.S. Cape Plans"
           },
           {
             "value": "pocket_watch",
@@ -974,7 +974,7 @@
           },
           {
             "value": "wooden_box",
-            "label": "Wooden Box"
+            "label": "Sandalwood Box"
           },
           {
             "value": "sextant",
@@ -2524,35 +2524,35 @@
         "choices": [
           {
             "value": "0",
-            "label": "Blue"
+            "label": "Blue Potion"
           },
           {
             "value": "1",
-            "label": "Yellow"
+            "label": "Yellow Potion"
           },
           {
             "value": "2",
-            "label": "Red"
+            "label": "Red Potion"
           },
           {
             "value": "3",
-            "label": "Green"
+            "label": "Green Potion"
           },
           {
             "value": "4",
-            "label": "Orange"
+            "label": "Orange Potion"
           },
           {
             "value": "5",
-            "label": "Purple"
+            "label": "Purple Potion"
           },
           {
             "value": "6",
-            "label": "Black"
+            "label": "Black Potion"
           },
           {
             "value": "7",
-            "label": "White"
+            "label": "White Potion"
           }
         ],
         "controlHint": "select",
@@ -2629,35 +2629,35 @@
         "choices": [
           {
             "value": "0",
-            "label": "Vas Lor"
+            "label": "Vas Lor Scroll"
           },
           {
             "value": "1",
-            "label": "Rel Hur"
+            "label": "Rel Hur Scroll"
           },
           {
             "value": "2",
-            "label": "In Sanct"
+            "label": "In Sanct Scroll"
           },
           {
             "value": "3",
-            "label": "In An"
+            "label": "In An Scroll"
           },
           {
             "value": "4",
-            "label": "In Quas Wis"
+            "label": "In Quas Wis Scroll"
           },
           {
             "value": "5",
-            "label": "Kal Xen Corp"
+            "label": "Kal Xen Corp Scroll"
           },
           {
             "value": "6",
-            "label": "In Mani Corp"
+            "label": "In Mani Corp Scroll"
           },
           {
             "value": "7",
-            "label": "An Tym"
+            "label": "An Tym Scroll"
           }
         ],
         "controlHint": "select",
@@ -2858,15 +2858,15 @@
           },
           {
             "value": "31",
-            "label": "2H Hammer"
+            "label": "Two-Handed Hammer"
           },
           {
             "value": "32",
-            "label": "2H Axe"
+            "label": "Two-Handed Axe"
           },
           {
             "value": "33",
-            "label": "2H Sword"
+            "label": "Two-Handed Sword"
           },
           {
             "value": "34",
@@ -2874,7 +2874,7 @@
           },
           {
             "value": "35",
-            "label": "Chaos Sword"
+            "label": "Sword of Chaos"
           },
           {
             "value": "36",
@@ -4142,9 +4142,9 @@
   },
   {
     "id": "combat.presentation.speed.set",
-    "category": "Presentation",
+    "category": "Redux Modifications",
     "name": "Set Combat Speed",
-    "description": "Set and persist combat movement animation speed for subsequent movement.",
+    "description": "Persist master combat animation and action-pause speed. Higher values shorten presentation without changing combat rules.",
     "aliases": [
       "combat speed"
     ],
@@ -4154,18 +4154,17 @@
         "name": "Speed Percent",
         "kind": "integer",
         "required": true,
-        "minimum": 25,
+        "minimum": 50,
         "maximum": 400,
-        "controlHint": "number",
-        "availability": [
-          "gameplay"
-        ]
+        "step": 50,
+        "controlHint": "number"
       }
     ],
     "executionModes": [
       "presentation"
     ],
-    "destructive": false
+    "destructive": false,
+    "scenarioExcluded": true
   },
   {
     "id": "guards.status",
@@ -5958,27 +5957,27 @@
           },
           {
             "value": "inventory:31",
-            "label": "Equip 2H Hammer from inventory"
+            "label": "Equip Two-Handed Hammer from inventory"
           },
           {
             "value": "manufacture:31",
-            "label": "Manufacture and equip 2H Hammer"
+            "label": "Manufacture and equip Two-Handed Hammer"
           },
           {
             "value": "inventory:32",
-            "label": "Equip 2H Axe from inventory"
+            "label": "Equip Two-Handed Axe from inventory"
           },
           {
             "value": "manufacture:32",
-            "label": "Manufacture and equip 2H Axe"
+            "label": "Manufacture and equip Two-Handed Axe"
           },
           {
             "value": "inventory:33",
-            "label": "Equip 2H Sword from inventory"
+            "label": "Equip Two-Handed Sword from inventory"
           },
           {
             "value": "manufacture:33",
-            "label": "Manufacture and equip 2H Sword"
+            "label": "Manufacture and equip Two-Handed Sword"
           },
           {
             "value": "inventory:34",
@@ -5990,11 +5989,11 @@
           },
           {
             "value": "inventory:35",
-            "label": "Equip Chaos Sword from inventory"
+            "label": "Equip Sword of Chaos from inventory"
           },
           {
             "value": "manufacture:35",
-            "label": "Manufacture and equip Chaos Sword"
+            "label": "Manufacture and equip Sword of Chaos"
           },
           {
             "value": "inventory:36",
@@ -6260,6 +6259,63 @@
     "executionModes": [
       "live_safe"
     ],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.saves.confirm-quick-save.set",
+    "category": "Redux Modifications",
+    "name": "Confirm Quick Save",
+    "description": "Persist confirmation prompts for Q quick saves; Off still reports success.",
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Confirm Quick Save",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": ["live_safe"],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.combat.health-bars.set",
+    "category": "Redux Modifications",
+    "name": "Show Combat HP Bars",
+    "description": "Persist battlefield health bars; Off adds monster injury descriptions. Fleeing indicators remain visible.",
+    "parameters": [
+      {
+        "id": "enabled",
+        "name": "Show Combat HP Bars",
+        "kind": "boolean",
+        "required": true,
+        "controlHint": "select"
+      }
+    ],
+    "executionModes": ["live_safe"],
+    "destructive": false,
+    "scenarioExcluded": true
+  },
+  {
+    "id": "redux.presentation.action-popups.set",
+    "category": "Redux Modifications",
+    "name": "Maximum Action Popups",
+    "description": "Persist the simultaneous action-popup limit; zero is Off and messages remain in the output panel.",
+    "parameters": [
+      {
+        "id": "count",
+        "name": "Maximum Action Popups",
+        "kind": "integer",
+        "required": true,
+        "minimum": 0,
+        "maximum": 3,
+        "step": 1,
+        "controlHint": "number"
+      }
+    ],
+    "executionModes": ["live_safe"],
     "destructive": false,
     "scenarioExcluded": true
   },
@@ -7243,7 +7299,7 @@
     "id": "scenario.lord-british-finale.start",
     "category": "Scenarios",
     "name": "Test Lord British Finale",
-    "description": "Choose Wooden Box ownership and start the production terminal Lord British rescue and ending workflow.",
+    "description": "Choose Sandalwood Box ownership and start the production terminal Lord British rescue and ending workflow.",
     "aliases": [
       "lord british finale",
       "endgame",
@@ -7269,7 +7325,7 @@
       },
       {
         "id": "woodenBox",
-        "name": "Wooden Box Ownership",
+        "name": "Sandalwood Box Ownership",
         "kind": "boolean",
         "required": true,
         "default": true,

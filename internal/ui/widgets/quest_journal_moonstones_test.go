@@ -3,6 +3,7 @@ package widgets
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"strings"
 	"testing"
 
@@ -217,7 +218,7 @@ func TestQuestJournalMoonstoneNewAndFullGlyphContrast(t *testing.T) {
 			screen := ebiten.NewImage(48, 48)
 			screen.Fill(background)
 			output := text.NewOutput(text.NewUltimaFont(20), 24, 1, 1)
-			output.AppendLine().RunicWithColor(string(rune(0x30+phase)), foreground).Done()
+			appendMoonPhaseGlyph(output.AppendLine(), phase, foreground).Done()
 			output.DrawPanelContent(screen, image.Pt(0, 0), 48, etext.AlignStart)
 			wantR, wantG, wantB, _ := foreground.RGBA()
 			for y := range 48 {
@@ -232,5 +233,31 @@ func TestQuestJournalMoonstoneNewAndFullGlyphContrast(t *testing.T) {
 		}
 		assert.Positive(t, counts[0], "New Moon's outline remains visible, selected=%v", selected)
 		assert.Greater(t, counts[1], counts[0], "Full Moon must be visibly filled, selected=%v", selected)
+	}
+}
+
+func TestSharedMoonPhaseGlyphUsesTypedIdentityAndActualBitmapAdvance(t *testing.T) {
+	for _, spacing := range []float64{8, 16, 24, 40} {
+		output := text.NewOutput(text.NewUltimaFont(20), spacing, 1, 1)
+		for phase := datetime.MoonPhaseNew; phase <= datetime.MoonPhaseCrescentWaning; phase++ {
+			for _, foreground := range []color.Color{DialogItemNameColor, DialogSelectedText, DialogHeaderColor} {
+				output.Reset()
+				line := appendMoonPhaseGlyph(output.AppendLine(), phase, foreground)
+				segments := line.GetSegments()
+				require.Len(t, segments, 1)
+				require.Equal(t, text.FontTypeRunic, segments[0].FontType)
+				require.Equal(t, string(rune(0x30+phase)), segments[0].Text)
+				require.Equal(t, foreground, segments[0].Color)
+				require.Equal(t, spacing, output.MeasureLineSegments(segments))
+				line.Done()
+				require.Equal(t, 1, output.GetPanelContentLineCount())
+			}
+		}
+	}
+	for _, invalid := range []datetime.MoonPhase{-1, 8} {
+		output := text.NewOutput(text.NewUltimaFont(20), 24, 1, 1)
+		require.PanicsWithValue(t, "invalid moonstone phase", func() {
+			appendMoonPhaseGlyph(output.AppendLine(), invalid, DialogValueColor)
+		})
 	}
 }

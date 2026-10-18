@@ -193,7 +193,7 @@ func TestRelHurProductionBuilderHandlesRejectedDirection(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 	mock.Reset()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused builder fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused builder fixture.
 	workflow := state.EventQueueManager.Workflow("test_surface_spell_dispatch").
 		Priority(event_queue.PriorityNormal).
 		Sequential().
@@ -335,7 +335,7 @@ func TestVasRelPorProductionDispatchOwnsTransitionResourcesAndOneMinute(t *testi
 
 			validation := state.ValidateAndConsumeSpellResources(request)
 			require.True(t, validation.Valid, validation.ErrorMsg)
-			scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused dispatch fixture.
+			scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused dispatch fixture.
 			castState := &spellCastingWorkflowState{moongateDestination: destination}
 			workflow := state.EventQueueManager.Workflow("test_surface_spell_dispatch").
 				Priority(event_queue.PriorityNormal).

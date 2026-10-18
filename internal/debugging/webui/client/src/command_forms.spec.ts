@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { hasUnsupportedParameters, reconcileDraft, serializeDraft, validateDraft } from "./command_forms"
 import type { CommandDefinition } from "./protocol"
+import catalog from "./initial_catalog.fixture.json"
 
 const formCommand: CommandDefinition = {
   id: "test.static-form",
@@ -26,6 +27,12 @@ const formCommand: CommandDefinition = {
 }
 
 describe("generated command forms", () => {
+  it("validates canonical combat-speed steps from the shared catalog", () => {
+    const command = (catalog as CommandDefinition[]).find(command => command.id === "combat.presentation.speed.set")!
+    for (const percent of [50, 100, 150, 200, 250, 300, 350, 400]) expect(validateDraft(command, { percent: String(percent) })).toEqual({})
+    for (const percent of [25, 75, 125, 401, 50.5]) expect(validateDraft(command, { percent: String(percent) }).percent).toBeTruthy()
+    expect(command.scenarioExcluded).toBe(true)
+  })
   it("retains zero and false defaults as editable values", () => {
     expect(reconcileDraft(formCommand)).toEqual({ name: "", count: "0", enabled: "false", section: "all" })
   })

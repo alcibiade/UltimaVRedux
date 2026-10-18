@@ -54,6 +54,7 @@ const (
 	zStatsDecimalBase                  = 10
 	zStatsNoneLabel                    = "None"
 	zStatsFooterControlWidthDivisor    = 5
+	zStatsMoonstoneHeaderLines         = 2
 )
 
 var _ Widget = (*ZStatsDossierDialog)(nil)
@@ -139,11 +140,14 @@ type ZStatsDossierDialog struct {
 	titleOutput   *text.Output
 	tabOutput     *text.Output
 	rowOutput     *text.Output
+	rowIconOutput *text.Output
+	phaseOutput   *text.Output
 	summaryOutput *text.Output
 	detailOutput  *text.Output
 	footerOutput  *text.Output
 	drawOp        *ebiten.DrawImageOptions
 	rowWidth      int
+	rowIconWidth  int
 	layout        zStatsDossierLayout
 
 	lastScreenWidth  int
@@ -555,12 +559,28 @@ func (d *ZStatsDossierDialog) ConsumePendingMixSpell() references.Spell {
 func (d *ZStatsDossierDialog) RefreshDossier(dossier game_state.ZStatsDossier) {
 	d.mixInProgress = false
 	activeTab := d.activeTab
+	var selectedItem game_state.ZStatsOwnedItem
+	itemSelection := d.tabSelections[ZStatsDossierItemsTab]
+	hadItem := itemSelection >= 0 && itemSelection < len(d.itemIndices)
+	if hadItem {
+		selectedItem = d.dossier.Items[d.itemIndices[itemSelection]]
+	}
 	spellID := -1
 	if spell := d.selectedSpell(); spell != nil {
 		spellID = spell.ID
 	}
 	d.dossier = cloneZStatsDossier(dossier)
 	d.itemIndices = zStatsOwnedItemIndices(d.dossier.Items)
+	if hadItem {
+		for position, index := range d.itemIndices {
+			item := d.dossier.Items[index]
+			if item.ID == selectedItem.ID && item.MoonPhase.Present == selectedItem.MoonPhase.Present {
+				d.tabSelections[ZStatsDossierItemsTab] = position
+
+				break
+			}
+		}
+	}
 	d.updateFilteredSpells()
 	d.spellBrowser.selectID(spellID)
 	d.tabSelections[ZStatsDossierSpellsTab] = d.spellBrowser.selected
@@ -607,7 +627,7 @@ func (d *ZStatsDossierDialog) ensureLayout() {
 		Size:                  d.fontSize,
 		LineSpacing:           0,
 		LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
-		MaxLines:              spellBrowserRowLines,
+		MaxLines:              zStatsDossierDetailMaxLines,
 		MaxChars:              zStatsDossierMinimumTextChars,
 	})
 	d.titleFont, d.titleOutput = GetScaledFontWithOutput(FontConfig{
@@ -642,6 +662,8 @@ func (d *ZStatsDossierDialog) ensureLayout() {
 		zStatsDossierFooterMaxLines,
 		zStatsDossierMinimumTextChars,
 	)
+	d.rowIconOutput = text.NewOutput(d.bodyFont, d.rowOutput.GetLineSpacing(), 1, 1)
+	d.phaseOutput = text.NewOutput(d.bodyFont, float64(d.moonstoneIconScale()*text.BitmapCharHeight), 1, 1)
 	d.outerBorder = NewOpaqueBorder(d.expandedPlacement(), zStatsDossierBorderWidth, pkgcolor.DialogBackground.RGBA())
 	d.calculateLayout()
 }
@@ -1021,12 +1043,9 @@ func (d *ZStatsDossierDialog) drawListPane(screen *ebiten.Image, rect image.Rect
 	}
 
 	selection := d.currentSelection()
-	visibleRows := d.visibleListRows(rect)
+	rowHeight := d.listRowHeight(rect)
+	visibleRows := max(1, body.Dy()/rowHeight)
 	start, end := zStatsVisibleRange(selection, count, visibleRows)
-	rowHeight := max(1, int(math.Ceil(d.rowOutput.GetLineSpacing())))
-	if d.activeTab == ZStatsDossierSpellsTab {
-		rowHeight = spellRowHeight(d.rowOutput)
-	}
 	for index := start; index < end; index++ {
 		rowTop := body.Min.Y + (index-start)*rowHeight
 		rowRect := image.Rect(body.Min.X, rowTop, body.Max.X, min(body.Max.Y, rowTop+rowHeight))
@@ -1074,9 +1093,14 @@ func (d *ZStatsDossierDialog) drawListRow(
 	if !ok {
 		panic("ZStatsDossierDialog: Ebitengine list clip is not an image")
 	}
+	left := rect.Min.X + d.layout.padding
+	if d.rowIconWidth > 0 {
+		d.rowIconOutput.DrawPanelContent(clipped, image.Pt(left, rect.Min.Y), d.rowIconWidth, etext.AlignStart)
+		left += d.rowIconWidth + d.pixelUnit()
+	}
 	d.rowOutput.DrawPanelContent(
 		clipped,
-		image.Pt(rect.Min.X+d.layout.padding, rect.Min.Y),
+		image.Pt(left, rect.Min.Y),
 		d.rowWidth,
 		etext.AlignStart,
 	)
@@ -1110,6 +1134,9 @@ func (d *ZStatsDossierDialog) prepareListRow(rect image.Rectangle, index int, se
 		d.rowOutput.Font.CharsForWidth(d.rowWidth),
 	))
 	d.rowOutput.Reset()
+	d.rowIconOutput.Reset()
+	d.rowIconOutput.SetFont(d.bodyFont, d.rowOutput.GetLineSpacing())
+	d.rowIconWidth = 0
 	line := d.rowOutput.AppendLine()
 
 	switch d.activeTab {
@@ -1142,7 +1169,7 @@ func (d *ZStatsDossierDialog) appendProvisionListRow(
 	if item.Quantity == 0 && !selected {
 		textColor = DialogEmptyColor
 	}
-	line.Text(d.countedRowLabel(item.Name, fmt.Sprintf(" (%d)", item.Quantity), ""), textColor)
+	line.Text(d.countedRowLabel(item.Name, fmt.Sprintf(" (%d)", item.Quantity)), textColor)
 }
 
 func (d *ZStatsDossierDialog) appendCharacterListRow(
@@ -1158,12 +1185,14 @@ func (d *ZStatsDossierDialog) appendCharacterListRow(
 	}
 	item := character.Equipped[index]
 	if equipment, ok := zStatsEquipmentByID(item.ItemID); ok {
-		line.EquipmentIconWithColor(equipment, iconColor).Text(" "+equipment.ShortString(), textColor)
+		d.prepareRowIcon(d.rowIconOutput.AppendLine().EquipmentIconWithColor(equipment, iconColor))
+		d.appendFullNameRow(line, item.Name, "", textColor)
 
 		return
 	}
 	if slot, ok := zStatsEquipmentSlot(item.Slot); ok {
-		line.SlotIconWithColor(slot, secondaryColor).Text(" "+zStatsNoneLabel, secondaryColor)
+		d.prepareRowIcon(d.rowIconOutput.AppendLine().SlotIconWithColor(slot, secondaryColor))
+		d.appendFullNameRow(line, zStatsNoneLabel, "", secondaryColor)
 	}
 }
 
@@ -1180,9 +1209,9 @@ func (d *ZStatsDossierDialog) appendArmoryListRow(
 		iconColor = DialogEmptyColor
 	}
 	if equipment, ok := zStatsEquipmentByID(item.ID); ok {
-		label := d.countedRowLabel(equipment.ShortString(), "", "M ")
-		line.EquipmentIconWithColor(equipment, iconColor).Text(" "+label, textColor)
+		d.prepareRowIcon(d.rowIconOutput.AppendLine().EquipmentIconWithColor(equipment, iconColor))
 	}
+	d.appendFullNameRow(line, item.Name, "", textColor)
 }
 
 func (d *ZStatsDossierDialog) appendMagicInventoryListRow(
@@ -1198,7 +1227,7 @@ func (d *ZStatsDossierDialog) appendMagicInventoryListRow(
 	if item.Quantity == 0 && !selected {
 		textColor = DialogEmptyColor
 	}
-	line.Text(d.countedRowLabel(item.Name, fmt.Sprintf(" (%d)", item.Quantity), ""), textColor)
+	line.Text(d.countedRowLabel(item.Name, fmt.Sprintf(" (%d)", item.Quantity)), textColor)
 }
 
 func (d *ZStatsDossierDialog) appendItemListRow(
@@ -1207,15 +1236,46 @@ func (d *ZStatsDossierDialog) appendItemListRow(
 	textColor stdcolor.Color,
 ) {
 	item := d.dossier.Items[d.itemIndices[index]]
-	line.Text(d.countedRowLabel(item.Name, fmt.Sprintf(" (%d)", item.Quantity), ""), textColor)
+	if item.MoonPhase.Present {
+		scale := max(1, int(d.rowOutput.GetLineSpacing())/text.BitmapCharHeight)
+		d.rowIconOutput.SetFont(d.bodyFont, float64(scale*text.BitmapCharHeight))
+		d.prepareRowIcon(appendMoonPhaseGlyph(d.rowIconOutput.AppendLine(), item.MoonPhase.Phase, textColor))
+	}
+	d.appendFullNameRow(line, item.Name, fmt.Sprintf(" (%d)", item.Quantity), textColor)
+}
+
+func (d *ZStatsDossierDialog) prepareRowIcon(line *text.LineBuilder) {
+	d.rowIconWidth = int(math.Ceil(d.rowIconOutput.MeasureLineSegments(line.GetSegments())))
+	line.Done()
+	d.rowWidth = max(1, d.rowWidth-d.rowIconWidth-d.pixelUnit())
+}
+
+// Full names wrap at measured word boundaries. Quantity remains on the first
+// row; its advance is reserved before fitting any name text. The icon has its
+// own Output so a bitmap cell can never wrap away the beginning of the name.
+func (d *ZStatsDossierDialog) appendFullNameRow(
+	line *text.LineBuilder, name, suffix string, foreground stdcolor.Color,
+) {
+	suffixWidth, _ := d.bodyFont.MeasureString(suffix)
+	rows := text.WrapJournalHistory(name, d.bodyFont, max(1, d.rowWidth-int(math.Ceil(suffixWidth))))
+	d.rowOutput.SetMaxCharsPerLine(max(1, utf8.RuneCountInString(name+suffix)))
+	for index, row := range rows {
+		if index > 0 {
+			line.Text("\n", foreground)
+		}
+		line.Text(row.Text, foreground)
+		if index == 0 {
+			line.Text(suffix, foreground)
+		}
+	}
 }
 
 // Fit the name before insertion: wrapping a one-row Output overwrites its prefix.
-// Reserve the quantity suffix and the caller's icon/circle prefix first.
-func (d *ZStatsDossierDialog) countedRowLabel(name, suffix, prefix string) string {
+// Reserve the quantity suffix first. Equipment and Items use full wrapping rows.
+func (d *ZStatsDossierDialog) countedRowLabel(name, suffix string) string {
 	font := d.rowOutput.Font
-	capacity := max(1, font.CharsForWidth(d.rowWidth)-utf8.RuneCountInString(prefix))
-	reservedWidth, _ := font.MeasureString(prefix + suffix)
+	capacity := max(1, font.CharsForWidth(d.rowWidth))
+	reservedWidth, _ := font.MeasureString(suffix)
 	name = FitDialogLine(name, font, max(0, d.rowWidth-int(math.Ceil(reservedWidth))))
 	name = truncateRunes(name, max(0, capacity-utf8.RuneCountInString(suffix)))
 	label := name + suffix
@@ -1439,6 +1499,10 @@ func (d *ZStatsDossierDialog) prepareItemDetail(rect image.Rectangle) zStatsCata
 	}
 	item := d.dossier.Items[d.itemIndices[d.tabSelections[ZStatsDossierItemsTab]]]
 
+	if item.MoonPhase.Present {
+		return d.prepareMoonstoneDetail(rect, item)
+	}
+
 	return d.prepareCatalogDetail(rect, func(output *text.Output) {
 		d.appendDetailHeaderTo(output, item.Name)
 		d.appendDetailPairTo(output, "Category", item.Category, DialogValueColor)
@@ -1455,6 +1519,48 @@ func (d *ZStatsDossierDialog) prepareItemDetail(rect image.Rectangle) zStatsCata
 
 type zStatsCatalogDetailLayout struct {
 	portrait, summary, body image.Rectangle
+	phaseIcon               image.Rectangle
+}
+
+// Bound the phase art by two body lines and the existing UI pixel unit, never
+// by the detail pane's remaining width/height. Output's bitmap scale derives
+// from its line spacing, so an 8-pixel multiple gives nearest-neighbour integers.
+func (d *ZStatsDossierDialog) moonstoneIconScale() int {
+	padding := d.pixelUnit() * zStatsDossierPortraitInsetUnits
+	height := int(d.rowOutput.GetTotalHeightForLines(zStatsMoonstoneHeaderLines))
+
+	return max(1, min(d.pixelUnit(), (height-padding*zStatsDossierPaneInsetMultiplier)/text.BitmapCharHeight))
+}
+
+func (d *ZStatsDossierDialog) prepareMoonstoneDetail(
+	rect image.Rectangle, item game_state.ZStatsOwnedItem,
+) zStatsCatalogDetailLayout {
+	content := insetZStatsRect(rect, d.layout.padding*zStatsDossierPaneInsetMultiplier)
+	unit := d.pixelUnit()
+	// Round the small frame inward to the UI grid; the outer dossier is unchanged.
+	left := (content.Min.X + unit - 1) / unit * unit
+	top := (content.Min.Y + unit - 1) / unit * unit
+	iconSize := d.moonstoneIconScale()*text.BitmapCharHeight +
+		unit*zStatsDossierPortraitInsetUnits*zStatsDossierPaneInsetMultiplier
+	icon := image.Rect(left, top, left+iconSize, top+iconSize)
+	summary := image.Rect(icon.Max.X+d.layout.padding, top, content.Max.X, content.Max.Y)
+	d.summaryOutput.SetMaxCharsPerLine(max(1, d.bodyFont.CharsForWidth(summary.Dx())))
+	d.summaryOutput.Reset()
+	d.appendDetailHeaderTo(d.summaryOutput, item.Name)
+	d.summaryOutput.AppendLine().Text(item.Category+" · ", DialogValueColor).
+		Text("Quantity: ", DialogLabelColor).Text(strconv.Itoa(int(item.Quantity)), DialogValueColor).WordWrap().Done()
+	summary.Max.Y = summary.Min.Y + int(math.Ceil(d.summaryOutput.GetTotalHeightForLines(
+		d.summaryOutput.GetPanelContentLineCount(),
+	)))
+	body := image.Rect(content.Min.X, max(icon.Max.Y, summary.Max.Y)+d.layout.padding, content.Max.X, content.Max.Y)
+	d.detailOutput.SetMaxCharsPerLine(max(1, d.bodyFont.CharsForWidth(body.Dx())))
+	d.detailOutput.Reset()
+	d.appendDetailPairTo(d.detailOutput, "Description", item.Description, DialogValueColor)
+	d.preparePanelPage(d.detailOutput, body)
+	d.phaseOutput.Reset()
+	appendMoonPhaseGlyph(d.phaseOutput.AppendLine(), item.MoonPhase.Phase, DialogHeaderColor).Done()
+
+	return zStatsCatalogDetailLayout{portrait: image.Rect(0, 0, 0, 0), phaseIcon: icon, summary: summary, body: body}
 }
 
 func (d *ZStatsDossierDialog) prepareCatalogDetail(
@@ -1480,14 +1586,23 @@ func (d *ZStatsDossierDialog) prepareCatalogDetail(
 	populateBody(d.detailOutput)
 	d.preparePanelPage(d.detailOutput, bodyRect)
 
-	return zStatsCatalogDetailLayout{portrait: portraitRect, summary: summaryRect, body: bodyRect}
+	return zStatsCatalogDetailLayout{
+		portrait: portraitRect, phaseIcon: image.Rect(0, 0, 0, 0), summary: summaryRect, body: bodyRect,
+	}
 }
 
 func (d *ZStatsDossierDialog) drawPreparedCatalogDetail(
 	screen *ebiten.Image, spriteIndex indexes.SpriteIndex, prepared zStatsCatalogDetailLayout,
 ) {
-	d.drawFramedSprite(screen, prepared.portrait, spriteIndex)
-	if d.activeTab == ZStatsDossierSpellsTab {
+	if !prepared.phaseIcon.Empty() {
+		DrawClassicPixelRoundedFrame(screen, prepared.phaseIcon, d.pixelUnit(), DialogRuleLightColor)
+		inset := d.pixelUnit() * zStatsDossierPortraitInsetUnits
+		glyph := prepared.phaseIcon.Inset(inset)
+		d.phaseOutput.DrawPanelContent(screen, glyph.Min, glyph.Dx(), etext.AlignStart)
+	} else {
+		d.drawFramedSprite(screen, prepared.portrait, spriteIndex)
+	}
+	if d.activeTab == ZStatsDossierSpellsTab || !prepared.phaseIcon.Empty() {
 		d.drawPanelOutputRange(screen, d.summaryOutput, prepared.summary, 0, d.summaryOutput.GetPanelContentLineCount())
 	} else {
 		d.drawPagedPanelOutput(screen, d.summaryOutput, prepared.summary)
@@ -1842,15 +1957,29 @@ func (d *ZStatsDossierDialog) appendDetailTextTo(output *text.Output, value stri
 
 func (d *ZStatsDossierDialog) visibleListRows(rect image.Rectangle) int {
 	body := d.panelBodyRect(rect)
+
+	return max(zStatsDossierMinimumRows, body.Dy()/d.listRowHeight(rect))
+}
+
+func (d *ZStatsDossierDialog) listRowHeight(rect image.Rectangle) int {
 	rowHeight := max(1, int(math.Ceil(d.rowOutput.GetLineSpacing())))
 	if d.activeTab == ZStatsDossierSpellsTab {
-		rowHeight = spellRowHeight(d.rowOutput)
+		return spellRowHeight(d.rowOutput)
+	}
+	if d.activeTab != ZStatsDossierCharacterTab && d.activeTab != ZStatsDossierArmoryTab &&
+		d.activeTab != ZStatsDossierItemsTab {
+		return rowHeight
+	}
+	// Use the same measured pitch for traversal and drawing. Short catalogs keep
+	// one-line density; full names gain rows only when the actual width needs them.
+	body := d.panelBodyRect(rect)
+	for index := range d.currentItemCount() {
+		d.prepareListRow(body, index, false)
+		height := int(math.Ceil(d.rowOutput.GetTotalHeightForLines(d.rowOutput.GetPanelContentLineCount())))
+		rowHeight = max(rowHeight, height, int(math.Ceil(d.rowIconOutput.GetLineSpacing())))
 	}
 
-	return max(
-		zStatsDossierMinimumRows,
-		body.Dy()/rowHeight,
-	)
+	return rowHeight
 }
 
 func (d *ZStatsDossierDialog) activeListRect() image.Rectangle {
@@ -1991,7 +2120,8 @@ func zStatsDisplayName(name, fallback string) string {
 func zStatsLearningSource(kind, source string) string {
 	source = strings.TrimSpace(source)
 	switch game_state.KnowledgeSourceKind(strings.TrimSpace(kind)) {
-	case game_state.KnowledgeSourceDialogue, game_state.KnowledgeSourceExperimentation:
+	case game_state.KnowledgeSourceDialogue, game_state.KnowledgeSourceExperimentation,
+		game_state.KnowledgeSourceObservation, game_state.KnowledgeSourceRevelation:
 		return source
 	case game_state.KnowledgeSourceMigration:
 		return "Previously learned"

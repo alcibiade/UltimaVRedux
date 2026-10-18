@@ -54,7 +54,7 @@ func TestBridgeTrollSuccessfulPaymentRetainsTollTranscript(t *testing.T) {
 	character.PartyMap = party_state.PartyMapActive
 	character.Dexterity = 0
 	character.Strength = 20
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused toll fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused toll fixture.
 
 	scene.StartBridgeTrollEncounterWorkflow()
 	initialDialog := waitForBridgeTranscript(t, scene)
@@ -113,7 +113,7 @@ func TestBridgeTrollEvasionUsesPassiveTranscriptUntilAcknowledgement(t *testing.
 	character := state.PartyState.GetCharacter(0)
 	character.PartyMap = party_state.PartyMapActive
 	character.Dexterity = 30
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused evasion fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused evasion fixture.
 
 	scene.StartBridgeTrollEncounterWorkflow()
 	dialog := waitForBridgeTranscript(t, scene)
@@ -174,7 +174,7 @@ func runBridgeTrollAttackPath(
 		character.Strength = 20
 	}
 
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused workflow fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused workflow fixture.
 	before := state.DateTime
 	scene.StartBridgeTrollEncounterWorkflow()
 

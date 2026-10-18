@@ -94,7 +94,7 @@ func TestExecuteScenarioBridgeTrollStartsProductionSneakAndAttackWorkflow(t *tes
 		WithSystemCallbacks().
 		Build()
 	state.PartyState.Inventory.Gold.Set(100)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused Scenario Lab fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused Scenario Lab fixture.
 
 	result, handled := scene.executeScenarioDebugCommand(debugging.Request{
 		SessionID: "test", ID: "bridge-troll", CommandID: debugging.CommandScenarioBridgeTroll,
@@ -123,7 +123,7 @@ func TestExecuteScenarioBlackthornInterrogationStartsProductionWorkflow(t *testi
 	configuration := finaleMapFixtureConfig(t)
 	state.GameConfig = configuration
 	state.SetShrineRuined(0, true)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused scripted-scene fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused scripted-scene fixture.
 
 	result, handled := scene.executeScenarioDebugCommand(debugging.Request{
 		SessionID: "test", ID: "blackthorn", CommandID: debugging.CommandScenarioBlackthornInterrogation,
@@ -153,7 +153,7 @@ func TestStartDebugLordBritishFinaleStartsProductionTerminalWorkflow(t *testing.
 	companion := state.PartyState.GetCharacter(1)
 	companion.SetStatus('D')
 	companion.SetHp(0)
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused scripted-scene fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused scripted-scene fixture.
 	request := debugging.Request{
 		SessionID: "test", ID: "finale", CommandID: debugging.CommandScenarioLordBritishFinale,
 		Arguments: map[string]json.RawMessage{
@@ -189,7 +189,7 @@ func TestScenarioMutationsRejectStalePartyAndTerminalFinale(t *testing.T) {
 	for index := 1; index < party_state.MaxActiveParty; index++ {
 		state.PartyState.GetCharacter(index).PartyMap = party_state.PartyMapUnrecruited
 	}
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboard(0)} //nolint:exhaustruct // Focused scenario boundary fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused scenario boundary fixture.
 
 	stale, handled := scene.executeScenarioDebugCommand(debugging.Request{
 		SessionID: "test", ID: "stale", CommandID: debugging.CommandScenarioBlackthornInterrogation,

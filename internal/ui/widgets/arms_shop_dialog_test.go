@@ -205,11 +205,11 @@ func TestArmsShopDialogUnavailableBuyRowsAreSubduedAndCannotOpenTrade(t *testing
 	}
 	detail = dialog.GetDetailText()
 	require.Equal(t, 4, dialog.detailOutput.GetPanelContentLineCount())
-	require.Contains(t, detail, "Inv. Ring")
+	require.Contains(t, detail, "Ring of Invisibility")
 	require.Contains(t, detail, "ATK 0  DEF 0  RNG 0")
 	require.Contains(t, detail, "Cannot buy: need 1001 gold;")
 	require.Contains(t, detail, "party has 698.")
-	require.Less(t, strings.Index(detail, "Inv. Ring"), strings.Index(detail, "ATK 0"))
+	require.Less(t, strings.Index(detail, "Ring of Invisibility"), strings.Index(detail, "ATK 0"))
 	require.Less(t, strings.Index(detail, "ATK 0"), strings.Index(detail, "Cannot buy"))
 	require.Less(t, strings.Index(detail, "Cannot buy"), strings.Index(detail, "party has 698"))
 	pressArmsShopKey(dialog, dialog.keyboard, ebiten.KeyEnter)
@@ -259,7 +259,7 @@ func TestArmsShopDialogSortTieBreaksAndDirectionalNavigation(t *testing.T) {
 	}
 }
 
-func TestArmsShopDialogShortNamesIconsSeparatorsAndHeaderPlacement(t *testing.T) {
+func TestArmsShopDialogFullNamesIconsSeparatorsAndHeaderPlacement(t *testing.T) {
 	setMerchantShellTestResolution(t, 1280, 720)
 	state := testArmsShopState()
 	state.BuyQuotes[6] = game_state.ArmsBuyQuote{
@@ -275,13 +275,13 @@ func TestArmsShopDialogShortNamesIconsSeparatorsAndHeaderPlacement(t *testing.T)
 			break
 		}
 	}
-	require.Equal(t, "Inv. Ring", ringRow.Name)
+	require.Equal(t, "Ring of Invisibility", ringRow.Name)
 	require.Equal(t, uint16(2), ringRow.Readied)
 
 	dialog.prepareCellOutput(" "+ringRow.Name, DialogItemNameColor, ringRow.Equipment)
 	rendered := dialog.rowOutput.GetOutputStr(false)
 	require.Contains(t, rendered, string([]byte{references.RingInvisibility.GetIconChar()}))
-	require.Contains(t, rendered, "Inv. Ring")
+	require.Contains(t, strings.Join(strings.Fields(rendered), " "), "Ring of Invisibility")
 	require.NotContains(t, dialog.headerOutput.GetOutputStr(false), "|")
 	require.NotContains(t, dialog.GetShell().GetFooterView().Guidance, "|")
 	require.Greater(t, dialog.tableHeaderContentBounds().Min.Y, dialog.tableHeader.Min.Y)

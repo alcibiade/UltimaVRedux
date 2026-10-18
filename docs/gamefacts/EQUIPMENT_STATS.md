@@ -25,6 +25,12 @@ not a separate action for each selection. Body armor cannot be equipped or remov
 during unresolved combat; this restriction ends after victory and does not cover
 all equipment categories.
 
+Redux presents complete equipment identities in Ready's loadout, available rows,
+comparison headings and Strength budget; see [EQUIP-0003](EQUIPMENT_ORIGINAL_DATA.md#equip-0003).
+Both hand rows identify a two-handed occupant, distinguishing the actual occupied
+slot from its reserved partner. This is display information, not a second equipped
+copy or additional Strength charge.
+
 ### EQUIP-0011
 
 **Slot admission and cumulative Strength**
@@ -187,9 +193,9 @@ Stop, and distance one. Full projectile obstruction is a separate rule.
 **Original:** Incomplete
 **Redux:** Unverified
 
-Chaos Sword's direct evaluation has automatic-hit/special-damage behavior, but
+Sword of Chaos's direct evaluation has automatic-hit/special-damage behavior, but
 normal wielding can charm its owner at player-turn entry and hand control to
-hostile movement. That charmed attack route substitutes an adjacent 2H Sword
+hostile movement. That charmed attack route substitutes an adjacent Two-Handed Sword
 attack. Later recovery can remove the sword without refund and put one affected
 PC to sleep. Do not describe ordinary wielding as an unconditional 99-damage attack.
 

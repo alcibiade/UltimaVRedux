@@ -74,6 +74,35 @@ runs, and save-snapshot rollback does not restore them.
 
 ## Control Plane
 
+### Persisted player preferences
+
+System > Redux Modifications also owns combat speed, quick-save confirmation,
+combat health bars and the simultaneous action-popup limit. These use the same
+typed `UltimaVConfiguration` getters and atomic setters as player Configuration.
+`combat.presentation.speed.set` remains a compatibility command ID, with integer
+`percent` transport from 50 through 400 in steps of 50. It controls master combat
+presentation, including animations and action pauses, through
+`Gameplay.Combat.SpeedFactor`; Debug configuration is no longer a speed writer.
+Active Combat exposes the same command and canonical status value.
+
+`redux.saves.confirm-quick-save.set` and `redux.combat.health-bars.set` require
+boolean `enabled`; `redux.presentation.action-popups.set` requires integer `count`
+0–3, with 0 meaning Off. `redux.modifications.status` includes
+`confirmQuickSave`, `combat.speedPercent`, `combat.showHealthBars`,
+`presentation.maxVisibleActionPopups` and `configurationEditing`.
+Optional `configurationDiagnostics` retains startup migration notices even if
+categorized logging was disabled; Redux Modifications displays these notices.
+
+Numeric parameter metadata includes optional `step`, anchored at `minimum`.
+Go validates positive steps and grid membership before dispatch, and TypeScript
+forms and specialized controls use those same catalog constraints. Out-of-grid
+legacy speed requests fail validation rather than panicking. All persistent
+setters are `ScenarioExcluded`, since save snapshots do not roll preferences back.
+An open staged Configuration dialog rejects immediate preference mutations with
+`configuration_editing` and an Apply/Cancel explanation. Failed persistence keeps
+the live model and source unchanged; successful mutations refresh owning status
+without discarding unrelated browser drafts.
+
 ```text
 Browser/Vue
     |

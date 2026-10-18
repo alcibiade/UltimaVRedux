@@ -62,6 +62,10 @@ gates. Exploration command availability must not be inferred from this tactical
 loop or vice versa. Redux routes through separate map-specific input handlers;
 full raw-key/actor/target equivalence is not claimed by this matrix.
 
+Redux's Q confirmation preference and Ctrl+Q active-slot reload extension are
+specified separately in [CMD-0002](#cmd-0002); the table above describes the
+original single-key command routes.
+
 **Implementation:** `cmd/ultimav/gamescene_input_smallmap.go`, `cmd/ultimav/gamescene_input_largemap.go`, `cmd/ultimav/gamescene_input_dungeon.go`, `cmd/ultimav/gamescene_input_combat.go`
 
 ### CMD-0002
@@ -99,7 +103,37 @@ workflow; it is not an original DOS Quit key. Redux gives commands explicit
 completion ownership rather than emulating undefined returned register values.
 Its current native-save workflow is separate from the original file-write facts.
 
-**Implementation:** `cmd/ultimav/gamescene_input.go`, `internal/game_state/dungeon_command_cycle.go`
+**REDUX DEVIATION:** Q uses the active native player slot and reviewed revision
+from this scene's last successful player-slot save/load, preserving its committed
+description. The **Confirm Quick Save** preference defaults On: the existing
+`Save game?` Y/N/Escape question and success acknowledgement remain. Off saves
+immediately with slot-specific output and no success acknowledgement. Both paths
+show acknowledged errors, retain provenance on failure, and explain missing slot
+authority rather than choosing a destination. Surface capture occurs outside
+surface command-cycle ownership; dungeon Q completes its accepted precharged
+command-only token before capture, exactly once, retaining Quickness phase and
+avoiding full end-player processing. Ordinary combat Q remains rejected. This
+preference reduces repeated save keystrokes without relaxing save eligibility or
+optimistic revision checks.
+
+**REDUX DEVIATION:** Exact **Ctrl+Q** reloads the same active slot directly, with
+no confirmation, new preference, outgoing save, or rollback capture. Either
+physical Control key is accepted; Shift/Alt/Meta are excluded and Caps Lock is
+neutral. It supports normal exploration and player-controlled combat input,
+including controlled-monster turns, for quick retries. Enemy/action owners,
+targeting, modals, readers and workflows block the shortcut; harmless floating
+labels and nonblocking action cards do not. Blocked chords are suppressed through
+release and never queued or converted to plain Q. Loading charges no action,
+minute, resource or gameplay RNG. Canonical native candidate activation and
+replacement retain the old scene/provenance on failure, dispose its transient
+owners safely on success, and report success on the replacement. Stale revisions
+are refused rather than refreshed; use ordinary reviewed Load for a changed or
+unusable checkpoint. The preference affects Q only, not Ctrl+Q or menu/departure
+confirmations. These are Redux native-save/input extensions, not claims about
+original keyboard or file-write behavior.
+
+**Implementation:** `cmd/ultimav/gamescene_input.go`, `internal/game_state/dungeon_command_cycle.go`, `cmd/ultimav/gamescene_input_quit.go`, `cmd/ultimav/gamescene_quickload.go`, `cmd/ultimav/gamescene.go`, `cmd/ultimav/gamescene_transient_command_input.go`, `cmd/ultimav/player_save.go`, `cmd/ultimav/player_save_ui.go`, `cmd/ultimav/scene.go`, `internal/config/gameplay_preferences.go`
+**Tests:** `cmd/ultimav/gamescene_quicksave_test.go`, `cmd/ultimav/gamescene_quickload_test.go`, `cmd/ultimav/gamescene_quickload_release_test.go`, `cmd/ultimav/player_save_quickload_test.go`, `internal/config/gameplay_preferences_test.go`
 
 ### CMD-0003
 
@@ -337,8 +371,13 @@ An Sanct select the last matching slot; Open selects the first and checks that
 slot's actual state. This is not a redesigned pile selection policy.
 Redux's successful combat Jimmy result and Open result carry the selected chest's
 detached lifetime identity (COMBAT-0010). Open retains it after removal so its
-contents summary can retire only that chest's disarm feedback, not another chest
-at the same square or an identical replacement using the same original slot.
+contents summary can finalize the correct chest lifetime without confusing another
+chest at the same square or an identical replacement using the same original slot.
+Actual contents-modal admission clears all lingering scene-owned action/Search/Look
+cards under the shared UI policy. Earlier cancellation and later finalization remain
+chest-scoped; they do not purge unrelated newer feedback. Popup capacity zero can
+leave a valid successful Jimmy result with no card handles. History and the current
+opening's trap notice remain independently owned.
 
 **Implementation:** `internal/game_state/action_jimmy.go`, `internal/game_state/action_open.go`
 **Tests:** `internal/game_state/combat_chest_assessment_test.go`

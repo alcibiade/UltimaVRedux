@@ -5,7 +5,7 @@ import "encoding/json"
 const (
 	// CommandScenarioBlackthornInterrogation starts the production Blackthorn interrogation from deterministic state.
 	CommandScenarioBlackthornInterrogation = "scenario.blackthorn-interrogation.start"
-	// CommandScenarioLordBritishFinale starts the production terminal finale with exact Wooden Box ownership.
+	// CommandScenarioLordBritishFinale starts the production terminal finale with exact Sandalwood Box ownership.
 	CommandScenarioLordBritishFinale = "scenario.lord-british-finale.start"
 )
 
@@ -25,12 +25,12 @@ func scriptedSceneScenarioCommands() []CommandDefinition {
 		},
 		{
 			ID: CommandScenarioLordBritishFinale, Category: categoryThirdBatchScenarios, Name: "Test Lord British Finale",
-			Description: "Choose Wooden Box ownership and start the production terminal Lord British rescue and ending workflow.",
+			Description: "Choose Sandalwood Box ownership and start the production terminal Lord British rescue and ending workflow.",
 			Aliases:     []string{"lord british finale", "endgame", "ending"},
 			Parameters: []ParameterDefinition{
 				reviewedParty,
 				{
-					ID: "woodenBox", Name: "Wooden Box Ownership", Kind: ParameterBoolean, Required: true,
+					ID: "woodenBox", Name: "Sandalwood Box Ownership", Kind: ParameterBoolean, Required: true,
 					Default: json.RawMessage(`true`), ControlHint: controlHintSelect, Availability: []string{contextGameplay},
 				},
 			},

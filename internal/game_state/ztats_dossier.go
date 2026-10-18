@@ -3,6 +3,7 @@ package game_state
 import (
 	"fmt"
 
+	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
@@ -156,6 +157,14 @@ type ZStatsOwnedItem struct {
 	Name        string
 	Quantity    uint16
 	Description string
+	MoonPhase   ZStatsMoonPhase
+}
+
+// ZStatsMoonPhase distinguishes a carried stone's phase from an ordinary item.
+// Phase zero is New Moon, so absence must be represented separately.
+type ZStatsMoonPhase struct {
+	Present bool
+	Phase   datetime.MoonPhase
 }
 
 // CurrentZStatsDossier returns a fully detached, read-only Z-Stats projection.
@@ -600,6 +609,7 @@ func (g *GameState) projectZStatsOwnedItems(inventoryReferences *references.Inve
 			Name:        zStatsInventoryItemName(reference),
 			Quantity:    quantity,
 			Description: reference.ItemDescription,
+			MoonPhase:   ZStatsMoonPhase{},
 		})
 	}
 	for _, moonstone := range references.MoonstoneCatalog() {
@@ -615,6 +625,7 @@ func (g *GameState) projectZStatsOwnedItems(inventoryReferences *references.Inve
 			Name:        zStatsInventoryItemName(reference),
 			Quantity:    quantity,
 			Description: reference.ItemDescription,
+			MoonPhase:   ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhase(moonstone.ID())},
 		})
 	}
 
@@ -622,9 +633,5 @@ func (g *GameState) projectZStatsOwnedItems(inventoryReferences *references.Inve
 }
 
 func zStatsInventoryItemName(item references.InventoryItem) string {
-	if item.ItemDisplayName != "" {
-		return item.ItemDisplayName
-	}
-
-	return formatItemName(item.ItemName)
+	return item.FullDisplayName()
 }

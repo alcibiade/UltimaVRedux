@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -14,11 +15,77 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
 func TestTelescopeDaytimeUsesSourceBoundaries(t *testing.T) {
 	for hour := range uint8(24) {
 		assert.Equal(t, hour >= 6 && hour <= 17, isTelescopeDaytime(hour), "hour %d", hour)
+	}
+}
+
+func TestAstronomyFeedbackHistoryExactlyOnceAtEveryPopupCap(t *testing.T) {
+	cases := []struct {
+		name     string
+		hour     uint8
+		spyglass bool
+		owned    uint16
+		floor    references.FloorNumber
+		message  string
+		modal    bool
+	}{
+		{name: "telescope sun", hour: 6, message: "Thou dost see the sun!"},
+		{name: "telescope sky", hour: 18, message: "Thou dost see the night sky!", modal: true},
+		{name: "spyglass sky", hour: 19, spyglass: true, owned: 1, message: "Thou dost see the night sky!", modal: true},
+		{name: "spyglass day", hour: 18, spyglass: true, owned: 1, message: "No stars!"},
+		{name: "spyglass missing", hour: 19, spyglass: true, message: "No spyglass!"},
+		{name: "spyglass basement", hour: 19, spyglass: true, owned: 1, floor: -1, message: "Not here!"},
+	}
+	for limit := range 4 {
+		for _, test := range cases {
+			t.Run(fmt.Sprintf("%s/cap-%d", test.name, limit), func(t *testing.T) {
+				state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.Britain).
+					WithFloor(test.floor).WithRandomSeed(443).WithSystemCallbacks().Build()
+				state.DateTime.Hour = test.hour
+				state.PartyState.Inventory.QuestItems.Set(references.Spyglass, test.owned)
+				scene := newSurfaceCompletionTestScene(state)
+				held := make(map[ebiten.Key]bool)
+				scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return held[key] })
+				wireFeedbackOutputForTest(scene)
+				setActionPopupLimitForTest(scene, limit)
+				workflow := "telescope_workflow"
+				completed := 0
+				if test.spyglass {
+					workflow = "spyglass_workflow"
+					scene.ShowSpyglassInteraction(func() { completed++ })
+				} else {
+					scene.ShowTelescopeInteraction()
+				}
+				if test.modal {
+					dialog := waitForAstronomyDialog(t, scene)
+					assert.Len(t, scene.transientActionFeedback, min(limit, 1))
+					assert.True(t, state.EventQueueManager.HasInputBlockingWorkflows(), "astronomy still owns acknowledgement at Off")
+					dialog.Update()
+					dialog.Update()
+					held[ebiten.KeyEnter] = true
+					dialog.Update()
+					require.True(t, dialog.IsDismissed())
+					clear(held)
+				}
+				drainNamedSurfaceUseWorkflow(t, scene, workflow)
+				assert.Equal(t, 1, strings.Count(scene.output.JournalHistory(), test.message))
+				assert.False(t, state.EventQueueManager.HasInputBlockingWorkflows())
+				assert.False(t, scene.dialogStack.HasModalDialog())
+				assert.Len(t, scene.transientActionFeedback, min(limit, 1))
+				if test.spyglass {
+					assert.Equal(t, 1, completed)
+				}
+				scene.clearTransientActionFeedback()
+				state.EventQueueManager.Shutdown()
+				assert.Zero(t, scene.dialogStack.Count())
+				assert.Equal(t, 1, strings.Count(scene.output.JournalHistory(), test.message))
+			})
+		}
 	}
 }
 

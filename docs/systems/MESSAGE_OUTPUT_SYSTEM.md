@@ -46,6 +46,40 @@ changes update font metrics without discarding transcript history.
 
 Core actions do not know whether a dialog is open and do not manipulate the dialog stack.
 
+### Action And Search Feedback History
+
+**Maximum Action Popups** (`Gameplay.Presentation.MaxVisibleActionPopups`) is an
+integer from 0 to 3, default 3. Off (0) creates no transient action/Search card;
+it does not disable the bottom-right output or its retained history. Values 1–3
+share one newest-first stack for both adapters, further bounded by available
+space. Admission evicts the oldest exact card instance, including its chest
+association, without removing the recorded result.
+
+Each result has one explicit history owner, independent of the popup setting:
+
+| Producer | History owner |
+|---|---|
+| `ShowActionFeedback(message, true)` | The callback appends to the main `Output` before checking popup admission. |
+| `ShowActionFeedback(message, false)` | The caller records the result; the adapter does not add another copy, even at Off. |
+| Surface `ShowSearchFeedback` | Search records its full result through `Message.AddRowStr`; the adapter only presents the card. |
+| Surface/dungeon Look and dungeon Search | The caller retains the complete or prefixed narration, including darkness and refusal results. |
+| Combat corpse/chest Search | The authoritative action records its result before requesting presentation. |
+| Location entry/exit and telescope/spyglass outcomes or refusals | `ShowActionFeedback(..., true)` records the result; a command prompt alone is not the outcome. |
+| Modal chest contents and structured combat reports | Their workflow/report owner retains the existing history and acknowledgement contract, outside the transient cap. |
+
+Do not deduplicate strings: two harvests may legitimately emit identical results.
+The popup cap cannot change crop, theft, loot, turn or RNG effects. A future typed
+receipt using `NewItemReceiptDialog` must enter the shared transient admission
+path and establish its history owner; constructing a prefab alone does neither.
+
+A successfully applied lower cap retires excess existing cards on the next normal
+scene update, without a new message or resize, including cards covered by a modal
+or in reveal/hold/hide phases. Raising the limit never restores retired cards.
+Staged edits, Cancel and failed persistence leave the live cap and cards intact.
+Expiry, eviction and scene cleanup affect presentation only. See
+[Action Feedback](../ui/GAME_UI_INTEGRATION.md#action-feedback) for layout and
+lifecycle ownership.
+
 ### Shared Typography And Rendering Ownership
 
 `NewUltimaFont` shares one lazily parsed embedded TTF source, including the

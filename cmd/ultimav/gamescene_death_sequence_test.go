@@ -17,7 +17,7 @@ func TestDeathKarmaReportWaitsForAcknowledgementAndCleansUp(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
 	scene := &GameScene{ //nolint:exhaustruct // Focused report lifecycle fixture.
 		gameState: state,
-		keyboard:  input.NewKeyboard(0),
+		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),
 	}
 	state.EventQueueManager.Workflow("death_report_acknowledgement").

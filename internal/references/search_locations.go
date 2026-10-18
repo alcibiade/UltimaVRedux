@@ -100,7 +100,7 @@ func DecodeSearchLocationItem(location SearchLocationReference) SearchLocationDe
 		setItem(potion, 1, potionSearchName(potion), "Potion", "a potion!", "payload_is_potion_subtype")
 	case SearchObjectScroll:
 		if location.Payload == 0xff {
-			setItem(HMSCape, 1, "HMS Cape Plans", "Quest Item", "a scroll!", "payload_is_hms_cape_plans")
+			setItem(HMSCape, 1, newQuestItemReferences()[HMSCape].FullDisplayName(), "Quest Item", "a scroll!", "payload_is_hms_cape_plans")
 
 			break
 		}
@@ -212,15 +212,11 @@ func searchObjectDiscoveryText(class SearchObjectClass) string {
 }
 
 func potionSearchName(potion Potion) string {
-	names := [...]string{"Blue potion", "Yellow potion", "Red potion", "Green potion", "Orange potion", "Purple potion", "Black potion", "White potion"}
-
-	return names[potion]
+	return newPotionItemReferences()[potion].FullDisplayName()
 }
 
 func scrollSearchName(scroll Scroll) string {
-	names := [...]string{"Vas Lor scroll", "Rel Hur scroll", "In Sanct scroll", "In An scroll", "In Quas Wis scroll", "Kal Xen Corp scroll", "In Mani Corp scroll", "An Tym scroll"}
-
-	return names[scroll]
+	return newScrollItemReferences()[scroll].FullDisplayName()
 }
 
 // SearchLocationState tracks whether each original hidden-object record has been found.

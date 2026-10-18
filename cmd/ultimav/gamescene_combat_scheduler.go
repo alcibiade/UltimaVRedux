@@ -44,12 +44,13 @@ func (g *GameScene) startScheduledMonsterTurn(step game_state.CombatPresentation
 func (g *GameScene) startScheduledMonsterTurnWithPacing(
 	step game_state.CombatPresentationStep, pacing combatMonsterPacing, fastMovement bool,
 ) {
-	delayMs := int64(game_state.MonsterMoveDelayMs)
+	timing := g.captureCombatTiming()
+	delayMs := timing.durationMs(game_state.MonsterMoveDelayMs)
 	if fastMovement {
-		delayMs = int64(pacing.anticipationMs) //nolint:gosec // Validated speed bounds the 75ms base to 19-300ms.
+		delayMs = int64(pacing.anticipationMs) //nolint:gosec // Validated speed bounds the 75ms base to 19-150ms.
 	}
 	if step.HasTarget {
-		delayMs = int64(game_state.MonsterAttackDelayMs)
+		delayMs = timing.durationMs(game_state.MonsterAttackDelayMs)
 	}
 
 	logging.Debug(logging.CategoryGameState,
@@ -66,7 +67,7 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 		InputReleaseReady(func() bool { return !g.keyboard.HasUnprotectedHeldKey() }).
 		First(func() {}).
 		Wait(delayMs).
-		Then(func() {
+		Then(g.combatTimingStep(timing, func() {
 			combatScene := g.gameState.CombatScene
 			if combatScene != nil {
 				fromPos = combatScene.GetCombatantPosition(step.Actor)
@@ -94,9 +95,9 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 					)
 				}
 			}
-		}).ThenSequence(func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+		})).ThenSequence(func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		if result.ProjectileLaunch != nil {
-			return g.combatProjectileAnimationSequence(*result.ProjectileLaunch, func() {
+			return g.combatProjectileAnimationSequenceWithTiming(timing, *result.ProjectileLaunch, func() {
 				g.gameState.ResolvePendingMonsterMissile()
 			})(sequence)
 		}
@@ -104,7 +105,7 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 			return sequence
 		}
 
-		movementMs := g.combatMovementDuration(combatEnemyMovementDurationMs)
+		movementMs := timing.duration(combatEnemyMovementDurationMs)
 		if fastMovement {
 			movementMs = pacing.movementMs
 		}
@@ -119,7 +120,7 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 		g.clearProjectile()
 		g.clearCombatSignatureEffects()
 		if result.ProjectileLaunch != nil {
-			g.gameState.ResolvePendingMonsterMissile()
+			g.withCombatTiming(timing, func() { g.gameState.ResolvePendingMonsterMissile() })
 		}
 		if !resolved {
 			return
@@ -141,9 +142,8 @@ func (g *GameScene) startScheduledCombatAutoPass(step game_state.CombatPresentat
 		Sequential().BlockInput().
 		InputReleaseReady(func() bool { return !g.keyboard.HasUnprotectedHeldKey() }).
 		First(func() {}).
-		// The validated speed factor bounds this 250ms base duration to 63-1000ms.
-		Wait(int64(g.combatMovementDuration(combatAutoPassPCDurationMs))). //nolint:gosec // Bounded well below int64.
-		Then(func() {}).                                                   // Preserve Wait's delay before While installs its immediate loop entry.
+		Wait(g.captureCombatTiming().durationMs(combatAutoPassPCDurationMs)).
+		Then(func() {}). // Preserve Wait's delay before While installs its immediate loop entry.
 		While(g.hasCombatSignatureEffects, func() {}, DialogPollingRateMs).
 		Finally(func() {
 			g.clearCombatSignatureEffects()

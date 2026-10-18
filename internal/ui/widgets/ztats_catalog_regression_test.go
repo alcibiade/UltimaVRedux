@@ -11,8 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
 func TestZStatsCanonicalSpellDetailsFitOnePage(t *testing.T) {
@@ -168,7 +171,8 @@ func TestZStatsArmoryNamesUseNormalFontAndFitActualCatalogWidth(t *testing.T) {
 			screen := ebiten.NewImageWithOptions(row, nil)
 			t.Cleanup(screen.Dispose)
 			dialog.drawListRow(screen, row, 0, false)
-			require.True(t, strings.HasSuffix(dialog.rowOutput.GetOutputStr(false), " Long Sword"))
+			require.Equal(t, "Long Sword", dialog.rowOutput.GetOutputStr(false))
+			require.NotEmpty(t, dialog.rowIconOutput.GetOutputStr(false))
 			require.NotContains(t, dialog.rowOutput.GetOutputStr(false), "(")
 			require.Same(t, dialog.bodyFont, dialog.rowOutput.Font)
 			require.Equal(t, 1, dialog.rowOutput.GetPanelContentLineCount())
@@ -206,4 +210,160 @@ func TestZStatsCompactSpellDetailsRetainUsableOverflowArea(t *testing.T) {
 			require.Greater(t, dialog.detailPageCount(), 1)
 		})
 	}
+}
+
+func TestZStatsAllMoonstoneGlyphsFollowRenamedReorderedFilteredRows(t *testing.T) {
+	setZStatsTestResolution(t, 1280, 720)
+	dossier := testZStatsDossier()
+	dossier.Items = []game_state.ZStatsOwnedItem{
+		{ID: 0, Category: "Quest Item", Name: "New Moon Moonstone", Quantity: 1, SpriteIndex: indexes.Moon},
+		{ID: 7, Category: "Moonstone", Name: "Unowned", MoonPhase: game_state.ZStatsMoonPhase{Present: true, Phase: datetime.MoonPhaseCrescentWaning}},
+	}
+	for _, phase := range []datetime.MoonPhase{6, 0, 4, 1, 7, 3, 5, 2} {
+		dossier.Items = append(dossier.Items, game_state.ZStatsOwnedItem{
+			ID: int(phase), Category: "Moonstone", Name: "Renamed possession", Quantity: 1, SpriteIndex: indexes.Moon,
+			MoonPhase: game_state.ZStatsMoonPhase{Present: true, Phase: phase},
+		})
+	}
+	dialog := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
+	t.Cleanup(dialog.outerBorder.Dispose)
+	dialog.switchTab(ZStatsDossierItemsTab)
+	require.Equal(t, 9, dialog.currentItemCount())
+	row := dialog.panelBodyRect(dialog.layout.globalListRect)
+	row.Max.Y = row.Min.Y + dialog.listRowHeight(dialog.layout.globalListRect)
+	dialog.prepareListRow(row, 0, false)
+	require.Empty(t, dialog.rowIconOutput.GetOutputStr(false), "phase zero is not inferred from name, sprite or ID")
+	for position := 1; position < dialog.currentItemCount(); position++ {
+		item := dossier.Items[position+1]
+		dialog.setCurrentSelection(position)
+		for _, selected := range []bool{false, true} {
+			dialog.prepareListRow(row, position, selected)
+			requireZStatsCountedPhaseRow(t, dialog, row, item)
+		}
+		prepared := dialog.prepareItemDetail(dialog.layout.globalDetailRect)
+		require.True(t, prepared.portrait.Empty())
+		require.False(t, prepared.phaseIcon.Empty())
+		require.Equal(t, string(rune(0x30+item.MoonPhase.Phase)), dialog.phaseOutput.GetOutputStr(false))
+		require.Contains(t, dialog.summaryOutput.GetOutputStr(false), item.Name)
+	}
+	// The optional phase is detached along with the rest of the item record.
+	dossier.Items[2].MoonPhase.Phase = datetime.MoonPhaseNew
+	require.Equal(t, datetime.MoonPhaseLastQuarter, dialog.dossier.Items[2].MoonPhase.Phase)
+	dialog.setCurrentSelection(1)
+	refreshed := cloneZStatsDossier(dialog.dossier)
+	refreshed.Items[2], refreshed.Items[9] = refreshed.Items[9], refreshed.Items[2]
+	refreshed.Items[9].Name = "Renamed again"
+	dialog.RefreshDossier(refreshed)
+	require.Equal(t, 8, dialog.GetSelectedListIndex(), "refresh follows the typed identity, not the old row or label")
+	dialog.prepareItemDetail(dialog.layout.globalDetailRect)
+	require.Equal(t, "6", dialog.phaseOutput.GetOutputStr(false))
+	require.Contains(t, dialog.summaryOutput.GetOutputStr(false), "Renamed again")
+}
+
+func TestZStatsFullEquipmentRowsWrapWithMeasuredIconsAndNoClipping(t *testing.T) {
+	for _, size := range append(config.SupportedWindowResolutions(), config.ScreenResolution{X: 320, Y: 200}) {
+		t.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(t *testing.T) {
+			setZStatsTestResolution(t, size.X, size.Y)
+			dossier := testZStatsDossier()
+			dossier.Armory = nil
+			dossier.Characters[0].Equipped = nil
+			for _, equipment := range []references.Equipment{references.TwoHSword, references.RingRegeneration, references.AmuletOfTurning} {
+				dossier.Armory = append(dossier.Armory, game_state.ZStatsArmoryItem{
+					ID: equipment.ID(), Name: equipment.String(), Available: 65535, Readied: 6,
+				})
+				dossier.Characters[0].Equipped = append(dossier.Characters[0].Equipped, game_state.ZStatsEquippedItem{
+					ItemID: equipment.ID(), Name: equipment.String(), Slot: "Weapon",
+				})
+			}
+			dialog := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
+			t.Cleanup(dialog.outerBorder.Dispose)
+			for _, tab := range []ZStatsDossierTab{ZStatsDossierCharacterTab, ZStatsDossierArmoryTab} {
+				dialog.switchTab(tab)
+				list := dialog.activeListRect()
+				row := dialog.panelBodyRect(list)
+				pitch := dialog.listRowHeight(list)
+				row.Max.Y = row.Min.Y + pitch
+				for index, item := range dossier.Armory {
+					for _, selected := range []bool{false, true} {
+						dialog.prepareListRow(row, index, selected)
+						label := dialog.rowOutput.GetOutputStr(false)
+						require.Equal(t, item.Name, strings.ReplaceAll(label, " \n", ""))
+						require.NotContains(t, label, "...")
+						require.NotEmpty(t, dialog.rowIconOutput.GetOutputStr(false))
+						require.Same(t, dialog.bodyFont, dialog.rowOutput.Font)
+						require.LessOrEqual(t, dialog.rowOutput.GetTotalHeightForLines(dialog.rowOutput.GetPanelContentLineCount()), float64(pitch))
+						for _, physical := range strings.Split(label, " \n") {
+							width, _ := dialog.bodyFont.MeasureString(physical)
+							require.LessOrEqual(t, width, float64(dialog.rowWidth))
+						}
+					}
+				}
+				// Force a genuine wrap independently of font/catalog changes.
+				narrow := row
+				narrow.Max.X = narrow.Min.X + row.Dx()/2
+				dialog.prepareListRow(narrow, 1, true)
+				require.Greater(t, dialog.rowOutput.GetPanelContentLineCount(), 1)
+				require.Equal(t, references.RingRegeneration.String(), strings.ReplaceAll(dialog.rowOutput.GetOutputStr(false), " \n", ""))
+			}
+		})
+	}
+}
+
+func TestZStatsMoonstoneLongRowsReserveBitmapQuantityAndGutter(t *testing.T) {
+	for _, size := range []image.Point{{320, 200}, {1280, 720}, {2560, 1440}} {
+		t.Run(size.String(), func(t *testing.T) {
+			setZStatsTestResolution(t, size.X, size.Y)
+			dossier := testZStatsDossier()
+			dossier.Items[1].Name = "An unusually long renamed Moonstone possession"
+			dossier.Items[1].Quantity = 65535
+			dialog := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
+			t.Cleanup(dialog.outerBorder.Dispose)
+			dialog.switchTab(ZStatsDossierItemsTab)
+			row := dialog.panelBodyRect(dialog.layout.globalListRect)
+			row.Max.Y = row.Min.Y + dialog.listRowHeight(dialog.layout.globalListRect)
+			for _, selected := range []bool{false, true} {
+				dialog.prepareListRow(row, 1, selected)
+				requireZStatsCountedPhaseRow(t, dialog, row, dossier.Items[1])
+				require.Greater(t, dialog.rowOutput.GetPanelContentLineCount(), 1, "the long-name fixture exercises continuation rows")
+			}
+		})
+	}
+}
+
+func requireZStatsCountedPhaseRow(
+	t *testing.T, dialog *ZStatsDossierDialog, row image.Rectangle, item game_state.ZStatsOwnedItem,
+) {
+	t.Helper()
+	label := dialog.rowOutput.GetOutputStr(false)
+	// GetOutputStr inserts " \n" between physical rows. Remove only those
+	// separators and the single first-row quantity suffix: authored name bytes,
+	// including spaces at the wrap boundary, must survive exactly and in order.
+	physicalRows := strings.Split(label, " \n")
+	suffix := fmt.Sprintf(" (%d)", item.Quantity)
+	require.True(t, strings.HasSuffix(physicalRows[0], suffix), "quantity belongs at the end of the first physical row: %q", label)
+	require.Equal(t, 1, strings.Count(label, suffix), "quantity must appear exactly once")
+	name := strings.TrimSuffix(physicalRows[0], suffix) + strings.Join(physicalRows[1:], "")
+	require.Equal(t, item.Name, name, "wrapping must retain the complete name without truncation or reordered words")
+	require.Equal(t, len(physicalRows), dialog.rowOutput.GetPanelContentLineCount())
+	for _, physical := range physicalRows {
+		width, _ := dialog.bodyFont.MeasureString(physical)
+		require.LessOrEqual(t, width, float64(dialog.rowWidth), "name and first-row quantity must fit together")
+	}
+	require.True(t, item.MoonPhase.Present)
+	require.Equal(t, string(rune(0x30+item.MoonPhase.Phase)), dialog.rowIconOutput.GetOutputStr(false))
+	require.Equal(t, 1, dialog.rowIconOutput.GetPanelContentLineCount())
+	require.Positive(t, dialog.rowIconWidth)
+	require.Zero(t, dialog.rowIconWidth%text.BitmapCharWidth)
+	require.Equal(t, float64(dialog.rowIconWidth), dialog.rowIconOutput.GetLineSpacing(), "phase cell uses its actual bitmap advance")
+
+	viewport := image.Rect(row.Min.X+dialog.layout.padding, row.Min.Y,
+		row.Max.X-dialog.layout.padding-dialog.scrollIndicatorWidth(), row.Max.Y)
+	glyph := image.Rect(viewport.Min.X, viewport.Min.Y,
+		viewport.Min.X+dialog.rowIconWidth, viewport.Min.Y+dialog.rowIconWidth)
+	nameLeft := glyph.Max.X + dialog.pixelUnit()
+	nameHeight := int(math.Ceil(dialog.rowOutput.GetTotalHeightForLines(len(physicalRows))))
+	nameRect := image.Rect(nameLeft, row.Min.Y, nameLeft+dialog.rowWidth, row.Min.Y+nameHeight)
+	require.True(t, glyph.In(viewport), "phase glyph %v must fit the actual row viewport %v", glyph, viewport)
+	require.True(t, nameRect.In(viewport), "complete name/count block %v must fit the actual row viewport %v", nameRect, viewport)
+	require.False(t, glyph.Overlaps(nameRect), "glyph and name/count block must remain separate")
 }

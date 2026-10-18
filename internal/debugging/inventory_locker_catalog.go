@@ -251,7 +251,7 @@ func inventorySnapshotParameter() ParameterDefinition {
 	return ParameterDefinition{
 		ID: inventoryExpectedSnapshotID, Name: "Expected Snapshot", Description: inventorySnapshotDescription,
 		Kind: ParameterString, Required: true, Default: nil, Minimum: nil, Maximum: nil,
-		Pattern: "", Choices: nil, OptionsProvider: "", ControlHint: "text", Availability: nil,
+		Pattern: "", Choices: nil, OptionsProvider: "", ControlHint: activeCombatTextControlHint, Availability: nil,
 	}
 }
 
@@ -271,17 +271,23 @@ func inventoryProvisionChoices() []Choice {
 }
 
 func inventoryPotionChoices() []Choice {
-	return inventoryChoices(
-		choice("0", "Blue"), choice("1", "Yellow"), choice("2", "Red"), choice("3", "Green"),
-		choice("4", "Orange"), choice("5", "Purple"), choice("6", "Black"), choice("7", "White"),
-	)
+	items := references.NewInventoryItemsReferences()
+	choices := make([]Choice, 0, references.NumberOfPotions)
+	for _, potion := range references.PotionCatalog() {
+		choices = append(choices, choice(strconv.Itoa(potion.ID()), items.Potion[potion].FullDisplayName()))
+	}
+
+	return choices
 }
 
 func inventoryScrollChoices() []Choice {
-	return inventoryChoices(
-		choice("0", "Vas Lor"), choice("1", "Rel Hur"), choice("2", "In Sanct"), choice("3", "In An"),
-		choice("4", "In Quas Wis"), choice("5", "Kal Xen Corp"), choice("6", "In Mani Corp"), choice("7", "An Tym"),
-	)
+	items := references.NewInventoryItemsReferences()
+	choices := make([]Choice, 0, references.NumberOfScrolls)
+	for _, scroll := range references.ScrollCatalog() {
+		choices = append(choices, choice(strconv.Itoa(scroll.ID()), items.Scroll[scroll].FullDisplayName()))
+	}
+
+	return choices
 }
 
 func inventoryReagentChoices() []Choice {

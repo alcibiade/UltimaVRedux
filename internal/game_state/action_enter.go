@@ -287,7 +287,7 @@ func (g *GameState) StartEnterLocationWorkflow(slr *references.SmallLocationRefe
 				g.generateDungeonWandererAfterFreshEntry()
 			}
 
-			g.SystemCallbacks.UI.ShowActionFeedback(slr.EnteringText, false)
+			g.SystemCallbacks.UI.ShowActionFeedback(slr.EnteringText, true)
 			if preparedDungeon == nil {
 				g.observeAtlasLandmark(entranceLocation.Position, entranceKind,
 					atlasPresentedEntryName(slr.EnteringText), journal.AtlasSourceEnter, entranceObservation)
@@ -410,7 +410,7 @@ func (g *GameState) ThenExitLocationTransition() func(
 					false,
 				)
 
-				g.SystemCallbacks.UI.ShowActionFeedback(strings.TrimSpace(exitingText), false)
+				g.SystemCallbacks.UI.ShowActionFeedback(strings.TrimSpace(exitingText), true)
 			}).
 			Animate(EnterFadeInMs, func(progress float32) {
 				g.SystemCallbacks.Visual.SetMapFadeLevel(1.0 - float64(progress))

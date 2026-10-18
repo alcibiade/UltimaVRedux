@@ -46,6 +46,7 @@ type activeCombatResult struct {
 	RNGSeed                  uint64                          `json:"rngSeed"`
 	WorkflowActive           bool                            `json:"workflowActive"`
 	PresentationSpeedPercent int                             `json:"presentationSpeedPercent"`
+	ConfigurationEditing     bool                            `json:"configurationEditing"`
 	MonsterTypes             []activeCombatMonsterTypeResult `json:"monsterTypes"`
 }
 

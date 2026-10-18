@@ -885,11 +885,16 @@ the acting character and omits character-switch hints. Footer hints wrap as
 measured key/action pairs so a key never separates from its description. Hand
 slots explicitly say
 `Free` or `Occupied`; the second hand reserved by a two-handed weapon identifies
-that weapon rather than appearing empty. The three gear panes are 27% equipped, 38% available, and 35%
-comparison; do not normalize its body to the larger main-screen font. Complete gear
+that weapon rather than appearing empty. The equipped and available panes start
+at minimum shares of 27% and 38%, expanding as required by measured full identities
+and row decorations; the comparison pane receives the remaining width. Do not
+normalize its body to the larger main-screen font. Complete gear
 rows are measured with bitmap-icon advances, marker and quantity space, and a
-separate scroll gutter. Use the catalog's short name only when the full name will
-not fit; the selected item's full name remains in details. Details include range,
+separate scroll gutter. Full identified equipment names remain visible using
+measured content layout rather than catalog short-name fallback. Strength-budget
+and replacement labels use the same full identities; two-handed status retains
+its hand-status line. Arms-shop lists likewise reserve numeric columns before
+wrapping complete names and scroll whole item rows. Details include range,
 required ammunition and stock, catalog special properties,
 and the slot or hands affected by the authoritative preview. Comparisons name all
 removed items and use the authoritative resulting loadout, including invalid
@@ -988,6 +993,21 @@ the full-width spell input strip, preserving usable list/detail space and page
 capacity at every supported resolution. Explicit caller placement remains binding.
 Its outer dimensions stay stable across sections and input modes; other sections
 use the additional body space. Cast and Mix retain their own original placement.
+
+Z-stats equipment and owned-item rows use full catalog identities with measured
+wrapping. Bitmap-icon advances, first-line quantities and the scroll gutter are
+reserved before name layout; subsequent physical lines retain the rest of the
+name. Equipment rows are uncounted, with armory available/readied counts in details.
+Refreshing a reordered owned-item projection retains selection by typed identity.
+
+Carried moonstones supply explicit optional phase identity, including a present
+phase-zero New Moon. A small phase glyph accompanies each Items row. Their detail
+header uses a compact framed glyph beside the full name and category/quantity,
+approximately two text lines high. It replaces the moonstone's large portrait
+allocation rather than enlarging to fill available pane space. Whole-number pixel
+scaling, nearest-neighbour rendering and the visible New Moon outline match the
+shared journal glyph path. The header stays fixed while overflowing lore pages
+below it. Other catalog and character portraits retain their normal layout.
 
 The shared two-row input strip sits above both spell panes. Its input, filter, and
 right-aligned **Matches: N** fields have independent measured bounds and Output

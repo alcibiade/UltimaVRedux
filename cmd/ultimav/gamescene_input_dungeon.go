@@ -15,7 +15,8 @@ const dungeonCommandNotImplemented = "Not implemented in dungeons."
 
 var dungeonKlimbChoiceKeys = boundKeysGame //nolint:gochecknoglobals // Immutable input binding table.
 
-func (g *GameScene) dungeonMapInputHandler(key ebiten.Key) {
+//nolint:maintidx // Keep accepted-key precharge, token handoffs, and exact-once completion in one auditable dispatcher.
+func (g *GameScene) dungeonMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 	if g.keyboard.IsModifierComboPressed(input.ModifierCtrl, ebiten.KeyM) {
 		g.toggleMusic()
 
@@ -28,6 +29,7 @@ func (g *GameScene) dungeonMapInputHandler(key ebiten.Key) {
 		return
 	}
 
+	//nolint:exhaustive // Only dungeon command keys acquire a token; shortcuts above and rejected keys do not precharge.
 	switch key {
 	case ebiten.KeyUp,
 		ebiten.KeyDown,
@@ -247,6 +249,12 @@ func (g *GameScene) dungeonMapInputHandler(key ebiten.Key) {
 		g.gameState.ActionPushDungeonMap()
 		completion = game_state.DungeonCommandOnly
 	case ebiten.KeyQ:
+		if !g.confirmQuickSave() {
+			g.gameState.CompleteDungeonCommandCycle(token, game_state.DungeonCommandOnly)
+			g.saveCurrentPlayerWithConfirmation(game, "Dungeon", false)
+
+			return
+		}
 		g.showSaveQuestion()
 		g.dungeonQuitCommandToken = token
 		g.secondaryKeyState = DungeonQuitInput

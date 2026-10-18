@@ -19,7 +19,6 @@ const (
 	moonstoneUnmeasured  = "Not measured"
 	moonstoneUnrecorded  = "Not recorded"
 	moonstoneSurveyHelp  = "Requires a usable sextant at the site: Britannia surface, 19:00-05:59."
-	moonstoneGlyphBase   = 0x30
 )
 
 func moonstonePlaceholder(value string) bool {
@@ -92,16 +91,13 @@ func moonstoneDate(at journal.OptionalGameTime) string {
 func moonstoneTitleLine(
 	output *text.Output, phase datetime.MoonPhase, marker string, foreground stdcolor.Color,
 ) *text.LineBuilder {
-	if phase < datetime.MoonPhaseNew || phase > datetime.MoonPhaseCrescentWaning {
-		panic("invalid journal moonstone phase")
-	}
 	output.Reset()
 	// Budget the entire mixed row before insertion: a one-row buffer must never
 	// wrap away its marker/glyph prefix. Width is measured separately below.
 	output.SetMaxCharsPerLine(len(phase.String()) + len(marker) + len("0 "))
 
-	return output.AppendLine().Text(marker, foreground).
-		RunicWithColor(string(rune(moonstoneGlyphBase+phase)), foreground).Text(" "+phase.String(), foreground)
+	return appendMoonPhaseGlyph(output.AppendLine().Text(marker, foreground), phase, foreground).
+		Text(" "+phase.String(), foreground)
 }
 
 func fittedMoonstoneOutput(size float64, width int, marker string) *text.Output {

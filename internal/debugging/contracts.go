@@ -68,6 +68,7 @@ type ParameterDefinition struct {
 	Default               json.RawMessage `json:"default,omitempty"`
 	Minimum               *int            `json:"minimum,omitempty"`
 	Maximum               *int            `json:"maximum,omitempty"`
+	Step                  *int            `json:"step,omitempty"`
 	Pattern               string          `json:"pattern,omitempty"`
 	Choices               []Choice        `json:"choices,omitempty"`
 	OptionsProvider       string          `json:"optionsProvider,omitempty"`
@@ -423,10 +424,13 @@ type SpellEffectsData struct {
 
 // ReduxModificationsStatusData is the typed persisted Redux-rules payload.
 type ReduxModificationsStatusData struct {
-	Combat       ReduxCombatModificationsData       `json:"combat"`
-	Dungeons     ReduxDungeonModificationsData      `json:"dungeons"`
-	Presentation ReduxPresentationModificationsData `json:"presentation"`
-	Navigation   ReduxNavigationModificationsData   `json:"navigation"`
+	ConfigurationDiagnostics []string                           `json:"configurationDiagnostics,omitempty"`
+	ConfigurationEditing     bool                               `json:"configurationEditing"`
+	ConfirmQuickSave         bool                               `json:"confirmQuickSave"`
+	Combat                   ReduxCombatModificationsData       `json:"combat"`
+	Dungeons                 ReduxDungeonModificationsData      `json:"dungeons"`
+	Presentation             ReduxPresentationModificationsData `json:"presentation"`
+	Navigation               ReduxNavigationModificationsData   `json:"navigation"`
 }
 
 // ReduxNavigationModificationsData reports optional sextant navigation policy.
@@ -436,12 +440,15 @@ type ReduxNavigationModificationsData struct {
 
 // ReduxPresentationModificationsData reports optional camera presentation choices.
 type ReduxPresentationModificationsData struct {
-	SmoothSurfaceMovement bool `json:"smoothSurfaceMovement"`
+	SmoothSurfaceMovement  bool `json:"smoothSurfaceMovement"`
+	MaxVisibleActionPopups int  `json:"maxVisibleActionPopups"`
 }
 
 // ReduxCombatModificationsData reports Redux combat behavior choices.
 type ReduxCombatModificationsData struct {
 	AllowRepeatedMonsterDivision bool `json:"allowRepeatedMonsterDivision"`
+	SpeedPercent                 int  `json:"speedPercent"`
+	ShowHealthBars               bool `json:"showHealthBars"`
 }
 
 // ReduxDungeonModificationsData reports Redux dungeon persistence and presentation choices.

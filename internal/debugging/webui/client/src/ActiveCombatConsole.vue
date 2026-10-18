@@ -3,15 +3,15 @@ import { computed, ref, watch } from "vue"
 import { invalidateInstrumentReview, useInstrumentDraft } from "./instrument_session"
 
 import type { ActiveCombatStatusData } from "./approved_tool_views"
+import type { CommandDefinition } from "./protocol"
+import PreferenceNumberControl from "./PreferenceNumberControl.vue"
 
 interface CombatMutation { commandID: string; argumentsByID: Record<string, string> }
 
-const props = defineProps<{ data?: ActiveCombatStatusData; updatedAt?: Date; pending: boolean }>()
+const props = defineProps<{ data?: ActiveCombatStatusData; updatedAt?: Date; pending: boolean; commands?: CommandDefinition[] }>()
 const emit = defineEmits<{ mutate: [mutation: CombatMutation]; openEncounter: [] }>()
 const selectedMonsterID = useInstrumentDraft("combat.monster", "")
 const selectedEncounterID = useInstrumentDraft("combat.selectedEncounter", "")
-const speedPercent = useInstrumentDraft("combat.speed", 100)
-const lastSpeedPercent = useInstrumentDraft<number | undefined>("combat.lastSpeed", undefined)
 const reviewedCondition = ref<{ monsterID: string; name: string; asleep: boolean; expectedAsleep: boolean; snapshot: string }>()
 const reviewedExit = ref<{ encounterID: string; snapshot: string }>()
 const spawnMonsterType = useInstrumentDraft("combat.spawnType", "32")
@@ -55,11 +55,6 @@ watch(() => props.data?.snapshotFingerprint, (fingerprint) => {
   }
 }, { immediate: true })
 
-watch(() => props.data?.presentationSpeedPercent, (percent) => {
-  if (percent === undefined) return
-  if (lastSpeedPercent.value === undefined || speedPercent.value === lastSpeedPercent.value) speedPercent.value = percent
-  lastSpeedPercent.value = percent
-}, { immediate: true })
 
 function stageSleep(asleep: boolean): void {
   const monster = selectedMonster.value
@@ -212,7 +207,8 @@ function cellClass(cell: NonNullable<ActiveCombatStatusData["map"]>["cells"][num
       <div><span>DETACHED TACTICAL TELEMETRY</span><h3>Active Combat</h3></div>
       <small>{{ updatedAt ? `UPDATED ${updatedAt.toLocaleTimeString([], { hour12: false })}` : "AWAITING STATUS" }}</small>
     </header>
-    <section v-if="data" class="instrument-setting"><div><strong>COMBAT MOVEMENT SPEED</strong><p>Applies to subsequent movement animations and persists in debug configuration.</p></div><input v-model.number="speedPercent" type="number" min="25" max="400" step="25" /><button type="button" :disabled="pending || speedPercent < 25 || speedPercent > 400 || speedPercent === data.presentationSpeedPercent" @click="emit('mutate', { commandID: 'combat.presentation.speed.set', argumentsByID: { percent: String(speedPercent) } })">APPLY {{ speedPercent }}%</button></section>
+    <p v-if="data?.configurationEditing" role="status">Close Configuration with Apply or Cancel before changing combat speed.</p>
+    <PreferenceNumberControl v-if="data" command-id="combat.presentation.speed.set" :command="commands?.find(command => command.id === 'combat.presentation.speed.set')" :value="data.presentationSpeedPercent" :disabled="pending || data.configurationEditing" @apply="argumentsByID => emit('mutate', { commandID: 'combat.presentation.speed.set', argumentsByID })" />
     <p v-if="!data" class="empty-state">WAITING FOR ACTIVE COMBAT STATUS</p>
     <section v-else-if="!data.active" class="approved-panel combat-unavailable"><strong>NO ACTIVE ENCOUNTER</strong><p>{{ data.unavailableReason }}</p><button type="button" :disabled="pending" @click="emit('openEncounter')">OPEN ENCOUNTER OPTIONS</button></section>
     <template v-else>
@@ -241,7 +237,7 @@ function cellClass(cell: NonNullable<ActiveCombatStatusData["map"]>["cells"][num
 	  <section v-else class="instrument-setting"><div><strong>BATCH MONSTER CONTROL</strong><p>Both operations require a second confirmation against this exact reviewed encounter snapshot.</p></div><button type="button" data-combat-kill-all-review :disabled="pending || mutationUnavailable || data.activeMonsterCount === 0" @click="stageBatch('kill-all')">REVIEW KILL ALL</button><button type="button" data-combat-clear-review :disabled="pending || mutationUnavailable || data.totalMonsterCount === 0" @click="stageBatch('clear')">REVIEW CLEAR</button></section>
 	  <section class="instrument-setting"><div><strong>FIXED DUNGEON ROOM</strong><p v-if="data.fixedDungeonRoom">Dungeon {{ data.dungeonIndex }} · room {{ data.dungeonRoom }} · {{ data.activeHostileMonsterCount }} hostile. Declares victory but does not exit combat.</p><p v-else>Requires combat entered from an authoritative A* or F* dungeon cell.</p></div><button type="button" data-combat-clear-room-review :disabled="pending || mutationUnavailable || !data.fixedDungeonRoom || data.map?.victory || data.activeHostileMonsterCount === 0" @click="stageBatch('clear-room')">REVIEW CLEAR ROOM</button></section>
 
-      <section class="instrument-setting combat-spawn-setting"><div><strong>REINFORCEMENTS</strong><p>Uses unoccupied authoritative CBT positions and commits the manager and DEX queue as one batch.</p></div><label>Monster<select v-model="spawnMonsterType"><option v-for="monsterType in data.monsterTypes" :key="monsterType.id" :value="String(monsterType.id)">{{ monsterType.name }} · TYPE {{ monsterType.id }}</option></select></label><label>Count<select v-model="spawnCountMode"><option value="automatic">Automatic</option><option value="exact">Exact</option><option value="maximum">Maximum</option></select></label><label v-if="spawnCountMode === 'exact'">Exact<input v-model.number="spawnExactCount" type="number" min="1" max="16" /></label><label>Friends<input v-model="spawnFriends" type="checkbox" /></label><label>Seed<input v-model="spawnSeed" type="number" min="0" max="2147483647" placeholder="session RNG" /></label><button type="button" data-combat-spawn-review :disabled="pending || mutationUnavailable || !spawnMonsterType || (spawnCountMode === 'exact' && (spawnExactCount < 1 || spawnExactCount > 16))" @click="stageSpawn">REVIEW SPAWN</button></section>
+      <section class="instrument-setting combat-spawn-setting"><div><strong>REINFORCEMENTS</strong><p>Uses unoccupied authoritative CBT positions and commits the manager and DEX queue as one batch.</p></div><label>Monster<select v-model="spawnMonsterType"><option v-for="monsterType in data.monsterTypes" :key="monsterType.id" :value="String(monsterType.id)">{{ monsterType.name }} · TYPE {{ monsterType.id }}</option></select></label><label>Count<select v-model="spawnCountMode"><option value="automatic">Automatic</option><option value="exact">Exact</option><option value="maximum">Maximum</option></select></label><label v-if="spawnCountMode === 'exact'">Exact<input v-model.number="spawnExactCount" type="number" min="1" max="16" /></label><label>Friends<input v-model="spawnFriends" type="checkbox" /></label><label>Seed<input :value="spawnSeed" @input="spawnSeed = ($event.target as HTMLInputElement).value" data-combat-spawn-seed type="number" min="0" max="2147483647" placeholder="session RNG" /></label><button type="button" data-combat-spawn-review :disabled="pending || mutationUnavailable || !spawnMonsterType || (spawnCountMode === 'exact' && (spawnExactCount < 1 || spawnExactCount > 16))" @click="stageSpawn">REVIEW SPAWN</button></section>
       <section v-if="reviewedSpawn" class="combat-condition-review"><div><strong>SPAWN TYPE {{ reviewedSpawn.monsterType }} · {{ reviewedSpawn.countMode.toUpperCase() }}</strong><p>{{ reviewedSpawn.exactCount ? `${reviewedSpawn.exactCount} monsters` : "Count resolved at commit" }} · {{ reviewedSpawn.friends ? "friends enabled" : "primary type only" }} · {{ reviewedSpawn.seed ? `seed ${reviewedSpawn.seed}` : "session RNG" }}</p></div><button type="button" data-combat-spawn-apply :disabled="pending" @click="applySpawn">APPLY SPAWN</button><button type="button" :disabled="pending" @click="reviewedSpawn = undefined">CANCEL</button></section>
       <section v-if="reviewedCondition" class="combat-condition-review"><div><strong>{{ reviewedCondition.asleep ? "SLEEP" : "WAKE" }} M{{ reviewedCondition.monsterID }} · {{ reviewedCondition.name }}</strong><p>Applies only if the encounter snapshot and current condition still match this review.</p></div><button type="button" :disabled="pending" @click="applyCondition">APPLY CONDITION</button><button type="button" :disabled="pending" @click="reviewedCondition = undefined">CANCEL</button></section>
       <section v-if="reviewedExit" class="combat-condition-review danger-card"><div><strong>DISCARD ENCOUNTER {{ reviewedExit.encounterID }}</strong><p>Returns to the pre-combat location without resolving victory, defeat, evacuation, overworld contact, or pirate salvage.</p></div><button type="button" :disabled="pending" @click="applyExit">DISCARD ENCOUNTER</button><button type="button" :disabled="pending" @click="reviewedExit = undefined">CANCEL</button></section>

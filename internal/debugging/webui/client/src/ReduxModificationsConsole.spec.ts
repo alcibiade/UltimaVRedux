@@ -2,6 +2,8 @@ import { createApp, nextTick, type App as VueApp } from "vue"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import ReduxModificationsConsole from "./ReduxModificationsConsole.vue"
+import catalog from "./initial_catalog.fixture.json"
+import type { CommandDefinition } from "./protocol"
 
 describe("ReduxModificationsConsole", () => {
   let app: VueApp<Element> | undefined
@@ -23,8 +25,9 @@ describe("ReduxModificationsConsole", () => {
     const setFlexibleSextantUse = vi.fn()
     app = createApp(ReduxModificationsConsole, {
       data: {
-        combat: { allowRepeatedMonsterDivision: false },
-        presentation: { smoothSurfaceMovement: false },
+        configurationEditing: false, confirmQuickSave: true,
+        combat: { allowRepeatedMonsterDivision: false, speedPercent: 100, showHealthBars: true },
+        presentation: { smoothSurfaceMovement: false, maxVisibleActionPopups: 3 },
         navigation: { flexibleSextantUse: false },
         dungeons: { persistHiddenDungeonDiscoveries: false, showSubduedUnlitDungeons: false },
       }, pending: false,
@@ -64,8 +67,9 @@ describe("ReduxModificationsConsole", () => {
   it("shows original mode and disables mutations while pending", () => {
     app = createApp(ReduxModificationsConsole, {
       data: {
-        combat: { allowRepeatedMonsterDivision: true },
-        presentation: { smoothSurfaceMovement: true },
+        configurationEditing: false, confirmQuickSave: true,
+        combat: { allowRepeatedMonsterDivision: true, speedPercent: 100, showHealthBars: true },
+        presentation: { smoothSurfaceMovement: true, maxVisibleActionPopups: 3 },
         navigation: { flexibleSextantUse: true },
         dungeons: { persistHiddenDungeonDiscoveries: true, showSubduedUnlitDungeons: true },
       }, pending: true,
@@ -83,9 +87,10 @@ describe("ReduxModificationsConsole", () => {
     const setFlexibleSextantUse = vi.fn()
     app = createApp(ReduxModificationsConsole, {
       data: {
-        combat: { allowRepeatedMonsterDivision: false },
+        configurationEditing: false, confirmQuickSave: true,
+        combat: { allowRepeatedMonsterDivision: false, speedPercent: 100, showHealthBars: true },
         dungeons: { persistHiddenDungeonDiscoveries: true, showSubduedUnlitDungeons: true },
-        presentation: { smoothSurfaceMovement: true },
+        presentation: { smoothSurfaceMovement: true, maxVisibleActionPopups: 3 },
         navigation: { flexibleSextantUse: true },
       }, pending: false,
       onSetSmoothSurfaceMovement: setSmoothSurfaceMovement,
@@ -103,5 +108,25 @@ describe("ReduxModificationsConsole", () => {
     sextant.click()
     await nextTick()
     expect(setFlexibleSextantUse).toHaveBeenCalledWith(false)
+  })
+
+  it("uses catalog speed constraints and explains an open Configuration conflict", () => {
+    app = createApp(ReduxModificationsConsole, {
+      data: {
+        configurationEditing: true, confirmQuickSave: false,
+        combat: { allowRepeatedMonsterDivision: false, speedPercent: 200, showHealthBars: false },
+        presentation: { smoothSurfaceMovement: false, maxVisibleActionPopups: 0 },
+        navigation: { flexibleSextantUse: false },
+        dungeons: { persistHiddenDungeonDiscoveries: true, showSubduedUnlitDungeons: true },
+      }, pending: false, commands: catalog as CommandDefinition[],
+    })
+    app.mount(root)
+    const speed = root.querySelector<HTMLInputElement>('[data-preference="combat.presentation.speed.set"] input')!
+    expect(speed.min).toBe("50")
+    expect(speed.max).toBe("400")
+    expect(speed.step).toBe("50")
+    expect(speed.disabled).toBe(true)
+    expect(root.textContent).toContain("Close Configuration with Apply or Cancel")
+    expect(root.textContent).toContain("0 means Off")
   })
 })

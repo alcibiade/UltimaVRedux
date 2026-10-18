@@ -353,7 +353,7 @@ func (g *GameScene) addLordBritishFailureFinale(
 		return
 	}
 	q.Wait(finaleRecoveryDelayMs).Then(func() {
-		g.showDoomRecoveryChoice("The Wooden Box is missing. Choose how to continue.")
+		g.showDoomRecoveryChoice("The Sandalwood Box is missing. Choose how to continue.")
 		presentation.record("recovery-choice")
 	})
 }

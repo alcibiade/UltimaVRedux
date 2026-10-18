@@ -28,12 +28,13 @@ const (
 // CombatAreaSpellTargetResult retains the exact actor at resolution, rather than
 // asking presentation to infer victims or outcomes from affected positions.
 type CombatAreaSpellTargetResult struct {
-	Target      CombatFeedbackEntity
-	CombatantID CombatantID
-	Disclosed   bool
-	Outcome     CombatSpellOutcome
-	HPLost      int
-	Fatal       bool
+	Target        CombatFeedbackEntity
+	CombatantID   CombatantID
+	Disclosed     bool
+	Outcome       CombatSpellOutcome
+	HPLost        int
+	Fatal         bool
+	MonsterInjury CombatMonsterInjury
 }
 
 // CombatAreaSpellResult contains one entry per reached, eligible target, in
@@ -134,6 +135,7 @@ func (g *GameState) publishCombatAreaSpellTarget(
 		Kind: CombatEventSpell, Attacker: attacker, Target: result.Target,
 		Result: combatSpellFeedbackResult(result.Outcome), HPLost: result.HPLost, Fatal: result.Fatal,
 		From: attacker.Position, To: result.Target.Position, Diagnostics: diagnostics, SpellTarget: &result,
+		MonsterInjury: result.MonsterInjury,
 	})
 
 	return result
