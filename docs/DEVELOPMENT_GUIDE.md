@@ -40,15 +40,14 @@ separately. `make validate` is local/offline and fails rather than downloading a
 missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
-The experimental [Berad Audio module](../modules/berad-audio/README.md) has its
-own `go.mod` under `modules/berad-audio`. `make tools` provisions both modules.
-Root logic tests invoke its isolated tests/build/vet and separate consumer;
-root lint checks it explicitly without the game's inherited-debt cutoff.
-Use `make audio-module-check` for the focused combination. The game imports a
-remotely available pinned module revision; no workspace or local replacement is
-required. Changes inside the nested module need an independently available
-revision before updating the game pin. Temporary substitutions belong only to
-the integration fixtures.
+The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio)
+lives in the separate public SDK repository. `make tools` provisions the game's
+pinned dependencies, including audio. `make audio-module-check` exercises and
+lints the game-owned bridge against that published SDK version. SDK unit/race and
+independent-consumer checks belong to the SDK; game checks need no SDK checkout
+and do not rerun its independent suites. Publish an available SDK revision before
+changing the game pin. No application workspace or local replacement is required;
+the throwaway bridge substitutes only the candidate game, never the SDK.
 
 Use [original-data setup](INSTALL.md#locate-the-original-game-data) to discover an
 existing GOG/Heroic installation, use the displayed home/UltimaV folder,

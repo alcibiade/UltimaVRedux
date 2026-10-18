@@ -45,7 +45,7 @@ func calibrationWAV(amplitude int16) []byte {
 func calibrationSourceFixture(t *testing.T) *model {
 	t.Helper()
 	m := fixture(t)
-	require.NoError(t, os.WriteFile(m.clip.Path, calibrationWAV(4000), 0o644))
+	require.NoError(t, os.WriteFile(m.clip.Path(), calibrationWAV(4000), 0o644))
 	finish(m, m.loadSelection())
 	require.True(t, m.selectedClipReady())
 	return m
@@ -53,16 +53,16 @@ func calibrationSourceFixture(t *testing.T) *model {
 
 func replaceCalibrationSource(t *testing.T, m *model, sameStamp bool) []byte {
 	t.Helper()
-	info, err := os.Stat(m.clip.Path)
+	info, err := os.Stat(m.clip.Path())
 	require.NoError(t, err)
 	data := calibrationWAV(8000)
 	require.Equal(t, info.Size(), int64(len(data)))
-	require.NoError(t, os.WriteFile(m.clip.Path, data, info.Mode()))
+	require.NoError(t, os.WriteFile(m.clip.Path(), data, info.Mode()))
 	stamp := info.ModTime().Add(2 * time.Second)
 	if sameStamp {
 		stamp = info.ModTime()
 	}
-	require.NoError(t, os.Chtimes(m.clip.Path, stamp, stamp))
+	require.NoError(t, os.Chtimes(m.clip.Path(), stamp, stamp))
 	if sameStamp {
 		require.NoError(t, m.clip.CheckSourceStamp(), "only content verification can detect this replacement")
 	} else {
@@ -101,7 +101,7 @@ func TestAutoCalibrationConfirmationRejectsReplacedSourceThroughRouting(t *testi
 			require.False(t, m.doc.Dirty())
 			dispatchKey(m, tea.KeyMsg{Type: tea.KeyEnter})
 			require.Equal(t, revision, m.doc.Revision(), "a rejected draft cannot be confirmed again")
-			data, err := os.ReadFile(m.clip.Path)
+			data, err := os.ReadFile(m.clip.Path())
 			require.NoError(t, err)
 			require.Equal(t, replacement, data, "calibration never rewrites source bytes")
 			require.True(t, m.doc.Redo(), "failed verification must preserve Redo")
@@ -135,7 +135,7 @@ func TestAutoCalibrationMissingSourcePreservesFailureAndHistory(t *testing.T) {
 	m := calibrationSourceFixture(t)
 	dispatchRune(m, 'A')
 	revision := m.doc.Revision()
-	require.NoError(t, os.Remove(m.clip.Path))
+	require.NoError(t, os.Remove(m.clip.Path()))
 	dispatchKey(m, tea.KeyMsg{Type: tea.KeyEnter})
 	require.True(t, m.statusIsError)
 	require.True(t, m.sourceStale)
@@ -180,7 +180,7 @@ func TestAutoCalibrationReloadRequiresFreshSuggestionAndOneUndo(t *testing.T) {
 	require.False(t, m.doc.Dirty())
 	dispatchKey(m, tea.KeyMsg{Type: tea.KeyCtrlR})
 	require.Equal(t, after, m.doc.Recording(m.recordingID()))
-	data, err := os.ReadFile(m.clip.Path)
+	data, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	require.Equal(t, replacement, data)
 }
@@ -240,7 +240,7 @@ func TestAutoCalibrationAsyncSuccessPreservesTransportAndRejectsReplay(t *testin
 	m := calibrationSourceFixture(t)
 	id := m.recordingID()
 	before := m.doc.Recording(id)
-	sourceBytes, err := os.ReadFile(m.clip.Path)
+	sourceBytes, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	manifestBytes, err := os.ReadFile(m.doc.Path())
 	require.NoError(t, err)
@@ -263,7 +263,7 @@ func TestAutoCalibrationAsyncSuccessPreservesTransportAndRejectsReplay(t *testin
 	require.True(t, m.previewIsPaused())
 	require.Equal(t, int64(150), voice.PositionMs())
 	require.InDelta(t, m.livePreviewGain(), voice.gain, 1e-9)
-	data, err := os.ReadFile(m.clip.Path)
+	data, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	require.Equal(t, sourceBytes, data)
 	data, err = os.ReadFile(m.doc.Path())

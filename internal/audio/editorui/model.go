@@ -369,11 +369,11 @@ func (m *model) playStandalone() bool {
 		m.previewRoute = &previewRoute{recordingID: m.recordingID(), cueID: m.activeCue(), calibrated: m.picker == nil}
 		m.previewLabel = m.recordingID()
 		if m.picker != nil {
-			m.previewLabel = "Candidate " + filepath.Base(m.clip.Path)
+			m.previewLabel = "Candidate " + filepath.Base(m.clip.Path())
 		}
 		m.status = "Playing " + m.previewLabel
 		m.previewPaused, m.previewLoop = false, m.looping
-		m.previewEndMs = m.clip.DurationMs
+		m.previewEndMs = m.clip.DurationMs()
 		if window != nil {
 			m.previewEndMs = window.EndMs
 		}

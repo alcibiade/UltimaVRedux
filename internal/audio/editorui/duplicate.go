@@ -24,8 +24,8 @@ func (m *model) beginDuplicate() {
 		return
 	}
 	window := m.window()
-	if window.EndMs < m.clip.DurationMs {
-		window.StartMs, window.EndMs = window.EndMs, m.clip.DurationMs
+	if window.EndMs < m.clip.DurationMs() {
+		window.StartMs, window.EndMs = window.EndMs, m.clip.DurationMs()
 	}
 	cueID := m.crop.cueID
 	if cueID == "" {

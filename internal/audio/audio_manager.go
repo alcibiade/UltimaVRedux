@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
-	"github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengine"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/backend/ebitengine"
 	ea "github.com/hajimehoshi/ebiten/v2/audio"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"

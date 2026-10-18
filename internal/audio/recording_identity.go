@@ -21,7 +21,7 @@ func (clip *RecordingAudio) Fingerprint() string { return hex.EncodeToString(cli
 // CheckSourceStamp is a cheap freshness probe, not a content proof. Apply always
 // hashes the file, including same-size replacements with preserved timestamps.
 func (clip *RecordingAudio) CheckSourceStamp() error {
-	info, err := os.Stat(clip.Path)
+	info, err := os.Stat(clip.path)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrRecordingSourceChanged, err)
 	}
@@ -40,14 +40,14 @@ func (clip *RecordingAudio) VerifySource(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("verify recording canceled: %w", err)
 	}
-	info, err := os.Stat(clip.Path)
+	info, err := os.Stat(clip.path)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrRecordingSourceChanged, err)
 	}
 	if !info.Mode().IsRegular() || info.Size() != int64(len(clip.data)) {
 		return ErrRecordingSourceChanged
 	}
-	file, err := os.Open(clip.Path)
+	file, err := os.Open(clip.path)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrRecordingSourceChanged, err)
 	}
@@ -69,6 +69,9 @@ func (clip *RecordingAudio) verifyBytes(ctx context.Context, source io.Reader) e
 			return fmt.Errorf("verify recording canceled: %w", err)
 		}
 		count, err := source.Read(buffer)
+		if cancelErr := ctx.Err(); cancelErr != nil {
+			return fmt.Errorf("verify recording canceled: %w", cancelErr)
+		}
 		read += count
 		if read > len(clip.data) {
 			return ErrRecordingSourceChanged

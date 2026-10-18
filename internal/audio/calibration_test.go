@@ -27,7 +27,7 @@ func calibrationTone(t *testing.T, amplitudes ...float64) *RecordingAudio {
 	peaks, loudness, err := recordingAnalysis(context.Background(), bytes.NewReader(pcm))
 	require.NoError(t, err)
 
-	return &RecordingAudio{DurationMs: int64(len(amplitudes) * 1000), Peaks: peaks, loudness: loudness}
+	return &RecordingAudio{durationMs: int64(len(amplitudes) * 1000), peaks: peaks, loudness: loudness}
 }
 
 func TestCalibrationMeasuresSelectedRegionAndPreservesRelativeLevels(t *testing.T) {

@@ -13,7 +13,8 @@ import (
 )
 
 func (m *model) updateSelectedAvailability(message loadedMsg) {
-	if message.request.purpose == sourceCandidate || errors.Is(message.err, context.Canceled) {
+	if message.request.purpose == sourceCandidate || errors.Is(message.err, context.Canceled) ||
+		errors.Is(message.err, context.DeadlineExceeded) {
 		return
 	}
 	recordingID := message.request.recordingID

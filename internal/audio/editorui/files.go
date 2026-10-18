@@ -136,7 +136,7 @@ func (m *model) openPickerEntry() tea.Cmd {
 }
 
 func (m *model) previewPickerEntry(toggle bool) tea.Cmd {
-	if toggle && m.clip != nil && m.clip.Path == m.pickerPath() &&
+	if toggle && m.clip != nil && m.clip.Path() == m.pickerPath() &&
 		m.preview.Active() && (m.preview.Playing() || m.previewPaused) {
 		m.togglePreview()
 
@@ -185,7 +185,7 @@ func (m *model) importFile(path string) tea.Cmd {
 	path = absolute
 	recordingID := m.recordingID()
 	var auditioned *audio.RecordingAudio
-	if m.picker != nil && m.clip != nil && m.clip.Path == path {
+	if m.picker != nil && m.clip != nil && m.clip.Path() == path {
 		auditioned = m.clip
 	}
 	m.busy, m.picker = true, nil

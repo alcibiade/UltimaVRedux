@@ -38,7 +38,7 @@ func (e *LibraryEditor) BeginRecordingRegion(
 	if err != nil {
 		return nil, err
 	}
-	if source == nil || len(source.data) == 0 || source.DurationMs <= 0 || source.Path != path {
+	if source == nil || len(source.data) == 0 || source.durationMs <= 0 || source.path != path {
 		return nil, fmt.Errorf("%w: load the assigned recording before editing", ErrAudioLibrary)
 	}
 
@@ -70,8 +70,8 @@ func (draft *RecordingRegionDraft) candidate(window *PlaybackWindow) (Recording,
 	recording := draft.recording
 	recording.PlaybackWindow = nil
 	if window != nil {
-		if window.StartMs < 0 || window.EndMs <= window.StartMs || window.EndMs > draft.source.DurationMs {
-			return Recording{}, fmt.Errorf("%w: use 0 ≤ Start < End ≤ %d ms", ErrAudioLibrary, draft.source.DurationMs)
+		if window.StartMs < 0 || window.EndMs <= window.StartMs || window.EndMs > draft.source.durationMs {
+			return Recording{}, fmt.Errorf("%w: use 0 ≤ Start < End ≤ %d ms", ErrAudioLibrary, draft.source.durationMs)
 		}
 		region := *window
 		recording.PlaybackWindow = &region
@@ -94,7 +94,7 @@ func (e *LibraryEditor) CheckRegionRevision(draft *RecordingRegionDraft) error {
 		return ErrRecordingRegionStale
 	}
 	path, err := e.RecordingPath(draft.recordingID)
-	if err != nil || path != draft.source.Path {
+	if err != nil || path != draft.source.path {
 		return ErrRecordingRegionStale
 	}
 

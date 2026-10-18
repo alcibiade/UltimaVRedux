@@ -1,6 +1,6 @@
-# ADR-010: Stage Berad Audio as an independent module
+# ADR-010: Extract Berad Audio and migrate it to the SDK
 
-**Status:** Accepted for the initial extraction boundary
+**Status:** Accepted; incubation completed and SDK dependency cutover implemented
 
 ## Context
 
@@ -12,8 +12,11 @@ or replacement cannot become a required part of that consumer contract.
 
 ## Decision
 
-Stage a media-free module at `modules/berad-audio`, declaring
-`github.com/bradhannah/UltimaVRedux/modules/berad-audio`. Keep production assets,
+Initially stage a media-free module at `modules/berad-audio`, declaring
+`github.com/bradhannah/UltimaVRedux/modules/berad-audio`. This established independent
+runtime proof and a live game cutover before the separate SDK was available.
+The runtime now resides at `github.com/bradhannah/berad-sdk/modules/berad-audio`.
+Keep production assets,
 semantic enums/callbacks, world interpretation, score scheduling/history and saved
 preferences in Redux. Keep the Bubble Tea editor as the supported authoring UI.
 
@@ -42,8 +45,11 @@ transport from game policy without adding a speculative mixer,
 new codecs, engine framework or frontend.
 
 The initial staging period kept the game on its existing runtime. The authorized
-module checkpoint is now available remotely, and the game pins it through ordinary
-module resolution. Live scenes construct `GameAudioManager` over that dependency.
+module checkpoint became available remotely and the game pinned it through ordinary
+module resolution. The subsequent SDK migration preserves the public runtime API
+apart from import identity, with SDK-owned module/consumer checks registered before
+publication. Redux now pins SDK revision `9e7e3ca45b46` and removes the incubation
+module directory. Live scenes construct `GameAudioManager` over that dependency.
 Never merge a dependency on an unavailable revision. Test-fixture substitutions
 remain outside published application metadata.
 
@@ -51,18 +57,22 @@ remain outside published application metadata.
 
 - An isolated copied-module build and a separate consumer prove that the runtime
   cannot accidentally rely on game types, media, logging, settings or original data.
-- Root Go package patterns exclude nested modules; an explicit root logic-test
-  entry runs the module's test/vet/build and consumer checks. Root lint explicitly
-  checks the module, and the full gate's race stage instruments its tests.
+- SDK validation owns independent module test/vet/build, race and consumer checks,
+  with source/tool/input-bound result reuse. The game retains only its bridge
+  tests and lint against the exact published SDK pin. It needs no SDK checkout;
+  its temporary bridge substitutes the candidate game alone.
 - Legacy runtime classes are test-only compatibility fixtures, excluded from normal
   builds. New facade/module tests verify the live path, while the older low-level
   regressions remain available during test migration. Shared TUI authoring helpers
   remain production code; no legacy playback fallback is compiled into the game.
-- The module's initial API is experimental. A later repository move requires a
-  deliberate import-path migration. No release, native acceptance or stable
-  version promise follows from creating this directory.
+- The module's initial API remains experimental. This is an explicit import-path
+  migration, not a stable-version or new native acceptance promise. Authoring/TUI
+  extraction continues separately from the completed runtime move.
 - Public source installation resolves the pinned module without a local replacement
-  or workspace. No independently named repository or stable release is implied.
+  or workspace. The SDK is independently public; no stable release is implied.
 
-See the [module contract](../../modules/berad-audio/README.md) and
+Reviewed SDK guidance is commit `45169251e58951593f25cd2f323ea4dea47784ff`;
+the approved TUI and game-policy boundaries are preserved.
+
+See the [module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md) and
 [current Redux audio system](../systems/AUDIO_SYSTEM.md).

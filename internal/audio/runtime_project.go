@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // PlaybackDefinition projects Redux-owned JSON playback properties only. Routing,

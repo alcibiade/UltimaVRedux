@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 
 	"github.com/hajimehoshi/ebiten/v2"
 

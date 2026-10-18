@@ -68,7 +68,7 @@ func (m *model) cropFooter() []string {
 func (m *model) cropHelp() {
 	uses := m.doc.Usages(m.crop.recordingID)
 	m.infoDialog = &editorInfo{title: "REGION DRAFT", scroll: 0, lines: []string{
-		"Source: " + m.crop.source.Path, "Loaded fingerprint: " + m.crop.source.Fingerprint(),
+		"Source: " + m.crop.source.Path(), "Loaded fingerprint: " + m.crop.source.Fingerprint(),
 		fmt.Sprintf("Shared authored recording: %d cue uses", len(uses)),
 		"Adjustments change only this draft and its audition voice.",
 		"Tab / Up / Down: field or Apply/Create/Cancel · Enter activates",

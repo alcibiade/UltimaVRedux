@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // GameVoice exposes only cleanup to gameplay; transport state remains presentation-owned.

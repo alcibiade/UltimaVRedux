@@ -85,11 +85,11 @@ func (clip *RecordingAudio) SuggestCalibration(
 	if err := validateCalibrationTarget(target); err != nil {
 		return CalibrationSuggestion{}, err
 	}
-	start, end := int64(0), clip.DurationMs
+	start, end := int64(0), clip.durationMs
 	if window != nil {
 		start, end = window.StartMs, window.EndMs
 	}
-	if start < 0 || end <= start || end > clip.DurationMs {
+	if start < 0 || end <= start || end > clip.durationMs {
 		return CalibrationSuggestion{}, fmt.Errorf("%w: invalid calibration region", ErrAudioLibrary)
 	}
 	selected, peak := clip.calibrationBuckets(start, end)

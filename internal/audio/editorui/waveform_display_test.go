@@ -1,7 +1,11 @@
 package editorui
 
 import (
+	"bytes"
+	"encoding/binary"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -14,7 +18,16 @@ import (
 func TestFooterPacksAcrossWidthWithoutDroppingTrimHints(t *testing.T) {
 	model := fixture(t)
 	model.focus = focusWave
-	model.clip = &audio.RecordingAudio{DurationMs: 3000}
+	wav := calibrationWAV(4000)
+	wav = append(wav[:44], bytes.Repeat(wav[44:], 6)...)
+	binary.LittleEndian.PutUint32(wav[4:], uint32(len(wav)-8))
+	binary.LittleEndian.PutUint32(wav[40:], uint32(len(wav)-44))
+	path := filepath.Join(t.TempDir(), "three-seconds.wav")
+	require.NoError(t, os.WriteFile(path, wav, 0o644))
+	clip, err := audio.LoadRecording(path)
+	require.NoError(t, err)
+	require.Equal(t, int64(3000), clip.DurationMs())
+	model.clip = clip
 	model.width = 80
 	narrow := model.footerLines()
 	model.width = 180
@@ -63,12 +76,16 @@ func TestLogWaveformMakesQuietAudioVisibleAndPreservesDigitalSilence(t *testing.
 	require.Equal(t, height*waveformCellSteps, waveformDisplayUnits(1, height))
 	require.Zero(t, waveformDisplayUnits(math.NaN(), height))
 	model := fixture(t)
-	peaks := []float64{0, 0.001, 0.01, 0}
-	model.clip = &audio.RecordingAudio{DurationMs: 40, Peaks: peaks}
+	path := filepath.Join(t.TempDir(), "quiet.wav")
+	require.NoError(t, os.WriteFile(path, calibrationWAV(32), 0o644))
+	clip, err := audio.LoadRecording(path)
+	require.NoError(t, err)
+	model.clip = clip
+	peaks := clip.Peaks()
 	voice := model.preview.(*fakeVoice)
 	beforeGain := voice.gain
 	model.drawWaveform(audio.PlaybackWindow{StartMs: 0, EndMs: 40}, 0, 0, 40, 40, height)
-	require.Equal(t, []float64{0, 0.001, 0.01, 0}, peaks)
+	require.Equal(t, peaks, clip.Peaks())
 	require.Equal(t, beforeGain, voice.gain, "display scaling must never change playback gain")
 	require.False(t, model.doc.Dirty())
 }

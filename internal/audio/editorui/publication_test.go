@@ -13,7 +13,7 @@ import (
 
 func TestImportReceiptRemainsVisibleAfterUndo(t *testing.T) {
 	m := fixture(t)
-	data, err := os.ReadFile(m.clip.Path)
+	data, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	path := filepath.Join(t.TempDir(), "candidate.wav")
 	require.NoError(t, os.WriteFile(path, data, 0o644))

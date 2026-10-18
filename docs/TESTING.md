@@ -431,30 +431,27 @@ fidelity acceptance. Inherited GOFLAGS build settings remain intact; explicit
 `-run`, `-skip`, `-list`, `-bench`, `-fuzz=`, count, short, race, and concurrency
 flags prevent inherited selection or fuzz campaigns from changing the gate.
 
-Go's root `./...` inventory excludes the independent `modules/berad-audio`
-module. `scripts/check-audio-module` explicitly runs `scripts/audio_module_gate.py`
-from the logic lane: copy only the module into a temporary directory, disable
-workspace/network resolution, reject game imports/replacements, verify uncached
-test-package completion and zero skips, then run vet/build and an independent
-consumer. Its local replacement exists only in the throwaway consumer, never in
-the game's module. Root lint separately applies the pinned unfiltered rules to
-the copied module. A separate game-owned bridge fixture in
-`testdata/berad-audio-redux` imports both the current game and copied module using
-temporary substitutions. It tests real Redux JSON routing with synthetic audio;
-it is not part of the unrelated-consumer independence proof. Its package completion
-and zero skips are checked too, and root lint checks the staged adapter.
-The fixture's two exact temporary replacements are explicitly verified; only
-that throwaway fixture omits the linter's blanket local-replacement prohibition.
-Published game/module lint retains it. Copied-module analyzer caches are scoped
-to each temporary tree so results cannot point into a prior deleted copy.
-`make audio-module-check` combines those focused checks.
+Berad Audio lives in the [separate SDK repository](https://github.com/bradhannah/berad-sdk/tree/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio).
+`scripts/check-audio-module` runs `scripts/audio_module_gate.py` from the logic
+lane. It copies the game-owned `testdata/berad-audio-redux` bridge into a temporary
+directory, disables workspaces/network access and substitutes only the candidate
+game. Both the fixture requirement and selected SDK build-list version must match
+the application's published pin exactly; SDK replacements are rejected. It tests
+real Redux JSON routing with synthetic audio, checks package completion and zero
+skips, and is distinct from the SDK's unrelated-consumer proof.
+Root lint checks this bridge with unfiltered pinned rules. Only this throwaway
+fixture omits the blanket local-replacement prohibition, after checking its sole
+game substitution. Analyzer caches are scoped to the temporary directory.
+`make audio-module-check` combines these focused game-adapter checks. SDK tests,
+vet/build and independent-consumer/race lanes run in SDK with its selective result
+reuse; they are not repeated by game gates or dependent on a sibling checkout.
 
 The live scene adapter uses the real pinned module revision. Legacy runtime
 classes reside only in `internal/audio/legacy_*_test.go` to retain the older
 low-level regression baseline during migration; they are not a gameplay fallback.
 `TestGameBuildCannotContainLegacyPlaybackEngines` guards the production declaration
 boundary. New facade tests and scene tests exercise module-backed playback.
-Race-instrumenting the harness also instruments both module and consumer tests;
+Race-instrumenting the harness instruments the game bridge and its dependencies;
 the complete quality gate includes it in the race stage. These synthetic transport
 and WAV tests do not initialize a native device or establish listening acceptance.
 

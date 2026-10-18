@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 )
@@ -26,13 +27,39 @@ const (
 // RecordingAudio is immutable decoded metadata plus encoded bytes. Each player
 // gets an independent decoder. Peak buckets preserve transients in both channels.
 type RecordingAudio struct {
-	Path        string
-	DurationMs  int64
-	Peaks       []float64
+	path        string
+	durationMs  int64
+	peaks       []float64
 	data        []byte
 	loudness    []loudnessBucket
 	fingerprint [sha256.Size]byte
 	fileInfo    os.FileInfo
+}
+
+// Path returns the absolute source pathname captured at loading.
+func (clip *RecordingAudio) Path() string { return clip.path }
+
+// DurationMs returns the full decoded source duration in milliseconds.
+func (clip *RecordingAudio) DurationMs() int64 { return clip.durationMs }
+
+// Peaks returns a detached copy of the source's stereo peak buckets. Editing the
+// returned slice cannot change silence suggestions, calibration or playback.
+func (clip *RecordingAudio) Peaks() []float64 { return slices.Clone(clip.peaks) }
+
+// PeakBetween returns the greatest peak in the 10 ms buckets intersecting the
+// inclusive source-time range. Bounds are clipped to the source; empty/reversed
+// ranges return zero. Renderers can inspect a range without copying all peaks.
+func (clip *RecordingAudio) PeakBetween(startMs, endMs int64) float64 {
+	if endMs < startMs || endMs < 0 {
+		return 0
+	}
+	peak := 0.0
+	limit := min(endMs/WaveformBucketMs+1, int64(len(clip.peaks)))
+	for bucket := max(0, startMs/WaveformBucketMs); bucket < limit; bucket++ {
+		peak = math.Max(peak, clip.peaks[bucket])
+	}
+
+	return peak
 }
 
 // LoadRecording can run outside the UI loop. It streams analysis rather than
@@ -42,6 +69,8 @@ func LoadRecording(path string) (*RecordingAudio, error) {
 }
 
 // LoadRecordingContext cancels obsolete waveform requests during fast browsing.
+// It checks cancellation between bounded file reads and decoded analysis buckets;
+// it cannot interrupt an in-flight filesystem or codec call.
 func LoadRecordingContext(ctx context.Context, path string) (*RecordingAudio, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("load recording canceled: %w", err)
@@ -50,7 +79,7 @@ func LoadRecordingContext(ctx context.Context, path string) (*RecordingAudio, er
 	if err != nil {
 		return nil, fmt.Errorf("resolve recording path: %w", err)
 	}
-	data, info, err := readRecordingSource(path)
+	data, info, err := readRecordingSource(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -58,10 +87,16 @@ func LoadRecordingContext(ctx context.Context, path string) (*RecordingAudio, er
 		return nil, fmt.Errorf("load recording canceled: %w", err)
 	}
 	stream, err := DecodeAudioStream(data, path, EditorSampleRate)
+	if cancelErr := ctx.Err(); cancelErr != nil {
+		return nil, fmt.Errorf("load recording canceled: %w", cancelErr)
+	}
 	if err != nil {
 		return nil, err
 	}
 	length, err := decodedStreamLength(stream)
+	if cancelErr := ctx.Err(); cancelErr != nil {
+		return nil, fmt.Errorf("load recording canceled: %w", cancelErr)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +105,17 @@ func LoadRecordingContext(ctx context.Context, path string) (*RecordingAudio, er
 		return nil, err
 	}
 
-	return &RecordingAudio{Path: path, data: data, Peaks: peaks, loudness: loudness,
-		DurationMs:  length * millisecondsPerSecond / (EditorSampleRate * decodedPCMBytesPerFrame),
-		fingerprint: sha256.Sum256(data), fileInfo: info}, nil
+	fingerprint := sha256.Sum256(data)
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("load recording canceled: %w", err)
+	}
+
+	return &RecordingAudio{path: path, data: data, peaks: peaks, loudness: loudness,
+		durationMs:  length * millisecondsPerSecond / (EditorSampleRate * decodedPCMBytesPerFrame),
+		fingerprint: fingerprint, fileInfo: info}, nil
 }
 
-func readRecordingSource(path string) ([]byte, os.FileInfo, error) {
+func readRecordingSource(ctx context.Context, path string) ([]byte, os.FileInfo, error) {
 	initialInfo, err := os.Stat(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("inspect recording: %w", err)
@@ -92,7 +132,7 @@ func readRecordingSource(path string) ([]byte, os.FileInfo, error) {
 			logging.Warn(logging.CategoryAudio, "Close analyzed recording: %v", err)
 		}
 	}()
-	data, err := io.ReadAll(io.LimitReader(file, maxEditorFileBytes+1))
+	data, err := readRecordingBytes(ctx, file)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read recording: %w", err)
 	}
@@ -121,6 +161,9 @@ func recordingAnalysis(ctx context.Context, stream io.Reader) ([]float64, []loud
 			return nil, nil, fmt.Errorf("analyze waveform: %w", err)
 		}
 		count, err := io.ReadFull(stream, buffer)
+		if cancelErr := ctx.Err(); cancelErr != nil {
+			return nil, nil, fmt.Errorf("analyze waveform: %w", cancelErr)
+		}
 		if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 			return nil, nil, fmt.Errorf("analyze waveform: %w", err)
 		}
@@ -149,9 +192,10 @@ func recordingAnalysis(ctx context.Context, stream io.Reader) ([]float64, []loud
 	}
 }
 
-// Stream uses the exact bounded decoder used by production music/ambience/SFX.
+// Stream decodes the frozen source with the bounds used by editor audition and
+// region validation. Each call returns an independent seekable decoder.
 func (clip *RecordingAudio) Stream(window *PlaybackWindow, loop bool) (io.ReadSeeker, error) {
-	return decodeRecording(clip.data, clip.Path, EditorSampleRate, window, loop)
+	return decodeRecording(clip.data, clip.path, EditorSampleRate, window, loop)
 }
 
 // SuggestedWindow proposes -40 dB boundaries with one bucket of edge padding.
@@ -159,7 +203,7 @@ func (clip *RecordingAudio) Stream(window *PlaybackWindow, loop bool) (io.ReadSe
 func (clip *RecordingAudio) SuggestedWindow() (*PlaybackWindow, bool) {
 	const threshold = 0.01
 	first, last := -1, -1
-	for index, peak := range clip.Peaks {
+	for index, peak := range clip.peaks {
 		if peak >= threshold {
 			if first == -1 {
 				first = index
@@ -172,7 +216,7 @@ func (clip *RecordingAudio) SuggestedWindow() (*PlaybackWindow, bool) {
 	}
 	start := int64(max(0, first-1)) * WaveformBucketMs
 	const endPaddingBuckets = 2 // End of the last audible bucket plus one padding bucket.
-	end := min(clip.DurationMs, int64(last+endPaddingBuckets)*WaveformBucketMs)
+	end := min(clip.durationMs, int64(last+endPaddingBuckets)*WaveformBucketMs)
 
 	return &PlaybackWindow{StartMs: start, EndMs: end}, end > start
 }

@@ -29,7 +29,7 @@ func (m *model) queueSourceProbe() tea.Cmd {
 	seen := make(map[*audio.RecordingAudio]bool)
 	var sources []*audio.RecordingAudio
 	add := func(clip *audio.RecordingAudio) {
-		if clip != nil && clip.Path != "" && !seen[clip] {
+		if clip != nil && clip.Path() != "" && !seen[clip] {
 			seen[clip] = true
 			sources = append(sources, clip)
 		}
@@ -103,7 +103,7 @@ func (m *model) rejectSourceSnapshot(clip *audio.RecordingAudio, failure error) 
 
 func (m *model) markSourceAvailability(recordingID string, clip *audio.RecordingAudio, failure error) {
 	path, err := m.doc.RecordingPath(recordingID)
-	if err != nil || path != clip.Path {
+	if err != nil || path != clip.Path() {
 		return // An external candidate must not invalidate its destination's assigned file.
 	}
 	status := audio.RecordingAvailability{State: audio.RecordingInvalid, Exists: true, Reason: failure.Error()}

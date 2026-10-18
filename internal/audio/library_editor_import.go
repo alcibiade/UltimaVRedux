@@ -29,7 +29,7 @@ func (e *LibraryEditor) ImportRecordingSource(recordingID string, clip *Recordin
 	if clip == nil {
 		return fmt.Errorf("%w: select a source recording", ErrAudioLibrary)
 	}
-	e.beginPublication(clip.Path, true)
+	e.beginPublication(clip.path, true)
 	unlock, err := e.persistence.lock(e.path)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (e *LibraryEditor) importSourceLocked(recordingID string, clip *RecordingAu
 	if !exists {
 		return fmt.Errorf("%w: select or create a recording first", ErrAudioLibrary)
 	}
-	relative, err := filepath.Rel(e.assetRoot, clip.Path)
+	relative, err := filepath.Rel(e.assetRoot, clip.path)
 	if err != nil {
 		return fmt.Errorf("resolve relative recording path: %w", err)
 	}
@@ -99,7 +99,7 @@ func (e *LibraryEditor) importReplacement(
 	recordingID string, previous Recording, relative string, clip *RecordingAudio,
 ) (Recording, error) {
 	provenance := unknownRecordingProvenance()
-	provenance.OriginalFilename = filepath.Base(clip.Path)
+	provenance.OriginalFilename = filepath.Base(clip.path)
 	for _, known := range e.library.Recordings {
 		if known.File != nil && *known.File == relative {
 			provenance = cloneAudioValue(known.Provenance)
@@ -130,7 +130,7 @@ func importRelativePath(recordingID string, previous Recording, clip *RecordingA
 		directory = "music/imported"
 	}
 	hash := sha256.Sum256(clip.data)
-	name := fmt.Sprintf("%s_%x%s", recordingID, hash[:6], strings.ToLower(filepath.Ext(clip.Path)))
+	name := fmt.Sprintf("%s_%x%s", recordingID, hash[:6], strings.ToLower(filepath.Ext(clip.path)))
 
 	return directory + "/" + name
 }

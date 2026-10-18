@@ -77,7 +77,6 @@ run: ## Run the existing game binary (pass options with ARGS="...")
 tools: ## Provision pinned Go validation tools and module dependencies (networked setup)
 	@mkdir -p "$(TOOLS_BIN)"
 	@$(GO) mod download
-	@$(GO) -C modules/berad-audio mod download
 	@GOBIN="$(TOOLS_BIN)" $(GO) install golang.org/x/tools/cmd/goimports@v0.37.0
 	@GOBIN="$(TOOLS_BIN)" $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
@@ -156,7 +155,7 @@ audio-editor: ## Build the standalone Bubble Tea audio editor into bin/audio-edi
 	@$(GO) build -o $(BIN_DIR)/audio-editor ./cmd/audio-editor
 
 .PHONY: audio-module-check
-audio-module-check: ## Check the isolated Berad Audio module and independent consumer
+audio-module-check: ## Check the game-owned Berad Audio bridge against the pinned SDK revision
 	@$(GO) test $(TEST_GO_BUILD_FLAGS) -count=1 -run '^TestBeradAudioModule$$' ./scripts/check-audio-module
 	@$(PYTHON) scripts/audio_module_gate.py --lint
 

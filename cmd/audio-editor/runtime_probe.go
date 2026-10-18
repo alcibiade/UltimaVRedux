@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
-	"github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengine"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/backend/ebitengine"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	eaudio "github.com/hajimehoshi/ebiten/v2/audio"

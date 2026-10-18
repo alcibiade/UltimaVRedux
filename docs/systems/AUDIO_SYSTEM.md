@@ -42,7 +42,9 @@ the deferred cleanup also covers early configuration failures.
 
 The native runtime/soak commands in `cmd/audio-editor` now exercise the module
 directly. Ordinary TUI authoring/audition remains in the application for its later
-extraction. See the [module contract](../../modules/berad-audio/README.md).
+extraction. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md).
+The runtime is maintained in `bradhannah/berad-sdk`; Redux pins
+`v0.0.0-20261018221138-9e7e3ca45b46` and carries no local module copy or replacement.
 
 ### Compatibility and shared authoring implementation
 
@@ -155,14 +157,14 @@ caller mutation after freezing, consumer validation, separate asset roots, durab
 authoring, shared preview/runtime PCM and a fresh process whose production-library
 loaders are forbidden. These establish in-repository dependency boundaries. The
 package still contains the Redux adapters and bundled media. The independent
-[Berad Audio module](../../modules/berad-audio/README.md) supplies the live media-free
+[Berad Audio module](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md) supplies the live media-free
 cue runtime with explicit owner-local replacement slots and playback outcomes.
 It now also contains a neutral ambient lane, reversible controller envelopes,
 live instance gain, pause/resume/seek, finite music and distinct terminal voice
 status. Redux imports a remotely resolvable pinned revision with no local
 replacement. Authoring/TUI extraction, further migration of legacy test cases and
 public API/schema stability remain later work.
-[ADR-010](../ADR/ADR-010-reusable-audio-module.md) records the staging boundary.
+[ADR-010](../ADR/ADR-010-reusable-audio-module.md) records incubation and the SDK migration.
 
 Shared schema-3 validation rejects ambient profiles assigned a cycle cue because
 the ambient controller requires one recording. This returns a contextual library
@@ -596,16 +598,17 @@ preserved. Plans carry emitter roles for game policy, not engine interpretation.
 The game-owned bridge verification in `testdata/berad-audio-redux` projects recording
 paths, windows, calibration, null slots and ordered cue assignments to the module's
 in-memory definition. It converts plans to neutral ambient source requests. The
-bridge is built/tested by the audio-module gate using temporary module substitutions.
-Live scenes use `GameAudioManager` and the real pinned dependency. The fixture's
-substitutions are not part of published application metadata. Production JSON
+bridge is built/tested by the audio-module gate with only a temporary candidate-game
+substitution; the SDK resolves the same published version as the application.
+Live scenes use `GameAudioManager` and that pinned dependency. The game substitution
+is not part of published application metadata. Production JSON
 paths and assets remain unchanged.
 
 Berad Audio owns reconciliation, retained/releasing voices, reversible re-entry,
 admission, completion, retries and diagnostics. Its source IDs do not encode a
 particular game's tiles, locations or roles. It shares playback mechanisms with
 SFX, but has its own capacity/ranking policy. The caller still services audio when
-world discovery is paused. See the [ambient module contract](../../modules/berad-audio/README.md#ambient-sources).
+world discovery is paused. See the [ambient module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md#ambient-sources).
 
 The adapter proof reads Redux's real JSON with synthetic audio assignments and
 checks grouping/gain/window/identity behavior. It does not change the authored
@@ -1160,7 +1163,14 @@ active. Duplicate Create preserves the original recording and its layers. A reta
 created-clip audition keeps its original cue mix, labelled in the transport/details;
 Enter starts a new audition using the selected recording's current context.
 
-Loaded audio is an immutable content snapshot. Background stamp probes detect
+Loaded `RecordingAudio` keeps its pathname, duration, encoded content and analysis
+private. `Path()` and `DurationMs()` return scalar metadata; `Peaks()` returns a
+detached slice. `PeakBetween` reads source-time peak buckets without exposing their
+storage or copying the whole waveform for rendering. Editing a returned view cannot
+retarget source verification, alter silence suggestions/calibration, or change the
+bytes auditioned or committed. Load a new snapshot to select another source.
+
+Background stamp probes detect
 ordinary file replacement without filesystem work in key dispatch or rendering.
 A changed source stops affected voices and requires an explicit reload. Region
 Apply/Create additionally hashes the current file, rejecting content changes even
@@ -1280,7 +1290,17 @@ uses source-file milliseconds even for trimmed or looping playback. Waveform
 zoom retains a whole-file overview, with the selected region and zoom viewport
 highlighted. Waveform
 decoding is cancellable background work; stale results cannot replace a newer
-selection. Silence suggestions only change draft bounds; they are not proof that
+selection. Cancellation and deadline expiry leave incomplete availability checks
+at **CHECKING**, never **INVALID**; a cancelled selected-source/variant request
+preserves the existing availability result. Superseded cancellation is quiet;
+an active request's deadline can be reported without labelling the file corrupt.
+Encoded input remains limited to regular files no larger than 128 MiB. Loading
+checks cancellation before and after file reads of at most 64 KiB, and analysis
+checks around each 10 ms PCM bucket, including the final read. Source-content
+verification also rejects cancellation at EOF. These checks are cooperative: an
+in-flight filesystem call or codec open/length/decode operation must return before
+cancellation can be observed. No detached reader is left running after return.
+Silence suggestions only change draft bounds; they are not proof that
 a quiet onset/tail should be removed. Cuts have no implicit fades or
 zero-crossing adjustment; audition for clicks before saving.
 

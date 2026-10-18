@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // SetSoundEffectVolume updates live SFX and game preference state together.

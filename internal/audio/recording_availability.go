@@ -49,6 +49,7 @@ func (e *LibraryEditor) FileAvailability(id string) RecordingAvailability {
 
 // InspectRecording validates actual decoding and bounds without opening a player.
 // The caller can cancel it when the document or file selection changes.
+// Cancellation or deadline expiry leaves the result CHECKING, never INVALID.
 func (e *LibraryEditor) InspectRecording(ctx context.Context, recordingID string) RecordingAvailability {
 	status := e.FileAvailability(recordingID)
 	if status.State != RecordingChecking {
@@ -59,11 +60,14 @@ func (e *LibraryEditor) InspectRecording(ctx context.Context, recordingID string
 		panic(err) // FileAvailability already resolved this immutable document entry.
 	}
 	clip, err := LoadRecordingContext(ctx, path)
-	if errors.Is(err, context.Canceled) {
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return status
 	}
 	if err == nil {
 		_, err = clip.Stream(e.library.Recordings[recordingID].PlaybackWindow, false)
+	}
+	if ctx.Err() != nil {
+		return status
 	}
 	if err != nil {
 		status.State, status.Reason = RecordingInvalid, err.Error()

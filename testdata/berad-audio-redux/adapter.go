@@ -9,7 +9,7 @@ import (
 
 	gameaudio "github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	audio "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	audio "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // Ambient joins the Redux source planner to an exclusively owned generic lane.

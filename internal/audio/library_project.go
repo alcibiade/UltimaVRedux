@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // LibraryDocument is the versioned authoring schema. Loading makes a detached

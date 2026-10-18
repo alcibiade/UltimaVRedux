@@ -1,15 +1,14 @@
-"""Regression checks for the staged consumer's narrowly scoped substitutions."""
+"""Regression checks for published SDK pinning and the game-only substitution."""
 
 import copy
 import unittest
 
-from audio_module_gate import MODULE, ROOT, json_objects, verify_bridge_replacements
+from audio_module_gate import MODULE, ROOT, sdk_version, verify_bridge_replacements, verify_selected_sdk
 
 
 class AudioModuleGateTests(unittest.TestCase):
     def metadata(self):
         return {"Replace": [
-            {"Old": {"Path": MODULE}, "New": {"Path": "../library"}},
             {"Old": {"Path": "github.com/bradhannah/UltimaVRedux"}, "New": {"Path": str(ROOT)}},
         ]}
 
@@ -31,5 +30,21 @@ class AudioModuleGateTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     verify_bridge_replacements(metadata)
 
-    def test_dependency_stream_decodes_all_objects(self):
-        self.assertEqual(list(json_objects(' {"a": 1}\n {"b": 2} \n')), [{"a": 1}, {"b": 2}])
+    def test_sdk_cannot_be_substituted_or_silently_upgraded(self):
+        version = "v0.0.0-20261018221138-9e7e3ca45b46"
+        selected = {"Path": MODULE, "Version": version}
+        verify_selected_sdk(selected, version)
+        for change in ({"Replace": {"Path": "../sdk"}}, {"Version": "v0.1.0"}, {"Path": "example.com/other"}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                verify_selected_sdk({**selected, **change}, version)
+        metadata = self.metadata()
+        metadata["Replace"].append({"Old": {"Path": MODULE}, "New": {"Path": "../library"}})
+        with self.assertRaises(ValueError):
+            verify_bridge_replacements(metadata)
+
+    def test_fixture_requires_a_concrete_sdk_pin(self):
+        pinned = {"Path": MODULE, "Version": "v0.1.0"}
+        self.assertEqual(sdk_version({"Require": [pinned]}), "v0.1.0")
+        for requirements in ([], [pinned, pinned], [{"Path": MODULE, "Version": "v0.0.0"}]):
+            with self.subTest(requirements=requirements), self.assertRaises(ValueError):
+                sdk_version({"Require": requirements})

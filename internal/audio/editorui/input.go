@@ -202,7 +202,7 @@ func (m *model) commitNumber(field, value string) {
 	case fieldGain:
 		m.setGain(number)
 	case fieldStart, fieldEnd:
-		if m.clip == nil || number < 0 || number > float64(m.clip.DurationMs) || math.Trunc(number) != number {
+		if m.clip == nil || number < 0 || number > float64(m.clip.DurationMs()) || math.Trunc(number) != number {
 			m.rejectInput("Enter whole milliseconds within the recording.")
 
 			return

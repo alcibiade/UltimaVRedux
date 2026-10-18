@@ -189,7 +189,7 @@ func TestRecordingWaveformAndWindowPlayback(t *testing.T) {
 	require.NoError(t, err)
 	clip, err := LoadRecording(path)
 	require.NoError(t, err)
-	require.Equal(t, int64(100), clip.DurationMs)
+	require.Equal(t, int64(100), clip.DurationMs())
 	window, ok := clip.SuggestedWindow()
 	require.True(t, ok)
 	require.Equal(t, &PlaybackWindow{StartMs: 10, EndMs: 70}, window)

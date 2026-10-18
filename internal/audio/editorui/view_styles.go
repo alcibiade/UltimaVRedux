@@ -213,9 +213,9 @@ func (m *model) trimExamples() (int64, int64) {
 	const startFraction = 4
 	end := int64(exampleEndMs)
 	if m.clip != nil {
-		end = min(end, m.clip.DurationMs)
+		end = min(end, m.clip.DurationMs())
 		if m.window().StartMs >= end {
-			end = m.clip.DurationMs
+			end = m.clip.DurationMs()
 		}
 	}
 	startLimit := end

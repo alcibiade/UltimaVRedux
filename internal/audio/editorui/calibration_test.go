@@ -27,7 +27,7 @@ func TestAutoCalibrationIsConfirmedUndoableAndManualOverrideStaysLocked(t *testi
 	require.Equal(t, audio.CalibrationAuto, m.doc.Recording(id).CalibrationMode())
 	m.setCalibrationTarget("-30")
 	require.Equal(t, -30.0, *m.doc.Recording(id).CalibrationTargetDB)
-	window := audio.PlaybackWindow{StartMs: 0, EndMs: m.clip.DurationMs / 2}
+	window := audio.PlaybackWindow{StartMs: 0, EndMs: m.clip.DurationMs() / 2}
 	beforeTrim := m.doc.Recording(id)
 	m.setWindow(&window)
 	finish(m, m.applyCrop())

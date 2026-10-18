@@ -27,7 +27,7 @@ func (a *Audition) Play(clip *RecordingAudio, window *PlaybackWindow, loop bool,
 	if err := a.Close(); err != nil {
 		return errors.Join(err, player.Close())
 	}
-	a.startMs, a.endMs, a.loop = 0, clip.DurationMs, loop
+	a.startMs, a.endMs, a.loop = 0, clip.DurationMs(), loop
 	if window != nil {
 		a.startMs, a.endMs = window.StartMs, window.EndMs
 	}

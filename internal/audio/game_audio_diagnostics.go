@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strconv"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // PlaybackSnapshot adapts detached module diagnostics to the game's existing UI

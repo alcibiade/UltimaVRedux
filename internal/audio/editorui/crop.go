@@ -58,11 +58,11 @@ func (m *model) window() audio.PlaybackWindow {
 			return *m.crop.window
 		}
 
-		return audio.PlaybackWindow{StartMs: 0, EndMs: m.crop.source.DurationMs}
+		return audio.PlaybackWindow{StartMs: 0, EndMs: m.crop.source.DurationMs()}
 	}
 	window := audio.PlaybackWindow{StartMs: 0, EndMs: 0}
 	if m.clip != nil {
-		window.EndMs = m.clip.DurationMs
+		window.EndMs = m.clip.DurationMs()
 	}
 	if saved := m.doc.Recording(m.recordingID()).PlaybackWindow; saved != nil {
 		window = *saved
@@ -77,7 +77,7 @@ func (m *model) selectedClipReady() bool {
 	}
 	path, err := m.doc.RecordingPath(m.recordingID())
 
-	return err == nil && path == m.clip.Path
+	return err == nil && path == m.clip.Path()
 }
 
 func (m *model) beginCrop() bool {
@@ -131,7 +131,7 @@ func (m *model) setWindow(window *audio.PlaybackWindow) bool {
 		return false
 	}
 	if window != nil && m.crop.fullInitially && m.duplicate == nil &&
-		window.StartMs == 0 && window.EndMs == m.crop.source.DurationMs {
+		window.StartMs == 0 && window.EndMs == m.crop.source.DurationMs() {
 		window = nil // Returning to an originally full source is a true no-op.
 	}
 	m.crop.window = copyWindow(window)
@@ -150,8 +150,8 @@ func (m *model) scheduleCropPreview() {
 	}
 	session.pending = true
 	window := m.window()
-	if window.StartMs < 0 || window.EndMs <= window.StartMs || window.EndMs > session.source.DurationMs {
-		session.err = fmt.Errorf("%w: use 0 ≤ Start < End ≤ %d ms", audio.ErrAudioLibrary, session.source.DurationMs)
+	if window.StartMs < 0 || window.EndMs <= window.StartMs || window.EndMs > session.source.DurationMs() {
+		session.err = fmt.Errorf("%w: use 0 ≤ Start < End ≤ %d ms", audio.ErrAudioLibrary, session.source.DurationMs())
 		m.suspendCropPreview()
 	} else {
 		session.err = nil
@@ -374,7 +374,7 @@ func (m *model) finishCropCommit() tea.Cmd {
 	}
 	m.restoreCropLayers(session, !created && m.doc.Revision() != session.revision)
 	m.updateSelectedAvailability(loadedMsg{generation: m.generation,
-		request: sourceLoad{recordingID: m.recordingID(), path: m.clip.Path, purpose: sourceSelection,
+		request: sourceLoad{recordingID: m.recordingID(), path: m.clip.Path(), purpose: sourceSelection,
 			autoplay: false, cueID: "", variant: 0}, clip: m.clip, err: nil})
 	selected := m.recordingID()
 	m.refreshKeys()
@@ -499,15 +499,15 @@ func (m *model) nudge(delta int64) {
 		}
 		window := m.window()
 		if m.marker == markerStart {
-			window.StartMs = max(0, min(m.clip.DurationMs, window.StartMs+delta))
+			window.StartMs = max(0, min(m.clip.DurationMs(), window.StartMs+delta))
 		} else {
-			window.EndMs = max(0, min(m.clip.DurationMs, window.EndMs+delta))
+			window.EndMs = max(0, min(m.clip.DurationMs(), window.EndMs+delta))
 		}
 		m.setWindow(&window)
 
 		return
 	}
-	position := max(0, min(m.clip.DurationMs, m.position+delta))
+	position := max(0, min(m.clip.DurationMs(), m.position+delta))
 	voice := m.previewVoice()
 	if err := voice.SeekMs(position); err != nil {
 		m.report(err)

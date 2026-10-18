@@ -28,7 +28,7 @@ type fakeVoice struct {
 
 func (v *fakeVoice) Play(clip *audio.RecordingAudio, window *audio.PlaybackWindow, loop bool, gain float64) error {
 	v.active, v.playing, v.loop, v.gain = true, true, loop, gain
-	v.clip, v.start, v.end = clip, 0, clip.DurationMs
+	v.clip, v.start, v.end = clip, 0, clip.DurationMs()
 	if window != nil {
 		v.start, v.end = window.StartMs, window.EndMs
 	}
@@ -197,7 +197,7 @@ func TestStaleDecodeAndStopAllNeverStartUnexpectedAudio(t *testing.T) {
 	model.autoPreview = true
 	oldGeneration := model.generation
 	model.generation++
-	request := sourceLoad{recordingID: model.recordingID(), path: model.clip.Path, autoplay: true}
+	request := sourceLoad{recordingID: model.recordingID(), path: model.clip.Path(), autoplay: true}
 	model.Update(loadedMsg{generation: oldGeneration, request: request, clip: model.clip})
 	require.Zero(t, voice.starts)
 	model.picker = &filePicker{}

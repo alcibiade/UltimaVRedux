@@ -2,6 +2,8 @@ package editorui
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -102,14 +104,16 @@ func TestDuplicateVolumeDialogMatchesInputOwner(t *testing.T) {
 
 func TestFailedImportRestoresSourceBeforeEditing(t *testing.T) {
 	model := fixture(t)
-	originalPath := model.clip.Path
-	candidate := *model.clip
-	candidate.Path = originalPath + ".candidate"
-	model.clip = &candidate
+	originalPath := model.clip.Path()
+	candidatePath := filepath.Join(t.TempDir(), "candidate.wav")
+	require.NoError(t, os.WriteFile(candidatePath, calibrationWAV(4000), 0o644))
+	candidate, err := audio.LoadRecording(candidatePath)
+	require.NoError(t, err)
+	model.clip = candidate
 	model.busy = true
 	_, command := model.Update(documentMsg{document: model.doc.Clone(), err: errors.New("import failed"), reload: true})
 	finish(model, command)
-	require.Equal(t, originalPath, model.clip.Path)
+	require.Equal(t, originalPath, model.clip.Path())
 	require.True(t, model.statusIsError)
 	require.Contains(t, model.status, "import failed")
 }

@@ -47,7 +47,7 @@ func TestRegionPreviewApplyAndDuplicateUseIdenticalCalibration(t *testing.T) {
 			after := editor.Recording(target)
 			require.Equal(t, preview.Window, after.PlaybackWindow)
 			require.Equal(t, preview.CalibrationDB, *after.CalibrationGainDB)
-			source, err := os.ReadFile(clip.Path)
+			source, err := os.ReadFile(clip.Path())
 			require.NoError(t, err)
 			require.Equal(t, clip.data, source)
 			require.True(t, editor.Undo())
@@ -61,7 +61,7 @@ func TestRegionPreviewApplyAndDuplicateUseIdenticalCalibration(t *testing.T) {
 func TestRegionPreviewNeedsNoSourceIOAndCannotPublishMissingSource(t *testing.T) {
 	editor, clip, draft := regionFixture(t)
 	revision := editor.Revision()
-	require.NoError(t, os.Remove(clip.Path))
+	require.NoError(t, os.Remove(clip.Path()))
 	window := PlaybackWindow{StartMs: 20, EndMs: 60}
 	_, err := draft.Preview(&window)
 	require.NoError(t, err, "live draft analysis uses the loaded immutable snapshot")
@@ -71,12 +71,12 @@ func TestRegionPreviewNeedsNoSourceIOAndCannotPublishMissingSource(t *testing.T)
 
 func TestRegionRejectsSameSizeSameTimestampContentReplacement(t *testing.T) {
 	editor, clip, draft := regionFixture(t)
-	info, err := os.Stat(clip.Path)
+	info, err := os.Stat(clip.Path())
 	require.NoError(t, err)
 	replacement := bytes.Clone(clip.data)
 	replacement[len(replacement)-1] ^= 1
-	require.NoError(t, os.WriteFile(clip.Path, replacement, info.Mode()))
-	require.NoError(t, os.Chtimes(clip.Path, info.ModTime(), info.ModTime()))
+	require.NoError(t, os.WriteFile(clip.Path(), replacement, info.Mode()))
+	require.NoError(t, os.Chtimes(clip.Path(), info.ModTime(), info.ModTime()))
 	require.NoError(t, clip.CheckSourceStamp(), "a cheap stamp is deliberately not a content guarantee")
 	revision := editor.Revision()
 	window := PlaybackWindow{StartMs: 20, EndMs: 60}

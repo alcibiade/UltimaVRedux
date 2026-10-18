@@ -9,8 +9,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
-	"github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengine"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/backend/ebitengine"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"

@@ -26,7 +26,7 @@ func (m *model) waveform(width, height int) string {
 			width, height, m.panelFocused(focusWave))
 	}
 	window := m.window()
-	from, until := int64(0), m.clip.DurationMs
+	from, until := int64(0), m.clip.DurationMs()
 	if m.zoom {
 		center := m.position
 		if m.marker == markerStart {
@@ -86,7 +86,7 @@ func zoomLabel(zoom bool) string {
 func (m *model) overview(window audio.PlaybackWindow, from, until int64, width int) string {
 	var line strings.Builder
 	for column := range width {
-		position := int64(column) * max(1, m.clip.DurationMs) / int64(width)
+		position := int64(column) * max(1, m.clip.DurationMs()) / int64(width)
 		glyph, style := "─", m.colors.dim
 		if position >= window.StartMs && position < window.EndMs {
 			glyph, style = "━", m.colors.ready
@@ -106,7 +106,7 @@ func (m *model) drawWaveform(window audio.PlaybackWindow, position, from, until 
 	for column := range width {
 		start := from + int64(column)*span/int64(width)
 		end := from + int64(column+1)*span/int64(width)
-		peak := waveformPeak(m.clip, start, end)
+		peak := m.clip.PeakBetween(start, end)
 		units := waveformDisplayUnits(peak, height)
 		for row := range height {
 			glyph := waveformCell(units, row, height)
@@ -154,14 +154,4 @@ func waveformCell(units, row, height int) string {
 	glyphs := [waveformCellSteps]rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
 
 	return string(glyphs[filled-1])
-}
-
-func waveformPeak(clip *audio.RecordingAudio, start, end int64) float64 {
-	peak := 0.0
-	limit := min(end/audio.WaveformBucketMs+1, int64(len(clip.Peaks)))
-	for bucket := start / audio.WaveformBucketMs; bucket < limit; bucket++ {
-		peak = math.Max(peak, clip.Peaks[bucket])
-	}
-
-	return peak
 }

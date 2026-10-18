@@ -80,7 +80,7 @@ func TestDraftKeyFeedbackDoesNotReadTheSourceOrChangeHistory(t *testing.T) {
 	m := fixture(t)
 	dispatchRune(m, '[')
 	revision := m.doc.Revision()
-	require.NoError(t, os.Remove(m.clip.Path))
+	require.NoError(t, os.Remove(m.clip.Path()))
 	for range 30 {
 		dispatchKey(m, tea.KeyMsg{Type: tea.KeyRight})
 	}
@@ -226,7 +226,7 @@ func TestDraftAutoPreviewEqualsCreatedCalibrationAndSourceBytes(t *testing.T) {
 	finish(m, m.autoCalibrationKey(keyEnter))
 	before := m.doc.Recording(m.recordingID())
 	selectHealMoment(t, m)
-	data, err := os.ReadFile(m.clip.Path)
+	data, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	dispatchRune(m, 'D')
 	m.setWindow(&audio.PlaybackWindow{StartMs: 100, EndMs: 700})
@@ -243,7 +243,7 @@ func TestDraftAutoPreviewEqualsCreatedCalibrationAndSourceBytes(t *testing.T) {
 	m.refreshPreviewVolumes()
 	require.InDelta(t, auditionGain, m.preview.(*fakeVoice).gain, 1e-9,
 		"creating a recording does not silently switch the retained audition to a different cue mix")
-	after, err := os.ReadFile(m.clip.Path)
+	after, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	require.True(t, bytes.Equal(data, after))
 }
@@ -272,10 +272,10 @@ func TestChangedSourceRejectsApplyAndF5RebasesRetainedDraft(t *testing.T) {
 	m := fixture(t)
 	dispatchRune(m, '[')
 	dispatchKey(m, tea.KeyMsg{Type: tea.KeyRight})
-	data, err := os.ReadFile(m.clip.Path)
+	data, err := os.ReadFile(m.clip.Path())
 	require.NoError(t, err)
 	data[len(data)-1] ^= 1
-	require.NoError(t, os.WriteFile(m.clip.Path, data, 0o644))
+	require.NoError(t, os.WriteFile(m.clip.Path(), data, 0o644))
 	dispatchRune(m, 'a')
 	require.NotNil(t, m.crop)
 	require.True(t, m.sourceStale)

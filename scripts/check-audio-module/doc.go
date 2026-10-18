@@ -1,3 +1,3 @@
-// Package audiomodulecheck makes the independent Berad Audio checks part of the
-// root logic test inventory; Go's ./... pattern itself excludes nested modules.
+// Package audiomodulecheck includes the game-owned bridge to the published
+// Berad Audio dependency in the root test inventory. SDK tests remain SDK-owned.
 package audiomodulecheck

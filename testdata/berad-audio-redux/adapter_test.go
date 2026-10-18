@@ -16,8 +16,8 @@ import (
 	gameaudio "github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	audio "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
-	"github.com/bradhannah/UltimaVRedux/modules/berad-audio/backend/ebitengine"
+	audio "github.com/bradhannah/berad-sdk/modules/berad-audio"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/backend/ebitengine"
 )
 
 type player struct {

@@ -31,7 +31,7 @@ type calibrationCache struct {
 }
 
 func (m *model) calibrationSuggestion(recording audio.Recording) (audio.CalibrationSuggestion, error) {
-	window := audio.PlaybackWindow{StartMs: 0, EndMs: m.clip.DurationMs}
+	window := audio.PlaybackWindow{StartMs: 0, EndMs: m.clip.DurationMs()}
 	if recording.PlaybackWindow != nil {
 		window = *recording.PlaybackWindow
 	}

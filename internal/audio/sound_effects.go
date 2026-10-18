@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
-	berad "github.com/bradhannah/UltimaVRedux/modules/berad-audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 const bardEmitter = "bard"
