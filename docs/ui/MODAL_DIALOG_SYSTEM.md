@@ -353,7 +353,7 @@ output. The other modes show the observed final output only when actually active
 a staged mode says Automatic after Apply. Window dimensions remain saved in DIPs.
 
 The Display section has two padded control rows, near-label value alignment,
-focus-dependent wrapped help, a non-colour-only selection marker, separators,
+focus-dependent wrapped help, a selected-row highlight, blank-line spacing,
 and a distinct Apply/Cancel hint line. Aspect/resizing information is prose, not
 an apparent interactive control. Layout measures its own content while keeping
 the card stable across tabs. Native mode changes are reflected until a mode is

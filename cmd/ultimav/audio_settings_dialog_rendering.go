@@ -8,7 +8,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
@@ -377,11 +376,7 @@ func (d *ConfigurationDialog) drawDisplayContent(screen *ebiten.Image) {
 		}
 		labelRect := d.layout.displayLabels[index]
 		d.labelOutput.Reset()
-		label := labels[index]
-		if selected {
-			label = "> " + label
-		}
-		d.labelOutput.AppendLine().Text(label, labelColor).Done()
+		d.labelOutput.AppendLine().Text(labels[index], labelColor).Done()
 		d.labelOutput.DrawPanelContent(
 			screen,
 			image.Pt(labelRect.Min.X, centeredAudioOutputY(labelRect, d.labelOutput)),
@@ -417,11 +412,6 @@ func (d *ConfigurationDialog) displayContentRows() ([2]string, [2]string) {
 
 func (d *ConfigurationDialog) drawDisplayHelp(screen *ebiten.Image) {
 	rect := d.layout.displayHelp
-	for _, top := range []int{rect.Min.Y - d.layout.pixelUnit, d.layout.footerRect.Min.Y - d.layout.pixelUnit} {
-		vector.FillRect(screen, float32(rect.Min.X), float32(top), float32(rect.Dx()),
-			float32(d.layout.pixelUnit), widgets.DialogRuleColor, false)
-	}
-	rect.Min.Y += d.layout.pixelUnit * audioSettingsSectionGapUnits
 	d.detailOutput.SetMaxCharsPerLine(max(1, d.detailOutput.Font.CharsForWidth(rect.Dx())))
 	d.detailOutput.Reset()
 	lines := make([]string, 0, audioSettingsDetailLines)
