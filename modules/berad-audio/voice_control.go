@@ -24,18 +24,23 @@ const (
 // Terminal status retains no decoder or asset bytes; failures are also reported
 // once through Runtime.Update/Close. Status is presentation-only information.
 type VoiceStatus struct {
-	State      VoiceState
-	Cue        CueID
-	Recording  RecordingID
-	Gain       float64
-	TargetGain float64
-	Failure    error
+	State       VoiceState
+	Cue         CueID
+	Recording   RecordingID
+	Gain        float64
+	TargetGain  float64
+	Failure     error
+	Position    time.Duration
+	Duration    time.Duration
+	RequestGain float64
+	SourceGain  float64
+	Envelope    float64
 }
 
 // Status observes the last control/service state without advancing the clock.
 func (handle Voice) Status() VoiceStatus {
 	if handle.runtime == nil {
-		return VoiceStatus{State: VoiceStopped, Cue: "", Recording: "", Gain: 0, TargetGain: 0, Failure: nil}
+		return stoppedVoiceStatus()
 	}
 	runtime := handle.runtime
 	runtime.mu.Lock()
@@ -55,13 +60,23 @@ func (runtime *Runtime) voiceStatus(handle Voice) VoiceStatus {
 		}
 
 		return VoiceStatus{State: state, Cue: playing.cue, Recording: playing.recording,
-			Gain: playing.gain, TargetGain: playing.targetGain(runtime.options.Volume), Failure: nil}
+			Gain: playing.gain, TargetGain: playing.targetGain(runtime.options.Volume), Failure: nil,
+			Position:    boundedPosition(playing, runtime.rate, playing.device.Position()),
+			Duration:    voiceDuration(playing, runtime.rate),
+			RequestGain: playing.requestGain, SourceGain: playing.sourceGain, Envelope: playing.envelope}
 	}
 	if handle.result != nil {
 		return *handle.result
 	}
 
-	return VoiceStatus{State: VoiceStopped, Cue: "", Recording: "", Gain: 0, TargetGain: 0, Failure: nil}
+	return stoppedVoiceStatus()
+}
+
+func stoppedVoiceStatus() VoiceStatus {
+	var status VoiceStatus
+	status.State = VoiceStopped
+
+	return status
 }
 
 // SetGain changes this voice's request coefficient in [0,1], not authored gain.

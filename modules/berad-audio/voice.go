@@ -198,8 +198,9 @@ func (runtime *Runtime) finish(voiceID uint64, reason VoiceState, failure error)
 		failure = fmt.Errorf("cue %s recording %s: %w", playing.cue, playing.recording, failure)
 		runtime.remember(failure)
 	}
-	*playing.result = VoiceStatus{State: reason, Cue: playing.cue, Recording: playing.recording,
-		Gain: 0, TargetGain: 0, Failure: failure}
+	*playing.result = stoppedVoiceStatus()
+	playing.result.State, playing.result.Cue, playing.result.Recording = reason, playing.cue, playing.recording
+	playing.result.Failure = failure
 	delete(runtime.voices, voiceID)
 }
 

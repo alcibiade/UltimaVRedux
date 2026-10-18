@@ -63,6 +63,8 @@ result, err := owner.Play("hangar/motor", request)
 - `Voice.Status` distinguishes playing, paused, releasing, completed, stopped,
   evicted and failed states. Retirement stores status without retaining its decoder.
   Unexpected loop completion is a failure, unlike healthy finite completion.
+  Live status includes bounded position/duration, request/source coefficients and
+  envelope, so consumer diagnostics need not reconstruct factors from a muted mix.
 - Admission evicts the oldest finite voice; loops are protected. A new finite
   voice is dropped when all slots are loops; a new loop returns `ErrVoiceLimit`.
   Failed/dropped requests never advance the recording cycle.

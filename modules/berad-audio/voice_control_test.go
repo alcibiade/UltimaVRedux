@@ -104,6 +104,10 @@ func TestVoiceSeekValidatesWindowWithoutRetiringPausedVoice(t *testing.T) {
 	if position, err := handle.Position(); err != nil || position != time.Millisecond {
 		t.Fatalf("position %v: %v", position, err)
 	}
+	status := handle.Status()
+	if status.Position != time.Millisecond || status.Duration != 2*time.Millisecond || status.RequestGain != 1 || status.SourceGain != 1 {
+		t.Fatal("incomplete voice diagnostics", status)
+	}
 	if cursor, err := state.sources[0].Seek(0, io.SeekCurrent); err != nil || cursor != 4 {
 		t.Fatalf("seek did not reach retained source: %d %v", cursor, err)
 	}
