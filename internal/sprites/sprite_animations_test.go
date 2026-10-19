@@ -166,15 +166,6 @@ func TestNPCAnimationNegativePositionHashStaysWithinSpriteGroup(t *testing.T) {
 	}
 }
 
-func TestPositiveModuloNormalizesNegativeAnimationOffsets(t *testing.T) {
-	if got := positiveModulo(-3, 4); got != 1 {
-		t.Fatalf("positiveModulo(-3, 4) = %d, want 1", got)
-	}
-	if got := positiveModulo(-4, 4); got != 0 {
-		t.Fatalf("positiveModulo(-4, 4) = %d, want 0", got)
-	}
-}
-
 func TestAnimationPositionHashVariation(t *testing.T) {
 	// At 1000ms the 125ms waterfall cycle is back at its first frame.
 	// Adjacent phases and signed wrap must select exact authored frames.

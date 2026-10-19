@@ -31,9 +31,9 @@ func TestDecorativeBackgroundVariantsPreserveAnimationAndDefault(t *testing.T) {
 					if interval <= 0 {
 						interval = defaultEffectIntervalMs
 					}
-					frame = positiveModulo(elapsed/int64(interval), frameCount)
+					frame = int(elapsed/int64(interval)) % frameCount
 				} else {
-					foreground = TileEffectPipeline{Background: -1, BaseBackground: -1}
+					foreground = TileEffectPipeline{Background: -1}
 				}
 				layer := sheet.tileEffectProcessor.generateSingleFrame(sheet.decorationWithoutBakedBackground(decoration, pipeline.Background), frame, foreground, frameCount)
 				expected := ebiten.NewImage(TileSize, TileSize)

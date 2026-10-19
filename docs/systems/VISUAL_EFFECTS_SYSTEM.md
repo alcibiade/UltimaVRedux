@@ -242,7 +242,8 @@ manager.Workflow("earthquake").
 
 ## Pixel Dissolve And Masking
 
-`internal/visual.PixelDissolveEffect` progressively changes alpha values in a shuffled mask. It supports:
+`internal/visual.PixelDissolveEffect` adapts SDK `graphics.Dissolve` and a native
+`Surface` to game-owned target sizes and highlight coordinates. It supports:
 
 - `DissolveModeReveal`: transparent to opaque
 - `DissolveModeHide`: opaque to transparent
@@ -277,6 +278,16 @@ maskedBuffer.DrawImage(effect.GetMask(), maskOptions)
 
 `MessageDialog` uses this path with persistent content and masked buffers. Tile dissolves use a one-to-one sprite mask through `DissolveEffectState`. Presentation effects must construct their own stable source; they must never receive the persisted gameplay RNG source.
 
+The SDK consumes the supplied RNG only while constructing the permutation; reset
+and reverse progress reuse that order. Progress counts mask cells, not opaque
+sprite pixels. Only changed cells update the CPU buffer, and an unchanged mask
+avoids another upload. The optional scaled target is reused. `GetMask` returns a
+borrow valid until this effect's `Dispose`, which closes its surface and scaled
+image, never the caller's content/target. Reset does not revive a disposed effect.
+Leading highlights retain the game's integer cell-to-target projection; these are
+recently revealed permutation cells, not a spatial wavefront or a promise of exact
+fractional nearest-sampling coverage.
+
 ## Terrain Visibility Dithering
 
 Ordinary top-down small and large maps use a world-anchored visibility-edge
@@ -288,12 +299,12 @@ revealed. Indoor rooms and structural boundary tiles retain whole-tile coverage:
 visible tiles stay intact, and hidden tiles stay black. There is no indoor
 inward fade, rounded erosion, or continuous edge darkening.
 
-- `internal/sprites/quarter_mask.go` contains reusable, standard-library-only
-  geometry and ordered-threshold calculations. Four quarter pieces assemble
+- `internal/sprites/quarter_mask.go` contains game-owned neighborhood coverage
+  geometry and delegates Bayer4/Q12 thresholding to Berad Graphics. Four pieces assemble
   each tile's coverage; reflections reuse the small piece set. Geometry is
   independent of `GameState`, sprite identities, clocks, and Ebitengine.
-- `internal/sprites/dither_mask_image.go` owns a reusable CPU buffer and
-  standalone GPU texture. Transparent mask pixels keep the composed world;
+- `internal/sprites/dither_mask_image.go` adapts an SDK-owned reusable CPU buffer
+  and standalone GPU surface. Transparent mask pixels keep the composed world;
   opaque black pixels reject it. Standalone storage avoids atlas-dependent
   nearest-sampling differences at fractional camera offsets.
 - `cmd/ultimav/gamescene_terrain_dither.go` owns the Ultima adapter, sampling,
@@ -383,7 +394,19 @@ mask := sprites.GetSpriteMask(sprite)
 pipeline.ApplyOverlayWithMask(screen, drawOptions, elapsedMs, opacity, mask)
 ```
 
-`GetSpriteMask` converts every non-transparent source pixel to opaque white and caches the result by sprite image pointer. Sprites are immutable at runtime, so callers should reuse the cache rather than regenerating masks per frame. The cache helpers exist primarily for tests and diagnostics.
+`GetSpriteMask` asks the SDK for binary white occupancy from nonzero source alpha.
+Its application-lifetime processor bounds source and derived stores separately
+(500 entries and 32 MiB each). Inputs and returned images are read-only borrows;
+callers must not mutate or deallocate them. Clearing/eviction drops cache references
+without invalidating retained results. Sprites are immutable at runtime.
+
+`WithAdditiveAlphaPulse` and `WithAdditiveColour` name the existing additive
+channel semantics accurately: RGB is scaled independently of alpha and does not
+fade with the alpha pulse under `BlendLighter`. `WithPulsingAlpha` instead returns
+the multiplier for the caller's ordinary base-sprite `ScaleAlpha`. Renaming the
+additive presets preserves their current appearance; it does not introduce bloom,
+halo generation or a correction to their brightness. Explicit-time calls are
+deterministic; the position conveniences retain presentation-only wall time.
 
 ## Generic Tile Dissolves
 

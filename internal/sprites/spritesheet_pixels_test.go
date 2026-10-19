@@ -257,7 +257,6 @@ func smallResolverSpriteSheet(t *testing.T) *SpriteSheet {
 	sheet.tileEffectProcessor = processor
 	pipeline := TileEffectRegistry[indexes.Water1]
 	count := processor.getFrameCountForPipeline(pipeline)
-	processor.frameCountPerTile[indexes.Water1] = count
 	processor.effectFrames[indexes.Water1] = make([]*ebiten.Image, count)
 	processor.borderedFrames[indexes.Water1] = make([]*ebiten.Image, count*2)
 	for frame := range count {

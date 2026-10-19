@@ -248,6 +248,7 @@ func forbiddenPackage(identity string) bool {
 		"github.com/hajimehoshi/ebiten",
 		"github.com/ebitengine",
 		"github.com/bradhannah/berad-sdk/modules/berad-text",
+		"github.com/bradhannah/berad-sdk/modules/berad-graphics",
 		modulePath + "/internal/display",
 		modulePath + "/internal/text",
 		modulePath + "/internal/ui",

@@ -3,10 +3,12 @@ package sprites
 import (
 	"math"
 	"slices"
+
+	graphics "github.com/bradhannah/berad-sdk/modules/berad-graphics"
 )
 
 // DitherCoverageFull is full coverage in the Q12 units accepted by DitherKeeps.
-const DitherCoverageFull = 4096
+const DitherCoverageFull = graphics.CoverageFull
 
 // Neighborhood bits run clockwise from north, followed by the center cell.
 const (
@@ -29,13 +31,11 @@ const (
 )
 
 const (
-	quarterStateCount   = 16
-	quarterMaxTileSize  = 256
-	quarterMinTileSize  = 4
-	quarterAxisParts    = 2
-	quarterPixelCenter  = 0.5
-	ditherPeriod        = 4
-	ditherThresholdUnit = 128
+	quarterStateCount  = 16
+	quarterMaxTileSize = 256
+	quarterMinTileSize = 4
+	quarterAxisParts   = 2
+	quarterPixelCenter = 0.5
 )
 
 // EdgeDitherOptions measures geometry in logical tile pixels. TileSize must be
@@ -220,16 +220,5 @@ func (set *QuarterMaskSet) Coverage(neighborhood uint16, tileX, tileY int) uint1
 // world coordinates. Transform coverage, not this pattern. Values above Q12 one
 // are programming errors and panic; equality with a threshold is discarded.
 func DitherKeeps(coverage uint16, worldX, worldY int) bool {
-	if coverage > DitherCoverageFull {
-		panic("edge dither: coverage exceeds Q12 one")
-	}
-	bayer := [ditherPeriod][ditherPeriod]uint16{
-		{0, 8, 2, 10},
-		{12, 4, 14, 6},
-		{3, 11, 1, 9},
-		{15, 7, 13, 5},
-	}
-	rank := bayer[worldY&(ditherPeriod-1)][worldX&(ditherPeriod-1)]
-
-	return coverage > (2*rank+1)*ditherThresholdUnit
+	return graphics.DitherKeeps(coverage, worldX, worldY)
 }

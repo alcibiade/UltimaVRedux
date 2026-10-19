@@ -129,11 +129,15 @@ func TestTerrainMaskReusesUnchangedSamplesAndInvalidatesVisibility(t *testing.T)
 
 func terrainDitherTestPixels(tb testing.TB, frame *terrainDitherFrame) []byte {
 	tb.Helper()
-	// Inspect the production-built CPU mask, not a second rasterization of it.
-	// Keep a snapshot: Resize clears the same buffer on the next build.
-	pixels := reflect.ValueOf(&frame.image).Elem().FieldByName("pixels").Bytes()
-	require.Len(tb, pixels, frame.width*sprites.TileSize*frame.height*sprites.TileSize*4)
-	return slices.Clone(pixels)
+	// Inspect the uploaded production mask through its real draw boundary, without
+	// depending on private storage fields in the graphics resource owner.
+	width, height := frame.width*sprites.TileSize, frame.height*sprites.TileSize
+	target := ebiten.NewImage(width, height)
+	defer target.Deallocate()
+	frame.image.Draw(target, ebiten.GeoM{})
+	pixels := make([]byte, width*height*4)
+	target.ReadPixels(pixels)
+	return pixels
 }
 
 func TestTerrainDitherModes(t *testing.T) {

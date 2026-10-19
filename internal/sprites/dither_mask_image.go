@@ -1,63 +1,48 @@
 package sprites
 
 import (
-	"image"
+	"fmt"
 
+	graphicsbackend "github.com/bradhannah/berad-sdk/modules/berad-graphics/backend/ebitengine"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// DitherMaskImage reuses a CPU pixel buffer and GPU image for a rejection mask.
-// Its zero value is ready for Resize. Do not copy it after first use.
-type DitherMaskImage struct {
-	image         *ebiten.Image
-	pixels        []byte
-	width, height int
-}
+// DitherMaskImage retains the game's reusable rejection-mask surface contract.
+// Coverage/world geometry stays with the caller; the SDK owns CPU/GPU storage.
+type DitherMaskImage struct{ surface *graphicsbackend.Surface }
 
-// Resize returns a cleared, premultiplied RGBA buffer of the requested size.
-// The caller fills its contents: transparent pixels keep the world visible and
-// opaque black pixels reject it. The buffer aliases this resource until a size
-// change or Dispose; even same-size calls clear it. Upload commits the contents
-// to the image. Same-size calls reuse both allocations. Dimensions must be positive.
-func (m *DitherMaskImage) Resize(width, height int) []byte {
-	const bytesPerPixel = 4
-	if width <= 0 || height <= 0 {
-		panic("sprites: dither mask dimensions must be positive")
+// Resize returns a cleared borrowed RGBA buffer, preserving same-size allocations.
+func (mask *DitherMaskImage) Resize(width, height int) []byte {
+	if mask.surface == nil {
+		mask.surface = new(graphicsbackend.Surface)
+	}
+	pixels, err := mask.surface.Resize(width, height)
+	if err != nil {
+		panic(fmt.Sprintf("resize game rejection mask: %v", err))
 	}
 
-	if m.width != width || m.height != height {
-		m.Dispose()
-		// Keep nearest-sampling ties independent of texture-atlas placement.
-		m.image = ebiten.NewImageWithOptions(image.Rect(0, 0, width, height), &ebiten.NewImageOptions{Unmanaged: true})
-		m.pixels = make([]byte, width*height*bytesPerPixel)
-		m.width, m.height = width, height
+	return pixels
+}
+
+// Upload commits the caller's rejection pixels.
+func (mask *DitherMaskImage) Upload() {
+	if err := mask.surface.Upload(); err != nil {
+		panic(fmt.Sprintf("upload game rejection mask: %v", err))
 	}
-	clear(m.pixels)
-
-	return m.pixels
 }
 
-// Upload writes the current buffer to the image. Resize must be called first.
-func (m *DitherMaskImage) Upload() {
-	m.image.WritePixels(m.pixels)
-}
-
-// Draw composites the uploaded mask with nearest filtering, neutral color scale,
-// and SourceOver blending. The caller supplies placement and any target SubImage
-// clipping; no world coordinates or viewport are inferred. Resize must precede Draw.
-func (m *DitherMaskImage) Draw(target *ebiten.Image, transform ebiten.GeoM) {
-	target.DrawImage(m.image, &ebiten.DrawImageOptions{
-		GeoM:   transform,
-		Filter: ebiten.FilterNearest,
-	})
-}
-
-// Dispose releases the image and buffer, restoring the zero value. It is idempotent.
-func (m *DitherMaskImage) Dispose() {
-	if m.image != nil {
-		m.image.Deallocate()
+// Draw preserves nearest filtering and SourceOver rejection over the supplied target.
+func (mask *DitherMaskImage) Draw(target *ebiten.Image, transform ebiten.GeoM) {
+	options := &ebiten.DrawImageOptions{GeoM: transform, Filter: ebiten.FilterNearest}
+	if err := mask.surface.Draw(target, *options); err != nil {
+		panic(fmt.Sprintf("draw game rejection mask: %v", err))
 	}
-	m.image = nil
-	m.pixels = nil
-	m.width, m.height = 0, 0
+}
+
+// Dispose releases the owned surface; this game facade remains ready for a new Resize.
+func (mask *DitherMaskImage) Dispose() {
+	if mask.surface != nil {
+		mask.surface.Close()
+		mask.surface = nil
+	}
 }

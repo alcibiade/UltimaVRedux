@@ -48,8 +48,16 @@ entry still uses the full identity check.
 - Midday work is skipped and moonstones farther than 30 wrapped tiles are culled.
 - `drawMoongates` draws original tile 220 after the map and before item overlays and UI.
 - Search is blocked while a source gate is active. An already exposed stone remains a loose item under its gate and Get can collect it. Its item overlay uses 60% opacity while the gate is active, keeping both visible without changing occupancy or gate activity.
-- Stable and transitioning gates pulse in opacity and receive `sprites.MoongateGlowOverlay` with additive blue glow.
+- Stable and transitioning gates use the existing base-sprite `ScaleAlpha` pulse
+  (0.60–1.10), plus `sprites.MoongateGlowOverlay`. The latter now uses the accurately
+  named `WithAdditiveAlphaPulse`: its alpha cycles 0.30–0.60, while its added RGB
+  contribution remains constant under `BlendLighter`. Appearance is preserved.
 - Visible renderer positions are supplied to lighting and ambient-audio collection.
+
+Berad Graphics supplies the silhouette and additive draw mechanisms; gate stages,
+row clipping, transforms, pulse policy and travel sequencing remain game-owned.
+Application-lifetime moongate artwork can outlive its originating sprite sheet's
+scene. Scene disposal must not deallocate those read-only borrowed frames/masks.
 
 ## Travel Workflow
 

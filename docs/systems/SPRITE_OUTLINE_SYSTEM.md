@@ -6,6 +6,11 @@ Sprite outlines are implemented as `EffectOutline` entries in the shared `sprite
 
 The same processor supports static entity outlines, item highlighting, quest-item treatment, and combat indicators. Overlay glows and auras use the separate `OverlayPipeline` and are not part of this system.
 
+Redux selects tile artwork, semantic colours, authored bounds, timing and presets.
+The pinned [Berad Graphics API](https://github.com/bradhannah/berad-sdk/blob/feat/berad-graphics/modules/berad-graphics/docs/API.md)
+owns image operations, padding, contour generation and bounded resource reuse.
+See [ADR-012](../ADR/ADR-012-berad-graphics.md) for that boundary and its rationale.
+
 ## Core API
 
 Build reusable effect pipelines with the fluent builder:
@@ -43,7 +48,13 @@ Animated intensity values should be quantized before calling the cached intensit
 
 Predefined colors are represented by `OutlineColorType` in `internal/sprites/tile_effects.go`. They include general EGA colors plus combat-specific active, inactive, and threatened colors.
 
-Dynamic results are cached by source image and pipeline in a bounded LRU `EffectCache`. Reuse pipeline values and source images instead of rebuilding semantically unique effects every frame.
+Dynamic results use an SDK `Processor` with complete source, ordered operation,
+colour and padding identity. Each source/derived store is limited to 500 entries
+and 32 MiB of accounted payload. This accounting is not total GPU memory.
+Results are read-only borrows: never mutate or deallocate them. Cache eviction
+drops references without invalidating a retained borrower. Custom portrait
+`ApplyDynamicOutlineRGBA` calls instead return owned copies of the cached result;
+the portrait owner releases those copies. Reuse source images and bounded phases.
 
 ### Outline-only contours
 
@@ -55,15 +66,15 @@ Source dimensions and alignment are preserved; both rings clip at the image boun
 Use the already bordered 18x18 character frame for normal combat alignment.
 
 The result is borrowed and read-only. It shares the processor's bounded dynamic
-LRU, keyed by the immutable source frame and face RGBA with a separate contour
-tag. Actor identity, position and animation time are not retained in this cache;
+LRU, keyed by the immutable source frame, face/backing RGBA and contour operation.
+Actor identity, position and animation time are not retained in this cache;
 callers select the actual frame first. Repeated frame/colour combinations reuse
 their image, while misses allocate and generate pixels. Nil or disposed input,
-transparent face colour or a failed pixel read returns nil, **never the original
+transparent face colour or an SDK admission error returns nil, **never the original
 sprite**. Source bounds are checked before cache lookup, so a disposed source
 cannot reuse a cached contour. The bounds guard recovers only Ebitengine's
-disposed-image condition; unrelated programming failures still panic. Pixel reads
-retain the existing processor read guard. Callers skip the contour on nil rather
+disposed-image condition; unrelated programming or native-readiness failures still
+panic. Native readback requires the running Ebitengine loop. Callers skip nil rather
 than falling back to a concealed body.
 
 ## Sprite Storage
@@ -77,7 +88,8 @@ Valid `GetRawSprite` lookups lazily cache a detached, zero-origin 16x16 image pe
 tile, bounded by the 512-tile namespace. These results, and frames returned by
 `GetRawAnimatedSprite`, are borrowed and read-only: callers must not dispose them
 or modify their pixels. A consumer needing mutable pixels makes its own copy.
-Invalid raw indices retain the fresh transparent fallback and are not cached.
+Invalid raw indices share the sheet's transparent raw fallback; bordered lookup
+uses a separate size-correct fallback.
 Custom atlases must be populated before the first cached lookup.
 
 The raw cache belongs to each sheet, not a global scene cache. It has no disk or
@@ -89,6 +101,26 @@ every animated lookup.
 `internal/sprites/spritesheet_pixels_test.go` covers atlas/border RGBA equivalence,
 nonzero source origins, partial alpha, raw-cache identity and bounds, independent
 mutable copies, ordinary animation selection and generated-frame borrowing.
+
+## Generated Tile Frames
+
+`tile_effects_registry.go` retains the game's flame, lava, water and field recipes.
+`tile_pixel_adapters.go` translates original-palette selections and inclusive
+authored bounds into SDK destination masks. Sampling can read an unselected source
+colour within those bounds; selectors restrict writes, not source eligibility.
+Pure water frames are prepared before mixed tiles use them as explicit replacement
+pixels. Background tile choice and baked-ground subtraction remain Redux policy.
+
+Frame preparation is lazy after native initialization. Rise/wave/scroll operations
+run during preparation; lookups reuse the resulting 16x16/18x18 frames. SDK cycle
+sampling receives game elapsed ticks and spatial phase explicitly. Original
+animation families and alternating-column water offsets remain game-owned.
+
+Sleep fields retain alpha-channel-only pulsing, preserving RGB. Protection fields
+retain RGB brightness modulation with unchanged alpha. Uncalled opacity/tint/glow
+builder methods and unused per-effect interval/bounds fields were retired rather
+than exposed as silently ignored options. Dynamic presets accept border/outline;
+generated-only operations in that path are programming errors.
 
 ## Current Rendering Integration
 
@@ -131,14 +163,17 @@ Static outlines need no clock. Callers that pulse intensity or alternate marchin
 - The map-unit default does not color-code friendlies, enemies, and vehicles differently; all currently use the black standard pipeline.
 - Ground item stacks do not carry individual outline configuration.
 - Outline configuration is not save-game state.
-- `ApplyDynamicOutlineRGBA` is an uncached custom-color path.
+- `ApplyDynamicOutlineRGBA` creates an owned copy on each call; portraits retain
+  that copy until their source/status changes.
 - The pipeline builder validates non-empty pipelines and bounds, but callers must keep dimension-changing border wrap first.
 
 ## Implementation References
 
-- `internal/sprites/tile_effects.go`: pipeline builder, outline algorithms, and dynamic application.
+- `internal/sprites/tile_effects.go`: game pipeline builder and semantic colours.
+- `internal/sprites/tile_effect_processor.go`: frame selection and SDK dynamic-operation adapter.
+- `internal/sprites/tile_pixel_adapters.go`: original palette, authored bounds and frame preparation.
 - `internal/sprites/tile_outline_only.go`: cached body-free contours and fail-closed admission.
-- `internal/sprites/effect_cache.go`: bounded dynamic-effect cache.
+- `internal/sprites/effect_cache.go`: SDK cache facade for game-keyed decorative variants.
 - `internal/sprites/effect_presets.go`: standard map-unit pipelines.
 - `internal/sprites/sprite_wrapper.go`: 18x18 border wrapping.
 - `cmd/ultimav/gamescene_draw_map.go`: map units, item stacks, and quest items.

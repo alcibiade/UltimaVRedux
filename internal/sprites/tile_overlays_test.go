@@ -18,26 +18,26 @@ func TestOverlayPipeline_IsEmpty(t *testing.T) {
 
 	t.Run("pipeline with effects", func(t *testing.T) {
 		pipeline := Overlay().
-			WithPulsingGlow(color.RGBA{255, 255, 255, 255}, 1500, 0.3, 0.6).
+			WithAdditiveAlphaPulse(color.RGBA{255, 255, 255, 255}, 1500, 0.3, 0.6).
 			Build()
 		assert.False(t, pipeline.IsEmpty())
 	})
 }
 
-func TestOverlayBuilder_WithPulsingGlow(t *testing.T) {
+func TestOverlayBuilder_WithAdditiveAlphaPulse(t *testing.T) {
 	glowColor := color.RGBA{R: 100, G: 150, B: 200, A: 255}
 	periodMs := int64(2000)
 	pulseLow := float32(0.2)
 	pulseHigh := float32(0.8)
 
 	pipeline := Overlay().
-		WithPulsingGlow(glowColor, periodMs, pulseLow, pulseHigh).
+		WithAdditiveAlphaPulse(glowColor, periodMs, pulseLow, pulseHigh).
 		Build()
 
 	require.Len(t, pipeline.Effects, 1)
 	effect := pipeline.Effects[0]
 
-	assert.Equal(t, OverlayPulsingGlow, effect.Algorithm)
+	assert.Equal(t, OverlayAdditiveAlphaPulse, effect.Algorithm)
 	assert.Equal(t, glowColor, effect.Color)
 	assert.Equal(t, periodMs, effect.PeriodMs)
 	assert.Equal(t, pulseLow, effect.PulseLow)
@@ -46,8 +46,8 @@ func TestOverlayBuilder_WithPulsingGlow(t *testing.T) {
 
 func TestOverlayBuilder_MultipleEffects(t *testing.T) {
 	pipeline := Overlay().
-		WithPulsingGlow(color.RGBA{255, 0, 0, 255}, 1000, 0.1, 0.5).
-		WithPulsingGlow(color.RGBA{0, 255, 0, 255}, 2000, 0.2, 0.6).
+		WithAdditiveAlphaPulse(color.RGBA{255, 0, 0, 255}, 1000, 0.1, 0.5).
+		WithAdditiveAlphaPulse(color.RGBA{0, 255, 0, 255}, 2000, 0.2, 0.6).
 		Build()
 
 	assert.Len(t, pipeline.Effects, 2)
@@ -88,7 +88,7 @@ func TestSpriteMaskCache(t *testing.T) {
 
 	t.Run("clear cache resets size", func(t *testing.T) {
 		ClearSpriteMaskCache()
-		assert.Equal(t, 0, GetSpriteMaskCacheSize())
+		assert.Equal(t, 0, spriteMaskProcessor.Stats().Derived)
 	})
 }
 
@@ -190,7 +190,7 @@ func TestQuestItemGlowOverlays(t *testing.T) {
 		assert.False(t, overlay.IsEmpty())
 		// Quest item overlays now use separated effects: static glow + pulsing alpha
 		require.Len(t, overlay.Effects, 2)
-		assert.Equal(t, OverlayStaticGlow, overlay.Effects[0].Algorithm, "First effect should be static glow")
+		assert.Equal(t, OverlayAdditiveColour, overlay.Effects[0].Algorithm, "First effect should be additive colour")
 		assert.Equal(t, OverlayPulsingAlpha, overlay.Effects[1].Algorithm, "Second effect should be pulsing alpha")
 		assert.Equal(t, int64(ShardGlowPeriodMs), overlay.Effects[1].PeriodMs, "Shard should have slow ominous period")
 	})
@@ -201,7 +201,7 @@ func TestQuestItemGlowOverlays(t *testing.T) {
 		assert.False(t, overlay.IsEmpty())
 		// Quest item overlays now use separated effects: static glow + pulsing alpha
 		require.Len(t, overlay.Effects, 2)
-		assert.Equal(t, OverlayStaticGlow, overlay.Effects[0].Algorithm, "First effect should be static glow")
+		assert.Equal(t, OverlayAdditiveColour, overlay.Effects[0].Algorithm, "First effect should be additive colour")
 		assert.Equal(t, OverlayPulsingAlpha, overlay.Effects[1].Algorithm, "Second effect should be pulsing alpha")
 		assert.Equal(t, int64(ArtifactGlowPeriodMs), overlay.Effects[1].PeriodMs, "Artifact should have slow majestic period")
 	})

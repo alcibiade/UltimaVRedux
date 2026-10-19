@@ -25,32 +25,6 @@ func TestEffect_BuilderCreatesEmptyPipeline(t *testing.T) {
 	assert.Equal(t, 0, builder.pipeline.IntervalMs)
 }
 
-func TestApplyMarchingOutlineDynamicAlternatesBlackAndWhite(t *testing.T) {
-	const width, height = 5, 5
-	input := make([]byte, width*height*4)
-	centerIndex := (2*width + 2) * 4
-	input[centerIndex] = ucolor.EGARed.R
-	input[centerIndex+1] = ucolor.EGARed.G
-	input[centerIndex+2] = ucolor.EGARed.B
-	input[centerIndex+3] = ucolor.EGARed.A
-	phaseZero := append([]byte(nil), input...)
-	applyMarchingOutlineDynamic(input, phaseZero, width, height, 0)
-	phaseOne := append([]byte(nil), input...)
-	applyMarchingOutlineDynamic(input, phaseOne, width, height, 1)
-
-	outlineIndex := (1*width + 1) * 4
-	assert.Equal(t, ucolor.EGAWhite.R, phaseZero[outlineIndex])
-	assert.Equal(t, ucolor.EGAWhite.G, phaseZero[outlineIndex+1])
-	assert.Equal(t, ucolor.EGAWhite.B, phaseZero[outlineIndex+2])
-	assert.Equal(t, ucolor.EGAWhite.A, phaseZero[outlineIndex+3])
-	assert.Equal(t, ucolor.EGABlack.R, phaseOne[outlineIndex])
-	assert.Equal(t, ucolor.EGABlack.G, phaseOne[outlineIndex+1])
-	assert.Equal(t, ucolor.EGABlack.B, phaseOne[outlineIndex+2])
-	assert.Equal(t, ucolor.EGABlack.A, phaseOne[outlineIndex+3])
-	assert.Equal(t, input[centerIndex:centerIndex+4], phaseZero[centerIndex:centerIndex+4])
-	assert.Equal(t, input[centerIndex:centerIndex+4], phaseOne[centerIndex:centerIndex+4])
-}
-
 func TestEffect_WithBackground(t *testing.T) {
 	pipeline := Effect().
 		WithBackground(indexes.BrickFloor).
@@ -270,8 +244,8 @@ func TestApplyPulseChangesOnlyFilteredPixels(t *testing.T) {
 	input[blackPixel+2] = ucolor.EGABlack.B
 	input[blackPixel+3] = ucolor.EGABlack.A
 
-	output := append([]byte(nil), input...)
-	processor.applyPulse(input, output, 0, FilterPoison)
+	output := processor.applyEffect(input, 0, image.Rect(0, 0, 16, 16),
+		TileEffect{Algorithm: EffectPulse, Filter: FilterPoison}, 8)
 
 	assert.Less(t, output[poisonPixel+3], input[poisonPixel+3])
 	assert.Equal(t, input[blackPixel:blackPixel+4], output[blackPixel:blackPixel+4])
@@ -291,18 +265,52 @@ func TestFilterProtectionMatchesLightBlueFieldPixels(t *testing.T) {
 
 func TestApplyBrightnessPulseChangesColorNotOpacity(t *testing.T) {
 	processor := &TileEffectProcessor{}
-	input := []byte{
+	input := make([]byte, TileSize*TileSize*4)
+	copy(input, []byte{
 		ucolor.EGALightBlue.R,
 		ucolor.EGALightBlue.G,
 		ucolor.EGALightBlue.B,
 		ucolor.EGALightBlue.A,
-	}
-	output := append([]byte(nil), input...)
-
-	processor.applyBrightnessPulse(input, output, 0, FilterProtection)
+	})
+	output := processor.applyEffect(input, 0, image.Rect(0, 0, 16, 16),
+		TileEffect{Algorithm: EffectBrightnessPulse, Filter: FilterProtection}, 8)
 
 	assert.NotEqual(t, input[:3], output[:3])
 	assert.Equal(t, input[3], output[3])
+}
+
+func TestSleepFieldKeepsIndependentAlphaAppearance(t *testing.T) {
+	processor := &TileEffectProcessor{}
+	input := make([]byte, TileSize*TileSize*4)
+	copy(input, []byte{170, 0, 170, 128, 0, 0, 0, 255})
+	// This is the authored sleep palette, including a partially transparent pixel.
+	// The retained appearance changes alpha alone, not conventional RGBA opacity.
+	for _, sample := range []struct {
+		frame int
+		alpha byte
+	}{{0, 70}, {2, 121}, {6, 19}} {
+		output := processor.applyEffect(input, sample.frame, image.Rectangle{},
+			TileEffect{Algorithm: EffectPulse, Filter: FilterSleep}, 8)
+		require.Equal(t, []byte{170, 0, 170, sample.alpha, 0, 0, 0, 255}, output[:8])
+	}
+	require.Equal(t, []byte{170, 0, 170, 128, 0, 0, 0, 255}, input[:8])
+}
+
+func TestFlameAdapterBoundsSelectDestinationsNotSampleColours(t *testing.T) {
+	processor := &TileEffectProcessor{}
+	input := make([]byte, TileSize*TileSize*4)
+	put := func(x, y int, rgba []byte) { copy(input[(y*TileSize+x)*4:], rgba) }
+	red, green := []byte{170, 0, 0, 255}, []byte{0, 170, 0, 255}
+	put(5, 1, red) // Outside the right sconce's authored bounds.
+	put(6, 1, red) // Frame zero samples (7,2), even though its colour is not selected.
+	put(7, 1, green)
+	put(7, 2, green)
+	pipeline := TileEffectRegistry[indexes.RightSconce]
+	output := processor.applyEffect(input, 0, pipeline.Bounds, pipeline.Effects[0], 8)
+	require.Equal(t, red, output[(TileSize+5)*4:][:4])
+	require.Equal(t, green, output[(TileSize+6)*4:][:4])
+	require.Equal(t, green, output[(TileSize+7)*4:][:4])
+	require.Equal(t, red, input[(TileSize+6)*4:][:4], "source pixels remain immutable")
 }
 
 func TestTileEffectRegistry_FlamesTilesUseVerticalRise(t *testing.T) {
@@ -442,14 +450,6 @@ func TestIsEGAYellow_NotYellow(t *testing.T) {
 // HELPER FUNCTION TESTS
 // ============================================================================
 
-func TestClampInt(t *testing.T) {
-	assert.Equal(t, 5, clampInt(5, 0, 10))   // Within range
-	assert.Equal(t, 0, clampInt(-5, 0, 10))  // Below min
-	assert.Equal(t, 10, clampInt(15, 0, 10)) // Above max
-	assert.Equal(t, 0, clampInt(0, 0, 10))   // At min
-	assert.Equal(t, 10, clampInt(10, 0, 10)) // At max
-}
-
 // ============================================================================
 // PROCESSOR TESTS (without full sprite sheet - limited scope)
 // ============================================================================
@@ -466,9 +466,8 @@ func TestTileEffectProcessor_HasEffect_BeforeInit(t *testing.T) {
 	// HasEffect checks the registry directly (no lazy init needed)
 	// This allows it to be called before Ebitengine is running
 	processor := &TileEffectProcessor{
-		effectFrames:      make(map[indexes.SpriteIndex][]*ebiten.Image),
-		frameCountPerTile: make(map[indexes.SpriteIndex]int),
-		initialized:       false,
+		effectFrames: make(map[indexes.SpriteIndex][]*ebiten.Image),
+		initialized:  false,
 	}
 
 	// Grass is not in registry
@@ -667,7 +666,7 @@ func TestApplyVerticalScroll_PixelMovement(t *testing.T) {
 	}
 
 	// Apply scroll with offset 1 (shift down by 1)
-	processor.applyVerticalScroll(input, output, 1, 16)
+	copy(output, processor.applyEffect(input, 1, image.Rect(0, 0, 16, 16), TileEffect{Algorithm: EffectVerticalScroll}, 16))
 
 	// After scrolling down by 1, the red stripe should now be at y=1
 	// y=0 should have pixels from y=15 (wrap-around from bottom)
@@ -705,7 +704,7 @@ func TestApplyVerticalScroll_WrapAround(t *testing.T) {
 	}
 
 	// Apply scroll with offset 1 - last row should wrap to first row
-	processor.applyVerticalScroll(input, output, 1, 16)
+	copy(output, processor.applyEffect(input, 1, image.Rect(0, 0, 16, 16), TileEffect{Algorithm: EffectVerticalScroll}, 16))
 
 	// After scrolling, y=15 content should now be at y=0
 	for x := 0; x < TileSize; x++ {

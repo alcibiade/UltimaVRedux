@@ -28,7 +28,13 @@ func TestPixelDissolveEffectUsesStableSeededReveal(t *testing.T) {
 	second.UpdateProgress(0.5)
 
 	assert.Equal(t, first.pixelData, second.pixelData)
-	assert.Equal(t, size*size/2, first.currentPixelIdx)
+	revealed := 0
+	for index := 3; index < len(first.pixelData); index += 4 {
+		if first.pixelData[index] != 0 {
+			revealed++
+		}
+	}
+	assert.Equal(t, size*size/2, revealed)
 }
 
 func TestPixelDissolveLeadingPixelsStayWithinRevealedFrontAndReset(t *testing.T) {
