@@ -2,6 +2,8 @@ github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiE
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/bradhannah/berad-sdk/modules/berad-audio v0.0.0-20261018233803-ed95f13c63b7 h1:GD+BhQ4wJO3e3OxMb14QIx+kJI5OEG2ZmX50gqS9BFQ=
 github.com/bradhannah/berad-sdk/modules/berad-audio v0.0.0-20261018233803-ed95f13c63b7/go.mod h1:H893PVQ8BMXtLKDjFWYRCdB71Pi1C0E6vv3SuKKxd1Q=
+github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019105254-1521d0b6526b h1:KKHybIcxRd82xh6oknLj4WFP3SdvSkbqyePY/3W1FbY=
+github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019105254-1521d0b6526b/go.mod h1:M84Q/vxVyuOemIKmdZgeVxKZXJklicjU61+eGCNm4z8=
 github.com/bradhannah/berad-sdk/tools/berad-audio v0.0.0-20261019001037-9cdfc4b0755f h1:8WNFXPt8F1FzgAuVAAFo0Ib2nSNXLAYLkJu3Aym7eTQ=
 github.com/bradhannah/berad-sdk/tools/berad-audio v0.0.0-20261019001037-9cdfc4b0755f/go.mod h1:NUtJNHISYm5oC952w2dWvzjQz08hYUzr0v5ITH4KS1E=
 github.com/charmbracelet/bubbletea v1.3.10 h1:otUDHWMMzQSB0Pkc87rm691KZ3SWa4KUlvF9nRvCICw=

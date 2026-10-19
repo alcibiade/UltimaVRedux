@@ -353,9 +353,8 @@ func (d *TavernShopDialog) populateTopicLine() {
 	topicY = min(topicY, d.bodyText.Max.Y-int(math.Ceil(d.bodyOutput.GetFontHeight())))
 	d.topicBounds = image.Rect(d.bodyText.Min.X+int(labelWidth), topicY, d.bodyText.Max.X,
 		topicY+int(math.Ceil(d.bodyOutput.GetFontHeight())))
-	prefixWidth, _ := d.bodyFont.MeasureString(prefix)
-	selectedWidth, _ := d.bodyFont.MeasureString(selected)
-	caretWidth, _ := d.bodyFont.MeasureString(string(runes[:cursor]))
+	prefixWidth, selectedWidth, caretWidth := inputTextGeometry(d.bodyFont, visible,
+		len(prefix), len(prefix)+len(selected), len(string(runes[:cursor])))
 	x := min(d.topicBounds.Max.X-1, d.topicBounds.Min.X+int(caretWidth))
 	d.topicCaretBounds = image.Rect(x, topicY, x+1, d.topicBounds.Max.Y)
 	x = d.topicBounds.Min.X + int(prefixWidth)

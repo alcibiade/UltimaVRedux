@@ -232,7 +232,9 @@ func (e *AtlasNoteEditor) nativeCaretBounds() image.Rectangle {
 	layout := e.fieldLayout(index)
 	content, _, caret := e.fieldPresentation(index)
 	lines, row := e.scrollForContent(index, layout, content, caret)
-	advance, _ := e.font.MeasureString(string(content[lines[row].start:caret]))
+	value := string(content[lines[row].start:lines[row].end])
+	position := len(string(content[lines[row].start:caret]))
+	_, _, advance := inputTextGeometry(e.font, value, position, position, position)
 
 	return layout.caretRect(row-e.scroll[index], advance).Intersect(layout.content)
 }
@@ -249,8 +251,8 @@ func (e *AtlasNoteEditor) populateFieldLine(screen *ebiten.Image, content []rune
 	}
 	prefix := string(content[line.start:start])
 	selected, suffix := string(content[start:end]), string(content[end:line.end])
-	before, _ := e.font.MeasureString(prefix)
-	width, _ := e.font.MeasureString(selected)
+	before, width, _ := inputTextGeometry(e.font, prefix+selected+suffix,
+		len(prefix), len(prefix)+len(selected), len(prefix))
 	fillAtlasRect(screen, image.Rect(point.X+int(before), point.Y, point.X+int(before+width), point.Y+height),
 		DialogSelectedBackground)
 	e.output.Reset()

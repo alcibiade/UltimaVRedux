@@ -247,6 +247,7 @@ func forbiddenPackage(identity string) bool {
 	for _, boundary := range []string{
 		"github.com/hajimehoshi/ebiten",
 		"github.com/ebitengine",
+		"github.com/bradhannah/berad-sdk/modules/berad-text",
 		modulePath + "/internal/display",
 		modulePath + "/internal/text",
 		modulePath + "/internal/ui",

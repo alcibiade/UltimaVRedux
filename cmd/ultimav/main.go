@@ -27,6 +27,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/originaldata"
 	"github.com/bradhannah/UltimaVRedux/internal/profiling"
+	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
 // Layout sets the game's screen size.
@@ -102,6 +103,7 @@ func runApplication() error {
 		"browser debug workbench loopback port",
 	)
 	flag.Parse()
+	defer text.CloseRenderer()
 
 	// Start CPU profiling if requested
 	if *cpuprofile != "" {

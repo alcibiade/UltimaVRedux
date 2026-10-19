@@ -50,6 +50,7 @@ func (o *Output) WrappedCopyForWidth(pixelWidth int) *Output {
 func (o *Output) WrappedCopy(maxCharsPerLine int) *Output {
 	wrapped := *o
 	wrapped.journalHistory = nil
+	wrapped.history = nil // A presentation copy must not append to its source history.
 	wrapped.SetMaxCharsPerLine(maxCharsPerLine)
 	wrapped.lines = nil
 	wrapped.lineLayouts = nil
@@ -182,18 +183,18 @@ func (o *Output) wrapSingleLogicalLine(segments []ColorSegment) []StyledLine {
 	return o.wrapSingleLogicalLineWithContinuationIndent(segments, 0)
 }
 
-//nolint:cyclop,funlen // Word wrapping keeps segment colors, boundaries, indentation, and over-width words coherent.
+//nolint:funlen // Word wrapping keeps segment colors, boundaries, indentation, and over-width words coherent.
 func (o *Output) wrapSingleLogicalLineWithContinuationIndent(
 	segments []ColorSegment,
 	continuationIndent int,
 ) []StyledLine {
 	// Handle empty line (blank line from \n\n)
 	if len(segments) == 0 {
-		return []StyledLine{{Segments: []ColorSegment{}}}
+		return []StyledLine{{Segments: []ColorSegment{}, Text: "", Color: nil, Alignment: 0}}
 	}
 
 	var wrappedLines []StyledLine
-	currentLine := StyledLine{Segments: []ColorSegment{}}
+	currentLine := StyledLine{Segments: []ColorSegment{}, Text: "", Color: nil, Alignment: 0}
 	currentLength := 0
 	newContinuationLine := func() (StyledLine, int) {
 		line := StyledLine{
@@ -288,7 +289,7 @@ func (o *Output) wrapSingleLogicalLineWithContinuationIndent(
 
 	// If no lines were generated, return empty line
 	if len(wrappedLines) == 0 {
-		return []StyledLine{{Segments: []ColorSegment{}}}
+		return []StyledLine{{Segments: []ColorSegment{}, Text: "", Color: nil, Alignment: 0}}
 	}
 
 	return wrappedLines

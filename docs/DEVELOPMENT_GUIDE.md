@@ -66,6 +66,16 @@ It selects the Redux manifest explicitly. `make audio-editor` remains build-only
 removes known executables; `make clean-audio-reports` removes derived reports.
 Neither deletes authored JSON/media, player settings or `bin/tools` validators.
 
+Text rendering similarly consumes the pinned
+[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/1521d0b6526b/modules/berad-text).
+`internal/text` is the game's asset/semantic/history adapter; its fonts, glyph
+rendering, retained geometry and image cache use the SDK. SDK source/public-consumer
+and native-render regressions belong upstream. Game `internal/text`, widget and
+scene tests verify compatibility against the published pin without a sibling SDK
+checkout or replacement. See [message output](systems/MESSAGE_OUTPUT_SYSTEM.md)
+and [ADR-011](ADR/ADR-011-berad-text.md). The module is experimental; this does not
+claim a stable SDK release or new Windows/Linux native acceptance.
+
 Use [original-data setup](INSTALL.md#locate-the-original-game-data) to discover an
 existing GOG/Heroic installation, use the displayed home/UltimaV folder,
 or edit the settings file externally and recheck. Fresh setup requires explicit

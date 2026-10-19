@@ -4,21 +4,22 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"golang.org/x/image/font/opentype"
+
+	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
 func TestTextInputsShareParsedFontAndRetainIndependentCursorMetrics(t *testing.T) {
 	first, second := new(TextInput), new(TextInput)
-	first.getAndSetTtf(12)
-	second.getAndSetTtf(24)
-	faceA, ok := first.face.(*opentype.Face)
-	require.True(t, ok)
-	faceB, ok := second.face.(*opentype.Face)
-	require.True(t, ok)
-	require.NotSame(t, faceA, faceB)
-	require.Same(t, textInputFontSource(), textInputFontSource())
+	first.output = text.NewOutput(nil, 0, 1, 30)
+	second.output = text.NewOutput(nil, 0, 1, 30)
+	first.SetFontPoint(12)
+	second.SetFontPoint(24)
+	require.NotSame(t, first.ultimaFont.TextFace, second.ultimaFont.TextFace)
+	require.Same(t, first.ultimaFont.TextFace.Source, second.ultimaFont.TextFace.Source)
 	oldHeight := first.getFontHeight()
-	second.getAndSetTtf(31.5)
+	second.SetFontPoint(31.5)
 	require.Equal(t, oldHeight, first.getFontHeight())
 	require.Greater(t, second.getFontHeight(), oldHeight)
+	width, _ := first.ultimaFont.MeasureString("café")
+	require.Equal(t, int(width), first.CalculateTextWidth("café"))
 }

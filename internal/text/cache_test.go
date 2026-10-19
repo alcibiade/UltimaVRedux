@@ -1,143 +1,87 @@
 package text
 
 import (
-	"fmt"
+	"bytes"
+	"image"
 	"image/color"
+	"os"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text/v2"
-	"github.com/stretchr/testify/assert"
+	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/stretchr/testify/require"
 )
 
-// Keep real rendering for cache insertion/ownership checks, with small glyphs.
-func createMockFont() text.Face {
-	return NewUltimaFont(2).TextFace
+type nativeTextTests struct {
+	tests *testing.M
+	done  chan int
+	code  int
 }
 
-func createMockLayoutOptions() *text.LayoutOptions {
-	return &text.LayoutOptions{LineSpacing: 1, PrimaryAlign: text.AlignStart}
-}
-
-// Identity-only hits borrow a sentinel and never invoke its rendering methods.
-func preseedTextCache(cache *TextCache, params TextRenderParams) *ebiten.Image {
-	entry := &CacheEntry{key: params.CacheKey(), image: &ebiten.Image{}}
-	entry.listElement = cache.lruList.PushFront(entry)
-	cache.cache[entry.key] = entry
-	return entry.image
-}
-
-func TestTextRenderParams_CacheKey(t *testing.T) {
-	// Key identity does not require a font source or rendered glyphs.
-	font := &text.GoTextFace{Size: 12}
-	params := TextRenderParams{Content: "Hello World", Face: font, Options: createMockLayoutOptions(), Color: color.White}
-	identical := params
-	identical.Options = createMockLayoutOptions()
-	assert.Equal(t, params.CacheKey(), identical.CacheKey())
-	different := params
-	different.Content = "Different Text"
-	assert.NotEqual(t, params.CacheKey(), different.CacheKey())
-	different = params
-	different.Color = color.RGBA{255, 255, 0, 255}
-	assert.NotEqual(t, params.CacheKey(), different.CacheKey())
-}
-
-func TestNewTextCache(t *testing.T) {
-	cache := NewTextCache(50)
-	assert.NotNil(t, cache)
-	assert.Zero(t, cache.Size())
-	assert.Equal(t, 50, cache.maxEntries)
-}
-
-func TestTextCache_CacheHit(t *testing.T) {
-	cache := NewTextCache(10)
-	t.Cleanup(cache.Clear)
-	params := TextRenderParams{Face: createMockFont(), Options: createMockLayoutOptions(), Color: color.White}
-	for _, content := range []string{"A", "B", ""} {
-		params.Content = content
-		before := cache.Size()
-		first := cache.GetOrRender(params)
-		require.NotNil(t, first)
-		width, height := text.Measure(content, params.Face, params.Options.LineSpacing)
-		entry := cache.getOrRenderEntry(params)
-		require.Equal(t, width, entry.width)
-		require.Equal(t, height, entry.height)
-		require.Equal(t, before+1, cache.Size(), "distinct content, including empty text, must miss")
-		require.Same(t, first, cache.GetOrRender(params))
-		require.Equal(t, before+1, cache.Size())
-		require.Equal(t, params.CacheKey(), cache.lruList.Front().Value.(*CacheEntry).key)
+func (g *nativeTextTests) Update() error {
+	if g.done == nil {
+		g.done = make(chan int, 1)
+		go func() { g.done <- g.tests.Run() }()
+	}
+	select {
+	case g.code = <-g.done:
+		return ebiten.Termination
+	default:
+		return nil
 	}
 }
 
-func TestTextCache_LRUEviction(t *testing.T) {
-	cache := NewTextCache(3)
-	t.Cleanup(cache.Clear)
-	font, options := &text.GoTextFace{Size: 12}, createMockLayoutOptions()
-	paramsA := TextRenderParams{Content: "A", Face: font, Options: options}
-	paramsB := TextRenderParams{Content: "B", Face: font, Options: options}
-	paramsC := TextRenderParams{Content: "C", Face: font, Options: options}
-	imgA := preseedTextCache(cache, paramsA)
-	preseedTextCache(cache, paramsB)
-	imgC := preseedTextCache(cache, paramsC)
-	require.Equal(t, 3, cache.Size())
-	cache.GetOrRender(paramsA)
-	require.Equal(t, paramsA.CacheKey(), cache.lruList.Front().Value.(*CacheEntry).key)
-	require.Equal(t, paramsB.CacheKey(), cache.lruList.Back().Value.(*CacheEntry).key)
-	// Exercise hit promotion and the cache's eviction primitive without glyphs.
-	// Native insertion enforcing entry/byte limits is covered by budget tests.
-	cache.evictLRU()
-	require.Equal(t, 2, cache.Size())
-	require.NotContains(t, cache.cache, paramsB.CacheKey())
-	paramsD := TextRenderParams{Content: "D", Face: font, Options: options}
-	imgD := preseedTextCache(cache, paramsD)
-	require.Equal(t, 3, cache.Size())
-	assert.Same(t, imgA, cache.GetOrRender(paramsA))
-	assert.Same(t, imgC, cache.GetOrRender(paramsC))
-	assert.Same(t, imgD, cache.GetOrRender(paramsD))
-	cache.evictLRU()
-	require.NotContains(t, cache.cache, paramsA.CacheKey(), "the latest hit ordering must select A next")
-	require.Equal(t, 2, cache.lruList.Len())
-}
+func (*nativeTextTests) Draw(*ebiten.Image)         {}
+func (*nativeTextTests) Layout(int, int) (int, int) { return 1, 1 }
 
-func TestTextCache_Clear(t *testing.T) {
-	cache := NewTextCache(10)
-	t.Cleanup(cache.Clear)
-	font, options := createMockFont(), createMockLayoutOptions()
-	for index := range 5 {
-		cache.GetOrRender(TextRenderParams{Content: fmt.Sprint(index), Face: font, Options: options})
+func TestMain(tests *testing.M) {
+	runner := &nativeTextTests{tests: tests, done: nil, code: 1}
+	if err := ebiten.RunGame(runner); err != nil {
+		panic(err)
 	}
-	require.Equal(t, 5, cache.Size())
-	cache.Clear()
-	assert.Zero(t, cache.Size())
-	params := TextRenderParams{Content: "A", Face: font, Options: options}
-	first := cache.GetOrRender(params)
-	cache.Clear()
-	assert.NotSame(t, first, cache.GetOrRender(params))
+	os.Exit(runner.code)
 }
 
-func TestGetCachedText_GlobalCache(t *testing.T) {
+func TestSDKScaledGameTextReusesRaster(t *testing.T) {
 	ClearTextCache()
 	t.Cleanup(ClearTextCache)
-	font, options := createMockFont(), createMockLayoutOptions()
-	first := GetCachedText("A", font, options, color.White)
-	assert.Same(t, first, GetCachedText("A", font, options, color.White))
+	output := NewOutput(NewUltimaFont(20), 24, 2, 100)
+	output.AppendLine().Header("A heading").Done()
+	target := ebiten.NewImage(240, 80)
+	t.Cleanup(target.Deallocate)
+	before := textRenderer.Stats()
+	for range 5 {
+		output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
+	}
+	after := textRenderer.Stats()
+	require.Equal(t, uint64(1), after.Misses-before.Misses)
+	require.Equal(t, uint64(4), after.Hits-before.Hits)
+	require.Equal(t, 1, after.Entries)
+	retained := output.lineLayouts[0].layouts[0]
+	output.RecolorCurrentLine(color.RGBA{R: 255, A: 255})
+	output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
+	require.Same(t, retained, output.lineLayouts[0].layouts[0], "paint changes retain SDK geometry")
 	ClearTextCache()
-	assert.NotSame(t, first, GetCachedText("A", font, options, color.White))
+	require.Zero(t, textRenderer.Stats().Entries)
+	output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
+	require.Same(t, retained, output.lineLayouts[0].layouts[0], "cache clear does not invalidate layout")
 }
 
-func TestTextCache_SingleEntry(t *testing.T) {
-	cache := NewTextCache(1)
-	t.Cleanup(cache.Clear)
-	font, options := createMockFont(), createMockLayoutOptions()
-	paramsA := TextRenderParams{Content: "A", Face: font, Options: options}
-	paramsB := TextRenderParams{Content: "B", Face: font, Options: options}
-	first := cache.GetOrRender(paramsA)
-	assert.Equal(t, 1, cache.Size())
-	second := cache.GetOrRender(paramsB)
-	assert.Equal(t, 1, cache.Size())
-	assert.NotSame(t, first, cache.GetOrRender(paramsA))
-	assert.Equal(t, 1, cache.Size())
-	assert.NotSame(t, second, cache.GetOrRender(paramsB))
-	assert.Equal(t, 1, cache.Size())
+func TestSDKGameTextMatchesLegacyCanvasPixels(t *testing.T) {
+	font := NewUltimaFont(20)
+	actual, expected := ebiten.NewImage(240, 60), ebiten.NewImage(240, 60)
+	t.Cleanup(actual.Deallocate)
+	t.Cleanup(expected.Deallocate)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(3, 4)
+	DrawCachedText(actual, "Strength: 20", font, op, color.White)
+	width, height := etext.Measure("Strength: 20", font.TextFace, 0)
+	legacy := ebiten.NewImage(int(width)+2, int(height)+2)
+	t.Cleanup(legacy.Deallocate)
+	etext.Draw(legacy, "Strength: 20", font.TextFace, &etext.DrawOptions{})
+	expected.DrawImage(legacy, op)
+	a, b := make([]byte, 240*60*4), make([]byte, 240*60*4)
+	actual.ReadPixels(a)
+	expected.ReadPixels(b)
+	require.True(t, bytes.Equal(b, a), "SDK adapter must preserve the former clipped raster canvas")
 }

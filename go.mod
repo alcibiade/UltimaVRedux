@@ -6,9 +6,9 @@ toolchain go1.27.1
 
 require (
 	github.com/bradhannah/berad-sdk/modules/berad-audio v0.0.0-20261018233803-ed95f13c63b7
+	github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019105254-1521d0b6526b
 	github.com/bradhannah/berad-sdk/tools/berad-audio v0.0.0-20261019001037-9cdfc4b0755f
 	github.com/coder/websocket v1.8.14
-	github.com/ebitengine/oto/v3 v3.5.0
 	github.com/gofrs/flock v0.13.0
 	github.com/hajimehoshi/ebiten/v2 v2.10.4
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
@@ -34,6 +34,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/ebitengine/gomobile v0.0.0-20260820040257-d11f821a26a6 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
+	github.com/ebitengine/oto/v3 v3.5.0 // indirect
 	github.com/ebitengine/purego v0.11.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
