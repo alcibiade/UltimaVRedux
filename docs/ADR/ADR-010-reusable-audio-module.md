@@ -63,16 +63,25 @@ remain outside published application metadata.
   its temporary bridge substitutes the candidate game alone.
 - Legacy runtime classes are test-only compatibility fixtures, excluded from normal
   builds. New facade/module tests verify the live path, while the older low-level
-  regressions remain available during test migration. Shared TUI authoring helpers
-  remain production code; no legacy playback fallback is compiled into the game.
+  regressions remain available during test migration. Superseded authoring helpers
+  are likewise test-only; no legacy editor or playback fallback is compiled into the game.
 - The module's initial API remains experimental. This is an explicit import-path
   migration, not a stable-version or new native acceptance promise. Authoring/TUI
-  extraction continues separately from the completed runtime move.
+  extraction now lives in the independently versioned `tools/berad-audio` module.
 - Public source installation resolves the pinned module without a local replacement
   or workspace. The SDK is independently public; no stable release is implied.
 
 Reviewed SDK guidance is commit `45169251e58951593f25cd2f323ea4dea47784ff`;
 the approved TUI and game-policy boundaries are preserved.
+
+The tools cutover pins runtime/authoring `ed95f13c63b7` and tools `9cdfc4b0755f`.
+Shared schema-3 editing/persistence lives in runtime `authoring`; terminal/session,
+catalog and optional probes live in the tools module. Game launchers supply Redux
+policy and retain source-evidence enrichment. The former TUI directory is removed;
+old authoring bodies survive only as test-only parity fixtures. Make build/cleanup
+targets preserve the existing workflow without a sibling SDK prerequisite.
+Standalone SDK tool-install acceptance is deferred until reviewed default-branch
+availability or separately authorized tagging; local builds do not supply that proof.
 
 See the [module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md) and
 [current Redux audio system](../systems/AUDIO_SYSTEM.md).

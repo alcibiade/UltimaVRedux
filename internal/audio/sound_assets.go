@@ -2,15 +2,12 @@ package audio
 
 import (
 	"embed"
-	"errors"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 )
 
 // Burning is brief game feedback. Release the final 200ms of its authored window.
 const fireBurnReleaseMs = 200
-
-var errSoundStreamUnavailable = errors.New("sound stream unavailable")
 
 // The game owns its manifest, recordings and notices; the reusable module embeds none.
 //

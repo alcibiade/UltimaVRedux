@@ -22,7 +22,7 @@ func libraryFingerprint() string {
 	return hex.EncodeToString(digest[:])
 }
 
-func inspectCatalogAsset(id, path string, measure bool) (CatalogAsset, error) {
+func legacyInspectCatalogAsset(id, path string, measure bool) (CatalogAsset, error) {
 	var asset CatalogAsset
 	asset.ID, asset.Path, asset.Availability = id, path, CatalogPresent
 	asset.Format = DetectAudioFormat(path).String()

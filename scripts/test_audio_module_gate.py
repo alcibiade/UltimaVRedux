@@ -3,7 +3,7 @@
 import copy
 import unittest
 
-from audio_module_gate import MODULE, ROOT, sdk_version, verify_bridge_replacements, verify_selected_sdk
+from audio_module_gate import MODULE, TOOLS, ROOT, sdk_version, verify_bridge_replacements, verify_selected_sdk
 
 
 class AudioModuleGateTests(unittest.TestCase):
@@ -48,3 +48,10 @@ class AudioModuleGateTests(unittest.TestCase):
         for requirements in ([], [pinned, pinned], [{"Path": MODULE, "Version": "v0.0.0"}]):
             with self.subTest(requirements=requirements), self.assertRaises(ValueError):
                 sdk_version({"Require": requirements})
+
+    def test_tools_pin_and_actual_selection_are_independent_of_runtime_pin(self):
+        metadata={"Require":[{"Path":MODULE,"Version":"v0.1.0"},{"Path":TOOLS,"Version":"v0.2.0"}]}
+        self.assertEqual(sdk_version(metadata,TOOLS),"v0.2.0")
+        verify_selected_sdk({"Path":TOOLS,"Version":"v0.2.0"},"v0.2.0",TOOLS)
+        with self.assertRaises(ValueError):
+            verify_selected_sdk({"Path":TOOLS,"Version":"v0.3.0"},"v0.2.0",TOOLS)

@@ -439,6 +439,13 @@ game. Both the fixture requirement and selected SDK build-list version must matc
 the application's published pin exactly; SDK replacements are rejected. It tests
 real Redux JSON routing with synthetic audio, checks package completion and zero
 skips, and is distinct from the SDK's unrelated-consumer proof.
+The bridge also exercises Redux's SDK authoring project, exact slider/target policy,
+source-bound edits, Save/Undo/reopen and read-only no-op formatting. It verifies
+both declared and actually selected runtime and tools pins, rejecting unintended
+Go module-selection upgrades. The transferred TUI/session and catalog regressions
+are SDK-owned; the game does not rerun them. Older low-level authoring fixtures
+remain test-only until their game-policy parity coverage can be consolidated.
+
 Root lint checks this bridge with unfiltered pinned rules. Only this throwaway
 fixture omits the blanket local-replacement prohibition, after checking its sole
 game substitution. Analyzer caches are scoped to the temporary directory.

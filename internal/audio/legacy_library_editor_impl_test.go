@@ -11,12 +11,6 @@ import (
 	"strings"
 )
 
-// Recording is the production recording schema, shared with the editor.
-type Recording = libraryRecording
-
-// Cue is the production cue schema, shared with the editor.
-type Cue = libraryCue
-
 const editorHistoryLimit = 100
 
 // LibraryEditor owns a disk-backed working document. Its caller serializes edits
@@ -136,16 +130,6 @@ func (e *LibraryEditor) RecordingIDs() []string { return sortedKeys(e.library.Re
 // CueIDs returns sorted stable production cue identities for browsing.
 func (e *LibraryEditor) CueIDs() []string { return sortedKeys(e.library.Cues) }
 
-func sortedKeys[T any](values map[string]T) []string {
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-
-	return keys
-}
-
 // Recording returns a detached authoring record.
 func (e *LibraryEditor) Recording(id string) Recording {
 	return cloneAudioValue(e.library.Recordings[id])
@@ -258,9 +242,6 @@ func (e *LibraryEditor) CueClassification(id string) CueClassification {
 func (e *LibraryEditor) ClassificationProfiles() []string {
 	return sortedKeys(e.library.Taxonomy.Profiles)
 }
-
-// AcousticFamilies lists the valid recording family names.
-func AcousticFamilies() []string { return slices.Clone(acousticFamilies) }
 
 // SetRecordingFamily changes one recording's acoustic description atomically.
 func (e *LibraryEditor) SetRecordingFamily(recordingID, family string) error {
@@ -383,23 +364,4 @@ func (e *LibraryEditor) RecordingChanged(id string) bool {
 func (e *LibraryEditor) CueChanged(id string) bool {
 	return e.baseline.Taxonomy.cueProfile(id) != e.CueProfile(id) ||
 		!bytes.Equal(encodeAudioValue(e.baseline.Cues[id]), encodeAudioValue(e.library.Cues[id]))
-}
-
-func encodeAudioValue(value any) []byte {
-	data, err := json.Marshal(value)
-	if err != nil {
-		panic(err) // Internal snapshots contain only validated JSON schema values.
-	}
-
-	return data
-}
-
-//nolint:ireturn // The helper preserves the concrete input schema type while detaching JSON-backed pointers.
-func cloneAudioValue[T any](value T) T {
-	var clone T
-	if err := json.Unmarshal(encodeAudioValue(value), &clone); err != nil {
-		panic(err)
-	}
-
-	return clone
 }

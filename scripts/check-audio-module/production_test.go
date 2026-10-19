@@ -17,7 +17,8 @@ func TestGameBuildCannotContainLegacyPlaybackEngines(t *testing.T) {
 		t.Fatal(err)
 	}
 	retired := map[string]bool{"AudioManager": true, "SoundEffectPlayer": true, "BackgroundMusicSystem": true,
-		"AmbientSoundManager": true, "WalkingSoundManager": true, "AudioSourceSet": true, "gainPlayer": true, "runtimeStream": true}
+		"AmbientSoundManager": true, "WalkingSoundManager": true, "AudioSourceSet": true, "gainPlayer": true,
+		"runtimeStream": true, "LibraryEditor": true, "RecordingAudio": true, "Audition": true, "auditionPlayer": true}
 	current := false
 	for _, entry := range entries {
 		name := entry.Name()

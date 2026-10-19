@@ -150,9 +150,23 @@ build: ## Build the game into bin/ultimav using shipped assets
 	@mkdir -p $(BIN_DIR)
 	@$(GO) build -o $(BINARY) $(MAIN_PACKAGE)
 
-audio-editor: ## Build the standalone Bubble Tea audio editor into bin/audio-editor
+audio-editor: ## Build the Redux project launcher for the SDK terminal audio editor
 	@mkdir -p $(BIN_DIR)
 	@$(GO) build -o $(BIN_DIR)/audio-editor ./cmd/audio-editor
+
+.PHONY: audio-catalog audio-catalog-export audio-probe clean-audio-reports
+audio-catalog: ## Build the game-specific SDK audio catalog exporter
+	@mkdir -p $(BIN_DIR)
+	@$(GO) build -o $(BIN_DIR)/audio-catalog ./cmd/audio-catalog
+
+audio-catalog-export: audio-catalog ## Export the derived game inventory and guide into bin/
+	@./$(BIN_DIR)/audio-catalog -source . -output $(BIN_DIR)/audio-catalog.json -guide $(BIN_DIR)/audio-generation-guide.md $(ARGS)
+
+audio-probe: audio-editor ## Run a standalone or Ebitengine probe through the Redux project (ARGS required)
+	@./$(BIN_DIR)/audio-editor $(ARGS)
+
+clean-audio-reports: ## Remove derived audio reports only, preserving authored assets and settings
+	@rm -f $(BIN_DIR)/audio-catalog.json $(BIN_DIR)/audio-generation-guide.md
 
 .PHONY: audio-module-check
 audio-module-check: ## Check the game-owned Berad Audio bridge against the pinned SDK revision
@@ -213,3 +227,4 @@ conversations-verify: ## Verify tracked patches reproduce all private edits
 
 clean: ## Remove generated build artifacts
 	@rm -f $(BINARY)
+	@rm -f $(BIN_DIR)/ultimav.exe $(BIN_DIR)/audio-editor $(BIN_DIR)/audio-editor.exe $(BIN_DIR)/audio-catalog $(BIN_DIR)/audio-catalog.exe

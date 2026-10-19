@@ -3,6 +3,8 @@ package audio
 import (
 	"fmt"
 	"strings"
+
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
 )
 
 const provenanceUnknown = "unknown"
@@ -10,32 +12,11 @@ const provenanceUnknown = "unknown"
 // RecordingProvenance is authored with the recording in library.json. A source
 // credit, an import location, and a conversion performed by the project author
 // are distinct facts; none establishes authorship or licensing of the others.
-type RecordingProvenance struct {
-	OriginalFilename string           `json:"originalFilename"`
-	SourceType       string           `json:"sourceType"`
-	SourceURL        string           `json:"sourceUrl"`
-	SourceCreator    string           `json:"sourceCreator"`
-	License          string           `json:"license"`
-	ImportedFrom     string           `json:"importedFrom"`
-	Processing       []ProcessingStep `json:"processing"`
-}
+type RecordingProvenance = authoring.RecordingProvenance
 
 // ProcessingStep records a known edit or conversion without attributing
 // the underlying composition or recording to the person who processed it.
-type ProcessingStep struct {
-	Description string `json:"description"`
-	Tool        string `json:"tool"`
-	PerformedBy string `json:"performedBy"`
-}
-
-func unknownRecordingProvenance() RecordingProvenance {
-	return RecordingProvenance{
-		OriginalFilename: provenanceUnknown, SourceType: provenanceUnknown,
-		SourceURL: provenanceUnknown, SourceCreator: provenanceUnknown,
-		License: provenanceUnknown, ImportedFrom: provenanceUnknown,
-		Processing: []ProcessingStep{},
-	}
-}
+type ProcessingStep = authoring.ProcessingStep
 
 func validateRecordingProvenance(recordingID string, provenance RecordingProvenance) error {
 	fields := []struct{ name, value string }{

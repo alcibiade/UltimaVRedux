@@ -2,14 +2,20 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
+	"github.com/bradhannah/berad-sdk/tools/berad-audio/audition"
+	editor "github.com/bradhannah/berad-sdk/tools/berad-audio/editor"
+	"github.com/bradhannah/berad-sdk/tools/berad-audio/runtimeprobe"
+
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
-	"github.com/bradhannah/UltimaVRedux/internal/audio/editorui"
+	"github.com/bradhannah/UltimaVRedux/internal/audio/tooling"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 )
 
@@ -49,48 +55,48 @@ func run(arguments []string) error {
 	if modes > 1 {
 		return fmt.Errorf("%w: choose one check or native probe mode", audio.ErrAudioLibrary)
 	}
-	editor, err := audio.OpenLibraryEditor(*path)
+	document, err := tooling.OpenAuthoringEditor(*path)
 	if err != nil {
 		return fmt.Errorf("open editor library: %w", err)
 	}
 	if *check {
-		if err := editor.Validate(); err != nil {
+		if err := document.Validate(); err != nil {
 			return fmt.Errorf("validate editor library: %w", err)
 		}
 		logging.Info(logging.CategoryAudio, "Valid library: %d recordings, %d cues",
-			len(editor.RecordingIDs()), len(editor.CueIDs()))
+			len(document.RecordingIDs()), len(document.CueIDs()))
 
 		return nil
 	}
 	if *probe != "" {
-		return probeRecording(editor, *probe)
+		return probeRecording(document, *probe)
 	}
 	if *runtimeProbe != "" {
-		return probeRuntime(editor, *runtimeProbe)
+		return runRuntimeProbe(document, *runtimeProbe, false)
 	}
 	if *runtimeSoak != "" {
-		return runRuntimeProbe(editor, *runtimeSoak, true)
+		return runRuntimeProbe(document, *runtimeSoak, true)
 	}
 	logging.SetStdoutEnabled(false)
 	defer logging.SetStdoutEnabled(true)
 
-	if err := editorui.Run(editor); err != nil {
+	if err := editor.Run(document, tooling.AudioEditorOptions()); err != nil {
 		return fmt.Errorf("run terminal editor: %w", err)
 	}
 
 	return nil
 }
 
-func probeRecording(editor *audio.LibraryEditor, recordingID string) error {
+func probeRecording(editor *authoring.LibraryEditor, recordingID string) error {
 	path, err := editor.RecordingPath(recordingID)
 	if err != nil {
 		return fmt.Errorf("resolve probe recording: %w", err)
 	}
-	clip, err := audio.LoadRecording(path)
+	clip, err := editor.LoadRecording(context.Background(), path)
 	if err != nil {
 		return fmt.Errorf("load probe recording: %w", err)
 	}
-	voice := new(audio.Audition)
+	voice := audition.NewVoice()
 	defer func() {
 		if err := voice.Close(); err != nil {
 			logging.Warn(logging.CategoryAudio, "Close probe recording: %v", err)
@@ -106,6 +112,19 @@ func probeRecording(editor *audio.LibraryEditor, recordingID string) error {
 		return fmt.Errorf("%w: audio device did not advance playback", audio.ErrAudioLibrary)
 	}
 	logging.Info(logging.CategoryAudio, "Standalone playback advanced to %d ms (%s)", voice.PositionMs(), recordingID)
+
+	return nil
+}
+
+func runRuntimeProbe(editor *authoring.LibraryEditor, cue string, soak bool) error {
+	const probeEncodedBudget = 512 << 20
+	library, err := editor.RuntimeLibrary(probeEncodedBudget)
+	if err != nil {
+		return fmt.Errorf("freeze probe library: %w", err)
+	}
+	if err := runtimeprobe.Run(library, cue, soak, os.Stdout); err != nil {
+		return fmt.Errorf("run SDK native probe: %w", err)
+	}
 
 	return nil
 }

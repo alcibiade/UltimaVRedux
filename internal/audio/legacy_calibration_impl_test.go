@@ -8,8 +8,6 @@ import (
 
 // Persisted calibration ownership states.
 const (
-	CalibrationAuto           = "auto"
-	CalibrationManual         = "manual"
 	calibrationPeakCeiling    = -3.0
 	calibrationMinGain        = -48.0
 	calibrationMaxGain        = 12.0
@@ -25,10 +23,6 @@ const (
 	activePercentile          = 0.95
 	activeRelativeEnergyFloor = 1e-4
 	absoluteEnergyFloor       = 1e-7
-	familyScore               = "score"
-	familyInstrument          = "instrument"
-	familyNature              = "nature"
-	familyFire                = "fire"
 )
 
 // CalibrationSuggestion is an offline estimate for the selected region. It
@@ -44,30 +38,8 @@ type CalibrationSuggestion struct {
 
 // CalibrationMode treats pre-existing numeric calibrations as locked manual
 // edits. An absent gain is uncalibrated, never an implicit acceptance of auto.
-func (recording libraryRecording) CalibrationMode() string {
-	if recording.CalibrationGainDB == nil {
-		return "uncalibrated"
-	}
-	if recording.CalibrationPolicy == CalibrationAuto {
-		return CalibrationAuto
-	}
-
-	return CalibrationManual
-}
-
 // DefaultCalibrationTarget returns conservative starting points, not listening
 // approval. The editor permits an explicit per-recording target override.
-func DefaultCalibrationTarget(family string) float64 {
-	switch family {
-	case familyScore, familyInstrument:
-		return -23
-	case catalogAmbience, familyNature, familyFire:
-		return -26
-	default:
-		return -20
-	}
-}
-
 type loudnessBucket struct {
 	energy, weighted float64
 	peak             float64
@@ -112,31 +84,6 @@ func (clip *RecordingAudio) SuggestCalibration(
 
 	return CalibrationSuggestion{Method: method, MeasuredDB: measured, TargetDB: targetDB,
 		PeakDB: peakDB, GainDB: gain, Limited: math.Abs(gain-wanted) > calibrationGainTolerance}, nil
-}
-
-func validateCalibrationTarget(target *float64) error {
-	if target != nil && (math.IsNaN(*target) || math.IsInf(*target, 0) ||
-		*target < calibrationMinTarget || *target > calibrationMaxTarget) {
-		return fmt.Errorf("%w: calibration target must be between -60 and -6 dB", ErrAudioLibrary)
-	}
-
-	return nil
-}
-
-func (recording libraryRecording) validateCalibration() error {
-	if db := recording.CalibrationGainDB; db != nil &&
-		(math.IsNaN(*db) || math.IsInf(*db, 0) || *db < calibrationMinGain || *db > calibrationMaxGain) {
-		return fmt.Errorf("%w: calibration gain must be in [-48, 12] dB", ErrAudioLibrary)
-	}
-	if recording.CalibrationPolicy != "" && recording.CalibrationPolicy != CalibrationAuto &&
-		recording.CalibrationPolicy != CalibrationManual {
-		return fmt.Errorf("%w: invalid calibration mode", ErrAudioLibrary)
-	}
-	if recording.CalibrationPolicy != "" && recording.CalibrationGainDB == nil {
-		return fmt.Errorf("%w: calibration mode requires a gain", ErrAudioLibrary)
-	}
-
-	return validateCalibrationTarget(recording.CalibrationTargetDB)
 }
 
 func (clip *RecordingAudio) calibrationBuckets(start, end int64) ([]loudnessBucket, float64) {

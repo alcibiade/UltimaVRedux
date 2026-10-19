@@ -40,11 +40,28 @@ workflow shutdown precedes audio retirement. The borrowed host device is not clo
 Window-setting persistence and Workbench shutdown finish before ordinary disposal;
 the deferred cleanup also covers early configuration failures.
 
-The native runtime/soak commands in `cmd/audio-editor` now exercise the module
-directly. Ordinary TUI authoring/audition remains in the application for its later
-extraction. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md).
-The runtime is maintained in `bradhannah/berad-sdk`; Redux pins
-`v0.0.0-20261018221138-9e7e3ca45b46` and carries no local module copy or replacement.
+The runtime/authoring module and standalone tools are maintained in `bradhannah/berad-sdk`.
+Redux pins runtime `v0.0.0-20261018233803-ed95f13c63b7` and tools
+`v0.0.0-20261019001037-9cdfc4b0755f`, without replacements or a sibling checkout.
+See the [module contract](https://github.com/bradhannah/berad-sdk/blob/ed95f13c63b7/modules/berad-audio/README.md)
+and [tools contract](https://github.com/bradhannah/berad-sdk/blob/9cdfc4b0755f/tools/berad-audio/README.md).
+
+`cmd/audio-editor` launches the shared Bubble Tea editor. `internal/audio/tooling`
+supplies Redux validation, atlas/location labels, calibration-family policy, slider
+mapping, import destinations, categories and Help. Keeping it separate from package
+audio avoids importing terminal UI into ordinary gameplay. The SDK owns document
+history, source-bound region/AUTO transactions, cancellable analysis, Save/import
+publication/recovery, standalone audition and the TUI/session. Schema-3 wire data,
+media and notices remain game-owned and unchanged.
+
+`make audio-editor`, `make audio-catalog` and `make audio-catalog-export` build/use
+Redux launchers and derived reports. The catalog uses the binary's embedded
+manifest/media plus separately fingerprinted evidence selected by `-source`;
+source scanning is not a disk-manifest loader or audibility proof. Generic SDK
+commands instead require explicit projects/assets. Existing editor probe flags
+remain compatible via SDK services; `make audio-probe ARGS='...'` runs them.
+`make clean` removes known executables only; `make clean-audio-reports` removes
+derived reports. Neither deletes authored assets, settings or validation tools.
 
 ### Compatibility and shared authoring implementation
 
@@ -53,9 +70,11 @@ The legacy `AudioManager`, `SoundEffectPlayer`, `BackgroundMusicSystem` and
 Normal builds cannot contain/select those engines; a declaration guard prevents
 their accidental return to production files. Existing low-level regressions still
 exercise that test baseline while new facade/module tests verify current behavior.
-Shared TUI analysis, windowing and audition helpers remain production code.
-The detailed legacy API references below describe the test-only baseline and
-shared authoring semantics, not an alternative live backend.
+Superseded editor/analysis/history/audition implementations are also test-only
+compatibility fixtures, excluded from production. Transferred SDK tests use
+generated assets; game metadata/parity tests retain their baseline. Detailed legacy
+API references below describe that baseline and preserved semantics, not a second
+live engine.
 
 `internal/audio.AudioManager` borrows the process-wide Ebitengine audio context
 and owns its voices. A host may create the context first, choosing its sample
@@ -162,8 +181,8 @@ cue runtime with explicit owner-local replacement slots and playback outcomes.
 It now also contains a neutral ambient lane, reversible controller envelopes,
 live instance gain, pause/resume/seek, finite music and distinct terminal voice
 status. Redux imports a remotely resolvable pinned revision with no local
-replacement. Authoring/TUI extraction, further migration of legacy test cases and
-public API/schema stability remain later work.
+replacement. Authoring/TUI now also live in SDK behind game project wrappers.
+Further legacy-test consolidation, native acceptance and API/schema stability remain.
 [ADR-010](../ADR/ADR-010-reusable-audio-module.md) records incubation and the SDK migration.
 
 Shared schema-3 validation rejects ambient profiles assigned a cycle cue because
@@ -1890,11 +1909,10 @@ requires code integration after the recording is supplied.
 - `internal/audio/assets/library.json`: editable recordings, cue assignments, and audition instructions
 - `internal/audio/catalog*.go`: derived inventory, source evidence, annotations, and report
 - `cmd/audio-editor/main.go`: standalone Bubble Tea editor and read-only/device probes
-- `internal/audio/editorui/`: recording/moment browser, waveform and keyboard editing
-- `internal/audio/library_editor*.go`: disk-backed document, import, undo/redo and atomic Save
-- `internal/audio/recording_stream.go`: common seekable bounded playback region
-- `internal/audio/recording_analysis.go`: disk-source loading and stereo peak envelope
-- `internal/audio/audition.go`: independent seekable editor voice
+- `internal/audio/tooling/`: Redux project policy for shared authoring and TUI
+- SDK `modules/berad-audio/authoring`: document/history, analysis and transactional publication
+- SDK `tools/berad-audio/editor`, `session`, `audition`: terminal UI, detached operations and owned audition
+- SDK `tools/berad-audio/catalog`, `project`, `runtimeprobe`: reporting, explicit project loading and native probes
 - `cmd/audio-catalog/main.go`: offline JSON/recording-guide export
 - `internal/audio/sound_excerpt.go`: bounded metal-footfall selection
 - `internal/game_state/sound_builder.go`: callback builders

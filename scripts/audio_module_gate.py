@@ -12,6 +12,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 MODULE = "github.com/bradhannah/berad-sdk/modules/berad-audio"
+TOOLS = "github.com/bradhannah/berad-sdk/tools/berad-audio"
 
 
 def run(arguments, cwd, environment, capture=False):
@@ -33,7 +34,7 @@ def validate(lint=False, race=False):
     application = json.loads(run(["go", "mod", "edit", "-json"], ROOT, environment, True))
     if application.get("Replace"):
         raise ValueError("published game must not rely on local module replacements")
-    version = sdk_version(application)
+    versions = {module:sdk_version(application,module) for module in (MODULE,TOOLS)}
     with tempfile.TemporaryDirectory(prefix="berad-audio-") as directory:
         root = Path(directory)
         bridge = root / "redux-consumer"
@@ -41,33 +42,34 @@ def validate(lint=False, race=False):
         # This game-owned fixture substitutes the candidate game alone. The SDK
         # resolves normally; its independent tests are owned by its repository.
         metadata = json.loads(run(["go", "mod", "edit", "-json"], bridge, environment, True))
-        if metadata.get("Replace") or sdk_version(metadata) != version:
+        if metadata.get("Replace") or any(sdk_version(metadata,module)!=version for module,version in versions.items()):
             raise ValueError("bridge must declare the game SDK pin without checked-in replacements")
         run(["go", "mod", "edit", "-replace=github.com/bradhannah/UltimaVRedux=" + str(ROOT)], bridge, environment)
         bridge_environment = dict(environment, BERAD_AUDIO_REDUX_ROOT=str(ROOT))
-        run(["go", "list", "-mod=mod", "./..."], bridge, bridge_environment, True)
+        run(["go", "list", "-mod=mod", "-deps", "-test", "./..."], bridge, bridge_environment, True)
         bridge_metadata = json.loads(run(["go", "mod", "edit", "-json"], bridge, bridge_environment, True))
         verify_bridge_replacements(bridge_metadata)
-        selected = json.loads(run(["go", "list", "-mod=readonly", "-m", "-json", MODULE],
-                                  bridge, bridge_environment, True))
-        verify_selected_sdk(selected, version)
+        for module,version in versions.items():
+            selected = json.loads(run(["go", "list", "-mod=readonly", "-m", "-json", module],
+                                      bridge, bridge_environment, True))
+            verify_selected_sdk(selected, version,module)
         if lint:
             lint_module(bridge, bridge_environment)
             return
         check_tests(bridge, bridge_environment,
                     {"github.com/bradhannah/UltimaVRedux/testdata/berad-audio-redux"}, race)
-    print(f"Berad Audio: game bridge passed against {version}; race={race}", flush=True)
+    print(f"Berad Audio: game bridge passed against {versions}; race={race}", flush=True)
 
 
-def sdk_version(metadata):
-    versions = [item["Version"] for item in metadata.get("Require", []) if item["Path"] == MODULE]
+def sdk_version(metadata,module=MODULE):
+    versions = [item["Version"] for item in metadata.get("Require", []) if item["Path"] == module]
     if len(versions) != 1 or not versions[0] or versions[0] == "v0.0.0":
         raise ValueError("Berad Audio requires one concrete published SDK version")
     return versions[0]
 
 
-def verify_selected_sdk(selected, version):
-    if selected.get("Path") != MODULE or selected.get("Version") != version or selected.get("Replace"):
+def verify_selected_sdk(selected, version,module=MODULE):
+    if selected.get("Path") != module or selected.get("Version") != version or selected.get("Replace"):
         raise ValueError("bridge must resolve exactly the published application SDK pin")
 
 
