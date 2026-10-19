@@ -62,7 +62,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 
 | Document | One-line purpose | Primary owner | Authority classification |
 |---|---|---|---|
-| [`systems/AUDIO_SYSTEM.md`](systems/AUDIO_SYSTEM.md) | Describe audio players, builders, callbacks, and lifecycle. | `audio` | System documentation |
+| [`systems/AUDIO_SYSTEM.md`](systems/AUDIO_SYSTEM.md) | Define Redux integration, policy, assets and acceptance over Berad Audio. | `audio` | System documentation |
 | [`systems/CAMPING_SYSTEM.md`](systems/CAMPING_SYSTEM.md) | Describe camping entry, orchestration, encounters, and cleanup. | `camping` | System documentation |
 | [`systems/DEBUG_WORKBENCH.md`](systems/DEBUG_WORKBENCH.md) | Define control-plane commands, snapshots, and scenarios. | `debug-workbench` | System documentation |
 | [`systems/EVENT_QUEUE_SYSTEM.md`](systems/EVENT_QUEUE_SYSTEM.md) | Define workflow, feedback, composition, priority, and input ownership. | `workflows` | System documentation |

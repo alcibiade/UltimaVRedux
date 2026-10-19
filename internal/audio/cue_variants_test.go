@@ -14,42 +14,31 @@ import (
 )
 
 func TestHexGrateCyclesFourDistinctSharedFileClipsAndLeavesBrickAssignments(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
-	require.NoError(t, manager.ensureAssetsLoaded())
-	player := manager.soundEffectPlayer
-	assets := player.soundAssets[game_state.SoundWalkMetal1]
-	require.Len(t, assets, 4)
+	manager, backend, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 	wantIDs := []string{"stone_steps_01", "stone_steps_02", "stone_steps_03", "stone_steps_04"}
 	hashes := map[[sha256.Size]byte]bool{}
-	for index, asset := range assets {
-		require.Equal(t, wantIDs[index], asset.RecordingID)
-		require.Equal(t, "sounds/footsteps/stone_steps_01.ogg", *productionLibrary().Recordings[asset.RecordingID].File)
-		stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
-		require.NoError(t, err)
-		pcm, err := io.ReadAll(stream)
-		require.NoError(t, err)
-		require.Equal(t, 1, audibleBursts(pcm, asset.SampleRate), asset.RecordingID)
-		hashes[sha256.Sum256(pcm)] = true
-	}
-	require.Len(t, hashes, 4, "the four metadata clips must select different audio")
 	for step := range 9 {
 		require.NoError(t, manager.PlayWalkingSound(&references.Tile{Index: indexes.MetalFloor}))
 		var grateVoices int
-		for _, sound := range player.activeSounds {
-			if sound.Effect != game_state.SoundWalkMetal1 {
+		for _, sound := range manager.sfx.Snapshot() {
+			if sound.Cue != "sfx/SoundWalkMetal1" {
 				continue
 			}
 			grateVoices++
-			require.Equal(t, wantIDs[step%4], sound.RecordingID)
-			require.InDelta(t, 0.35*productionLibrary().recordingCalibration(sound.RecordingID), sound.BaseGain, 1e-9)
+			require.Equal(t, wantIDs[step%4], string(sound.Recording))
+			recording := productionLibrary().Recordings[string(sound.Recording)]
+			require.Equal(t, "sounds/footsteps/stone_steps_01.ogg", *recording.File)
+			pcm, err := io.ReadAll(backend.players[len(backend.players)-1].source)
+			require.NoError(t, err)
+			require.Equal(t, 1, audibleBursts(pcm, EditorSampleRate))
+			hashes[sha256.Sum256(pcm)] = true
 		}
 		require.Equal(t, 1, grateVoices)
 		if step == 1 {
 			require.NoError(t, manager.PlayWalkingSound(&references.Tile{Index: indexes.BrickFloor}))
 		}
 	}
+	require.Len(t, hashes, 4, "the four authored clips must select distinct audio")
 	for index, id := range []string{"sfx/SoundWalkStone1", "sfx/SoundWalkStone2", "sfx/SoundWalkStone3", "sfx/SoundWalkStone4"} {
 		cue := productionLibrary().Cues[id]
 		require.Equal(t, []string{"footstep_concrete_01", "footstep_concrete_02", "footstep_concrete_03", "footstep_concrete_04"}[index], cue.RecordingID)
@@ -59,32 +48,23 @@ func TestHexGrateCyclesFourDistinctSharedFileClipsAndLeavesBrickAssignments(t *t
 }
 
 func TestCueCycleDoesNotAdvanceOnRejectedOrDroppedRequests(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
-	require.NoError(t, manager.ensureAssetsLoaded())
-	player := manager.soundEffectPlayer
+	manager, backend, _ := gameAudioFixture(t)
 	effect := game_state.SoundWalkMetal1
 	request := game_state.SoundPlaybackRequest{Effect: effect, Mode: game_state.SoundPlaybackOneShot, Volume: 1}
 	invalid := request
 	invalid.Volume = -1
-	require.Error(t, player.Play(invalid))
-	require.Zero(t, player.nextVariant[effect])
-	asset := player.soundAssets[effect][0]
-	factory := asset.StreamFactory
-	asset.StreamFactory = func(game_state.SoundPlaybackMode) (io.ReadSeeker, error) { return nil, errSoundStreamUnavailable }
-	require.Error(t, player.Play(request))
-	require.Zero(t, player.nextVariant[effect])
-	asset.StreamFactory = factory
+	require.Error(t, manager.PlaySound(invalid))
+	require.Empty(t, backend.players)
 	for range 8 {
-		require.NoError(t, player.Play(game_state.SoundPlaybackRequest{
+		require.NoError(t, manager.PlaySound(game_state.SoundPlaybackRequest{
 			Effect: game_state.SoundEarthquake, Mode: game_state.SoundPlaybackLoop, Volume: 1}))
 	}
-	require.NoError(t, player.Play(request)) // Finite request dropped while all voices are owned loops.
-	require.Zero(t, player.nextVariant[effect])
-	player.StopAll()
-	require.NoError(t, player.Play(request))
-	require.Equal(t, 1, player.nextVariant[effect])
+	require.NoError(t, manager.PlaySound(request)) // Finite request dropped while all voices are owned loops.
+	require.Len(t, manager.sfx.Snapshot(), 8)
+	require.False(t, backend.players[len(backend.players)-1].IsPlaying(), "a prepared but dropped request never starts")
+	manager.StopSound(game_state.SoundStopRequest{Effect: game_state.SoundEarthquake})
+	require.NoError(t, manager.PlaySound(request))
+	require.Equal(t, "stone_steps_01", string(manager.sfx.Snapshot()[0].Recording))
 }
 
 func TestCueVariantSchemaAndCatalogLinks(t *testing.T) {

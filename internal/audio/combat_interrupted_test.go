@@ -28,11 +28,8 @@ func TestCombatInterruptedCueResolvesToIntentionalSilentSlot(t *testing.T) {
 		TargetAcousticFamily: "status", Phase: "resolution", Outcome: "failure",
 		MixRole: "foreground_feedback", Emitters: []string{"creature"}, Contexts: []string{audioContextCombat},
 	}, profile)
-	player := &SoundEffectPlayer{assetsLoaded: true, library: defaultRuntimeLibrary()}
-	asset, skip, err := player.assetForRequest(game_state.SoundPlaybackRequest{
-		Effect: game_state.SoundCombatInterrupted, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-	})
-	require.NoError(t, err)
-	require.True(t, skip)
-	require.Nil(t, asset)
+	manager, backend, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
+	require.NoError(t, manager.PlaySoundEffect(game_state.SoundCombatInterrupted))
+	require.Empty(t, manager.sfx.Snapshot())
+	require.Empty(t, backend.players)
 }

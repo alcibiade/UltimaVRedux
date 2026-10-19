@@ -2,7 +2,6 @@ package audio
 
 import (
 	"encoding/json"
-	"io"
 	"math"
 	"slices"
 	"strings"
@@ -26,14 +25,14 @@ func TestLibraryPrepopulatesEveryKnownCueWithResolvableRecordingOrExplicitSlot(t
 			require.NotEmpty(t, *recording.File, "null is the only empty-file representation")
 		}
 	}
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 	for effect := range catalogEffectNames() {
+		before := len(manager.sfx.Snapshot())
 		require.NoError(t, manager.PlaySoundEffect(effect), "every known SFX is playable or intentionally silent")
 		if isPlaceholderSound(effect) {
-			require.NotContains(t, activeSoundsByEffect(manager.soundEffectPlayer), effect)
+			require.Len(t, manager.sfx.Snapshot(), before)
 		}
+		manager.StopSound(game_state.SoundStopRequest{Effect: effect})
 	}
 	require.Error(t, manager.PlaySoundEffect(game_state.SoundEffect(-1)), "unknown IDs are not silently treated as slots")
 }
@@ -192,41 +191,18 @@ func TestFillingPreparedSlotLoadsExactRecordingWithoutNewGameplayIdentifier(t *t
 	require.NoError(t, err)
 	validated, err := parseAudioLibrary(data, soundFiles)
 	require.NoError(t, err)
-	manager, err := NewAudioManager()
+	require.NotEmpty(t, validated.recordingPath(cue.RecordingID))
+	project, err := NewLibrary(data, soundFiles, LibraryOptions{AssetRoot: "assets", Validate: ReduxLibraryValidator})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
-	player := manager.soundEffectPlayer
-	require.NoError(t, player.loadSoundAsset(game_state.SoundRingVanish, validated.recordingPath(cue.RecordingID)))
-	player.assetsLoaded = true
-	require.NoError(t, player.Play(game_state.SoundPlaybackRequest{
-		Effect: game_state.SoundRingVanish, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-	}))
-	require.Contains(t, activeSoundsByEffect(player), game_state.SoundRingVanish)
+	manager, _, _ := gameAudioLibraryFixture(t, project)
+	require.NoError(t, manager.PlaySoundEffect(game_state.SoundRingVanish))
+	require.Len(t, manager.sfx.Snapshot(), 1)
+	require.Equal(t, cue.RecordingID, string(manager.sfx.Snapshot()[0].Recording))
 	// Parsing/adopting a candidate must not mutate this build's production registry.
 	require.Nil(t, productionLibrary().Recordings[cue.RecordingID].File)
 }
 
-func TestExactAssetDurationUsesStereoPCMFrames(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
-	require.NoError(t, manager.ensureAssetsLoaded())
-	asset := manager.soundEffectPlayer.soundAssets[game_state.SoundWalkGrassLeft][0]
-	stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
-	require.NoError(t, err)
-	pcm, err := io.ReadAll(stream)
-	require.NoError(t, err)
-	want := int64(len(pcm)) * 1000 / (int64(asset.SampleRate) * 4)
-	require.Equal(t, want, asset.Duration)
-}
-
 func TestRecordingIdentityDoesNotDependOnFilename(t *testing.T) {
-	first, err := inspectCatalogAsset("my_recording_01", "assets/sounds/magic/healing_01.wav", false)
-	require.NoError(t, err)
-	second, err := inspectCatalogAsset("my_recording_01", "assets/sounds/magic/healing_02.wav", false)
-	require.NoError(t, err)
-	require.Equal(t, first.ID, second.ID)
-	require.NotEqual(t, first.SHA256, second.SHA256)
 	library := freshTestLibrary(t)
 	library.Recordings["new_metal_01"] = testRecording("sounds/footsteps/footstep_grass_left_01.ogg")
 	library.Taxonomy.RecordingFamilies["footstep"] = append(library.Taxonomy.RecordingFamilies["footstep"], "new_metal_01")

@@ -1,9 +1,11 @@
 package audio
 
 import (
-	"strings"
+	"context"
 	"testing"
 
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/backend/ebitengine"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -58,21 +60,12 @@ func TestDungeonFeedbackCuesResolveToIntentionalSilentSlots(t *testing.T) {
 			require.Equal(t, test.classification, profile)
 			// No device is needed: intentional silence resolves before backend
 			// preparation, voice creation or variant/instance advancement.
-			player := &SoundEffectPlayer{assetsLoaded: true, library: defaultRuntimeLibrary()}
-			request := game_state.SoundPlaybackRequest{
-				Effect: test.effect, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-			}
-			asset, skip, err := player.assetForRequest(request)
-			require.NoError(t, err)
-			require.True(t, skip)
-			require.Nil(t, asset)
+			manager, backend, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 			for range 3 {
-				require.NoError(t, player.Play(request))
+				require.NoError(t, manager.PlaySoundEffect(test.effect))
 			}
-			require.Empty(t, player.activeSounds)
-			require.Empty(t, player.soundAssets)
-			require.Empty(t, player.nextVariant)
-			require.Zero(t, player.nextSoundSequence)
+			require.Empty(t, manager.sfx.Snapshot())
+			require.Empty(t, backend.players)
 		})
 	}
 }
@@ -90,26 +83,8 @@ func TestDispelSlotPreservesAbsorbHealingRecording(t *testing.T) {
 	require.Equal(t, CalibrationManual, recording.CalibrationMode())
 	require.NotEqual(t, "unknown", recording.Provenance.License)
 	require.False(t, isPlaceholderSound(game_state.SoundAbsorb))
-	clip, err := LoadRecording(library.recordingPath(metadata.RecordingID))
+	clip, err := authoring.LoadRecordingContext(context.Background(), library.recordingPath(metadata.RecordingID), ebitengine.Decode)
 	require.NoError(t, err)
-	_, err = clip.SuggestCalibration(recording.PlaybackWindow, "magic", nil)
+	_, err = clip.SuggestCalibration(recording.PlaybackWindow, authoring.DefaultCalibrationOptions())
 	require.NoError(t, err, "Absorb retains a decodable, non-silent recording")
-}
-
-func TestDungeonFeedbackSlotsExposeSearchAndAuditionGuidance(t *testing.T) {
-	editor, _ := editorFixture(t)
-	for _, test := range []struct {
-		cue, recording string
-		terms          []string
-	}{
-		{"sfx/SoundDispel", "field_dispel_01", []string{"sceptre", "an grav", "field removal", "fizzle", "dungeon"}},
-		{"sfx/SoundElectricalDamage", "electrical_injury_01", []string{"electrical field", "shock", "injury", "dungeon"}},
-	} {
-		for _, term := range test.terms {
-			require.Contains(t, strings.ToLower(editor.SearchText(test.cue, true)), term)
-			require.Contains(t, strings.ToLower(editor.SearchText(test.recording, false)), term,
-				"recording search inherits its cue's intended trigger")
-		}
-		require.Equal(t, RecordingNoFile, editor.FileAvailability(test.recording).State)
-	}
 }

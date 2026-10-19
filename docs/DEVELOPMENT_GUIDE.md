@@ -40,7 +40,7 @@ separately. `make validate` is local/offline and fails rather than downloading a
 missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
-The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio)
+The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/ed95f13c63b7/modules/berad-audio)
 lives in the separate public SDK repository. `make tools` provisions the game's
 pinned dependencies, including audio. `make audio-module-check` exercises and
 lints the game-owned bridge against that published SDK version. SDK unit/race and
@@ -48,6 +48,13 @@ independent-consumer checks belong to the SDK; game checks need no SDK checkout
 and do not rerun its independent suites. Publish an available SDK revision before
 changing the game pin. No application workspace or local replacement is required;
 the throwaway bridge substitutes only the candidate game, never the SDK.
+
+Reusable audio development guidance and the optional OpenCode domain skill are
+[SDK-owned](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/README.md#converting-an-existing-subsystem).
+The [Redux audio guide](systems/AUDIO_SYSTEM.md) owns this application's callbacks,
+world/music policy, assets and listening acceptance; generic editor/authoring
+contracts are linked upstream rather than maintained twice. No assistant or
+private tooling is required to use these public contracts.
 
 The terminal editor and report implementation now come from the separately pinned
 [audio tools module](https://github.com/bradhannah/berad-sdk/tree/9cdfc4b0755f/tools/berad-audio).

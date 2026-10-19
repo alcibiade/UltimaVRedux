@@ -48,8 +48,8 @@ The initial staging period kept the game on its existing runtime. The authorized
 module checkpoint became available remotely and the game pinned it through ordinary
 module resolution. The subsequent SDK migration preserves the public runtime API
 apart from import identity, with SDK-owned module/consumer checks registered before
-publication. Redux now pins SDK revision `9e7e3ca45b46` and removes the incubation
-module directory. Live scenes construct `GameAudioManager` over that dependency.
+publication. The initial SDK cutover pinned revision `9e7e3ca45b46` and removed the
+incubation module directory. Live scenes construct `GameAudioManager` over the SDK.
 Never merge a dependency on an unavailable revision. Test-fixture substitutions
 remain outside published application metadata.
 
@@ -61,10 +61,10 @@ remain outside published application metadata.
   with source/tool/input-bound result reuse. The game retains only its bridge
   tests and lint against the exact published SDK pin. It needs no SDK checkout;
   its temporary bridge substitutes the candidate game alone.
-- Legacy runtime classes are test-only compatibility fixtures, excluded from normal
-  builds. New facade/module tests verify the live path, while the older low-level
-  regressions remain available during test migration. Superseded authoring helpers
-  are likewise test-only; no legacy editor or playback fallback is compiled into the game.
+- Temporary legacy playback/authoring test implementations are retired. Reusable
+  regressions live in SDK; Redux policy tests exercise its live facade/pure policy
+  and isolated authoring adapter. A declaration guard rejects copied engines in
+  both production and test files. No fallback or second authoring engine remains.
 - The module's initial API remains experimental. This is an explicit import-path
   migration, not a stable-version or new native acceptance promise. Authoring/TUI
   extraction now lives in the independently versioned `tools/berad-audio` module.
@@ -78,10 +78,13 @@ The tools cutover pins runtime/authoring `ed95f13c63b7` and tools `9cdfc4b0755f`
 Shared schema-3 editing/persistence lives in runtime `authoring`; terminal/session,
 catalog and optional probes live in the tools module. Game launchers supply Redux
 policy and retain source-evidence enrichment. The former TUI directory is removed;
-old authoring bodies survive only as test-only parity fixtures. Make build/cleanup
+old authoring parity bodies were subsequently retired. Make build/cleanup
 targets preserve the existing workflow without a sibling SDK prerequisite.
 Standalone SDK tool-install acceptance is deferred until reviewed default-branch
 availability or separately authorized tagging; local builds do not supply that proof.
 
-See the [module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md) and
+Reusable manuals and SDK skills follow implementation ownership upstream; the
+game retains integration policy, assets, adoption rationale and contextual acceptance.
+The original guidance-review identity above remains distinct from consumed module
+pins. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/ed95f13c63b7/modules/berad-audio/README.md) and
 [current Redux audio system](../systems/AUDIO_SYSTEM.md).

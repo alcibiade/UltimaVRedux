@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"sync"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -18,12 +19,15 @@ import (
 )
 
 type gamePlaybackBackend struct {
+	mutex   sync.Mutex
 	players []*conformanceDevice
 	fail    error
 }
 
 func (*gamePlaybackBackend) SampleRate() int { return EditorSampleRate }
 func (backend *gamePlaybackBackend) NewPlayer(source io.ReadSeeker) (berad.Transport, error) {
+	backend.mutex.Lock()
+	defer backend.mutex.Unlock()
 	if backend.fail != nil {
 		return nil, backend.fail
 	}
@@ -34,7 +38,13 @@ func (backend *gamePlaybackBackend) NewPlayer(source io.ReadSeeker) (berad.Trans
 
 func gameAudioFixture(t *testing.T) (*GameAudioManager, *gamePlaybackBackend, *time.Time) {
 	t.Helper()
+	return gameAudioDocumentFixture(t, func(*LibraryDocument) {})
+}
+
+func gameAudioDocumentFixture(t *testing.T, edit func(*LibraryDocument)) (*GameAudioManager, *gamePlaybackBackend, *time.Time) {
+	t.Helper()
 	document := *cloneAudioValue(productionLibrary())
+	edit(&document)
 	file := "sounds/synthetic.wav"
 	for identity, recording := range document.Recordings {
 		if recording.File != nil || identity == "tavern_lute_01" {
@@ -48,6 +58,11 @@ func gameAudioFixture(t *testing.T) (*GameAudioManager, *gamePlaybackBackend, *t
 	require.NoError(t, err)
 	library, err := NewLibrary(encoded, fstest.MapFS{file: {Data: editorTestWAV()}}, LibraryOptions{Validate: ReduxLibraryValidator})
 	require.NoError(t, err)
+	return gameAudioLibraryFixture(t, library)
+}
+
+func gameAudioLibraryFixture(t *testing.T, library *Library) (*GameAudioManager, *gamePlaybackBackend, *time.Time) {
+	t.Helper()
 	configuration, err := NewAudioConfiguration()
 	require.NoError(t, err)
 	configuration.SoundEffectVolume, configuration.MusicVolume, configuration.AmbientVolume = 1, 1, 1

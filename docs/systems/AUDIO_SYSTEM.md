@@ -1,280 +1,89 @@
 # Audio System
 
-**Purpose**: Document the audio architecture that exists now. Historical rationale belongs in [ADR-007](../ADR/ADR-007-audio-system-architecture.md).
+**Purpose:** Redux integration, game policy, authored media and acceptance over
+Berad Audio. [ADR-007](../ADR/ADR-007-audio-system-architecture.md) records callback
+decoupling; [ADR-010](../ADR/ADR-010-reusable-audio-module.md) records SDK adoption.
 
 ## Current Architecture
 
-The live title/game scenes now construct `internal/audio.GameAudioManager`, a
-Redux adapter over the pinned **Berad Audio** module. It creates module SFX,
-finite-music, ambient and settings-preview lanes on one borrowed Ebitengine
-context. JSON catalogs, assets, cue identities, source grouping, world projection,
-footstep selection, slider conversion and `MusicManager` scheduling/history remain
-Redux-owned. There is no live fallback to the old playback engines.
-
-| Live component | Responsibility |
-| --- | --- |
-| `GameAudioManager` | Adapt required gameplay callbacks, preferences, world sources and diagnostics |
-| Berad `Runtime` | SFX and preview admission, ownership, gain, fades, decoding and retirement |
-| Berad `MusicPlayer` | One finite track, zero-gain onset, pause/seek/resume and transactional replacement |
-| Berad `AmbientController` | Desired-source reconciliation, reversible envelopes, budgets, retries and completion |
-| Redux `MusicManager` | Location/combat/sailing selection, interruption ownership and session history |
-| Redux `AmbientPlanner` | JSON-driven grouping, source identity and gain-factor projection |
-
-`Library.PlaybackLibrary()` caches one immutable module projection per game
-library. The authoring snapshot and playback snapshot currently retain separate
-encoded copies; managers share the projection rather than duplicating it per
-scene/lane. `EncodedBytes` reports one projection's unique encoded bytes, not
-total application heap. JSON and recordings remain under `internal/audio/assets`.
-
-The existing validated `SystemCallbacks.Audio` boundary is unchanged. Owned game
-voices expose cleanup only; device completion never decides gameplay. Disabled
-sound or recoverable initialization failure still permits a nil scene manager
-with all required callbacks wired. The live facade services lanes on modal/reader
-frames, preserves effect-wide stopping and owner-local replacement, and retains
-the Fire Burn recording's bounded release tail. Category changes and settings
-previews use the same module gain/calibration path.
-
-Application shutdown disposes the current scene exactly once on normal exit and
-errors after Game allocation. Scene finalizers still resolve their owning scene;
-workflow shutdown precedes audio retirement. The borrowed host device is not closed.
-Window-setting persistence and Workbench shutdown finish before ordinary disposal;
-the deferred cleanup also covers early configuration failures.
-
-The runtime/authoring module and standalone tools are maintained in `bradhannah/berad-sdk`.
-Redux pins runtime `v0.0.0-20261018233803-ed95f13c63b7` and tools
+Title/game scenes construct `internal/audio.GameAudioManager`, a Redux adapter over
+published Berad Audio dependencies. Redux pins runtime/authoring
+`v0.0.0-20261018233803-ed95f13c63b7` and tools
 `v0.0.0-20261019001037-9cdfc4b0755f`, without replacements or a sibling checkout.
-See the [module contract](https://github.com/bradhannah/berad-sdk/blob/ed95f13c63b7/modules/berad-audio/README.md)
-and [tools contract](https://github.com/bradhannah/berad-sdk/blob/9cdfc4b0755f/tools/berad-audio/README.md).
 
-`cmd/audio-editor` launches the shared Bubble Tea editor. `internal/audio/tooling`
-supplies Redux validation, atlas/location labels, calibration-family policy, slider
-mapping, import destinations, categories and Help. Keeping it separate from package
-audio avoids importing terminal UI into ordinary gameplay. The SDK owns document
-history, source-bound region/AUTO transactions, cancellable analysis, Save/import
-publication/recovery, standalone audition and the TUI/session. Schema-3 wire data,
-media and notices remain game-owned and unchanged.
+| Owner | Responsibility |
+| --- | --- |
+| Redux `GameAudioManager` | Gameplay callbacks, preferences, world-source projection and diagnostics |
+| SDK `Runtime` | SFX/preview transport, owners/voices, admission, gain, fades and retirement |
+| SDK `MusicPlayer` | One finite transport, zero-gain onset, pause/seek/resume and replacement |
+| SDK `AmbientController` | Desired-source reconciliation, budgets, releases, retries and completion |
+| Redux `MusicManager` | Location/combat/sailing scheduling, interruptions and session history |
+| Redux `AmbientPlanner` | JSON/world interpretation, grouping, source identities and gain projection |
+| SDK `authoring` and tools | Document/history, analysis/calibration, source-bound transactions, persistence, terminal editor, catalog and probes |
+| Redux `internal/audio/tooling` | Project validation, world labels, eligibility, calibration-family targets, sliders, import destinations and Help |
 
-`make audio-editor`, `make audio-catalog` and `make audio-catalog-export` build/use
-Redux launchers and derived reports. The catalog uses the binary's embedded
-manifest/media plus separately fingerprinted evidence selected by `-source`;
-source scanning is not a disk-manifest loader or audibility proof. Generic SDK
-commands instead require explicit projects/assets. Existing editor probe flags
-remain compatible via SDK services; `make audio-probe ARGS='...'` runs them.
-`make clean` removes known executables only; `make clean-audio-reports` removes
-derived reports. Neither deletes authored assets, settings or validation tools.
+Reusable contracts and generic operation are maintained upstream:
 
-### Compatibility and shared authoring implementation
+- [Runtime contract](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/modules/berad-audio/README.md).
+- [Authoring, analysis and publication](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/modules/berad-audio/docs/AUTHORING.md).
+- [Editor controls and workflows](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/tools/berad-audio/docs/EDITOR.md).
+- [Catalog contract](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/tools/berad-audio/docs/CATALOG.md)
+  and [neutral quickstart](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/modules/berad-audio/docs/QUICKSTART.md).
 
-The legacy `AudioManager`, `SoundEffectPlayer`, `BackgroundMusicSystem` and
-`AmbientSoundManager` now exist only in `legacy_*_test.go` compatibility fixtures.
-Normal builds cannot contain/select those engines; a declaration guard prevents
-their accidental return to production files. Existing low-level regressions still
-exercise that test baseline while new facade/module tests verify current behavior.
-Superseded editor/analysis/history/audition implementations are also test-only
-compatibility fixtures, excluded from production. Transferred SDK tests use
-generated assets; game metadata/parity tests retain their baseline. Detailed legacy
-API references below describe that baseline and preserved semantics, not a second
-live engine.
+These are current compatible guidance; `go.mod` remains the authority for the
+application's consumed revisions. SDK owns reusable mechanism changes and tests;
+this guide owns Redux's obligations and policy. There is no second runtime or
+authoring implementation in production or test-only compatibility engines.
 
-`internal/audio.AudioManager` borrows the process-wide Ebitengine audio context
-and owns its voices. A host may create the context first, choosing its sample
-rate; otherwise the first manager creates the 44.1 kHz default. Managers never
-close the shared device. They coordinate these components:
+`Library.PlaybackLibrary()` caches one immutable playback projection per game
+library. Authoring and playback currently retain separate encoded copies; managers
+share the projection across lanes/scenes. `EncodedBytes` describes one projection's
+unique payload, not total application heap. Manifest/media stay in
+`internal/audio/assets`. They are embedded at build time, not hot-reloaded.
 
-| Component | Current responsibility |
-|---|---|
-| `SoundEffectPlayer` | Embedded sound assets, active sound instances, one-shot or looped streams, independent fade gains, and an eight-instance limit that protects existing loops |
-| `BackgroundMusicSystem` | Embedded finite music playback, current track, and track volume |
-| `MusicManager` | Location/context selection, finite score policy, interruption ownership, and session history |
-| `AmbientSoundManager` | Desired source snapshots, proximity voices, fades, completion and bounded retries for tile/dynamic sources and dungeon backgrounds |
-| `VoiceHandle` / `VoiceOwner` | Manager-scoped instance cleanup and terminal multi-voice presentation lifetimes |
-| `WalkingSoundManager` | Surface-sensitive footstep selection |
-| `PositionalAudioCalculator` | Distance attenuation and a calculated pan value |
-| `AudioConfiguration` | Sound-effect, music, and ambient volume plus distance/rolloff settings |
-
-`AudioManager` creates all of these in its constructor. A missing manager or subsystem after successful construction is a programming error. `GameScene` may intentionally have no `AudioManager` when sound is disabled or when recoverable audio initialization fails; its required `AudioCallbacks` are still wired so core gameplay never depends on a concrete audio package.
-
-Audio assets are embedded under `internal/audio/assets/`. The decoder supports
-OGG, MP3, and WAV. The authored library selects an exact filename and extension;
-playback never guesses between similarly named files.
-
-With Ebitengine 2.10, owned gameplay voices retire through
-`Player.PauseAndStopReading`, a synchronous barrier that stops decoder read-ahead.
-The calibrated `gainPlayer.Close` wrapper retains terminal ownership: retired
-voices cannot play or seek again. Managers drop those references after retirement;
-decoder readers never acquire manager locks while the barrier waits. The raw
-preview/source-set players likewise stop reading before their owners release them.
-Ordinary Pause remains resumable.
-
-`NewAudioManagerWithRuntime` accepts the host context and a required presentation
-clock alongside copied configuration. SFX, ambient envelopes/retries and music
-share that timeline. Native `time.Now` timestamps retain their monotonic component;
-injected backward samples are clamped. SFX store elapsed milliseconds, with zero
-a valid start/release instant. Audio never reads or advances the gameplay clock.
-
-`AudioManager.Close` is terminal and idempotent. `SetEnabled(true)` cannot reopen
-a closed manager; subsequent playback and category setters report `ErrAudioClosed`.
-`GetConfiguration` returns a detached snapshot, and category setters are the live
-mutation boundary. Walking requests serialize their shared variant sequence.
-The manager facade coordinates configuration and voices; callers must not combine
-concurrent direct subsystem control with facade operations.
-
-The in-game ambient preview applies recording calibration, cue gain, and category
-gain through the calibrated player. Category changes affect its existing voice;
-global audio disable retires it together with ordinary playback.
-
-### Independent library and consumer boundaries
-
-`NewLibrary(manifest, filesystem, LibraryOptions)` validates and freezes one
-project. `AssetRoot` is an explicit `fs.FS` mount, defaulting to `.`. Recording
-paths remain relative to that mount; absolute paths, traversal and backslashes
-are rejected. Each unique referenced encoded file is copied once into the
-immutable snapshot, so later filesystem or caller-metadata edits cannot retarget
-existing playback. `Document()` returns detached metadata. `EncodedBytes()` counts
-the retained unique payload, excluding decoder/device buffers. The default Redux
-snapshot historically retained about 48.4 MB of encoded media and is shared by its
-managers; independent projects retain their own assets. The cached module projection
-adds a separate encoded snapshot during the authoring migration, as noted above.
-
-Shared validation owns JSON integrity, recording/cue references, provenance,
-windows, gains, cycles and classification structure. `LibraryValidator` adds
-consumer policy using a detached document. `ReduxLibraryValidator` preserves the
-game's complete enum/track catalog, sounds/music layout, controlled vocabulary,
-map targets and routing requirements. The default editor and game constructors
-always select it. Neutral projects may use other cue names, asset folders,
-classification vocabulary and target labels without satisfying Redux completeness.
-The schema remains version 3; the production manifest and existing IDs are retained.
-
-The test-only legacy `NewRuntime(library, backend, clock, volume)` exposes `CueRequest` playback,
-owned lifetimes, live volume, servicing, diagnostics and terminal Close through
-the retained compatibility implementation. A `PlaybackBackend` supplies
-sample rate and stopped transports; it must serialize read/seek operations and
-provide a retirement read barrier. `EbitengineBackend` borrows a host context.
-Each runtime owns its decoders, variant cursors, handles and preferences; closing
-one cannot close another runtime or the host device. Neutral cue factories prepare
-lazily and cache immutable preparation failures rather than repeatedly decoding
-bad assets. Game effect enums, world scanning/projection, score selection/holds,
-and settings persistence remain in the Redux-facing adapters.
-
-The test-only `NewAudioManagerWithLibrary` applies those adapters to an independently frozen
-Redux-valid library, including SFX, music, ambient definitions and routing. Runtime
-subsystems use that instance rather than consulting the default embedded cache.
-Default catalog metadata is lazy and remains a Redux-specific inspection surface.
-
-`OpenLibraryProject` reuses authoring transactions, source identity checks,
-calibration, crop previews, Undo/Redo and durable publication. Its `EditorOptions`
-select a filesystem asset root relative to the manifest, an import directory,
-validation and detached `AuthoringTargets`. The frontend uses those supplied tile,
-location and family labels instead of inventing Redux targets. Cue monitoring
-categories may be supplied explicitly; otherwise established prefixes are retained
-and neutral names default to SFX monitoring. `RuntimeLibrary()` freezes a current
-working document for isolated playback. Rendering never reads asset files or
-revalidates the entire document per adjustment.
-
-Synthetic project tests exercise same-named cues/paths in distinct libraries,
-caller mutation after freezing, consumer validation, separate asset roots, durable
-authoring, shared preview/runtime PCM and a fresh process whose production-library
-loaders are forbidden. These establish in-repository dependency boundaries. The
-package still contains the Redux adapters and bundled media. The independent
-[Berad Audio module](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md) supplies the live media-free
-cue runtime with explicit owner-local replacement slots and playback outcomes.
-It now also contains a neutral ambient lane, reversible controller envelopes,
-live instance gain, pause/resume/seek, finite music and distinct terminal voice
-status. Redux imports a remotely resolvable pinned revision with no local
-replacement. Authoring/TUI now also live in SDK behind game project wrappers.
-Further legacy-test consolidation, native acceptance and API/schema stability remain.
-[ADR-010](../ADR/ADR-010-reusable-audio-module.md) records incubation and the SDK migration.
-
-Shared schema-3 validation rejects ambient profiles assigned a cycle cue because
-the ambient controller requires one recording. This returns a contextual library
-error rather than allowing runtime construction to panic. Neutral finite requests
-check metadata-only mute before lazy preparation, while unknown IDs remain errors.
-`Runtime.Play` rejects `ReplacePrevious` with `ErrVoiceOwnerRequired`; use an
-explicit `VoiceOwner.PlayCue` for owner-local replacement.
-
-### Explaining current playback
-
-`PlaybackSnapshot()` / `Runtime.Snapshot()` capture detached actual voice identities,
-recordings, asset paths, selections, transport states, positions and composed gain
-factors. Reading a snapshot does not service audio, advance clocks or change the
-selected cue. Applied gain is distinguished from its factors and from device/PCM
-clipping. Ambient retry diagnostics and desired-source counts remain bounded.
-
-In **Configuration → Sound**, press **D** for a captured diagnostic report.
-Up/Down and PageUp/PageDown scroll; Home/End reach the limits; **R** captures fresh
-state; **D/Esc** returns to the sliders. Playback continues while the report is
-open. Enter, slider arrows and section keys cannot author settings behind it.
-The report rewraps to measured bounds and labels its state as captured rather
-than pretending a frozen snapshot is live.
+The adapter borrows one Ebitengine context. Its initialization validates library,
+configuration, clock and required SDK capabilities. `Update` services presentation
+even during modal/reader frames. Scene disposal is idempotent; workflow shutdown
+precedes audio retirement. Closing lanes never closes the host context. Application
+window persistence and Workbench shutdown finish before ordinary disposal, with
+deferred disposal also covering early configuration failures.
 
 ## Integration Boundary
 
-Core gameplay identifies sounds with `game_state.SoundEffect` and calls `SystemCallbacks.Audio`. It does not import `internal/audio`.
-
-The current callback contract is:
+Core gameplay uses `GameState.SystemCallbacks.Audio` and semantic `SoundEffect`
+identities, never imports `internal/audio` or a device backend. The callbacks expose:
 
 ```go
 type AudioCallbacks struct {
     Play func(SoundEffect) *SoundBuilder
     Stop func(SoundEffect) *StopBuilder
-
-    PlaySoundEffect   func(SoundEffect)
-    RequestPlayback  func(SoundPlaybackRequest)
-    RequestVoice     func(SoundPlaybackRequest) SoundVoice
-    RequestStop      func(SoundStopRequest)
-    UpdateLocationMusic   func()
-    PauseBackgroundMusic  func()
+    PlaySoundEffect func(SoundEffect)
+    RequestPlayback func(SoundPlaybackRequest)
+    RequestVoice func(SoundPlaybackRequest) SoundVoice
+    RequestStop func(SoundStopRequest)
+    UpdateLocationMusic func()
+    PauseBackgroundMusic func()
     ResumeBackgroundMusic func()
-}
-
-type SoundPlaybackRequest struct {
-    Effect   SoundEffect
-    Mode     SoundPlaybackMode
-    Volume   float64
-    FadeInMs int64
-}
-
-type SoundStopRequest struct {
-    Effect    SoundEffect
-    FadeOutMs int64
-}
-
-type SoundVoice interface {
-    Stop(fadeOutMs int64)
 }
 ```
 
-`NewAudioCallbacks` requires ordinary playback, effect-wide stop, owned-voice
-playback, and three music lifecycle functions. The constructor adds `Play`, `Stop`,
-and the widely used `PlaySoundEffect` one-shot convenience. Gameplay still depends
-only on `game_state` types; the `GameScene` adapter translates requests to
-`GameAudioManager` operations.
-
-Both `NewAudioCallbacks` and `NewSystemCallbacks` validate all nine resulting
-capabilities. Missing wiring is a programming error and panics during
-construction, even when sound is disabled. Aggregate validation preserves the
-supplied functions without invoking or rebuilding them; action call sites do
-not silently ignore missing callbacks.
+`NewAudioCallbacks` requires ordinary playback, effect-wide stop, owned playback
+and three music lifecycle functions, then supplies the builders/convenience call.
+It and `NewSystemCallbacks` validate all nine capabilities without invoking or
+rebuilding them. Missing wiring panics at construction, even with sound disabled.
+Disabled sound or recoverable initialization failure may leave a nil scene audio
+manager, but the adapter still wires every required callback. Gameplay does not
+hide missing functions behind nil checks.
 
 ## Supported Usage
 
-Use the convenience callback for an ordinary effect:
-
 ```go
 gs.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundUnlock)
-```
-
-Use builders when loop, fade-in, or stop behavior is needed:
-
-```go
 gs.SystemCallbacks.Audio.Play(game_state.SoundWind).Loop().Start()
 gs.SystemCallbacks.Audio.Stop(game_state.SoundWind).FadeOut(500).Now()
-
-gs.SystemCallbacks.Audio.Play(game_state.SoundEarthquake).Volume(0.5).FadeIn(500).Start()
-gs.SystemCallbacks.Audio.Stop(game_state.SoundEarthquake).FadeOut(500).Now()
 ```
 
-Use owned playback when a workflow must release only its own presentation:
+For overlapping workflows, retain only their cleanup capability:
 
 ```go
 var voice game_state.SoundVoice = game_state.SilentSoundVoice{}
@@ -286,1260 +95,346 @@ sequence.First(func() {
 })
 ```
 
-The initial silent capability makes cancellation before the first step safe.
-`StartOwned` returns only cleanup capability; gameplay cannot inspect device
-completion or use a handle to determine time, RNG, costs or outcomes. Random/debug
-earthquake feedback and the harpsichord earthquake workflow use this boundary.
-Ordinary `Start` and `Stop(effect)` retain their existing effect-wide behavior.
+The silent initial capability handles cancellation before the first step.
+`StartOwned` cannot expose completion to gameplay or determine costs, time, RNG or
+outcomes. Voice capabilities are transient and excluded from saves. Ordinary
+`Start`/`Stop(effect)` retains effect-wide semantics; an owned voice cannot replace
+an unrelated workflow or the application's ordinary burn/footfall slot.
 
-Application presentation uses `GameAudioManager.PlayVoice` to obtain a `GameVoice`,
-the cleanup-only wrapper supplied to gameplay. Berad Audio owns the underlying
-instance and group lifetimes. Its explicit owners terminally reject playback
-after Release/Close, and Close immediately finishes remaining tails. Zero/stale
-handles safely stop nothing; a handle cannot address another runtime's voice.
-Disable retires current effects without reusing IDs; Close ends each lane.
-Repeated fades cannot extend a release. Redux's ordinary footfall/burn replacement
-uses an application-owned slot; an independently owned workflow voice cannot
-replace that unrelated slot. Explicit effect-wide Stop still reaches all owners.
-These capabilities remain transient and excluded from saves.
-
-`SoundBuilder.Start` emits exactly one `SoundPlaybackRequest`. The request mode is
-authoritative: `OneShot()` creates a finite stream and `Loop()` creates an infinite
-stream. There is no competing `IsOneShot` metadata flag. One-shots receive
-natural-duration cleanup; loops remain active until an explicit stop request.
-
-Builder volume is clamped to `0.0` through `1.0` and propagated with optional fade-in. Effective playback volume composes request or positional volume, the cue modifier, recording calibration, the category preference, and the fade envelope once in linear amplitude. Positive calibration may produce gain above unity: the shared calibrated player applies that excess to decoded PCM while keeping the device slider in `[0,1]`. PCM samples saturate rather than overflow; zero is mute. User sliders alone use `ConvertSliderToVolume`.
-
-Timed playback and playback-side fade-out are intentionally not builder features. Event workflows own duration and dispatch a stop request from their normal or `Finally` cleanup. Stop fade-out begins at each player's current volume, including when it interrupts fade-in.
+`Start` emits exactly one request with effect, explicit one-shot/loop mode, volume
+and fade-in milliseconds. The mode is authoritative, not another metadata flag.
+Builder volume is clamped to [0,1]. Workflows own duration and dispatch Stop from
+normal/Finally cleanup; timed playback and playback-side fade-out are not builder
+features. Fade-out begins at the currently applied envelope.
 
 ## Sequencing With Effects
 
-Audio and visual effects are independent callbacks coordinated by the owning sequence. There is no combined screen-shake/audio callback.
-
-```go
-manager.Workflow("earthquake").
-    Priority(event_queue.PriorityHigh).
-    Sequential().
-    BlockInput().
-    First(func() {
-        callbacks.Audio.Play(game_state.SoundEarthquake).FadeIn(500).Start()
-    }).
-    ThenSequence(game_state.NewPartyStateBuilder(gs).
-        ToAllParty().
-        WithShake(4000, 9.6).
-        Build()).
-    Finally(func() {
-        callbacks.Audio.Stop(game_state.SoundEarthquake).FadeOut(500).Now()
-        callbacks.Visual.SetScreenShakeOffset(0, 0)
-    }).
-    Start()
-```
-
-Use `TriggerFeedback` instead when the entire sequence is presentation-only and must not block input. Gameplay mutations do not belong in feedback callbacks.
+Audio and visuals are independent callbacks composed by the owning workflow.
+There is no shake-with-sound callback. A blocking earthquake sequence may start
+audio, run its party shake, then stop audio/reset offsets in `Finally`. Use
+`TriggerFeedback` when the entire sequence is presentation-only and nonblocking;
+feedback callbacks never own gameplay mutations.
 
 ## Sound Effects
 
-`internal/audio/assets/library.json` owns recording identities, exact file
-assignments, cue display names, authored volume modifiers, and in-game audition
-instructions. `soundEffectMetadataMap` in `internal/audio/sound_helpers.go` is an
-immutable projection of that validated manifest. Each entry supplies:
+`assets/library.json` owns recordings, exact paths, cue labels, modifiers and
+intended audition triggers. `soundEffectMetadataMap` is an immutable projection,
+not another authored catalog. A known `file: null` slot is intentional silence;
+unknown IDs, broken references, malformed/duplicate JSON or missing non-null files
+are errors. Invalid embedded data is a programming/build failure; external project
+construction returns errors. Recordings and cue identities are distinct.
 
-```go
-type SoundEffectMetadata struct {
-    Name           string
-    RecordingID    string
-    VolumeModifier float64
-}
-```
+Redux schema-3 policy requires exhaustive taxonomy and routing. Recording acoustic
+family describes content (or intended content of a silent slot); cue profiles
+describe intent, phase/outcome, mix role, emitters and contexts. SFX/Music/Ambience
+categories remain derived from game cue identities. Family mismatch is a review
+finding, not proof of invalid audio. New empty editor slots begin `unreviewed`.
+Do not relabel stand-ins to hide genuine intent/content mismatches.
 
-The manifest is validated when constructing immutable metadata/asset snapshots.
-Live module decoders prepare on playback requests before transactional admission,
-after applicable metadata-only mute checks, rather than through the legacy
-manager's global LoadAssets pass. Every known cue
-must reference a registered recording. A recording with `file: null` is an
-intentional silent slot, including formerly metadata-less SFX. An unknown cue,
-unknown recording reference, non-null missing/unsupported file, malformed JSON,
-duplicate key, or missing mandatory manifest field is invalid embedded data.
-Parsing returns a contextual error; loading an invalid production manifest panics.
+### Committed semantic feedback
 
-Schema v3 requires exhaustive authored `taxonomy` groups and `routing`. Each recording
-belongs to one acoustic family (what its file sounds like, or the intended
-family of a null-file slot); each cue belongs to one semantic profile defining
-target acoustic family, event phase/outcome, mix role, emitters and contexts.
-Profiles are controlled reusable definitions, not playback instructions.
-`sfx`, `music` and `ambience` remain derived from cue IDs. The catalog reports
-differences between cue intent and assigned recording as review findings, not
-invalid assets or proof of listening quality. A newly created empty editor
-slot starts in `unreviewed` until its intended family is selected. Older schemas
-are rejected rather than silently guessed into classifications or routing.
+- Ordinary Get, Ready, Board/Exit and Ignite have no verified direct original cue.
+  Redux reserves silent semantic slots at committed results. Spell activation,
+  potion consumption and the actual potion effect are separate events. Visual-only
+  `PartyStateBuilder` calls request no audio; explicit `WithSound(SoundNoEffect)`
+  requests the dud cue.
+- Lava/fireplace injury uses `SoundFireBurn`; mountain/trapdoor falls use
+  `SoundFallingMinor`/`SoundFallingSevere`. The severity distinction is Redux
+  presentation policy, rather than an original sound distinction. Availability
+  comes from the current manifest; an empty slot remains silent until filled.
+- Resolved dungeon fire/poison injuries use `SoundFireBurn`/`SoundPoison`.
+  `SoundElectricalDamage` (**Electrical Injury**, `electrical_injury_01`) is a
+  dedicated, intentionally empty environmental-injury slot, not sustained field
+  ambience. Its provisional cue gain is 0.8; merely viewing/entering a field is not
+  the committed injury trigger.
+- `SoundDispel` (**Dispel Field**, `field_dispel_01`) is a dedicated empty magic
+  slot. Successful dungeon Sceptre/An Grav removal requests it once; cancelled or
+  ineffective attempts do not. Combat An Grav shares it. `SoundAbsorb` retains
+  `healing_02` and its provenance/calibration. The intended future sound is a short
+  field-collapse fizzle with restrained tail, separate from spell failure; 0.8 gain
+  is provisional. Search by Sceptre/An Grav, field removal or dungeon.
+- Morning Star/Halberd commitment uses `SoundCombatSwing` for hits, misses and empty
+  attacks at range 1/2. Bows retain `SoundCombatRangedLaunch`. Missile type still
+  governs resolution, not a travelling reach-weapon graphic. Redux uses physical
+  swing foley instead of the original synthesized glide; see
+  [COMBAT-0004](../gamefacts/COMBAT.md#combat-0004). `combat_swing_01` retains
+  XxChr0nosxX's CC0 [Swing.mp3](https://freesound.org/people/XxChr0nosxX/sounds/268227/)
+  and its 350–910 ms window. Correct dispatch/decoding is not listening acceptance.
+- Creature interference requests `SoundCombatInterrupted` once when its committed
+  `CombatEventInterruption` enters the Battle Report. Preview/render/history do not
+  request audio. `combat_interrupted_01` is intentionally empty, combat/failure
+  classified, and requires no later gameplay rewiring to fill. The original prints
+  interruption text without audio; see [COMBAT-0012](../gamefacts/COMBAT.md#combat-0012).
 
-Acoustic family is independent of gameplay context and playback category:
-Nearby Fire targets `fire` while using the Ambience slider; a ritual earthquake
-targets `impact` with `ritual` context, and magical ritual cues target `magic`.
-Prepared empty slots should describe their intended acoustic content consistently
-with the owning cue. Preserve genuine mismatch warnings for unrelated stand-ins;
-do not reclassify a healing recording as physical impact to hide an assignment issue.
+New silent slots retain truthful unknown provenance, empty processing, no window
+or calibration. Their how-to-hear text describes intent, not audible acceptance.
 
-The original game's calls and Redux audio opportunities are separate evidence:
-ordinary Get, Ready, Board/Exit and Ignite had no verified direct original cue.
-Redux reserves silent `file: null` slots at committed results so future sound
-authoring needs no gameplay rewiring. Spell activation and a potion's actual
-effect remain separate from consumption. Visual-only `PartyStateBuilder` calls
-request no audio; explicit `WithSound(SoundNoEffect)` requests the real dud cue.
+### Admission, footsteps and injury lifetimes
 
-Environmental hazards request semantic effects rather than catalog numbers. Lava
-and fireplace damage use `SoundFireBurn`, initially backed by the credited
-burning-cardboard recording. Mountain-climbing and trapdoor falls use
-`SoundFallingMinor` and `SoundFallingSevere`; their prepared null-file recording
-slots are silent until filled. The original DOS routines use generic damage noise
-without distinguishing fall severity; this semantic split is Redux presentation
-policy rather than an original sound distinction.
+Redux configures eight SFX voices. SDK prepares replacements before admission;
+unknown/failed/dropped/muted finite requests do not advance variant selection.
+Finite pressure may evict the oldest finite voice; protected loops remain. A new
+loop reports capacity failure when all slots are loops; ordinary dropped effects
+are observational diagnostics. Explicit Stop reaches all owners for its effect.
+Loops preserve continuity under category mute. `Update` owns servicing, not a
+cleanup goroutine or gameplay timer.
 
-Resolved dungeon field injuries reuse `SoundFireBurn` for fire and `SoundPoison`
-for poison. Electrical injury has the dedicated `sfx/SoundElectricalDamage`
-cue, displayed as **Electrical Injury**, with the `electrical_injury_01` empty
-recording slot. It is classified as an environmental injury impact, independently
-of sustained field ambience. It is intentionally silent until a recording is
-supplied; the intended trigger is actual resolved injury, not merely entering or
-viewing a field. Its 0.8 cue gain is provisional.
+Metal-grate movement requests `SoundWalkMetal1`, which cycles four metadata clips
+sharing `sounds/footsteps/stone_steps_01.ogg`: `stone_steps_01` 40–260 ms,
+`_02` 560–790 ms, `_03` 1060–1270 ms, `_04` 1570–1780 ms. Each step replaces only
+the preceding ordinary grate voice. Brick/stone retains its four concrete-file
+assignments; grass alternates and wood cycles using Redux's shared step sequence.
+No gameplay RNG is consumed. A new recording without a window inherits no old trim.
+The measured clips isolate four bursts, not perceptual approval as metal sounds.
 
-`sfx/SoundDispel` is displayed as **Dispel Field** and uses the dedicated
-`field_dispel_01` empty recording in the magic acoustic family. Successful dungeon
-Sceptre and An Grav removal request this shared cue once; cancelled or no-effect
-attempts request no success cue. Existing combat An Grav also uses this slot and
-is intentionally silent until it is populated. The previous shared `healing_02`
-recording, its provenance/calibration and `SoundAbsorb` assignment are retained.
-The intended future recording is a short magical field-collapse fizzle with a
-restrained tail, communicating success; `SoundSpellFailure` remains distinct.
-The existing 0.8 cue gain is provisional pending recording selection and listening.
-
-Both new slots use `file: null`, literal unknown provenance, empty processing
-history, and no calibration or playback window. Find them in the editor by name,
-Sceptre/An Grav, or electrical injury/dungeon search terms. Their trigger guidance
-describes intended authoring context. Catalog, source-routing and silence checks
-do not establish audible acceptance for recordings that have not been supplied.
-
-Each playback request creates one fresh decoded stream and one Ebitengine player.
-Preparation must succeed before replacing the preceding same-effect voice or
-evicting for capacity. Rejected, failed and dropped requests advance neither the
-variant cursor nor the instance sequence. Berad Audio tracks active
-instances by generated ID and request mode. `GameAudioManager.Update` advances fades
-and retires failed or completed voices; there is no cleanup goroutine. The
-eight-voice limit evicts the oldest finite voice, not an existing workflow-owned
-loop. A new loop fails explicitly if all eight slots are loops; a routine one-shot
-is dropped with audio debug logging in that case. Stop requests still target
-every instance of their effect.
-
-Exactly inaudible finite requests (request/category/authored gain zero) are dropped
-before stream preparation and cannot evict audible voices or advance selection.
-Fade-ins whose eventual target is audible remain eligible. Owned loops retain
-their existing mute/unmute continuity; an ordinary finite request never evicts one.
-
-Morning Star and Halberd commitment requests `SoundCombatSwing`, including hits,
-misses and empty attacks at range 1 or 2. Their missile type still governs hit
-resolution; it does not select the projectile-launch recording or admit a
-travelling graphic. Ordinary melee retains its swing and bows retain
-`SoundCombatRangedLaunch`. The latter's production recording is currently an
-empty slot, which previously also silenced reach attack onset. The original
-plays a synthesized glide after accepted aim and before hit/miss resolution,
-while skipping travelling missile presentation for the two reach weapons.
-The attack/obstruction contract is [COMBAT-0004](../gamefacts/COMBAT.md#combat-0004).
-Redux deliberately uses the existing physical swing foley for these weapons
-rather than reproducing the shared synthesized glide.
-
-The reused `combat_swing_01` is XxChr0nosxX's CC0
-[Swing.mp3](https://freesound.org/people/XxChr0nosxX/sounds/268227/), with the existing
-350–910 ms playback window. Its bytes and cue gain are unchanged. This fixes the
-silent mapping; callback and decoder tests do not establish in-game listening
-acceptance.
-
-Creature interference requests `SoundCombatInterrupted` when
-`CombatEventInterruption` enters the scene's Battle Report. The same committed
-rejection keeps the existing classic-output message and identifies the physical
-source or Cast; preview queries, report rendering and history browsing request
-nothing. Each rejected source/action owns exactly one one-shot request, with no
-loop or input-blocking audio workflow. The original prints interruption text
-without an audio call, so this semantic cue is Redux feedback policy; see
-[COMBAT-0012](../gamefacts/COMBAT.md#combat-0012).
-`combat_interrupted_01` is intentionally `file: null`, with complete provenance
-and combat/failure classification in `internal/audio/assets/library.json`.
-Assigning a future brief interruption recording and rebuilding requires no new
-event routing. Callback/catalog tests establish dispatch and safe silence, not
-listening acceptance.
-
-Metal-floor footsteps are a bounded exception to independent overlap. The source
-`sounds/footsteps/stone_steps_01.ogg` contains four isolated footfalls in 1.93 seconds.
-Four metadata-only recording entries share that file: `stone_steps_01` uses
-40–260 ms, `stone_steps_02` 560–790 ms, `stone_steps_03` 1060–1270 ms, and
-`stone_steps_04` 1570–1780 ms. `SoundWalkMetal1` cycles them in authored order;
-each new grate request replaces the preceding grate voice. The source bytes
-are unchanged. Brick/stone flooring retains its existing four concrete-file
-assignments and authored surface-cue cycling. These windows isolate four measured
-bursts; they do not claim perceptual acceptance as metal-grate sounds.
-Catalog assets expose each clip's window alongside full-source measurements;
-cycle moments link every member and expose their selection policy.
-The excerpt belongs to the recording, not the cue. Assigning a new single-footfall
-recording without a `playbackWindow` does not inherit the old trim. Window bounds
-are validated and must fit the decoded source. Duration accounting for SFX and
-music uses stereo PCM frames, not byte count divided only by sample rate.
-
-### Presentation servicing
-
-`GameScene.Update` registers audio servicing before its reader/shortcut returns,
-including atlas opening, reading and dismissal. Journal, menu and cinematic score
-holds retain their ownership; servicing does not unpause gameplay or run its
-queues. Long presentation gaps finish expired release envelopes on the next tick.
-
-Ambient source discovery and voice servicing are independent. An explicit empty
-snapshot means departure and starts release; no new snapshot retains the previous
-desired sources while `GameAudioManager.Update` advances envelopes, failure retirement,
-completion and retries. Disable/suppression clears desired/attempt state, and
-lifting it requires a fresh world snapshot. Re-entry reverses an in-progress
-release continuously. Successfully completed finite ambient sources remain
-complete until departure/re-entry or an asset-identity change.
-
-A desired ambient source that fails is retired and retried after 1, 2, 4, 8, 16,
-then at most once per 30 seconds. Repeated source snapshots do not reset backoff.
-The backoff level is bounded per presence/asset epoch, including after a successful
-reopen that fails later; a long gap permits one new attempt, never catch-up bursts.
-The module's ambient snapshot returns detached current diagnostics (the attempt
-level saturates at six). Departure/suppression removes that bookkeeping. Failed
-replacement preparation retains the existing voice; an explicitly empty recording
-slot retires it without retrying.
+`SoundFireBurn` shares credited source bytes with sustained fire but has a separate
+0–1000 ms recording window and 200 ms release tail. Retrigger replaces its ordinary
+slot, including while fading; owned burn voices, campfire loops and proximity fire
+remain independent. Requested fade-in is preserved. Ambient fire keeps its full
+source window. This is game injury-feedback policy over SDK window/tail mechanisms.
 
 ## Music
 
-Berad Audio's `MusicPlayer` plays one finite recording and reports actual device
-completion. `MusicManager` maps locations and named contexts to tracks and owns
-the presentation-only policy in `internal/audio/music_policy.go`. Scheduling uses
-an injected presentation clock and fakeable playback boundary; it never reads or
-advances gameplay time or consumes gameplay randomness.
+`MusicManager` owns scheduling over SDK finite transport using a presentation clock.
+It never reads/advances gameplay time or consumes gameplay randomness.
 
-The provisional tuning is deliberately subdued. These are code-authored policy
-values, **not listening-accepted settings** or new player preferences:
+| Provisional treatment | Value |
+| --- | --- |
+| First exploration presentation of a theme per application session | −10 dB relative to calibrated track/category |
+| Later presentations | −16 dB, noncumulative |
+| Quiet interval after completion/switching away | 5 minutes of unsuppressed presentation time |
+| Score onset/location-switch release | 2 seconds; one voice, no crossfade |
+| Local-music release grace | 3 seconds |
 
-| Treatment | Provisional value |
-|---|---|
-| First exploration presentation of a theme in the application session | −10 dB relative to the existing calibrated track/category mix |
-| Every later presentation of that theme | −16 dB relative to that same mix; no cumulative attenuation |
-| Ambience-only interval after completion or switching away | 5 minutes of unsuppressed presentation time |
-| Score fade-in and location-switch fade-out | 2 seconds; one voice, no crossfade |
-| Local music release grace after the final audible bard/instrument voice | 3 seconds |
+These values are code-authored, not listening-accepted preferences. Floors and
+locations sharing a theme retain player, position, gain and quiet interval. A new
+theme fades the old one out and observes global quiet time. Returning before fade
+completion reverses the envelope without restart. Rapid travel cannot chain
+introductions; absence does not reset heard-theme history.
 
-Floor changes and locations sharing a theme preserve its player, position, gain
-and quiet interval. A different theme fades the old one out, then respects the
-global quiet interval. Returning before the fade finishes reverses the envelope
-without restarting. Rapid travel cannot chain introductions. A theme receives
-its first treatment only once per application session; absence does not reset it.
+Menu, journal, mute/disable, cinematic and nested workflow owners independently
+suppress score and freeze scheduling. Cinematic owners include isolated overlay
+scenes, Shadowlord presentations and finale; routine action workflows do not duck
+music. Audio continues servicing modal/atlas/reader frames without advancing game
+queues. Title services its own manager.
 
-Pause/menu, journal, mute/disable and cinematic owners independently suppress the
-score and freeze scheduling. Existing camping/death pause callbacks are balanced
-with a nested workflow count. Cinematic ownership also covers isolated overlay
-scenes, Shadowlord presentations and the finale; routine action workflows do not
-duck music. `GameScene` updates audio once at the end of every frame, including
-modal/cinematic early returns. The title scene advances its own audio manager.
+Bard proximity voices, including release tails, and playing harpsichord/lute voices
+take precedence. Missing/muted local recordings claim no ownership. The release
+grace avoids boundary chatter. Restoration fades from silence at saved position;
+changed locations discard stale score and return through quiet time. Releasing one
+hold never releases another. Settings preview auditions independently under the
+menu hold, restores score position even after a same-track preview, and never
+advances exploration history. Named special cues may bypass quiet, play once at
+the subdued initial level and restore current exploration through quiet time.
 
-Bard proximity voices (including their fade tails) and playing harpsichord/lute
-voices take precedence over score. A release grace prevents chatter between notes
-or at the edge of bard range. Muted or missing local recordings do not claim
-ownership. Interruptions pause the score immediately; restoration fades in from
-silence at its saved position. A changed location discards stale paused score and
-returns through the quiet interval instead. Resuming one owner cannot release
-another active interruption, including an interruption begun during silence.
+Combat selects `routing.music["context/combat"]` (initially **Engagement and Malee**),
+once per authoritative encounter, bypassing exploration quiet/repeat history. Gain
+follows encounter role, not track name. Surface/dungeon/camping fights share the
+policy. Per-frame/turn updates never restart it; completion leaves the battlefield
+quiet. Victory stops score promptly and uses the short `SoundCombatVictory`, not
+the music victory track. Menu/mute/workflow owners still apply; exit restores the
+actual destination via quiet time. Tactical maps do not discover world bards.
 
-Settings preview owns playback under the menu hold and auditions the authored
-mix independently of policy attenuation. On return, a retained or recreated
-stream seeks to the saved score position—even when the preview used the same
-track. Preview completion never advances exploration history. Explicit named
-context cues may bypass exploration cooldown, play once at the subdued initial
-level, then restore current exploration through a quiet interval.
+Frigate sail hoists select `routing.naval.sailing` (initially Hornpipe) once per
+hoist. Movement/turning/interrupted sailing never restart it. Completion stays
+silent until furl/new hoist. Furling/leaving fades out; a new hoist bypasses quiet.
+Combat takes precedence and a consumed hoist does not replay afterward. Missing or
+failed starts consume that hoist, avoiding frame retries. Skiffs never sail. Pirate
+locations no longer choose Hornpipe merely by entry. Onboard ambience is separate.
 
-Active tactical combat selects the manifest's `context/combat` assignment
-(initially **Engagement and Malee**, track `combat`), bypassing exploration quiet
-intervals and theme-repeat history. Combat gain follows the encounter role, not
-the selected track's name. The
-scene publishes the authoritative encounter identity each frame, covering
-surface encounters, dungeon fights and camping ambushes. The score fades in at
-its authored combat mix and the user's Music volume, without the extra exploration
-attenuation, and plays once per encounter; frame/turn updates do
-not restart its opening, and exploration stays silent if the score ends before
-combat does. Menu, mute and special-workflow ownership still apply. Combat exit
-fades the score out and restores the actual destination's exploration policy
-through a quiet interval. World-map bards are not sources on a tactical map.
-
-Frigate sails own the separate **Sailing** music moment (`music/track/hornpipe`,
-recording *Capn Johnes Hornpipe*). Raising sails starts one finite presentation;
-ordinary movement, turning, and interrupted automatic sailing do not restart it.
-Natural completion leaves exploration music silent until the sails are furled.
-Furling or leaving the frigate fades the track; raising sails again permits a new
-presentation, even during an exploration quiet interval. Combat takes precedence
-and a presentation already started before combat does not replay afterward.
-Buccaneers Den and the named ship locations no longer select Hornpipe merely
-because the player enters them. `routing.naval.sailing` is the authored music
-assignment, independent of onboard ambience and the Music volume preference.
-A missing recording or failed playback attempt consumes that hoist's presentation;
-frame updates do not repeatedly retry it. Furling and raising sails permits a new
-attempt. Sailing alone is sufficient to trigger lazy music-asset preparation.
-
-`Game` retains detached `MusicHistory` across load, new-game and main-menu round
-trips. Scene activation imports only heard-theme history, remaining quiet time,
-and the explicit music on/off preference; live players, pending cues and
-interruption owners never transfer. Replacing an active score starts a full quiet
-interval. Failed scene candidates cannot mutate the retained history. History
-is not saved to disk and resets on application restart. The music toggle uses
-enabled policy, so a quiet interval is not mistaken for music being off.
-
-Missing recordings and failed starts stay silent. Exploration defers retry by a
-full quiet interval; encounter and sailing presentations are consumed until a new
-encounter or hoist. Natural completion closes its player. Policy tests cover completion,
-repeat gain, transition reversal, nested owners, preview replacement, local music,
-mute/disable, special cues and detached session history without real-time waits;
-player/stream tests additionally verify restoration of decoded-stream position.
-Those tests do not prove device consumption: Ebitengine initializes its device
-only while the game loop runs. Native playback and listening are separate checks.
-Final acceptance requires representative in-game long-session listening, with
-recording identities, category sliders, listening setup and accepted policy values
-recorded in the owning issue.
+Detached `MusicHistory` survives load/new-game/menu scene replacement: heard themes,
+remaining quiet and explicit on/off preference transfer; live transports, pending
+cues and interruption owners do not. Replacing active score starts full quiet time.
+Failed scene candidates cannot mutate retained history. History is not saved to
+disk and resets on application restart. A quiet interval is not music being off.
+Exploration failures defer retry for a full quiet interval; combat/hoist failures
+consume their presentation. Actual device completion, not wall-time estimates,
+ends finite music. Controlled policy/adapter tests are not native listening proof.
 
 ## Ambient And Positional Audio
 
-### Game-owned planning and Berad Audio adapter
+`AmbientPlanner` derives definitions from the supplied game library. It coalesces
+static sources to the strongest audible source per cue after source range/level
+overrides; ties prefer nearer sources. Switching winner changes gain/range without
+restart. Authored cue/calibration are removed from projected source multipliers so
+SDK applies them exactly once. Relative level up to 200% is preserved. Plans carry
+game emitter roles, not engine semantics.
 
-Redux owns `assets/library.json`, its source-to-cue routing and world eligibility.
-`AmbientPlanner` derives immutable tile definitions from an explicit `Library`
-and uses the same source collector as the current manager. Its sorted plans retain
-strongest-static-cue grouping, stable dynamic identities, cue-owned background
-beds and shared lighthouse continuity. It removes authored cue/calibration factors
-from the source multiplier so the playback library applies them exactly once.
-Source intensity/range overrides remain game-owned; relative gain up to 200% is
-preserved. Plans carry emitter roles for game policy, not engine interpretation.
+`GameScene.updateAmbientSounds` gathers terrain plus visible moongates/seated bards.
+Occupants do not hide terrain. Scan radius includes authored overrides. Dynamic IDs
+bind map, floor, emitter and canonical position before projection. Missing explicit
+IDs retain emitter/cue/position fallback. Crossing a seam changes attenuation without
+duplicating voices; bard precedence follows role, not ID spelling.
 
-The game-owned bridge verification in `testdata/berad-audio-redux` projects recording
-paths, windows, calibration, null slots and ordered cue assignments to the module's
-in-memory definition. It converts plans to neutral ambient source requests. The
-bridge is built/tested by the audio-module gate with only a temporary candidate-game
-substitution; the SDK resolves the same published version as the application.
-Live scenes use `GameAudioManager` and that pinned dependency. The game substitution
-is not part of published application metadata. Production JSON
-paths and assets remain unchanged.
+World/dungeon discovery wraps actual map dimensions; towns/combat stay bounded.
+Each physical tile is visited once even if radius exceeds a dungeon grid. Projection
+uses the nearest image and negative displacement for an exact half-map tie.
+Audio calculations remain planar. Radius-zero sources ignore coordinates and use
+stable cue-owned background identities.
 
-Berad Audio owns reconciliation, retained/releasing voices, reversible re-entry,
-admission, completion, retries and diagnostics. Its source IDs do not encode a
-particular game's tiles, locations or roles. It shares playback mechanisms with
-SFX, but has its own capacity/ranking policy. The caller still services audio when
-world discovery is paused. See the [ambient module contract](https://github.com/bradhannah/berad-sdk/blob/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio/README.md#ambient-sources).
+Explicit empty source snapshots mean departure; omitted discovery retains the last
+desired snapshot while `Update` services releases/failures/completion/retries.
+Disable/suppression clears desired/retry state; restoration requires fresh discovery.
+Re-entry reverses release continuously. Finite sources complete once per presence
+or asset epoch. SDK retries at 1,2,4,8,16 then 30 seconds; repeated snapshots do not
+reset backoff and long gaps allow one attempt. Failed replacement retains its old
+voice; intentional silence retires without retries. Diagnostics do not drive policy.
 
-The adapter proof reads Redux's real JSON with synthetic audio assignments and
-checks grouping/gain/window/identity behavior. It does not change the authored
-manifest, audition production media or establish native listening acceptance.
-
-All seated tavern bards use the dedicated `tavern_lute_01` recording slot through
-`ambient/AmbientBard`; `sfx/SoundTavernBardMusic` shares that slot. It deliberately
-has `file: null` and unknown provenance pending the user's recording, so tavern
-performances are silent and claim no local-music ownership. Populate that manifest
-entry (including truthful provenance) and rebuild to enable playback through the
-existing proximity, fade and volume lifecycle. Camping's `SoundBardLute` retains
-the short `bard_lute_01` recording. Loop-seam and extended listening acceptance
-apply when the future tavern recording is supplied.
-
-Fogsbane, Stormcrow, Greyhaven and Waveguide supply `AmbientLighthouse` throughout
-every small-map floor, using the existing seagulls recording and calibrated cue
-level without distance attenuation. This location source reuses the static
-lighthouse cue's voice: movement, floor changes, and overlapping visible tile
-sources cannot create duplicate loops. On exit it returns to normal proximity
-attenuation if a lighthouse tile is audible, otherwise fades and retires through
-the ambient manager. The overworld tile's authored radius remains unchanged;
-Ambience volume, mute and suppression apply normally.
-
-`GameScene.updateAmbientSounds` gathers terrain tiles and dynamic sources such as
-visible moongates and seated bards. Its scan radius follows authored ambient
-ranges; occupants do not hide terrain sources. Redux's `AmbientPlanner` coalesces
-static sources to the strongest audible source per cue identity, after each tile
-family's range and relative-level overrides. A quieter nearby torch cannot mask
-a louder brazier using the same sound. Ties prefer the nearer source; changes in
-the winning source update the existing player's gain/range without restarting it.
-`AmbientSoundType` is a
-string identity, not a closed enum: adding an ambient cue/profile does not require
-a Go constant. Dynamic sources accept an adapter-owned stable `ID`; callers
-omitting it retain the legacy emitter/cue/position identity. The Redux scene binds
-IDs to map, floor, emitter and canonical source position before projecting the
-nearest wrapped image. Crossing a world/dungeon seam updates attenuation without
-duplicating or restarting the voice. Bard music ownership follows its emitter
-role, independently of the ID spelling.
-The manager composes distance, source/context, recording calibration, category,
-and fade gains. Infinite decoded loops retain their players during updates,
-strongest-source changes, and fade reversals. Scene suppression/global disable
-close active voices; restoration rebuilds sources on the next scene update.
-
-World and dungeon discovery wrap through the current map's actual dimensions;
-bounded town/combat maps stay bounded. Each physical tile is visited once even
-when the hearing radius exceeds a dungeon grid. Attenuation uses the nearest
-projected image, with a negative displacement for an exact half-map tie. These
-topology rules belong to the scene adapter; audio calculations remain planar.
-Radius-zero background sources ignore source/listener coordinates altogether and
-retain their stable cue identity through movement. Lighthouse source sharing
-continues to use its existing coastal/interior cue identity.
-
-### Runtime voice admission budget
-
-Ambience admits at most **16 active-and-releasing voices** independently of the
-eight-SFX budget, one finite music transport and one settings ambience preview.
-Preparation may temporarily hold a replacement decoder; only admitted players
-start. Ambient priority is source/calibration/distance/modifier gain, then an
-existing voice on an exact gain tie, then stable ID. Category mute preserves the
-ranking and loop continuity. Departing or displaced voices release normally and
-count against the cap until retirement, so new arrivals can wait for release.
-Failed sources in backoff and completed finite sources do not reserve admission
-slots. Retry eligibility is still bounded by the presentation-clock policy.
-
-The retained legacy `BenchmarkAmbientReconciliationAndService` measured
-warm reconciliation plus service, excluding native device/mixer work and initial
-decoding. On Apple M3 Pro, 100 iterations with 8/32/128 desired sources measured
-approximately 5/23/80 microseconds per iteration with 8/16/16 voices. The preceding
-uncapped path measured 5/23/94 microseconds with 8/32/128 voices. Ranking adds some
-allocation overhead (about 98 KB versus 80 KB at 128 sources); the demonstrated
-benefit is bounded live playback and predictable selection, not a claim of lower
-allocation in every case. Native mix headroom, device latency, audible transitions
-and long-session plateaus require their separate acceptance. These historical
-measurements do not characterize the new module-backed controller.
-
-### Backend adapter conformance
-
-The Ebitengine and Oto adapters share a controlled-device suite covering PCM gain
-and clipping, pending-sample gain changes, looped selections, paused seeking,
-natural EOF versus failure, replay after healthy EOF, and terminal retirement.
-An in-flight-read test holds a decoder read open while Close reaches the device
-barrier; the decoder must remain open until that read returns and close exactly
-once afterward. Both low-level adapters reject replay/seek after retirement;
-the manager and high-level `Audition` retain idempotent Close.
-
-Their error paths remain distinct: runtime decoder faults are latched while
-Ebitengine sees EOF; Oto exposes its per-player error, which audition reports on
-Close. Runtime position uses Ebitengine's buffered-time estimate; editor position
-subtracts unread device buffering from delivered PCM bytes. These are real adapter
-and PCM tests with controlled device reads, not native SDK/device initialization,
-latency or listening proof. Ebitengine still requires its running game loop, and
-the standalone editor's Oto context belongs in its separate process.
+Redux configures **16 active-or-releasing ambient voices**, separate from eight SFX,
+finite music and one settings ambience preview. SDK ranks source/calibration/distance
+mix, retained voices on exact ties, then stable ID. Category mute preserves ranking
+and loop continuity. Release tails occupy capacity; backoff/completed sources do not.
+Historical old-controller benchmarks do not characterize current SDK performance.
 
 ### Authored Routing And Animation Families
 
-The manifest's `routing` object is authoritative for:
+| Routing field | Redux meaning |
+| --- | --- |
+| `ambient` | Cue → radius (0 background, positive proximity), fades in milliseconds; radius ≤32, fades ≤60000 |
+| `tiles` | Canonical tile → ambience/surface and optional positive radius ≤32 / relative gain 0–2; omissions inherit |
+| `surfaces`, `defaultSurface` | Ordered footstep cues and fallback; empty sequence is silent |
+| `music` | Location/world/context → music or null silence; missing target inherits required default |
+| `dungeon` | Dungeon visit → radius-zero ambience or null; missing target inherits required default |
+| `naval` | Required frigate/skiff onboard background and sailing music situations; null is silence |
+| `emitters` | Bard/moongate → spatial ambience; code owns activity |
 
-| Field | Contract |
-|---|---|
-| `ambient` | Cue ID → `radiusTiles`, `fadeInMs`, `fadeOutMs`. Radius 0 is a non-spatial background; positive radii are proximity sources. Radius is limited to 32 tiles and fades to 60000 ms. |
-| `tiles` | Canonical tile ID → optional `ambientCue`, `surface`, `radiusTiles`, and `gain`. Empty ambience means none; omitted surface inherits `defaultSurface`. Missing radius/gain inherit the sound's range and 100% mix. Explicit gain 0 mutes the source. |
-| `surfaces` | Surface identity → ordered SFX cue IDs. An empty list is a silent surface. |
-| `defaultSurface` | Required known surface for tiles without an override. |
-| `music` | Stable location/world/context target → music cue, or explicit `null` silence. Missing targets inherit required `default`. |
-| `dungeon` | Dungeon location target → non-spatial ambient cue, or explicit `null` silence. Missing targets inherit required `default`, initially silent. |
-| `naval` | Required `frigate`, `skiff`, and `sailing` situations. Frigate/skiff accept non-spatial ambient cues; sailing accepts a music cue. `null` is deliberate silence. Code owns boarding and sail-state eligibility. |
-| `emitters` | `bard` and `moongate` → spatial ambient cue. Code still owns emitter activity. |
+These meanings are consumer policy over retained schema-3 wire names. Redux
+validates category, vocabulary, target completeness and eligibility. SDK structural
+validation does not invent world targets. Missing/inherit and null/silence stay distinct.
 
-`internal/sprites/indexes/animations.go` supplies the atlas-family identity shared
-by rendering and audio. Fountain frames 216–219 are one Fountain target, stored
-only under `216`; noncanonical member overrides are rejected. Visual frame changes
-do not rewrite the map tile, start additional players, or restart an envelope.
-Tile overrides can give a brazier, torch and wall sconce different hearing
-distances and levels while all reuse the same Fire sound and recording. The
-relative `gain` is a multiplier (0–2, displayed as 0–200%); it composes with cue
-gain, recording calibration, category volume, distance attenuation, and fades.
-Tile radius overrides must be positive and at most 32 tiles; the scene scan
-includes their ranges. Removing the ambient assignment also removes obsolete
-range/level overrides. Animation frames inherit their canonical family's overrides.
+Atlas animation families come from `internal/sprites/indexes/animations.go`.
+Fountain 216–219 shares canonical 216; member overrides are rejected. Frame changes
+do not change the map tile or restart audio. Torch/sconce/brazier may independently
+override range/level while sharing Fire bytes. Removing ambience removes obsolete
+overrides. Pixel effects, directional sprites, streams and magical fields are not
+automatically atlas-frame families. Fountain ambience (`fountain_gurgle_01`) and
+drinking (`fountain_drink_01`) remain separate cues.
 
-Pixel effects on one tile, directional sprites, stream shapes, and distinct
-magical fields do not become atlas-frame families merely because they animate or
-are adjacent in the atlas.
+Overworld/Underworld have distinct music targets despite a shared gameplay location
+ID. Dungeon beds belong to the visit, including tactical rooms whose pre-combat
+location is that dungeon. Movement/turns/floors/combat retain one cue-keyed loop.
+Nearby tile effects and encounter score coexist; surface/town/Underworld exploration
+do not inherit it. Default is silent; cave/mine Despise, Destard, Doom, Shame,
+Hythloth select `ambient/dungeon_cave` / `dungeon_cave_01` (0.22 provisional gain);
+brick Deceit, Wrong, Covetous select `ambient/dungeon_brick` / `dungeon_brick_01`
+(0.16). These prepared slots are empty, with 1500 ms onset/1200 ms release when
+filled. Select the corresponding Moment/Recording, import truthful media, calibrate,
+Save and rebuild; no gameplay rewiring is needed.
 
-Fountain ambience uses `ambient/AmbientFountain` (display name **Fountain**) and
-`fountain_gurgle_01`. Drinking requests the separate one-shot
-`sfx/SoundFountainDrink` / `fountain_drink_01` recording slot.
+Fogsbane, Stormcrow, Greyhaven and Waveguide use `AmbientLighthouse`/`seagulls_01`
+throughout small-map floors at full spatial gain. Interior and static coastal tile
+share one voice. Exit resumes ordinary tile proximity if audible, otherwise releases.
+The overworld radius remains 10; Ambience, mute and suppression apply normally.
 
-Britannia and the Underworld have separate `world/overworld` and
-`world/underworld` music targets, despite sharing a gameplay location ID. Both
-initially retain their preceding overworld-track assignment. Selection changes
-retain the existing finite music, quiet-period and interruption policies.
+All seated tavern bards share `tavern_lute_01` through `ambient/AmbientBard` and
+`SoundTavernBardMusic`. Its intentionally empty file claims no score ownership until
+filled. Camping retains `SoundBardLute` / `bard_lute_01`. Future tavern material needs
+loop-seam/extended listening acceptance. Frigate/skiff onboard Moments also have
+prepared recording slots and loop through movement/sail toggles until departure or
+vessel change. Sailing music and per-step movement effects remain independent.
 
-Dungeon backgrounds belong to the dungeon visit, including tactical rooms whose
-pre-combat location is that dungeon. They use one persistent cue-keyed loop at
-full spatial gain, independent of listener motion. Nearby tile sounds coexist
-with the background. Departure removes the source and fades it out. Dungeon
-background selection does not create an outdoor background layer or per-floor
-overrides. The default remains silent; all eight dungeon locations explicitly
-select one of two prepared, intentionally silent Moments:
-
-| Dungeon style / locations | Cue and recording | Availability |
-|---|---|---|
-| Cave/mine: Despise, Destard, Doom, Shame, Hythloth | `ambient/dungeon_cave` / `dungeon_cave_01` | Empty recording slot; 0.22 provisional cue gain |
-| Brick: Deceit, Wrong, Covetous | `ambient/dungeon_brick` / `dungeon_brick_01` | Empty recording slot; 0.16 provisional cue gain |
-
-The grouping follows `dungeonWallSetForLocation`: cave and mine wall sets share
-the cave-drip slot, while brick walls use a separate ambience slot. Both have
-`file: null` and create no playback voice until a recording is assigned. Once
-populated, they fade in over 1500 ms and out over 1200 ms, use the Ambience
-preference (including live changes and zero volume), and are retired by global
-audio disable. Moves, turns, floors and dungeon combat retain the same loop;
-returning from combat does not restart it. Town, surface and Underworld
-exploration receive neither bed. Nearby tile effects and encounter music remain
-independently controlled.
-
-**Supplying the recordings:**
-
-In the Audio Editor, select **Dungeon Cave Drips** or **Dungeon Brick Airflow**
-in **Moments**, or import into the corresponding empty recording in
-**Recordings**. Save the library and rebuild the game to embed the recordings.
-Their dungeon assignments and loop lifecycle are already wired; no gameplay
-code change is needed. Calibrate and tune the actual recordings when supplied,
-recording their provenance then rather than retaining another asset's metadata.
-
-`internal/audio/dungeon_ambience_test.go` verifies production routing, empty-slot
-silence, and stable voice ownership, mute/live gain and exit fades with a
-test-only recording assignment. These are wiring checks, not listening
-acceptance of future recordings.
-
-Frigate and skiff situations already have separate **Frigate Ambience** and
-**Skiff Ambience** Moments assigned to them. Each Moment may have a recording
-or an intentionally empty slot; the editor shows its current availability.
-An empty slot remains silent until a recording is assigned. The onboard
-loop uses the Ambience volume preference and follows the boarded vessel through
-movement and sail toggles, fading on departure or vessel change. Sails control
-the separate, finite Music-category Sailing moment, not the onboard loop.
-Skiffs have no sails and never trigger Sailing music. Per-step `SoundMoveSkiff`
-and `SoundMoveFrigate` effects remain independent authorable cues.
-
-`GameAudioManager.PlaySoundEffectAt` uses `PositionalAudioCalculator` for distance volume. The calculator also returns stereo pan, but Ebitengine playback does not currently apply that pan. Do not claim stereo positioning until that TODO is implemented.
+`PlaySoundEffectAt` applies Redux's distance profile. The calculator returns pan,
+but playback does not apply it; this is not stereo positioning or occlusion.
 
 ## Volume Settings
 
-External configuration uses integer sliders from 0 through 10. `ConvertSliderToVolume` maps them to amplitude values and currently caps slider value 10 at `0.75`. Non-preference gains are continuous amplitude multipliers and never pass through that curve. Authored recording `calibrationGainDb`, when present in `assets/library.json`, is converted by `10^(dB/20)` and is validated to `[-48,12]` dB. An absent value is unreviewed and plays at unity; zero-amplitude mute is not represented by finite dB. Cue `volumeModifier` remains the existing contextual amplitude coefficient. The shared `gainStream` supports boosts above unity in SFX, music, ambience and editor audition. Sample clipping and the sum of concurrent voices still require listening and suitable headroom.
-
-There is no master-volume field. Effective volume uses the category setting plus per-sound, per-track, ambient, or positional modifiers.
-
-Runtime category changes update active SFX, music, and ambient players. SFX retain request gain and their current fade factor; music retains its track and contextual gain; ambience retains source/distance and its current envelope. Updating a category does not restart playback or modify the authored cue coefficient. Configuration-dialog Cancel restores the previous category preferences.
+Player sliders 0–10 use `ConvertSliderToVolume` once; 10 currently caps at 0.75.
+Request, contextual, positional, cue and source factors remain continuous linear
+amplitude. Recording calibration uses `10^(dB/20)` in [-48,+12] dB; missing is
+unreviewed unity, not accepted zero. Zero-amplitude mute is separate from finite dB.
+There is no master-volume preference. SDK saturates boosted PCM, not a multi-voice
+limiter. Category changes preserve transport, request/context factors and envelopes;
+configuration Cancel restores prior preferences without rewriting authored gains.
 
 ## Standalone Audio Editor
 
-`cmd/audio-editor` is a Go/Bubble Tea developer tool. It reads the real
-`internal/audio/assets/library.json` and recordings from disk, independently of
-the game and browser Workbench. Run from the checkout root:
+The Redux launcher reads the real disk manifest independently of the game/Workbench:
 
-```bash
+```sh
+make audio-editor-run
+# Build only, then launch explicitly:
 make audio-editor
 ./bin/audio-editor
-# Or run without first building a binary:
+# Or:
 go run ./cmd/audio-editor
 ```
 
-`-library /path/to/assets/library.json` selects another Redux-valid library. `-check`
-validates schema, references and authored trim bounds without audio playback or
-file writes. `-probe healing_01` briefly plays a recording and checks that the
-audio device advances without a graphics/game loop. It verifies device progress,
-not human listening acceptance.
+`-library /path/to/assets/library.json` selects another Redux-valid project. `-check`
+validates without playback/UI/writes. Generic SDK commands instead require an explicit
+library/project and supply neutral policies; use the Redux launcher for this preset.
+The SDK editor guide linked above owns common keys, drafts, variants, waveform,
+Soundscape, source verification and safe quit. The browser Workbench is separate.
 
-Editor audition owns a process-wide Oto context directly, independent of
-Ebitengine's game-loop-driven audio initialization. It uses signed 16-bit stereo
-PCM at 44.1 kHz and the same window/loop decoder and gain stream as gameplay.
-The playhead subtracts device-buffered bytes from decoded progress; seeks are
-frame-aligned and source-relative window mapping remains in `Audition`.
-Voice replacement and shutdown use `PauseAndStopReading` before discarding the
-voice. Oto permits one device context per process: standalone audition and the
-game's Ebitengine context belong in separate processes.
+### Redux authoring policy
 
-### Core and advanced task boundaries
+Tiles shows canonical atlas families; Locations exposes game music, dungeon, emitter
+and Naval targets. Dungeon/onboard targets accept radius-zero ambience; tiles/emitters
+require positive radius; Sailing accepts Music. Game source discovery, passability,
+combat and sail eligibility do not move into the editor. Usages describe configured
+types/assignments, not placed-map counts or proven trigger reachability.
 
-The task review retains capabilities that answer distinct authoring questions,
-while keeping them out of the ordinary crop transaction:
-
-| Task | Surface and reason to retain it | Ownership boundary |
-|---|---|---|
-| Find, repair or replace a source | Recordings search, availability, import, provenance and notes identify the actual bytes and their rights. | Candidate loads bind source/request identity; failed import preserves the working source. |
-| Make one clip sound right | Calibration, waveform, exact bounds and ordinary/duplicate region drafts share preview/commit transformations. | Apply/Create publishes one Undo entry; Cancel never authors. No immediate per-key document mutation. |
-| Assign an event or vary repetition | Moments and ordered variants separate cue intent from shared recording content. | Exclusive assignment picker; failed/cancelled playback does not advance selection. |
-| Place sound in game context | Tiles/Locations, surfaces and animation-family information preserve world routing knowledge. | Separate advanced workspaces using consumer descriptors; source editing stays in Recordings/Moments. |
-| Compare a mix | Opt-in Soundscape retains two ambient beds, music and SFX comparison. | It starts hidden, has explicit slot replacement and owns its own transport; crop audition cannot silently control an unrelated layer. |
-| Compare reference and game gain | Temporary monitoring sliders and reference mode distinguish authored mix from listening preferences. | Never saved to the library; labels state the applied mode. |
-| Diagnose actual playback | Captured runtime source/gain reports explain what a device voice represents. | Read-only snapshots, outside ordinary editing and configuration mutation. |
-
-No additional mixer graph, effects chain or duplicate cropping workflow is
-introduced. The conventional shared text editor, one visible input owner and
-explicit region transaction are the common interaction foundation. Automated
-task coverage includes top-level key routing, terminal-byte paste, stale messages,
-ownership transitions, bounded repeat, import/save failures and layered audition;
-human terminal/listening observations remain separately recorded acceptance.
-
-### Editing And Playback
-
-The Recordings workspace edits source assignments, shared calibration, notes,
-and non-destructive playback windows. Moments edits the actual production cues,
-their recording assignments and contextual amplitude. A missing recording is
-visible as an empty slot. Choosing a different source clears its old trim.
-A manual calibration remains locked to the recording identity; auto-managed
-calibration is recomputed for the replacement before the edit is published.
-
-There are four workspaces: **Recordings**, **Moments**, **Tiles**, and
-**Locations**. The active tab uses a filled high-contrast keycap, uppercase text,
-and `▶ … ◀` markers; the heading also names the workspace so focus remains clear
-without colour. Each workspace retains its search and selected item.
-
-**Tiles** browses canonical animation families and individual non-family tiles.
-Tiles and Locations use aligned State, Source, and Assignment columns (a compact
-state symbol in narrow panes). Assignments are green when playable, amber when
-empty/checking, and red for missing/invalid audio; no source or silence is grey.
-The selected source cell is highlighted without hiding the assignment's colour.
-`F` opens read-only animation details; member frames inherit the single family assignment.
-`f` opens a compatible **Choose ambient sound** dialog, including no source. Insert marks
-additional families for one atomic bulk edit; Escape clears marks. `s` assigns a
-footstep surface; `D` sets the default surface; `S` opens an ordered-list draft for
-that surface's shared footsteps. Add/remove/reorder controls replace comma-separated
-cue-ID entry; an empty list means silence. Apply is one undoable edit and Escape
-cancels the draft. These edits do not change passability.
-
-**Locations** browses music assignments, dungeon backgrounds, code-owned dynamic
-emitters, and **Naval situations** (Aboard frigate, Aboard skiff, Sailing). `s`
-cycles the scope. The `f` picker offers compatible cues,
-inheritance and explicit silence where applicable. Dungeon backgrounds require
-radius-zero profiles; tile and emitter assignments require positive radii. Naval
-onboard situations accept radius-zero ambience and Sailing accepts Music; the
-picker labels them separately. New non-spatial ambience can be authored with
-`Ctrl+A` and radius zero. The chosen recording and shared fade can be reviewed
-through the sound settings before saving the library.
-
-To hear onboard ambience, open **Moments** and select **Frigate Ambience** or
-**Skiff Ambience**. Use `f` to choose a recording (or create/import one through
-Recordings) and save. In **Locations**, select **Naval situations** with `s` to
-review or change either vessel's assignment. New radius-zero Moments can also
-be created with `Ctrl+A`; vessels may share an appropriate recording.
-**Sailing** initially selects the Hornpipe
-recording in the Music category; its `f` picker changes the selected track.
-Sailing music plays once per hoist, whereas onboard ambience loops continuously.
-The music manager owns one finite score player: a new music request cancels the
-previous request, retiring its player before starting the replacement. A
-superseded request cannot start later. Hoisting sails and entering/exiting combat
-replace an older context cue; per-frame state refreshes do not issue new requests.
-
-In these workspaces, `Ctrl+f` cycles All, Assigned, Silent/none, Needs audio, and
-Surface overrides (Tiles) or Inherited (Locations). Intentionally unassigned
-tiles are not errors. `o` opens the assigned Moment; `U` opens navigable configured
-usages from any workspace; Escape returns from a usage jump. Usage counts describe
-tile types/families and assignments, not placed objects in original maps or proof
-of listening acceptance.
-
-`Ctrl+A` opens a labelled **New ambient sound** dialog. It generates an editable
-identifier from the name, offers an existing recording or an empty slot, and
-exposes distance and fades as separate fields. In Tiles, `B` opens **Tile sound**:
-hearing distance and relative level can each use the sound default or a per-family
-override. The dialog previews those draft overrides and affects only that tile
-family, including all its frames. `b` opens the shared sound defaults; `B` in
-Moments also edits those shared defaults. Shared fades are shown in seconds and
-stored in milliseconds. Changing a shared default affects only sources that have
-not overridden that setting. The right pane explicitly labels effective values
-as sound defaults or tile overrides.
-Tab/Up/Down changes focus, Enter edits a field or activates Apply/Cancel,
-Left/Right adjusts numeric/choice controls while they are not in text-entry mode.
-Tab or Up/Down reaches the visible **Apply changes** and **Cancel** actions;
-Enter activates the selected action. Footstep sequences have those same actions,
-including empty sequences. No operation depends on modified Enter support.
-Invalid values remain visible with their validation error. Draft previews do not
-mutate the library; Apply is one undoable edit. New ambient identities need no
-enum changes. `r` changes an assigned sound's recording; `i` opens its recording's
-file picker. Both explicitly identify the shared recording being edited.
-
-The Tiles table always shows independent Ambient and Footsteps columns; preview
-controls never change assignment display or filter semantics. `p` previews ambience,
-`P` previews a footstep, and `n` advances/previews the next surface cue. Enter
-plays/restarts the current preview; Space starts, pauses or resumes without
-restarting an active voice. Pausing an ambient preview freezes its fade and
-resuming continues from that point. Left/Right changes temporary listener distance;
-`L` exercises fade-out. Ambient preview shares the runtime attenuation formula.
-Preview state is never saved. Music preview starts immediately, independently of
-the game's quiet-period scheduling. The persistent Preview panel names the actual
-sound and shows PLAYING/PAUSED/STOPPED and transport controls. Assignment workspaces
-give the waveform's space to readable settings; trimming remains in Recordings/Moments.
-
-The editor uses the full terminal height. The browser takes spare rows, the
-waveform grows with the terminal, and a persistent Soundscape status strip shows
-the assigned sounds and their playback states. The right pane switches between
-Details (`d`) and Soundscape (`m`). Details wrap and list shared usages individually; focus
-Details with `d` and scroll with arrows, PgUp/PgDown, or Shift+Up/Down. The active pane has a cyan
-border and `ACTIVE` label. Keyboard hints stay at the bottom, with coloured
-keycaps separate from action text, and change with the focused pane. Shifted
-bindings are labelled explicitly, such as `Shift+s` versus `s`.
-Shortcuts pack across the available width rather than occupying fixed short
-rows. Primary shortcuts stay compact; `?` opens scrollable full help. The footer
-contains status and hints, never editable input. Search expands into a highlighted
-in-place field above the browser and leaves workspace tabs visible. Gain, trim
-bounds and calibration targets use a prominent right-pane editor; longer text
-and file paths use centred dialogs over a dimmed workspace. Input focus captures
-typing instead of firing workspace shortcuts. Notes support multiple lines:
-Enter inserts a line, Tab moves to **Apply**/**Cancel**, and Enter activates the
-selected action. Numeric errors retain their field/value. Picker dialogs
-use Enter to choose and Space to preview/pause. Dialog bodies scroll to the focused
-control on small terminals while their title and action hints remain visible.
-Below 60 × 24, editing shortcuts are paused so invisible controls cannot mutate
-the library; Stop, Save, and Quit remain available with their normal draft guards.
-Preview-volume controls opened over a duplicate draft are visibly foregrounded
-and own input until dismissed.
-
-One typed input-owner resolver determines command routing, foreground presentation,
-and contextual hints. Recording-assignment dialogs accept only their chooser
-actions; unrelated gain, crop, history, metadata, and workspace shortcuts cannot
-open hidden editors behind them. Nested recording pickers restore their parent
-chooser's selection and filter on return.
-
-Inline fields, form fields, and routing searches share grapheme-aware text editing:
-Left/Right moves the caret, Shift+Left/Right selects, Backspace/Delete removes a
-whole grapheme or selection, Home/End moves within a line, and Alt+Left/Right
-(or Alt+b/f) moves by word. Ctrl+w removes the previous word; Ctrl+u clears the
-field. Notes also support Up/Down with a retained display column. Carets remain
-visible when long single-line fields scroll. Bracketed paste inserts its payload
-without terminal-key decorations; pasted key names never execute commands.
-Notes retain authored whitespace, and path fields retain exact filesystem paths.
-
-Entering a form field places the caret at the end without silently selecting or
-replacing its value. Enter/Tab finishes the field; Escape restores the value it
-had on entry. A subsequent Escape cancels the enclosing form. Routing-picker
-search is a detached draft: Enter applies it and Escape restores the active filter.
-
-Ctrl+x stops audio even while typing or during a file operation. The ordinary
-`x` shortcut is available outside text entry. Ctrl+c during Save/import requests
-exit after the operation settles; successful completion checks for unsaved work,
-while failure keeps the editor open with the error visible. Publication is never
-interrupted halfway by a keyboard quit. Labels marked **working** describe the
-current authored document; the separate saved/unsaved indicator describes persistence.
-
-Availability badges describe technical playback status, not listening approval:
-
-| Badge | Meaning |
-|---|---|
-| Green `● READY` | Decoding and the selected playback window are valid |
-| Yellow `○ NO FILE` | Intentionally empty recording slot |
-| Red `! MISSING` | Assigned file does not exist |
-| Red `! INVALID` | File is unreadable/undecodable, a directory, or has invalid trim bounds |
-| Muted `… CHECKING` | File exists and background validation is pending |
-
-`Ctrl+f` cycles All, Existing, Missing and Problems, with counts for the current
-workspace. Existing means the assigned path exists, including recordings still
-being checked or with decoding errors. Missing includes empty slots and absent
-files; Problems includes absent assigned paths and invalid sources. Search
-combines with the filter. Moments inherit availability from their assigned
-recording, shown beside their name. Background checks preserve the selected ID
-when it remains visible. `F5` rechecks files changed outside the editor.
-Each workspace remembers its search, filter and selection. An asterisk marks
-edited recordings/cues, including moments affected by a shared recording edit.
-Tiles and Locations also retain independent routing filters/scopes. F5 rechecks
-sources from any workspace when no editor or chooser owns input.
-
-The browser has aligned column headings. **Recordings** shows identity, actual
-acoustic family, **Cal dB** and **Uses** whenever the pane has room. Calibration
-is displayed to one decimal with `A` for Auto, `M` for Manual, or `— U` when unset;
-these describe gain ownership, not listening approval. Uses counts distinct
-production cues referencing the recording, including all cycle memberships,
-and updates immediately after an assignment edit.
-
-**Moments** shows name, target acoustic family and assigned recording, or a clip
-count with `↻` for a cycle. A yellow `!` marks a target/recording-family mismatch
-if **any** assigned clip differs; it is a review prompt, not a playback error.
-At compact widths the status becomes its coloured symbol, and long family names
-use display abbreviations such as `mechanical`. Very narrow panes retain identity
-and family and omit the extra columns; full calibration, shared uses and
-assignments remain in Details. On the smallest screens the bottom list legend
-is omitted to preserve a visible waveform row. Headings are included in page
-height calculations, so paging still advances actual visible data rows.
-
-Search accepts plain substrings and independent facets: `category:sfx`,
-`family:magic`, `phase:resolution`, `outcome:failure`,
-`role:foreground_feedback`, `emitter:object`, and `context:combat`.
-In Recordings, family matches the recording itself or a cue use; other facets
-match its uses. `category:unassigned` finds unused recordings. Classification
-is independent of technical availability (`Ctrl+f`).
-
-Plain search words match names, IDs, files, notes, original filenames/creators,
-classification fields, keywords and the cue's `howToHear` trigger description.
-Recordings also match their linked moments' intent; Moments also match metadata
-on their assigned recordings. Thus `lockpick` can find a physical-unlock slot,
-`grating` can find the metal footfall and its source clip, and `alchemy` can find
-mixing feedback without knowing a filename. Multiple words are ANDed.
-
-Optional `searchTerms` arrays on recordings and cues contain custom phrases.
-`taxonomy.profileSearchTerms` adds reusable synonyms per semantic profile;
-these supplement rather than overwrite an individual cue's keywords. Phrases
-must be trimmed, nonempty and case-insensitively unique within each array.
-Shift+K edits custom terms as a comma-separated list; Shift+H in Moments edits
-the existing `howToHear` field, shown as **Typical trigger** in Details.
-Single-use recordings show that trigger near the top; shared recordings list
-their moments and each moment's trigger further down. Descriptions express
-intended gameplay context, not listening approval or proof of reachability.
-
-Pressing `/` opens a highlighted **FILTER** draft in the browser and status
-row, with **EDIT FILTER** at the top and the cursor kept visible for long text.
-Opening an existing filter places the caret at its end. Backspace removes the
-preceding grapheme; Ctrl+U explicitly clears the field. Enter applies the draft;
-Escape retains the original filter.
-
-Structurally valid manifests with missing files can be opened and repaired.
-Production loading and Save remain strict: missing/unreadable files, decode
-errors and invalid bounds must be repaired before saving. The selected-item
-panel explains the problem and offers `f` to choose a replacement or assignment.
-
-| Key | Action |
-|---|---|
-| Tab / Shift+Tab | Next / previous workspace |
-| 1 / 2 / 3 / 4 | Open Recordings / Moments / Tiles / Locations directly |
-| Ctrl+f | Cycle availability filter |
-| F5 | Recheck files; inside a region draft, reload its source and retain bounds for explicit review |
-| w / d / m | Focus waveform / show Details / open Soundscape controls; Escape returns to browser |
-| a | Add the selected sound to its Soundscape slot; ambience loops, music plays once, SFX fires |
-| Up/Down | Browse the current list |
-| Ctrl+P / Ctrl+N | Previous / next page in the focused browser, details, file picker, variants, or mix |
-| PgUp/PgDown or Shift+Up/Down | Additional paging shortcuts (terminal modifier support varies) |
-| / | Edit the highlighted filter with caret navigation; Ctrl+U clears, Enter applies, Escape cancels |
-| Enter or p | Play/restart the selected recording/region immediately |
-| Space | Pause/resume; replay a completed preview |
-| Shift+S | Switch full-source versus selected-region playback |
-| l | Toggle preview looping |
-| +/- | Live saved calibration (Recordings, 0.5 dB steps) or cue gain (Moments, 0.05 steps) |
-| g | Enter exact calibration in dB or cue gain in amplitude |
-| v | Open independent 0–10 preview category sliders and Game Mix / Reference controls |
-| i / o | Open/update a region draft at the source-relative playhead and select its start/end marker |
-| [ / ] | Open a region draft and select its start/end marker for nudging |
-| Left/Right, Shift+Left/Right | Outside text entry, seek/nudge by 10 ms or 100 ms; inside fields, move/select text |
-| s / e | Enter exact start/end in whole milliseconds |
-| z | Zoom around the selected marker or playhead |
-| t | Suggest draft bounds: -40 dB threshold plus 10 ms edge padding; Apply is separate |
-| r | Draft a reset to the full source; Apply removes the authored playback window |
-| f | Choose a source file, or choose a recording for the selected moment |
-| n | Create an empty recording ID in Recordings (lowercase snake_case) |
-| Shift+d | Duplicate the selected recording as a new metadata-only clip |
-| Shift+v | Open ordered variants for an SFX moment |
-| n in a cycling moment | Preview the next clip; Enter restarts the current clip |
-| Shift+N | Edit the recording's note |
-| Ctrl+L | Edit the selected recording's license in a dialog (Recordings/Moments) |
-| Shift+K | Edit custom search keywords on the selected recording or moment |
-| Shift+H | Edit the selected moment's typical-trigger sentence |
-| Shift+C | Edit a recording's acoustic family or a moment's classification profile |
-| Shift+A | Calculate/recalculate auto-gain for the selected recording; Enter accepts, Escape cancels |
-| Shift+T | Edit the auto-gain target (uncalibrated or auto mode only) |
-| u / Ctrl+R | Undo/redo authored edits |
-| Ctrl+S | Validate and save the library; finish or cancel an open draft first |
-| x / Ctrl+x | Stop all voices, retaining Soundscape assignments; Ctrl+x also works while typing or busy |
-| q / Ctrl+C | Quit; unsaved edits require y to discard; Ctrl+C during file publication waits for completion |
-
-Input fields accept Backspace/Delete and Ctrl+U to clear explicitly. The file picker opens folders
-with Enter, goes up with Backspace, accepts a typed path with `/`, and previews
-candidates with `p`. Enter imports/assigns a file; Escape cancels. The moment
-recording picker uses Space for preview/pause with the moment's gain and Enter to confirm
-the assignment. Previewing candidates alone never changes an assignment.
-
-The waveform identifies the arrow target. An active preview seeks within its
-playing selection and immediately displays the actual clamped source position;
-with playback stopped, arrows move the cursor across the full source. `[`/`]`
-select crop markers. Zoom follows the arrow target, so a numeric bound can change
-while its screen column remains centered. Region audition preserves playing/paused
-state and source position, clamped to the candidate bounds. Space resumes a paused
-preview; `p` explicitly restarts it. A completed preview does not automatically
-restart merely because a bound changes.
-
-### Region Draft, Apply, And Cancel
-
-Ordinary crops and metadata-only duplicates share one region workflow. `[`/`]`,
-`s`/`e`, marking, reset, or a trim suggestion opens a detached draft in the right
-pane, leaving the waveform visible. Tab/Up/Down selects fields or the visible
-**Apply**/**Cancel** actions; Enter edits or activates the selected row. For a
-duplicate those actions are **Create**/**Cancel**, with an additional ID field.
-The Apply action shows the number of cue uses affected by the shared recording.
-The active-pane border follows the actual field/cursor owner; the transport is
-read-only status, not a competing input owner.
-
-Typing bounds and pressing Enter finishes that field only. Start and End can
-temporarily cross; invalid bounds remain visible, stop the draft audition, and
-cannot be applied. `s`/`e` retains the corresponding marker as the arrow target
-after text entry. `w` selects the source cursor for seeking; `[`/`]` returns to
-marker adjustment. `?` shows draft controls, the exact loaded source path, its
-content fingerprint, and the sharing scope.
-
-Valid adjustments update the visible draft immediately. Analysis and retained
-preview reconstruction coalesce at a 100 ms cadence on the presentation tick;
-repeated key events do not clone/validate the document or read/decode the file.
-The pane says when a preview update is pending. `p` resolves the latest candidate
-immediately. AUTO calibration is derived from cached source analysis, and both
-ordinary Apply and duplicate Create use that exact region/calibration calculation.
-Full-source comparison bypasses the excerpt but retains the candidate calibration.
-
-Apply/Create checks the captured document revision and verifies the source bytes
-before publishing one atomic edit. The source check and document publication run
-as a bounded background editor operation. A new clip and optional cue membership
-are one Undo entry. An unchanged ordinary Apply preserves history, including Redo.
-Ctrl+S remains a separate disk-save operation and refuses an unfinished region.
-
-Escape discards the region without authoring it. If an audition was requested,
-Cancel restores authored playback settings with the current paused/playing intent
-and a bounded source position; it does not resurrect an explicit Stop or replay
-a naturally completed preview. Matching Soundscape layers are temporarily suspended
-to avoid doubling the edited recording. Cancel restores them; Apply updates their
-authored region while preserving paused state and position. Unrelated layers remain
-active. Duplicate Create preserves the original recording and its layers. A retained
-created-clip audition keeps its original cue mix, labelled in the transport/details;
-Enter starts a new audition using the selected recording's current context.
-
-Loaded `RecordingAudio` keeps its pathname, duration, encoded content and analysis
-private. `Path()` and `DurationMs()` return scalar metadata; `Peaks()` returns a
-detached slice. `PeakBetween` reads source-time peak buckets without exposing their
-storage or copying the whole waveform for rendering. Editing a returned view cannot
-retarget source verification, alter silence suggestions/calibration, or change the
-bytes auditioned or committed. Load a new snapshot to select another source.
-
-Background stamp probes detect
-ordinary file replacement without filesystem work in key dispatch or rendering.
-A changed source stops affected voices and requires an explicit reload. Region
-Apply/Create additionally hashes the current file, rejecting content changes even
-when size and timestamps are preserved. F5 inside a draft reloads/rebinds the source
-and retains the bounds; review the new waveform/calibration before applying. These
-checks are not a lock against an external writer changing a file afterward.
+For onboard sounds, fill **Frigate Ambience**/**Skiff Ambience** in Moments, then
+review Naval assignments in Locations. Sailing initially selects Hornpipe, once per
+hoist; editor audition does not simulate that scheduling. Shared recording edits
+affect every use; change one cue's assignment to replace only that event.
 
 ### Game-Matched Preview Volumes
 
-The default **Game Mix** monitoring mode uses independent Music, SFX and Ambience
-sliders, initially **7, 7 and 7** respectively. These are temporary authoring
-comparison settings, not changed player defaults. The header always shows them.
-Press `v` to open the right-hand preview controls, Up/Down to select a row and
-Left/Right or +/- to adjust it; Enter, Escape or `v` closes the panel while
-retaining its temporary settings. `r` in this panel toggles Reference mode.
-
-The editor calls the same `audio.ConvertSliderToVolume` function as the game:
-7 is currently ×0.55, 10 is ×0.75 and 0 is mute. The former additional linear
-listening multiplier has been removed. A Moment plays at recording calibration
-× cue gain × its category slider, assuming unity request/context/distance gain.
-Runtime attenuation, fades and scene suppression are not simulated. Each
-cue-based comparison layer uses its own category, even when multiple categories
-share a recording. Category changes update preview and layers without restarting.
-
-Bare Recordings have no selected cue, so they apply calibration and the chosen
-category but no cue gain. With **Recording bus: Auto**, a single category shared
-by all linked cues wins; mixed-category recordings fall back to SFX. Unassigned
-music paths use Music, unassigned ambience-family recordings use Ambience, and
-other unassigned recordings use SFX. The controls allow an explicit Music/SFX/
-Ambience override for these bare-recording auditions. This never overrides a
-selected Moment's category; use Moments to hear the game-matched authored cue.
-
-**Reference** plays the calibrated source at unity monitoring gain, bypassing
-both category and cue gains. Temporary layer levels, mute and solo still apply.
-File-picker candidates bypass the old assigned recording's calibration in both
-modes. Their destination cue/category applies in Game Mix when auditioning for
-a Moment. Details shows the preview route and combined gain; mix rows identify
-their category or Reference mode.
-
-These controls never dirty/save the manifest, alter calibration, or read/write
-the player's configuration. Ctrl+S continues to save only authored library data.
-Restarting the editor restores the comparison defaults, so choose explicit
-slider settings when assessing candidate defaults for players.
+The default **Game Mix** label uses temporary Music/SFX/Ambience monitoring sliders,
+initially 7 each, and the game's curve (7 ×0.55, 10 ×0.75, 0 mute). These are comparison
+defaults, not player defaults. Cue audition composes calibration × cue × category at
+unity request/context/distance; it does not simulate runtime fades or suppression.
+Bare Recordings use linked-use category, falling back for mixed uses to SFX;
+unassigned music paths use Music, ambience families use Ambience, otherwise SFX.
+Explicit recording-bus override never changes a Moment's category. Reference bypasses
+cue/category while retaining calibration and temporary mix-layer controls. Preview
+never reads/writes player settings or saves its monitoring state.
 
 ### Auto-Gain And Manual Overrides
 
-Details use cyan field labels and neutral light values, with the existing status
-badge colours unchanged. Loudness details show the measurement method, target,
-suggested calibration, predicted sample peak and limiting reason.
+Redux supplies sustained-estimator targets −23 for score/instrument and −26 for
+ambience/nature/fire; other families use active-RMS −20. These editable starting
+targets are estimated, not a universal LUFS standard or listening-approved mix.
+SDK owns estimator limits and source/revision-bound approval. Manual stays locked
+across region/source changes until explicit AUTO confirmation. Calibration is shared
+recording treatment; use cue gain for a quieter particular event, not the category
+preference. Neither saved AUTO nor Manual constitutes listening acceptance.
 
-Auto-gain is offline recording calibration, not a compressor or runtime level
-controller. It never rewrites audio bytes or adjusts a cue/category slider.
-
-| Mode | Selected-region or source changes | Manual editing |
-|---|---|---|
-| Uncalibrated | Displays a new suggestion without changing gain | Shift+A then Enter accepts auto; +/- or g creates a manual calibration |
-| Auto | Region preview derives candidate calibration; Apply/Create publishes region plus gain as one edit | +/- or g in Recordings locks the value |
-| Manual | Keeps the exact gain across trim, source replacement, duplication and reopen; suggestion computation is paused | Only explicit Shift+A plus confirmation returns to auto |
-
-Moving/seeking the playhead alone never changes calibration. Shift+A from Moments
-affects that moment's selected shared recording; +/- and g in Moments still edit
-only its cue gain. Ctrl+S saves; undo/redo retain both the gain and ownership mode.
-Existing numeric gains without a mode are treated as manual, protecting prior edits.
-Loading a source, refreshing availability, and undo/redo hydration do not author
-calibration. A family change recomputes an existing AUTO gain in the same document
-transaction as the family edit. AUTO confirmation is bound to its recording,
-document revision, draft identity and immutable loaded source. Enter verifies the
-current file's content in a background document transaction, including replacements
-that preserve size and timestamps. Acceptance rechecks the target and source snapshot
-so an intervening reload, invalidation or newer document edit cannot publish the
-old suggestion. A source probe invalidates its pending approval and stops affected
-playback. Rejection preserves authored settings and Undo/Redo; Escape dismisses the
-draft, then F5 reloads and Shift+A obtains a new suggestion for explicit confirmation.
-Successful confirmation is one undoable edit and updates live gain without restarting
-playback or writing the source/manifest. Ctrl+S remains separate. Content verification
-is not a lock against an external writer changing a file afterward, matching the
-region-transaction boundary.
-`calibrationMode` is `auto` or `manual` and requires `calibrationGainDb`.
-Optional `calibrationTargetDb` overrides the family default and is restricted to
-`[-60,-6]` dB. Invalid or silent selections have no suggestion.
-
-Analysis is streamed during background source loading and cached in 10 ms energy
-buckets. Region boundaries weight overlapping buckets; boundary peaks are
-conservative. Sustained audio uses K weighting at 44.1 kHz, 400 ms blocks with
-100 ms hops, a -70 LUFS absolute gate and a -10 LU relative gate. Short effects
-use the 95th percentile of active 50 ms stereo RMS windows, excluding windows
-below -70 dBFS or more than 40 dB below the strongest window. Sustained selections
-shorter than 400 ms fall back to the short-effect estimator. Values are explicitly
-labelled **estimated**; this is not a certified LUFS or true-peak meter.
-
-The agreed initial authoring targets are -23 for score/instrument, -26 for
-ambience/nature/fire, and -20 for other families, in the units of the displayed
-estimator. They remain editable conservative starting points, not
-listening-approved mix levels. Suggestions cap
-the calibrated sample peak at -3 dBFS and gain at `[-48,+12]` dB; the UI identifies
-when headroom or boost limits prevent reaching the target. Individual source
-headroom does not guarantee a multi-voice mix cannot clip. Make a quieter footstep
-using the moment's cue gain after calibration, not by changing the category slider.
-
-Auto calibration may be saved as a provisional production baseline before
-contextual listening. Accepting this method and its starting targets does not
-accept every recording, assignment, loop, trigger, or combined mix. Neither a
-persisted gain nor Manual mode constitutes listening approval; retain that
-evidence separately with the recording identity and listening context.
-
-The waveform takes roughly a third of the terminal height (up to 24 rows),
-while preserving browser space and compacting the mix when necessary on a small
-terminal. It uses stereo peak envelopes in 10 ms buckets, preserving
-transients in either channel rather than averaging the channels together. The
-vertical display uses a labelled -72 to 0 dB scale and eighth-cell bar glyphs,
-so quiet sounds are visible. Nonzero signals below the display floor receive a
-minimal bar; digital zero remains a flat baseline. This visual scaling changes
-neither playback gain, the original peak measurements, nor the -40 dB silence
-suggestion threshold. The selection and markers are highlighted, excluded
-samples dimmed, and the playhead
-uses source-file milliseconds even for trimmed or looping playback. Waveform
-zoom retains a whole-file overview, with the selected region and zoom viewport
-highlighted. Waveform
-decoding is cancellable background work; stale results cannot replace a newer
-selection. Cancellation and deadline expiry leave incomplete availability checks
-at **CHECKING**, never **INVALID**; a cancelled selected-source/variant request
-preserves the existing availability result. Superseded cancellation is quiet;
-an active request's deadline can be reported without labelling the file corrupt.
-Encoded input remains limited to regular files no larger than 128 MiB. Loading
-checks cancellation before and after file reads of at most 64 KiB, and analysis
-checks around each 10 ms PCM bucket, including the final read. Source-content
-verification also rejects cancellation at EOF. These checks are cooperative: an
-in-flight filesystem call or codec open/length/decode operation must return before
-cancellation can be observed. No detached reader is left running after return.
-Silence suggestions only change draft bounds; they are not proof that
-a quiet onset/tail should be removed. Cuts have no implicit fades or
-zero-crossing adjustment; audition for clicks before saving.
-
-### Shared-File Clips And Ordered Variants
-
-`Shift+d` opens a new-clip region draft with the next unused numeric suffix,
-preserving zero padding (`_009` becomes `_010`). The duplicate references the
-same physical file and copies provenance/calibration, but gets its own window
-and a fresh note. If the selected clip ends before the source does, the draft
-starts there and ends at the source end. Otherwise it starts with the same
-region. Up/Down chooses a field and Enter edits it, or `s`/`e` opens a bound directly.
-Left/Right edits the caret while a bound field is open. Outside text entry,
-`[`/`]` and 10/100 ms arrow nudges work on duplicate markers. `p` previews the draft; Space pauses
-or resumes; `i`/`o` mark and select a boundary at the current source playhead. `c` creates it;
-Escape cancels. Both bounds validate together, so moving a start past the old
-end while editing does not mutate the original clip.
-
-When an SFX moment is selected, or the recording has one unambiguous SFX use,
-the draft offers an unchecked `a` toggle to append the new clip to that moment.
-Creation and optional membership are one undoable metadata edit. Its AUTO gain
-matches the draft audition rather than being recalculated by a different path.
-No audio bytes
-are copied or rewritten, and source-file duplication is not required.
-
-In Moments, `Shift+v` opens ordered SFX variants. Up/Down in the browser chooses a
-clip; Enter previews it; `a` opens a recording picker to append; Delete removes a
-member, while `d` retains its Details meaning. Ctrl+Up/Down reorders;
-Shift+Up/Down pages. Waveform focus keeps Up/Down from changing the editing target.
-Escape first leaves focused marker/details editing, then returns from the list.
-One remaining member becomes an ordinary
-single assignment. At least one member must remain. Outside this list, `n`
-previews the next member of a cycling moment; Enter restarts the current one. Editor preview position
-is independent of the running game's cursor. Comparison mix layers audition
-the selected clip; their repeat interval does not change production selection.
-The editor retains its last successful variant and playback while the next source
-loads. Failure, Stop, or a newly opened editing owner prevents a late completion
-from advancing the selection. Only a successful next preview advances the cursor.
-
-Single cues keep `recordingId`. An SFX cycle instead uses an ordered
-`recordingIds` array and `selection: "cycle"`. These forms are mutually
-exclusive; every member must be a distinct known recording with an assigned
-file. This first variant policy is for SFX only, not music/ambient scheduling.
-The SFX player selects the next member under its existing playback lock and
-advances that cue's cursor only after starting a player. Rejected or dropped
-requests do not advance it, looping a clip does not select another clip, and
-other cues do not affect the sequence. A new audio player system starts each
-cycle at the first member. This consumes no gameplay randomness or time.
-
-### Soundscape Audition
-
-The optional right-hand Soundscape pane presents four named slots using the
-existing independent audition voices: **Ambient 1**, **Ambient 2**, **Music**,
-and **SFX**. `m` opens/focuses it even when empty. Escape or `m` returns keyboard
-focus to the browser while leaving the pane visible; `d` shows Details instead.
-The compact status strip always remains visible and identifies assigned sounds
-as playing (`▶`), paused (`Ⅱ`), finished (`✓`), stopped (`■`), muted (`○`), or
-empty (`—`). A separate `P` entry identifies any additional standalone preview.
-
-To audition two ambient beds, music, and effects together:
-
-1. In **Moments**, select an ambient cue such as Nearby Fire and press `a`.
-   It starts looping in the first empty ambient slot.
-2. Select another ambient cue and press `a` to fill the second slot. When both
-   are assigned, the pane asks which to replace: `1`/`2` or arrows select a slot,
-   Enter confirms, Escape cancels. Existing beds continue during the prompt.
-3. Select a music Moment and press `a`. It occupies the single Music slot and
-   plays **once**, regardless of the standalone preview loop toggle. Another
-   score replaces that slot. In Soundscape, `l` enables an explicitly labelled
-   audition-only loop; it does not change the game's finite music policy.
-4. Browse SFX Moments and press Enter to fire over the backgrounds. The SFX slot
-   keeps playing while browsing another cue; the next trigger replaces that
-   voice rather than accumulating voices. Cycle selection still follows the
-   editor's normal next-clip cursor. Use `v` to adjust category levels live.
-
-Within Soundscape, arrows select slots, Enter restarts, Space pauses/resumes,
-`u` mutes, `s` solos, +/- adjusts temporary layer gain, and Delete/Backspace
-removes a slot. `l` toggles once/loop for beds and music, or once/repeat for SFX.
-Repeat retriggers every 500 ms and never accumulates voices. Slot mute, solo and
-temporary gain survive replacing its source. Failed replacements preserve the
-existing playing slot. Stop All (`x`) closes voices and cancels pending/repeat
-playback but retains assignments; Enter restarts an individual stopped slot.
-
-Browsing and workspace changes preserve the soundscape. File import, clip-list
-edits, and document undo/redo clear it to avoid stale assignments;
-quitting closes every voice. Adding a sound closes the standalone preview to
-avoid doubling an already auditioned recording. No soundscape assignments are
-saved as production cue assignments or persistent sessions.
-
-Preview mode/category sliders, layer gain, mute/solo, and repeat intervals are temporary and
-never written to the manifest or game preferences. Calibration and cue gain are
-authored fields, constrained by the production validator. Preview uses the same
-decoder, calibration formula and bounded stream as production, without invoking
-gameplay or consuming game time/RNG. Final contextual acceptance still happens
-in the game.
-
-### Save And Import Contract
-
-`LibraryEditor` keeps one working document and bounded undo/redo history.
-Ctrl+S validates it, checks for external manifest edits, and atomically replaces
-the file using a flushed same-directory temporary file. Unchanged entries retain
-their exact bytes; deleting a routing override rewrites only its containing map,
-preserving other sections. A no-op Save leaves the entire file untouched. There is no
-intermediate tuning-export format or automatic source-audio rewrite.
-
-File publication and authored dirtiness are separate facts. `LastPublication`
-reports `not_published`, `unchanged`, `published`, or `published_sync_pending`,
-with the affected path and import/assignment facts. Once manifest replacement
-succeeds, its actual bytes become the conflict baseline even if the subsequent
-directory flush fails. `NeedsSync` retains that pending work; the editor displays
-**DURABILITY PENDING**, guards Quit, and Ctrl+S retries the flush without rewriting
-an unchanged manifest. A later edit or failed operation cannot erase the pending
-state. Rejecting a stale asynchronous document result also retains its real file
-outcome/baseline while preserving newer authored state and history.
-
-Save and import hold a nonblocking cooperative publisher lock for the canonical
-manifest directory/name. A second editor reports busy and can retry; an editor
-with an older manifest baseline still receives an external-change conflict after
-the first writer finishes. Stable `.audio-library-*.lock` files live one directory
-above the manifest directory, outside embedded assets, and are ignored by Git.
-Do not remove their inodes while editors are active. Arbitrary external writers
-that ignore the lock can still race filesystem operations; this is not a universal
-filesystem compare-and-swap guarantee.
-
-Successful publication means the supported flush operations completed. Windows
-does not support this directory-flush implementation; receipts/details disclose
-that platform limit rather than claiming equivalent durability. Reopening a file
-does not retrospectively prove that an earlier failed flush reached durable media.
-
-Save never silently commits an unfinished field, form, or duplicate: finish or
-cancel that draft first. Duplicate drafts participate in quit confirmation even
-when the authored document is clean. Ctrl+S from quit confirmation saves an
-already-applied document and returns to editing rather than discarding it.
-
-File operations carry their starting document revision and operation identity.
-Stale or replayed completions cannot replace a newer working copy. Waveform
-loads bind a generation and recording identity; editing also verifies the loaded
-source path. Background availability scans do not retarget active editors.
-File-candidate requests also bind the selected candidate path. Moving the picker
-invalidates outstanding audition requests; Space auditions the newly selected file,
-and the transport names that actual candidate. Candidate failures never invalidate
-an unrelated destination recording's assigned-file status.
-Import failure reloads the original assigned source while preserving the error,
-instead of leaving an auditioned candidate under the old recording identity.
-
-Repository audio files are referenced by relative path. Outside files are copied
-byte-for-byte to `sounds/imported/` (or `music/imported/` when replacing a music
-recording), using recording ID and content hash in the name to avoid overwriting
-another file. Unknown provenance stays literal `unknown`. Undo restores the
-assignment but deliberately leaves imported files on disk for Git review.
-
-Import validates the candidate metadata and AUTO calibration before creating a
-copy. If the file was auditioned, the import verifies those exact snapshot bytes
-before proceeding. A copy is written, flushed and closed as a same-directory
-temporary file, then installed atomically with a no-overwrite link. Existing
-content-qualified destinations are reused only after a full hash match and file
-flush; conflicting contents are never overwritten. Created directory levels and
-the published file entry are flushed separately. A durability failure after publication leaves
-an explicit retained-file receipt and retryable durability work, without pretending
-the recording assignment succeeded.
-
-The Details pane lists persistence state and unassigned files copied during the
-session. Save/import errors and Undo explain retained files; neither Undo nor Quit
-silently deletes them. `RetainedImports` derives current references from the working
-document, so a copied file can remain on disk after its assignment is undone.
-
-The game still embeds the production manifest/assets at build time. Save affects
-editor preview immediately; rebuild/restart the game to use those edits. Review
-shared-recording usages before trimming or calibrating, and review the Git diff
-before committing authored changes.
+External imports go to `sounds/imported/` or `music/imported/` for music replacements,
+with content-qualified names. Unknown provenance stays explicit. Undo/Quit retain
+copied files for Git review. SDK owns publication locking, external-change conflicts,
+retained-file receipts and retryable durability state. Do not remove publisher-lock
+inodes while editors are active. Review pending durability independently of authored
+dirty state. Save changes disk/preview immediately; rebuild/restart to embed edits.
 
 ## In-Game Configuration
 
-The shared `ConfigurationDialog` owns detached Sound, Display, and Gameplay
-settings. Its Sound tab owns preview playback; Apply persists the complete
-transaction and Cancel reverts previewed audio. The scene callback only removes
-the exact modal and restores its parent scene's audio policy. The in-game route
-opens on Sound above the still-paused Escape menu. The title-menu route pauses
-title audio, opens on Display, and restores title music after dismissal. Tab
-changes section; Up/Down selects an entry; Left/Right changes the selected
-value; Enter applies; and Escape reverts. The card retains stable dimensions
-while sections change and introduces no pointer input. Display
-apply/confirmation behavior is documented in
-[Modal Dialog System](../ui/MODAL_DIALOG_SYSTEM.md).
+`ConfigurationDialog` owns detached Sound/Display/Gameplay settings. Sound previews
+through the scene adapter; Apply persists the transaction and Cancel reverts preview.
+The scene removes the exact modal and restores its parent policy. Game route starts
+on Sound over paused Escape menu; title starts on Display with title music held.
+Tab changes sections, arrows select/adjust, Enter applies, Escape reverts. Dimensions
+stay stable and player input remains keyboard-only. Display confirmation is covered
+by [Modal Dialog System](../ui/MODAL_DIALOG_SYSTEM.md).
+
+Configuration → Sound → **D** captures a detached source/gain diagnostic report.
+Arrows/PgUp/PgDown/Home/End scroll, R recaptures and D/Esc returns. Capture never
+services audio or advances selection/time; playback continues. Slider/section actions
+cannot mutate configuration behind the report. State is labelled captured, not live.
 
 ## Failure Policy
 
-Recoverable audio initialization, asset preparation and fresh-stream creation
-errors are returned with their cause and logged by the `GameScene` adapter.
-An immutable snapshot's asset-preparation failure is retained, and scheduled music
-reports its initial loading failure once. Repair requires a newly validated
-library/runtime, not silently rereading changed files into existing players.
-Invalid bundled manifest structure remains a build/programming invariant; external
-project construction reports validation errors.
-Factories never substitute an infinite silent stream for failed decoding.
-Music/SFX/ambient replacement preparation precedes eviction of an existing voice.
-Disabling sound and authored empty recording slots are supported silent modes.
-Do not add nil checks around required
-`SystemCallbacks.Audio` functions; their constructors validate the contract.
-
-Runtime calibrated players latch decoder/PCM failures before Ebitengine's
-context-wide read-error hook. The backend sees finite EOF, while the owner can
-inspect the original wrapped error and retire the voice on its next service tick.
-One hundred consecutive empty decoder reads become `io.ErrNoProgress`; incomplete
-PCM samples are failures. Buffered valid bytes do not discard a pending failure.
-Retirement uses the read barrier before closing a closable decoder. Failed loops
-cannot indefinitely occupy SFX capacity. Finite music failures retain the normal
-quiet interval and consume the encounter/hoist presentation; they never become
-per-frame restart attempts. Healthy paused music is retained, while failed paused
-or preview transport is released without erasing the suspended score intent.
-
-These boundaries do not contain every backend failure. In Ebitengine 2.10, device
-initialization and other context errors can still surface through the engine
-update hook after manager construction and can terminate `RunGame`.
-Successful construction or a nil immediate playback error is not device-readiness
-or fail-soft acceptance.
+Recoverable initialization/preparation/device-stream failures return wrapped causes
+and are logged by the presentation adapter. SDK owns decoder cleanup/read barriers,
+finite failure reporting and transactional replacement. Empty recordings/disabled
+sound are supported silence; missing non-null embedded assets are broken data.
+Repair requires a newly validated library, not retargeting frozen streams. Music
+failures retain quiet/encounter/hoist policy rather than frame retries. No infinite
+silent stream substitutes for failed decoding. Ebitengine context/device errors can
+still surface through its engine hook after construction and terminate `RunGame`;
+successful construction is not device-readiness or fail-soft acceptance.
 
 ### Native probes and measured acceptance scope
-
-From a configured checkout, these bounded commands exercise the actual device
-paths separately from controlled-device unit tests:
 
 ```sh
 go run ./cmd/audio-editor --probe healing_01
@@ -1547,377 +442,127 @@ go run ./cmd/audio-editor --probe-runtime sfx/SoundHeal
 go run ./cmd/audio-editor --probe-runtime-soak sfx/SoundHeal
 ```
 
-The first runs standalone Oto playback. The second opens a small Ebitengine window,
-plays through its real game loop, verifies advancing device position and retires
-an owned release before closing. The CLI rejects combining check/probe modes.
-On Apple Silicon macOS both probes passed and the maintainer confirmed that both
-sounded clean. This is a bounded healing-cue smoke/listening result, not acceptance
-of every recording, loop seam, mixed-output peak, device failure or terminal.
-Windows/Linux compilation is distinct from native playback acceptance.
+Standalone audition owns Oto in its separate process; runtime probe owns a real
+Ebitengine loop. Oto permits one context per process; do not combine standalone
+audition and the game's independently created device context. Check/probe modes
+are mutually exclusive. Probes measure progress/release, not complete listening.
 
-The third command runs a muted one-minute native lifecycle/heap soak: four owned
-loops are replaced every 200 ms, with a five-second warmup and an 8 MiB retained
-Go-heap tolerance. The measured macOS run completed 281 cycles / 1,124 transports,
-ended with zero active voices, and decreased retained heap from 65,055,424 to
-63,493,600 bytes. Its supervisor observed about 355 MiB peak tracked RSS and no
-remaining child processes. This adds native cleanup evidence; it is still bounded
-to one minute, one cue and the current device/backend rather than every device or
-multi-hour listening condition.
+Historical macOS healing-cue probes passed and the maintainer reported clean sound.
+A one-minute muted lifecycle run completed 281 cycles/1,124 transports, zero active
+voices, retained heap 65,055,424→63,493,600 bytes, about 355 MiB peak tracked RSS and
+no surviving children. Those observations remain bound to their original revision,
+cue/device/backend; extraction and controlled tests do not renew them for every pin.
+The accelerated synthetic lifecycle/heap regression now lives in SDK and exercises
+the SDK public API. Old-engine benchmark/soak measurements are not current acceptance.
 
-An accelerated synthetic lifecycle test covers 16,800 prepared transports under
-loop/one-shot pressure: all retire, at most nine are prepared/active at once
-(eight admitted plus one replacement), and retained heap remains within a 2 MiB
-tolerance after collection (336-byte delta in the measured run). This tests engine
-bookkeeping and caller ownership, not a multi-hour native driver soak. Ordinary
-crop adjustment remains about 0.75 microseconds per Right/Left pair; measured
-key-plus-render p95 is 2.34 ms WAV, 2.43 ms MP3 and 2.23 ms OGG. Measurements use
-100 iterations on Apple M3 Pro and exclude terminal delivery and device buffering.
-
-Physical terminal-key acceptance remains owner-deferred. It requires the real
-editing tasks: ordinary and modified arrows, held repeat, pause/crop/resume,
-invalid/crossed bounds, cancelled
-import, Save/Undo/Redo and safe Quit. Tests feed the pinned terminal decoder's raw
-bytes and adversarial controller messages, but cannot certify an untested terminal
-or replace user-observed keyboard behavior. Long native sessions and broader mix/
-loop listening also require their own evidence before stronger claims are made.
-
-An absent non-null manifest file assignment is invalid embedded application data,
-not an intentional placeholder or ordinary runtime degradation.
-
-### Authoring The Library
-
-The manifest is hand-authored, tracked source. Report generation never updates
-it. SFX vocabulary comes from the typed identity table and music from known track
-IDs. Ambient vocabulary is authored in `routing.ambient` and the matching cue
-entries. An arbitrary SFX key cannot create a gameplay event; a new ambient cue
-can be assigned to tile families or dungeon backgrounds without a Go identifier.
-
-Example entries (shown as a fragment, not a complete replacement manifest):
-
-```json
-{
-  "schemaVersion": 3,
-  "recordings": {
-    "magic_failure_fizzle_01": {
-      "file": null,
-      "provenance": {
-        "originalFilename": "unknown",
-        "sourceType": "unknown",
-        "sourceUrl": "unknown",
-        "sourceCreator": "unknown",
-        "license": "unknown",
-        "importedFrom": "unknown",
-        "processing": []
-      }
-    }
-  },
-  "cues": {
-    "sfx/SoundSpellFailure": {
-      "name": "Spell Failure",
-      "recordingId": "magic_failure_fizzle_01",
-      "volumeModifier": 0.7,
-      "howToHear": "Reach a spell failure/no-effect branch; cancelling may be silent."
-    }
-  },
-  "taxonomy": {
-    "recordingFamilies": {"magic": ["magic_failure_fizzle_01"]},
-    "cueProfiles": {"magic_failure": ["sfx/SoundSpellFailure"]},
-    "profiles": {
-      "magic_failure": {
-        "targetAcousticFamily": "magic", "phase": "resolution",
-        "outcome": "failure", "mixRole": "foreground_feedback",
-        "emitters": ["player"], "contexts": ["spellcasting"]
-      }
-    }
-  }
-}
-```
-
-For an existing empty slot, add the selected recording under `assets/sounds/`
-(subdirectories are supported) and replace only `file: null` with its exact path
-relative to `assets/`, such as `sounds/magic/magic_failure_fizzle_01.wav`.
-Rebuild the game or run the catalog command to validate the assignment. Changing
-the manifest is not live reload. Keep experiments outside embedded assets.
-
-Recording IDs use lowercase letters, digits, and underscores; descriptive
-`snake_case` with numbered variants is recommended. File moves change `file`,
-not the recording ID. Replacing bytes changes SHA-256 and invalidates any prior
-listening evidence for those bytes. A null file is deliberate; an omitted `file`,
-empty string, guessed extension, or nonexistent non-null path is an error.
-Every recording, including an empty slot, has structured `provenance`. Required
-text fields use the literal `unknown` when information is unavailable; do not
-leave them blank or infer a creator/license from a filename. `processing` is an
-array of known steps, empty when none are documented. A recording's optional
-`note` is for general review/playback observations, separate from provenance.
-`playbackWindow` is an optional bounded excerpt for SFX, music, and ambience.
-Bounds are source-relative whole milliseconds, start inclusive and end exclusive,
-validated against decoded duration rather than an arbitrary maximum timestamp.
-Optional `calibrationGainDb` belongs to the recording and therefore
-affects all its usages. It may hold a provisional Auto baseline or a locked Manual
-adjustment; neither implies listening acceptance. A missing value stays `null`
-in the catalog, not an approved zero adjustment. See
-[Auto-Gain And Manual Overrides](#auto-gain-and-manual-overrides) for the agreed
-starting targets and ownership rules. The manifest's `volumeModifier` preserves
-the separate cue/context coefficient.
-
-To replace only Push while it shares `healing_01`, register a new recording such
-as `object_push_wood_01` and change only `sfx/SoundPushObject.recordingId`. Do not
-overwrite the shared healing recording unless all its usages should change.
-
-Unassigned ambient cues can have slots too; filling one does not create
-tile/source integration until a routing target selects it. Generic declarations or static references are not a
-promise of an audible gameplay route. The guide separates this evidence from
-recording availability and gives intended, not listening-certified, instructions.
+Editor PTY render/quit, raw terminal-decoder tests and controlled transport tests
+are bounded evidence. Physical terminal-key acceptance remains owner-deferred:
+modified/ordinary arrows, held repeat, pause/crop/resume, crossed bounds, cancelled
+imports, Save/Undo/Redo and safe Quit need hands-on observation. Broader native
+Windows/Linux playback, long sessions, device failures, loop seams and multi-voice
+headroom require their own proof. Record identities, sliders, listening setup,
+revision/fingerprints, accepted values and limitations in the owning review.
 
 ## Source And Tests
 
 ### Asset And Moment Catalog
 
-`internal/audio/catalog.go` builds a detached inventory directly from production
-SFX metadata, music selection, ambient definitions, and embedded recordings.
-It creates no players or audio context. The ambient manager and catalog share
-the same definition functions, so the inventory does not own a second set of
-file assignments, gains, distances, or fades.
+Redux enriches SDK inventory/measurement/reporting with semantic enums, source
+evidence, proposed moments and game review notes:
 
-From the repository root, with `bin/` available:
-
-```bash
-go run ./cmd/audio-catalog
-# Optional whole-recording sample-peak and RMS measurements:
+```sh
+make audio-catalog-export
+# Optional whole-recording sample-peak/RMS pass:
 go run ./cmd/audio-catalog -measure
 ```
 
-The command writes `bin/audio-catalog.json` and
-`bin/audio-generation-guide.md`. `-source`, `-output`, and `-guide` override the
-checkout root and output paths. Output parents must already exist. These are
-regenerable review artifacts, not committed backlog files, saved mixer scenarios,
-or accepted-tuning imports. No original Ultima V data is needed. Run against the
-same checkout that built the tool; it combines embedded recordings/definitions
-with checkout source evidence.
+Reports default to `bin/audio-catalog.json` and `bin/audio-generation-guide.md`.
+`-source`, `-output`, `-guide` select source-evidence root/destinations; output parents
+must exist. This tool uses its embedded manifest/assets plus separately fingerprinted
+source evidence, not a disk-manifest loader. Run it against its building checkout.
+No original-game data is needed. `make clean-audio-reports` removes derived reports;
+ordinary clean removes known executables, never authored media/settings/tools.
 
-The JSON has two linked views:
-
-- **Assets:** exact embedded path, SHA-256 of encoded bytes, format, decoded
-  duration, optional sample peak/RMS, provenance, calibration/listening/loop
-  review, and inverse moment usage. Empty registered slots and unregistered files
-  remain visible; the latter require an explicit recording ID before assignment.
-- **Moments:** semantic cue or music/location/ambient context, actual assignment,
-  configuration coefficient, mix role/family, lifecycle/overlap description,
-  source evidence, how-to-hear instructions, and draft generation brief. Every
-  declared SFX has a cue entry; explicitly proposed coverage candidates remain
-  separate from the production cue vocabulary.
-
-Identity rules:
-
-| Kind | Identity | Change rule |
-|---|---|---|
-| Recording | Explicit manifest key, e.g. `magic_failure_fizzle_01` | Independent of path; replacing bytes changes SHA-256, not identity. |
-| Semantic SFX | `sfx/SoundPushObject`, etc. | Symbol name, never display label or `iota` ordinal; renames require identity review. |
-| Music | `music/track/<track-id>`, `music/location/<Location-symbol>`, `music/context/<context>` | Derived from production track identities and location/context mapping. |
-| Ambience | `ambient/AmbientForest`, etc. | Stable sound-type symbol; static sprite bindings and dynamic-source references remain evidence. |
-| Coverage candidate | `proposed/<category>/<semantic-name>` | A proposal, not a live trigger or approved requirement to generate material. |
-
-Review dimensions deliberately remain independent:
-
-- `availability`: `present`, `missing`, or `not_assigned` for proposed moments.
-- `assignmentReview`: `unreviewed`, `placeholder`, or `incorrect` initially.
-- `listeningReview` and recording `loopReview`: initially `unreviewed`; merely
-  decoding a file or finding a caller cannot approve it.
-- `triggerCoverage`: `not_scanned`, `playback_request_found`,
-  `source_reference_found`, `no_static_reference_found`, `declared_only`, or
-  `proposed_not_integrated`.
-
-`AttachSourceEvidence` scans non-test Go function bodies under `cmd/ultimav` and
-`internal`, excluding catalog implementation from reference evidence. It ignores
-comments, string literals, and top-level declarations. It records file, line,
-function, and symbol. Literal cue arguments to known playback/builder methods
-receive a stronger `playback_request_found` classification; it does **not**
-resolve indirect control flow, prove a
-branch is reachable, or certify actual playback. Shared dispatch evidence for a
-music location is not a walkthrough of that location. A source-tree fingerprint
-covers scanned non-test Go files, including catalog code. A separate library
-fingerprint covers the embedded manifest. Tests catch missing cue coverage,
-invalid authored mappings, dangling links, and accidental acceptance claims.
-
-`library.json` owns provenance as well as assignments. The former text credit
-list has been migrated into individual recording entries; Git retains its
-history. There is no filename-prefix credit lookup. Source URLs alone do not
-establish license terms. `catalog_notes.go` owns initial listening observations
-and draft briefs, not provenance or playback assignments. Recording-
-specific diagnoses are bound to their old recording IDs and are not applied to
-new candidate assignments. Review notes still require human maintenance; report
-generation cannot accept recordings. GitHub Issues remain
-the sole work tracker; the generated guide is an inventory and production aid.
-The Markdown is table-first: grouped SFX, ambience, music tracks, location/context
-bindings, proposed moments, recordings/slots, and recording provenance. The
-provenance table is generated directly from the JSON and preserves source credit,
-original filenames, import lineage, and conversion/editing history independently.
-Full generation briefs follow
-the tables through row links; mixing-only issues such as bard/score priority do
-not automatically receive irrelevant new-recording prompts.
+Recording identity is independent of filename; semantic SFX uses stable symbol
+`sfx/SoundPushObject`, never display name/iota ordinal. Music track/location/context,
+ambient symbols and `proposed/<category>/<name>` remain distinct; proposed moments
+are not live triggers. Catalog dimensions (availability, assignment, listening/loop
+review, trigger coverage) stay independent. `AttachSourceEvidence` scans non-test
+function bodies under `cmd/ultimav`/`internal`, ignoring comments/strings/declarations
+and catalog code as evidence. Literal playback arguments are stronger than mere
+references, but scanning proves neither branch reachability nor audibility. Scanned
+source and embedded library have separate fingerprints. Reports never accept audio
+or own a second backlog; GitHub remains the work tracker.
 
 ### Provenance And Filename Conventions
 
-In **Recordings** or **Moments**, `Ctrl+L` opens a centred **Edit License** dialog
-for the selected recording (including the selected clip in a Moment's variant
-cycle). The dialog names the recording and shows its shared Moment count. Edit
-the prefilled text, use Ctrl+U to clear, Enter to apply, or Escape to cancel.
-Blank values are rejected without closing the dialog; use literal `unknown`
-when the license is undocumented. Apply changes only `provenance.license` as one
-undoable edit; Ctrl+S saves it to the manifest. Empty or missing audio files can
-have their license edited without decoding or changing their file, trim, gains,
-or other provenance. This records the supplied terms; it does not verify them.
+Production filenames follow recording IDs plus format extension. SFX live under
+`sounds/ambience`, `effects`, `footsteps`, `instruments`, `interactions`, `magic`;
+music under `music`, relative to assets. Imports use the destinations above. Keep
+experiments outside embedded assets. File moves preserve recording IDs, update `file`
+and preserve provenance; compare hashes for pure renames. Replacing bytes invalidates
+listening evidence for the former bytes. Do not overwrite a shared recording to
+change only one cue's assignment.
 
-Production filenames match their recording IDs plus the existing format extension.
-SFX are organized under `sounds/ambience/`, `sounds/effects/`,
-`sounds/footsteps/`, `sounds/instruments/`, `sounds/interactions/`, and
-`sounds/magic/`; music lives under `music/`. These paths are relative to
-`internal/audio/assets/`. Name a recording for its content, not an incorrect
-current usage: leaf footsteps remain leaf footsteps even when assigned to wood.
-
-All provenance is authored in each recording's `provenance` object:
-
-| Field | Meaning |
-|---|---|
-| `originalFilename` | Filename before production cleanup, or `unknown`. It is not necessarily the remote source's original filename. |
-| `sourceType` | How the material originated, such as `download`, `midi_conversion`, or `unknown`. |
-| `sourceUrl` | Original download/source reference, or `unknown`. |
-| `sourceCreator` | Known source creator/handle, or `unknown`; conversion alone does not establish authorship. |
-| `license` | Known license terms, or `unknown`. |
-| `importedFrom` | Repository/import lineage when known; distinct from the original source URL. |
-| `processing` | Documented steps with `description`, `tool`, and `performedBy`; `[]` means no steps documented, not proof of no editing. |
-
-All text fields must be nonempty; use the literal `unknown` for missing facts.
-An absent/null provenance object or processing array is invalid. Unknown values
-remain explicit in generated JSON and the readable provenance table. Unregistered
-files have unknown provenance until a recording entry is authored.
-
-The existing music tracks were converted by Brad Hannah in Audacity from MIDI
-files found online. Their provenance records this confirmed processing history
-while leaving the MIDI source URL, source creator, and license as `unknown`.
-Their `originalFilename` preserves the pre-cleanup MP3 name, not a guessed MIDI
-filename. Prompt-shaped SFX filenames are not evidence of a generation platform;
-those source details remain unknown until supplied.
-
-When moving or renaming an asset, keep its recording ID stable and update `file`.
-Preserve the original filename and provenance, and compare byte hashes if the
-operation is intended to be a pure rename. The catalog does not infer credit
-from the new filename, directory, or cue assignment.
+Each recording, including null slots, supplies original filename, source type/URL,
+creator, license, import lineage and processing steps (description/tool/performedBy).
+Unknown text is literal `unknown`; empty processing means undocumented, not unedited.
+Source URLs alone do not establish licensing; filenames do not establish authorship
+or a generation platform. Music's confirmed Audacity MIDI conversion by Brad Hannah
+is processing, not MIDI authorship: original online sources/creators/licenses remain
+unknown. `catalog_notes.go` owns recording-bound observations/briefs, not provenance
+or assignments; old-recording diagnoses do not follow replacement candidates.
 
 ### Player-Facing Attribution
 
-Main-menu Acknowledgments uses `RecordingCredits()` to read the validated
-embedded manifest without building the diagnostic catalog, decoding/hash-scanning
-recordings, constructing players, or requiring sound to be enabled. It returns
-one detached credit per non-null recording, in stable recording-ID order, with
-cloned processing slices. Cue reuse does not multiply credits; empty future
-slots are omitted. Improvements to the manifest flow into credits on rebuild.
+Main-menu Acknowledgments uses detached, stable-ID `RecordingCredits()` from validated
+metadata, without decoding/catalog/hash scans/players or enabled sound. Each non-null
+recording appears once regardless of cue reuse. Processing slices are cloned.
+Music/effects are separated; retained original filename falls back to basename.
+Only identical attribution combinations group, preserving every work/license/processing
+statement verbatim. URLs display as plain text; import URLs, hashes, cue IDs and
+calibration are not creator attribution. Missing facts are labelled not recorded.
 
-The document separates music and effects, identifies recordings by retained
-original filename (falling back to the current basename when unknown), and
-groups only identical source type/creator/URL/license/processing combinations.
-Each distinct work name and every distinct supplied license/processing statement
-survives. Freeform `license` strings can contain the only creator/work/source
-credit; they are rendered verbatim, without parsing them into guessed metadata.
-Source URLs are plain text. Internal import URLs, hashes, cue IDs and calibration
-are not displayed as creator attribution. Missing attribution is labelled as
-not recorded, and processing/conversion is always separate from authorship.
-
-The bundled-asset reconciliation retains three unassigned legacy recordings:
-`legacy_water_01` preserves the Water/danielpodlovics supplied credit already
-recorded on `coin_splash_01`; its MP3 conversion history remains unknown.
-`legacy_healing_01` / `legacy_healing_02` preserve the original manifest's
-`HealingSound.wav` / `HealingSound2.wav` identities and recorded import lineage,
-with authorship and license still unknown. They do not inherit the
-credits of the newer replacements assigned to `healing_01` / `healing_02`.
-Registering these retained files does not assign them to playback cues. The
-retired `Credit.txt`'s nine source links remain covered by the existing manifest
-and provenance tests; a metadata-only inventory regression checks all bundled
-audio has a recording entry.
+Retained unassigned `legacy_water_01`, `legacy_healing_01`, `legacy_healing_02` are
+media identities, not obsolete engine code. Preserve their source credits/unknowns
+and import lineage. They do not inherit newer replacements' licenses. The retired
+Credit.txt's nine source links remain covered by manifest/provenance regressions;
+every bundled file has a recording entry. Source MIT does not relicense media.
 
 ### Calibration And Recording Acceptance
 
-Keep three decisions separate:
+Keep recording calibration, contextual cue gain and player preference separate.
+Unset calibration is not accepted zero; configuredGain is cue amplitude, not final
+output level. SDK measurements are diagnostics, not certified perceptual approval.
 
-1. **Recording calibration:** choose consistent perceived strength within a
-   family/variant set, starting from the agreed provisional Auto baseline where
-   useful. Preserve the original recording and provenance. An unset
-   `calibrationGainDb` is JSON `null`, not an approved zero adjustment. A numeric
-   gain records treatment, not human listening acceptance.
-2. **Context treatment:** decide how that calibrated recording should sit in a
-   specific gameplay moment. Shared healing audio and its quieter per-character
-   tick may have different context gains without duplicating the recording.
-3. **User preferences:** record music/SFX/ambient slider settings as listening
-   context. They must not silently become authored production defaults.
+For reference listening, record fixed output device, category/OS/hardware levels,
+revision and byte fingerprint. Choose provisional family references (grass steps,
+ordinary door, healing, forest/stream, exploration score), compare variants alone
+and in environmental mix, then check indoor interaction, repeated grate walking,
+bard/score, magic/spell layering and extended exploration on headphones/speakers.
+Keep routine effects restrained. Record exact dB/context values and approval separately
+from saved calibration; distinguish missing triggers/metadata from missing material.
+Generated/sourced candidates need provenance, editing notes, tail/seam/click/clipping
+and repetition review before integration. A brief should specify event/sequence,
+duration, material/family, variants, looping and exclusions; generation is not acceptance.
 
-Use decibels for authored relative adjustments: amplitude multiplier
-`10^(dB/20)`, and `20*log10(amplitude)` for nonzero amplitude. Mute is a separate
-zero-amplitude state, not a finite dB value. The existing `configuredGain` is
-**not** a calibrated level or final output amplitude: it reports the cue's
-authored contextual amplitude. The catalog reports recording calibration
-separately, and its gain semantics describe continuous runtime composition.
-Do not infer accepted mix targets from existing coefficients.
+### Implementation map and regression ownership
 
-The optional measurement pass streams stereo signed 16-bit decoded PCM at
-44.1 kHz. Duration divides decoded byte length by both sample rate and four bytes
-per stereo frame. Sample peak and whole-recording RMS are diagnostic measures,
-not LUFS, true peak, or a perceptual score. A null measured level means silence
-when `pcmMeasured` is true; otherwise null means not measured. Long silence can
-depress RMS, and a peak-normalized
-impact can still sound far louder than an ambient bed. The editor's selected-region
-estimators and agreed family starting targets are described under
-[Auto-Gain And Manual Overrides](#auto-gain-and-manual-overrides). Use suitable
-audio tools when certified integrated/short-term loudness or true-peak measurements
-are needed; the starting targets are not a universal LUFS or final mix standard.
+- `audio_manager.go`, `game_audio_*.go`: live facade, settings/world adaptation and diagnostics.
+- `sound_effects.go`, `voice_ownership.go`, `walking_sounds.go`: semantic requests/cleanup and step policy.
+- `music_manager.go`, `music_policy.go`, `music_ownership.go`: score selection/history/holds.
+- `ambient_projection.go`, `ambient_sources.go`, `routing*.go`: game grouping/world interpretation.
+- `configuration.go`, `calibration_policy.go`: preference curve and family targets.
+- `library*.go`, `assets/library.json`: immutable game metadata/assets and Redux validation.
+- `catalog*.go`, `cmd/audio-catalog`: game enrichment and report launcher.
+- `tooling/`, `cmd/audio-editor`: Redux authoring preset and tool launcher.
+- `game_audio*_test.go`, `game_ambient_test.go`, metadata/policy tests: live adapter and game contracts.
+- `testdata/berad-audio-redux`: isolated JSON/planning/tool-policy public-API integration.
+- SDK runtime/authoring/PCM/tool tests: mechanism, publication, analysis, editor/session and backend behavior.
+- `scripts/check-audio-module`: consumed-pin/production boundary, including rejection of retired test engines.
 
-Reference listening procedure:
-
-1. Record output device, category sliders, OS/hardware listening volume, and
-   source revision/fingerprint. Keep this setup fixed for A/B comparisons.
-2. Choose a provisionally useful reference per family: isolated grass footsteps,
-   ordinary door interaction, healing, forest/stream ambience, and an exploration
-   track are starting candidates, **not** automatically accepted standards.
-3. Compare variants in isolation, then over the actual environmental mix. Frequent
-   footsteps/interactions should stay restrained; special-event scale must not
-   turn routine success into a loud fanfare.
-4. Check quiet indoor interaction, sustained grate walking, forest/stream with
-   score, tavern bard versus score, magical sources, spell layering, and extended
-   exploration. Listen on both headphones and speakers at comfortable levels.
-5. Retain exact authored dB/context values and observations. Evaluate the agreed
-   provisional targets in context and record listening approval separately from
-   automatic calibration or a saved Manual adjustment. Mark missing
-   triggers/metadata separately from missing material. The catalog does not imply
-   every declared cue is audible.
-
-For ElevenLabs or other sourcing, use the generated guide to choose a small
-batch. Start with clearly incorrect physical cues such as push, unlock, and glass
-break. Each brief should specify one event versus a sequence, duration/tail,
-material or magic family, variants, loop requirements, and exclusions such as
-voice/music. Keep generation prompt/source details, candidate files, and editing
-notes with the delivered material. Trim leading silence, inspect tails/seams,
-check clipping, and audition repetition before integrating. A generated file is
-a candidate, not a passed listening check. Absent metadata/trigger coverage still
-requires code integration after the recording is supplied.
-
-- `internal/audio/audio_manager.go`: facade and public operations
-- `internal/audio/sound_effects.go`: sound instances, assets, fades, and cleanup
-- `internal/audio/background_music.go`: music assets and playback
-- `internal/audio/music_manager.go`: location/context selection
-- `internal/audio/ambient_sounds.go`: proximity ambience
-- `internal/audio/configuration.go`: volume conversion and validation
-- `internal/audio/library.go`: strict authored-manifest validation and resolution
-- `internal/audio/assets/library.json`: editable recordings, cue assignments, and audition instructions
-- `internal/audio/catalog*.go`: derived inventory, source evidence, annotations, and report
-- `cmd/audio-editor/main.go`: standalone Bubble Tea editor and read-only/device probes
-- `internal/audio/tooling/`: Redux project policy for shared authoring and TUI
-- SDK `modules/berad-audio/authoring`: document/history, analysis and transactional publication
-- SDK `tools/berad-audio/editor`, `session`, `audition`: terminal UI, detached operations and owned audition
-- SDK `tools/berad-audio/catalog`, `project`, `runtimeprobe`: reporting, explicit project loading and native probes
-- `cmd/audio-catalog/main.go`: offline JSON/recording-guide export
-- `internal/audio/sound_excerpt.go`: bounded metal-footfall selection
-- `internal/game_state/sound_builder.go`: callback builders
-- `cmd/ultimav/gamescene_audio.go`: `GameScene` adapter
-- `internal/audio/*_test.go`: focused audio tests
-- `internal/game_state/sound_builder_test.go`: request construction and single-dispatch tests
-
-Use [Workbench Logging Control](LOGGING_SYSTEM.md#runtime-control) with the audio category for runtime diagnostics.
+Legacy playback/authoring implementations and their duplicate suites are retired.
+Game-policy assertions now exercise the live facade/pure policy or isolated tool
+adapter; neutral lifecycle/measurement regressions live with SDK mechanisms. Tests
+must not add a second engine to make old private-field assertions compile.
+Use [Workbench Logging Control](LOGGING_SYSTEM.md#runtime-control) with audio for diagnostics.

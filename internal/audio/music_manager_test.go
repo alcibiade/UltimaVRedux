@@ -10,11 +10,8 @@ import (
 
 // TestMusicManager_GetMusicForLocation tests location-based music mapping
 func TestMusicManager_GetMusicForLocation(t *testing.T) {
-	audioManager, err := NewAudioManager()
-	assert.NoError(t, err, "AudioManager creation should succeed")
-	defer audioManager.Close()
-
-	musicManager := NewMusicManager(audioManager)
+	audioManager, _, _ := gameAudioFixture(t)
+	musicManager := audioManager.policy
 
 	tests := []struct {
 		location      references.Location
@@ -42,11 +39,8 @@ func TestMusicManager_GetMusicForLocation(t *testing.T) {
 
 // TestMusicManager_GetMusicForContext tests context-based music mapping
 func TestMusicManager_GetMusicForContext(t *testing.T) {
-	audioManager, err := NewAudioManager()
-	assert.NoError(t, err, "AudioManager creation should succeed")
-	defer audioManager.Close()
-
-	musicManager := NewMusicManager(audioManager)
+	audioManager, _, _ := gameAudioFixture(t)
+	musicManager := audioManager.policy
 
 	tests := []struct {
 		context       string
@@ -84,11 +78,8 @@ func TestMusicContextLookupPreservesDefaultAndExplicitSilence(t *testing.T) {
 
 // TestMusicManager_LocationMappingCompleteness tests that all major locations have mappings
 func TestMusicManager_LocationMappingCompleteness(t *testing.T) {
-	audioManager, err := NewAudioManager()
-	assert.NoError(t, err, "AudioManager creation should succeed")
-	defer audioManager.Close()
-
-	musicManager := NewMusicManager(audioManager)
+	audioManager, _, _ := gameAudioFixture(t)
+	musicManager := audioManager.policy
 
 	// Test that all major location types have appropriate mappings
 	allMappings := musicManager.GetAllLocationMusicMappings()
@@ -115,11 +106,8 @@ func TestMusicManager_LocationMappingCompleteness(t *testing.T) {
 
 // TestMusicManager_StateManagement tests music manager state operations
 func TestMusicManager_StateManagement(t *testing.T) {
-	audioManager, err := NewAudioManager()
-	assert.NoError(t, err, "AudioManager creation should succeed")
-	defer audioManager.Close()
-
-	musicManager := NewMusicManager(audioManager)
+	audioManager, _, _ := gameAudioFixture(t)
+	musicManager := audioManager.policy
 
 	// Test initial state
 	assert.True(t, musicManager.IsEnabled(), "Music manager should be enabled by default")

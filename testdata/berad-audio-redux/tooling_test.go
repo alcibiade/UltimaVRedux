@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	gameaudio "github.com/bradhannah/UltimaVRedux/internal/audio"
@@ -37,6 +38,23 @@ func TestReduxToolProjectPreservesPolicyAndSharedAuthoringRoundTrip(t *testing.T
 		t.Fatal(err)
 	}
 	options := tooling.AudioEditorOptions()
+	for _, slot := range []struct {
+		cue, recording string
+		terms          []string
+	}{
+		{"sfx/SoundDispel", "field_dispel_01", []string{"sceptre", "an grav", "field removal", "fizzle", "dungeon"}},
+		{"sfx/SoundElectricalDamage", "electrical_injury_01", []string{"electrical field", "shock", "injury", "dungeon"}},
+	} {
+		for _, term := range slot.terms {
+			if !strings.Contains(strings.ToLower(doc.SearchText(slot.cue, true)), term) ||
+				!strings.Contains(strings.ToLower(doc.SearchText(slot.recording, false)), term) {
+				t.Fatalf("game trigger search lost %q for %s", term, slot.cue)
+			}
+		}
+		if doc.FileAvailability(slot.recording).State != authoring.RecordingNoFile {
+			t.Fatal("silent slot changed")
+		}
+	}
 	if err := editor.ValidateOptions(doc, options); err != nil {
 		t.Fatal(err)
 	}

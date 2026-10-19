@@ -22,8 +22,11 @@ func TestGameBuildCannotContainLegacyPlaybackEngines(t *testing.T) {
 	current := false
 	for _, entry := range entries {
 		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") {
 			continue
+		}
+		if strings.HasPrefix(name, "legacy_") {
+			t.Errorf("retired audio implementation fixture returned: %s", name)
 		}
 		file, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, name), nil, 0)
 		if err != nil {
@@ -32,7 +35,7 @@ func TestGameBuildCannotContainLegacyPlaybackEngines(t *testing.T) {
 		ast.Inspect(file, func(node ast.Node) bool {
 			if declaration, ok := node.(*ast.TypeSpec); ok {
 				if retired[declaration.Name.Name] {
-					t.Errorf("legacy engine %s returned to production file %s", declaration.Name.Name, name)
+					t.Errorf("retired audio implementation %s returned in %s", declaration.Name.Name, name)
 				}
 				current = current || declaration.Name.Name == "GameAudioManager"
 			}
