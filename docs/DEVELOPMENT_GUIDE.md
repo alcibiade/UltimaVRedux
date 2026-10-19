@@ -40,7 +40,7 @@ separately. `make validate` is local/offline and fails rather than downloading a
 missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
-The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-audio)
+The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/564225ae5d47/modules/berad-audio)
 lives in the separate public SDK repository. `make tools` provisions the game's
 pinned dependencies, including audio. `make audio-module-check` exercises and
 lints the game-owned bridge against that published SDK version. SDK unit/race and
@@ -57,7 +57,7 @@ contracts are linked upstream rather than maintained twice. No assistant or
 private tooling is required to use these public contracts.
 
 The terminal editor and report implementation now come from the separately pinned
-[audio tools module](https://github.com/bradhannah/berad-sdk/tree/81526f97e7c9/tools/berad-audio).
+[audio tools module](https://github.com/bradhannah/berad-sdk/tree/9cdcab017041/tools/berad-audio).
 Use `make audio-editor`, `make audio-catalog`, and `make audio-catalog-export`
 for Redux-configured launchers/reports. Existing editor probe flags remain supported.
 For a single build-and-open command, run `make audio-editor-run` in this checkout.
@@ -67,7 +67,7 @@ removes known executables; `make clean-audio-reports` removes derived reports.
 Neither deletes authored JSON/media, player settings or `bin/tools` validators.
 
 Text rendering similarly consumes the pinned
-[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-text).
+[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/564225ae5d47/modules/berad-text).
 `internal/text` is the game's asset/semantic/history adapter; its fonts, glyph
 rendering, retained geometry and image cache use the SDK. SDK source/public-consumer
 and native-render regressions belong upstream. Game `internal/text`, widget and
@@ -77,7 +77,7 @@ and [ADR-011](ADR/ADR-011-berad-text.md). The module is experimental; this does 
 claim a stable SDK release or new Windows/Linux native acceptance.
 
 Graphics integration consumes the published
-[Berad Graphics module](https://github.com/bradhannah/berad-sdk/tree/57067fb66236/modules/berad-graphics).
+[Berad Graphics module](https://github.com/bradhannah/berad-sdk/tree/564225ae5d47/modules/berad-graphics).
 Sprite and VFX facades retain game artwork/palette/phase policy while the SDK owns
 pixel operations and resource reuse. Sprite, visual, portrait and scene render
 tests exercise the actual pin; independent synthetic/native SDK tests stay upstream.

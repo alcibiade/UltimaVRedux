@@ -8,10 +8,11 @@ decoupling; [ADR-010](../ADR/ADR-010-reusable-audio-module.md) records SDK adopt
 
 Title/game scenes construct `internal/audio.GameAudioManager`, a Redux adapter over
 published Berad Audio dependencies. Redux pins runtime/authoring
-`v0.0.0-20261019154938-302457e108b8` and tools
-`v0.0.0-20261019161957-81526f97e7c9`, without replacements or a sibling checkout.
-These revisions include the SDK-wide strict lint cleanup and retain the published
-playback/authoring APIs. The SDK's own full-source gate covers dependency code;
+`v0.0.0-20261019225412-564225ae5d47` and tools
+`v0.0.0-20261019234241-9cdcab017041`, without replacements or a sibling checkout.
+These revisions trim unused experimental APIs while retaining the gameplay and
+editor/catalog/probe workflows. Runtime voices expose Stop/Status; music and
+audition retain their separate production transport controls. The SDK's own full-source gate covers dependency code;
 Redux's gate covers the consuming adapters and application behavior.
 
 | Owner | Responsibility |
@@ -27,11 +28,11 @@ Redux's gate covers the consuming adapters and application behavior.
 
 Reusable contracts and generic operation are maintained upstream:
 
-- [Runtime contract](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-audio/README.md).
-- [Authoring, analysis and publication](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-audio/docs/AUTHORING.md).
-- [Editor controls and workflows](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/tools/berad-audio/docs/EDITOR.md).
-- [Catalog contract](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/tools/berad-audio/docs/CATALOG.md)
-  and [neutral quickstart](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-audio/docs/QUICKSTART.md).
+- [Runtime contract](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/README.md).
+- [Authoring, analysis and publication](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/docs/AUTHORING.md).
+- [Editor controls and workflows](https://github.com/bradhannah/berad-sdk/blob/9cdcab017041/tools/berad-audio/docs/EDITOR.md).
+- [Catalog contract](https://github.com/bradhannah/berad-sdk/blob/9cdcab017041/tools/berad-audio/docs/CATALOG.md)
+  and [neutral quickstart](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/docs/QUICKSTART.md).
 
 These are current compatible guidance; `go.mod` remains the authority for the
 application's consumed revisions. SDK owns reusable mechanism changes and tests;

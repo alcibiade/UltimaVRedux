@@ -58,6 +58,9 @@ Berad Graphics supplies the silhouette and additive draw mechanisms; gate stages
 row clipping, transforms, pulse policy and travel sequencing remain game-owned.
 Application-lifetime moongate artwork can outlive its originating sprite sheet's
 scene. Scene disposal must not deallocate those read-only borrowed frames/masks.
+These live silhouette/additive mechanisms remain part of the reduced Graphics v0
+surface. The removed SDK HSV and frame/animation wrappers do not participate in
+gate rendering; ordinary opacity still uses the host's `ColorScale.ScaleAlpha`.
 
 ## Travel Workflow
 

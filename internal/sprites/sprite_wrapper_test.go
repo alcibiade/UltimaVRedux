@@ -1,10 +1,41 @@
 package sprites
 
 import (
+	"image"
+	"image/color"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestStandardNPCPipelinePreservesPreparedBorderGeometry(t *testing.T) {
+	source := ebiten.NewImage(16, 16)
+	t.Cleanup(source.Deallocate)
+	source.Set(0, 0, color.RGBA{R: 80, A: 128})
+	bordered := WrapSpriteWith18x18Border(source)
+	t.Cleanup(bordered.Deallocate)
+	processor := NewTileEffectProcessor(nil)
+	t.Cleanup(processor.graphics.Close)
+	outlined := processor.ApplyDynamic(bordered, StandardNPCPipeline)
+	require.Equal(t, image.Rect(0, 0, 18, 18), outlined.Bounds(), "outline stage must not add a second border")
+	for y := range 18 {
+		for x := range 18 {
+			want := color.RGBA{}
+			if x < 3 && y < 3 {
+				want.A = 255
+			}
+			if x == 1 && y == 1 {
+				want = color.RGBA{R: 80, A: 128}
+			}
+			require.Equal(t, want, color.RGBAModel.Convert(outlined.At(x, y)), "pixel %d,%d", x, y)
+		}
+	}
+	require.Equal(t, color.RGBA{R: 80, A: 128}, color.RGBAModel.Convert(source.At(0, 0)))
+	require.Equal(t, image.Rect(0, 0, 16, 16), processor.ApplyDynamic(source, StandardNPCPipeline).Bounds(),
+		"padding is explicitly prepared by the caller, not inferred by outlining")
+}
 
 func TestWrapSpriteWith18x18Border_NilSafety(t *testing.T) {
 	result := WrapSpriteWith18x18Border(nil)

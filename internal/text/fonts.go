@@ -29,7 +29,7 @@ var ultimaSDKSource = sync.OnceValue(func() *beradtext.Source {
 //nolint:gochecknoglobals // Existing engine callers share the SDK's read-only source.
 var ultimaFontSource = sync.OnceValue(func() *etext.GoTextFaceSource {
 	font, err := ultimaSDKSource().NewFont(beradtext.FontOptions{
-		Size: 1, Language: language.English, Features: nil, Variations: nil,
+		Size: 1, Language: language.English,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("creating mandatory font face: %v", err))
@@ -60,7 +60,7 @@ func NewUltimaFont(size float64) *UltimaFont {
 
 // MeasureString uses the same immutable SDK configuration as rendering.
 func (f *UltimaFont) MeasureString(value string) (float64, float64) {
-	width, height, err := f.sdkForScale(1).Measure(value, 0)
+	width, height, err := f.sdkForScale(1).Measure(value)
 	if err != nil {
 		panic(fmt.Sprintf("measuring game text: %v", err))
 	}
@@ -83,7 +83,7 @@ func (f *UltimaFont) Metrics() beradtext.Metrics {
 func (f *UltimaFont) sdkForScale(scale float64) *beradtext.Font {
 	if f.sdkFont == nil || f.sdkFont.Size() != f.TextFace.Size || f.sdkLanguage != f.TextFace.Language {
 		font, err := ultimaSDKSource().NewFont(beradtext.FontOptions{
-			Size: f.TextFace.Size, Language: f.TextFace.Language, Features: nil, Variations: nil,
+			Size: f.TextFace.Size, Language: f.TextFace.Language,
 		})
 		if err != nil {
 			panic(fmt.Sprintf("configuring game font: %v", err))

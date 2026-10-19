@@ -61,6 +61,7 @@ func (md *MessageDialog) updateDissolveAnimation() {
 		if progress >= 1.0 {
 			md.dissolveLevel = 0.0
 			md.fadeState = fadeNone
+			md.disposeDissolveEffect()
 		} else {
 			md.dissolveLevel = 1.0 - progress
 		}
@@ -74,31 +75,42 @@ func (md *MessageDialog) updateDissolveAnimation() {
 			md.dissolveLevel = 1.0
 			md.fadeState = fadeNone
 			md.visible = false
-			md.dissolveEffect = nil
+			md.disposeDissolveEffect()
 		} else {
 			md.dissolveLevel = progress
 		}
 		if md.dissolveEffect != nil {
 			md.dissolveEffect.UpdateProgress(md.dissolveLevel)
 		}
+	case fadeNone:
+	}
+}
+
+// disposeDissolveEffect retires only this dialog's mask owner. The content buffer
+// and images borrowed from other owners remain valid across visibility changes.
+func (md *MessageDialog) disposeDissolveEffect() {
+	if md.dissolveEffect != nil {
+		md.dissolveEffect.Dispose()
+		md.dissolveEffect = nil
 	}
 }
 
 // Show makes the dialog visible with fade-in animation if effects enabled, otherwise appears instantly.
 func (md *MessageDialog) Show() {
+	md.disposeDissolveEffect()
 	md.visible = true
 	md.animationStarted = true
 	if md.enableDissolveEffects {
 		md.fadeState = fadingIn
 		md.dissolveLevel = 1.0
 		md.fadeStartTime = md.animationClock()
-		md.dissolveEffect = nil
 	}
 	md.contentDirty = true
 }
 
 // ShowWithoutAnimation makes the dialog visible immediately, bypassing any fade-in effects.
 func (md *MessageDialog) ShowWithoutAnimation() {
+	md.disposeDissolveEffect()
 	md.visible = true
 	md.animationStarted = true
 	md.fadeState = fadeNone
@@ -108,6 +120,7 @@ func (md *MessageDialog) ShowWithoutAnimation() {
 
 // Hide begins fade-out animation if effects enabled, then hides dialog, otherwise hides instantly.
 func (md *MessageDialog) Hide() {
+	md.disposeDissolveEffect()
 	md.animationStarted = true
 	if md.enableDissolveEffects {
 		md.fadeState = fadingOut
@@ -124,18 +137,17 @@ func (md *MessageDialog) Hide() {
 	}
 }
 
-// getDissolveModeForHide returns the dissolve mode for hide animation
-// This helper allows flexible future enhancement
+// getDissolveModeForHide returns the concealment mode used for fade-out.
 func (md *MessageDialog) getDissolveModeForHide() visual.DissolveMode {
 	return visual.DissolveModeHide
 }
 
 // HideWithoutAnimation hides the dialog immediately, bypassing any fade-out effects.
 func (md *MessageDialog) HideWithoutAnimation() {
+	md.disposeDissolveEffect()
 	md.visible = false
 	md.fadeState = fadeNone
 	md.dissolveLevel = 0.0
-	md.dissolveEffect = nil
 }
 
 // IsVisible returns true if the dialog is currently visible on screen.

@@ -30,8 +30,16 @@ shutdown must preserve longer-lived moongate borrowers and shared test sheets.
 
 Preserve sleep-field alpha-only modulation and independent additive RGB/alpha
 semantics. Name additive presets accurately rather than silently altering their
-appearance. New SDK HSV facilities are separate capabilities, not changes to
-Redux's lighting. Retire uncalled builder options and duplicate pixel kernels.
+appearance. Retire uncalled builder options and duplicate pixel kernels.
+
+The production-surface review narrows the experimental dependency to used
+mechanisms. Redux keeps native frame arrays/transforms and draw opacity rather
+than adopting unused SDK HSV, Frame/Animation or CPU tint/opacity/crop facilities.
+Padding remains native `CopyRegion`/`Insets`; the redundant dynamic border preset
+is removed because sprite selection already supplies bordered artwork. This
+avoids maintaining a second frame/placement model or future-only API promises.
+Explicit cache budgets, invalidation and resource closure remain essential even
+when a particular owner currently uses an application-long lifetime.
 
 ## Consequences
 
@@ -48,4 +56,4 @@ dependency with platform-specific acceptance, not a stable SDK release.
 
 See [sprite integration](../systems/SPRITE_OUTLINE_SYSTEM.md),
 [VFX ownership](../systems/VISUAL_EFFECTS_SYSTEM.md), and the
-[SDK API contract](https://github.com/bradhannah/berad-sdk/blob/feat/berad-graphics/modules/berad-graphics/docs/API.md).
+[SDK API contract](https://github.com/bradhannah/berad-sdk/blob/main/modules/berad-graphics/docs/API.md).

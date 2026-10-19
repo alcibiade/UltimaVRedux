@@ -39,7 +39,7 @@ func CloseRenderer() {
 }
 
 func newTextLayout(value string, font *beradtext.Font) *beradtext.Layout {
-	content, err := beradtext.NewContent([]beradtext.Span{{Text: value, Font: font, Paint: "", Tag: ""}})
+	content, err := beradtext.NewContent([]beradtext.Span{{Text: value, Font: font, Paint: ""}})
 	if err != nil {
 		panic(fmt.Sprintf("composing game text: %v", err))
 	}
@@ -83,7 +83,7 @@ func drawLayoutWithClip(
 ) {
 	before := textRenderer.Stats()
 	if err := textRenderer.Draw(target, layout, palette, beradtext.DrawOptions{
-		GeoM: options.GeoM, Filter: options.Filter, Clip: nil, LocalClip: localClip, Uncached: false,
+		GeoM: options.GeoM, Filter: options.Filter, LocalClip: localClip,
 	}); err != nil {
 		panic(fmt.Sprintf("drawing game text: %v", err))
 	}

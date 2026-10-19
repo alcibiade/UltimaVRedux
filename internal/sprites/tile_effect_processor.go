@@ -184,22 +184,15 @@ func (processor *TileEffectProcessor) HasEffect(sprite indexes.SpriteIndex) bool
 	return exists
 }
 
-// ApplyDynamic interprets the game's border/outline preset and delegates generation/cache ownership.
+// ApplyDynamic outlines supplied artwork and delegates generation/cache ownership.
+// SpriteSheet and WrapSpriteWith18x18Border prepare padding before this stage.
 func (processor *TileEffectProcessor) ApplyDynamic(source *ebiten.Image, pipeline TileEffectPipeline) *ebiten.Image {
 	if source == nil {
 		return nil
 	}
 	var operations []graphics.Operation
-	var padding graphics.Insets
-	for index, effect := range pipeline.Effects {
+	for _, effect := range pipeline.Effects {
 		switch effect.Algorithm {
-		case EffectBorderWrap:
-			if index != 0 {
-				panic("game border operation must precede outlines")
-			}
-			if source.Bounds().Dx() == OriginalTileSize && source.Bounds().Dy() == OriginalTileSize {
-				padding = graphics.Insets{Left: 1, Top: 1, Right: 1, Bottom: 1}
-			}
 		case EffectOutline:
 			if effect.OutlineColor != NoOutline && effect.Intensity > 0 {
 				paint := outlineColour(effect.OutlineColor.GetOutlineColor(), effect.Intensity)
@@ -209,18 +202,6 @@ func (processor *TileEffectProcessor) ApplyDynamic(source *ebiten.Image, pipelin
 			EffectPulse, EffectBrightnessPulse:
 			panic("generated tile operation used as a dynamic game preset")
 		}
-	}
-	var empty graphics.Insets
-	if padding != empty {
-		if processor.graphics == nil {
-			panic("missing mandatory graphics processor")
-		}
-		result, err := processor.graphics.PadAndDerive(source, padding, operations...)
-		if err != nil {
-			panic(fmt.Sprintf("derive bordered game sprite: %v", err))
-		}
-
-		return result
 	}
 	if len(operations) == 0 {
 		return source

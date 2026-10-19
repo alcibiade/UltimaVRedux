@@ -7,7 +7,7 @@ Sprite outlines are implemented as `EffectOutline` entries in the shared `sprite
 The same processor supports static entity outlines, item highlighting, quest-item treatment, and combat indicators. Overlay glows and auras use the separate `OverlayPipeline` and are not part of this system.
 
 Redux selects tile artwork, semantic colours, authored bounds, timing and presets.
-The pinned [Berad Graphics API](https://github.com/bradhannah/berad-sdk/blob/feat/berad-graphics/modules/berad-graphics/docs/API.md)
+The pinned [Berad Graphics API](https://github.com/bradhannah/berad-sdk/blob/main/modules/berad-graphics/docs/API.md)
 owns image operations, padding, contour generation and bounded resource reuse.
 See [ADR-012](../ADR/ADR-012-berad-graphics.md) for that boundary and its rationale.
 
@@ -17,12 +17,15 @@ Build reusable effect pipelines with the fluent builder:
 
 ```go
 pipeline := sprites.Effect().
-	AddBorder().
 	AddOutline(sprites.BlackOutline).
 	Build()
 ```
 
-`AddBorder` expands a 16x16 sprite to an 18x18 image with a transparent one-pixel border. Put it first when an outline must remain visible around source pixels that touch the sprite edge.
+`SpriteSheet` supplies already-bordered 18x18 artwork. For a separate owned 16x16
+source, call `WrapSpriteWith18x18Border` before outlining: it uses native
+`CopyRegion` with explicit one-pixel insets. The dynamic pipeline never resizes
+artwork. Its former `AddBorder` option and unused border-only preset were removed;
+the ordinary NPC path had already performed this padding during sprite selection.
 
 Apply a complete pipeline through the sprite sheet's processor:
 
@@ -49,7 +52,7 @@ Animated intensity values should be quantized before calling the cached intensit
 Predefined colors are represented by `OutlineColorType` in `internal/sprites/tile_effects.go`. They include general EGA colors plus combat-specific active, inactive, and threatened colors.
 
 Dynamic results use an SDK `Processor` with complete source, ordered operation,
-colour and padding identity. Each source/derived store is limited to 500 entries
+and colour identity. Each source/derived store is limited to 500 entries
 and 32 MiB of accounted payload. This accounting is not total GPU memory.
 Results are read-only borrows: never mutate or deallocate them. Cache eviction
 drops references without invalidating a retained borrower. Custom portrait
@@ -119,13 +122,13 @@ animation families and alternating-column water offsets remain game-owned.
 Sleep fields retain alpha-channel-only pulsing, preserving RGB. Protection fields
 retain RGB brightness modulation with unchanged alpha. Uncalled opacity/tint/glow
 builder methods and unused per-effect interval/bounds fields were retired rather
-than exposed as silently ignored options. Dynamic presets accept border/outline;
+than exposed as silently ignored options. Dynamic presets accept outlines;
 generated-only operations in that path are programming errors.
 
 ## Current Rendering Integration
 
 - The Avatar receives a black outline unless its sprite is integrated with background furniture or terrain.
-- Friendly NPCs, enemies, and vehicles receive `StandardNPCPipeline`, which adds an 18x18 border and black outline.
+- Friendly NPCs, enemies, and vehicles receive `StandardNPCPipeline`, which adds a black outline to the already-bordered 18x18 sprite.
 - Background-integrated NPC sprites skip the map-unit pipeline.
 - Ground item stacks receive a yellow outline, except gems.
 - Lord British artifacts receive a black outline before their overlay glow; shards use their overlay glow without an outline.
@@ -165,7 +168,7 @@ Static outlines need no clock. Callers that pulse intensity or alternate marchin
 - Outline configuration is not save-game state.
 - `ApplyDynamicOutlineRGBA` creates an owned copy on each call; portraits retain
   that copy until their source/status changes.
-- The pipeline builder validates non-empty pipelines and bounds, but callers must keep dimension-changing border wrap first.
+- The pipeline builder validates non-empty pipelines and bounds; callers prepare padding before dynamic outlining.
 
 ## Implementation References
 

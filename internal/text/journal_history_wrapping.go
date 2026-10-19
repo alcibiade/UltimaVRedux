@@ -31,7 +31,7 @@ func WrapJournalHistory(history string, font *UltimaFont, width int) []JournalHi
 
 			continue
 		}
-		content, err := beradtext.NewContent([]beradtext.Span{{Text: line, Font: font.sdkForScale(1), Paint: "", Tag: ""}})
+		content, err := beradtext.NewContent([]beradtext.Span{{Text: line, Font: font.sdkForScale(1), Paint: ""}})
 		if err != nil {
 			panic(fmt.Sprintf("composing retained game text: %v", err))
 		}

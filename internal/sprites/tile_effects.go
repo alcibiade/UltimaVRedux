@@ -72,7 +72,6 @@ const (
 	EffectOutline
 	EffectPulse
 	EffectBrightnessPulse
-	EffectBorderWrap
 )
 
 const (
@@ -94,7 +93,7 @@ func (algorithm EffectAlgorithm) PreferredFrameCount() int {
 	switch algorithm {
 	case EffectVerticalScroll, EffectTransparencyOverlay:
 		return waterFrameCount
-	case EffectVerticalRise, EffectWaveDisplace, EffectOutline, EffectPulse, EffectBrightnessPulse, EffectBorderWrap:
+	case EffectVerticalRise, EffectWaveDisplace, EffectOutline, EffectPulse, EffectBrightnessPulse:
 		return defaultFireFrameCount
 	default:
 		panic("unknown game effect algorithm")
@@ -246,11 +245,6 @@ func (builder *TileEffectBuilder) AddPulse(filter ColorFilter) *TileEffectBuilde
 // AddBrightnessPulse preserves protection-field RGB modulation with fixed alpha.
 func (builder *TileEffectBuilder) AddBrightnessPulse(filter ColorFilter) *TileEffectBuilder {
 	return builder.add(EffectBrightnessPulse, filter, -1)
-}
-
-// AddBorder applies the game's 16-to-18 presentation convention before outlining.
-func (builder *TileEffectBuilder) AddBorder() *TileEffectBuilder {
-	return builder.add(EffectBorderWrap, FilterAll, -1)
 }
 
 // Build validates this game-specific preset; generic SDK operations have their own errors.
