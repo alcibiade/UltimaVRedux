@@ -6,6 +6,9 @@ import (
 	"io/fs"
 	"path"
 	"strings"
+	"sync"
+
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // LibraryDocument is the versioned authoring schema. Loading makes a detached
@@ -26,10 +29,13 @@ type LibraryOptions struct {
 // Library owns an immutable document and one snapshot of each referenced encoded
 // asset. Filesystem changes after construction cannot silently retarget playback.
 type Library struct {
-	document     *audioLibrary
-	assets       map[string][]byte
-	prefix       string
-	encodedBytes int64
+	document      *audioLibrary
+	assets        map[string][]byte
+	prefix        string
+	encodedBytes  int64
+	playbackOnce  sync.Once
+	playback      *berad.Library
+	playbackError error
 }
 
 // NewLibrary validates a project without consulting Redux's embedded manifest.
@@ -53,7 +59,8 @@ func NewLibrary(data []byte, files fs.FS, options LibraryOptions) (*Library, err
 	if err != nil {
 		return nil, fmt.Errorf("mount audio assets: %w", err)
 	}
-	library := &Library{document: document, assets: make(map[string][]byte), prefix: "", encodedBytes: 0}
+	library := new(Library)
+	library.document, library.assets = document, make(map[string][]byte)
 	if root != "." {
 		library.prefix = root + "/"
 	}
@@ -93,19 +100,6 @@ func (library *Library) recordingPath(id string) string {
 	}
 
 	return library.prefix + *recording.File
-}
-
-func (library *Library) readFile(name string) ([]byte, error) {
-	if !strings.HasPrefix(name, library.prefix) {
-		return nil, fmt.Errorf("%w: asset %q is outside the library mount", ErrAudioLibrary, name)
-	}
-	relative := strings.TrimPrefix(name, library.prefix)
-	data, exists := library.assets[relative]
-	if !exists {
-		return nil, fmt.Errorf("%w: asset %q is not in this library", ErrAudioLibrary, name)
-	}
-
-	return data, nil // Internal decoders read, never mutate, immutable encoded bytes.
 }
 
 func validAssetPath(name string) bool {

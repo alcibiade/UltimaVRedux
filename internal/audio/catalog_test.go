@@ -1,13 +1,10 @@
 package audio
 
 import (
-	"bytes"
-	"encoding/binary"
 	"encoding/json"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -218,20 +215,6 @@ func actual() { callbacks.PlaySoundEffect(game_state.SoundPushObject) }
 	require.NoError(t, catalog.AttachSourceEvidence(root))
 	require.NotEqual(t, fingerprint, catalog.SourceTreeSHA256)
 	require.Len(t, findCatalogMoment(t, catalog, "sfx/SoundPushObject").Evidence, 1, "rescanning replaces evidence")
-}
-
-func TestPCMMeasurementsUseSignedSamplesAndNeverInventFiniteSilenceDB(t *testing.T) {
-	var buffer bytes.Buffer
-	require.NoError(t, binary.Write(&buffer, binary.LittleEndian, []int16{-16384, 16384, -16384, 16384}))
-	peak, rms, err := measureCatalogPCM(&buffer)
-	require.NoError(t, err)
-	require.Equal(t, 0.5, peak)
-	require.Equal(t, 0.5, rms)
-	require.InDelta(t, -6.0206, *amplitudeDB(peak), 0.0001)
-	require.Nil(t, amplitudeDB(0))
-	require.False(t, math.IsInf(*amplitudeDB(peak), 0))
-	_, _, err = measureCatalogPCM(bytes.NewReader([]byte{1}))
-	require.ErrorIs(t, err, ErrAudioCatalog)
 }
 
 func findCatalogMoment(t *testing.T, catalog *Catalog, id string) CatalogMoment {

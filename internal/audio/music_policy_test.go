@@ -343,12 +343,9 @@ func TestMusicPolicyMissingAndFailedTracksDoNotRetryEveryFrame(t *testing.T) {
 }
 
 func TestMusicManagerSameThemeAndNestedWorkflowOwnership(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, _ := gameAudioFixture(t)
 	policy, player, advance := newPolicyTest(t)
-	manager.musicManager.policy = policy
-	manager.assetsLoaded = true // This test uses only a fake music transport.
+	manager.policy.policy = policy
 	for _, location := range []references.Location{references.Britain, references.Britain, references.Minoc} {
 		require.NoError(t, manager.PlayMusicForLocation(location))
 	}
@@ -366,12 +363,9 @@ func TestMusicManagerSameThemeAndNestedWorkflowOwnership(t *testing.T) {
 }
 
 func TestMusicPolicyMutePreservesContextGain(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, _ := gameAudioFixture(t)
 	policy, player, advance := newPolicyTest(t)
-	manager.musicManager.policy = policy
-	manager.assetsLoaded = true
+	manager.policy.policy = policy
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
 	advance(musicFadeDuration)
 	require.NoError(t, manager.SetMusicVolume(0))
@@ -385,17 +379,15 @@ func TestMusicPolicyMutePreservesContextGain(t *testing.T) {
 }
 
 func TestMusicPolicyInstrumentOwnershipUsesPlayingVoices(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, _ := gameAudioFixture(t)
 	policy, player, advance := newPolicyTest(t)
-	manager.musicManager.policy = policy
+	manager.policy.policy = policy
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
 	require.NoError(t, manager.PlaySoundEffect(game_state.SoundHarpsichord0))
 	require.False(t, player.playing)
-	require.True(t, manager.soundEffectPlayer.hasInstrumentMusic())
+	require.True(t, manager.hasLocalMusic())
 	manager.StopSound(game_state.SoundStopRequest{Effect: game_state.SoundHarpsichord0})
-	require.False(t, manager.soundEffectPlayer.hasInstrumentMusic())
+	require.False(t, manager.hasLocalMusic())
 	advance(musicLocalRelease)
 	advance(0)
 	require.True(t, player.playing)
@@ -418,74 +410,53 @@ func TestMusicPolicyRepeatedOwnerRefreshDoesNotFreezeClock(t *testing.T) {
 }
 
 func TestMusicRequestWhileDisabledLoadsWhenEnabled(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, backend, _ := gameAudioFixture(t)
 	manager.SetEnabled(false)
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
-	require.False(t, manager.assetsLoaded)
+	require.Empty(t, backend.players)
 	manager.SetEnabled(true)
 	manager.Update()
-	require.True(t, manager.assetsLoaded)
-	require.True(t, manager.backgroundMusic.IsPlaying())
-	require.Equal(t, "town", manager.backgroundMusic.GetCurrentTrack())
+	require.Len(t, backend.players, 1)
+	require.True(t, manager.music.IsPlaying())
+	require.Equal(t, "town", manager.policy.GetCurrentTrack())
 }
 
 func TestMusicPlaybackResumesPositionAfterSameThemePreview(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, backend, _ := gameAudioFixture(t)
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
-	background := manager.backgroundMusic
-	background.player.Pause()
-	require.NoError(t, background.player.SetPosition(time.Second))
-	manager.musicManager.SetSuppressed(MusicMenu, true)
-	position := manager.musicManager.policy.position
-	require.GreaterOrEqual(t, position, time.Second)
+	require.NoError(t, backend.players[0].SetPosition(20*time.Millisecond))
+	manager.policy.SetSuppressed(MusicMenu, true)
+	position := manager.policy.policy.position
+	require.Equal(t, 20*time.Millisecond, position)
 	require.NoError(t, manager.PlayMusicPreview("town"))
 	manager.SetEnabled(false) // A paused preview can have exactly the same track ID.
 	manager.SetEnabled(true)
-	manager.musicManager.SetSuppressed(MusicMenu, false)
+	manager.policy.SetSuppressed(MusicMenu, false)
 	manager.Update()
-	resumed := background.Pause()
-	require.GreaterOrEqual(t, resumed, position)
-	require.Less(t, resumed-position, 100*time.Millisecond)
-	require.Equal(t, "town", background.GetCurrentTrack())
+	require.Equal(t, position, manager.music.Snapshot().Position)
+	require.Equal(t, "town", manager.policy.GetCurrentTrack())
 }
 
 func TestMusicPlaybackResumesPositionAfterPreviewIsClosed(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, backend, _ := gameAudioFixture(t)
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
-	background := manager.backgroundMusic
-	background.player.Pause()
-	require.NoError(t, background.player.SetPosition(time.Second))
-	manager.musicManager.SetSuppressed(MusicMenu, true)
-	position := manager.musicManager.policy.position
+	require.NoError(t, backend.players[0].SetPosition(20*time.Millisecond))
+	manager.policy.SetSuppressed(MusicMenu, true)
+	position := manager.policy.policy.position
 	require.NoError(t, manager.PlayMusicPreview("dungeon"))
 	require.NoError(t, manager.StopBackgroundMusic())
-	manager.musicManager.SetSuppressed(MusicMenu, false)
+	manager.policy.SetSuppressed(MusicMenu, false)
 	manager.Update()
-	resumed := background.Pause()
-	require.GreaterOrEqual(t, resumed, position)
-	require.Less(t, resumed-position, 100*time.Millisecond)
-	require.Equal(t, "town", background.GetCurrentTrack())
+	require.Equal(t, position, manager.music.Snapshot().Position)
+	require.Equal(t, "town", manager.policy.GetCurrentTrack())
 }
 
 func TestMusicPolicyBardOwnershipIncludesReleaseTailAndExcludesMutedBard(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, now := gameAudioFixture(t)
 	policy, player, advance := newPolicyTest(t)
-	manager.musicManager.policy = policy
+	manager.policy.policy = policy
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
-	now := time.Unix(100, 0)
-	manager.ambientSounds.now = func() time.Time { return now }
-	definition := manager.ambientSounds.soundTypeDefinitions[AmbientBard]
-	// The production tavern slot is intentionally empty until a recording is supplied.
-	// Exercise audible ownership with a local fixture, without changing the library.
-	definition.FileName = "assets/sounds/instruments/bard_lute_01.mp3"
+	definition := manager.AmbientEmitterDefinition("bard")
 	source := AmbientSoundSource{
 		Emitter: "bard", SoundType: AmbientBard, IsActive: true, IsDynamic: true,
 		SoundFile: definition.FileName, MaxDistance: definition.MaxDistance,
@@ -493,27 +464,26 @@ func TestMusicPolicyBardOwnershipIncludesReleaseTailAndExcludesMutedBard(t *test
 	}
 	source.SetBaseVolume(definition.BaseVolume)
 	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, []AmbientSoundSource{source})
-	require.True(t, manager.ambientSounds.hasBardMusic(), "initial fade-in already owns local music")
+	require.True(t, manager.hasLocalMusic(), "initial fade-in already owns local music")
 	manager.Update()
 	require.False(t, player.playing)
-	now = now.Add(time.Second)
+	*now = now.Add(time.Second)
 	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, []AmbientSoundSource{source})
 	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, nil)
-	require.True(t, manager.ambientSounds.hasBardMusic(), "release tail still owns music")
+	require.True(t, manager.hasLocalMusic(), "release tail still owns music")
 	require.NoError(t, manager.SetAmbientVolume(0))
-	require.False(t, manager.ambientSounds.hasBardMusic())
-	now = now.Add(definition.FadeOutTime)
+	require.False(t, manager.hasLocalMusic())
+	*now = now.Add(definition.FadeOutTime)
 	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, nil)
-	require.False(t, manager.ambientSounds.hasBardMusic())
+	manager.Update()
+	require.False(t, manager.hasLocalMusic())
 	advance(musicLocalRelease)
 	advance(0)
 	require.True(t, player.playing)
 }
 
 func TestMusicSchedulingConcurrentCategoryChangesAndDisable(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, _ := gameAudioFixture(t)
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
 	workers := []func() error{
 		func() error {
@@ -725,20 +695,4 @@ func TestCombatMusicMissingOrFailedDoesNotRetryEachFrame(t *testing.T) {
 		}
 		require.Equal(t, []string{musicCombatTrack}, player.starts)
 	}
-}
-
-func TestMusicResumeBoundsDeviceEstimatesToFiniteRecording(t *testing.T) {
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
-	require.NoError(t, manager.PlayBackgroundMusic("town"))
-	background := manager.backgroundMusic
-	background.Pause()
-	require.NoError(t, background.Resume("town", -time.Millisecond))
-	background.Pause()
-	duration := time.Duration(background.musicAssets["town"].Duration) * time.Millisecond
-	require.NoError(t, background.Resume("town", duration+time.Second))
-	require.LessOrEqual(t, background.Pause(), duration)
-	require.NoError(t, background.Stop())
-	require.NoError(t, background.Resume("town", duration+time.Second), "fresh streams use the same bounds")
 }

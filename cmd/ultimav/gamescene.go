@@ -266,7 +266,7 @@ type GameScene struct {
 	autoOpenDoorState *AutoOpenDoorState
 
 	// Audio system
-	audioManager *audio.AudioManager
+	audioManager *audio.GameAudioManager
 	ambientTiles []audio.TileWithPosition // Borrowed by the synchronous audio update; refilled each scan.
 
 	// Debug overlay renderer

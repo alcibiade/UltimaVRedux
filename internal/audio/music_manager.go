@@ -3,6 +3,7 @@ package audio
 import (
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -11,7 +12,7 @@ import (
 // MusicManager handles location-based background music selection and playback
 // Maps specific locations to appropriate music tracks for atmospheric gameplay
 type MusicManager struct {
-	audioManager      *AudioManager
+	audioManager      musicHost
 	currentLocation   references.Location
 	policy            *musicPolicy
 	pauseDepth        int
@@ -19,23 +20,25 @@ type MusicManager struct {
 	loadFailureLogged bool
 }
 
-// NewMusicManager creates a new music manager with location-based music mapping
-func NewMusicManager(audioManager *AudioManager) *MusicManager {
-	if audioManager == nil {
-		panic("MusicManager requires AudioManager")
-	}
+type musicHost interface {
+	ensureAssetsLoaded() error
+	musicLibrary() *Library
+	musicReadLock()
+	musicReadUnlock()
+}
 
+func newMusicManager(host musicHost, output musicPlayback, now func() time.Time) *MusicManager {
 	return &MusicManager{
-		audioManager:    audioManager,
+		audioManager:    host,
 		currentLocation: references.EmptyLocation,
-		policy:          newMusicPolicy(audioManager.backgroundMusic, audioManager.clock.Now),
+		policy:          newMusicPolicy(output, now),
 		pauseDepth:      0, mutex: sync.RWMutex{}, loadFailureLogged: false,
 	}
 }
 
 // GetMusicForLocation returns the appropriate music track for a given location
 func (mm *MusicManager) GetMusicForLocation(location references.Location) string {
-	return mm.audioManager.library.document.Routing.musicFor(location, references.FloorNumber(references.OVERWORLD))
+	return mm.audioManager.musicLibrary().document.Routing.musicFor(location, references.FloorNumber(references.OVERWORLD))
 }
 
 func musicForLocation(location references.Location) string {
@@ -44,7 +47,7 @@ func musicForLocation(location references.Location) string {
 
 // GetMusicForContext returns appropriate music for game contexts (intro, victory, etc.)
 func (mm *MusicManager) GetMusicForContext(context string) string {
-	return musicForContext(mm.audioManager.library.document.Routing.Music, context)
+	return musicForContext(mm.audioManager.musicLibrary().document.Routing.Music, context)
 }
 
 func musicForContext(assignments map[string]*string, context string) string {
@@ -78,13 +81,13 @@ func (mm *MusicManager) PlayMusicForScene(location references.PlayerLocation) er
 	if err := mm.audioManager.ensureAssetsLoaded(); err != nil {
 		return err
 	}
-	mm.audioManager.mutex.RLock()
-	defer mm.audioManager.mutex.RUnlock()
+	mm.audioManager.musicReadLock()
+	defer mm.audioManager.musicReadUnlock()
 	mm.mutex.Lock()
 	defer mm.mutex.Unlock()
 	mm.policy.cue = "" // An explicit new location request replaces any pending special cue.
 	mm.currentLocation = location.Location
-	mm.policy.exploration = mm.audioManager.library.document.Routing.musicFor(location.Location, location.Floor)
+	mm.policy.exploration = mm.audioManager.musicLibrary().document.Routing.musicFor(location.Location, location.Floor)
 
 	return mm.policy.update()
 }
@@ -113,11 +116,11 @@ func (mm *MusicManager) SetSceneSoundscape(
 			mm.policy.cue = ""
 		}
 		mm.currentLocation = location.Location
-		mm.policy.exploration = mm.audioManager.library.document.Routing.musicFor(location.Location, location.Floor)
+		mm.policy.exploration = mm.audioManager.musicLibrary().document.Routing.musicFor(location.Location, location.Floor)
 	}
 	mm.policy.combatTrack = mm.GetMusicForContext("combat")
 	track := ""
-	if cue := mm.audioManager.library.document.Routing.Naval["sailing"]; cue != nil {
+	if cue := mm.audioManager.musicLibrary().document.Routing.Naval["sailing"]; cue != nil {
 		track = strings.TrimPrefix(*cue, "music/track/")
 	}
 	mm.policy.setSailing(sailsRaised, track)
@@ -130,8 +133,8 @@ func (mm *MusicManager) PlayMusicForContext(context string) error {
 	if err := mm.audioManager.ensureAssetsLoaded(); err != nil {
 		return err
 	}
-	mm.audioManager.mutex.RLock()
-	defer mm.audioManager.mutex.RUnlock()
+	mm.audioManager.musicReadLock()
+	defer mm.audioManager.musicReadUnlock()
 	mm.mutex.Lock()
 	defer mm.mutex.Unlock()
 	mm.policy.cue = mm.GetMusicForContext(context)
@@ -224,8 +227,8 @@ func (mm *MusicManager) Update() {
 	}
 	// Match AudioManager's lock order. Playback reads category preferences,
 	// which live gain changes mutate under the manager's exclusive lock.
-	mm.audioManager.mutex.RLock()
-	defer mm.audioManager.mutex.RUnlock()
+	mm.audioManager.musicReadLock()
+	defer mm.audioManager.musicReadUnlock()
 	mm.mutex.Lock()
 	defer mm.mutex.Unlock()
 	if err := mm.policy.update(); err != nil {

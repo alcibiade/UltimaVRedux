@@ -431,6 +431,46 @@ fidelity acceptance. Inherited GOFLAGS build settings remain intact; explicit
 `-run`, `-skip`, `-list`, `-bench`, `-fuzz=`, count, short, race, and concurrency
 flags prevent inherited selection or fuzz campaigns from changing the gate.
 
+The next link identifies the **initial SDK cutover checkpoint**. For current
+runtime/tools pins and maintained guidance, see the [Redux audio guide](systems/AUDIO_SYSTEM.md).
+
+Berad Audio lives in the [separate SDK repository](https://github.com/bradhannah/berad-sdk/tree/9e7e3ca45b4616f5f7b1e8c177a756f3f224e1e0/modules/berad-audio).
+`scripts/check-audio-module` runs `scripts/audio_module_gate.py` from the logic
+lane. It copies the game-owned `testdata/berad-audio-redux` bridge into a temporary
+directory, disables workspaces/network access and substitutes only the candidate
+game. Both the fixture requirement and selected SDK build-list version must match
+the application's published pin exactly; SDK replacements are rejected. It tests
+real Redux JSON routing with synthetic audio, checks package completion and zero
+skips, and is distinct from the SDK's unrelated-consumer proof.
+The bridge also exercises Redux's SDK authoring project, exact slider/target policy,
+source-bound edits, Save/Undo/reopen and read-only no-op formatting. It verifies
+both declared and actually selected runtime and tools pins, rejecting unintended
+Go module-selection upgrades. The transferred TUI/session and catalog regressions
+are SDK-owned; the game does not rerun them. Old low-level playback/authoring
+implementations and duplicate suites have been retired after mapping their
+contracts to SDK mechanism tests and live Redux adapter/policy tests.
+
+Root lint checks this bridge with unfiltered pinned rules. Only this throwaway
+fixture omits the blanket local-replacement prohibition, after checking its sole
+game substitution. Analyzer caches are scoped to the temporary directory.
+`make audio-module-check` combines these focused game-adapter checks. SDK tests,
+vet/build and independent-consumer/race lanes run in SDK with its selective result
+reuse; they are not repeated by game gates or dependent on a sibling checkout.
+
+The live scene adapter uses the real pinned module revision.
+`TestGameBuildCannotContainLegacyPlaybackEngines` rejects retired implementations
+in production **and test files**, including `legacy_*` copies. Live facade, world
+grouping, semantic silent-slot, footstep, burn-tail and scene tests cover Redux
+policy. Pure music-policy regressions retain fake transport/clock injection;
+integration assertions now use `GameAudioManager`, never a copied old facade.
+Publication/history/analysis regressions live with SDK authoring, terminal/session
+and backend contracts with SDK tools, and PCM contracts with SDK `internal/pcm`.
+The accelerated lifecycle/heap and signed-measurement tests were transferred to
+SDK public-runtime/catalog tests rather than discarded with the old implementation.
+Race-instrumenting the harness instruments the game bridge and its dependencies;
+the complete quality gate includes it in the race stage. These synthetic transport
+and WAV tests do not initialize a native device or establish listening acceptance.
+
 Native pixel tests must use bounded offscreen targets, explicit owned-image
 cleanup, and a positive visual oracle. Keep broad state/layout/resolution matrices
 in non-raster assertions, with only representative native cases for clipping,
@@ -580,8 +620,8 @@ stages:
    names and assertion/package inventories remain visible within the stage.
 3. `frontend`: one `make web-build`, including its install, test, and build steps.
 4. `browser`: one `make web-test-browser`.
-5. `race`: the existing uncached, serial race pass over `./internal/debugging/...`,
-   under Xvfb on Linux.
+5. `race`: the uncached, serial race pass over `./internal/debugging/...` and the
+   independent Berad Audio harness, under Xvfb on Linux.
 
 Durations measure each actual command invocation in whole seconds. The validate
 duration includes its subtargets; the script does not claim separate subtarget

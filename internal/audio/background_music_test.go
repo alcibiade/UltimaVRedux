@@ -1,7 +1,6 @@
 package audio
 
 import (
-	"io"
 	"testing"
 )
 
@@ -168,31 +167,6 @@ func TestMusicTrackMetadataConsistency(t *testing.T) {
 			t.Errorf("Track %s has unexpected FilePath format: %s (should start with %s)",
 				trackName, filePath, expectedPrefix)
 		}
-	}
-}
-
-func TestMusicTrackStreamEndsAtRecordedDuration(t *testing.T) {
-	manager, err := NewAudioManager()
-	if err != nil {
-		t.Fatalf("create audio manager: %v", err)
-	}
-	defer manager.Close()
-
-	if err := manager.backgroundMusic.LoadAssets(); err != nil {
-		t.Fatalf("load music assets: %v", err)
-	}
-	asset := manager.backgroundMusic.musicAssets["town"]
-	if asset == nil {
-		t.Fatal("town music asset was not loaded")
-	}
-
-	stream, err := asset.StreamFactory()
-	if err != nil {
-		t.Fatal(err)
-	}
-	maxBytes := (asset.Duration + millisecondsPerSecond) * int64(manager.sharedContext.SampleRate()) * decodedPCMBytesPerFrame / millisecondsPerSecond
-	if _, err := io.ReadFull(stream, make([]byte, maxBytes)); err == nil {
-		t.Error("town music did not end within one second of its recorded duration")
 	}
 }
 

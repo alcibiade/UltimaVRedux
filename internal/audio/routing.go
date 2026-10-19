@@ -121,6 +121,7 @@ func tileAudioKey(sprite indexes.SpriteIndex) string {
 	return strconv.Itoa(int(indexes.CanonicalAnimationSprite(sprite)))
 }
 
+//nolint:unparam // Preserve explicit-versus-inherited state for retained routing parity tests and metadata callers.
 func resolveAudioAssignment(assignments map[string]*string, target string) (string, bool) {
 	value, explicit := assignments[target]
 	if !explicit {

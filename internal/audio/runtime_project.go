@@ -2,98 +2,63 @@ package audio
 
 import (
 	"fmt"
-	"io"
+	"math"
 	"time"
 
-	eaudio "github.com/hajimehoshi/ebiten/v2/audio"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
-// PlayerTransport is the host's serialized audio transport contract. Retirement
-// must wait for in-flight reads; creating a transport must not start playback.
-type PlayerTransport = gainDevicePlayer
-
-// PlaybackBackend is borrowed from the host. A runtime never closes its device.
-type PlaybackBackend interface {
-	SampleRate() int
-	NewPlayer(source io.ReadSeeker) (PlayerTransport, error)
-}
-
-// EbitengineBackend adapts an explicitly supplied host context without creating
-// another process device or selecting the application's configuration.
-type EbitengineBackend struct{ Context *eaudio.Context }
-
-// SampleRate reports the borrowed host rate; a missing context fails initialization.
-func (backend EbitengineBackend) SampleRate() int {
-	if backend.Context == nil {
-		return 0
+// PlaybackDefinition projects Redux-owned JSON playback properties only. Routing,
+// taxonomy, provenance, credits and game identities remain in the application.
+func PlaybackDefinition(document LibraryDocument) (berad.Definition, error) {
+	definition := berad.Definition{Recordings: make(map[berad.RecordingID]berad.Recording),
+		Cues: make(map[berad.CueID]berad.Cue)}
+	for identity, source := range document.Recordings {
+		var recording berad.Recording
+		if source.File != nil {
+			recording.File = *source.File
+		}
+		if source.CalibrationGainDB != nil {
+			recording.CalibrationDB = *source.CalibrationGainDB
+		}
+		if source.PlaybackWindow != nil {
+			const maximumMilliseconds = math.MaxInt64 / int64(time.Millisecond)
+			window := source.PlaybackWindow
+			if window.StartMs < 0 || window.EndMs <= window.StartMs || window.EndMs > maximumMilliseconds {
+				return berad.Definition{}, fmt.Errorf("%w: recording %s window exceeds duration range", ErrAudioLibrary, identity)
+			}
+			recording.Window = &berad.Window{Start: time.Duration(window.StartMs) * time.Millisecond,
+				End: time.Duration(window.EndMs) * time.Millisecond}
+		}
+		definition.Recordings[berad.RecordingID(identity)] = recording
+	}
+	for identity, source := range document.Cues {
+		cue := berad.Cue{Recordings: make([]berad.RecordingID, 0, len(source.Recordings())), Gain: source.VolumeModifier}
+		for _, recording := range source.Recordings() {
+			cue.Recordings = append(cue.Recordings, berad.RecordingID(recording))
+		}
+		definition.Cues[berad.CueID(identity)] = cue
 	}
 
-	return backend.Context.SampleRate()
+	return definition, nil
 }
 
-// NewPlayer creates a stopped transport on the borrowed host device.
-//
-//nolint:ireturn // Backend injection deliberately hides the concrete native player.
-func (backend EbitengineBackend) NewPlayer(source io.ReadSeeker) (PlayerTransport, error) {
-	if backend.Context == nil {
-		return nil, fmt.Errorf("%w: host audio context is required", ErrAudioLibrary)
-	}
-	player, err := backend.Context.NewPlayer(source)
-	if err != nil {
-		return nil, fmt.Errorf("create host audio player: %w", err)
-	}
+// PlaybackLibrary lazily freezes one Berad Audio projection shared by this
+// project's managers/lanes. It never opens production defaults for another project.
+func (library *Library) PlaybackLibrary() (*berad.Library, error) {
+	library.playbackOnce.Do(func() {
+		definition, err := PlaybackDefinition(library.Document())
+		if err != nil {
+			library.playbackError = err
 
-	return player, nil
-}
-
-// CueRequest selects a neutral cue identity. ReplacePrevious is consumer policy,
-// restricted to this lifetime; empty slots and inaudible finite cues remain silent.
-type CueRequest struct {
-	CueID           string
-	Loop            bool
-	Volume          float64
-	FadeInMs        int64
-	ReplacePrevious bool
-}
-
-// Runtime is the neutral cue-facing entry point to the same owned playback engine
-// used by the Redux facade. It has no location, tile, game enum or save API.
-type Runtime struct{ manager *AudioManager }
-
-// NewRuntime injects one immutable library, host backend and presentation clock.
-// Volume is caller-owned preference, not persisted or read from Redux settings.
-func NewRuntime(library *Library, backend PlaybackBackend, now func() time.Time, volume float64) (*Runtime, error) {
-	configuration, err := NewAudioConfiguration()
-	if err != nil {
-		return nil, err
-	}
-	if err := configuration.SetSoundEffectVolume(volume); err != nil {
-		return nil, err
-	}
-	configuration.MusicVolume, configuration.AmbientVolume = 0, 0
-	manager, err := newProjectAudioManager(configuration, library, backend, nil, now, false)
-	if err != nil {
-		return nil, err
+			return
+		}
+		library.playback, library.playbackError = berad.NewLibrary(definition,
+			encodedLibraryFS{library: library}, max(1, library.encodedBytes))
+	})
+	if library.playbackError != nil {
+		return nil, fmt.Errorf("freeze module playback library: %w", library.playbackError)
 	}
 
-	return &Runtime{manager: manager}, nil
+	return library.playback, nil
 }
-
-// Play starts an independently owned neutral cue instance.
-func (runtime *Runtime) Play(request CueRequest) (VoiceHandle, error) {
-	return runtime.manager.playCueVoice(request, runtime.manager.NewVoiceOwner())
-}
-
-// NewVoiceOwner groups several cue instances under one explicit lifetime.
-func (runtime *Runtime) NewVoiceOwner() *VoiceOwner { return runtime.manager.NewVoiceOwner() }
-
-// SetVolume applies a live category preference without changing authored gains.
-func (runtime *Runtime) SetVolume(volume float64) error {
-	return runtime.manager.SetSoundEffectVolume(volume)
-}
-
-// Update services fades and retirement using the injected presentation clock.
-func (runtime *Runtime) Update() { runtime.manager.Update() }
-
-// Close terminally releases all voices without closing the host backend.
-func (runtime *Runtime) Close() error { return runtime.manager.Close() }

@@ -11,7 +11,7 @@
 - `input.Keyboard` and the primary/secondary command state machine
 - borders, character summary, compact provision summary, display-only status rail, wind display, and transient icon overlay
 - visual-effect state such as map fade, flash intensity, shake offset, and inversion
-- optional `audio.AudioManager` when sound is available
+- optional `audio.GameAudioManager` over Berad Audio when sound is available
 - feature UI such as the combat HUD, detached Z-Stats and Quest Journal modals,
   and transient action-feedback records
 
@@ -57,6 +57,12 @@ callbacks inside `NewScreenCallbacks`. `cmd/ultimav/gamescene_callbacks.go`
 shows complete named-family construction; do not attach mandatory members later.
 
 Audio is the exception at the concrete-resource level: sound-disabled mode or a recoverable audio initialization error leaves `GameScene.audioManager` nil, while the `AudioCallbacks` functions remain present and safely perform no playback.
+
+The adapter owns Redux JSON/world interpretation and music policy; its SFX,
+music, ambient and preview transports come from the pinned Berad Audio module.
+Application exit disposes the current scene once, including early errors after
+Game allocation. Queue finalizers retain their scene ownership until disposal
+completes, then module voices retire without closing the shared audio device.
 
 ## Update Order
 

@@ -1,6 +1,6 @@
 # ADR-007: Audio System Architecture
 
-**Status**: Accepted
+**Status**: Accepted callback/lifecycle rationale; concrete playback realization superseded by [ADR-010](ADR-010-reusable-audio-module.md)
 
 **Date**: 2025-01-24
 
@@ -72,16 +72,22 @@ Rejected because timing belongs to event workflows and presentation feedback. Se
 
 This ADR records the architectural rationale, not the live API reference. The current implementation, supported operations, and known builder limitations are documented in [Audio System](../systems/AUDIO_SYSTEM.md).
 
-Key implementation locations:
+Live scenes use `GameAudioManager` over the pinned Berad Audio runtime. The host
+context is borrowed, not manager-owned. Shared transport, admission, fades and
+authoring/tool mechanisms are SDK-owned; world/music policy and callbacks remain
+Redux-owned. The old component graph and test-only implementation copies are retired.
+
+Current game integration locations:
 
 - `internal/audio/audio_manager.go`
 - `internal/audio/sound_effects.go`
-- `internal/audio/background_music.go`
-- `internal/audio/ambient_sounds.go`
+- `internal/audio/game_audio_routing.go`
+- `internal/audio/ambient_projection.go`
 - `internal/audio/music_manager.go`
 - `internal/audio/configuration.go`
 - `internal/game_state/system_callbacks.go`
 - `internal/game_state/sound_builder.go`
 - `cmd/ultimav/gamescene_audio.go`
 
-Related decisions: [ADR-003: SystemCallbacks Decoupling](ADR-003-systemcallbacks-decoupling.md).
+Related decisions: [ADR-003: SystemCallbacks Decoupling](ADR-003-systemcallbacks-decoupling.md)
+and [ADR-010: SDK adoption](ADR-010-reusable-audio-module.md).

@@ -1,16 +1,15 @@
 package audio
 
 import (
-	"sync"
+	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// SurfaceType represents different walking surface types
+// SurfaceType names a game-authored footstep surface.
 type SurfaceType string
 
-// Built-in surface names; new surfaces are authored in the routing manifest.
+// Built-in names coexist with additional surfaces in Redux's JSON routing.
 const (
 	SurfaceGrass SurfaceType = "grass"
 	SurfaceStone SurfaceType = "stone"
@@ -18,88 +17,37 @@ const (
 	SurfaceMetal SurfaceType = "metal"
 )
 
-// WalkingSoundManager handles surface-based walking sound effects
-// Cycles through sound effect enums to create realistic footstep patterns
-type WalkingSoundManager struct {
-	mutex        sync.Mutex
-	audioManager *AudioManager
-	enabled      bool
-	// Shared sequence has no short reset that disrupts variant periods.
-	stepCounter   uint64
-	surfaceSounds map[SurfaceType][]game_state.SoundEffect // Map of surface types to their sound variants
-}
+// PlayWalkingSound retains Redux's shared surface-step sequence and committed-step timing.
+func (manager *GameAudioManager) PlayWalkingSound(tile *references.Tile) error {
+	manager.mutex.Lock()
+	if manager.closed {
+		manager.mutex.Unlock()
 
-// NewWalkingSoundManager creates a new walking sound manager
-func NewWalkingSoundManager(audioManager *AudioManager) *WalkingSoundManager {
-	// Initialize surface sound mappings
-	surfaceSounds := make(map[SurfaceType][]game_state.SoundEffect)
-	manager := new(WalkingSoundManager)
-	manager.audioManager, manager.enabled, manager.surfaceSounds = audioManager, true, surfaceSounds
-	if !audioManager.redux {
-		return manager
+		return ErrAudioClosed
 	}
-	effects := make(map[string]game_state.SoundEffect)
-	for effect, name := range catalogEffectNames() {
-		effects["sfx/"+name] = effect
-	}
-	for surface, cues := range audioManager.library.document.Routing.Surfaces {
-		for _, cue := range cues {
-			surfaceSounds[SurfaceType(surface)] = append(surfaceSounds[SurfaceType(surface)], effects[cue])
-		}
-	}
+	if !manager.enabled {
+		manager.mutex.Unlock()
 
-	return manager
-}
-
-// getSurfaceTypeForTile determines the surface type based on tile
-func (wsm *WalkingSoundManager) getSurfaceTypeForTile(tile *references.Tile) SurfaceType {
-	routing := wsm.audioManager.library.document.Routing
-	if tile != nil {
-		if surface := routing.Tiles[tileAudioKey(tile.Index)].Surface; surface != "" {
-			return SurfaceType(surface)
-		}
-	}
-
-	return SurfaceType(routing.DefaultSurface)
-}
-
-// getSoundEffectForTile determines the appropriate walking sound based on tile type
-// Uses stepCounter to cycle through sound variants dynamically
-func (wsm *WalkingSoundManager) getSoundEffectForTile(tile *references.Tile) game_state.SoundEffect {
-	surfaceType := wsm.getSurfaceTypeForTile(tile)
-
-	// Get the sound variants for this surface type
-	soundVariants, exists := wsm.surfaceSounds[surfaceType]
-	if !exists || len(soundVariants) == 0 {
-		return game_state.SoundEffect(-1) // Authored silent surface.
-	}
-
-	// Use modulo to cycle through available variants
-	variantIndex := wsm.stepCounter % uint64(len(soundVariants))
-
-	return soundVariants[variantIndex]
-}
-
-// PlayWalkingSound plays appropriate walking sound based on tile surface
-// Uses stepCounter to cycle through sound variants automatically
-func (wsm *WalkingSoundManager) PlayWalkingSound(tile *references.Tile) error {
-	wsm.mutex.Lock()
-	defer wsm.mutex.Unlock()
-	if !wsm.enabled {
 		return nil
 	}
-	if wsm.audioManager == nil {
-		panic("audioManager is nil - programming error in WalkingSoundManager initialization")
+	routing := manager.library.document.Routing
+	surface := routing.DefaultSurface
+	if tile != nil && routing.Tiles[tileAudioKey(tile.Index)].Surface != "" {
+		surface = routing.Tiles[tileAudioKey(tile.Index)].Surface
 	}
+	cues := routing.Surfaces[surface]
+	if len(cues) == 0 {
+		manager.mutex.Unlock()
 
-	// Get appropriate sound effect variant based on current counter
-	soundEffect := wsm.getSoundEffectForTile(tile)
-	if soundEffect < 0 {
 		return nil
 	}
+	cue := cues[manager.steps%uint64(len(cues))]
+	manager.steps++
+	effect, known := manager.effects[cue]
+	manager.mutex.Unlock()
+	if !known {
+		return fmt.Errorf("%w: unknown footstep cue %s", ErrAudioLibrary, cue)
+	}
 
-	wsm.stepCounter++
-
-	// Play the sound using the existing enum-based system
-	return wsm.audioManager.PlaySoundEffectAt(soundEffect, 0, 0, 0, 0)
+	return manager.PlaySoundEffect(effect)
 }

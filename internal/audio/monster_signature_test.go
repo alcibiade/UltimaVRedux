@@ -11,7 +11,7 @@ import (
 func TestMonsterSignatureCuesResolveToSilentCombatSlots(t *testing.T) {
 	library := productionLibrary()
 	// Exercise slot resolution without decoding recordings or opening an audio device.
-	player := &SoundEffectPlayer{assetsLoaded: true, library: defaultRuntimeLibrary()}
+	manager, backend, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 	for _, test := range []struct {
 		effect                 game_state.SoundEffect
 		cue, recording, family string
@@ -50,17 +50,10 @@ func TestMonsterSignatureCuesResolveToSilentCombatSlots(t *testing.T) {
 				Contexts:             []string{audioContextCombat},
 			}, profile)
 
-			asset, skip, err := player.assetForRequest(game_state.SoundPlaybackRequest{
-				Effect: test.effect, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-			})
-			require.NoError(t, err)
-			require.True(t, skip, "a known empty slot must resolve to intentional silence")
-			require.Nil(t, asset)
+			require.NoError(t, manager.PlaySoundEffect(test.effect))
+			require.Empty(t, manager.sfx.Snapshot(), "a known empty slot must resolve to intentional silence")
+			require.Empty(t, backend.players)
 		})
 	}
-	_, skip, err := player.assetForRequest(game_state.SoundPlaybackRequest{
-		Effect: game_state.SoundEffect(-1), Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-	})
-	require.ErrorIs(t, err, errSoundEffectNotFound, "unknown IDs must not resolve as silent slots")
-	require.False(t, skip)
+	require.Error(t, manager.PlaySoundEffect(game_state.SoundEffect(-1)), "unknown IDs must not resolve as silent slots")
 }

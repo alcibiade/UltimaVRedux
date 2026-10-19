@@ -156,14 +156,7 @@ func TestShardRitualEarthquakeUsesEarthquakeMetadata(t *testing.T) {
 }
 
 func TestEnvironmentalHazardSoundMetadataAndAssets(t *testing.T) {
-	config, err := NewAudioConfiguration()
-	if err != nil {
-		t.Fatal(err)
-	}
-	player, err := NewSoundEffectPlayerWithContext(config, getSharedAudioContext())
-	if err != nil {
-		t.Fatal(err)
-	}
+	manager, _, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 
 	tests := []struct {
 		effect          game_state.SoundEffect
@@ -192,41 +185,20 @@ func TestEnvironmentalHazardSoundMetadataAndAssets(t *testing.T) {
 		})
 	}
 
-	fireMetadata, _ := GetSoundEffectMetadata(game_state.SoundFireBurn)
-	if err := player.loadSoundAsset(
-		game_state.SoundFireBurn,
-		productionLibrary().recordingPath(fireMetadata.RecordingID),
-	); err != nil {
-		t.Fatalf("load fire burn asset: %v", err)
-	}
-	player.assetsLoaded = true
-	if err := player.loadConfiguredSoundAsset(game_state.SoundFallingMinor,
-		soundEffectMetadataMap()[game_state.SoundFallingMinor]); err != nil {
-		t.Fatal(err)
-	}
-	minor, skipped, err := player.assetForRequest(game_state.SoundPlaybackRequest{
-		Effect: game_state.SoundFallingMinor, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-	})
-	if err != nil || skipped || minor == nil {
-		t.Fatalf("falling minor resolution = (%v, %t, %v), want playable asset", minor, skipped, err)
-	}
-	asset, skipped, err := player.assetForRequest(game_state.SoundPlaybackRequest{
-		Effect: game_state.SoundFallingSevere, Mode: game_state.SoundPlaybackOneShot, Volume: 1,
-	})
-	if err != nil || !skipped || asset != nil {
-		t.Fatalf("falling severe placeholder = (%v, %t, %v), want (nil, true, nil)", asset, skipped, err)
+	for _, test := range tests {
+		before := len(manager.sfx.Snapshot())
+		if err := manager.PlaySoundEffect(test.effect); err != nil {
+			t.Fatal(err)
+		}
+		after := len(manager.sfx.Snapshot())
+		if test.wantPlaceholder && after != before || !test.wantPlaceholder && after != before+1 {
+			t.Fatalf("hazard %s: before=%d after=%d", test.name, before, after)
+		}
 	}
 }
 
 func TestHarpsichordSoundMetadataAndAssets(t *testing.T) {
-	config, err := NewAudioConfiguration()
-	if err != nil {
-		t.Fatal(err)
-	}
-	player, err := NewSoundEffectPlayerWithContext(config, getSharedAudioContext())
-	if err != nil {
-		t.Fatal(err)
-	}
+	manager, _, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 
 	seen := make(map[game_state.SoundEffect]struct{}, 10)
 	for digit := 0; digit <= 9; digit++ {
@@ -248,9 +220,6 @@ func TestHarpsichordSoundMetadataAndAssets(t *testing.T) {
 		}
 
 		filePath := productionLibrary().recordingPath(metadata.RecordingID)
-		if err := player.loadSoundAsset(effect, filePath); err != nil {
-			t.Fatalf("load digit %d: %v", digit, err)
-		}
 		fileData, err := soundFiles.ReadFile(filePath)
 		if err != nil {
 			t.Fatalf("read digit %d WAV: %v", digit, err)
@@ -259,14 +228,13 @@ func TestHarpsichordSoundMetadataAndAssets(t *testing.T) {
 		if peak := pcm16WAVPeak(fileData); peak < minimumAudiblePeak {
 			t.Fatalf("digit %d WAV peak = %d, want at least %d", digit, peak, minimumAudiblePeak)
 		}
-		asset := player.soundAssets[effect][0]
-		if asset == nil || asset.Duration <= 0 || asset.StreamFactory == nil {
-			t.Fatalf("digit %d asset is incomplete", digit)
+		if err := manager.PlaySoundEffect(effect); err != nil {
+			t.Fatalf("digit %d: %v", digit, err)
 		}
-		stream, err := asset.StreamFactory(game_state.SoundPlaybackOneShot)
-		if err != nil || stream == nil {
-			t.Fatalf("digit %d stream unavailable: %v", digit, err)
+		if len(manager.sfx.Snapshot()) != 1 {
+			t.Fatalf("digit %d did not create a voice", digit)
 		}
+		manager.StopSound(game_state.SoundStopRequest{Effect: effect})
 	}
 }
 

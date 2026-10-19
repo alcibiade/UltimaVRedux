@@ -96,9 +96,11 @@ lint-config-check: ## Verify the pinned linter schema and executable errcheck se
 
 lint: lint-config-check ## Run golangci-lint using the repository configuration
 	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
+	@$(PYTHON) scripts/audio_module_gate.py --lint
 
 lint-all: lint-config-check ## Report all configured lint findings without revision filtering or output caps
 	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
+	@$(PYTHON) scripts/audio_module_gate.py --lint
 
 core-dependencies-check: ## Reject transitive graphics/input dependencies in core code and tests
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-core-dependencies
@@ -148,9 +150,32 @@ build: ## Build the game into bin/ultimav using shipped assets
 	@mkdir -p $(BIN_DIR)
 	@$(GO) build -o $(BINARY) $(MAIN_PACKAGE)
 
-audio-editor: ## Build the standalone Bubble Tea audio editor into bin/audio-editor
+audio-editor: ## Build the Redux project launcher for the SDK terminal audio editor
 	@mkdir -p $(BIN_DIR)
 	@$(GO) build -o $(BIN_DIR)/audio-editor ./cmd/audio-editor
+
+.PHONY: audio-editor-run
+audio-editor-run: audio-editor ## Build and open the editor with Redux project settings
+	@./$(BIN_DIR)/audio-editor -library "$(CURDIR)/internal/audio/assets/library.json" $(ARGS)
+
+.PHONY: audio-catalog audio-catalog-export audio-probe clean-audio-reports
+audio-catalog: ## Build the game-specific SDK audio catalog exporter
+	@mkdir -p $(BIN_DIR)
+	@$(GO) build -o $(BIN_DIR)/audio-catalog ./cmd/audio-catalog
+
+audio-catalog-export: audio-catalog ## Export the derived game inventory and guide into bin/
+	@./$(BIN_DIR)/audio-catalog -source . -output $(BIN_DIR)/audio-catalog.json -guide $(BIN_DIR)/audio-generation-guide.md $(ARGS)
+
+audio-probe: audio-editor ## Run a standalone or Ebitengine probe through the Redux project (ARGS required)
+	@./$(BIN_DIR)/audio-editor $(ARGS)
+
+clean-audio-reports: ## Remove derived audio reports only, preserving authored assets and settings
+	@rm -f $(BIN_DIR)/audio-catalog.json $(BIN_DIR)/audio-generation-guide.md
+
+.PHONY: audio-module-check
+audio-module-check: ## Check the game-owned Berad Audio bridge against the pinned SDK revision
+	@$(GO) test $(TEST_GO_BUILD_FLAGS) -count=1 -run '^TestBeradAudioModule$$' ./scripts/check-audio-module
+	@$(PYTHON) scripts/audio_module_gate.py --lint
 
 .PHONY: vm-settings-proof
 vm-settings-proof: ## Run the opt-in Ebitengine VM keyboard/settings rollback proof (requires original data and graphics)
@@ -206,3 +231,4 @@ conversations-verify: ## Verify tracked patches reproduce all private edits
 
 clean: ## Remove generated build artifacts
 	@rm -f $(BINARY)
+	@rm -f $(BIN_DIR)/ultimav.exe $(BIN_DIR)/audio-editor $(BIN_DIR)/audio-editor.exe $(BIN_DIR)/audio-catalog $(BIN_DIR)/audio-catalog.exe

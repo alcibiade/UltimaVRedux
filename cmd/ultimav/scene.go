@@ -74,6 +74,7 @@ type Game struct {
 	characterCreationSnapshotPreparer characterCreationSnapshotPreparer
 	mainMenuSceneBuilder              func(*config.UltimaVConfiguration) (Scene, error)
 	exitRequested                     bool
+	shutdown                          bool
 }
 
 type scenarioRunHistoryRepository interface {

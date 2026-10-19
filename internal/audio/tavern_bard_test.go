@@ -23,11 +23,9 @@ func TestTavernBardsHaveDedicatedSilentSlotAndCampingKeepsRecording(t *testing.T
 	require.Equal(t, "bard_lute_01", library.Cues["sfx/SoundBardLute"].RecordingID)
 	require.NotNil(t, library.Recordings["bard_lute_01"].File)
 
-	manager, err := NewAudioManager()
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, manager.Close()) })
+	manager, _, _ := gameAudioLibraryFixture(t, defaultRuntimeLibrary())
 	policy, score, _ := newPolicyTest(t)
-	manager.musicManager.policy = policy
+	manager.policy.policy = policy
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
 	manager.Update()
 	require.True(t, score.playing)
@@ -43,15 +41,15 @@ func TestTavernBardsHaveDedicatedSilentSlotAndCampingKeepsRecording(t *testing.T
 		FadeInTime: definition.FadeInTime, FadeOutTime: definition.FadeOutTime,
 	}
 	manager.UpdateAmbientSoundsWithDynamicSources(source.Position, nil, []AmbientSoundSource{source})
-	require.Empty(t, manager.ambientSounds.activeSounds)
-	require.False(t, manager.ambientSounds.hasBardMusic(), "silence must not suppress the score")
+	require.False(t, manager.hasLocalMusic(), "silence must not suppress the score")
 	manager.Update()
 	require.True(t, score.playing, "an active but unrecorded tavern bard cannot claim local score ownership")
 	require.NoError(t, manager.PlaySoundEffect(game_state.SoundTavernBardMusic))
-	require.NotContains(t, activeSoundsByEffect(manager.soundEffectPlayer), game_state.SoundTavernBardMusic)
-	require.False(t, manager.soundEffectPlayer.hasInstrumentMusic())
+	require.Empty(t, manager.sfx.Snapshot())
+	require.False(t, manager.hasLocalMusic())
 	manager.Update()
 	require.True(t, score.playing, "the silent direct tavern SFX cannot claim local score ownership either")
 	require.NoError(t, manager.PlaySoundEffect(game_state.SoundBardLute))
-	require.Contains(t, activeSoundsByEffect(manager.soundEffectPlayer), game_state.SoundBardLute)
+	require.Len(t, manager.sfx.Snapshot(), 1)
+	require.Equal(t, "sfx/SoundBardLute", string(manager.sfx.Snapshot()[0].Cue))
 }

@@ -65,7 +65,7 @@ type IntroMenuScene struct {
 	noticeOutput        *text.Output
 	keyboard            *input.Keyboard
 	config              *config.UltimaVConfiguration
-	audioManager        *audio.AudioManager
+	audioManager        *audio.GameAudioManager
 	eventQueueManager   *event_queue.EventQueueManager
 	dialogStack         widgets.DialogStack
 	presentation        *introPresentationDriver
@@ -153,7 +153,7 @@ func createIntroMenuScene(gameConfig *config.UltimaVConfiguration, startAtMenu b
 	}
 
 	if !gameConfig.SoundDisabled {
-		intro.audioManager, err = audio.NewAudioManagerWithConfig(gameConfig.AudioConfiguration)
+		intro.audioManager, err = audio.NewGameAudioManagerWithConfig(gameConfig.AudioConfiguration)
 		if err != nil {
 			logging.Warn(logging.CategoryAudio, "Failed to initialize audio system in intro: %v", err)
 			intro.audioManager = nil
