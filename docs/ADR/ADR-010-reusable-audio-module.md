@@ -74,7 +74,9 @@ remain outside published application metadata.
 Reviewed SDK guidance is commit `45169251e58951593f25cd2f323ea4dea47784ff`;
 the approved TUI and game-policy boundaries are preserved.
 
-The tools cutover pins runtime/authoring `ed95f13c63b7` and tools `9cdfc4b0755f`.
+The initial tools cutover pinned runtime/authoring `ed95f13c63b7` and tools `9cdfc4b0755f`.
+Subsequent pins adopt the SDK-wide strict lint cleanup; `go.mod` and the current
+audio-system contract identify the consumed revisions without changing these boundaries.
 Shared schema-3 editing/persistence lives in runtime `authoring`; terminal/session,
 catalog and optional probes live in the tools module. Game launchers supply Redux
 policy and retain source-evidence enrichment. The former TUI directory is removed;
@@ -86,5 +88,5 @@ availability or separately authorized tagging; local builds do not supply that p
 Reusable manuals and SDK skills follow implementation ownership upstream; the
 game retains integration policy, assets, adoption rationale and contextual acceptance.
 The original guidance-review identity above remains distinct from consumed module
-pins. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/ed95f13c63b7/modules/berad-audio/README.md) and
+pins. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-audio/README.md) and
 [current Redux audio system](../systems/AUDIO_SYSTEM.md).

@@ -40,7 +40,7 @@ separately. `make validate` is local/offline and fails rather than downloading a
 missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
-The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/ed95f13c63b7/modules/berad-audio)
+The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-audio)
 lives in the separate public SDK repository. `make tools` provisions the game's
 pinned dependencies, including audio. `make audio-module-check` exercises and
 lints the game-owned bridge against that published SDK version. SDK unit/race and
@@ -57,7 +57,7 @@ contracts are linked upstream rather than maintained twice. No assistant or
 private tooling is required to use these public contracts.
 
 The terminal editor and report implementation now come from the separately pinned
-[audio tools module](https://github.com/bradhannah/berad-sdk/tree/9cdfc4b0755f/tools/berad-audio).
+[audio tools module](https://github.com/bradhannah/berad-sdk/tree/81526f97e7c9/tools/berad-audio).
 Use `make audio-editor`, `make audio-catalog`, and `make audio-catalog-export`
 for Redux-configured launchers/reports. Existing editor probe flags remain supported.
 For a single build-and-open command, run `make audio-editor-run` in this checkout.
@@ -65,6 +65,22 @@ It selects the Redux manifest explicitly. `make audio-editor` remains build-only
 `make audio-probe ARGS='...'` invokes them in a standalone process. `make clean`
 removes known executables; `make clean-audio-reports` removes derived reports.
 Neither deletes authored JSON/media, player settings or `bin/tools` validators.
+
+Text rendering similarly consumes the pinned
+[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-text).
+`internal/text` is the game's asset/semantic/history adapter; its fonts, glyph
+rendering, retained geometry and image cache use the SDK. SDK source/public-consumer
+and native-render regressions belong upstream. Game `internal/text`, widget and
+scene tests verify compatibility against the published pin without a sibling SDK
+checkout or replacement. See [message output](systems/MESSAGE_OUTPUT_SYSTEM.md)
+and [ADR-011](ADR/ADR-011-berad-text.md). The module is experimental; this does not
+claim a stable SDK release or new Windows/Linux native acceptance.
+
+The consumed Audio/Text runtimes and audio tools have passed the SDK's
+[strict formatting/lint policy](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/docs/LINTING.md):
+the same pinned Go style tools and applicable strict rules, with full-source
+zero-findings enforcement across registered SDK modules. Game lint covers the
+game's adapters; it does not lint dependency source or replace that SDK gate.
 
 Use [original-data setup](INSTALL.md#locate-the-original-game-data) to discover an
 existing GOG/Heroic installation, use the displayed home/UltimaV folder,

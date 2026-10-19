@@ -1,4 +1,3 @@
-// Package text provides text rendering utilities including bitmap fonts for sign display.
 package text
 
 import (
@@ -6,8 +5,13 @@ import (
 	_ "embed"
 	"fmt"
 	"image"
+	"image/color"
+	"image/png"
+	"sync"
 
+	beradtext "github.com/bradhannah/berad-sdk/modules/berad-text"
 	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/text/language"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
@@ -18,132 +22,136 @@ var runicFontPNG []byte
 //go:embed assets/ibm_font.png
 var ibmFontPNG []byte
 
+// Original bitmap dimensions and byte namespace remain game-owned.
 const (
-	// BitmapCharWidth is the width of each character in the source font (pixels)
-	BitmapCharWidth = 8
-	// BitmapCharHeight is the height of each character in the source font (pixels)
-	BitmapCharHeight = 8
-	// BitmapCharsPerRow is the number of characters per row in the sprite sheet
+	bitmapColourMax   = 65535
+	BitmapCharWidth   = 8
+	BitmapCharHeight  = 8
 	BitmapCharsPerRow = 16
-	// BitmapTotalChars is the total number of characters in the font
-	BitmapTotalChars = 128
+	BitmapTotalChars  = 128
+	bitmapRuneBase    = 0xe000
 )
 
-// BitmapFont represents a loaded bitmap font from a PNG sprite sheet.
-// Each character is 8×8 pixels in the source, but can be scaled when rendering.
+// BitmapFont owns Ultima's byte-to-glyph mapping and compatibility image borrows.
+// Generic atlas storage, glyph measurement and rasterization belong to the SDK.
 type BitmapFont struct {
-	spriteSheet *ebiten.Image
-	charImages  [BitmapTotalChars]*ebiten.Image // Pre-extracted character images
+	source     *beradtext.Source
+	scaled     *beradtext.Font
+	charImages [BitmapTotalChars]*ebiten.Image
 }
 
-// BitmapFonts holds the loaded runic and IBM bitmap fonts for sign rendering.
-type BitmapFonts struct {
-	Runic *BitmapFont
-	IBM   *BitmapFont
-}
+// BitmapFonts contains the game's two original character sets.
+type BitmapFonts struct{ Runic, IBM *BitmapFont }
 
-var loadedBitmapFonts *BitmapFonts
+//nolint:gochecknoglobals // The two immutable game assets live for the application.
+var loadBitmapFonts = sync.OnceValue(func() *BitmapFonts {
+	return &BitmapFonts{Runic: newBitmapFontFromPNG(runicFontPNG), IBM: newBitmapFontFromPNG(ibmFontPNG)}
+})
 
-// GetBitmapFonts returns the singleton BitmapFonts instance, loading fonts on first call.
-func GetBitmapFonts() *BitmapFonts {
-	if loadedBitmapFonts == nil {
-		loadedBitmapFonts = &BitmapFonts{
-			Runic: newBitmapFontFromPNG(runicFontPNG),
-			IBM:   newBitmapFontFromPNG(ibmFontPNG),
-		}
-	}
+// GetBitmapFonts returns application-lifetime font assets.
+func GetBitmapFonts() *BitmapFonts { return loadBitmapFonts() }
 
-	return loadedBitmapFonts
-}
-
-// newBitmapFontFromPNG creates a BitmapFont from embedded PNG data.
-func newBitmapFontFromPNG(pngData []byte) *BitmapFont {
-	img, _, err := image.Decode(bytes.NewReader(pngData))
+func newBitmapFontFromPNG(data []byte) *BitmapFont {
+	atlas, err := png.Decode(bytes.NewReader(data))
 	if err != nil {
-		panic(fmt.Sprintf("failed to decode embedded font PNG: %v", err))
+		panic(fmt.Sprintf("decoding embedded game font: %v", err))
 	}
-
-	bf := &BitmapFont{
-		spriteSheet: ebiten.NewImageFromImage(img),
-	}
-
-	// Pre-extract all character sub-images for efficient rendering
-	for i := 0; i < BitmapTotalChars; i++ {
-		x := (i % BitmapCharsPerRow) * BitmapCharWidth
-		y := (i / BitmapCharsPerRow) * BitmapCharHeight
-		rect := image.Rect(x, y, x+BitmapCharWidth, y+BitmapCharHeight)
-		charImage, ok := bf.spriteSheet.SubImage(rect).(*ebiten.Image)
-		if !ok {
-			panic("Ebitengine font subimage is not an Ebitengine image")
+	glyphs := make(map[rune]beradtext.Glyph, BitmapTotalChars)
+	for index := range BitmapTotalChars {
+		x, y := (index%BitmapCharsPerRow)*BitmapCharWidth, (index/BitmapCharsPerRow)*BitmapCharHeight
+		glyphs[bitmapRuneBase+rune(index)] = beradtext.Glyph{
+			Region: image.Rect(x, y, x+BitmapCharWidth, y+BitmapCharHeight), Advance: BitmapCharWidth,
+			BearingX: 0, BearingY: -BitmapCharHeight, Colored: false,
 		}
-		bf.charImages[i] = charImage
+	}
+	metrics := beradtext.Metrics{Ascent: BitmapCharHeight, Descent: 0, LineGap: 0}
+	source, err := beradtext.NewBitmapSource(atlas, metrics, glyphs)
+	if err != nil {
+		panic(fmt.Sprintf("configuring embedded game font: %v", err))
 	}
 
-	return bf
+	return &BitmapFont{source: source, scaled: nil, charImages: [BitmapTotalChars]*ebiten.Image{}}
 }
 
-// GetCharImage returns the sub-image for a given character index (0-127).
-// Returns nil for out-of-range indices.
-func (bf *BitmapFont) GetCharImage(charIndex int) *ebiten.Image {
-	if charIndex < 0 || charIndex >= BitmapTotalChars {
+func (f *BitmapFont) fontForScale(scale float64) *beradtext.Font {
+	size := float64(BitmapCharHeight) * scale
+	if f.scaled == nil || f.scaled.Size() != size {
+		font, err := f.source.NewFont(beradtext.FontOptions{
+			Size: size, Language: language.Und, Features: nil, Variations: nil,
+		})
+		if err != nil {
+			panic(fmt.Sprintf("scaling game bitmap font: %v", err))
+		}
+		f.scaled = font
+	}
+
+	return f.scaled
+}
+
+func (f *BitmapFont) layout(value string, scale float64) *beradtext.Layout {
+	// The original encoding is bytes, not UTF-8. Private-use runes prevent a
+	// bitmap control-cell index from becoming an SDK newline or shaping control.
+	runes := make([]rune, len(value))
+	for i := range len(value) {
+		runes[i] = bitmapRuneBase + rune(int(value[i])&references.SignCharIndexMask)
+	}
+
+	return newTextLayout(string(runes), f.fontForScale(scale))
+}
+
+// GetCharImage returns a game-owned, application-lifetime read-only glyph snapshot.
+// Existing icon borrowers must not mutate/dispose it. No SDK cache image escapes.
+func (f *BitmapFont) GetCharImage(index int) *ebiten.Image {
+	if index < 0 || index >= BitmapTotalChars {
 		return nil
 	}
+	if f.charImages[index] == nil {
+		img := ebiten.NewImage(BitmapCharWidth, BitmapCharHeight)
+		drawTextLayout(img, f.layout(string([]byte{byte(index)}), 1), &ebiten.DrawImageOptions{}, color.White)
+		f.charImages[index] = img
+	}
 
-	return bf.charImages[charIndex]
+	return f.charImages[index]
 }
 
-// DrawChar draws a single character at the specified position with the given scale.
-// The character is drawn with the specified color tint.
-// Returns the width of the drawn character (scaled).
-func (bf *BitmapFont) DrawChar(dst *ebiten.Image, charIndex int, x, y float64, scale float64, colorR, colorG, colorB float32) float64 {
-	charImg := bf.GetCharImage(charIndex)
-	if charImg == nil {
+// DrawChar draws a legacy cell through the SDK and returns its scaled advance.
+func (f *BitmapFont) DrawChar(dst *ebiten.Image, index int, x, y, scale float64, r, g, b float32) float64 {
+	if index < 0 || index >= BitmapTotalChars {
 		return 0
 	}
 
-	opts := &ebiten.DrawImageOptions{}
-	opts.Filter = ebiten.FilterNearest
-	opts.GeoM.Scale(scale, scale)
-	opts.GeoM.Translate(x, y)
-
-	// Apply color tint using color matrix
-	opts.ColorScale.Scale(colorR, colorG, colorB, 1)
-
-	dst.DrawImage(charImg, opts)
-
-	return float64(BitmapCharWidth) * scale
+	return f.DrawString(dst, string([]byte{byte(index)}), x, y, scale, r, g, b)
 }
 
-// DrawString draws a string at the specified position with the given scale.
-// useRunic controls whether high-bit-clear bytes use runic font (true) or IBM font (false for both).
-// Returns the total width of the drawn string.
-func (bf *BitmapFont) DrawString(dst *ebiten.Image, text string, x, y float64, scale float64, colorR, colorG, colorB float32) float64 {
-	currentX := x
-	for i := range len(text) {
-		charIndex := int(text[i]) & references.SignCharIndexMask // Mask to 7 bits
-		width := bf.DrawChar(dst, charIndex, currentX, y, scale, colorR, colorG, colorB)
-		currentX += width
+// DrawString translates original bytes to SDK glyphs and applies supplied tint.
+func (f *BitmapFont) DrawString(
+	dst *ebiten.Image, value string, positionX, positionY, scale float64, red, green, blue float32,
+) float64 {
+	options := &ebiten.DrawImageOptions{Filter: ebiten.FilterNearest}
+	// Cache native-size glyph pixels, then sample once at final placement. Baking
+	// a reduced glyph before a fractional translation changes nearest texel picks.
+	options.GeoM.Scale(scale, scale)
+	options.GeoM.Translate(positionX, positionY)
+	ink := color.RGBA64{
+		R: uint16(max(0, min(1, red)) * bitmapColourMax), G: uint16(max(0, min(1, green)) * bitmapColourMax),
+		B: uint16(max(0, min(1, blue)) * bitmapColourMax), A: bitmapColourMax,
 	}
+	layout := f.layout(value, 1)
+	drawTextLayout(dst, layout, options, ink)
 
-	return currentX - x
+	return layout.Bounds().Width() * scale
 }
 
-// ScaledCharWidth returns the width of a character at the given scale.
-func ScaledCharWidth(scale float64) float64 {
-	return float64(BitmapCharWidth) * scale
-}
+// ScaledCharWidth returns the scaled original cell width.
+func ScaledCharWidth(scale float64) float64 { return float64(BitmapCharWidth) * scale }
 
-// ScaledCharHeight returns the height of a character at the given scale.
-func ScaledCharHeight(scale float64) float64 {
-	return float64(BitmapCharHeight) * scale
-}
+// ScaledCharHeight returns the scaled original cell height.
+func ScaledCharHeight(scale float64) float64 { return float64(BitmapCharHeight) * scale }
 
-// StringWidthInChars returns the width of a string in character units.
-func StringWidthInChars(text string) int {
-	return len(text)
-}
+// StringWidthInChars counts original bytes, not UTF-8 runes.
+func StringWidthInChars(value string) int { return len(value) }
 
-// StringWidthScaled returns the pixel width of a string at the given scale.
-func StringWidthScaled(text string, scale float64) float64 {
-	return float64(len(text)) * ScaledCharWidth(scale)
+// StringWidthScaled measures an original byte sequence in scaled cell pixels.
+func StringWidthScaled(value string, scale float64) float64 {
+	return float64(len(value)) * ScaledCharWidth(scale)
 }

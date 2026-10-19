@@ -4,8 +4,8 @@ import (
 	"image"
 	"math"
 
+	beradtext "github.com/bradhannah/berad-sdk/modules/berad-text"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
@@ -48,7 +48,6 @@ const (
 	introHighlightStartX     = 0.2
 	introHighlightEndX       = 1 - introHighlightStartX
 	introExtraYHeightPercent = 0.003
-	introLineSpacingRatio    = 1.6 // Line spacing as ratio of font height
 	introFontMetricScale     = 0.85
 	introLogicalWidth        = 320
 	introLogicalHeight       = 200
@@ -117,7 +116,6 @@ func (f *UltimaFont) DrawIntroChoices(screen *ebiten.Image, nSelection int, enab
 
 	// Use font's natural line spacing scaled appropriately
 	fontHeight := f.TextFace.Metrics().HAscent + f.TextFace.Metrics().HDescent
-	lineSpacing := fontHeight * introLineSpacingRatio
 	choicePositions := introMenuChoicePositions(screenHeight, fontHeight, len(IntroChoices))
 
 	for index, choice := range IntroChoices {
@@ -150,27 +148,18 @@ func (f *UltimaFont) DrawIntroChoices(screen *ebiten.Image, nSelection int, enab
 			}
 		}
 
-		// Draw text at 1:1 scale - no GeoM.Scale, just position
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(screenWidth)/2, yPos)
-
-		if bIsSelected {
-			op.ColorScale.ScaleWithColor(color.Black)
-		} else if !enabled {
-			op.ColorScale.ScaleWithColor(color.EGADarkGray)
-		} else {
-			op.ColorScale.ScaleWithColor(color.White)
+		layout := f.Layout(choice)
+		options := &ebiten.DrawImageOptions{}
+		options.GeoM.Translate((float64(screenWidth)-layout.Bounds().Width())/centerDivisor, yPos)
+		ink := color.EGAWhite
+		switch {
+		case bIsSelected:
+			ink = color.EGABlack
+		case !enabled:
+			ink = color.EGADarkGray
 		}
-
-		dop := text.DrawOptions{
-			DrawImageOptions: *op,
-			LayoutOptions: text.LayoutOptions{
-				LineSpacing:  lineSpacing,
-				PrimaryAlign: text.AlignCenter,
-			},
-		}
-
-		text.Draw(screen, choice, f.TextFace, &dop)
+		// The title formerly drew directly, so preserve full glyph ink here.
+		drawLayoutWithClip(screen, layout, options, beradtext.Palette{"": ink}, nil)
 	}
 }
 

@@ -519,7 +519,8 @@ func (e *AtlasNoteEditor) drawField(screen *ebiten.Image, field int) {
 		e.populateFieldLine(target, content, line, point, anchor, caret, layout.textHeight)
 		e.output.DrawPanelContent(target, point, layout.textWidth, etext.AlignStart)
 		if field == e.focus && e.focused && lineIndex == row {
-			width, _ := e.font.MeasureString(string(content[line.start:caret]))
+			position := len(string(content[line.start:caret]))
+			_, _, width := inputTextGeometry(e.font, string(content[line.start:line.end]), position, position, position)
 			fillAtlasRect(target, layout.caretRect(lineIndex-e.scroll[field], width), DialogLabelColor)
 		}
 	}

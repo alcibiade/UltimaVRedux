@@ -1,19 +1,14 @@
 package widgets
 
 import (
-	_ "embed"
 	"fmt"
 	"image/color"
+	"math"
 	"regexp"
-	"sync"
+	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-	"golang.org/x/image/math/fixed"
 
-	"github.com/bradhannah/UltimaVRedux/internal/profiling"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	ultimacolor "github.com/bradhannah/UltimaVRedux/pkg/color"
@@ -22,26 +17,15 @@ import (
 )
 
 const (
+	defaultCursorHeight      = 16
+	inputReleaseDelayMs      = 500
 	keyPressDelay            = 300
 	cursorWidth              = 10
 	cursorBlinkRateInMs      = 1000
 	pauseBlinkKeyPressedInMs = 750
 )
 
-//go:embed assets/ultima-v-warriors-of-destiny/ultima-v-warriors-of-destiny.ttf
-var rawUltimaTTF []byte
-
-//nolint:gochecknoglobals // Parsed data is immutable; each input retains its own hinting/size/cursor-metric face.
-var textInputFontSource = sync.OnceValue(func() *opentype.Font {
-	profiling.Count(profiling.FontSourceParses)
-	source, err := opentype.Parse(rawUltimaTTF)
-	if err != nil {
-		panic(fmt.Sprintf("parsing embedded text input font: %v", err))
-	}
-
-	return source
-})
-
+// TextInputColors supplies semantic command-match colours for this widget.
 type TextInputColors struct {
 	DefaultColor          color.Color
 	NoMatchesColor        color.Color
@@ -49,6 +33,7 @@ type TextInputColors struct {
 	MoreThanOneMatchColor color.Color
 }
 
+// TextInputCallbacks are optional host-owned command and submission actions.
 type TextInputCallbacks struct {
 	AmbiguousAutoComplete func(string)
 	OnEnter               func()
@@ -56,10 +41,10 @@ type TextInputCallbacks struct {
 	ShowCommandList       func()       // Called when Tab is pressed on empty input (for paginated command list)
 }
 
+// TextInput owns the game's command-entry input policy, using shared typography.
 type TextInput struct {
 	output     *text.Output
 	ultimaFont *text.UltimaFont
-	face       font.Face
 
 	maxCharsPerLine int
 
@@ -99,6 +84,7 @@ func (t *TextInput) SetFreeTextMode() {
 	t.textCommands = nil
 }
 
+//nolint:gochecknoglobals // Immutable legacy command-entry key vocabulary.
 var nonAlphaNumericBoundKeys = []ebiten.Key{
 	ebiten.KeyEnter,
 	ebiten.KeyNumpadEnter,
@@ -151,7 +137,7 @@ func NewTextInput(
 	callbacks TextInputCallbacks,
 	keyboard *input.Keyboard,
 ) *TextInput {
-	textInput := &TextInput{}
+	textInput := new(TextInput)
 	textInput.maxCharsPerLine = maxCharsPerLine
 	textInput.keyboard = keyboard
 	textInput.textCommands = textCommands
@@ -180,6 +166,7 @@ func NewTextInput(
 	return textInput
 }
 
+// SetInputColors replaces the widget's semantic match colours.
 func (t *TextInput) SetInputColors(inputColors TextInputColors) {
 	t.inputColors = inputColors
 }
@@ -247,32 +234,23 @@ func (t *TextInput) SetInputValidationRegex(pattern string) error {
 	return nil
 }
 
+// SetFontPoint updates independently sized typography without replacing input.
 func (t *TextInput) SetFontPoint(fontPointSize float64) {
 	t.ultimaFont = text.NewUltimaFont(fontPointSize)
-	t.getAndSetTtf(fontPointSize)
 	t.output.SetFont(t.ultimaFont, fontPointSize)
 }
 
-func (t *TextInput) getAndSetTtf(fontPointSize float64) {
-	face, err := opentype.NewFace(textInputFontSource(), &opentype.FaceOptions{
-		Size:    fontPointSize, // Set font size here
-		DPI:     72,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("creating mandatory text input font face: %v", err))
-	}
-	t.face = face
-}
-
+// GetText returns the current single-row command text.
 func (t *TextInput) GetText() string {
 	return t.output.GetOutputStr(false)
 }
 
+// ClearText clears the current entry without changing focus.
 func (t *TextInput) ClearText() {
 	t.output.Clear()
 }
 
+// SetText replaces the current entry, for example from command history.
 func (t *TextInput) SetText(text string) {
 	t.output.Clear()
 	if text != "" {
@@ -282,47 +260,36 @@ func (t *TextInput) SetText(text string) {
 
 // CalculateTextWidth returns the total width of the string in pixels
 func (t *TextInput) CalculateTextWidth(s string) int {
-	// Use the same text measurement system as the actual rendering (UltimaFont)
-	// This ensures the cursor position matches the actual text rendering
-	if t.ultimaFont != nil && t.ultimaFont.TextFace != nil {
-		// Use Ebitengine's text measurement which matches the rendering
-		width, _ := etext.Measure(s, t.ultimaFont.TextFace, 0)
+	width, _ := t.ultimaFont.MeasureString(s)
 
-		return int(width)
-	}
-
-	// Fallback to the old method if UltimaFont is not available
-	var width fixed.Int26_6
-	for _, r := range s {
-		awidth, _ := t.face.GlyphAdvance(r)
-		width += awidth
-	}
-
-	return width.Ceil() // Convert from fixed.Int26_6 to int
+	return int(width)
 }
 
+// CalculateTextHeight returns the first complete rune's top relative to baseline.
 func (t *TextInput) CalculateTextHeight(s string) int {
 	if s == "" {
 		return 0
 	}
-	rect, _, _ := t.face.GlyphBounds(rune(s[0]))
+	first, _ := utf8.DecodeRuneInString(s)
+	bounds := t.ultimaFont.Layout(string(first)).InkBounds()
 
-	return rect.Min.Y.Ceil()
+	return int(math.Ceil(bounds.Min.Y - t.ultimaFont.Metrics().Ascent))
 }
 
 // getFontHeight returns the height of the font in pixels
 func (t *TextInput) getFontHeight() int {
-	if t.face != nil {
-		// Get the font metrics to calculate proper height
-		metrics := t.face.Metrics()
+	if t.ultimaFont != nil {
+		metrics := t.ultimaFont.Metrics()
 
-		return (metrics.Height + metrics.Descent).Ceil()
+		return int(math.Ceil(metrics.Ascent + 2*metrics.Descent + metrics.LineGap))
 	}
 	// Fallback to a reasonable default if face is not available
-	return 16
+	return defaultCursorHeight
 }
+
+// ForceWaitForNextKeyPress retains the legacy Enter-release gate on activation.
 func (t *TextInput) ForceWaitForNextKeyPress() {
-	t.keyboard.SetLastKeyPressedNowPlusMs(500)
+	t.keyboard.SetLastKeyPressedNowPlusMs(inputReleaseDelayMs)
 	t.keyboard.ForceLastKeyPressed(ebiten.KeyEnter)
 }
 

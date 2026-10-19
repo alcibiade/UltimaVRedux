@@ -48,30 +48,28 @@ const (
 // See ui-text-rendering skill for complete Output API reference.
 // ============================================================================
 
+// DrawText is an internal compatibility entry point; callers use Output panels.
 func (o *Output) DrawText(screen *ebiten.Image, textStr string, op *ebiten.DrawImageOptions) {
-	layoutOpts := &text.LayoutOptions{
-		LineSpacing:  o.lineSpacing,
-		PrimaryAlign: text.AlignStart,
-	}
-
-	// Get cached text image with color baked in
-	textImg := GetCachedText(textStr, o.Font.TextFace, layoutOpts, o.color)
-
-	// Draw cached image (color already applied)
-	screen.DrawImage(textImg, op)
+	DrawCachedText(screen, textStr, o.Font, op, o.color)
 }
 
+// DrawTextCenter is the internal centered compatibility entry point.
 func (o *Output) DrawTextCenter(screen *ebiten.Image, textStr string, op *ebiten.DrawImageOptions) {
 	// Use cached text with alignment adjustment
 	o.drawCachedTextWithAlignment(screen, textStr, op, text.AlignCenter, text.AlignStart)
 }
 
+// DrawTextRightToLeft preserves the historical right-anchor entry point.
 func (o *Output) DrawTextRightToLeft(screen *ebiten.Image, textStr string, op *ebiten.DrawImageOptions) {
 	// Use cached text with alignment adjustment
 	o.drawCachedTextWithAlignment(screen, textStr, op, text.AlignEnd, text.AlignStart)
 }
 
-func (o *Output) DrawScrollingBuffer(screen *ebiten.Image, point image.Point, textRectWidth int, bShowEmptyNewLines bool, horizAlign, vertAlign text.Align) {
+// DrawScrollingBuffer renders retained circular rows without a height limit.
+func (o *Output) DrawScrollingBuffer(
+	screen *ebiten.Image, point image.Point, textRectWidth int,
+	bShowEmptyNewLines bool, horizAlign, vertAlign text.Align,
+) {
 	o.DrawScrollingBufferWithHeight(screen, point, textRectWidth, 0, bShowEmptyNewLines, horizAlign, vertAlign)
 }
 
@@ -125,8 +123,8 @@ func (o *Output) DrawPanelContentRange(
 
 	// Render lines from the requested physical range.
 	currentY := float64(point.Y)
-	for i := startLine; i <= lastNonEmptyIndex; i++ {
-		line := o.lines[i] // Physical index, no circular offset
+	for rowIndex := startLine; rowIndex <= lastNonEmptyIndex; rowIndex++ {
+		line := o.lines[rowIndex] // Physical index, no circular offset
 
 		lineAlign := line.Alignment
 		if lineAlign == 0 {
@@ -134,9 +132,10 @@ func (o *Output) DrawPanelContentRange(
 		}
 
 		if len(line.Segments) > 0 {
-			o.drawStyledLine(screen, i, line.Segments, float64(point.X), float64(textRectWidth), currentY, lineAlign)
+			o.drawStyledLine(screen, rowIndex, line.Segments, float64(point.X), float64(textRectWidth), currentY, lineAlign)
 		} else {
-			o.drawSimpleLine(screen, line.Text, line.Color, float64(point.X), float64(textRectWidth), currentY, lineAlign)
+			o.drawSimpleLine(screen, rowIndex, line.Text, line.Color,
+				float64(point.X), float64(textRectWidth), currentY, lineAlign)
 		}
 
 		currentY += o.lineSpacing
@@ -147,7 +146,10 @@ func (o *Output) DrawPanelContentRange(
 // If textRectHeight > 0 and vertAlign == AlignEnd, text is positioned from bottom and grows upward
 // Trailing empty/whitespace-only lines are skipped during rendering (not deleted from buffer)
 // Buffer naturally overwrites old lines via circular indexing when new content is added
-func (o *Output) DrawScrollingBufferWithHeight(screen *ebiten.Image, point image.Point, textRectWidth, textRectHeight int, bShowEmptyNewLines bool, horizAlign, vertAlign text.Align) {
+func (o *Output) DrawScrollingBufferWithHeight(
+	screen *ebiten.Image, point image.Point, textRectWidth, textRectHeight int,
+	bShowEmptyNewLines bool, horizAlign, vertAlign text.Align,
+) {
 	_ = bShowEmptyNewLines
 	firstNonEmptyIndex, lastNonEmptyIndex, ok := o.scrollingContentRange(textRectHeight)
 	if !ok {
@@ -156,53 +158,15 @@ func (o *Output) DrawScrollingBufferWithHeight(screen *ebiten.Image, point image
 
 	contentLineCount := lastNonEmptyIndex - firstNonEmptyIndex + 1
 
-	// DEBUG: Draw red bounding box around the text output area
-	if o.debugOptions != nil && o.debugOptions.DialogBoundingBoxes {
-		// Calculate the actual height used for rendering
-		debugHeight := textRectHeight
-		if debugHeight == 0 {
-			// When no height specified, calculate from content
-			debugHeight = int(float64(contentLineCount) * o.lineSpacing)
-		}
-		// Draw red rectangle outline (1 pixel wide)
-		strokeWidth := float32(1.0)
-		vector.StrokeRect(screen,
-			float32(point.X), float32(point.Y),
-			float32(textRectWidth), float32(debugHeight),
-			strokeWidth, ultimacolor.EGARed, false)
-
-		// Log buffer state for debugging
-		logging.Debug(logging.CategoryUI, "=== DIALOG BOX DEBUG ===")
-		logging.Debug(logging.CategoryUI, "BoundingBox: point=(%d,%d), width=%d, height=%d",
-			point.X, point.Y, textRectWidth, debugHeight)
-		logging.Debug(logging.CategoryUI, "Buffer: nextLineToIndex=%d, firstNonEmpty=%d, lastNonEmpty=%d, contentCount=%d",
-			o.nextLineToIndex, firstNonEmptyIndex, lastNonEmptyIndex, contentLineCount)
-		// Log first few lines of content
-		for i := 0; i <= lastNonEmptyIndex && i < 5; i++ {
-			line := o.lines[(i+o.nextLineToIndex)%o.maxLines]
-			var lineText string
-			if len(line.Segments) > 0 {
-				var lineTextSb185 strings.Builder
-				for _, seg := range line.Segments {
-					lineTextSb185.WriteString(seg.Text)
-				}
-				lineText += lineTextSb185.String()
-				lineText = "[styled] " + lineText
-			} else {
-				lineText = line.Text
-			}
-			if lineText == "" {
-				lineText = "[empty]"
-			}
-			logging.Debug(logging.CategoryUI, "  Line[%d]: %s", i, lineText)
-		}
-	}
+	o.drawScrollingDebug(screen, point, textRectWidth, textRectHeight, firstNonEmptyIndex, lastNonEmptyIndex)
 
 	currentY := float64(point.Y)
 	if textRectHeight > 0 {
 		totalTextHeight := o.GetTotalHeightForLines(contentLineCount)
 
 		switch vertAlign {
+		case text.AlignStart:
+			// Keep the supplied top position.
 		case text.AlignCenter:
 			currentY += (float64(textRectHeight) - totalTextHeight) / centerDivisor
 		case text.AlignEnd:
@@ -210,8 +174,8 @@ func (o *Output) DrawScrollingBufferWithHeight(screen *ebiten.Image, point image
 		}
 	}
 
-	for i := firstNonEmptyIndex; i <= lastNonEmptyIndex; i++ {
-		line := o.lines[(i+o.nextLineToIndex)%o.maxLines]
+	for rowIndex := firstNonEmptyIndex; rowIndex <= lastNonEmptyIndex; rowIndex++ {
+		line := o.lines[(rowIndex+o.nextLineToIndex)%o.maxLines]
 
 		// Use per-line alignment if set, otherwise use parameter default
 		lineAlign := line.Alignment
@@ -222,14 +186,48 @@ func (o *Output) DrawScrollingBufferWithHeight(screen *ebiten.Image, point image
 		// Check if this is a styled line (multi-color) or simple line (single color)
 		if len(line.Segments) > 0 {
 			// Multi-color line - use X-tracking rendering
-			row := (i + o.nextLineToIndex) % o.maxLines
+			row := (rowIndex + o.nextLineToIndex) % o.maxLines
 			o.drawStyledLine(screen, row, line.Segments, float64(point.X), float64(textRectWidth), currentY, lineAlign)
 		} else {
 			// Simple single-color line - use cached rendering
-			o.drawSimpleLine(screen, line.Text, line.Color, float64(point.X), float64(textRectWidth), currentY, lineAlign)
+			row := (rowIndex + o.nextLineToIndex) % o.maxLines
+			o.drawSimpleLine(screen, row, line.Text, line.Color, float64(point.X), float64(textRectWidth), currentY, lineAlign)
 		}
 
 		currentY += o.lineSpacing
+	}
+}
+
+func (o *Output) drawScrollingDebug(screen *ebiten.Image, point image.Point, width, height, first, last int) {
+	if o.debugOptions == nil || !o.debugOptions.DialogBoundingBoxes {
+		return
+	}
+	count := last - first + 1
+	if height == 0 {
+		height = int(float64(count) * o.lineSpacing)
+	}
+	vector.StrokeRect(screen, float32(point.X), float32(point.Y), float32(width), float32(height),
+		1, ultimacolor.EGARed, false)
+	logging.Debug(logging.CategoryUI, "=== DIALOG BOX DEBUG ===")
+	logging.Debug(logging.CategoryUI, "BoundingBox: point=(%d,%d), width=%d, height=%d", point.X, point.Y, width, height)
+	logging.Debug(logging.CategoryUI, "Buffer: nextLineToIndex=%d, firstNonEmpty=%d, lastNonEmpty=%d, contentCount=%d",
+		o.nextLineToIndex, first, last, count)
+	const debugRowLimit = 5
+	for rowIndex := 0; rowIndex <= last && rowIndex < debugRowLimit; rowIndex++ {
+		line := o.lines[(rowIndex+o.nextLineToIndex)%o.maxLines]
+		value := line.Text
+		if len(line.Segments) > 0 {
+			var builder strings.Builder
+			builder.WriteString("[styled] ")
+			for _, segment := range line.Segments {
+				builder.WriteString(segment.Text)
+			}
+			value = builder.String()
+		}
+		if value == "" {
+			value = "[empty]"
+		}
+		logging.Debug(logging.CategoryUI, "  Line[%d]: %s", rowIndex, value)
 	}
 }
 
@@ -293,15 +291,6 @@ func (o *Output) getBitmapScale() float64 {
 	return o.lineSpacing / float64(BitmapCharHeight)
 }
 
-// getScaledFontFace returns a font face scaled by the given factor.
-// The source/configuration are shared read-only; only this derived face's size changes.
-func (o *Output) getScaledFontFace(scale float64) *text.GoTextFace {
-	face := *o.Font.TextFace
-	face.Size *= scale
-
-	return &face
-}
-
 // getSegmentWidth calculates the rendered width of a segment, handling both font types and font scaling
 func (o *Output) getSegmentWidth(seg ColorSegment) float64 {
 	switch seg.FontType {
@@ -323,13 +312,10 @@ func (o *Output) getSegmentWidth(seg ColorSegment) float64 {
 
 	// Use scaled font for measurement if scale differs from 1.0
 	if fontScale != FontScaleNormal {
-		scaledFace := o.getScaledFontFace(fontScale)
-		width, _ := text.Measure(seg.Text, scaledFace, 0)
-
-		return width
+		return newTextLayout(seg.Text, o.Font.sdkForScale(fontScale)).Bounds().Width()
 	}
 
-	width, _ := text.Measure(seg.Text, o.Font.TextFace, 0)
+	width, _ := o.Font.MeasureString(seg.Text)
 
 	return width
 }
@@ -379,27 +365,6 @@ func commandPromptPixelScale(cellWidth, cellHeight float64) float64 {
 	return max(math.Round(min(cellWidth, cellHeight)/commandPromptSourcePixels), 1)
 }
 
-// drawBitmapSegment renders a fixed-cell bitmap text segment.
-func (o *Output) drawBitmapSegment(
-	screen *ebiten.Image,
-	font *BitmapFont,
-	segText string,
-	segColor color.Color,
-	startX, startY float64,
-) float64 {
-	scale := o.getBitmapScale()
-	r, g, b := ultimacolor.ToRGBFloats(segColor)
-
-	// Calculate vertical offset to center runic text with TTF baseline
-	// TTF text is positioned by baseline, but bitmap font draws from top-left
-	// We want the runic text to appear centered within the line height
-	// Runic scaled height = BitmapCharHeight * scale = lineSpacing
-	// For visual alignment, we shift down slightly (empirical adjustment)
-	yOffset := (o.lineSpacing - float64(BitmapCharHeight)*scale) / centerDivisor
-
-	return font.DrawString(screen, segText, startX, startY+yOffset, scale, r, g, b)
-}
-
 // drawStyledLine renders a multi-colored line with X-tracking, supporting mixed TTF/Runic fonts
 func (o *Output) drawStyledLine(
 	screen *ebiten.Image,
@@ -418,49 +383,35 @@ func (o *Output) drawStyledLine(
 		// currentX already positioned correctly for left-align (anchor at left edge)
 	case text.AlignCenter:
 		// Center within the text rectangle
-		currentX += (textRectWidth - totalWidth) / 2
+		currentX += (textRectWidth - totalWidth) / centerDivisor
 	case text.AlignEnd:
 		// Anchor at right edge: startX + textRectWidth - totalWidth
 		currentX += textRectWidth - totalWidth
 	}
 
 	// Render each segment using appropriate font type
+	if geometry.combined != nil {
+		for index, segment := range segments {
+			ink := segment.Color
+			if ink == nil {
+				ink = color.White
+			}
+			geometry.palette[geometry.paintNames[index]] = ink
+		}
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(currentX, startY)
+		drawPaintedTextLayout(screen, geometry.combined, op, geometry.palette)
+
+		return
+	}
 	for index, seg := range segments {
 		segWidth := geometry.advances[index]
 
 		switch seg.FontType {
-		case FontTypeNormal:
-			// Determine font face to use (scaled if FontScale is set)
-			fontScale := seg.FontScale
-			if fontScale == 0 {
-				fontScale = FontScaleNormal
-			}
-
-			var fontFace *text.GoTextFace
-			if fontScale != FontScaleNormal {
-				fontFace = o.getScaledFontFace(fontScale)
-			} else {
-				fontFace = o.Font.TextFace
-			}
-
-			// Render using TTF font (with optional scaling)
-			entry := globalCache.getOrRenderEntry(TextRenderParams{
-				Content: seg.Text, Face: fontFace,
-				Options: &text.LayoutOptions{
-					LineSpacing: o.lineSpacing, PrimaryAlign: text.AlignStart, SecondaryAlign: text.AlignStart,
-				}, Color: seg.Color,
-			})
-
+		case FontTypeNormal, FontTypeRunic, FontTypeIBM:
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(currentX, startY)
-			screen.DrawImage(entry.image, op)
-
-			// Use measured width for advancement
-			// Advancement uses the retained unpadded layout width, not image bounds.
-		case FontTypeRunic:
-			o.drawBitmapSegment(screen, GetBitmapFonts().Runic, seg.Text, seg.Color, currentX, startY)
-		case FontTypeIBM:
-			o.drawBitmapSegment(screen, GetBitmapFonts().IBM, seg.Text, seg.Color, currentX, startY)
+			drawTextLayout(screen, geometry.layouts[index], op, seg.Color)
 		case FontTypeCommandPrompt:
 			o.drawCommandPromptSegment(screen, seg.Color, currentX, startY)
 		}
@@ -471,7 +422,10 @@ func (o *Output) drawStyledLine(
 }
 
 // drawSimpleLine renders a single-color line using existing cached system
-func (o *Output) drawSimpleLine(screen *ebiten.Image, lineText string, lineColor color.Color, startX, textRectWidth, startY float64, horizAlign text.Align) {
+func (o *Output) drawSimpleLine(
+	screen *ebiten.Image, row int, lineText string, lineColor color.Color,
+	startX, textRectWidth, startY float64, horizAlign text.Align,
+) {
 	// Check if this is an empty/whitespace-only line and debug mode is active
 	if strings.TrimSpace(lineText) == "" {
 		// If debug placeholders enabled, render placeholder symbol
@@ -483,13 +437,10 @@ func (o *Output) drawSimpleLine(screen *ebiten.Image, lineText string, lineColor
 		}
 	}
 
-	img := GetCachedText(lineText, o.Font.TextFace,
-		&text.LayoutOptions{LineSpacing: o.lineSpacing, PrimaryAlign: text.AlignStart},
-		lineColor)
-
-	// Calculate alignment offset using proper anchors
-	bounds := img.Bounds()
-	imgWidth := float64(bounds.Dx())
+	segments := []ColorSegment{{Text: lineText, Color: lineColor, FontType: FontTypeNormal, FontScale: 1}}
+	geometry := o.layoutLine(row, segments)
+	// Preserve the simple-row anchor allowance in the game, not SDK metrics.
+	imgWidth := float64(int(geometry.total) + legacyRasterPadding)
 
 	currentX := startX
 	switch horizAlign {
@@ -497,7 +448,7 @@ func (o *Output) drawSimpleLine(screen *ebiten.Image, lineText string, lineColor
 		// currentX already positioned correctly for left-align (anchor at left edge)
 	case text.AlignCenter:
 		// Center within the text rectangle
-		currentX += (textRectWidth - imgWidth) / 2
+		currentX += (textRectWidth - imgWidth) / centerDivisor
 	case text.AlignEnd:
 		// Anchor at right edge: startX + textRectWidth - imgWidth
 		currentX += textRectWidth - imgWidth
@@ -505,7 +456,7 @@ func (o *Output) drawSimpleLine(screen *ebiten.Image, lineText string, lineColor
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(currentX, startY)
-	screen.DrawImage(img, op)
+	drawTextLayout(screen, geometry.layouts[0], op, lineColor)
 }
 
 // drawCachedTextWithAlignment draws cached text with proper alignment adjustment
@@ -522,41 +473,35 @@ func (o *Output) drawCachedTextWithAlignment(
 func (o *Output) drawCachedTextWithAlignmentStr(
 	screen *ebiten.Image,
 	textStr string,
-	op *ebiten.DrawImageOptions,
+	options *ebiten.DrawImageOptions,
 	horizAlign, vertAlign text.Align,
 ) {
-	// Get cached text image (always cached with AlignStart for consistency)
-	layoutOpts := &text.LayoutOptions{
-		LineSpacing:    o.lineSpacing,
-		PrimaryAlign:   text.AlignStart, // Always cache with start alignment
-		SecondaryAlign: text.AlignStart,
-	}
-
-	textImg := GetCachedText(textStr, o.Font.TextFace, layoutOpts, o.color)
-
-	// Calculate alignment offset based on image dimensions
-	bounds := textImg.Bounds()
-	imgWidth := float64(bounds.Dx())
-	imgHeight := float64(bounds.Dy())
+	// Preserve the historical raster allowance in this compatibility anchor.
+	width, height := o.Font.MeasureString(textStr)
+	imgWidth, imgHeight := float64(int(width)+legacyRasterPadding), float64(int(height)+legacyRasterPadding)
 
 	// Apply horizontal alignment offset
 	switch horizAlign {
+	case text.AlignStart:
+		// Keep the supplied horizontal anchor.
 	case text.AlignCenter:
-		op.GeoM.Translate(-imgWidth/2, 0)
+		options.GeoM.Translate(-imgWidth/centerDivisor, 0)
 	case text.AlignEnd:
-		op.GeoM.Translate(-imgWidth, 0)
+		options.GeoM.Translate(-imgWidth, 0)
 		// AlignStart needs no offset
 	}
 
 	// Apply vertical alignment offset
 	switch vertAlign {
+	case text.AlignStart:
+		// Keep the supplied vertical anchor.
 	case text.AlignCenter:
-		op.GeoM.Translate(0, -imgHeight/2)
+		options.GeoM.Translate(0, -imgHeight/centerDivisor)
 	case text.AlignEnd:
-		op.GeoM.Translate(0, -imgHeight)
+		options.GeoM.Translate(0, -imgHeight)
 		// AlignStart needs no offset
 	}
 
 	// Draw cached image with adjusted position (color already applied)
-	screen.DrawImage(textImg, op)
+	DrawCachedText(screen, textStr, o.Font, options, o.color)
 }

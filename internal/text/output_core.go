@@ -20,6 +20,7 @@ type StyledLine struct {
 	Alignment text.Align     // Horizontal alignment (default: AlignStart for left-aligned)
 }
 
+// Output preserves game panel/transcript semantics over SDK text rendering.
 type Output struct {
 	Font               *UltimaFont
 	lines              []StyledLine // Changed from []string to support multi-color
@@ -36,8 +37,12 @@ type Output struct {
 	lineLayouts        []lineLayout // Current physical-row geometry; never owns cached text images.
 }
 
+// NewOutput allocates physical rows with a positive legacy column capacity.
 func NewOutput(font *UltimaFont, lineSpacing float64, maxLines, maxCharsPerLine int) *Output {
-	output := &Output{}
+	if maxLines < 0 || maxCharsPerLine <= 0 {
+		panic("game output requires nonnegative rows and positive columns")
+	}
+	output := new(Output)
 	output.Font = font
 	output.lineSpacing = lineSpacing
 	output.maxLines = maxLines
@@ -49,6 +54,7 @@ func NewOutput(font *UltimaFont, lineSpacing float64, maxLines, maxCharsPerLine 
 	return output
 }
 
+// SetFont changes typography and invalidates retained geometry, not source text.
 func (o *Output) SetFont(font *UltimaFont, lineSpacing float64) {
 	o.Font = font
 	o.lineSpacing = lineSpacing
@@ -69,6 +75,7 @@ func (o *Output) SetHyphenateLongWords(enabled bool) {
 	o.hyphenateLongWords = enabled
 }
 
+// SetColor changes the plain-text default without recolouring styled segments.
 func (o *Output) SetColor(color color.Color) {
 	o.color = color
 	// Guard: Skip if no lines allocated (maxLines = 0)
@@ -107,14 +114,13 @@ func (o *Output) SetDebugOptions(debugOptions *references.DebugOptions) {
 	o.debugOptions = debugOptions
 }
 
+// Clear empties rows while preserving the circular write index and owned history.
 func (o *Output) Clear() {
 	o.clearLineLayouts()
 	if o.journalHistory != nil {
 		o.journalHistory.startTarget(false)
 	}
-	for i := range o.lines {
-		o.lines[i] = StyledLine{} // Clear to empty StyledLine
-	}
+	clear(o.lines)
 }
 
 // Reset clears all content AND resets the line index to 0
@@ -143,6 +149,7 @@ func (o *Output) getCurrentRow() int {
 	return lastLineAdded
 }
 
+// GetLengthOfCurrentRowStr preserves the current row's legacy byte-length count.
 func (o *Output) GetLengthOfCurrentRowStr() int {
 	// Guard: Return 0 if no lines allocated
 	if o.maxLines == 0 {
@@ -163,6 +170,7 @@ func (o *Output) GetLengthOfCurrentRowStr() int {
 	return utf8.RuneCountInString(line.Text)
 }
 
+// RemoveRightSideCharacter removes one complete rune from the current row.
 func (o *Output) RemoveRightSideCharacter() {
 	// Guard: Skip if no lines allocated
 	if o.maxLines == 0 {
@@ -217,15 +225,15 @@ func (o *Output) GetFontHeight() float64 {
 // GetTotalHeightForLines calculates the total height for N lines of text.
 // Formula: (N-1) × lineSpacing + fontHeight
 // This accounts for N-1 gaps between baselines plus the actual text height.
-func (o *Output) GetTotalHeightForLines(n int) float64 {
-	if n <= 0 {
+func (o *Output) GetTotalHeightForLines(lineCount int) float64 {
+	if lineCount <= 0 {
 		return 0
 	}
-	if n == 1 {
+	if lineCount == 1 {
 		return o.GetFontHeight()
 	}
 
-	return float64(n-1)*o.lineSpacing + o.GetFontHeight()
+	return float64(lineCount-1)*o.lineSpacing + o.GetFontHeight()
 }
 
 // GetLineCapacity returns the greatest number of complete lines that fit in height.
@@ -277,12 +285,13 @@ func (o *Output) FirstPanelLineWithColor(start, end int, target color.Color) (in
 	return 0, false
 }
 
+// GetOutputStr projects circular display rows; it is not the saved journal format.
 func (o *Output) GetOutputStr(bShowEmptyNewLines bool) string {
 	var outputStr string
 	nTotalLines := len(o.lines)
 	var outputStrSb283 strings.Builder
-	for i := range nTotalLines {
-		line := o.lines[(i+o.nextLineToIndex)%o.maxLines]
+	for rowIndex := range nTotalLines {
+		line := o.lines[(rowIndex+o.nextLineToIndex)%o.maxLines]
 
 		var lineText string
 		if len(line.Segments) > 0 {
@@ -297,7 +306,7 @@ func (o *Output) GetOutputStr(bShowEmptyNewLines bool) string {
 		}
 
 		outputStrSb283.WriteString(lineText)
-		if (bShowEmptyNewLines || lineText != "") && i < nTotalLines-1 {
+		if (bShowEmptyNewLines || lineText != "") && rowIndex < nTotalLines-1 {
 			outputStrSb283.WriteString(" \n")
 		}
 	}

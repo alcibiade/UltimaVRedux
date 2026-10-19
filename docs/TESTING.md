@@ -471,6 +471,18 @@ Race-instrumenting the harness instruments the game bridge and its dependencies;
 the complete quality gate includes it in the race stage. These synthetic transport
 and WAV tests do not initialize a native device or establish listening acceptance.
 
+Berad Text's independent font/layout/cache and external-consumer proof is SDK-owned.
+Its declared native-render lanes use a running Ebitengine test harness and synthetic
+bitmap/Go-font fixtures. The game pins the published module and keeps adapter tests
+in `internal/text` plus widget/scene regression coverage. Its text TestMain also
+starts Ebitengine, permitting actual pixel comparisons to the former game raster
+canvas, scaled-text reuse and bitmap/sign behaviour. Generic cache tests were
+replaced by SDK coverage, not retained as a second implementation. Focused game
+checks include `go test ./internal/text` and the applicable native widget tests;
+the normal test gate classifies these by their engine dependency. A renderer/input
+package cannot enter core gameplay through the new SDK path. Game checks require
+no sibling SDK checkout and do not rerun its independent suite.
+
 Native pixel tests must use bounded offscreen targets, explicit owned-image
 cleanup, and a positive visual oracle. Keep broad state/layout/resolution matrices
 in non-raster assertions, with only representative native cases for clipping,

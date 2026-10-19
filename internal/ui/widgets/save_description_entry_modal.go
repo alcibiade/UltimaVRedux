@@ -243,8 +243,8 @@ func (m *SaveDescriptionEntryModal) drawDescriptionField(screen *ebiten.Image, f
 		first, last = 0, 0
 	}
 	prefix, selected, suffix := string(runes[:first]), string(runes[first:last]), string(runes[last:])
-	prefixWidth, _ := m.font.MeasureString(prefix)
-	selectedWidth, _ := m.font.MeasureString(selected)
+	prefixWidth, selectedWidth, _ := inputTextGeometry(m.font, visibleText,
+		len(prefix), len(prefix)+len(selected), len(prefix))
 	vector.FillRect(screen, float32(contentRect.Min.X)+float32(prefixWidth), float32(contentRect.Min.Y),
 		float32(selectedWidth), float32(contentRect.Dy()), DialogSelectedBackground, false)
 	m.fieldOutput.Reset()
@@ -314,7 +314,8 @@ func (m *SaveDescriptionEntryModal) drawDescriptionCursor(
 	}
 	visibleRunes := []rune(visibleText)
 	cursorRune = min(max(cursorRune, 0), len(visibleRunes))
-	textAdvance, _ := m.font.MeasureString(string(visibleRunes[:cursorRune]))
+	position := len(string(visibleRunes[:cursorRune]))
+	_, _, textAdvance := inputTextGeometry(m.font, visibleText, position, position, position)
 	cursorX := min(contentRect.Max.X, contentRect.Min.X+int(textAdvance))
 	vector.StrokeLine(
 		screen,

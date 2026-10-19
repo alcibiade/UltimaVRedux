@@ -57,6 +57,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | [`ADR/ADR-008-event-queue-execution-lanes.md`](ADR/ADR-008-event-queue-execution-lanes.md) | Record separate workflow and presentation-feedback queue ownership. | `workflows` | ADR rationale |
 | [`ADR/ADR-009-canonical-save-snapshot.md`](ADR/ADR-009-canonical-save-snapshot.md) | Record canonical native snapshot and hydration boundaries. | `saves` | ADR rationale |
 | [`ADR/ADR-010-reusable-audio-module.md`](ADR/ADR-010-reusable-audio-module.md) | Explain Berad Audio extraction, SDK migration, and pinned consumer integration. | `audio` | ADR rationale |
+| [`ADR/ADR-011-berad-text.md`](ADR/ADR-011-berad-text.md) | Explain SDK-owned typography/rendering with game-owned text and input policy. | `text` | ADR rationale |
 
 ## Current Systems
 

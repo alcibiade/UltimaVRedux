@@ -119,9 +119,12 @@ Apple M3 Pro (Go 1.27.1) provide narrow-function evidence:
 | Complete synthetic lighting recalculation | 3.5-3.7 ms, about 297 KB | About 0.32 ms, 59 KB |
 | Text raster-cache key/hit | Previous formatting alone: about 466-471 ns, 224 bytes, 12 allocations | Complete warm structured lookup: about 67 ns, zero allocations |
 
-Run `BenchmarkUltimaFontConstruction`, `BenchmarkTextCacheKeyLookup` in
-`internal/text`, and `BenchmarkStaticLightCollection`,
-`BenchmarkLightingRecalculation` in `internal/map_state` to reproduce. The light
+These numbers describe the pre-SDK implementation, not a performance claim for
+Berad Text. `BenchmarkUltimaFontConstruction` remains in `internal/text`; the old
+formatted-key comparison was retired with the old cache. SDK tests now cover real
+scaled-text raster reuse and fresh/cached pixels. Use current rendering workloads
+when profiling the new adapter. `BenchmarkStaticLightCollection` and
+`BenchmarkLightingRecalculation` remain in `internal/map_state`. The light
 fixture is deliberately dense and covers a wrapped corner; the complete
 recalculation comparison uses the exhaustive compatibility branch with the same
 current visibility bookkeeping in both cases. These are microbenchmarks, not

@@ -27,13 +27,9 @@ func (t *TextInput) Draw(screen *ebiten.Image) {
 			promptColor = color.White
 		}
 
-		promptImg := text.GetCachedText(t.promptPrefix, t.ultimaFont.TextFace,
-			&etext.LayoutOptions{LineSpacing: 0, PrimaryAlign: etext.AlignStart},
-			promptColor)
-
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(currentX, currentY)
-		screen.DrawImage(promptImg, op)
+		text.DrawCachedText(screen, t.promptPrefix, t.ultimaFont, op, promptColor)
 
 		promptWidth, _ = etext.Measure(t.promptPrefix, t.ultimaFont.TextFace, 0)
 		currentX += promptWidth
@@ -46,13 +42,9 @@ func (t *TextInput) Draw(screen *ebiten.Image) {
 			placeholderColor = ultimacolor.EGADarkGray
 		}
 
-		placeholderImg := text.GetCachedText(t.placeholderText, t.ultimaFont.TextFace,
-			&etext.LayoutOptions{LineSpacing: 0, PrimaryAlign: etext.AlignStart},
-			placeholderColor)
-
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(currentX, currentY)
-		screen.DrawImage(placeholderImg, op)
+		text.DrawCachedText(screen, t.placeholderText, t.ultimaFont, op, placeholderColor)
 	} else {
 		inputColor := t.getTextColor()
 		t.output.SetColor(inputColor)
@@ -76,9 +68,9 @@ func (t *TextInput) getTextColor() color.Color {
 	matches := t.textCommands.OneOrMoreCommandsMatch(textStr)
 	if matches {
 		return t.inputColors.OneMatchColor
-	} else {
-		return t.inputColors.NoMatchesColor
 	}
+
+	return t.inputColors.NoMatchesColor
 }
 
 func (t *TextInput) drawCursorWithOffset(screen *ebiten.Image, promptWidth float64) {
@@ -110,11 +102,15 @@ func (t *TextInput) drawCursorWithOffset(screen *ebiten.Image, promptWidth float
 }
 
 func (t *TextInput) createCursorPlacement() sprites.PercentBasedPlacement {
+	const (
+		cursorTopOffsetPercent    = 0.003
+		cursorBottomOffsetPercent = 0.032
+	)
 	cursorPlacement := sprites.PercentBasedPlacement{
 		StartPercentX: t.mainTextPlacement.StartPercentX,
 		EndPercentX:   t.mainTextPlacement.EndPercentX,
-		StartPercentY: t.mainTextPlacement.StartPercentY - 0.003,
-		EndPercentY:   t.mainTextPlacement.EndPercentY - 0.032,
+		StartPercentY: t.mainTextPlacement.StartPercentY - cursorTopOffsetPercent,
+		EndPercentY:   t.mainTextPlacement.EndPercentY - cursorBottomOffsetPercent,
 	}
 
 	return cursorPlacement

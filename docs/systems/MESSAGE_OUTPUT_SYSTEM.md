@@ -82,31 +82,51 @@ lifecycle ownership.
 
 ### Shared Typography And Rendering Ownership
 
-`NewUltimaFont` shares one lazily parsed embedded TTF source, including the
-engine's source-owned shaping/glyph caches. Each caller retains a separate face
-with its own size/direction/language settings. TextInput separately shares its
-parsed OpenType source while retaining independent faces for cursor metrics.
-Bitmap Runic/IBM and original narrative fonts keep their distinct pipelines.
+Redux consumes the pinned
+[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-text).
+`internal/text` is the game facade: assets, original glyph-byte mapping, command
+markers, builders, transcript/history policy and display scaling remain here.
+The module owns supplied-font parsing, immutable typography, styled layout/local
+geometry, bitmap rasterization and bounded image caching. See
+[ADR-011](../ADR/ADR-011-berad-text.md) for the extraction boundary.
 
-The shared rendered-text LRU uses comparable content/face/layout/colour keys;
-warm lookups do not format strings. Keys retain strong face identities and
-snapshot public GoTextFace rendering fields. Opaque OpenType feature/variation
-settings must remain immutable while cached: replace the face or explicitly
-clear the text cache after changing them. Colours are numeric RGBA tuples, and
-layout values, not option-pointer addresses, identify entries.
+`NewUltimaFont` shares one lazily parsed game TTF through the SDK. The game-owned
+`TextFace` view remains for engine integrations; Source/features must stay read-only.
+Legacy size/language settings are converted to immutable SDK configurations.
+TextInput uses this same source and metrics rather than a second OpenType parser.
+Runic/IBM bytes map to private-use runes in supplied bitmap descriptors; original
+sign decoding and narrative-font policy remain local. Font-file hot reload is
+not part of the game contract.
 
-The default budget is 512 entries, additionally bounded to 16 MiB of
-cache-held logical pixel payload plus owned content strings. This is not a total
-GPU-memory limit. Oversized results bypass admission rather than evicting the
-entire working set. Returned images retain their existing escaping lifetime:
-eviction drops cache references and must not dispose borrowed images.
+The application-owned SDK renderer retains up to 512 rasters and 16 MiB of logical
+pixel payload plus source-text bytes. Fonts, geometry, engine glyph caches and
+driver memory are separate; this is not a total GPU-memory guarantee. Equivalent
+scaled typography has stable identity rather than a new face-pointer cache key.
+Oversized cache entries bypass retention; per-render limits are checked before
+allocation. Private cached images never escape. Compatibility `GetCharImage`
+returns separately game-owned, fixed-glyph snapshots whose existing borrowers
+must not modify/dispose them. Cache eviction cannot invalidate those snapshots.
+Final application shutdown closes the SDK renderer; scene lifetimes share it.
+Direct bitmap glyph drawing retains native-size rasters and applies scale at final
+placement, preserving single-pass nearest sampling for the reduced sky glyphs.
+Styled bitmap/TTF runs share palette-alpha semantics; the ordinary game palette
+remains opaque.
 
-Output retains bounded physical-row segment advances, not raster image pointers.
-Unchanged content/typography reuses geometry; colour/alignment changes affect
-paint/placement. Editing and circular overwrite are checked against the actual
-row content; Clear/Reset and SetFont invalidate retained geometry. Wrapped copies
-own independent layout storage. Short styled lines without newlines take a
-rune-aware detached-copy fast path, preserving history and caller isolation.
+Output retains bounded physical-row SDK layouts. Ordinary mixed styled rows shape
+compatible fonts across colour boundaries; vector command-marker rows preserve
+their original compatibility sequence. Recolouring and placement do not rebuild
+geometry. Clear/Reset/SetFont invalidate retained rows; wrapped copies detach both
+layout and logical-history ownership. Positive column capacity is required, while
+zero visible rows remain valid. Local clipping and the simple-row two-pixel anchor
+allowance preserve the former game raster canvas without restricting SDK ink bounds.
+
+Measured source reflow delegates to SDK layout. Atlas/save-description/Tavern
+controls use SDK source-range/caret geometry while owning native input, selection,
+filtering, focus, scrolling and composition projection. Queries are local geometric
+candidates, not click handlers: Z order, clipping eligibility and activation belong
+to the UI owner. Shaped-cluster snapping is explicit; full bidi/vertical editing
+or independent colouring inside a ligature is not promised. The game retains its
+existing stored text and input policies.
 
 CharacterSummary retains separate left/right text outputs per party slot until
 visible values or semantic colour change. It still draws the current portraits
