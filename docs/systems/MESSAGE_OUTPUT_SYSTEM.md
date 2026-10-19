@@ -83,7 +83,7 @@ lifecycle ownership.
 ### Shared Typography And Rendering Ownership
 
 Redux consumes the pinned
-[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/1521d0b6526b/modules/berad-text).
+[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-text).
 `internal/text` is the game facade: assets, original glyph-byte mapping, command
 markers, builders, transcript/history policy and display scaling remain here.
 The module owns supplied-font parsing, immutable typography, styled layout/local

@@ -52,4 +52,4 @@ alignment allowance explicitly; generic SDK rendering retains full ink bounds.
   release promises are distinct from module compilation or passing fake-input tests.
 
 See the [game integration contract](../systems/MESSAGE_OUTPUT_SYSTEM.md) and
-[SDK API contract](https://github.com/bradhannah/berad-sdk/blob/1521d0b6526b/modules/berad-text/docs/API.md).
+[SDK API contract](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-text/docs/API.md).
