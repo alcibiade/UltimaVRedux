@@ -154,6 +154,10 @@ audio-editor: ## Build the Redux project launcher for the SDK terminal audio edi
 	@mkdir -p $(BIN_DIR)
 	@$(GO) build -o $(BIN_DIR)/audio-editor ./cmd/audio-editor
 
+.PHONY: audio-editor-run
+audio-editor-run: audio-editor ## Build and open the editor with Redux project settings
+	@./$(BIN_DIR)/audio-editor -library "$(CURDIR)/internal/audio/assets/library.json" $(ARGS)
+
 .PHONY: audio-catalog audio-catalog-export audio-probe clean-audio-reports
 audio-catalog: ## Build the game-specific SDK audio catalog exporter
 	@mkdir -p $(BIN_DIR)

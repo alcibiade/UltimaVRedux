@@ -52,7 +52,9 @@ the throwaway bridge substitutes only the candidate game, never the SDK.
 The terminal editor and report implementation now come from the separately pinned
 [audio tools module](https://github.com/bradhannah/berad-sdk/tree/9cdfc4b0755f/tools/berad-audio).
 Use `make audio-editor`, `make audio-catalog`, and `make audio-catalog-export`
-for Redux-configured launchers/reports. Existing editor probe flags remain supported;
+for Redux-configured launchers/reports. Existing editor probe flags remain supported.
+For a single build-and-open command, run `make audio-editor-run` in this checkout.
+It selects the Redux manifest explicitly. `make audio-editor` remains build-only.
 `make audio-probe ARGS='...'` invokes them in a standalone process. `make clean`
 removes known executables; `make clean-audio-reports` removes derived reports.
 Neither deletes authored JSON/media, player settings or `bin/tools` validators.
