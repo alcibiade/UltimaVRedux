@@ -363,29 +363,6 @@ func TestQuarterMaskValidation(t *testing.T) {
 	}
 }
 
-func TestDitherWorldPhases(t *testing.T) {
-	bayer := [4][4]uint16{{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}}
-	for coverage := uint16(0); coverage <= 4096; coverage++ {
-		for y := range 4 {
-			for x := range 4 {
-				want := coverage > (2*bayer[y][x]+1)*128
-				for _, offset := range [][2]int{{0, 0}, {-20, -16}, {16, 20}, {-256, 256}} {
-					if DitherKeeps(coverage, x+offset[0], y+offset[1]) != want {
-						t.Fatalf("phase/wrap/strict-threshold mismatch: q=%d world=(%d,%d)", coverage, x+offset[0], y+offset[1])
-					}
-				}
-			}
-		}
-	}
-	for _, coordinate := range []int{math.MinInt, math.MaxInt, -1, 0, 1} {
-		phase := ((coordinate % 4) + 4) % 4
-		if DitherKeeps(2000, coordinate, coordinate) != DitherKeeps(2000, phase, phase) {
-			t.Fatal("extreme world coordinate did not wrap")
-		}
-	}
-	quarterTestPanics(t, func() { DitherKeeps(4097, 0, 0) })
-}
-
 func TestQuarterMaskCoverageAllocations(t *testing.T) {
 	set := NewQuarterMaskSet(quarterTestOptions())
 	var assembled [256]bool

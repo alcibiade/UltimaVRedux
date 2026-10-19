@@ -4,6 +4,10 @@
 package sprites
 
 import (
+	"fmt"
+
+	graphics "github.com/bradhannah/berad-sdk/modules/berad-graphics"
+	graphicsbackend "github.com/bradhannah/berad-sdk/modules/berad-graphics/backend/ebitengine"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -13,12 +17,6 @@ const (
 	// ExpandedTileSize is the size of sprites after adding the 1-pixel border
 	ExpandedTileSize = 18
 )
-
-// ExpandedSprite caches both original and expanded versions of a sprite
-type ExpandedSprite struct {
-	original16x16 *ebiten.Image // Original 16x16 sprite
-	expanded18x18 *ebiten.Image // Expanded 18x18 sprite with border
-}
 
 // WrapSpriteWith18x18Border takes a 16x16 sprite and returns an 18x18 version
 // with a 1-pixel transparent border on all sides. This allows outlines to
@@ -35,25 +33,12 @@ func WrapSpriteWith18x18Border(sprite16 *ebiten.Image) *ebiten.Image {
 		return sprite16
 	}
 
-	// Create 18x18 image with transparent background
-	expanded := ebiten.NewImage(ExpandedTileSize, ExpandedTileSize)
-
-	// Draw original 16x16 sprite centered with 1-pixel offset
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(1, 1) // Center in the 18x18 canvas
-	expanded.DrawImage(sprite16, op)
+	expanded, err := graphicsbackend.CopyRegion(sprite16, bounds, graphics.Insets{Left: 1, Top: 1, Right: 1, Bottom: 1})
+	if err != nil {
+		panic(fmt.Sprintf("pad original sprite: %v", err))
+	}
 
 	return expanded
-}
-
-// GetOriginal returns the original 16x16 sprite
-func (es *ExpandedSprite) GetOriginal() *ebiten.Image {
-	return es.original16x16
-}
-
-// GetExpanded returns the expanded 18x18 sprite
-func (es *ExpandedSprite) GetExpanded() *ebiten.Image {
-	return es.expanded18x18
 }
 
 // ConvertPosition16to18 converts a position for 16x16 tile grid to account

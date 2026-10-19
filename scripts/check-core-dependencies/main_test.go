@@ -17,6 +17,7 @@ func TestForbiddenPackageBoundaries(t *testing.T) {
 		"github.com/hajimehoshi/ebiten/v2", "github.com/hajimehoshi/ebiten/v2/text/v2",
 		"github.com/ebitengine/purego", modulePath + "/internal/display",
 		"github.com/bradhannah/berad-sdk/modules/berad-text",
+		"github.com/bradhannah/berad-sdk/modules/berad-graphics",
 		modulePath + "/internal/text", modulePath + "/internal/ui/widgets",
 		modulePath + "/internal/sprites", modulePath + "/internal/sprites/effects",
 		modulePath + "/internal/audio", modulePath + "/pkg/input",

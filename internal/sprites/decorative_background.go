@@ -37,7 +37,7 @@ func (s *SpriteSheet) GetAnimatedSpriteWithBackground(
 		frame = decorativeAnimationFrame(pipeline, posHash, elapsedMs, frameCount)
 	} else {
 		pipeline = TileEffectPipeline{
-			Background: -1, BaseBackground: -1, Bounds: image.Rect(0, 0, 0, 0), Effects: nil,
+			Background: -1, Bounds: image.Rect(0, 0, 0, 0), Effects: nil,
 			IntervalMs: 0, OffsetMode: PositionOffsetDefault, EvenXOffset: 0, FrameCount: 1,
 		}
 	}
@@ -102,5 +102,5 @@ func decorativeAnimationFrame(pipeline TileEffectPipeline, posHash int32, elapse
 		}
 	}
 
-	return positiveModulo(elapsedMs/int64(interval)+offset, frameCount)
+	return cycleIndex(frameCount, elapsedMs/int64(interval), offset)
 }

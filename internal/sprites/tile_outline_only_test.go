@@ -13,7 +13,7 @@ import (
 )
 
 func TestDynamicOutlineOnlyHollowFaceBackingAndSourceImmutability(t *testing.T) {
-	processor := &TileEffectProcessor{dynamicCache: NewEffectCache(2)}
+	processor := &TileEffectProcessor{graphics: newGraphicsProcessor(2)}
 	// Nonzero atlas origin and partially transparent body pixels must both work.
 	atlas := ebiten.NewImage(18, 18)
 	t.Cleanup(atlas.Dispose)
@@ -27,7 +27,6 @@ func TestDynamicOutlineOnlyHollowFaceBackingAndSourceImmutability(t *testing.T) 
 	face := ucolor.CombatActivePCOutline.ToRGBA()
 	contour := processor.ApplyDynamicOutlineOnly(source, face)
 	require.NotNil(t, contour)
-	t.Cleanup(contour.Dispose)
 	assert.Equal(t, image.Rect(0, 0, 9, 9), contour.Bounds())
 	for y := range 9 {
 		for x := range 9 {
@@ -49,7 +48,7 @@ func TestDynamicOutlineOnlyHollowFaceBackingAndSourceImmutability(t *testing.T) 
 }
 
 func TestDynamicOutlineOnlyCacheSeparatesFramesColoursAndBodyEffects(t *testing.T) {
-	processor := &TileEffectProcessor{dynamicCache: NewEffectCache(2)}
+	processor := &TileEffectProcessor{graphics: newGraphicsProcessor(2)}
 	first := ebiten.NewImage(18, 18)
 	second := ebiten.NewImage(18, 18)
 	t.Cleanup(first.Dispose)
@@ -57,37 +56,27 @@ func TestDynamicOutlineOnlyCacheSeparatesFramesColoursAndBodyEffects(t *testing.
 	first.Set(8, 8, ucolor.EGARed)
 	second.Set(9, 8, ucolor.EGARed)
 	face := ucolor.CombatActivePCOutline.ToRGBA()
-	owned := make(map[*ebiten.Image]bool)
-	t.Cleanup(func() {
-		for img := range owned {
-			img.Dispose()
-		}
-	})
 	a := processor.ApplyDynamicOutlineOnly(first, face)
 	b := processor.ApplyDynamicOutlineOnly(second, face)
-	owned[a], owned[b] = true, true
 	require.NotSame(t, a, b)
 	assert.NotEqual(t, outlineTestPixels(a), outlineTestPixels(b))
 	assert.Same(t, a, processor.ApplyDynamicOutlineOnly(first, face))
 	c := processor.ApplyDynamicOutlineOnly(first, ucolor.CombatActiveMonsterOutline.ToRGBA())
-	owned[c] = true
 	assert.NotSame(t, a, c)
 	assert.NotEqual(t, outlineTestPixels(a), outlineTestPixels(c))
-	assert.Equal(t, 2, processor.dynamicCache.Size())
+	assert.Equal(t, 2, processor.graphics.Stats().Derived)
 	assert.Same(t, a, processor.ApplyDynamicOutlineOnly(first, face), "recent entry survives eviction")
 	bAgain := processor.ApplyDynamicOutlineOnly(second, face)
-	owned[bAgain] = true
 	assert.NotSame(t, b, bAgain, "least recently used frame was evicted")
 	assert.Equal(t, outlineTestPixels(b), outlineTestPixels(bAgain))
 	body := processor.ApplyDynamicSimple(first, CombatActivePCOutline)
-	owned[body] = true
 	assert.NotZero(t, outlineTestPixels(body)[(8*18+8)*4+3])
 	assert.Zero(t, outlineTestPixels(a)[(8*18+8)*4+3])
-	assert.Equal(t, 2, processor.dynamicCache.Size())
+	assert.Equal(t, 2, processor.graphics.Stats().Derived)
 }
 
 func TestDynamicOutlineOnlyNeverFallsBackToBody(t *testing.T) {
-	processor := &TileEffectProcessor{dynamicCache: NewEffectCache(2)}
+	processor := &TileEffectProcessor{graphics: newGraphicsProcessor(2)}
 	face := ucolor.CombatActivePCOutline.ToRGBA()
 	assert.Nil(t, processor.ApplyDynamicOutlineOnly(nil, face))
 	for _, size := range []int{16, 18} {
@@ -100,17 +89,13 @@ func TestDynamicOutlineOnlyNeverFallsBackToBody(t *testing.T) {
 		assert.Equal(t, make([]byte, size*size*4), outlineTestPixels(contour), "solid source has no room for an outer contour")
 		source.Dispose()
 		assert.Nil(t, processor.ApplyDynamicOutlineOnly(source, face), "disposed sources cannot reuse a cached contour")
-		processor.dynamicCache.Clear()
+		processor.graphics.Clear()
 		assert.Nil(t, processor.ApplyDynamicOutlineOnly(source, face), "disposed Bounds must fail closed on a cache miss too")
-		assert.Zero(t, processor.dynamicCache.Size(), "failed source reads do not populate the cache")
-		contour.Dispose()
+		assert.Zero(t, processor.graphics.Stats().Derived, "failed source reads do not populate the cache")
 	}
 }
 
 func TestDynamicOutlineOnlyDoesNotRecoverProgrammingErrors(t *testing.T) {
-	assert.Panics(t, func() {
-		_, _ = outlineOnlySourceBounds(nil)
-	}, "the narrow Bounds guard must re-panic unrelated failures")
 	source := ebiten.NewImage(18, 18)
 	t.Cleanup(source.Dispose)
 	source.Set(8, 8, ucolor.EGARed)

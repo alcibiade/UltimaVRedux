@@ -76,6 +76,15 @@ checkout or replacement. See [message output](systems/MESSAGE_OUTPUT_SYSTEM.md)
 and [ADR-011](ADR/ADR-011-berad-text.md). The module is experimental; this does not
 claim a stable SDK release or new Windows/Linux native acceptance.
 
+Graphics integration consumes the published
+[Berad Graphics module](https://github.com/bradhannah/berad-sdk/tree/57067fb66236/modules/berad-graphics).
+Sprite and VFX facades retain game artwork/palette/phase policy while the SDK owns
+pixel operations and resource reuse. Sprite, visual, portrait and scene render
+tests exercise the actual pin; independent synthetic/native SDK tests stay upstream.
+See [ADR-012](ADR/ADR-012-berad-graphics.md) and
+[sprite integration](systems/SPRITE_OUTLINE_SYSTEM.md). Publish an available SDK
+revision before advancing the dependency; no workspace replacement is required.
+
 The consumed Audio/Text runtimes and audio tools have passed the SDK's
 [strict formatting/lint policy](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/docs/LINTING.md):
 the same pinned Go style tools and applicable strict rules, with full-source

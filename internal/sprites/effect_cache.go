@@ -1,120 +1,39 @@
-// Package sprites provides the LRU cache for dynamic visual effects.
 package sprites
 
 import (
-	"container/list"
-	"sync"
+	"fmt"
 
+	graphicsbackend "github.com/bradhannah/berad-sdk/modules/berad-graphics/backend/ebitengine"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// DefaultDynamicCacheSize is the default maximum number of cached effect images.
+// DefaultDynamicCacheSize retains the game's variant-entry budget.
 const DefaultDynamicCacheSize = 500
 
-// EffectCache provides an LRU cache for dynamically generated effect images.
-// This prevents regenerating identical effect combinations each frame.
-type EffectCache struct {
-	maxSize int
-	cache   map[uint64]*cachedEntry
-	lruList *list.List
-	mu      sync.RWMutex
+// EffectCache adapts the game's complete packed variant keys to an SDK image LRU.
+// The rendering owner serializes calls; returned artwork is borrowed read-only.
+type EffectCache struct{ cache *graphicsbackend.ImageCache }
+
+// NewEffectCache supplies the game's default for unspecified entry limits.
+func NewEffectCache(entries int) *EffectCache {
+	if entries <= 0 {
+		entries = DefaultDynamicCacheSize
+	}
+	const cacheBytes = 32 << 20
+	cache, err := graphicsbackend.NewImageCache(entries, cacheBytes)
+	if err != nil {
+		panic(fmt.Sprintf("configure game variant cache: %v", err))
+	}
+
+	return &EffectCache{cache: cache}
 }
 
-type cachedEntry struct {
-	key     uint64
-	image   *ebiten.Image
-	element *list.Element
-}
+// Get borrows an existing image for this game variant.
+func (cache *EffectCache) Get(key uint64) *ebiten.Image { return cache.cache.Get(key) }
 
-// NewEffectCache creates a new LRU cache with the specified maximum size.
-func NewEffectCache(maxSize int) *EffectCache {
-	if maxSize <= 0 {
-		maxSize = DefaultDynamicCacheSize
+// Put retains a valid game-created image within the configured resource budget.
+func (cache *EffectCache) Put(key uint64, image *ebiten.Image) {
+	if err := cache.cache.Put(key, image); err != nil {
+		panic(fmt.Sprintf("cache game variant: %v", err))
 	}
-
-	return &EffectCache{
-		maxSize: maxSize,
-		cache:   make(map[uint64]*cachedEntry),
-		lruList: list.New(),
-	}
-}
-
-// Get retrieves a cached effect image by key.
-// Returns nil if not found. Moves the entry to the front of the LRU list.
-func (c *EffectCache) Get(key uint64) *ebiten.Image {
-	c.mu.RLock()
-	entry, exists := c.cache[key]
-	c.mu.RUnlock()
-
-	if !exists {
-		return nil
-	}
-
-	// Move to front (most recently used)
-	c.mu.Lock()
-	c.lruList.MoveToFront(entry.element)
-	c.mu.Unlock()
-
-	return entry.image
-}
-
-// Put stores an effect image in the cache.
-// If the cache is full, evicts the least recently used entry.
-func (c *EffectCache) Put(key uint64, img *ebiten.Image) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// Check if already exists
-	if entry, exists := c.cache[key]; exists {
-		// Update existing entry
-		entry.image = img
-		c.lruList.MoveToFront(entry.element)
-
-		return
-	}
-
-	// Evict if at capacity
-	for len(c.cache) >= c.maxSize {
-		c.evictOldest()
-	}
-
-	// Add new entry
-	entry := &cachedEntry{
-		key:   key,
-		image: img,
-	}
-	entry.element = c.lruList.PushFront(entry)
-	c.cache[key] = entry
-}
-
-// evictOldest removes the least recently used entry.
-// Must be called with lock held.
-func (c *EffectCache) evictOldest() {
-	oldest := c.lruList.Back()
-	if oldest == nil {
-		return
-	}
-
-	entry, ok := oldest.Value.(*cachedEntry)
-	if !ok {
-		panic("effect cache LRU contains a non-effect entry")
-	}
-	c.lruList.Remove(oldest)
-	delete(c.cache, entry.key)
-}
-
-// Size returns the current number of cached entries.
-func (c *EffectCache) Size() int {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	return len(c.cache)
-}
-
-// Clear removes all entries from the cache.
-func (c *EffectCache) Clear() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.cache = make(map[uint64]*cachedEntry)
-	c.lruList.Init()
 }

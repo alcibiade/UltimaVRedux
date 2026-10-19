@@ -2,13 +2,17 @@ package sprites
 
 import (
 	_ "embed"
+	"fmt"
 	"image"
 
+	graphics "github.com/bradhannah/berad-sdk/modules/berad-graphics"
+	graphicsbackend "github.com/bradhannah/berad-sdk/modules/berad-graphics/backend/ebitengine"
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// SpriteSheet owns original atlas identities and game-selected artwork over SDK resources.
 type SpriteSheet struct {
 	// Populate custom atlases before the first lookup; cached images are read-only.
 	SpriteImage *ebiten.Image
@@ -32,6 +36,7 @@ type SpriteSheet struct {
 	TileEffectsEnabled bool
 }
 
+// Original atlas dimensions and tile-grid policy remain game-owned.
 const (
 	origTilesWidth  = 512
 	origTilesHeight = 256
@@ -49,9 +54,12 @@ func TileAtlasPNG() []byte {
 	return append([]byte(nil), transparentTiles...)
 }
 
+// NewSpriteSheet loads the bundled game atlas and configures its presentation adapters.
 func NewSpriteSheet() *SpriteSheet {
 	spriteSheet := &SpriteSheet{
 		SpriteImage:         nil,
+		transparentRaw:      nil,
+		transparentBordered: nil,
 		rawSpriteCache:      [totalSprites]*ebiten.Image{},
 		spriteImageCache:    [1024]*ebiten.Image{},
 		staticBorderedCache: [1024]*ebiten.Image{},
@@ -73,18 +81,20 @@ func NewSpriteSheet() *SpriteSheet {
 
 // preGenerateStaticBorders pre-generates 18x18 bordered sprites for static (non-animated) tiles
 func (s *SpriteSheet) preGenerateStaticBorders() {
-	for i := indexes.SpriteIndex(0); i < totalSprites; i++ {
-		if s.isStaticSprite(i) {
-			// Draw from the atlas directly; an intermediate GPU copy becomes
-			// another source backend and makes bulk atlas allocation expensive.
-			sprite16, ok := s.SpriteImage.SubImage(s.getSpriteImageRectangle(i)).(*ebiten.Image)
-			if !ok {
-				panic("sprite atlas returned a non-Ebitengine subimage")
-			}
-			sprite18 := WrapSpriteWith18x18Border(sprite16)
-			s.staticBorderedCache[i] = sprite18
+	for sprite := indexes.SpriteIndex(0); sprite < totalSprites; sprite++ {
+		if s.isStaticSprite(sprite) {
+			s.staticBorderedCache[sprite] = s.copySpriteRegion(sprite, graphics.Insets{Left: 1, Top: 1, Right: 1, Bottom: 1})
 		}
 	}
+}
+
+func (s *SpriteSheet) copySpriteRegion(sprite indexes.SpriteIndex, padding graphics.Insets) *ebiten.Image {
+	result, err := graphicsbackend.CopyRegion(s.SpriteImage, s.getSpriteImageRectangle(sprite), padding)
+	if err != nil {
+		panic(fmt.Sprintf("copy original atlas region: %v", err))
+	}
+
+	return result
 }
 
 func (s *SpriteSheet) getSpriteImageRectangle(spriteIndex indexes.SpriteIndex) image.Rectangle {
@@ -118,8 +128,7 @@ func (s *SpriteSheet) GetSprite(nSprite indexes.SpriteIndex) *ebiten.Image {
 			return s.staticBorderedCache[nSprite]
 		}
 		// Fallback if pre-generation failed
-		sprite16 := ebiten.NewImageFromImage(s.SpriteImage.SubImage(s.getSpriteImageRectangle(nSprite)))
-		sprite18 := WrapSpriteWith18x18Border(sprite16)
+		sprite18 := s.copySpriteRegion(nSprite, graphics.Insets{Left: 1, Top: 1, Right: 1, Bottom: 1})
 		s.staticBorderedCache[nSprite] = sprite18
 
 		return sprite18
@@ -127,10 +136,7 @@ func (s *SpriteSheet) GetSprite(nSprite indexes.SpriteIndex) *ebiten.Image {
 
 	// For dynamic sprites, use original lazy-loading approach
 	if s.spriteImageCache[nSprite] == nil {
-		// Get the original 16x16 sprite
-		sprite16 := ebiten.NewImageFromImage(s.SpriteImage.SubImage(s.getSpriteImageRectangle(nSprite)))
-		// Wrap it with a 1-pixel transparent border to make it 18x18
-		sprite18 := WrapSpriteWith18x18Border(sprite16)
+		sprite18 := s.copySpriteRegion(nSprite, graphics.Insets{Left: 1, Top: 1, Right: 1, Bottom: 1})
 		s.spriteImageCache[nSprite] = sprite18
 
 		return sprite18
@@ -179,14 +185,17 @@ func (s *SpriteSheet) getOriginal16x16Sprite(nSprite indexes.SpriteIndex) *ebite
 	if s.rawSpriteCache[nSprite] == nil {
 		// Keep zero-origin bounds: portrait transforms and finale clipping rely on
 		// copied-tile coordinates rather than the atlas subimage's original bounds.
-		s.rawSpriteCache[nSprite] = ebiten.NewImageFromImage(s.SpriteImage.SubImage(s.getSpriteImageRectangle(nSprite)))
+		var padding graphics.Insets
+		s.rawSpriteCache[nSprite] = s.copySpriteRegion(nSprite, padding)
 	}
 
 	return s.rawSpriteCache[nSprite]
 }
 
 // GetAnimatedSprite returns a sprite image with animation applied based on position and time
-func (s *SpriteSheet) GetAnimatedSprite(nSprite indexes.SpriteIndex, posHash int32, animationTimeMs int64) *ebiten.Image {
+func (s *SpriteSheet) GetAnimatedSprite(
+	nSprite indexes.SpriteIndex, posHash int32, animationTimeMs int64,
+) *ebiten.Image {
 	// Tiles with registered visual effects (flames, lava, water, mixed land/water) use the tile effect processor
 	// All frames are pre-generated at initialization, so we can return directly without caching overhead
 	if s.TileEffectsEnabled && s.tileEffectProcessor.HasEffect(nSprite) {
@@ -219,7 +228,7 @@ func (s *SpriteSheet) isStaticSprite(spriteIndex indexes.SpriteIndex) bool {
 }
 
 // GetTileEffectProcessor returns the tile effect processor for applying dynamic effects.
-// This is used for outline, tint, glow, and opacity effects on entity sprites.
+// This adapts game outline/contour presets to the SDK's bounded native processor.
 func (s *SpriteSheet) GetTileEffectProcessor() *TileEffectProcessor {
 	return s.tileEffectProcessor
 }
