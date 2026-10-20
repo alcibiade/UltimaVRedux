@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCombatCompositionConsumesOriginalInterleavedFriendAndDexDraws(t *testing.T) {
@@ -39,7 +39,7 @@ func TestCombatCompositionConsumesOriginalInterleavedFriendAndDexDraws(t *testin
 			result, err := state.StartCombatEncounter(request)
 			require.NoError(t, err)
 			assert.Equal(t, test.count, result.PrimaryCount+result.FriendCount)
-			assertOriginalEncounterMonsterDraws(t, state, deterministic_random.New(seed), test.monster, test.friend, test.count, test.enabled)
+			assertOriginalEncounterMonsterDraws(t, state, beradrng.New(seed), test.monster, test.friend, test.count, test.enabled)
 		})
 	}
 }
@@ -50,7 +50,7 @@ func TestCombatCompositionConsumesOriginalInterleavedFriendAndDexDraws(t *testin
 func assertOriginalEncounterMonsterDraws(
 	t *testing.T,
 	state *GameState,
-	oracle *deterministic_random.Source,
+	oracle *beradrng.Source,
 	primary, friend references.MonsterType,
 	count int,
 	friendsEnabled bool,

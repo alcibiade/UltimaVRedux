@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 type earthquakeResultRecorder struct {
@@ -40,8 +40,8 @@ func TestEarthquakeSystemCommitsTypedDamageInActiveSlotOrder(t *testing.T) {
 	dead.SetStatus(party_state.Dead)
 
 	seed := earthquakeTriggerSeed(t)
-	rng := deterministic_random.New(seed)
-	expected := deterministic_random.New(seed)
+	rng := beradrng.New(seed)
+	expected := beradrng.New(seed)
 	require.Equal(t, 0x69, expected.Intn(256))
 	wantFirst := expected.Intn(8) + 1
 	wantSecond := expected.Intn(8) + 1
@@ -117,7 +117,7 @@ func TestEarthquakeEligibilityConsumesNoRNGOutsideUnderworld(t *testing.T) {
 func earthquakeTriggerSeed(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 100_000; seed++ {
-		if deterministic_random.New(seed).Intn(256) == 0x69 {
+		if beradrng.New(seed).Intn(256) == 0x69 {
 			return seed
 		}
 	}

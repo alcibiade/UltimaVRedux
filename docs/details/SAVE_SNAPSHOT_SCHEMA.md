@@ -927,8 +927,8 @@ Never include:
 
 Deterministic continuation stores the runtime RNG seed and source-call count, never a `*rand.Rand` pointer.
 
-The stream implementation is supplied by Berad RNG through the game-owned
-`internal/deterministic_random` facade. The existing algorithm, source-draw
+The stream implementation is imported directly from
+`github.com/bradhannah/berad-sdk/modules/berad-rng`. The existing algorithm, source-draw
 counting (including rejection sampling), and two persisted fields are unchanged;
 the extraction does not require a snapshot schema version change. Restore jumps
 to the recorded source state without replaying gameplay or consuming extra draws.

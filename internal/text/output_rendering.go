@@ -22,49 +22,6 @@ const (
 	commandPromptSourceTriangleWidth = 5
 )
 
-// ============================================================================
-// INTERNAL DRAWING METHODS - DO NOT USE DIRECTLY IN EXTERNAL CODE
-// ============================================================================
-//
-// The DrawText, DrawTextCenter, and DrawTextRightToLeft methods below are
-// INTERNAL to the Output system. External code must NEVER call these directly.
-//
-// These methods exist for internal use by:
-//   - DrawScrollingBuffer (scrolling buffer rendering)
-//   - DrawPanelContent (panel rendering internals)
-//
-// REQUIRED PATTERNS for external code:
-//
-//   Panel content (info displays, spell details):
-//     output.Reset()
-//     output.AppendLine().Yellow("Label: ").White("Value").Done()
-//     output.DrawPanelContent(screen, point, width, etext.AlignStart)
-//
-//   Scrolling buffers (game messages, logs):
-//     output.AddText("Message")
-//     output.DrawScrollingBuffer(screen, point, width, false, hAlign, vAlign)
-//
-// Pre-commit checks will FAIL if DrawText* methods are called outside this file.
-// See ui-text-rendering skill for complete Output API reference.
-// ============================================================================
-
-// DrawText is an internal compatibility entry point; callers use Output panels.
-func (o *Output) DrawText(screen *ebiten.Image, textStr string, op *ebiten.DrawImageOptions) {
-	DrawCachedText(screen, textStr, o.Font, op, o.color)
-}
-
-// DrawTextCenter is the internal centered compatibility entry point.
-func (o *Output) DrawTextCenter(screen *ebiten.Image, textStr string, op *ebiten.DrawImageOptions) {
-	// Use cached text with alignment adjustment
-	o.drawCachedTextWithAlignment(screen, textStr, op, text.AlignCenter, text.AlignStart)
-}
-
-// DrawTextRightToLeft preserves the historical right-anchor entry point.
-func (o *Output) DrawTextRightToLeft(screen *ebiten.Image, textStr string, op *ebiten.DrawImageOptions) {
-	// Use cached text with alignment adjustment
-	o.drawCachedTextWithAlignment(screen, textStr, op, text.AlignEnd, text.AlignStart)
-}
-
 // DrawScrollingBuffer renders retained circular rows without a height limit.
 func (o *Output) DrawScrollingBuffer(
 	screen *ebiten.Image, point image.Point, textRectWidth int,
@@ -457,51 +414,4 @@ func (o *Output) drawSimpleLine(
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(currentX, startY)
 	drawTextLayout(screen, geometry.layouts[0], op, lineColor)
-}
-
-// drawCachedTextWithAlignment draws cached text with proper alignment adjustment
-func (o *Output) drawCachedTextWithAlignment(
-	screen *ebiten.Image,
-	textStr string,
-	op *ebiten.DrawImageOptions,
-	horizAlign, vertAlign text.Align,
-) {
-	o.drawCachedTextWithAlignmentStr(screen, textStr, op, horizAlign, vertAlign)
-}
-
-// drawCachedTextWithAlignmentStr is the core function that handles cached text with alignment
-func (o *Output) drawCachedTextWithAlignmentStr(
-	screen *ebiten.Image,
-	textStr string,
-	options *ebiten.DrawImageOptions,
-	horizAlign, vertAlign text.Align,
-) {
-	// Preserve the historical raster allowance in this compatibility anchor.
-	width, height := o.Font.MeasureString(textStr)
-	imgWidth, imgHeight := float64(int(width)+legacyRasterPadding), float64(int(height)+legacyRasterPadding)
-
-	// Apply horizontal alignment offset
-	switch horizAlign {
-	case text.AlignStart:
-		// Keep the supplied horizontal anchor.
-	case text.AlignCenter:
-		options.GeoM.Translate(-imgWidth/centerDivisor, 0)
-	case text.AlignEnd:
-		options.GeoM.Translate(-imgWidth, 0)
-		// AlignStart needs no offset
-	}
-
-	// Apply vertical alignment offset
-	switch vertAlign {
-	case text.AlignStart:
-		// Keep the supplied vertical anchor.
-	case text.AlignCenter:
-		options.GeoM.Translate(0, -imgHeight/centerDivisor)
-	case text.AlignEnd:
-		options.GeoM.Translate(0, -imgHeight)
-		// AlignStart needs no offset
-	}
-
-	// Draw cached image with adjusted position (color already applied)
-	DrawCachedText(screen, textStr, o.Font, options, o.color)
 }

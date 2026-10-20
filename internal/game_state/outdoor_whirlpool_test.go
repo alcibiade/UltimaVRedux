@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func addOutdoorWhirlpoolTestAttacker(t *testing.T, gs *GameState, pirate bool, pos references.Position, slot int) *map_units.NPCEnemy {
@@ -38,13 +38,13 @@ func TestOutdoorWhirlpoolFootHitPrecedesEveryLowerSlotAttack(t *testing.T) {
 				require.True(t, gs.spawnWhirlpoolAt(pos))
 				gs.GetWhirlpoolAt(pos).MapUnitDetails().NPCNum = 31 - i
 			}
-			seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+			seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 				rng.Intn(8)
 				rng.Intn(8)
 				return pirate || rng.Intn(8) == 0
 			})
 			gs.SetRandomSeed(seed)
-			want := deterministic_random.New(seed)
+			want := beradrng.New(seed)
 			hpBeforeRanged := 100 - (want.Intn(8) + 1) - (want.Intn(8) + 1)
 			if !pirate {
 				want.Intn(8)
@@ -131,12 +131,12 @@ func TestOutdoorWhirlpoolTransportResumesLowerSlotsOnCurrentWorld(t *testing.T) 
 				pos := references.Position{X: 101, Y: 100}
 				require.True(t, gs.spawnWhirlpoolAt(pos))
 				gs.GetWhirlpoolAt(pos).MapUnitDetails().NPCNum = 20
-				seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+				seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 					rng.Intn(30)
 					return pirate || rng.Intn(8) == 0
 				})
 				gs.SetRandomSeed(seed)
-				want := deterministic_random.New(seed)
+				want := beradrng.New(seed)
 				whirlpoolDamage := want.Intn(30) + 1
 				if !pirate {
 					want.Intn(8)
@@ -227,7 +227,7 @@ func TestOutdoorWhirlpoolSameWorldTransportRetainsDescendingContinuation(t *test
 	require.True(t, gs.spawnWhirlpoolAt(first))
 	gs.GetWhirlpoolAt(first).MapUnitDetails().NPCNum = 20
 	gs.SetRandomSeed(123)
-	want := deterministic_random.New(123)
+	want := beradrng.New(123)
 	wantHull := 99 - (want.Intn(30) + 1) - (want.Intn(30) + 1) - (want.Intn(30) + 1)
 
 	gs.largeMapProcessTurnEffects()

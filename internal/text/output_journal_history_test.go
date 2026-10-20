@@ -36,10 +36,12 @@ func TestJournalHistoryAssembly(t *testing.T) {
 		{"earlier pending blank", func(o *Output) { o.AddText("A\n\n\n"); o.AppendText("B") }, "A\n\nB"},
 		{"pending blank then marker", func(o *Output) { o.AddText("A\n\n"); o.AddCommandPrompt(""); o.AppendText("B") }, "A\n\nB"},
 		{"append embedded LF", func(o *Output) { o.AddText("A"); o.AppendText("B\nC\n\nD\n"); o.AppendText("E") }, "AB\nC\n\nDE"},
-		{"styled segments contiguous", func(o *Output) { o.AppendLine().White("A").Runic("B").Green(" C ").Done() }, "AB C "},
-		{"UTF8 split between styles", func(o *Output) { o.AppendLine().White("\xe2").Green("\x82").Runic("\xac").Done() }, "\u20ac"},
-		{"malformed split styles", func(o *Output) { o.AppendLine().White("\xe2").Green("\xc3").Runic("\xa9\xe2\x82").Done() }, "\ufffd\u00e9\ufffd\ufffd"},
-		{"styled split LF", func(o *Output) { o.AppendLine().White("A\n").Green("B").Done(); o.AppendText("C") }, "A\nBC"},
+		{"styled segments contiguous", func(o *Output) { o.AppendLine().White("A").Runic("B").Text(" C ", ucolor.EGAGreen).Done() }, "AB C "},
+		{"UTF8 split between styles", func(o *Output) { o.AppendLine().White("\xe2").Text("\x82", ucolor.EGAGreen).Runic("\xac").Done() }, "\u20ac"},
+		{"malformed split styles", func(o *Output) {
+			o.AppendLine().White("\xe2").Text("\xc3", ucolor.EGAGreen).Runic("\xa9\xe2\x82").Done()
+		}, "\ufffd\u00e9\ufffd\ufffd"},
+		{"styled split LF", func(o *Output) { o.AppendLine().White("A\n").Text("B", ucolor.EGAGreen).Done(); o.AppendText("C") }, "A\nBC"},
 		{"builder blank", func(o *Output) { o.AppendLine().White("A").NewLine().White("B").Done() }, "A\n\nB"},
 		{"builder marker", func(o *Output) { o.AppendLine().CommandPromptMarker(ucolor.EGABlue).Runic("IN LOR").Done() }, "IN LOR"},
 		{"empty add no-op", func(o *Output) {
@@ -79,7 +81,7 @@ func TestJournalHistoryOptInDualOutputAndTalkIsolation(t *testing.T) {
 	main.EnableJournalHistory()
 	modal := NewOutput(nil, 1, 4, 16)
 	modal.RetainLogicalHistory(256, 256*1024)
-	builder := modal.AppendLine().Runic("SUMM").Green(" clue")
+	builder := modal.AppendLine().Runic("SUMM").Text(" clue", ucolor.EGAGreen)
 	builder.SetPlainTextCallback(main.AddText)
 	builder.Done()
 	require.Equal(t, "SUMM clue", main.JournalHistory())

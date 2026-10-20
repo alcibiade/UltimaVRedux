@@ -45,14 +45,16 @@ func TestSignTranslationSharesSourceCellClassification(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			original := append([]byte(nil), test.raw...)
-			require.Equal(t, test.want, translatedRowsText(DecodeSignTranslation(test.raw)))
+			var parser SignRenderer
+			require.Equal(t, test.want, translatedRowsText(decodeSignTranslation(parser.expandAndSplit(test.raw))))
 			require.Equal(t, original, test.raw)
 		})
 	}
 }
 
 func TestSignTranslationRetainsUnknownGlyphInItsSourceFont(t *testing.T) {
-	rows := DecodeSignTranslation([]byte{'A', '?', 'B', '?' | 0x80})
+	var parser SignRenderer
+	rows := decodeSignTranslation(parser.expandAndSplit([]byte{'A', '?', 'B', '?' | 0x80}))
 	require.Equal(t, "A?B?", translatedRowsText(rows))
 	require.Len(t, rows, 1)
 	require.Len(t, rows[0], 4)

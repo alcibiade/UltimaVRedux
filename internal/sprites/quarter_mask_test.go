@@ -117,7 +117,6 @@ func (oracle quarterOracle) coverage(x, y float64) (float64, float64) {
 func TestQuarterMaskExhaustive(t *testing.T) {
 	options := quarterTestOptions()
 	set := NewQuarterMaskSet(options)
-	bayer := [4][4]int{{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}}
 	unique := [2]map[string]bool{{}, {}}
 	for neighborhood := uint16(0); neighborhood < 512; neighborhood++ {
 		oracle := newQuarterOracle(options, neighborhood)
@@ -139,14 +138,6 @@ func TestQuarterMaskExhaustive(t *testing.T) {
 					}
 				}
 				binary.LittleEndian.PutUint16(encoded[(y*16+x)*2:], got)
-				for phaseY := range 4 {
-					for phaseX := range 4 {
-						threshold := (float64(bayer[(y+phaseY)%4][(x+phaseX)%4]) + 0.5) / 16
-						if DitherKeeps(got, x+phaseX, y+phaseY) != (floating > threshold) {
-							t.Fatalf("float/Q12 decision mismatch: state %09b pixel (%d,%d) phase (%d,%d)", neighborhood, x, y, phaseX, phaseY)
-						}
-					}
-				}
 				if (neighborhood == 0 && got != 0) || (neighborhood == 511 && got != 4096) {
 					t.Fatal("constant full/empty mask changed")
 				}
@@ -157,7 +148,56 @@ func TestQuarterMaskExhaustive(t *testing.T) {
 	if len(unique[0]) != 256 || len(unique[1]) != 47 {
 		t.Fatalf("distinct full-tile arrays: hidden=%d visible=%d; want 256/47", len(unique[0]), len(unique[1]))
 	}
-	t.Log("131072 full-union comparisons and 2097152 float/Q12 Bayer comparisons passed")
+	t.Log("131072 full-union geometry comparisons passed")
+}
+
+// The SDK tests all Q12 values and Bayer phases. Here the boundary is the game's
+// rounded floating geometry: compare the closest observed values on either side
+// of each threshold, rather than crossing every pixel with every phase.
+func TestQuarterMaskQuantizationPreservesThresholdDecisions(t *testing.T) {
+	options := quarterTestOptions()
+	set := NewQuarterMaskSet(options)
+	bayer := [4][4]int{{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}}
+	type sample struct {
+		floating float64
+		coverage uint16
+		distance float64
+	}
+	var nearest [16][2]sample
+	for threshold := range nearest {
+		for side := range nearest[threshold] {
+			nearest[threshold][side].distance = math.Inf(1)
+		}
+	}
+	for neighborhood := uint16(0); neighborhood < 512; neighborhood++ {
+		oracle := newQuarterOracle(options, neighborhood)
+		for y := range options.TileSize {
+			for x := range options.TileSize {
+				floating, _ := oracle.coverage(float64(x)+0.5, float64(y)+0.5)
+				for index := range nearest {
+					threshold := (float64(index) + 0.5) / 16
+					side := 0
+					if floating > threshold {
+						side = 1
+					}
+					distance := math.Abs(floating - threshold)
+					if distance < nearest[index][side].distance {
+						nearest[index][side] = sample{floating, set.Coverage(neighborhood, x, y), distance}
+					}
+				}
+			}
+		}
+	}
+	for y, row := range bayer {
+		for x, index := range row {
+			for _, sample := range nearest[index] {
+				threshold := (float64(index) + 0.5) / 16
+				if math.IsInf(sample.distance, 1) || DitherKeeps(sample.coverage, x, y) != (sample.floating > threshold) {
+					t.Fatalf("geometry rounding crossed threshold %g: %+v", threshold, sample)
+				}
+			}
+		}
+	}
 }
 
 func TestQuarterMaskTemplatesAndLocality(t *testing.T) {
@@ -297,13 +337,6 @@ func TestQuarterMaskIndoor(t *testing.T) {
 					got := set.Coverage(neighborhood, x, y)
 					if got != 0 {
 						t.Fatalf("hidden center: state %09b pixel (%d,%d): Q12=%d, want 0", neighborhood, x, y, got)
-					}
-					for phaseY := range 4 {
-						for phaseX := range 4 {
-							if DitherKeeps(got, x+phaseX, y+phaseY) {
-								t.Fatalf("hidden center kept: state %09b pixel (%d,%d) phase (%d,%d)", neighborhood, x, y, phaseX, phaseY)
-							}
-						}
 					}
 				}
 			}

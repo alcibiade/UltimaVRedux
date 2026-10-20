@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // ErrInvalidWorldSetup indicates that a debug world transition is unsupported or invalid.
@@ -210,7 +210,7 @@ func (g *GameState) DebugEnterMerchantLocation(id references.MerchantID) (WorldS
 
 	originalRNG := g.rng
 	if originalRNG != nil {
-		g.rng = deterministic_random.Restore(originalRNG.Seed(), originalRNG.Calls())
+		g.rng = rng.Restore(originalRNG.Seed(), originalRNG.Calls())
 		defer func() { g.rng = originalRNG }()
 	}
 	g.TransitionToLocation(
@@ -278,7 +278,7 @@ func (g *GameState) debugSetWorldPosition(
 
 	originalRNG := g.rng
 	if originalRNG != nil {
-		g.rng = deterministic_random.Restore(originalRNG.Seed(), originalRNG.Calls())
+		g.rng = rng.Restore(originalRNG.Seed(), originalRNG.Calls())
 		defer func() { g.rng = originalRNG }()
 	}
 	g.TransitionToLocation(location, floor, position, TransitionFullLocation, saveLastLargeMap)
@@ -621,9 +621,11 @@ func (g *GameState) validateStableWorldSetupContext() error {
 		}
 
 		return nil
-	default:
-		return fmt.Errorf("%w: unavailable in the current map context", ErrInvalidWorldSetup)
+	case references.CombatMapType, references.CampingMapType:
+		// These contexts cannot accept stable world setup changes.
 	}
+
+	return fmt.Errorf("%w: unavailable in the current map context", ErrInvalidWorldSetup)
 }
 
 func (g *GameState) firstOverworldTrollBridge() (references.Position, error) {

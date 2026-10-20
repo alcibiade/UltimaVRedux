@@ -146,7 +146,7 @@ linters:
           - nestif
           - nolintlint
           - varnamelen
-        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|gamescene_debug_workbench|gamescene_initialization|gamescene_snapshot|scenario_definition_commands|scenario_runner|scenario_startup|snapshot_commands|snapshot_startup|scene|gamescene|debugging/|deterministic_random/|game_state/|references/|repositoryfs/|save_snapshot/)"
+        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|gamescene_debug_workbench|gamescene_initialization|gamescene_snapshot|scenario_definition_commands|scenario_runner|scenario_startup|snapshot_commands|snapshot_startup|scene|gamescene|debugging/|game_state/|references/|repositoryfs/|save_snapshot/)"
       # These conversions are guarded by snapshot validation or preserve
       # original binary save-game values.
       - linters:

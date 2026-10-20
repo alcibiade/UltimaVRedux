@@ -36,8 +36,7 @@ func TestSignTranslationEnglishBitmapAlphabetAndSpaceKeepSourceCells(t *testing.
 		result := renderer.RenderTranslatedSign(raw)
 		pixels := atlasMarkerPixels(result.Image)
 		result.Image.Deallocate()
-		width, height := renderer.CalculateSignDimensions(raw)
-		require.Equal(t, image.Rect(0, 0, width, height), pixels.Bounds())
+		require.Equal(t, image.Rect(0, 0, 16*text.BitmapCharWidth*scale, 2*text.BitmapCharHeight*scale), pixels.Bounds())
 		for index, glyph := range []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ ") {
 			position := image.Pt(index%signCanvasColumns*text.BitmapCharWidth*scale, index/signCanvasColumns*text.BitmapCharHeight*scale)
 			requireTranslatedBitmapGlyph(t, pixels, glyph, position, scale, scale)
@@ -102,7 +101,7 @@ func TestSignTranslationMixedSourceArtworkIBMAndUnknownRunesArePixelExact(t *tes
 		translated.Image.Deallocate()
 		require.Equal(t, before.Bounds(), after.Bounds())
 		require.Equal(t, image.Rect(0, 0, 16*text.BitmapCharWidth*scale, 5*text.BitmapCharHeight*scale), after.Bounds())
-		require.Equal(t, text.DecodeSignTranslation(raw), translated.TranslationRows)
+		require.Equal(t, "TH?EEg[\x01ST\nAB\n", signTranslationRowsText(translated.TranslationRows))
 		for _, cells := range fixedCells {
 			for y := cells.Min.Y * text.BitmapCharHeight * scale; y < cells.Max.Y*text.BitmapCharHeight*scale; y++ {
 				for x := cells.Min.X * text.BitmapCharWidth * scale; x < cells.Max.X*text.BitmapCharWidth*scale; x++ {

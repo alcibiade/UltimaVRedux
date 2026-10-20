@@ -12,8 +12,7 @@ Purely cosmetic presentation and resource-lifecycle code may sample wall time di
 
 ### Shared RNG Ownership
 
-`GameState` owns one shared stream through `internal/deterministic_random`, a type
-alias and constructor facade over
+`GameState` owns one shared stream using a directly imported `Source` from
 [Berad RNG](https://github.com/bradhannah/berad-sdk/blob/891cf44f456a/modules/berad-rng/README.md).
 The SDK owns PCG mechanics, `Intn`/`Shuffle` consumption, pointer-stable reset, and
 logarithmic-time restore. Redux owns seed policy, dice/inclusive-range helpers,
@@ -437,7 +436,7 @@ defines release, cancellation and shutdown cleanup.
 - `internal/game_state/inn_shop.go`
 - `internal/game_state/dungeon_command_cycle.go`
 - `internal/game_state/game_state.go`
-- `internal/deterministic_random/source.go`
+- [Berad RNG source contract](https://github.com/bradhannah/berad-sdk/blob/891cf44f456a/modules/berad-rng/docs/API.md)
 - `internal/game_state/rng_sdk_bridge_test.go`
 - `cmd/ultimav/gamescene_update.go`
 - `cmd/ultimav/gamescene_callbacks.go`

@@ -10,11 +10,11 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCharacterCreationSceneCompletesDeterministicWorkflow(t *testing.T) {
@@ -310,17 +310,17 @@ func TestCharacterCreationSceneLifecycleAndConstructorContracts(t *testing.T) {
 	require.Panics(t, func() {
 		CreateCharacterCreationScene(
 			testCharacterCreationConfig(t.TempDir()),
-			deterministic_random.New(1),
+			beradrng.New(1),
 			CharacterCreationCallbacks{},
 			newCharacterCreationIdentityPresentation(nil, 0),
 		)
 	})
 	_, err := CreateCharacterCreationScene(
-		nil, deterministic_random.New(1), callbacks, newCharacterCreationIdentityPresentation(nil, 0),
+		nil, beradrng.New(1), callbacks, newCharacterCreationIdentityPresentation(nil, 0),
 	)
 	require.ErrorIs(t, err, errCharacterCreationSceneInvalid)
 
-	advanced := deterministic_random.New(1)
+	advanced := beradrng.New(1)
 	_ = advanced.Intn(2)
 	_, err = CreateCharacterCreationScene(
 		testCharacterCreationConfig(t.TempDir()), advanced, callbacks, newCharacterCreationIdentityPresentation(nil, 0),
@@ -328,7 +328,7 @@ func TestCharacterCreationSceneLifecycleAndConstructorContracts(t *testing.T) {
 	require.ErrorIs(t, err, character_creation.ErrAdvancedRandomSource)
 
 	_, err = CreateCharacterCreationScene(
-		testCharacterCreationConfig(t.TempDir()), deterministic_random.New(1), callbacks,
+		testCharacterCreationConfig(t.TempDir()), beradrng.New(1), callbacks,
 		newCharacterCreationIdentityPresentation(nil, 0),
 	)
 	require.ErrorContains(t, err, "CREATE.16")
@@ -596,7 +596,7 @@ func newCharacterCreationSceneFixture(
 	fixture := &characterCreationSceneFixture{t: t, pending: nil}
 	fixture.scene = newCharacterCreationScene(
 		testCharacterCreationConfig(t.TempDir()),
-		deterministic_random.New(42),
+		beradrng.New(42),
 		callbacks,
 		assets,
 		newCharacterCreationIdentityPresentation(nil, 0),

@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestReviewTavernShopByMerchantIDCoversAllMenusAndIsPure(t *testing.T) {
@@ -134,7 +134,7 @@ func TestPurchaseTavernMealCommitsPaymentTheftFoodAndTransientVisual(t *testing.
 	require.NoError(t, err)
 	quote, err := state.QuoteTavernMeal(session)
 	require.NoError(t, err)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 
 	result, err := state.PurchaseTavernMeal(session, tavernMealRequest(state, quote))
@@ -220,7 +220,7 @@ func TestPurchaseTavernWineCommitsSelectedBottleAndOneIntoxicationIncrement(t *t
 	require.NoError(t, err)
 	quote, err := state.QuoteTavernWine(session, 4)
 	require.NoError(t, err)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 
 	result, err := state.PurchaseTavernDrink(
@@ -295,7 +295,7 @@ func TestWarnedTavernDrinkContinueIsAtomic(t *testing.T) {
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernDrink(session)
 		require.NoError(t, err)
-		expectedRNG := deterministic_random.New(seed)
+		expectedRNG := beradrng.New(seed)
 		expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 		request := tavernDrinkRequest(state, quote, TavernDrinkApprovalContinue)
 
@@ -469,7 +469,7 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		quote, err := state.QuoteTavernProvisions(session)
 		require.NoError(t, err)
 		assert.Equal(t, 51, quote.PricePerPack, "session-captured Intelligence must remain authoritative")
-		expectedRNG := deterministic_random.New(seed)
+		expectedRNG := beradrng.New(seed)
 		expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 
 		result, err := state.PurchaseTavernProvisions(session, tavernProvisionRequest(state, quote, 2))
@@ -556,7 +556,7 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernProvisions(session)
 		require.NoError(t, err)
-		expectedRNG := deterministic_random.New(seed)
+		expectedRNG := beradrng.New(seed)
 		expectedCharity := uint16(expectedRNG.Intn(2) + 1)
 
 		result, err := state.PurchaseTavernProvisions(session, tavernProvisionRequest(state, quote, 2))

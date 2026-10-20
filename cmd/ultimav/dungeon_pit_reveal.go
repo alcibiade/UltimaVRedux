@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -42,7 +42,7 @@ func (effect *dungeonPitRevealEffect) initialize(source dungeonSpriteSource) {
 			panic("pit reveal is missing a dungeon pit sprite")
 		}
 		effect.dissolves[depth].Initialize(item.Bounds().Dx(), item.Bounds().Dy(),
-			visual.DissolveModeReveal, deterministic_random.New(dungeonPitRevealSeed(*effect, depth)))
+			visual.DissolveModeReveal, rng.New(dungeonPitRevealSeed(*effect, depth)))
 	}
 }
 

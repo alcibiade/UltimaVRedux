@@ -9,6 +9,9 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
+// FontScaleHeader is a fixture for scaled wrapping and copy tests.
+const FontScaleHeader float64 = 1.25
+
 // =============================================================================
 // Runic Font Segment Tests
 // =============================================================================
@@ -108,20 +111,6 @@ func TestMixedSegments_FontTypes(t *testing.T) {
 	assert.Equal(t, FontTypeNormal, segments[2].FontType, "Last segment should be FontTypeNormal")
 }
 
-// TestRunicf_FormattedText validates that Runicf() correctly formats text
-func TestRunicf_FormattedText(t *testing.T) {
-	font := NewUltimaFont(12.0)
-	output := NewOutput(font, 18.0, 10, 30)
-
-	lb := output.AppendLine()
-	lb.White("Count: ").Runicf("%d items", 42)
-
-	segments := lb.GetSegments()
-	require.Len(t, segments, 2)
-	assert.Equal(t, "42 items", segments[1].Text, "Runicf should format text correctly")
-	assert.Equal(t, FontTypeRunic, segments[1].FontType)
-}
-
 // TestRunic_InheritsFromVariousColors validates color inheritance from
 // different colored segments
 func TestRunic_InheritsFromVariousColors(t *testing.T) {
@@ -170,117 +159,13 @@ func TestRunic_MultipleRunicSegments(t *testing.T) {
 	assert.Equal(t, FontTypeRunic, segments[2].FontType, "Second runic segment")
 }
 
-func TestIBMBitmapSegmentUsesFixedCellsAndInheritedColor(t *testing.T) {
+func TestIBMWithColorUsesFixedCells(t *testing.T) {
 	output := NewOutput(NewUltimaFont(8), BitmapCharHeight, 1, 40)
-	line := output.AppendLine().Yellow("").IBM("AVATAR")
-
-	segments := line.GetSegments()
-	require.Len(t, segments, 2)
-	assert.Equal(t, FontTypeIBM, segments[1].FontType)
-	assert.Equal(t, ucolor.EGAYellow, segments[1].Color)
-	assert.Equal(t, float64(len("AVATAR")*BitmapCharWidth), output.getSegmentWidth(segments[1]))
-}
-
-func TestIBMBitmapSegmentDefaultsToWhite(t *testing.T) {
-	output := NewOutput(NewUltimaFont(8), BitmapCharHeight, 1, 40)
-	line := output.AppendLine().IBM("Identity")
+	line := output.AppendLine().IBMWithColor("AVATAR", ucolor.EGAYellow)
 
 	segments := line.GetSegments()
 	require.Len(t, segments, 1)
 	assert.Equal(t, FontTypeIBM, segments[0].FontType)
-	assert.Equal(t, ucolor.EGAWhite, segments[0].Color)
-}
-
-// TestFontType_ZeroValue validates that FontTypeNormal is the zero value,
-// ensuring backward compatibility with existing code
-func TestFontType_ZeroValue(t *testing.T) {
-	// This is critical: existing code creates ColorSegment without FontType,
-	// so the zero value MUST be FontTypeNormal for backward compatibility
-	var fontType FontType
-	assert.Equal(t, FontTypeNormal, fontType, "Zero value of FontType must be FontTypeNormal for backward compatibility")
-
-	// Also verify via struct initialization
-	seg := ColorSegment{Text: "test", Color: ucolor.EGAWhite}
-	assert.Equal(t, FontTypeNormal, seg.FontType, "Default FontType in ColorSegment must be FontTypeNormal")
-}
-
-// =============================================================================
-// Header Font Scale Tests
-// =============================================================================
-
-// TestHeader_FontScale validates that Header() sets FontScale to 1.25
-func TestHeader_FontScale(t *testing.T) {
-	font := NewUltimaFont(12.0)
-	output := NewOutput(font, 18.0, 10, 30)
-
-	lb := output.AppendLine()
-	lb.Header("Section Title")
-
-	segments := lb.GetSegments()
-	require.Len(t, segments, 1, "Should have 1 header segment")
-	assert.Equal(t, "Section Title", segments[0].Text)
-	assert.Equal(t, ucolor.EGAWhite, segments[0].Color, "Header() default color should be white")
-	assert.Equal(t, FontScaleHeader, segments[0].FontScale, "Header() should set FontScale to 1.25")
-	assert.Equal(t, FontTypeNormal, segments[0].FontType, "Header() should use normal font type")
-}
-
-// TestHeaderf_FormattedText validates that Headerf() correctly formats text
-func TestHeaderf_FormattedText(t *testing.T) {
-	font := NewUltimaFont(12.0)
-	output := NewOutput(font, 18.0, 10, 30)
-
-	lb := output.AppendLine()
-	lb.Headerf("Level %d Complete", 5)
-
-	segments := lb.GetSegments()
-	require.Len(t, segments, 1)
-	assert.Equal(t, "Level 5 Complete", segments[0].Text, "Headerf should format text correctly")
-	assert.Equal(t, FontScaleHeader, segments[0].FontScale)
-}
-
-// TestHeaderWithColor_CustomColor validates that HeaderWithColor() uses specified color
-func TestHeaderWithColor_CustomColor(t *testing.T) {
-	font := NewUltimaFont(12.0)
-	output := NewOutput(font, 18.0, 10, 30)
-
-	lb := output.AppendLine()
-	lb.HeaderWithColor("Warning", ucolor.EGARed)
-
-	segments := lb.GetSegments()
-	require.Len(t, segments, 1)
-	assert.Equal(t, "Warning", segments[0].Text)
-	assert.Equal(t, ucolor.EGARed, segments[0].Color, "HeaderWithColor() should use specified color")
-	assert.Equal(t, FontScaleHeader, segments[0].FontScale)
-}
-
-// TestMixedSegments_HeaderAndNormal validates that a line can have both header and normal segments
-func TestMixedSegments_HeaderAndNormal(t *testing.T) {
-	font := NewUltimaFont(12.0)
-	output := NewOutput(font, 18.0, 10, 30)
-
-	lb := output.AppendLine()
-	lb.Header("Title: ").White("Description text")
-
-	segments := lb.GetSegments()
-	require.Len(t, segments, 2, "Should have 2 segments")
-
-	// First: header (scaled)
-	assert.Equal(t, "Title: ", segments[0].Text)
-	assert.Equal(t, FontScaleHeader, segments[0].FontScale, "First segment should be header scale")
-
-	// Second: normal
-	assert.Equal(t, "Description text", segments[1].Text)
-	assert.Equal(t, float64(0), segments[1].FontScale, "Second segment should have default (0) font scale")
-}
-
-// TestFontScale_ZeroValue validates that zero FontScale means normal (1.0x) scale
-func TestFontScale_ZeroValue(t *testing.T) {
-	// This is critical: existing code creates ColorSegment without FontScale,
-	// so the zero value MUST behave as 1.0x scale for backward compatibility
-	seg := ColorSegment{Text: "test", Color: ucolor.EGAWhite}
-	assert.Equal(t, float64(0), seg.FontScale, "Default FontScale should be 0 (treated as 1.0x)")
-
-	// Verify that FontScaleNormal is 1.0
-	assert.Equal(t, 1.0, FontScaleNormal, "FontScaleNormal should be 1.0")
-	assert.Equal(t, 1.25, FontScaleHeader, "FontScaleHeader should be 1.25")
+	assert.Equal(t, ucolor.EGAYellow, segments[0].Color)
+	assert.Equal(t, float64(len("AVATAR")*BitmapCharWidth), output.getSegmentWidth(segments[0]))
 }

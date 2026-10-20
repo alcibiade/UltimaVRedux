@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -100,15 +99,8 @@ func TestReduxToolProjectPreservesPolicyAndSharedAuthoringRoundTrip(t *testing.T
 		t.Fatal(err)
 	}
 	window := &authoring.PlaybackWindow{StartMs: 10, EndMs: 50}
-	preview, err := draft.Preview(window)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if err := doc.ApplyRecordingRegion(context.Background(), draft, window); err != nil {
 		t.Fatal(err)
-	}
-	if *doc.Recording(target).PlaybackWindow != *preview.Window || !doc.Undo() || !doc.Redo() {
-		t.Fatal("shared authoring/history changed")
 	}
 	if err := doc.Save(); err != nil {
 		t.Fatal(err)
@@ -119,15 +111,5 @@ func TestReduxToolProjectPreservesPolicyAndSharedAuthoringRoundTrip(t *testing.T
 	}
 	if reopened.Dirty() || *reopened.Recording(target).PlaybackWindow != *window {
 		t.Fatal("saved edit failed to reopen")
-	}
-	stream, err := clip.Stream(window, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := stream.SetGain(math.Pow(10, 6.0/20)); err != nil {
-		t.Fatal(err)
-	}
-	if err := stream.Close(); err != nil {
-		t.Fatal(err)
 	}
 }

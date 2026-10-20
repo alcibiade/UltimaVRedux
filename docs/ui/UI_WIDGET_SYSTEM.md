@@ -90,7 +90,10 @@ output.AppendLine().Yellow("Label: ").White(value).Done()
 output.DrawPanelContent(screen, point, width, etext.AlignStart)
 ```
 
-Scrolling regions use `DrawScrollingBuffer` or `DrawScrollingBufferWithHeight`. Direct `DrawText`, `DrawTextCenter`, and `DrawTextRightToLeft` calls are internal to `output_rendering.go` and must not be used by widgets.
+Scrolling regions use `DrawScrollingBuffer` or `DrawScrollingBufferWithHeight`.
+The unused direct `DrawText`, `DrawTextCenter`, and `DrawTextRightToLeft`
+compatibility methods are retired; widgets use Output rather than bypassing its
+layout and semantic text boundary.
 
 Builders returned by `AppendLine` require `Done()` to commit the line. Panel code uses `Reset`; circular scrolling output normally keeps its existing index.
 

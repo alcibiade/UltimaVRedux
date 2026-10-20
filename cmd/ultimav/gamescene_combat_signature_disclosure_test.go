@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func nextSignatureMonsterStep(t *testing.T, scene *GameScene, monsterIndex int) game_state.CombatPresentationStep {
@@ -105,7 +105,7 @@ func TestCombatSignaturePossessionCapturesOriginDisclosureBeforeRetirement(t *te
 func possessionPresentationSeed(t *testing.T, intelligence int) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(32) == 0 && game_state.CombatHitCheck(intelligence, 1, false, rng).Outcome != game_state.CombatHitMiss {
 			return seed
 		}

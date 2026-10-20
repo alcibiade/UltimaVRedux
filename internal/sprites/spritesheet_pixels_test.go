@@ -188,7 +188,7 @@ func TestRawEffectLookupRetainsGeneratedFramesAndSourcePixels(t *testing.T) {
 	processor := sheet.GetTileEffectProcessor()
 	for _, hash := range []int32{0, 261, 517, -17} {
 		for _, elapsed := range []int64{0, 81, 82, 1230, 1311, 1312, 1313, 1394} {
-			frame := processor.GetFrameIndex(indexes.Water1, hash, elapsed)
+			frame, _ := processor.frameIndices(indexes.Water1, hash, elapsed)
 			want := processor.effectFrames[indexes.Water1][frame]
 			require.NotNil(t, want)
 			require.Same(t, want, sheet.GetRawAnimatedSprite(indexes.Water1, hash, elapsed))
@@ -202,8 +202,10 @@ func TestRawEffectLookupRetainsGeneratedFramesAndSourcePixels(t *testing.T) {
 		elapsed   int64
 		odd, even int
 	}{{0, 0, 6}, {81, 0, 6}, {82, 1, 7}, {1230, 15, 5}, {1311, 15, 5}, {1312, 0, 6}, {1313, 0, 6}, {1394, 1, 7}} {
-		require.Equal(t, tc.odd, processor.GetFrameIndex(indexes.Water1, 261, tc.elapsed))
-		require.Equal(t, tc.even, processor.GetFrameIndex(indexes.Water1, 517, tc.elapsed))
+		require.Same(t, processor.effectFrames[indexes.Water1][tc.odd],
+			sheet.GetRawAnimatedSprite(indexes.Water1, 261, tc.elapsed))
+		require.Same(t, processor.effectFrames[indexes.Water1][tc.even],
+			sheet.GetRawAnimatedSprite(indexes.Water1, 517, tc.elapsed))
 	}
 }
 
@@ -228,11 +230,7 @@ func TestAnimatedSpriteReusesResolvedArtworkAcrossPositions(t *testing.T) {
 					var want *ebiten.Image
 					if enabled && sheet.tileEffectProcessor.HasEffect(sprite) {
 						processor := sheet.tileEffectProcessor
-						frame := processor.GetFrameIndex(sprite, hash, elapsed)
-						// Even-X bordered slots already contain the offset artwork.
-						if hash/256%2 == 0 {
-							frame = (frame-6+16)%16 + 16
-						}
+						_, frame := processor.frameIndices(sprite, hash, elapsed)
 						want = processor.borderedFrames[sprite][frame]
 					} else {
 						resolved := GetSpriteIndexWithAnimationBySpriteIndexTick(sprite, hash, elapsed)

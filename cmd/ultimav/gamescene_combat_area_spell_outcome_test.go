@@ -7,17 +7,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
-func sceneAreaSpellSeed(t *testing.T, accepts func(*deterministic_random.Source) bool) uint64 {
+func sceneAreaSpellSeed(t *testing.T, accepts func(*beradrng.Source) bool) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 10000; seed++ {
-		if accepts(deterministic_random.New(seed)) {
+		if accepts(beradrng.New(seed)) {
 			return seed
 		}
 	}
@@ -57,7 +57,7 @@ func newAreaSpellOutcomeScene(t *testing.T, spell references.Spell, kind referen
 	state.PartyState.Inventory.Spells.Set(spell, 2)
 	state.ConfirmSpellKnowledge(spell, game_state.ExperimentationKnowledgeSource())
 	ref := (*state.GameReferences.EnemyReferences)[kind]
-	monster := game_state.NewCombatMonster(kind, &ref, references.Position{X: 5, Y: 9}, deterministic_random.New(4))
+	monster := game_state.NewCombatMonster(kind, &ref, references.Position{X: 5, Y: 9}, beradrng.New(4))
 	combat.AddMonsterToQueue(monster)
 	publish := state.SystemCallbacks.Combat.PublishEvent
 	state.SystemCallbacks.Combat.PublishEvent = func(event game_state.CombatEvent) {
@@ -112,7 +112,7 @@ func TestCombatAreaSpellFullWorkflowPaysResolvesAndCompletesOnce(t *testing.T) {
 					caster.Intelligence = 255
 					expected.PartyState.GetCharacter(casterIdx).Intelligence = 255
 				}
-				effectSeed = sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+				effectSeed = sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool {
 					if test.spell == references.InFlamHur {
 						return rng.Intn(31) == 0
 					}
@@ -124,7 +124,7 @@ func TestCombatAreaSpellFullWorkflowPaysResolvesAndCompletesOnce(t *testing.T) {
 				})
 			}
 			if quake {
-				seed := sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+				seed := sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool {
 					hit := max(1, rng.Intn(61)/2) >= python.CurrentDex()
 					return hit == test.damage && (!hit || rng.Intn(20)+1 < python.CurrentHP())
 				})
@@ -288,7 +288,7 @@ func TestCombatAreaSpellResultHasOneAccurateLocalImpact(t *testing.T) {
 			require.True(t, state.BeginCombatConeTargeting(game_state.CastRequest{Spell: test.spell, CasterIdx: casterIdx}).Valid)
 			state.SetCombatConeDirection(references.Up)
 			committed := state.ConfirmCombatConeTarget()
-			seed := sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+			seed := sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool {
 				if test.spell == references.InFlamHur {
 					if test.outcome == game_state.CombatSpellDamaged {
 						return rng.Intn(31) == 1
@@ -399,7 +399,7 @@ func TestCombatAreaSpellImpactRejectsRecycledMonsterIdentity(t *testing.T) {
 	scene, _, monster := newAreaSpellOutcomeScene(t, references.InVasPorYlem, references.MonsterSnake)
 	state := scene.gameState
 	casterIdx := state.CombatScene.GetActiveCombatantIndex()
-	seed := sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return max(1, rng.Intn(61)/2) < monster.CurrentDex()
 	})
 	state.SetRandomSeed(seed)
@@ -413,7 +413,7 @@ func TestCombatAreaSpellImpactRejectsRecycledMonsterIdentity(t *testing.T) {
 	state.CombatScene.TurnQueue.RemoveAllMonsters()
 	state.CombatScene.MonsterManager.Clear()
 	ref := *monster.EnemyRef()
-	replacement := game_state.NewCombatMonster(references.MonsterSnake, &ref, monster.Position(), deterministic_random.New(4))
+	replacement := game_state.NewCombatMonster(references.MonsterSnake, &ref, monster.Position(), beradrng.New(4))
 	state.CombatScene.AddMonsterToQueue(replacement)
 	require.NotEqual(t, monster.CombatantID(), replacement.CombatantID())
 	assert.False(t, scene.combatAreaImpactStillDisclosed(effect))

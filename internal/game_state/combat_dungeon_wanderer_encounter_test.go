@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestDirectDungeonAttackStartsGeneratedCombatWithoutEndPlayerProcessing(t *testing.T) {
@@ -303,7 +303,7 @@ func prepareDungeonWandererContactTest(
 		return nil, callbacks, references.Position{}, references.Position{}
 	}
 	attackOrigin := references.Position{X: 3, Y: 3}
-	control := deterministic_random.New(seed)
+	control := beradrng.New(seed)
 	direction := dungeonWandererDirection(control.Intn(4))
 	party := direction.GetNewPositionInDirection(&attackOrigin).GetWrapped(
 		references.XDungeonMapTiles,

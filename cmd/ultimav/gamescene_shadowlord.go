@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
@@ -9,6 +8,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // Shadowlord presence effect constants
@@ -72,7 +72,7 @@ func (g *GameScene) TriggerShadowlordSummoned(lord references.Shadowlord) {
 					Position: presentation.position, SpriteIndex: enemy.GetKeySpriteIndex(),
 					Mode: visual.DissolveModeReveal, OutlineColor: sprites.WhiteOutline,
 					PositionMode: PositionModeWorld, RenderLayer: RenderLayerDefault,
-				}, deterministic_random.New(shadowlordSummonFizzSeed))
+				}, rng.New(shadowlordSummonFizzSeed))
 				presentation.started = true
 				g.shadowlordSummonPresentation = presentation
 			}).Animate(shadowlordSummonFizzDurationMs, func(progress float32) {

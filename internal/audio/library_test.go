@@ -207,7 +207,7 @@ func TestRecordingIdentityDoesNotDependOnFilename(t *testing.T) {
 	library.Recordings["new_metal_01"] = testRecording("sounds/footsteps/footstep_grass_left_01.ogg")
 	library.Taxonomy.RecordingFamilies["footstep"] = append(library.Taxonomy.RecordingFamilies["footstep"], "new_metal_01")
 	cue := library.Cues["sfx/SoundWalkMetal1"]
-	cue = cue.WithRecordings([]string{"new_metal_01"})
+	cue.RecordingID, cue.RecordingIDs, cue.Selection = "new_metal_01", nil, ""
 	library.Cues["sfx/SoundWalkMetal1"] = cue
 	data, err := json.Marshal(library)
 	require.NoError(t, err)

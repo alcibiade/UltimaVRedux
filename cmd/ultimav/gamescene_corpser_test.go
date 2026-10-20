@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // Exercise the actual combat sprite-selection boundary with real atlas images,
@@ -18,7 +18,7 @@ import (
 func TestCorpserCombatStateSelectsHiddenExposedAndSleepingSprites(t *testing.T) {
 	sheet := sharedPresentationTestSpriteSheet()
 	scene := &GameScene{spriteSheet: sheet}
-	random := deterministic_random.New(646)
+	random := beradrng.New(646)
 	corpser := game_state.NewCombatMonster(references.MonsterCorpser, &references.EnemyReference{
 		MonsterType:  references.MonsterCorpser,
 		KeyFrameTile: &references.Tile{Index: indexes.Corpser1},

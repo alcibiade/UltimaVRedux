@@ -10,9 +10,9 @@ import (
 )
 
 func TestLegacyKeyboardCadenceAndSetterContracts(t *testing.T) {
-	for _, delay := range []int{0, 165, 250} {
+	for _, delay := range []int{0, 120, 165, 250} {
 		t.Run(strconv.Itoa(delay), func(t *testing.T) {
-			now := int64(1000)
+			now := int64(0)
 			keyboard := NewKeyboardWithKeyStateSource(delay, func(ebiten.Key) bool { return true })
 			keyboard.SetElapsedMillisecondsSource(func() int64 { return now })
 			require.True(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight))
@@ -35,6 +35,23 @@ func TestLegacyKeyboardCadenceAndSetterContracts(t *testing.T) {
 			require.False(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyEnter))
 		})
 	}
+	t.Run("clock replacement resets timing but preserves release gates", func(t *testing.T) {
+		held := true
+		keyboard := NewKeyboardWithKeyStateSource(165, func(key ebiten.Key) bool { return held && key == ebiten.KeyRight })
+		keyboard.SetElapsedMillisecondsSource(func() int64 { return 1000 })
+		require.True(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight))
+		keyboard.SetForceWaitAnyKey(60_000)
+		keyboard.SetLastKeyPressedNowPlusMs(60_000)
+		keyboard.PrepareForTransition(0)
+		keyboard.SetElapsedMillisecondsSource(func() int64 { return 0 })
+		require.Zero(t, keyboard.GetMsSinceLastKeyPress())
+		require.True(t, keyboard.IsWaitingForRelease())
+		require.False(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight))
+		held = false
+		keyboard.ClearFrameConsumption()
+		held = true
+		require.True(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight), "the same key is immediate on the new clock")
+	})
 }
 
 func TestLegacyDummyAcceptanceRetainsPostDelaySideEffect(t *testing.T) {

@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestDungeonSkeletonCrumbleLastsThreeSeconds(t *testing.T) {
@@ -123,7 +123,7 @@ func TestDungeonSkeletonCrumbleFizzLeavesReplacementWallStationary(t *testing.T)
 	delta := ebiten.NewImage(24, dungeonCanvasHeight)
 	delta.Set(3, 4, color.RGBA{R: 0xff, A: 0xff})
 	state := DissolveEffectState{}
-	state.Initialize(24, dungeonCanvasHeight, visual.DissolveModeHide, deterministic_random.New(1))
+	state.Initialize(24, dungeonCanvasHeight, visual.DissolveModeHide, beradrng.New(1))
 	canvas := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	clipLayer := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	source := syntheticDungeonSpriteSource{panel: wall, delta: delta, item: wall}

@@ -29,19 +29,6 @@ func (cue libraryCue) PrimaryRecording() string {
 	return cue.RecordingID
 }
 
-// WithRecordings returns a single assignment or an explicit ordered cycle.
-func (cue libraryCue) WithRecordings(ids []string) libraryCue {
-	cue.RecordingID, cue.RecordingIDs, cue.Selection = "", nil, ""
-	if len(ids) == 1 {
-		cue.RecordingID = ids[0]
-	} else {
-		cue.RecordingIDs = slices.Clone(ids)
-		cue.Selection = SelectionCycle
-	}
-
-	return cue
-}
-
 func validateCueRecordings(library *audioLibrary, cueID string, cue libraryCue) error {
 	if len(cue.RecordingIDs) > 0 {
 		if cue.RecordingID != "" || len(cue.RecordingIDs) < 2 ||

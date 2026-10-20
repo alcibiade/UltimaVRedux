@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCombatSignatureAdmissionAfterHitchRetainsFullScheduledLifetime(t *testing.T) {
@@ -73,7 +73,7 @@ func testProductionGateTimingAtRate(t *testing.T, kind references.MonsterType, r
 	// Wind legitimately shares the gameplay stream and advances before queue
 	// work. Account for it explicitly rather than claiming a seed-only replay or
 	// that a longer presentation interval cannot change later gameplay rolls.
-	oracleRNG := deterministic_random.New(seed)
+	oracleRNG := beradrng.New(seed)
 	oracleWind := environment.NewWindSystem(oracleRNG, signatureWindObserver{})
 	now := time.Unix(100, 0)
 	scene.startTime, scene.lastEffectsUpdate, scene.now = now, now, func() time.Time { return now }
@@ -169,7 +169,7 @@ func gateAfterHitchSeed(t *testing.T, possesses bool) uint64 {
 	// Choose a deterministic fixture with no intervening wind changes and a
 	// successful central gate. Production still processes every elapsed wind tick.
 	for seed := uint64(0); seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		noWindChange := true
 		for tick := environment.WindTickIntervalMs; tick <= 700; tick += environment.WindTickIntervalMs {
 			if rng.Intn(64) == 0 {

@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCombatPoisonFallbackAppliesMonsterProtectionOnce(t *testing.T) {
@@ -98,7 +98,7 @@ func TestCombatDirectFieldDamageAppliesMagicalMonsterProtectionOnce(t *testing.T
 			experienceBefore := state.PartyState.GetAvatar().Exp
 			seed := seedForExactCombatDraws(t, test.ranges, test.values)
 			state.SetRandomSeed(seed)
-			oracle := deterministic_random.New(seed)
+			oracle := beradrng.New(seed)
 			for index, maximum := range test.ranges {
 				require.Equal(t, test.values[index], oracle.Intn(maximum))
 			}
@@ -340,7 +340,7 @@ func seedForExactCombatDraws(t *testing.T, ranges, values []int) uint64 {
 	t.Helper()
 	require.Len(t, values, len(ranges))
 	for seed := uint64(0); seed < 100000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		matched := true
 		for index, drawRange := range ranges {
 			if rng.Intn(drawRange) != values[index] {

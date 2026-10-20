@@ -41,7 +41,7 @@ func TestAcknowledgmentsRetainOriginalAndSuppliedAudioCredits(t *testing.T) {
 
 func TestIntroAcknowledgmentsLeaveTitleAudioOwnershipAlone(t *testing.T) {
 	scene := newIntroInputTestScene()
-	manager, err := audio.NewGameAudioManager()
+	manager, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	scene.audioManager = manager
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
@@ -50,11 +50,11 @@ func TestIntroAcknowledgmentsLeaveTitleAudioOwnershipAlone(t *testing.T) {
 	require.NotEmpty(t, track)
 	for range 2 {
 		scene.openAcknowledgments()
-		require.True(t, manager.IsEnabled())
+		require.True(t, manager.PlaybackSnapshot().Enabled)
 		require.Equal(t, track, manager.GetMusicManager().GetCurrentTrack())
 		scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 		require.NoError(t, scene.Update(nil))
-		require.True(t, manager.IsEnabled())
+		require.True(t, manager.PlaybackSnapshot().Enabled)
 		require.Equal(t, track, manager.GetMusicManager().GetCurrentTrack())
 		require.Zero(t, scene.dialogStack.Count())
 	}

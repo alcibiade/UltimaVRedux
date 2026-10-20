@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/test/helpers"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // Shadowlord Behavior Tests - TDD tests based on original Ultima V behavior
@@ -520,7 +520,7 @@ func TestMapEffectsUseDaySeededYMajorCandidateOnlyStream(t *testing.T) {
 	gs.SetRandomSeed(444)
 	gs.RandomIntInRange(1, 99)
 	sharedCalls := gs.GetRNG().Calls()
-	oracle := deterministic_random.New(uint64(day))
+	oracle := beradrng.New(uint64(day))
 
 	destroyed, total := gs.ApplyShadowlordMapEffects(references.Astaroth)
 

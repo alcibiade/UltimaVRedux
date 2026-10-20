@@ -10,14 +10,6 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
-// DecodeSignTranslation projects the very same logical cells used by RenderSign.
-// It never changes source bytes or records the decoded inscription in history.
-func DecodeSignTranslation(rawText []byte) [][]ColorSegment {
-	var parser SignRenderer
-
-	return decodeSignTranslation(parser.expandAndSplit(rawText))
-}
-
 func decodeSignTranslation(lines []signLine) [][]ColorSegment {
 	var rows [][]ColorSegment
 	for _, line := range lines {

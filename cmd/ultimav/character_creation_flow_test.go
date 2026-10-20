@@ -10,7 +10,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
@@ -18,6 +17,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCharacterCreationMenuHandoffUsesFixedSeedAndDebouncesHeldEnter(t *testing.T) {
@@ -45,7 +45,7 @@ func TestCharacterCreationMenuHandoffUsesFixedSeedAndDebouncesHeldEnter(t *testi
 	var creation *CharacterCreationScene
 	game.characterCreationSceneBuilder = func(
 		configuration *config.UltimaVConfiguration,
-		source *deterministic_random.Source,
+		source *beradrng.Source,
 		callbacks CharacterCreationCallbacks,
 		identityPresentation *characterCreationIdentityPresentation,
 	) (Scene, error) {
@@ -94,7 +94,7 @@ func TestCharacterCreationMenuHandoffFailureLeavesMenuActive(t *testing.T) {
 				game.characterCreationSeedProvider = func() (uint64, error) { return 0, startupErr }
 				game.characterCreationSceneBuilder = func(
 					*config.UltimaVConfiguration,
-					*deterministic_random.Source,
+					*beradrng.Source,
 					CharacterCreationCallbacks,
 					*characterCreationIdentityPresentation,
 				) (Scene, error) {
@@ -110,7 +110,7 @@ func TestCharacterCreationMenuHandoffFailureLeavesMenuActive(t *testing.T) {
 				game.characterCreationSeedProvider = func() (uint64, error) { return 42, nil }
 				game.characterCreationSceneBuilder = func(
 					*config.UltimaVConfiguration,
-					*deterministic_random.Source,
+					*beradrng.Source,
 					CharacterCreationCallbacks,
 					*characterCreationIdentityPresentation,
 				) (Scene, error) {

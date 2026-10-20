@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func addContinuationEnemy(t *testing.T, state *GameState, monster references.MonsterType, pos references.Position, slot int) *map_units.NPCEnemy {
@@ -36,13 +36,13 @@ func TestOutdoorActorContinuationOrdersConsecutiveBattlesBeforeFireball(t *testi
 				before := state.MapState.PlayerLocation
 				state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectQuickness, TurnsRemaining: 10}
 				state.quicknessWorldActorSkip, state.outdoorMountedActorSkip = true, true
-				seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+				seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 					rng.Intn(8)             // First primary DEX.
 					rng.Intn(8)             // Second primary DEX.
 					return rng.Intn(8) == 0 // Later fireball opportunity.
 				})
 				state.SetRandomSeed(seed)
-				oracle := deterministic_random.New(seed)
+				oracle := beradrng.New(seed)
 				state.processNonCombatWorldActorPhase()
 				assert.Zero(t, state.GetRNG().Calls(), "nothing below the first contact is evaluated")
 				require.Same(t, first, state.pendingOverworldEncounter)
@@ -268,7 +268,7 @@ func TestOutdoorActorContinuationLivingPhysicalRetreatCompletesSlowMovementOnce(
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectProtection, TurnsRemaining: 5}
 	state.CombatScene.PartyPositions[0] = references.Position{X: 0, Y: 5}
 	state.SetRandomSeed(123)
-	oracle := deterministic_random.New(123)
+	oracle := beradrng.New(123)
 
 	require.Equal(t, CombatMoveFled, state.MoveCombatCharacter(references.Left))
 	assert.Positive(t, state.CombatScene.MonsterManager.CountActiveHostile())
@@ -405,7 +405,7 @@ func TestOutdoorActorContinuationFatalFireballOwnsSingleDeathFeedback(t *testing
 	addContinuationEnemy(t, state, references.MonsterSeaSerpent, references.Position{X: 101, Y: 100}, 31)
 	addContinuationEnemy(t, state, references.MonsterSeaSerpent, references.Position{X: 98, Y: 100}, 20)
 	state.PartyState.GetCharacter(0).SetHp(1)
-	seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 		rng.Intn(8)
 		return rng.Intn(8) == 0
 	})
@@ -499,7 +499,7 @@ func TestShipRepairOutdoorContinuationWaitsForLowerSlotFireball(t *testing.T) {
 	state.PartyVehicle.GetVehicleDetails().SetHullHP(50)
 	addContinuationEnemy(t, state, references.MonsterSeaSerpent, references.Position{X: 101, Y: 100}, 31)
 	fireball := addContinuationEnemy(t, state, references.MonsterDragon, references.Position{X: 98, Y: 99}, 20)
-	seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 		rng.Intn(8)
 		return rng.Intn(8) == 0
 	})

@@ -9,7 +9,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
@@ -20,6 +19,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/mainscreen"
@@ -101,7 +101,7 @@ func (d *DissolveEffectState) IsActive() bool {
 }
 
 // Initialize creates the dissolve effect for a sprite with the given dimensions.
-func (d *DissolveEffectState) Initialize(spriteWidth, spriteHeight int, mode visual.DissolveMode, rng *deterministic_random.Source) {
+func (d *DissolveEffectState) Initialize(spriteWidth, spriteHeight int, mode visual.DissolveMode, rng *rng.Source) {
 	d.effect = visual.NewPixelDissolveEffect(
 		spriteWidth, spriteHeight,
 		spriteWidth, spriteHeight,

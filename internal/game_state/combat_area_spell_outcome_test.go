@@ -6,17 +6,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // These seed searches use only detached streams. The selected bounded fixture
 // is reset before each cast; production RNG is never used to arrange outcomes.
-func areaSpellSeed(t *testing.T, accepts func(*deterministic_random.Source) bool) uint64 {
+func areaSpellSeed(t *testing.T, accepts func(*beradrng.Source) bool) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 10000; seed++ {
-		if accepts(deterministic_random.New(seed)) {
+		if accepts(beradrng.New(seed)) {
 			return seed
 		}
 	}
@@ -58,7 +58,7 @@ func TestCombatAreaEarthquakePythonOutcomesAndRNG(t *testing.T) {
 			dead, deadIndex := addOutcomePython(state, references.Position{X: 9, Y: 3})
 			dead.SetCurrentHP(0)
 			state.CombatScene.TurnQueue.MarkDead(deadIndex, false)
-			seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+			seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 				for _, hit := range test.hits {
 					if (max(1, rng.Intn(61)/2) >= 18) != hit {
 						return false
@@ -70,7 +70,7 @@ func TestCombatAreaEarthquakePythonOutcomesAndRNG(t *testing.T) {
 				return true
 			})
 			state.SetRandomSeed(seed)
-			wantRNG := deterministic_random.New(seed)
+			wantRNG := beradrng.New(seed)
 			callbacks.Reset()
 			result := state.CastCombatEarthquakeResult(0)
 			require.Len(t, result.Targets, 3)
@@ -127,7 +127,7 @@ func TestCombatAreaSleepMixedSavesImmunityAndStatus(t *testing.T) {
 	slept, _ := addSyntheticConeMonster(state, references.MonsterOrc, positions[2], 0)
 	slept.SetLoyalty(CombatMonsterLoyaltyParty)
 	state.SetRandomSeed(37)
-	wantRNG := deterministic_random.New(37)
+	wantRNG := beradrng.New(37)
 	for range 3 {
 		wantRNG.Intn(61)
 	}
@@ -151,11 +151,11 @@ func TestCombatAreaSleepMixedSavesImmunityAndStatus(t *testing.T) {
 func TestCombatAreaEarthquakePythonDeathAwardsXPAndPreservesRNG(t *testing.T) {
 	state, callbacks := newSyntheticCombatConeState(t)
 	python, index := addOutcomePython(state, references.Position{X: 5, Y: 3})
-	seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return max(1, rng.Intn(61)/2) >= 18 && rng.Intn(20)+1 >= 10
 	})
 	state.SetRandomSeed(seed)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantRNG.Intn(61)
 	damage := wantRNG.Intn(20) + 1
 	wantRNG.Intn(61) // Python's zero-treasure death-object check still draws.
@@ -186,7 +186,7 @@ func TestCombatAreaFlameDamageKeepsDivisionAndRNGOrder(t *testing.T) {
 	for _, victim := range []*CombatMonster{monster, baseline} {
 		victim.enemyRef.EnemyAbilities = map[references.EnemyAbility]bool{references.DivideOnHit: true}
 	}
-	seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool { return rng.Intn(31) > 0 })
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool { return rng.Intn(31) > 0 })
 	state.SetRandomSeed(seed)
 	expected.SetRandomSeed(seed)
 	damage := expected.GetRNG().Intn(31)
@@ -218,7 +218,7 @@ func TestCombatAreaVortexResistedImmuneAndDeath(t *testing.T) {
 	killed, _ := addSyntheticConeMonster(state, references.MonsterOrc, positions[2], 0)
 	xp := state.PartyState.GetCharacter(0).Exp
 	state.SetRandomSeed(37)
-	wantRNG := deterministic_random.New(37)
+	wantRNG := beradrng.New(37)
 	for range 4 { // Three saves, followed by the successful target's death-object draw.
 		wantRNG.Intn(61)
 	}
@@ -247,7 +247,7 @@ func TestCombatAreaWindZeroDamageAndPoisonAvoidance(t *testing.T) {
 			position := references.Position{X: 5, Y: 3}
 			monster, _ := addSyntheticConeMonster(state, references.MonsterOrc, position, 1)
 			monster.currentDex = 1
-			seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+			seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 				maximum := 31
 				if spell == references.InNoxHur {
 					rng.Intn(61)
@@ -368,7 +368,7 @@ func TestCombatAreaImmunityLabelOnlyComesFromReachedImmunityGate(t *testing.T) {
 			position := references.Position{X: 5, Y: 3}
 			monster, _ := addSyntheticConeMonster(state, references.MonsterOrc, position, 1)
 			monster.enemyRef.EnemyAbilities = map[references.EnemyAbility]bool{references.Immortal: true}
-			seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool { return rng.Intn(31) > 0 })
+			seed := areaSpellSeed(t, func(rng *beradrng.Source) bool { return rng.Intn(31) > 0 })
 			state.SetRandomSeed(seed)
 			result := state.resolveCombatConeResults(spell, 0, []references.Position{position})
 			require.Len(t, result.Targets, 1)

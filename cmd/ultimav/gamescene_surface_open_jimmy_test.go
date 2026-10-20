@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
@@ -17,6 +16,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSurfaceReturnUsesMapSpecificRejectionAndCycleOwnership(t *testing.T) {
@@ -362,7 +362,7 @@ func TestSmallMapChestJimmyThenOpenProductionPathCompletesOnceEach(t *testing.T)
 	var seed uint64
 	var childValue byte
 	for ; seed < 1000; seed++ {
-		for _, reward := range references.RollChestLoot(30, deterministic_random.New(seed)) {
+		for _, reward := range references.RollChestLoot(30, beradrng.New(seed)) {
 			if reward.ChestValue != 0 {
 				childValue = reward.ChestValue
 			}

@@ -6,13 +6,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestResolveSourceHitUniformHullRollAndLethalEquality(t *testing.T) {
@@ -83,7 +83,7 @@ func TestResolveSourceHitLethalFallbackOrderDirectionAndRNG(t *testing.T) {
 		state.PartyVehicle.GetVehicleDetails().SetHullHP(1)
 		state.PartyState.Inventory.QuestItems.Set(references.Carpet, 2)
 		state.SetRandomSeed(seed)
-		wantRNG := deterministic_random.New(seed)
+		wantRNG := beradrng.New(seed)
 		wantRNG.Intn(30)
 		wantDirection := references.Right
 		if wantRNG.Intn(2) == 1 {
@@ -106,7 +106,7 @@ func TestResolveSourceHitDrownsInIndependentPartyOrder(t *testing.T) {
 	state := newSourceHitFixture(t, references.FrigateVehicle, 9, 13)
 	state.PartyVehicle.GetVehicleDetails().SetHullHP(1)
 	state.SetRandomSeed(seed)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantRNG.Intn(30)
 	wantHP := []int{9, 13}
 	wantRolls := make([]SourceHitMemberDamage, 0)
@@ -145,7 +145,7 @@ func TestResolveSourceHitNonFrigatesDamageEachLivingActiveMemberOnce(t *testing.
 			const seed = uint64(330)
 			state := newSourceHitFixture(t, vehicleType, 100, 100)
 			state.SetRandomSeed(seed)
-			wantRNG := deterministic_random.New(seed)
+			wantRNG := beradrng.New(seed)
 			wantDamage := []int{wantRNG.Intn(8) + 1, wantRNG.Intn(8) + 1}
 
 			result := state.ResolveSourceHit()
@@ -173,7 +173,7 @@ func TestResolveSourceHitSkipsInactiveAndDeadMembers(t *testing.T) {
 	state.PartyState.GetCharacter(1).PartyMap = party_state.PartyMapAtInn(references.Britain)
 	state.PartyState.GetCharacter(2).SetStatus(party_state.Dead)
 	state.SetRandomSeed(seed)
-	wantDamage := deterministic_random.New(seed).Intn(8) + 1
+	wantDamage := beradrng.New(seed).Intn(8) + 1
 
 	result := state.ResolveSourceHit()
 
@@ -243,7 +243,7 @@ func TestResolveWhirlpoolHitUsesPartyDamageForNonFrigates(t *testing.T) {
 			state := newSourceHitFixture(t, test.vehicle, 100)
 			origin := state.MapState.PlayerLocation
 			state.SetRandomSeed(seed)
-			wantDamage := deterministic_random.New(seed).Intn(8) + 1
+			wantDamage := beradrng.New(seed).Intn(8) + 1
 
 			result := state.ResolveWhirlpoolHit()
 
@@ -268,7 +268,7 @@ func TestAdjacentWhirlpoolDamagesFootPartyWithoutTransportOrRemoval(t *testing.T
 	whirlpoolPosition := references.Position{X: origin.Position.X + 1, Y: origin.Position.Y}
 	require.True(t, state.spawnWhirlpoolAt(whirlpoolPosition))
 	state.SetRandomSeed(seed)
-	wantDamage := deterministic_random.New(seed).Intn(8) + 1
+	wantDamage := beradrng.New(seed).Intn(8) + 1
 
 	require.True(t, state.CheckWhirlpoolAdjacency())
 	drainSourceHitWorkflows(t, state)
@@ -425,7 +425,7 @@ func newSourceHitFixture(t *testing.T, vehicleType references.VehicleType, hitPo
 func sourceHitSeedForFirstIntn(t *testing.T, maximum, wanted int) uint64 {
 	t.Helper()
 	for seed := uint64(0); ; seed++ {
-		if deterministic_random.New(seed).Intn(maximum) == wanted {
+		if beradrng.New(seed).Intn(maximum) == wanted {
 			return seed
 		}
 	}

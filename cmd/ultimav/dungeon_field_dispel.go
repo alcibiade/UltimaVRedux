@@ -5,10 +5,10 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -49,7 +49,7 @@ func (effect *dungeonFieldDispelEffect) initialize() {
 	for depth := range effect.dissolves {
 		bounds := dungeonFieldBounds(depth)
 		effect.dissolves[depth].Initialize(bounds.Dx(), bounds.Dy(), visual.DissolveModeHide,
-			deterministic_random.New(dungeonFieldDispelSeed(effect, depth)))
+			rng.New(dungeonFieldDispelSeed(effect, depth)))
 	}
 }
 

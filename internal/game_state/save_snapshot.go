@@ -9,7 +9,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
@@ -18,6 +17,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // ErrSaveSnapshotNotRepresentable indicates that runtime state cannot be serialized safely.
@@ -908,7 +908,7 @@ func NewGameStateFromSaveSnapshot(snapshot save_snapshot.SaveSnapshot, gameConfi
 	g.dungeonJournal = snapshot.DungeonJournal
 	g.moonstoneJournal = snapshot.MoonstoneJournal
 	g.atlasLandmarks = slices.Clone(snapshot.AtlasLandmarks)
-	g.rng = deterministic_random.Restore(snapshot.Random.Seed, snapshot.Random.SourceCalls)
+	g.rng = rng.Restore(snapshot.Random.Seed, snapshot.Random.SourceCalls)
 	g.initializeEnvironmentalSystems()
 	g.windSystem.Restore(environment.WindSnapshot{Direction: environment.WindDirection(snapshot.Wind.Direction), UpdateCounter: snapshot.Wind.UpdateCounter, NextTickMs: snapshot.Wind.NextTickMs})
 	g.initializeSnapshotMapsAndControllers()

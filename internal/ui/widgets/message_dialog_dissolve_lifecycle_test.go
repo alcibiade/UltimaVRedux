@@ -7,18 +7,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestMessageDialogDissolveOwnershipTransitions(t *testing.T) {
 	for _, transition := range []string{"show", "show without animation", "hide", "hide without animation", "reveal complete", "hide complete"} {
 		t.Run(transition, func(t *testing.T) {
-			old := visual.NewPixelDissolveEffect(8, 8, 4, 4, visual.DissolveModeReveal, deterministic_random.New(42))
+			old := visual.NewPixelDissolveEffect(8, 8, 4, 4, visual.DissolveModeReveal, beradrng.New(42))
 			t.Cleanup(old.Dispose)
 			old.UpdateProgress(.5)
 			require.NotNil(t, old.GetMask())
-			survivor := visual.NewPixelDissolveEffect(8, 8, 4, 4, visual.DissolveModeReveal, deterministic_random.New(43))
+			survivor := visual.NewPixelDissolveEffect(8, 8, 4, 4, visual.DissolveModeReveal, beradrng.New(43))
 			t.Cleanup(survivor.Dispose)
 			survivor.UpdateProgress(1)
 			content := ebiten.NewImage(8, 8)

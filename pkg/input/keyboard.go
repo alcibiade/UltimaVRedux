@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
 	beradinput "github.com/bradhannah/berad-sdk/modules/berad-input"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -92,13 +91,6 @@ func (k *Keyboard) acceptCadence(key ebiten.Key, now, interval int64) bool {
 // continuous input while the key is held down.
 // Use this for movement/navigation keys that should repeat when held.
 func (k *Keyboard) TryToRegisterRepeatableKeyPress(key ebiten.Key) bool {
-	return k.TryToRegisterRepeatableKeyPressWithRate(key, RepeatRate(k.millisecondDelayBetweenKeyPresses))
-}
-
-// TryToRegisterRepeatableKeyPressWithRate is like TryToRegisterRepeatableKeyPress but uses
-// a custom repeat rate instead of the default keyboard delay.
-// Use RepeatRateSlow, RepeatRateMedium, or RepeatRateFast for common presets.
-func (k *Keyboard) TryToRegisterRepeatableKeyPressWithRate(key ebiten.Key, rate RepeatRate) bool {
 	if k.keys.Suspended() || k.IsSuppressedUntilRelease(key) {
 		return false
 	}
@@ -106,7 +98,8 @@ func (k *Keyboard) TryToRegisterRepeatableKeyPressWithRate(key ebiten.Key, rate 
 		return true
 	}
 
-	return k.keys.Ready(key, false) && k.acceptCadence(key, k.elapsedMilliseconds(), int64(rate))
+	return k.keys.Ready(key, false) &&
+		k.acceptCadence(key, k.elapsedMilliseconds(), int64(k.millisecondDelayBetweenKeyPresses))
 }
 
 // GetMsSinceLastKeyPress returns elapsed adapter milliseconds since the last accepted key.
@@ -313,16 +306,6 @@ const (
 	ModifierMeta
 )
 
-// RepeatRate defines keyboard repeat speed presets in milliseconds
-type RepeatRate int
-
-// Repeat-rate presets control the delay between accepted held-key repeats.
-const (
-	RepeatRateSlow   RepeatRate = 200 // Slow repeat rate (200ms between repeats)
-	RepeatRateMedium RepeatRate = 120 // Medium repeat rate (120ms between repeats)
-	RepeatRateFast   RepeatRate = 120 // Legacy fast preset (120ms, same as Medium); UI lists use ListNavigation.
-)
-
 // PrepareForTransition records currently pressed keys for release debouncing
 // Use this when transitioning to a new UI state (e.g., dialog dismissal, KeyWait)
 // to prevent key bleeding from the previous input
@@ -492,29 +475,6 @@ func (k *Keyboard) GetPressedArrowKey() *ebiten.Key {
 	}
 
 	return nil
-}
-
-// GetArrowKeyAsDirection returns the pressed arrow key as a Direction enum
-// Returns references.NoneDirection if no arrow key is pressed
-// Priority ordering: Down > Up > Right > Left
-func (k *Keyboard) GetArrowKeyAsDirection() references.Direction {
-	arrowKey := k.GetPressedArrowKey()
-	if arrowKey == nil {
-		return references.NoneDirection
-	}
-
-	switch *arrowKey { //nolint:exhaustive // GetPressedArrowKey returns only the four directional keys.
-	case ebiten.KeyArrowUp:
-		return references.Up
-	case ebiten.KeyArrowDown:
-		return references.Down
-	case ebiten.KeyArrowLeft:
-		return references.Left
-	case ebiten.KeyArrowRight:
-		return references.Right
-	default:
-		return references.NoneDirection
-	}
 }
 
 // GetPressedKey returns the currently pressed key, prioritizing arrow keys

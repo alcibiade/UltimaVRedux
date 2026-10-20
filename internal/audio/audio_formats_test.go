@@ -30,23 +30,3 @@ func TestDetectAudioFormat(t *testing.T) {
 		})
 	}
 }
-
-// TestAudioFormatString tests the string representation of audio formats
-func TestAudioFormatString(t *testing.T) {
-	testCases := []struct {
-		format   AudioFormat
-		expected string
-	}{
-		{AudioFormatWAV, "WAV"},
-		{AudioFormatMP3, "MP3"},
-		{AudioFormatOGG, "OGG"},
-		{AudioFormatUnknown, "Unknown"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.expected, func(t *testing.T) {
-			result := tc.format.String()
-			assert.Equal(t, tc.expected, result, "String representation should match for format %d", tc.format)
-		})
-	}
-}

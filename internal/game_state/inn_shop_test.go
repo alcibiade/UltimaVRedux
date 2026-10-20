@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestReviewInnShopIsPureAndExactForAllSixRows(t *testing.T) {
@@ -209,7 +209,7 @@ func TestRestAtInnUsesExactPaymentTimeAndMorningOutcomes(t *testing.T) {
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectTimeStop, TurnsRemaining: 20}
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	const seed = uint64(99)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	state.SetRandomSeed(seed)
 	shop, err := state.GetInnShopState(session)
 	require.NoError(t, err)
@@ -372,7 +372,7 @@ func TestRestAtInnConsumesOneRegenerationRollPerNineMinuteStep(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, uint64(ringSteps), state.GetRNG().Calls())
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	successes := 0
 	for range ringSteps {
 		if expected.Intn(8) == 7 {
@@ -448,7 +448,7 @@ func TestPickUpInnGuestDeductsThenStealsThenStableInsertsAndRestores(t *testing.
 	state.PartyState.Inventory.Gold.Set(500)
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	const seed = uint64(17)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	state.SetRandomSeed(seed)
 	shop, err := state.GetInnShopState(session)
 	require.NoError(t, err)

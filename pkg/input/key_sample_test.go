@@ -45,17 +45,6 @@ func TestSuppressionSurvivesCancellationAndBlocksRepeatUntilPhysicalRelease(t *t
 	}
 }
 
-func TestKeyboardCadenceUsesInjectedElapsedClock(t *testing.T) {
-	keyboard := NewKeyboardWithKeyStateSource(120, func(ebiten.Key) bool { return true })
-	now := int64(0)
-	keyboard.SetElapsedMillisecondsSource(func() int64 { return now })
-	require.True(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight))
-	now = 120
-	require.False(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight))
-	now++
-	require.True(t, keyboard.TryToRegisterRepeatableKeyPress(ebiten.KeyRight))
-}
-
 func TestSuspendedKeyboardMasksInputWithoutManufacturingPhysicalRelease(t *testing.T) {
 	held := map[ebiten.Key]bool{ebiten.KeyNumpadEnter: true, ebiten.KeyRight: true}
 	keyboard := NewKeyboardWithKeyStateSource(-1, func(key ebiten.Key) bool { return held[key] })

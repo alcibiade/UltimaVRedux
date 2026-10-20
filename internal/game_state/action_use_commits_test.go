@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestHMSCapeUseCommitTogglesGlobalPreferenceWithoutRNG(t *testing.T) {
@@ -68,7 +68,7 @@ func TestPotionUseCommitOwnsFixedSeedRandomnessAndEffect(t *testing.T) {
 
 func TestYellowPotionUsesOriginalD30AfterMislabellingRolls(t *testing.T) {
 	seed := findNormalYellowPotionSeed(t)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	switch wantRNG.Intn(potionRandomEffectRollMax) {
 	case 0:
 		t.Fatal("normal yellow potion seed selected orange")

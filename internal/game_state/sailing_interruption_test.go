@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestFurlStopsAutomaticSailingBeforeFeedback(t *testing.T) {
@@ -232,7 +232,7 @@ func TestInterruptedOutdoorPhaseRetainsEveryLowerSlotHit(t *testing.T) {
 			pirate.MapUnitDetails().NPCNum = 30 - index
 		}
 		const seed = uint64(464)
-		want := deterministic_random.New(seed)
+		want := beradrng.New(seed)
 		firstDamage := want.Intn(30) + 1
 		want.Intn(30)
 		partyDamage := want.Intn(8) + 1

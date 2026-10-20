@@ -91,18 +91,6 @@ func (manager *GameAudioManager) StopSound(request game_state.SoundStopRequest) 
 	}
 }
 
-// PlaySoundEffectAt retains Redux's distance profile; calculated pan is not applied.
-func (manager *GameAudioManager) PlaySoundEffectAt(effect game_state.SoundEffect,
-	playerX, playerY, sourceX, sourceY int,
-) error {
-	manager.mutex.RLock()
-	volume, _ := manager.positional.CalculateAudio(playerX, playerY, sourceX, sourceY)
-	manager.mutex.RUnlock()
-
-	return manager.PlaySound(game_state.SoundPlaybackRequest{
-		Effect: effect, Mode: game_state.SoundPlaybackOneShot, Volume: volume, FadeInMs: 0})
-}
-
 func (manager *GameAudioManager) hasLocalMusic() bool {
 	local := false
 	for _, voice := range manager.sfx.Snapshot() {

@@ -64,15 +64,9 @@ func TestDynamicOutlineOnlyCacheSeparatesFramesColoursAndBodyEffects(t *testing.
 	c := processor.ApplyDynamicOutlineOnly(first, ucolor.CombatActiveMonsterOutline.ToRGBA())
 	assert.NotSame(t, a, c)
 	assert.NotEqual(t, outlineTestPixels(a), outlineTestPixels(c))
-	assert.Equal(t, 2, processor.graphics.Stats().Derived)
-	assert.Same(t, a, processor.ApplyDynamicOutlineOnly(first, face), "recent entry survives eviction")
-	bAgain := processor.ApplyDynamicOutlineOnly(second, face)
-	assert.NotSame(t, b, bAgain, "least recently used frame was evicted")
-	assert.Equal(t, outlineTestPixels(b), outlineTestPixels(bAgain))
 	body := processor.ApplyDynamicSimple(first, CombatActivePCOutline)
 	assert.NotZero(t, outlineTestPixels(body)[(8*18+8)*4+3])
 	assert.Zero(t, outlineTestPixels(a)[(8*18+8)*4+3])
-	assert.Equal(t, 2, processor.graphics.Stats().Derived)
 }
 
 func TestDynamicOutlineOnlyNeverFallsBackToBody(t *testing.T) {

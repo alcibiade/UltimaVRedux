@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // Drain callback, deferred-sequence, animation and finalizer stages without
@@ -302,7 +302,7 @@ func TestScheduledBatPacingTeleportUsesExecutionResult(t *testing.T) {
 func combatPacingTeleportSeed(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 100000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(4) != 3 && rng.Intn(16) == 5 && rng.Intn(16) == 5 {
 			return seed
 		}

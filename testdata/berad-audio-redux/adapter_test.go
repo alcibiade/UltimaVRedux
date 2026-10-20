@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -17,32 +16,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	audio "github.com/bradhannah/berad-sdk/modules/berad-audio"
-	"github.com/bradhannah/berad-sdk/modules/berad-audio/backend/ebitengine"
 )
-
-type player struct {
-	playing bool
-	gain    float64
-	source  io.ReadSeeker
-	closed  int
-}
-
-func (device *player) Play()                    { device.playing = true }
-func (device *player) Pause()                   { device.playing = false }
-func (device *player) PauseAndStopReading()     { device.playing = false; device.closed++ }
-func (device *player) IsPlaying() bool          { return device.playing }
-func (device *player) SetVolume(gain float64)   { device.gain = gain }
-func (*player) SetPosition(time.Duration) error { return nil }
-func (*player) Position() time.Duration         { return 0 }
-
-type host struct{ players []*player }
-
-func (*host) SampleRate() int { return 44100 }
-func (backend *host) NewPlayer(source io.ReadSeeker) (audio.Transport, error) {
-	device := &player{source: source}
-	backend.players = append(backend.players, device)
-	return device, nil
-}
 
 // Retain Redux's actual authored identities, taxonomy and routing while replacing
 // payloads with one generated WAV. Neither original-game files nor production
@@ -115,66 +89,6 @@ func syntheticWAV() []byte {
 	return data
 }
 
-func TestReduxJSONProjectionAndStrongestFireUseOneCalibratedVoice(t *testing.T) {
-	library, files := project(t)
-	backend := new(host)
-	now := time.Unix(100, 0)
-	options := audio.DefaultAmbientOptions(backend, ebitengine.Decode)
-	options.Playback.Now = func() time.Time { return now }
-	adapter, err := NewAmbient(library, files, 1<<20, options)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := adapter.Close(); err != nil {
-			t.Error(err)
-		}
-	})
-	tiles := []gameaudio.TileWithPosition{{Tile: &references.Tile{Index: indexes.FireLogs}},
-		{Tile: &references.Tile{Index: indexes.FireLogs}, Position: references.Position{X: 4}}}
-	if err := adapter.Reconcile(references.Position{}, tiles, nil); err != nil {
-		t.Fatal(err)
-	}
-	now = now.Add(time.Second)
-	if err := adapter.Update(); err != nil {
-		t.Fatal(err)
-	}
-	snapshot := adapter.Snapshot()
-	if len(backend.players) != 1 || len(snapshot.Sources) != 1 {
-		t.Fatal("static fires not coalesced")
-	}
-	want := math.Pow(10, 6.0/20) // 0.5 cue * 2 source; calibration applies exactly once.
-	if math.Abs(snapshot.Sources[0].Voice.Gain-want) > 1e-9 {
-		t.Fatal(snapshot)
-	}
-	pcm, err := io.ReadAll(io.LimitReader(backend.players[0].source, 44100*4/50))
-	if err != nil || len(pcm) != 44100*4/50 {
-		t.Fatal("windowed decoder failed", len(pcm), err)
-	}
-	if err := adapter.Reconcile(references.Position{X: 4}, tiles[1:], nil); err != nil {
-		t.Fatal(err)
-	}
-	if len(backend.players) != 1 {
-		t.Fatal("strongest fire change restarted transport")
-	}
-	if err := adapter.SetVolume(0.5); err != nil {
-		t.Fatal(err)
-	}
-	if math.Abs(adapter.Snapshot().Sources[0].Voice.Gain-want*0.5) > 1e-9 {
-		t.Fatal(adapter.Snapshot())
-	}
-	if err := adapter.Reconcile(references.Position{}, nil, nil); err != nil {
-		t.Fatal(err)
-	}
-	now = now.Add(time.Second)
-	if err := adapter.Update(); err != nil {
-		t.Fatal(err)
-	}
-	if backend.players[0].closed != 1 || len(adapter.Snapshot().Sources) != 0 {
-		t.Fatal("departure leaked source")
-	}
-}
-
 func TestReduxLighthouseAndProjectedDynamicIdentityRemainGameOwned(t *testing.T) {
 	library, _ := project(t)
 	planner, err := gameaudio.NewAmbientPlanner(library)
@@ -234,7 +148,7 @@ func TestReduxLighthouseAndProjectedDynamicIdentityRemainGameOwned(t *testing.T)
 func TestReduxProjectionPreservesNullSlotsAndOrderedVariants(t *testing.T) {
 	library, _ := project(t)
 	document := library.Document()
-	definition, err := PlaybackDefinition(document)
+	definition, err := gameaudio.PlaybackDefinition(document)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +176,7 @@ func TestReduxProjectionPreservesNullSlotsAndOrderedVariants(t *testing.T) {
 	recording := document.Recordings[fire.RecordingID]
 	recording.PlaybackWindow.EndMs = math.MaxInt64
 	document.Recordings[fire.RecordingID] = recording
-	if _, err := PlaybackDefinition(document); !errors.Is(err, gameaudio.ErrAudioLibrary) {
+	if _, err := gameaudio.PlaybackDefinition(document); !errors.Is(err, gameaudio.ErrAudioLibrary) {
 		t.Fatal("overflowed authored window accepted", err)
 	}
 }

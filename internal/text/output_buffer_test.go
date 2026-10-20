@@ -471,7 +471,7 @@ func TestLineBuilder_WordWrap_NarrowWidth(t *testing.T) {
 	output := NewOutput(font, 18.0, 10, 12)
 
 	// "Changes wind direction" = 22 chars, should wrap at narrow width
-	output.AppendLine().LightBlue("Changes wind direction").WordWrap().Done()
+	output.AppendLine().Text("Changes wind direction", ucolor.EGALightBlue).WordWrap().Done()
 
 	// Should wrap to 2+ lines since 22 chars > 12 chars per line
 	assert.GreaterOrEqual(t, output.nextLineToIndex, 2, "Should wrap to multiple lines with narrow width")

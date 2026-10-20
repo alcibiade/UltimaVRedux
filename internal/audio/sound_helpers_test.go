@@ -77,56 +77,6 @@ func TestVolumeModifier(t *testing.T) {
 	}
 }
 
-func TestVolumeModifierIntegration(t *testing.T) {
-	// Test that VolumeModifier is properly applied in volume calculation
-	config, err := NewAudioConfiguration()
-	if err != nil {
-		t.Fatalf("Failed to create audio configuration: %v", err)
-	}
-	config.SetSoundEffectVolume(1.0)
-
-	// Create a mock effect player to test volume calculation logic
-	inputVolume := 1.0
-
-	// Test relative volume differences - the key is that VolumeModifier creates proportional differences
-	var normalVolume, quietVolume, veryQuietVolume float64
-
-	// Test with normal volume effect (door)
-	if metadata, exists := GetSoundEffectMetadata(game_state.SoundOpenDoor); exists {
-		baseVolume := inputVolume * metadata.VolumeModifier
-		normalVolume = config.GetEffectiveVolume(baseVolume)
-		t.Logf("✅ Normal volume door: input=%.1f * modifier=%.1f = effective=%.3f",
-			inputVolume, metadata.VolumeModifier, normalVolume)
-	}
-
-	// Test with quiet effect (metal footsteps)
-	if metadata, exists := GetSoundEffectMetadata(game_state.SoundWalkMetal1); exists {
-		baseVolume := inputVolume * metadata.VolumeModifier
-		quietVolume = config.GetEffectiveVolume(baseVolume)
-		t.Logf("✅ Quiet metal footsteps: input=%.1f * modifier=%.1f = effective=%.3f",
-			inputVolume, metadata.VolumeModifier, quietVolume)
-	}
-
-	// Test with very quiet effect (grass footsteps - representative of walking sounds)
-	if metadata, exists := GetSoundEffectMetadata(game_state.SoundWalkGrassLeft); exists {
-		baseVolume := inputVolume * metadata.VolumeModifier
-		veryQuietVolume = config.GetEffectiveVolume(baseVolume)
-		t.Logf("✅ Very quiet grass footsteps: input=%.1f * modifier=%.1f = effective=%.3f",
-			inputVolume, metadata.VolumeModifier, veryQuietVolume)
-	}
-
-	// Verify that the relative volumes are properly ordered
-	if quietVolume >= normalVolume {
-		t.Errorf("Metal footsteps (%.3f) should be quieter than normal door (%.3f)", quietVolume, normalVolume)
-	}
-	if veryQuietVolume > quietVolume {
-		t.Errorf("Grass footsteps (%.3f) should be quieter than or equal to metal footsteps (%.3f)", veryQuietVolume, quietVolume)
-	}
-
-	t.Logf("✅ Volume ordering verified: Normal=%.3f > Metal=%.3f >= Grass=%.3f",
-		normalVolume, quietVolume, veryQuietVolume)
-}
-
 func TestAllSoundEffectsHaveVolumeModifier(t *testing.T) {
 	// Ensure all sound effects in the metadata map have a VolumeModifier set
 	for effect, metadata := range soundEffectMetadataMap() {

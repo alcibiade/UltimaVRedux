@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSmallMapMovementKeyMapsSmashedDirections(t *testing.T) {
@@ -222,7 +222,7 @@ func captureSmashed(t *testing.T, state *game_state.GameState) int {
 
 func smashedInputMissSeed() uint64 {
 	for seed := uint64(0); ; seed++ {
-		if deterministic_random.New(seed).Intn(2) == 0 {
+		if beradrng.New(seed).Intn(2) == 0 {
 			return seed
 		}
 	}
@@ -230,7 +230,7 @@ func smashedInputMissSeed() uint64 {
 
 func smashedInputHitSeed(sourceRoll int) uint64 {
 	for seed := uint64(0); ; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(2) != 0 && rng.Intn(4) == sourceRoll {
 			return seed
 		}

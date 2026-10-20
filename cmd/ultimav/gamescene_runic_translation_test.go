@@ -206,8 +206,10 @@ func TestSignTranslationGeneratedWantedPosterPreservesNames(t *testing.T) {
 	}
 	require.True(t, state.ActionLookSmallMap(references.Up))
 	require.NotNil(t, callbacks.SignDialogSign)
+	result := text.NewSignRenderer(1).RenderTranslatedSign(callbacks.SignDialogSign.RawText)
+	t.Cleanup(result.Image.Deallocate)
 	var readable strings.Builder
-	for _, row := range text.DecodeSignTranslation(callbacks.SignDialogSign.RawText) {
+	for _, row := range result.TranslationRows {
 		for _, segment := range row {
 			readable.WriteString(segment.Text)
 		}

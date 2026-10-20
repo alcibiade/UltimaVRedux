@@ -80,7 +80,7 @@ func TestMoongateSourcesFollowWorldLayerBeforeAndAfterUpdate(t *testing.T) {
 	}
 	require.Equal(t, game_state.MoongateStageFull, state.MoongateStage())
 	visuals := NewMoongateVisualSystem(state)
-	manager, err := audio.NewGameAudioManager()
+	manager, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	scene := &GameScene{gameState: state, moongateVisualSystem: visuals, audioManager: manager}
 	pos := state.MapState.PlayerLocation.Position

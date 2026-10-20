@@ -14,12 +14,12 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/debugging"
 	"github.com/bradhannah/UltimaVRedux/internal/debugging/scenarios"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
 	"github.com/bradhannah/UltimaVRedux/internal/profiling"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const developmentGameVersion = "development"
@@ -191,7 +191,7 @@ func NewGame(initialScene Scene) *Game {
 		characterCreationSeedProvider: newCharacterCreationSeed,
 		characterCreationSceneBuilder: func(
 			configuration *config.UltimaVConfiguration,
-			source *deterministic_random.Source,
+			source *rng.Source,
 			callbacks CharacterCreationCallbacks,
 			identityPresentation *characterCreationIdentityPresentation,
 		) (Scene, error) {

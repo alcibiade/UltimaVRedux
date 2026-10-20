@@ -115,6 +115,11 @@ allocation. Private cached images never escape. Compatibility `GetCharImage`
 returns separately game-owned, fixed-glyph snapshots whose existing borrowers
 must not modify/dispose them. Cache eviction cannot invalidate those snapshots.
 Final application shutdown closes the SDK renderer; scene lifetimes share it.
+`ClearTextCache` is retained specifically for independent cross-package native
+fixtures and widget composition/eviction proof. It drops shared raster references
+without closing the application renderer or invalidating retained layouts. It is
+not a scene-change operation. Fixture-owned renderers would require a separate
+ownership migration; tests must not close the global renderer between cases.
 Direct bitmap glyph drawing retains native-size rasters and applies scale at final
 placement, preserving single-pass nearest sampling for the reduced sky glyphs.
 Styled bitmap/TTF runs share palette-alpha semantics; the ordinary game palette
@@ -146,6 +151,14 @@ and TopAlign for combined compatibility rows. SDK font/layout validation rejects
 nonfinite scaled metrics and accumulated line/ink extents instead of returning
 unusable geometry. Panel/history retention remains game-owned, without SDK Panel
 or Log containers.
+
+Game regression coverage checks actual Output/header scaling, recolouring and
+retained row geometry, original byte/glyph and sign semantics, and the legacy
+canvas clip. Generic raster LRU/eviction and shaping matrices belong to the SDK.
+Sign tests inspect rendered dimensions and returned translation rows against
+authored expectations; separate exported test-only dimension/decoder wrappers
+are not part of the facade. Panels and scrolling buffers are the rendering entry
+points; the unused direct `Output.DrawText*` compatibility chain is retired.
 
 CharacterSummary retains separate left/right text outputs per party slot until
 visible values or semantic colour change. It still draws the current portraits

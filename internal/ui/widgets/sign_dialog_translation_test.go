@@ -138,7 +138,9 @@ func translationAliasFixture(t *testing.T) *references.SignRecord {
 }
 
 func translatedSignText(raw []byte) string {
-	return signTranslationRowsText(text.DecodeSignTranslation(raw))
+	result := text.NewSignRenderer(1).RenderTranslatedSign(raw)
+	defer result.Image.Deallocate()
+	return signTranslationRowsText(result.TranslationRows)
 }
 
 func signTranslationRowsText(rows [][]text.ColorSegment) string {

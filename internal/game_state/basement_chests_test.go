@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func basementFixture(t *testing.T) (*GameState, *MockSystemCallbacks) {
@@ -217,7 +217,7 @@ func TestBasementNestedChestAuthorityAndSameTilePile(t *testing.T) {
 	var childValue byte
 	for ; seed < 1000; seed++ {
 		found := false
-		for _, entry := range references.RollChestLoot(30, deterministic_random.New(seed)) {
+		for _, entry := range references.RollChestLoot(30, beradrng.New(seed)) {
 			if entry.ChestValue != 0 {
 				found = true
 				childValue = entry.ChestValue
@@ -278,7 +278,7 @@ func TestBasementFullLootAdmissionStillConsumesSourceDraws(t *testing.T) {
 		require.NoError(t, state.ItemStacksMap.PushUnder(&position, &references.ItemStack{Items: references.ItemStacks{{Item: references.Gold, Quantity: 1}}}))
 	}
 	before, _ := state.ItemStacksMap.Snapshot(&position)
-	rng := deterministic_random.New(683)
+	rng := beradrng.New(683)
 	references.RollChestLoot(30, rng)
 	state.SetRandomSeed(683)
 	openBasementSource(t, state, 23)

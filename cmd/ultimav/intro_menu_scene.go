@@ -16,7 +16,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
@@ -30,6 +29,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 	"github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -136,14 +136,14 @@ func createIntroMenuScene(gameConfig *config.UltimaVConfiguration, startAtMenu b
 	intro.titleFizz = visual.NewPixelDissolveEffect(
 		introLogicalWidth, introTitleFizzHeight, introLogicalWidth, introTitleFizzHeight,
 		visual.DissolveModeReveal,
-		deterministic_random.New(introTitleFizzSeed),
+		rng.New(introTitleFizzSeed),
 	)
 	flameSize := introSprites.FlameFizzBase.Bounds().Size()
 	intro.flameFizzBuffer = ebiten.NewImage(flameSize.X, flameSize.Y)
 	intro.flameFizz = visual.NewPixelDissolveEffect(
 		flameSize.X, flameSize.Y, flameSize.X, flameSize.Y,
 		visual.DissolveModeReveal,
-		deterministic_random.New(introFlameFizzSeed),
+		rng.New(introFlameFizzSeed),
 	)
 	intro.eventQueueManager = event_queue.NewEventQueueManager(func() int64 { return intro.elapsedMs }, nil)
 	if startAtMenu {

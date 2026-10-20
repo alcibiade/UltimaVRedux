@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestMagePhysicalDamagePolicyMatchesHostileAndControlledAttacks(t *testing.T) {
@@ -65,10 +65,10 @@ func TestMagePhysicalDamagePolicyMatchesHostileAndControlledAttacks(t *testing.T
 					// A hostile ranged turn alone has the missile-choice roll. All paths
 					// then share physical hit, selected poison damage, and condition order.
 					var seed uint64
-					var oracle *deterministic_random.Source
+					var oracle *beradrng.Source
 					wantDamage := 10 // 20 fixed physical damage halved against Skeleton.
 					for seed = 1; seed < 1000; seed++ {
-						oracle = deterministic_random.New(seed)
+						oracle = beradrng.New(seed)
 						if !controlled && ranged && oracle.Intn(256) >= 128 {
 							continue
 						}

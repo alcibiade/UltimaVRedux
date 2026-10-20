@@ -1,13 +1,14 @@
 package input
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 )
 
-func TestListNavigationShiftAliasesAndHeldRepeat(t *testing.T) {
+func TestListNavigationShiftAliasesConsumePhysicalArrow(t *testing.T) {
 	for _, shift := range []ebiten.Key{ebiten.KeyShiftLeft, ebiten.KeyShiftRight} {
 		for _, arrow := range []ebiten.Key{ebiten.KeyUp, ebiten.KeyDown} {
 			t.Run(shift.String()+arrow.String(), func(t *testing.T) {
@@ -23,25 +24,42 @@ func TestListNavigationShiftAliasesAndHeldRepeat(t *testing.T) {
 				require.NotNil(t, key)
 				require.Equal(t, want, *key)
 				require.False(t, keyboard.IsKeyPressedAndRegister(arrow), "plain arrow must already be consumed")
-				for range 17 {
+			})
+		}
+	}
+}
+
+func TestListNavigationRepeatUsesUpdateTPS(t *testing.T) {
+	for _, test := range []struct {
+		tps, initialTicks, repeatTicks int
+	}{
+		{tps: 60, initialTicks: 18, repeatTicks: 8},
+		{tps: 30, initialTicks: 9, repeatTicks: 4},
+	} {
+		t.Run(strconv.Itoa(test.tps), func(t *testing.T) {
+			previousTPS := ebiten.TPS()
+			ebiten.SetTPS(test.tps)
+			t.Cleanup(func() { ebiten.SetTPS(previousTPS) })
+			keyboard := NewKeyboardWithKeyStateSource(1000, func(key ebiten.Key) bool { return key == ebiten.KeyDown })
+			keyboard.SetElapsedMillisecondsSource(func() int64 { return 0 })
+			var nav ListNavigation
+			key, owned := nav.Poll(keyboard)
+			require.True(t, owned)
+			require.NotNil(t, key, "a fresh list tap ignores the gameplay interval")
+			require.Equal(t, ebiten.KeyDown, *key)
+			for _, ticks := range []int{test.initialTicks, test.repeatTicks} {
+				for range ticks - 1 {
 					keyboard.SetAllowKeyPressImmediately()
 					key, owned = nav.Poll(keyboard)
 					require.True(t, owned, "throttled navigation retains ownership")
-					require.Nil(t, key)
+					require.Nil(t, key, "force-next must not accelerate list repeats")
 				}
-				key, _ = nav.Poll(keyboard)
+				key, owned = nav.Poll(keyboard)
+				require.True(t, owned)
 				require.NotNil(t, key)
-				require.Equal(t, want, *key)
-				delete(held, shift)
-				for range 7 {
-					key, _ = nav.Poll(keyboard)
-					require.Nil(t, key)
-				}
-				key, _ = nav.Poll(keyboard)
-				require.NotNil(t, key)
-				require.Equal(t, arrow, *key, "release Shift while holding arrow changes the next repeat")
-			})
-		}
+				require.Equal(t, ebiten.KeyDown, *key)
+			}
+		})
 	}
 }
 
@@ -92,15 +110,17 @@ func TestListNavigationPageKeysAndModifierChanges(t *testing.T) {
 	}
 	require.NotNil(t, key)
 	require.Equal(t, ebiten.KeyPageDown, *key)
+	delete(held, ebiten.KeyShiftRight)
+	for range 8 {
+		key, _ = nav.Poll(keyboard)
+	}
+	require.NotNil(t, key)
+	require.Equal(t, ebiten.KeyDown, *key, "releasing Shift remaps the next repeat without releasing the arrow")
 	clear(held)
 	nav.Poll(keyboard)
 	for _, page := range []ebiten.Key{ebiten.KeyPageUp, ebiten.KeyPageDown} {
 		held[page] = true
 		key, _ = nav.Poll(keyboard)
-		require.Equal(t, page, *key)
-		for range 18 {
-			key, _ = nav.Poll(keyboard)
-		}
 		require.NotNil(t, key)
 		require.Equal(t, page, *key)
 		clear(held)

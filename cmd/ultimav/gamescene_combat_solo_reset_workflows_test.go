@@ -6,11 +6,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func attachCombatSoloResetUpdateInput(t *testing.T, scene *GameScene) map[ebiten.Key]bool {
@@ -165,7 +165,7 @@ func (combatSoloResetWindCallbacks) AddRowStr(string)                     {}
 func combatSoloResetProjectileSeed(t *testing.T, launchMs int64) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		wind := environment.NewWindSystem(rng, combatSoloResetWindCallbacks{})
 		wind.AdvanceThrough(launchMs)
 		// Same successful Ettin throw as projectileHitSeed, after real wind

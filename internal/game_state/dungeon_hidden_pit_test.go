@@ -3,11 +3,11 @@ package game_state
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -180,7 +180,7 @@ func TestDungeonHiddenPitChainsMutationsAndDeterministicPartyDamage(t *testing.T
 	drainDungeonHiddenPitWorkflow(t, state)
 
 	wantHP := []uint16{100, 100}
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	for range 3 {
 		for index := range wantHP {
 			wantHP[index] -= uint16(wantRNG.Intn(8) + 1)
@@ -283,7 +283,7 @@ func TestDungeonHiddenPitBottomFloorSafelyRevealsDamagesAndClamps(t *testing.T) 
 			startDungeonHiddenPitTestMove(t, state, DungeonAdvance)
 			drainDungeonHiddenPitWorkflow(t, state)
 
-			wantRNG := deterministic_random.New(seed)
+			wantRNG := beradrng.New(seed)
 			wantHP := uint16(100 - (wantRNG.Intn(8) + 1))
 			assert.Equal(t, references.FloorNumber(references.DungeonFloorCount-1), state.MapState.PlayerLocation.Floor)
 			assert.Equal(t, wantHP, state.PartyState.GetCharacter(0).GetCurrentHp())

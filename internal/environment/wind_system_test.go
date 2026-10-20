@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/rand"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestWindAdvanceRejectsOverflowBeforeRandomDraw(t *testing.T) {
-	rng := deterministic_random.New(12345)
+	rng := beradrng.New(12345)
 	wind := NewWindSystem(rng, &MockWindSystemCallbacks{})
 	wind.Restore(WindSnapshot{Direction: East, NextTickMs: math.MaxInt64 - 99})
 	before := wind.Snapshot()
@@ -23,7 +23,7 @@ func TestWindAdvanceRejectsOverflowBeforeRandomDraw(t *testing.T) {
 }
 
 func TestWindAdvanceNearDeadlineLimitDoesNotWrap(t *testing.T) {
-	rng := deterministic_random.New(12345)
+	rng := beradrng.New(12345)
 	wind := NewWindSystem(rng, &MockWindSystemCallbacks{})
 	wind.Restore(WindSnapshot{Direction: East, NextTickMs: math.MaxInt64 - WindTickIntervalMs})
 	wind.AdvanceThrough(math.MaxInt64 - WindTickIntervalMs)
@@ -37,13 +37,13 @@ type MockWindSystemCallbacks struct {
 }
 
 func TestWindTickPhaseRestoresDeterministically(t *testing.T) {
-	firstRNG := deterministic_random.New(12345)
+	firstRNG := beradrng.New(12345)
 	first := NewWindSystem(firstRNG, &MockWindSystemCallbacks{})
 	first.Restore(WindSnapshot{Direction: East, UpdateCounter: 2, NextTickMs: 100})
 	first.AdvanceThrough(209)
 
 	saved := first.Snapshot()
-	restoredRNG := deterministic_random.Restore(firstRNG.Seed(), firstRNG.Calls())
+	restoredRNG := beradrng.Restore(firstRNG.Seed(), firstRNG.Calls())
 	restored := NewWindSystem(restoredRNG, &MockWindSystemCallbacks{})
 	restored.Restore(saved)
 
@@ -54,13 +54,13 @@ func TestWindTickPhaseRestoresDeterministically(t *testing.T) {
 }
 
 func TestWindAdvanceThroughIsIndependentOfElapsedPartitions(t *testing.T) {
-	partitionedRNG := deterministic_random.New(12345)
+	partitionedRNG := beradrng.New(12345)
 	partitioned := NewWindSystem(partitionedRNG, &MockWindSystemCallbacks{})
 	for elapsedMs := WindTickIntervalMs; elapsedMs <= WindTickIntervalMs*100; elapsedMs += WindTickIntervalMs {
 		partitioned.AdvanceThrough(elapsedMs)
 	}
 
-	singleRNG := deterministic_random.New(12345)
+	singleRNG := beradrng.New(12345)
 	single := NewWindSystem(singleRNG, &MockWindSystemCallbacks{})
 	single.AdvanceThrough(WindTickIntervalMs * 100)
 

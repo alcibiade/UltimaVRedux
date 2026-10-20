@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ import (
 func shadowlordSourceFloor(state *GameState, floor references.FloorNumber, damage bool) []indexes.SpriteIndex {
 	source := state.GetCurrentSmallLocationReference()
 	terrain := make([]indexes.SpriteIndex, 0, references.XSmallMapTiles*references.YSmallMapTiles)
-	rng := deterministic_random.New(uint64(state.DateTime.Day))
+	rng := beradrng.New(uint64(state.DateTime.Day))
 	for y := references.Coordinate(0); y < references.YSmallMapTiles; y++ {
 		for x := references.Coordinate(0); x < references.XSmallMapTiles; x++ {
 			sprite := source.GetTileNumber(references.Position{X: x, Y: y}, floor)

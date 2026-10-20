@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSourceSearchRecordsTransferExactDecodedItems(t *testing.T) {
@@ -279,7 +279,7 @@ func searchItemInventoryQuantity(state *party_state.PartyState, item references.
 func seedWithFirstRollBelow(t *testing.T, sides int) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 1000; seed++ {
-		if deterministic_random.New(seed).Intn(sides)+1 < sides {
+		if beradrng.New(seed).Intn(sides)+1 < sides {
 			return seed
 		}
 	}
@@ -291,7 +291,7 @@ func seedWithFirstRollBelow(t *testing.T, sides int) uint64 {
 func seedForSurfaceCorpsePlague(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(combatCorpseLootMaxRoll+1) != 0 && rng.Intn(combatCorpsePlagueMaxRoll+1) == combatCorpsePlagueResult {
 			return seed
 		}
@@ -304,7 +304,7 @@ func seedForSurfaceCorpsePlague(t *testing.T) uint64 {
 func seedForSurfaceCorpseLoot(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 10000; seed++ {
-		if deterministic_random.New(seed).Intn(combatCorpseLootMaxRoll+1) == 0 {
+		if beradrng.New(seed).Intn(combatCorpseLootMaxRoll+1) == 0 {
 			return seed
 		}
 	}

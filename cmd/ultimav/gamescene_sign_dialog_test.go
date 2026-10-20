@@ -75,7 +75,9 @@ func TestSignHeldDismissalProductionHandoff(t *testing.T) {
 func TestDefaultSignTextIncludesOriginalFrame(t *testing.T) {
 	renderer := text.NewSignRenderer(1)
 
-	width, height := renderer.CalculateSignDimensions([]byte(defaultSignText))
+	result := renderer.RenderSign([]byte(defaultSignText))
+	t.Cleanup(result.Image.Deallocate)
+	width, height := result.Width, result.Height
 
 	if width != 16*text.BitmapCharWidth || height != 6*text.BitmapCharHeight {
 		t.Errorf("default sign dimensions = %dx%d, want original 16x6 frame", width, height)

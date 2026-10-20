@@ -80,7 +80,7 @@ func TestDispelSlotPreservesAbsorbHealingRecording(t *testing.T) {
 	recording := library.Recordings[metadata.RecordingID]
 	require.NotNil(t, recording.File)
 	require.NotNil(t, recording.CalibrationGainDB)
-	require.Equal(t, CalibrationManual, recording.CalibrationMode())
+	require.Equal(t, CalibrationManual, recording.CalibrationPolicy)
 	require.NotEqual(t, "unknown", recording.Provenance.License)
 	require.False(t, isPlaceholderSound(game_state.SoundAbsorb))
 	clip, err := authoring.LoadRecordingContext(context.Background(), library.recordingPath(metadata.RecordingID), ebitengine.Decode)

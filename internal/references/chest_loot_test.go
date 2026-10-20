@@ -3,7 +3,7 @@ package references
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,8 +97,8 @@ func TestChestLootMiscellaneousFailuresDoNotDrawQuantities(t *testing.T) {
 }
 
 func TestChestLootUsesInjectedDeterministicRNG(t *testing.T) {
-	first := deterministic_random.New(8675309)
-	second := deterministic_random.New(8675309)
+	first := beradrng.New(8675309)
+	second := beradrng.New(8675309)
 	assert.Equal(t, RollChestLoot(30, first), RollChestLoot(30, second))
 	assert.Positive(t, first.Calls())
 	assert.Equal(t, first.Calls(), second.Calls())

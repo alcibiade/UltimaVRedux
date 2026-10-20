@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCharacterSelectionCasterProfileExplainsEveryActor(t *testing.T) {
@@ -307,7 +307,7 @@ func activateSurfaceSearchActor(scene *GameScene, index int, intelligence byte) 
 func surfaceSearchLowIntelligenceSeed(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 1000; seed++ {
-		if deterministic_random.New(seed).Intn(32)+1 < 31 {
+		if beradrng.New(seed).Intn(32)+1 < 31 {
 			return seed
 		}
 	}

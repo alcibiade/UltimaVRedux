@@ -22,14 +22,10 @@ func TestGuideIsTableFirstWithStableSlotsAndGameplayInstructions(t *testing.T) {
 	require.Contains(t, guide, "Not currently audible.")
 	require.Contains(t, guide, "internal/audio/assets/library.json")
 	require.Contains(t, guide, "tavern_lute_01", "the deferred tavern recording remains a named empty slot")
-	for _, moment := range catalog.Moments {
-		if needsRecordingBrief(moment) {
-			require.Contains(t, guide, "[Brief](#"+briefAnchor(moment.ID)+")")
-			require.Contains(t, guide, "<a id=\""+briefAnchor(moment.ID)+"\"></a>")
-		}
+	// These game-owned empty slots have real triggers and authored recording briefs.
+	for _, anchor := range []string{"brief-sfx-soundringvanish", "brief-ambient-ambientbard"} {
+		require.Contains(t, guide, "[Brief](#"+anchor+")")
+		require.Contains(t, guide, "<a id=\""+anchor+"\"></a>")
 	}
-}
-
-func TestTableEscapesAuthoredText(t *testing.T) {
-	require.Equal(t, "wood \\| stone<br>&lt;quiet&gt;", tableCell("wood | stone\n<quiet>"))
+	require.NotContains(t, guide, "<a id=\"brief-sfx-soundheal\"></a>", "assigned healing needs no missing-recording brief")
 }

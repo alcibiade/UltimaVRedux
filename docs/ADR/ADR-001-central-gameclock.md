@@ -45,11 +45,10 @@ Tests pass explicit elapsed values, so frame selection remains reproducible even
 
 ### Controlled Gameplay Randomness
 
-`GameState` owns a `deterministic_random.Source`. That small game facade aliases
-Berad RNG's `Source`; the SDK owns the PCG algorithm, raw-draw accounting, and
-logarithmic-time restoration. The game retains seed selection, shared-stream
-ordering, provider semantics, and save serialization. Retaining the facade avoids
-changing every gameplay import without keeping a second RNG implementation.
+`GameState` owns a Berad RNG `Source`, imported directly from
+`github.com/bradhannah/berad-sdk/modules/berad-rng`. The SDK owns the PCG algorithm,
+raw-draw accounting, and logarithmic-time restoration. The game retains seed
+selection, shared-stream ordering, provider semantics, and save serialization.
 Most gameplay code uses the state methods or an injected random-provider interface:
 
 ```go
@@ -91,8 +90,8 @@ Rules that explicitly define a local deterministic seed, such as the day-seeded 
 - `cmd/ultimav/gamescene_initialization.go`: exposes the adapter elapsed-time helper.
 - `cmd/ultimav/gamescene_update.go`: publishes `GameState.ElapsedMs` and updates consumers.
 - `internal/game_state/game_state.go`: owns `DateTime`, `ElapsedMs`, and the centralized random source.
-- `internal/deterministic_random/source.go`: compatibility facade over the
-  [Berad RNG contract](https://github.com/bradhannah/berad-sdk/blob/main/modules/berad-rng/docs/API.md).
+- [Berad RNG contract](https://github.com/bradhannah/berad-sdk/blob/891cf44f456a/modules/berad-rng/docs/API.md):
+  shared source mechanics consumed directly by the game.
 - `internal/sprites/sprite_animations.go`: selects animation frames from explicit inputs.
 - `internal/ai/npc_ai_controller_small_map.go`: defines the small-map RNG provider contract.
 - `internal/ai/npc_ai_controller_large_map.go`: requires an injected random provider.

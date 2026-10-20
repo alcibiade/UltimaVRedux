@@ -238,14 +238,13 @@ else
 fi
 
 #############################################
-# Check 8: No deprecated DrawText usage
+# Check 8: No calls to retired DrawText compatibility methods
 #############################################
 echo -e "\n🔤 Checking for deprecated DrawText usage..."
 
 DRAWTEXT_VIOLATIONS=0
 drawtext_calls=$(grep -rn "\.DrawText\|\.DrawTextCenter\|\.DrawTextRightToLeft" cmd/ internal/ --include="*.go" 2>/dev/null | \
-    grep -v "_test.go" | \
-    grep -v "output_rendering.go" || true)
+    grep -v "_test.go" || true)
 
 if [ -n "$drawtext_calls" ]; then
     echo -e "${RED}❌ Found deprecated DrawText usage (use Output pattern instead):${NC}"
@@ -254,7 +253,7 @@ if [ -n "$drawtext_calls" ]; then
         echo -e "  ${RED}$file_line${NC}"
     done <<< "$drawtext_calls"
     echo -e "${YELLOW}💡 See docs/ui/ for text rendering contracts${NC}"
-    echo -e "${YELLOW}   Use: output.DrawPanelContent() or output.DrawContinuousOutputTexOnXy()${NC}"
+    echo -e "${YELLOW}   Use: output.DrawPanelContent() or output.DrawScrollingBufferWithHeight()${NC}"
     DRAWTEXT_VIOLATIONS=1
     OVERALL_SUCCESS=false
 else

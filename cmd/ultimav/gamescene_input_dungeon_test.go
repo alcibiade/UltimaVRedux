@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
@@ -20,6 +19,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newDungeonInputTestScene(
@@ -486,7 +486,7 @@ func hydrateDungeonInputSceneWithWanderer(
 func dungeonInputContactPartyPosition(seed uint64, origin references.Position) references.Position {
 	// This maps the first source movement roll to its cardinal direction so the
 	// hydrated wanderer attempts contact during the next full command cycle.
-	switch deterministic_random.New(seed).Intn(4) {
+	switch beradrng.New(seed).Intn(4) {
 	case 0:
 		return references.Position{X: origin.X, Y: origin.Y - 1}
 	case 1:

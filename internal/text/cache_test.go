@@ -42,29 +42,38 @@ func TestMain(tests *testing.M) {
 	os.Exit(runner.code)
 }
 
-func TestSDKScaledGameTextReusesRaster(t *testing.T) {
+func TestScaledTextRenderingRetainsLayoutAcrossRepaintAndCacheClear(t *testing.T) {
 	ClearTextCache()
 	t.Cleanup(ClearTextCache)
 	output := NewOutput(NewUltimaFont(20), 24, 2, 100)
-	output.AppendLine().Header("A heading").Done()
+	output.AddStyledText([]ColorSegment{{
+		Text: "A heading", Color: color.White, FontType: FontTypeNormal, FontScale: 1.25,
+	}}, etext.AlignStart)
 	target := ebiten.NewImage(240, 80)
 	t.Cleanup(target.Deallocate)
-	before := textRenderer.Stats()
-	for range 5 {
-		output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
-	}
-	after := textRenderer.Stats()
-	require.Equal(t, uint64(1), after.Misses-before.Misses)
-	require.Equal(t, uint64(4), after.Hits-before.Hits)
-	require.Equal(t, 1, after.Entries)
+	output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
 	retained := output.lineLayouts[0].layouts[0]
+	require.Equal(t, float64(25), retained.Content().Spans()[0].Font.Size(), "styled text adapts the game's 1.25x scale")
+	before := textRenderer.Stats()
+	output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
+	require.Equal(t, before.Misses, textRenderer.Stats().Misses, "unchanged Output must reuse SDK typography")
 	output.RecolorCurrentLine(color.RGBA{R: 255, A: 255})
 	output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
 	require.Same(t, retained, output.lineLayouts[0].layouts[0], "paint changes retain SDK geometry")
 	ClearTextCache()
-	require.Zero(t, textRenderer.Stats().Entries)
 	output.DrawPanelContent(target, image.Point{}, 240, etext.AlignStart)
 	require.Same(t, retained, output.lineLayouts[0].layouts[0], "cache clear does not invalidate layout")
+}
+
+func TestDefaultStyledTextUsesNormalFontAndScale(t *testing.T) {
+	output := NewOutput(NewUltimaFont(20), 24, 2, 100)
+	implicit := ColorSegment{Text: "Normal text", Color: color.White}
+	explicit := ColorSegment{
+		Text: implicit.Text, Color: implicit.Color, FontType: FontTypeNormal, FontScale: FontScaleNormal,
+	}
+	defaultLayout, normalLayout := output.segmentLayout(implicit), output.segmentLayout(explicit)
+	require.Equal(t, float64(20), defaultLayout.Content().Spans()[0].Font.Size())
+	require.Equal(t, normalLayout.Bounds(), defaultLayout.Bounds(), "omitted font fields retain normal typography")
 }
 
 func TestSDKGameTextMatchesLegacyCanvasPixels(t *testing.T) {

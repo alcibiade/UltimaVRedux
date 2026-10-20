@@ -56,7 +56,7 @@ func NewPixelDissolveEffect(
 	if maskWidth != targetWidth || maskHeight != targetHeight {
 		effect.scaledMask = ebiten.NewImage(targetWidth, targetHeight)
 	}
-	effect.Reset()
+	effect.initializeMask()
 
 	return effect
 }
@@ -95,12 +95,10 @@ func (effect *PixelDissolveEffect) GetMask() *ebiten.Image {
 	return effect.scaledMask
 }
 
-// Reset restores the original ordering without consuming any more random values.
-func (effect *PixelDissolveEffect) Reset() {
-	effect.pattern.Reset()
+func (effect *PixelDissolveEffect) initializeMask() {
 	effect.pattern.WritePixels(effect.pixelData)
 	if err := effect.surface.Upload(); err != nil {
-		panic(fmt.Sprintf("reset game dissolve: %v", err))
+		panic(fmt.Sprintf("initialize game dissolve: %v", err))
 	}
 	effect.maskDirty = false
 }

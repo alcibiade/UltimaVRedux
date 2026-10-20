@@ -3,12 +3,12 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const combatVanishDurationMs = 750
@@ -54,7 +54,7 @@ func (g *GameScene) showCombatVanishEffect(event game_state.CombatEvent) {
 	}
 	effect.Dissolve.Initialize(
 		sprite.Bounds().Dx(), sprite.Bounds().Dy(), visual.DissolveModeHide,
-		deterministic_random.New(combatVanishSeed(vanished)),
+		rng.New(combatVanishSeed(vanished)),
 	)
 	g.combatVanishEffects = append(g.combatVanishEffects, effect)
 }

@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCheckForAmbushDuringHourUsesDeterministicOddsOrForcedResult(t *testing.T) {
@@ -454,7 +454,7 @@ func TestCampingAmbushUsesWeightedPoolAndInterleavedSourceRNGOrder(t *testing.T)
 	require.NoError(t, err)
 	seed := uint64(8743)
 	state.SetRandomSeed(seed)
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	expectedPositions := combatMap.MonsterPositions
 	for positionIndex := 0; positionIndex < len(expectedPositions)-1; positionIndex++ {
 		randomIndex := expected.Intn(len(expectedPositions))
@@ -561,7 +561,7 @@ func installAutomaticAnyKey(state *GameState) {
 func campingBoundaryGuardMoveSeed(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 100_000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(GuardMoveOdds) == 0 || rng.Intn(GuardMoveOdds) != 0 ||
 			rng.Intn(DirectionCount) != 0 {
 			continue

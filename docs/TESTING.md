@@ -14,6 +14,11 @@ explains the rationale for real-data integration coverage.
 - Drive gameplay timing through game-state clocks and elapsed time, not wall time.
 - Validate UI-facing behavior through `SystemCallbacks` mocks rather than presentation packages.
 - Test the smallest scope that proves the behavior; do not use full game setup for pure logic.
+- SDK tests establish shared mechanisms; Redux tests establish authored policy,
+  adaptation, wiring, and owner lifetimes. Do not retain an unused production API
+  solely because a test calls it, or copy an SDK implementation into a test helper
+  to manufacture expected output. Port missing mechanism assertions upstream
+  before retiring duplicated coverage; keep independent game-specific oracles.
 
 ## Test Scopes
 

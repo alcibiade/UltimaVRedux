@@ -9,7 +9,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
@@ -19,6 +18,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestMerchantTalkRouteAcceptsOnlyExactProductionCodes(t *testing.T) {
@@ -1199,7 +1199,7 @@ func TestGuildBatchReceiptAppendsFaulineiTheft(t *testing.T) {
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	quote := dialog.GetSelectedQuote()
 	require.Equal(t, references.Torches, quote.Provision)
-	expectedTheft := uint16(deterministic_random.New(seed).Intn(64) + 1) //nolint:gosec // The roll is bounded to 1-64.
+	expectedTheft := uint16(beradrng.New(seed).Intn(64) + 1) //nolint:gosec // The roll is bounded to 1-64.
 
 	completeGuildPurchase(t, fixture, dialog, 4)
 
@@ -2814,7 +2814,7 @@ func TestInnLeaveAndPickupRefreshSameModesWithExactTheftReceipt(t *testing.T) {
 	pressMerchantDialogKey(fixture, ebiten.KeyP)
 	require.Equal(t, leftName, dialog.GetPickupRows()[0].Identity.Name)
 	charge := dialog.GetPickupRows()[0].Charge
-	wantTheft := uint16(deterministic_random.New(seed).Intn(64) + 1) //nolint:gosec // The authority roll is bounded to 1-64.
+	wantTheft := uint16(beradrng.New(seed).Intn(64) + 1) //nolint:gosec // The authority roll is bounded to 1-64.
 	completeInnAction(t, fixture, dialog)
 
 	wantGold := uint16(1000) - charge - wantTheft

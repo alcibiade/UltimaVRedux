@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newCombatFireMovementTest(t *testing.T, tile indexes.SpriteIndex) (
@@ -165,7 +165,7 @@ func TestCombatFireSharedTerrainAndFieldMovementHaveOneOwner(t *testing.T) {
 			if test.field {
 				require.True(t, state.CombatScene.AddField(game_state.NewCombatField(
 					game_state.CombatFieldFire, references.Position{X: 6, Y: 5})))
-				state.SetRandomSeed(sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+				state.SetRandomSeed(sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool {
 					return rng.Intn(256) >= 16 && rng.Intn(11) == 7
 				}))
 				wantCalls++ // The existing field-expiration roll precedes standing injury.
@@ -194,7 +194,7 @@ func TestCombatFireFlameWindFatalTypedOutcomeKeepsOneLabel(t *testing.T) {
 	}).Valid)
 	state.SetCombatConeDirection(references.Up)
 	committed := state.ConfirmCombatConeTarget()
-	state.SetRandomSeed(sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool { return rng.Intn(31) == 1 }))
+	state.SetRandomSeed(sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool { return rng.Intn(31) == 1 }))
 	result := state.ResolveCommittedCombatCone(committed)
 	require.Len(t, result.Targets, 1)
 	require.True(t, result.Targets[0].Fatal)

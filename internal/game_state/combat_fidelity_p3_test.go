@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestFidelityF14WindDamageEndpoints(t *testing.T) {
@@ -39,7 +39,7 @@ func TestFidelityF14WindDamageEndpoints(t *testing.T) {
 					}
 					var seed uint64
 					for candidate := uint64(1); candidate < 10000; candidate++ {
-						rng := deterministic_random.New(candidate)
+						rng := beradrng.New(candidate)
 						if poison {
 							rng.Intn(61)
 						}
@@ -49,7 +49,7 @@ func TestFidelityF14WindDamageEndpoints(t *testing.T) {
 						}
 					}
 					require.NotZero(t, seed)
-					wantRNG := deterministic_random.New(seed)
+					wantRNG := beradrng.New(seed)
 					if poison {
 						wantRNG.Intn(61)
 					}
@@ -137,7 +137,7 @@ func TestFidelityF15SleepConeSavesBeforeImmunity(t *testing.T) {
 	threshold := (30 + ordinary.EnemyRef().Intelligence - 20) / 2
 	var seed uint64
 	for candidate := uint64(1); candidate < 10000; candidate++ {
-		rng := deterministic_random.New(candidate)
+		rng := beradrng.New(candidate)
 		first := originalD30FromSourceValue(rng.Intn(61))
 		second := originalD30FromSourceValue(rng.Intn(61))
 		if first < threshold && second >= threshold {
@@ -146,7 +146,7 @@ func TestFidelityF15SleepConeSavesBeforeImmunity(t *testing.T) {
 		}
 	}
 	require.NotZero(t, seed)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantRNG.Intn(61)
 	wantRNG.Intn(61)
 	gs.SetRandomSeed(seed)

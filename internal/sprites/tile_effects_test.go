@@ -481,17 +481,6 @@ func TestTileEffectProcessor_HasEffect_BeforeInit(t *testing.T) {
 }
 
 // ============================================================================
-// EFFECT CONSTANTS TESTS
-// ============================================================================
-
-func TestEffectConstants(t *testing.T) {
-	assert.Equal(t, 150, defaultEffectIntervalMs)
-	assert.Equal(t, 8, defaultFireFrameCount)
-	assert.Equal(t, 6, defaultWaterEvenXOffset)
-	assert.Equal(t, 10, colorTolerance)
-}
-
-// ============================================================================
 // NEW ALGORITHM TESTS (Phase 1)
 // ============================================================================
 
@@ -512,13 +501,6 @@ func TestEffectAlgorithm_PreferredFrameCount(t *testing.T) {
 			assert.Equal(t, tc.expected, tc.algorithm.PreferredFrameCount())
 		})
 	}
-}
-
-func TestPositionOffsetMode_Constants(t *testing.T) {
-	// Verify constants are distinct
-	assert.NotEqual(t, PositionOffsetDefault, PositionOffsetEvenX)
-	assert.Equal(t, PositionOffsetMode(0), PositionOffsetDefault)
-	assert.Equal(t, PositionOffsetMode(1), PositionOffsetEvenX)
 }
 
 func TestEffect_WithEvenXOffset(t *testing.T) {
@@ -645,73 +627,12 @@ func TestTileEffectProcessor_GetFrameCountForPipeline(t *testing.T) {
 	}
 }
 
-// ============================================================================
-// VERTICAL SCROLL ALGORITHM TESTS
-// ============================================================================
-
-func TestApplyVerticalScroll_PixelMovement(t *testing.T) {
-	processor := NewTileEffectProcessor(nil)
-
-	// Create simple test pixel data - a horizontal stripe at y=0
+func TestScrollAdapterUsesPipelineFrameCount(t *testing.T) {
+	processor := &TileEffectProcessor{}
 	input := make([]byte, TileSize*TileSize*4)
-	output := make([]byte, TileSize*TileSize*4)
-
-	// Set first row to red (RGBA = 255, 0, 0, 255)
-	for x := 0; x < TileSize; x++ {
-		idx := x * 4
-		input[idx] = 255   // R
-		input[idx+1] = 0   // G
-		input[idx+2] = 0   // B
-		input[idx+3] = 255 // A
-	}
-
-	// Apply scroll with offset 1 (shift down by 1)
-	copy(output, processor.applyEffect(input, 1, image.Rect(0, 0, 16, 16), TileEffect{Algorithm: EffectVerticalScroll}, 16))
-
-	// After scrolling down by 1, the red stripe should now be at y=1
-	// y=0 should have pixels from y=15 (wrap-around from bottom)
-
-	// Check that y=1 now has the red stripe
-	for x := 0; x < TileSize; x++ {
-		idx := (1*TileSize + x) * 4
-		assert.Equal(t, byte(255), output[idx], "Red channel at y=1 should be 255")
-		assert.Equal(t, byte(0), output[idx+1], "Green channel at y=1 should be 0")
-		assert.Equal(t, byte(0), output[idx+2], "Blue channel at y=1 should be 0")
-		assert.Equal(t, byte(255), output[idx+3], "Alpha channel at y=1 should be 255")
-	}
-
-	// Check that y=0 has wrapped content (originally transparent/black from y=15)
-	for x := 0; x < TileSize; x++ {
-		idx := x * 4
-		assert.Equal(t, byte(0), output[idx], "Red channel at y=0 should be 0 (wrapped from y=15)")
-	}
-}
-
-func TestApplyVerticalScroll_WrapAround(t *testing.T) {
-	processor := NewTileEffectProcessor(nil)
-
-	// Create pixel data with last row marked
-	input := make([]byte, TileSize*TileSize*4)
-	output := make([]byte, TileSize*TileSize*4)
-
-	// Set last row (y=15) to blue
-	for x := 0; x < TileSize; x++ {
-		idx := ((TileSize-1)*TileSize + x) * 4
-		input[idx] = 0     // R
-		input[idx+1] = 0   // G
-		input[idx+2] = 255 // B
-		input[idx+3] = 255 // A
-	}
-
-	// Apply scroll with offset 1 - last row should wrap to first row
-	copy(output, processor.applyEffect(input, 1, image.Rect(0, 0, 16, 16), TileEffect{Algorithm: EffectVerticalScroll}, 16))
-
-	// After scrolling, y=15 content should now be at y=0
-	for x := 0; x < TileSize; x++ {
-		idx := x * 4
-		assert.Equal(t, byte(0), output[idx], "Red channel at y=0 should be 0")
-		assert.Equal(t, byte(0), output[idx+1], "Green channel at y=0 should be 0")
-		assert.Equal(t, byte(255), output[idx+2], "Blue channel at y=0 should be 255 (wrapped)")
-		assert.Equal(t, byte(255), output[idx+3], "Alpha channel at y=0 should be 255")
-	}
+	copy(input, []byte{80, 40, 20, 128})
+	// A short authored cycle must wrap before the SDK's image-height cycle.
+	output := processor.applyEffect(input, 5, image.Rectangle{}, TileEffect{Algorithm: EffectVerticalScroll}, 4)
+	require.Equal(t, []byte{80, 40, 20, 128}, output[TileSize*4:][:4])
+	require.Equal(t, []byte{0, 0, 0, 0}, output[5*TileSize*4:][:4])
 }

@@ -12,8 +12,8 @@ not generic defaults. Extraction must preserve existing saves and input behavior
 Use independently versioned `berad-rng` and `berad-input` modules from Berad SDK.
 Both are engine-free and expose only production-backed mechanisms.
 
-`internal/deterministic_random` is a type alias and constructor facade over the
-SDK source, retaining existing borrower/provider identities. The SDK preserves
+Consumers import the SDK source directly, retaining existing borrower/provider
+identities without a local type alias or constructor facade. The SDK preserves
 the established x/exp/rand PCG stream and raw draw counting, including rejection
 sampling and shuffle order. Save seed/SourceCalls fields remain game-owned and
 unchanged. Dice bounds, odds, seed selection and shared draw order remain Redux

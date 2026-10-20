@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func setMerchantBatchMode(t *testing.T, state *GameState, batched bool) {
@@ -89,7 +89,7 @@ func TestMerchantBatchEconomicUnits(t *testing.T) {
 					if batched {
 						rolls = 1
 					}
-					expected := deterministic_random.New(208)
+					expected := beradrng.New(208)
 					remaining := int(gold)
 					var expectedTheft uint16
 					for range rolls {
@@ -234,7 +234,7 @@ func TestPaidHealerAndSkiffBatchDrawOncePerEconomicUnit(t *testing.T) {
 			if batched {
 				rolls = 1
 			}
-			rng := deterministic_random.New(208)
+			rng := beradrng.New(208)
 			var theft uint16
 			for range rolls {
 				theft += uint16(rng.Intn(64) + 1)
