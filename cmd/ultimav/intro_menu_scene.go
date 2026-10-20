@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	beradinput "github.com/bradhannah/berad-sdk/modules/berad-input"
 	"github.com/hajimehoshi/ebiten/v2"
 	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
 
@@ -279,7 +280,7 @@ func (m *IntroMenuScene) PrepareInputForSceneActivation() {
 }
 
 //nolint:gochecknoglobals // Fixed input map.
-var boundKeysIntro = []ebiten.Key{ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter}
+var boundKeysIntro = beradinput.NewBindings(ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter)
 
 //nolint:gochecknoglobals // All-key presentations use the keyboard adapter; Caps Lock is not actionable input.
 var boundKeysAny = func() []ebiten.Key {
@@ -323,7 +324,7 @@ func (m *IntroMenuScene) Update(game *Game) error {
 	if m.updateMenuNavigation() {
 		return nil
 	}
-	pressedKey := m.keyboard.GetBoundKeyPressed(&boundKeysIntro)
+	pressedKey := m.keyboard.GetRegisteredKeyPressed(boundKeysIntro)
 	if pressedKey == nil {
 		m.keyboard.SetAllowKeyPressImmediately()
 		if m.elapsedMs-m.menuIdleStartedMs >= 10_000 {
@@ -372,7 +373,7 @@ func (m *IntroMenuScene) updatePresentationInput() {
 
 		return
 	}
-	pressedKey := m.keyboard.GetBoundKeyPressed(&boundKeysIntro)
+	pressedKey := m.keyboard.GetRegisteredKeyPressed(boundKeysIntro)
 	if pressedKey == nil || *pressedKey != ebiten.KeyEnter {
 		return
 	}

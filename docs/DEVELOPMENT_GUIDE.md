@@ -85,6 +85,16 @@ See [ADR-012](ADR/ADR-012-berad-graphics.md) and
 [sprite integration](systems/SPRITE_OUTLINE_SYSTEM.md). Publish an available SDK
 revision before advancing the dependency; no workspace replacement is required.
 
+[Berad RNG](https://github.com/bradhannah/berad-sdk/tree/891cf44f456a/modules/berad-rng)
+and [Berad Input](https://github.com/bradhannah/berad-sdk/tree/891cf44f456a/modules/berad-input)
+provide engine-free deterministic streams and keyboard mechanisms. The game keeps
+its shared RNG facade and `pkg/input` adapter; saved seed/source-call state and
+command/repeat policy remain local. SDK checks use `make rng-check` and
+`make input-check`; game save, keyboard, widget and scene regressions exercise the
+published pins. See [ADR-013](ADR/ADR-013-berad-rng-input.md),
+[RNG ownership](systems/TIME_SYSTEM.md#shared-rng-ownership) and
+[keyboard integration](systems/INPUT_HANDLING.md#keyboard-mechanism-boundary).
+
 The consumed Audio/Text runtimes and audio tools have passed the SDK's
 [strict formatting/lint policy](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/docs/LINTING.md):
 the same pinned Go style tools and applicable strict rules, with full-source

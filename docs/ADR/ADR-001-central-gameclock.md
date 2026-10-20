@@ -45,7 +45,12 @@ Tests pass explicit elapsed values, so frame selection remains reproducible even
 
 ### Controlled Gameplay Randomness
 
-`GameState` owns a `deterministic_random.Source`. Most gameplay code uses the state methods or an injected random-provider interface:
+`GameState` owns a `deterministic_random.Source`. That small game facade aliases
+Berad RNG's `Source`; the SDK owns the PCG algorithm, raw-draw accounting, and
+logarithmic-time restoration. The game retains seed selection, shared-stream
+ordering, provider semantics, and save serialization. Retaining the facade avoids
+changing every gameplay import without keeping a second RNG implementation.
+Most gameplay code uses the state methods or an injected random-provider interface:
 
 ```go
 func (g *GameState) SetRandomSeed(seed uint64)
@@ -55,6 +60,11 @@ func (g *GameState) RandomIntInRange(min, max int) int
 ```
 
 Tests reset the seed when they need to reproduce a sequence. AI controllers receive random providers rather than creating wall-time-seeded generators.
+
+Reseeding preserves the shared source pointer. Saves continue to store the seed
+and underlying `SourceCalls`, including rejected samples, so hydration resumes
+the same next draw. Extraction preserves the existing x/exp/rand sequence and
+shuffle order; it does not introduce a new random algorithm or save schema.
 
 Rules that explicitly define a local deterministic seed, such as the day-seeded Shadowlord town schedule, may create an isolated source from that stable input. They must never seed from wall time.
 
@@ -81,6 +91,8 @@ Rules that explicitly define a local deterministic seed, such as the day-seeded 
 - `cmd/ultimav/gamescene_initialization.go`: exposes the adapter elapsed-time helper.
 - `cmd/ultimav/gamescene_update.go`: publishes `GameState.ElapsedMs` and updates consumers.
 - `internal/game_state/game_state.go`: owns `DateTime`, `ElapsedMs`, and the centralized random source.
+- `internal/deterministic_random/source.go`: compatibility facade over the
+  [Berad RNG contract](https://github.com/bradhannah/berad-sdk/blob/main/modules/berad-rng/docs/API.md).
 - `internal/sprites/sprite_animations.go`: selects animation frames from explicit inputs.
 - `internal/ai/npc_ai_controller_small_map.go`: defines the small-map RNG provider contract.
 - `internal/ai/npc_ai_controller_large_map.go`: requires an injected random provider.

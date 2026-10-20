@@ -8,6 +8,10 @@ github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019203855-570
 github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019203855-57067fb66236/go.mod h1:wigFtqFQAhG+LdtWfSbnBv9/HiMZRW8aePirrJMERyg=
 github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019225412-564225ae5d47 h1:YsZLuc4r8xlzIf6/pCDX+Klsab5v2OcAflOx/MOZc4c=
 github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019225412-564225ae5d47/go.mod h1:wigFtqFQAhG+LdtWfSbnBv9/HiMZRW8aePirrJMERyg=
+github.com/bradhannah/berad-sdk/modules/berad-input v0.0.0-20261020012912-891cf44f456a h1:lZuL5XybV0TLOzASKYP6aM/oeywWy0N79vKEUEsKGi0=
+github.com/bradhannah/berad-sdk/modules/berad-input v0.0.0-20261020012912-891cf44f456a/go.mod h1:aS5ZFgZH4xa1mQXWLngx1otktdt52JFSqYCkw7NFbfM=
+github.com/bradhannah/berad-sdk/modules/berad-rng v0.0.0-20261020012912-891cf44f456a h1:sNyICxHrAEz/WdIH9lBkCHkrQGcFJqZYoQQew/QzjIo=
+github.com/bradhannah/berad-sdk/modules/berad-rng v0.0.0-20261020012912-891cf44f456a/go.mod h1:fV6ugYGz48A7BQrDJ5pNDfREHp9PcHVzhnQy4gtCXUM=
 github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019154938-302457e108b8 h1:e9Y9P6iaDZV0S3FpZoohAGyNSIrLObHNhP/qRDG913E=
 github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019154938-302457e108b8/go.mod h1:M84Q/vxVyuOemIKmdZgeVxKZXJklicjU61+eGCNm4z8=
 github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019225412-564225ae5d47 h1:sCwWqg4LKFehpFIU0xXy5cXEBfQfiI6uJ5v7XnHAEoM=

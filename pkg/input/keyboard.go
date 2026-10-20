@@ -7,6 +7,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
+	beradinput "github.com/bradhannah/berad-sdk/modules/berad-input"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -14,35 +15,24 @@ import (
 type Keyboard struct {
 	navigationEpoch                   uint64
 	millisecondDelayBetweenKeyPresses int
-	timeOfLastKeyPress                int64
-	timeToAllowNextKeypress           int64
+	cadence                           beradinput.Cadence
 	lastKeyPressed                    ebiten.Key
+	keys                              *beradinput.Keyboard[ebiten.Key]
 	forceRegisterNextKeyPressed       bool
 	simulatedKeyPressed               ebiten.Key
 	hasSimulatedKeyPress              bool
 	keyPressed                        func(ebiten.Key) bool
 	elapsedMilliseconds               func() int64
-	previousSample                    KeySample
-	suppressedUntilRelease            map[ebiten.Key]bool
-	inputPollingSuspended             bool
-
-	// Release-based consumption tracking - prevents multiple handlers from processing same key while it's held
-	// Key stays in map while ebiten.IsKeyPressed() returns true; cleared when key is released
-	consumedKeysUntilRelease map[ebiten.Key]bool
-
-	// Release debouncing (from KeyDebouncer consolidation)
-	waitingForRelease bool
-	keysToRelease     []ebiten.Key
-	postAcceptDelayMs int
+	postAcceptDelayMs                 int
 }
 
 // NewKeyboard creates a keyboard using physical key state and the default adapter clock.
 func NewKeyboard(millisecondDelayBetweenKeyPresses int) *Keyboard {
 	var keyboard Keyboard
 	keyboard.millisecondDelayBetweenKeyPresses = millisecondDelayBetweenKeyPresses
-	keyboard.consumedKeysUntilRelease = make(map[ebiten.Key]bool)
 	keyboard.keyPressed = ebiten.IsKeyPressed
 	keyboard.elapsedMilliseconds = func() int64 { return time.Now().UnixMilli() }
+	keyboard.keys = beradinput.NewKeyboard(controlKeys(), keyboard.physicalKeyPressed)
 
 	return &keyboard
 }
@@ -66,55 +56,34 @@ func NewKeyboardWithKeyStateSource(
 // TryToRegisterKeyPress registers a keypress if it is allowed according to the time passed since
 // the previous key press AND if the key hasn't been consumed already while held
 func (k *Keyboard) TryToRegisterKeyPress(key ebiten.Key) bool {
-	if k.inputPollingSuspended || k.IsSuppressedUntilRelease(key) {
+	if k.keys.Suspended() || k.IsSuppressedUntilRelease(key) {
 		return false
 	}
 	if k.consumeSimulatedKey(key) {
 		return true
 	}
 
-	// Transition debouncing check (highest priority)
-	// Prevents key bleeding across UI state transitions (e.g., dialog dismissal to console)
-	if k.waitingForRelease {
-		// Check if all tracked keys have been released
-		if !k.areAllKeysReleased() {
-			return false // Still waiting for keys to release
-		}
-		// All keys released - clear waiting state
-		k.waitingForRelease = false
-		k.keysToRelease = nil
-	}
+	return k.registerPhysicalKey(key)
+}
 
-	// Release-based consumption check (second priority)
-	// Prevents multiple handlers from processing the same key while it's physically held
-	if k.consumedKeysUntilRelease[key] {
-		return false // Key already processed - still held down
-	}
-
-	nowMilli := k.elapsedMilliseconds()
-
-	// if k.forceRegisterNextKeyPressed {
-	//	k.forceRegisterNextKeyPressed = false
-	//	k.lastKeyPressed = key
-	//	k.timeOfLastKeyPress = nowMilli
-	//	return true
-	//}
-
-	if nowMilli < k.timeToAllowNextKeypress {
+func (k *Keyboard) registerPhysicalKey(key ebiten.Key) bool {
+	if !k.keys.Ready(key, true) ||
+		!k.acceptCadence(key, k.elapsedMilliseconds(), int64(k.millisecondDelayBetweenKeyPresses)) {
 		return false
 	}
+	k.keys.Consume(key)
 
-	if key != k.lastKeyPressed || nowMilli-k.timeOfLastKeyPress > int64(k.millisecondDelayBetweenKeyPresses) ||
-		k.forceRegisterNextKeyPressed {
-		k.consumedKeysUntilRelease[key] = true // Mark key as consumed until released
-		k.lastKeyPressed = key
-		k.timeOfLastKeyPress = nowMilli
-		k.forceRegisterNextKeyPressed = false
+	return true
+}
 
-		return true
+func (k *Keyboard) acceptCadence(key ebiten.Key, now, interval int64) bool {
+	if !k.cadence.Accept(now, interval, key != k.lastKeyPressed || k.forceRegisterNextKeyPressed) {
+		return false
 	}
+	k.forceRegisterNextKeyPressed = false
+	k.lastKeyPressed = key
 
-	return false
+	return true
 }
 
 // TryToRegisterRepeatableKeyPress registers a keypress that can repeat while held (e.g., movement keys).
@@ -130,67 +99,39 @@ func (k *Keyboard) TryToRegisterRepeatableKeyPress(key ebiten.Key) bool {
 // a custom repeat rate instead of the default keyboard delay.
 // Use RepeatRateSlow, RepeatRateMedium, or RepeatRateFast for common presets.
 func (k *Keyboard) TryToRegisterRepeatableKeyPressWithRate(key ebiten.Key, rate RepeatRate) bool {
-	if k.inputPollingSuspended || k.IsSuppressedUntilRelease(key) {
+	if k.keys.Suspended() || k.IsSuppressedUntilRelease(key) {
 		return false
 	}
 	if k.consumeSimulatedKey(key) {
 		return true
 	}
 
-	// Transition debouncing check (highest priority)
-	// Prevents key bleeding across UI state transitions (e.g., dialog dismissal to console)
-	if k.waitingForRelease {
-		// Check if all tracked keys have been released
-		if !k.areAllKeysReleased() {
-			return false // Still waiting for keys to release
-		}
-		// All keys released - clear waiting state
-		k.waitingForRelease = false
-		k.keysToRelease = nil
-	}
-
-	// Skip release-based consumption check - allow repeat while held
-	// This is the key difference from TryToRegisterKeyPress()
-
-	nowMilli := k.elapsedMilliseconds()
-
-	// Time-based debouncing check
-	if nowMilli < k.timeToAllowNextKeypress {
-		return false
-	}
-
-	if key != k.lastKeyPressed || nowMilli-k.timeOfLastKeyPress > int64(rate) || k.forceRegisterNextKeyPressed {
-		// Note: We do NOT add to consumedKeysUntilRelease here - that's what allows repeat
-		k.lastKeyPressed = key
-		k.timeOfLastKeyPress = nowMilli
-		k.forceRegisterNextKeyPressed = false
-
-		return true
-	}
-
-	return false
+	return k.keys.Ready(key, false) && k.acceptCadence(key, k.elapsedMilliseconds(), int64(rate))
 }
 
 // GetMsSinceLastKeyPress returns elapsed adapter milliseconds since the last accepted key.
 func (k *Keyboard) GetMsSinceLastKeyPress() int {
-	return int(k.elapsedMilliseconds() - k.timeOfLastKeyPress)
+	return int(k.cadence.Elapsed(k.elapsedMilliseconds()))
 }
 
 // GetBoundKeyPressed returns the first pressed bound key without consuming it.
 func (k *Keyboard) GetBoundKeyPressed(boundKeys *[]ebiten.Key) *ebiten.Key {
-	if k.hasSimulatedKeyPress {
-		for _, boundKey := range *boundKeys {
-			if k.simulatedKeyPressed == boundKey {
-				key := k.simulatedKeyPressed
+	return k.GetRegisteredKeyPressed(beradinput.NewBindings((*boundKeys)...))
+}
 
-				return &key
-			}
+// GetRegisteredKeyPressed inspects a copied binding order without consuming it.
+// Ordinary consumption is deliberately not a filter: the first held key retains
+// priority even when its subsequent registration will be rejected.
+func (k *Keyboard) GetRegisteredKeyPressed(bindings beradinput.Bindings[ebiten.Key]) *ebiten.Key {
+	if k.hasSimulatedKeyPress {
+		if key, found := bindings.FirstHeld(func(key ebiten.Key) bool { return key == k.simulatedKeyPressed }, nil); found {
+			return &key
 		}
 	}
-	for _, boundKey := range *boundKeys {
-		if k.isKeyPressed(boundKey) && !k.IsSuppressedUntilRelease(boundKey) {
-			return &boundKey
-		}
+	if key, found := bindings.FirstHeld(k.isKeyPressed, func(key ebiten.Key) bool {
+		return !k.IsSuppressedUntilRelease(key)
+	}); found {
+		return &key
 	}
 
 	return nil
@@ -207,13 +148,18 @@ func (k *Keyboard) consumeSimulatedKey(key ebiten.Key) bool {
 }
 
 func (k *Keyboard) isKeyPressed(key ebiten.Key) bool {
+	if k == nil {
+		return k.physicalKeyPressed(key)
+	}
+
+	return k.keys.Held(key)
+}
+
+func (k *Keyboard) physicalKeyPressed(key ebiten.Key) bool {
 	// Caps Lock is lock state, never a gameplay hold or acknowledgement. Some
 	// backends report it continuously while enabled; it must not own release
 	// gates, focus-return suppression, samples, or all-key prompts.
 	if key == ebiten.KeyCapsLock {
-		return false
-	}
-	if k != nil && k.inputPollingSuspended {
 		return false
 	}
 	if k == nil {
@@ -237,36 +183,25 @@ func (k *Keyboard) IsBoundKeyPressed(boundKeys *[]ebiten.Key) bool {
 	return k.GetBoundKeyPressed(boundKeys) != nil
 }
 
-// SetLastKeyPressedNow restarts repeat timing at the current adapter time.
-func (k *Keyboard) SetLastKeyPressedNow() {
-	k.timeOfLastKeyPress = k.elapsedMilliseconds()
-}
-
-// ForceLastKeyPressed changes the repeat key identity without changing its timestamp.
-func (k *Keyboard) ForceLastKeyPressed(key ebiten.Key) {
-	k.lastKeyPressed = key
-}
-
 // SetLastKeyPressedNowPlusMs postpones repeat timing by the supplied milliseconds.
 func (k *Keyboard) SetLastKeyPressedNowPlusMs(ms int) {
-	k.timeOfLastKeyPress = k.elapsedMilliseconds() + int64(ms)
+	k.cadence.PostponeUntil(k.elapsedMilliseconds() + int64(ms))
 }
 
 // SetForceWaitAnyKey gates key acceptance for the supplied milliseconds.
 func (k *Keyboard) SetForceWaitAnyKey(ms int) {
-	k.timeToAllowNextKeypress = k.elapsedMilliseconds() + int64(ms)
+	k.cadence.BlockUntil(k.elapsedMilliseconds() + int64(ms))
 }
 
 // SetAllowKeyPressImmediately bypasses repeat delay after transition and release gates pass.
 func (k *Keyboard) SetAllowKeyPressImmediately() {
-	// k.timeOfLastKeyPress = 0
 	k.forceRegisterNextKeyPressed = true
 }
 
 // SimulateKeyPress simulates a key press for testing purposes
 // This bypasses the normal key press timing restrictions
 func (k *Keyboard) SimulateKeyPress(key ebiten.Key) {
-	if k.inputPollingSuspended {
+	if k.keys.Suspended() {
 		return
 	}
 	k.simulatedKeyPressed = key
@@ -394,12 +329,7 @@ const (
 func (k *Keyboard) PrepareForTransition(postAcceptDelayMs int) {
 	k.navigationEpoch++
 	k.postAcceptDelayMs = postAcceptDelayMs
-	k.keysToRelease = k.getCurrentlyPressedKeys()
-	k.waitingForRelease = len(k.keysToRelease) > 0
-
-	if !k.waitingForRelease {
-		k.keysToRelease = nil
-	}
+	k.keys.PrepareTransition()
 }
 
 // TryAcceptKey combines time-based and state-based release debouncing
@@ -409,56 +339,35 @@ func (k *Keyboard) PrepareForTransition(postAcceptDelayMs int) {
 // Phase 1 (State-based): If PrepareForTransition was called, wait for key release
 // Phase 2 (Time-based): Standard repeat delay checking
 func (k *Keyboard) TryAcceptKey(key ebiten.Key) bool {
-	if k.inputPollingSuspended || k.IsSuppressedUntilRelease(key) {
+	if k.keys.Suspended() || k.IsSuppressedUntilRelease(key) {
 		return false
 	}
 	currentTime := k.elapsedMilliseconds()
 
-	// Phase 1: State-based release requirement
-	if k.waitingForRelease {
-		// Check if all tracked keys have been released
-		if !k.areAllKeysReleased() {
-			return false // Still waiting for keys to release
-		}
-		// All keys released - clear waiting state
-		k.waitingForRelease = false
-		k.keysToRelease = nil
-	}
-
-	// Phase 2: Time-based repeat control (existing TryToRegisterKeyPress logic)
-	if currentTime < k.timeToAllowNextKeypress {
+	if !k.keys.Ready(key, false) ||
+		!k.acceptCadence(key, currentTime, int64(k.millisecondDelayBetweenKeyPresses)) {
 		return false
 	}
-
-	if key != k.lastKeyPressed || currentTime-k.timeOfLastKeyPress > int64(k.millisecondDelayBetweenKeyPresses) ||
-		k.forceRegisterNextKeyPressed {
-		k.lastKeyPressed = key
-		k.timeOfLastKeyPress = currentTime
-		k.forceRegisterNextKeyPressed = false
-
-		// Apply post-accept delay if configured
-		if k.postAcceptDelayMs > 0 {
-			k.timeToAllowNextKeypress = currentTime + int64(k.postAcceptDelayMs)
-			k.postAcceptDelayMs = 0 // Reset after use
-		}
-
-		return true
+	// Only this legacy route applies the pending post-accept delay. Dummy-key
+	// callers intentionally retain its timing side effects after release.
+	if k.postAcceptDelayMs > 0 {
+		k.cadence.BlockUntil(currentTime + int64(k.postAcceptDelayMs))
+		k.postAcceptDelayMs = 0
 	}
 
-	return false
+	return true
 }
 
 // IsWaitingForRelease returns true if keyboard is waiting for keys to be released
 // Useful for UI feedback (e.g., showing "Release keys..." message)
 func (k *Keyboard) IsWaitingForRelease() bool {
-	return k.waitingForRelease
+	return k.keys.WaitingForRelease()
 }
 
 // ResetReleaseDebouncing clears all release debounce state
 // Use when closing dialog or resetting UI
 func (k *Keyboard) ResetReleaseDebouncing() {
-	k.waitingForRelease = false
-	k.keysToRelease = nil
+	k.keys.ResetTransition()
 	k.postAcceptDelayMs = 0
 }
 
@@ -466,27 +375,7 @@ func (k *Keyboard) ResetReleaseDebouncing() {
 // Should be called once per frame by the main game loop at the START of Update()
 // Only clears keys that are no longer physically pressed
 func (k *Keyboard) ClearFrameConsumption() {
-	if k.inputPollingSuspended {
-		return // Masked input is not evidence of a physical release.
-	}
-	for key := range k.suppressedUntilRelease {
-		if !k.isKeyPressed(key) {
-			delete(k.suppressedUntilRelease, key)
-		}
-	}
-	if k.waitingForRelease && k.areAllKeysReleased() {
-		k.waitingForRelease = false
-		k.keysToRelease = nil
-	}
-
-	// Clear consumed keys that have been physically released
-	for key := range k.consumedKeysUntilRelease {
-		if !k.isKeyPressed(key) {
-			// Key is no longer held - remove from consumption tracking
-			delete(k.consumedKeysUntilRelease, key)
-		}
-		// Key still held - leave in map to prevent duplicate processing
-	}
+	k.keys.ObserveReleases()
 }
 
 // IsModifierPressed checks if a modifier key is currently pressed
@@ -702,32 +591,13 @@ func semanticKey(key ebiten.Key) semantic_input.Key {
 	}
 }
 
-// areAllKeysReleased checks if all keys in the tracking list have been released
-// Returns true when all tracked keys are no longer pressed
-func (k *Keyboard) areAllKeysReleased() bool {
-	if len(k.keysToRelease) == 0 {
-		return true // No keys to track
-	}
-
-	for _, key := range k.keysToRelease {
-		if k.isKeyPressed(key) {
-			return false // At least one key still pressed
-		}
-	}
-
-	return true // All keys released
-}
-
-// getCurrentlyPressedKeys returns a slice of all keys currently pressed
-// Used for release tracking to detect which keys need to be released
-func (k *Keyboard) getCurrentlyPressedKeys() []ebiten.Key {
-	const typicalHeldKeyCapacity = 5
-	pressed := make([]ebiten.Key, 0, typicalHeldKeyCapacity)
+// controlKeys includes unbound physical controls for activation/focus barriers.
+// Caps Lock exclusion is applied by the host source, not by the generic SDK.
+func controlKeys() []ebiten.Key {
+	keys := make([]ebiten.Key, 0, int(ebiten.KeyMax-ebiten.KeyA)+1)
 	for key := ebiten.KeyA; key <= ebiten.KeyMax; key++ {
-		if k.isKeyPressed(key) {
-			pressed = append(pressed, key)
-		}
+		keys = append(keys, key)
 	}
 
-	return pressed
+	return keys
 }

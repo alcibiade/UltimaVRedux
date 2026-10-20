@@ -333,7 +333,7 @@ func TestSimulateKeyPressFeedsBoundKeyRegistrationOnce(t *testing.T) {
 func TestSimulateKeyPressBypassesReleaseConsumption(t *testing.T) {
 	keyboard := newKeyboardTestFixture(0)
 	keys := []ebiten.Key{ebiten.KeyEnter}
-	keyboard.consumedKeysUntilRelease[ebiten.KeyEnter] = true
+	keyboard.keys.Consume(ebiten.KeyEnter)
 	keyboard.SimulateKeyPress(ebiten.KeyEnter)
 
 	pressed := keyboard.GetBoundKeyPressed(&keys)

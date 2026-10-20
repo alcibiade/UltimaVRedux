@@ -927,6 +927,12 @@ Never include:
 
 Deterministic continuation stores the runtime RNG seed and source-call count, never a `*rand.Rand` pointer.
 
+The stream implementation is supplied by Berad RNG through the game-owned
+`internal/deterministic_random` facade. The existing algorithm, source-draw
+counting (including rejection sampling), and two persisted fields are unchanged;
+the extraction does not require a snapshot schema version change. Restore jumps
+to the recorded source state without replaying gameplay or consuming extra draws.
+
 Outdoor Blink window origins and quadrant retention are runtime-only gameplay
 state, not serialized camera state. Every actual hydration initializes them from
 the final loaded outdoor position and plane, following normal original startup.
@@ -1310,7 +1316,7 @@ rebuild maps, AI, search, lighting, environment, and callbacks
 construct GameScene and atomically swap
 ```
 
-Hydration uses a neutral reconstruction path and does not replay ordinary location-entry actions, dialogs, transitions, or progression effects. It rebuilds maps, controllers, deterministic systems, callbacks, and actual magical-light and carried-torch state around the validated values. For an active dungeon it restores world position, constructs `DungeonState` directly from the saved cells, installs the authoritative projection, restores facing/last direction/wanderer/Quickness phase, and leaves the current NPC controller nil. It restores the sparse discovery journal and cleared-room bitset separately and does not replay either into those exact active cells. A later fresh visit reads source `DUNGEON.DAT`, converts live room cells selected by the 14-byte progression bitset to cleared cells, and may apply the discovery journal according to the gameplay preference. Hydration itself never runs entry, transition, generation, time, RNG, or progression effects. RNG restoration occurs after environmental construction so reconstruction cannot consume the saved continuation stream.
+Hydration uses a neutral reconstruction path and does not replay ordinary location-entry actions, dialogs, transitions, or progression effects. It rebuilds maps, controllers, deterministic systems, callbacks, and actual magical-light and carried-torch state around the validated values. For an active dungeon it restores world position, constructs `DungeonState` directly from the saved cells, installs the authoritative projection, restores facing/last direction/wanderer/Quickness phase, and leaves the current NPC controller nil. It restores the sparse discovery journal and cleared-room bitset separately and does not replay either into those exact active cells. A later fresh visit reads source `DUNGEON.DAT`, converts live room cells selected by the 14-byte progression bitset to cleared cells, and may apply the discovery journal according to the gameplay preference. Hydration itself never runs entry, transition, generation, time, RNG, or progression effects. The restored RNG is installed before environmental systems and controllers receive it; their reconstruction must not consume the saved continuation stream.
 
 The display-only status rail reads detached
 `GetWornArtifactStatuses` and `GetPersistentEffectStatuses` projections from

@@ -17,7 +17,6 @@ import (
 
 const (
 	defaultCursorHeight      = 16
-	inputReleaseDelayMs      = 500
 	keyPressDelay            = 300
 	cursorWidth              = 10
 	cursorBlinkRateInMs      = 1000
@@ -273,12 +272,6 @@ func (t *TextInput) getFontHeight() int {
 	}
 	// Fallback to a reasonable default if face is not available
 	return defaultCursorHeight
-}
-
-// ForceWaitForNextKeyPress retains the legacy Enter-release gate on activation.
-func (t *TextInput) ForceWaitForNextKeyPress() {
-	t.keyboard.SetLastKeyPressedNowPlusMs(inputReleaseDelayMs)
-	t.keyboard.ForceLastKeyPressed(ebiten.KeyEnter)
 }
 
 // GetAllCommandEntries returns all available command entries for display

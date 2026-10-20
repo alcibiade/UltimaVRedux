@@ -3,6 +3,7 @@ package input
 import (
 	"time"
 
+	beradinput "github.com/bradhannah/berad-sdk/modules/berad-input"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -15,11 +16,9 @@ const (
 // zero value is ready to use. Poll once per focused Update; Reset on focus loss
 // or a change of input mode. Timing advances in update ticks, never wall time.
 type ListNavigation struct {
-	epoch       uint64
-	blockedKeys []ebiten.Key
-	key         ebiten.Key
-	active      bool
-	remaining   time.Duration
+	epoch   uint64
+	barrier beradinput.ReleaseBarrier[ebiten.Key]
+	repeat  beradinput.Repeat[ebiten.Key]
 }
 
 // Reset discards a previous hold, for example when a nested modal takes focus.
@@ -31,14 +30,10 @@ func (n *ListNavigation) Reset() {
 // BlockUntilRelease prevents a hold crossing a modal focus boundary.
 func (n *ListNavigation) BlockUntilRelease(pressed func(ebiten.Key) bool) {
 	n.Reset()
-	for _, key := range [...]ebiten.Key{
+	n.barrier.Capture([]ebiten.Key{
 		ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyLeft, ebiten.KeyRight,
 		ebiten.KeyPageUp, ebiten.KeyPageDown, ebiten.KeyHome, ebiten.KeyEnd,
-	} {
-		if pressed(key) {
-			n.blockedKeys = append(n.blockedKeys, key)
-		}
-	}
+	}, pressed)
 }
 
 // Poll returns a normalized navigation key when movement is due. owned remains
@@ -56,7 +51,7 @@ func (n *ListNavigation) PollWithKeyState(
 	keyboard *Keyboard, pressed func(ebiten.Key) bool, keys ...ebiten.Key,
 ) (*ebiten.Key, bool) {
 	if n.epoch != keyboard.navigationEpoch {
-		n.active = false
+		n.repeat.Reset()
 		n.epoch = keyboard.navigationEpoch
 	}
 	if len(keys) == 0 {
@@ -64,41 +59,40 @@ func (n *ListNavigation) PollWithKeyState(
 	}
 	for _, key := range keys {
 		if keyboard.consumeSimulatedKey(key) {
-			n.start(key)
-			keyboard.consumedKeysUntilRelease[key] = true
+			n.barrier.Reset()
+			n.holdReady(key, false)
+			keyboard.keys.Consume(key)
 			resolved := listNavigationKey(key, pressed)
 
 			return &resolved, true
 		}
 	}
-	key, held, conflicting := listHeldKey(pressed, keys)
-	if held && keyboard.IsSuppressedUntilRelease(key) {
+	selection := beradinput.NewBindings(keys...).SelectSingle(pressed)
+	key := selection.Key
+	if selection.Held && keyboard.IsSuppressedUntilRelease(key) {
 		n.Reset()
 
 		return nil, true
 	}
-	for _, blocked := range n.blockedKeys {
-		if pressed(blocked) {
-			return nil, true
-		}
+	if !n.barrier.Observe(pressed) {
+		return nil, true
 	}
-	n.blockedKeys = nil
-	if !held || conflicting {
+	if !selection.Held || selection.Conflicting {
 		n.Reset()
 
-		return nil, held
+		return nil, selection.Held
 	}
 	// Preserve the keyboard's existing transition gate, but do not inherit its
 	// gameplay repeat delay or force-next flag. Fresh list taps are immediate.
-	if !keyboard.listNavigationReady() {
+	if !keyboard.keys.Ready(key, false) || !keyboard.cadence.Ready(keyboard.elapsedMilliseconds()) {
 		n.Reset()
 
 		return nil, true
 	}
-	if !n.holdReady(key, keyboard.consumedKeysUntilRelease[key]) {
+	if !n.holdReady(key, keyboard.keys.Consumed(key)) {
 		return nil, true
 	}
-	keyboard.consumedKeysUntilRelease[key] = true
+	keyboard.keys.Consume(key)
 	resolved := listNavigationKey(key, pressed)
 
 	return &resolved, true
@@ -106,43 +100,16 @@ func (n *ListNavigation) PollWithKeyState(
 
 // holdReady accepts a fresh hold immediately, then advances repeats by one update tick.
 func (n *ListNavigation) holdReady(key ebiten.Key, consumed bool) bool {
-	if !n.active || n.key != key || !consumed {
-		n.start(key)
-
-		return true
-	}
 	ticks := ebiten.TPS()
 	if ticks <= 0 {
 		ticks = ebiten.DefaultTPS
 	}
-	n.remaining -= time.Second / time.Duration(ticks)
-	if n.remaining > time.Microsecond {
-		return false
-	}
-	n.remaining += listRepeatDelay
+	result := n.repeat.Poll(beradinput.Selection[ebiten.Key]{Key: key, Held: true, Conflicting: false},
+		!consumed, time.Second/time.Duration(ticks), beradinput.RepeatTiming{
+			Initial: listInitialDelay, Interval: listRepeatDelay, Tolerance: time.Microsecond,
+		})
 
-	return true
-}
-
-func (n *ListNavigation) start(key ebiten.Key) {
-	n.blockedKeys = nil
-	n.key, n.active, n.remaining = key, true, listInitialDelay
-}
-
-func listHeldKey(pressed func(ebiten.Key) bool, keys []ebiten.Key) (ebiten.Key, bool, bool) {
-	var selected ebiten.Key
-	held := false
-	for _, key := range keys {
-		if !pressed(key) {
-			continue
-		}
-		if held {
-			return selected, true, true
-		}
-		selected, held = key, true
-	}
-
-	return selected, held, false
+	return result.Triggered
 }
 
 func listNavigationKey(key ebiten.Key, pressed func(ebiten.Key) bool) ebiten.Key {
@@ -157,19 +124,4 @@ func listNavigationKey(key ebiten.Key, pressed func(ebiten.Key) bool) ebiten.Key
 	}
 
 	return key
-}
-
-func (k *Keyboard) listNavigationReady() bool {
-	if k.inputPollingSuspended {
-		return false
-	}
-	if k.waitingForRelease {
-		if !k.areAllKeysReleased() {
-			return false
-		}
-		k.waitingForRelease = false
-		k.keysToRelease = nil
-	}
-
-	return k.elapsedMilliseconds() >= k.timeToAllowNextKeypress
 }

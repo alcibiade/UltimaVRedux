@@ -18,6 +18,7 @@ func TestForbiddenPackageBoundaries(t *testing.T) {
 		"github.com/ebitengine/purego", modulePath + "/internal/display",
 		"github.com/bradhannah/berad-sdk/modules/berad-text",
 		"github.com/bradhannah/berad-sdk/modules/berad-graphics",
+		"github.com/bradhannah/berad-sdk/modules/berad-input",
 		modulePath + "/internal/text", modulePath + "/internal/ui/widgets",
 		modulePath + "/internal/sprites", modulePath + "/internal/sprites/effects",
 		modulePath + "/internal/audio", modulePath + "/pkg/input",
@@ -29,6 +30,7 @@ func TestForbiddenPackageBoundaries(t *testing.T) {
 	for _, path := range []string{
 		modulePath + "/internal/sprites/indexes", modulePath + "/pkg/semantic_input",
 		modulePath + "/internal/textual", "image/color", "testing",
+		"github.com/bradhannah/berad-sdk/modules/berad-rng",
 	} {
 		assert.False(t, forbiddenPackage(path), path)
 		assert.False(t, forbiddenPackage(path+" ["+testRoot+".test]"), path)

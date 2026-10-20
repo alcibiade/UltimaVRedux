@@ -10,6 +10,24 @@ Core systems consume the supplied value rather than sampling wall time themselve
 
 Purely cosmetic presentation and resource-lifecycle code may sample wall time directly when it cannot affect gameplay state, ordering, or randomness. Current examples include dialog fades and cursor blink, audio fades and cleanup, transient render-only effects, and position-offset sprite overlays. Gameplay timing must not use those clocks.
 
+### Shared RNG Ownership
+
+`GameState` owns one shared stream through `internal/deterministic_random`, a type
+alias and constructor facade over
+[Berad RNG](https://github.com/bradhannah/berad-sdk/blob/891cf44f456a/modules/berad-rng/README.md).
+The SDK owns PCG mechanics, `Intn`/`Shuffle` consumption, pointer-stable reset, and
+logarithmic-time restore. Redux owns seed policy, dice/inclusive-range helpers,
+`AsRandomProvider`, ordering across consumers, and update-thread serialization.
+The SDK introduces no clock, global RNG, implicit seed, or game policy.
+
+Native saves retain `RandomSnapshot.Seed` and `SourceCalls` unchanged. The latter
+counts raw source draws, including rejected bounded samples, rather than API
+invocations. Capture observes the pair without consuming it; hydration restores
+the next value before wiring environmental consumers. `SetRandomSeed` resets the
+existing pointer so borrowers remain attached. The original x/exp/rand stream
+and shuffle callback order remain compatible. SDK tests own algorithm vectors
+and jump correctness; game bridge tests own provider and save continuation.
+
 ### Elapsed Time And Shared RNG Scope
 
 [ADR-001](../ADR/ADR-001-central-gameclock.md) specifies centralized time inputs,
@@ -419,6 +437,8 @@ defines release, cancellation and shutdown cleanup.
 - `internal/game_state/inn_shop.go`
 - `internal/game_state/dungeon_command_cycle.go`
 - `internal/game_state/game_state.go`
+- `internal/deterministic_random/source.go`
+- `internal/game_state/rng_sdk_bridge_test.go`
 - `cmd/ultimav/gamescene_update.go`
 - `cmd/ultimav/gamescene_callbacks.go`
 - `docs/gamefacts/TIME_COSTS.md`

@@ -1051,15 +1051,6 @@ func (g *GameState) RandomIntInRange(minimum, maximum int) int {
 	return g.rng.Intn(maximum-minimum+1) + minimum
 }
 
-// PickOneOfInt returns one of two int values randomly (deterministic replacement for helpers.PickOneOf)
-func (g *GameState) PickOneOfInt(a, b int) int {
-	if g.OneInXOdds(2) {
-		return a
-	}
-
-	return b
-}
-
 // ShuffleDirections shuffles a slice of positions for deterministic randomness in AI movement
 func (g *GameState) ShuffleDirections(directions []references.Position) {
 	g.rng.Shuffle(len(directions), func(i, j int) {

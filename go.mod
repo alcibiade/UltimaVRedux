@@ -7,6 +7,8 @@ toolchain go1.27.1
 require (
 	github.com/bradhannah/berad-sdk/modules/berad-audio v0.0.0-20261019225412-564225ae5d47
 	github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019225412-564225ae5d47
+	github.com/bradhannah/berad-sdk/modules/berad-input v0.0.0-20261020012912-891cf44f456a
+	github.com/bradhannah/berad-sdk/modules/berad-rng v0.0.0-20261020012912-891cf44f456a
 	github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019225412-564225ae5d47
 	github.com/bradhannah/berad-sdk/tools/berad-audio v0.0.0-20261019234241-9cdcab017041
 	github.com/coder/websocket v1.8.14
