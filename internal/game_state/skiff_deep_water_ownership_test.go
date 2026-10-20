@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSkiffDeepWaterProgrammaticMovementRetainsEveryHit(t *testing.T) {
@@ -20,7 +20,7 @@ func TestSkiffDeepWaterProgrammaticMovementRetainsEveryHit(t *testing.T) {
 	state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &position, indexes.Water1)
 	const seed = uint64(12345)
 	state.SetRandomSeed(seed)
-	want := deterministic_random.New(seed)
+	want := beradrng.New(seed)
 	wantHP := 100
 	for range 3 {
 		wantHP -= want.Intn(8) + 1
@@ -77,7 +77,7 @@ func TestSkiffDeepWaterQueuedTerminalHitsHandoffOnce(t *testing.T) {
 			state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &position, indexes.Water1)
 			const seed = uint64(12345)
 			state.SetRandomSeed(seed)
-			firstDamage := deterministic_random.New(seed).Intn(8) + 1
+			firstDamage := beradrng.New(seed).Intn(8) + 1
 			member := state.PartyState.GetCharacter(0)
 			member.SetHp(uint16(firstDamage + 1))
 			hitsBeforeRecovery := 2
@@ -141,7 +141,7 @@ func TestSkiffDeepWaterPostRecoveryRequestStartsNewBatch(t *testing.T) {
 	member.SetHp(1)
 	newPosition := references.Position{X: position.X + 1, Y: position.Y}
 	const recoveredSeed = uint64(54321)
-	wantDamage := deterministic_random.New(recoveredSeed).Intn(8) + 1
+	wantDamage := beradrng.New(recoveredSeed).Intn(8) + 1
 	var hitLocations []references.PlayerLocation
 	addMessage := state.SystemCallbacks.Message.AddRowStr
 	state.SystemCallbacks.Message.AddRowStr = func(message string) {
@@ -210,7 +210,7 @@ func TestSkiffDeepWaterRequestDuringInputReleaseRetainsDamage(t *testing.T) {
 	state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &position, indexes.Water1)
 	const seed = uint64(12345)
 	state.SetRandomSeed(seed)
-	want := deterministic_random.New(seed)
+	want := beradrng.New(seed)
 	firstDamage, secondDamage := want.Intn(8)+1, want.Intn(8)+1
 	held := true
 	state.SystemCallbacks.Visual.IsAnyKeyPressed = func() bool { return held }

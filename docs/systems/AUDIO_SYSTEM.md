@@ -9,7 +9,7 @@ decoupling; [ADR-010](../ADR/ADR-010-reusable-audio-module.md) records SDK adopt
 Title/game scenes construct `internal/audio.GameAudioManager`, a Redux adapter over
 published Berad Audio dependencies. Redux pins runtime/authoring
 `v0.0.0-20261019225412-564225ae5d47` and tools
-`v0.0.0-20261019234241-9cdcab017041`, without replacements or a sibling checkout.
+`v0.0.0-20261020115307-20020a7917b6`, without replacements or a sibling checkout.
 These revisions trim unused experimental APIs while retaining the gameplay and
 editor/catalog/probe workflows. Runtime voices expose Stop/Status; music and
 audition retain their separate production transport controls. The SDK's own full-source gate covers dependency code;
@@ -30,8 +30,8 @@ Reusable contracts and generic operation are maintained upstream:
 
 - [Runtime contract](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/README.md).
 - [Authoring, analysis and publication](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/docs/AUTHORING.md).
-- [Editor controls and workflows](https://github.com/bradhannah/berad-sdk/blob/9cdcab017041/tools/berad-audio/docs/EDITOR.md).
-- [Catalog contract](https://github.com/bradhannah/berad-sdk/blob/9cdcab017041/tools/berad-audio/docs/CATALOG.md)
+- [Editor controls and workflows](https://github.com/bradhannah/berad-sdk/blob/20020a7917b6/tools/berad-audio/docs/EDITOR.md).
+- [Catalog contract](https://github.com/bradhannah/berad-sdk/blob/20020a7917b6/tools/berad-audio/docs/CATALOG.md)
   and [neutral quickstart](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/docs/QUICKSTART.md).
 
 These are current compatible guidance; `go.mod` remains the authority for the
@@ -337,8 +337,9 @@ loop-seam/extended listening acceptance. Frigate/skiff onboard Moments also have
 prepared recording slots and loop through movement/sail toggles until departure or
 vessel change. Sailing music and per-step movement effects remain independent.
 
-`PlaySoundEffectAt` applies Redux's distance profile. The calculator returns pan,
-but playback does not apply it; this is not stereo positioning or occlusion.
+Spatial attenuation belongs to the ambient source planner's authored radius and
+distance profile. Semantic SFX requests supply gain directly; neither lane applies
+stereo positioning or occlusion.
 
 ## Volume Settings
 
@@ -561,12 +562,16 @@ duration, material/family, variants, looping and exclusions; generation is not a
 - `catalog*.go`, `cmd/audio-catalog`: game enrichment and report launcher.
 - `tooling/`, `cmd/audio-editor`: Redux authoring preset and tool launcher.
 - `game_audio*_test.go`, `game_ambient_test.go`, metadata/policy tests: live adapter and game contracts.
-- `testdata/berad-audio-redux`: isolated JSON/planning/tool-policy public-API integration.
+- `testdata/berad-audio-redux`: isolated public JSON/planning projections and tool-policy
+  integration against the published SDK pin; no alternate playback adapter.
 - SDK runtime/authoring/PCM/tool tests: mechanism, publication, analysis, editor/session and backend behavior.
 - `scripts/check-audio-module`: consumed-pin/production boundary, including rejection of retired test engines.
 
 Legacy playback/authoring implementations and their duplicate suites are retired.
-Game-policy assertions now exercise the live facade/pure policy or isolated tool
-adapter; neutral lifecycle/measurement regressions live with SDK mechanisms. Tests
-must not add a second engine to make old private-field assertions compile.
+Game-policy assertions exercise the live facade, pure projections/policy or the
+isolated tool preset. Calibrated gain and source-window playback use the same live
+manager as the game. Neutral lifecycle/measurement and report-format regressions
+live with SDK mechanisms; game report tests retain authored IDs, instructions and
+recording-brief cases. Tests must not add a second engine or copied renderer to
+make old private-field assertions compile.
 Use [Workbench Logging Control](LOGGING_SYSTEM.md#runtime-control) with audio for diagnostics.

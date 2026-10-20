@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestWorldEnemyProjectilesRenderThroughProductionWorkflow(t *testing.T) {
@@ -119,7 +119,7 @@ func newWorldProjectileTestScene(t *testing.T, kind references.MonsterType, bloc
 	enemy.SetVisible(true)
 	require.True(t, state.CurrentNPCAIController.GetNpcs().AddEnemy(enemy))
 	for seed := uint64(0); seed < 10000; seed++ {
-		if deterministic_random.New(seed).Intn(8) == 0 {
+		if beradrng.New(seed).Intn(8) == 0 {
 			state.SetRandomSeed(seed)
 			break
 		}

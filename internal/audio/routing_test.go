@@ -36,13 +36,11 @@ func TestReduxRoutingRejectsUnknownWorldTargetsAndWrongCategories(t *testing.T) 
 func TestReduxRoutingInheritanceSilenceAndIndependentTileOverrides(t *testing.T) {
 	routing := cloneAudioValue(productionLibrary().Routing)
 	routing.Music["location/2"] = nil
-	cue, explicit := resolveAudioAssignment(routing.Music, "location/2")
+	cue := resolveAudioAssignment(routing.Music, "location/2")
 	require.Empty(t, cue)
-	require.True(t, explicit)
 	delete(routing.Music, "location/2")
-	cue, explicit = resolveAudioAssignment(routing.Music, "location/2")
+	cue = resolveAudioAssignment(routing.Music, "location/2")
 	require.Equal(t, *routing.Music["default"], cue)
-	require.False(t, explicit)
 	routing.Dungeon["default"] = new("ambient/dungeon_cave")
 	delete(routing.Dungeon, locationMusicKey(references.Deceit))
 	routing.Dungeon[locationMusicKey(references.Doom)] = nil

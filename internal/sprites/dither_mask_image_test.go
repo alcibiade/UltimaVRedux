@@ -109,21 +109,6 @@ func TestDitherMaskImageDrawSourceOver(t *testing.T) {
 		32, 48, 64, 255,
 	}
 	require.Equal(t, expected, actual, "transparent keeps world; black rejects; color is unmodulated")
-
-	mask.Resize(4, 1)
-	target.Fill(worldColor)
-	mask.Draw(target, ebiten.GeoM{})
-	target.ReadPixels(actual)
-	require.Equal(t, expected, actual, "clearing the CPU buffer does not upload implicitly")
-
-	mask.Upload()
-	target.Fill(worldColor)
-	mask.Draw(target, ebiten.GeoM{})
-	target.ReadPixels(actual)
-	require.Equal(t, []byte{
-		64, 128, 192, 255, 64, 128, 192, 255,
-		64, 128, 192, 255, 64, 128, 192, 255,
-	}, actual, "upload replaces previous rejection pixels with transparency")
 }
 
 func TestDitherMaskImageDrawNearestTranslatedSubImage(t *testing.T) {

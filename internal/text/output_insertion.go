@@ -204,16 +204,6 @@ func styledLineIsEmpty(line StyledLine) bool {
 	return true
 }
 
-// ============================================================================
-// Deprecated Methods - Backward Compatibility
-// ============================================================================
-
-// Deprecated: AddRowStrNoTrim is deprecated. Use AddText() or AddTextRaw() instead.
-// AddText() trims whitespace, AddTextRaw() preserves it.
-func (o *Output) AddRowStrNoTrim(outputStr string, bTrim bool) {
-	o.addTextInternal(outputStr, bTrim, o.color)
-}
-
 // addTextInternal is the internal implementation for text insertion
 func (o *Output) addTextInternal(outputStr string, bTrim bool, textColor color.Color) {
 	o.retainInsertion(outputInsertion{
@@ -237,7 +227,7 @@ func (o *Output) addTextInternal(outputStr string, bTrim bool, textColor color.C
 		// Preserve intentional blank lines from \n\n sequences
 		// These represent explicit spacing in multi-line messages
 		if len(line) == 0 {
-			o.lines[o.nextLineToIndex] = StyledLine{Text: "", Color: textColor}
+			o.lines[o.nextLineToIndex] = StyledLine{Text: "", Color: textColor, Segments: nil, Alignment: text.AlignStart}
 			o.nextLineToIndex = (o.nextLineToIndex + 1) % o.maxLines
 
 			continue
@@ -246,30 +236,7 @@ func (o *Output) addTextInternal(outputStr string, bTrim bool, textColor color.C
 		// Process each line, splitting by the configured width or nearest space.
 		lineRunes := []rune(line)
 		for len(lineRunes) > 0 {
-			// Find the position to split the string, favoring a space before the limit.
-			splitAt := o.maxCharsPerLine
-			splitOnSpace := false
-			if len(lineRunes) <= o.maxCharsPerLine {
-				splitAt = len(lineRunes)
-			} else {
-				// Try to find the last space before the width limit.
-				spaceIndex := -1
-				searchStart := 0
-				for searchStart < o.maxCharsPerLine && lineRunes[searchStart] == ' ' {
-					searchStart++
-				}
-				for i := searchStart; i < o.maxCharsPerLine; i++ {
-					if lineRunes[i] == ' ' {
-						spaceIndex = i
-					}
-				}
-
-				// If a space is found, split there
-				if spaceIndex != -1 {
-					splitAt = spaceIndex
-					splitOnSpace = true
-				}
-			}
+			splitAt, splitOnSpace := plainLineBreak(lineRunes, o.maxCharsPerLine)
 
 			// Consume the delimiter selected for wrapping. Raw insertion preserves
 			// authored whitespace, but the wrap delimiter is not part of either row.
@@ -291,12 +258,37 @@ func (o *Output) addTextInternal(outputStr string, bTrim bool, textColor color.C
 
 			// Add the chunk to the output slice as simple StyledLine
 			o.lines[o.nextLineToIndex] = StyledLine{
-				Text:  chunk,
-				Color: textColor,
+				Text:      chunk,
+				Color:     textColor,
+				Segments:  nil,
+				Alignment: text.AlignStart,
 			}
 			o.nextLineToIndex = (o.nextLineToIndex + 1) % o.maxLines
 		}
 	}
+}
+
+// plainLineBreak preserves leading indentation and consumes only a selected
+// inter-word delimiter. The caller owns trimming and visual hyphen insertion.
+func plainLineBreak(line []rune, columns int) (int, bool) {
+	if len(line) <= columns {
+		return len(line), false
+	}
+	searchStart := 0
+	for searchStart < columns && line[searchStart] == ' ' {
+		searchStart++
+	}
+	spaceIndex := -1
+	for index := searchStart; index < columns; index++ {
+		if line[index] == ' ' {
+			spaceIndex = index
+		}
+	}
+	if spaceIndex != -1 {
+		return spaceIndex, true
+	}
+
+	return columns, false
 }
 
 // AppendLine returns a LineBuilder for creating multi-colored lines

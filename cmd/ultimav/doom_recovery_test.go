@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/doom_recovery"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
@@ -23,6 +22,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/test/originaldata"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 type doomRecoveryTestRepository struct {
@@ -275,7 +275,7 @@ func TestReturnBeforeDoomRealSceneHydrationPreservesCanonicalStateAndRNG(t *test
 	_, _, hasProvenance := restored.playerSaveProvenance()
 	assert.False(t, hasProvenance)
 	assert.Empty(t, restored.doomRunAssociation())
-	expectedRNG := deterministic_random.Restore(snapshot.Random.Seed, snapshot.Random.SourceCalls)
+	expectedRNG := beradrng.Restore(snapshot.Random.Seed, snapshot.Random.SourceCalls)
 	assert.Equal(t, expectedRNG.Intn(1000)+1, restored.gameState.RollDice(1000))
 }
 

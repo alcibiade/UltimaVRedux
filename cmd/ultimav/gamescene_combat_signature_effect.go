@@ -4,13 +4,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -119,7 +119,7 @@ func (g *GameScene) showCombatSignatureEffect(event game_state.CombatEvent) {
 			//nolint:gosec // Preserve signed sprite/coordinate bits only in a cosmetic seed.
 			seed := presentationMix64(uint64(effect.CombatantID) ^ uint64(effect.Sprite)<<16 ^
 				uint64(uint16(effect.To.X))<<32 ^ uint64(uint16(effect.To.Y))<<48)
-			effect.Dissolve.Initialize(sprite.Bounds().Dx(), sprite.Bounds().Dy(), mode, deterministic_random.New(seed))
+			effect.Dissolve.Initialize(sprite.Bounds().Dx(), sprite.Bounds().Dy(), mode, rng.New(seed))
 		}
 	}
 	g.combatSignatureEffects = append(g.combatSignatureEffects, &effect)

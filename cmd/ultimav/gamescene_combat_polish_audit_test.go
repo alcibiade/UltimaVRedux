@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -18,6 +17,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCombatAllegianceExactCloneConcealmentAndReplacement(t *testing.T) {
@@ -133,7 +133,7 @@ func TestDissolveSharedCleanupPreservesRevealHideAndSurvivingTile(t *testing.T) 
 	for _, mode := range []visual.DissolveMode{visual.DissolveModeReveal, visual.DissolveModeHide} {
 		var dissolve DissolveEffectState
 		for range 2 { // The same consumer may initialize again after cleanup.
-			dissolve.Initialize(8, 8, mode, deterministic_random.New(42))
+			dissolve.Initialize(8, 8, mode, beradrng.New(42))
 			for _, progress := range []float64{0, 0.25, 1} {
 				dissolve.UpdateProgress(progress)
 				frame.Clear()

@@ -11,7 +11,7 @@ import (
 )
 
 func TestSceneMusicHistorySurvivesMenuRoundTripWithoutRevivingPlayback(t *testing.T) {
-	oldAudio, err := audio.NewGameAudioManager()
+	oldAudio, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, oldAudio.Close()) })
 	oldScene := &GameScene{audioManager: oldAudio}
@@ -23,7 +23,7 @@ func TestSceneMusicHistorySurvivesMenuRoundTripWithoutRevivingPlayback(t *testin
 	history := game.musicHistoryForReplacement()
 	require.Equal(t, game.musicHistory, history)
 
-	loadedAudio, err := audio.NewGameAudioManager()
+	loadedAudio, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, loadedAudio.Close()) })
 	loadedAudio.GetMusicManager().RestoreHistory(history)
@@ -35,7 +35,7 @@ func TestSceneMusicHistorySurvivesMenuRoundTripWithoutRevivingPlayback(t *testin
 }
 
 func TestMusicToggleDuringQuietIntervalStaysOffAcrossLocationChanges(t *testing.T) {
-	manager, err := audio.NewGameAudioManager()
+	manager, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 	scene := newEscapeMenuTestScene()
@@ -52,12 +52,12 @@ func TestMusicToggleDuringQuietIntervalStaysOffAcrossLocationChanges(t *testing.
 }
 
 func TestSceneCombatSelectsEngagementAndMaleeDuringExplorationQuiet(t *testing.T) {
-	manager, err := audio.NewGameAudioManager()
+	manager, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
 	history := manager.GetMusicManager().History()
-	loaded, err := audio.NewGameAudioManager()
+	loaded, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, loaded.Close()) })
 	loaded.GetMusicManager().RestoreHistory(history)

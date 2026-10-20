@@ -64,16 +64,16 @@ func (sr *SignRenderer) render(lines []signLine, translated bool) *SignRenderRes
 	img := ebiten.NewImage(imgWidth, imgHeight)
 
 	for lineIdx, line := range lines {
-		y := float64(lineIdx * charHeight)
+		positionY := float64(lineIdx * charHeight)
 		if translated {
-			sr.drawTranslatedSignLine(img, line, y)
+			sr.drawTranslatedSignLine(img, line, positionY)
 
 			continue
 		}
 		x := 0.0
 
 		for _, ch := range line.chars {
-			sr.drawSignChar(img, ch, x, y)
+			sr.drawSignChar(img, ch, x, positionY)
 			x += ScaledCharWidth(sr.scale)
 		}
 	}
@@ -150,29 +150,29 @@ func (sr *SignRenderer) expandAndSplit(rawText []byte) []signLine {
 		currentLine.chars = append(currentLine.chars, ch)
 		if len(currentLine.chars) >= signLineWidth {
 			lines = append(lines, currentLine)
-			currentLine = signLine{}
+			currentLine = signLine{chars: nil}
 			wrappedAtBoundary = true
 		}
 	}
 
-	for _, b := range rawText {
+	for _, rawByte := range rawText {
 		// REDUX DEVIATION: Original sign output paused for a key at 0x0D (ref:SIGN-0004), then
 		// resumed at the same cursor. Redux shows the complete sign in one
 		// user-dismissed popup, so it omits the intermediate pause.
-		if b == references.SignPauseMarker {
+		if rawByte == references.SignPauseMarker {
 			continue
 		}
 
 		// Handle newline - both runic (0x0A) and normal/IBM (0x8A) encodings
 		// 0x8A is 0x0A with high bit set indicating "normal font"
-		if b == '\n' || b == 0x8A {
+		if rawByte == '\n' || rawByte == 0x8A {
 			if wrappedAtBoundary && len(currentLine.chars) == 0 {
 				wrappedAtBoundary = false
 
 				continue
 			}
 			lines = append(lines, currentLine)
-			currentLine = signLine{}
+			currentLine = signLine{chars: nil}
 			wrappedAtBoundary = false
 
 			continue
@@ -180,8 +180,8 @@ func (sr *SignRenderer) expandAndSplit(rawText []byte) []signLine {
 
 		// Handle border macros (0x29-0x31)
 		// Expand inline, each char counts toward 16-char line limit
-		if references.IsBorderMacro(b) {
-			macro := references.GetBorderMacro(b)
+		if references.IsBorderMacro(rawByte) {
+			macro := references.GetBorderMacro(rawByte)
 			for index := range len(macro) {
 				addChar(signChar{
 					rawByte:      macro[index],
@@ -193,24 +193,7 @@ func (sr *SignRenderer) expandAndSplit(rawText []byte) []signLine {
 			continue
 		}
 
-		// Handle special characters (0x26, 0x27 -> 'l')
-		if b == 0x26 || b == 0x27 {
-			addChar(signChar{
-				rawByte:      'l',
-				isRunic:      true,
-				isStructural: true,
-			})
-
-			continue
-		}
-
-		// Regular character - determine font by high bit
-		isRunic := references.IsRunicChar(b)
-		addChar(signChar{
-			rawByte:      b,
-			isRunic:      isRunic,
-			isStructural: isRunic && references.IsSignBorderGlyph(b),
-		})
+		addChar(literalSignChar(rawByte))
 	}
 
 	// Add final line if non-empty
@@ -221,84 +204,15 @@ func (sr *SignRenderer) expandAndSplit(rawText []byte) []signLine {
 	return lines
 }
 
-// RenderSignRecord renders a SignRecord to an image.
-func (sr *SignRenderer) RenderSignRecord(sign *references.SignRecord) *SignRenderResult {
-	if sign == nil {
-		return sr.RenderSign(nil)
+func literalSignChar(rawByte byte) signChar {
+	// The original horizontal-line aliases always select runic structure.
+	if rawByte == 0x26 || rawByte == 0x27 {
+		return signChar{rawByte: 'l', isRunic: true, isStructural: true}
 	}
+	isRunic := references.IsRunicChar(rawByte)
 
-	return sr.RenderSign(sign.RawText)
-}
-
-// CalculateSignDimensions returns the dimensions a sign would have without rendering.
-func (sr *SignRenderer) CalculateSignDimensions(rawText []byte) (width, height int) {
-	if len(rawText) == 0 {
-		return 1, 1
+	return signChar{
+		rawByte: rawByte, isRunic: isRunic,
+		isStructural: isRunic && references.IsSignBorderGlyph(rawByte),
 	}
-
-	lines := sr.expandAndSplit(rawText)
-
-	maxWidth := 0
-	for _, line := range lines {
-		if len(line.chars) > maxWidth {
-			maxWidth = len(line.chars)
-		}
-	}
-
-	charWidth := int(ScaledCharWidth(sr.scale))
-	charHeight := int(ScaledCharHeight(sr.scale))
-
-	return maxWidth * charWidth, len(lines) * charHeight
-}
-
-// GetCharacterDimensions returns the scaled character dimensions.
-func (sr *SignRenderer) GetCharacterDimensions() (width, height float64) {
-	return ScaledCharWidth(sr.scale), ScaledCharHeight(sr.scale)
-}
-
-// CreateTestImage creates a test image with sample text for debugging.
-func (sr *SignRenderer) CreateTestImage(text string) *ebiten.Image {
-	lines := 1
-	maxLineLen := 0
-	currentLineLen := 0
-
-	for index := range len(text) {
-		if text[index] == '\n' {
-			lines++
-			if currentLineLen > maxLineLen {
-				maxLineLen = currentLineLen
-			}
-			currentLineLen = 0
-		} else {
-			currentLineLen++
-		}
-	}
-	if currentLineLen > maxLineLen {
-		maxLineLen = currentLineLen
-	}
-
-	charWidth := int(ScaledCharWidth(sr.scale))
-	charHeight := int(ScaledCharHeight(sr.scale))
-
-	img := ebiten.NewImage(maxLineLen*charWidth, lines*charHeight)
-
-	x := 0.0
-	y := 0.0
-	for index := range len(text) {
-		character := text[index]
-		if character == '\n' {
-			x = 0
-			y += ScaledCharHeight(sr.scale)
-
-			continue
-		}
-		sr.drawSignChar(img, signChar{
-			rawByte:      character,
-			isRunic:      true,
-			isStructural: references.IsSignBorderGlyph(character),
-		}, x, y)
-		x += ScaledCharWidth(sr.scale)
-	}
-
-	return img
 }

@@ -215,7 +215,7 @@ func TestEscapeMenuConfigureSupportsNoSound(t *testing.T) {
 
 func TestEscapeMenuConfigurationReturnsToPausedEscapeMenu(t *testing.T) {
 	scene := newEscapeMenuTestScene()
-	manager, err := audio.NewGameAudioManager()
+	manager, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	scene.audioManager = manager
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
@@ -228,11 +228,11 @@ func TestEscapeMenuConfigurationReturnsToPausedEscapeMenu(t *testing.T) {
 	pressEscapeMenuWidgetKey(scene, configurationDialog, ebiten.KeyEscape)
 
 	assert.Equal(t, 1, scene.dialogStack.Count())
-	assert.False(t, manager.IsEnabled())
+	assert.False(t, manager.PlaybackSnapshot().Enabled)
 	escapeMenu := requireEscapeMenuDialog[*widgets.ButtonListModal](t, scene)
 	pressEscapeMenuWidgetKey(scene, escapeMenu, ebiten.KeyEscape)
 	assert.Zero(t, scene.dialogStack.Count())
-	assert.True(t, manager.IsEnabled())
+	assert.True(t, manager.PlaybackSnapshot().Enabled)
 }
 
 func (scene *escapeMenuCaptureScene) CaptureSaveSnapshot() (save_snapshot.SaveSnapshot, error) {
@@ -583,7 +583,7 @@ func TestEscapeMenuCancelAndFailureResumeAudio(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ui := newEscapeMenuTestScene()
-			manager, err := audio.NewGameAudioManager()
+			manager, err := audio.NewGameAudioManagerWithConfig(nil)
 			require.NoError(t, err)
 			ui.audioManager = manager
 			t.Cleanup(func() { require.NoError(t, manager.Close()) })
@@ -600,12 +600,12 @@ func TestEscapeMenuCancelAndFailureResumeAudio(t *testing.T) {
 
 			activateEscapeMenuAction(t, ui, game, 1)
 			if test.cancelSave {
-				assert.False(t, manager.IsEnabled())
+				assert.False(t, manager.PlaybackSnapshot().Enabled)
 				browser := requireEscapeMenuDialog[*widgets.SaveSlotBrowser](t, ui)
 				pressEscapeMenuWidgetKey(ui, browser, ebiten.KeyEscape)
 			}
 
-			assert.True(t, manager.IsEnabled())
+			assert.True(t, manager.PlaybackSnapshot().Enabled)
 			assert.Zero(t, ui.dialogStack.Count())
 		})
 	}

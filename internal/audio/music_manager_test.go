@@ -8,11 +8,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// TestMusicManager_GetMusicForLocation tests location-based music mapping
-func TestMusicManager_GetMusicForLocation(t *testing.T) {
-	audioManager, _, _ := gameAudioFixture(t)
-	musicManager := audioManager.policy
-
+func TestAuthoredLocationMusic(t *testing.T) {
 	tests := []struct {
 		location      references.Location
 		expectedTrack string
@@ -31,7 +27,7 @@ func TestMusicManager_GetMusicForLocation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			track := musicManager.GetMusicForLocation(test.location)
+			track := productionLibrary().Routing.musicFor(test.location, references.FloorNumber(references.OVERWORLD))
 			assert.Equal(t, test.expectedTrack, track, test.description)
 		})
 	}
@@ -78,11 +74,8 @@ func TestMusicContextLookupPreservesDefaultAndExplicitSilence(t *testing.T) {
 
 // TestMusicManager_LocationMappingCompleteness tests that all major locations have mappings
 func TestMusicManager_LocationMappingCompleteness(t *testing.T) {
-	audioManager, _, _ := gameAudioFixture(t)
-	musicManager := audioManager.policy
-
 	// Test that all major location types have appropriate mappings
-	allMappings := musicManager.GetAllLocationMusicMappings()
+	allMappings := locationMusicMappings()
 
 	// Verify we have mappings for all major locations
 	assert.Greater(t, len(allMappings), 30, "Should have mappings for most locations")

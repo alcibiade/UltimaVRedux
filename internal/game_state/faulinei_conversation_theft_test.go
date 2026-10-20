@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestFaulineiConversationTheftRequiresAutomaticPresence(t *testing.T) {
@@ -48,7 +48,7 @@ func TestFaulineiConversationTheftRequiresAutomaticPresence(t *testing.T) {
 
 func TestFaulineiConversationTheftProvisionSelectionConsumesOrderedRetries(t *testing.T) {
 	const seed = uint64(1)
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	expectedCalls := 0
 	for {
 		expectedCalls++
@@ -128,7 +128,7 @@ func TestFaulineiConversationTheftUsesInventoryPriorityAndHighestIndex(t *testin
 
 func TestFaulineiConversationTheftGoldFallbackClampsAndAlwaysConsumesOneRoll(t *testing.T) {
 	const seed = uint64(27)
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	wantRoll := uint16(expected.Intn(15) + 1)
 
 	state := newFaulineiTheftTestState(seed)

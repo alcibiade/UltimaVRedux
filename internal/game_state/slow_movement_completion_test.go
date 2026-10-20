@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newSlowMovementFixture(t *testing.T, tile indexes.SpriteIndex) *GameState {
@@ -31,7 +31,7 @@ func TestSlowMovementResolvesEachSandtrapHitBeforeNextPhase(t *testing.T) {
 	state := newSlowMovementFixture(t, indexes.Desert1)
 	addOverworldTestEnemy(t, state, references.MonsterSandtrap,
 		*references.Right.GetNewPositionInDirection(&state.MapState.PlayerLocation.Position))
-	wantRNG := deterministic_random.New(123)
+	wantRNG := beradrng.New(123)
 	firstHP := uint16(100 - (wantRNG.Intn(8) + 1))
 	secondHP := firstHP - uint16(wantRNG.Intn(8)+1)
 	var hp []uint16

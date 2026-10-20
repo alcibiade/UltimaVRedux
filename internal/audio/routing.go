@@ -29,17 +29,6 @@ type TileAudio struct {
 	Gain        *float64 `json:"gain,omitempty"`
 }
 
-// WithAmbient returns an assignment with a new sound, retiring source overrides
-// when the sound is removed while preserving the independent footstep surface.
-func (assignment TileAudio) WithAmbient(cue string) TileAudio {
-	assignment.AmbientCue = cue
-	if cue == "" {
-		assignment.RadiusTiles, assignment.Gain = nil, nil
-	}
-
-	return assignment
-}
-
 // TileAmbientSettings resolves per-family overrides without changing the shared
 // cue, recording calibration, or fades. A missing gain means 100% of the cue mix.
 func (routing Routing) TileAmbientSettings(tileID string) (AmbientProfile, float64) {
@@ -121,17 +110,16 @@ func tileAudioKey(sprite indexes.SpriteIndex) string {
 	return strconv.Itoa(int(indexes.CanonicalAnimationSprite(sprite)))
 }
 
-//nolint:unparam // Preserve explicit-versus-inherited state for retained routing parity tests and metadata callers.
-func resolveAudioAssignment(assignments map[string]*string, target string) (string, bool) {
+func resolveAudioAssignment(assignments map[string]*string, target string) string {
 	value, explicit := assignments[target]
 	if !explicit {
 		value = assignments[routingDefault]
 	}
 	if value == nil {
-		return "", explicit
+		return ""
 	}
 
-	return *value, explicit
+	return *value
 }
 
 func (routing Routing) musicFor(location references.Location, floor references.FloorNumber) string {
@@ -142,7 +130,7 @@ func (routing Routing) musicFor(location references.Location, floor references.F
 			key = "world/underworld"
 		}
 	}
-	cue, _ := resolveAudioAssignment(routing.Music, key)
+	cue := resolveAudioAssignment(routing.Music, key)
 
 	return strings.TrimPrefix(cue, "music/track/")
 }
@@ -151,7 +139,7 @@ func (routing Routing) dungeonCue(location references.Location) string {
 	if location.GetMapType() != references.DungeonMapType {
 		return ""
 	}
-	cue, _ := resolveAudioAssignment(routing.Dungeon, locationMusicKey(location))
+	cue := resolveAudioAssignment(routing.Dungeon, locationMusicKey(location))
 
 	return cue
 }

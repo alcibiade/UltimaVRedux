@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
@@ -47,26 +46,6 @@ func TestHexGrateCyclesFourDistinctSharedFileClipsAndLeavesBrickAssignments(t *t
 	}
 }
 
-func TestCueCycleDoesNotAdvanceOnRejectedOrDroppedRequests(t *testing.T) {
-	manager, backend, _ := gameAudioFixture(t)
-	effect := game_state.SoundWalkMetal1
-	request := game_state.SoundPlaybackRequest{Effect: effect, Mode: game_state.SoundPlaybackOneShot, Volume: 1}
-	invalid := request
-	invalid.Volume = -1
-	require.Error(t, manager.PlaySound(invalid))
-	require.Empty(t, backend.players)
-	for range 8 {
-		require.NoError(t, manager.PlaySound(game_state.SoundPlaybackRequest{
-			Effect: game_state.SoundEarthquake, Mode: game_state.SoundPlaybackLoop, Volume: 1}))
-	}
-	require.NoError(t, manager.PlaySound(request)) // Finite request dropped while all voices are owned loops.
-	require.Len(t, manager.sfx.Snapshot(), 8)
-	require.False(t, backend.players[len(backend.players)-1].IsPlaying(), "a prepared but dropped request never starts")
-	manager.StopSound(game_state.SoundStopRequest{Effect: game_state.SoundEarthquake})
-	require.NoError(t, manager.PlaySound(request))
-	require.Equal(t, "stone_steps_01", string(manager.sfx.Snapshot()[0].Recording))
-}
-
 func TestCueVariantSchemaAndCatalogLinks(t *testing.T) {
 	for name, change := range map[string]func(*audioLibrary){
 		"both forms": func(l *audioLibrary) {
@@ -91,7 +70,8 @@ func TestCueVariantSchemaAndCatalogLinks(t *testing.T) {
 		},
 		"unsupported music": func(l *audioLibrary) {
 			c := l.Cues["music/track/town"]
-			l.Cues["music/track/town"] = c.WithRecordings([]string{"stone_steps_01", "stone_steps_02"})
+			c.RecordingID, c.RecordingIDs, c.Selection = "", []string{"stone_steps_01", "stone_steps_02"}, SelectionCycle
+			l.Cues["music/track/town"] = c
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

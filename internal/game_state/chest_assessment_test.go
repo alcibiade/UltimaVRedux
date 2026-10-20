@@ -7,15 +7,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func chestSeedForRoll(t *testing.T, roll int) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 10000; seed++ {
-		if deterministic_random.New(seed).Intn(30)+1 == roll {
+		if beradrng.New(seed).Intn(30)+1 == roll {
 			return seed
 		}
 	}

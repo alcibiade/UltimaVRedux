@@ -2,6 +2,7 @@ package audio
 
 import (
 	"io"
+	"math"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestReachRecordingPreservesAudibleProductionWindow(t *testing.T) {
 }
 
 func TestReduxAdapterUsesItsInjectedLibraryAcrossLanes(t *testing.T) {
-	manager, _, _ := gameAudioDocumentFixture(t, func(document *LibraryDocument) {
+	manager, _, now := gameAudioDocumentFixture(t, func(document *LibraryDocument) {
 		for id, gain := range map[string]float64{"sfx/SoundHeal": 0.17, "music/track/town": 0.23, string(AmbientFire): 0.13} {
 			cue := document.Cues[id]
 			cue.VolumeModifier = gain
@@ -36,12 +37,15 @@ func TestReduxAdapterUsesItsInjectedLibraryAcrossLanes(t *testing.T) {
 	})
 	require.NoError(t, manager.PlaySoundEffect(game_state.SoundHeal))
 	require.InDelta(t, 0.17, manager.sfx.Snapshot()[0].Gain, 1e-9)
-	require.NoError(t, manager.PlayBackgroundMusic("town"))
-	require.InDelta(t, 0.23, manager.music.Snapshot().Voice.Gain, 1e-9)
+	require.NoError(t, manager.PlayMusicForLocation(references.Minoc))
+	*now = now.Add(musicFadeDuration)
+	manager.Update()
+	require.InDelta(t, 0.23*math.Pow(10, musicInitialDB/20), manager.music.Snapshot().Voice.Gain, 1e-9)
 	definition, exists := manager.GetAmbientSoundDefinition(AmbientFire)
 	require.True(t, exists)
 	require.InDelta(t, 0.13, definition.BaseVolume, 1e-9)
-	require.Equal(t, "title", manager.policy.GetMusicForLocation(references.Britain))
+	require.NoError(t, manager.PlayMusicForLocation(references.Britain))
+	require.Equal(t, "title", manager.policy.policy.exploration)
 	require.Equal(t, "town", musicForLocation(references.Britain), "injected policy cannot mutate embedded defaults")
 }
 
@@ -69,9 +73,6 @@ func TestGameAudioConfigurationAndBorrowedHost(t *testing.T) {
 	require.Equal(t, 0.43, configuration.SoundEffectVolume)
 	require.Equal(t, 0.30, configuration.MusicVolume)
 	require.Equal(t, 0.18, configuration.AmbientVolume)
-	require.Equal(t, 20.0, configuration.MaxAudioDistance)
-	require.Equal(t, 0.3, configuration.VolumeRolloffFactor)
-	require.Equal(t, configuration.SoundEffectVolume, configuration.GetEffectiveVolume(1))
 	host := ea.CurrentContext()
 	if host == nil {
 		host = ea.NewContext(48000)
@@ -81,13 +82,12 @@ func TestGameAudioConfigurationAndBorrowedHost(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, manager.Close())
 	require.Same(t, host, ea.CurrentContext(), "closing the game does not replace/close the host device")
-	configuration.MaxAudioDistance = 2
 	library := defaultRuntimeLibrary()
 	manager, err = newGameAudioManager(library, configuration, new(gamePlaybackBackend), nil, time.Now)
 	require.Error(t, err, "missing decoder is rejected at construction")
 }
 
-func TestGameAudioValidatesRequestsAndProtectsLoopCapacity(t *testing.T) {
+func TestGameAudioRequestValidationAndAdmissionOutcomes(t *testing.T) {
 	manager, backend, _ := gameAudioFixture(t)
 	for _, request := range []game_state.SoundPlaybackRequest{
 		{Effect: game_state.SoundEffect(-1), Mode: game_state.SoundPlaybackOneShot, Volume: 1},
@@ -95,7 +95,7 @@ func TestGameAudioValidatesRequestsAndProtectsLoopCapacity(t *testing.T) {
 		{Effect: game_state.SoundHeal, Mode: game_state.SoundPlaybackOneShot, Volume: 1, FadeInMs: -1},
 		{Effect: game_state.SoundHeal, Mode: game_state.SoundPlaybackMode(99), Volume: 1},
 	} {
-		require.Error(t, manager.PlaySound(request))
+		require.ErrorIs(t, manager.PlaySound(request), berad.ErrInvalidRequest)
 	}
 	require.Empty(t, backend.players)
 	for range 8 {
@@ -105,29 +105,7 @@ func TestGameAudioValidatesRequestsAndProtectsLoopCapacity(t *testing.T) {
 	require.ErrorIs(t, manager.PlaySound(game_state.SoundPlaybackRequest{Effect: game_state.SoundEarthquake,
 		Mode: game_state.SoundPlaybackLoop, Volume: 1}), berad.ErrVoiceLimit)
 	require.NoError(t, manager.PlaySoundEffect(game_state.SoundHeal))
-	require.Len(t, manager.sfx.Snapshot(), 8)
-	manager.StopSound(game_state.SoundStopRequest{Effect: game_state.SoundEarthquake})
-	require.Empty(t, manager.sfx.Snapshot())
-}
-
-func TestGameAudioPositionalConfigurationIsDetached(t *testing.T) {
-	manager, _, _ := gameAudioFixture(t)
-	configuration := manager.GetConfiguration()
-	configuration.MaxAudioDistance = 100
-	require.Equal(t, 20.0, manager.GetConfiguration().MaxAudioDistance)
-	for _, point := range []struct {
-		x, y    int
-		audible bool
-	}{{0, 0, true}, {1, 1, true}, {5, 5, true}, {25, 25, false}} {
-		volume, pan := manager.positional.CalculateAudio(0, 0, point.x, point.y)
-		require.InDelta(t, 0, min(0, volume), 1e-9)
-		require.LessOrEqual(t, volume, 1.0)
-		require.GreaterOrEqual(t, pan, -1.0)
-		require.LessOrEqual(t, pan, 1.0)
-		require.Equal(t, point.audible, manager.positional.IsAudible(0, 0, point.x, point.y, 0.05))
-	}
-	require.NoError(t, manager.PlaySoundEffectAt(game_state.SoundHeal, 0, 0, 25, 25))
-	require.Empty(t, manager.sfx.Snapshot(), "out-of-range requests do not prepare a voice")
+	require.Len(t, manager.sfx.Snapshot(), 8, "dropped finite request is supported silence at the game boundary")
 }
 
 func TestRuntimeLanesShareMonotonicPresentationTime(t *testing.T) {
@@ -186,7 +164,7 @@ func TestWalkingSurfaceSelectionUsesLiveAdapterAndUnboundedSequence(t *testing.T
 
 func TestFireBurnRetriggersAndReleasesWithoutStoppingAmbientFire(t *testing.T) {
 	manager, _, now := gameAudioFixture(t)
-	manager.UpdateAmbientSounds(references.Position{}, []TileWithPosition{{Tile: &references.Tile{Index: indexes.FireLogs}}})
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, []TileWithPosition{{Tile: &references.Tile{Index: indexes.FireLogs}}}, nil)
 	*now = now.Add(time.Second)
 	manager.Update()
 	ambient := manager.ambience.Snapshot().Sources[0].ID

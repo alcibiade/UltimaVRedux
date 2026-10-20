@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestScheduledEttinProjectileStartsAtLaunchTime(t *testing.T) {
@@ -231,7 +231,7 @@ func TestScheduledProjectileEncounterExitDiscardsPendingImpact(t *testing.T) {
 func projectileScatterSeed(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(256) < 128 && rng.Intn(61) == 0 && rng.Intn(3) == 2 && rng.Intn(3) == 1 {
 			return seed
 		}
@@ -243,7 +243,7 @@ func projectileScatterSeed(t *testing.T) uint64 {
 func projectileHitSeed(t *testing.T) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(256) < 128 && rng.Intn(61) >= 58 {
 			return seed
 		}

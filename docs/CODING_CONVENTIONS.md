@@ -290,13 +290,12 @@ output.AppendLine().Yellow("Label: ").White("Value").Done()
 output.DrawPanelContent(screen, point, width, etext.AlignStart)
 ```
 
-### Forbidden (Internal Only)
-These methods are internal to `output_rendering.go` and must NEVER be called directly:
-- `output.DrawText()` - Internal rendering implementation
-- `output.DrawTextCenter()` - Internal rendering implementation
-- `output.DrawTextRightToLeft()` - Internal rendering implementation
+### Retired compatibility entry points
 
-Pre-commit checks will fail if these methods are called outside `output_rendering.go`.
+The unused `Output.DrawText`, `DrawTextCenter`, and `DrawTextRightToLeft` entry
+points have been removed. Use panel/scrolling Output rendering instead. The
+policy check rejects reintroducing calls to these legacy methods; lower-level
+rasterization remains private to the game text adapter and the SDK renderer.
 
 Use [Message Output](systems/MESSAGE_OUTPUT_SYSTEM.md) for ownership and
 composition contracts. Keys/chords and action hints use separate semantic

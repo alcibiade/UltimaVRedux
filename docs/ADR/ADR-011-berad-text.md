@@ -70,5 +70,13 @@ pixels, exact source offsets, finite accumulated extents, and LRU promotion unde
 entry/byte pressure. Consumer smoke tests remain compatibility evidence rather
 than a substitute for those semantic assertions.
 
+The consumer facade follows the same required-use boundary. Unused formatting,
+sign/debug and direct-drawing conveniences are retired rather than preserved by
+tests alone. Consumer tests exercise real sign results, semantic styles, row
+retention and legacy clipping; SDK tests own generic cache/layout mechanisms.
+The shared-cache clear seam remains an explicit exception for independent native
+fixtures and widget-owned composition proof. Removing it would require changing
+the application's shared renderer lifetime, not merely deleting a test helper.
+
 See the [game integration contract](../systems/MESSAGE_OUTPUT_SYSTEM.md) and
 [SDK API contract](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-text/docs/API.md).

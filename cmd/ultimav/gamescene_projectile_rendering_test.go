@@ -11,12 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestEveryRangedEnemyPresentsRenderedScheduledFlight(t *testing.T) {
@@ -150,7 +150,7 @@ func enemyProjectileRenderFamilies() []references.MissileType {
 func projectileReferenceSeed(t *testing.T, reference references.EnemyReference) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 100000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if reference.HasAbility(references.PossessCharm) && rng.Intn(32) < 6 {
 			continue
 		}

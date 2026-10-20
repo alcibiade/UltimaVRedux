@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestDefenselessMurderAppliesCompleteConsequences(t *testing.T) {
@@ -127,7 +127,7 @@ func TestDefenselessMurderActivatesGuardsInSlotOrderBeforeImpact(t *testing.T) {
 	})
 
 	const seed = uint64(1)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedFlee := [3]bool{}
 	for index := range expectedFlee {
 		expectedFlee[index] = expectedRNG.Intn(guardActivationFleeRollMaximum+1) < guardActivationFleeThreshold

@@ -64,11 +64,6 @@ func (manager *GameAudioManager) LighthouseAmbientSource(
 	return lighthouseAmbientSource(manager.planner.definitions, location, listener)
 }
 
-// UpdateAmbientSounds submits an explicit terrain snapshot.
-func (manager *GameAudioManager) UpdateAmbientSounds(listener references.Position, tiles []TileWithPosition) {
-	manager.UpdateAmbientSoundsWithDynamicSources(listener, tiles, nil)
-}
-
 // UpdateAmbientSoundsWithDynamicSources projects game intent, preserving grouping
 // and game emitter roles outside the generic controller. Omitted calls retain state.
 func (manager *GameAudioManager) UpdateAmbientSoundsWithDynamicSources(listener references.Position,

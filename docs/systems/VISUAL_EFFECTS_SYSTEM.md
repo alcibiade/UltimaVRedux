@@ -283,18 +283,31 @@ and reverse progress reuse that order. Progress counts mask cells, not opaque
 sprite pixels. Only changed cells update the CPU buffer, and an unchanged mask
 avoids another upload. The optional scaled target is reused. `GetMask` returns a
 borrow valid until this effect's `Dispose`, which closes its surface and scaled
-image, never the caller's content/target. Reset does not revive a disposed effect.
+image, never the caller's content/target. A disposed effect cannot be revived.
 `MessageDialog` disposes its old dissolve owner before Show/Hide replacement,
 instant visibility changes, and completion of either fade direction. Its reusable
 content/masked buffers and unrelated image borrowers survive those transitions.
 Resize separately retires dimension-specific masks. Completing a fade does not
 retain a native mask until another visibility or resize operation happens.
 The SDK's removed allocating `Pixels` and non-buffer `Update` conveniences are not
-used: initialization/reset writes the persistent buffer, and progress updates it
+used: initialization writes the persistent buffer, and progress updates it
 in place. Frame arrays, geometry and ordinary native draw opacity stay with Redux.
 Leading highlights retain the game's integer cell-to-target projection; these are
 recently revealed permutation cells, not a spatial wavefront or a promise of exact
 fractional nearest-sampling coverage.
+
+SDK tests own dissolve progression, repeated-query immutability, reset ordering,
+and completion/hide-mode highlight suppression. Game tests retain supplied-source
+wiring, uneven integer target projection and actual dialog/scene owner retirement.
+The game facade has no separate public reset operation. `MessageDialog` retains
+its existing fixed-seed cosmetic source construction, so removing its unused RNG
+setter does not change the dissolve order or consume gameplay randomness.
+
+For rejection surfaces, game tests cover reusable Dispose/Resize ownership and
+the selected nearest/SourceOver draw policy; generic CPU-clear/explicit-upload
+behavior is tested in the SDK. Quarter-mask tests retain exhaustive neighborhood
+geometry and locality, plus threshold-adjacent floating-to-Q12 conversion checks.
+The exhaustive Bayer phase/value matrix belongs to the SDK.
 
 ## Terrain Visibility Dithering
 

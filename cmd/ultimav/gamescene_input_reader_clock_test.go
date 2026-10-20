@@ -19,7 +19,7 @@ func TestTransientInputInitializationPreservesIndependentKeyboardClock(t *testin
 	keyboard.SetElapsedMillisecondsSource(func() int64 { return inputMs })
 	scene := &GameScene{gameState: &game_state.GameState{ElapsedMs: 321}, keyboard: keyboard}
 	scene.initializeTransientCommandInput()
-	keyboard.SetLastKeyPressedNow()
+	keyboard.SetLastKeyPressedNowPlusMs(0)
 	inputMs += keyPressDelay + 1
 	require.Equal(t, keyPressDelay+1, keyboard.GetMsSinceLastKeyPress(),
 		"production initialization must not replace the adapter clock with paused game elapsed time")

@@ -123,7 +123,7 @@ func TestGameAudioLivePreferencesPreviewDisableAndClose(t *testing.T) {
 	require.True(t, manager.music.IsPlaying())
 	require.NoError(t, manager.Close())
 	manager.SetEnabled(true)
-	require.False(t, manager.IsEnabled())
+	require.False(t, manager.PlaybackSnapshot().Enabled)
 	require.ErrorIs(t, manager.PlaySoundEffect(game_state.SoundHeal), ErrAudioClosed)
 	require.Empty(t, manager.PlaybackSnapshot().Voices)
 }
@@ -210,7 +210,7 @@ func TestGameAudioBardPrecedenceIncludesInitialEnvelopeAndTail(t *testing.T) {
 	require.Zero(t, bard.Gain.Envelope, "the initial envelope is distinct from an audible target mix")
 	*now = now.Add(time.Second)
 	manager.Update()
-	manager.UpdateAmbientSounds(references.Position{}, nil)
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, nil)
 	*now = now.Add(500 * time.Millisecond)
 	manager.Update()
 	require.Equal(t, berad.VoicePaused, manager.music.Snapshot().Voice.State)

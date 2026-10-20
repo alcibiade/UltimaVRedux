@@ -9,13 +9,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/minimap"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 	"github.com/bradhannah/UltimaVRedux/pkg/color"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 var errReturnViewPresentationInvalid = errors.New("return to the View presentation is invalid")
@@ -138,7 +138,7 @@ func (p *returnViewPresentation) drawDissolvingActor(
 		p.dissolve = visual.NewPixelDissolveEffect(
 			sprites.TileSize, sprites.TileSize, sprites.TileSize, sprites.TileSize,
 			mode,
-			deterministic_random.New(returnViewFizzSeed),
+			rng.New(returnViewFizzSeed),
 		)
 		p.dissolveBuffer = ebiten.NewImage(sprites.TileSize, sprites.TileSize)
 	}

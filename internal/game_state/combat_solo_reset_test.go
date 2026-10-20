@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newCombatSoloResetTestState(t *testing.T, condition string) (*GameState, *MockSystemCallbacks) {
@@ -58,7 +58,7 @@ func TestCombatSoloResetPreservesScheduledActionAndCostsNothing(t *testing.T) {
 			inventory, spells := state.PartyState.Inventory.LockerSnapshot(), state.PartyState.Inventory.SpellSnapshot()
 			date, elapsed, duration := state.DateTime, state.ElapsedMs, state.ActiveDurationEffect
 			calls := state.GetRNG().Calls()
-			expectedRNG := deterministic_random.Restore(state.GetRNG().Seed(), calls)
+			expectedRNG := beradrng.Restore(state.GetRNG().Seed(), calls)
 
 			boundary, eligible := state.ProjectCombatSoloReset()
 			require.True(t, eligible)

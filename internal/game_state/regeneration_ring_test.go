@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestProcessRegenerationRingSweepUsesActivePartyOrderAndReportsEveryWearer(t *testing.T) {
@@ -164,7 +164,7 @@ func TestDungeonHoleUpIterationRunsOneRegenerationRingSweep(t *testing.T) {
 func regenerationSeedForRolls(t *testing.T, rolls ...int) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 100_000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		matches := true
 		for _, roll := range rolls {
 			if rng.Intn(regenerationRingRollMaximum+1) != roll {

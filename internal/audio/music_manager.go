@@ -36,11 +36,6 @@ func newMusicManager(host musicHost, output musicPlayback, now func() time.Time)
 	}
 }
 
-// GetMusicForLocation returns the appropriate music track for a given location
-func (mm *MusicManager) GetMusicForLocation(location references.Location) string {
-	return mm.audioManager.musicLibrary().document.Routing.musicFor(location, references.FloorNumber(references.OVERWORLD))
-}
-
 func musicForLocation(location references.Location) string {
 	return productionLibrary().Routing.musicFor(location, references.FloorNumber(references.OVERWORLD))
 }
@@ -51,7 +46,7 @@ func (mm *MusicManager) GetMusicForContext(context string) string {
 }
 
 func musicForContext(assignments map[string]*string, context string) string {
-	cue, _ := resolveAudioAssignment(assignments, "context/"+context)
+	cue := resolveAudioAssignment(assignments, "context/"+context)
 
 	return strings.TrimPrefix(cue, "music/track/")
 }
@@ -61,7 +56,7 @@ func musicContextTracks() map[string]string {
 	tracks := make(map[string]string)
 	for target := range MusicTargets() {
 		if strings.HasPrefix(target, "context/") {
-			cue, _ := resolveAudioAssignment(productionLibrary().Routing.Music, target)
+			cue := resolveAudioAssignment(productionLibrary().Routing.Music, target)
 			tracks[strings.TrimPrefix(target, "context/")] = strings.TrimPrefix(cue, "music/track/")
 		}
 	}
@@ -90,19 +85,6 @@ func (mm *MusicManager) PlayMusicForScene(location references.PlayerLocation) er
 	mm.policy.exploration = mm.audioManager.musicLibrary().document.Routing.musicFor(location.Location, location.Floor)
 
 	return mm.policy.update()
-}
-
-// SetSceneContext follows authoritative scene state without restarting playback.
-// A nonzero encounter owns combat score; zero restores the actual world location.
-func (mm *MusicManager) SetSceneContext(location references.Location, encounter uint64) {
-	mm.SetSceneLocation(references.PlayerLocation{
-		Location: location, Floor: 0, Position: references.Position{X: 0, Y: 0},
-	}, encounter)
-}
-
-// SetSceneLocation distinguishes world layers while retaining encounter policy.
-func (mm *MusicManager) SetSceneLocation(location references.PlayerLocation, encounter uint64) {
-	mm.SetSceneSoundscape(location, encounter, false, false)
 }
 
 // SetSceneSoundscape follows authoritative location, encounter, victory and sail state.
@@ -257,16 +239,6 @@ func (mm *MusicManager) RestoreHistory(history MusicHistory) {
 	mm.mutex.Lock()
 	defer mm.mutex.Unlock()
 	mm.policy.restoreHistory(history)
-}
-
-// GetAllLocationMusicMappings returns a map of all location to music mappings for debugging/testing
-func (mm *MusicManager) GetAllLocationMusicMappings() map[references.Location]string {
-	mappings := make(map[references.Location]string)
-	for location := references.Location(0); location <= references.CombatRestingShrine; location++ {
-		mappings[location] = mm.GetMusicForLocation(location)
-	}
-
-	return mappings
 }
 
 func locationMusicMappings() map[references.Location]string {

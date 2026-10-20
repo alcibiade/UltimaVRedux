@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newOutdoorFireballFixture(t *testing.T, floor references.FloorNumber, vehicle references.VehicleType) (*GameState, *MockSystemCallbacks) {
@@ -55,10 +55,10 @@ func fillOutdoorFireballTerrain(gs *GameState, tile indexes.SpriteIndex) {
 	}
 }
 
-func outdoorFireballSeed(t *testing.T, matches func(*deterministic_random.Source) bool) uint64 {
+func outdoorFireballSeed(t *testing.T, matches func(*beradrng.Source) bool) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 100000; seed++ {
-		if matches(deterministic_random.New(seed)) {
+		if matches(beradrng.New(seed)) {
 			return seed
 		}
 	}
@@ -127,11 +127,11 @@ func TestOutdoorFireballPassUnderworldCarpetContactAndRanged(t *testing.T) {
 				}
 				enemy := addOverworldTestEnemy(t, gs, references.MonsterSeaSerpent, pos)
 				gs.PartyState.GetCharacter(1).PartyMap = party_state.PartyMapActive
-				seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+				seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 					return rng.Intn(256) != 0x69 && rng.Intn(256) != 0x69 && (!diagonal || rng.Intn(8) == 0)
 				})
 				gs.SetRandomSeed(seed)
-				want := deterministic_random.New(seed)
+				want := beradrng.New(seed)
 				want.Intn(256) // Underworld earthquake, first player update.
 				passOutdoorFireballTurn(gs)
 				assert.Equal(t, uint16(100), gs.PartyState.GetCharacter(0).GetCurrentHp(), "first mounted phase skips actors")
@@ -224,7 +224,7 @@ func TestOutdoorFireballMultipleActorsSourceOrderAndBlockedConsumption(t *testin
 	blocked.MapUnitDetails().NPCNum = 31
 	wall := references.Position{X: 102, Y: 100}
 	gs.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &wall, indexes.StoneBrickWall)
-	seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 		if rng.Intn(8) != 0 {
 			return false
 		}
@@ -233,7 +233,7 @@ func TestOutdoorFireballMultipleActorsSourceOrderAndBlockedConsumption(t *testin
 		return rng.Intn(8) == 0
 	})
 	gs.SetRandomSeed(seed)
-	want := deterministic_random.New(seed)
+	want := beradrng.New(seed)
 	want.Intn(8)
 	hp := 100 - (want.Intn(8) + 1) - (want.Intn(8) + 1)
 	want.Intn(8)
@@ -273,7 +273,7 @@ func TestOutdoorFireballVehiclesAndHullBounds(t *testing.T) {
 				if maximum {
 					damage = sides
 				}
-				seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+				seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 					return rng.Intn(8) == 0 && rng.Intn(sides) == damage-1
 				})
 				gs.SetRandomSeed(seed)
@@ -349,7 +349,7 @@ func TestOutdoorFireballWrappedShipBlockedAndSinkingOrder(t *testing.T) {
 			if blocked {
 				gs.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &wall, indexes.StoneBrickWall)
 			}
-			seed := outdoorFireballSeed(t, func(rng *deterministic_random.Source) bool {
+			seed := outdoorFireballSeed(t, func(rng *beradrng.Source) bool {
 				if rng.Intn(8) != 0 {
 					return false
 				}
@@ -506,7 +506,7 @@ func TestOutdoorWhirlpoolTransportDoesNotCarryOldMapAttackers(t *testing.T) {
 
 				drainGameplayWorkflows(t, gs)
 
-				wantRNG := deterministic_random.New(seed)
+				wantRNG := beradrng.New(seed)
 				if test.vehicle == references.FrigateVehicle {
 					damage := wantRNG.Intn(sourceHitHullDamageSides) + 1
 					assert.Equal(t, uint16(100), gs.PartyState.GetCharacter(0).GetCurrentHp())

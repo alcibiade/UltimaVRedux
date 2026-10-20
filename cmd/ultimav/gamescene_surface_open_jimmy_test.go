@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
@@ -17,6 +16,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSurfaceReturnUsesMapSpecificRejectionAndCycleOwnership(t *testing.T) {
@@ -106,7 +106,7 @@ func TestLargeMapJimmyRoutesImmediateDirectionAndCompletesOnce(t *testing.T) {
 	pressed := map[ebiten.Key]bool{ebiten.KeyRight: true}
 	scene := newSurfaceCompletionTestScene(state)
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 
 	scene.largeMapInputHandler(ebiten.KeyJ)
 
@@ -168,7 +168,7 @@ func TestLargeMapJimmyWithoutActiveCharacterDefersToSelection(t *testing.T) {
 	pressed := map[ebiten.Key]bool{ebiten.KeyRight: true}
 	scene := newSurfaceCompletionTestScene(state)
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 
 	scene.largeMapInputHandler(ebiten.KeyJ)
 	scene.largeMapHandleSecondaryInput()
@@ -210,7 +210,7 @@ func TestLargeMapOpenRoutesAuthoritativeSuccessAndExplicitRejection(t *testing.T
 			scene := newSurfaceCompletionTestScene(state)
 			pressed := map[ebiten.Key]bool{ebiten.KeyUp: true}
 			scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-			scene.keyboard.SetLastKeyPressedNow()
+			scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 
 			scene.largeMapInputHandler(ebiten.KeyO)
 			assert.Equal(t, OpenDirectionInput, scene.secondaryKeyState)
@@ -298,7 +298,7 @@ func TestSmallMapChestJimmyDialogCancellationDefersCompletion(t *testing.T) {
 	scene := newSurfaceCompletionTestScene(state)
 	pressed := map[ebiten.Key]bool{directionKey(direction): true}
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 
 	scene.smallMapInputHandler(ebiten.KeyJ)
 	scene.smallMapHandleSecondaryInput()
@@ -333,7 +333,7 @@ func TestSmallMapChestJimmyThenOpenProductionPathCompletesOnceEach(t *testing.T)
 	scene := newSurfaceCompletionTestScene(state)
 	pressed := map[ebiten.Key]bool{directionKey(direction): true}
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 
 	scene.smallMapInputHandler(ebiten.KeyJ)
 	scene.smallMapHandleSecondaryInput()
@@ -348,7 +348,7 @@ func TestSmallMapChestJimmyThenOpenProductionPathCompletesOnceEach(t *testing.T)
 	state.PartyState.Inventory.Provisions.Keys.Set(0)
 	callbacks.Reset()
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 	scene.smallMapInputHandler(ebiten.KeyJ)
 	scene.smallMapHandleSecondaryInput()
 	assert.Equal(t, []string{"Already safe - nothing to disarm."}, callbacks.Messages)
@@ -362,7 +362,7 @@ func TestSmallMapChestJimmyThenOpenProductionPathCompletesOnceEach(t *testing.T)
 	var seed uint64
 	var childValue byte
 	for ; seed < 1000; seed++ {
-		for _, reward := range references.RollChestLoot(30, deterministic_random.New(seed)) {
+		for _, reward := range references.RollChestLoot(30, beradrng.New(seed)) {
 			if reward.ChestValue != 0 {
 				childValue = reward.ChestValue
 			}
@@ -378,7 +378,7 @@ func TestSmallMapChestJimmyThenOpenProductionPathCompletesOnceEach(t *testing.T)
 	callbacks.Reset()
 	pressed = map[ebiten.Key]bool{directionKey(direction): true}
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 	scene.smallMapInputHandler(ebiten.KeyO)
 	scene.smallMapHandleSecondaryInput()
 
@@ -453,7 +453,7 @@ func TestLordBritishChestExistingLootIsPreservedThroughTrappedOpenAndOneCommandC
 	scene := newSurfaceCompletionTestScene(state)
 	pressed := map[ebiten.Key]bool{directionKey(direction): true}
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(60_000, func(key ebiten.Key) bool { return pressed[key] })
-	scene.keyboard.SetLastKeyPressedNow()
+	scene.keyboard.SetLastKeyPressedNowPlusMs(0)
 
 	scene.smallMapInputHandler(ebiten.KeyO)
 	scene.smallMapHandleSecondaryInput()

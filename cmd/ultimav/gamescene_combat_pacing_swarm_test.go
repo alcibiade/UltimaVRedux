@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newCombatPacingSwarm(t *testing.T, kinds []references.MonsterType) (*GameScene, *game_state.MockSystemCallbacks) {
@@ -130,8 +130,8 @@ func assertCombatPacingBoundaryEquivalent(t *testing.T, baseline, accelerated *G
 	leftRNG, rightRNG := left.GetRNG(), right.GetRNG()
 	assert.Equal(t, leftRNG.Calls(), rightRNG.Calls())
 	assert.Equal(t,
-		deterministic_random.Restore(leftRNG.Seed(), leftRNG.Calls()).Intn(10000),
-		deterministic_random.Restore(rightRNG.Seed(), rightRNG.Calls()).Intn(10000),
+		beradrng.Restore(leftRNG.Seed(), leftRNG.Calls()).Intn(10000),
+		beradrng.Restore(rightRNG.Seed(), rightRNG.Calls()).Intn(10000),
 		"peek the next value without perturbing either gameplay stream")
 }
 

@@ -26,7 +26,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
@@ -38,6 +37,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/shrine"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // Ordinary surface command durations in game minutes.
@@ -131,7 +131,7 @@ type GameState struct {
 	SystemCallbacks *SystemCallbacks
 
 	// Centralized deterministic random number generator
-	rng *deterministic_random.Source
+	rng *rng.Source
 
 	// Environmental systems
 	environmentalHazards *environment.EnvironmentalHazards
@@ -283,7 +283,7 @@ func initBlankGameState(gameReferences *references.GameReferences, gameConfig *c
 	gameState.GameConfig = gameConfig
 
 	// Initialize deterministic RNG with fixed seed for consistent behavior
-	gameState.rng = deterministic_random.New(1)
+	gameState.rng = rng.New(1)
 	gameState.MapState = *map_state.NewMapState(
 		map_state.NewMapStateInput{
 			GameDimensions:            gameState,
@@ -996,12 +996,12 @@ func (g *GameState) SetHMSCapeActivated(activated bool) {
 	g.hmsCapeActivated = activated
 }
 
-// Centralized RNG methods - replace helpers package usage for deterministic behavior
+// Centralized RNG methods preserve shared gameplay draw order and bounds.
 
 // SetRandomSeed sets the seed for the centralized RNG (for testing and deterministic behavior)
 func (g *GameState) SetRandomSeed(seed uint64) {
 	if g.rng == nil {
-		g.rng = deterministic_random.New(seed)
+		g.rng = rng.New(seed)
 
 		return
 	}
@@ -1020,11 +1020,11 @@ func (g *GameState) RandomSeed() uint64 {
 
 // GetRNG returns the centralized RNG for advanced operations (e.g., Fisher-Yates shuffling)
 // Use this when you need direct RNG access that can't be achieved with helper methods
-func (g *GameState) GetRNG() *deterministic_random.Source {
+func (g *GameState) GetRNG() *rng.Source {
 	return g.rng
 }
 
-// OneInXOdds returns true with probability 1/odds (deterministic replacement for helpers.OneInXOdds)
+// OneInXOdds returns true with probability 1/odds.
 func (g *GameState) OneInXOdds(odds int) bool {
 	if odds <= 0 {
 		return false
@@ -1042,22 +1042,13 @@ func (g *GameState) RollDice(sides int) int {
 	return g.rng.Intn(sides) + 1
 }
 
-// RandomIntInRange returns a random integer in [min, max] inclusive (deterministic replacement for helpers.RandomIntInRange)
+// RandomIntInRange returns a random integer in [min, max] inclusive.
 func (g *GameState) RandomIntInRange(minimum, maximum int) int {
 	if minimum > maximum {
 		panic(fmt.Sprintf("RandomIntInRange: min (%d) cannot be greater than max (%d)", minimum, maximum))
 	}
 
 	return g.rng.Intn(maximum-minimum+1) + minimum
-}
-
-// PickOneOfInt returns one of two int values randomly (deterministic replacement for helpers.PickOneOf)
-func (g *GameState) PickOneOfInt(a, b int) int {
-	if g.OneInXOdds(2) {
-		return a
-	}
-
-	return b
 }
 
 // ShuffleDirections shuffles a slice of positions for deterministic randomness in AI movement

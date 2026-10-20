@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -202,7 +202,7 @@ func (effect *dungeonSkeletonCrumbleEffect) initialize(source *sprites.DungeonSp
 			delta.Bounds().Dx(),
 			delta.Bounds().Dy(),
 			visual.DissolveModeHide,
-			deterministic_random.New(dungeonSkeletonCrumbleSeed(*effect, panel)),
+			rng.New(dungeonSkeletonCrumbleSeed(*effect, panel)),
 		)
 	}
 }

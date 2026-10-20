@@ -18,7 +18,6 @@ func (catalog *Catalog) addEffectMoments() {
 		moment := newCatalogMoment("sfx/"+symbol, symbol, catalogSFX)
 		moment.SourceSymbols = []string{symbol}
 		moment.RelatedIssues = []int{580}
-		moment.Window = soundPlaybackWindow(effect)
 		if metadata, exists := GetSoundEffectMetadata(effect); exists {
 			moment.Name = metadata.Name
 			moment.GainSemantics = contextGainSemantics
@@ -40,9 +39,11 @@ func (catalog *Catalog) addEffectMoments() {
 }
 
 func (catalog *Catalog) addMusicMoments() {
+	const sceneSoundscapeSymbol = "SetSceneSoundscape"
+
 	for id, metadata := range musicTrackMetadataMap() {
 		moment := catalog.musicMoment("music/track/"+id, metadata.Name, id)
-		moment.SourceSymbols = []string{"PlayMusicForContext", "PlayBackgroundMusic"}
+		moment.SourceSymbols = []string{"PlayMusicForContext", "PlayMusicForScene"}
 		moment.Note = "Library track: selection availability is not proof a particular gameplay context requests it."
 		catalog.Moments = append(catalog.Moments, moment)
 	}
@@ -51,7 +52,7 @@ func (catalog *Catalog) addMusicMoments() {
 		moment.SourceSymbols = []string{"PlayMusicForContext"}
 		moment.Note = "Named selection context; shared dispatch evidence does not prove this context is invoked."
 		if context == audioContextCombat {
-			moment.SourceSymbols = []string{"SetSceneContext"}
+			moment.SourceSymbols = []string{sceneSoundscapeSymbol}
 			moment.Note = "Tactical encounter ownership bypasses exploration quiet intervals; one finite score per encounter."
 		}
 		catalog.Moments = append(catalog.Moments, moment)
@@ -64,14 +65,14 @@ func (catalog *Catalog) addMusicMoments() {
 		catalog.Moments = append(catalog.Moments, moment)
 	}
 	for _, world := range []string{"overworld", "underworld"} {
-		cue, _ := resolveAudioAssignment(productionLibrary().Routing.Music, "world/"+world)
+		cue := resolveAudioAssignment(productionLibrary().Routing.Music, "world/"+world)
 		moment := catalog.musicMoment("music/world/"+world, world, strings.TrimPrefix(cue, "music/track/"))
-		moment.SourceSymbols = []string{"SetSceneLocation"}
+		moment.SourceSymbols = []string{sceneSoundscapeSymbol}
 		catalog.Moments = append(catalog.Moments, moment)
 	}
 	if cue := productionLibrary().Routing.Naval["sailing"]; cue != nil {
 		moment := catalog.musicMoment("music/naval/sailing", "Sailing", strings.TrimPrefix(*cue, "music/track/"))
-		moment.SourceSymbols = []string{"SetSceneSoundscape"}
+		moment.SourceSymbols = []string{sceneSoundscapeSymbol}
 		moment.Playback = "once per sail-hoist; fade on furling; combat takes precedence"
 		catalog.Moments = append(catalog.Moments, moment)
 	}
@@ -127,7 +128,7 @@ func (catalog *Catalog) addAmbientMoments() {
 	}
 	for target, name := range DungeonTargets() {
 		moment := newCatalogMoment("ambient/dungeon/"+target, name+" background", catalogAmbience)
-		cue, _ := resolveAudioAssignment(productionLibrary().Routing.Dungeon, target)
+		cue := resolveAudioAssignment(productionLibrary().Routing.Dungeon, target)
 		moment.SourceSymbols = []string{"DungeonAmbientSource"}
 		moment.Playback = "non-spatial persistent loop; retained through dungeon room transitions"
 		if cue == "" {

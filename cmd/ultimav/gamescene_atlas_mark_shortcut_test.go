@@ -47,9 +47,12 @@ func TestAtlasMarkShortcutOpensCurrentFixAndCancelsThroughExistingOwner(t *testi
 			scene.atlasView.Initialized, scene.atlasView.Zoom = true, 4
 			scene.atlasView.CenterX, scene.atlasView.CenterY = 200, 180
 			clock, calls, food, elapsed := state.DateTime, state.GetRNG().Calls(), state.PartyState.Inventory.Provisions.Food.Get(), state.ElapsedMs
-			scene.keyboard.ForceLastKeyPressed(ebiten.KeyN)
+			// Record the repeat identity without consuming N or capturing a key edge.
+			keys[ebiten.KeyN] = true
+			require.True(t, scene.keyboard.IsKeyPressedAndRegisterRepeatable(ebiten.KeyN))
 			scene.keyboard.SetLastKeyPressedNowPlusMs(60000)
-			keys[control], keys[ebiten.KeyN] = true, true
+			require.False(t, scene.keyboard.IsKeyPressedAndRegisterRepeatable(ebiten.KeyN))
+			keys[control] = true
 			update()
 			require.NotNil(t, scene.atlasSession)
 			session, child := scene.atlasSession, scene.atlasSession.child

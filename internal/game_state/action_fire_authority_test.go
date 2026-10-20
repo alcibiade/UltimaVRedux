@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSourceMissilePassageMatchesEveryOriginalTerrainBit(t *testing.T) {
@@ -28,7 +28,7 @@ func TestSourceMissilePassageMatchesEveryOriginalTerrainBit(t *testing.T) {
 
 func TestResolveShipCannonFireRemovesAtAndBelowZeroExactlyOnce(t *testing.T) {
 	const seed = uint64(464)
-	wantDamage := deterministic_random.New(seed).Intn(shipCannonDamageMax) + 1
+	wantDamage := beradrng.New(seed).Intn(shipCannonDamageMax) + 1
 
 	for _, test := range []struct {
 		name        string

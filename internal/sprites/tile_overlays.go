@@ -112,11 +112,6 @@ func (pipeline OverlayPipeline) GetPulsingAlpha(elapsedMs int64) float32 {
 	return alpha
 }
 
-// GetPulsingAlphaAtPosition retains cosmetic spatial de-synchronization in the host.
-func (pipeline OverlayPipeline) GetPulsingAlphaAtPosition(x, y int) float32 {
-	return pipeline.GetPulsingAlpha(cosmeticOverlayTime(x, y))
-}
-
 // OverlayBuilder composes game treatment presets without exposing a generic tile API.
 type OverlayBuilder struct{ pipeline OverlayPipeline }
 

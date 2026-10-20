@@ -87,9 +87,6 @@ func NewLibrary(data []byte, files fs.FS, options LibraryOptions) (*Library, err
 // Document returns a fully detached metadata view, never the runtime's live maps.
 func (library *Library) Document() LibraryDocument { return *cloneAudioValue(library.document) }
 
-// EncodedBytes reports the retained unique asset payload, excluding decoder buffers.
-func (library *Library) EncodedBytes() int64 { return library.encodedBytes }
-
 func (library *Library) recordingPath(id string) string {
 	recording, exists := library.document.Recordings[id]
 	if !exists {

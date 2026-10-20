@@ -3,7 +3,6 @@ package audio
 import (
 	"fmt"
 	"slices"
-	"strings"
 )
 
 // GainBreakdown explains linear amplitude before device/PCM gain splitting.
@@ -77,6 +76,3 @@ func (snapshot PlaybackSnapshot) Lines() []string {
 
 	return lines
 }
-
-// String formats a captured report without mutating audio state.
-func (snapshot PlaybackSnapshot) String() string { return strings.Join(snapshot.Lines(), "\n") }

@@ -3,12 +3,12 @@ package game_state
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,7 +54,7 @@ func TestSkiffDeepWater_DamageTriggered(t *testing.T) {
 	gs.SetRandomSeed(seed)
 	gs.PartyVehicle = *createTestSkiff(15, 15)
 	setDeepWaterActiveParty(gs, 3)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	initialHP := make(map[int]int)
 	expectedDamage := make(map[int]int)
 	gs.PartyState.ForEachCharacter(func(i int, char *party_state.PlayerCharacter) {
@@ -266,7 +266,7 @@ func TestSkiffDeepWater_CarpetSame(t *testing.T) {
 	gs.SetRandomSeed(seed)
 	gs.PartyVehicle = *createTestVehicle(references.CarpetVehicle, 15, 15)
 	setDeepWaterActiveParty(gs, 3)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedDamage := make(map[int]int)
 	gs.PartyState.ForEachCharacter(func(i int, char *party_state.PlayerCharacter) {
 		if char.PartyMap == party_state.PartyMapActive && !char.IsDead() {
@@ -305,7 +305,7 @@ func TestSkiffDeepWater_DeadMembersSkipped(t *testing.T) {
 	setDeepWaterActiveParty(gs, 3)
 	const seed = uint64(12345)
 	gs.SetRandomSeed(seed)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	living := gs.PartyState.GetCharacter(0)
 	wantLivingDamage := expectedRNG.Intn(8) + 1
 	dead := gs.PartyState.GetCharacter(1)

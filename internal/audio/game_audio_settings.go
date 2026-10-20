@@ -50,20 +50,6 @@ func (manager *GameAudioManager) SetAmbientVolume(volume float64) error {
 	return errors.Join(manager.ambience.SetVolume(volume), manager.preview.SetVolume(volume))
 }
 
-// PlayBackgroundMusic plays a game-owned track identity through the finite transport.
-func (manager *GameAudioManager) PlayBackgroundMusic(track string) error {
-	manager.mutex.RLock()
-	defer manager.mutex.RUnlock()
-	if manager.closed {
-		return ErrAudioClosed
-	}
-	if !manager.enabled {
-		return nil
-	}
-
-	return gameAudioError("play music", manager.music.Play(berad.CueID("music/track/"+track)))
-}
-
 // StopBackgroundMusic clears transport without discarding Redux policy/history.
 func (manager *GameAudioManager) StopBackgroundMusic() error {
 	return gameAudioError("stop music", manager.music.Stop())

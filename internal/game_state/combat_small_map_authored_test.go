@@ -7,10 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestYewBasementActionAttackUsesProductionRatsAndCompletesReturnTurn(t *testing.T) {
@@ -66,7 +66,7 @@ func TestStonegateProductionGroupsUseOriginalCompositionDrawOrder(t *testing.T) 
 				require.Greater(t, ref.MaxPerMap, 1, "production slot must exercise group construction")
 				state.openingCampaignEncounterReduction = false
 				state.SetRandomSeed(86)
-				oracle := deterministic_random.New(86)
+				oracle := beradrng.New(86)
 				count := ref.MaxPerMap
 				if count != 8 && count != 16 {
 					count = oracle.Intn(count) + 1
@@ -96,7 +96,7 @@ func TestSmallMapGuardAttackConsumesSameTypeFriendRolls(t *testing.T) {
 	require.True(t, state.ActionAttackSmallMap(direction))
 	require.NotNil(t, state.CombatScene)
 	assert.Zero(t, state.CombatScene.SmallMapOrigin.Consequences.GuardActivation.CivilianRollCount)
-	assertOriginalEncounterMonsterDraws(t, state, deterministic_random.New(86), references.MonsterGuard, references.MonsterGuard, 8, true)
+	assertOriginalEncounterMonsterDraws(t, state, beradrng.New(86), references.MonsterGuard, references.MonsterGuard, 8, true)
 }
 
 func TestProductionGargoylesAndBalinorSupportAttackAndActivatedCombat(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +75,7 @@ func TestCheckForWandererAppearance_Integration(t *testing.T) {
 
 			expected := tt.expectedResult
 			if !tt.forceWanderer && tt.location.GetMapType() != references.DungeonMapType {
-				expected = deterministic_random.New(12345).Intn(100) < 25
+				expected = beradrng.New(12345).Intn(100) < 25
 			}
 			assert.Equal(t, expected, result, "CheckForWandererAppearance result mismatch")
 		})
@@ -90,7 +90,7 @@ func TestCheckForWandererAppearanceDoesNotSuppressSameMonth(t *testing.T) {
 	gs.DateTime.Month = 2
 	gs.LastWandererMonth = 2
 	for seed := uint64(0); seed < 1000; seed++ {
-		if deterministic_random.New(seed).Intn(100) < 25 {
+		if beradrng.New(seed).Intn(100) < 25 {
 			gs.SetRandomSeed(seed)
 			assert.True(t, gs.CheckForWandererAppearance(false))
 			return
@@ -128,7 +128,7 @@ func TestResolveCampingRestAndWandererUsesPartyOrderedD63ThenD100(t *testing.T) 
 			}
 			gs.LastCamped = 0
 			gs.SetRandomSeed(test.seed)
-			oracle := deterministic_random.New(test.seed)
+			oracle := beradrng.New(test.seed)
 			wantHP := [2]uint16{
 				uint16(1 + WandererHealMin + oracle.Intn(WandererHealMax-WandererHealMin+1)),
 				uint16(1 + WandererHealMin + oracle.Intn(WandererHealMax-WandererHealMin+1)),
@@ -167,7 +167,7 @@ func TestResolveCampingRestAndWandererForcedAppearanceConsumesNoD100(t *testing.
 	gs.LastCamped = 0
 	const seed = uint64(812)
 	gs.SetRandomSeed(seed)
-	oracle := deterministic_random.New(seed)
+	oracle := beradrng.New(seed)
 	wantHP := uint16(1 + WandererHealMin + oracle.Intn(WandererHealMax-WandererHealMin+1))
 	scene := camping.NewCampingScene(6, NoGuardAssigned, gs.MapState.PlayerLocation)
 	campState := gs.newCampingState(scene, true, false)

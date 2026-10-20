@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/test/originaldata"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCharacterCreationSceneDrawsOriginalAssetsThroughEveryState(t *testing.T) {
@@ -19,7 +19,7 @@ func TestCharacterCreationSceneDrawsOriginalAssetsThroughEveryState(t *testing.T
 	require.NoError(t, err)
 	scene, err := CreateCharacterCreationScene(
 		configuration,
-		deterministic_random.New(42),
+		beradrng.New(42),
 		CharacterCreationCallbacks{
 			OnComplete: func(character_creation.Result) {},
 			OnCancel:   func() { t.Fatal("unexpected cancellation") },

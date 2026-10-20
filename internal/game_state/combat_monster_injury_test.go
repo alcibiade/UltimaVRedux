@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCombatMonsterInjuryStrictTruncatedQuarterBoundaries(t *testing.T) {
@@ -134,9 +134,9 @@ func TestCombatMonsterInjuryFieldDamageHasOneReportAndUnchangedRNG(t *testing.T)
 				if kind == CombatFieldFire && !direct {
 					maximum = 11
 				}
-				seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool { return rng.Intn(maximum) == 7 })
+				seed := areaSpellSeed(t, func(rng *beradrng.Source) bool { return rng.Intn(maximum) == 7 })
 				state.SetRandomSeed(seed)
-				oracle := deterministic_random.New(seed)
+				oracle := beradrng.New(seed)
 				oracle.Intn(maximum)
 				if direct && kind == CombatFieldFire {
 					oracle.Intn(1) // Direct magic still performs its armor draw.
@@ -200,7 +200,7 @@ func TestCombatMonsterInjuryPoisonWindUsesSurvivingPostHitBand(t *testing.T) {
 	monster.SetLoyalty(CombatMonsterLoyaltyParty)
 	monster.SetCurrentHP(55)
 	monster.SetFleeing(true)
-	seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool { return rng.Intn(21) == 7 })
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool { return rng.Intn(21) == 7 })
 	state.SetRandomSeed(seed)
 	result := state.applyCombatPoisonWindToxify(0, CombatTurnIdentity{EntityIndex: index}, CombatHitResult{Outcome: CombatHitNormal})
 	require.Len(t, mock.CombatEvents, 1)
@@ -222,12 +222,12 @@ func TestCombatMonsterInjuryPossessedPCMeleeKeepsDamageAndFleeRNG(t *testing.T) 
 	attacker := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	state.PartyState.GetCharacter(0).Dexterity = 255
 	state.CombatScene.PartyPossessed[0] = true
-	seed := areaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		hit := CombatHitCheck(255, monster.CurrentDex(), false, rng)
 		damage := CombatCalcDamage(references.TwoHSword, 0, rng)
 		return hit.Outcome != CombatHitMiss && damage.Damage > 0 && damage.Damage < 20
 	})
-	oracle := deterministic_random.New(seed)
+	oracle := beradrng.New(seed)
 	CombatHitCheck(255, monster.CurrentDex(), false, oracle)
 	damage := CombatCalcDamage(references.TwoHSword, 0, oracle)
 	state.SetRandomSeed(seed)

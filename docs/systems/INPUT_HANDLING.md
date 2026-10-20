@@ -2,6 +2,52 @@
 
 Gameplay input is routed by `GameScene.Update` through a primary/secondary state machine. Primary input chooses a command; secondary input owns subsequent ordinary direction, tactical-target, or specialized retained input until that input contract completes.
 
+## Keyboard mechanism boundary
+
+`pkg/input.Keyboard` remains the game-owned concrete adapter. It supplies
+`ebiten.Key`, live physical state and explicit per-query elapsed milliseconds to
+[Berad Input](https://github.com/bradhannah/berad-sdk/tree/891cf44f456a/modules/berad-input).
+The SDK owns consumption/suppression, release barriers, captured edges, ordered
+binding inspection and cadence state. It does not import Ebitengine or the game.
+Redux retains command routing, arrows/keypad/semantic conversions, Caps Lock
+exclusion, modifier/chord policy, native text/IME and the historical simulated-key
+compatibility path. No mouse input is introduced.
+
+There are four independent scene keyboards: GameScene (165 ms), Intro and setup
+(250 ms), and character creation (0 ms). Widgets borrow their scene keyboard;
+list/quantity owners retain separate repeat state. Release cleanup still runs
+before modal early returns in all four owners. GameScene alone captures a detached
+edge sample at entry, before quickload, readers and queues. Capture consumes
+nothing and does not turn later queries into snapshot-only polling. Scene
+activation barriers inspect live holds before the incoming scene's first Update.
+
+This extraction preserves timing rather than normalizing it: legacy acceptance
+uses strictly greater elapsed time, a different key bypasses the shared interval,
+and force-next never bypasses the all-key deadline or physical gates. The input
+clock stays independent of paused Journal/Atlas gameplay time. List repeats use
+focused-update ticks (300/120 ms), while exploration Pass retains its scene clock,
+eligibility and no-catch-up policy. First-held binding selection is distinct from
+first-eligible selection; ordinary consumption does not silently change priority.
+Intro uses a copied SDK binding registration; existing slice-based callers retain
+their facade entry point.
+
+One-shot consumption clears only after observed physical release. Stronger
+suppression also blocks repeats and survives transition reset. Masked input is not
+release evidence; restoring focus protects all current holds. Status reads never
+advance release state. Existing dummy `TryAcceptKey` calls still service release,
+update the shared timestamp and apply a pending post-accept delay; ordinary
+registration does not apply that delay. Synthetic input retains its historical
+method-specific timing/gate bypasses and is not a physical edge sample.
+
+Regression ownership: SDK public/independent-consumer tests establish mechanisms;
+`pkg/input/compatibility_test.go` protects legacy facade behavior, and
+`cmd/ultimav/keyboard_owner_test.go` exercises preactivation and modal early-return
+release servicing in all four scenes. Reader-clock, focus, quantity, list,
+quickload and combat-buffer suites retain game policy coverage. This is an
+implementation-boundary change, with no intended player command/debounce change;
+physical keyboard/IME and ordinary published-dependency installation remain
+separate acceptance from injected-source candidate testing.
+
 ## Routing Order
 
 Caps Lock is transparent to game-control polling: the shared Keyboard adapter

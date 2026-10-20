@@ -3,7 +3,7 @@ package game_state
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func TestRollOriginalD30UsesOneDeterministicSourceDraw(t *testing.T) {
 	const seed = uint64(448)
 	state := createTestGameState()
 	state.SetRandomSeed(seed)
-	wantSource := deterministic_random.New(seed)
+	wantSource := beradrng.New(seed)
 
 	for range 20 {
 		callsBefore := state.GetRNG().Calls()
@@ -50,9 +50,9 @@ func TestUniformD30RemainsDistinctFromOriginalD30(t *testing.T) {
 	uniform.SetRandomSeed(seed)
 	original.SetRandomSeed(seed)
 
-	wantUniform := deterministic_random.New(seed).Intn(30) + 1
+	wantUniform := beradrng.New(seed).Intn(30) + 1
 	assert.Equal(t, wantUniform, uniform.RandomIntInRange(1, 30))
-	assert.Equal(t, originalD30FromSourceValue(deterministic_random.New(seed).Intn(61)), original.RollOriginalD30())
+	assert.Equal(t, originalD30FromSourceValue(beradrng.New(seed).Intn(61)), original.RollOriginalD30())
 	assert.Equal(t, uint64(1), uniform.GetRNG().Calls())
 	assert.Equal(t, uint64(1), original.GetRNG().Calls())
 }

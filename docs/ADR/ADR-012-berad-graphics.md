@@ -48,6 +48,15 @@ Redux tests retain palette, authored geometry, phase, concealment, portrait,
 terrain and workflow integration. No sibling checkout or local replacement is
 needed to build the game. SDK tests are not rerun by game gates.
 
+Consumer regression retirement preserves that separation: generated-frame tests
+observe actual resolver results, while generic scroll/LRU/dissolve state tests
+live with the SDK. Redux retains palette/bounds conversion, uneven target
+projection, fail-closed concealment and owner-lifetime tests. Neighborhood geometry
+and the border cache's rounded standalone-texture accounting remain game-owned;
+SDK Bayer and logical-cache coverage cannot replace those assertions. Independent
+native fixtures retain a narrow shared-border-cache cleanup seam until application
+and fixture cache ownership can be changed together.
+
 Immutable inputs require explicit invalidation before reuse after mutation.
 Cache payload limits do not bound externally retained results or total VRAM.
 Native readiness failures are programming errors; contour admission errors return

@@ -441,6 +441,14 @@ text input or any competing arrow handler. A held navigation key owns the frame
 even when a repeat is not due. Resolve Shift before registering the arrow, so a
 page chord cannot become a single-row move or trigger both actions.
 
+The adapter delegates its owner-local countdown and captured-key barrier to Berad
+Input; page meanings, key sets, Shift resolution and `DialogStack` ownership remain
+Redux policy. All widgets in one scene share the scene keyboard's consumption and
+strong suppression. Do not create a private keyboard to restart list repeat or
+clear a parent's release gate. Cover/return/removal notifications remain necessary
+even when a covered widget receives no Update. The supplied callback remains live;
+the extraction does not require each widget to capture another edge sample.
+
 - Up/Down selects one row and repeats while held.
 - Shift+Up/Down aliases Page Up/Down, including both physical Shift keys.
 - First movement and fresh taps are immediate; holding waits 300 ms, then repeats

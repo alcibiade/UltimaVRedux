@@ -57,7 +57,7 @@ contracts are linked upstream rather than maintained twice. No assistant or
 private tooling is required to use these public contracts.
 
 The terminal editor and report implementation now come from the separately pinned
-[audio tools module](https://github.com/bradhannah/berad-sdk/tree/9cdcab017041/tools/berad-audio).
+[audio tools module](https://github.com/bradhannah/berad-sdk/tree/20020a7917b6/tools/berad-audio).
 Use `make audio-editor`, `make audio-catalog`, and `make audio-catalog-export`
 for Redux-configured launchers/reports. Existing editor probe flags remain supported.
 For a single build-and-open command, run `make audio-editor-run` in this checkout.
@@ -77,13 +77,23 @@ and [ADR-011](ADR/ADR-011-berad-text.md). The module is experimental; this does 
 claim a stable SDK release or new Windows/Linux native acceptance.
 
 Graphics integration consumes the published
-[Berad Graphics module](https://github.com/bradhannah/berad-sdk/tree/564225ae5d47/modules/berad-graphics).
+[Berad Graphics module](https://github.com/bradhannah/berad-sdk/tree/20020a7917b6/modules/berad-graphics).
 Sprite and VFX facades retain game artwork/palette/phase policy while the SDK owns
 pixel operations and resource reuse. Sprite, visual, portrait and scene render
 tests exercise the actual pin; independent synthetic/native SDK tests stay upstream.
 See [ADR-012](ADR/ADR-012-berad-graphics.md) and
 [sprite integration](systems/SPRITE_OUTLINE_SYSTEM.md). Publish an available SDK
 revision before advancing the dependency; no workspace replacement is required.
+
+[Berad RNG](https://github.com/bradhannah/berad-sdk/tree/891cf44f456a/modules/berad-rng)
+and [Berad Input](https://github.com/bradhannah/berad-sdk/tree/891cf44f456a/modules/berad-input)
+provide engine-free deterministic streams and keyboard mechanisms. The game imports
+the RNG source directly and keeps its `GameState` RNG policy and `pkg/input` adapter;
+saved seed/source-call state and command/repeat policy remain local. SDK checks use `make rng-check` and
+`make input-check`; game save, keyboard, widget and scene regressions exercise the
+published pins. See [ADR-013](ADR/ADR-013-berad-rng-input.md),
+[RNG ownership](systems/TIME_SYSTEM.md#shared-rng-ownership) and
+[keyboard integration](systems/INPUT_HANDLING.md#keyboard-mechanism-boundary).
 
 The consumed Audio/Text runtimes and audio tools have passed the SDK's
 [strict formatting/lint policy](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/docs/LINTING.md):

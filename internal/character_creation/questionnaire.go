@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -128,7 +128,7 @@ func matchesQuestionnairePath(result Result) bool {
 		questionnaire, err := NewQuestionnaire(
 			result.Name,
 			result.Gender,
-			deterministic_random.New(result.RandomSeed),
+			rng.New(result.RandomSeed),
 		)
 		if err != nil {
 			panic("character_creation.matchesQuestionnairePath: validated identity was rejected")
@@ -154,7 +154,7 @@ func matchesQuestionnairePath(result Result) bool {
 type Questionnaire struct {
 	name     string
 	gender   party_state.CharacterGender
-	source   *deterministic_random.Source
+	source   *rng.Source
 	used     [VirtueCount]bool
 	lost     [VirtueCount]bool
 	current  Dilemma
@@ -169,7 +169,7 @@ type Questionnaire struct {
 func NewQuestionnaire(
 	name string,
 	gender party_state.CharacterGender,
-	source *deterministic_random.Source,
+	source *rng.Source,
 ) (*Questionnaire, error) {
 	if source == nil {
 		panic("character_creation.NewQuestionnaire: random source is required")

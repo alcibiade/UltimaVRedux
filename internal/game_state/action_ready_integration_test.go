@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestReadyExplorationRoutesRemainCharacterNavigable(t *testing.T) {
@@ -534,7 +534,7 @@ func firstReadyActivePC(state *GameState, start int) CombatTurnIdentity {
 func readyRingSeed(t *testing.T, vanishes bool) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 1024; seed++ {
-		if (deterministic_random.New(seed).Intn(16) == 0) == vanishes {
+		if (beradrng.New(seed).Intn(16) == 0) == vanishes {
 			return seed
 		}
 	}

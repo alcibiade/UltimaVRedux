@@ -43,9 +43,9 @@ func newBorderImageCache(maxBytes int64, maxEntries int) *borderImageCache {
 	}
 }
 
-// ClearBorderCache drops reusable frame references when an owning application or
-// independent fixture retires. Live borrowers remain valid; no shared image is
-// deallocated by this operation.
+// ClearBorderCache retires shared frame references between independent native
+// scene fixtures. Production scenes share the application-lifetime cache.
+// Live borrowers remain valid; no shared image is deallocated by this operation.
 func ClearBorderCache() {
 	globalBorderCache.mu.Lock()
 	defer globalBorderCache.mu.Unlock()

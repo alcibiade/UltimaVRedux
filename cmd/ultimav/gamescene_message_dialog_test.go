@@ -8,6 +8,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
 func TestStyledMessageAdapterPreservesPrimaryFormattingAndSecondaryTranscript(t *testing.T) {
@@ -37,7 +38,8 @@ func TestStyledMessageAdapterPreservesPrimaryFormattingAndSecondaryTranscript(t 
 			if leadingBlank {
 				builder.NewLine()
 			}
-			builder.QuoteStart().Spoken("Thou art now level").LightGreen(" 2").QuoteEnd().Done()
+			builder.Text("\"", ucolor.EGALightGray).Spoken("Thou art now level").
+				LightGreen(" 2").Text("\"", ucolor.EGALightGray).Done()
 			scene.appendStyledMessage(message)
 			assert.Equal(t, expectedOutput, output, "modal=%t leadingBlank=%t", modal, leadingBlank)
 			if modal {

@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -102,7 +102,7 @@ func (g *GameScene) initializeWandererDissolveEffect() {
 	g.wandererDissolve.Initialize(
 		spriteWidth, spriteHeight,
 		visual.DissolveModeHide, // Hide mode: starts opaque (1.0) → transparent (0.0)
-		deterministic_random.New(wandererDissolveSeed),
+		rng.New(wandererDissolveSeed),
 	)
 
 	logging.Debug(logging.CategoryGameState, "Initialized wanderer dissolve effect (%dx%d)", spriteWidth, spriteHeight)
@@ -139,7 +139,7 @@ func (g *GameScene) initializeAvatarDissolveEffect() {
 	g.avatarDissolve.Initialize(
 		spriteWidth, spriteHeight,
 		visual.DissolveModeHide, // Hide mode: starts opaque (1.0) → transparent (0.0)
-		deterministic_random.New(avatarDissolveSeed),
+		rng.New(avatarDissolveSeed),
 	)
 
 	logging.Debug(logging.CategoryGameState, "Initialized avatar dissolve effect (%dx%d)", spriteWidth, spriteHeight)
@@ -205,7 +205,7 @@ func (g *GameScene) FadeFromBlack() {
 //	    g.StopTileDissolve(guardianID)
 //	})
 func (g *GameScene) StartTileDissolveWithOptions(opts TileDissolveOptions) int {
-	return g.startTileDissolveWithOptions(opts, deterministic_random.New(tileDissolveSeed(opts)))
+	return g.startTileDissolveWithOptions(opts, rng.New(tileDissolveSeed(opts)))
 }
 
 func tileDissolveSeed(opts TileDissolveOptions) uint64 {
@@ -224,7 +224,7 @@ func tileDissolveSeed(opts TileDissolveOptions) uint64 {
 
 func (g *GameScene) startTileDissolveWithOptions(
 	opts TileDissolveOptions,
-	rng *deterministic_random.Source,
+	rng *rng.Source,
 ) int {
 	// Get sprite dimensions
 	sprite := g.spriteSheet.GetSprite(opts.SpriteIndex)

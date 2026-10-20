@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestVirtueOrderNamesAndBonuses(t *testing.T) {
@@ -35,7 +35,7 @@ func TestVirtueOrderNamesAndBonuses(t *testing.T) {
 }
 
 func TestQuestionnaireFixedSeedSequenceAndResult(t *testing.T) {
-	source := deterministic_random.New(42)
+	source := beradrng.New(42)
 	questionnaire, err := NewQuestionnaire("Avatar", party_state.Female, source)
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +83,7 @@ func TestQuestionnaireFixedSeedSequenceAndResult(t *testing.T) {
 		t.Fatalf("ValidateResult() error = %v", err)
 	}
 
-	restored := deterministic_random.Restore(result.RandomSeed, result.RandomSourceCalls)
+	restored := beradrng.Restore(result.RandomSeed, result.RandomSourceCalls)
 	if got, want := restored.Intn(1000), source.Intn(1000); got != want {
 		t.Fatalf("restored next value = %d, want %d", got, want)
 	}
@@ -131,7 +131,7 @@ func TestValidateResultRejectsImpossibleTournamentResults(t *testing.T) {
 
 func TestQuestionnaireRoundInvariants(t *testing.T) {
 	for seed := uint64(1); seed <= 32; seed++ {
-		questionnaire, err := NewQuestionnaire("Avatar", party_state.Male, deterministic_random.New(seed))
+		questionnaire, err := NewQuestionnaire("Avatar", party_state.Male, beradrng.New(seed))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -167,7 +167,7 @@ func TestQuestionnaireRoundInvariants(t *testing.T) {
 }
 
 func TestQuestionnaireRejectsInvalidAndPostCompletionAnswersAtomically(t *testing.T) {
-	source := deterministic_random.New(99)
+	source := beradrng.New(99)
 	questionnaire, err := NewQuestionnaire("Avatar", party_state.Male, source)
 	if err != nil {
 		t.Fatal(err)
@@ -225,7 +225,7 @@ func TestNewQuestionnaireValidatesIdentityBeforeConsumingRandomness(t *testing.T
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			source := deterministic_random.New(7)
+			source := beradrng.New(7)
 			questionnaire, err := NewQuestionnaire(test.character, test.gender, source)
 			if questionnaire != nil || !errors.Is(err, test.wantError) {
 				t.Fatalf("NewQuestionnaire() = %#v, %v", questionnaire, err)
@@ -237,7 +237,7 @@ func TestNewQuestionnaireValidatesIdentityBeforeConsumingRandomness(t *testing.T
 	}
 
 	for _, character := range []string{"A", "abcdefgh", "Avatar", "BRAD"} {
-		if _, err := NewQuestionnaire(character, party_state.Female, deterministic_random.New(7)); err != nil {
+		if _, err := NewQuestionnaire(character, party_state.Female, beradrng.New(7)); err != nil {
 			t.Fatalf("valid name %q rejected: %v", character, err)
 		}
 	}
@@ -253,7 +253,7 @@ func TestNewQuestionnaireRequiresRandomSource(t *testing.T) {
 }
 
 func TestNewQuestionnaireRejectsAdvancedRandomSource(t *testing.T) {
-	source := deterministic_random.New(7)
+	source := beradrng.New(7)
 	_ = source.Intn(VirtueCount)
 	questionnaire, err := NewQuestionnaire("Avatar", party_state.Male, source)
 	if questionnaire != nil || !errors.Is(err, ErrAdvancedRandomSource) {

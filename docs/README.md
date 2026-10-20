@@ -59,6 +59,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | [`ADR/ADR-010-reusable-audio-module.md`](ADR/ADR-010-reusable-audio-module.md) | Explain Berad Audio extraction, SDK migration, and pinned consumer integration. | `audio` | ADR rationale |
 | [`ADR/ADR-011-berad-text.md`](ADR/ADR-011-berad-text.md) | Explain SDK-owned typography/rendering with game-owned text and input policy. | `text` | ADR rationale |
 | [`ADR/ADR-012-berad-graphics.md`](ADR/ADR-012-berad-graphics.md) | Explain SDK image/resource mechanics with game-owned artwork, presentation and lifetime adapters. | `rendering` | ADR rationale |
+| [`ADR/ADR-013-berad-rng-input.md`](ADR/ADR-013-berad-rng-input.md) | Explain exact RNG continuation and shared keyboard mechanisms with game-owned policies. | `architecture` | ADR rationale |
 
 ## Current Systems
 

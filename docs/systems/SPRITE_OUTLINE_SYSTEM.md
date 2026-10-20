@@ -183,5 +183,7 @@ Static outlines need no clock. Callers that pulse intensity or alternate marchin
 - `cmd/ultimav/gamescene_draw_entities.go`: Avatar and combat actor rendering.
 - `cmd/ultimav/gamescene_combat_active_indicator.go`: combat indicator selection.
 - `internal/sprites/tile_effects_test.go`: processor and outline behavior tests.
-- `internal/sprites/tile_outline_only_test.go`: transparent interiors, backing, alignment and bounded cache behavior.
+- `internal/sprites/tile_outline_only_test.go`: semantic colours, transparent
+  interiors, backing, alignment and fail-closed admission. Generic LRU promotion
+  and eviction-count assertions live with the SDK processor.
 - `cmd/ultimav/gamescene_combat_arch_indicator_test.go`: arch composition, frame/identity selection and preserved concealment.

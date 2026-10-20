@@ -152,9 +152,6 @@ type TileEffectPipeline struct {
 	FrameCount  int
 }
 
-// IsEmpty reports whether this game preset requests any operation.
-func (pipeline TileEffectPipeline) IsEmpty() bool { return len(pipeline.Effects) == 0 }
-
 // TileEffectBuilder keeps existing game preset composition outside the SDK.
 type TileEffectBuilder struct{ pipeline TileEffectPipeline }
 

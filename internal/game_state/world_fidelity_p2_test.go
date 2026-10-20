@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 type observingWorldController struct {
@@ -50,7 +50,7 @@ func TestWorldOrdinaryTownOrder(t *testing.T) {
 	// Find a wake success followed by fire damage and successful regeneration.
 	var seed uint64
 	for ; seed < 10000; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(16) == 0 {
 			_ = rng.Intn(8)
 			if rng.Intn(8) == 7 {
@@ -59,7 +59,7 @@ func TestWorldOrdinaryTownOrder(t *testing.T) {
 		}
 	}
 	require.Less(t, seed, uint64(10000))
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	_ = wantRNG.Intn(16)
 	wantHP := uint16(50 - (wantRNG.Intn(8) + 1) + 1)
 	state.SetRandomSeed(seed)
@@ -247,7 +247,7 @@ func TestWorldSparseSweepsUseOccupiedEligibleOrder(t *testing.T) {
 	roster[10].PartyMap = party_state.PartyMapUnrecruited
 	state.PartyState = *party_state.NewPartyStateFromRoster(roster)
 	state.SetRandomSeed(123)
-	wantRNG := deterministic_random.New(123)
+	wantRNG := beradrng.New(123)
 	state.processAutoWake()
 	for _, index := range []int{0, 3} {
 		assert.Equal(t, wantRNG.Intn(16) == 0, !state.PartyState.GetCharacter(index).IsAsleep())
@@ -325,7 +325,7 @@ func TestWorldWhirlpoolContactScansAllAndRunsOnlyBeforeMovement(t *testing.T) {
 		}
 	}
 	var seed uint64
-	for deterministic_random.New(seed).Intn(2) != 1 {
+	for beradrng.New(seed).Intn(2) != 1 {
 		seed++
 	}
 	state.SetRandomSeed(seed)

@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestDungeonCampingUninterruptedRestUsesExactFiveMinuteCycles(t *testing.T) {
@@ -102,7 +102,7 @@ func TestDungeonCampingBardCompletionEnablesFirstGuardWanderRoll(t *testing.T) {
 	require.True(t, campState.BardMusicPlaying)
 	seed := uint64(1701)
 	state.SetRandomSeed(seed)
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	_ = expected.Intn(GuardMoveOdds)
 	state.finishBardGuardPerformance(campState)
 
@@ -258,7 +258,7 @@ const campingDungeonCyclesPerHourForTest = 12
 func dungeonCampingNoAmbushSeed(t *testing.T, checks int) uint64 {
 	t.Helper()
 	for seed := uint64(1); seed < 100_000; seed++ {
-		candidate := deterministic_random.New(seed)
+		candidate := beradrng.New(seed)
 		valid := true
 		for range checks {
 			if candidate.Intn(64) == 0 {

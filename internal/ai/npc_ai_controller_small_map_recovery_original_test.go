@@ -7,17 +7,17 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/test/helpers"
 	"github.com/bradhannah/UltimaVRedux/test/originaldata"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 type originalRecoveryRNG struct {
 	*scriptedOriginalScheduleRNG
-	source *deterministic_random.Source
+	source *beradrng.Source
 }
 
 func (r *originalRecoveryRNG) RandomIntInRange(minimum, maximum int) int {
@@ -42,7 +42,7 @@ func TestSerpentsHoldOriginalGuardScheduledTravelRecovery(t *testing.T) {
 	date := &datetime.UltimaDate{}
 	rng := &originalRecoveryRNG{
 		scriptedOriginalScheduleRNG: &scriptedOriginalScheduleRNG{t: t},
-		source:                      deterministic_random.New(1),
+		source:                      beradrng.New(1),
 	}
 	controller := NewNPCAIControllerSmallMap(slr, refs.TileReferences, state, date, rng, nil)
 	controller.PopulateMapFirstLoad()

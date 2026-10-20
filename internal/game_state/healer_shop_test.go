@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestHealerShopStateUsesAllSevenFixedPriceRows(t *testing.T) {
@@ -143,7 +143,7 @@ func TestPaidHealerCureDeductsThenStealsThenAppliesEffect(t *testing.T) {
 	statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 
 	result, err := state.ProvideHealerService(session, HealerServiceRequest{
@@ -178,7 +178,7 @@ func TestPaidHealerAllCureCommitsAtomicallyWithOnePaymentAndTheft(t *testing.T) 
 	statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := min(uint16(expectedRNG.Intn(64)+1), uint16(50))
 
 	quote, err := state.QuoteHealerServiceForAll(session, references.HealerCure)

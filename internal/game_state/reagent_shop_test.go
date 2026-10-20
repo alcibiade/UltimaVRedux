@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestGetReagentShopStateProvidesCurrentPricesLimitsAndApprovalViews(t *testing.T) {
@@ -217,7 +217,7 @@ func TestPurchaseReagentOfferCommitsPaidSaturationInAuthoritativeOrder(t *testin
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.PartyState.Inventory.Gold.Set(100)
 	state.PartyState.Inventory.Reagent.Set(references.BloodMoss, 94)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 	expectedTheft = min(expectedTheft, uint16(61))
 	refreshes := 0

@@ -2,8 +2,11 @@ package audio
 
 import (
 	"fmt"
+	"io"
+	"math"
 	"slices"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
@@ -12,6 +15,53 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
+
+func TestLiveAmbientProjectionAppliesCalibrationAndWindowExactlyOnce(t *testing.T) {
+	// Start from the normal synthetic project, then preserve the authored
+	// calibration/window through the actual manager's library and planner.
+	base, _, _ := gameAudioFixture(t)
+	document := base.library.Document()
+	cue := document.Cues[string(AmbientFire)]
+	cue.VolumeModifier = 0.5
+	document.Cues[string(AmbientFire)] = cue
+	recording := document.Recordings[cue.RecordingID]
+	recording.CalibrationGainDB = new(6.0)
+	recording.PlaybackWindow = &PlaybackWindow{StartMs: 20, EndMs: 40}
+	document.Recordings[cue.RecordingID] = recording
+	document.Routing.Ambient[string(AmbientFire)] = AmbientProfile{RadiusTiles: 8, FadeInMs: 1000, FadeOutMs: 1000}
+	key := tileAudioKey(indexes.FireLogs)
+	assignment := document.Routing.Tiles[key]
+	assignment.AmbientCue, assignment.Gain = string(AmbientFire), new(2.0)
+	document.Routing.Tiles[key] = assignment
+	pcm := editorTestWAV()
+	library, err := NewLibrary(encodeAudioValue(document), fstest.MapFS{*recording.File: {Data: pcm}},
+		LibraryOptions{Validate: ReduxLibraryValidator})
+	require.NoError(t, err)
+	manager, backend, now := gameAudioLibraryFixture(t, library)
+	tiles := []TileWithPosition{{Tile: &references.Tile{Index: indexes.FireLogs}},
+		{Tile: &references.Tile{Index: indexes.FireLogs}, Position: references.Position{X: 4}}}
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, tiles, nil)
+	*now = now.Add(time.Second)
+	manager.Update()
+	require.Len(t, backend.players, 1, "strongest static fire owns one calibrated voice")
+	want := math.Pow(10, 6.0/20) // 0.5 cue * 2 source; calibration applies exactly once.
+	require.InDelta(t, want, manager.ambience.Snapshot().Sources[0].Voice.Gain, 1e-9)
+	windowBytes := EditorSampleRate * decodedPCMBytesPerFrame * 20 / 1000
+	window, err := io.ReadAll(io.LimitReader(backend.players[0].source, int64(windowBytes*2)))
+	require.NoError(t, err)
+	require.Len(t, window, windowBytes*2)
+	require.NotEqual(t, make([]byte, windowBytes), window[:windowBytes], "the selected source window is audible")
+	require.Equal(t, window[:windowBytes], window[windowBytes:], "ambient loop uses the authored excerpt")
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{X: 4}, tiles[1:], nil)
+	require.Len(t, backend.players, 1, "a new strongest tile retains the source identity")
+	require.NoError(t, manager.SetAmbientVolume(0.5))
+	require.InDelta(t, want*0.5, manager.ambience.Snapshot().Sources[0].Voice.Gain, 1e-9)
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, nil)
+	*now = now.Add(time.Second)
+	manager.Update()
+	require.False(t, backend.players[0].IsPlaying())
+	require.Empty(t, manager.ambience.Snapshot().Sources)
+}
 
 func dynamicFixtureSource(manager *GameAudioManager, kind AmbientSoundType, id string) AmbientSoundSource {
 	definition, _ := manager.GetAmbientSoundDefinition(kind)
@@ -70,10 +120,10 @@ func TestFountainFramesAndStrongestFireRetainLiveVoices(t *testing.T) {
 		}
 	})
 	for frame := indexes.Fountain1; frame <= indexes.Fountain4; frame++ {
-		manager.UpdateAmbientSounds(references.Position{}, []TileWithPosition{
+		manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, []TileWithPosition{
 			{Tile: &references.Tile{Index: indexes.SpriteIndex(frame)}},
 			{Tile: &references.Tile{Index: indexes.Fountain1}, Position: references.Position{X: 2}},
-		})
+		}, nil)
 		*now = now.Add(200 * time.Millisecond)
 		manager.Update()
 		require.Len(t, backend.players, 1, "canonical animation family owns one voice")
@@ -84,15 +134,15 @@ func TestFountainFramesAndStrongestFireRetainLiveVoices(t *testing.T) {
 		{Tile: &references.Tile{Index: indexes.ItemTorch}, Position: references.Position{X: 1}},
 		{Tile: &references.Tile{Index: indexes.Brazier}, Position: references.Position{X: 4}},
 	}
-	manager.UpdateAmbientSounds(references.Position{}, tiles)
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, tiles, nil)
 	plans, err := manager.planner.Sources(references.Position{}, tiles, nil)
 	require.NoError(t, err)
 	require.Len(t, plans, 1)
 	require.InDelta(t, 0.8*AmbientDistanceGain(4, 8), plans[0].Gain, 1e-9)
 	count := len(backend.players)
-	manager.UpdateAmbientSounds(references.Position{}, tiles[:1])
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, tiles[:1], nil)
 	require.Len(t, backend.players, count, "strongest static source changes gain, not voice identity")
-	manager.UpdateAmbientSounds(references.Position{X: 4}, tiles[:1])
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{X: 4}, tiles[:1], nil)
 	*now = now.Add(time.Minute)
 	manager.Update()
 	require.False(t, backend.players[count-1].IsPlaying())
@@ -105,7 +155,7 @@ func TestLighthouseSharesTileVoiceAcrossMovementFloorAndExit(t *testing.T) {
 	require.Equal(t, 10.0, definition.MaxDistance)
 	require.Equal(t, "seagulls_01", productionLibrary().Cues[string(AmbientLighthouse)].RecordingID)
 	tiles := []TileWithPosition{{Tile: &references.Tile{Index: indexes.SpriteIndex(27)}}}
-	manager.UpdateAmbientSounds(references.Position{}, tiles)
+	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, tiles, nil)
 	*now = now.Add(definition.FadeInTime)
 	manager.Update()
 	for _, location := range []references.Location{references.Fogsbane, references.Stormcrow, references.Greyhaven, references.Waveguide} {
@@ -123,12 +173,12 @@ func TestLighthouseSharesTileVoiceAcrossMovementFloorAndExit(t *testing.T) {
 	}
 	outside := tiles[0].Position
 	outside.X += 5
-	manager.UpdateAmbientSounds(outside, tiles)
+	manager.UpdateAmbientSoundsWithDynamicSources(outside, tiles, nil)
 	manager.Update()
 	require.Len(t, backend.players, 1)
 	require.InDelta(t, definition.BaseVolume*AmbientDistanceGain(5, 10), manager.ambience.Snapshot().Sources[0].Voice.Gain, 1e-9)
 	outside.X += 6
-	manager.UpdateAmbientSounds(outside, tiles)
+	manager.UpdateAmbientSoundsWithDynamicSources(outside, tiles, nil)
 	*now = now.Add(definition.FadeOutTime)
 	manager.Update()
 	require.False(t, backend.players[0].IsPlaying())
@@ -204,7 +254,7 @@ func TestDungeonAndNavalBedsUseGameRoutingAndLiveLifecycle(t *testing.T) {
 			require.NoError(t, manager.SetSoundEffectVolume(0))
 			manager.Update()
 			require.InDelta(t, bed.GetBaseVolume()*0.5, manager.ambience.Snapshot().Sources[0].Voice.Gain, 1e-9)
-			manager.UpdateAmbientSounds(references.Position{}, nil)
+			manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, nil, nil)
 			require.Equal(t, berad.VoiceReleasing, manager.ambience.Snapshot().Sources[0].Voice.State)
 			*now = now.Add(bed.FadeOutTime)
 			manager.Update()

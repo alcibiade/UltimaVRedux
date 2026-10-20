@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestShipShopCanonicalDealersPricesAndPurePreview(t *testing.T) {
@@ -287,7 +287,7 @@ func TestPurchaseShipCommitsPaymentTheftDeliveryAndRefreshInOrder(t *testing.T) 
 	shop, err := state.GetShipShopState(session)
 	require.NoError(t, err)
 	quote := shop.FrigateQuote
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 	expectedAfterPayment := uint16(2000 - quote.Price)
 	expectedAfterTheft := expectedAfterPayment - expectedTheft
@@ -407,7 +407,7 @@ func TestPurchaseShipLoadsReviewedSkiffQuantityAtomically(t *testing.T) {
 	request := shipPurchaseRequest(shop, shop.SkiffQuote)
 	request.Quantity = approval.Quantity
 	request.ReviewedTotalPrice = approval.TotalPrice
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 	refreshes := 0
 	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }

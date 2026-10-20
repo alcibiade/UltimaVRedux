@@ -1,14 +1,15 @@
+// Package helpers provides shared numeric, reflection, and slice utilities.
 package helpers
 
 import (
+	"cmp"
 	"reflect"
-
-	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/rand"
 )
 
-// Max Generic Max function
-func Max[T constraints.Ordered](a, b T) T {
+// Max returns the greater value, choosing b when the comparison is unordered.
+//
+//nolint:ireturn // The result retains the caller's concrete ordered type.
+func Max[T cmp.Ordered](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -16,8 +17,10 @@ func Max[T constraints.Ordered](a, b T) T {
 	return b
 }
 
-// Min Generic Min function
-func Min[T constraints.Ordered](a, b T) T {
+// Min returns the lesser value, choosing b when the comparison is unordered.
+//
+//nolint:ireturn // The result retains the caller's concrete ordered type.
+func Min[T cmp.Ordered](a, b T) T {
 	if a < b {
 		return a
 	}
@@ -25,6 +28,7 @@ func Min[T constraints.Ordered](a, b T) T {
 	return b
 }
 
+// AbsInt returns the absolute value of a, subject to integer overflow.
 func AbsInt(a int) int {
 	if a < 0 {
 		return a * -1
@@ -33,6 +37,7 @@ func AbsInt(a int) int {
 	return a
 }
 
+// IsOfTypeInterface checks whether inst's type implements the interface holding iface.
 func IsOfTypeInterface(inst, iface interface{}) bool {
 	instType := reflect.TypeOf(inst)
 	ifaceType := reflect.TypeOf(&iface).Elem() // .Elem() to get the interface type
@@ -40,39 +45,7 @@ func IsOfTypeInterface(inst, iface interface{}) bool {
 	return instType.Implements(ifaceType)
 }
 
-func OneInXOdds(odds int) bool {
-	return rand.Intn(odds) == 0
-}
-
-func RandomIntInRange(min, max int) int {
-	if min > max {
-		// Programming bug: caller must validate min <= max constraint
-		panic("min cannot be greater than max")
-	}
-
-	return rand.Intn(max-min+1) + min
-}
-
-func RandomUInt16InRange(min, max uint16) uint16 {
-	if min > max {
-		// Programming bug: caller must validate min <= max constraint
-		panic("min cannot be greater than max")
-	}
-	// Compute the inclusive width in int: max-min+1 would wrap to zero in
-	// uint16 for the full 0..65535 range and cause Intn(0) to panic.
-	width := int(max) - int(min) + 1
-
-	return uint16(int(min) + rand.Intn(width)) //nolint:gosec // The result is in [min,max], both uint16.
-}
-
-func PickOneOf[T any](a, b T) T {
-	if OneInXOdds(2) {
-		return a
-	}
-
-	return b
-}
-
+// FilterFromSlice retains matching elements in order, reusing the input's backing array.
 func FilterFromSlice[T any](slice []T, keep func(T) bool) []T {
 	nIndex := 0 // next write position
 
@@ -86,10 +59,14 @@ func FilterFromSlice[T any](slice []T, keep func(T) bool) []T {
 	return slice[:nIndex] // truncate tail
 }
 
+// RoundUp adds one half to f and truncates the result toward zero.
 func RoundUp(f float32) int {
-	return int(f + 0.5)
+	const half = 0.5
+
+	return int(f + half)
 }
 
+// Delete removes the element at i, reusing the input's backing array.
 func Delete[T any](s []T, i int) []T {
 	return append(s[:i], s[i+1:]...)
 }

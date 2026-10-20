@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestInterceptSmashedCommandZeroConsumesNoRNG(t *testing.T) {
@@ -66,7 +66,7 @@ func TestInterceptSmashedCommandPreservesOrderedGuardWorkBeforeDirection(t *test
 
 	const civilianRolls = 2
 	seed := smashedHitSeedForDirection(2, civilianRolls)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	require.Equal(t, 1, expectedRNG.Intn(2))
 	for range civilianRolls {
 		expectedRNG.Intn(guardActivationFleeRollMaximum + 1)
@@ -273,7 +273,7 @@ func TestSmashedLegacyTownContinuationPreservesNextInterception(t *testing.T) {
 
 func smashedMissSeed() uint64 {
 	for seed := uint64(0); ; seed++ {
-		if deterministic_random.New(seed).Intn(2) == 0 {
+		if beradrng.New(seed).Intn(2) == 0 {
 			return seed
 		}
 	}
@@ -281,7 +281,7 @@ func smashedMissSeed() uint64 {
 
 func smashedHitSeedForDirection(sourceRoll, civilianRolls int) uint64 {
 	for seed := uint64(0); ; seed++ {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(2) == 0 {
 			continue
 		}

@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // TestPirateInCannonRangeDistinguishesFireFromContact documents that one
@@ -83,7 +83,7 @@ func TestPirateCannonSerializesEveryQueuedAttack(t *testing.T) {
 	pirate := addPirateTestEnemy(t, gs, references.Position{X: 100, Y: 98}, indexes.PirateShipDown)
 	gs.SetRandomSeed(seed)
 	mock.Reset()
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantHP := 100
 	for range 3 {
 		wantHP -= wantRNG.Intn(8) + 1
@@ -157,7 +157,7 @@ func TestPirateAttackPhaseWarnsAndFiresAllAlignedInSourceOrder(t *testing.T) {
 	setPirateTestWaterLine(gs, warning.Pos(), gs.MapState.PlayerLocation.Position)
 	setPirateTestWaterLine(gs, last.Pos(), gs.MapState.PlayerLocation.Position)
 	gs.SetRandomSeed(seed)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantHP := 100 - (wantRNG.Intn(sourceHitPartyDamageSides) + 1) -
 		(wantRNG.Intn(sourceHitPartyDamageSides) + 1)
 
@@ -215,7 +215,7 @@ func TestPirateAttackUsesSourceHitForFrigateAndBlockedLOSUsesNoRNG(t *testing.T)
 		pirate := addPirateTestEnemy(t, gs, references.Position{X: 100, Y: 98}, indexes.PirateShipLeft)
 		setPirateTestWaterLine(gs, pirate.Pos(), gs.MapState.PlayerLocation.Position)
 		gs.SetRandomSeed(seed)
-		wantDamage := deterministic_random.New(seed).Intn(sourceHitHullDamageSides) + 1
+		wantDamage := beradrng.New(seed).Intn(sourceHitHullDamageSides) + 1
 
 		require.True(t, gs.CheckPirateAttack())
 

@@ -16,12 +16,9 @@ import (
 
 const mapExitPromptWorkflowName = "map_exit_prompt"
 
-// Arrow key detection functions have been moved to Keyboard abstraction layer
-// See pkg/input/keyboard.go:GetPressedArrowKey() and GetArrowKeyAsDirection()
-// These were previously called by:
-// - gamescene_input_common.go: ordinaryDirectionInput()
-// - gamescene_output.go: appendDirectionToOutput()
-// Now all callers use g.keyboard.GetPressedArrowKey() or g.keyboard.GetArrowKeyAsDirection()
+// Keyboard.GetPressedArrowKey resolves simultaneous arrows in Down, Up, Right,
+// Left priority order. GameScene.getKeyAsDirection maps an accepted key to the
+// movement direction.
 
 func (g *GameScene) moveToNewPositionByDirection(direction references.Direction) {
 	before := g.gameState.MapState.PlayerLocation.Position

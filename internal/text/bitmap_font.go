@@ -148,9 +148,6 @@ func ScaledCharWidth(scale float64) float64 { return float64(BitmapCharWidth) * 
 // ScaledCharHeight returns the scaled original cell height.
 func ScaledCharHeight(scale float64) float64 { return float64(BitmapCharHeight) * scale }
 
-// StringWidthInChars counts original bytes, not UTF-8 runes.
-func StringWidthInChars(value string) int { return len(value) }
-
 // StringWidthScaled measures an original byte sequence in scaled cell pixels.
 func StringWidthScaled(value string, scale float64) float64 {
 	return float64(len(value)) * ScaledCharWidth(scale)

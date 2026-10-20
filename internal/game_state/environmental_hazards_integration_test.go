@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestEnvironmentalHazardsIntegrationSwamp(t *testing.T) {
@@ -271,7 +271,7 @@ func TestTurnHazardRepeatedLavaAppliesOncePerCallBeforeFeedback(t *testing.T) {
 	state.MapState.PlayerLocation.Position = position
 	state.SetRandomSeed(seed)
 	callbacks.Reset()
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantHP := uint16(100 - (wantRNG.Intn(8) + 1) - (wantRNG.Intn(8) + 1))
 
 	require.NotPanics(t, func() {
@@ -311,7 +311,7 @@ func TestTurnHazardRepeatedSwampMutatesBeforeCoalescedFeedback(t *testing.T) {
 	state.MapState.PlayerLocation.Position = position
 	seed := uint64(0)
 	for {
-		rng := deterministic_random.New(seed)
+		rng := beradrng.New(seed)
 		if rng.Intn(30) > 0 && rng.Intn(30) > 0 {
 			break
 		}
@@ -372,7 +372,7 @@ func TestMovementAppliesStandingHazardOnlyDuringOrdinaryCompletion(t *testing.T)
 	state.GetCurrentLayeredMap().SetTileByLayer(0, &position, indexes.Lava)
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectTimeStop, TurnsRemaining: 2}
 	state.SetRandomSeed(seed)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantHP := uint16(100 - (wantRNG.Intn(8) + 1))
 
 	state.CompleteSurfaceMovementCycle(references.LargeMapType, true)

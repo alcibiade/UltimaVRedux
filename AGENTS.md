@@ -34,7 +34,7 @@ Read [README.md](README.md), [installation guidance](docs/INSTALL.md),
 - Mark verified intentional differences with `REDUX DEVIATION:`, a canonical
   Game Facts ID, original rule, Redux outcome, and rationale. Unknown behavior and
   unfixed fidelity bugs are not intentional deviations.
-- Use `text.Output` for game text; direct `DrawText` methods are internal. Separate
+- Use `text.Output` for game text; legacy direct `DrawText` entry points are retired. Separate
   control keys from hints and labels from values using semantic colours. Preserve
   selected-row contrast and explain availability in text as well as colour.
 - Feedback events are presentation-only: they never own input or mutate gameplay.

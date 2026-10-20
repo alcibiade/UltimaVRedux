@@ -2,12 +2,12 @@ package game_state
 
 import (
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 // SpawnShadowlordNPC creates and spawns a Shadowlord enemy NPC at the specified position.
@@ -468,7 +468,7 @@ func (g *GameState) ApplyShadowlordMapEffects(lord references.Shadowlord) (int, 
 	// REDUX DEVIATION: vegetation effects reseeds from wall time after its
 	// day-seeded pass. Redux uses an isolated deterministic stream so later gameplay RNG is unchanged.
 	// See ref:SHADOW-0002.
-	effectRNG := deterministic_random.New(uint64(g.DateTime.Day))
+	effectRNG := rng.New(uint64(g.DateTime.Day))
 
 	// Scan the entire map for affected tiles
 	// Use the map dimensions from LayeredMap
@@ -522,6 +522,7 @@ func (g *GameState) ApplyShadowlordMapEffects(lord references.Shadowlord) (int, 
 // Returns the same index if the tile is not affected.
 // See ref:SHADOW-0002.
 func getShadowlordMapEffectReplacement(tileIndex indexes.SpriteIndex) indexes.SpriteIndex {
+	//nolint:exhaustive // Only crops and fruit trees change; every other tile is preserved.
 	switch tileIndex {
 	case indexes.WheatInField:
 		return indexes.PlowedField

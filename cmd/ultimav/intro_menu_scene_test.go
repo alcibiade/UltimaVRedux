@@ -170,19 +170,19 @@ func TestIntroMenuConfigureOpensDisplayAndReturnsToMenu(t *testing.T) {
 
 func TestIntroMenuConfigureRestoresTitleAudioOwnership(t *testing.T) {
 	scene := newIntroInputTestScene()
-	manager, err := audio.NewGameAudioManager()
+	manager, err := audio.NewGameAudioManagerWithConfig(nil)
 	require.NoError(t, err)
 	scene.audioManager = manager
 	t.Cleanup(func() { require.NoError(t, manager.Close()) })
 
 	scene.openConfigurationDialog()
-	assert.False(t, manager.IsEnabled())
+	assert.False(t, manager.PlaybackSnapshot().Enabled)
 	dialog, ok := scene.dialogStack.PeekTopModalDialog().(*ConfigurationDialog)
 	require.True(t, ok)
 
 	dialog.onCancelClicked()
 
-	assert.True(t, manager.IsEnabled())
+	assert.True(t, manager.PlaybackSnapshot().Enabled)
 	assert.Zero(t, scene.dialogStack.Count())
 }
 

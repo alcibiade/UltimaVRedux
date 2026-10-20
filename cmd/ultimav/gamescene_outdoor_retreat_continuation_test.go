@@ -8,13 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestOutdoorLivingRetreatProductionDrainCompletesSlowStepAfterSummary(t *testing.T) {
@@ -66,7 +66,7 @@ func TestOutdoorLivingRetreatProductionDrainCompletesSlowStepAfterSummary(t *tes
 	state.CombatScene.SetPartyMemberPosition(0, references.Position{X: 0, Y: 5})
 	state.ActiveDurationEffect = game_state.DurationEffect{EffectType: game_state.DurationEffectProtection, TurnsRemaining: 5}
 	state.SetRandomSeed(123)
-	oracle := deterministic_random.New(123)
+	oracle := beradrng.New(123)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyLeft)
 	require.NoError(t, scene.Update(nil))
 	require.Nil(t, state.CombatScene)

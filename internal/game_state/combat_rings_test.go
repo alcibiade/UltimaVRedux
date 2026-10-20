@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCombatRingInitializationUsesLivingPartyOrderAndSleepGate(t *testing.T) {
@@ -20,7 +20,7 @@ func TestCombatRingInitializationUsesLivingPartyOrderAndSleepGate(t *testing.T) 
 	dead := activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Dead)
 	sleeping := activateCombatRingTestCharacter(state, 1, references.RingInvisibility, party_state.Sleep)
 	awake := activateCombatRingTestCharacter(state, 2, references.RingInvisibility, party_state.Good)
-	seed := findCombatRingSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(combatRingDisappearanceRollMaximum+1) == combatRingDisappearanceRollResult &&
 			rng.Intn(combatRingDisappearanceRollMaximum+1) != combatRingDisappearanceRollResult
 	})
@@ -51,7 +51,7 @@ func TestCombatRingInitializationRunsNestedRegenerationSweeps(t *testing.T) {
 	first.SetHp(first.GetMaxHp() - 2)
 	sleeping.SetHp(sleeping.GetMaxHp() - 2)
 	capped.SetHp(capped.GetMaxHp())
-	seed := findCombatRingSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		if rng.Intn(16) == combatRingDisappearanceRollResult {
 			return false
 		}
@@ -68,7 +68,7 @@ func TestCombatRingInitializationRunsNestedRegenerationSweeps(t *testing.T) {
 
 		return true
 	})
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	_ = expected.Intn(16)
 	firstSweep := [3]int{expected.Intn(8), expected.Intn(8), expected.Intn(8)}
 	_ = expected.Intn(16)
@@ -93,10 +93,10 @@ func TestCombatRingInitializationPrecedesMonsterDexterity(t *testing.T) {
 		return
 	}
 	activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
-	seed := findCombatRingSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(16) != combatRingDisappearanceRollResult
 	})
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	_ = expected.Intn(16)
 	expectedDexModifier := expected.Intn(dexModifierRange) + dexModifierMin
 	request := newComposerRequest()
@@ -127,7 +127,7 @@ func TestOverworldCombatValidationPrecedesRingDisappearance(t *testing.T) {
 	gameReferences := *state.GameReferences
 	gameReferences.EnemyReferences = &enemyReferences
 	state.GameReferences = &gameReferences
-	seed := findCombatRingSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(combatRingDisappearanceRollMaximum+1) == combatRingDisappearanceRollResult
 	})
 	state.SetRandomSeed(seed)
@@ -163,7 +163,7 @@ func TestCombatActionEndRunsOneRegenerationSweepBeforeFields(t *testing.T) {
 		fieldPosition = references.Position{}
 	}
 	require.True(t, state.CombatScene.AddField(NewCombatField(CombatFieldSleep, fieldPosition)))
-	seed := findCombatRingSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(8) == 7 && rng.Intn(8) == 7 && rng.Intn(256) >= 16
 	})
 	state.SetRandomSeed(seed)
@@ -206,10 +206,10 @@ func TestCampingRingInitializationPrecedesAmbushRNGAndTransfersVisibility(t *tes
 		return
 	}
 	activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
-	seed := findCombatRingSeed(t, func(rng *deterministic_random.Source) bool {
+	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(16) != combatRingDisappearanceRollResult
 	})
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	_ = expected.Intn(16)
 	expectedAmbushRoll := expected.Intn(64)
 	state.SetRandomSeed(seed)
@@ -268,10 +268,10 @@ func newCombatRingState(state *GameState) *CombatState {
 	return combat
 }
 
-func findCombatRingSeed(t *testing.T, matches func(*deterministic_random.Source) bool) uint64 {
+func findCombatRingSeed(t *testing.T, matches func(*beradrng.Source) bool) uint64 {
 	t.Helper()
 	for seed := uint64(0); seed < 1_000_000; seed++ {
-		if matches(deterministic_random.New(seed)) {
+		if matches(beradrng.New(seed)) {
 			return seed
 		}
 	}

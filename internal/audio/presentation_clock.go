@@ -11,7 +11,6 @@ import (
 type presentationClock struct {
 	mutex  sync.Mutex
 	source func() time.Time
-	origin time.Time
 	latest time.Time
 }
 
@@ -21,8 +20,7 @@ func newPresentationClock(source func() time.Time) *presentationClock {
 	}
 	clock := new(presentationClock)
 	clock.source = source
-	clock.origin = source()
-	clock.latest = clock.origin
+	clock.latest = source()
 
 	return clock
 }
@@ -35,8 +33,4 @@ func (clock *presentationClock) Now() time.Time {
 	}
 
 	return clock.latest
-}
-
-func (clock *presentationClock) Milliseconds() int64 {
-	return clock.Now().Sub(clock.origin).Milliseconds()
 }

@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestBedRestRunsOneRegenerationRingSweepPerIteration(t *testing.T) {
@@ -32,7 +32,7 @@ func TestBedRestRunsOneRegenerationRingSweepPerIteration(t *testing.T) {
 	const seed = uint64(44)
 	state.SetRandomSeed(seed)
 	state.CurrentNPCAIController = &bedRestPassController{}
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	wantHealing := uint16(0)
 	for range 6 {
 		if expected.Intn(8) == 7 {

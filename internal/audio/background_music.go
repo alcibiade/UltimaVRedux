@@ -23,10 +23,3 @@ func libraryMusicMetadata() map[string]MusicTrackMetadata {
 
 	return metadata
 }
-
-// GetMusicTrackMetadata returns the game's authored track label/assignment.
-func GetMusicTrackMetadata(track string) (MusicTrackMetadata, bool) {
-	metadata, exists := musicTrackMetadataMap()[track]
-
-	return metadata, exists
-}

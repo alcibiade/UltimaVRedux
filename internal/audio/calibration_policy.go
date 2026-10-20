@@ -17,17 +17,6 @@ const familyInstrument = "instrument"
 const familyNature = "nature"
 const familyFire = "fire"
 
-func (recording libraryRecording) CalibrationMode() string {
-	if recording.CalibrationGainDB == nil {
-		return "uncalibrated"
-	}
-	if recording.CalibrationPolicy == CalibrationAuto {
-		return CalibrationAuto
-	}
-
-	return CalibrationManual
-}
-
 // DefaultCalibrationTarget retains the game's family-specific monitoring policy.
 func DefaultCalibrationTarget(family string) float64 {
 	switch family {

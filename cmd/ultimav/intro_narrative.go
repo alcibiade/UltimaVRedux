@@ -6,11 +6,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/minimap"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 	"github.com/bradhannah/UltimaVRedux/pkg/color"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -148,7 +148,7 @@ func (p *introNarrativePresentation) syncFrame(nowMs int64) {
 	size := img.Bounds().Size()
 	p.fizz = visual.NewPixelDissolveEffect(
 		size.X, size.Y, size.X, size.Y, visual.DissolveModeReveal,
-		deterministic_random.New(introNarrativeFizzSeed),
+		rng.New(introNarrativeFizzSeed),
 	)
 	p.fizzBuffer = ebiten.NewImage(size.X, size.Y)
 }

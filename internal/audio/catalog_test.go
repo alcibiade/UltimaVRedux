@@ -93,7 +93,7 @@ func TestCatalogCoversEveryDeclaredEffectAndProductionAssignment(t *testing.T) {
 	}
 	for context, track := range musicContextTracks() {
 		moment := findCatalogMoment(t, catalog, "music/context/"+context)
-		metadata, exists := GetMusicTrackMetadata(track)
+		metadata, exists := musicTrackMetadataMap()[track]
 		require.True(t, exists)
 		require.Equal(t, productionLibrary().recordingPath(metadata.RecordingID), moment.ConfiguredFile)
 	}

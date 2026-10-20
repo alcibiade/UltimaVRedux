@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestHorseShopPricesUseCanonicalRowsAndCapturedBuyer(t *testing.T) {
@@ -495,7 +495,7 @@ func TestPurchaseHorseCommitsPaymentTheftInsertionAndRefreshInOrder(t *testing.T
 	request := horsePurchaseRequest(shop)
 	units := state.CurrentNPCAIController.GetNpcs()
 	unitsBefore := len(*units)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 	expectedGoldAfterPayment := uint16(1000 - shop.Quote.Price)
 	expectedGoldAfterTheft := expectedGoldAfterPayment - expectedTheft

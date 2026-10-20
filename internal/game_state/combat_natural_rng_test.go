@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestNaturalEncounterUsesSourceInterleavedRNGInBothWorlds(t *testing.T) {
@@ -31,7 +31,7 @@ func TestNaturalEncounterUsesSourceInterleavedRNGInBothWorlds(t *testing.T) {
 							source = addPirateTestEnemy(t, state, references.Position{X: 101, Y: 100}, indexes.PirateShipUp)
 						}
 						state.SetRandomSeed(seed)
-						oracle := deterministic_random.New(seed)
+						oracle := beradrng.New(seed)
 						// Party ring initialization precedes group size;
 						// fixed reference group bound values 1, 8, 16 bypass both count rolls.
 						// See ref:ENEMY-0003.
@@ -94,7 +94,7 @@ func TestNaturalEncounterStaticFailureDoesNotRollRingsOrComposition(t *testing.T
 
 			require.ErrorIs(t, state.StartOverworldCombatEncounter(source), ErrInvalidOverworldEncounter)
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Equal(t, deterministic_random.New(86).Intn(1000000), state.GetRNG().Intn(1000000))
+			assert.Equal(t, beradrng.New(86).Intn(1000000), state.GetRNG().Intn(1000000))
 			assert.Equal(t, references.RingInvisibility, state.PartyState.GetCharacter(0).GetEquippedItem(references.SlotRing))
 			assert.Equal(t, before, state.MapState.PlayerLocation)
 			assert.Nil(t, state.CombatScene)

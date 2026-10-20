@@ -31,7 +31,6 @@ type GameAudioManager struct {
 	preview                            *berad.Runtime
 	previewOwner                       *berad.Owner
 	planner                            *AmbientPlanner
-	positional                         *PositionalAudioCalculator
 	policy                             *MusicManager
 	effects                            map[string]game_state.SoundEffect
 	roles                              map[berad.SourceID]string
@@ -42,16 +41,6 @@ type GameAudioManager struct {
 
 // ErrAudioClosed reports an operation on a terminally closed game adapter.
 var ErrAudioClosed = errors.New("audio manager is closed")
-
-// NewGameAudioManager constructs the live game adapter using current defaults.
-func NewGameAudioManager() (*GameAudioManager, error) {
-	configuration, err := NewAudioConfiguration()
-	if err != nil {
-		return nil, err
-	}
-
-	return NewGameAudioManagerWithRuntime(configuration, getSharedAudioContext(), time.Now)
-}
 
 // NewGameAudioManagerWithConfig translates persisted sliders on the game side.
 func NewGameAudioManagerWithConfig(preferences *config.AudioConfiguration) (*GameAudioManager, error) {
@@ -93,8 +82,6 @@ func newGameAudioManager(library *Library, configuration *AudioConfiguration, ba
 	manager := new(GameAudioManager)
 	manager.library, manager.playback, manager.planner = library, playback, planner
 	manager.config, manager.clock = configuration.Clone(), newPresentationClock(now)
-	manager.positional = NewPositionalAudioCalculator()
-	manager.positional.SetConfiguration(manager.config)
 	manager.effects, manager.roles = make(map[string]game_state.SoundEffect), make(map[berad.SourceID]string)
 	manager.sourceMix = make(map[berad.SourceID]AmbientSourcePlan)
 	for effect, symbol := range catalogEffectNames() {
@@ -160,14 +147,6 @@ func (manager *GameAudioManager) GetConfiguration() *AudioConfiguration {
 	defer manager.mutex.RUnlock()
 
 	return manager.config.Clone()
-}
-
-// IsEnabled reports the game facade's presentation preference.
-func (manager *GameAudioManager) IsEnabled() bool {
-	manager.mutex.RLock()
-	defer manager.mutex.RUnlock()
-
-	return manager.enabled && !manager.closed
 }
 
 // SetEnabled clears effects/ambience/previews and pauses score when disabled.

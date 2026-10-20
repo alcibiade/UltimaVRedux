@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func setCombatHPBarsForTest(scene *GameScene, visible bool) {
@@ -254,7 +254,7 @@ func TestCombatFieldReportSlotZeroUsesVictimDisclosureAndFrozenHistory(t *testin
 			require.Equal(t, targetVisible, state.CombatTerrainAllowsObjectDisplay(position))
 			require.Equal(t, !targetVisible, state.CombatTerrainAllowsObjectDisplay(references.Position{}))
 			require.True(t, state.CombatScene.AddField(game_state.NewCombatField(game_state.CombatFieldFire, position)))
-			state.SetRandomSeed(sceneAreaSpellSeed(t, func(rng *deterministic_random.Source) bool {
+			state.SetRandomSeed(sceneAreaSpellSeed(t, func(rng *beradrng.Source) bool {
 				return rng.Intn(256) >= 16 && rng.Intn(11) == 7
 			}))
 			var triggers []game_state.CombatEvent

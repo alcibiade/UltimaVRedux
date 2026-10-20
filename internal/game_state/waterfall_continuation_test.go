@@ -7,13 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func newWaterfallContinuationFixture(t *testing.T, position references.Position) (*GameState, *MockSystemCallbacks) {
@@ -129,7 +129,7 @@ func TestWaterfallContinuationConsumedSurfaceCycles(t *testing.T) {
 			assert.Equal(t, 1, state.beggarKarmaCounter, "only the initiating player update")
 			// Preserve both the transformed-d30 draw and the existing fixed-damage
 			// builder's Intn(1) request. Animation and landing reviews draw nothing.
-			expected := deterministic_random.New(123)
+			expected := beradrng.New(123)
 			for range test.falls {
 				expected.Intn(originalD30SourceValueCount)
 				expected.Intn(1)
@@ -290,7 +290,7 @@ func TestWaterfallContinuationStopsSailingButRetainsOneActorTail(t *testing.T) {
 	assert.Zero(t, callbacks.StatsDisplayUpdated)
 	advanceWaterfallUntil(t, state, func() bool { return !state.IsWaterfallHazardActive() })
 	require.NoError(t, state.ResolvePendingOverworldContact())
-	expected := deterministic_random.New(123)
+	expected := beradrng.New(123)
 	expected.Intn(originalD30SourceValueCount)
 	expected.Intn(1)
 	hit := expected.Intn(8) + 1
@@ -522,7 +522,7 @@ func TestWaterfallContinuationPerFallOrderedRNGAndInactiveMembers(t *testing.T) 
 	inn := state.PartyState.GetCharacter(4)
 	innHP := inn.GetCurrentHp()
 	wantedHP := []uint16{1000, 1000, 1000}
-	expected := deterministic_random.New(123)
+	expected := beradrng.New(123)
 	for range 4 {
 		var targets []int
 		for index, dexterity := range []int{30, 1, 15} {
@@ -615,7 +615,7 @@ func TestWaterfallContinuationWaitsForAlreadyOwedRoughSeasAndStoppedSailing(t *t
 			assert.False(t, state.IsWaterfallHazardActive())
 			assert.False(t, state.EventQueueManager.HasWorkflow("automatic_sailing"))
 			assert.Zero(t, state.pendingSkiffDeepWaterHits)
-			expected := deterministic_random.New(123)
+			expected := beradrng.New(123)
 			roughDamage := expected.Intn(8) + 1
 			if test.hp == 1 {
 				assert.Equal(t, 1, deaths)

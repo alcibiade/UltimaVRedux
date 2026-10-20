@@ -6,8 +6,6 @@ import (
 	"math"
 	"unicode/utf8"
 
-	"golang.org/x/exp/rand" //nolint:staticcheck // Retain the established injectable dissolve RNG contract.
-
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
@@ -98,11 +96,6 @@ func (md *MessageDialog) SetPromptWithColor(prompt string, promptColor color.Col
 	md.promptOutput.SetColor(promptColor)
 	md.promptOutput.AddText(prompt)
 	md.contentDirty = true
-}
-
-// SetRNG sets a custom random number generator for dissolve effects (useful for deterministic testing).
-func (md *MessageDialog) SetRNG(rng *rand.Rand) {
-	md.rng = rng
 }
 
 // SetFadeDurations customizes the fade animation timing for both fade-in and fade-out effects.

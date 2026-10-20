@@ -8,13 +8,13 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/new_game"
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -34,7 +34,7 @@ type characterCreationSeedProvider func() (uint64, error)
 
 type characterCreationSceneBuilder func(
 	*config.UltimaVConfiguration,
-	*deterministic_random.Source,
+	*rng.Source,
 	CharacterCreationCallbacks,
 	*characterCreationIdentityPresentation,
 ) (Scene, error)
@@ -109,7 +109,7 @@ func (g *Game) startCharacterCreation() error {
 	return g.ReplaceScene(func() (Scene, error) {
 		scene, buildErr := g.characterCreationSceneBuilder(
 			configuration,
-			deterministic_random.New(seed),
+			rng.New(seed),
 			callbacks,
 			identityPresentation,
 		)

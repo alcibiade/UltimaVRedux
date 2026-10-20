@@ -4,10 +4,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -125,7 +125,7 @@ func TestPartyStateBuilderOriginalD30DamageUsesOneMappedRoll(t *testing.T) {
 	target.SetMaxHp(100)
 	target.SetHp(100)
 	gs.SetRandomSeed(seed)
-	wantRNG := deterministic_random.New(seed)
+	wantRNG := beradrng.New(seed)
 	wantDamage := originalD30FromSourceValue(wantRNG.Intn(originalD30SourceValueCount))
 
 	gs.EventQueueManager.Workflow("test_original_d30_damage").Priority(event_queue.PriorityNormal).

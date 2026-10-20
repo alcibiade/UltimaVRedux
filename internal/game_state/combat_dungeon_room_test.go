@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestDungeonRoomEntryDirectionMatchesOriginalDirconv(t *testing.T) {
@@ -87,7 +87,7 @@ func TestResolvePendingDungeonRoomEncounterHydratesSeededFieldsInSlotOrder(t *te
 	require.True(t, cells.SetCell(0, references.Position{X: 1, Y: 1}, references.DungeonCell(0xf0)))
 	attachDungeonStateForTest(t, state, cells)
 	rngCalls := state.GetRNG().Calls()
-	expectedRNG := deterministic_random.Restore(state.RandomSeed(), rngCalls)
+	expectedRNG := beradrng.Restore(state.RandomSeed(), rngCalls)
 	for range 4 {
 		expectedRNG.Intn(8)
 	}
@@ -141,7 +141,7 @@ func TestPopulateFixedDungeonRoomDecodesOrdinaryLootInSlotOrder(t *testing.T) {
 	combat := NewCombatState(combatMap, CombatEntryNorth, &state.PartyState)
 	floor := references.FloorNumber(3)
 	rngCalls := state.GetRNG().Calls()
-	expectedRNG := deterministic_random.Restore(state.RandomSeed(), rngCalls)
+	expectedRNG := beradrng.Restore(state.RandomSeed(), rngCalls)
 	for range 4 {
 		expectedRNG.Intn(8)
 	}

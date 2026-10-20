@@ -140,15 +140,6 @@ func (processor *TileEffectProcessor) frameIndices(
 	return index, index
 }
 
-// GetFrameIndex reports the source frame selected by the same actual rendering policy.
-func (processor *TileEffectProcessor) GetFrameIndex(
-	sprite indexes.SpriteIndex, positionHash int32, elapsedMs int64,
-) int {
-	index, _ := processor.frameIndices(sprite, positionHash, elapsedMs)
-
-	return index
-}
-
 // GetEffectSprite returns borrowed game-owned generated artwork.
 func (processor *TileEffectProcessor) GetEffectSprite(
 	sprite indexes.SpriteIndex, positionHash int32, elapsedMs int64,

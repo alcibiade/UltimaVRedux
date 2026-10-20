@@ -1,24 +1,29 @@
 package input
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	beradinput "github.com/bradhannah/berad-sdk/modules/berad-input"
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
 // KeySample is one detached physical-key snapshot. Pressed is an edge, not a
 // repeat or an ordering claim about keys pressed between application updates.
+// The arrays are projections for game policy; admission uses the SDK capture's
+// identity and cannot consume a stale, foreign, or manually fabricated sample.
 type KeySample struct {
-	Held    [ebiten.KeyMax + 1]bool
-	Pressed [ebiten.KeyMax + 1]bool
+	Held     [ebiten.KeyMax + 1]bool
+	Pressed  [ebiten.KeyMax + 1]bool
+	captured beradinput.Sample[ebiten.Key]
 }
 
 // CaptureKeySample samples once before advancing input owners. Readers still
 // receive their ordinary input; sampling alone consumes nothing.
 func (k *Keyboard) CaptureKeySample() KeySample {
-	k.ClearFrameConsumption()
 	var sample KeySample
+	sample.captured = k.keys.Capture()
 	for key := ebiten.KeyA; key <= ebiten.KeyMax; key++ {
-		sample.Held[key] = k.isKeyPressed(key)
-		sample.Pressed[key] = sample.Held[key] && !k.previousSample.Held[key]
+		sample.Held[key] = sample.captured.Held(key)
+		sample.Pressed[key] = sample.captured.Pressed(key)
 	}
-	k.previousSample = sample
 
 	return sample
 }
@@ -30,27 +35,20 @@ func (k *Keyboard) SetElapsedMillisecondsSource(source func() int64) {
 		panic("Keyboard.SetElapsedMillisecondsSource: clock is required")
 	}
 	k.elapsedMilliseconds = source
-	k.timeOfLastKeyPress = 0
-	k.timeToAllowNextKeypress = 0
+	k.cadence.ResetClock()
 	k.SetAllowKeyPressImmediately()
 }
 
 // SuppressUntilRelease rejects this physical press even in repeatable movement.
 // It deliberately survives ResetReleaseDebouncing and command cancellation.
 func (k *Keyboard) SuppressUntilRelease(key ebiten.Key) {
-	if !k.isKeyPressed(key) {
-		return
-	}
-	if k.suppressedUntilRelease == nil {
-		k.suppressedUntilRelease = make(map[ebiten.Key]bool)
-	}
-	k.suppressedUntilRelease[key] = true
+	k.keys.SuppressUntilRelease(key)
 }
 
 // IsSuppressedUntilRelease is separate from normal one-shot consumption, which
 // repeatable movement is allowed to bypass.
 func (k *Keyboard) IsSuppressedUntilRelease(key ebiten.Key) bool {
-	return k.suppressedUntilRelease[key]
+	return k.keys.Suppressed(key)
 }
 
 // HasUnprotectedHeldKey is a workflow-release query, not an acknowledgement
@@ -68,32 +66,16 @@ func (k *Keyboard) HasUnprotectedHeldKey() bool {
 // ConsumePressEdge accepts an already captured fresh press without inheriting
 // movement cadence. Ownership/transition gates still apply.
 func (k *Keyboard) ConsumePressEdge(sample KeySample, key ebiten.Key) bool {
-	if k.inputPollingSuspended || !sample.Pressed[key] || k.IsSuppressedUntilRelease(key) ||
-		k.consumedKeysUntilRelease[key] || k.IsWaitingForRelease() {
-		return false
-	}
-	k.consumedKeysUntilRelease[key] = true
-
-	return true
+	return k.keys.ConsumeEdge(sample.captured, key)
 }
 
 // SuspendInputPolling masks input while an owner advances non-input work, for
 // example while its application window lacks focus. Synthetic input is discarded,
 // not replayed later. Restore once; physical holds remain blocked until release.
 func (k *Keyboard) SuspendInputPolling() func() {
-	previous := k.inputPollingSuspended
-	k.inputPollingSuspended = true
 	k.hasSimulatedKeyPress = false
 
-	return func() {
-		k.inputPollingSuspended = previous
-		if previous {
-			return
-		}
-		for key := ebiten.KeyA; key <= ebiten.KeyMax; key++ {
-			k.SuppressUntilRelease(key)
-		}
-	}
+	return k.keys.Suspend()
 }
 
 // HasModifiers distinguishes plain command input from reserved shortcuts.

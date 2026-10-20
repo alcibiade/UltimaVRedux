@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func openWaterfallActorLanding(state *GameState) {
@@ -43,7 +43,7 @@ func TestWaterfallActorsRunBetweenFirstAndSecondFallsExactlyOnce(t *testing.T) {
 	state.CompleteSurfacePassCycle(references.LargeMapType)
 	charged := state.DateTime
 	drainWaterfallInstance(t, state)
-	expected := deterministic_random.New(123)
+	expected := beradrng.New(123)
 	expected.Intn(originalD30SourceValueCount)
 	expected.Intn(1)
 	hits := expected.Intn(8) + 1 + expected.Intn(8) + 1
@@ -69,7 +69,7 @@ func TestWaterfallActorProjectilesDrainBeforeAutomaticContinuation(t *testing.T)
 	openWaterfallActorLanding(state)
 	addContinuationEnemy(t, state, references.MonsterDragon, references.Position{X: 48, Y: 52}, 31)
 	addContinuationEnemy(t, state, references.MonsterDragon, references.Position{X: 52, Y: 52}, 20)
-	seed := outdoorFireballSeed(t, func(random *deterministic_random.Source) bool {
+	seed := outdoorFireballSeed(t, func(random *beradrng.Source) bool {
 		random.Intn(originalD30SourceValueCount)
 		random.Intn(1)
 		if random.Intn(8) != 0 {
@@ -104,7 +104,7 @@ func TestWaterfallActorProjectilesDrainBeforeAutomaticContinuation(t *testing.T)
 	assert.Same(t, cascade, state.activeWaterfall)
 	assert.True(t, state.ResumeWaterfallContinuation(), "repeated resume cannot acquire the same live name twice")
 	drainWaterfallInstance(t, state)
-	expected := deterministic_random.New(seed)
+	expected := beradrng.New(seed)
 	expected.Intn(originalD30SourceValueCount)
 	expected.Intn(1)
 	expected.Intn(8)
@@ -131,7 +131,7 @@ func TestWaterfallActorCursorSurvivesMultipleBattlesThenFireball(t *testing.T) {
 			first := addContinuationEnemy(t, state, references.MonsterSeaSerpent, references.Position{X: 51, Y: 52}, 31)
 			second := addContinuationEnemy(t, state, references.MonsterSeaSerpent, references.Position{X: 49, Y: 52}, 20)
 			addContinuationEnemy(t, state, references.MonsterDragon, references.Position{X: 48, Y: 52}, 10)
-			seed := outdoorFireballSeed(t, func(random *deterministic_random.Source) bool {
+			seed := outdoorFireballSeed(t, func(random *beradrng.Source) bool {
 				random.Intn(originalD30SourceValueCount)
 				random.Intn(1)
 				random.Intn(8) // First battle's monster DEX.
@@ -169,7 +169,7 @@ func TestWaterfallActorCursorSurvivesMultipleBattlesThenFireball(t *testing.T) {
 			assert.ErrorIs(t, state.ValidateSaveSnapshotEligibility(), ErrSaveSnapshotNotRepresentable)
 			assert.True(t, state.ResumeWaterfallContinuation())
 			drainWaterfallInstance(t, state)
-			expected := deterministic_random.New(seed)
+			expected := beradrng.New(seed)
 			expected.Intn(originalD30SourceValueCount)
 			expected.Intn(1)
 			expected.Intn(8)
@@ -237,7 +237,7 @@ func TestWaterfallOwnedWhirlpoolRechecksActualDestinationAfterLowerActors(t *tes
 	assert.Equal(t, 1, waterfallMessageCount(callbacks, "F-A-L-L-S!!!"))
 	assert.True(t, state.ResumeWaterfallContinuation())
 	drainWaterfallInstance(t, state)
-	expected := deterministic_random.New(123)
+	expected := beradrng.New(123)
 	expected.Intn(originalD30SourceValueCount)
 	expected.Intn(1)
 	hits := expected.Intn(8) + 1 + expected.Intn(8) + 1

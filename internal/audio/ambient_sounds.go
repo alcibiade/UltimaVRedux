@@ -80,18 +80,6 @@ func (source *AmbientSoundSource) SetBaseVolume(volume float64) {
 	source.baseVolume = volume
 }
 
-// SetVolumeModifier bounds the game emitter's current intensity.
-func (source *AmbientSoundSource) SetVolumeModifier(modifier float64) {
-	if math.IsNaN(modifier) || math.IsInf(modifier, 0) {
-		logging.Warn(logging.CategoryAudio, "Invalid non-finite ambient modifier")
-		modifier = 0
-	} else if modifier < 0 || modifier > 1 {
-		logging.Warn(logging.CategoryAudio, "Attempted to set invalid volume modifier %.2f, clamping to [0.0, 1.0]", modifier)
-		modifier = math.Max(0, math.Min(1, modifier))
-	}
-	source.VolumeModifier = modifier
-}
-
 func defaultAmbientSoundDefinitions() map[AmbientSoundType]AmbientSoundDefinition {
 	library := productionLibrary()
 

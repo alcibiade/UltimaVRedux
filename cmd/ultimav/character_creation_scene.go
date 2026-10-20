@@ -16,7 +16,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -24,6 +23,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -132,7 +132,7 @@ type CharacterCreationScene struct {
 	assets               *sprites.CharacterCreationAssets
 	proportionalAssets   *sprites.NarrativeIntroAssets
 	config               *config.UltimaVConfiguration
-	source               *deterministic_random.Source
+	source               *rng.Source
 	keyboard             *input.Keyboard
 	appendInputChars     func([]rune) []rune
 	nameField            characterCreationNameField
@@ -166,7 +166,7 @@ type CharacterCreationScene struct {
 // CreateCharacterCreationScene loads optional original assets and creates a detached workflow scene.
 func CreateCharacterCreationScene(
 	gameConfig *config.UltimaVConfiguration,
-	source *deterministic_random.Source,
+	source *rng.Source,
 	callbacks CharacterCreationCallbacks,
 	identityPresentation *characterCreationIdentityPresentation,
 ) (*CharacterCreationScene, error) {
@@ -199,7 +199,7 @@ func CreateCharacterCreationScene(
 //nolint:funlen // One complete scene literal makes initial ownership and terminal state explicit.
 func newCharacterCreationScene(
 	gameConfig *config.UltimaVConfiguration,
-	source *deterministic_random.Source,
+	source *rng.Source,
 	callbacks CharacterCreationCallbacks,
 	assets *sprites.CharacterCreationAssets,
 	identityPresentation *characterCreationIdentityPresentation,

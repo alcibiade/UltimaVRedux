@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
-	"github.com/bradhannah/UltimaVRedux/internal/deterministic_random"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestActivateGuardsProcessesActiveNPCsInOriginalSlotOrder(t *testing.T) {
@@ -41,7 +41,7 @@ func TestActivateGuardsProcessesActiveNPCsInOriginalSlotOrder(t *testing.T) {
 	})
 
 	const seed = uint64(1)
-	expectedRNG := deterministic_random.New(seed)
+	expectedRNG := beradrng.New(seed)
 	expectedAttempts := make([]bool, 4)
 	for index := range expectedAttempts {
 		expectedAttempts[index] = expectedRNG.Intn(guardActivationFleeRollMaximum+1) < guardActivationFleeThreshold
@@ -134,7 +134,7 @@ func TestActivateGuardsPreservesAutomaticShadowlordProvenanceAcrossLawAI(t *test
 		)
 		controller.GetNpcs().ReplaceWith([]map_units.MapUnit{civilian})
 		state.SetRandomSeed(1)
-		expectedRNG := deterministic_random.New(1)
+		expectedRNG := beradrng.New(1)
 		require.Less(t, expectedRNG.Intn(guardActivationFleeRollMaximum+1), guardActivationFleeThreshold)
 
 		result, err := state.ActivateGuards()
