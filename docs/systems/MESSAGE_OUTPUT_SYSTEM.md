@@ -83,7 +83,7 @@ lifecycle ownership.
 ### Shared Typography And Rendering Ownership
 
 Redux consumes the pinned
-[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/302457e108b8/modules/berad-text).
+[Berad Text module](https://github.com/bradhannah/berad-sdk/tree/564225ae5d47/modules/berad-text).
 `internal/text` is the game facade: assets, original glyph-byte mapping, command
 markers, builders, transcript/history policy and display scaling remain here.
 The module owns supplied-font parsing, immutable typography, styled layout/local
@@ -94,6 +94,14 @@ geometry, bitmap rasterization and bounded image caching. See
 `TextFace` view remains for engine integrations; Source/features must stay read-only.
 Legacy size/language settings are converted to immutable SDK configurations.
 TextInput uses this same source and metrics rather than a second OpenType parser.
+The SDK's experimental API is limited to the production text path: the facade
+does not configure OpenType features/variations or attach annotation tags. The
+CopyEngineFace compatibility bridge remains while direct engine integrations
+still use TextFace; removing that bridge requires a separate consumer migration.
+Font.Measure takes only source text and retains the facade's previous engine
+zero-spacing measurements. A caller-configurable spacing argument is unnecessary
+for that compatibility behavior. Supplied bitmap glyphs always receive palette
+tint and alpha, without an RGB-preservation flag.
 Runic/IBM bytes map to private-use runes in supplied bitmap descriptors; original
 sign decoding and narrative-font policy remain local. Font-file hot reload is
 not part of the game contract.
@@ -119,14 +127,25 @@ geometry. Clear/Reset/SetFont invalidate retained rows; wrapped copies detach bo
 layout and logical-history ownership. Positive column capacity is required, while
 zero visible rows remain valid. Local clipping and the simple-row two-pixel anchor
 allowance preserve the former game raster canvas without restricting SDK ink bounds.
+The SDK computes ink bounds internally rather than exposing them as a query.
+Destination clipping uses host-owned image/subimage bounds; local canvas clipping
+remains an SDK draw option. The facade does not request an uncached rendering mode.
 
 Measured source reflow delegates to SDK layout. Atlas/save-description/Tavern
 controls use SDK source-range/caret geometry while owning native input, selection,
-filtering, focus, scrolling and composition projection. Queries are local geometric
-candidates, not click handlers: Z order, clipping eligibility and activation belong
-to the UI owner. Shaped-cluster snapping is explicit; full bidi/vertical editing
+filtering, focus, scrolling and composition projection. Queries resolve supplied
+source offsets to local rectangles/caret positions; there is no annotation hit or
+nearest-point caret API. Z order, clipping eligibility and activation belong to
+the UI owner. Shaped-cluster snapping is explicit; full bidi/vertical editing
 or independent colouring inside a ligature is not promised. The game retains its
 existing stored text and input policies.
+
+SDK layouts use natural line spacing and start at local X=0. Output keeps its
+physical-row spacing and alignment, with Width used for measured source wrapping
+and TopAlign for combined compatibility rows. SDK font/layout validation rejects
+nonfinite scaled metrics and accumulated line/ink extents instead of returning
+unusable geometry. Panel/history retention remains game-owned, without SDK Panel
+or Log containers.
 
 CharacterSummary retains separate left/right text outputs per party slot until
 visible values or semantic colour change. It still draws the current portraits

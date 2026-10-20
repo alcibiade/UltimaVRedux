@@ -88,5 +88,5 @@ availability or separately authorized tagging; local builds do not supply that p
 Reusable manuals and SDK skills follow implementation ownership upstream; the
 game retains integration policy, assets, adoption rationale and contextual acceptance.
 The original guidance-review identity above remains distinct from consumed module
-pins. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-audio/README.md) and
+pins. See the [module contract](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-audio/README.md) and
 [current Redux audio system](../systems/AUDIO_SYSTEM.md).

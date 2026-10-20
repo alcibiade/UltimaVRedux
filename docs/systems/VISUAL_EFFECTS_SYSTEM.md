@@ -284,6 +284,14 @@ sprite pixels. Only changed cells update the CPU buffer, and an unchanged mask
 avoids another upload. The optional scaled target is reused. `GetMask` returns a
 borrow valid until this effect's `Dispose`, which closes its surface and scaled
 image, never the caller's content/target. Reset does not revive a disposed effect.
+`MessageDialog` disposes its old dissolve owner before Show/Hide replacement,
+instant visibility changes, and completion of either fade direction. Its reusable
+content/masked buffers and unrelated image borrowers survive those transitions.
+Resize separately retires dimension-specific masks. Completing a fade does not
+retain a native mask until another visibility or resize operation happens.
+The SDK's removed allocating `Pixels` and non-buffer `Update` conveniences are not
+used: initialization/reset writes the persistent buffer, and progress updates it
+in place. Frame arrays, geometry and ordinary native draw opacity stay with Redux.
 Leading highlights retain the game's integer cell-to-target projection; these are
 recently revealed permutation cells, not a spatial wavefront or a promise of exact
 fractional nearest-sampling coverage.

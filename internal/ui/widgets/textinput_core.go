@@ -5,7 +5,6 @@ import (
 	"image/color"
 	"math"
 	"regexp"
-	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
@@ -263,17 +262,6 @@ func (t *TextInput) CalculateTextWidth(s string) int {
 	width, _ := t.ultimaFont.MeasureString(s)
 
 	return int(width)
-}
-
-// CalculateTextHeight returns the first complete rune's top relative to baseline.
-func (t *TextInput) CalculateTextHeight(s string) int {
-	if s == "" {
-		return 0
-	}
-	first, _ := utf8.DecodeRuneInString(s)
-	bounds := t.ultimaFont.Layout(string(first)).InkBounds()
-
-	return int(math.Ceil(bounds.Min.Y - t.ultimaFont.Metrics().Ascent))
 }
 
 // getFontHeight returns the height of the font in pixels

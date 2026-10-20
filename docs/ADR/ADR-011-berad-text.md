@@ -51,5 +51,24 @@ alignment allowance explicitly; generic SDK rendering retains full ink bounds.
 - The API is experimental. Publication, native platform observations and stable
   release promises are distinct from module compilation or passing fake-input tests.
 
+## Production-surface refinement
+
+The experimental SDK surface is narrowed to current production needs. Retained
+panel/log containers, annotations and point-hit queries, configurable OpenType
+features/variations, bitmap RGB-preservation mode, SDK alignment/explicit layout
+spacing and unused draw switches are removed. Font.Measure's unused spacing argument
+is removed while preserving the facade's existing zero-spacing engine measurements.
+This is an intentional source-compatibility break, not a change to
+Redux's text/history/input policy. Width-based wrapping, mixed-font top alignment,
+source-range/caret geometry, internal ink preservation and bounded renderer
+ownership remain. The existing engine-face compatibility bridge remains for a
+separate careful migration. Future expansion needs a real consumer; an SDK demo
+alone is not demand.
+
+The retained contract is checked with independently authored bitmap geometry and
+pixels, exact source offsets, finite accumulated extents, and LRU promotion under
+entry/byte pressure. Consumer smoke tests remain compatibility evidence rather
+than a substitute for those semantic assertions.
+
 See the [game integration contract](../systems/MESSAGE_OUTPUT_SYSTEM.md) and
-[SDK API contract](https://github.com/bradhannah/berad-sdk/blob/302457e108b8/modules/berad-text/docs/API.md).
+[SDK API contract](https://github.com/bradhannah/berad-sdk/blob/564225ae5d47/modules/berad-text/docs/API.md).

@@ -78,8 +78,6 @@ func (processor *TileEffectProcessor) applyEffect(
 			brightnessPulseAmplitude*(math.Sin(float64(frame)*math.Pi/pulsePhaseDivisor)+1)/pulseWaveRange
 		selection = processor.effectSelection(pixels, effect.Filter, image.Rect(0, 0, 0, 0))
 		operation = graphics.RGBGain(gain, selection)
-	case EffectBorderWrap:
-		panic("border padding is a game presentation operation, not a tile-generation operation")
 	}
 	result, err := source.Apply(operation)
 	if err != nil {

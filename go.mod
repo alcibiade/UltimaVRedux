@@ -5,10 +5,10 @@ go 1.27.0
 toolchain go1.27.1
 
 require (
-	github.com/bradhannah/berad-sdk/modules/berad-audio v0.0.0-20261019154938-302457e108b8
-	github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019203855-57067fb66236
-	github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019154938-302457e108b8
-	github.com/bradhannah/berad-sdk/tools/berad-audio v0.0.0-20261019161957-81526f97e7c9
+	github.com/bradhannah/berad-sdk/modules/berad-audio v0.0.0-20261019225412-564225ae5d47
+	github.com/bradhannah/berad-sdk/modules/berad-graphics v0.0.0-20261019225412-564225ae5d47
+	github.com/bradhannah/berad-sdk/modules/berad-text v0.0.0-20261019225412-564225ae5d47
+	github.com/bradhannah/berad-sdk/tools/berad-audio v0.0.0-20261019234241-9cdcab017041
 	github.com/coder/websocket v1.8.14
 	github.com/gofrs/flock v0.13.0
 	github.com/hajimehoshi/ebiten/v2 v2.10.4

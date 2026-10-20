@@ -82,16 +82,6 @@ func TestGetSpriteMask(t *testing.T) {
 	})
 }
 
-func TestSpriteMaskCache(t *testing.T) {
-	// Test cache operations without actually generating masks
-	// (since Ebitengine ReadPixels requires game to be running)
-
-	t.Run("clear cache resets size", func(t *testing.T) {
-		ClearSpriteMaskCache()
-		assert.Equal(t, 0, spriteMaskProcessor.Stats().Derived)
-	})
-}
-
 // Note: TestGenerateSpriteMask and full mask tests require Ebitengine game loop.
 // These are tested via visual inspection during gameplay or integration tests.
 

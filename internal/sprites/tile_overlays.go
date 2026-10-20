@@ -186,6 +186,3 @@ func GetSpriteMask(source *ebiten.Image) *ebiten.Image {
 
 	return mask
 }
-
-// ClearSpriteMaskCache drops cache references while preserving retained borrowers.
-func ClearSpriteMaskCache() { spriteMaskProcessor.Clear() }

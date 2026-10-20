@@ -61,7 +61,7 @@ func newBitmapFontFromPNG(data []byte) *BitmapFont {
 		x, y := (index%BitmapCharsPerRow)*BitmapCharWidth, (index/BitmapCharsPerRow)*BitmapCharHeight
 		glyphs[bitmapRuneBase+rune(index)] = beradtext.Glyph{
 			Region: image.Rect(x, y, x+BitmapCharWidth, y+BitmapCharHeight), Advance: BitmapCharWidth,
-			BearingX: 0, BearingY: -BitmapCharHeight, Colored: false,
+			BearingX: 0, BearingY: -BitmapCharHeight,
 		}
 	}
 	metrics := beradtext.Metrics{Ascent: BitmapCharHeight, Descent: 0, LineGap: 0}
@@ -77,7 +77,7 @@ func (f *BitmapFont) fontForScale(scale float64) *beradtext.Font {
 	size := float64(BitmapCharHeight) * scale
 	if f.scaled == nil || f.scaled.Size() != size {
 		font, err := f.source.NewFont(beradtext.FontOptions{
-			Size: size, Language: language.Und, Features: nil, Variations: nil,
+			Size: size, Language: language.Und,
 		})
 		if err != nil {
 			panic(fmt.Sprintf("scaling game bitmap font: %v", err))
