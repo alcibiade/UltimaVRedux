@@ -33,6 +33,7 @@ func (e Equipment) Type() ItemType {
 // Original attack-category encoding; ref:EQUIP-0002.
 type MissileType int
 
+// Missile types; MissileNone is -1 so that MissileArrow is 0.
 const (
 	MissileNone MissileType = iota - 1
 	MissileArrow
@@ -48,6 +49,7 @@ const (
 // EquipmentSlot identifies which slot an equipment item occupies.
 type EquipmentSlot int
 
+// Equipment slots; SlotNone marks items that cannot be equipped, such as ammunition.
 const (
 	SlotNone   EquipmentSlot = iota // Not equippable (ammo, special)
 	SlotHelm                        // Head slot
@@ -85,9 +87,10 @@ func (s EquipmentSlot) String() string {
 		return "Ring"
 	case SlotAmulet:
 		return "Amulet"
-	default:
-		return "None"
+	case SlotNone:
 	}
+
+	return "None"
 }
 
 // Runic character indices for equipment icons; ref:EQUIP-0003.
@@ -116,14 +119,16 @@ func (s EquipmentSlot) RunicIconChar() byte {
 		return runicIconRing
 	case SlotAmulet:
 		return runicIconAmulet
-	default:
-		return 0x00
+	case SlotNone:
 	}
+
+	return 0x00
 }
 
 // EquipmentCategory identifies the broad category of equipment for grouping/filtering.
 type EquipmentCategory int
 
+// Equipment categories; CategoryNone is used by BareHands and NoEquipment.
 const (
 	CategoryNone   EquipmentCategory = iota // Not categorized (BareHands, NoEquipment)
 	CategoryHelm                            // Head armor
@@ -152,15 +157,18 @@ func (c EquipmentCategory) String() string {
 		return "Ring"
 	case CategoryAmulet:
 		return "Amulet"
-	default:
-		return "None"
+	case CategoryNone:
 	}
+
+	return "None"
 }
 
 // =============================================================================
 // EQUIPMENT CONSTANTS
 // =============================================================================
 
+// Equipment ids. BareHands (-2) is the weapon used when nothing is readied and lies outside the 0-based inventory ids.
+//
 //goland:noinspection GoUnusedConst
 const (
 	BareHands        Equipment = -2
@@ -263,6 +271,7 @@ func getDefinition(e Equipment) equipmentDefinition {
 // Original weapon and accessory effects are scoped in ref:EQUIP-0017, ref:EQUIP-0018, and ref:EQUIP-0019.
 type EquipmentAbility int
 
+// Equipment abilities; AbilityNone means no special ability.
 const (
 	AbilityNone EquipmentAbility = iota
 
@@ -318,9 +327,10 @@ func (a EquipmentAbility) String() string {
 		return "Returns"
 	case AbilityMayVanish:
 		return "May Vanish"
-	default:
-		return "None"
+	case AbilityNone:
 	}
+
+	return "None"
 }
 
 // =============================================================================
@@ -502,12 +512,7 @@ func (e Equipment) GetAbilities() []EquipmentAbility {
 // Bludgeoning weapons use attack category 8; ref:EQUIP-0002.
 // These are: SpikedHelm, SpikedShield, Club, Mace, TwoHHammer.
 func (e Equipment) IsBludgeoning() bool {
-	switch e {
-	case SpikedHelm, SpikedShield, Club, Mace, TwoHHammer:
-		return true
-	default:
-		return false
-	}
+	return e == SpikedHelm || e == SpikedShield || e == Club || e == Mace || e == TwoHHammer
 }
 
 // HasAbility returns true if this equipment has the specified ability.

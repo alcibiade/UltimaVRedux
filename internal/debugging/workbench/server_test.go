@@ -150,7 +150,7 @@ func TestServerServesIndependentReadOnlyLogWindow(t *testing.T) {
 
 	request, err := http.NewRequest(http.MethodGet, server.URL()+"/api/logs?after=0&limit=10", nil)
 	require.NoError(t, err)
-	request.Header.Set(logTokenHeader, server.logToken)
+	request.Header.Set(logAuthHeader, server.logToken)
 	response, err = http.DefaultClient.Do(request)
 	require.NoError(t, err)
 	defer response.Body.Close()
@@ -170,7 +170,7 @@ func TestServerRejectsUnauthorizedAndInvalidLogQueries(t *testing.T) {
 
 	request, err := http.NewRequest(http.MethodGet, server.URL()+"/api/logs?limit=999", nil)
 	require.NoError(t, err)
-	request.Header.Set(logTokenHeader, server.logToken)
+	request.Header.Set(logAuthHeader, server.logToken)
 	response, err = http.DefaultClient.Do(request)
 	require.NoError(t, err)
 	require.NoError(t, response.Body.Close())

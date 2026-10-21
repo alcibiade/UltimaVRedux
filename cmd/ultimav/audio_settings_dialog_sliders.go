@@ -144,22 +144,30 @@ func (d *ConfigurationDialog) leaveAudioTab() {
 	d.restorePausedAudio()
 }
 
+// Slider positions in the audio settings dialog; focusedSliderIndex takes one of these.
+const (
+	musicSliderIndex = iota
+	sfxSliderIndex
+	ambientSliderIndex
+)
+
 // updateSliderFocus updates the focus state of all sliders based on focusedSliderIndex
 func (d *ConfigurationDialog) updateSliderFocus() {
 	prevFocusedIndex := -1
 	// Find previously focused slider
-	if d.musicSlider.HasFocus() {
-		prevFocusedIndex = 0
-	} else if d.sfxSlider.HasFocus() {
-		prevFocusedIndex = 1
-	} else if d.ambientSlider.HasFocus() {
-		prevFocusedIndex = 2
+	switch {
+	case d.musicSlider.HasFocus():
+		prevFocusedIndex = musicSliderIndex
+	case d.sfxSlider.HasFocus():
+		prevFocusedIndex = sfxSliderIndex
+	case d.ambientSlider.HasFocus():
+		prevFocusedIndex = ambientSliderIndex
 	}
 
 	// Update focus states
-	d.musicSlider.SetFocus(d.focusedSliderIndex == 0)
-	d.sfxSlider.SetFocus(d.focusedSliderIndex == 1)
-	d.ambientSlider.SetFocus(d.focusedSliderIndex == 2)
+	d.musicSlider.SetFocus(d.focusedSliderIndex == musicSliderIndex)
+	d.sfxSlider.SetFocus(d.focusedSliderIndex == sfxSliderIndex)
+	d.ambientSlider.SetFocus(d.focusedSliderIndex == ambientSliderIndex)
 
 	// Handle focus change audio preview
 	if prevFocusedIndex != d.focusedSliderIndex {
@@ -174,17 +182,17 @@ func (d *ConfigurationDialog) handleSliderFocusChange(oldFocus, newFocus int) {
 
 	// Start audio preview for newly focused slider
 	switch newFocus {
-	case 0: // Music slider focused
+	case musicSliderIndex: // Music slider focused
 		d.previewMusicVolume()
-	case 1: // SFX slider focused - no need to play immediately, will play on adjustment
+	case sfxSliderIndex: // SFX slider focused - no need to play immediately, will play on adjustment
 		// Don't play sound effect immediately on focus, only on value change
-	case 2: // Ambient slider focused - apply current ambient volume
+	case ambientSliderIndex: // Ambient slider focused - apply current ambient volume
 		d.previewAmbientVolume()
 	}
 }
 
 func (d *ConfigurationDialog) stopMusicPreviewOnFocusChange(oldFocus, newFocus int) {
-	if oldFocus != 0 || newFocus == 0 || !d.previewMusicPlaying || d.audioManager == nil {
+	if oldFocus != musicSliderIndex || newFocus == musicSliderIndex || !d.previewMusicPlaying || d.audioManager == nil {
 		return
 	}
 	if err := d.audioManager.StopBackgroundMusic(); err != nil {
@@ -194,7 +202,8 @@ func (d *ConfigurationDialog) stopMusicPreviewOnFocusChange(oldFocus, newFocus i
 }
 
 func (d *ConfigurationDialog) stopAmbientPreviewOnFocusChange(oldFocus, newFocus int) {
-	if oldFocus != 2 || newFocus == 2 || !d.previewAmbientPlaying || d.audioManager == nil {
+	if oldFocus != ambientSliderIndex || newFocus == ambientSliderIndex ||
+		!d.previewAmbientPlaying || d.audioManager == nil {
 		return
 	}
 	if err := d.audioManager.StopAmbientSoundPreview(); err != nil {
@@ -207,11 +216,11 @@ func (d *ConfigurationDialog) stopAmbientPreviewOnFocusChange(oldFocus, newFocus
 func (d *ConfigurationDialog) adjustFocusedSlider(delta int) {
 	var slider *widgets.Slider
 	switch d.focusedSliderIndex {
-	case 0:
+	case musicSliderIndex:
 		slider = d.musicSlider
-	case 1:
+	case sfxSliderIndex:
 		slider = d.sfxSlider
-	case 2:
+	case ambientSliderIndex:
 		slider = d.ambientSlider
 	}
 

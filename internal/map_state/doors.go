@@ -94,9 +94,8 @@ func (m *MapState) SmallMapProcessTurnDoors(isOccupied func(references.Position,
 			m.CloseOpenDoor()
 
 			return true // Door was closed
-		} else {
-			m.openDoorTurns--
 		}
+		m.openDoorTurns--
 	}
 
 	return false // No door was closed

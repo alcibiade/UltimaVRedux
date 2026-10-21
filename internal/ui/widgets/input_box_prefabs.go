@@ -33,7 +33,9 @@ import (
 //	)
 //	dialog := widgets.NewYesNoInputBox("Dost thou wish to leave?", yesNoCommand, keyboard, &dialogStack)
 //	dialogStack.PushModalDialog(dialog)
-func NewYesNoInputBox(question string, yesNoCommand *grammar.TextCommand, keyboard *input.Keyboard, dialogStack *DialogStack) *InputBox {
+func NewYesNoInputBox(
+	question string, yesNoCommand *grammar.TextCommand, keyboard *input.Keyboard, dialogStack *DialogStack,
+) *InputBox {
 	questionLines := text.MeasureText(
 		question,
 		GetScaledFont(inputBoxFontSize),

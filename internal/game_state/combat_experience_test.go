@@ -27,7 +27,7 @@ func TestFinalizeCombatMonsterDeathSaturatesExperience(t *testing.T) {
 			attacker := gs.PartyState.GetCharacter(attackerIdx)
 			attacker.Exp = test.startingXP
 			monster.SetCurrentHP(0)
-			nominalAward := CombatCalcExperience(monster.MaxHP())
+			nominalAward := combatCalcExperience(monster.MaxHP())
 			require.Greater(t, nominalAward, 1)
 
 			gs.finalizeCombatMonsterDeathWithPolicy(

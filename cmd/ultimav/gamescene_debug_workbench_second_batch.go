@@ -735,18 +735,21 @@ func debugVehicleDockLocation(value string) (references.Location, bool) {
 }
 
 func debugVehicleDockName(location references.Location) string {
-	switch location {
-	case references.Jhelom:
-		return "jhelom"
-	case references.Minoc:
-		return "minoc"
-	case references.EastBritanny:
-		return "east_britanny"
-	case references.BuccaneersDen:
-		return "buccaneers_den"
-	default:
-		return debugMapUnknown
+	for _, dock := range [...]struct {
+		location references.Location
+		name     string
+	}{
+		{references.Jhelom, "jhelom"},
+		{references.Minoc, "minoc"},
+		{references.EastBritanny, "east_britanny"},
+		{references.BuccaneersDen, "buccaneers_den"},
+	} {
+		if location == dock.location {
+			return dock.name
+		}
 	}
+
+	return debugMapUnknown
 }
 
 func debugDirectionName(direction references.Direction) string {

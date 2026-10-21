@@ -13,26 +13,43 @@ const (
 	// DefaultTorchDurationMinutes is the initial fuel time of a lit torch.
 	DefaultTorchDurationMinutes = 240
 
-	// Moongate light distance
-	MoongateLightDistance = 4 // Moongates emit mystical light with 4 tile radius
+	// MoongateLightDistance is the radius in tiles of a moongate's mystical light.
+	MoongateLightDistance = 4
 
-	// Quest item light distances
-	ShardLightDistance    = 3 // Shards of Evil emit light with 3 tile radius
-	ArtifactLightDistance = 4 // Lord British's Artifacts emit stronger light with 4 tile radius
+	// ShardLightDistance is the radius in tiles of the light from a Shard of Evil.
+	ShardLightDistance = 3
+	// ArtifactLightDistance is the radius in tiles of the stronger light from Lord British's Artifacts.
+	ArtifactLightDistance = 4
 
 	// MagicLightTileDistance is the original U5 radius for both In Lor and Vas Lor.
 	MagicLightTileDistance = 5
-	InLorTileDistance      = MagicLightTileDistance
-	VasLorTileDistance     = MagicLightTileDistance
+	// InLorTileDistance is the radius in tiles of the In Lor spell light.
+	InLorTileDistance = MagicLightTileDistance
+	// VasLorTileDistance is the radius in tiles of the Vas Lor spell light.
+	VasLorTileDistance = MagicLightTileDistance
 
-	// NPC light distances - magical creatures that emit light
-	// All start at 2 tiles for subtle glow effect
-	WispLightDistance     = 2 // Ethereal energy beings - blue-white glow
-	SeahorseLightDistance = 2 // Magical sea creatures - bright blue glow
-	DaemonLightDistance   = 2 // Demonic fire creatures - red glow
-	GhostLightDistance    = 2 // Spectral beings - pale blue glow
+	// WispLightDistance is the radius in tiles of a wisp's blue-white glow. Magical NPCs
+	// all start at 2 tiles for a subtle glow.
+	WispLightDistance = 2
+	// SeahorseLightDistance is the radius in tiles of a seahorse's bright blue glow.
+	SeahorseLightDistance = 2
+	// DaemonLightDistance is the radius in tiles of a daemon's red glow.
+	DaemonLightDistance = 2
+	// GhostLightDistance is the radius in tiles of a ghost's pale blue glow.
+	GhostLightDistance = 2
 )
 
+const (
+	// lightRadiusPadding extends a light's radius so the lit disc outline stays round;
+	// visibility and tinting both use it so edge tiles are lit and tinted together.
+	lightRadiusPadding = 0.5
+	// screenCentreDivisor halves the visible tile extents to get the distance from screen centre to a corner.
+	screenCentreDivisor = 2
+	// baselineVisibilityFactor is the lowest light factor (10%); it still lights a radius-1 neighbourhood.
+	baselineVisibilityFactor = 0.1
+)
+
+// Lighting tracks the carried torch and magic light and builds light distance maps for the visible area.
 type Lighting struct {
 	torchMinutesRemaining int
 	gameDimensions        GameDimensions
@@ -52,17 +69,21 @@ type LightSource struct {
 // LightSources is a collection of light sources
 type LightSources []LightSource
 
+// DistanceMap maps each lit tile to its whole-tile distance from the nearest light source.
 type DistanceMap map[references.Position]int
 
+// NewLighting creates an unlit Lighting for the given view dimensions.
 func NewLighting(gameDimensions GameDimensions) Lighting {
-	l := Lighting{}
-	l.gameDimensions = gameDimensions
-	l.baselineFactor = 0.1
-	l.baselineRadius = 1
-
-	return l
+	return Lighting{
+		torchMinutesRemaining: 0,
+		gameDimensions:        gameDimensions,
+		baselineFactor:        baselineVisibilityFactor,
+		baselineRadius:        1,
+		hasMagicLight:         false,
+	}
 }
 
+// HasTorchLit returns true while the carried torch has fuel left.
 func (l *Lighting) HasTorchLit() bool {
 	return l.torchMinutesRemaining > 0
 }
@@ -87,6 +108,7 @@ func (l *Lighting) HasAnyLight() bool {
 	return l.HasTorchLit() || l.hasMagicLight
 }
 
+// LightTorch lights a torch with a full default fuel time.
 func (l *Lighting) LightTorch() {
 	l.torchMinutesRemaining = DefaultTorchDurationMinutes
 }
@@ -125,6 +147,7 @@ func (l *Lighting) AdvanceMinutes(minutes int) {
 	l.torchMinutesRemaining = helpers.Max(l.torchMinutesRemaining-minutes, 0)
 }
 
+// BuildGameScreenDistanceMap builds the distance map for a light at centrePos sized to the whole game screen.
 func (l *Lighting) BuildGameScreenDistanceMap(centrePos references.Position) DistanceMap {
 	dmm := make(DistanceMap)
 	l.applyLightSource(dmm, centrePos, 0, 1)
@@ -132,6 +155,7 @@ func (l *Lighting) BuildGameScreenDistanceMap(centrePos references.Position) Dis
 	return dmm
 }
 
+// BuildLightSourceDistanceMap builds the distance map from the player-carried light and every visible light source.
 func (l *Lighting) BuildLightSourceDistanceMap(
 	lightSources LightSources,
 	visibleFlags VisibilityCoords,
@@ -173,7 +197,8 @@ func (l *Lighting) applyLightSource(
 	}
 
 	// (r + 0.5)² → keeps outline round
-	maxDist2 := math.Pow(float64(nRadius)+0.5, 2)
+	edge := float64(nRadius) + lightRadiusPadding
+	maxDist2 := edge * edge
 
 	bottomRight := l.gameDimensions.GetBottomRightWithoutOverflow()
 	isWrapped := l.gameDimensions.IsWrappedMap()
@@ -190,8 +215,8 @@ func (l *Lighting) applyLightSource(
 			}
 
 			// Update position in-place instead of creating new struct
-			position.X = centrePos.X + references.Coordinate(deltaX)
-			position.Y = centrePos.Y + references.Coordinate(deltaY)
+			position.X = centrePos.X + tileOffset(deltaX)
+			position.Y = centrePos.Y + tileOffset(deltaY)
 
 			if isWrapped {
 				position = *position.GetWrapped(bottomRight.X, bottomRight.Y)
@@ -223,6 +248,9 @@ func (l *Lighting) maxRadius() int {
 	xTilesVisibleOnGameScreen, yTilesVisibleOnGameScreen := l.gameDimensions.GetTilesVisibleOnScreen()
 
 	return int(math.Ceil(
-		math.Hypot(float64(xTilesVisibleOnGameScreen)/2, float64(yTilesVisibleOnGameScreen)/2),
+		math.Hypot(
+			float64(xTilesVisibleOnGameScreen)/screenCentreDivisor,
+			float64(yTilesVisibleOnGameScreen)/screenCentreDivisor,
+		),
 	))
 }

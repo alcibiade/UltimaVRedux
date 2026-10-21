@@ -330,7 +330,7 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 		result = newSurfaceCommandResult(state, originMapType)
 		g.secondaryKeyState = PrimaryInput
 	case TalkDirectionInput:
-		result = surfaceResultFromSuccess(g.gameState.ActionTalkLargeMap(direction), originMapType)
+		result = surfaceResultFromSuccess(g.gameState.ActionTalkLargeMap(), originMapType)
 		g.secondaryKeyState = PrimaryInput
 	case SearchDirectionInput:
 		state := g.surfaceSearchSecondaryWithDialog(direction, func(state surfaceCommandState) {

@@ -218,6 +218,7 @@ func decodeGameRegions(game *SavedGame, gam []byte) {
 	decodeObjectRecords(game.ActiveObjects[:], gam[activeObjectsOffset:activeObjectsOffset+objectCount*objectRecordSize])
 	game.Dungeon = DungeonState{
 		Active:        isDungeonMap(game.Position.Location),
+		Cells:         [512]byte{},
 		LastDirection: gam[dungeonLastDirOffset],
 		Facing:        DungeonFacing(gam[dungeonFacingOffset]),
 		Type:          DungeonType(gam[dungeonTypeOffset]),

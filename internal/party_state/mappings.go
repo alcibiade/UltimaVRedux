@@ -1,9 +1,5 @@
 package party_state
 
-import (
-	"github.com/bradhannah/UltimaVRedux/internal/game_state/util"
-)
-
 /*
 enum <ubyte> PartyMap { Active = 0x00, Martyr = 0x7F, Unrecruited = 0xFF };
 enum <ubyte> Location { };
@@ -62,13 +58,22 @@ const (
 	Dead     CharacterStatus = 'D'
 )
 
-// CharacterStatuses lists every status with its display name, in save order.
-var CharacterStatuses = util.OrderedMapping[CharacterStatus]{
-	{ID: Good, FriendlyName: "Good"},
-	{ID: Poisoned, FriendlyName: "Poisoned"},
-	{ID: Charmed, FriendlyName: "Charmed"},
-	{ID: Sleep, FriendlyName: "Sleep"},
-	{ID: Dead, FriendlyName: "Dead"},
+// FriendlyName returns the display name of the status; ok is false for a byte that is not a status.
+func (s CharacterStatus) FriendlyName() (string, bool) {
+	switch s {
+	case Good:
+		return "Good", true
+	case Poisoned:
+		return "Poisoned", true
+	case Charmed:
+		return "Charmed", true
+	case Sleep:
+		return "Sleep", true
+	case Dead:
+		return "Dead", true
+	}
+
+	return "", false
 }
 
 // Gender
@@ -83,10 +88,16 @@ const (
 	Female CharacterGender = 0x0C
 )
 
-// CharacterGenders lists every gender with its display name, in save order.
-var CharacterGenders = util.OrderedMapping[CharacterGender]{
-	{ID: Male, FriendlyName: "Male"},
-	{ID: Female, FriendlyName: "Female"},
+// FriendlyName returns the display name of the gender; ok is false for a byte that is not a gender code.
+func (g CharacterGender) FriendlyName() (string, bool) {
+	switch g {
+	case Male:
+		return "Male", true
+	case Female:
+		return "Female", true
+	}
+
+	return "", false
 }
 
 /*

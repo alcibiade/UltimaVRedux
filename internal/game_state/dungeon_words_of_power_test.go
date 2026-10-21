@@ -346,44 +346,19 @@ func TestGameState_InitializeDungeonStatesFromSave(t *testing.T) {
 	})
 }
 
-func TestDungeonToIndexMap_Completeness(t *testing.T) {
-	// Verify all dungeons are mapped
-	expectedDungeons := []references.Location{
-		references.Deceit,
-		references.Despise,
-		references.Destard,
-		references.Wrong,
-		references.Covetous,
-		references.Shame,
-		references.Hythloth,
-		references.Doom,
+func TestDungeonIndexFollowsDungeonStatesOrder(t *testing.T) {
+	dungeons := []references.Location{
+		references.Deceit, references.Despise, references.Destard, references.Wrong,
+		references.Covetous, references.Shame, references.Hythloth, references.Doom,
 	}
 
-	for _, dungeon := range expectedDungeons {
-		index, exists := DungeonToIndexMap[dungeon]
-		assert.True(t, exists, "Dungeon %v should be mapped", dungeon)
-		assert.True(t, index >= 0 && index <= 7, "Index should be in valid range 0-7")
+	for want, dungeon := range dungeons {
+		index, exists := dungeonIndex(dungeon)
+		assert.True(t, exists, "Dungeon %v should have an index", dungeon)
+		assert.Equal(t, DungeonIndex(want), index)
 	}
-
-	// Verify map has exactly 8 entries
-	assert.Equal(t, 8, len(DungeonToIndexMap))
-}
-
-func TestWordToDungeonMap_Completeness(t *testing.T) {
-	// Verify all words are mapped
-	expectedWords := []string{
-		"FALLAX", "VILIS", "INOPIA", "MALUM",
-		"AVIDUS", "INFAMA", "IGNAVUS", "VERAMOCOR",
-	}
-
-	for _, word := range expectedWords {
-		dungeon, exists := WordToDungeonMap[word]
-		assert.True(t, exists, "Word %s should be mapped", word)
-		assert.NotEqual(t, references.Location(0), dungeon, "Word should map to valid dungeon")
-	}
-
-	// Verify map has exactly 8 entries
-	assert.Equal(t, 8, len(WordToDungeonMap))
+	_, exists := dungeonIndex(references.Britain)
+	assert.False(t, exists)
 }
 
 func TestAbsInt(t *testing.T) {

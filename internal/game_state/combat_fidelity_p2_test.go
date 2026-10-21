@@ -189,7 +189,7 @@ func TestFidelityP2PoisonWindMonsterKillXPAndImmortality(t *testing.T) {
 		require.NotEmpty(t, mock.CombatEvents)
 		if monsterType == references.MonsterOrc {
 			assert.True(t, monster.IsDead())
-			assert.Equal(t, int(xpBefore)+CombatCalcExperience(monster.EnemyRef().HitPoints), int(pc.Exp))
+			assert.Equal(t, int(xpBefore)+combatCalcExperience(monster.EnemyRef().HitPoints), int(pc.Exp))
 		} else {
 			assert.False(t, monster.IsDead())
 			assert.Equal(t, xpBefore, pc.Exp)

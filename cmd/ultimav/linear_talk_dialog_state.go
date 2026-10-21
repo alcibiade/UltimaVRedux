@@ -6,6 +6,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+// Post-accept keyboard delays (ms) that stop the keypress ending a talk state from reaching underlying input.
+const (
+	dismissalPostAcceptDelayMs = 150
+	keyWaitPostAcceptDelayMs   = 50
+)
+
 // beginPauseAnimation starts the pause animation sequence and hides UI elements
 func (d *LinearTalkDialog) beginPauseAnimation() {
 	d.isPausing = true
@@ -119,9 +125,9 @@ func (d *LinearTalkDialog) finishCurrentPauseWithSegments() {
 func (d *LinearTalkDialog) enterDismissalWaitState() {
 	d.waitingForDismissal = true
 
-	// Prepare keyboard for transition with 150ms post-accept delay
+	// Prepare keyboard for transition with a post-accept delay
 	// This prevents the dismissal keypress from bleeding into underlying game input.
-	d.gameScene.keyboard.PrepareForTransition(150)
+	d.gameScene.keyboard.PrepareForTransition(dismissalPostAcceptDelayMs)
 
 	// Flush legitimate callback feedback before presenting the terminal footer.
 	if d.callbacks != nil {
@@ -160,9 +166,9 @@ func (d *LinearTalkDialog) enterDismissalWaitState() {
 func (d *LinearTalkDialog) enterKeyWaitState() {
 	d.waitingForKeypressContinue = true
 
-	// Prepare keyboard for transition with 50ms post-accept delay
+	// Prepare keyboard for transition with a post-accept delay
 	// This prevents the continue keypress from registering as subsequent input
-	d.gameScene.keyboard.PrepareForTransition(50)
+	d.gameScene.keyboard.PrepareForTransition(keyWaitPostAcceptDelayMs)
 	if d.callbacks != nil {
 		accumulatedOutput := d.callbacks.GetAccumulatedOutput()
 		if accumulatedOutput != "" {

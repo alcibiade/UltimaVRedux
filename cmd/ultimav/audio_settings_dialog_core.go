@@ -90,7 +90,7 @@ type ConfigurationDialog struct {
 	tabNames   []string
 
 	// Slider focus management (for Audio tab)
-	focusedSliderIndex        int // 0=Music, 1=SFX, 2=Ambient (Master volume removed)
+	focusedSliderIndex        int // musicSliderIndex, sfxSliderIndex or ambientSliderIndex (Master volume removed)
 	focusedGameplayIndex      int
 	firstGameplayIndex        int
 	focusedDisplayIndex       int

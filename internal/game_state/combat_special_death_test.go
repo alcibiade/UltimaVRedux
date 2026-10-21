@@ -30,7 +30,7 @@ func TestGazerDeathLeavesCorpseAndCreatesSameSquareInsect(t *testing.T) {
 	assert.Equal(t, randomCallsBefore+1, gs.GetRNG().Calls(),
 		"Gazer death consumes only the Insect DEX roll, not treasure RNG")
 	assert.Equal(t, gazerID, gs.CombatScene.MonsterManager.GetMonster(0).CombatantID())
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(gazer.MaxHP())), attacker.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(gazer.MaxHP())), attacker.Exp)
 	require.Equal(t, 2, gs.CombatScene.MonsterManager.Count())
 	insect := gs.CombatScene.MonsterManager.GetMonster(1)
 	require.NotNil(t, insect)
@@ -179,7 +179,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	assert.False(t, gs.CombatScene.isCombatPCPossessed(victim))
 	assert.False(t, gs.CombatScene.isCombatPCSleeping(victim))
 	assert.Equal(t, references.ChaosSword, attacker.GetEquippedItem(references.SlotWeapon))
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
 	assert.Equal(t, []uint16{experienceBefore, experienceBefore, experienceBefore}, eventExperience,
 		"XP credit must follow fatal feedback, disappearance, and recovery")
 	require.Len(t, mock.CombatEvents, 3)
@@ -195,7 +195,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
 	)
 	assert.Equal(t, 1, countCombatEvents(mock.CombatEvents, CombatEventVanished))
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
 }
 
 func TestDisappearingDeathUsesAbilityRatherThanMonsterType(t *testing.T) {

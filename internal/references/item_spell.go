@@ -12,68 +12,73 @@ func newSpellItemReferences() map[Spell]InventoryItem {
 	return items
 }
 
+// Spell is a castable spell, numbered in the original spell order.
 type Spell int
 
 // InvalidSpell represents an unknown or invalid spell (for failed mixing attempts)
 const InvalidSpell Spell = -1
 
+// ID returns the spell number within its item type.
 func (s Spell) ID() int {
 	return int(s)
 }
 
+// Type returns ItemTypeSpell.
 func (s Spell) Type() ItemType {
 	return ItemTypeSpell
 }
 
+// Spells in original order, starting at InLor.
+//
 //goland:noinspection GoUnusedConst
 const (
-	InLor         Spell = 0
-	GravPor       Spell = 1
-	AnZu          Spell = 2
-	AnNox         Spell = 3
-	Mani          Spell = 4
-	AnYlem        Spell = 5
-	AnSanct       Spell = 6
-	AnXenCorp     Spell = 7
-	RelHur        Spell = 8
-	InWis         Spell = 9
-	KalXen        Spell = 10
-	InXenMani     Spell = 11
-	VasLor        Spell = 12
-	VasFlam       Spell = 13
-	InFlamGrav    Spell = 14
-	InNoxGrav     Spell = 15
-	InZuGrav      Spell = 16
-	InPor         Spell = 17
-	AnGrav        Spell = 18
-	InSanct       Spell = 19
-	InSanctGrav   Spell = 20
-	UusPor        Spell = 21
-	DesPor        Spell = 22
-	WisQuas       Spell = 23
-	InBetXen      Spell = 24
-	AnExPor       Spell = 25
-	InExPor       Spell = 26
-	VasMani       Spell = 27
-	InZu          Spell = 28
-	RelTym        Spell = 29
-	InVasPorYlem  Spell = 30
-	QuasAnWis     Spell = 31
-	InAn          Spell = 32
-	WisAnYlem     Spell = 33
-	AnXenEx       Spell = 34
-	RelXenBet     Spell = 35
-	SanctLor      Spell = 36
-	XenCorp       Spell = 37
-	InQuasXen     Spell = 38
-	InQuasWis     Spell = 39
-	InNoxHur      Spell = 40
-	InQuasCorp    Spell = 41
-	InManiCorp    Spell = 42
-	KalXenCorp    Spell = 43
-	InVasGravCorp Spell = 44
-	InFlamHur     Spell = 45
-	VasRelPor     Spell = 46
-	AnTym         Spell = 47
-	Nox           Spell = 48
+	InLor Spell = iota
+	GravPor
+	AnZu
+	AnNox
+	Mani
+	AnYlem
+	AnSanct
+	AnXenCorp
+	RelHur
+	InWis
+	KalXen
+	InXenMani
+	VasLor
+	VasFlam
+	InFlamGrav
+	InNoxGrav
+	InZuGrav
+	InPor
+	AnGrav
+	InSanct
+	InSanctGrav
+	UusPor
+	DesPor
+	WisQuas
+	InBetXen
+	AnExPor
+	InExPor
+	VasMani
+	InZu
+	RelTym
+	InVasPorYlem
+	QuasAnWis
+	InAn
+	WisAnYlem
+	AnXenEx
+	RelXenBet
+	SanctLor
+	XenCorp
+	InQuasXen
+	InQuasWis
+	InNoxHur
+	InQuasCorp
+	InManiCorp
+	KalXenCorp
+	InVasGravCorp
+	InFlamHur
+	VasRelPor
+	AnTym
+	Nox
 )

@@ -41,7 +41,7 @@ const (
 	tokenBytes               = 32
 	defaultLogLimit          = 200
 	maximumLogLimit          = 256
-	logTokenHeader           = "X-U5R-Log-Token"
+	logAuthHeader            = "X-U5r-Log-Token"
 )
 
 var (
@@ -389,10 +389,10 @@ func (s *Server) serveLogEntries(response http.ResponseWriter, request *http.Req
 }
 
 func (s *Server) authorizeLogRead(request *http.Request) bool {
-	if !s.validRequestHost(request) || len(request.Header.Values(logTokenHeader)) != 1 {
+	if !s.validRequestHost(request) || len(request.Header.Values(logAuthHeader)) != 1 {
 		return false
 	}
-	if subtle.ConstantTimeCompare([]byte(request.Header.Get(logTokenHeader)), []byte(s.logToken)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(request.Header.Get(logAuthHeader)), []byte(s.logToken)) != 1 {
 		return false
 	}
 	if origin := request.Header.Get("Origin"); origin != "" && origin != "http://"+request.Host {

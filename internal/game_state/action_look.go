@@ -16,6 +16,7 @@ const (
 	wantedPosterNameRows      = 3
 )
 
+// ActionLookSmallMap looks one tile in a direction on a town or keep map and reports whether it saw something.
 func (g *GameState) ActionLookSmallMap(direction references.Direction) bool {
 	newPosition := direction.GetNewPositionInDirection(&g.MapState.PlayerLocation.Position)
 	if newPosition == nil {
@@ -246,6 +247,7 @@ func appendWantedPosterLine(rawText []byte, content string) []byte {
 	return rawText
 }
 
+// ActionLookLargeMap looks one tile in a direction on the overworld or underworld and reports whether it saw something.
 func (g *GameState) ActionLookLargeMap(direction references.Direction) bool {
 	newPosition := direction.GetNewPositionInDirection(&g.MapState.PlayerLocation.Position)
 	if newPosition == nil {

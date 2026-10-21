@@ -539,7 +539,7 @@ func (g *GameState) finalizeCombatMonsterDeathWithPolicy(
 ) {
 	nominalExperience := 0
 	if awardExperience {
-		nominalExperience = CombatCalcExperience(monster.MaxHP())
+		nominalExperience = combatCalcExperience(monster.MaxHP())
 	}
 	disappears := monster.HasAbility(references.DisappearsOnDeath)
 	position := monster.Position()

@@ -12,11 +12,12 @@ import (
 
 const totalLooks = 512
 
+// LookReferences holds the LOOK2.DAT descriptions shown by the Look command, by tile.
 type LookReferences struct {
-	GameConfig       *config.UltimaVConfiguration `json:"game_config"       yaml:"game_config"`
-	LookOffsets      [totalLooks]int              `json:"look_offsets"      yaml:"look_offsets"`
-	LookData         []byte                       `json:"look_data"         yaml:"look_data"`
-	TileDescriptions map[int]string               `json:"tile_descriptions" yaml:"tile_descriptions"`
+	GameConfig       *config.UltimaVConfiguration `json:"gameConfig"       yaml:"gameConfig"`
+	LookOffsets      [totalLooks]int              `json:"lookOffsets"      yaml:"lookOffsets"`
+	LookData         []byte                       `json:"lookData"         yaml:"lookData"`
+	TileDescriptions map[int]string               `json:"tileDescriptions" yaml:"tileDescriptions"`
 }
 
 // NewLookReferences loads tile descriptions from the configured LOOK2.DAT file.
@@ -60,6 +61,7 @@ func (l *LookReferences) getLookFileAsBytes() ([]byte, error) {
 	return lookData, nil
 }
 
+// GetTileLookDescription returns the Look text for a tile, or "something unusual" when it has none.
 func (l *LookReferences) GetTileLookDescription(tileIndex indexes.SpriteIndex) string {
 	// Bounds check to prevent crash with unknown tiles
 	if int(tileIndex) < 0 || int(tileIndex) >= totalLooks {

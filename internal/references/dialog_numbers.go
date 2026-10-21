@@ -84,9 +84,10 @@ func (d DialogNumber) GetMerchantType() string {
 		return "Innkeeper"
 	case DialogGuard:
 		return "Guard"
-	default:
-		return ""
+	case NoResponse, MerchantThreshold:
 	}
+
+	return ""
 }
 
 // NPCType to DialogNumber Mapping:

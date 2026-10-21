@@ -81,7 +81,6 @@ const combatInstantKillDamage = 99
 // Dexterity. The threshold is integer (30 + defenderDex - attackerStat) / 2.
 // The transformed d30 must meet or exceed it, unless the weapon never misses.
 // The random provider is deterministic. ref:EQUIP-0012
-
 func CombatHitCheck(
 	attackerStat int,
 	defenderDex int,
@@ -300,10 +299,9 @@ func CombatApplyMagicDamageModifiers(damage int, _ bool, isImmortal bool) int {
 	return damage
 }
 
-// CombatCalcExperience returns integer maximum HP divided by four,
+// combatCalcExperience returns integer maximum HP divided by four,
 // plus one, for the kill award. ref:PROGRESS-0002
-
-func CombatCalcExperience(monsterMaxHP int) int {
+func combatCalcExperience(monsterMaxHP int) int {
 	return monsterMaxHP/4 + 1
 }
 

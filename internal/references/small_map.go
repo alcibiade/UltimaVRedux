@@ -16,6 +16,7 @@ const (
 	DungeonFloorCount   = 8 // Dungeons
 )
 
+// Small map dimensions: 32 by 32 tiles per floor.
 const (
 	XSmallMapTiles         = Coordinate(32)
 	YSmallMapTiles         = Coordinate(32)
@@ -23,8 +24,10 @@ const (
 	smallMapSizeInBytes    = int(XSmallMapTiles * YSmallMapTiles)
 )
 
+// SmallMapMasterTypes is the original data file family a small map belongs to.
 type SmallMapMasterTypes int
 
+// Small map families, each with its own original data file.
 const (
 	Castle SmallMapMasterTypes = iota
 	Towne
@@ -35,6 +38,7 @@ const (
 	None
 )
 
+// GetSmallMapFile returns the original data file name that holds the family of maps.
 func GetSmallMapFile(smallMap SmallMapMasterTypes) string {
 	switch smallMap {
 	case Castle:
@@ -47,9 +51,10 @@ func GetSmallMapFile(smallMap SmallMapMasterTypes) string {
 		return files.KeepDat
 	case Dungeon:
 		return files.DungeonDat
-	default:
-		panic("unhandled default case")
+	case CutOrIntroScene, None:
 	}
+
+	panic("unhandled default case")
 }
 
 // GetMapMasterFromLocation returns the SmallMapMasterType for a given Location
@@ -69,11 +74,13 @@ func GetMapMasterFromLocation(location Location) SmallMapMasterTypes {
 		return CutOrIntroScene
 	case BritanniaUnderworld:
 		return None
+	case EmptyLocation, CampingLocation, ShrineLocation, CodexLocation, CombatLocation, BlackthornPrison, FinaleLocation:
 	}
 
 	return None
 }
 
+// NewSmallMapReferences builds the small map location table from the original files and DATA.OVL names.
 func NewSmallMapReferences(gameConfig *config.UltimaVConfiguration, dataOvl *DataOvl) (*LocationReferences, error) {
 	smr, err := newSingleMapReferences(gameConfig, dataOvl)
 	if err != nil {
@@ -121,7 +128,7 @@ func NewSmallMapReferences(gameConfig *config.UltimaVConfiguration, dataOvl *Dat
 		}
 	}
 
-	// TODO: Add these when underworld and combat shrine systems are implemented
+	// Not yet added; they need the underworld and combat shrine systems:
 	// addLocation(BritanniaUnderworld, true, 2, 0)
 	// addLocation(CombatRestingShrine, false, 1, 0)
 

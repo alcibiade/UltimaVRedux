@@ -122,7 +122,7 @@ func (g *GameScene) surfaceCharacterActionWithDialog(
 	}
 
 	var availableCharacters []*party_state.PlayerCharacter
-	g.gameState.PartyState.ForEachCharacter(func(i int, character *party_state.PlayerCharacter) {
+	g.gameState.PartyState.ForEachCharacter(func(_ int, character *party_state.PlayerCharacter) {
 		if character.PartyMap == party_state.PartyMapActive &&
 			isCharacterActorEligible(character) {
 			// Check if character has a name (not empty slot)

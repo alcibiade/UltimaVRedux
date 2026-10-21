@@ -8,6 +8,7 @@ import "github.com/bradhannah/UltimaVRedux/internal/party_state"
 // See ref:MIX-0003.
 type TrapType int
 
+// Trap kinds selectable by boom(); TrapNone means no trap was triggered.
 const (
 	TrapNone   TrapType = iota // No trap triggered
 	TrapAcid                   // Acid: damage to single target (1-30)
@@ -88,6 +89,9 @@ func (g *GameState) ExecuteBoomForTarget(targetIndex int) *TrapResult {
 	case TrapGas:
 		result.Message = "GAS!"
 		result.TargetIndices = g.getAllLivingPartyIndices()
+
+	case TrapNone:
+		// Never selected from trapTypes above.
 	}
 
 	return result

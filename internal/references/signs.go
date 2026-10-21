@@ -1,13 +1,13 @@
-// Package references provides game data constants, structures, and loading for Ultima 5 Redux.
-// This file handles parsing of SIGNS.DAT for sign text display.
-
 package references
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 )
+
+var errSignsTooSmall = errors.New("SIGNS.DAT too small")
 
 // SignRecord represents a single sign in the game world.
 type SignRecord struct {
@@ -44,21 +44,6 @@ const (
 	SignMaxCharIndex  = 0x7F // Maximum valid character index (127)
 )
 
-// Original border-control expansions; ref:SIGN-0004.
-// These are referenced by bytes 0x29-0x31 in sign text
-// All macros are exactly 16 characters to match the original message window width
-var signBorderMacros = [9]string{
-	"g              g", // 0x29 - side borders (vertical bars)
-	"jlllllllnllllllk", // 0x2a - top border with center notch
-	"8lllllllmllllll9", // 0x2b - bottom border with center notch
-	"jllllllllllllllk", // 0x2c - top border plain
-	"8llllllllllllll9", // 0x2d - bottom border plain
-	"hllllk    jlllli", // 0x2e - cross arm (left side + gap + right side)
-	"jlllli    hllllk", // 0x2f - cross arm mirrored
-	"     g    g     ", // 0x30 - cross vertical bars with gap
-	"     hlllli     ", // 0x31 - cross bottom center
-}
-
 // NewSignReferences loads and parses SIGNS.DAT from the given path.
 func NewSignReferences(signsPath string) (*SignReferences, error) {
 	data, err := os.ReadFile(signsPath)
@@ -67,7 +52,7 @@ func NewSignReferences(signsPath string) (*SignReferences, error) {
 	}
 
 	if len(data) < signHeaderSize {
-		return nil, fmt.Errorf("SIGNS.DAT too small: expected at least %d bytes, got %d", signHeaderSize, len(data))
+		return nil, fmt.Errorf("%w: expected at least %d bytes, got %d", errSignsTooSmall, signHeaderSize, len(data))
 	}
 
 	refs := &SignReferences{
@@ -211,6 +196,21 @@ func (sr *SignReferences) GetSignAt(location Location, floor, x, y int) *SignRec
 // Returns empty string if the byte is not a valid border macro.
 func GetBorderMacro(b byte) string {
 	if b >= 0x29 && b <= 0x31 {
+		// Original border-control expansions; ref:SIGN-0004.
+		// These are referenced by bytes 0x29-0x31 in sign text
+		// All macros are exactly 16 characters to match the original message window width
+		signBorderMacros := [9]string{
+			"g              g", // 0x29 - side borders (vertical bars)
+			"jlllllllnllllllk", // 0x2a - top border with center notch
+			"8lllllllmllllll9", // 0x2b - bottom border with center notch
+			"jllllllllllllllk", // 0x2c - top border plain
+			"8llllllllllllll9", // 0x2d - bottom border plain
+			"hllllk    jlllli", // 0x2e - cross arm (left side + gap + right side)
+			"jlllli    hllllk", // 0x2f - cross arm mirrored
+			"     g    g     ", // 0x30 - cross vertical bars with gap
+			"     hlllli     ", // 0x31 - cross bottom center
+		}
+
 		return signBorderMacros[b-0x29]
 	}
 

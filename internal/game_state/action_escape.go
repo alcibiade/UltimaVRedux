@@ -1,5 +1,6 @@
 package game_state
 
+// ActionEscapeCombatMap leaves combat when the exit is allowed and ends it as victory, evacuation or defeat.
 func (g *GameState) ActionEscapeCombatMap() bool {
 	if !g.CanEscapeCombatMap() {
 		return false

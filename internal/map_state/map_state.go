@@ -5,6 +5,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// MapState is the authoritative map side of game state: player location, loaded maps, lighting and the timed open door.
 type MapState struct {
 	PlayerLocation references.PlayerLocation
 	LayeredMaps    LayeredMaps
@@ -21,19 +22,30 @@ type MapState struct {
 	openDoorType  indexes.SpriteIndex
 }
 
+// NewMapStateInput carries the view dimensions NewMapState needs.
 type NewMapStateInput struct {
 	GameDimensions            GameDimensions
 	XTilesVisibleOnGameScreen int
 	YTilesVisibleOnGameScreen int
 }
 
+// NewMapState creates a MapState with no maps loaded.
 func NewMapState(input NewMapStateInput) *MapState {
-	mapState := &MapState{}
-	mapState.Lighting = NewLighting(input.GameDimensions)
-	mapState.XTilesVisibleOnGameScreen = input.XTilesVisibleOnGameScreen
-	mapState.YTilesVisibleOnGameScreen = input.YTilesVisibleOnGameScreen
-
-	return mapState
+	return &MapState{
+		PlayerLocation: references.PlayerLocation{
+			Location: 0,
+			Position: references.Position{X: 0, Y: 0},
+			Floor:    0,
+		},
+		LayeredMaps:               LayeredMaps{layeredMaps: nil, smallMapLocation: 0, doorOccupancy: nil},
+		XTilesVisibleOnGameScreen: input.XTilesVisibleOnGameScreen,
+		YTilesVisibleOnGameScreen: input.YTilesVisibleOnGameScreen,
+		Lighting:                  NewLighting(input.GameDimensions),
+		openDoorPos:               nil,
+		openDoorTurns:             0,
+		openDoorFloor:             0,
+		openDoorType:              indexes.NoSprites,
+	}
 }
 
 // SavePlayerLocation returns a copy of the current player location (Location, Position, Floor)
@@ -59,6 +71,7 @@ func (m *MapState) ResetTransientDoor() {
 	m.openDoorType = indexes.NoSprites
 }
 
+// GetLayeredMapByCurrentLocation returns the layered map the player is currently on.
 func (m *MapState) GetLayeredMapByCurrentLocation() *LayeredMap {
 	return m.LayeredMaps.GetLayeredMap(m.PlayerLocation.Location.GetMapType(), m.PlayerLocation.Floor)
 }

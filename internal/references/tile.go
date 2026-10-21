@@ -30,6 +30,7 @@ type Tile struct {
 	IsWindowField bool   `json:"IsWindow"`
 }
 
+// IsPassable reports whether the vehicle can enter the tile.
 func (t *Tile) IsPassable(vehicle VehicleType) bool {
 	switch vehicle {
 	case CarpetVehicle:
@@ -59,6 +60,7 @@ func (t *Tile) Is(spriteIndex indexes.SpriteIndex) bool {
 	return t.Index == spriteIndex
 }
 
+// IsChair reports whether the tile is a chair.
 func (t *Tile) IsChair() bool {
 	return t.Is(indexes.ChairBackBack) ||
 		t.Is(indexes.ChairBackForward) ||
@@ -66,6 +68,7 @@ func (t *Tile) IsChair() bool {
 		t.Is(indexes.ChairBackLeft)
 }
 
+// IsCannon reports whether the tile is a cannon.
 func (t *Tile) IsCannon() bool {
 	return t.Is(indexes.CannonLeft) ||
 		t.Is(indexes.CannonRight) ||
@@ -77,21 +80,23 @@ func (t *Tile) IsCannon() bool {
 // Returns NoneDirection if tile is not a cannon.
 // The low two bits encode direction: 0=N, 1=E, 2=S, 3=W; ref:VEH-0001.
 func (t *Tile) GetCannonDirection() Direction {
-	switch t.Index {
-	case indexes.CannonUp:
+	if t.Index == indexes.CannonUp {
 		return Up
-	case indexes.CannonRight:
-		return Right
-	case indexes.CannonDown:
-		return Down
-	case indexes.CannonLeft:
-		return Left
-	default:
-		return NoneDirection
 	}
+	if t.Index == indexes.CannonRight {
+		return Right
+	}
+	if t.Index == indexes.CannonDown {
+		return Down
+	}
+	if t.Index == indexes.CannonLeft {
+		return Left
+	}
+
+	return NoneDirection
 }
 
-func (t *Tile) IsPath() bool {
+func (t *Tile) isPath() bool {
 	return t.Index >= indexes.Path1 && t.Index <= indexes.Path7
 }
 
@@ -99,6 +104,7 @@ func (t *Tile) isNPCNoPenaltyWalkable() bool {
 	return t.Is(indexes.BrickFloor) || t.Is(indexes.MetalFloor) || t.Is(indexes.WoodFloor1) || t.Is(indexes.LeftWoodFloor2) || t.Is(indexes.RightWoodFloor2)
 }
 
+// GetWalkableWeight returns the path-finding cost for NPCs walking across the tile.
 func (t *Tile) GetWalkableWeight() int {
 	if t.Index.IsUnlockedDoor() {
 		return weightIdealPath
@@ -112,7 +118,7 @@ func (t *Tile) GetWalkableWeight() int {
 		return weightIdealPath
 	}
 
-	if t.IsPath() {
+	if t.isPath() {
 		return weightPath
 	}
 
@@ -123,6 +129,7 @@ func (t *Tile) GetWalkableWeight() int {
 	return weightDefault
 }
 
+// GetExtraMovementString returns the extra message shown for slow ground, or an empty string for normal ground.
 func (t *Tile) GetExtraMovementString() string {
 	switch t.SpeedFactor {
 	case 4:
@@ -136,22 +143,25 @@ func (t *Tile) GetExtraMovementString() string {
 	}
 }
 
-func (t *Tile) IsSwamp() bool {
+func (t *Tile) isSwamp() bool {
 	return t.Is(indexes.Swamp)
 }
 
+// IsWater reports whether the tile is open water or coast.
 func (t *Tile) IsWater() bool {
 	return t.Is(indexes.Water1) || t.Is(indexes.Water2) || t.Is(indexes.WaterCoast)
 }
 
-func (t *Tile) IsDesert() bool {
+func (t *Tile) isDesert() bool {
 	return t.Is(indexes.Desert1) || t.Is(indexes.LeftDesert2) || t.Is(indexes.RightDesert2)
 }
 
+// IsMountain reports whether the tile is a mountain.
 func (t *Tile) IsMountain() bool {
 	return t.Is(indexes.SmallMountains) || t.Is(indexes.TallMountains)
 }
 
+// IsWaterfall reports whether the tile is any waterfall frame.
 func (t *Tile) IsWaterfall() bool {
 	return t.Is(indexes.Waterfall1) || t.Is(indexes.Waterfall2) ||
 		t.Is(indexes.Waterfall3) || t.Is(indexes.Waterfall4)

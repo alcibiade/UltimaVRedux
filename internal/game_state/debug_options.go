@@ -23,24 +23,24 @@ func (g *GameState) CurrentDebugOptionsSnapshot() DebugOptionsSnapshot {
 }
 
 // SetFreeMove explicitly changes collision-free movement.
-func (g *GameState) SetFreeMove(enabled bool) (before, after bool) {
-	before = g.DebugOptions.FreeMove
+func (g *GameState) SetFreeMove(enabled bool) (bool, bool) {
+	before := g.DebugOptions.FreeMove
 	g.DebugOptions.FreeMove = enabled
 
 	return before, g.DebugOptions.FreeMove
 }
 
 // SetTextPlaceholders explicitly changes empty-line diagnostic rendering.
-func (g *GameState) SetTextPlaceholders(enabled bool) (before, after bool) {
-	before = g.DebugOptions.ShowEmptyLineDebugPlaceholders
+func (g *GameState) SetTextPlaceholders(enabled bool) (bool, bool) {
+	before := g.DebugOptions.ShowEmptyLineDebugPlaceholders
 	g.DebugOptions.ShowEmptyLineDebugPlaceholders = enabled
 
 	return before, g.DebugOptions.ShowEmptyLineDebugPlaceholders
 }
 
 // SetDialogBoundingBoxes explicitly changes dialog text-area diagnostic rendering.
-func (g *GameState) SetDialogBoundingBoxes(enabled bool) (before, after bool) {
-	before = g.DebugOptions.DialogBoundingBoxes
+func (g *GameState) SetDialogBoundingBoxes(enabled bool) (bool, bool) {
+	before := g.DebugOptions.DialogBoundingBoxes
 	g.DebugOptions.DialogBoundingBoxes = enabled
 
 	return before, g.DebugOptions.DialogBoundingBoxes

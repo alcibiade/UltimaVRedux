@@ -150,7 +150,7 @@ func PickMonsterByTerrain(
 	}
 
 	// Underworld swamp: Rot Worms; ref:ENEMY-0004.
-	if tile.IsSwamp() && isUnderworld {
+	if tile.isSwamp() && isUnderworld {
 		return MonsterRotWorm
 	}
 

@@ -56,7 +56,7 @@ class LocationPosition(TypedDict, total=False):
 class WorldLocations(TypedDict, total=False):
     """World location lookup exported by ref_dump."""
 
-    large_map_location_positions: dict[str, LocationPosition]
+    largeMapLocationPositions: dict[str, LocationPosition]
 
 
 class LocationReferences(TypedDict, total=False):
@@ -515,7 +515,7 @@ def cmd_location(args: argparse.Namespace) -> None:
     try:
         loc_refs = load_location_refs()
         positions = loc_refs.get("worldLocations", {}).get(
-            "large_map_location_positions", {}
+            "largeMapLocationPositions", {}
         )
         for value in positions.values():
             if value.get("location") == location_id:

@@ -9,7 +9,7 @@ import (
 )
 
 func (g *GameState) journalDungeonIdentityKnown(dungeon references.Location) bool {
-	if g.dungeonJournal[DungeonToIndexMap[dungeon]].Known {
+	if index, _ := dungeonIndex(dungeon); g.dungeonJournal[index].Known {
 		return true
 	}
 	if dungeon == references.Shame || dungeon == references.Doom {
@@ -42,7 +42,7 @@ func (g *GameState) observeDungeonEntrance(
 	sample dungeonObservationSample,
 	wordUsed bool,
 ) {
-	index, ok := DungeonToIndexMap[dungeon]
+	index, ok := dungeonIndex(dungeon)
 	if !ok || sample.sextant.Location != references.BritanniaUnderworld ||
 		!DungeonEntranceExistsOnFloor(dungeon, sample.sextant.Floor) ||
 		position != g.GetDungeonEntranceCoordinates()[dungeon] {

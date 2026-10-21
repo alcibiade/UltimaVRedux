@@ -16,11 +16,13 @@ const merchantDialogBackgroundIntensity = 0.0
 // Note: These are var not const because color.RGBA is a struct type.
 // Treat as read-only constants at runtime.
 
-// =============================================================================
-// TEXT HIERARCHY COLORS
-// Used to establish visual hierarchy between different types of text content
-// =============================================================================
+//nolint:gochecknoglobals // Shared read-only palette; colour structs cannot be constants.
 var (
+	// =============================================================================
+	// TEXT HIERARCHY COLORS
+	// Used to establish visual hierarchy between different types of text content
+	// =============================================================================
+
 	// DialogHeaderColor - Panel and section titles that identify areas of the dialog
 	// Examples: "CHARACTER", "EQUIPPED", "AVAILABLE", "DETAILS"
 	// Visual role: Most prominent text, draws the eye to section boundaries
@@ -50,13 +52,12 @@ var (
 	// Examples: "< 1/6 >" showing current character out of total
 	// Visual role: Subtle, informational but not the main focus
 	DialogNavHintColor stdcolor.Color = color.EGADarkGray
-)
 
-// =============================================================================
-// LIST ITEM COLORS
-// Used for scrollable lists of selectable items
-// =============================================================================
-var (
+	// =============================================================================
+	// LIST ITEM COLORS
+	// Used for scrollable lists of selectable items
+	// =============================================================================
+
 	// DialogItemNameColor - Primary text for items in a list
 	// Examples: "Long Sword", "Plate Armor", "Healing Potion"
 	// Visual role: Clear and readable, main content of list rows
@@ -84,13 +85,12 @@ var (
 	// Examples: "^" at top, "v" at bottom of scrollable lists
 	// Visual role: Distinct from content, indicates navigation possibility
 	DialogScrollIndicator stdcolor.Color = color.EGACyan
-)
 
-// =============================================================================
-// STATUS BAR COLORS
-// Used for the status/control bar at the bottom of dialogs
-// =============================================================================
-var (
+	// =============================================================================
+	// STATUS BAR COLORS
+	// Used for the status/control bar at the bottom of dialogs
+	// =============================================================================
+
 	// DialogStatusOKColor - Positive status messages indicating ready/success state
 	// Examples: "Ready to equip", "Spell prepared", "Transaction complete"
 	// Visual role: Reassuring, indicates user can proceed
@@ -110,13 +110,12 @@ var (
 	// Examples: ":Equip", ":Close", ":Item", ":Char"
 	// Visual role: Secondary to keys, explains the action
 	DialogControlHintColor stdcolor.Color = color.EGALightGray
-)
 
-// =============================================================================
-// STAT COMPARISON COLORS
-// Used when showing how equipping/using something changes character stats
-// =============================================================================
-var (
+	// =============================================================================
+	// STAT COMPARISON COLORS
+	// Used when showing how equipping/using something changes character stats
+	// =============================================================================
+
 	// DialogDeltaPositive - Stat improvements when comparing equipment
 	// Examples: "(+5)", "(+12)" showing attack or defense increase
 	// Visual role: Encouraging, this change is beneficial
@@ -131,24 +130,22 @@ var (
 	// Examples: "(0)" showing no difference
 	// Visual role: Neutral, neither good nor bad
 	DialogDeltaNeutral stdcolor.Color = color.EGAWhite
-)
 
-// =============================================================================
-// INLINE WARNING COLORS
-// Used for warning text embedded within content (not status bar)
-// =============================================================================
-var (
+	// =============================================================================
+	// INLINE WARNING COLORS
+	// Used for warning text embedded within content (not status bar)
+	// =============================================================================
+
 	// DialogWarningColor - Inline warning text within dialog content
 	// Examples: STR requirement value when character doesn't meet it
 	// Visual role: Draws attention to a specific problem within the content
 	DialogWarningColor stdcolor.Color = color.EGALightRed
-)
 
-// =============================================================================
-// SELECTION HIGHLIGHT COLORS
-// Used for indicating the currently selected item in a list
-// =============================================================================
-var (
+	// =============================================================================
+	// SELECTION HIGHLIGHT COLORS
+	// Used for indicating the currently selected item in a list
+	// =============================================================================
+
 	// DialogSelectedBackground - Background color for the currently selected list item
 	// Examples: White rectangle behind selected item in equipment/item lists
 	// Visual role: Strong visual indicator of current selection (inversion style)
@@ -170,13 +167,12 @@ var (
 	// DialogSelectedCheckedMarkColor retains readable contrast on the white selection bar.
 	//nolint:gochecknoglobals // Shared immutable semantic UI colour.
 	DialogSelectedCheckedMarkColor stdcolor.Color = color.EGAGreen
-)
 
-// =============================================================================
-// DECORATIVE COLORS
-// Used for visual separators and decorative elements
-// =============================================================================
-var (
+	// =============================================================================
+	// DECORATIVE COLORS
+	// Used for visual separators and decorative elements
+	// =============================================================================
+
 	// DialogRuleColor - Horizontal or vertical separator lines
 	// Examples: Line under item sprite in detail panel, section dividers
 	// Visual role: Visual separation between content areas

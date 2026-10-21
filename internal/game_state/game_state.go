@@ -340,7 +340,7 @@ func (g *GameState) initializeEnvironmentalSystems() {
 	g.windSystem = environment.NewWindSystem(g.rng, nil)
 
 	// Initialize earthquake system (underworld earthquakes, dungeon entrance effects)
-	g.earthquakeSystem = NewEarthquakeSystem(g.rng, nil)
+	g.earthquakeSystem = newEarthquakeSystem(g.rng, nil)
 }
 
 // SetupEnvironmentalSystemCallbacks configures SystemCallbacks for all environmental systems.

@@ -260,8 +260,8 @@ func characterStatusName(status party_state.CharacterStatus) string {
 		return "Pois."
 	}
 
-	if statusRef := party_state.CharacterStatuses.GetByID(status); statusRef != nil {
-		return statusRef.FriendlyName
+	if name, ok := status.FriendlyName(); ok {
+		return name
 	}
 
 	logging.Warnf(logging.CategoryUI, "Invalid character status %d", status)

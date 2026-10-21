@@ -158,7 +158,7 @@ func newShadowlordStatusResult(state *game_state.GameState) shadowlordStatusResu
 			continue
 		}
 		assignments = append(assignments, shadowlordAssignmentResult{
-			LocationID: int(location), LocationName: references.Location(location).String(),
+			LocationID: location, LocationName: references.Location(location).String(),
 			ShadowlordID: int(lord), ShadowlordName: lord.String(),
 		})
 	}

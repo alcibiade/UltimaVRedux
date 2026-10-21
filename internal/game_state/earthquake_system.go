@@ -32,10 +32,12 @@ type EarthquakeSystem struct {
 	callbacks EarthquakeCallbacks
 }
 
-func NewEarthquakeSystem(rng interface{ Intn(n int) int }, callbacks EarthquakeCallbacks) *EarthquakeSystem {
+// newEarthquakeSystem returns an earthquake system that draws its rolls from rng.
+func newEarthquakeSystem(rng interface{ Intn(n int) int }, callbacks EarthquakeCallbacks) *EarthquakeSystem {
 	return &EarthquakeSystem{rng: rng, callbacks: callbacks}
 }
 
+// SetCallbacks replaces the callbacks used to report earthquake effects; GameState wires them after construction.
 func (e *EarthquakeSystem) SetCallbacks(callbacks EarthquakeCallbacks) {
 	e.callbacks = callbacks
 }

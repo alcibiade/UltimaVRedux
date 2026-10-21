@@ -59,6 +59,7 @@ const (
 // CombatMapTerritory represents which CBT file to use
 type CombatMapTerritory int
 
+// Combat map files: BritanniaCombatTerritory selects BRIT.CBT (overworld and towns), DungeonCombatTerritory the dungeon file.
 const (
 	BritanniaCombatTerritory CombatMapTerritory = iota
 	DungeonCombatTerritory

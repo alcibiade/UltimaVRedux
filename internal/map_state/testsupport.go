@@ -36,7 +36,7 @@ func (l *LayeredMap) RecalculateVisibleTilesWithMoongates(
 
 	// Resetting and then marking the rectangle could be done in one pass.
 	l.testForVisibilityMap.ResetVisibilityCoords(false)
-	l.testForVisibilityMap.SetVisibilityCoordsRectangle(
+	l.testForVisibilityMap.setVisibilityCoordsRectangle(
 		&l.TopLeft,
 		&l.BottomRight,
 		l.XMaxTilesPerMap,

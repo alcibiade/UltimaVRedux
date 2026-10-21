@@ -48,9 +48,6 @@ func NewAuthenticSearchLocationManager(gameState *GameState) *AuthenticSearchLoc
 		// objFound array starts as all zeros (no locations found initially)
 	}
 
-	// TODO: Load found status from save file when save/load system is implemented
-	// For now, all locations start as not found
-
 	return aslm
 }
 
@@ -252,6 +249,7 @@ func (aslm *AuthenticSearchLocationManager) FindAtPosition(x, y references.Coord
 	return nil
 }
 
+// AuthenticSearchResult is one discovered search location: its item, quantity, map position and the text shown to the player.
 type AuthenticSearchResult struct {
 	ItemType      references.Item
 	Quantity      uint16

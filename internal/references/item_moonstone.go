@@ -1,15 +1,20 @@
 package references
 
+// Moonstone is one of the eight moonstones, numbered by moon phase.
 type Moonstone int
 
+// ID returns the moonstone number within its item type.
 func (m Moonstone) ID() int {
 	return int(m)
 }
 
+// Type returns ItemTypeMoonstone.
 func (m Moonstone) Type() ItemType {
 	return ItemTypeMoonstone
 }
 
+// Moonstones, in moon phase order starting at NewMoon.
+//
 //goland:noinspection GoUnusedConst
 const (
 	NewMoon        Moonstone = 0

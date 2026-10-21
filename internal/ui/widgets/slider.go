@@ -77,20 +77,14 @@ type SliderConfig struct {
 
 const (
 	sliderMaxCharsPerLine = 20
+	sliderTrackMargin     = 5 // Pixels of empty margin at each end of the track
+	sliderFocusThickness  = 2 // Pixel width of the focus border
 )
 
 // sliderDefaultFontSize uses FontSizeXSmall (12) from typography system
 
-// NewSlider creates a new slider widget with safe defaults and validation.
-//
-// The slider supports discrete values within a specified range, keyboard navigation
-// for value changes, and customizable visual styling.
-//
-// Parameters:
-//   - config: Configuration for the slider widget
-//
-// Returns a configured Slider that implements the Widget interface.
-func NewSlider(config SliderConfig) *Slider {
+// normalizeSliderConfig validates the config, logging and correcting bad values, and fills in defaults.
+func normalizeSliderConfig(config SliderConfig) SliderConfig {
 	// Error handling: validate required inputs
 	if config.Keyboard == nil {
 		logging.Warnf(logging.CategoryUI, "NewSlider called with nil keyboard, slider may not respond to input")
@@ -139,7 +133,26 @@ func NewSlider(config SliderConfig) *Slider {
 		config.BackgroundColor = color.SliderBackground.RGBA() // Dark gray background
 	}
 
+	return config
+}
+
+// NewSlider creates a new slider widget with safe defaults and validation.
+//
+// The slider supports discrete values within a specified range, keyboard navigation
+// for value changes, and customizable visual styling.
+//
+// Parameters:
+//   - config: Configuration for the slider widget
+//
+// Returns a configured Slider that implements the Widget interface.
+func NewSlider(config SliderConfig) *Slider {
+	config = normalizeSliderConfig(config)
+
 	widget := &Slider{
+		font:            nil,
+		output:          nil,
+		bounds:          nil,
+		drawOp:          nil,
 		minValue:        config.MinValue,
 		maxValue:        config.MaxValue,
 		currentValue:    config.InitialValue,
@@ -157,9 +170,11 @@ func NewSlider(config SliderConfig) *Slider {
 
 	// Initialize display components using centralized typography system
 	widget.font, widget.output = GetScaledFontWithOutput(FontConfig{
-		Size:     StandardFontSize(config.FontSize),
-		MaxLines: 1, // Single line for label
-		MaxChars: sliderMaxCharsPerLine,
+		Size:                  StandardFontSize(config.FontSize),
+		MaxLines:              1, // Single line for label
+		MaxChars:              sliderMaxCharsPerLine,
+		LineSpacing:           0,
+		LineSpacingMultiplier: 0,
 	})
 
 	// Initialize reusable draw options for safety-first performance
@@ -211,13 +226,13 @@ func (s *Slider) Draw(screen *ebiten.Image) {
 // drawSliderTrack draws the horizontal track
 func (s *Slider) drawSliderTrack(screen *ebiten.Image, sliderRect image.Rectangle) {
 	// Calculate track position (horizontal line in middle)
-	trackY := sliderRect.Min.Y + sliderRect.Dy()/2
-	trackHeight := 8                    // Thicker track for better visibility
-	trackStartX := sliderRect.Min.X + 5 // Small left margin only
-	trackEndX := sliderRect.Max.X - 5   // Small right margin only
+	trackY := sliderRect.Min.Y + sliderRect.Dy()/halfDivisor
+	trackHeight := 8                                    // Thicker track for better visibility
+	trackStartX := sliderRect.Min.X + sliderTrackMargin // Small left margin only
+	trackEndX := sliderRect.Max.X - sliderTrackMargin   // Small right margin only
 
 	// Draw track as solid blue rectangle
-	for y := trackY - trackHeight/2; y < trackY+trackHeight/2; y++ {
+	for y := trackY - trackHeight/halfDivisor; y < trackY+trackHeight/halfDivisor; y++ {
 		for x := trackStartX; x < trackEndX; x++ {
 			screen.Set(x, y, s.trackColor)
 		}
@@ -227,8 +242,8 @@ func (s *Slider) drawSliderTrack(screen *ebiten.Image, sliderRect image.Rectangl
 // drawSliderHandle draws the slider handle at current value position
 func (s *Slider) drawSliderHandle(screen *ebiten.Image, sliderRect image.Rectangle) {
 	// Calculate handle position
-	trackStartX := sliderRect.Min.X + 5 // Match track start position
-	trackEndX := sliderRect.Max.X - 5   // Match track end position
+	trackStartX := sliderRect.Min.X + sliderTrackMargin // Match track start position
+	trackEndX := sliderRect.Max.X - sliderTrackMargin   // Match track end position
 	trackWidth := trackEndX - trackStartX
 
 	// Calculate handle position based on current value
@@ -240,12 +255,12 @@ func (s *Slider) drawSliderHandle(screen *ebiten.Image, sliderRect image.Rectang
 	valueOffset := float64(s.currentValue-s.minValue) / float64(valueRange)
 	handleX := trackStartX + int(float64(trackWidth)*valueOffset)
 
-	handleY := sliderRect.Min.Y + sliderRect.Dy()/2
+	handleY := sliderRect.Min.Y + sliderRect.Dy()/halfDivisor
 	handleSize := 12 // Larger handle for better visibility
 
 	// Draw handle as white square
-	for y := handleY - handleSize/2; y < handleY+handleSize/2; y++ {
-		for x := handleX - handleSize/2; x < handleX+handleSize/2; x++ {
+	for y := handleY - handleSize/halfDivisor; y < handleY+handleSize/halfDivisor; y++ {
+		for x := handleX - handleSize/halfDivisor; x < handleX+handleSize/halfDivisor; x++ {
 			if x >= sliderRect.Min.X && x < sliderRect.Max.X &&
 				y >= sliderRect.Min.Y && y < sliderRect.Max.Y {
 				screen.Set(x, y, s.handleColor)
@@ -270,7 +285,7 @@ func (s *Slider) drawFocusIndicator(screen *ebiten.Image) {
 	// Draw bottom border
 	for x := sliderRect.Min.X; x < sliderRect.Max.X; x++ {
 		screen.Set(x, sliderRect.Max.Y-1, focusColor)
-		screen.Set(x, sliderRect.Max.Y-2, focusColor)
+		screen.Set(x, sliderRect.Max.Y-sliderFocusThickness, focusColor)
 	}
 
 	// Draw left border
@@ -282,7 +297,7 @@ func (s *Slider) drawFocusIndicator(screen *ebiten.Image) {
 	// Draw right border
 	for y := sliderRect.Min.Y; y < sliderRect.Max.Y; y++ {
 		screen.Set(sliderRect.Max.X-1, y, focusColor)
-		screen.Set(sliderRect.Max.X-2, y, focusColor)
+		screen.Set(sliderRect.Max.X-sliderFocusThickness, y, focusColor)
 	}
 }
 

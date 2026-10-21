@@ -469,6 +469,7 @@ func convertPartyVehicle(game SavedGame, warnings *[]ConversionWarning) *save_sn
 		return nil
 	}
 	vehicle := &save_snapshot.VehicleSnapshot{
+		VesselID:          0,
 		Type:              vehicleType,
 		CurrentDirection:  direction,
 		PreviousDirection: direction,
@@ -477,6 +478,7 @@ func convertPartyVehicle(game SavedGame, warnings *[]ConversionWarning) *save_sn
 		Hull:              defaultShipHull,
 		SailState:         0,
 		HasHMSCape:        false,
+		PendingDelivery:   false,
 	}
 	if vehicle.Type == int(references.FrigateVehicle) {
 		vehicle.Hull = int(game.ActiveObjects[0].Number)

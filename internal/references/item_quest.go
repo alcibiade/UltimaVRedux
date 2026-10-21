@@ -1,11 +1,14 @@
 package references
 
+// QuestItem is a unique story item, including the former special items.
 type QuestItem int
 
+// ID returns the quest item number within its item type.
 func (q QuestItem) ID() int {
 	return int(q)
 }
 
+// Type returns ItemTypeQuestItem.
 func (q QuestItem) Type() ItemType {
 	return ItemTypeQuestItem
 }
@@ -14,6 +17,7 @@ func (q QuestItem) Type() ItemType {
 // Use InventoryItemReferences.GetQuestItemDisplayName(), GetQuestItemPickupMessage(),
 // and GetQuestItemSpriteIndex() instead. These values come from item_quest_data.go.
 
+// Quest items in original order, starting at Amulet.
 const (
 	Amulet           QuestItem = 0
 	Crown            QuestItem = 1
@@ -21,7 +25,7 @@ const (
 	ShardOfFalsehood QuestItem = 3
 	ShardOfHatred    QuestItem = 4
 	ShardOfCowardice QuestItem = 5
-	// Former SpecialItems - now unified under QuestItem
+	// Carpet and the items after it are the former special items, now unified under QuestItem.
 	Carpet      QuestItem = 6
 	Grapple     QuestItem = 7
 	Spyglass    QuestItem = 8

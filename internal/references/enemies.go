@@ -4,6 +4,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// EnemyReferences is the monster table indexed by MonsterType.
 type EnemyReferences []EnemyReference
 
 const (

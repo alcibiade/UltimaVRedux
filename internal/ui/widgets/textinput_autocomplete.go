@@ -3,7 +3,12 @@ package widgets
 import (
 	"fmt"
 	"strings"
+
+	"github.com/bradhannah/UltimaVRedux/pkg/grammar"
 )
+
+// rangePromptMarker in a slot's text marks a value-range prompt such as "1 to 99" rather than a word to complete.
+const rangePromptMarker = " to "
 
 func (t *TextInput) tryToAutoComplete(bAddSpaceAtEndIfPerfectMatch bool, isTabKey bool) {
 	outputStr := t.output.GetOutputStr(false)
@@ -22,28 +27,15 @@ func (t *TextInput) tryToAutoComplete(bAddSpaceAtEndIfPerfectMatch bool, isTabKe
 	nPrimaryCommandMatch := t.textCommands.HowManyCommandsMatch(outputStr)
 	primaryCommandMatches := t.textCommands.GetAllMatchingTextCommands(outputStr)
 
-	splitCommandStrings := strings.Split(outputStr, " ")
+	splitStr := strings.Split(outputStr, " ")
 
-	hasExactMatchNeedingMoreParams := false
-	for _, match := range *primaryCommandMatches {
-		if len(match.Matches) > 1 && len(splitCommandStrings) == 1 {
-			commandStr := match.Matches[0].GetString()
-			inputStr := splitCommandStrings[0]
-			if strings.EqualFold(commandStr, inputStr) {
-				hasExactMatchNeedingMoreParams = true
-
-				break
-			}
-		}
-	}
-
-	if hasExactMatchNeedingMoreParams && bAddSpaceAtEndIfPerfectMatch {
+	if hasExactMatchNeedingMoreParams(primaryCommandMatches, splitStr) && bAddSpaceAtEndIfPerfectMatch {
 		t.output.AppendText(" ")
 
 		return
 	}
 
-	if nPrimaryCommandMatch == 1 && len(splitCommandStrings) > (*primaryCommandMatches)[0].GetNumberOfParameters() {
+	if nPrimaryCommandMatch == 1 && len(splitStr) > (*primaryCommandMatches)[0].GetNumberOfParameters() {
 		return
 	}
 
@@ -51,83 +43,13 @@ func (t *TextInput) tryToAutoComplete(bAddSpaceAtEndIfPerfectMatch bool, isTabKe
 		return
 	}
 
-	hasTrailingSpace := len(outputStr) > 0 && outputStr[len(outputStr)-1] == ' '
-	splitStr := strings.Split(outputStr, " ")
+	// The token being completed is the last word; it is empty after a trailing space.
+	currentPosition := len(splitStr) - 1
+	currentToken := splitStr[currentPosition]
 
-	var currentPosition int
-	var currentToken string
-
-	if hasTrailingSpace {
-		currentPosition = len(splitStr) - 1
-		currentToken = ""
-	} else {
-		currentPosition = len(splitStr) - 1
-		currentToken = splitStr[currentPosition]
-	}
-
-	optionsMap := make(map[string]bool)
-
-	for _, cmd := range *primaryCommandMatches {
-		if currentPosition < len(cmd.Matches) {
-			match := cmd.Matches[currentPosition]
-
-			matchStr := match.GetString()
-
-			if matchStr != "" {
-				if strings.Contains(matchStr, " to ") {
-					continue
-				}
-				if currentToken == "" || strings.HasPrefix(strings.ToUpper(matchStr), strings.ToUpper(currentToken)) {
-					optionsMap[matchStr] = true
-				}
-			} else {
-				partialMatches, err := match.GetPartialMatches(currentToken)
-				if err != nil {
-					continue
-				}
-				for _, opt := range partialMatches {
-					optionsMap[opt] = true
-				}
-			}
-		}
-	}
-
+	optionsMap := collectCompletionOptions(primaryCommandMatches, currentPosition, currentToken)
 	if len(optionsMap) == 0 {
-		if currentToken != "" {
-			for _, cmd := range *primaryCommandMatches {
-				if currentPosition < len(cmd.Matches) {
-					match := cmd.Matches[currentPosition]
-					matchStr := match.GetString()
-
-					if matchStr != "" && strings.Contains(matchStr, " to ") {
-						isValid, err := match.PartiallyMatches(currentToken)
-						if err == nil && isValid {
-							if bAddSpaceAtEndIfPerfectMatch {
-								t.output.AppendText(" ")
-							}
-
-							return
-						}
-
-						break
-					}
-				}
-			}
-		}
-
-		for _, cmd := range *primaryCommandMatches {
-			if currentPosition < len(cmd.Matches) {
-				match := cmd.Matches[currentPosition]
-				matchStr := match.GetString()
-				if matchStr != "" && strings.Contains(matchStr, " to ") {
-					t.TextInputCallbacks.AmbiguousAutoComplete(
-						fmt.Sprintf("Enter value (%s)", matchStr),
-					)
-
-					return
-				}
-			}
-		}
+		t.promptForRangeValue(primaryCommandMatches, currentPosition, currentToken, bAddSpaceAtEndIfPerfectMatch)
 
 		return
 	}
@@ -137,66 +59,151 @@ func (t *TextInput) tryToAutoComplete(bAddSpaceAtEndIfPerfectMatch bool, isTabKe
 		options = append(options, opt)
 	}
 
-	if len(options) > 1 && currentToken != "" {
-		hasExactMatch := false
-		var exactMatchOption string
-		for _, opt := range options {
-			if strings.EqualFold(opt, currentToken) {
-				hasExactMatch = true
-				exactMatchOption = opt
-
-				break
-			}
-		}
-
-		if !hasExactMatch {
-			if !isTabKey {
-				t.TextInputCallbacks.AmbiguousAutoComplete(
-					"Ambiguous: " + strings.Join(options, ", "),
-				)
-
-				return
-			}
-		} else {
-			if !isTabKey {
-				options = []string{exactMatchOption}
-			}
-		}
+	options, handled := t.narrowAmbiguousOptions(options, currentToken, isTabKey)
+	if handled {
+		return
 	}
 
 	if len(options) == 1 {
-		option := options[0]
-
-		if currentToken != "" {
-			optionLower := strings.ToLower(option)
-			currentTokenLower := strings.ToLower(currentToken)
-
-			if optionLower == currentTokenLower {
-				// Already complete
-			} else if len(currentTokenLower) < len(optionLower) {
-				suffix := option[len(currentToken):]
-				t.output.AppendText(strings.ToUpper(suffix))
-			}
-		} else {
-			t.output.AppendText(strings.ToUpper(option))
-		}
-
-		if bAddSpaceAtEndIfPerfectMatch {
-			t.output.AppendText(" ")
-		}
+		t.completeSingleOption(options[0], currentToken, bAddSpaceAtEndIfPerfectMatch)
 
 		return
 	}
 
-	commonPrefix := findLongestCommonPrefix(options)
-	currentTokenLower := strings.ToLower(currentToken)
+	t.completeCommonPrefix(options, currentToken)
+	t.TextInputCallbacks.AmbiguousAutoComplete("Options: " + strings.Join(options, ", "))
+}
 
-	if len(commonPrefix) > len(currentTokenLower) {
-		suffix := commonPrefix[len(currentTokenLower):]
-		t.output.AppendText(strings.ToUpper(suffix))
+// completeCommonPrefix appends whatever all options share beyond the typed token.
+func (t *TextInput) completeCommonPrefix(options []string, token string) {
+	commonPrefix := findLongestCommonPrefix(options)
+	tokenLower := strings.ToLower(token)
+
+	if len(commonPrefix) > len(tokenLower) {
+		t.output.AppendText(strings.ToUpper(commonPrefix[len(tokenLower):]))
+	}
+}
+
+// hasExactMatchNeedingMoreParams reports whether the single typed word is a complete first word of a longer command.
+func hasExactMatchNeedingMoreParams(matches *grammar.TextCommands, splitCommandStrings []string) bool {
+	if len(splitCommandStrings) != 1 {
+		return false
 	}
 
-	t.TextInputCallbacks.AmbiguousAutoComplete("Options: " + strings.Join(options, ", "))
+	for _, match := range *matches {
+		if len(match.Matches) > 1 && strings.EqualFold(match.Matches[0].GetString(), splitCommandStrings[0]) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// collectCompletionOptions gathers the distinct words that could fill the slot at position.
+func collectCompletionOptions(matches *grammar.TextCommands, position int, token string) map[string]bool {
+	optionsMap := make(map[string]bool)
+
+	for _, cmd := range *matches {
+		if position >= len(cmd.Matches) {
+			continue
+		}
+
+		match := cmd.Matches[position]
+		matchStr := match.GetString()
+
+		if matchStr == "" {
+			partialMatches, err := match.GetPartialMatches(token)
+			if err != nil {
+				continue
+			}
+			for _, opt := range partialMatches {
+				optionsMap[opt] = true
+			}
+
+			continue
+		}
+
+		if strings.Contains(matchStr, rangePromptMarker) {
+			continue
+		}
+		if token == "" || strings.HasPrefix(strings.ToUpper(matchStr), strings.ToUpper(token)) {
+			optionsMap[matchStr] = true
+		}
+	}
+
+	return optionsMap
+}
+
+// promptForRangeValue handles a slot with no word options: a value-range slot either accepts the
+// typed value (adding a space) or is described to the player.
+func (t *TextInput) promptForRangeValue(
+	matches *grammar.TextCommands, position int, token string, addSpace bool,
+) {
+	var rangeMatch grammar.Match
+	rangeStr := ""
+
+	for _, cmd := range *matches {
+		if position >= len(cmd.Matches) {
+			continue
+		}
+
+		matchStr := cmd.Matches[position].GetString()
+		if matchStr != "" && strings.Contains(matchStr, rangePromptMarker) {
+			rangeMatch = cmd.Matches[position]
+			rangeStr = matchStr
+
+			break
+		}
+	}
+
+	if rangeMatch == nil {
+		return
+	}
+
+	if token != "" {
+		isValid, err := rangeMatch.PartiallyMatches(token)
+		if err == nil && isValid {
+			if addSpace {
+				t.output.AppendText(" ")
+			}
+
+			return
+		}
+	}
+
+	t.TextInputCallbacks.AmbiguousAutoComplete(fmt.Sprintf("Enter value (%s)", rangeStr))
+}
+
+// narrowAmbiguousOptions reports ambiguity to the player when the typed token matches no option exactly
+// (handled is true), and on a non-Tab key collapses the options to an exact match.
+func (t *TextInput) narrowAmbiguousOptions(options []string, token string, isTabKey bool) ([]string, bool) {
+	if len(options) <= 1 || token == "" || isTabKey {
+		return options, false
+	}
+
+	for _, opt := range options {
+		if strings.EqualFold(opt, token) {
+			return []string{opt}, false
+		}
+	}
+
+	t.TextInputCallbacks.AmbiguousAutoComplete("Ambiguous: " + strings.Join(options, ", "))
+
+	return options, true
+}
+
+// completeSingleOption appends the rest of the only remaining option, upper-cased, as the game's prompt shows it.
+func (t *TextInput) completeSingleOption(option, token string, addSpace bool) {
+	switch {
+	case token == "":
+		t.output.AppendText(strings.ToUpper(option))
+	case len(token) < len(option):
+		t.output.AppendText(strings.ToUpper(option[len(token):]))
+	}
+
+	if addSpace {
+		t.output.AppendText(" ")
+	}
 }
 
 func findLongestCommonPrefix(options []string) string {

@@ -125,7 +125,8 @@ func GetSpellReagents(spell Spell) uint16 {
 		// U5 doesn't let players mix "Nox".
 		return 0
 
-	default:
-		return 0
+	case InvalidSpell:
 	}
+
+	return 0
 }

@@ -10,14 +10,16 @@ import (
 const (
 	xCoordsOffset  = 0x1e9a
 	yCoordsOffset  = 0x1ec2
-	TotalLocations = 40
+	totalLocations = 40
 )
 
+// WorldLocations holds the overworld position of each location, read from DATA.OVL.
 type WorldLocations struct {
-	LargeMapLocationPositions map[Location]WorldLocation `json:"large_map_location_positions" yaml:"large_map_location_positions"`
+	LargeMapLocationPositions map[Location]WorldLocation `json:"largeMapLocationPositions" yaml:"largeMapLocationPositions"`
 	// shrinePositions
 }
 
+// WorldLocation is a location with its overworld position and floor.
 type WorldLocation struct {
 	Position Position    `json:"position" yaml:"position"`
 	Location Location    `json:"location" yaml:"location"`
@@ -26,7 +28,7 @@ type WorldLocation struct {
 
 // NewWorldLocations loads location coordinates from the configured DATA.OVL bytes.
 func NewWorldLocations(gameConfig *config.UltimaVConfiguration) (*WorldLocations, error) {
-	requiredLength := yCoordsOffset + TotalLocations
+	requiredLength := yCoordsOffset + totalLocations
 	if len(gameConfig.RawDataOvl) < requiredLength {
 		return nil, fmt.Errorf("reading world locations: expected at least %d DATA.OVL bytes, got %d: %w",
 			requiredLength, len(gameConfig.RawDataOvl), io.ErrUnexpectedEOF)
@@ -35,7 +37,7 @@ func NewWorldLocations(gameConfig *config.UltimaVConfiguration) (*WorldLocations
 	wl := &WorldLocations{}
 	wl.LargeMapLocationPositions = make(map[Location]WorldLocation)
 
-	for i := range TotalLocations {
+	for i := range totalLocations {
 		x := Coordinate(gameConfig.RawDataOvl[xCoordsOffset+i])
 		y := Coordinate(gameConfig.RawDataOvl[yCoordsOffset+i])
 		location := Location(i + 1)
@@ -60,6 +62,7 @@ func NewWorldLocations(gameConfig *config.UltimaVConfiguration) (*WorldLocations
 	return wl, nil
 }
 
+// GetLocationByPosition returns the location entered at the position, or EmptyLocation.
 func (wl *WorldLocations) GetLocationByPosition(position Position) Location {
 	for _, worldLocation := range wl.LargeMapLocationPositions {
 		if worldLocation.Position.Equals(&position) {

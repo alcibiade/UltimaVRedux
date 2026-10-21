@@ -1,5 +1,8 @@
 package widgets
 
+// halfDivisor halves a page or a window to find the paging step or the cursor midpoint.
+const halfDivisor = 2
+
 // ScrollableListState manages scroll state for list-based UI components.
 // It implements center-locked scrolling where the cursor stays at the midpoint
 // while items scroll, except at list edges where the cursor moves.
@@ -20,14 +23,14 @@ type ScrollableListState struct {
 // totalItems: number of items in the list
 // visibleSlots: how many items can be displayed at once
 func NewScrollableListState(totalItems, visibleSlots int) *ScrollableListState {
-	s := &ScrollableListState{
+	state := &ScrollableListState{
 		totalItems:   totalItems,
 		visibleSlots: visibleSlots,
 		currentIndex: 0,
 		scrollOffset: 0,
 	}
 
-	return s
+	return state
 }
 
 // MoveUp moves selection up by one. Returns true if selection changed.
@@ -69,7 +72,7 @@ func (s *ScrollableListState) MovePageUp() bool {
 	}
 
 	// Move by half a page (minimum 1)
-	pageSize := max(1, s.visibleSlots/2)
+	pageSize := max(1, s.visibleSlots/halfDivisor)
 	s.currentIndex = max(0, s.currentIndex-pageSize)
 	s.calculateScrollOffset()
 
@@ -83,7 +86,7 @@ func (s *ScrollableListState) MovePageDown() bool {
 	}
 
 	// Move by half a page (minimum 1)
-	pageSize := max(1, s.visibleSlots/2)
+	pageSize := max(1, s.visibleSlots/halfDivisor)
 	s.currentIndex = min(s.totalItems-1, s.currentIndex+pageSize)
 	s.calculateScrollOffset()
 
@@ -126,15 +129,12 @@ func (s *ScrollableListState) GetCursorScreenPosition() int {
 // GetVisibleRange returns the start (inclusive) and end (exclusive) indices
 // for slicing the item list to get only visible items.
 // Usage: visibleItems := items[start:end]
-func (s *ScrollableListState) GetVisibleRange() (start, end int) {
+func (s *ScrollableListState) GetVisibleRange() (int, int) {
 	if s.totalItems == 0 {
 		return 0, 0
 	}
 
-	start = s.scrollOffset
-	end = min(s.scrollOffset+s.visibleSlots, s.totalItems)
-
-	return start, end
+	return s.scrollOffset, min(s.scrollOffset+s.visibleSlots, s.totalItems)
 }
 
 // HasItemsAbove returns true if there are items scrolled above the visible area.
@@ -158,7 +158,7 @@ func (s *ScrollableListState) calculateScrollOffset() {
 		return
 	}
 
-	midpoint := s.visibleSlots / 2
+	midpoint := s.visibleSlots / halfDivisor
 	maxScroll := s.totalItems - s.visibleSlots
 
 	// Center cursor when possible, clamp at edges

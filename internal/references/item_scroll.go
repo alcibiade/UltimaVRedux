@@ -1,15 +1,20 @@
 package references
 
+// Scroll is one of the eight spell scrolls, in save-data order.
 type Scroll int
 
+// ID returns the scroll number within its item type.
 func (s Scroll) ID() int {
 	return int(s)
 }
 
+// Type returns ItemTypeScroll.
 func (s Scroll) Type() ItemType {
 	return ItemTypeScroll
 }
 
+// Scrolls in save-data order, starting at ScrollVasLor.
+//
 //goland:noinspection GoUnusedConst
 const (
 	ScrollVasLor     Scroll = 0

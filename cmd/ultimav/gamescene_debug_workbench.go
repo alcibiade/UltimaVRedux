@@ -1916,12 +1916,12 @@ func newActiveCharacterResult(character game_state.ActiveCharacterSnapshot) acti
 }
 
 func characterStatusName(status party_state.CharacterStatus) string {
-	entry := party_state.CharacterStatuses.GetByID(status)
-	if entry == nil {
+	name, ok := status.FriendlyName()
+	if !ok {
 		return "Unrecognized status"
 	}
 
-	return entry.FriendlyName
+	return name
 }
 
 func characterAlterationChanges(result game_state.ActiveCharacterAlterationResult) []debugging.StateChange {

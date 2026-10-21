@@ -62,7 +62,7 @@ func (g *GameState) GetNPCSpriteReplacement(
 	pos references.Position,
 ) SpritePresentation {
 	// Check if we're in camping mode and this is a sleeping character
-	if g.IsInCamping() && g.IsCharacterSleepingInCampAt(npcSpriteIndex, pos) {
+	if g.IsInCamping() && g.isCharacterSleepingInCamp(npcSpriteIndex) {
 		return SpritePresentation{Sprite: indexes.DeadBody} // Original Ultima V uses DEAD_PC for sleeping characters during camping
 	}
 
@@ -83,21 +83,26 @@ func (g *GameState) GetNPCSpriteReplacement(
 		// Then fall through to tile-based replacements (beds, ladders, manacles, etc.)
 		frameOffset := npcSpriteIndex - indexes.BardPlayingKeyIndex
 		npcSpriteIndex = indexes.MerchantKeyIndex + frameOffset
-		// Continue to switch below - don't return early
+		// Continue to the tile checks below - don't return early
 	}
 
-	switch baseTileIndex {
-	case indexes.LeftBed:
+	if baseTileIndex == indexes.LeftBed {
 		if npcSpriteIndex.IsMagicCarpetUnboarded() {
 			return SpritePresentation{Sprite: npcSpriteIndex}
 		}
 
 		return SpritePresentation{Sprite: indexes.SleepingInBed, BackgroundIntegrated: true}
-	case indexes.ChairBackRight:
+	}
+
+	if baseTileIndex == indexes.ChairBackRight {
 		return SpritePresentation{Sprite: indexes.SitChairLeft, BackgroundIntegrated: true}
-	case indexes.ChairBackLeft:
+	}
+
+	if baseTileIndex == indexes.ChairBackLeft {
 		return SpritePresentation{Sprite: indexes.SitChairRight, BackgroundIntegrated: true}
-	case indexes.ChairBackForward:
+	}
+
+	if baseTileIndex == indexes.ChairBackForward {
 		// Check for table with food above
 		currentMap := g.GetLayeredMapByCurrentLocation()
 		upPos := pos.GetPositionUp()
@@ -108,7 +113,9 @@ func (g *GameState) GetNPCSpriteReplacement(
 		}
 
 		return SpritePresentation{Sprite: indexes.SitChairUp, BackgroundIntegrated: true}
-	case indexes.ChairBackBack:
+	}
+
+	if baseTileIndex == indexes.ChairBackBack {
 		// Check for table with food below
 		currentMap := g.GetLayeredMapByCurrentLocation()
 		downPos := pos.GetPositionDown()
@@ -119,13 +126,21 @@ func (g *GameState) GetNPCSpriteReplacement(
 		}
 
 		return SpritePresentation{Sprite: indexes.SitChairDown, BackgroundIntegrated: true}
-	case indexes.LadderUp:
+	}
+
+	if baseTileIndex == indexes.LadderUp {
 		return SpritePresentation{Sprite: indexes.KlimbLadderUp, BackgroundIntegrated: true}
-	case indexes.LadderDown:
+	}
+
+	if baseTileIndex == indexes.LadderDown {
 		return SpritePresentation{Sprite: indexes.KlimbLadderDown, BackgroundIntegrated: true}
-	case indexes.Manacles:
+	}
+
+	if baseTileIndex == indexes.Manacles {
 		return SpritePresentation{Sprite: indexes.ManaclesPrisoner, BackgroundIntegrated: true}
-	case indexes.Stocks:
+	}
+
+	if baseTileIndex == indexes.Stocks {
 		return SpritePresentation{Sprite: indexes.PersonStocks1, BackgroundIntegrated: true}
 	}
 
@@ -141,12 +156,12 @@ func (g *GameState) IsAvatarSleepingInCamp() bool {
 	// During camping, the avatar sleeps unless they are the guard
 	// We need to check if there's an active camping scene and if avatar is the guard
 	// For now, assume avatar sleeps if we're in camping mode and no guard is avatar
-	// TODO: This logic may need refinement based on how guard selection is implemented
+	// The guard selection is not modelled, so this may need refinement once it is.
 	return true // Simplified logic - avatar sleeps during camping unless they're guard
 }
 
-// IsCharacterSleepingInCampAt checks if a character at the given position is sleeping during camping
-func (g *GameState) IsCharacterSleepingInCampAt(npcSpriteIndex indexes.SpriteIndex, pos references.Position) bool {
+// isCharacterSleepingInCamp checks if a party member sprite represents a character sleeping during camping
+func (g *GameState) isCharacterSleepingInCamp(npcSpriteIndex indexes.SpriteIndex) bool {
 	if !g.IsInCamping() {
 		return false
 	}
@@ -154,8 +169,7 @@ func (g *GameState) IsCharacterSleepingInCampAt(npcSpriteIndex indexes.SpriteInd
 	// Check if this is a party member sprite (not avatar, since avatar is handled separately)
 	// Party members sleep during camping unless they are the guard
 	if g.IsPartyMemberSprite(npcSpriteIndex) {
-		// TODO: Check if this specific party member is the guard
-		// For now, assume all party members sleep
+		// Guard selection is not modelled: all party members sleep.
 		return true
 	}
 
@@ -165,7 +179,7 @@ func (g *GameState) IsCharacterSleepingInCampAt(npcSpriteIndex indexes.SpriteInd
 // IsPartyMemberSprite checks if the given sprite index represents a party member
 func (g *GameState) IsPartyMemberSprite(spriteIndex indexes.SpriteIndex) bool {
 	// Check if this sprite matches any of the party member sprites
-	for i := 0; i < g.PartyState.GetCharacterCount(); i++ {
+	for i := range g.PartyState.GetCharacterCount() {
 		character := g.PartyState.GetCharacter(i)
 		if character.PartyMap == party_state.PartyMapActive {
 			characterSpriteIndex := character.GetKeySpriteIndex()
@@ -196,19 +210,16 @@ func (g *GameState) isQuestItemNPCHidden(mapUnit map_units.MapUnit) bool {
 	npcSpriteIndex := friendly.GetKeySpriteIndex()
 
 	// Quest item NPCs are ALWAYS hidden now - they're rendered as overlays instead
-	switch npcSpriteIndex {
-	case indexes.Crown:
-		logging.Debugf(logging.CategoryGameState, "Hiding Crown NPC at position - using overlay rendering instead")
+	for _, questItem := range [...]struct {
+		sprite indexes.SpriteIndex
+		name   string
+	}{{indexes.Crown, "Crown"}, {indexes.Sceptre, "Sceptre"}, {indexes.Amulet, "Amulet"}} {
+		if npcSpriteIndex == questItem.sprite {
+			logging.Debugf(logging.CategoryGameState,
+				"Hiding %s NPC at position - using overlay rendering instead", questItem.name)
 
-		return true
-	case indexes.Sceptre:
-		logging.Debugf(logging.CategoryGameState, "Hiding Sceptre NPC at position - using overlay rendering instead")
-
-		return true
-	case indexes.Amulet:
-		logging.Debugf(logging.CategoryGameState, "Hiding Amulet NPC at position - using overlay rendering instead")
-
-		return true
+			return true
+		}
 	}
 
 	return false

@@ -10,6 +10,7 @@ var (
 	errCannotAddItem   = errors.New("cannot add item")
 )
 
+// ItemStacksMap holds the item piles of one map by position.
 type ItemStacksMap struct {
 	itemStacks map[Position]*ItemStack
 }
@@ -38,6 +39,7 @@ func (i *ItemStacksMap) Entries() []ItemStackEntry {
 	return entries
 }
 
+// NewItemStacksMap returns an empty map of item piles.
 func NewItemStacksMap() *ItemStacksMap {
 	ism := &ItemStacksMap{}
 	ism.itemStacks = make(map[Position]*ItemStack)
@@ -45,6 +47,7 @@ func NewItemStacksMap() *ItemStacksMap {
 	return ism
 }
 
+// Push puts a pile at the position and fails when the position already has items or an argument is nil.
 func (i *ItemStacksMap) Push(pos *Position, itemStack *ItemStack) error {
 	if pos == nil {
 		return fmt.Errorf("%w: position is nil", errCannotPushItems)
@@ -88,6 +91,7 @@ func (i *ItemStacksMap) PushUnder(pos *Position, itemStack *ItemStack) error {
 	return nil
 }
 
+// HasItemStackAtPosition reports whether any items lie at the position.
 func (i *ItemStacksMap) HasItemStackAtPosition(pos *Position) bool {
 	if i == nil || pos == nil {
 		return false
@@ -164,18 +168,20 @@ func mergeItemIntoStack(stack *ItemStack, item ItemAndQuantity, pos *Position) (
 	return false, nil
 }
 
+// Pop removes and returns the top item at the position, deleting the pile when it empties; the position must hold items.
 func (i *ItemStacksMap) Pop(pos *Position) *ItemAndQuantity {
 	item := i.itemStacks[*pos].popTopItem()
 
-	if !i.itemStacks[*pos].HasItems() {
+	if !i.itemStacks[*pos].hasItems() {
 		delete(i.itemStacks, *pos)
 	}
 
 	return &item
 }
 
+// Peek returns the top item at the position without removing it; the position must hold items.
 func (i *ItemStacksMap) Peek(pos *Position) *ItemAndQuantity {
 	oof := i.itemStacks[*pos]
 
-	return oof.PeekTopItem()
+	return oof.peekTopItem()
 }

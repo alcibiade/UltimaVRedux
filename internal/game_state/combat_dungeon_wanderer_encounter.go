@@ -219,6 +219,8 @@ func (g *GameState) applyDungeonWandererExitRoute(
 			g.activeDungeon.roomContinuation = dungeonRoomContinuation{}
 		}
 	case CombatExitNone:
+	case CombatExitDoomMirror:
+		fallthrough
 	default:
 		panic("invalid dungeon wanderer exit route")
 	}

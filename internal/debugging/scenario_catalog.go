@@ -57,34 +57,34 @@ func scenarioCommands() []CommandDefinition {
 
 	return []CommandDefinition{
 		{
-			ID: CommandScenarioStatus, Category: "Scenarios", Name: "Scenario Lab",
+			ID: CommandScenarioStatus, Category: categoryScenarios, Name: "Scenario Lab",
 			Description: "Inspect and run exceptional deterministic gameplay scenarios.", ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionList, Category: "Scenarios", Name: "List Scripted Scenarios",
+			ID: CommandScenarioDefinitionList, Category: categoryScenarios, Name: "List Scripted Scenarios",
 			Description:    "List durable scripted scenario definitions from project and personal sources.",
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionGet, Category: "Scenarios", Name: "Get Scripted Scenario",
+			ID: CommandScenarioDefinitionGet, Category: categoryScenarios, Name: "Get Scripted Scenario",
 			Description:    "Get one complete versioned scripted scenario definition by source-qualified reference.",
 			Parameters:     []ParameterDefinition{referenceParameter("reference", "Source-Qualified Reference")},
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionValidate, Category: "Scenarios", Name: "Validate Scripted Scenario",
+			ID: CommandScenarioDefinitionValidate, Category: categoryScenarios, Name: "Validate Scripted Scenario",
 			Description:    "Validate one JSON scripted scenario definition against the current command catalog without mutation.",
 			Parameters:     []ParameterDefinition{definitionParameter()},
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionCreate, Category: "Scenarios", Name: "Create Scripted Scenario",
+			ID: CommandScenarioDefinitionCreate, Category: categoryScenarios, Name: "Create Scripted Scenario",
 			Description:    "Validate and create one JSON scripted scenario definition only when its source-qualified destination is absent.",
 			Parameters:     []ParameterDefinition{sourceParameter("source", "Source"), definitionParameter()},
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioDefinitionUpdate, Category: "Scenarios", Name: "Update Scripted Scenario",
+			ID: CommandScenarioDefinitionUpdate, Category: categoryScenarios, Name: "Update Scripted Scenario",
 			Description: "Validate and update one scripted scenario only when its stored revision matches; the definition ID cannot rename or move it.",
 			Parameters: []ParameterDefinition{
 				referenceParameter("reference", "Source-Qualified Reference"),
@@ -94,7 +94,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioDefinitionDelete, Category: "Scenarios", Name: "Delete Scripted Scenario",
+			ID: CommandScenarioDefinitionDelete, Category: categoryScenarios, Name: "Delete Scripted Scenario",
 			Description: "Delete one scripted scenario only when its stored revision matches.",
 			Parameters: []ParameterDefinition{
 				referenceParameter("reference", "Source-Qualified Reference"),
@@ -103,7 +103,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioDefinitionDuplicate, Category: "Scenarios", Name: "Duplicate Scripted Scenario",
+			ID: CommandScenarioDefinitionDuplicate, Category: categoryScenarios, Name: "Duplicate Scripted Scenario",
 			Description: "Copy one reviewed scenario revision to an explicit absent destination without overwriting.",
 			Parameters: []ParameterDefinition{
 				referenceParameter("sourceReference", "Source Reference"),
@@ -115,7 +115,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioRunStart, Category: "Scenarios", Name: "Start Scripted Scenario",
+			ID: CommandScenarioRunStart, Category: categoryScenarios, Name: "Start Scripted Scenario",
 			Description: "Start a reviewed durable scripted scenario revision against the reviewed active scene generation.",
 			Parameters: []ParameterDefinition{
 				{
@@ -137,7 +137,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionWorkflow}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioRunStatus, Category: "Scenarios", Name: "Scripted Scenario Run Status",
+			ID: CommandScenarioRunStatus, Category: categoryScenarios, Name: "Scripted Scenario Run Status",
 			Description:    "Report the active scripted scenario run and bounded private history with ordered step results.",
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
@@ -146,7 +146,7 @@ func scenarioCommands() []CommandDefinition {
 
 func scenarioRunCancelCommands() []CommandDefinition {
 	return []CommandDefinition{{
-		ID: CommandScenarioRunCancel, Category: "Scenarios", Name: "Cancel Remaining Steps",
+		ID: CommandScenarioRunCancel, Category: categoryScenarios, Name: "Cancel Remaining Steps",
 		Description: "Stop remaining steps of the identified run when processed; retain completed effects, the applied baseline, and production workflows. Does not restore rollback.",
 		Parameters: []ParameterDefinition{{
 			ID: "runId", Name: "Run ID", Kind: ParameterString, Required: true, Pattern: `^\S+$`,

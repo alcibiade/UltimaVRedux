@@ -7,6 +7,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// LayeredMaps holds the layered map of every floor of the overworld, underworld and current small location.
 type LayeredMaps struct {
 	layeredMaps      map[references.GeneralMapType]map[references.FloorNumber]*LayeredMap
 	smallMapLocation references.Location
@@ -73,17 +74,25 @@ func (l *LayeredMaps) DiscardDepartedSmallMap(destination references.Location) {
 	l.smallMapLocation = references.BritanniaUnderworld
 }
 
-func NewLayeredMaps(tileRefs *references.Tiles,
+// NewLayeredMaps builds the two large maps (overworld and underworld) from their references.
+func NewLayeredMaps(
+	tileRefs *references.Tiles,
 	overworldRef *references.LargeMapReference,
 	underworldRef *references.LargeMapReference,
 	xTilesInMap int,
 	yTilesInMap int,
 ) *LayeredMaps {
-	maps := &LayeredMaps{}
-	maps.layeredMaps = make(map[references.GeneralMapType]map[references.FloorNumber]*LayeredMap)
+	maps := &LayeredMaps{
+		layeredMaps:      make(map[references.GeneralMapType]map[references.FloorNumber]*LayeredMap),
+		smallMapLocation: 0,
+		doorOccupancy:    nil,
+	}
 	maps.layeredMaps[references.LargeMapType] = make(map[references.FloorNumber]*LayeredMap)
-	maps.layeredMaps[references.LargeMapType][0] = newLayeredMap(references.XLargeMapTiles, references.YLargeMapTiles, tileRefs, xTilesInMap, yTilesInMap, true)
-	maps.layeredMaps[references.LargeMapType][-1] = newLayeredMap(references.XLargeMapTiles, references.YLargeMapTiles, tileRefs, xTilesInMap, yTilesInMap, true)
+	for _, floor := range []references.FloorNumber{0, -1} {
+		maps.layeredMaps[references.LargeMapType][floor] = newLayeredMap(
+			references.XLargeMapTiles, references.YLargeMapTiles, tileRefs, xTilesInMap, yTilesInMap, true,
+		)
+	}
 
 	maps.SetInitialLargeMap(0, overworldRef)
 	maps.SetInitialLargeMap(-1, underworldRef)
@@ -91,18 +100,27 @@ func NewLayeredMaps(tileRefs *references.Tiles,
 	return maps
 }
 
-func (l *LayeredMaps) GetLayeredMap(generalMapType references.GeneralMapType, floorNumber references.FloorNumber) *LayeredMap {
+// GetLayeredMap returns the layered map for a map type and floor, or nil when it is not loaded.
+func (l *LayeredMaps) GetLayeredMap(
+	generalMapType references.GeneralMapType,
+	floorNumber references.FloorNumber,
+) *LayeredMap {
 	return l.layeredMaps[generalMapType][floorNumber]
 }
 
+// SetInitialLargeMap fills the base layer of a large map floor from its reference data.
 func (l *LayeredMaps) SetInitialLargeMap(nFloor references.FloorNumber, lrg *references.LargeMapReference) {
-	for x := references.Coordinate(0); x < references.XLargeMapTiles; x++ {
-		for y := references.Coordinate(0); y < references.YLargeMapTiles; y++ {
-			l.layeredMaps[references.LargeMapType][nFloor].SetTileByLayer(MapLayer, &references.Position{X: x, Y: y}, lrg.GetSpriteIndex(x, y)) // slr.GetTileNumber(floor, x, y))
+	largeMap := l.layeredMaps[references.LargeMapType][nFloor]
+	for tileX := references.Coordinate(0); tileX < references.XLargeMapTiles; tileX++ {
+		for tileY := references.Coordinate(0); tileY < references.YLargeMapTiles; tileY++ {
+			largeMap.SetTileByLayer(
+				MapLayer, &references.Position{X: tileX, Y: tileY}, lrg.GetSpriteIndex(tileX, tileY),
+			)
 		}
 	}
 }
 
+// ResetAndCreateSmallMap replaces the loaded small map with every floor of slr.
 func (l *LayeredMaps) ResetAndCreateSmallMap(
 	slr *references.SmallLocationReference,
 	tileRefs *references.Tiles,
@@ -139,13 +157,13 @@ func (l *LayeredMaps) ReloadSmallMapFloor(
 	l.layeredMaps[references.SmallMapType][floor] = theFloor
 	l.bindDoorOccupancy(theFloor, slr.Location, floor)
 	boundaries := make([]bool, int(references.XSmallMapTiles*references.YSmallMapTiles))
-	for x := references.Coordinate(0); x < references.XSmallMapTiles; x++ {
-		for y := references.Coordinate(0); y < references.YSmallMapTiles; y++ {
-			pos := references.Position{X: x, Y: y}
+	for tileX := references.Coordinate(0); tileX < references.XSmallMapTiles; tileX++ {
+		for tileY := references.Coordinate(0); tileY < references.YSmallMapTiles; tileY++ {
+			pos := references.Position{X: tileX, Y: tileY}
 			// Use immutable source doors even when runtime layers later open or replace them.
 			sprite := slr.GetTileNumber(pos, floor)
 			theFloor.SetTileByLayer(MapLayer, &pos, sprite)
-			boundaries[int(y*references.XSmallMapTiles+x)] = isExposureBoundary(sprite)
+			boundaries[int(tileY*references.XSmallMapTiles+tileX)] = isExposureBoundary(sprite)
 		}
 	}
 	theFloor.exposure = ClassifyMapExposure(int(references.XSmallMapTiles), int(references.YSmallMapTiles),
@@ -331,22 +349,35 @@ func (l *LayeredMaps) ResetAndCreateMiniMapFromData(
 	}
 }
 
-func (l *LayeredMaps) GetTileRefByPosition(mapType references.GeneralMapType, mapLayer LayerType, pos *references.Position, nFloor references.FloorNumber) *references.Tile {
+// GetTileRefByPosition returns the tile at pos in one layer of the given map and floor.
+func (l *LayeredMaps) GetTileRefByPosition(
+	mapType references.GeneralMapType,
+	mapLayer LayerType,
+	pos *references.Position,
+	nFloor references.FloorNumber,
+) *references.Tile {
 	// Use the LayeredMap's GetTileByLayer method which handles coordinate transformation properly
 	return l.layeredMaps[mapType][nFloor].GetTileByLayer(mapLayer, pos)
 }
 
-func (l *LayeredMaps) GetTileTopMapOnlyTileByPosition(mapType references.GeneralMapType, pos *references.Position, nFloor references.FloorNumber) *references.Tile {
+// GetTileTopMapOnlyTileByPosition returns the top terrain tile at pos, ignoring the unit layer.
+func (l *LayeredMaps) GetTileTopMapOnlyTileByPosition(
+	mapType references.GeneralMapType,
+	pos *references.Position,
+	nFloor references.FloorNumber,
+) *references.Tile {
 	return l.GetLayeredMap(mapType, nFloor).GetTileTopMapOnlyTile(pos)
 }
 
+// GetSmallMapFloorKlimbOffset returns the floor change from climbing the stairs at position:
+// 0 when there are none, -1 when they lead down, +1 when they lead up.
 func (l *LayeredMaps) GetSmallMapFloorKlimbOffset(position references.Position, nFloor references.FloorNumber) int {
 	tile := l.GetTileTopMapOnlyTileByPosition(references.SmallMapType, &position, nFloor)
 	if !tile.Index.IsStairs() {
 		return 0
 	}
 
-	if l.HasLowerFloor(nFloor) {
+	if l.hasLowerFloor(nFloor) {
 		lowerTile := l.GetTileTopMapOnlyTileByPosition(references.SmallMapType, &position, nFloor-1)
 		if lowerTile.Index.IsStairs() {
 			return -1
@@ -356,7 +387,7 @@ func (l *LayeredMaps) GetSmallMapFloorKlimbOffset(position references.Position, 
 	return 1
 }
 
-func (l *LayeredMaps) HasLowerFloor(currentFloor references.FloorNumber) bool {
+func (l *LayeredMaps) hasLowerFloor(currentFloor references.FloorNumber) bool {
 	_, exists := l.layeredMaps[references.SmallMapType][currentFloor-1]
 
 	return exists

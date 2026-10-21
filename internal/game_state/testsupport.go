@@ -92,7 +92,7 @@ func (q *CombatTurnQueue) TotalEntryCount() int {
 
 // SetDungeonState sets the open/closed state of a specific dungeon
 func (g *GameState) SetDungeonState(dungeon references.Location, isOpen bool) {
-	index, exists := DungeonToIndexMap[dungeon]
+	index, exists := dungeonIndex(dungeon)
 	if !exists {
 		return // Not a valid dungeon
 	}

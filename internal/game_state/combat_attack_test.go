@@ -228,7 +228,7 @@ func TestCombatAttack_GlassSword(t *testing.T) {
 	assert.True(t, mock.CombatImpactCalls[0].Feedback.Fatal)
 
 	// XP should increase: original formula is maxHP/4 + 1
-	expectedXP := CombatCalcExperience(monster.MaxHP())
+	expectedXP := combatCalcExperience(monster.MaxHP())
 	assert.Equal(t, expBefore+uint16(expectedXP), character.Exp,
 		"PC should gain %d XP for killing monster (maxHP=%d)", expectedXP, monster.MaxHP())
 }
@@ -441,7 +441,7 @@ func TestCombatAttack_MonsterKillAwardsXP(t *testing.T) {
 
 	if feedback.Fatal {
 		// Monster was killed — verify XP
-		expectedXP := CombatCalcExperience(monster.MaxHP())
+		expectedXP := combatCalcExperience(monster.MaxHP())
 		assert.Equal(t, expBefore+uint16(expectedXP), character.Exp,
 			"PC should gain %d XP for kill", expectedXP)
 		assert.True(t, monster.IsDead(), "Monster should be dead")

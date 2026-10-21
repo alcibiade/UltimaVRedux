@@ -55,7 +55,7 @@ func spellDebugCommands() []CommandDefinition {
 			Description: "Set exact active-spell turns or magical-light minutes after checking both reviewed effects.", Aliases: []string{"spell reduceto1turn"},
 			Parameters: []ParameterDefinition{
 				{ID: "effectKind", Name: "Effect Kind", Kind: ParameterEnum, Required: true, ControlHint: controlHintSelect, Choices: []Choice{{Value: "active_spell", Label: "Active Spell"}, {Value: "magic_light", Label: "Magical Light"}}},
-				{ID: "expectedEffect", Name: "Expected Effect", Kind: ParameterString, Required: true, ControlHint: "text"},
+				{ID: "expectedEffect", Name: "Expected Effect", Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
 				{ID: "expectedTurns", Name: "Expected Spell Turns", Kind: ParameterInteger, Required: true, Minimum: &minimumReviewedEffectTurns, Maximum: &maximumEffectTurns, ControlHint: controlHintNumber},
 				{ID: "expectedLightMinutes", Name: "Expected Light Minutes", Kind: ParameterInteger, Required: true, Minimum: &minimumReviewedEffectTurns, Maximum: &maximumEffectTurns, ControlHint: controlHintNumber},
 				{ID: "remaining", Name: "Remaining Turns Or Minutes", Kind: ParameterInteger, Required: true, Minimum: &minimumReviewedEffectTurns, Maximum: &maximumEffectTurns, ControlHint: controlHintNumber},
@@ -67,7 +67,7 @@ func spellDebugCommands() []CommandDefinition {
 			Description: "Activate independent Light or the Time Stop spell at authentic duration after checking reviewed effect state.", Aliases: []string{"spell light", "spell timestop"},
 			Parameters: []ParameterDefinition{
 				{ID: "effect", Name: "Effect", Kind: ParameterEnum, Required: true, ControlHint: controlHintSelect, Choices: []Choice{{Value: "light", Label: "Light"}, {Value: "time_stop", Label: "Time Stop"}}},
-				{ID: "expectedEffect", Name: "Expected Active Spell", Kind: ParameterString, Required: true, ControlHint: "text"},
+				{ID: "expectedEffect", Name: "Expected Active Spell", Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
 				{ID: "expectedTurns", Name: "Expected Spell Turns", Kind: ParameterInteger, Required: true, Minimum: &minimumReviewedEffectTurns, Maximum: &maximumEffectTurns, ControlHint: controlHintNumber},
 				{ID: "expectedLightMinutes", Name: "Expected Light Minutes", Kind: ParameterInteger, Required: true, Minimum: &minimumReviewedEffectTurns, Maximum: &maximumEffectTurns, ControlHint: controlHintNumber},
 			},
@@ -81,7 +81,7 @@ func spellSnapshotParameter() ParameterDefinition {
 		ID: inventoryExpectedSnapshotID, Name: "Expected Snapshot",
 		Description: "Exact prepared spell snapshot fingerprint returned by Prepared Spell Inventory.",
 		Kind:        ParameterString, Required: true, Default: nil, Minimum: nil, Maximum: nil,
-		Pattern: "", Choices: nil, OptionsProvider: "", ControlHint: "text", Availability: nil,
+		Pattern: "", Choices: nil, OptionsProvider: "", ControlHint: activeCombatTextControlHint, Availability: nil,
 	}
 }
 

@@ -23,6 +23,7 @@ type MixOutcome struct {
 	TrapResult  *TrapResult // Boom trap result on failure (nil on success)
 }
 
+// ActionMixSmallMap reports whether the party can open the mix dialog on a town or keep map (it needs at least one reagent).
 func (g *GameState) ActionMixSmallMap() bool {
 	if !g.HasAnyReagents() {
 		g.SystemCallbacks.UI.ShowActionFeedback("No reagents owned!", true)
@@ -33,6 +34,7 @@ func (g *GameState) ActionMixSmallMap() bool {
 	return true
 }
 
+// ActionMixLargeMap reports whether the party can open the mix dialog on the overworld or underworld (it needs at least one reagent).
 func (g *GameState) ActionMixLargeMap() bool {
 	if !g.HasAnyReagents() {
 		g.SystemCallbacks.UI.ShowActionFeedback("No reagents owned!", true)
@@ -43,6 +45,7 @@ func (g *GameState) ActionMixLargeMap() bool {
 	return true
 }
 
+// ActionMixDungeonMap reports whether the party can open the mix dialog on a dungeon (it needs at least one reagent).
 func (g *GameState) ActionMixDungeonMap() bool {
 	if !g.HasAnyReagents() {
 		g.SystemCallbacks.UI.ShowActionFeedback("No reagents owned!", true)

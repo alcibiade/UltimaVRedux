@@ -4,8 +4,10 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// Tiles is the tile table by sprite index.
 type Tiles map[indexes.SpriteIndex]*Tile
 
+// GetTile returns the tile for the sprite index, or nil when it is unknown.
 func (t *Tiles) GetTile(tileNum indexes.SpriteIndex) *Tile {
 	tile, exists := (*t)[tileNum]
 	if !exists {
@@ -15,6 +17,7 @@ func (t *Tiles) GetTile(tileNum indexes.SpriteIndex) *Tile {
 	return tile
 }
 
+// NewTileReferences returns the tile table.
 func NewTileReferences() *Tiles {
 	tiles := newTileDefinitions()
 	for index, tile := range tiles {
@@ -24,6 +27,7 @@ func NewTileReferences() *Tiles {
 	return &tiles
 }
 
+// GetChairByPushDirection returns the chair tile that results from pushing a chair in the direction.
 func (t *Tiles) GetChairByPushDirection(direction Direction) *Tile {
 	switch direction {
 	case Down:
@@ -34,11 +38,13 @@ func (t *Tiles) GetChairByPushDirection(direction Direction) *Tile {
 		return t.GetTile(indexes.ChairBackLeft)
 	case Right:
 		return t.GetTile(indexes.ChairBackRight)
-	default:
-		return t.GetTile(indexes.ChairBackBack)
+	case NoneDirection:
 	}
+
+	return t.GetTile(indexes.ChairBackBack)
 }
 
+// GetCannonByPushDirection returns the cannon tile that results from pushing a cannon in the direction.
 func (t *Tiles) GetCannonByPushDirection(direction Direction) *Tile {
 	switch direction {
 	case Down:
@@ -49,7 +55,8 @@ func (t *Tiles) GetCannonByPushDirection(direction Direction) *Tile {
 		return t.GetTile(indexes.CannonLeft)
 	case Right:
 		return t.GetTile(indexes.CannonRight)
-	default:
-		return t.GetTile(indexes.CannonLeft)
+	case NoneDirection:
 	}
+
+	return t.GetTile(indexes.CannonLeft)
 }
