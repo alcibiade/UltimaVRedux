@@ -459,8 +459,8 @@ remains separate from injected-input coverage.
 `InputState` is defined in `cmd/ultimav/gamescene.go`.
 
 Standard directional states cover Open, Jimmy, Klimb, Push, Get, Look, Talk,
-Search, Attack, and Fire. `UseDirectionInput` remains declared but has no live
-ordinary primary Use route; item workflows own current Use input. Combat adds
+Search, Attack, and Fire. Use has no directional state; item workflows own Use
+input. Combat adds
 persistent target states for physical attacks, square-target spells, cone spells,
 and adjacent spells, plus `CombatKlimbLadderDirectionInput` for the original dual-ladder
 `U/D` choice. Specialized non-directional contracts can also retain secondary

@@ -97,6 +97,6 @@ a different form.
 ## Current References
 
 - `internal/display/manager.go`
-- `internal/display/resolution.go`
+- `internal/display/geometry.go`
 - [Architecture Guidelines](../ARCHITECTURE_GUIDELINES.md)
 - [Game UI Integration](../ui/GAME_UI_INTEGRATION.md)
