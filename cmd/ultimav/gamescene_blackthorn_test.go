@@ -26,8 +26,8 @@ func TestPalaceGuardRoutesDirectlyToBlackthornInterrogation(t *testing.T) {
 	dialog := waitForBlackthornPrompt(t, scene, "Your response?")
 	assert.Contains(t, transcriptText(dialog), strings.Join(strings.Fields(game_state.BlackthornQuestMessage), " "))
 	assert.NotContains(t, dialog.TranscriptText(), "Wilt thou come quietly?")
-	assert.Equal(t, indexes.SpriteIndex(indexes.Manacles_Prisoner), scene.miniMapScene.GetActor(minimap.ActorAvatar).Sprite)
-	assert.Equal(t, indexes.SpriteIndex(indexes.Manacles_Prisoner), scene.miniMapScene.GetActor("prisoner-1").Sprite)
+	assert.Equal(t, indexes.SpriteIndex(indexes.ManaclesPrisoner), scene.miniMapScene.GetActor(minimap.ActorAvatar).Sprite)
+	assert.Equal(t, indexes.SpriteIndex(indexes.ManaclesPrisoner), scene.miniMapScene.GetActor("prisoner-1").Sprite)
 
 	enterTranscriptText(t, scene, dialog, "AHM")
 	drainBlackthornWorkflow(t, scene, dialog)
@@ -80,7 +80,7 @@ func TestBlackthornWrongAnswerWorkflowAdvancesHourglassAndExecutesCompanion(t *t
 	for range 100 {
 		scene.gameState.ElapsedMs += 1000
 		scene.gameState.EventQueueManager.Update()
-		if strings.HasPrefix(dialog.ControlHint(), "Enter/Esc:") {
+		if strings.HasPrefix(dialog.ControlHint(), "[Enter/Esc]") {
 			break
 		}
 	}
@@ -100,7 +100,7 @@ func TestBlackthornEscapeOnFinalAttemptClearsWithoutSubmitting(t *testing.T) {
 		enterTranscriptText(t, scene, dialog, "WRONG")
 		dialog = waitForBlackthornPrompt(t, scene, "Your response?")
 	}
-	require.Contains(t, strings.Join(strings.Fields(dialog.ControlHint()), " "), "Esc: Clear text")
+	require.Contains(t, strings.Join(strings.Fields(dialog.ControlHint()), " "), "[Esc] Clear text")
 	before := dialog.TranscriptText()
 	for _, key := range []ebiten.Key{ebiten.KeyX, ebiten.KeyEscape, ebiten.KeyEscape} {
 		scene.keyboard.ClearFrameConsumption()
@@ -140,7 +140,7 @@ func TestBlackthornFirstWrongAnswerRunsOriginalTorturePresentationBeforeAcknowle
 		if scene.miniMapScene.GetActor("guard-left").Position != (references.Position{X: 1, Y: 5}) {
 			sawMovement = true
 		}
-		if strings.HasPrefix(dialog.ControlHint(), "Enter/Esc:") {
+		if strings.HasPrefix(dialog.ControlHint(), "[Enter/Esc]") {
 			break
 		}
 	}
@@ -206,7 +206,7 @@ func waitForBlackthornPrompt(
 			return dialog
 		}
 		if dialog.ActivePrompt() == "" && !dialog.InputComplete() &&
-			strings.HasPrefix(dialog.ControlHint(), "Enter/Esc:") {
+			strings.HasPrefix(dialog.ControlHint(), "[Enter/Esc]") {
 			acknowledgeBlackthornTranscript(t, scene, dialog)
 		}
 	}
@@ -229,7 +229,7 @@ func drainBlackthornWorkflow(
 		}
 		if scene.dialogStack.PeekTopModalDialog() == dialog &&
 			dialog.ActivePrompt() == "" && !dialog.InputComplete() &&
-			strings.HasPrefix(dialog.ControlHint(), "Enter/Esc:") {
+			strings.HasPrefix(dialog.ControlHint(), "[Enter/Esc]") {
 			acknowledgeBlackthornTranscript(t, scene, dialog)
 		}
 	}

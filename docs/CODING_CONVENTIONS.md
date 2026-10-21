@@ -91,10 +91,10 @@ failures. Return wrapped errors for user input and recoverable conditions.
 // ✅ CORRECT: Use logging system
 import "github.com/bradhannah/UltimaVRedux/internal/logging"
 
-logging.Debug(logging.CategoryConversation, "Processing command: %s", cmd)
-logging.Info(logging.CategoryUI, "Dialog opened: %s", title)
-logging.Warn(logging.CategoryAudio, "Failed to load sound: %v", err)
-logging.Error(logging.CategorySystem, "Configuration error: %v", err)
+logging.Debugf(logging.CategoryConversation, "Processing command: %s", cmd)
+logging.Infof(logging.CategoryUI, "Dialog opened: %s", title)
+logging.Warnf(logging.CategoryAudio, "Failed to load sound: %v", err)
+logging.Errorf(logging.CategorySystem, "Configuration error: %v", err)
 
 // ❌ WRONG: Direct console output
 fmt.Printf("DEBUG: Processing command: %s\n", cmd)
@@ -272,7 +272,9 @@ differs from verified original Ultima V behavior:
 ```
 
 - State the original rule and its canonical public Game Facts ID; for this
-  example see [COMBAT-0009](gamefacts/COMBAT.md#combat-0009).
+  example see [COMBAT-0009](gamefacts/COMBAT.md#combat-0009). `make gamefacts-check`
+  rejects a tagged comment block that names no known ID. Purely presentational
+  choices need no tag; describe them in a plain comment.
 - State the Redux behavior and why the difference is intentional.
 - Add the tag opportunistically when changed or reviewed logic exposes a
   deliberate deviation; do not perform unrelated mass comment churn.

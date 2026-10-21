@@ -102,6 +102,7 @@ func unavailableCombatAutoAction() CombatAutoAction {
 // BeginCombatAutoAttack retains the chosen monster, not merely its square or a
 // reusable queue slot. REDUX DEVIATION: Tab assistance automates the original
 // manual per-item aiming sequence, without changing physical attack rules.
+// See ref:COMBAT-0012.
 func (g *GameState) BeginCombatAutoAttack(position references.Position) bool {
 	if g.CombatScene == nil || g.CombatScene.hasPlayerActionOwner() {
 		return false

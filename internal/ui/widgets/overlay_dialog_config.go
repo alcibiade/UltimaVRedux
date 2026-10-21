@@ -20,7 +20,8 @@ type AutoFitSizing struct {
 
 func (AutoFitSizing) isSizingStrategy() {}
 
-func (s AutoFitSizing) GetConfig() (lines int, charsPerLine int, autoFit bool) {
+// GetConfig reports auto-fit with zero lines; MinCharsPerLine is the width floor.
+func (s AutoFitSizing) GetConfig() (int, int, bool) {
 	// For auto-fit, lines and charsPerLine are calculated from content
 	// MinCharsPerLine is used as the floor
 	return 0, s.MinCharsPerLine, true
@@ -34,17 +35,30 @@ type FixedLinesSizing struct {
 
 func (FixedLinesSizing) isSizingStrategy() {}
 
-func (s FixedLinesSizing) GetConfig() (lines int, charsPerLine int, autoFit bool) {
+// GetConfig returns the fixed line and width counts with auto-fit off.
+func (s FixedLinesSizing) GetConfig() (int, int, bool) {
 	return s.Lines, s.CharsPerLine, false
 }
 
-// Pre-defined sizing presets
+// Sizes of the pre-defined presets.
+const (
+	autoFitDefaultMaxWidthPercent = 0.8
+	autoFitDefaultMinCharsPerLine = 15
+	compactLines                  = 2
+	compactCharsPerLine           = 35
+)
+
+// Pre-defined sizing presets.
+//
+//nolint:gochecknoglobals // Sizing presets are immutable shared UI configuration.
 var (
 	// SizingAutoFitDefault auto-fits content with 80% max width and 15 char minimum
-	SizingAutoFitDefault = AutoFitSizing{MaxWidthPercent: 0.8, MinCharsPerLine: 15}
+	SizingAutoFitDefault = AutoFitSizing{
+		MaxWidthPercent: autoFitDefaultMaxWidthPercent, MinCharsPerLine: autoFitDefaultMinCharsPerLine,
+	}
 
 	// SizingCompact is a small fixed-size dialog (2 lines, 35 chars)
-	SizingCompact = FixedLinesSizing{Lines: 2, CharsPerLine: 35}
+	SizingCompact = FixedLinesSizing{Lines: compactLines, CharsPerLine: compactCharsPerLine}
 )
 
 // =====================================
@@ -81,19 +95,27 @@ type Position struct {
 	Vertical   VerticalAnchor
 }
 
+// Screen heights, as fractions from the top, at which each VerticalAnchor places a dialog.
+const (
+	verticalTopPercent    = 0.15
+	verticalCenterPercent = 0.50
+	verticalLowerPercent  = 0.70
+	verticalBottomPercent = 0.85
+)
+
 // GetVerticalPercent returns the vertical position as a percentage (0.0-1.0)
 func (p Position) GetVerticalPercent() float64 {
 	switch p.Vertical {
 	case VerticalTop:
-		return 0.15
+		return verticalTopPercent
 	case VerticalCenter:
-		return 0.50
+		return verticalCenterPercent
 	case VerticalLower:
-		return 0.70
+		return verticalLowerPercent
 	case VerticalBottom:
-		return 0.85
+		return verticalBottomPercent
 	default:
-		return 0.70
+		return verticalLowerPercent
 	}
 }
 
@@ -148,7 +170,9 @@ func (e EffectsConfig) HasAnyEffect() bool {
 	return e.HasFadeIn() || e.HasFadeOut()
 }
 
-// Pre-defined effect presets
+// Pre-defined effect presets.
+//
+//nolint:gochecknoglobals // Effect presets are immutable shared UI configuration.
 var (
 	// EffectsNone disables all fade effects (instant show/hide)
 	EffectsNone = EffectsConfig{FadeInMs: 0, FadeOutMs: 0}

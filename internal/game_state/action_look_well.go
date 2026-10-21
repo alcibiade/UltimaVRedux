@@ -33,7 +33,7 @@ func (g *GameState) TriggerWishingWellModern(pos *references.Position) bool {
 	}
 
 	if !g.DetectWishingWellAtPosition(pos) {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Modern well interaction attempted without a well at position (%d,%d) in %v",
 			pos.X, pos.Y, g.MapState.PlayerLocation.Location)
 
@@ -42,7 +42,7 @@ func (g *GameState) TriggerWishingWellModern(pos *references.Position) bool {
 
 	g.SystemCallbacks.Flow.WorldInteraction.ShowWellInteraction(pos)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Modern WishingWell interaction triggered at position (%d,%d) in %v",
 		pos.X, pos.Y, g.MapState.PlayerLocation.Location)
 

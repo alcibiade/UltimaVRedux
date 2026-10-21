@@ -16,7 +16,7 @@ import (
 
 func TestInterceptSmashedCommandZeroConsumesNoRNG(t *testing.T) {
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{SystemCallbacks: callbacks.ToSystemCallbacks()} //nolint:exhaustruct // Focused zero-state fixture.
+	state := &GameState{SystemCallbacks: callbacks.ToSystemCallbacks()}
 	state.SetRandomSeed(239)
 
 	result, err := state.InterceptSmashedCommand()
@@ -29,7 +29,7 @@ func TestInterceptSmashedCommandZeroConsumesNoRNG(t *testing.T) {
 
 func TestInterceptSmashedCommandMissConsumesOnlyChanceRoll(t *testing.T) {
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Focused miss fixture must not need town authority.
+	state := &GameState{
 		smashed:         3,
 		SystemCallbacks: callbacks.ToSystemCallbacks(),
 	}
@@ -56,9 +56,9 @@ func TestInterceptSmashedCommandPreservesOrderedGuardWorkBeforeDirection(t *test
 	controller, ok := state.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 	require.True(t, ok)
 
-	guard := guardActivationTestNPC(0, indexes.Guard_KeyIndex, 0, false)
+	guard := guardActivationTestNPC(0, indexes.GuardKeyIndex, 0, false)
 	guard.SetPos(references.Position{X: 14, Y: 15})
-	firstCivilian := guardActivationTestNPC(1, indexes.TownsPerson_KeyIndex, 1, true)
+	firstCivilian := guardActivationTestNPC(1, indexes.TownsPersonKeyIndex, 1, true)
 	secondCivilian := guardActivationTestNPC(2, indexes.MerchantKeyIndex, 1, true)
 	controller.GetNpcs().ReplaceWith([]map_units.MapUnit{secondCivilian, guard, firstCivilian})
 	state.smashed = 2
@@ -149,7 +149,7 @@ func TestInterceptSmashedCommandReactivatesGuardsOnRepeatedHits(t *testing.T) {
 		Build()
 	controller, ok := state.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 	require.True(t, ok)
-	guard := guardActivationTestNPC(0, indexes.Guard_KeyIndex, 0, false)
+	guard := guardActivationTestNPC(0, indexes.GuardKeyIndex, 0, false)
 	controller.GetNpcs().ReplaceWith([]map_units.MapUnit{guard})
 	state.smashed = 2
 	seed := smashedHitSeedForDirection(0, 0)
@@ -171,7 +171,7 @@ func TestInterceptSmashedCommandReactivatesGuardsOnRepeatedHits(t *testing.T) {
 
 func TestInterceptSmashedCommandGuardFailureStopsBeforeDecrementAndDirection(t *testing.T) {
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Missing controller is the failure under test.
+	state := &GameState{
 		smashed:         1,
 		SystemCallbacks: callbacks.ToSystemCallbacks(),
 	}

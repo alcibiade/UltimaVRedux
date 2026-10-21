@@ -132,7 +132,7 @@ func (d *UltimaDate) Advance(nMinutes int) {
 
 	// Validate time advancement does not exceed 9 hours (for time-saving assumptions)
 	if nMinutes > MaximumAdvanceMinutes {
-		logging.Warn(logging.CategoryGameState, "Time advancement clamped to 9 hours (requested: %d minutes)", nMinutes)
+		logging.Warnf(logging.CategoryGameState, "Time advancement clamped to 9 hours (requested: %d minutes)", nMinutes)
 		nMinutes = MaximumAdvanceMinutes
 	}
 	if nMinutes < 0 {

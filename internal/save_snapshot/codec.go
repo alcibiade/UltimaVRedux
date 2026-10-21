@@ -41,7 +41,7 @@ type UnsupportedVersionError struct {
 
 // Error implements error.
 func (unsupported *UnsupportedVersionError) Error() string {
-	return fmt.Sprintf("%v: got %d, supported versions are 12 through %d", ErrUnsupportedSnapshotVersion, unsupported.Version, CurrentVersion)
+	return fmt.Sprintf("%v: got %d, supported versions are %d through %d", ErrUnsupportedSnapshotVersion, unsupported.Version, MinimumVersion, CurrentVersion)
 }
 
 // Unwrap supports errors.Is(err, ErrUnsupportedSnapshotVersion).
@@ -192,7 +192,7 @@ func Decode(data []byte) (Envelope, error) {
 	if err != nil {
 		return Envelope{}, err
 	}
-	if version < 12 || version > CurrentVersion {
+	if version < MinimumVersion || version > CurrentVersion {
 		return Envelope{}, &UnsupportedVersionError{Version: version}
 	}
 	if err = validateSnapshotJSONMembers(snapshotFields, "dungeonDiscoveries", "playerKnowledge", "questJournal"); err != nil {
@@ -201,121 +201,25 @@ func Decode(data []byte) (Envelope, error) {
 	if err = validateSurfaceChestJSONMembers(snapshotFields); err != nil {
 		return Envelope{}, err
 	}
-	if version >= 17 {
-		if err = validateConversationJSONMembers(snapshotFields["lastConversation"]); err != nil {
-			return Envelope{}, err
-		}
+	if err = validateConversationJSONMembers(snapshotFields["lastConversation"]); err != nil {
+		return Envelope{}, err
 	}
 
 	var snapshot SaveSnapshot
-	switch version {
-	case CurrentVersion:
+	if version == CurrentVersion {
 		if err = decodeRequiredJSON(encoded.Snapshot, &snapshot); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode JSON: %w", ErrInvalidEnvelope, err)
 		}
-	case 24, 23, 22, 21, 20:
-		switch version {
-		case 24:
-			var previous saveSnapshotV24
-			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-				return Envelope{}, fmt.Errorf("%w: decode version 24 snapshot: %w", ErrInvalidEnvelope, err)
-			}
-			snapshot = previous.validationView()
-		case 23:
-			var previous saveSnapshotV23
-			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-				return Envelope{}, fmt.Errorf("%w: decode version 23 snapshot: %w", ErrInvalidEnvelope, err)
-			}
-			snapshot = previous.validationView()
-		case 22:
-			var previous saveSnapshotV22
-			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-				return Envelope{}, fmt.Errorf("%w: decode version 22 snapshot: %w", ErrInvalidEnvelope, err)
-			}
-			snapshot = previous.validationView()
-		case 21:
-			var previous saveSnapshotV21
-			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-				return Envelope{}, fmt.Errorf("%w: decode version 21 snapshot: %w", ErrInvalidEnvelope, err)
-			}
-			snapshot = previous.validationView()
-		case 20:
-			var previous saveSnapshotV20
-			if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-				return Envelope{}, fmt.Errorf("%w: decode version 20 snapshot: %w", ErrInvalidEnvelope, err)
-			}
-			snapshot = previous.validationView()
-		}
-		if issues := validateSnapshot(snapshot, version); len(issues) != 0 {
-			return Envelope{}, &ValidationError{Issues: issues}
-		}
-		snapshot.Version = CurrentVersion
-	case 19, 18, 17:
-		var previous saveSnapshotV19
+	} else {
+		var previous saveSnapshotV24
 		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version %d snapshot: %w", ErrInvalidEnvelope, version, err)
 		}
 		snapshot = previous.validationView()
-		issues := append(previous.validateDungeonJournal(), validateSnapshot(snapshot, version)...)
-		if len(issues) != 0 {
+		if issues := validateSnapshot(snapshot, version); len(issues) != 0 {
 			return Envelope{}, &ValidationError{Issues: issues}
 		}
 		snapshot.Version = CurrentVersion
-	case 16:
-		var previous saveSnapshotV16
-		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-			return Envelope{}, fmt.Errorf("%w: decode version 16 snapshot: %w", ErrInvalidEnvelope, err)
-		}
-		snapshot = previous.validationView()
-		if issues := validateSnapshot(snapshot, 16); len(issues) != 0 {
-			return Envelope{}, &ValidationError{Issues: issues}
-		}
-		snapshot.Version = CurrentVersion
-	case 12:
-		var previous saveSnapshotV12
-		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-			return Envelope{}, fmt.Errorf("%w: decode version 12 snapshot: %w", ErrInvalidEnvelope, err)
-		}
-		if issues := validateSnapshot(previous.validationView(), 12); len(issues) != 0 {
-			return Envelope{}, &ValidationError{Issues: issues}
-		}
-		snapshot = previous.promote()
-	case 13:
-		var previous saveSnapshotV13
-		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-			return Envelope{}, fmt.Errorf("%w: decode version 13 snapshot: %w", ErrInvalidEnvelope, err)
-		}
-		if issues := validateSnapshot(previous.validationView(), 13); len(issues) != 0 {
-			return Envelope{}, &ValidationError{Issues: issues}
-		}
-		snapshot = previous.promote()
-	case 14:
-		var previous saveSnapshotV14
-		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-			return Envelope{}, fmt.Errorf("%w: decode version 14 snapshot: %w", ErrInvalidEnvelope, err)
-		}
-		if issues := validateSnapshot(previous.validationView(), 14); len(issues) != 0 {
-			return Envelope{}, &ValidationError{Issues: issues}
-		}
-		snapshot = previous.promote()
-	case 15:
-		var previous saveSnapshotV15
-		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
-			return Envelope{}, fmt.Errorf("%w: decode version 15 snapshot: %w", ErrInvalidEnvelope, err)
-		}
-		if issues := validateSnapshot(previous.validationView(), 15); len(issues) != 0 {
-			return Envelope{}, &ValidationError{Issues: issues}
-		}
-		snapshot = previous.promote()
-	default:
-		return Envelope{}, &UnsupportedVersionError{Version: version}
-	}
-	if version < 21 {
-		snapshot.BackfillMoonstonePossession()
-		snapshot.retireHistoricalMoonstoneOrigins()
-	}
-	if version < 24 {
-		snapshot.promotePersonalStateV24()
 	}
 
 	envelope := Envelope{
@@ -380,8 +284,7 @@ func DecodeUnsupportedVersion(data []byte) (Envelope, error) {
 	if err != nil {
 		return Envelope{}, err
 	}
-	switch version {
-	case CurrentVersion, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24:
+	if version >= MinimumVersion && version <= CurrentVersion {
 		return Envelope{}, fmt.Errorf("%w: snapshot version %d is supported", ErrInvalidEnvelope, version)
 	}
 

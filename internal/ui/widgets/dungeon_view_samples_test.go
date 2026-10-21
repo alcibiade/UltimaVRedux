@@ -81,7 +81,7 @@ func dungeonViewLayoutFixture(size image.Point, model game_state.DungeonViewMode
 		model: model, plan: plan, legend: dungeonViewLegendFor(plan, model.Facing),
 		continuations: dungeonViewContinuations(plan), placement: dungeonViewSamplePlacement(),
 	}
-	dialog.border = newDialogBorder(dialog.placement, DialogBackgroundBlack)
+	dialog.border = newDialogBorder(dialog.placement)
 	bounds := localDungeonViewBounds(dialog.border)
 	dialog.prepareOutputs(size.X, bounds.Dx())
 	dialog.layout = calculateDungeonViewLayout(bounds, size.X, size.Y,

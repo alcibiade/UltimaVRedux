@@ -52,9 +52,8 @@ type MockSystemCallbacks struct {
 	VisualCallCount         int
 
 	// Screen tracking
-	StatsDisplayUpdated int
-	DisplayUpdates      int // Track calls to UpdateDisplay for search visual feedback
-	ScreenCallCount     int
+	DisplayUpdates  int // Track calls to UpdateDisplay for search visual feedback
+	ScreenCallCount int
 
 	// Flow tracking
 	FlowCallCount int
@@ -234,11 +233,9 @@ func (m *MockSystemCallbacks) ToSystemCallbacks() *SystemCallbacks {
 	)
 
 	screenCallbacks := NewScreenCallbacks(ScreenCallbacks{
-		UpdateStatsDisplay:      m.updateStatsDisplay,
-		RefreshInventoryDisplay: m.refreshInventoryDisplay,
-		UpdateDisplay:           m.updateDisplay,
-		HideAllOverlays:         func() {},
-		ShowAllOverlays:         func() {},
+		UpdateDisplay:   m.updateDisplay,
+		HideAllOverlays: func() {},
+		ShowAllOverlays: func() {},
 		CreateAndPushMessageDialog: func() {
 			m.t.Logf("💬 CreateAndPushMessageDialog called")
 		},
@@ -617,17 +614,6 @@ func (m *MockSystemCallbacks) updateLocationMusic() {
 }
 
 // Screen callback implementations
-func (m *MockSystemCallbacks) updateStatsDisplay() {
-	m.StatsDisplayUpdated++
-	m.ScreenCallCount++
-	m.t.Logf("📊 Stats display updated")
-}
-
-func (m *MockSystemCallbacks) refreshInventoryDisplay() {
-	m.ScreenCallCount++
-	m.t.Logf("🎒 Inventory display refreshed")
-}
-
 func (m *MockSystemCallbacks) updateDisplay() {
 	m.DisplayUpdates++
 	m.ScreenCallCount++
@@ -809,7 +795,6 @@ func (m *MockSystemCallbacks) Reset() {
 	m.UnblockInputCalls = 0
 	m.VisualCallCount = 0
 
-	m.StatsDisplayUpdated = 0
 	m.DisplayUpdates = 0
 	m.ScreenCallCount = 0
 

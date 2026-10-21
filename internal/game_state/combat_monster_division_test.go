@@ -14,9 +14,6 @@ import (
 // silently omitting the original SPLITS ability or desynchronizing the turn queue.
 func TestApplyCombatDamageToMonster_SurvivingSlimeDivides(t *testing.T) {
 	gs, mock, slime := setupCombatWithMonster(t, references.MonsterSlime, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	setRepeatedMonsterDivisionForTest(t, gs, false)
 	fillCombatMapForDivisionTest(gs)
 	gs.CombatScene.fields = nil
@@ -60,9 +57,6 @@ func TestApplyCombatDamageToMonster_SurvivingSlimeDivides(t *testing.T) {
 
 func TestGargoyleUsesReduxSingleDivisionRule(t *testing.T) {
 	gs, _, gargoyle := setupCombatWithMonster(t, references.MonsterGargoyle, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	setRepeatedMonsterDivisionForTest(t, gs, false)
 	fillCombatMapForDivisionTest(gs)
 	gs.CombatScene.fields = nil
@@ -84,9 +78,6 @@ func TestGargoyleUsesReduxSingleDivisionRule(t *testing.T) {
 
 func TestRepeatedMonsterDivisionSettingRestoresOriginalBehavior(t *testing.T) {
 	gs, _, slime := setupCombatWithMonster(t, references.MonsterSlime, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	fillCombatMapForDivisionTest(gs)
 	setRepeatedMonsterDivisionForTest(t, gs, true)
 	managerCountBefore := gs.CombatScene.MonsterManager.Count()
@@ -104,9 +95,6 @@ func TestRepeatedMonsterDivisionSettingRestoresOriginalBehavior(t *testing.T) {
 
 func TestFailedPlacementDoesNotConsumeReduxDivision(t *testing.T) {
 	gs, _, slime := setupCombatWithMonster(t, references.MonsterSlime, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	setRepeatedMonsterDivisionForTest(t, gs, false)
 	fillCombatMapForDivisionTest(gs)
 	gs.CombatScene.fields = nil
@@ -141,9 +129,6 @@ func TestFailedPlacementDoesNotConsumeReduxDivision(t *testing.T) {
 // from creating a replacement after the death path has run.
 func TestApplyCombatDamageToMonster_LethalHitDoesNotDivide(t *testing.T) {
 	gs, _, slime := setupCombatWithMonster(t, references.MonsterSlime, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	managerCountBefore := gs.CombatScene.MonsterManager.Count()
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 
@@ -164,9 +149,6 @@ func TestApplyCombatDamageToMonster_LethalHitDoesNotDivide(t *testing.T) {
 // the shared post-hit behavior used by the original combat damage routine.
 func TestResolveCombatProjectileSpell_SurvivingSlimeDivides(t *testing.T) {
 	gs, mock, slime := setupCombatWithMonster(t, references.MonsterSlime, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	fillCombatMapForDivisionTest(gs)
 	slime.enemyRef.HitPoints = 100
 	slime.SetCurrentHP(100)

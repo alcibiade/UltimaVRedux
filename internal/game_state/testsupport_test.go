@@ -3,6 +3,9 @@ package game_state
 import (
 	"fmt"
 	"slices"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
@@ -10,6 +13,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/test/helpers"
 )
 
 // ValidateAndConsumePartyTargetSpellResources commits a prepared character
@@ -107,16 +111,8 @@ func (g *GameState) ConsumeDungeonViewScroll() (DungeonViewModel, bool) {
 		panic(err)
 	}
 	g.PartyState.Inventory.Scrolls.DecrementByOne(references.ScrollInQuasWis)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return model, true
-}
-
-// ActionUseDungeonMap is a legacy direction handler, unused by the dungeon item picker.
-func (g *GameState) ActionUseDungeonMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
-
-	return false
 }
 
 // CommitSkullKeyUnlock atomically revalidates and unlocks the reviewed door.
@@ -749,4 +745,80 @@ func (g *GameState) checkWhirlpoolActorContact(whirlpool *map_units.NPCEnemy) bo
 	q.Start()
 
 	return true
+}
+
+// ActionAttackCombatMap resolves the active PC's attack at the adjacent square
+// in the requested direction.
+func (g *GameState) ActionAttackCombatMap(direction references.Direction) bool {
+	// Get active combatant's position and compute target position
+	activeIdentity, active := g.activeCombatPCIdentity()
+	if !active {
+		return false
+	}
+	currentPos := g.CombatScene.GetCombatantPosition(activeIdentity)
+
+	targetPos := direction.GetNewPositionInDirection(&currentPos)
+	if targetPos == nil {
+		return false
+	}
+
+	return g.ActionAttackCombatPosition(*targetPos)
+}
+
+// ActionAttackCombatPosition resolves all attack sources against an adjacent
+// combat-map position. It supports diagonal targets used by the aiming cursor.
+func (g *GameState) ActionAttackCombatPosition(targetPos references.Position) bool {
+	activeIdentity, active := g.activeCombatPCIdentity()
+	if !active {
+		return false
+	}
+	activeIdx := activeIdentity.EntityIndex
+	currentPos := g.CombatScene.GetCombatantPosition(activeIdentity)
+	if integerDistance(currentPos, targetPos) != monsterAdjacentDistance {
+		return false
+	}
+
+	// Check for monster at target position
+	monster, _ := g.CombatScene.MonsterManager.GetMonsterIndexAtPosition(targetPos)
+	if monster == nil || !monster.IsHostile() || monster.IsCorpserHidden() {
+		// No monster at target — UI layer will show "Nothing to attack!"
+		return false
+	}
+
+	character := g.PartyState.GetCharacter(activeIdx)
+	sources := collectCombatAttackSources(character)
+	for _, source := range sources {
+		if source.Equipment != references.NoEquipment && source.Equipment.GetAttackRange() > 0 {
+			continue
+		}
+		g.resolveCombatAttackSourceAtPosition(activeIdx, source, targetPos)
+
+		// If monster died from this attack, stop processing further slots
+		if monster.IsDead() {
+			break
+		}
+	}
+
+	return true
+}
+
+// testCampingMap loads the original camp layout that production camping requires.
+func testCampingMap(t *testing.T) *references.CombatMapReference {
+	t.Helper()
+	campingMap, err := references.LoadCampingMap(helpers.LoadTestConfiguration(t))
+	require.NoError(t, err)
+
+	return campingMap
+}
+
+// wordForDungeon returns the Word of Power that opens dungeon, or "" for a
+// location without one.
+func wordForDungeon(dungeon references.Location) string {
+	for _, candidate := range canonicalDungeonWords {
+		if candidate.dungeon == dungeon {
+			return candidate.word
+		}
+	}
+
+	return ""
 }

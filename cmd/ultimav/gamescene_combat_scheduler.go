@@ -53,7 +53,7 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 		delayMs = timing.durationMs(game_state.MonsterAttackDelayMs)
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat scheduler: monster=%d actor=%+v target=%+v valid=%t delay=%dms",
 		step.MonsterIndex, step.Actor, step.Target, step.HasTarget, delayMs)
 
@@ -77,7 +77,7 @@ func (g *GameScene) startScheduledMonsterTurnWithPacing(
 			result, err = g.gameState.ResolveScheduledCombatStep(step.Token)
 			if err != nil {
 				if combatPresentationWasSuperseded(err) {
-					logging.Debug(logging.CategoryGameState, "Combat scheduler resolution superseded: %v", err)
+					logging.Debugf(logging.CategoryGameState, "Combat scheduler resolution superseded: %v", err)
 
 					return
 				}
@@ -157,7 +157,7 @@ func (g *GameScene) completeScheduledCombatStep(context string, token game_state
 		return
 	}
 	if combatPresentationWasSuperseded(err) {
-		logging.Debug(logging.CategoryGameState, "Combat %s completion superseded: %v", context, err)
+		logging.Debugf(logging.CategoryGameState, "Combat %s completion superseded: %v", context, err)
 
 		return
 	}

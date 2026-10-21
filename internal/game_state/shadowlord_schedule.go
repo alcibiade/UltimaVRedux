@@ -94,19 +94,19 @@ func GetShadowlordSpawnPosition(townLocation references.Location) references.Pos
 // Return whether insertion succeeded. ref:SHADOW-0002
 func (g *GameState) SpawnAutomaticShadowlordNPC(lord references.Shadowlord, location references.Location) bool {
 	if !IsShadowlordTown(location) || g.MapState.PlayerLocation.Location != location {
-		logging.Warn(logging.CategoryGameState,
+		logging.Warnf(logging.CategoryGameState,
 			"SpawnAutomaticShadowlordNPC: %s is not the loaded town", location.String())
 
 		return false
 	}
 	spawnPos := GetShadowlordSpawnPosition(location)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"SpawnAutomaticShadowlordNPC: spawning %s at (%d, %d) in %s",
 		lord.String(), spawnPos.X, spawnPos.Y, location.String())
 
 	if g.CurrentNPCAIController == nil {
-		logging.Warn(logging.CategoryGameState,
+		logging.Warnf(logging.CategoryGameState,
 			"SpawnAutomaticShadowlordNPC: CurrentNPCAIController is nil, cannot spawn")
 
 		return false

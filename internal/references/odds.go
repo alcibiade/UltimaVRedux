@@ -1,5 +1,6 @@
 package references
 
+// TheOdds holds tunable chances for world generation.
 type TheOdds struct {
 	monsterGenerationRollMaximum int
 }
@@ -7,6 +8,7 @@ type TheOdds struct {
 // DefaultMonsterGenerationRollMaximum is the inclusive world-generation draw bound; ref:ENEMY-0004.
 const DefaultMonsterGenerationRollMaximum = 30
 
+// NewDefaultTheOdds returns the original-game odds.
 func NewDefaultTheOdds() TheOdds {
 	theOdds := TheOdds{
 		monsterGenerationRollMaximum: DefaultMonsterGenerationRollMaximum,

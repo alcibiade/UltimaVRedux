@@ -269,10 +269,7 @@ func (d *ReagentPurchaseDialog) populateOutputs() {
 	}
 
 	d.footerOutput.Reset()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("[Left/Right]").LightGray(" Quantity   ").White("[M]").LightGray(" Max").Done()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("[Enter]").LightGray(" Confirm   ").White("[Esc]").LightGray(" Back").Done()
+	appendControlGuidance(d.footerOutput, merchantQuantityFooter, d.frame.footerText.Dx())
 }
 
 func reagentOverflowNoun(quantity uint16) string {

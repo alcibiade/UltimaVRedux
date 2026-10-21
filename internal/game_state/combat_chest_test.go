@@ -17,9 +17,6 @@ func TestActionOpenCombatMapRemovesEmptyChest(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(169).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
@@ -42,9 +39,6 @@ func TestActionJimmyCombatMapUnlocksChestWithoutTriggeringTrap(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIndex)
@@ -73,9 +67,6 @@ func TestActionJimmyCombatMapFailureConsumesKeyAndLeavesChestLocked(t *testing.T
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIndex)
@@ -104,9 +95,6 @@ func TestActionJimmyCombatMapWithoutKeysDoesNotChangeChest(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
 	position := references.Down.GetNewPositionInDirection(
@@ -131,9 +119,6 @@ func TestCombatChestAcidDeathSynchronizesCombatState(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
@@ -158,9 +143,6 @@ func TestCombatChestPoisonKeepsCombatantActive(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
@@ -180,9 +162,6 @@ func TestActionOpenCombatMapTriggersLockedChestTrap(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
@@ -208,9 +187,6 @@ func TestGenerateCombatChestContentsCreatesCollectibleObjects(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(169).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	position := references.Position{X: 5, Y: 5}

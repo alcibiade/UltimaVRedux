@@ -10,14 +10,15 @@ const (
 	unscaledDefaultPointScale = 20
 )
 
-func GetScaleFactorByWindowSize(dm *display.DisplayManager) float64 {
+func getScaleFactorByWindowSize(dm *display.DisplayManager) float64 {
 	w, _ := dm.GetCurrentSize()
 
 	return getScaleFactorByWidth(w)
 }
 
+// GetScaledNumberToResolution scales a default font point or spacing to the current window width.
 func GetScaledNumberToResolution(dm *display.DisplayManager, defaultFontPoint float64) float64 {
-	return GetScaleFactorByWindowSize(dm) * defaultFontPoint
+	return getScaleFactorByWindowSize(dm) * defaultFontPoint
 }
 
 func getScaleFactorByWidth(width int) float64 {

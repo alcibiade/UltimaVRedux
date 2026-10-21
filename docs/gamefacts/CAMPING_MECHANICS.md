@@ -84,7 +84,12 @@ Redux's `PrepareDungeonCampingPlan` likewise retains its pre-rest selection for
 wall-time reseeding. Exact authored arena bytes, complete population RNG order,
 and all formation coordinates were not freshly certified in this conversion.
 
-**Implementation:** `internal/game_state/combat_dungeon_camping.go`
+Redux places outdoor ambushers only on shuffled monster slots that no party
+member occupies, so a guard who wandered onto one keeps it, and caps the number
+of ambushers at the free slots. How the original resolves that overlap is not
+established.
+
+**Implementation:** `internal/game_state/combat_dungeon_camping.go`, `internal/game_state/combat_camping_encounter.go`
 
 ### CAMP-0003
 

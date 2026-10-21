@@ -3,12 +3,13 @@ package camping
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
 func TestSleepingAccelerationIsOneWayAndEndsAtFinalCycle(t *testing.T) {
-	scene := NewCampingScene(1, -1, references.PlayerLocation{})
+	scene := NewCampingSceneWithCombatRef(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	require.False(t, scene.RequestAcceleration(), "setup is not sleep")
 	scene.StartCamping()
 	scene.BeginSleeping()

@@ -22,7 +22,7 @@ func TestGameSceneElapsedAdditionRejectsOverflow(t *testing.T) {
 }
 
 func TestGameSceneCaptureSaveSnapshotRejectsPendingUIInputBeforeGameState(t *testing.T) {
-	scene := &GameScene{ //nolint:exhaustruct // Only eligibility-owned fields are relevant.
+	scene := &GameScene{
 		gameState:         &game_state.GameState{},
 		secondaryKeyState: OpenDirectionInput,
 	}
@@ -37,7 +37,7 @@ func TestGameSceneCaptureSaveSnapshotRejectsPendingUIInputBeforeGameState(t *tes
 }
 
 func TestGameSceneCaptureSaveSnapshotReturnsGameStateEligibilityError(t *testing.T) {
-	scene := &GameScene{ //nolint:exhaustruct // Zero-value scene state is eligible for delegation.
+	scene := &GameScene{
 		gameState: &game_state.GameState{},
 	}
 

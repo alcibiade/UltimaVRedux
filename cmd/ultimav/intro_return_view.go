@@ -30,7 +30,7 @@ const (
 )
 
 type returnViewPresentation struct {
-	scene          *minimap.MiniMapScene
+	scene          *minimap.Scene
 	executor       *minimap.ScriptExecutor
 	spriteSheet    *sprites.SpriteSheet
 	dissolveType   minimap.TileCommandType

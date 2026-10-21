@@ -15,7 +15,7 @@ import (
 func TestConfiguredReferenceLoadersReturnErrors(t *testing.T) {
 	t.Parallel()
 
-	gameConfig := &config.UltimaVConfiguration{ //nolint:exhaustruct // Invalid-resource fixture.
+	gameConfig := &config.UltimaVConfiguration{
 		RawDataOvl: make([]byte, 1),
 		SavedConfigData: &config.UltimaVConfigurationFlags{
 			DataFilePath: t.TempDir(),
@@ -38,7 +38,7 @@ func TestConfiguredReferenceLoadersReturnErrors(t *testing.T) {
 
 func TestDataOvlOffsetLoadersRejectTruncatedData(t *testing.T) {
 	t.Parallel()
-	gameConfig := &config.UltimaVConfiguration{RawDataOvl: make([]byte, 1)} //nolint:exhaustruct
+	gameConfig := &config.UltimaVConfiguration{RawDataOvl: make([]byte, 1)}
 
 	_, err := NewDocks(gameConfig)
 	require.Error(t, err)

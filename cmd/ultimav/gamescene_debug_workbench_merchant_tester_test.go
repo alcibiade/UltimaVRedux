@@ -171,7 +171,6 @@ func TestMerchantTesterPreviewStopsAtCommitWithoutGameplayMutation(t *testing.T)
 	assert.Empty(t, fixture.callbacks.Messages)
 	assert.Empty(t, fixture.callbacks.SoundEffectsPlayed)
 	assert.Empty(t, fixture.callbacks.TimeAdvanced())
-	assert.Zero(t, fixture.callbacks.StatsDisplayUpdated)
 	assert.Equal(t, 1, fixture.callbacks.BlockInputCalls)
 	assert.Equal(t, 1, fixture.callbacks.UnblockInputCalls)
 	fixture.state.EndMerchantSession(session)
@@ -801,7 +800,6 @@ func TestMerchantTesterSameTownHorseLiveUsesProductionAuthority(t *testing.T) {
 	setHorseTalkCandidateTiles(t, fixture, [4]indexes.SpriteIndex{indexes.Grass})
 	fixture.state.PartyState.Inventory.Gold.Set(500)
 	horsesBefore := countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs())
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 
 	result := fixture.scene.ExecuteDebugCommand(
 		merchantTesterLiveRequest(fixture.state, references.MerchantHorseTrinsic),
@@ -815,9 +813,8 @@ func TestMerchantTesterSameTownHorseLiveUsesProductionAuthority(t *testing.T) {
 	price := dialog.GetQuote().Price
 	completeHorsePurchase(t, fixture, dialog)
 	assert.Equal(t, widgets.HorseShopSuccess, dialog.GetPhase())
-	assert.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Price is bounded by authority.
+	assert.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, horsesBefore+1, countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs()))
-	assert.Equal(t, refreshesBefore+1, fixture.callbacks.ScreenCallCount)
 
 	beforeTalkTurn := fixture.state.DateTime.Turn
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
@@ -832,7 +829,6 @@ func TestMerchantTesterSameTownShipLiveUsesProductionAuthority(t *testing.T) {
 	fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 	fixture.state.PartyState.Inventory.Gold.Set(2000)
 	units := shipTalkOverworldUnits(t, fixture)
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 
 	result := fixture.scene.ExecuteDebugCommand(
 		merchantTesterLiveRequest(fixture.state, references.MerchantShipJhelom),
@@ -846,7 +842,7 @@ func TestMerchantTesterSameTownShipLiveUsesProductionAuthority(t *testing.T) {
 	quote := shop.GetSelectedQuote()
 	completeShipPurchase(t, fixture, shop)
 	dispatch := waitForShipDispatchDialog(t, fixture)
-	expectedGold := uint16(2000 - quote.Price) //nolint:gosec // The reviewed affordable quote bounds the price.
+	expectedGold := uint16(2000 - quote.Price)
 	assert.Equal(t, expectedGold, fixture.state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, expectedGold, shop.GetState().Gold)
 	assert.Equal(t, strconv.Itoa(int(expectedGold)), shop.GetShell().GetHeaderView().PartyGold)
@@ -854,7 +850,6 @@ func TestMerchantTesterSameTownShipLiveUsesProductionAuthority(t *testing.T) {
 	vehicle := units.GetVehicleAtPositionAndFloorOrNil(shop.GetState().Berth.Position, references.MainFloor)
 	require.NotNil(t, vehicle)
 	assert.True(t, vehicle.GetVehicleDetails().IsPendingDelivery())
-	assert.Equal(t, refreshesBefore+1, fixture.callbacks.ScreenCallCount)
 
 	beforeTalkTurn := fixture.state.DateTime.Turn
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
@@ -915,7 +910,7 @@ func TestMerchantTesterSameTownTavernLiveUsesProductionAuthorityAndOneMinute(t *
 	diners := dialog.GetState().Meal.DinerCount
 	completeTavernAction(t, fixture, dialog, ebiten.KeyEnter)
 	assert.Equal(t, fixture.state.PartyState.Inventory.Gold.Get(), dialog.GetState().Gold)
-	assert.Equal(t, foodBefore+uint16(diners), dialog.GetState().Food) //nolint:gosec // Diner count is bounded by six.
+	assert.Equal(t, foodBefore+uint16(diners), dialog.GetState().Food)
 	assert.Empty(t, dialog.GetReceiptText(), "meal result belongs to the acknowledged modal")
 
 	beforeTalkTurn := fixture.state.DateTime.Turn
@@ -1094,13 +1089,11 @@ func TestMerchantTesterRemoteHorseLiveTransitionsThenUsesProductionAuthority(t *
 	assert.True(t, fixture.callbacks.InputBlocked)
 	assert.Equal(t, 1, fixture.callbacks.BlockInputCalls)
 	assert.Zero(t, fixture.callbacks.UnblockInputCalls)
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 	price := dialog.GetQuote().Price
 	completeHorsePurchase(t, fixture, dialog)
 	assert.Equal(t, widgets.HorseShopSuccess, dialog.GetPhase())
-	assert.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Price is bounded by authority.
+	assert.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, horsesBefore+1, countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs()))
-	assert.Equal(t, refreshesBefore+1, fixture.callbacks.ScreenCallCount)
 
 	beforeTalkTurn := fixture.state.DateTime.Turn
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
@@ -1138,18 +1131,16 @@ func TestMerchantTesterRemoteShipLiveTransitionsThenUsesProductionAuthority(t *t
 	assert.ElementsMatch(t, []string{"world.locationId", "world.position.x", "world.position.y"}, stateChangePaths(result.Changes))
 	shop := waitForShipDialog(t, fixture)
 	assert.False(t, shop.IsPreview())
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 	quote := shop.GetSelectedQuote()
 	completeShipPurchase(t, fixture, shop)
 	dispatch := waitForShipDispatchDialog(t, fixture)
-	expectedGold := uint16(2000 - quote.Price) //nolint:gosec // The reviewed affordable quote bounds the price.
+	expectedGold := uint16(2000 - quote.Price)
 	assert.Equal(t, expectedGold, fixture.state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, expectedGold, shop.GetState().Gold)
 	assert.Equal(t, game_state.ShipBerthPendingFrigate, shop.GetState().Berth.State)
 	vehicle := units.GetVehicleAtPositionAndFloorOrNil(shop.GetState().Berth.Position, references.MainFloor)
 	require.NotNil(t, vehicle)
 	assert.True(t, vehicle.GetVehicleDetails().IsPendingDelivery())
-	assert.Equal(t, refreshesBefore+1, fixture.callbacks.ScreenCallCount)
 
 	beforeTalkTurn := fixture.state.DateTime.Turn
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)

@@ -57,9 +57,6 @@ func TestExplorationReadyDialogRetainsCharacterKeyboardNavigation(t *testing.T) 
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return
-	}
 	second := state.PartyState.GetCharacter(1)
 	require.NotNil(t, second)
 	second.PartyMap = party_state.PartyMapActive
@@ -85,9 +82,6 @@ func TestReadyDialogListsAmmoAsNoOpAndKeepsDuplicateReadiedMarker(t *testing.T) 
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return
-	}
 	character := state.PartyState.GetCharacter(0)
 	character.Strength = 30
 	for equipment := references.LeatherHelm; equipment <= references.Ankh; equipment++ {
@@ -132,9 +126,6 @@ func TestReadyDialogPresentsAuthorityErrorAndRetainsModal(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return
-	}
 	character := state.PartyState.GetCharacter(0)
 	character.Strength = 30
 	character.SetEquippedItem(references.SlotHelm, references.LeatherHelm)

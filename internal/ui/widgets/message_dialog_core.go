@@ -7,7 +7,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
-	"golang.org/x/exp/rand"
+
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -96,6 +97,7 @@ type MessageDialogConfig struct {
 // ContentAlignment defines how content text is positioned vertically
 type ContentAlignment int
 
+// Content alignments for MessageDialog text; the prompt always stays at the bottom.
 const (
 	ContentAlignBottomUp ContentAlignment = iota // Terminal-style: newest at bottom, grows upward
 	ContentAlignCenter                           // Content centered vertically in available space
@@ -105,20 +107,27 @@ const (
 // DialogHorizontalPosition defines semantic horizontal positioning for dialogs
 type DialogHorizontalPosition int
 
+// Horizontal dialog positions; ToPercentage gives each centre as a screen fraction.
 const (
 	DialogHorizontalMapOnly     DialogHorizontalPosition = iota // Center within map area (excluding right panel) = 37%
 	DialogHorizontalWholeScreen                                 // Center on entire screen = 50%
+)
+
+// Horizontal dialog centres as screen fractions.
+const (
+	dialogMapCenterPercent    = 0.37 // Center of map area (1.5% to 75% horizontal span)
+	dialogScreenCenterPercent = 0.50 // Center of entire screen
 )
 
 // ToPercentage converts DialogHorizontalPosition to screen percentage (0.0-1.0)
 func (pos DialogHorizontalPosition) ToPercentage() float64 {
 	switch pos {
 	case DialogHorizontalMapOnly:
-		return 0.37 // Center of map area (1.5% to 75% horizontal span)
+		return dialogMapCenterPercent
 	case DialogHorizontalWholeScreen:
-		return 0.50 // Center of entire screen
+		return dialogScreenCenterPercent
 	default:
-		return 0.50 // Default to whole screen
+		return dialogScreenCenterPercent // Default to whole screen
 	}
 }
 
@@ -185,7 +194,7 @@ const (
 	// messageFontLineSpacing uses 1.3x ratio (26pt) for readable message text
 	messageFontPoint                   = float64(FontSizeLarge) // 20pt - maps to typography.FontSizeLarge
 	messageFontLineSpacing             = messageFontPoint + 6   // 26pt (1.3x multiplier for readability)
-	messageMaxTextLines                = 10                     // Default total line capacity (includes prompt if dual mode)
+	messageMaxTextLines                = 10                     // Default total line capacity, including any prompt
 	messageMaxPromptLines              = 1                      // Internal constant for prompt split calculation
 	messageMaxCharsPerLine             = 45
 	messagePercentTextIndentFromBorder = 0.02
@@ -193,6 +202,9 @@ const (
 	// Dissolve effect timing
 	MessageDialogFadeInMs  = 3000 // Fade-in dissolve duration (3 second materialization)
 	MessageDialogFadeOutMs = 1000 // Fade-out dissolve duration (1 second dematerialization)
+
+	// messageDialogEffectSeed keeps every dissolve pattern identical between runs.
+	messageDialogEffectSeed = 12345
 )
 
 // NewMessageDialog creates a new MessageDialogBuilder with sensible defaults.
@@ -226,9 +238,21 @@ func NewMessageDialog(message string) *MessageDialogBuilder {
 		enableEffects:        true,
 		separatePromptArea:   false,
 		enableInputDismissal: false,
+		keyboard:             nil,
+		onDismiss:            nil,
 		fadeInMs:             MessageDialogFadeInMs,
 		fadeOutMs:            MessageDialogFadeOutMs,
 		contentAlignment:     ContentAlignBottomUp, // Default: terminal-style bottom-up scrolling
+		textLines:            nil,                  // Medium preset capacity
+		charsPerLine:         nil,
+		centerX:              nil, // Medium preset placement
+		centerY:              nil,
+		screenRelative:       false,
+		staticContent:        false,
+		textHorizontalCenter: false,
+		autoSize:             false,
+		maxWidthPercent:      0,
+		maxHeightPercent:     0,
 	}
 }
 
@@ -427,7 +451,8 @@ func (b *MessageDialogBuilder) calculateAutoSizeDimensions(
 ) MessageDialogConfig {
 	if b.enableInputDismissal {
 		// The automatic footer must fit even when the message or explicit capacity is tiny.
-		charsPerLine = max(charsPerLine, len(DialogCloseHint))
+		// One spare column covers key brackets, which are wider than an average column.
+		charsPerLine = max(charsPerLine, len(DialogCloseHint)+1)
 		textLines = max(textLines, DialogConfirmationLines)
 	}
 	// Calculate prompt split if dual output mode enabled
@@ -450,14 +475,15 @@ func (b *MessageDialogBuilder) calculateAutoSizeDimensions(
 	))
 
 	return MessageDialogConfig{
-		StartPercentX:    placement.StartPercentX,
-		EndPercentX:      placement.EndPercentX,
-		StartPercentY:    placement.StartPercentY,
-		EndPercentY:      placement.EndPercentY,
-		TextLines:        textLines,
-		PromptLines:      promptLines,
-		CharsPerLine:     charsPerLine,
-		ContentAlignment: b.contentAlignment,
+		StartPercentX:        placement.StartPercentX,
+		EndPercentX:          placement.EndPercentX,
+		StartPercentY:        placement.StartPercentY,
+		EndPercentY:          placement.EndPercentY,
+		TextLines:            textLines,
+		PromptLines:          promptLines,
+		CharsPerLine:         charsPerLine,
+		ContentAlignment:     b.contentAlignment,
+		TextHorizontalCenter: b.textHorizontalCenter,
 	}
 }
 
@@ -522,8 +548,8 @@ func (b *MessageDialogBuilder) buildAutoSizedConfig() MessageDialogConfig {
 	}
 
 	// Use center position if specified, otherwise use dialog defaults
-	centerX := 0.37 // Default: map area center
-	centerY := 0.70 // Default: lower portion of screen (DialogDefaultVerticalPos)
+	centerX := dialogMapCenterPercent // Default: map area center
+	centerY := 0.70                   // Default: lower portion of screen (DialogDefaultVerticalPos)
 
 	if b.centerX != nil {
 		centerX = *b.centerX
@@ -546,73 +572,7 @@ func (b *MessageDialogBuilder) Build() *MessageDialog {
 		panic("WithInputDismissal() requires keyboard - pass keyboard via WithInputDismissal(keyboard)")
 	}
 
-	// Determine config to use
-	var config MessageDialogConfig
-
-	if b.autoSize && b.message != "" {
-		// Auto-size based on message content measurement
-		config = b.buildAutoSizedConfig()
-	} else {
-		// Auto-size from center point + content requirements
-		// Use explicit values if set, otherwise fall back to defaults
-		const defaultCenterX = 0.35 // Slightly left of center (map-area centered)
-		const defaultCenterY = 0.78 // Bottom third of screen
-
-		centerX := defaultCenterX
-		centerY := defaultCenterY
-
-		if b.centerX != nil {
-			centerX = *b.centerX
-		}
-		if b.centerY != nil {
-			centerY = *b.centerY
-		}
-
-		// Use default text capacity, with explicit overrides if provided
-		textLines := messageMaxTextLines       // 10 - total lines including prompt
-		charsPerLine := messageMaxCharsPerLine // 45
-
-		if b.textLines != nil {
-			textLines = *b.textLines
-		}
-		if b.charsPerLine != nil {
-			charsPerLine = *b.charsPerLine
-		}
-
-		config = b.calculateAutoSizeDimensions(centerX, centerY, textLines, charsPerLine)
-	}
-
-	// Set default content alignment if custom config didn't specify it
-	if config.ContentAlignment == 0 {
-		config.ContentAlignment = ContentAlignBottomUp
-	}
-
-	// Set text horizontal centering from builder
-	config.TextHorizontalCenter = b.textHorizontalCenter
-
-	// Create dialog instance
-	dialog := &MessageDialog{
-		visible:               false,
-		config:                config,
-		baseConfig:            config,
-		screenRelative:        b.screenRelative,
-		promptColor:           pkgcolor.EGALightBlue,
-		enableDissolveEffects: b.enableEffects,
-		enableDualOutput:      b.separatePromptArea,
-		enableInputDismissal:  b.enableInputDismissal,
-		keyboard:              b.keyboard,
-		onDismiss:             b.onDismiss,
-		dismissed:             false,
-		dissolveLevel:         0.0,
-		fadeState:             fadeNone,
-		fadeDurationInMs:      b.fadeInMs,
-		fadeDurationOutMs:     b.fadeOutMs,
-		fadeStartTime:         0,
-		animationClock:        func() int64 { return time.Now().UnixMilli() },
-		staticContent:         b.staticContent,
-		lastScreenWidth:       0,
-		lastScreenHeight:      0,
-	}
+	dialog := b.newDialog(b.resolveConfig())
 	dialog.initializeVisualElements()
 
 	// Add initial message if provided
@@ -627,6 +587,84 @@ func (b *MessageDialogBuilder) Build() *MessageDialog {
 	dialog.resolvePopupLayout(image.Rect(0, 0, width, height))
 
 	return dialog
+}
+
+// resolveConfig sizes the dialog from measured message content when auto-sizing
+// is enabled, otherwise from the centre point and text capacity.
+func (b *MessageDialogBuilder) resolveConfig() MessageDialogConfig {
+	if b.autoSize && b.message != "" {
+		return b.buildAutoSizedConfig()
+	}
+
+	// Use explicit values if set, otherwise fall back to defaults
+	const defaultCenterX = 0.35 // Slightly left of center (map-area centered)
+	const defaultCenterY = 0.78 // Bottom third of screen
+
+	centerX := defaultCenterX
+	centerY := defaultCenterY
+
+	if b.centerX != nil {
+		centerX = *b.centerX
+	}
+	if b.centerY != nil {
+		centerY = *b.centerY
+	}
+
+	// Use default text capacity, with explicit overrides if provided
+	textLines := messageMaxTextLines       // 10 - total lines including prompt
+	charsPerLine := messageMaxCharsPerLine // 45
+
+	if b.textLines != nil {
+		textLines = *b.textLines
+	}
+	if b.charsPerLine != nil {
+		charsPerLine = *b.charsPerLine
+	}
+
+	return b.calculateAutoSizeDimensions(centerX, centerY, textLines, charsPerLine)
+}
+
+// newDialog creates the hidden dialog state; Build prepares its visuals and text.
+func (b *MessageDialogBuilder) newDialog(config MessageDialogConfig) *MessageDialog {
+	return &MessageDialog{
+		frameBounds:              image.Rect(0, 0, 0, 0), // Set by initializeVisualElements
+		visible:                  false,
+		config:                   config,
+		font:                     nil,
+		output:                   nil,
+		baseConfig:               config,
+		screenRelative:           b.screenRelative,
+		popupViewport:            image.Rect(0, 0, 0, 0),
+		renderOutput:             nil,
+		renderPrompt:             nil,
+		keyboard:                 b.keyboard,
+		dismissed:                false,
+		onDismiss:                b.onDismiss,
+		enableDissolveEffects:    b.enableEffects,
+		enableDualOutput:         b.separatePromptArea,
+		enableInputDismissal:     b.enableInputDismissal,
+		dissolveLevel:            0.0,
+		fadeState:                fadeNone,
+		fadeDurationInMs:         b.fadeInMs,
+		fadeDurationOutMs:        b.fadeOutMs,
+		fadeStartTime:            0,
+		animationClock:           func() int64 { return time.Now().UnixMilli() },
+		animationStarted:         false,
+		promptOutput:             nil,
+		promptColor:              pkgcolor.EGALightBlue,
+		contentBuffer:            nil,
+		maskedBuffer:             nil,
+		contentDirty:             false,
+		dissolveEffect:           nil,
+		disableDirtyOptimization: false,
+		lastScreenWidth:          0,
+		lastScreenHeight:         0,
+		completeCardLayout:       false,
+		presentationPosition:     struct{ X, Y float64 }{X: 0, Y: 0},
+		presentationClip:         image.Rect(0, 0, 0, 0),
+		bakedBounds:              image.Rect(0, 0, 0, 0),
+		staticContent:            b.staticContent,
+	}
 }
 
 // initializeVisualElements prepares geometry, fonts, and output without textures.
@@ -657,20 +695,18 @@ func (md *MessageDialog) updateFrameBounds() {
 	})
 }
 
-// getEffectRNG returns a fixed-seed RNG for dissolve effects.
-func (md *MessageDialog) getEffectRNG() *rand.Rand {
-	return rand.New(rand.NewSource(12345))
-}
-
-// createDissolveEffect creates a new dissolve effect with the specified mode
-func (md *MessageDialog) createDissolveEffect(screenWidth, screenHeight int, mode visual.DissolveMode) *visual.PixelDissolveEffect {
+// createDissolveEffect creates a new dissolve effect with the specified mode.
+// Each effect draws from a fresh fixed-seed RNG, so the pattern never varies.
+func (md *MessageDialog) createDissolveEffect(
+	screenWidth, screenHeight int, mode visual.DissolveMode,
+) *visual.PixelDissolveEffect {
 	maskWidth, maskHeight := visual.CalculateMaskSizeForDialog(screenWidth, screenHeight)
 
 	return visual.NewPixelDissolveEffect(
 		screenWidth, screenHeight,
 		maskWidth, maskHeight,
 		mode,
-		md.getEffectRNG(),
+		beradrng.New(messageDialogEffectSeed),
 	)
 }
 
@@ -681,9 +717,10 @@ func (md *MessageDialog) getContentVerticalAlignment() etext.Align {
 		return etext.AlignEnd // Bottom-up scrolling (text grows upward)
 	case ContentAlignTop:
 		return etext.AlignStart // Top-aligned content
-	default:
-		return etext.AlignCenter // Vertical centering
+	case ContentAlignCenter:
 	}
+
+	return etext.AlignCenter // Vertical centering, also used for unknown values
 }
 
 // getTextHorizontalAlignment returns the etext.Align value for horizontal text alignment
@@ -697,7 +734,7 @@ func (md *MessageDialog) getTextHorizontalAlignment() etext.Align {
 
 // calculateTextAreaBounds calculates the horizontal text area bounds from percentage-based config
 // Returns the X position (in pixels) and width (in pixels) of the text rendering area
-func (md *MessageDialog) calculateTextAreaBounds() (x int, width int) {
+func (md *MessageDialog) calculateTextAreaBounds() (int, int) {
 	textStartX := md.config.StartPercentX + messagePercentTextIndentFromBorder
 	textEndX := md.config.EndPercentX - messagePercentTextIndentFromBorder // Symmetric right indent
 	textRect := sprites.GetRectangleFromPercents(sprites.PercentBasedPlacement{

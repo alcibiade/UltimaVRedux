@@ -11,7 +11,7 @@ import (
 
 const dungeonYellPrompt = "What dost thou yell?"
 
-const dungeonCommandNotImplemented = "Not implemented in dungeons."
+const dungeonUnboundKeyFeedback = "What?"
 
 var dungeonKlimbChoiceKeys = boundKeysGame //nolint:gochecknoglobals // Immutable input binding table.
 
@@ -65,7 +65,7 @@ func (g *GameScene) dungeonMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 		ebiten.KeyY:
 	default:
 		g.secondaryKeyState = PrimaryInput
-		g.gameState.SystemCallbacks.Message.AddRowStr(dungeonCommandNotImplemented)
+		g.gameState.SystemCallbacks.Message.AddRowStr(dungeonUnboundKeyFeedback)
 
 		return
 	}

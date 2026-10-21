@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build an offline, local four-platform preview release from a clean commit."""
+"""Build an offline, local multi-platform release from a clean commit."""
 
 import argparse
 from collections.abc import Iterator, Mapping
@@ -19,6 +19,7 @@ from typing import NotRequired, TypedDict
 
 TARGETS = (
     ("darwin", "arm64"),
+    ("darwin", "amd64"),
     ("windows", "amd64"),
     ("linux", "amd64"),
     ("linux", "arm64"),
@@ -161,7 +162,7 @@ def copy_notices(source: Path, destination: Path, env: Mapping[str, str]) -> Non
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / relative, target)
     # The module graph also contains unused/test-only modules. Collect notices for
-    # the union of production imports across all four targets, not that whole graph.
+    # the union of production imports across all targets, not that whole graph.
     used = set()
     for system, architecture in TARGETS:
         target_env = dict(env, GOOS=system, GOARCH=architecture)
@@ -295,6 +296,7 @@ def build_matrix(
                     "-mod=readonly",
                     "-trimpath",
                     "-buildvcs=false",
+                    "-ldflags=-X main.version=" + version,
                     "-o",
                     str(binary),
                     "./cmd/ultimav",

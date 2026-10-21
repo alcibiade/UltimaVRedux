@@ -92,7 +92,7 @@ func TestDungeonSkeletonEyesUseEverySpecialWallPayloadAndFourOfSixtyFiveCadence(
 	for _, location := range []references.Location{references.Deceit, references.Wrong, references.Covetous} {
 		for payload := byte(0); payload < 16; payload++ {
 			cell := references.DungeonCell(0xc0 | payload)
-			samplePlan := dungeonRenderPlan{location: location, floor: 0} //nolint:exhaustruct // Sampling reads only cell identity and frame.
+			samplePlan := dungeonRenderPlan{location: location, floor: 0}
 			visibleCount := 0
 			visibleFrame := uint64(0)
 			for frame := uint64(0); frame < dungeonEyeRandomRange; frame++ {
@@ -112,7 +112,7 @@ func TestDungeonSkeletonEyesUseEverySpecialWallPayloadAndFourOfSixtyFiveCadence(
 				true,
 				false,
 				false,
-				int64(visibleFrame*dungeonAtmosphereFrameMs), //nolint:gosec // Bounded by one 65-frame sample block.
+				int64(visibleFrame*dungeonAtmosphereFrameMs),
 			)
 			operations := dungeonPlanOps(plan, func(op dungeonRenderOp) bool {
 				return op.kind == dungeonRenderSkeletonEyes
@@ -142,7 +142,7 @@ func TestDungeonSkeletonEyesRejectUnsupportedPositionsAndDungeons(t *testing.T) 
 			visibleFrame := dungeonVisibleEyeFrame(test.location, player.Floor, test.position, cell)
 
 			plan := buildDungeonRenderPlan(
-				&snapshot, player, true, false, false, int64(visibleFrame*dungeonAtmosphereFrameMs), //nolint:gosec
+				&snapshot, player, true, false, false, int64(visibleFrame*dungeonAtmosphereFrameMs),
 			)
 
 			assert.Empty(t, dungeonPlanOps(plan, func(op dungeonRenderOp) bool {
@@ -180,7 +180,7 @@ func TestDungeonStalactiteRenderPlanUsesOriginalPositionsMirroringAndOcclusion(t
 					references.Despise, player.Floor, placement.position, cell, phase,
 				)
 				plan := buildDungeonRenderPlan(
-					&snapshot, player, true, false, false, int64(frame*dungeonAtmosphereFrameMs), //nolint:gosec
+					&snapshot, player, true, false, false, int64(frame*dungeonAtmosphereFrameMs),
 				)
 				operations := dungeonPlanOps(plan, func(op dungeonRenderOp) bool {
 					return op.kind == dungeonRenderStalactite && op.position == placement.position
@@ -257,7 +257,7 @@ func TestDungeonAtmosphericsAreSuppressedInGameplayDarknessIncludingSubduedGeome
 	require.True(t, snapshot.Cells.SetCell(player.Floor, target, cell))
 	visibleFrame := dungeonVisibleEyeFrame(player.Location, player.Floor, target, cell)
 	plan = buildDungeonRenderPlan(
-		&snapshot, player, false, true, false, int64(visibleFrame*dungeonAtmosphereFrameMs), //nolint:gosec
+		&snapshot, player, false, true, false, int64(visibleFrame*dungeonAtmosphereFrameMs),
 	)
 	assert.NotZero(t, plan.count)
 	assert.Empty(t, dungeonPlanOps(plan, dungeonAtmosphereOperation))
@@ -267,7 +267,7 @@ func TestDrawDungeonAtmosphericsUsesSourcePixelsAndScaledPresentation(t *testing
 	canvas := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	canvas.Fill(color.Black)
 
-	drawDungeonSkeletonEyes(canvas, dungeonRenderOp{ //nolint:exhaustruct // Focused source-geometry operation.
+	drawDungeonSkeletonEyes(canvas, dungeonRenderOp{
 		kind: dungeonRenderSkeletonEyes, x: 75, y: 73,
 	})
 	lightRed := ucolor.EGALightRed.ToRGBA()
@@ -281,18 +281,18 @@ func TestDrawDungeonAtmosphericsUsesSourcePixelsAndScaledPresentation(t *testing
 		assertDungeonPixel(t, canvas, point, color.RGBA{A: 0xff})
 	}
 
-	drawDungeonStalactite(canvas, dungeonRenderOp{ //nolint:exhaustruct // Focused source-color operation.
+	drawDungeonStalactite(canvas, dungeonRenderOp{
 		kind: dungeonRenderStalactite, x: 79, y: 40, phase: 0,
 	})
 	assertDungeonPixel(t, canvas, image.Pt(78, 40), ucolor.EGABlue.ToRGBA())
 	assertDungeonPixel(t, canvas, image.Pt(79, 40), ucolor.EGALightBlue.ToRGBA())
 	assertDungeonPixel(t, canvas, image.Pt(79, 39), ucolor.EGABlue.ToRGBA())
 
-	drawDungeonStalactite(canvas, dungeonRenderOp{ //nolint:exhaustruct // Focused terminal visible phase.
+	drawDungeonStalactite(canvas, dungeonRenderOp{
 		kind: dungeonRenderStalactite, x: 90, y: 40, phase: 4,
 	})
 	assertDungeonPixel(t, canvas, image.Pt(90, 40), ucolor.EGALightCyan.ToRGBA())
-	drawDungeonStalactite(canvas, dungeonRenderOp{ //nolint:exhaustruct // Hidden reset phase must not index geometry.
+	drawDungeonStalactite(canvas, dungeonRenderOp{
 		kind: dungeonRenderStalactite, x: 100, y: 40, phase: 5,
 	})
 	assertDungeonPixel(t, canvas, image.Pt(100, 40), color.RGBA{A: 0xff})
@@ -311,7 +311,7 @@ func TestDrawDungeonAtmosphericsUsesSourcePixelsAndScaledPresentation(t *testing
 func TestDrawDungeonGraffitiUsesInverseRunicCells(t *testing.T) {
 	canvas := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	canvas.Fill(color.Black)
-	command := dungeonRenderOp{ //nolint:exhaustruct // Focused graffiti operation.
+	command := dungeonRenderOp{
 		kind: dungeonRenderGraffiti, spriteIndex: 0, x: 40, y: 66,
 	}
 
@@ -406,7 +406,7 @@ func TestIntegrationDungeonAtmosphericsOverlayOriginalPanels(t *testing.T) {
 	require.True(t, snapshot.Cells.SetCell(player.Floor, target, cell))
 	visibleFrame := dungeonVisibleEyeFrame(player.Location, player.Floor, target, cell)
 	plan := buildDungeonRenderPlan(
-		&snapshot, player, true, false, false, int64(visibleFrame*dungeonAtmosphereFrameMs), //nolint:gosec
+		&snapshot, player, true, false, false, int64(visibleFrame*dungeonAtmosphereFrameMs),
 	)
 	canvas := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	drawDungeonRenderPlan(
@@ -415,7 +415,7 @@ func TestIntegrationDungeonAtmosphericsOverlayOriginalPanels(t *testing.T) {
 		source,
 		dungeonTestGraffitiOutput(),
 		plan,
-		int64(visibleFrame*dungeonAtmosphereFrameMs), //nolint:gosec
+		int64(visibleFrame*dungeonAtmosphereFrameMs),
 	)
 
 	assertDungeonPixel(t, canvas, image.Pt(76, 73), ucolor.EGALightRed.ToRGBA())
@@ -425,7 +425,7 @@ func TestIntegrationDungeonAtmosphericsOverlayOriginalPanels(t *testing.T) {
 func dungeonAtmosphereTestState(
 	location references.Location,
 ) (game_state.DungeonStateSnapshot, references.PlayerLocation) {
-	snapshot := game_state.DungeonStateSnapshot{ //nolint:exhaustruct // Focused detached renderer fixture.
+	snapshot := game_state.DungeonStateSnapshot{
 		Location: location,
 		Facing:   references.DungeonFacingNorth,
 	}
@@ -444,7 +444,7 @@ func dungeonVisibleEyeFrame(
 	position references.Position,
 	cell references.DungeonCell,
 ) uint64 {
-	plan := dungeonRenderPlan{location: location, floor: floor} //nolint:exhaustruct // Sampling reads only cell identity and frame.
+	plan := dungeonRenderPlan{location: location, floor: floor}
 	for frame := uint64(0); frame < dungeonEyeRandomRange; frame++ {
 		plan.atmosphereFrame = frame
 		if dungeonEyeSample(plan, cell, position) < dungeonEyeVisibleSamples {
@@ -461,7 +461,7 @@ func dungeonFrameForStalactitePhase(
 	cell references.DungeonCell,
 	want byte,
 ) uint64 {
-	plan := dungeonRenderPlan{location: location, floor: floor} //nolint:exhaustruct // Sampling reads only cell identity and frame.
+	plan := dungeonRenderPlan{location: location, floor: floor}
 	for frame := uint64(0); frame < dungeonStalactitePhaseCount; frame++ {
 		plan.atmosphereFrame = frame
 		if dungeonStalactitePhase(plan, cell, position) == want {

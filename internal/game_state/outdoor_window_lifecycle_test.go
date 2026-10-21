@@ -104,7 +104,7 @@ func TestOutdoorWindowTemporarySceneReturnsPreserveNextBlink(t *testing.T) {
 					assert.Equal(t, window, state.outdoorWindow)
 					state.EndCombat(CombatVictory)
 				case "camping":
-					scene := camping.NewCampingScene(2, NoGuardAssigned, before)
+					scene := camping.NewCampingSceneWithCombatRef(2, NoGuardAssigned, before, testCampingMap(t))
 					state.CampingScene = scene
 					require.NoError(t, state.TransitionToCampingMap())
 					state.finalizeCampingSequence(scene, &CampingState{AmbushedAt: NoAmbush, ActivePlayerIndex: -1}, nil)

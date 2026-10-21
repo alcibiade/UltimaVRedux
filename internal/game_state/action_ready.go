@@ -186,8 +186,6 @@ func (g *GameState) ApplyReadyEquipment(
 		// Original equipment rules silently discards the refund when the carried stack is 99.
 		// See ref:EQUIP-0010.
 		g.PartyState.Inventory.Equipment.IncrementByOne(plan.equipment)
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 		result.Changed = true
 		// REDUX DEVIATION: equipment selection has no ordinary equipment sound.
 		// Redux makes this committed inventory change authorable as a quiet cue.
@@ -234,8 +232,6 @@ func (g *GameState) ApplyReadyEquipment(
 	if !result.Vanished {
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundEquip)
 	}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result, nil
 }

@@ -19,8 +19,8 @@ const (
 	inputPromptMinimumVisibleChars = 16
 	inputPromptCenterDivisor       = 2
 	inputPromptMarker              = "> "
-	yesNoControlHint               = "Y/N: Choose   Enter: Confirm"
-	textSubmitControlHint          = "Enter: Submit   Esc: Cancel"
+	yesNoControlHint               = "[Y/N] Choose   [Enter] Confirm"
+	textSubmitControlHint          = "[Enter] Submit   [Esc] Cancel"
 )
 
 type inputBoxLayout struct {
@@ -156,13 +156,13 @@ func (i *InputBox) footerPlainText() string {
 			return yesNoControlHint
 		}
 
-		return "Enter: Confirm"
+		return "[Enter] Confirm"
 	}
 	if i.escapeClearsText {
-		return "Enter: Submit   Esc: Clear"
+		return "[Enter] Submit   [Esc] Clear"
 	}
 	if i.spaceCancels {
-		return "Enter: Submit   Esc/Space: Cancel"
+		return "[Enter] Submit   [Esc/Space] Cancel"
 	}
 
 	return textSubmitControlHint

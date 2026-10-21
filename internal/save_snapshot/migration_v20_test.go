@@ -10,31 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Historical fixtures must model the frozen wire shape, never current runtime
-// structs with just a downgraded version marker.
-func removeV20Fields(body map[string]any) {
-	removeV24Fields(body)
-	delete(body, "openDoor")
-	delete(body, "atlasLandmarks")
-	delete(body, "moonstoneJournal")
-	if units, ok := body["mapUnits"].([]any); ok {
-		for _, value := range units {
-			delete(value.(map[string]any), "surfaceChestAssessment")
-		}
-	}
-	if dungeon, ok := body["dungeon"].(map[string]any); ok {
-		delete(dungeon, "chestAssessments")
-	}
-	if observations, ok := body["dungeonJournal"].([]any); ok {
-		for _, value := range observations {
-			observation := value.(map[string]any)
-			delete(observation, "sites")
-			observation["entranceSeen"], observation["open"] = false, false
-			observation["entranceX"], observation["entranceY"], observation["entranceFloor"] = 0, 0, 0
-		}
-	}
-}
-
 func v20EvidenceSnapshot() SaveSnapshot {
 	snapshot := validSnapshot()
 	at := journal.OptionalGameTime{Known: true, Time: journal.GameTime{Year: 139, Month: 4, Day: 5, Hour: 21}}
@@ -60,24 +35,8 @@ func v20EvidenceSnapshot() SaveSnapshot {
 }
 
 func TestV20EarnedEvidenceRoundTripAndSchema(t *testing.T) {
-	schema, _ := compileNativeSaveSchemaFile(t, "native-save-e2-s20.schema.json")
-	snapshot := v20EvidenceSnapshot()
-	data := historicalV20TestData(t, 20, snapshot)
-	require.NoError(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-	decoded, err := Decode(data)
-	require.NoError(t, err)
-	require.Equal(t, snapshot, decoded.Snapshot)
-	// Frozen v20 accepted historical surveys; promotion clears them after a move.
-	observation := &snapshot.MoonstoneJournal[3]
-	observation.Site = journal.SiteLocation{Map: references.Britain, X: 3, Y: 4}
-	observation.LastContext = journal.MoonstoneContext{Source: journal.MoonstoneSourceBurial, Observer: observation.Site}
-	observation.ObservedAt.Time.Day++
-	data = historicalV20TestData(t, 20, snapshot)
-	require.NoError(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-	decoded, err = Decode(data)
-	require.NoError(t, err)
-	observation.Survey, observation.SurveyContext = journal.SurveyedLocation{}, journal.MoonstoneContext{}
-	require.Equal(t, snapshot, decoded.Snapshot)
+	schema, _ := compileCurrentNativeSaveSchema(t)
+	requireV23RoundTrip(t, schema, v20EvidenceSnapshot())
 }
 
 func TestV20RejectsInvalidEvidenceInCodecAndSchema(t *testing.T) {
@@ -153,129 +112,7 @@ func TestV20RequiresNewConcreteMembers(t *testing.T) {
 	}
 }
 
-func historicalV20TestData(t *testing.T, version int, snapshot SaveSnapshot) []byte {
-	t.Helper()
-	switch version {
-	case 12:
-		return versionTwelveEnvelopeData(t, snapshot, nil)
-	case 13:
-		return versionThirteenEnvelopeData(t, snapshot, nil)
-	case 14:
-		return versionFourteenEnvelopeData(t, snapshot, nil)
-	case 15:
-		return versionFifteenEnvelopeData(t, snapshot, nil)
-	default:
-		// Marshal the source evidence directly: v20 legitimately allowed fields
-		// whose semantics are rejected by the current-placement v21 validator.
-		encoded, err := json.Marshal(validEnvelope(snapshot))
-		require.NoError(t, err)
-		var document map[string]any
-		require.NoError(t, json.Unmarshal(encoded, &document))
-		body := document["snapshot"].(map[string]any)
-		body["version"] = version
-		removeV24Fields(body)
-		if version <= 22 {
-			delete(body, "openDoor")
-		}
-		if version <= 21 {
-			removeV22Fields(body)
-		}
-		if version == 20 {
-			removeV21Fields(body)
-		} else if version < 20 {
-			removeV20Fields(body)
-		}
-		if version == 16 {
-			delete(body, "dungeonJournal")
-			delete(body, "lastConversation")
-		}
-		data, err := json.Marshal(document)
-		require.NoError(t, err)
-		return data
-	}
-}
-
-func TestV20HistoricalPromotionAndFrozenNestedShapes(t *testing.T) {
-	for version := 12; version <= 19; version++ {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			snapshot := validSnapshot()
-			snapshot.Inventory.Moonstones[2] = 1
-			number := 0x81
-			snapshot.MapUnits[0] = MapUnitSnapshot{Kind: MapUnitKindChest, Position: validPosition(), SurfaceChestNumber: &number,
-				AIOverrideProvenance: string(references.AIOverrideProvenanceNone)}
-			if version < 14 {
-				snapshot.MapUnits[0].Kind = MapUnitKindNPC
-			}
-			data := historicalV20TestData(t, version, snapshot)
-			decoded, err := Decode(data)
-			require.NoError(t, err)
-			require.Equal(t, journal.MoonstoneObservation{OriginalSiteRetired: true, Known: true, FirstSource: journal.MoonstoneSourcePossession}, decoded.Snapshot.MoonstoneJournal[2])
-			require.Zero(t, decoded.Snapshot.MoonstoneJournal[0], "raw found/placement bytes never backfill knowledge")
-			require.Zero(t, decoded.Snapshot.MapUnits[0].SurfaceChestAssessment, "armed bit never backfills inspection")
-			for _, field := range []string{"moonstoneJournal", "surfaceChestAssessment", "oppression.password"} {
-				var document map[string]any
-				require.NoError(t, json.Unmarshal(data, &document))
-				body := document["snapshot"].(map[string]any)
-				switch field {
-				case "moonstoneJournal":
-					body[field] = currentEnvelopeDocument(t, snapshot)["snapshot"].(map[string]any)[field]
-				case "surfaceChestAssessment":
-					body["mapUnits"].([]any)[0].(map[string]any)[field] = 0
-				case "oppression.password":
-					body["redux"].(map[string]any)["playerKnowledge"] = []PlayerKnowledgeSnapshot{validLoreKnowledgeEntry(KnowledgeCategoryJournal, field)}
-				}
-				invalid, marshalErr := json.Marshal(document)
-				require.NoError(t, marshalErr)
-				_, err = Decode(invalid)
-				require.Error(t, err, "v%d must reject %s", version, field)
-			}
-		})
-	}
-}
-
-func TestV20HistoricalDungeonSitesPreservePrivateEvidence(t *testing.T) {
-	for version := 17; version <= 19; version++ {
-		for _, floor := range []int{0, -1} {
-			document := currentEnvelopeDocument(t, validSnapshot())
-			body := document["snapshot"].(map[string]any)
-			body["version"] = version
-			removeV20Fields(body)
-			old := body["dungeonJournal"].([]any)[0].(map[string]any)
-			old["known"], old["wordUsed"], old["entranceSeen"], old["open"] = true, true, true, true
-			old["entranceX"], old["entranceY"], old["entranceFloor"] = 11, 29, floor
-			data, err := json.Marshal(document)
-			require.NoError(t, err)
-			decoded, err := Decode(data)
-			require.NoError(t, err)
-			slot := journal.DungeonSurfaceSite
-			if floor == -1 {
-				slot = journal.DungeonUnderworldSite
-			}
-			require.Equal(t, journal.DungeonSiteObservation{Seen: true, Open: true,
-				Location: journal.SiteLocation{Map: references.BritanniaUnderworld, Floor: references.FloorNumber(floor), X: 11, Y: 29}}, decoded.Snapshot.DungeonJournal[0].Sites[slot])
-			require.Zero(t, decoded.Snapshot.DungeonJournal[0].Sites[1-slot])
-			old["sites"] = []any{}
-			data, err = json.Marshal(document)
-			require.NoError(t, err)
-			_, err = Decode(data)
-			require.Error(t, err, "historical DTO must reject current sites")
-		}
-	}
-}
-
-func historicalJournalEnvelopeData(t *testing.T, snapshot SaveSnapshot) []byte {
-	t.Helper()
-	data, err := json.Marshal(validEnvelope(snapshot))
-	require.NoError(t, err)
-	var document map[string]any
-	require.NoError(t, json.Unmarshal(data, &document))
-	removeV20Fields(document["snapshot"].(map[string]any))
-	data, err = json.Marshal(document)
-	require.NoError(t, err)
-	return data
-}
-
-func TestV20DungeonAssessmentsAndHistoricalDefaults(t *testing.T) {
+func TestV20DungeonAssessmentsRoundTripAndRejectInvalidCells(t *testing.T) {
 	snapshot := validSnapshot()
 	snapshot.World.Position = PositionSnapshot{Location: 33, X: 2, Y: 3, Floor: 4}
 	snapshot.Dungeon = &DungeonSnapshot{Location: 33, Cells: make([]int, DungeonCellCount)}
@@ -290,20 +127,6 @@ func TestV20DungeonAssessmentsAndHistoricalDefaults(t *testing.T) {
 	decoded, err := Decode(data)
 	require.NoError(t, err)
 	require.Equal(t, snapshot, decoded.Snapshot)
-	for version := 12; version <= 19; version++ {
-		old := historicalV20TestData(t, version, snapshot)
-		decoded, err = Decode(old)
-		require.NoError(t, err)
-		require.Zero(t, decoded.Snapshot.Dungeon.ChestAssessments)
-		require.Equal(t, snapshot.Dungeon.Cells, decoded.Snapshot.Dungeon.Cells)
-		var document map[string]any
-		require.NoError(t, json.Unmarshal(old, &document))
-		document["snapshot"].(map[string]any)["dungeon"].(map[string]any)["chestAssessments"] = snapshot.Dungeon.ChestAssessments
-		old, err = json.Marshal(document)
-		require.NoError(t, err)
-		_, err = Decode(old)
-		require.Error(t, err, "v%d physical dungeon must reject new fields", version)
-	}
 	for _, invalid := range []any{nil, []int{}, make([]int, 511), make([]int, 513), "unknown"} {
 		document := currentEnvelopeDocument(t, snapshot)
 		dungeon := document["snapshot"].(map[string]any)["dungeon"].(map[string]any)
@@ -326,29 +149,5 @@ func TestV20DungeonAssessmentsAndHistoricalDefaults(t *testing.T) {
 		_, err = Decode(data)
 		require.Error(t, err)
 		require.Error(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-	}
-}
-
-func TestV20OppressionHistoricalEventAndPresentationLimits(t *testing.T) {
-	for version := 16; version <= 19; version++ {
-		for _, field := range []string{"event", "visit"} {
-			data := historicalV20TestData(t, version, validSnapshot())
-			var document map[string]any
-			require.NoError(t, json.Unmarshal(data, &document))
-			body := document["snapshot"].(map[string]any)
-			if field == "event" {
-				body["redux"].(map[string]any)["questJournal"] = v20EvidenceSnapshot().Redux.QuestJournal
-			} else {
-				presentation := journal.EmptyPresentation()
-				presentation.Visits.Record(journal.ChronicleTab, chronicleLimit(version)+1)
-				body["presentation"] = presentation
-			}
-			data, err := json.Marshal(document)
-			require.NoError(t, err)
-			_, err = Decode(data)
-			require.Error(t, err, "v%d %s cannot use current catalog", version, field)
-			schema, _ := compileNativeSaveSchemaFile(t, fmt.Sprintf("native-save-e2-s%d.schema.json", version))
-			require.Error(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-		}
 	}
 }

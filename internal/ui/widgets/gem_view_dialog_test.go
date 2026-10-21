@@ -26,7 +26,7 @@ func TestGemViewOriginMatchesOriginalSurfaceWindow(t *testing.T) {
 }
 
 func TestGemViewWorldAndMarkerPositionsShareWrappedOrigin(t *testing.T) {
-	dialog := &GemViewDialog{ //nolint:exhaustruct // Pure coordinate fixture; rendering resources are unnecessary.
+	dialog := &GemViewDialog{
 		playerWorldX: 2,
 		playerWorldY: 250,
 		viewOriginX:  240,
@@ -44,7 +44,7 @@ func TestGemViewWorldAndMarkerPositionsShareWrappedOrigin(t *testing.T) {
 }
 
 func TestGemViewMarkerRejectsPositionsOutsideSurfaceWindow(t *testing.T) {
-	dialog := &GemViewDialog{ //nolint:exhaustruct // Pure coordinate fixture; rendering resources are unnecessary.
+	dialog := &GemViewDialog{
 		playerWorldX: 40,
 		playerWorldY: 10,
 	}

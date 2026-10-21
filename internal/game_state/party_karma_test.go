@@ -15,20 +15,16 @@ func TestSetPartyKarmaUsesExactValidatedValue(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 	gameState.PartyState.Karma.Value = 50
-	refreshes := 0
-	gameState.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 
 	result, err := gameState.SetPartyKarma(99)
 	require.NoError(t, err)
 	assert.Equal(t, PartyKarmaAlteration{Before: 50, After: 99}, result)
 	assert.Equal(t, 99, gameState.PartyState.Karma.Value)
-	assert.Equal(t, 1, refreshes)
 	assert.Empty(t, callbacks.TransientIconCalls)
 
 	result, err = gameState.SetPartyKarma(99)
 	require.NoError(t, err)
 	assert.Equal(t, PartyKarmaAlteration{Before: 99, After: 99}, result)
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestAdjustPartyKarmaPublishesOnlyActualClampedChanges(t *testing.T) {

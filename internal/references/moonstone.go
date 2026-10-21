@@ -11,6 +11,8 @@ type InitialMoonstoneData struct {
 
 // InitialMoonstoneLocations contains the 8 original moonstone starting positions
 // This is unchanging reference data - actual moonstone state is managed in game_state package
+//
+//nolint:gochecknoglobals // Fixed original-game reference data, read-only after init.
 var InitialMoonstoneLocations = []InitialMoonstoneData{
 	{X: 0xe0, Y: 0x85, Map: 0, Level: 0}, // Moonstone 0: (224, 133)
 	{X: 0x60, Y: 0x66, Map: 0, Level: 0}, // Moonstone 1: (96, 102)

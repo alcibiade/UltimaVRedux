@@ -25,7 +25,7 @@ import (
 
 func newDaylightOriginalTestScene(t *testing.T) *GameScene {
 	t.Helper()
-	directory := originaldata.Directory(t, files.DATA_OVL, files.KEEP_DAT)
+	directory := originaldata.Directory(t, files.DataOvl, files.KeepDat)
 	configuration, err := config.LoadUltimaVConfiguration("", directory)
 	require.NoError(t, err)
 	data, err := references.NewDataOvl(configuration)
@@ -343,7 +343,7 @@ func TestDaylightScenePresentationExclusions(t *testing.T) {
 					}
 					switch mode {
 					case "minimap":
-						scene.miniMapScene = &minimap.MiniMapScene{}
+						scene.miniMapScene = &minimap.Scene{}
 					case "finale":
 						scene.finalePresentation = &lordBritishFinalePresentation{mode: finaleRescueMap}
 					case "combat":

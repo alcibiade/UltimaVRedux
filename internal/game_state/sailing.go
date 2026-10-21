@@ -22,7 +22,7 @@ func (g *GameState) IsSailing() bool {
 func (g *GameState) StartAutomaticSailing(direction references.Direction) bool {
 	// Check if already sailing
 	if g.isSailing {
-		logging.Debug(logging.CategoryGameState, "Sailing: Already in sailing mode")
+		logging.Debugf(logging.CategoryGameState, "Sailing: Already in sailing mode")
 
 		return false
 	}
@@ -35,7 +35,7 @@ func (g *GameState) StartAutomaticSailing(direction references.Direction) bool {
 	vehicle := g.PartyVehicle.GetVehicleDetails()
 	vehicle.SetPartyVehicleDirection(direction)
 	g.isSailing = true
-	logging.Debug(logging.CategoryGameState, "Sailing: Started automatic sailing mode")
+	logging.Debugf(logging.CategoryGameState, "Sailing: Started automatic sailing mode")
 
 	return true
 }
@@ -44,7 +44,7 @@ func (g *GameState) StartAutomaticSailing(direction references.Direction) bool {
 // Safe to call even if not currently sailing (idempotent)
 func (g *GameState) StopAutomaticSailing() {
 	if g.isSailing {
-		logging.Debug(logging.CategoryGameState, "Sailing: Stopped automatic sailing mode")
+		logging.Debugf(logging.CategoryGameState, "Sailing: Stopped automatic sailing mode")
 		g.automaticSailingStopEpoch++
 	}
 	g.isSailing = false

@@ -110,10 +110,52 @@ func TestProcessWordOfPowerRequiresMatchingCardinalEntranceTileAndPlane(t *testi
 	assert.False(t, state.ProcessWordOfPower(""))
 	assert.Contains(t, callbacks.Messages, "Nothing happens.")
 
+}
+
+func TestProcessWordOfPowerTogglesNonDoomEntrancesFromTheUnderworld(t *testing.T) {
+	state, callbacks := NewIntegrationTestBuilder(t).
+		WithLocation(references.BritanniaUnderworld).
+		WithFloor(references.FloorNumber(references.UNDERWORLD)).
+		WithSystemCallbacks().
+		Build()
+	for dungeon, entrance := range state.GetDungeonEntranceCoordinates() {
+		if dungeon == references.Doom {
+			continue
+		}
+		t.Run(dungeon.String(), func(t *testing.T) {
+			raw := state.GetLayeredMapByCurrentLocation().GetTileTopMapOnlyTile(&entrance).Index
+			require.True(t, raw == dungeonOpenEntranceSprite(dungeon) || raw == indexes.BlockEntrance,
+				"the Underworld entrance must share the surface coordinate, got tile %d", raw)
+
+			state.SetDungeonState(dungeon, false)
+			state.MapState.PlayerLocation.Position = entrance.Right()
+			require.Equal(t, indexes.SpriteIndex(indexes.BlockEntrance), state.GetEffectiveTile(&entrance))
+			require.True(t, state.ProcessWordOfPower(wordForDungeon(dungeon)))
+			assert.True(t, state.IsDungeonOpen(dungeon))
+			assert.Empty(t, callbacks.Messages)
+
+			state.MapState.PlayerLocation.Position = entrance
+			assert.True(t, state.canEnterDungeonAtCurrentLocation(dungeon, state.GetEffectiveTile(&entrance)))
+		})
+	}
+}
+
+func TestProcessWordOfPowerRefusesDoomOnTheSurface(t *testing.T) {
+	state, callbacks := NewIntegrationTestBuilder(t).
+		WithLocation(references.BritanniaUnderworld).
+		WithFloor(references.FloorNumber(references.OVERWORLD)).
+		WithSystemCallbacks().
+		Build()
+	entrance := state.GetDungeonEntranceCoordinates()[references.Doom]
 	state.MapState.PlayerLocation.Position = entrance.Right()
-	state.MapState.PlayerLocation.Floor = references.FloorNumber(references.UNDERWORLD)
-	assert.False(t, state.ProcessWordOfPower("FALLAX"))
-	assert.False(t, state.IsDungeonOpen(references.Deceit))
+	state.GetLayeredMapByCurrentLocation().SetTileByLayer(
+		map_state.MapLayer,
+		&entrance,
+		dungeonOpenEntranceSprite(references.Doom),
+	)
+
+	assert.False(t, state.ProcessWordOfPower("VERAMOCOR"))
+	assert.Contains(t, callbacks.Messages, "Nothing happens.")
 }
 
 func TestProcessWordOfPowerRejectsWrongTileAndUsesWestSouthEastNorthPriority(t *testing.T) {
@@ -182,7 +224,7 @@ func TestProcessWordOfPowerRejectsWrongTileAndUsesWestSouthEastNorthPriority(t *
 	})
 }
 
-func TestGetWordForDungeon(t *testing.T) {
+func TestWordForDungeon(t *testing.T) {
 	tests := []struct {
 		name     string
 		dungeon  references.Location
@@ -201,14 +243,14 @@ func TestGetWordForDungeon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			word := GetWordForDungeon(tt.dungeon)
+			word := wordForDungeon(tt.dungeon)
 			assert.Equal(t, tt.expected, word)
 		})
 	}
 }
 
 func TestGetDungeonEntranceCoordinatesMatchOriginalTownTables(t *testing.T) {
-	state := &GameState{} //nolint:exhaustruct // Coordinate authority does not require initialized state.
+	state := &GameState{}
 	assert.Equal(t, map[references.Location]references.Position{
 		references.Deceit:   {X: 0xf0, Y: 0x49},
 		references.Despise:  {X: 0x5b, Y: 0x43},
@@ -222,7 +264,7 @@ func TestGetDungeonEntranceCoordinatesMatchOriginalTownTables(t *testing.T) {
 }
 
 func TestGameState_IsDungeonOpen(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
+	gs := &GameState{}
 
 	// Test default state (all closed)
 	assert.False(t, gs.IsDungeonOpen(references.Deceit))
@@ -239,7 +281,7 @@ func TestGameState_IsDungeonOpen(t *testing.T) {
 }
 
 func TestGameState_ToggleDungeon(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
+	gs := &GameState{}
 
 	// Initially all dungeons are closed (false)
 	newState := gs.ToggleDungeon(references.Deceit)
@@ -257,7 +299,7 @@ func TestGameState_ToggleDungeon(t *testing.T) {
 }
 
 func TestGameState_InitializeDungeonStatesFromSave(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
+	gs := &GameState{}
 
 	t.Run("Default initialization with empty save data", func(t *testing.T) {
 		gs.InitializeDungeonStatesFromSave([]byte{})
@@ -304,44 +346,19 @@ func TestGameState_InitializeDungeonStatesFromSave(t *testing.T) {
 	})
 }
 
-func TestDungeonToIndexMap_Completeness(t *testing.T) {
-	// Verify all dungeons are mapped
-	expectedDungeons := []references.Location{
-		references.Deceit,
-		references.Despise,
-		references.Destard,
-		references.Wrong,
-		references.Covetous,
-		references.Shame,
-		references.Hythloth,
-		references.Doom,
+func TestDungeonIndexFollowsDungeonStatesOrder(t *testing.T) {
+	dungeons := []references.Location{
+		references.Deceit, references.Despise, references.Destard, references.Wrong,
+		references.Covetous, references.Shame, references.Hythloth, references.Doom,
 	}
 
-	for _, dungeon := range expectedDungeons {
-		index, exists := DungeonToIndexMap[dungeon]
-		assert.True(t, exists, "Dungeon %v should be mapped", dungeon)
-		assert.True(t, index >= 0 && index <= 7, "Index should be in valid range 0-7")
+	for want, dungeon := range dungeons {
+		index, exists := dungeonIndex(dungeon)
+		assert.True(t, exists, "Dungeon %v should have an index", dungeon)
+		assert.Equal(t, DungeonIndex(want), index)
 	}
-
-	// Verify map has exactly 8 entries
-	assert.Equal(t, 8, len(DungeonToIndexMap))
-}
-
-func TestWordToDungeonMap_Completeness(t *testing.T) {
-	// Verify all words are mapped
-	expectedWords := []string{
-		"FALLAX", "VILIS", "INOPIA", "MALUM",
-		"AVIDUS", "INFAMA", "IGNAVUS", "VERAMOCOR",
-	}
-
-	for _, word := range expectedWords {
-		dungeon, exists := WordToDungeonMap[word]
-		assert.True(t, exists, "Word %s should be mapped", word)
-		assert.NotEqual(t, references.Location(0), dungeon, "Word should map to valid dungeon")
-	}
-
-	// Verify map has exactly 8 entries
-	assert.Equal(t, 8, len(WordToDungeonMap))
+	_, exists := dungeonIndex(references.Britain)
+	assert.False(t, exists)
 }
 
 func TestAbsInt(t *testing.T) {

@@ -485,8 +485,8 @@ func (d *ConfigurationDialog) drawDisplayConfirmation(screen *ebiten.Image) {
 		etext.AlignCenter,
 	)
 	d.footerOutput.Reset()
-	widgets.AppendControlHints(d.footerOutput.AppendLine(), "Left/Right: Select").Done()
-	widgets.AppendControlHints(d.footerOutput.AppendLine(), "Enter: Confirm  Esc: Revert").Done()
+	widgets.AppendControlHints(d.footerOutput.AppendLine(), "[Left/Right] Select").Done()
+	widgets.AppendControlHints(d.footerOutput.AppendLine(), "[Enter] Confirm   [Esc] Revert").Done()
 	d.footerOutput.DrawPanelContent(
 		screen,
 		image.Pt(d.layout.footerRect.Min.X, centeredAudioOutputY(d.layout.footerRect, d.footerOutput)),
@@ -647,7 +647,7 @@ func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 	d.footerOutput.Reset()
 	switch {
 	case d.audioReport != nil:
-		hints := []string{"Up/Down: Scroll  PageUp/PageDown: Page", "R: Refresh captured state", "D/Esc: Back to Sound"}
+		hints := []string{"[Up/Down] Scroll   [PgUp/PgDn] Page", "[R] Refresh captured state", "[D/Esc] Back to Sound"}
 		for _, hint := range hints {
 			widgets.AppendControlHints(d.footerOutput.AppendLine(), hint).Done()
 		}
@@ -669,19 +669,19 @@ func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 		var adjust string
 		switch d.currentTab {
 		case audioSettingsGameplayTab:
-			adjust = "Space: Toggle  Left/Right: Adjust"
+			adjust = "[Space] Toggle   [Left/Right] Adjust"
 		case audioSettingsAudioTab:
-			adjust = "Left/Right: Adjust  D: Diagnostics"
+			adjust = "[Left/Right] Adjust   [D] Diagnostics"
 		case audioSettingsDisplayTab:
-			adjust = "Left/Right: Change"
+			adjust = "[Left/Right] Change"
 		default:
 			panic("unsupported Configuration section")
 		}
-		hints := []string{"Tab/Shift-Tab: Section  Up/Down: Select", adjust, "Enter: Apply  Esc: Cancel"}
+		hints := []string{"[Tab/Shift+Tab] Section   [Up/Down] Select", adjust, "[Enter] Apply   [Esc] Cancel"}
 		if d.currentTab == audioSettingsDisplayTab {
 			hints = []string{
-				"Tab/Shift-Tab: Section  Up/Down: Select", "Left/Right: Change", "",
-				"Enter: Apply                    Esc: Cancel",
+				"[Tab/Shift+Tab] Section   [Up/Down] Select", "[Left/Right] Change", "",
+				"[Enter] Apply   [Esc] Cancel",
 			}
 		}
 		for _, hint := range hints {
@@ -701,10 +701,10 @@ func (d *ConfigurationDialog) drawFooter(screen *ebiten.Image) {
 
 func (d *ConfigurationDialog) configurationErrorGuidance() string {
 	if d.displayRollbackRetry {
-		return "Enter: Retry restore  Esc: Cancel"
+		return "[Enter] Retry restore   [Esc] Cancel"
 	}
 
-	return "Enter: Retry  Esc: Cancel"
+	return "[Enter] Retry   [Esc] Cancel"
 }
 
 func (d *ConfigurationDialog) gameplayCheckmark(index int) string {

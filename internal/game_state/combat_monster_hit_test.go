@@ -12,9 +12,6 @@ import (
 
 func TestCombatTargetDefenseAppliesIdentityAndDurationOverridesWithoutRNG(t *testing.T) {
 	gs, _ := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	mimic, mimicIndex := addControlledTestMonster(
 		gs, references.MonsterMimic, references.Position{X: 4, Y: 4}, CombatMonsterLoyaltyParty,
 	)
@@ -45,9 +42,6 @@ func TestCombatTargetDefenseAppliesIdentityAndDurationOverridesWithoutRNG(t *tes
 
 func TestPhysicalHitDiagnosticsSeparateMimicBaseAndEffectiveDex(t *testing.T) {
 	gs, mock, mimic := setupCombatWithMonster(t, references.MonsterMimic, references.Down, 1)
-	if gs == nil {
-		return
-	}
 	pcIndex := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(pcIndex)
 	character.Dexterity = 30
@@ -66,9 +60,6 @@ func TestPhysicalHitDiagnosticsSeparateMimicBaseAndEffectiveDex(t *testing.T) {
 
 func TestSuccessfulMonsterHitUsesTheftPoisonGazerDamageOrder(t *testing.T) {
 	gs, _ := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	target := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	character := gs.PartyState.GetCharacter(0)
 	ref := (*gs.GameReferences.EnemyReferences)[references.MonsterGremlin]
@@ -177,9 +168,6 @@ func TestSuccessfulMonsterHitUsesTheftPoisonGazerDamageOrder(t *testing.T) {
 
 func TestMonsterPoisonFallbackPreservesEveryIneligibleStatus(t *testing.T) {
 	gs, _ := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	ref := (*gs.GameReferences.EnemyReferences)[references.MonsterSnake]
 	ref.EnemyAbilities = map[references.EnemyAbility]bool{references.PoisonAtRange: true}
 	attacker := NewCombatMonster(references.MonsterSnake, &ref, references.Position{}, newFixedRNG(1))
@@ -238,9 +226,6 @@ func TestMonsterPoisonFallbackPreservesEveryIneligibleStatus(t *testing.T) {
 
 func TestControlledGazerMeleeUsesSharedSleepReplacement(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	gazer, gazerIndex := addControlledTestMonster(
 		gs, references.MonsterGazer, references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyParty,
 	)
@@ -275,9 +260,6 @@ func TestControlledRangedDiagnosticsUseIdentityAwareEffectiveDex(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock := setupControlledMonsterTest(t)
-			if gs == nil {
-				return
-			}
 			setOpenCombatMissileMap(gs)
 			attacker, attackerIndex := addControlledTestMonster(
 				gs, references.MonsterDevil, references.Position{X: 3, Y: 5}, CombatMonsterLoyaltyParty,
@@ -313,9 +295,6 @@ func TestControlledRangedDiagnosticsUseIdentityAwareEffectiveDex(t *testing.T) {
 
 func TestMonsterMeleeMissConsumesNoEffectRoll(t *testing.T) {
 	gs, mock, snake := setupCombatWithMonster(t, references.MonsterSnake, references.Down, 1)
-	if gs == nil {
-		return
-	}
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.Dexterity = 99
 	snake.currentDex = 1
@@ -335,9 +314,6 @@ func TestMonsterMeleeMissConsumesNoEffectRoll(t *testing.T) {
 
 func TestOrdinaryMonsterMeleeUsesFixedDamageWithoutDamageRNG(t *testing.T) {
 	gs, mock, orc := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 1)
-	if gs == nil {
-		return
-	}
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotArmour, references.NoEquipment)
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
@@ -359,9 +335,6 @@ func TestOrdinaryMonsterMeleeUsesFixedDamageWithoutDamageRNG(t *testing.T) {
 
 func TestMonsterRating99ForcesPCDeathAbove99HP(t *testing.T) {
 	gs, mock, orc := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 1)
-	if gs == nil {
-		return
-	}
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetMaxHp(200)
 	character.SetHp(200)
@@ -401,16 +374,13 @@ func TestControlledMonsterDamageUsesFixedRatingAndAppliesRating99(t *testing.T) 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock := setupControlledMonsterTest(t)
-			if gs == nil {
-				return
-			}
-			attackerRef := &references.EnemyReference{ //nolint:exhaustruct // Source-derived damage fixture.
+			attackerRef := &references.EnemyReference{
 				MonsterType: references.MonsterOrc,
 				Name:        "Controlled attacker",
 				Damage:      test.damage,
 				HitPoints:   20,
 			}
-			targetRef := &references.EnemyReference{ //nolint:exhaustruct // HP above 99 proves forced death.
+			targetRef := &references.EnemyReference{
 				MonsterType: test.target,
 				Name:        "Target",
 				HitPoints:   200,
@@ -449,9 +419,6 @@ func TestControlledMonsterDamageUsesFixedRatingAndAppliesRating99(t *testing.T) 
 func TestGremlinMeleeTheftReplacesDamageForPCAndControlledMonster(t *testing.T) {
 	t.Run("PC target", func(t *testing.T) {
 		gs, mock, gremlin := setupCombatWithMonster(t, references.MonsterGremlin, references.Down, 1)
-		if gs == nil {
-			return
-		}
 		gremlin.currentDex = 99
 		character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 		hpBefore := character.GetCurrentHp()
@@ -472,9 +439,6 @@ func TestGremlinMeleeTheftReplacesDamageForPCAndControlledMonster(t *testing.T) 
 
 	t.Run("controlled monster target", func(t *testing.T) {
 		gs, mock := setupControlledMonsterTest(t)
-		if gs == nil {
-			return
-		}
 		gremlin, gremlinIndex := addControlledTestMonster(
 			gs, references.MonsterGremlin, references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyMonster,
 		)
@@ -499,9 +463,6 @@ func TestGremlinMeleeTheftReplacesDamageForPCAndControlledMonster(t *testing.T) 
 func TestGazerHitSleepsBeforeDamageInMeleeAndRange(t *testing.T) {
 	t.Run("melee sleeps without extra RNG", func(t *testing.T) {
 		gs, mock, gazer := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 1)
-		if gs == nil {
-			return
-		}
 		gazer.currentDex = 99
 		identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: gs.CombatScene.GetActiveCombatantIndex()}
 		character := gs.PartyState.GetCharacter(identity.EntityIndex)
@@ -521,9 +482,6 @@ func TestGazerHitSleepsBeforeDamageInMeleeAndRange(t *testing.T) {
 
 	t.Run("already sleeping receives normal damage", func(t *testing.T) {
 		gs, mock, gazer := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 1)
-		if gs == nil {
-			return
-		}
 		gazer.currentDex = 99
 		identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: gs.CombatScene.GetActiveCombatantIndex()}
 		character := gs.PartyState.GetCharacter(identity.EntityIndex)
@@ -573,11 +531,8 @@ func TestGazerHitSleepsBeforeDamageInMeleeAndRange(t *testing.T) {
 
 func TestControlledRangedPoisonFallbackIsSelectedFatalDamage(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	setOpenCombatMissileMap(gs)
-	attackerRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
+	attackerRef := &references.EnemyReference{
 		MonsterType:          references.MonsterSnake,
 		Name:                 "Controlled Snake",
 		Dexterity:            99,
@@ -588,7 +543,7 @@ func TestControlledRangedPoisonFallbackIsSelectedFatalDamage(t *testing.T) {
 		LargeMapMissile:      references.MissileGreen,
 		EnemyAbilities:       map[references.EnemyAbility]bool{references.PoisonAtRange: true},
 	}
-	targetRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
+	targetRef := &references.EnemyReference{
 		MonsterType: references.MonsterOrc,
 		Name:        "Target Orc",
 		Dexterity:   1,

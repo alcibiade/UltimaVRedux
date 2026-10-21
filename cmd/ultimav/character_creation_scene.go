@@ -609,6 +609,7 @@ func (scene *CharacterCreationScene) nameInputBounds() image.Rectangle {
 func (scene *CharacterCreationScene) updateSex() {
 	// REDUX DEVIATION: The original loops until M/F. Redux lets Escape return to
 	// name entry so identity can be corrected without discarding the attempt.
+	// See ref:CREATE-0001.
 	if scene.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		scene.transitionTo(characterCreationName)
 
@@ -709,6 +710,7 @@ func (scene *CharacterCreationScene) updateDiscardConfirmation() {
 func (scene *CharacterCreationScene) requestDiscard() {
 	// REDUX DEVIATION: Original framing accepts Escape as any key and question
 	// loops ignore it. Redux consistently confirms before abandoning progress.
+	// See ref:CREATE-0001.
 	scene.stateBeforeDiscard = scene.state
 	scene.transitionTo(characterCreationDiscardConfirmation)
 }
@@ -773,7 +775,7 @@ func (scene *CharacterCreationScene) Draw(screen *ebiten.Image) {
 	if scene.disposed || scene.canvas == nil {
 		return
 	}
-	// REDUX DEVIATION: Original new_char draws into the live title buffer. Redux
+	// Original new_char draws into the live title buffer. Redux
 	// redraws the same title assets from scene-owned presentation state.
 	screen.Fill(color.EGABlack)
 	scene.canvas.Fill(color.Black)
@@ -817,7 +819,7 @@ func (scene *CharacterCreationScene) drawTerminalNotice() {
 		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), scene.terminalHint)
 	}
 	if scene.state == characterCreationComplete {
-		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), "Esc: Discard.")
+		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), "[Esc] Discard")
 	}
 	line.Done()
 	scene.promptOutput.DrawPanelContent(scene.canvas, image.Pt(8, 176), 304, textv2.AlignCenter)

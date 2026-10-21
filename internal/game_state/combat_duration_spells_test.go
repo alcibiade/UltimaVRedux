@@ -15,9 +15,6 @@ func TestCastCombatRelTymActivatesOriginalQuicknessDuration(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	assert.True(t, gs.CastCombatRelTym())
 	assert.True(t, gs.HasActiveDurationEffect(DurationEffectQuickness))
@@ -27,9 +24,6 @@ func TestCastCombatRelTymActivatesOriginalQuicknessDuration(t *testing.T) {
 
 func TestCastCombatSanctLorHidesCasterFromMonsterTargeting(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	for pcIdx := range party_state.MaxActiveParty {
 		gs.CombatScene.PartyActive[pcIdx] = pcIdx == casterIdx
@@ -42,9 +36,6 @@ func TestCastCombatSanctLorHidesCasterFromMonsterTargeting(t *testing.T) {
 
 func TestCombatDurationSpellsPassResourceValidation(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(casterIdx)
 	caster.Level = 8

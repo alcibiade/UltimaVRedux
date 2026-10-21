@@ -293,3 +293,28 @@ func TestAutomaticSailingRangedSinkingNeverMovesFallback(t *testing.T) {
 		}
 	}
 }
+
+func TestAutomaticSailingStopsForMenusAndFocusLoss(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		press func(automaticSailingWorkflowFixture)
+	}{
+		{name: "escape menu", press: func(f automaticSailingWorkflowFixture) { f.held[ebiten.KeyEscape] = true }},
+		{name: "battle summary", press: func(f automaticSailingWorkflowFixture) { f.held[ebiten.KeyF4] = true }},
+		{name: "window unfocused", press: func(f automaticSailingWorkflowFixture) {
+			f.scene.transientCommandInput.focused = func() bool { return false }
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newPhysicalSailingInterruptionFixture(t, environment.North)
+			fixture.scene.largeMapInputHandler(automaticSailingDirectionKey(references.Right))
+			require.True(t, fixture.state.IsSailing())
+
+			test.press(fixture)
+			fixture.state.ElapsedMs += 10
+			require.NoError(t, fixture.scene.Update(&Game{}))
+
+			assert.False(t, fixture.state.IsSailing())
+		})
+	}
+}

@@ -78,6 +78,7 @@ func TestLordBritishFinaleExactAnswerTruthTable(t *testing.T) {
 		{name: "clarified yes with ownership", answers: "NY", hasBox: true, wantOutcome: LordBritishFinaleSucceeded},
 		{name: "clarified yes without ownership", answers: "NY", hasBox: false, wantOutcome: LordBritishFinaleFailed, wantMissing: true},
 		{name: "clarified no", answers: "NN", hasBox: true, wantOutcome: LordBritishFinaleFailed},
+		{name: "honest no without ownership", answers: "NN", hasBox: false, wantOutcome: LordBritishFinaleFailed, wantMissing: true},
 	}
 
 	for _, test := range tests {
@@ -145,7 +146,7 @@ func newLordBritishFinaleTestState(t *testing.T, partyCount int) *GameState {
 	state, _ := newDoomMirrorCombatTestState(t, partyCount, false)
 	state.CombatScene = nil
 	state.finaleHandoffPending = true
-	state.GameReferences = &references.GameReferences{TileReferences: references.NewTileReferences()} //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{TileReferences: references.NewTileReferences()}
 
 	return state
 }

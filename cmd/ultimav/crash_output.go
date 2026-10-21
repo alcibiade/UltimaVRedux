@@ -7,12 +7,16 @@ import (
 	"runtime"
 	"runtime/debug"
 	"time"
+
+	"github.com/bradhannah/UltimaVRedux/internal/logging"
 )
 
 const (
 	crashLogDirectory         = ".ultima_v_redux"
 	crashLogFilename          = "crash.log"
 	maxCrashLogBytes          = int64(4 << 20)
+	diagnosticsLogFilename    = "redux.log"
+	maxDiagnosticsLogBytes    = int64(1 << 20)
 	crashDirectoryPermissions = os.FileMode(0o700)
 	crashFilePermissions      = os.FileMode(0o600)
 	buildSettingTrue          = "true"
@@ -30,14 +34,33 @@ func configureCrashOutput() {
 	if err := configureCrashOutputAt(path); err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to configure crash log %q: %v\n", path, err)
 	}
+	path = filepath.Join(homeDirectory, crashLogDirectory, diagnosticsLogFilename)
+	if err := configureDiagnosticsLogAt(path); err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to configure diagnostics log %q: %v\n", path, err)
+	}
 }
 
-func configureCrashOutputAt(path string) error {
-	if err := os.MkdirAll(filepath.Dir(path), crashDirectoryPermissions); err != nil {
-		return fmt.Errorf("creating crash log directory: %w", err)
-	}
-	if err := rotateCrashLog(path, maxCrashLogBytes); err != nil {
+// configureDiagnosticsLogAt keeps the file open for the process so every
+// warning and error reaches it.
+func configureDiagnosticsLogAt(path string) error {
+	file, err := openDiagnosticFile(path, maxDiagnosticsLogBytes)
+	if err != nil {
 		return err
+	}
+	if _, err := fmt.Fprint(file, crashLaunchHeader()); err != nil {
+		return closeCrashLog(file, fmt.Errorf("writing diagnostics log header: %w", err))
+	}
+	logging.SetDiagnosticsWriter(file)
+
+	return nil
+}
+
+func openDiagnosticFile(path string, maxBytes int64) (*os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(path), crashDirectoryPermissions); err != nil {
+		return nil, fmt.Errorf("creating diagnostics directory: %w", err)
+	}
+	if err := rotateCrashLog(path, maxBytes); err != nil {
+		return nil, err
 	}
 
 	file, err := os.OpenFile( //nolint:gosec // Path is the application-owned diagnostics path or a test temp path.
@@ -46,11 +69,19 @@ func configureCrashOutputAt(path string) error {
 		crashFilePermissions,
 	)
 	if err != nil {
-		return fmt.Errorf("opening crash log: %w", err)
+		return nil, fmt.Errorf("opening %s: %w", filepath.Base(path), err)
+	}
+	if err := file.Chmod(crashFilePermissions); err != nil {
+		return nil, closeCrashLog(file, fmt.Errorf("securing %s: %w", filepath.Base(path), err))
 	}
 
-	if err := file.Chmod(crashFilePermissions); err != nil {
-		return closeCrashLog(file, fmt.Errorf("securing crash log: %w", err))
+	return file, nil
+}
+
+func configureCrashOutputAt(path string) error {
+	file, err := openDiagnosticFile(path, maxCrashLogBytes)
+	if err != nil {
+		return err
 	}
 	if _, err := fmt.Fprint(file, crashLaunchHeader()); err != nil {
 		return closeCrashLog(file, fmt.Errorf("writing crash log header: %w", err))
@@ -99,13 +130,9 @@ func rotateCrashLog(path string, maxBytes int64) error {
 }
 
 func crashLaunchHeader() string {
-	version := "development"
 	revision := ""
 	dirty := false
 	if buildInfo, ok := debug.ReadBuildInfo(); ok {
-		if buildInfo.Main.Version != "" && buildInfo.Main.Version != "(devel)" {
-			version = buildInfo.Main.Version
-		}
 		for _, setting := range buildInfo.Settings {
 			switch setting.Key {
 			case "vcs.revision":
@@ -122,7 +149,7 @@ func crashLaunchHeader() string {
 		os.Getpid(),
 		runtime.GOOS,
 		runtime.GOARCH,
-		version,
+		runtimeGameVersion(),
 		revision,
 		dirty,
 	)

@@ -60,7 +60,7 @@ func (p *RunicReferencePanel) ensureLayout(bounds image.Rectangle, font *text.Ul
 	p.header = newOutput(p.content.Dx())
 	p.header.AppendLine().Yellow("RUNIC ALPHABET").Done()
 	p.footer = newOutput(p.content.Dx())
-	AppendControlHints(p.footer.AppendLine(), "Ctrl+R: Close").Done()
+	AppendControlHints(p.footer.AppendLine(), "[Ctrl+R] Close").Done()
 	for index, entry := range runicReferenceEntries {
 		column, row := index/runicReferenceRows, index%runicReferenceRows
 		x := p.content.Min.X + column*cellWidth

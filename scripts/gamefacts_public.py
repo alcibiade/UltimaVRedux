@@ -285,6 +285,23 @@ def implementation_paths(rules: dict[str, Rule]) -> list[str]:
     return sorted(paths)
 
 
+def deviation_ids(text: str) -> list[list[str]]:
+    """Return the rule IDs named in each `REDUX DEVIATION` comment block."""
+    lines = text.split("\n")
+    blocks = []
+    for index, line in enumerate(lines):
+        if "REDUX DEVIATION" not in line:
+            continue
+        start = end = index
+        while start > 0 and lines[start - 1].lstrip().startswith("//"):
+            start -= 1
+        while end + 1 < len(lines) and lines[end + 1].lstrip().startswith("//"):
+            end += 1
+        block = "\n".join(lines[start : end + 1])
+        blocks.append(re.findall(r"\b[A-Z]+-\d{4}\b", block))
+    return blocks
+
+
 def validate_repository(
     game: Path, catalog_path: str = "docs/gamefacts/catalog.json"
 ) -> tuple[dict[str, Document], dict[str, Rule]]:
@@ -307,7 +324,7 @@ def validate_repository(
             within(game, path).is_file(), f"missing implementation/test locator: {path}"
         )
     # Scan maintained Go code only, not caches, generated output, or original data.
-    for directory in ("cmd", "internal", "pkg", "test", "scripts", "u5dump"):
+    for directory in ("cmd", "internal", "pkg", "test", "scripts"):
         for path in sorted((game / directory).rglob("*.go")):
             relative = path.relative_to(game).as_posix()
             text = within(game, relative).read_text(encoding="utf-8")
@@ -318,4 +335,9 @@ def validate_repository(
                     f"{relative}: malformed ref:{identifier}",
                 )
                 require(identifier in rules, f"{relative}: unknown ref:{identifier}")
+            for identifiers in deviation_ids(text):
+                require(
+                    any(identifier in rules for identifier in identifiers),
+                    f"{relative}: REDUX DEVIATION comment names no Game Facts ID",
+                )
     return documents, rules

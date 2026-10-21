@@ -122,7 +122,7 @@ func TestCombatStateOnlyBlocksMovementForBlockingObjects(t *testing.T) {
 
 	position := references.Position{X: 6, Y: 4}
 	combatState := &CombatState{}
-	combatState.AddObject(CombatObject{ //nolint:exhaustruct // Loose-object fixture uses zero-value number.
+	combatState.AddObject(CombatObject{
 		position:       position,
 		sprite:         indexes.ItemMoney,
 		blocksMovement: false,
@@ -283,9 +283,6 @@ func TestCombatObjectOverridesCombatTerrain(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	position := references.Position{X: 5, Y: 5}
@@ -297,9 +294,6 @@ func TestCombatObjectOverridesCombatTerrain(t *testing.T) {
 
 func TestCombatChestBlocksMonsterMovement(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 169)
-	if gs == nil {
-		return
-	}
 
 	monsterIndex := 0
 	var destination references.Position

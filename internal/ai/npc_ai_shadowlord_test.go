@@ -60,8 +60,8 @@ func TestAstarothProducerPursuesBeyondThreeThenQueuesTalk(t *testing.T) {
 		name   string
 		sprite indexes.SpriteIndex
 	}{
-		{name: "civilian", sprite: indexes.TownsPerson_KeyIndex},
-		{name: "guard", sprite: indexes.Guard_KeyIndex},
+		{name: "civilian", sprite: indexes.TownsPersonKeyIndex},
+		{name: "guard", sprite: indexes.GuardKeyIndex},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

@@ -15,9 +15,6 @@ func TestProjectileAnimationSequenceClearsBeforeImpact(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	from := references.Position{X: 5, Y: 5}
 	to := references.Position{X: 8, Y: 5}
 	impactRan := false

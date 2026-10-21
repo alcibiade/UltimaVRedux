@@ -22,7 +22,7 @@ func (c *ecosystemTestController) GetNpcs() *map_units.MapUnits    { return &c.u
 func (c *ecosystemTestController) ClearEnemies() int               { return c.units.RemoveAllEnemies() }
 
 func TestMonsterGenerationSettersValidateAndAreIdempotent(t *testing.T) {
-	state := &GameState{TheOdds: references.NewDefaultTheOdds()} //nolint:exhaustruct
+	state := &GameState{TheOdds: references.NewDefaultTheOdds()}
 
 	state.SetMonsterGenerationEnabled(true)
 	state.SetMonsterGenerationEnabled(true)
@@ -43,7 +43,7 @@ func TestCurrentMonsterEcosystemSnapshotIsDetachedAndCategorized(t *testing.T) {
 		Name:            "Dragon",
 		ActivelyAttacks: true,
 		CanFlyOverWater: true,
-	}, 7) //nolint:exhaustruct
+	}, 7)
 	enemy.SetPos(references.Position{X: 10, Y: 11})
 	enemy.SetFloor(2)
 	enemy.SetVisible(true)
@@ -53,7 +53,7 @@ func TestCurrentMonsterEcosystemSnapshotIsDetachedAndCategorized(t *testing.T) {
 	state := &GameState{
 		CurrentNPCAIController: controller,
 		TheOdds:                references.NewDefaultTheOdds(),
-	} //nolint:exhaustruct
+	}
 	state.MapState.PlayerLocation = references.PlayerLocation{Location: references.BritanniaUnderworld, Floor: 2}
 	state.SetMonsterGenerationEnabled(true)
 
@@ -76,11 +76,11 @@ func TestCurrentMonsterEcosystemSnapshotIsDetachedAndCategorized(t *testing.T) {
 }
 
 func TestClearCurrentMapEnemiesPreservesNonEnemiesAndReportsUnsupported(t *testing.T) {
-	enemy := map_units.NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 1) //nolint:exhaustruct
+	enemy := map_units.NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 1)
 	friendly := map_units.NewNPCFriendly(references.NPCReference{NpcType: references.NoStatedNpc}, 2)
 	vehicle := map_units.NewNPCFriendlyVehiceNewRef(references.SkiffVehicle, references.Position{X: 2, Y: 2}, 0)
 	controller := &ecosystemTestController{units: map_units.MapUnits{&enemy, friendly, vehicle}}
-	state := &GameState{CurrentNPCAIController: controller} //nolint:exhaustruct
+	state := &GameState{CurrentNPCAIController: controller}
 
 	removed, supported := state.ClearCurrentMapEnemies()
 
@@ -97,9 +97,9 @@ func TestClearCurrentMapEnemiesPreservesNonEnemiesAndReportsUnsupported(t *testi
 }
 
 func TestClearCurrentMapEnemiesRejectsCombatWithoutMutation(t *testing.T) {
-	enemy := map_units.NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 1) //nolint:exhaustruct
+	enemy := map_units.NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 1)
 	controller := &ecosystemTestController{units: map_units.MapUnits{&enemy}}
-	state := &GameState{CurrentNPCAIController: controller} //nolint:exhaustruct
+	state := &GameState{CurrentNPCAIController: controller}
 	state.MapState.PlayerLocation.Location = references.CombatLocation
 
 	removed, supported := state.ClearCurrentMapEnemies()
@@ -121,7 +121,7 @@ func TestForcedEnemyInsertionReportsCapacityFailure(t *testing.T) {
 		GameReferences: &references.GameReferences{
 			TileReferences: tiles,
 		},
-	} //nolint:exhaustruct
+	}
 
 	assert.False(t, state.spawnWhirlpoolAt(references.Position{X: 1, Y: 1}))
 	assert.False(t, state.spawnPirateAt(references.Position{X: 2, Y: 2}, references.Position{X: 3, Y: 3}))

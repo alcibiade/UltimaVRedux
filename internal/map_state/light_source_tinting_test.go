@@ -30,7 +30,7 @@ func TestLightSourcePropertiesMap(t *testing.T) {
 		for _, tile := range originalGlowingTiles {
 			props, ok := LightSourcePropertiesMap[tile]
 			assert.True(t, ok, "Original glowing tile %d should be in LightSourcePropertiesMap", tile)
-			assert.NotEqual(t, NeutralTint, props.TintColor, "Properties for tile %d should not be neutral", tile)
+			assert.NotEqual(t, neutralTint(), props.TintColor, "Properties for tile %d should not be neutral", tile)
 		}
 	})
 
@@ -45,7 +45,7 @@ func TestLightSourcePropertiesMap(t *testing.T) {
 		for _, tile := range additionalFireTiles {
 			props, ok := LightSourcePropertiesMap[tile]
 			assert.True(t, ok, "Additional fire tile %d should be in LightSourcePropertiesMap", tile)
-			assert.NotEqual(t, NeutralTint, props.TintColor, "Properties for tile %d should not be neutral", tile)
+			assert.NotEqual(t, neutralTint(), props.TintColor, "Properties for tile %d should not be neutral", tile)
 		}
 	})
 
@@ -101,7 +101,7 @@ func TestLightSourcePropertiesMap(t *testing.T) {
 // TestLightTintColors tests the predefined tint color constants
 func TestLightTintColors(t *testing.T) {
 	t.Run("WarmColorsAreWarm", func(t *testing.T) {
-		warmColors := []LightTintColor{TorchWarm, BrazierWarm, FireplaceWarm, CandleWarm}
+		warmColors := []LightTintColor{torchWarm(), cookStoveRed(), lampPostWhite()}
 
 		for _, c := range warmColors {
 			// Warm colors should have R >= G and R > B (scale factors)
@@ -112,30 +112,30 @@ func TestLightTintColors(t *testing.T) {
 
 	t.Run("CoolColorsAreCool", func(t *testing.T) {
 		// Blue flame should have B > R
-		assert.Greater(t, BlueFlameCool.B, BlueFlameCool.R,
+		assert.Greater(t, blueFlameCool().B, blueFlameCool().R,
 			"Blue flame should have more blue than red")
 	})
 
 	t.Run("MagicWhiteIsNearNeutral", func(t *testing.T) {
 		// Magic white should be close to 1.0 in all channels
-		assert.InDelta(t, 1.0, MagicWhite.R, 0.05, "Magic white R should be near 1.0")
-		assert.InDelta(t, 1.0, MagicWhite.G, 0.05, "Magic white G should be near 1.0")
-		assert.InDelta(t, 1.0, MagicWhite.B, 0.05, "Magic white B should be near 1.0")
+		assert.InDelta(t, 1.0, magicWhite().R, 0.05, "Magic white R should be near 1.0")
+		assert.InDelta(t, 1.0, magicWhite().G, 0.05, "Magic white G should be near 1.0")
+		assert.InDelta(t, 1.0, magicWhite().B, 0.05, "Magic white B should be near 1.0")
 	})
 
 	t.Run("NeutralTintIsExactlyOne", func(t *testing.T) {
-		assert.Equal(t, float32(1.0), NeutralTint.R)
-		assert.Equal(t, float32(1.0), NeutralTint.G)
-		assert.Equal(t, float32(1.0), NeutralTint.B)
+		assert.Equal(t, float32(1.0), neutralTint().R)
+		assert.Equal(t, float32(1.0), neutralTint().G)
+		assert.Equal(t, float32(1.0), neutralTint().B)
 	})
 }
 
 // TestPlayerLightProperties verifies player light source configurations
 func TestPlayerLightProperties(t *testing.T) {
 	t.Run("AmbientProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightAmbient)
+		props := PlayerLightProperties(PlayerLightAmbient, defaultAmbientLightRadius)
 
-		assert.Equal(t, AmbientSightDim, props.TintColor, "Ambient should have dim gray tint")
+		assert.Equal(t, ambientSightDim(), props.TintColor, "Ambient should have dim gray tint")
 		assert.Equal(t, 2, props.Radius, "Ambient should have 2 tile radius")
 		assert.False(t, props.HasBreathing, "Ambient should NOT have breathing (steady dim)")
 		// Verify it's a neutral gray (equal R, G, B)
@@ -144,39 +144,39 @@ func TestPlayerLightProperties(t *testing.T) {
 	})
 
 	t.Run("TorchProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightTorch)
+		props := PlayerLightProperties(PlayerLightTorch, defaultAmbientLightRadius)
 
-		assert.Equal(t, TorchWarm, props.TintColor, "Torch should have warm tint")
+		assert.Equal(t, torchWarm(), props.TintColor, "Torch should have warm tint")
 		assert.Equal(t, TorchTileDistance, props.Radius, "Torch should have TorchTileDistance radius")
 		assert.True(t, props.HasBreathing, "Torch should have breathing")
 	})
 
 	t.Run("InLorProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightInLor)
+		props := PlayerLightProperties(PlayerLightInLor, defaultAmbientLightRadius)
 
-		assert.Equal(t, MagicWhite, props.TintColor, "In Lor should have white tint")
+		assert.Equal(t, magicWhite(), props.TintColor, "In Lor should have white tint")
 		assert.Equal(t, InLorTileDistance, props.Radius, "In Lor should have InLorTileDistance radius")
 		assert.False(t, props.HasBreathing, "In Lor should NOT have breathing (steady magic)")
 	})
 
 	t.Run("VasLorProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightVasLor)
+		props := PlayerLightProperties(PlayerLightVasLor, defaultAmbientLightRadius)
 
-		assert.Equal(t, MagicWhite, props.TintColor, "Vas Lor should have white tint")
+		assert.Equal(t, magicWhite(), props.TintColor, "Vas Lor should have white tint")
 		assert.Equal(t, VasLorTileDistance, props.Radius, "Vas Lor should have VasLorTileDistance radius")
 		assert.False(t, props.HasBreathing, "Vas Lor should NOT have breathing (steady magic)")
 	})
 
 	t.Run("NonePropertiesAreDefault", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightNone)
+		props := PlayerLightProperties(PlayerLightNone, defaultAmbientLightRadius)
 		assert.Equal(t, 0, props.Radius, "None light type should have zero radius")
 	})
 
 	t.Run("LightRadiusHierarchy", func(t *testing.T) {
-		ambientProps := PlayerLightProperties(PlayerLightAmbient)
-		torchProps := PlayerLightProperties(PlayerLightTorch)
-		inLorProps := PlayerLightProperties(PlayerLightInLor)
-		vasLorProps := PlayerLightProperties(PlayerLightVasLor)
+		ambientProps := PlayerLightProperties(PlayerLightAmbient, defaultAmbientLightRadius)
+		torchProps := PlayerLightProperties(PlayerLightTorch, defaultAmbientLightRadius)
+		inLorProps := PlayerLightProperties(PlayerLightInLor, defaultAmbientLightRadius)
+		vasLorProps := PlayerLightProperties(PlayerLightVasLor, defaultAmbientLightRadius)
 
 		assert.Equal(t, vasLorProps.Radius, inLorProps.Radius,
 			"In Lor and Vas Lor should share one magical-light radius")
@@ -193,13 +193,13 @@ func TestPlayerLightProperties(t *testing.T) {
 func TestGetLightSourceProperties(t *testing.T) {
 	t.Run("KnownLightSource", func(t *testing.T) {
 		props := GetLightSourceProperties(indexes.Brazier)
-		assert.Equal(t, BrazierWarm, props.TintColor, "Brazier should have correct tint")
+		assert.Equal(t, torchWarm(), props.TintColor, "Brazier should have correct tint")
 	})
 
 	t.Run("UnknownSpriteReturnsNeutral", func(t *testing.T) {
 		// Use a sprite that is definitely not a light source (e.g., grass)
 		props := GetLightSourceProperties(indexes.SpriteIndex(1)) // Grass
-		assert.Equal(t, NeutralTint, props.TintColor, "Unknown sprite should return neutral tint")
+		assert.Equal(t, neutralTint(), props.TintColor, "Unknown sprite should return neutral tint")
 	})
 }
 

@@ -13,9 +13,6 @@ import (
 
 func TestGazerDeathLeavesCorpseAndCreatesSameSquareInsect(t *testing.T) {
 	gs, mock, gazer := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 169)
-	if gs == nil {
-		return
-	}
 	position := gazer.Position()
 	gazerID := gazer.CombatantID()
 	gazer.enemyRef.TreasureNumber = combatTreasureDiceSides
@@ -26,14 +23,14 @@ func TestGazerDeathLeavesCorpseAndCreatesSameSquareInsect(t *testing.T) {
 	randomCallsBefore := gs.GetRNG().Calls()
 
 	gs.applyCombatDamageToMonster(
-		gazer, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		gazer, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 
 	assert.True(t, gazer.IsDead())
 	assert.Equal(t, randomCallsBefore+1, gs.GetRNG().Calls(),
 		"Gazer death consumes only the Insect DEX roll, not treasure RNG")
 	assert.Equal(t, gazerID, gs.CombatScene.MonsterManager.GetMonster(0).CombatantID())
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(gazer.MaxHP())), attacker.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(gazer.MaxHP())), attacker.Exp)
 	require.Equal(t, 2, gs.CombatScene.MonsterManager.Count())
 	insect := gs.CombatScene.MonsterManager.GetMonster(1)
 	require.NotNil(t, insect)
@@ -92,9 +89,6 @@ func TestGazerDeathPastHistoricalCapacityCreatesInsect(t *testing.T) {
 
 func TestGazerDeathAtCombatCapacityLeavesOnlyCorpse(t *testing.T) {
 	gs, _, gazer := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 169)
-	if gs == nil {
-		return
-	}
 	for gs.CombatScene.TurnQueue.hasFreeSourceSlot(sourceMonsterSlotStart) {
 		monster := NewCombatMonster(
 			references.MonsterOrc,
@@ -119,9 +113,6 @@ func TestGazerDeathAtCombatCapacityLeavesOnlyCorpse(t *testing.T) {
 
 func TestGargoyleDeathReplacesUnderlyingCombatTerrain(t *testing.T) {
 	gs, _, gargoyle := setupCombatWithMonster(t, references.MonsterGargoyle, references.Down, 169)
-	if gs == nil {
-		return
-	}
 	position := gargoyle.Position()
 	gargoyle.enemyRef.TreasureNumber = combatTreasureDiceSides
 	gargoyle.SetCurrentHP(1)
@@ -130,7 +121,7 @@ func TestGargoyleDeathReplacesUnderlyingCombatTerrain(t *testing.T) {
 	randomCallsBefore := gs.GetRNG().Calls()
 
 	gs.applyCombatDamageToMonster(
-		gargoyle, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		gargoyle, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 
 	assert.True(t, gargoyle.IsDead())
@@ -149,9 +140,6 @@ func TestGargoyleDeathReplacesUnderlyingCombatTerrain(t *testing.T) {
 
 func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 	addHostileOrcForShadowlordRecoveryTest(gs)
 	shadowlordRef := *shadowlord.EnemyRef()
 	shadowlordRef.TreasureNumber = combatTreasureDiceSides
@@ -180,7 +168,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	mock.Reset()
 
 	gs.applyCombatDamageToMonster(
-		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 
 	assert.True(t, shadowlord.IsDead())
@@ -191,7 +179,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	assert.False(t, gs.CombatScene.isCombatPCPossessed(victim))
 	assert.False(t, gs.CombatScene.isCombatPCSleeping(victim))
 	assert.Equal(t, references.ChaosSword, attacker.GetEquippedItem(references.SlotWeapon))
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
 	assert.Equal(t, []uint16{experienceBefore, experienceBefore, experienceBefore}, eventExperience,
 		"XP credit must follow fatal feedback, disappearance, and recovery")
 	require.Len(t, mock.CombatEvents, 3)
@@ -204,10 +192,10 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	assert.Equal(t, position, vanished.Position)
 
 	gs.applyCombatDamageToMonster(
-		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 	assert.Equal(t, 1, countCombatEvents(mock.CombatEvents, CombatEventVanished))
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
 }
 
 func TestDisappearingDeathUsesAbilityRatherThanMonsterType(t *testing.T) {
@@ -257,9 +245,6 @@ func TestOrdinaryNoCorpseDeathDoesNotUseDisappearancePath(t *testing.T) {
 
 func TestImmortalDisappearingMonsterDoesNotReachDeathHandling(t *testing.T) {
 	gs, mock, blackthorn := setupCombatWithMonster(t, references.MonsterBlackthorn, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	require.True(t, blackthorn.HasAbility(references.Immortal))
 	require.True(t, blackthorn.HasAbility(references.DisappearsOnDeath))
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
@@ -270,7 +255,7 @@ func TestImmortalDisappearingMonsterDoesNotReachDeathHandling(t *testing.T) {
 
 	gs.applyCombatDamageToMonster(
 		blackthorn, 0, 0, true, attacker, attackerIndex,
-		CombatDiagnostics{TargetImmortal: true}, //nolint:exhaustruct // Exercises forced-kill suppression only.
+		CombatDiagnostics{TargetImmortal: true},
 	)
 
 	assert.Equal(t, hpBefore, blackthorn.CurrentHP())
@@ -294,9 +279,6 @@ func TestDebugDeathPolicyDoesNotResolveSpecialDeaths(t *testing.T) {
 	for _, monsterType := range tests {
 		t.Run(monsterType.Name(), func(t *testing.T) {
 			gs, _, monster := setupCombatWithMonster(t, monsterType, references.Down, 169)
-			if gs == nil {
-				return
-			}
 			position := monster.Position()
 			originalTerrain := gs.CombatScene.CombatMapRef.GetTileNumber(position)
 			monster.SetCurrentHP(0)

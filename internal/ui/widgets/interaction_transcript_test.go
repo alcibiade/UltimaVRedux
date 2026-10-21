@@ -59,7 +59,7 @@ func TestInteractionTranscriptRetainsContentAcrossPromptStages(t *testing.T) {
 
 	dialog.AppendLine("No effect!")
 	dialog.BeginAcknowledgement()
-	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "Enter/Esc: Close")
+	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "[Enter/Esc] Close")
 	keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	dialog.Update()
 	require.True(t, dialog.InputComplete())
@@ -70,7 +70,7 @@ func TestInteractionTranscriptDefaultEscapeStillCancels(t *testing.T) {
 	keyboard := newWidgetTestKeyboard(0)
 	dialog := newTestInteractionTranscript(keyboard)
 	dialog.BeginText("Mantra:", "^[A-Z]*$")
-	require.Contains(t, dialog.ControlHint(), "Esc: Cancel")
+	require.Contains(t, dialog.ControlHint(), "[Esc] Cancel")
 	keyboard.SimulateKeyPress(ebiten.KeyA)
 	dialog.Update()
 	keyboard.SimulateKeyPress(ebiten.KeyEscape)

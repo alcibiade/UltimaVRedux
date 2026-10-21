@@ -183,7 +183,7 @@ func TestItemSelectionDialogUnavailableEnterStaysOpenAndShowsReason(t *testing.T
 		require.Equal(t, item, *dialog.selectedItem())
 		require.Empty(t, dialog.actionDetailLines(item)[0].label)
 		require.Equal(t, item.UnavailableReason, dialog.actionDetailLines(item)[0].value)
-		require.Equal(t, "[No] Resurrection", useItemRowLabel(item))
+		require.Equal(t, "[No] Resurrection", unavailableRowLabel(item.Name, item.UnavailableReason == ""))
 		pressItemDialogKey(dialog, keyboard, ebiten.KeyEscape)
 		require.True(t, dialog.IsDismissed())
 	}
@@ -220,7 +220,7 @@ func TestItemSelectionUnavailableMarkerQuantityAndFocusRemainReadable(t *testing
 			control := ebiten.NewImage(size.X, size.Y)
 			control.Fill(MerchantDialogBackgroundColor)
 			available := item
-			available.Name = useItemRowLabel(item)
+			available.Name = unavailableRowLabel(item.Name, item.UnavailableReason == "")
 			available.UnavailableReason = ""
 			available.AvailableNow = true
 			dialog.drawListRow(control, rect, available, false)
@@ -307,7 +307,7 @@ func TestItemSelectionCategoriesIncludeUnavailableOwnershipAndWarningRowsStayAct
 	config := testItemSelectionConfig(newWidgetTestKeyboard(0), []game_state.UseableItemInfo{warning})
 	config.OnSelect = func(game_state.UseableItemInfo) { selectedCount++ }
 	warningDialog := NewItemSelectionDialog(config)
-	require.Equal(t, "White", useItemRowLabel(warning))
+	require.Equal(t, "White", unavailableRowLabel(warning.Name, warning.UnavailableReason == ""))
 	require.Contains(t, warningDialog.actionDetailLines(warning), itemSelectionDetailLine{
 		label: "", value: warning.Warning, color: DialogWarningColor, header: false,
 	})

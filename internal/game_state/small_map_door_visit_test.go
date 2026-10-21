@@ -86,7 +86,7 @@ func TestSmallMapDoorVisitRebuildRetainsOnlyLatestDoorOverrides(t *testing.T) {
 	ground.SetTileByLayer(map_state.MapOverrideLayer, &other, indexes.PoisonField)
 	ground.SetTileByLayer(map_state.MapLayer, &other, indexes.Chest)
 	// A map-unit sprite must not hide the raw override from reconstruction.
-	basement.SetTileByLayer(map_state.MapUnitLayer, &position, indexes.TownsPerson_KeyIndex)
+	basement.SetTileByLayer(map_state.MapUnitLayer, &position, indexes.TownsPersonKeyIndex)
 	require.Equal(t, map_state.OpenDoorOpened, state.MapState.OpenDoor(references.Right))
 	state.TransitionToLocation(references.SerpentsHold, 1, state.MapState.PlayerLocation.Position, TransitionFloorOnly, false)
 	assert.False(t, state.MapState.HasTransientDoor())

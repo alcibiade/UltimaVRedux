@@ -16,7 +16,7 @@ import (
 )
 
 func TestPrepareInitialSnapshotWithOriginalTemplates(t *testing.T) {
-	directory := originaldata.Directory(t, files.INIT_GAM, files.INIT_OOL)
+	directory := originaldata.Directory(t, files.InitGam, files.InitOol)
 
 	conversion, err := PrepareInitialSnapshot(directory, testCreationResult(party_state.Male))
 	if err != nil {

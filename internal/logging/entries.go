@@ -28,7 +28,10 @@ type EntryBatch struct {
 
 func (l *Logger) appendEntryLocked(timestamp time.Time, level LogLevel, category, message string) {
 	l.nextSequence++
-	entry := Entry{Sequence: l.nextSequence, Timestamp: timestamp, Level: level.String(), Category: category, Message: boundedMessage(message)}
+	entry := Entry{
+		Sequence: l.nextSequence, Timestamp: timestamp, Level: level.String(),
+		Category: category, Message: boundedMessage(message),
+	}
 	if l.entryCount < len(l.entries) {
 		index := (l.entryStart + l.entryCount) % len(l.entries)
 		l.entries[index] = entry
@@ -47,7 +50,10 @@ func (l *Logger) EntriesAfter(cursor uint64, limit int) EntryBatch {
 	if limit <= 0 {
 		limit = 1
 	}
-	batch := EntryBatch{Entries: make([]Entry, 0, min(limit, l.entryCount)), NextCursor: cursor}
+	batch := EntryBatch{
+		Entries: make([]Entry, 0, min(limit, l.entryCount)), NextCursor: cursor,
+		OldestSequence: 0, NewestSequence: 0, Dropped: 0, HasMore: false,
+	}
 	if l.entryCount == 0 {
 		return batch
 	}

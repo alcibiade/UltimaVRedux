@@ -71,10 +71,10 @@ func (source *AmbientSoundSource) GetBaseVolume() float64 { return source.baseVo
 func (source *AmbientSoundSource) SetBaseVolume(volume float64) {
 	const maximum = 4.0
 	if math.IsNaN(volume) || math.IsInf(volume, 0) {
-		logging.Warn(logging.CategoryAudio, "Invalid non-finite ambient base volume")
+		logging.Warnf(logging.CategoryAudio, "Invalid non-finite ambient base volume")
 		volume = 0
 	} else if volume < 0 || volume > maximum {
-		logging.Warn(logging.CategoryAudio, "Attempted to set invalid base volume %.2f, clamping to [0, 4]", volume)
+		logging.Warnf(logging.CategoryAudio, "Attempted to set invalid base volume %.2f, clamping to [0, 4]", volume)
 		volume = math.Max(0, math.Min(maximum, volume))
 	}
 	source.baseVolume = volume

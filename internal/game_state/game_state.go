@@ -271,7 +271,7 @@ type GameState struct {
 	lordBritishFinale     *LordBritishFinaleState
 
 	// Shrine visual scene system (for 11x11 shrine map with walk animation)
-	ShrineScene       *shrine.ShrineScene // Active shrine scene state (nil when not in shrine)
+	ShrineScene       *shrine.Scene       // Active shrine scene state (nil when not in shrine)
 	PreShrineLocation references.Location // Location before entering shrine (for restoration)
 }
 
@@ -340,7 +340,7 @@ func (g *GameState) initializeEnvironmentalSystems() {
 	g.windSystem = environment.NewWindSystem(g.rng, nil)
 
 	// Initialize earthquake system (underworld earthquakes, dungeon entrance effects)
-	g.earthquakeSystem = NewEarthquakeSystem(g.rng, nil)
+	g.earthquakeSystem = newEarthquakeSystem(g.rng, nil)
 }
 
 // SetupEnvironmentalSystemCallbacks configures SystemCallbacks for all environmental systems.
@@ -942,6 +942,7 @@ func (g *GameState) UpdateLightSourceTinting(layer *map_state.LayeredMap) {
 		// Surface dusk starts cosmetic ambient light before night visibility.
 		playerLightType = map_state.PlayerLightAmbient
 	}
+	g.LightSourceTintingState.SetAmbientLightRadius(g.MapState.Lighting.AmbientLightRadius())
 	g.LightSourceTintingState.UpdatePlayerLight(
 		g.MapState.PlayerLocation.Position,
 		playerLightType,
@@ -1089,11 +1090,6 @@ func (g *GameState) SetActivePlayer(index int) bool {
 
 	g.activePlayerIndex = index
 
-	// Notify UI via SystemCallbacks if available - trigger stats display refresh for active player highlighting
-	if g.SystemCallbacks != nil {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
-
 	return true
 }
 
@@ -1118,9 +1114,6 @@ func (g *GameState) clearUnavailableActivePlayer() {
 	}
 
 	g.activePlayerIndex = -1
-	if g.SystemCallbacks != nil {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
 }
 
 // GetActivePlayer returns the currently active player or nil if none/all selected
@@ -1210,7 +1203,7 @@ func (g *GameState) transitionToCampingMap(campingMap *references.CombatMapRefer
 	// This is critical! Visibility system expects coordinates within the camping map bounds
 	g.MapState.PlayerLocation.Position = references.Position{X: 5, Y: 5}
 
-	logging.Debug(logging.CategoryGameState, "Transitioned to camping map: %s", campingMap.MapName)
+	logging.Debugf(logging.CategoryGameState, "Transitioned to camping map: %s", campingMap.MapName)
 
 	return nil
 }
@@ -1220,7 +1213,7 @@ func (g *GameState) TransitionFromCampingMap() {
 	// Restore pre-camping location
 	g.MapState.PlayerLocation.Location = g.PreCampingLocation
 
-	logging.Debug(logging.CategoryGameState, "Transitioned from camping map back to normal view")
+	logging.Debugf(logging.CategoryGameState, "Transitioned from camping map back to normal view")
 }
 
 // IsInShrine returns true if the player is currently in shrine meditation mode
@@ -1288,7 +1281,7 @@ func (g *GameState) transitionToMiniMap(mapType shrine.MiniMapType, sceneIndex i
 	// The visual actor starts at the entrance; authoritative map rendering remains centered.
 	g.MapState.PlayerLocation.Position = references.Position{X: shrine.CenterX, Y: shrine.AltarY}
 
-	logging.Debug(logging.CategoryGameState, "Transitioned to mini-map type %d", mapType)
+	logging.Debugf(logging.CategoryGameState, "Transitioned to mini-map type %d", mapType)
 
 	return nil
 }
@@ -1296,7 +1289,7 @@ func (g *GameState) transitionToMiniMap(mapType shrine.MiniMapType, sceneIndex i
 // TransitionFromShrineMap clears shrine mode and returns to normal map view
 func (g *GameState) TransitionFromShrineMap() {
 	if g.ShrineScene == nil {
-		logging.Warn(logging.CategoryGameState, "TransitionFromShrineMap called with nil ShrineScene")
+		logging.Warnf(logging.CategoryGameState, "TransitionFromShrineMap called with nil ShrineScene")
 
 		return
 	}
@@ -1307,7 +1300,7 @@ func (g *GameState) TransitionFromShrineMap() {
 	// Clear the shrine scene
 	g.ShrineScene = nil
 
-	logging.Debug(logging.CategoryGameState, "Transitioned from shrine map back to normal view")
+	logging.Debugf(logging.CategoryGameState, "Transitioned from shrine map back to normal view")
 }
 
 // GetCharacterSpriteForCamping returns the appropriate sprite for a character during camping
@@ -1359,7 +1352,7 @@ func (eq *eventQueueSystemCallbacks) GetPressedKey() *semantic_input.Key {
 func (g *GameState) SetCriminalStatus(wanted bool) {
 	g.isCriminal = wanted
 	if wanted {
-		logging.Info(logging.CategoryGameState, "Player marked as criminal in current location")
+		logging.Infof(logging.CategoryGameState, "Player marked as criminal in current location")
 	}
 }
 
@@ -1374,14 +1367,14 @@ func (g *GameState) IsCriminal() bool {
 // Exposed as public for use in inlined event queue patterns (guard extortion flow).
 func (g *GameState) ClearCriminalStatus() {
 	g.isCriminal = false
-	logging.Debug(logging.CategoryGameState, "Criminal status cleared")
+	logging.Debugf(logging.CategoryGameState, "Criminal status cleared")
 }
 
 // OnMapTransition should be called when the player changes maps.
 // Clears criminal status as guards don't remember crimes across locations.
 func (g *GameState) OnMapTransition() {
 	if g.isCriminal {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Map transition - guards no longer remember crimes")
 		g.ClearCriminalStatus()
 	}

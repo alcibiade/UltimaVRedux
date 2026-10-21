@@ -46,7 +46,7 @@ func (g *GameScene) ShowQuestJournalDossier(dossier game_state.QuestJournalDossi
 	excerpts, excerptErr := g.loadExcerpts()
 	excerptError := ""
 	if excerptErr != nil {
-		logging.Error(logging.CategoryConversation, "Unable to load conversation excerpts: %v", excerptErr)
+		logging.Errorf(logging.CategoryConversation, "Unable to load conversation excerpts: %v", excerptErr)
 		excerptError = "Excerpt notebook unavailable."
 	}
 	session := &journalSession{openingRevision: visits.Revision, frozenMs: g.gameState.ElapsedMs}

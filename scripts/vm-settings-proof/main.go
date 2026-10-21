@@ -44,7 +44,7 @@ func main() {
 		// Application-level fatal: a failed proof must exit nonzero after cleanup.
 		log.Fatal(err)
 	}
-	logging.Info(logging.CategorySystem, "VM settings proof passed; guest reaped and temporary home removed")
+	logging.Infof(logging.CategorySystem, "VM settings proof passed; guest reaped and temporary home removed")
 }
 
 func run(guestPath, dataPath string) error {
@@ -230,6 +230,6 @@ func (*settingsDriver) Layout(_, _ int) (int, int) { return proofWidth, proofHei
 
 func reportCleanup(err error) {
 	if err != nil && !errors.Is(err, net.ErrClosed) && !errors.Is(err, os.ErrProcessDone) {
-		logging.Warn(logging.CategorySystem, "VM proof cleanup: %v", err)
+		logging.Warnf(logging.CategorySystem, "VM proof cleanup: %v", err)
 	}
 }

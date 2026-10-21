@@ -7,21 +7,21 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// GetNameAsString returns the name without its trailing NUL padding.
 func (p *PlayerCharacter) GetNameAsString() string {
 	return strings.TrimRight(string(p.Name[:]), string(rune(0)))
 }
 
+// GetKeySpriteIndex returns the party-panel key sprite for the character class, or 0 for an unknown class.
 func (p *PlayerCharacter) GetKeySpriteIndex() indexes.SpriteIndex {
-	if p.Class == 'A' {
+	switch p.Class {
+	case Avatar:
 		return indexes.AvatarKeyIndex
-	}
-	if p.Class == 'M' {
+	case Wizard:
 		return indexes.WizardKeyIndex
-	}
-	if p.Class == 'F' {
+	case Fighter:
 		return indexes.FighterKeyIndex
-	}
-	if p.Class == 'B' {
+	case Bard:
 		return indexes.BardKeyIndex
 	}
 
@@ -39,23 +39,27 @@ func IncStatWithCap(currentValue *byte, amount byte, maxValue byte) {
 	*currentValue = newValue
 }
 
+// IsAlive reports whether the character is in the party, has hit points and is not dead.
 func (p *PlayerCharacter) IsAlive() bool {
 	return p.currentHp > 0 && !p.IsDead() && p.IsInParty()
 }
 
-// Status check helper methods
+// IsDead reports whether the character status is Dead.
 func (p *PlayerCharacter) IsDead() bool {
 	return p.status == Dead
 }
 
+// IsPoisoned reports whether the character status is Poisoned.
 func (p *PlayerCharacter) IsPoisoned() bool {
 	return p.status == Poisoned
 }
 
+// IsAsleep reports whether the character status is Sleep.
 func (p *PlayerCharacter) IsAsleep() bool {
 	return p.status == Sleep
 }
 
+// IsGood reports whether the character status is Good.
 func (p *PlayerCharacter) IsGood() bool {
 	return p.status == Good
 }
@@ -70,28 +74,32 @@ func (p *PlayerCharacter) SetStatus(status CharacterStatus) {
 	p.status = status
 }
 
+// IsInParty reports whether the character is in the packed active roster.
 func (p *PlayerCharacter) IsInParty() bool {
 	return p.PartyMap == PartyMapActive
 }
 
-// Getter methods for private fields
+// GetCurrentHp returns the current hit points.
 func (p *PlayerCharacter) GetCurrentHp() uint16 {
 	return p.currentHp
 }
 
+// GetMaxHp returns the maximum hit points.
 func (p *PlayerCharacter) GetMaxHp() uint16 {
 	return p.maxHp
 }
 
+// GetCurrentMp returns the current magic points.
 func (p *PlayerCharacter) GetCurrentMp() byte {
 	return p.currentMp
 }
 
+// GetStatus returns the character status letter.
 func (p *PlayerCharacter) GetStatus() CharacterStatus {
 	return p.status
 }
 
-// HP management methods with automatic clamping
+// AddHp heals by the amount, clamped to maximum HP, and revives a character at zero HP to Good.
 func (p *PlayerCharacter) AddHp(amount uint16) {
 	if p.currentHp <= 0 {
 		p.status = Good
@@ -102,6 +110,7 @@ func (p *PlayerCharacter) AddHp(amount uint16) {
 	}
 }
 
+// SetHp sets current HP, clamped to maximum HP, and revives a character at zero HP to Good.
 func (p *PlayerCharacter) SetHp(amount uint16) {
 	if p.currentHp <= 0 {
 		p.status = Good
@@ -112,6 +121,7 @@ func (p *PlayerCharacter) SetHp(amount uint16) {
 	}
 }
 
+// SubtractHp removes HP, floors it at zero and marks the character Dead at zero.
 func (p *PlayerCharacter) SubtractHp(amount uint16) {
 	if amount >= p.currentHp {
 		p.currentHp = 0
@@ -123,6 +133,7 @@ func (p *PlayerCharacter) SubtractHp(amount uint16) {
 	}
 }
 
+// SetMaxHp sets maximum HP and lowers current HP to fit.
 func (p *PlayerCharacter) SetMaxHp(amount uint16) {
 	p.maxHp = amount
 	// Clamp current HP if exceeds new max
@@ -131,7 +142,7 @@ func (p *PlayerCharacter) SetMaxHp(amount uint16) {
 	}
 }
 
-// MP management methods with Intelligence-based capping
+// GetMaxMp returns the magic point cap, which is always the Intelligence score.
 func (p *PlayerCharacter) GetMaxMp() byte {
 	return p.Intelligence // MP cap is always INT
 }
@@ -141,6 +152,7 @@ func (p *PlayerCharacter) CanCastSpells() bool {
 	return p.Class == Avatar || p.Class == Wizard || p.Class == Bard
 }
 
+// SetMp sets current MP, clamped to Intelligence.
 func (p *PlayerCharacter) SetMp(amount byte) {
 	maxMp := p.GetMaxMp()
 	p.currentMp = amount
@@ -149,6 +161,7 @@ func (p *PlayerCharacter) SetMp(amount byte) {
 	}
 }
 
+// SubtractMp removes MP and floors it at zero.
 func (p *PlayerCharacter) SubtractMp(amount byte) {
 	if amount >= p.currentMp {
 		p.currentMp = 0
@@ -157,6 +170,9 @@ func (p *PlayerCharacter) SubtractMp(amount byte) {
 	}
 }
 
+// bardMpDivisor halves Intelligence for the Bard magic point restoration.
+const bardMpDivisor = 2
+
 // RestoreMpByClass restores MP based on character class
 // Camping and Wanderer restoration share this cap; ref:CAMP-0005 and ref:PROGRESS-0003.
 func (p *PlayerCharacter) RestoreMpByClass() {
@@ -164,8 +180,9 @@ func (p *PlayerCharacter) RestoreMpByClass() {
 	case Wizard, Avatar: // 'M' and 'A' in original
 		p.SetMp(p.Intelligence)
 	case Bard: // 'B' in original
-		p.SetMp(p.Intelligence / 2)
-		// Fighter and other classes: no MP restoration
+		p.SetMp(p.Intelligence / bardMpDivisor)
+	case Fighter:
+		// Fighters have no magic points to restore.
 	}
 }
 
@@ -191,6 +208,8 @@ func (p *PlayerCharacter) GetEquippedItem(slot references.EquipmentSlot) referen
 		return references.Equipment(p.Ring)
 	case references.SlotAmulet:
 		return references.Equipment(p.Amulet)
+	case references.SlotNone:
+		return references.NoEquipment
 	default:
 		return references.NoEquipment
 	}
@@ -216,6 +235,7 @@ func (p *PlayerCharacter) SetEquippedItem(slot references.EquipmentSlot, item re
 		p.Ring = encoded
 	case references.SlotAmulet:
 		p.Amulet = encoded
+	case references.SlotNone:
 	}
 }
 

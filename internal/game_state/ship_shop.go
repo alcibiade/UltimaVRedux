@@ -183,7 +183,7 @@ func (g *GameState) GetShipShopState(session MerchantSession) (ShipShopState, er
 // ReviewShipShopByMerchantID builds production quotes without issuing a
 // session, invoking callbacks, consuming RNG, advancing time, or mutating units.
 func (g *GameState) ReviewShipShopByMerchantID(id references.MerchantID) (ShipShopReview, error) {
-	merchant, npcReference, err := g.canonicalShipMerchant(id)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyShip, ErrInvalidShipPurchase, "a ship dealer")
 	if err != nil {
 		return ShipShopReview{}, err
 	}
@@ -308,7 +308,6 @@ func (g *GameState) PurchaseShip(
 	result.SkiffCountAfter = details.GetSkiffQuantity()
 	result.HullHP = details.GetHullHP()
 	result.Direction = details.CurrentDirection()
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }
@@ -574,72 +573,6 @@ func (g *GameState) hasPendingCanonicalDockOrderExcept(except references.Locatio
 	}
 
 	return false
-}
-
-func (g *GameState) canonicalShipMerchant(
-	id references.MerchantID,
-) (references.MerchantDefinition, references.NPCReference, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil ||
-		g.GameReferences.DockReferences == nil {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: ship merchant references are unavailable",
-			ErrInvalidMerchantSession,
-		)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: unknown merchant ID %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	if merchant.Family != references.MerchantFamilyShip {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q is not a ship dealer",
-			ErrInvalidShipPurchase,
-			id,
-		)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	if _, found := g.GameReferences.DockReferences.GetDockPositionChecked(merchant.Location); !found {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q has no canonical dock",
-			ErrInvalidShipPurchase,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-
-	return merchant, npcReference, nil
 }
 
 func shipQuoteForVehicle(state ShipShopState, vehicleType references.VehicleType) (ShipPurchaseQuote, error) {

@@ -30,7 +30,7 @@ func (f *fixedRNG) Intn(n int) int {
 	}
 	// Simple deterministic value: val mod n, cycling slowly
 	result := f.val % n
-	f.val = (f.val*1103515245 + 12345) & 0x7fffffff //nolint:mnd // LCG constants
+	f.val = (f.val*1103515245 + 12345) & 0x7fffffff
 	return result
 }
 
@@ -76,9 +76,6 @@ func TestCombatMonsterManager_ForEachActive_VisitsSpawnedMonsters(t *testing.T) 
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	// Enter combat so the monster manager exists
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
@@ -120,9 +117,6 @@ func TestCombatMonster_InitialState(t *testing.T) {
 	gs, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	enemyRefs := *gs.GameReferences.EnemyReferences
 	rng := newFixedRNG(7)
@@ -182,9 +176,6 @@ func TestCombatMonster_Position_IsFromSpawnTable(t *testing.T) {
 	gs, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	enemyRefs := *gs.GameReferences.EnemyReferences
 	ref := &enemyRefs[references.MonsterOrc]
@@ -242,9 +233,6 @@ func TestEnemyReference_KeyFrameTile_NotNilForValidMonsters(t *testing.T) {
 	gs, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	enemyRefs := *gs.GameReferences.EnemyReferences
 	nilCount := 0
@@ -275,9 +263,6 @@ func TestCombatMonsterManager_ForEachActive_SkipsDeadMonsters(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(99).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -320,9 +305,6 @@ func TestCombatMonster_SpawnExactlyOne(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(123).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)

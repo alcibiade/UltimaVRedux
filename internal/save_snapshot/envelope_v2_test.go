@@ -269,19 +269,6 @@ func TestEnvelopeTwoRejectsOtherEnvelopeVersionsWithoutSnapshotMigration(t *test
 	}
 }
 
-func TestEnvelopeTwoSchemaPreservesSnapshotFifteen(t *testing.T) {
-	t.Parallel()
-	_, archived := compileNativeSaveSchema(t, 15)
-	_, current := compileNativeSaveSchemaFile(t, "native-save-e2-s15.schema.json")
-	before, after := archived.(map[string]any), current.(map[string]any)
-	for _, member := range []string{"$id", "title", "description"} {
-		after[member] = before[member]
-	}
-	after["properties"].(map[string]any)["envelopeVersion"] = before["properties"].(map[string]any)["envelopeVersion"]
-	after["$defs"].(map[string]any)["bundled000"] = before["$defs"].(map[string]any)["bundled000"]
-	assert.Equal(t, before, after, "the envelope change must not change snapshot constraints")
-}
-
 func TestGenericRepositoryPreservesEnvelopeTwoMetadata(t *testing.T) {
 	t.Parallel()
 	repository, roots := newTestRepository(t)

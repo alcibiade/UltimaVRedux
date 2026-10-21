@@ -21,7 +21,7 @@ func newAttackWakeFixture(t *testing.T) (*GameState, *MockSystemCallbacks, Comba
 	state.CombatScene.setCombatantPosition(target, references.Position{X: 5, Y: 5})
 	state.setCombatPCSleeping(target, true)
 	state.setCombatPCSleeping(sibling, true)
-	ref := &references.EnemyReference{ //nolint:exhaustruct // Bounded synthetic attacker.
+	ref := &references.EnemyReference{
 		MonsterType: references.MonsterOrc, Name: "Orc", Dexterity: 1,
 		Strength: 1, Damage: 10, HitPoints: 100, AttackRange: 4,
 		LargeMapMissileRange: 4, LargeMapMissile: references.MissileArrow,

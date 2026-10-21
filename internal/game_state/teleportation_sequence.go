@@ -42,21 +42,21 @@ func (gs *GameState) buildTeleportationSequence(
 	}
 
 	return func(seb *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		logging.Debug(logging.CategoryMoongate, "Building teleportation sequence to location %d", destination.Location)
+		logging.Debugf(logging.CategoryMoongate, "Building teleportation sequence to location %d", destination.Location)
 
 		return seb.
 			Then(func() {
 				// Initialize avatar dissolve effect and play initial sound
 				gs.SystemCallbacks.Visual.InitializeAvatarDissolveEffect()
 				gs.SystemCallbacks.Audio.PlaySoundEffect(SoundUnlock)
-				logging.Debug(logging.CategoryMoongate, "Phase 1: Starting avatar dissolve out")
+				logging.Debugf(logging.CategoryMoongate, "Phase 1: Starting avatar dissolve out")
 			}).
 			Animate(1000, func(progress float32) {
 				// Phase 1: Avatar dissolve out (0.0 → 1.0 over 1 second)
 				gs.SystemCallbacks.Visual.SetAvatarDissolveLevel(float64(progress))
 			}).
 			Then(func() {
-				logging.Debug(logging.CategoryMoongate, "Phase 2: Starting map fade to black")
+				logging.Debugf(logging.CategoryMoongate, "Phase 2: Starting map fade to black")
 			}).
 			Animate(2000, func(progress float32) {
 				// Phase 2: Map fade to black (0.0 → 1.0 over 2 seconds)
@@ -64,7 +64,7 @@ func (gs *GameState) buildTeleportationSequence(
 			}).
 			Then(func() {
 				// Phase 3: execute the authoritative transition between renderer handoffs.
-				logging.Debug(logging.CategoryMoongate, "Phase 3: Executing teleportation")
+				logging.Debugf(logging.CategoryMoongate, "Phase 3: Executing teleportation")
 				gs.SystemCallbacks.Visual.ResetTeleportationSourceRenderer()
 				if preparedDungeon != nil {
 					gs.installPreparedDungeonState(preparedDungeon)
@@ -88,10 +88,9 @@ func (gs *GameState) buildTeleportationSequence(
 				}
 				gs.SystemCallbacks.Visual.StabilizeTeleportationDestinationRenderer(destination)
 				gs.SystemCallbacks.Screen.UpdateDisplay()
-				switch {
-				case destination.Location == references.SkaraBrae:
+				if destination.Location == references.SkaraBrae {
 					gs.SystemCallbacks.Message.AddRowStr("The moongate whisks you to the ruins of Skara Brae!")
-				default:
+				} else {
 					gs.SystemCallbacks.Message.AddRowStr("The moongate whisks you away!")
 				}
 
@@ -99,7 +98,7 @@ func (gs *GameState) buildTeleportationSequence(
 				gs.SystemCallbacks.Visual.SetAvatarDissolveLevel(1.0)
 				gs.SystemCallbacks.Visual.SetMapFadeLevel(1.0)
 
-				logging.Debug(logging.CategoryMoongate, "Phase 4: Starting map fade from black")
+				logging.Debugf(logging.CategoryMoongate, "Phase 4: Starting map fade from black")
 			}).
 			Animate(2000, func(progress float32) {
 				// Phase 4: Map fade from black (1.0 → 0.0 over 2 seconds)
@@ -108,7 +107,7 @@ func (gs *GameState) buildTeleportationSequence(
 			Then(func() {
 				// Play materialization sound before final dissolve
 				gs.SystemCallbacks.Audio.PlaySoundEffect(SoundMoongateTravel)
-				logging.Debug(logging.CategoryMoongate, "Phase 5: Starting avatar dissolve in")
+				logging.Debugf(logging.CategoryMoongate, "Phase 5: Starting avatar dissolve in")
 			}).
 			Animate(1000, func(progress float32) {
 				// Phase 5: Avatar dissolve in (1.0 → 0.0 over 1 second)
@@ -119,7 +118,7 @@ func (gs *GameState) buildTeleportationSequence(
 				gs.SystemCallbacks.Visual.SetAvatarDissolveLevel(0.0)
 				gs.SystemCallbacks.Visual.SetMapFadeLevel(0.0)
 				gs.SystemCallbacks.Visual.CleanupAvatarDissolveEffect()
-				logging.Debug(logging.CategoryMoongate, "Teleportation sequence completed")
+				logging.Debugf(logging.CategoryMoongate, "Teleportation sequence completed")
 			})
 	}
 }

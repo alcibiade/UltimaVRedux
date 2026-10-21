@@ -152,7 +152,7 @@ func TestReadyNavigationRespectsCombatAndModalOwnership(t *testing.T) {
 	}
 }
 
-func TestReadyBracketsPageAllDetailsWithoutChangingCharacterOrEquipping(t *testing.T) {
+func TestReadySpaceAndBracketsPageAllDetailsWithoutChangingCharacterOrEquipping(t *testing.T) {
 	_, dialog, held := newReadyReviewFixture(t)
 	selectReadyReviewItem(t, dialog, references.Halberd)
 	// An actual long refusal exercises wrapping and pagination through Update.
@@ -164,7 +164,11 @@ func TestReadyBracketsPageAllDetailsWithoutChangingCharacterOrEquipping(t *testi
 	require.Greater(t, pages, 1)
 	dialog.request.LockCharacter = true
 	for page := 1; page <= pages; page++ {
-		pressReadyNavigation(dialog, held, ebiten.KeyBracketRight, false)
+		next := ebiten.KeySpace // Space pages; ] remains an alias.
+		if page%2 == 0 {
+			next = ebiten.KeyBracketRight
+		}
+		pressReadyNavigation(dialog, held, next, false)
 		require.Equal(t, page%pages, dialog.detailPage)
 		require.Zero(t, dialog.selectedCharIdx)
 		require.Nil(t, dialog.confirmation)
@@ -204,9 +208,8 @@ func TestReadyHeaderAndHintsFitSupportedResolutions(t *testing.T) {
 			dialog.request.LockCharacter = locked
 			dialog.populateStatusOutput(dialog.statusBorder.GetInteriorBounds().Dx() - 2*(itemDialogTextPadding+4))
 			footer := dialog.statusOutput.GetOutputStr(true)
-			require.Contains(t, footer, "[ / ]")
-			require.Contains(t, footer, "Esc Close", "keys and their action descriptions must wrap together")
-			require.Contains(t, footer, "[ / ] Details")
+			require.Contains(t, footer, "[Esc] Close", "keys and their action descriptions must wrap together")
+			require.Contains(t, footer, "[Space] Details")
 			contentWidth := dialog.statusBorder.GetInteriorBounds().Dx() - 2*(itemDialogTextPadding+4)
 			for _, line := range strings.Split(footer, "\n") {
 				width, _ := dialog.font.MeasureString(strings.TrimSpace(line))
@@ -216,7 +219,7 @@ func TestReadyHeaderAndHintsFitSupportedResolutions(t *testing.T) {
 				require.NotContains(t, footer, "Tab")
 			} else {
 				require.Contains(t, footer, "Tab")
-				require.Contains(t, footer, "Shift-Tab")
+				require.Contains(t, footer, "Shift+Tab")
 			}
 			require.LessOrEqual(t, dialog.statusOutput.GetTotalHeightForLines(dialog.statusOutput.GetPanelContentLineCount()),
 				float64(dialog.statusBorder.GetInteriorBounds().Dy()), size.String())

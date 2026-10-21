@@ -167,7 +167,7 @@ func (d *ShipPurchaseDialog) GetApprovalView() game_state.ShipPurchaseApprovalVi
 // GetFooterGuidance returns the keyboard-only approval controls.
 func (d *ShipPurchaseDialog) GetFooterGuidance() string {
 	if d.intent.Quote.Action == game_state.ShipPurchaseLoadSkiff && len(d.intent.Quote.ApprovalViews) > 1 {
-		return "[Left/Right] Quantity   [M] Max\n[Enter] Confirm   [Esc] Back"
+		return merchantQuantityFooter
 	}
 
 	return "[Enter] Confirm   [Esc] Back"
@@ -249,13 +249,7 @@ func (d *ShipPurchaseDialog) populateOutputs() {
 		body.AppendLine().Textf("Need %d gold.", DialogStatusWarningColor, approval.TotalPrice).Done()
 	}
 	d.footerOutput.Reset()
-	for _, segments := range parseMerchantFooterGuidance(d.GetFooterGuidance()) {
-		line := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range segments {
-			line.Text(segment.Text, segment.Color)
-		}
-		line.WordWrap().Done()
-	}
+	appendControlGuidance(d.footerOutput, d.GetFooterGuidance(), d.frame.footerText.Dx())
 }
 
 func validateShipPurchaseIntent(intent ShipPurchaseIntent) {

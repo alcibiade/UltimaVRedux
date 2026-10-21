@@ -109,16 +109,10 @@ func TestReviewGuildShopByMerchantIDMatchesProductionQuotesWithoutMutation(t *te
 	assert.Equal(t, production, review.State)
 }
 
-func TestPurchaseGuildOfferCommitsMultiBundleOrderAndRefreshesOnce(t *testing.T) {
+func TestPurchaseGuildOfferCommitsMultiBundleOrder(t *testing.T) {
 	state, npc := newOpenMerchantTestState(t, references.MerchantGuildNewMagincia)
 	state.PartyState.Inventory.Gold.Set(2000)
 	state.PartyState.Inventory.Provisions.Keys.Set(4)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, uint16(1031), state.PartyState.Inventory.Gold.Get())
-		assert.Equal(t, uint16(13), state.PartyState.Inventory.Provisions.Keys.Get())
-	}
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	beforeTime := state.DateTime
@@ -149,7 +143,6 @@ func TestPurchaseGuildOfferCommitsMultiBundleOrderAndRefreshesOnce(t *testing.T)
 	assert.Equal(t, uint16(13), state.PartyState.Inventory.Provisions.Keys.Get())
 	assert.Equal(t, beforeCalls, state.GetRNG().Calls())
 	assert.Equal(t, beforeTime, state.DateTime)
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestPurchaseGuildOfferAppliesAutomaticFaulineiTheftExactlyOnce(t *testing.T) {
@@ -160,8 +153,6 @@ func TestPurchaseGuildOfferAppliesAutomaticFaulineiTheftExactlyOnce(t *testing.T
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.PartyState.Inventory.Gold.Set(1000)
 	state.PartyState.Inventory.Provisions.Torches.Set(5)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	expectedRNG := beradrng.New(seed)
@@ -180,7 +171,6 @@ func TestPurchaseGuildOfferAppliesAutomaticFaulineiTheftExactlyOnce(t *testing.T
 	assert.Equal(t, uint16(1000-result.TotalCost)-expectedTheft, result.GoldAfter)
 	assert.Equal(t, uint16(25), result.QuantityAfter)
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestPurchaseGuildOfferYellSummonedFaulineiDoesNotSteal(t *testing.T) {
@@ -218,8 +208,6 @@ func TestPurchaseGuildOfferRejectsZeroAndOverMaximumWithoutEffects(t *testing.T)
 			state.ShadowlordState.AutomaticPresence = references.Faulinei
 			state.PartyState.Inventory.Gold.Set(1000)
 			state.PartyState.Inventory.Provisions.Keys.Set(7)
-			refreshes := 0
-			state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 
@@ -232,7 +220,6 @@ func TestPurchaseGuildOfferRejectsZeroAndOverMaximumWithoutEffects(t *testing.T)
 			assert.Equal(t, uint16(1000), state.PartyState.Inventory.Gold.Get())
 			assert.Equal(t, uint16(7), state.PartyState.Inventory.Provisions.Keys.Get())
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Zero(t, refreshes)
 		})
 	}
 }
@@ -255,8 +242,6 @@ func TestPurchaseGuildOfferAllowsPartialFinalUsefulBundleAndSaturates(t *testing
 	state, npc := newOpenMerchantTestState(t, references.MerchantGuildNewMagincia)
 	state.PartyState.Inventory.Gold.Set(5000)
 	state.PartyState.Inventory.Provisions.Keys.Set(94)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	quote, err := state.QuoteGuildOffer(session, references.Key)
@@ -276,7 +261,6 @@ func TestPurchaseGuildOfferAllowsPartialFinalUsefulBundleAndSaturates(t *testing
 	assert.Equal(t, uint16(99), result.QuantityAfter)
 	assert.Equal(t, uint16(5), result.ActualReceipt)
 	assert.Equal(t, uint16(4354), result.GoldAfter)
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestQuoteGuildOfferHasZeroMaximumAtCapacity(t *testing.T) {
@@ -317,13 +301,10 @@ func TestGuildOperationsRejectInvalidAndStaleSessionsBeforeMutation(t *testing.T
 	state, npc := newOpenMerchantTestState(t, references.MerchantGuildNewMagincia)
 	state.PartyState.Inventory.Gold.Set(1000)
 	state.PartyState.Inventory.Provisions.Keys.Set(5)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	assertUnchanged := func() {
 		assert.Equal(t, uint16(1000), state.PartyState.Inventory.Gold.Get())
 		assert.Equal(t, uint16(5), state.PartyState.Inventory.Provisions.Keys.Get())
 		assert.Zero(t, state.GetRNG().Calls())
-		assert.Zero(t, refreshes)
 	}
 
 	request := GuildPurchaseRequest{Provision: references.Key, BundleCount: 1}

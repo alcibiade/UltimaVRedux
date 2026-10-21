@@ -232,7 +232,7 @@ func decodeMatchKey(field rawField) (string, bool, error) {
 	return builder.String(), true, nil
 }
 
-//nolint:cyclop,err113,mnd // Recursive include expansion keeps cycle/range state together.
+//nolint:err113,mnd // Recursive include expansion keeps cycle/range state together.
 func flattenResponses(
 	pairs []rawPair,
 	dictionary map[byte]string,
@@ -598,7 +598,7 @@ func (builder *bodyBuilder) flush() {
 	builder.content = nil
 }
 
-//nolint:ireturn,cyclop // The switch exhaustively maps the closed extractor action union.
+//nolint:ireturn // The switch exhaustively maps the closed extractor action union.
 func semanticAction(entry instruction) (semantic.Action, bool) {
 	switch entry.action {
 	case actionEnd:

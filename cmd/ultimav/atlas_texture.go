@@ -52,12 +52,12 @@ func (o *atlasTextureOwner) load(terrain *references.LargeMapReference) (*ebiten
 		return nil, fmt.Errorf("load atlas geography: %w", err)
 	}
 	if result.Diagnostic != nil {
-		logging.Warn(logging.CategoryUI, "Atlas cache unavailable; retaining generated geography: %v", result.Diagnostic)
+		logging.Warnf(logging.CategoryUI, "Atlas cache unavailable; retaining generated geography: %v", result.Diagnostic)
 	}
 	start := time.Now()
 	o.texture = ebiten.NewImageFromImage(result.Image)
 	o.identity = identity
-	logging.Info(logging.CategoryUI,
+	logging.Infof(logging.CategoryUI,
 		"Atlas PNG %s (hit=%t, compose=%s, encode=%s, decode=%s, upload submission=%s; texture 64 MiB)",
 		result.Path, result.CacheHit, result.ComposeTime, result.EncodeTime, result.DecodeTime, time.Since(start))
 	// result and all CPU pixel/encoding buffers become unreachable on return.

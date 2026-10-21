@@ -328,13 +328,14 @@ func (r *OverlayRenderer) renderMoonstoneOverlay(g *GameScene) {
 
 		// Choose color based on moonstone state
 		var overlayColor color.RGBA
-		if i == currentPhase {
+		switch {
+		case i == currentPhase:
 			// Active moonstone - bright purple
 			overlayColor = ucolor.MoonstoneActiveBright.RGBA()
-		} else if moonstone.IsFound {
+		case moonstone.IsFound:
 			// Found moonstone - green
 			overlayColor = ucolor.MoonstoneFoundGreen.RGBA()
-		} else {
+		default:
 			// Buried moonstone - dim purple
 			overlayColor = r.moonstoneOverlayColor
 		}

@@ -1,7 +1,10 @@
 package references
 
+// EnemyAbility is a special attack or defence an enemy may have; values match the original ability numbering.
 type EnemyAbility int
 
+// Enemy abilities, numbered from 0 as in the original game.
+//
 //goland:noinspection GoUnusedConst
 const (
 	Bludgeons         EnemyAbility = 0
@@ -21,37 +24,39 @@ const (
 	InfectWithPlague  EnemyAbility = 14
 )
 
+// EnemyReference is one monster definition: its original combat statistics plus Redux behaviour flags.
 type EnemyReference struct {
-	MonsterType    MonsterType `json:"monster_type"    yaml:"monster_type"`
-	KeyFrameTile   *Tile       `json:"key_frame_tile"  yaml:"key_frame_tile"`
-	Armour         int         `json:"armour"          yaml:"armour"`
-	Damage         int         `json:"damage"          yaml:"damage"`
-	Dexterity      int         `json:"dexterity"       yaml:"dexterity"`
-	HitPoints      int         `json:"hit_points"      yaml:"hit_points"`
-	Intelligence   int         `json:"intelligence"    yaml:"intelligence"`
-	MaxPerMap      int         `json:"max_per_map"     yaml:"max_per_map"`
-	Strength       int         `json:"strength"        yaml:"strength"`
-	TreasureNumber int         `json:"treasure_number" yaml:"treasure_number"`
+	MonsterType    MonsterType `json:"monsterType"    yaml:"monsterType"`
+	KeyFrameTile   *Tile       `json:"keyFrameTile"   yaml:"keyFrameTile"`
+	Armour         int         `json:"armour"         yaml:"armour"`
+	Damage         int         `json:"damage"         yaml:"damage"`
+	Dexterity      int         `json:"dexterity"      yaml:"dexterity"`
+	HitPoints      int         `json:"hitPoints"      yaml:"hitPoints"`
+	Intelligence   int         `json:"intelligence"   yaml:"intelligence"`
+	MaxPerMap      int         `json:"maxPerMap"      yaml:"maxPerMap"`
+	Strength       int         `json:"strength"       yaml:"strength"`
+	TreasureNumber int         `json:"treasureNumber" yaml:"treasureNumber"`
 
-	EnemyAbilities map[EnemyAbility]bool `json:"enemy_abilities" yaml:"enemy_abilities"`
+	EnemyAbilities map[EnemyAbility]bool `json:"enemyAbilities" yaml:"enemyAbilities"`
 
 	// Flattened behavior flags (previously in AdditionalEnemyFlags)
-	Name                 string      `json:"name"                    yaml:"name"`
-	NamePlural           string      `json:"name_plural"             yaml:"name_plural"`
-	ActivelyAttacks      bool        `json:"actively_attacks"        yaml:"actively_attacks"`
-	CanFlyOverWater      bool        `json:"can_fly_over_water"      yaml:"can_fly_over_water"`
-	CanPassThroughWalls  bool        `json:"can_pass_through_walls"  yaml:"can_pass_through_walls"`
-	DoNotMove            bool        `json:"do_not_move"             yaml:"do_not_move"`
-	HasWhirlpoolMovement bool        `json:"has_whirlpool_movement"  yaml:"has_whirlpool_movement"`
-	IsSandEnemy          bool        `json:"is_sand_enemy"           yaml:"is_sand_enemy"`
-	IsWaterEnemy         bool        `json:"is_water_enemy"          yaml:"is_water_enemy"`
-	LargeMapMissile      MissileType `json:"large_map_missile"       yaml:"large_map_missile"`
-	LargeMapMissileRange int         `json:"large_map_missile_range" yaml:"large_map_missile_range"`
+	Name                 string      `json:"name"                 yaml:"name"`
+	NamePlural           string      `json:"namePlural"           yaml:"namePlural"`
+	ActivelyAttacks      bool        `json:"activelyAttacks"      yaml:"activelyAttacks"`
+	CanFlyOverWater      bool        `json:"canFlyOverWater"      yaml:"canFlyOverWater"`
+	CanPassThroughWalls  bool        `json:"canPassThroughWalls"  yaml:"canPassThroughWalls"`
+	DoNotMove            bool        `json:"doNotMove"            yaml:"doNotMove"`
+	HasWhirlpoolMovement bool        `json:"hasWhirlpoolMovement" yaml:"hasWhirlpoolMovement"`
+	IsSandEnemy          bool        `json:"isSandEnemy"          yaml:"isSandEnemy"`
+	IsWaterEnemy         bool        `json:"isWaterEnemy"         yaml:"isWaterEnemy"`
+	LargeMapMissile      MissileType `json:"largeMapMissile"      yaml:"largeMapMissile"`
+	LargeMapMissileRange int         `json:"largeMapMissileRange" yaml:"largeMapMissileRange"`
 
-	AttackRange int             `json:"attack_range" yaml:"attack_range"`
-	Friend      *EnemyReference `json:"friend"       yaml:"friend"`
+	AttackRange int             `json:"attackRange" yaml:"attackRange"`
+	Friend      *EnemyReference `json:"friend"      yaml:"friend"`
 }
 
+// CanSpawnToTile reports whether this enemy may be generated on the tile.
 func (e *EnemyReference) CanSpawnToTile(tile *Tile) bool {
 	if !e.isMonsterSpawnableOnTile(tile) {
 		return false
@@ -59,17 +64,19 @@ func (e *EnemyReference) CanSpawnToTile(tile *Tile) bool {
 
 	var bCanSpawnOnTile bool
 
-	if e.IsSandEnemy {
-		bCanSpawnOnTile = tile.IsDesert()
-	} else if e.IsWaterEnemy {
+	switch {
+	case e.IsSandEnemy:
+		bCanSpawnOnTile = tile.isDesert()
+	case e.IsWaterEnemy:
 		bCanSpawnOnTile = tile.IsWaterEnemyPassable()
-	} else {
+	default:
 		bCanSpawnOnTile = tile.IsLandEnemyPassable()
 	}
 
 	return bCanSpawnOnTile
 }
 
+// CanMoveToTile reports whether this enemy may walk or swim onto the tile.
 func (e *EnemyReference) CanMoveToTile(tile *Tile) bool {
 	if tile == nil {
 		return false
@@ -87,43 +94,7 @@ func (e *EnemyReference) isMonsterSpawnableOnTile(tile *Tile) bool {
 		tile.IsWalkingPassable() || tile.IsWaterEnemyPassable() || tile.IsLandEnemyPassable()
 }
 
+// HasAbility reports whether the enemy has the given special ability.
 func (e *EnemyReference) HasAbility(ability EnemyAbility) bool {
 	return e.EnemyAbilities[ability]
-}
-
-func EnemyAbilityToString(ability EnemyAbility) string {
-	switch ability {
-	case Bludgeons:
-		return "Bludgeons"
-	case PossessCharm:
-		return "PossessCharm"
-	case Undead:
-		return "Undead"
-	case DivideOnHit:
-		return "DivideOnHit"
-	case Immortal:
-		return "Immortal"
-	case PoisonAtRange:
-		return "PoisonAtRange"
-	case StealsFood:
-		return "StealsFood"
-	case NoCorpse:
-		return "NoCorpse"
-	case RangedMagic:
-		return "RangedMagic"
-	case Teleport:
-		return "Teleport"
-	case DisappearsOnDeath:
-		return "DisappearsOnDeath"
-	case Invisibility:
-		return "Invisibility"
-	case GatesInDaemon:
-		return "GatesInDaemon"
-	case Poison:
-		return "Poison"
-	case InfectWithPlague:
-		return "InfectWithPlague"
-	default:
-		return "Unknown"
-	}
 }

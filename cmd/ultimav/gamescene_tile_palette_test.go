@@ -79,7 +79,7 @@ func TestTilePaletteModeFollowsDisplayedDungeonContext(t *testing.T) {
 	assert.Equal(t, tilePaletteNormal, scene.tilePaletteMode())
 
 	state.MapState.PlayerLocation.Location = references.CombatLocation
-	state.CombatScene = &game_state.CombatState{ //nolint:exhaustruct // Palette context needs only map territory.
+	state.CombatScene = &game_state.CombatState{
 		CombatMapRef: references.NewCombatMapReference(0, references.DungeonCombatTerritory),
 	}
 	assert.Equal(t, tilePaletteDungeon, scene.tilePaletteMode())
@@ -89,13 +89,13 @@ func TestTilePaletteModeFollowsDisplayedDungeonContext(t *testing.T) {
 
 	state.CombatScene = nil
 	state.MapState.PlayerLocation.Location = references.CampingLocation
-	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, nil)
+	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	assert.Equal(t, tilePaletteDungeon, scene.tilePaletteMode())
 
-	state.CampingScene = camping.NewCampingScene(1, -1, references.PlayerLocation{})
+	state.CampingScene = camping.NewCampingSceneWithCombatRef(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	assert.Equal(t, tilePaletteNormal, scene.tilePaletteMode())
 
-	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, nil)
+	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	state.MapState.PlayerLocation.Location = references.Shame
 	assert.Equal(t, tilePaletteNormal, scene.tilePaletteMode(), "stale dungeon camping state must not recolor exploration")
 
@@ -118,7 +118,7 @@ func TestTilePaletteModeCoversEveryDungeonTacticalOrigin(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			state := new(game_state.GameState)
 			state.MapState.PlayerLocation.Location = references.CombatLocation
-			state.CombatScene = &game_state.CombatState{ //nolint:exhaustruct // Palette context needs only map territory and origin.
+			state.CombatScene = &game_state.CombatState{
 				CombatMapRef: references.NewCombatMapReference(0, references.DungeonCombatTerritory),
 			}
 			configureOrigin(state.CombatScene)
@@ -132,7 +132,7 @@ func TestTilePaletteModeCoversEveryDungeonTacticalOrigin(t *testing.T) {
 func TestDrawTilePaletteSpriteAppliesDungeonModeBeforeColorScale(t *testing.T) {
 	state := new(game_state.GameState)
 	state.MapState.PlayerLocation.Location = references.CombatLocation
-	state.CombatScene = &game_state.CombatState{ //nolint:exhaustruct // Palette context needs only map territory.
+	state.CombatScene = &game_state.CombatState{
 		CombatMapRef: references.NewCombatMapReference(0, references.DungeonCombatTerritory),
 	}
 	scene := &GameScene{gameState: state}

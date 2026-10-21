@@ -39,7 +39,7 @@ func TestBedRestRunsOneRegenerationRingSweepPerIteration(t *testing.T) {
 			wantHealing++
 		}
 	}
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused bed-rest workflow fixture.
+	scene := &GameScene{gameState: state}
 	workflow := state.EventQueueManager.Workflow("bed_rest_regeneration_test").
 		Priority(event_queue.PriorityNormal).
 		Sequential().
@@ -83,7 +83,7 @@ func TestBedRestWorkflowRunsSixteenPreSleepPassesAndAbortsOnlyForAttack(t *testi
 				interaction: testCase.interaction,
 			}
 			state.CurrentNPCAIController = controller
-			scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused production workflow fixture.
+			scene := &GameScene{gameState: state}
 			var restState *game_state.BedRestState
 			cleanupCalls := 0
 			workflow := state.EventQueueManager.Workflow("bed_rest_pre_sleep_test").
@@ -177,7 +177,7 @@ func TestBedRestPermanentTimeStopDoesNotDeadlockWorkflow(t *testing.T) {
 				TurnsRemaining: turns,
 			}
 			state.CurrentNPCAIController = &bedRestPassController{}
-			scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused production workflow fixture.
+			scene := &GameScene{gameState: state}
 			var restState *game_state.BedRestState
 			workflow := state.EventQueueManager.Workflow("bed_rest_permanent_time_stop_test").
 				Priority(event_queue.PriorityNormal).Sequential().First(func() {})
@@ -217,7 +217,7 @@ func TestBedRestPartyWipeDefersDeathUntilWorkflowCleanup(t *testing.T) {
 	state.PartyState.Inventory.Provisions.Food.Set(100)
 	state.DateTime.Hour, state.DateTime.Minute = 5, 40
 	state.CurrentNPCAIController = &bedRestPassController{}
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused production workflow fixture.
+	scene := &GameScene{gameState: state}
 	var restState *game_state.BedRestState
 	deathCalls := 0
 	state.SystemCallbacks.Flow.Consequences.TriggerDeathSequence = func() {

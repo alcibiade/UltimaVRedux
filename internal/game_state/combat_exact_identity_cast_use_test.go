@@ -242,10 +242,10 @@ func newSyntheticExactIdentityCastUseState(
 	combat := NewCombatState(combatMap, CombatEntryNorth, party)
 	tiles := references.NewTileReferences()
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Focused synthetic cast/use fixture.
+	state := &GameState{
 		PartyState:  *party,
 		CombatScene: combat,
-		GameReferences: &references.GameReferences{ //nolint:exhaustruct // Clone placement needs only tile references.
+		GameReferences: &references.GameReferences{
 			TileReferences: tiles,
 		},
 		SystemCallbacks: callbacks.ToSystemCallbacks(),

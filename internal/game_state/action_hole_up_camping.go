@@ -3,8 +3,6 @@ package game_state
 
 import (
 	"fmt"
-	"os"
-	"runtime/pprof"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
@@ -14,14 +12,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-)
-
-// EnableCampingProfiling Performance profiling control (set to true to enable profiling during camping)
-const EnableCampingProfiling = false
-
-// Global profiling state
-var (
-	campingCPUProfileFile *os.File //nolint:gochecknoglobals // Owns the optional process-wide pprof session.
 )
 
 // Camping timing constants
@@ -104,7 +94,7 @@ func (g *GameState) actionHoleUpLargeMap(hours int, guardIndex int, forceWandere
 	// camping commitment so it remains in inventory through an ambush or death.
 	// See ref:CAMP-0005.
 	vehicleType := g.PartyVehicle.GetVehicleDetails().VehicleType
-	logging.Debug(logging.CategoryGameState, "ActionHoleUpLargeMap: vehicleType=%v, NoPartyVehicle=%v", vehicleType, references.NoPartyVehicle)
+	logging.Debugf(logging.CategoryGameState, "ActionHoleUpLargeMap: vehicleType=%v, NoPartyVehicle=%v", vehicleType, references.NoPartyVehicle)
 	if vehicleType != references.NoPartyVehicle && vehicleType != references.HorseVehicle && vehicleType != references.CarpetVehicle {
 		g.SystemCallbacks.Message.AddRowStr("On foot!")
 
@@ -142,13 +132,11 @@ func (g *GameState) actionHoleUpLargeMap(hours int, guardIndex int, forceWandere
 
 		// Load the camping combat map reference for authentic positions
 		campingMapRef, err := references.LoadCampingMap(g.GameConfig)
-		var campingScene *camping.CampingScene
 		if err != nil {
-			logging.Warn(logging.CategoryGameState, "Failed to load camping map reference in debug mode: %v - using fallback", err)
-			campingScene = camping.NewCampingScene(hours, guardIndex, originalPlayerLocation)
-		} else {
-			campingScene = camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
+			// Startup validated the original data, so the camp map must load.
+			panic(fmt.Sprintf("GameState camping: loading camping map: %v", err))
 		}
+		campingScene := camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
 
 		// Create a temporary event queue for debug camping and add sequence to it
 		q := g.EventQueueManager.Workflow("camping_debug_workflow").
@@ -243,7 +231,6 @@ func (g *GameState) commitOutdoorCampingVehicle(expected references.PlayerLocati
 		}
 		inventory.IncrementByOne(references.Carpet)
 		g.PartyVehicle = map_units.NewNPCFriendlyVehiceNoVehicle()
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 	}
 
 	return true
@@ -258,11 +245,11 @@ func (g *GameState) addCampingSequenceToBuilder(
 ) {
 	campingState := g.newCampingState(campingScene, forceWanderer, forceAmbush)
 
-	logging.Debug(logging.CategoryGameState, "Starting camping sequence with scene for %d hours (%d cycles), guard: %d",
+	logging.Debugf(logging.CategoryGameState, "Starting camping sequence with scene for %d hours (%d cycles), guard: %d",
 		campingScene.Hours, campingState.TotalCycles, campingScene.GuardIndex)
 
 	if campingState.TotalCycles <= 0 {
-		logging.Debug(logging.CategoryGameState, "No cycles to execute - returning")
+		logging.Debugf(logging.CategoryGameState, "No cycles to execute - returning")
 
 		return
 	}
@@ -271,7 +258,6 @@ func (g *GameState) addCampingSequenceToBuilder(
 	q.
 		Then(func() {
 			campingScene.StartCamping()
-			g.startCampingProfiling()
 			if err := g.TransitionToCampingMap(); err != nil {
 				panic("Failed to transition to camping map - critical system error")
 			}
@@ -344,7 +330,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 					panic("executeCampingSequenceWithScene: g.CampingScene is nil in wanderer entrance - should never happen")
 				}
 
-				logging.Debug(logging.CategoryGameState, "Camping: Wanderer entrance - materializing apparition")
+				logging.Debugf(logging.CategoryGameState, "Camping: Wanderer entrance - materializing apparition")
 
 				g.SystemCallbacks.Screen.ClearMessageDialog()
 
@@ -361,7 +347,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 				Wait(int64(g.SystemCallbacks.Screen.GetMessageDialogFadeInDuration())).
 				Animate(WandererFadeAnimationMs, func(progress float32) {
 					if g.CampingScene == nil {
-						logging.Error(logging.CategoryGameState, "Camping: CampingScene is nil during wanderer fade-in at progress=%.2f", progress)
+						logging.Errorf(logging.CategoryGameState, "Camping: CampingScene is nil during wanderer fade-in at progress=%.2f", progress)
 						panic("executeCampingSequenceWithScene: g.CampingScene is nil during fade-in animation - should never happen")
 					}
 
@@ -370,7 +356,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 					g.CampingScene.SetWandererDissolveLevel(dissolveLevel)
 
 					if int(progress*100)%25 == 0 {
-						logging.Debug(logging.CategoryGameState, "Camping: Wanderer fade-in animation progress=%.1f%%", progress*100)
+						logging.Debugf(logging.CategoryGameState, "Camping: Wanderer fade-in animation progress=%.1f%%", progress*100)
 					}
 				}).
 				Then(func() {
@@ -447,7 +433,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 				Wait(WandererDepartureDelayMs).
 				Animate(WandererFadeAnimationMs, func(progress float32) {
 					if g.CampingScene == nil {
-						logging.Error(
+						logging.Errorf(
 							logging.CategoryGameState,
 							"Camping: CampingScene nil during wanderer fade-out at progress=%.2f",
 							progress,
@@ -460,11 +446,11 @@ func (g *GameState) addCampingSequenceToBuilder(
 					g.CampingScene.SetWandererDissolveLevel(dissolveLevel)
 
 					if int(progress*100)%25 == 0 {
-						logging.Debug(logging.CategoryGameState, "Camping: Wanderer fade-out animation progress=%.1f%%", progress*100)
+						logging.Debugf(logging.CategoryGameState, "Camping: Wanderer fade-out animation progress=%.1f%%", progress*100)
 					}
 				}).
 				Then(func() {
-					logging.Debug(logging.CategoryGameState, "Camping: Wanderer fade-out animation completed")
+					logging.Debugf(logging.CategoryGameState, "Camping: Wanderer fade-out animation completed")
 				}).
 				Then(func() {
 					if g.CampingScene == nil {
@@ -486,13 +472,13 @@ func (g *GameState) addCampingSequenceToBuilder(
 				Then(func() {
 					g.SystemCallbacks.Screen.HideMessageDialog()
 
-					logging.Debug(logging.CategoryGameState, "Camping: MessageDialog fade-out animation started")
+					logging.Debugf(logging.CategoryGameState, "Camping: MessageDialog fade-out animation started")
 				}).
 				Wait(int64(g.SystemCallbacks.Screen.GetMessageDialogFadeOutDuration())).
 				Then(func() {
 					g.SystemCallbacks.Screen.PopMessageDialog()
 
-					logging.Debug(logging.CategoryGameState, "Camping: MessageDialog fade-out completed, dialog popped from stack")
+					logging.Debugf(logging.CategoryGameState, "Camping: MessageDialog fade-out completed, dialog popped from stack")
 				}).
 				Wait(1250)
 		}).If(
@@ -508,12 +494,12 @@ func (g *GameState) addCampingSequenceToBuilder(
 					g.SystemCallbacks.Screen.ClearMessagePrompt()
 
 					g.SystemCallbacks.Screen.HideMessageDialog()
-					logging.Debug(logging.CategoryGameState, "Camping: Non-wanderer - MessageDialog fade-out started")
+					logging.Debugf(logging.CategoryGameState, "Camping: Non-wanderer - MessageDialog fade-out started")
 				}).
 				Wait(int64(g.SystemCallbacks.Screen.GetMessageDialogFadeOutDuration())).
 				Then(func() {
 					g.SystemCallbacks.Screen.PopMessageDialog()
-					logging.Debug(logging.CategoryGameState, "Camping: Non-wanderer - MessageDialog popped")
+					logging.Debugf(logging.CategoryGameState, "Camping: Non-wanderer - MessageDialog popped")
 				})
 		}).Finally(func() {
 		g.finalizeCampingSequence(campingScene, campingState, completionCleanup)
@@ -529,10 +515,10 @@ func (g *GameState) resolveCampingRestAndWanderer(
 	eligibleForRest := g.LastCamped < 1 && campingScene.Hours > MinimumWandererHours
 	eligibleForWanderer := eligibleForRest || campingState.ForceWanderer
 
-	logging.Debug(logging.CategoryGameState, "Camping: Checking wanderer conditions - hours=%d (req >5 or forced=%t), interrupted=%t, death=%t",
+	logging.Debugf(logging.CategoryGameState, "Camping: Checking wanderer conditions - hours=%d (req >5 or forced=%t), interrupted=%t, death=%t",
 		campingScene.Hours, campingState.ForceWanderer, campingState.Interrupted, campingState.DeathOccurred)
 	if campingState.Interrupted || campingState.DeathOccurred {
-		logging.Debug(logging.CategoryGameState, "Camping: Wanderer conditions NOT met - skipping rest and wanderer check")
+		logging.Debugf(logging.CategoryGameState, "Camping: Wanderer conditions NOT met - skipping rest and wanderer check")
 
 		return ""
 	}
@@ -541,12 +527,12 @@ func (g *GameState) resolveCampingRestAndWanderer(
 	// See ref:CAMP-0005.
 	result := g.applyCampingHealing(campingScene)
 	if !eligibleForWanderer {
-		logging.Debug(logging.CategoryGameState, "Camping: Wanderer conditions NOT met - skipping wanderer check")
+		logging.Debugf(logging.CategoryGameState, "Camping: Wanderer conditions NOT met - skipping wanderer check")
 
 		return result
 	}
 
-	logging.Debug(logging.CategoryGameState, "Camping: Wanderer conditions met - calling CheckForWandererAppearance")
+	logging.Debugf(logging.CategoryGameState, "Camping: Wanderer conditions met - calling CheckForWandererAppearance")
 	campingState.WandererEncountered = g.CheckForWandererAppearance(campingState.ForceWanderer)
 
 	return result
@@ -577,38 +563,15 @@ func (g *GameState) newCampingState(
 	}
 }
 
-func (g *GameState) startCampingProfiling() {
-	if !EnableCampingProfiling {
-		return
-	}
-	var err error
-	campingCPUProfileFile, err = os.Create("camping_cpu.prof")
-	if err != nil {
-		logging.Warn(logging.CategoryGameState, "Failed to create CPU profile: %v", err)
-
-		return
-	}
-	if err = pprof.StartCPUProfile(campingCPUProfileFile); err != nil {
-		logging.Warn(logging.CategoryGameState, "Failed to start CPU profiling: %v", err)
-		if closeErr := campingCPUProfileFile.Close(); closeErr != nil {
-			logging.Warn(logging.CategoryGameState, "Failed to close CPU profile file: %v", closeErr)
-		}
-		campingCPUProfileFile = nil
-
-		return
-	}
-	logging.Info(logging.CategoryGameState, "CPU profiling started - will write to camping_cpu.prof")
-}
-
 func (g *GameState) finalizeCampingSequence(
 	campingScene *camping.CampingScene,
 	campingState *CampingState,
 	completionCleanup func(),
 ) {
-	logging.Debug(logging.CategoryGameState, "Camping: Finally() cleanup starting at time=%d", g.ElapsedMs)
+	logging.Debugf(logging.CategoryGameState, "Camping: Finally() cleanup starting at time=%d", g.ElapsedMs)
 	campingScene.EndSleeping()
 	if g.CampingScene == nil {
-		logging.Warn(logging.CategoryGameState,
+		logging.Warnf(logging.CategoryGameState,
 			"Camping: Finally() called but CampingScene already nil - possible double cleanup?")
 	}
 	if campingState.Interrupted && !campingState.WandererEncountered {
@@ -632,7 +595,7 @@ func (g *GameState) finalizeCampingSequence(
 	if completionCleanup != nil {
 		completionCleanup()
 	}
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Camping: Finally() cleanup completed - CampingScene set to nil at time=%d", g.ElapsedMs)
 }
 
@@ -647,13 +610,13 @@ func (g *GameState) processSingleCampingCycle(campingScene *camping.CampingScene
 	if campingState.AmbushedAt == NoAmbush && (hourChanged || forcedAmbush) {
 		// Prevent random ambushes when testing wanderer in debug mode
 		if campingState.ForceWanderer && !campingState.ForceAmbush {
-			logging.Debug(logging.CategoryGameState, "DEBUG: Skipping random ambush check - testing wanderer")
+			logging.Debugf(logging.CategoryGameState, "DEBUG: Skipping random ambush check - testing wanderer")
 		} else if g.CheckForAmbushDuringHour(forcedAmbush) {
 			ambush, err := g.QueueOutdoorCampingAmbush(
 				campingScene, campingState, campingState.ActivePlayerIndex,
 			)
 			if err != nil {
-				logging.Error(logging.CategoryGameState, "Unable to prepare camping combat: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to prepare camping combat: %v", err)
 				g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 				campingState.Interrupted = true
 				campingScene.InterruptCamping()
@@ -668,7 +631,7 @@ func (g *GameState) processSingleCampingCycle(campingScene *camping.CampingScene
 
 			g.SystemCallbacks.Message.AddRowStr("") // Blank line for separation
 			g.SystemCallbacks.Message.AddRowStr("Ambushed!")
-			logging.Info(logging.CategoryGameState,
+			logging.Infof(logging.CategoryGameState,
 				"Prepared camping ambush: monster=%s primary=%d friends=%d",
 				ambush.MonsterType,
 				ambush.PrimaryCount,
@@ -746,7 +709,7 @@ func (g *GameState) tryGuardWander(campingState *CampingState) {
 
 	// Validate new position (original: onscreen && legalmove2)
 	if !g.isValidCampingPosition(newPosition) {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Camping: Guard wander attempted %v but position invalid/impassable", direction)
 
 		return
@@ -756,7 +719,7 @@ func (g *GameState) tryGuardWander(campingState *CampingState) {
 	oldPosition := campingState.GuardPosition
 	campingState.GuardPosition = *newPosition
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Camping: Guard wandered %v from (%d,%d) to (%d,%d)",
 		direction, oldPosition.X, oldPosition.Y, newPosition.X, newPosition.Y)
 
@@ -796,7 +759,7 @@ func (g *GameState) isValidCampingPosition(position *references.Position) bool {
 	// See ref:CAMP-0005.
 	combatLayeredMap := g.MapState.LayeredMaps.GetLayeredMap(references.CombatMapType, 0)
 	if combatLayeredMap == nil {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Camping: No combat LayeredMap available for guard validation")
 
 		return false
@@ -805,7 +768,7 @@ func (g *GameState) isValidCampingPosition(position *references.Position) bool {
 	// Get the tile from the LayeredMap
 	tile := combatLayeredMap.GetTopTile(position)
 	if tile == nil {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Camping: Guard movement blocked at (%d,%d) - no tile found",
 			position.X, position.Y)
 
@@ -814,7 +777,7 @@ func (g *GameState) isValidCampingPosition(position *references.Position) bool {
 
 	// Check if tile is passable for walking (NoPartyVehicle = on foot)
 	if !tile.IsPassable(references.NoPartyVehicle) {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Camping: Guard movement blocked at (%d,%d) - tile %s (index %d) is not passable",
 			position.X, position.Y, tile.Name, tile.Index)
 
@@ -831,7 +794,7 @@ func (g *GameState) isValidCampingPosition(position *references.Position) bool {
 		}
 		partyMemberPos := g.CampingScene.GetPartyMemberPosition(i)
 		if partyMemberPos.X == position.X && partyMemberPos.Y == position.Y {
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"Camping: Guard movement blocked at (%d,%d) - party member %d is there",
 				position.X, position.Y, i)
 
@@ -872,11 +835,11 @@ func (g *GameState) setupCampingScene(campingScene *camping.CampingScene) {
 		g.SystemCallbacks.Audio.Play(SoundFireCrackle).Loop().Start()
 	}
 
-	logging.Debug(logging.CategoryGameState, "Camping: Scene setup - overlays hidden, music paused")
+	logging.Debugf(logging.CategoryGameState, "Camping: Scene setup - overlays hidden, music paused")
 
 	// Store the camping scene in GameState for access during camping
 	g.CampingScene = campingScene
-	logging.Debug(logging.CategoryGameState, "Camping: Scene activated with %d party members",
+	logging.Debugf(logging.CategoryGameState, "Camping: Scene activated with %d party members",
 		g.PartyState.CountActiveMembers())
 }
 
@@ -902,11 +865,11 @@ func (g *GameState) setupBardGuard(campingScene *camping.CampingScene, campingSt
 	g.SystemCallbacks.Audio.Play(SoundBardLute).Loop().Start()
 
 	// Set sprite override to show bard playing animation
-	g.SpriteOverrides.Set("camping", "guard", indexes.BardPlaying_KeyIndex)
+	g.SpriteOverrides.Set("camping", "guard", indexes.BardPlayingKeyIndex)
 	// The owning workflow awaits this performance before starting logical cycles.
 	campingState.BardMusicPlaying = true
 
-	logging.Debug(logging.CategoryGameState, "Camping: Bard guard starting music performance")
+	logging.Debugf(logging.CategoryGameState, "Camping: Bard guard starting music performance")
 
 	// Note: No "Time advances..." message in original
 	// See ref:CAMP-0005.
@@ -1003,7 +966,7 @@ func (g *GameState) cleanupCampingScene(campingScene *camping.CampingScene, camp
 	// Show all overlays when leaving camping (restore normal gameplay)
 	g.SystemCallbacks.Screen.ShowAllOverlays()
 
-	logging.Debug(logging.CategoryGameState, "Camping: Cleanup - campfire stopped, music resumed, overlays restored, MessageDialog hidden")
+	logging.Debugf(logging.CategoryGameState, "Camping: Cleanup - campfire stopped, music resumed, overlays restored, MessageDialog hidden")
 
 	if campingState.BardMusicPlaying {
 		g.SystemCallbacks.Audio.Stop(SoundBardLute).Now()
@@ -1019,37 +982,10 @@ func (g *GameState) cleanupCampingScene(campingScene *camping.CampingScene, camp
 
 	// Clear all camping sprite overrides
 	g.SpriteOverrides.ClearContext("camping")
-	logging.Debug(logging.CategoryGameState, "Camping: Sprite overrides cleared")
+	logging.Debugf(logging.CategoryGameState, "Camping: Sprite overrides cleared")
 
 	// Complete the camping scene
 	campingScene.CompleteCamping()
-
-	// PROFILING: Stop CPU profiling and capture memory profile if enabled
-	if EnableCampingProfiling {
-		if campingCPUProfileFile != nil {
-			pprof.StopCPUProfile()
-			if err := campingCPUProfileFile.Close(); err != nil {
-				logging.Warn(logging.CategoryGameState, "Failed to close CPU profile file: %v", err)
-			}
-			logging.Info(logging.CategoryGameState, "CPU profiling stopped - written to camping_cpu.prof")
-			campingCPUProfileFile = nil
-		}
-
-		// Capture memory profile
-		memProfileFile, err := os.Create("camping_mem.prof")
-		if err != nil {
-			logging.Warn(logging.CategoryGameState, "Failed to create memory profile: %v", err)
-		} else {
-			if err := pprof.WriteHeapProfile(memProfileFile); err != nil {
-				logging.Warn(logging.CategoryGameState, "Failed to write memory profile: %v", err)
-			} else {
-				logging.Info(logging.CategoryGameState, "Memory profile written to camping_mem.prof")
-			}
-			if err := memProfileFile.Close(); err != nil {
-				logging.Warn(logging.CategoryGameState, "Failed to close memory profile file: %v", err)
-			}
-		}
-	}
 }
 
 func (g *GameState) isValidCampingGuard(guardIndex int) bool {
@@ -1089,7 +1025,7 @@ func (g *GameState) applyCampingHealing(campingScene *camping.CampingScene) stri
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundNoEffect)
 		g.SystemCallbacks.Message.AddRowStr("") // Blank line for separation
 		g.SystemCallbacks.Message.AddRowStr("No effect...")
-		logging.Debug(logging.CategoryGameState, "Camping no effect - LastCamped=%d, Hours=%d", g.LastCamped, campingScene.Hours)
+		logging.Debugf(logging.CategoryGameState, "Camping no effect - LastCamped=%d, Hours=%d", g.LastCamped, campingScene.Hours)
 
 		return "No effect..."
 	}
@@ -1140,7 +1076,7 @@ func (g *GameState) applyCampingHealing(campingScene *camping.CampingScene) stri
 	// Set cooldown
 	// See ref:CAMP-0005.
 	g.LastCamped = 14 // 14-hour cooldown
-	logging.Debug(logging.CategoryGameState, "Camping success - Party rested! LastCamped set to 14")
+	logging.Debugf(logging.CategoryGameState, "Camping success - Party rested! LastCamped set to 14")
 
 	return "Party rested!"
 }

@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"image/png"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
-	"github.com/bradhannah/UltimaVRedux/internal/originaldata/introarchive"
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/bradhannah/UltimaVRedux/internal/originaldata/introarchive"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 var (
@@ -17,6 +18,8 @@ var (
 	reduxLogo []byte
 )
 
+// IntroSprites holds the decoded original title-sequence graphics and the
+// embedded Redux logo used by the intro scene.
 type IntroSprites struct {
 	OriginFrames     []*ebiten.Image
 	Presents         *ebiten.Image

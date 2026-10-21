@@ -8,6 +8,7 @@ const ToggleItemDuration = 255
 // ToggleItemType identifies which toggle item is being tracked.
 type ToggleItemType byte
 
+// Toggle item kinds; the byte is the original item letter (Amulet, Crown, Badge).
 const (
 	ToggleItemAmulet ToggleItemType = 'A'
 	ToggleItemCrown  ToggleItemType = 'C'

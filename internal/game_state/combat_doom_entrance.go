@@ -75,7 +75,6 @@ func (g *GameState) reclaimSceptreForShadowlordCombat() bool {
 	g.SystemCallbacks.Message.AddRowStr("The Sceptre is reclaimed!")
 	g.SystemCallbacks.Audio.PlaySoundEffect(SoundShardPulse)
 	g.PartyState.Inventory.QuestItems.Set(references.Sceptre, 0)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return true
 }

@@ -308,6 +308,11 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 		g.secondaryKeyState = PrimaryInput
 	case KlimbDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionKlimbLargeMap(direction), originMapType)
+		// A fall's damage lands in its workflow; finish the turn after it, as town Klimb does.
+		if result.State == surfaceCommandCompleted && g.gameState.EventQueueManager.HasActiveWorkflows() {
+			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
+			g.deferSurfaceCommandCompletion(result)
+		}
 		g.secondaryKeyState = PrimaryInput
 	case LookDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionLookLargeMap(direction), originMapType)
@@ -325,7 +330,7 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 		result = newSurfaceCommandResult(state, originMapType)
 		g.secondaryKeyState = PrimaryInput
 	case TalkDirectionInput:
-		result = surfaceResultFromSuccess(g.gameState.ActionTalkLargeMap(direction), originMapType)
+		result = surfaceResultFromSuccess(g.gameState.ActionTalkLargeMap(), originMapType)
 		g.secondaryKeyState = PrimaryInput
 	case SearchDirectionInput:
 		state := g.surfaceSearchSecondaryWithDialog(direction, func(state surfaceCommandState) {
@@ -336,8 +341,6 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 	case AttackDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionAttackLargeMap(direction), originMapType)
 		g.secondaryKeyState = PrimaryInput
-	case UseDirectionInput:
-		result = surfaceResultFromSuccess(g.gameState.ActionUseLargeMap(direction), originMapType)
 		g.secondaryKeyState = PrimaryInput
 	// YellDirectionInput removed - now handled by YellDialog
 	// WindChangeScrollDirectionInput removed - now handled by DirectionPrompt dialog
@@ -389,7 +392,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 	var hadEnemyContact bool
 
 	// Start event queue for automatic sailing with key-aware callback
-	logging.Debug(logging.CategoryGameState, "SAILING: Starting automatic_sailing queue")
+	logging.Debugf(logging.CategoryGameState, "SAILING: Starting automatic_sailing queue")
 	g.gameState.EventQueueManager.Workflow(automaticSailingWorkflowName).
 		Priority(event_queue.PriorityNormal).
 		Sequential().
@@ -557,7 +560,7 @@ func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 
 		func() {
 			g.surfaceCamera = surfaceCameraProjection{}
-			logging.Debug(logging.CategoryGameState, "SAILING: Finally() executing - automatic sailing ended")
+			logging.Debugf(logging.CategoryGameState, "SAILING: Finally() executing - automatic sailing ended")
 			if interruptedByInput {
 				g.gameState.CompleteAutomaticSailingInterruption()
 			} else {

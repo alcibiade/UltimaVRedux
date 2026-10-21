@@ -24,13 +24,13 @@ import (
 // drawAvatarOverlay renders the player avatar as an overlay on top of moongates
 // This duplicates the avatar rendering from the map system but renders it post-process
 // In camping mode, it renders all party members at their camping positions
-// In minimap scene mode, it renders actors from the MiniMapScene (shrine, codex, endgame)
+// In minimap scene mode, it renders actors from the minimap.Scene (shrine, codex, endgame)
 // NOTE: Death scene apparitions are rendered via generic tile dissolve system
 // with RenderLayerOverFade (see drawActiveTileDissolves() in gamescene_draw_core.go)
 func (g *GameScene) drawAvatarOverlay(screen *ebiten.Image) {
-	// Check if we're in minimap scene mode - render actors from MiniMapScene
+	// Check if we're in minimap scene mode - render actors from minimap.Scene
 	if g.miniMapScene != nil {
-		logging.Debug(logging.CategoryUI, "drawAvatarOverlay: In minimap scene mode - rendering minimap actors")
+		logging.Debugf(logging.CategoryUI, "drawAvatarOverlay: In minimap scene mode - rendering minimap actors")
 		g.drawMiniMapActors(screen)
 		g.drawLordBritishFinaleMoongate(screen)
 
@@ -64,7 +64,7 @@ func (g *GameScene) drawAvatarOverlay(screen *ebiten.Image) {
 
 	// Check if we're in camping mode - render party members around campfire
 	if g.gameState.IsInCamping() && g.gameState.CampingScene != nil {
-		logging.Debug(logging.CategoryUI, "drawAvatarOverlay: In camping mode - rendering camping party and wanderer")
+		logging.Debugf(logging.CategoryUI, "drawAvatarOverlay: In camping mode - rendering camping party and wanderer")
 		g.drawCampingPartyOverlay(screen)
 		// Also render wanderer if present during camping
 		g.drawWandererOverlay(screen)
@@ -72,9 +72,9 @@ func (g *GameScene) drawAvatarOverlay(screen *ebiten.Image) {
 		return
 	}
 	if g.gameState.IsInCamping() {
-		logging.Debug(logging.CategoryUI, "drawAvatarOverlay: IsInCamping=true but CampingScene=nil")
+		logging.Debugf(logging.CategoryUI, "drawAvatarOverlay: IsInCamping=true but CampingScene=nil")
 	} else if g.gameState.CampingScene != nil {
-		logging.Debug(logging.CategoryUI, "drawAvatarOverlay: CampingScene!=nil but IsInCamping=false")
+		logging.Debugf(logging.CategoryUI, "drawAvatarOverlay: CampingScene!=nil but IsInCamping=false")
 	}
 
 	// Normal mode: Avatar is always at the center of the visible screen
@@ -582,7 +582,7 @@ func combatPartySpriteIndex(character *party_state.PlayerCharacter, invisible, r
 		return indexes.InvisiblePlayer
 	}
 	if rat {
-		return indexes.Rat_KeyIndex
+		return indexes.RatKeyIndex
 	}
 
 	return character.GetKeySpriteIndex()
@@ -731,36 +731,36 @@ func (g *GameScene) drawWandererOverlay(screen *ebiten.Image) {
 	// Only render during camping mode
 	campingScene := g.gameState.CampingScene
 	if campingScene == nil || !campingScene.WandererPresent {
-		logging.Debug(logging.CategoryUI, "drawWandererOverlay: Skipping - campingScene=%v, wandererPresent=%v",
+		logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Skipping - campingScene=%v, wandererPresent=%v",
 			campingScene != nil, campingScene != nil && campingScene.WandererPresent)
 
 		return
 	}
 
-	logging.Debug(logging.CategoryUI, "drawWandererOverlay: Rendering wanderer with dissolveLevel=%.2f", g.wandererDissolve.GetLevel())
+	logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Rendering wanderer with dissolveLevel=%.2f", g.wandererDissolve.GetLevel())
 
 	// Get wanderer position on camping map
 	wandererPos := campingScene.GetWandererPosition()
-	logging.Debug(logging.CategoryUI, "drawWandererOverlay: Wanderer position (%d,%d)", wandererPos.X, wandererPos.Y)
+	logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Wanderer position (%d,%d)", wandererPos.X, wandererPos.Y)
 
 	// Convert camping position to screen tile position
 	centerOffset := 5 // Center of 11x11 camping map
 	tileX := int(wandererPos.X) - centerOffset + (xTilesVisibleOnGameScreen / 2)
 	tileY := int(wandererPos.Y) - centerOffset + (yTilesVisibleOnGameScreen / 2)
 
-	logging.Debug(logging.CategoryUI, "drawWandererOverlay: Screen tile position (%d,%d), visible area (%dx%d)",
+	logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Screen tile position (%d,%d), visible area (%dx%d)",
 		tileX, tileY, xTilesVisibleOnGameScreen, yTilesVisibleOnGameScreen)
 
 	// Skip if position is off-screen
 	if tileX < 0 || tileX >= xTilesVisibleOnGameScreen || tileY < 0 || tileY >= yTilesVisibleOnGameScreen {
-		logging.Debug(logging.CategoryUI, "drawWandererOverlay: Position off-screen, skipping")
+		logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Position off-screen, skipping")
 
 		return
 	}
 
 	// Calculate screen pixel position
 	screenX, screenY := sprites.ConvertPosition16to18(tileX, tileY)
-	logging.Debug(logging.CategoryUI, "drawWandererOverlay: Screen pixel position (%.1f,%.1f)", screenX, screenY)
+	logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Screen pixel position (%.1f,%.1f)", screenX, screenY)
 
 	// Setup draw options
 	wandererDrawOptions := &ebiten.DrawImageOptions{}
@@ -783,23 +783,23 @@ func (g *GameScene) drawWandererOverlay(screen *ebiten.Image) {
 	wandererSprite := g.spriteSheet.GetAnimatedSprite(indexes.Apparation1, posHash, animationTime)
 
 	if wandererSprite == nil {
-		logging.Debug(logging.CategoryUI, "drawWandererOverlay: Failed to load Wizard1 sprite")
+		logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Failed to load Wizard1 sprite")
 
 		return
 	}
 
-	logging.Debug(logging.CategoryUI, "drawWandererOverlay: Loaded Wizard1 sprite successfully")
+	logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Loaded Wizard1 sprite successfully")
 
 	// Apply magical blue outline for mystical appearance
 	wandererSprite = g.spriteSheet.GetTileEffectProcessor().ApplyDynamicSimple(wandererSprite, sprites.BlueOutline)
-	logging.Debug(logging.CategoryUI, "drawWandererOverlay: Applied blue outline")
+	logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Applied blue outline")
 
 	// Apply dissolve effect if active
 	if g.wandererDissolve.GetLevel() > 0.0 {
-		logging.Debug(logging.CategoryUI, "drawWandererOverlay: Applying dissolve effect level %.2f", g.wandererDissolve.GetLevel())
+		logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Applying dissolve effect level %.2f", g.wandererDissolve.GetLevel())
 		g.drawWandererWithDissolveEffect(wandererSprite, wandererDrawOptions, screen)
 	} else {
-		logging.Debug(logging.CategoryUI, "drawWandererOverlay: Drawing wanderer directly (no dissolve)")
+		logging.Debugf(logging.CategoryUI, "drawWandererOverlay: Drawing wanderer directly (no dissolve)")
 		// Draw wanderer directly to screen
 		screen.DrawImage(wandererSprite, wandererDrawOptions)
 	}
@@ -858,11 +858,11 @@ func spriteWithDissolveMask(sprite *ebiten.Image, dissolveState *DissolveEffectS
 func (g *GameScene) drawWandererWithDissolveEffect(wandererSprite *ebiten.Image, drawOptions *ebiten.DrawImageOptions, screen *ebiten.Image) {
 	// Ensure dissolve effect is initialized
 	if !g.wandererDissolve.IsActive() {
-		logging.Warn(logging.CategoryUI, "drawWandererWithDissolveEffect: Dissolve effect not initialized, initializing now")
+		logging.Warnf(logging.CategoryUI, "drawWandererWithDissolveEffect: Dissolve effect not initialized, initializing now")
 		g.initializeWandererDissolveEffect()
 		if !g.wandererDissolve.IsActive() {
 			// Still not active - initialization failed, draw without dissolve
-			logging.Warn(logging.CategoryUI, "drawWandererWithDissolveEffect: Failed to initialize dissolve effect, drawing without dissolve")
+			logging.Warnf(logging.CategoryUI, "drawWandererWithDissolveEffect: Failed to initialize dissolve effect, drawing without dissolve")
 			screen.DrawImage(wandererSprite, drawOptions)
 
 			return
@@ -878,7 +878,7 @@ func (g *GameScene) drawWandererWithDissolveEffect(wandererSprite *ebiten.Image,
 func (g *GameScene) drawAvatarOverlayWithDissolveEffect(avatarSprite *ebiten.Image, drawOptions *ebiten.DrawImageOptions, screen *ebiten.Image) {
 	// Ensure dissolve effect is initialized
 	if !g.avatarDissolve.IsActive() {
-		logging.Warn(logging.CategoryUI, "drawAvatarOverlayWithDissolveEffect: Dissolve effect not initialized, drawing without dissolve")
+		logging.Warnf(logging.CategoryUI, "drawAvatarOverlayWithDissolveEffect: Dissolve effect not initialized, drawing without dissolve")
 		screen.DrawImage(avatarSprite, drawOptions)
 
 		return
@@ -914,7 +914,7 @@ func (g *GameScene) drawActiveTileDissolves(screen *ebiten.Image, layer TileDiss
 			continue
 		}
 
-		logging.Debug(logging.CategoryUI, "drawActiveTileDissolves: ID=%d layer=%d pos=(%d,%d) posMode=%d",
+		logging.Debugf(logging.CategoryUI, "drawActiveTileDissolves: ID=%d layer=%d pos=(%d,%d) posMode=%d",
 			state.ID, state.RenderLayer, state.Position.X, state.Position.Y, state.PositionMode)
 
 		var tileX, tileY int
@@ -980,7 +980,7 @@ func (g *GameScene) drawActiveTileDissolves(screen *ebiten.Image, layer TileDiss
 		tileSprite := g.spriteSheet.GetAnimatedSprite(state.SpriteIndex, posHash, animationTime)
 
 		if tileSprite == nil {
-			logging.Warn(logging.CategoryUI, "drawActiveTileDissolves: Failed to get sprite %d", state.SpriteIndex)
+			logging.Warnf(logging.CategoryUI, "drawActiveTileDissolves: Failed to get sprite %d", state.SpriteIndex)
 
 			continue
 		}
@@ -998,7 +998,7 @@ func (g *GameScene) drawActiveTileDissolves(screen *ebiten.Image, layer TileDiss
 // Note: drawDeathSceneSpritesOverFade() removed - death scene apparitions now rendered
 // via generic tile dissolve system with RenderLayerOverFade in drawActiveTileDissolves()
 
-// drawMiniMapActors renders actors from the MiniMapScene onto the screen
+// drawMiniMapActors renders actors from the minimap.Scene onto the screen
 // This is used for scripted cutscenes (shrine, codex, endgame) where actors
 // move according to predefined scripts with the camera staying fixed.
 // The scene's camera center determines which part of the grid is visible.

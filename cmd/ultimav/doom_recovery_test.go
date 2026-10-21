@@ -169,7 +169,7 @@ func TestDoomRunAssociationClearsAfterLeavingDoom(t *testing.T) {
 		WithFloor(0).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state, activeDoomRunID: "active-run"} //nolint:exhaustruct // Association fixture.
+	scene := &GameScene{gameState: state, activeDoomRunID: "active-run"}
 
 	scene.clearDoomRunAssociationOutsideRun()
 	assert.Equal(t, "active-run", scene.doomRunAssociation())
@@ -370,7 +370,7 @@ func newDoomEntryRecoveryScene(t *testing.T, livingShadowlords int) (*GameScene,
 	}
 	callbacks.Reset()
 
-	return &GameScene{ //nolint:exhaustruct // Focused entry orchestration fixture.
+	return &GameScene{
 		activePlaythrough: playthroughMetadata{id: testPlaythroughID},
 		gameState:         state, gameConfig: state.GameConfig, keyboard: newPresentationTestKeyboard(),
 		output: text.NewOutput(nil, 1, 64, 80),
@@ -390,7 +390,7 @@ func newDoomRecoverySource(t *testing.T, runID string) (*GameScene, save_snapsho
 		Location: int(references.BritanniaUnderworld), X: int(entrance.X), Y: int(entrance.Y), Floor: int(references.UNDERWORLD),
 	}
 	snapshot.Random = save_snapshot.RandomSnapshot{Seed: 465, SourceCalls: 73}
-	source := &GameScene{ //nolint:exhaustruct // Focused terminal recovery fixture.
+	source := &GameScene{
 		activePlaythrough: playthroughMetadata{id: testPlaythroughID},
 		gameState:         state, gameConfig: state.GameConfig, activeDoomRunID: runID,
 	}

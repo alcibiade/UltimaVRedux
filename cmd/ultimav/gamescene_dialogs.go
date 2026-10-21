@@ -1146,7 +1146,7 @@ func (g *GameScene) updateTimedOverlay() {
 // This is the primary visual feedback mechanism for player commands, providing
 // prominent feedback without requiring the player to watch the text scroll.
 func (g *GameScene) ShowActionFeedback(message string, alsoAddToOutput bool) {
-	logging.Info(logging.CategoryUI,
+	logging.Infof(logging.CategoryUI,
 		"ShowActionFeedback called with message: %q, alsoAddToOutput: %v", message, alsoAddToOutput)
 
 	// Optionally add to main output pane for authentic Ultima V record

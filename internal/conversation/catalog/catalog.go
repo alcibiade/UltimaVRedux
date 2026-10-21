@@ -51,11 +51,6 @@ func (program *Program) CanonicalYAML() []byte {
 	return append([]byte(nil), program.data...)
 }
 
-// Patched reports whether an embedded project patch was applied to this program.
-func (program *Program) Patched() bool {
-	return program != nil && program.patched
-}
-
 // ID returns the stable conversation ID.
 func (program *Program) ID() string {
 	if program == nil {

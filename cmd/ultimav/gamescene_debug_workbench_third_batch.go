@@ -235,7 +235,7 @@ func validateSearchCallbacks(state *game_state.GameState, mapType references.Gen
 
 		return nil
 	}
-	if state.SystemCallbacks.Audio.PlaySoundEffect == nil || state.SystemCallbacks.Screen.UpdateStatsDisplay == nil {
+	if state.SystemCallbacks.Audio.PlaySoundEffect == nil {
 		return errCombatSearchCallbacks
 	}
 

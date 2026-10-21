@@ -53,7 +53,7 @@ func (g *GameState) moveControlledCombatMonster(
 	})
 	g.CheckTrap(to)
 	g.resolveCombatMonsterActionEffects(monster, monsterIndex)
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Controlled monster %s (idx=%d) moved %s to (%d,%d)",
 		monster.MonsterType().Name(), monsterIndex, direction.GetDirectionCompassName(), to.X, to.Y)
 

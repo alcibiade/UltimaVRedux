@@ -217,8 +217,7 @@ func (d *TavernResultDialog) populateOutputs() {
 	d.bodyOutput.Reset()
 	d.populateBodyOutput()
 	d.footerOutput.Reset()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("[Enter/Esc]").LightGray(" Continue").Done()
+	appendControlGuidance(d.footerOutput, tavernResultFooter, d.frame.footerText.Dx())
 }
 
 func (d *TavernResultDialog) populateBodyOutput() {

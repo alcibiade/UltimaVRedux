@@ -42,14 +42,14 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 	spawnFloor references.FloorNumber,
 	sourceFixedPosition bool,
 ) *map_units.NPCEnemy {
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"SpawnShadowlordNPCAtPosition: spawning %s at (%d, %d) floor %d",
 		lord.String(), spawnPos.X, spawnPos.Y, spawnFloor)
 
 	if g.ShadowlordState == nil || !g.ShadowlordState.IsAlive(lord) ||
 		g.GameReferences == nil || g.GameReferences.EnemyReferences == nil ||
 		g.GameReferences.LocationReferences == nil {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: Shadowlord state or references are unavailable")
 
 		return nil
@@ -57,21 +57,21 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 
 	shadowlordEnemy := g.enemyReference(references.MonsterShadowlord)
 	if shadowlordEnemy == nil || shadowlordEnemy.KeyFrameTile == nil {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: static Shadowlord reference is unavailable")
 
 		return nil
 	}
 
 	if g.CurrentNPCAIController == nil {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: CurrentNPCAIController is nil")
 
 		return nil
 	}
 	units := g.CurrentNPCAIController.GetNpcs()
 	if units == nil || !units.HasCapacity() {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: map-unit controller is unavailable or full")
 
 		return nil
@@ -79,28 +79,28 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 
 	location := g.MapState.PlayerLocation.Location
 	if location.GetMapType() != references.SmallMapType {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: Shadowlords require a small map")
 
 		return nil
 	}
 	locationReference := g.GameReferences.LocationReferences.GetLocationReference(location)
 	if locationReference == nil {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: current location reference is unavailable")
 
 		return nil
 	}
 	minimumFloor, maximumFloor := locationReference.GetFloorMinMax()
 	if spawnFloor < minimumFloor || spawnFloor > maximumFloor {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: floor %d is invalid for %s", spawnFloor, location.String())
 
 		return nil
 	}
 	if spawnPos.X < 0 || spawnPos.Y < 0 ||
 		spawnPos.X > locationReference.GetMaxX() || spawnPos.Y > locationReference.GetMaxY() {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: position (%d, %d) is out of bounds", spawnPos.X, spawnPos.Y)
 
 		return nil
@@ -108,7 +108,7 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 
 	layeredMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, spawnFloor)
 	if layeredMap == nil {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: current floor is not materialized")
 
 		return nil
@@ -119,13 +119,13 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 	// remains valid because original Shadowlord collision explicitly permits it.
 	if spawnTile == nil || (!sourceFixedPosition &&
 		!shadowlordEnemy.CanSpawnToTile(spawnTile) && !spawnTile.Is(indexes.BlueFlame)) {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: position (%d, %d) is not passable", spawnPos.X, spawnPos.Y)
 
 		return nil
 	}
 	if spawnFloor == g.MapState.PlayerLocation.Floor && spawnPos == g.MapState.PlayerLocation.Position {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: spawn position is occupied by the party")
 
 		return nil
@@ -135,14 +135,14 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 			continue
 		}
 		if unit.Pos() == spawnPos && unit.Floor() == spawnFloor {
-			logging.Error(logging.CategoryGameState,
+			logging.Errorf(logging.CategoryGameState,
 				"SpawnShadowlordNPCAtPosition: spawn position is occupied")
 
 			return nil
 		}
 		enemy, ok := unit.(*map_units.NPCEnemy)
 		if ok && enemy.Variant() == map_units.EnemyVariantShadowlord {
-			logging.Error(logging.CategoryGameState,
+			logging.Errorf(logging.CategoryGameState,
 				"SpawnShadowlordNPCAtPosition: a physical Shadowlord is already present")
 
 			return nil
@@ -156,7 +156,7 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 	npcEnemy.SetVisible(true)
 
 	if !units.AddEnemy(npcEnemy) {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"SpawnShadowlordNPCAtPosition: failed to add Shadowlord enemy to map")
 
 		return nil
@@ -166,7 +166,7 @@ func (g *GameState) insertShadowlordNPCAtFloorPosition(
 		panic("inserted Shadowlord cannot be recovered from map-unit authority")
 	}
 
-	logging.Info(logging.CategoryGameState,
+	logging.Infof(logging.CategoryGameState,
 		"SpawnShadowlordNPCAtPosition: %s spawned at (%d, %d)",
 		lord.String(), spawnPos.X, spawnPos.Y)
 
@@ -267,7 +267,7 @@ func (g *GameState) clearPhysicalShadowlords() {
 // See ref:SHADOW-0002.
 func (g *GameState) ApplyShadowlordEffectsToNPCs(lord references.Shadowlord) {
 	if g.CurrentNPCAIController == nil {
-		logging.Warn(logging.CategoryGameState,
+		logging.Warnf(logging.CategoryGameState,
 			"ApplyShadowlordEffectsToNPCs: CurrentNPCAIController is nil, NPC effects skipped")
 
 		return
@@ -276,7 +276,7 @@ func (g *GameState) ApplyShadowlordEffectsToNPCs(lord references.Shadowlord) {
 	// Shadowlord effects only apply on small maps
 	smallMapController, ok := g.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 	if !ok {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"ApplyShadowlordEffectsToNPCs: not on small map, skipping NPC effects")
 
 		return
@@ -287,7 +287,7 @@ func (g *GameState) ApplyShadowlordEffectsToNPCs(lord references.Shadowlord) {
 		return g.OneInXOdds(2) // 50% chance
 	})
 
-	logging.Info(logging.CategoryGameState,
+	logging.Infof(logging.CategoryGameState,
 		"ApplyShadowlordEffectsToNPCs: applied %s effects to NPCs (automatic presence)", lord.String())
 }
 
@@ -321,7 +321,7 @@ func (g *GameState) ApplyFaulineiShopTheft() uint16 {
 	// Deduct the gold
 	g.PartyState.Inventory.Gold.DecrementBy(theftAmount)
 
-	logging.Info(logging.CategoryGameState,
+	logging.Infof(logging.CategoryGameState,
 		"ApplyFaulineiShopTheft: Faulinei stole %d gold during shop transaction", theftAmount)
 
 	return theftAmount
@@ -484,7 +484,7 @@ func (g *GameState) ApplyShadowlordMapEffects(lord references.Shadowlord) (int, 
 	}
 
 	if destroyed > 0 {
-		logging.Info(logging.CategoryGameState,
+		logging.Infof(logging.CategoryGameState,
 			"ApplyShadowlordMapEffects: %s destroyed %d of %d crop/tree tiles",
 			lord.String(), destroyed, total)
 	}

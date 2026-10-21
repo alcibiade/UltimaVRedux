@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -113,6 +114,60 @@ func (f *merchantModalFrame) draw(screen *ebiten.Image) {
 	DrawClassicPixelRoundedFrame(screen, f.headerBounds, f.pixelUnit(), DialogRuleColor)
 	DrawClassicPixelRoundedFrame(screen, f.bodyBounds, f.pixelUnit(), DialogRuleColor)
 	DrawClassicPixelRoundedFrame(screen, f.footerBounds, f.pixelUnit(), DialogRuleColor)
+}
+
+// merchantModalTextBudget sets the line spacing and line/character limits of
+// a merchant modal's header, body and footer outputs.
+type merchantModalTextBudget struct {
+	lineSpacing      float64
+	maximumBodyLines int
+	footerLines      int
+	minimumChars     int
+}
+
+// newOutputs creates header, body and footer outputs sized to the frame's text
+// areas; the body holds as many lines as its area fits.
+func (f *merchantModalFrame) newOutputs(budget merchantModalTextBudget) (*gametext.Output, *gametext.Output,
+	*gametext.Output,
+) {
+	_, headerOutput := GetScaledFontWithOutput(FontConfig{
+		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
+		MaxLines: 1, MaxChars: budget.minimumChars,
+	})
+	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
+		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
+		MaxLines: budget.maximumBodyLines, MaxChars: budget.minimumChars,
+	})
+	_, footerOutput := GetScaledFontWithOutput(FontConfig{
+		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
+		MaxLines: budget.footerLines, MaxChars: budget.minimumChars,
+	})
+	headerOutput.SetMaxCharsPerLine(max(budget.minimumChars,
+		headerOutput.Font.CharsForWidth(max(1, f.headerText.Dx()))))
+	bodyOutput = gametext.NewOutput(bodyFont, bodyOutput.GetLineSpacing(),
+		max(1, bodyOutput.GetLineCapacity(max(1, f.bodyText.Dy()))),
+		max(budget.minimumChars, bodyFont.CharsForWidth(max(1, f.bodyText.Dx()))))
+	footerOutput.SetMaxCharsPerLine(max(budget.minimumChars,
+		footerOutput.Font.CharsForWidth(max(1, f.footerText.Dx()))))
+
+	return headerOutput, bodyOutput, footerOutput
+}
+
+// drawOutputs draws the centred header, top-left body and centred footer text.
+func (f *merchantModalFrame) drawOutputs(screen *ebiten.Image, header, body, footer *gametext.Output) {
+	header.DrawPanelContent(
+		screen,
+		image.Pt(f.headerText.Min.X, verticallyCenteredOutputY(f.headerText, header)),
+		f.headerText.Dx(),
+		etext.AlignCenter,
+	)
+	body.DrawPanelContent(screen, f.bodyText.Min, f.bodyText.Dx(), etext.AlignStart)
+	footer.DrawPanelContent(
+		screen,
+		image.Pt(f.footerText.Min.X, verticallyCenteredOutputY(f.footerText, footer)),
+		f.footerText.Dx(),
+		etext.AlignCenter,
+	)
 }
 
 func (f *merchantModalFrame) bounds() image.Rectangle {

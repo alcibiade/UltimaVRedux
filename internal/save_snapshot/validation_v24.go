@@ -74,3 +74,30 @@ func validatePersonalStateV24(snapshot SaveSnapshot, add func(string, string, st
 		}
 	}
 }
+
+func basementDeathFlagIndex(flag NPCFlagSnapshot) (int, bool) {
+	if flag.Location != int(references.LordBritishsCastle-references.Moonglow) {
+		return 0, false
+	}
+	for i, source := range references.LordBritishBasementChests() {
+		if flag.NPC == source.NPCNumber {
+			return i, true
+		}
+	}
+
+	return 0, false
+}
+
+func matchesBasementChestSource(unit MapUnitSnapshot) bool {
+	if (unit.Kind != MapUnitKindChest && unit.Kind != MapUnitKindNPC) || unit.SurfaceChestNumber == nil ||
+		unit.Position.Location != int(references.LordBritishsCastle) || unit.Position.Floor != int(references.Basement) {
+		return false
+	}
+	for _, source := range references.LordBritishBasementChests() {
+		if unit.NPCNum == source.NPCNumber && unit.Position.X == int(source.Position.X) && unit.Position.Y == int(source.Position.Y) {
+			return true
+		}
+	}
+
+	return false
+}

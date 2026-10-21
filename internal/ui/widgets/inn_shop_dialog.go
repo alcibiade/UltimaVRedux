@@ -38,7 +38,6 @@ const (
 	innShopCenterDivisor         = 2
 	innShopColumnName            = "NAME"
 	innShopColumnStatus          = "STATUS"
-	innShopLeaveFooter           = "[Enter/Esc] Leave"
 	innStatusDead                = "Dead"
 	innStatusUnknown             = "Unknown"
 )
@@ -935,12 +934,7 @@ func (d *InnShopDialog) drawRosterTable(screen *ebiten.Image) {
 	for index, bounds := range d.rowBounds {
 		selected := index == d.GetSelectedIndex() && d.phase == InnShopBrowse
 		if selected {
-			vector.FillRect(
-				screen,
-				float32(bounds.Min.X), float32(bounds.Min.Y),
-				float32(bounds.Dx()), float32(bounds.Dy()),
-				DialogSelectedBackground, false,
-			)
+			fillSelectedRow(screen, bounds)
 		}
 		if d.mode == InnShopLeave {
 			values := d.GetLeaveRowText(index)
@@ -990,7 +984,6 @@ func (d *InnShopDialog) drawCardFrame(screen *ebiten.Image, bounds image.Rectang
 	DrawClassicPixelRoundedFrame(screen, bounds, d.pixelUnit(), DialogRuleLightColor)
 }
 
-//nolint:dupl // Concrete merchant tables retain independent output and spacing contracts.
 func (d *InnShopDialog) drawCell(
 	screen *ebiten.Image,
 	row image.Rectangle,
@@ -1000,18 +993,7 @@ func (d *InnShopDialog) drawCell(
 	alignment etext.Align,
 ) {
 	inset := max(1, d.pixelUnit()*innShopCellInsetUnits)
-	cell := image.Rect(
-		column.Min.X+inset, row.Min.Y,
-		max(column.Min.X+inset+1, column.Max.X-inset), row.Max.Y,
-	)
-	d.rowOutput.SetMaxCharsPerLine(max(1, len(value)+1))
-	d.rowOutput.Reset()
-	d.rowOutput.AppendLine().Text(value, color).Done()
-	y := cell.Min.Y + max(
-		0,
-		(cell.Dy()-int(math.Ceil(d.rowOutput.GetFontHeight())))/innShopCenterDivisor,
-	)
-	d.rowOutput.DrawPanelContent(screen, image.Pt(cell.Min.X, y), max(1, cell.Dx()), alignment)
+	drawMerchantTableCell(screen, d.rowOutput, row, column, inset, value, color, alignment)
 }
 
 func (d *InnShopDialog) populateOutputs() {
@@ -1231,7 +1213,7 @@ func (d *InnShopDialog) footerGuidance() string {
 	case InnShopAwaitingResult:
 		return "Processing Inn action"
 	case InnShopSessionError:
-		return innShopLeaveFooter
+		return merchantLeaveFooter
 	default:
 		panic("InnShopDialog.footerGuidance: unknown phase")
 	}

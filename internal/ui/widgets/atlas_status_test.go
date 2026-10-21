@@ -65,7 +65,7 @@ func TestAtlasStatusCompleteAtEveryPreset(t *testing.T) {
 				require.Equal(t, mapRect, dialog.mapRect)
 				dialog.buildFooter()
 				require.Equal(t, 2, dialog.footer.GetPanelContentLineCount())
-				require.Contains(t, dialog.footer.GetOutputStr(false), "P Pan")
+				require.Contains(t, dialog.footer.GetOutputStr(false), "[P] Pan")
 			}
 		})
 	}

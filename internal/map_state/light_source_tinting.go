@@ -66,6 +66,22 @@ const (
 	MaxSourcesPerTile = 4
 )
 
+// Tint arithmetic constants.
+const (
+	// minTintChannel and maxTintChannel bound each final RGB scale factor.
+	minTintChannel = 0.3
+	maxTintChannel = 1.5
+	// noSourceDistance is the starting "closest" distance before any source is seen.
+	noSourceDistance = 1000.0
+	// independentPeriodMin and independentPeriodSpread give the +-15% (0.85 to 1.15)
+	// per-source period scale for IndependentBreathing, in independentPeriodSteps steps.
+	independentPeriodMin    = 0.85
+	independentPeriodSpread = 0.30
+	independentPeriodSteps  = 100
+	// fullCircle is one breathing cycle in radians.
+	fullCircle = 2 * math.Pi
+)
+
 // Unlit area parameters
 const (
 	// UnlitDarkeningFactor darkens tiles outside any light source radius.
@@ -79,43 +95,46 @@ const (
 // Ambient Light Configuration
 // ============================================================================
 
-// ambientLightRadius is the configurable radius for PlayerLightAmbient.
-// Set via SetAmbientLightRadius() during game initialization.
-// Default: 2 tiles. Range: 1-5.
-//
-// To change: Call map_state.SetAmbientLightRadius() from gamescene_initialization.go
-// or modify config.AmbientLightRadius in the config file.
-var ambientLightRadius = 2
+// defaultAmbientLightRadius is the night-vision radius, in tiles, used when none
+// (or one below 1) is configured. Configured range: 1-5.
+const defaultAmbientLightRadius = 2
 
-// SetAmbientLightRadius configures the ambient light radius for night vision.
-// Called during game initialization with value from config.
-// Falls back to 2 if radius < 1.
-func SetAmbientLightRadius(radius int) {
+// resolveAmbientLightRadius applies the fallback to the default for radii below 1.
+func resolveAmbientLightRadius(radius int) int {
 	if radius < 1 {
-		radius = 2
+		return defaultAmbientLightRadius
 	}
-	ambientLightRadius = radius
+
+	return radius
 }
 
 // ============================================================================
 // Math helpers
 // ============================================================================
 
-const pi = math.Pi
-
 func sin(x float64) float64    { return math.Sin(x) }
 func sqrt(x float64) float64   { return math.Sqrt(x) }
 func pow(x, y float64) float64 { return math.Pow(x, y) }
 
-func clampFloat(v, min, max float64) float64 {
-	if v < min {
-		return min
+func clampFloat(value, lower, upper float64) float64 {
+	if value < lower {
+		return lower
 	}
-	if v > max {
-		return max
+	if value > upper {
+		return upper
 	}
 
-	return v
+	return value
+}
+
+// tileOffset converts a light-radius offset to a map coordinate delta. Offsets
+// are bounded by the light radius, far inside the int16 range of Coordinate.
+func tileOffset(delta int) references.Coordinate {
+	if delta < math.MinInt16 || delta > math.MaxInt16 {
+		return 0
+	}
+
+	return references.Coordinate(delta)
 }
 
 // ============================================================================
@@ -126,11 +145,16 @@ func clampFloat(v, min, max float64) float64 {
 type PlayerLightType int
 
 const (
-	PlayerLightNone    PlayerLightType = iota
-	PlayerLightAmbient                 // Minimal night vision, neutral gray, 2 tile radius
-	PlayerLightTorch                   // Orange light, 3 tile radius
-	PlayerLightInLor                   // White light, 5 tile radius (In Lor spell)
-	PlayerLightVasLor                  // Bright white, 6 tile radius (Vas Lor spell)
+	// PlayerLightNone means the avatar carries no light.
+	PlayerLightNone PlayerLightType = iota
+	// PlayerLightAmbient is minimal night vision: neutral gray, configurable radius (default 2 tiles).
+	PlayerLightAmbient
+	// PlayerLightTorch is a lit torch: orange light, 3 tile radius.
+	PlayerLightTorch
+	// PlayerLightInLor is the In Lor spell: white light, 5 tile radius.
+	PlayerLightInLor
+	// PlayerLightVasLor is the Vas Lor spell: white light, 5 tile radius.
+	PlayerLightVasLor
 )
 
 // ============================================================================
@@ -190,49 +214,6 @@ type LightTintColor struct {
 	R, G, B float32
 }
 
-// Warm light tint colors (fire-based sources)
-// These add warmth by boosting red/green and reducing blue for orange/amber glow
-var (
-	// TorchWarm adds a warm orange tint for torches and sconces
-	TorchWarm = LightTintColor{R: 1.47, G: 0.93, B: 0.17}
-
-	// BrazierWarm adds a deeper orange tint (hot coals effect)
-	BrazierWarm = LightTintColor{R: 1.47, G: 0.93, B: 0.17}
-
-	// FireplaceWarm adds a reddish-orange tint (burning logs)
-	FireplaceWarm = LightTintColor{R: 1.47, G: 0.93, B: 0.17}
-
-	// CandleWarm adds a soft amber tint (gentler than torch)
-	CandleWarm = LightTintColor{R: 1.47, G: 0.93, B: 0.17}
-
-	// CookStoveRed adds a redder tint for cooking fires
-	CookStoveRed = LightTintColor{R: 1.55, G: 0.75, B: 0.15}
-
-	// LampPostWhite adds a whiter/cooler tint for street lamps
-	LampPostWhite = LightTintColor{R: 1.25, G: 1.15, B: 0.90}
-)
-
-// Cool light tint colors (magical sources)
-var (
-	// BlueFlameCool is a strong distinct blue tint for magical blue flames
-	// Reduces red/green and boosts blue for a clear magical blue glow
-	BlueFlameCool = LightTintColor{R: 0.70, G: 0.85, B: 1.45}
-
-	// MagicWhite is near-neutral (slight blue for magical feel)
-	MagicWhite = LightTintColor{R: 1.00, G: 1.00, B: 1.02}
-
-	// MoongatePurpleTint is a mystical blue tint for moongates
-	// Bright, slightly white-shifted blue for a glowing magical feel
-	MoongatePurpleTint = LightTintColor{R: 0.82, G: 0.90, B: 1.50}
-)
-
-// Lighthouse tint color (warm red for the rotating beam)
-var (
-	// LighthouseRed is the warm red tint for lighthouse beams.
-	// Creates a distinctive red glow for the rotating lighthouse cone.
-	LighthouseRed = LightTintColor{R: 1.15, G: 0.80, B: 0.80}
-)
-
 // LighthouseMarkerIndex is a special sprite index marker for lighthouse light sources.
 // Used to identify lighthouse contributions in the lit tiles map.
 const LighthouseMarkerIndex indexes.SpriteIndex = 0xFFFE
@@ -249,10 +230,14 @@ const MoongateMarkerIndex indexes.SpriteIndex = 0xFFFD
 // Allocation: 0xFFFC and below (0xFFFE=Lighthouse, 0xFFFD=Moongate)
 
 const (
-	WispMarkerIndex     indexes.SpriteIndex = 0xFFFC // Ethereal energy beings
-	SeahorseMarkerIndex indexes.SpriteIndex = 0xFFFB // Magical sea creatures
-	DaemonMarkerIndex   indexes.SpriteIndex = 0xFFFA // Demonic fire creatures
-	GhostMarkerIndex    indexes.SpriteIndex = 0xFFF9 // Spectral beings
+	// WispMarkerIndex marks wisps, ethereal energy beings.
+	WispMarkerIndex indexes.SpriteIndex = 0xFFFC
+	// SeahorseMarkerIndex marks seahorses, magical sea creatures.
+	SeahorseMarkerIndex indexes.SpriteIndex = 0xFFFB
+	// DaemonMarkerIndex marks daemons, demonic fire creatures.
+	DaemonMarkerIndex indexes.SpriteIndex = 0xFFFA
+	// GhostMarkerIndex marks ghosts, spectral beings.
+	GhostMarkerIndex indexes.SpriteIndex = 0xFFF9
 )
 
 // ============================================================================
@@ -263,192 +248,213 @@ const (
 // Allocation: 0xFFF8 and below
 
 const (
-	ShardMarkerIndex    indexes.SpriteIndex = 0xFFF8 // Shards of Evil (corrupted virtue gems)
-	ArtifactMarkerIndex indexes.SpriteIndex = 0xFFF7 // Lord British's Artifacts
+	// ShardMarkerIndex marks the Shards of Evil (corrupted virtue gems).
+	ShardMarkerIndex indexes.SpriteIndex = 0xFFF8
+	// ArtifactMarkerIndex marks Lord British's Artifacts.
+	ArtifactMarkerIndex indexes.SpriteIndex = 0xFFF7
 )
 
-// ============================================================================
-// NPC Light Tint Colors
-// ============================================================================
-// Colors for magical creatures that emit light.
-
-var (
-	// WispGlow is an ethereal blue-white glow for energy beings
-	WispGlow = LightTintColor{R: 0.90, G: 0.95, B: 1.40}
-
-	// SeahorseGlow is a bright white-cyan magical glow for mystical sea creatures
-	// Uses high brightness with slight cyan tint to stand out against blue water
-	SeahorseGlow = LightTintColor{R: 1.30, G: 1.45, B: 1.50}
-
-	// DaemonGlow is a red demonic glow for fire creatures
-	DaemonGlow = LightTintColor{R: 1.40, G: 0.85, B: 0.75}
-
-	// GhostGlow is a pale blue spectral glow for undead spirits
-	GhostGlow = LightTintColor{R: 0.95, G: 0.98, B: 1.25}
+// Light tint channel multipliers (see LightTintColor). Fire sources boost red and green
+// and cut blue for an orange glow; magical sources do the reverse.
+const (
+	// torchTint is shared by torches, sconces, braziers, fireplaces, candles and campfires.
+	torchTintR, torchTintG, torchTintB = 1.47, 0.93, 0.17
+	// cookStoveTint is a redder tint for cooking fires.
+	cookStoveTintR, cookStoveTintG, cookStoveTintB = 1.55, 0.75, 0.15
+	// lampPostTint is the whiter, cooler tint of street lamps.
+	lampPostTintR, lampPostTintG, lampPostTintB = 1.25, 1.15, 0.90
+	// blueFlameTint reduces red and green and boosts blue for a clear magical blue glow.
+	blueFlameTintR, blueFlameTintG, blueFlameTintB = 0.70, 0.85, 1.45
+	// magicWhiteTint is near neutral with a slight blue shift for the In Lor and Vas Lor spells.
+	magicWhiteTintR, magicWhiteTintG, magicWhiteTintB = 1.00, 1.00, 1.02
+	// moongateTint is a bright, white-shifted blue for moongates.
+	moongateTintR, moongateTintG, moongateTintB = 0.82, 0.90, 1.50
+	// lighthouseTint is the warm red of the rotating lighthouse beam.
+	lighthouseTintR, lighthouseTintG, lighthouseTintB = 1.15, 0.80, 0.80
+	// wispTint is an ethereal blue-white glow for energy beings.
+	wispTintR, wispTintG, wispTintB = 0.90, 0.95, 1.40
+	// seahorseTint is a bright white-cyan glow that stands out against blue water.
+	seahorseTintR, seahorseTintG, seahorseTintB = 1.30, 1.45, 1.50
+	// daemonTint is a red demonic glow for fire creatures.
+	daemonTintR, daemonTintG, daemonTintB = 1.40, 0.85, 0.75
+	// ghostTint is a pale blue spectral glow for undead spirits.
+	ghostTintR, ghostTintG, ghostTintB = 0.95, 0.98, 1.25
+	// ambientSightTint is the neutral gray of the avatar's minimal night vision.
+	ambientSightTintR, ambientSightTintG, ambientSightTintB = 0.55, 0.55, 0.55
+	// shardTint is a sinister red-purple glow for the corrupted Shards of Evil.
+	shardTintR, shardTintG, shardTintB = 1.30, 0.80, 1.20
+	// artifactTint is a noble golden-white glow for Lord British's Artifacts.
+	artifactTintR, artifactTintG, artifactTintB = 1.22, 1.18, 0.85
 )
 
-// ============================================================================
-// Quest Item Tint Colors
-// ============================================================================
-// Colors for quest items that emit light.
+// Per-source breathing overrides. Fire sources use the default period and
+// amplitude except where noted; magical sources pulse at their own rate.
+const (
+	sconceBreathingAmplitude    = 0.6
+	blueFlameBreathingAmplitude = 0.4
 
-var (
-	// AmbientSightDim provides minimal visibility in darkness without a torch.
-	// Neutral gray, slightly brighter than complete darkness but much dimmer than torch.
-	// Used for PlayerLightAmbient to give the avatar basic night vision.
-	AmbientSightDim = LightTintColor{R: 0.55, G: 0.55, B: 0.55}
-
-	// ShardGlow is a sinister red-purple glow for the corrupted Shards of Evil
-	// These represent corrupted virtue gems and should look ominous
-	ShardGlow = LightTintColor{R: 1.30, G: 0.80, B: 1.20}
-
-	// ArtifactGlow is a noble golden-white glow for Lord British's Artifacts
-	// Crown, Sceptre, and Amulet should have a regal, pure light
-	ArtifactGlow = LightTintColor{R: 1.22, G: 1.18, B: 0.85}
+	wispBreathingPeriodMs      = 1200 // Fast flicker for energy beings
+	wispBreathingAmplitude     = 0.25
+	seahorseBreathingPeriodMs  = 1800 // Gentle magical pulse
+	seahorseBreathingAmplitude = 0.45
+	daemonBreathingPeriodMs    = 1400 // Fire flicker
+	daemonBreathingAmplitude   = 0.50
+	ghostBreathingPeriodMs     = 2000 // Slow spectral waver
+	ghostBreathingAmplitude    = 0.15
+	shardBreathingPeriodMs     = 2500 // Slow, ominous pulse
+	shardBreathingAmplitude    = 0.20
+	artifactBreathingPeriodMs  = 2500 // Slow, majestic pulse
+	artifactBreathingAmplitude = 0.35
 )
 
-// NeutralTint applies no color change (for reference)
-var NeutralTint = LightTintColor{R: 1.0, G: 1.0, B: 1.0}
+func torchWarm() LightTintColor { return LightTintColor{R: torchTintR, G: torchTintG, B: torchTintB} }
+func cookStoveRed() LightTintColor {
+	return LightTintColor{R: cookStoveTintR, G: cookStoveTintG, B: cookStoveTintB}
+}
+func lampPostWhite() LightTintColor {
+	return LightTintColor{R: lampPostTintR, G: lampPostTintG, B: lampPostTintB}
+}
+func blueFlameCool() LightTintColor {
+	return LightTintColor{R: blueFlameTintR, G: blueFlameTintG, B: blueFlameTintB}
+}
+func magicWhite() LightTintColor {
+	return LightTintColor{R: magicWhiteTintR, G: magicWhiteTintG, B: magicWhiteTintB}
+}
+func moongatePurpleTint() LightTintColor {
+	return LightTintColor{R: moongateTintR, G: moongateTintG, B: moongateTintB}
+}
+func lighthouseRed() LightTintColor {
+	return LightTintColor{R: lighthouseTintR, G: lighthouseTintG, B: lighthouseTintB}
+}
+func wispGlow() LightTintColor { return LightTintColor{R: wispTintR, G: wispTintG, B: wispTintB} }
+func seahorseGlow() LightTintColor {
+	return LightTintColor{R: seahorseTintR, G: seahorseTintG, B: seahorseTintB}
+}
+func daemonGlow() LightTintColor {
+	return LightTintColor{R: daemonTintR, G: daemonTintG, B: daemonTintB}
+}
+func ghostGlow() LightTintColor { return LightTintColor{R: ghostTintR, G: ghostTintG, B: ghostTintB} }
+func ambientSightDim() LightTintColor {
+	return LightTintColor{R: ambientSightTintR, G: ambientSightTintG, B: ambientSightTintB}
+}
+func shardGlow() LightTintColor { return LightTintColor{R: shardTintR, G: shardTintG, B: shardTintB} }
+func artifactGlow() LightTintColor {
+	return LightTintColor{R: artifactTintR, G: artifactTintG, B: artifactTintB}
+}
+
+// neutralTint applies no color change.
+func neutralTint() LightTintColor { return LightTintColor{R: 1.0, G: 1.0, B: 1.0} }
+
+// fireLight describes a fire source: half tint by day and independent breathing for organic flicker.
+// amplitude 0 uses the default BreathingAmplitude.
+func fireLight(tint LightTintColor, amplitude float64) LightSourceProperties {
+	return LightSourceProperties{
+		TintColor:            tint,
+		HasBreathing:         true,
+		BreathingPeriodMs:    0,
+		BreathingAmplitude:   amplitude,
+		IndependentBreathing: true,
+		Radius:               0,
+		TintMode:             TintHalfDuringDay,
+	}
+}
+
+// steadyLight describes a non-breathing source that is half tinted by day.
+func steadyLight(tint LightTintColor) LightSourceProperties {
+	return LightSourceProperties{
+		TintColor:            tint,
+		HasBreathing:         false,
+		BreathingPeriodMs:    0,
+		BreathingAmplitude:   0,
+		IndependentBreathing: false,
+		Radius:               0,
+		TintMode:             TintHalfDuringDay,
+	}
+}
+
+// pulsingLight describes a magical source whose breathing is synchronized across instances.
+// periodMs 0 uses the default BreathingPeriodMs.
+func pulsingLight(tint LightTintColor, mode TintMode, periodMs int, amplitude float64) LightSourceProperties {
+	return LightSourceProperties{
+		TintColor:            tint,
+		HasBreathing:         true,
+		BreathingPeriodMs:    periodMs,
+		BreathingAmplitude:   amplitude,
+		IndependentBreathing: false,
+		Radius:               0,
+		TintMode:             mode,
+	}
+}
 
 // LightSourcePropertiesMap maps sprite indexes to their light properties.
+//
+//nolint:gochecknoglobals // Read-only light table looked up per tile while drawing.
 var LightSourcePropertiesMap = map[indexes.SpriteIndex]LightSourceProperties{
-	// Wall-mounted torches/sconces (independent breathing for organic fire)
-	indexes.RightSconce: {TintColor: TorchWarm, HasBreathing: true, BreathingAmplitude: 0.6, IndependentBreathing: true, TintMode: TintHalfDuringDay},
-	indexes.LeftSconce:  {TintColor: TorchWarm, HasBreathing: true, BreathingAmplitude: 0.6, IndependentBreathing: true, TintMode: TintHalfDuringDay},
+	indexes.RightSconce:   fireLight(torchWarm(), sconceBreathingAmplitude),
+	indexes.LeftSconce:    fireLight(torchWarm(), sconceBreathingAmplitude),
+	indexes.Brazier:       fireLight(torchWarm(), 0),
+	indexes.Fireplace:     fireLight(torchWarm(), 0),
+	indexes.FireLogs:      fireLight(torchWarm(), 0),
+	indexes.CampFire:      fireLight(torchWarm(), 0),
+	indexes.CandleOnTable: fireLight(torchWarm(), 0),
+	indexes.FireField:     fireLight(torchWarm(), 0),
+	indexes.ItemTorch:     fireLight(torchWarm(), 0),
 
-	// Braziers - standing fire bowls (independent breathing for organic fire)
-	indexes.Brazier: {TintColor: BrazierWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
+	// Street lamps and the lighthouse beam are steady; the cook stove burns a redder, steady flame.
+	indexes.LampPost:      steadyLight(lampPostWhite()),
+	indexes.CookStove:     steadyLight(cookStoveRed()),
+	LighthouseMarkerIndex: steadyLight(lighthouseRed()),
 
-	// Fireplaces and burning logs (independent breathing for organic fire)
-	indexes.Fireplace: {TintColor: FireplaceWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
-	indexes.FireLogs:  {TintColor: FireplaceWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
+	indexes.BlueFlame: pulsingLight(blueFlameCool(), TintAlways, 0, blueFlameBreathingAmplitude),
 
-	// Campfire (independent breathing for organic fire)
-	indexes.CampFire: {TintColor: TorchWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
+	// Moongate mystical glow: a faster, stronger pulse than fire.
+	MoongateMarkerIndex: pulsingLight(
+		moongatePurpleTint(), TintAlways, MoongateBreathingPeriodMs, MoongateBreathingAmplitude,
+	),
 
-	// Candles (independent breathing for organic fire)
-	indexes.CandleOnTable: {TintColor: CandleWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
+	// Magical NPCs.
+	WispMarkerIndex: pulsingLight(wispGlow(), TintAlways, wispBreathingPeriodMs, wispBreathingAmplitude),
+	SeahorseMarkerIndex: pulsingLight(
+		seahorseGlow(), TintHalfDuringDay, seahorseBreathingPeriodMs, seahorseBreathingAmplitude,
+	),
+	DaemonMarkerIndex: pulsingLight(daemonGlow(), TintAlways, daemonBreathingPeriodMs, daemonBreathingAmplitude),
+	GhostMarkerIndex:  pulsingLight(ghostGlow(), TintHalfDuringDay, ghostBreathingPeriodMs, ghostBreathingAmplitude),
 
-	// Street lamps (steady - no breathing, whiter light)
-	indexes.LampPost: {TintColor: LampPostWhite, HasBreathing: false, TintMode: TintHalfDuringDay},
-
-	// Blue magical flame (synchronized - magical source)
-	indexes.BlueFlame: {TintColor: BlueFlameCool, HasBreathing: true, BreathingAmplitude: 0.4, TintMode: TintAlways},
-
-	// Fire field spell effect (independent breathing for organic fire)
-	indexes.FireField: {TintColor: TorchWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
-
-	// Cook stove (steady, redder flame)
-	indexes.CookStove: {TintColor: CookStoveRed, HasBreathing: false, TintMode: TintHalfDuringDay},
-
-	// Ground torch item (independent breathing for organic fire)
-	indexes.ItemTorch: {TintColor: TorchWarm, HasBreathing: true, IndependentBreathing: true, TintMode: TintHalfDuringDay},
-
-	// Lighthouse beam (steady mechanical light - no breathing)
-	LighthouseMarkerIndex: {TintColor: LighthouseRed, HasBreathing: false, TintMode: TintHalfDuringDay},
-
-	// Moongate mystical glow (pulsing purple/blue light with faster, stronger pulse)
-	MoongateMarkerIndex: {
-		TintColor:          MoongatePurpleTint,
-		HasBreathing:       true,
-		BreathingPeriodMs:  MoongateBreathingPeriodMs,
-		BreathingAmplitude: MoongateBreathingAmplitude,
-		TintMode:           TintAlways,
-	},
-
-	// ============================================================================
-	// Magical NPC light sources
-	// ============================================================================
-
-	// Wisps - ethereal energy beings with flickering blue-white glow
-	WispMarkerIndex: {
-		TintColor:          WispGlow,
-		HasBreathing:       true,
-		BreathingPeriodMs:  1200, // Fast flicker for energy beings
-		BreathingAmplitude: 0.25,
-		TintMode:           TintAlways,
-	},
-
-	// Seahorses - mystical sea creatures with pulsing white-cyan glow
-	SeahorseMarkerIndex: {
-		TintColor:          SeahorseGlow,
-		HasBreathing:       true,
-		BreathingPeriodMs:  1800, // Gentle magical pulse
-		BreathingAmplitude: 0.45, // Light emission amplitude
-		TintMode:           TintHalfDuringDay,
-	},
-
-	// Daemons - demonic fire creatures with flickering red glow
-	DaemonMarkerIndex: {
-		TintColor:          DaemonGlow,
-		HasBreathing:       true,
-		BreathingPeriodMs:  1400, // Fire flicker
-		BreathingAmplitude: 0.50, // Very visible pulse for testing
-		TintMode:           TintAlways,
-	},
-
-	// Ghosts - spectral beings with wavering pale blue glow
-	GhostMarkerIndex: {
-		TintColor:          GhostGlow,
-		HasBreathing:       true,
-		BreathingPeriodMs:  2000, // Slow spectral waver
-		BreathingAmplitude: 0.15,
-		TintMode:           TintHalfDuringDay,
-	},
-
-	// ============================================================================
-	// Quest item light sources
-	// ============================================================================
-
-	// Shards of Evil - corrupted virtue gems with sinister red-purple pulsing glow
-	ShardMarkerIndex: {
-		TintColor:          ShardGlow,
-		HasBreathing:       true,
-		BreathingPeriodMs:  2500, // Slow, ominous pulse
-		BreathingAmplitude: 0.20,
-		TintMode:           TintAlways,
-	},
-
-	// Lord British's Artifacts - noble golden-white steady glow
-	// Crown, Sceptre, and Amulet have a regal, pure light
-	ArtifactMarkerIndex: {
-		TintColor:          ArtifactGlow,
-		HasBreathing:       true,
-		BreathingPeriodMs:  2500, // Slow, majestic pulse
-		BreathingAmplitude: 0.35,
-		TintMode:           TintHalfDuringDay,
-	},
+	// Quest items.
+	ShardMarkerIndex: pulsingLight(shardGlow(), TintAlways, shardBreathingPeriodMs, shardBreathingAmplitude),
+	ArtifactMarkerIndex: pulsingLight(
+		artifactGlow(), TintHalfDuringDay, artifactBreathingPeriodMs, artifactBreathingAmplitude,
+	),
 }
 
 // PlayerLightProperties returns light properties for player-carried light sources.
-func PlayerLightProperties(lightType PlayerLightType) LightSourceProperties {
+// ambientRadius is the configured night-vision radius used for PlayerLightAmbient.
+func PlayerLightProperties(lightType PlayerLightType, ambientRadius int) LightSourceProperties {
 	switch lightType {
 	case PlayerLightAmbient:
-		return LightSourceProperties{
-			TintColor:    AmbientSightDim,
-			HasBreathing: false,
-			Radius:       ambientLightRadius, // Configurable via SetAmbientLightRadius()
-		}
+		return playerLight(ambientSightDim(), false, resolveAmbientLightRadius(ambientRadius))
 	case PlayerLightTorch:
-		return LightSourceProperties{
-			TintColor:    TorchWarm,
-			HasBreathing: true,
-			Radius:       TorchTileDistance,
-		}
+		return playerLight(torchWarm(), true, TorchTileDistance)
 	case PlayerLightInLor:
-		return LightSourceProperties{
-			TintColor:    MagicWhite,
-			HasBreathing: false,
-			Radius:       InLorTileDistance,
-		}
+		return playerLight(magicWhite(), false, InLorTileDistance)
 	case PlayerLightVasLor:
-		return LightSourceProperties{
-			TintColor:    MagicWhite,
-			HasBreathing: false,
-			Radius:       VasLorTileDistance,
-		}
-	default:
-		return LightSourceProperties{}
+		return playerLight(magicWhite(), false, VasLorTileDistance)
+	case PlayerLightNone:
+	}
+
+	return playerLight(LightTintColor{R: 0, G: 0, B: 0}, false, 0)
+}
+
+// playerLight describes a carried light of the given radius.
+func playerLight(tint LightTintColor, breathes bool, radius int) LightSourceProperties {
+	return LightSourceProperties{
+		TintColor:            tint,
+		HasBreathing:         breathes,
+		BreathingPeriodMs:    0,
+		BreathingAmplitude:   0,
+		IndependentBreathing: false,
+		Radius:               radius,
+		TintMode:             TintNightOnly,
 	}
 }
 
@@ -458,7 +464,7 @@ func GetLightSourceProperties(spriteIndex indexes.SpriteIndex) LightSourceProper
 		return props
 	}
 
-	return LightSourceProperties{TintColor: NeutralTint}
+	return playerLight(neutralTint(), false, 0)
 }
 
 // ============================================================================
@@ -492,13 +498,26 @@ type LightSourceTintingState struct {
 
 	// playerPos tracks the player's current position
 	playerPos references.Position
+
+	// ambientLightRadius is the configured night-vision radius, at least 1.
+	ambientLightRadius int
+}
+
+// SetAmbientLightRadius sets the night-vision radius used for the ambient player light.
+// Radii below 1 fall back to the default of 2.
+func (ls *LightSourceTintingState) SetAmbientLightRadius(radius int) {
+	ls.ambientLightRadius = resolveAmbientLightRadius(radius)
 }
 
 // NewLightSourceTintingState creates a new light source tinting state.
 func NewLightSourceTintingState() *LightSourceTintingState {
 	return &LightSourceTintingState{
 		litTilesMap:     make(map[references.Position][]LightContribution),
+		isLargeMap:      false,
 		playerLightType: PlayerLightNone,
+		playerPos:       references.Position{X: 0, Y: 0},
+
+		ambientLightRadius: defaultAmbientLightRadius,
 	}
 }
 
@@ -543,18 +562,18 @@ func (ls *LightSourceTintingState) addLitTilesForSource(
 	// Use radius + 0.5 to match lighting.go's applyLightSource calculation.
 	// This ensures tinting covers the exact same tiles that visibility does.
 	// Without this, edge tiles would be lit but not tinted.
-	maxDist := float64(radius) + 0.5
+	maxDist := float64(radius) + lightRadiusPadding
 
-	for dy := -radius; dy <= radius; dy++ {
-		for dx := -radius; dx <= radius; dx++ {
-			dist := sqrt(float64(dx*dx + dy*dy))
+	for deltaY := -radius; deltaY <= radius; deltaY++ {
+		for deltaX := -radius; deltaX <= radius; deltaX++ {
+			dist := sqrt(float64(deltaX*deltaX + deltaY*deltaY))
 			if dist > maxDist {
 				continue // Outside circle
 			}
 
 			pos := references.Position{
-				X: sourcePos.X + references.Coordinate(dx),
-				Y: sourcePos.Y + references.Coordinate(dy),
+				X: sourcePos.X + tileOffset(deltaX),
+				Y: sourcePos.Y + tileOffset(deltaY),
 			}
 
 			if ls.isLargeMap {
@@ -565,33 +584,37 @@ func (ls *LightSourceTintingState) addLitTilesForSource(
 			// Weight = 1 / (distance + 1)^exponent
 			weight := 1.0 / pow(dist+1.0, FalloffExponent)
 
-			contribution := LightContribution{
+			ls.addContribution(pos, LightContribution{
 				SourceIndex: spriteIndex,
 				SourcePos:   sourcePos,
 				Distance:    dist,
 				Radius:      radius,
 				Weight:      weight,
-			}
-
-			// Add to existing contributions for this tile
-			existing := ls.litTilesMap[pos]
-			if len(existing) < MaxSourcesPerTile {
-				ls.litTilesMap[pos] = append(existing, contribution)
-			} else {
-				// Replace weakest contribution if this one is stronger
-				minIdx := 0
-				minWeight := existing[0].Weight
-				for i, c := range existing {
-					if c.Weight < minWeight {
-						minWeight = c.Weight
-						minIdx = i
-					}
-				}
-				if weight > minWeight {
-					ls.litTilesMap[pos][minIdx] = contribution
-				}
-			}
+			})
 		}
+	}
+}
+
+// addContribution records a contribution on a tile. A tile keeps at most MaxSourcesPerTile
+// contributions; beyond that the weakest is replaced when the new one is stronger.
+func (ls *LightSourceTintingState) addContribution(pos references.Position, contribution LightContribution) {
+	existing := ls.litTilesMap[pos]
+	if len(existing) < MaxSourcesPerTile {
+		ls.litTilesMap[pos] = append(existing, contribution)
+
+		return
+	}
+
+	minIdx := 0
+	minWeight := existing[0].Weight
+	for i, c := range existing {
+		if c.Weight < minWeight {
+			minWeight = c.Weight
+			minIdx = i
+		}
+	}
+	if contribution.Weight > minWeight {
+		existing[minIdx] = contribution
 	}
 }
 
@@ -612,19 +635,15 @@ func (ls *LightSourceTintingState) UpdatePlayerLight(
 		return
 	}
 
-	props := PlayerLightProperties(lightType)
+	props := PlayerLightProperties(lightType, ls.ambientLightRadius)
 	if props.Radius <= 0 {
 		return
 	}
 
+	// Ambient sight and the magic light spells have no sprite; sprite 0 marks them.
 	var spriteIndex indexes.SpriteIndex
-	switch lightType {
-	case PlayerLightAmbient:
-		spriteIndex = indexes.SpriteIndex(0) // Ambient sight has no specific sprite
-	case PlayerLightTorch:
+	if lightType == PlayerLightTorch {
 		spriteIndex = indexes.ItemTorch
-	case PlayerLightInLor, PlayerLightVasLor:
-		spriteIndex = indexes.SpriteIndex(0) // Magic light marker
 	}
 
 	ls.addLitTilesForSource(playerPos, spriteIndex, props.Radius)
@@ -636,14 +655,14 @@ func (ls *LightSourceTintingState) clearPlayerLight() {
 		return
 	}
 
-	props := PlayerLightProperties(ls.playerLightType)
+	props := PlayerLightProperties(ls.playerLightType, ls.ambientLightRadius)
 	radius := props.Radius
 
-	for dy := -radius; dy <= radius; dy++ {
-		for dx := -radius; dx <= radius; dx++ {
+	for deltaY := -radius; deltaY <= radius; deltaY++ {
+		for deltaX := -radius; deltaX <= radius; deltaX++ {
 			pos := references.Position{
-				X: ls.playerPos.X + references.Coordinate(dx),
-				Y: ls.playerPos.Y + references.Coordinate(dy),
+				X: ls.playerPos.X + tileOffset(deltaX),
+				Y: ls.playerPos.Y + tileOffset(deltaY),
 			}
 
 			if ls.isLargeMap {
@@ -727,13 +746,13 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 	// We accumulate color DELTAS (deviation from neutral 1.0), not absolute values
 	var totalDeltaR, totalDeltaG, totalDeltaB float64
 	var totalWeight float64
-	var closestDist float64 = 1000
+	closestDist := noSourceDistance
 	var closestRadius int
 	closestDayDist := math.Inf(1)
 	var closestDayRadius int
 
-	for _, c := range contributions {
-		props := GetLightSourceProperties(c.SourceIndex)
+	for _, contribution := range contributions {
+		props := GetLightSourceProperties(contribution.SourceIndex)
 
 		// Determine tint multiplier based on TintMode and ambient darkness.
 		var tintMultiplier = 1.0
@@ -766,7 +785,9 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 				amplitude = BreathingAmplitude
 			}
 
-			breathMod := ls.calculateBreathingModulationWithParams(c.SourcePos, elapsedMs, periodMs, amplitude, props.IndependentBreathing)
+			breathMod := ls.calculateBreathingModulationWithParams(
+				contribution.SourcePos, elapsedMs, periodMs, amplitude, props.IndependentBreathing,
+			)
 			deltaR *= breathMod
 			deltaG *= breathMod
 			deltaB *= breathMod
@@ -778,19 +799,19 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 		deltaB *= TintStrength
 
 		// Accumulate weighted color deltas
-		totalDeltaR += deltaR * c.Weight
-		totalDeltaG += deltaG * c.Weight
-		totalDeltaB += deltaB * c.Weight
-		totalWeight += c.Weight
+		totalDeltaR += deltaR * contribution.Weight
+		totalDeltaG += deltaG * contribution.Weight
+		totalDeltaB += deltaB * contribution.Weight
+		totalWeight += contribution.Weight
 
 		// Track closest source for brightness falloff
-		if c.Distance < closestDist {
-			closestDist = c.Distance
-			closestRadius = c.Radius
+		if contribution.Distance < closestDist {
+			closestDist = contribution.Distance
+			closestRadius = contribution.Radius
 		}
-		if props.TintMode != TintNightOnly && c.Distance < closestDayDist {
-			closestDayDist = c.Distance
-			closestDayRadius = c.Radius
+		if props.TintMode != TintNightOnly && contribution.Distance < closestDayDist {
+			closestDayDist = contribution.Distance
+			closestDayRadius = contribution.Radius
 		}
 	}
 
@@ -804,12 +825,11 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 	avgDeltaB := totalDeltaB / totalWeight
 
 	// Preserve the legacy nighttime falloff and outdoor interpolation arithmetic.
-	const radiusPadding = 0.5
 	var brightnessMult = 1.0
 	nightBrightness := 1.0
 	if darkness > 0 && closestRadius > 0 {
 		// Use radius + 0.5 to match the extended lit area (same as addLitTilesForSource)
-		maxDist := float64(closestRadius) + radiusPadding
+		maxDist := float64(closestRadius) + lightRadiusPadding
 		distRatio := clampFloat(closestDist/maxDist, 0, 1)
 		nightBrightness = CenterBrightness + (BaseBrightness-CenterBrightness)*distRatio
 		brightnessMult = 1 + (nightBrightness-1)*darkness
@@ -818,7 +838,7 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 		// Night-only sources must not lift the daytime endpoint when dawn/dusk starts.
 		dayBrightness := float64(daylightTarget)
 		if closestDayRadius > 0 {
-			maxDist := float64(closestDayRadius) + radiusPadding
+			maxDist := float64(closestDayRadius) + lightRadiusPadding
 			distRatio := clampFloat(closestDayDist/maxDist, 0, 1)
 			daySourceBrightness := CenterBrightness + (BaseBrightness-CenterBrightness)*distRatio
 			dayBrightness = max(dayBrightness, min(1.0, daySourceBrightness))
@@ -833,9 +853,9 @@ func (ls *LightSourceTintingState) getTintScaleFactors(
 	// - Full daylight: source brightness has a daylightTarget floor and a ceiling of 1
 	// - Dawn/dusk: brightness and night-specific color deltas fade smoothly
 	// - Nighttime: brightnessMult varies (1.05 at center, 0.55 at edge), plus color deltas
-	finalR := float32(clampFloat(brightnessMult+avgDeltaR, 0.3, 1.5))
-	finalG := float32(clampFloat(brightnessMult+avgDeltaG, 0.3, 1.5))
-	finalB := float32(clampFloat(brightnessMult+avgDeltaB, 0.3, 1.5))
+	finalR := float32(clampFloat(brightnessMult+avgDeltaR, minTintChannel, maxTintChannel))
+	finalG := float32(clampFloat(brightnessMult+avgDeltaG, minTintChannel, maxTintChannel))
+	finalB := float32(clampFloat(brightnessMult+avgDeltaB, minTintChannel, maxTintChannel))
 
 	return &LightTintColor{R: finalR, G: finalG, B: finalB}
 }
@@ -857,7 +877,8 @@ func (ls *LightSourceTintingState) calculateBreathingModulationWithParams(
 	posHash := sourcePos.AnimationHash()
 	if independentBreathing {
 		// Hash to get 0.85 to 1.15 multiplier (±15% variation)
-		variation := 0.85 + 0.30*float64(posHash%100)/100.0
+		step := float64(posHash % independentPeriodSteps)
+		variation := independentPeriodMin + independentPeriodSpread*step/independentPeriodSteps
 		periodMs = int(float64(periodMs) * variation)
 	}
 
@@ -866,7 +887,7 @@ func (ls *LightSourceTintingState) calculateBreathingModulationWithParams(
 	adjustedTime := elapsedMs + phaseOffset
 
 	// Calculate breathing phase (0 to 2π)
-	phase := float64(adjustedTime%int64(periodMs)) / float64(periodMs) * 2 * pi
+	phase := float64(adjustedTime%int64(periodMs)) / float64(periodMs) * fullCircle
 
 	// Sine wave oscillation: returns -1 to 1, then scaled to (1-amp) to (1+amp)
 	// When result is 1.0, we get full tint. When less, tint is reduced.
@@ -905,7 +926,7 @@ func (ls *LightSourceTintingState) InjectLighthouseTiles(lighthouseState *Lighth
 
 	for tilePos := range litTiles {
 		// Find distance to nearest beacon for brightness falloff
-		minDist := float64(1000)
+		minDist := noSourceDistance
 		for _, beaconPos := range beaconPositions {
 			dx := float64(tilePos.X - beaconPos.X)
 			dy := float64(tilePos.Y - beaconPos.Y)
@@ -926,24 +947,7 @@ func (ls *LightSourceTintingState) InjectLighthouseTiles(lighthouseState *Lighth
 			Weight:      weight,
 		}
 
-		// Add to existing contributions for this tile
-		existing := ls.litTilesMap[tilePos]
-		if len(existing) < MaxSourcesPerTile {
-			ls.litTilesMap[tilePos] = append(existing, contribution)
-		} else {
-			// Replace weakest contribution if lighthouse is stronger
-			minIdx := 0
-			minWeight := existing[0].Weight
-			for i, c := range existing {
-				if c.Weight < minWeight {
-					minWeight = c.Weight
-					minIdx = i
-				}
-			}
-			if weight > minWeight {
-				ls.litTilesMap[tilePos][minIdx] = contribution
-			}
-		}
+		ls.addContribution(tilePos, contribution)
 	}
 
 	// Also add beacon positions themselves (they glow too)

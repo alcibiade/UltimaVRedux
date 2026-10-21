@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
 	"github.com/bradhannah/UltimaVRedux/internal/originaldata/graphicsarchive"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 var errInvalid = errors.New("intro archive is invalid")

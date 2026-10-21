@@ -28,11 +28,9 @@ const (
 	reagentShopMinimumInset     = 4
 	reagentShopInsetDivisor     = 64
 	reagentShopCellInsetUnits   = 2
-	reagentShopCenterDivisor    = 2
 	reagentShopDoubleInset      = 2
 	reagentShopLineSpacing      = 1.08
 	reagentShopMinimumTextChars = 8
-	reagentShopErrorFooter      = "[Enter/Esc] Leave"
 )
 
 var _ Widget = (*ReagentShopDialog)(nil)
@@ -453,8 +451,7 @@ func (d *ReagentShopDialog) drawCatalog(screen *ebiten.Image) {
 		row := d.catalogRows[index-start]
 		selected := index == d.GetSelectedIndex()
 		if selected {
-			vector.FillRect(screen, float32(row.Min.X), float32(row.Min.Y),
-				float32(row.Dx()), float32(row.Dy()), DialogSelectedBackground, false)
+			fillSelectedRow(screen, row)
 		}
 		nameColor, valueColor := reagentCatalogRowColors(d.state.Offers[index], selected)
 		values := d.GetCatalogRowText(index)
@@ -482,12 +479,7 @@ func (d *ReagentShopDialog) drawCatalogCell(
 	alignment etext.Align,
 ) {
 	inset := max(1, d.pixelUnit()*reagentShopCellInsetUnits)
-	cell := image.Rect(column.Min.X+inset, row.Min.Y, max(column.Min.X+inset+1, column.Max.X-inset), row.Max.Y)
-	d.catalogOutput.SetMaxCharsPerLine(max(1, len(value)+1))
-	d.catalogOutput.Reset()
-	d.catalogOutput.AppendLine().Text(value, color).Done()
-	y := cell.Min.Y + max(0, (cell.Dy()-int(math.Ceil(d.catalogOutput.GetFontHeight())))/reagentShopCenterDivisor)
-	d.catalogOutput.DrawPanelContent(screen, image.Pt(cell.Min.X, y), max(1, cell.Dx()), alignment)
+	drawMerchantTableCell(screen, d.catalogOutput, row, column, inset, value, color, alignment)
 }
 
 func (d *ReagentShopDialog) drawHorizontalRule(screen *ebiten.Image, bounds image.Rectangle, color stdcolor.Color) {
@@ -580,7 +572,7 @@ func (d *ReagentShopDialog) footerGuidance() string {
 	case ReagentShopAwaitingResult:
 		return "Processing purchase"
 	case ReagentShopFarewell, ReagentShopSessionError:
-		return reagentShopErrorFooter
+		return merchantLeaveFooter
 	default:
 		panic("ReagentShopDialog.footerGuidance: unknown phase")
 	}

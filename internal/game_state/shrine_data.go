@@ -46,7 +46,7 @@ var allShrines = [8]ShrineData{ //nolint:gochecknoglobals // Immutable indexed s
 // These are philosophical wisdom messages about each virtue, NOT map coordinates.
 var shrineAnswerText = [8]string{ //nolint:gochecknoglobals // Immutable Codex text indexed by virtue.
 	"A dishonest life brings\nunto thee temporary gain, but forsakes\nthe permanent.",
-	// REDUX DEVIATION: MISCMSG.DAT SHRINE_MSG_9 (1273) hard-wraps this sentence;
+	// MISCMSG.DAT SHRINE_MSG_9 (1273) hard-wraps this sentence;
 	// let the wider Codex dialog wrap naturally while preserving every word.
 	"Only a detested life owes its pleasures to another's pain.",
 	"Those who fear to try, know\nnot their\nlimits and thus know not themselves.",

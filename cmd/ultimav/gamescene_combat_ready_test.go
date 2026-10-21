@@ -36,10 +36,7 @@ func TestCombatReadyDialogBindsNonAvatarAndDisablesCharacterNavigation(t *testin
 
 func TestControlledMonsterReadyRejectsWithoutActionLoss(t *testing.T) {
 	state, callbacks, _ := setupControlledMonsterInputTest(t)
-	if state == nil {
-		return
-	}
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Production controlled-command dispatch needs no dialog state.
+	scene := &GameScene{gameState: state}
 	before := snapshotBlockedCombatState(t, state)
 
 	scene.combatMapInputHandler(ebiten.KeyR)

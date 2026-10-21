@@ -61,7 +61,6 @@ const (
 	CombatSpellTargetInput
 	CombatConeTargetInput
 	CombatAdjacentSpellTargetInput
-	UseDirectionInput
 	FireDirectionInput
 	DungeonQuitInput
 	SurfaceQuitInput
@@ -341,8 +340,12 @@ type GameScene struct {
 	timedOverlayDismissMs int64                     // When to auto-dismiss (game elapsed ms)
 
 	// MiniMap scene system for scripted cutscenes (shrine, codex, endgame)
-	miniMapScene       *minimap.MiniMapScene
+	miniMapScene       *minimap.Scene
 	finalePresentation *lordBritishFinalePresentation
+
+	// windowCloseDepartureOpen marks save choices opened by the window's close
+	// button, so a second close request quits without asking again.
+	windowCloseDepartureOpen bool
 
 	active   bool
 	disposed bool
@@ -549,7 +552,7 @@ func (g *GameScene) ShowHorseRefusalDialog() {
 //	)
 func (g *GameScene) thenExecuteCampingSequence(hours int, guardIndex int, complete func()) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		logging.Debug(logging.CategoryGameState, "Adding camping sequence to event queue for %d hours with guard %d", hours, guardIndex)
+		logging.Debugf(logging.CategoryGameState, "Adding camping sequence to event queue for %d hours with guard %d", hours, guardIndex)
 
 		// Use If() to perform setup and add camping events at RUNTIME
 		// This ensures fresh data (location, config) when camping actually starts
@@ -559,15 +562,11 @@ func (g *GameScene) thenExecuteCampingSequence(hours int, guardIndex int, comple
 				originalPlayerLocation := g.gameState.MapState.SavePlayerLocation()
 
 				campingMapRef, err := references.LoadCampingMap(g.gameState.GameConfig)
-
-				var campingScene *camping.CampingScene
 				if err != nil {
-					logging.Warn(logging.CategoryGameState, "Failed to load camping map reference: %v - using fallback positions", err)
-
-					campingScene = camping.NewCampingScene(hours, guardIndex, originalPlayerLocation)
-				} else {
-					campingScene = camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
+					// Startup validated the original data, so the camp map must load.
+					panic(fmt.Sprintf("GameScene camping: loading camping map: %v", err))
 				}
+				campingScene := camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
 
 				g.gameState.AddCampingSequenceToBuilder(
 					subQ,

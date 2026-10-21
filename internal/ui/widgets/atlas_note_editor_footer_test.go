@@ -60,7 +60,7 @@ func TestAtlasNoteEditorRenderedFooterAndValidationFitSupportedSizes(t *testing.
 						editor.Draw(screen)
 						rendered = screen
 					}
-					require.Equal(t, "Tab/Shift+Tab Field Enter Paragraph Ctrl+Enter Save Esc Cancel", atlasStatusWords(editor.output))
+					require.Equal(t, "[Tab/Shift+Tab] Field [Enter] Paragraph [Ctrl+Enter] Save [Esc] Cancel", atlasStatusWords(editor.output))
 					require.Equal(t, 2, editor.output.GetPanelContentLineCount(), "actual measured key/action rows")
 					require.Equal(t, strings.Join(strings.Fields(message), " "), atlasStatusWords(editor.validation))
 					require.Equal(t, GetScaledFont(FontSizeMainScreen).TextFace.Size, editor.font.TextFace.Size)
@@ -89,7 +89,7 @@ func TestAtlasNoteDeleteFooterKeepsBothActionsVisible(t *testing.T) {
 			screen = ebiten.NewImageWithOptions(editor.pane, nil)
 			editor.Draw(screen)
 		}
-		require.Equal(t, "Enter Delete Esc Keep", atlasStatusWords(editor.output))
+		require.Equal(t, "[Enter] Delete [Esc] Keep", atlasStatusWords(editor.output))
 		require.Equal(t, 1, editor.output.GetPanelContentLineCount())
 		assertAtlasEditorTextBlockRendered(t, editor.output, editor.hintRect, screen, editor.lineHeight)
 		if screen != nil {

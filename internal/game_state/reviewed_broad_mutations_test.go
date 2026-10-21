@@ -97,22 +97,6 @@ func TestWipeActivePartyChangesEveryActiveMemberWithConsistentHPAndStatus(t *tes
 	assert.Empty(t, idempotent.Changes)
 }
 
-func TestWipeActivePartyCommitsEveryMemberBeforeStatsRefresh(t *testing.T) {
-	state := newReviewedMutationTestState(t)
-	activateMutationTestCharacter(state, 0, "Avatar", 20, party_state.Good)
-	activateMutationTestCharacter(state, 1, "Iolo", 10, party_state.Poisoned)
-	refreshedAfterAtomicCommit := false
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-		refreshedAfterAtomicCommit = state.PartyState.IsAllPartyDead()
-	}
-
-	review := state.ReviewActivePartyWipe()
-	_, err := state.WipeActiveParty(review.Fingerprint)
-
-	require.NoError(t, err)
-	assert.True(t, refreshedAfterAtomicCommit)
-}
-
 func TestWipeActivePartyRejectsStaleReviewWithoutPartialMutation(t *testing.T) {
 	state := newReviewedMutationTestState(t)
 	activateMutationTestCharacter(state, 0, "Avatar", 20, party_state.Good)

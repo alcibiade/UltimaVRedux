@@ -56,13 +56,13 @@ class LocationPosition(TypedDict, total=False):
 class WorldLocations(TypedDict, total=False):
     """World location lookup exported by ref_dump."""
 
-    large_map_location_positions: dict[str, LocationPosition]
+    largeMapLocationPositions: dict[str, LocationPosition]
 
 
 class LocationReferences(TypedDict, total=False):
     """Root location snapshot."""
 
-    world_locations: WorldLocations
+    worldLocations: WorldLocations
 
 
 # Reverse lookup
@@ -235,7 +235,11 @@ def load_json(filename: str) -> JSONValue:
     """Load a JSON file from u5dump/json/."""
     json_path = find_script_dir() / "u5dump" / "json" / filename
     if not json_path.exists():
-        print(f"Error: {json_path} not found", file=sys.stderr)
+        print(
+            f"Error: {json_path} not found. Generate it with "
+            "go run ./cmd/ref_dump --output u5dump/json",
+            file=sys.stderr,
+        )
         sys.exit(1)
     with open(json_path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -510,8 +514,8 @@ def cmd_location(args: argparse.Namespace) -> None:
     # Try to get overworld coordinates
     try:
         loc_refs = load_location_refs()
-        positions = loc_refs.get("world_locations", {}).get(
-            "large_map_location_positions", {}
+        positions = loc_refs.get("worldLocations", {}).get(
+            "largeMapLocationPositions", {}
         )
         for value in positions.values():
             if value.get("location") == location_id:

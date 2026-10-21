@@ -5,18 +5,6 @@ import "encoding/json"
 const (
 	// CommandScenarioStatus reports context and state used by forced scenarios.
 	CommandScenarioStatus = "scenario.status"
-	// CommandScenarioStarvationTrigger applies one deterministic starvation damage check.
-	CommandScenarioStarvationTrigger = "scenario.starvation.trigger"
-	// CommandScenarioStarvationHourly forces zero food and the authentic hourly meal check.
-	CommandScenarioStarvationHourly = "scenario.starvation.force-hourly"
-	// CommandScenarioGuardsActivate makes eligible town guards hostile.
-	CommandScenarioGuardsActivate = "scenario.guards.activate"
-	// CommandScenarioWaterfallSetup positions the party one step before the canonical waterfall trigger.
-	CommandScenarioWaterfallSetup = "scenario.waterfall.setup"
-	// CommandScenarioBridgeTroll starts the production bridge sneak and attack workflow from deterministic state.
-	CommandScenarioBridgeTroll = "scenario.bridge-troll.start"
-	// CommandScenarioWordSetup positions the party beside the dungeon matching a Word of Power.
-	CommandScenarioWordSetup = "scenario.word.setup"
 	// CommandScenarioDefinitionList lists durable scripted scenario definitions.
 	CommandScenarioDefinitionList = "scenario.definition.list"
 	// CommandScenarioDefinitionGet returns one complete durable scripted scenario definition.
@@ -40,7 +28,6 @@ const (
 )
 
 func scenarioCommands() []CommandDefinition {
-	minimumSeed, maximumSeed := 0, 2147483647
 	referencePattern := `^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`
 	slugPattern := `^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`
 	revisionPattern := `^[a-f0-9]{64}$`
@@ -67,85 +54,37 @@ func scenarioCommands() []CommandDefinition {
 	optionalRevisionParameter := func(id, name string) ParameterDefinition {
 		return ParameterDefinition{ID: id, Name: name, Kind: ParameterString, Default: json.RawMessage(`""`), Pattern: `^(?:[a-f0-9]{64})?$`}
 	}
-	seed := func() []ParameterDefinition {
-		return []ParameterDefinition{{
-			ID: "seed", Name: "Deterministic Seed", Kind: ParameterInteger, Required: true,
-			Minimum: &minimumSeed, Maximum: &maximumSeed, ControlHint: controlHintNumber,
-			Availability: []string{contextGameplay},
-		}}
-	}
 
 	return []CommandDefinition{
 		{
-			ID: CommandScenarioStatus, Category: "Scenarios", Name: "Scenario Lab",
+			ID: CommandScenarioStatus, Category: categoryScenarios, Name: "Scenario Lab",
 			Description: "Inspect and run exceptional deterministic gameplay scenarios.", ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioStarvationTrigger, Category: "Scenarios", Name: "Trigger Starvation Damage",
-			Description: "Apply one deterministic starvation damage check without changing food or time.", Aliases: []string{"pc starving"},
-			Parameters: seed(), ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
-		},
-		{
-			ID: CommandScenarioStarvationHourly, Category: "Scenarios", Name: "Force Hourly Starvation",
-			Description: "Set food to zero, set hour 12, and run the authentic hourly meal check.", Aliases: []string{"pc starving force"},
-			Parameters: seed(), ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
-		},
-		{
-			ID: CommandScenarioGuardsActivate, Category: "Scenarios", Name: "Activate Town Guards",
-			Description: "Mark the party criminal and make all eligible guards on the current small map hostile.", Aliases: []string{"guards activate"},
-			ExecutionModes: []ExecutionMode{ExecutionLiveSafe},
-		},
-		{
-			ID: CommandScenarioWaterfallSetup, Category: "Scenarios", Name: "Set Up Waterfall Entry",
-			Description: "Move to the tile immediately before the canonical waterfall trigger step.", Aliases: []string{"mv special falls"},
-			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
-		},
-		{
-			ID: CommandScenarioBridgeTroll, Category: "Scenarios", Name: "Test Bridge Troll Sneak and Attack",
-			Description: "Move onto an original troll bridge, force the first sneak check to fail, set gold to zero, and start the production toll workflow.",
-			Aliases:     []string{"bridge troll", "troll attack"}, Parameters: seed(),
-			ExecutionModes: []ExecutionMode{ExecutionWorkflow}, Destructive: true, ScenarioTerminal: true,
-		},
-		{
-			ID: CommandScenarioWordSetup, Category: "Scenarios", Name: "Set Up Word of Power",
-			Description: "Move beside the original dungeon entrance matching one Word of Power.", Aliases: []string{"command yell"},
-			Parameters: []ParameterDefinition{{
-				ID: "word", Name: "Word of Power", Kind: ParameterEnum, Required: true,
-				Choices: []Choice{
-					{Value: "fallax", Label: "FALLAX · Deceit", Metadata: nil}, {Value: "vilis", Label: "VILIS · Despise", Metadata: nil},
-					{Value: "inopia", Label: "INOPIA · Destard", Metadata: nil}, {Value: "malum", Label: "MALUM · Wrong", Metadata: nil},
-					{Value: "avidus", Label: "AVIDUS · Covetous", Metadata: nil}, {Value: "infama", Label: "INFAMA · Shame", Metadata: nil},
-					{Value: "ignavus", Label: "IGNAVUS · Hythloth", Metadata: nil}, {Value: "veramocor", Label: "VERAMOCOR · Doom", Metadata: nil},
-				},
-				ControlHint: controlHintSelect, Availability: []string{contextGameplay},
-			}},
-			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
-		},
-		{
-			ID: CommandScenarioDefinitionList, Category: "Scenarios", Name: "List Scripted Scenarios",
+			ID: CommandScenarioDefinitionList, Category: categoryScenarios, Name: "List Scripted Scenarios",
 			Description:    "List durable scripted scenario definitions from project and personal sources.",
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionGet, Category: "Scenarios", Name: "Get Scripted Scenario",
+			ID: CommandScenarioDefinitionGet, Category: categoryScenarios, Name: "Get Scripted Scenario",
 			Description:    "Get one complete versioned scripted scenario definition by source-qualified reference.",
 			Parameters:     []ParameterDefinition{referenceParameter("reference", "Source-Qualified Reference")},
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionValidate, Category: "Scenarios", Name: "Validate Scripted Scenario",
+			ID: CommandScenarioDefinitionValidate, Category: categoryScenarios, Name: "Validate Scripted Scenario",
 			Description:    "Validate one JSON scripted scenario definition against the current command catalog without mutation.",
 			Parameters:     []ParameterDefinition{definitionParameter()},
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
 		{
-			ID: CommandScenarioDefinitionCreate, Category: "Scenarios", Name: "Create Scripted Scenario",
+			ID: CommandScenarioDefinitionCreate, Category: categoryScenarios, Name: "Create Scripted Scenario",
 			Description:    "Validate and create one JSON scripted scenario definition only when its source-qualified destination is absent.",
 			Parameters:     []ParameterDefinition{sourceParameter("source", "Source"), definitionParameter()},
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioDefinitionUpdate, Category: "Scenarios", Name: "Update Scripted Scenario",
+			ID: CommandScenarioDefinitionUpdate, Category: categoryScenarios, Name: "Update Scripted Scenario",
 			Description: "Validate and update one scripted scenario only when its stored revision matches; the definition ID cannot rename or move it.",
 			Parameters: []ParameterDefinition{
 				referenceParameter("reference", "Source-Qualified Reference"),
@@ -155,7 +94,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioDefinitionDelete, Category: "Scenarios", Name: "Delete Scripted Scenario",
+			ID: CommandScenarioDefinitionDelete, Category: categoryScenarios, Name: "Delete Scripted Scenario",
 			Description: "Delete one scripted scenario only when its stored revision matches.",
 			Parameters: []ParameterDefinition{
 				referenceParameter("reference", "Source-Qualified Reference"),
@@ -164,7 +103,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioDefinitionDuplicate, Category: "Scenarios", Name: "Duplicate Scripted Scenario",
+			ID: CommandScenarioDefinitionDuplicate, Category: categoryScenarios, Name: "Duplicate Scripted Scenario",
 			Description: "Copy one reviewed scenario revision to an explicit absent destination without overwriting.",
 			Parameters: []ParameterDefinition{
 				referenceParameter("sourceReference", "Source Reference"),
@@ -176,7 +115,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioRunStart, Category: "Scenarios", Name: "Start Scripted Scenario",
+			ID: CommandScenarioRunStart, Category: categoryScenarios, Name: "Start Scripted Scenario",
 			Description: "Start a reviewed durable scripted scenario revision against the reviewed active scene generation.",
 			Parameters: []ParameterDefinition{
 				{
@@ -198,7 +137,7 @@ func scenarioCommands() []CommandDefinition {
 			ExecutionModes: []ExecutionMode{ExecutionWorkflow}, Destructive: true,
 		},
 		{
-			ID: CommandScenarioRunStatus, Category: "Scenarios", Name: "Scripted Scenario Run Status",
+			ID: CommandScenarioRunStatus, Category: categoryScenarios, Name: "Scripted Scenario Run Status",
 			Description:    "Report the active scripted scenario run and bounded private history with ordered step results.",
 			ExecutionModes: []ExecutionMode{ExecutionQuery},
 		},
@@ -207,7 +146,7 @@ func scenarioCommands() []CommandDefinition {
 
 func scenarioRunCancelCommands() []CommandDefinition {
 	return []CommandDefinition{{
-		ID: CommandScenarioRunCancel, Category: "Scenarios", Name: "Cancel Remaining Steps",
+		ID: CommandScenarioRunCancel, Category: categoryScenarios, Name: "Cancel Remaining Steps",
 		Description: "Stop remaining steps of the identified run when processed; retain completed effects, the applied baseline, and production workflows. Does not restore rollback.",
 		Parameters: []ParameterDefinition{{
 			ID: "runId", Name: "Run ID", Kind: ParameterString, Required: true, Pattern: `^\S+$`,

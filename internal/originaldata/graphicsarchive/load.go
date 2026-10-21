@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 const maximumArchiveBytes = 4 << 20
@@ -29,7 +29,7 @@ func Load(ctx context.Context, dataDirectory, name string) (_ legacy.Archive, er
 	if !ok {
 		return legacy.Archive{}, fmt.Errorf("%w: %s", errCatalogEntryMissing, name)
 	}
-	path := filepath.Join(dataDirectory, name)
+	path := files.Resolve(dataDirectory, name)
 	info, err := os.Stat(path)
 	if err != nil {
 		return legacy.Archive{}, fmt.Errorf("checking graphics archive %s: %w", path, err)

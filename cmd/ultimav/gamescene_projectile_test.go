@@ -171,10 +171,7 @@ func TestStartProjectileCalculatesDurationFromPixelCoordinates(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused projectile-duration fixture.
+	scene := &GameScene{gameState: gs}
 	from := references.Position{X: 5, Y: 5}
 	to := references.Position{X: 8, Y: 5}
 

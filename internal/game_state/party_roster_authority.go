@@ -323,8 +323,6 @@ func validateRosterCharacterIdentity(character *party_state.PlayerCharacter) err
 }
 
 func (g *GameState) finishPartyMutation(before PartyRosterSnapshot) PartyRosterMutationResult {
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
-
 	return PartyRosterMutationResult{Before: before, After: g.CurrentPartyRosterSnapshot()}
 }
 

@@ -32,7 +32,7 @@ func (g *GameScene) stabilizeTeleportationDestinationRenderer(destination game_s
 				g.moongateVisualSystem.activeRenderers[i] = NewMoongateRenderer(position, i)
 			}
 
-			logging.Debug(logging.CategoryMoongate, "Ensured destination moongate %d has a renderer for teleportation", i)
+			logging.Debugf(logging.CategoryMoongate, "Ensured destination moongate %d has a renderer for teleportation", i)
 
 			break
 		}

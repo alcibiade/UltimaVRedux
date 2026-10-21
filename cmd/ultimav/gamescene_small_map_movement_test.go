@@ -47,7 +47,7 @@ func TestMovementLoggingEnabledAfterStatusLoadRetainsSubsequentMovement(t *testi
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused movement logging fixture.
+	scene := &GameScene{gameState: state}
 	scene.moveToNewPositionByDirection(references.Right)
 
 	batch := logger.EntriesAfter(cursor, 10)
@@ -77,11 +77,8 @@ func TestSmallMapBoundaryMovementPromptsToLeaveWithoutOutOfBoundsMessage(t *test
 				WithPlayerAt(int(test.position.X), int(test.position.Y)).
 				WithSystemCallbacks().
 				Build()
-			if gs == nil {
-				return
-			}
 			output := text.NewOutput(nil, 1, 10, 80)
-			scene := &GameScene{ //nolint:exhaustruct // Focused boundary-exit fixture.
+			scene := &GameScene{
 				gameState:            gs,
 				output:               output,
 				moongateVisualSystem: NewMoongateVisualSystem(gs),

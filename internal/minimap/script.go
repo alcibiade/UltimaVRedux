@@ -97,15 +97,15 @@ type ScriptStep struct {
 	TileCommand       *TileCommand         // Typed tile-scene operation
 }
 
-// MiniMapScript represents a sequence of scripted actions for a mini-map scene
-type MiniMapScript struct {
+// Script represents a sequence of scripted actions for a mini-map scene
+type Script struct {
 	Name  string       // Script identifier for debugging
 	Steps []ScriptStep // Ordered list of steps to execute
 }
 
 // Validate rejects malformed scripts before they can leave an executor stalled
 // or panic partway through a presentation.
-func (s *MiniMapScript) Validate() error {
+func (s *Script) Validate() error {
 	if s == nil {
 		return fmt.Errorf("%w: script is nil", errInvalidScript)
 	}

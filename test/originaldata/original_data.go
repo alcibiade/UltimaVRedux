@@ -77,7 +77,7 @@ func Check(t *testing.T, err error) {
 
 // talkFiles are the original conversation files, one per small-map location type.
 func talkFiles() []string {
-	return []string{files.CASTLE_TLK, files.TOWNE_TLK, files.DWELLING_TLK, files.KEEP_TLK}
+	return []string{files.CastleTlk, files.TowneTlk, files.DwellingTlk, files.KeepTlk}
 }
 
 // Directory selects original data and checks required files. By default it
@@ -88,7 +88,7 @@ func Directory(t *testing.T, required ...string) string {
 	directory, err := ResolveDirectory()
 	Check(t, err)
 	if len(required) == 0 {
-		required = append([]string{files.DATA_OVL}, talkFiles()...)
+		required = append([]string{files.DataOvl}, talkFiles()...)
 	}
 	RequireFiles(t, directory, required...)
 

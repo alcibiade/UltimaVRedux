@@ -32,7 +32,7 @@ save-convert --help
 
 Repeat the installation command to update alongside the game. Anonymous macOS
 installation and installed help have been verified; see
-[installation acceptance](../INSTALL.md#installation-acceptance) for scope and
+[platform status](../INSTALL.md#platform-status) for scope and
 platform limits. Go places this executable in the same `GOBIN`/`GOPATH` location
 described in [Start the game](../INSTALL.md#start-the-game); use its full path if needed.
 

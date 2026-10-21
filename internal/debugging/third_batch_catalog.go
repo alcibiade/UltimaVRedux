@@ -4,7 +4,7 @@ package debugging
 import "encoding/json"
 
 const (
-	categoryThirdBatchScenarios = "Scenarios"
+	categoryScenarios = "Scenarios"
 	// CommandTestHoleUp queues the production camping workflow with explicit test branches.
 	CommandTestHoleUp = "command-test.hole-up"
 	// CommandTestSearch queues the production map-specific Search action.
@@ -20,7 +20,7 @@ func thirdBatchCommands() []CommandDefinition {
 
 	return []CommandDefinition{
 		{
-			ID: CommandTestHoleUp, Category: categoryThirdBatchScenarios, Name: "Test Hole Up",
+			ID: CommandTestHoleUp, Category: categoryScenarios, Name: "Test Hole Up",
 			Description: "Queue production camping with explicit wanderer and ambush branches against a reviewed party roster.",
 			Aliases:     []string{"command holeup"},
 			Parameters: []ParameterDefinition{

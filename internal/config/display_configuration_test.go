@@ -175,7 +175,7 @@ func TestUpdateSaveFilePersistsDisplayAtomically(t *testing.T) {
 }
 
 func TestSaveConfigurationSettingsRequiresDisplayModel(t *testing.T) {
-	configuration := &UltimaVConfiguration{ //nolint:exhaustruct // Focused validation fixture.
+	configuration := &UltimaVConfiguration{
 		AudioConfiguration:    &AudioConfiguration{},
 		GameplayConfiguration: &GameplayConfiguration{},
 	}
@@ -184,7 +184,7 @@ func TestSaveConfigurationSettingsRequiresDisplayModel(t *testing.T) {
 }
 
 func displayLoadFixture() *UltimaVConfiguration {
-	return &UltimaVConfiguration{ //nolint:exhaustruct // Focused loading fixture.
+	return &UltimaVConfiguration{
 		source:           viper.New(),
 		SavedConfigData:  &UltimaVConfigurationFlags{},
 		allWindowConfigs: SupportedWindowResolutions(),

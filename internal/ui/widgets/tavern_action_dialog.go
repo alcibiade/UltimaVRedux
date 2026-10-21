@@ -27,7 +27,7 @@ const (
 	tavernActionMinimumTextChars = 8
 	tavernActionNormalFooter     = "[Enter] Confirm   [Esc] Back"
 	tavernActionWarningFooter    = "[Enter] Another Drink   [Esc] I've Had Enough"
-	tavernActionProvisionFooter  = "[Left/Right] Quantity   [M] Maximum\n[Enter] Buy   [Esc] Back"
+	tavernActionProvisionFooter  = "[Left/Right] Quantity   [M] Max\n[Enter] Buy   [Esc] Back"
 )
 
 var _ Widget = (*TavernActionDialog)(nil)
@@ -73,7 +73,7 @@ func NewTavernActionDialog(config TavernActionDialogConfig) *TavernActionDialog 
 		footerMinimumLines = tavernActionFooterLines
 	}
 	dialog := &TavernActionDialog{ //nolint:exhaustruct // Resolution-dependent presentation fields initialize on demand.
-		quantityInput:   newQuantityInput(config.Keyboard, isKeyPressed, ebiten.KeyM),
+		quantityInput:   newQuantityInput(config.Keyboard, isKeyPressed, ebiten.KeyM, ebiten.KeyUp, ebiten.KeyDown),
 		keyboard:        config.Keyboard,
 		isKeyPressed:    isKeyPressed,
 		intent:          cloneTavernActionIntent(config.Intent),
@@ -173,9 +173,9 @@ func (d *TavernActionDialog) updateProvisionQuantity() bool {
 		return owned
 	}
 	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
-	case ebiten.KeyLeft:
+	case ebiten.KeyLeft, ebiten.KeyUp:
 		d.setProvisionPackCount(d.provisionPacks - 1)
-	case ebiten.KeyRight:
+	case ebiten.KeyRight, ebiten.KeyDown:
 		d.setProvisionPackCount(d.provisionPacks + 1)
 	case ebiten.KeyM:
 		d.setProvisionPackCount(d.intent.Provision.MaximumUsefulPacks)
@@ -339,13 +339,7 @@ func (d *TavernActionDialog) populateBodyOutput() {
 
 func (d *TavernActionDialog) populateFooterOutput() {
 	d.footerOutput.Reset()
-	for _, segments := range parseMerchantFooterGuidance(d.GetFooterGuidance()) {
-		line := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range segments {
-			line.Text(segment.Text, segment.Color)
-		}
-		line.Done()
-	}
+	appendControlGuidance(d.footerOutput, d.GetFooterGuidance(), d.frame.footerText.Dx())
 }
 
 func (d *TavernActionDialog) populateMealBody() {
@@ -599,7 +593,7 @@ func validateTavernInformationPitch(pitch string) {
 func tavernActionControlsReleased(isKeyPressed func(ebiten.Key) bool) bool {
 	for _, key := range []ebiten.Key{
 		ebiten.KeyEscape, ebiten.KeyEnter, ebiten.KeyNumpadEnter,
-		ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyM,
+		ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyM,
 	} {
 		if isKeyPressed(key) {
 			return false

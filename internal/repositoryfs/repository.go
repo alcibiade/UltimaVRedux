@@ -111,7 +111,7 @@ func release(locks []*flock.Flock) {
 		if err := locks[index].Unlock(); err != nil {
 			// Release runs after publication as well as failed acquisition. Do not
 			// turn an already committed transaction into a reported write failure.
-			logging.Error(logging.CategorySystem, "Releasing repository reference lock: %v", err)
+			logging.Errorf(logging.CategorySystem, "Releasing repository reference lock: %v", err)
 		}
 	}
 }

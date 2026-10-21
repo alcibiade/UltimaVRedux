@@ -52,7 +52,8 @@ func TestActionLookLargeMapNamesExteriorDungeonPortalsAndRecordsJournal(t *testi
 					assert.Equal(t, want, popup)
 					assert.Equal(t, []string{"Look-" + want}, callbacks.Messages)
 					assert.Equal(t, []int{1}, callbacks.TimeAdvanced())
-					observation := state.dungeonJournal[DungeonToIndexMap[candidate.dungeon]]
+					journalIndex, _ := dungeonIndex(candidate.dungeon)
+					observation := state.dungeonJournal[journalIndex]
 					assert.True(t, observation.Known)
 					siteIndex := journal.DungeonSurfaceSite
 					if floor == references.FloorNumber(references.UNDERWORLD) {

@@ -28,25 +28,27 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/files"
 )
 
+// GameReferences is every reference table loaded from the original game files.
 type GameReferences struct {
-	OverworldLargeMapReference  *LargeMapReference `json:"overworld_large_map_reference" yaml:"overworld_large_map_reference"`
-	UnderworldLargeMapReference *LargeMapReference `json:"underworld_large_map_reference" yaml:"underworld_large_map_reference"`
+	OverworldLargeMapReference  *LargeMapReference `json:"overworldLargeMapReference"  yaml:"overworldLargeMapReference"`
+	UnderworldLargeMapReference *LargeMapReference `json:"underworldLargeMapReference" yaml:"underworldLargeMapReference"`
 
-	LocationReferences      *LocationReferences      `json:"location_references"       yaml:"location_references"`
-	DataOvl                 *DataOvl                 `json:"data_ovl"                  yaml:"data_ovl"`
-	TileReferences          *Tiles                   `json:"tile_references"           yaml:"tile_references"`
-	InventoryItemReferences *InventoryItemReferences `json:"inventory_item_references" yaml:"inventory_item_references"`
-	LookReferences          *LookReferences          `json:"look_references"           yaml:"look_references"`
-	NPCReferences           *NPCReferences           `json:"npc_references"            yaml:"npc_references"`
-	DockReferences          *DockReferences          `json:"dock_references"           yaml:"dock_references"`
-	EnemyReferences         *EnemyReferences         `json:"enemy_references"          yaml:"enemy_references"`
-	MerchantReferences      *MerchantReferences      `json:"merchantReferences"        yaml:"merchantReferences"`
-	SignReferences          *SignReferences          `json:"sign_references"           yaml:"sign_references"`
-	KarmaReports            *KarmaReports            `json:"-"                         yaml:"-"`
+	LocationReferences      *LocationReferences      `json:"locationReferences"      yaml:"locationReferences"`
+	DataOvl                 *DataOvl                 `json:"dataOvl"                 yaml:"dataOvl"`
+	TileReferences          *Tiles                   `json:"tileReferences"          yaml:"tileReferences"`
+	InventoryItemReferences *InventoryItemReferences `json:"inventoryItemReferences" yaml:"inventoryItemReferences"`
+	LookReferences          *LookReferences          `json:"lookReferences"          yaml:"lookReferences"`
+	NPCReferences           *NPCReferences           `json:"npcReferences"           yaml:"npcReferences"`
+	DockReferences          *DockReferences          `json:"dockReferences"          yaml:"dockReferences"`
+	EnemyReferences         *EnemyReferences         `json:"enemyReferences"         yaml:"enemyReferences"`
+	MerchantReferences      *MerchantReferences      `json:"merchantReferences"      yaml:"merchantReferences"`
+	SignReferences          *SignReferences          `json:"signReferences"          yaml:"signReferences"`
+	KarmaReports            *KarmaReports            `json:"-"                       yaml:"-"`
 
 	ConversationCatalog *conversationcatalog.Catalog `json:"-" yaml:"-"`
 }
 
+// NewGameReferences loads all reference tables from the configured original game files.
 func NewGameReferences(gameConfig *config.UltimaVConfiguration) (*GameReferences, error) {
 	gameRefs := &GameReferences{} //nolint:exhaustruct
 
@@ -93,7 +95,7 @@ func NewGameReferences(gameConfig *config.UltimaVConfiguration) (*GameReferences
 	gameRefs.EnemyReferences = NewAllEnemyReferences(gameRefs.TileReferences)
 
 	gameRefs.MerchantReferences, err = NewMerchantReferences(
-		gameConfig.GetFileWithFullPath(files.SHOPPE_DAT),
+		gameConfig.GetFileWithFullPath(files.ShoppeDat),
 		NewWordDict(gameRefs.DataOvl.CompressedWords),
 	)
 	if err != nil {

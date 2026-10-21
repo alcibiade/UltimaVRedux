@@ -16,18 +16,23 @@ const (
 	coordinateOffset = overflowTiles + 1
 )
 
+// LayerType selects one of the stacked tile layers of a LayeredMap.
+type LayerType int
+
 const (
+	// MapLayer is the base terrain layer.
 	MapLayer LayerType = iota
+	// MapOverrideLayer holds runtime changes to terrain, such as opened doors.
 	MapOverrideLayer
+	// MapUnitLayer holds NPCs, monsters and other units drawn above the terrain.
 	MapUnitLayer
 )
-
-type LayerType int
 
 // Layer represents a 2D array of sprite indices for performance optimization
 // Using triple slice [layer][y][x] instead of maps for 5-8x speedup
 type Layer [][]indexes.SpriteIndex
 
+// GameDimensions describes the visible game screen and the map extents behind it.
 type GameDimensions interface {
 	GetTilesVisibleOnScreen() (int, int)
 	GetTopLeftExtent() references.Position
@@ -177,8 +182,8 @@ func (l *LayeredMap) floodFillIfInside(pos *references.Position, bForce bool) {
 	// basically - if they are next to a window, then they can see through - otherwise we treat
 	// the window as opaque, and nothing passes through
 	if tile != nil {
-		if tile.IsWindow() && bForce {
-		} else if tile.BlocksLight || tile.IsWindow() {
+		seeThroughWindow := tile.IsWindow() && bForce
+		if !seeThroughWindow && (tile.BlocksLight || tile.IsWindow()) {
 			return
 		}
 	}
@@ -223,18 +228,18 @@ func (l *LayeredMap) IsPositionVisible(pos *references.Position, timeOfDay datet
 	}
 
 	// next focus on checking the primary lighting
-	xUp := l.xVisibleTiles/2 + 1
+	xUp := l.xVisibleTiles/screenCentreDivisor + 1
 
 	var nToShow int
 
 	if bIsBasement {
-		nToShow = 1 // helpers.RoundUp(float32(xUp) * timeOfDay.GetVisibilityFactorWithoutTorch(0.1))
+		nToShow = 1 // helpers.RoundUp(float32(xUp) * timeOfDay.GetVisibilityFactorWithoutTorch(baselineVisibilityFactor))
 	} else {
-		nToShow = helpers.RoundUp(float32(xUp) * timeOfDay.GetVisibilityFactorWithoutTorch(0.1))
+		nToShow = helpers.RoundUp(float32(xUp) * timeOfDay.GetVisibilityFactorWithoutTorch(baselineVisibilityFactor))
 	}
 
-	// TODO: hey brad - the nToShow is small because of the Avatar - so this won't quite work.
-	// figure out how to distinguish these two - i think the second map that is more "factual" is better
+	// nToShow is small because of the Avatar, so this check alone is not enough;
+	// the second, light-source distance map is the more factual of the two.
 	bShow := l.primaryDistanceMaskMap[*pos] <= nToShow
 
 	if bShow {
@@ -248,6 +253,7 @@ func (l *LayeredMap) IsPositionVisible(pos *references.Position, timeOfDay datet
 	return true
 }
 
+// GetTopTile returns the highest non-empty tile across all layers, or nil for a nil position.
 func (l *LayeredMap) GetTopTile(position *references.Position) *references.Tile {
 	if position == nil {
 		// Gracefully handle nil position to prevent crashes in tests
@@ -265,6 +271,7 @@ func (l *LayeredMap) GetTopTile(position *references.Position) *references.Tile 
 	return nil
 }
 
+// GetTileTopMapOnlyTile returns the highest non-empty terrain tile, ignoring the unit layer.
 func (l *LayeredMap) GetTileTopMapOnlyTile(position *references.Position) *references.Tile {
 	for i := MapOverrideLayer; i >= MapLayer; i-- {
 		tile := l.GetTileByLayer(i, position)
@@ -299,6 +306,7 @@ func (l *LayeredMap) isOccupiedDoor(position *references.Position, terrain *refe
 	return terrain != nil && terrain.Index.IsDoor() && l.doorOccupied != nil && l.doorOccupied(*position)
 }
 
+// SetTileByLayer writes a sprite index into one layer; writes outside the map are ignored.
 func (l *LayeredMap) SetTileByLayer(layer LayerType, position *references.Position, nIndex indexes.SpriteIndex) {
 	// Convert world coordinates to array indices with overflow offset
 	arrayX := int(position.X + coordinateOffset)
@@ -313,10 +321,12 @@ func (l *LayeredMap) SetTileByLayer(layer LayerType, position *references.Positi
 	l.layers[layer][arrayY][arrayX] = nIndex
 }
 
+// UnSetTileByLayer clears one layer at position.
 func (l *LayeredMap) UnSetTileByLayer(layer LayerType, position *references.Position) {
 	l.SetTileByLayer(layer, position, indexes.NoSprites)
 }
 
+// GetTileByLayer returns the tile at position in one layer, or the empty tile outside the map.
 func (l *LayeredMap) GetTileByLayer(layer LayerType, position *references.Position) *references.Tile {
 	// Convert world coordinates to array indices with overflow offset
 	arrayX := int(position.X + coordinateOffset)
@@ -351,6 +361,7 @@ func (l *LayeredMap) SpriteIndexByLayer(layer LayerType, position references.Pos
 	return l.getSpriteIndexByLayer(layer, &position)
 }
 
+// SwapTiles exchanges the top terrain tiles of two positions on the base layer.
 func (l *LayeredMap) SwapTiles(pos1, pos2 *references.Position) {
 	tile1 := l.GetTileTopMapOnlyTile(pos1)
 	tile2 := l.GetTileTopMapOnlyTile(pos2)
@@ -358,6 +369,7 @@ func (l *LayeredMap) SwapTiles(pos1, pos2 *references.Position) {
 	l.SetTileByLayer(MapLayer, pos2, tile1.Index)
 }
 
+// ClearMapUnitTiles empties the whole unit layer.
 func (l *LayeredMap) ClearMapUnitTiles() {
 	// Clear the entire MapUnitLayer array
 	for y := range l.layers[MapUnitLayer] {
@@ -367,22 +379,27 @@ func (l *LayeredMap) ClearMapUnitTiles() {
 	}
 }
 
+// GetTilesVisibleOnScreen returns the visible screen size in tiles (x, y).
 func (l *LayeredMap) GetTilesVisibleOnScreen() (int, int) {
 	return l.xVisibleTiles, l.yVisibleTiles
 }
 
+// GetTopLeftExtent returns the top-left corner of the loaded area, including overflow tiles.
 func (l *LayeredMap) GetTopLeftExtent() references.Position {
 	return l.TopLeft
 }
 
+// GetBottomRightExtent returns the bottom-right corner of the loaded area, including overflow tiles.
 func (l *LayeredMap) GetBottomRightExtent() references.Position {
 	return l.BottomRight
 }
 
+// IsWrappedMap returns true for maps whose edges wrap, such as the overworld.
 func (l *LayeredMap) IsWrappedMap() bool {
 	return l.bWrappingMap
 }
 
+// GetBottomRightWithoutOverflow returns the map size in tiles, without overflow tiles.
 func (l *LayeredMap) GetBottomRightWithoutOverflow() references.Position {
 	return references.Position{X: l.XMaxTilesPerMap, Y: l.YMaxTilesPerMap}
 }
@@ -435,9 +452,16 @@ type NPCLightInfo struct {
 	LightRadius int
 }
 
-// RecalculateVisibleTilesWithCustomLights recalculates visible tiles including moongate, quest item, and NPC light sources
-func (l *LayeredMap) RecalculateVisibleTilesWithCustomLights(avatarPos references.Position,
-	lighting *Lighting, moongatePositions []references.Position, questItemLights []QuestItemLightInfo, npcLights []NPCLightInfo, playerLightType PlayerLightType) {
+// RecalculateVisibleTilesWithCustomLights recalculates visible tiles including moongate,
+// quest item, and NPC light sources.
+func (l *LayeredMap) RecalculateVisibleTilesWithCustomLights(
+	avatarPos references.Position,
+	lighting *Lighting,
+	moongatePositions []references.Position,
+	questItemLights []QuestItemLightInfo,
+	npcLights []NPCLightInfo,
+	playerLightType PlayerLightType,
+) {
 	l.TopLeft = references.Position{
 		X: avatarPos.X - overflowTiles,
 		Y: avatarPos.Y - overflowTiles,
@@ -447,9 +471,9 @@ func (l *LayeredMap) RecalculateVisibleTilesWithCustomLights(avatarPos reference
 		Y: avatarPos.Y + overflowTiles,
 	}
 
-	// TODO: it's lazy to make both of these calls since it could do in one pass
+	// Reset and rectangle marking could be done in one pass.
 	l.testForVisibilityMap.ResetVisibilityCoords(false)
-	l.testForVisibilityMap.SetVisibilityCoordsRectangle(
+	l.testForVisibilityMap.setVisibilityCoordsRectangle(
 		&l.TopLeft,
 		&l.BottomRight,
 		l.XMaxTilesPerMap,
@@ -482,9 +506,14 @@ func (l *LayeredMap) RecalculateVisibleTilesWithCustomLights(avatarPos reference
 	)
 }
 
-// getAllLightSourcesWithCustomLights gets all light sources including custom light sources (moongates, quest items, and NPCs)
-func (l *LayeredMap) getAllLightSourcesWithCustomLights(centerPosition references.Position,
-	moongatePositions []references.Position, questItemLights []QuestItemLightInfo, npcLights []NPCLightInfo) LightSources {
+// getAllLightSourcesWithCustomLights gets all light sources including custom light sources
+// (moongates, quest items, and NPCs).
+func (l *LayeredMap) getAllLightSourcesWithCustomLights(
+	centerPosition references.Position,
+	moongatePositions []references.Position,
+	questItemLights []QuestItemLightInfo,
+	npcLights []NPCLightInfo,
+) LightSources {
 	// Both distance and tint consumers reject invisible static emitters. Collect
 	// only current visible positions, preserving the exhaustive scan's raw order.
 	// A primed older cache shares cachedLightSources; retain its full-list behavior.
@@ -555,15 +584,15 @@ func (l *LayeredMap) addQuestItemLightSources(lightSources *LightSources, questI
 func (l *LayeredMap) FindLighthousePositions() []references.Position {
 	positions := make([]references.Position, 0, MaxLighthousesPerMap)
 
-	for y := references.Coordinate(0); y < l.YMaxTilesPerMap; y++ {
-		for x := references.Coordinate(0); x < l.XMaxTilesPerMap; x++ {
-			pos := references.Position{X: x, Y: y}
+	for tileY := references.Coordinate(0); tileY < l.YMaxTilesPerMap; tileY++ {
+		for tileX := references.Coordinate(0); tileX < l.XMaxTilesPerMap; tileX++ {
+			pos := references.Position{X: tileX, Y: tileY}
 			spriteIndex := l.getSpriteIndexByLayer(MapLayer, &pos)
 
 			if spriteIndex == indexes.LighthouseLight {
-				logging.Debug(logging.CategoryLighthouse,
+				logging.Debugf(logging.CategoryLighthouse,
 					"FindLighthousePositions: Found beacon at (%d, %d), tile index %d",
-					x, y, spriteIndex)
+					tileX, tileY, spriteIndex)
 				positions = append(positions, pos)
 				if len(positions) >= MaxLighthousesPerMap {
 					return positions
@@ -572,7 +601,7 @@ func (l *LayeredMap) FindLighthousePositions() []references.Position {
 		}
 	}
 
-	logging.Debug(logging.CategoryLighthouse,
+	logging.Debugf(logging.CategoryLighthouse,
 		"FindLighthousePositions: Scanned %dx%d map, found %d lighthouse(s)",
 		l.XMaxTilesPerMap, l.YMaxTilesPerMap, len(positions))
 
@@ -596,11 +625,11 @@ func (l *LayeredMap) FindLighthousePositionsInViewport(
 ) []references.Position {
 	positions := make([]references.Position, 0, MaxLighthousesPerMap)
 
-	for dy := -viewRadius; dy <= viewRadius; dy++ {
-		for dx := -viewRadius; dx <= viewRadius; dx++ {
+	for deltaY := -viewRadius; deltaY <= viewRadius; deltaY++ {
+		for deltaX := -viewRadius; deltaX <= viewRadius; deltaX++ {
 			checkPos := references.Position{
-				X: playerPos.X + references.Coordinate(dx),
-				Y: playerPos.Y + references.Coordinate(dy),
+				X: playerPos.X + tileOffset(deltaX),
+				Y: playerPos.Y + tileOffset(deltaY),
 			}
 
 			// Handle coordinate wrapping for large maps

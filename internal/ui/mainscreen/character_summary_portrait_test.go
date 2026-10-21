@@ -67,7 +67,6 @@ func TestCharacterPortraitLifecycleRetiresInactiveSlotsAndDisposesIdempotently(t
 	summary.Dispose()
 	for index := range summary.portraits {
 		assert.Empty(t, summary.portraits[index])
-		assert.Nil(t, summary.characterSummaryImage[index])
 	}
 }
 

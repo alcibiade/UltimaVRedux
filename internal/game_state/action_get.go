@@ -62,8 +62,6 @@ func (g *GameState) ActionGetSmallMap(direction references.Direction) bool {
 		// See ref:KARMA-0006.
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundItemPickup)
 		g.AdjustPartyKarma(-1)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 		g.AdvanceOrdinarySurfaceCommandMinutes(1)
 
 		return true
@@ -229,7 +227,6 @@ func (g *GameState) getSandalwoodBox() bool {
 	g.SystemCallbacks.Message.AddRowStr("A sandalwood box!")
 	g.recordQuestItemAcquired(references.WoodenBox)
 	g.SystemCallbacks.Audio.PlaySoundEffect(SoundQuestPickup)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	g.AdvanceOrdinarySurfaceCommandMinutes(1)
 
 	return true
@@ -630,7 +627,6 @@ func (g *GameState) getCombatItem(direction references.Direction) CombatPickupRe
 			candidateItem.Item.ID() == item.Item.ID() && candidateItem.Quantity == item.Quantity
 	})
 	g.SystemCallbacks.Message.AddRowStr(message)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	result.Handled, result.Message = true, message
 

@@ -453,7 +453,7 @@ func hashSyntheticContent(writer io.Writer, name string, data []byte) {
 
 func readTestFile(t *testing.T, filename string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filename) //nolint:gosec // Tests own all selected temporary paths.
+	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
 	return data
@@ -478,7 +478,7 @@ func snapshotTree(t *testing.T, root string) map[string][]byte {
 		if err != nil {
 			return err
 		}
-		data, err := os.ReadFile(path) //nolint:gosec // Test snapshot remains under its temporary root.
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}

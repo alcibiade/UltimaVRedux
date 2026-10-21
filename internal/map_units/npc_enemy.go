@@ -33,6 +33,7 @@ type NPCEnemy struct {
 	shadowlord     references.Shadowlord
 }
 
+// NewEnemyNPC creates an enemy from its monster reference, numbered npcNum on its map.
 func NewEnemyNPC(enemyRef references.EnemyReference, npcNum int) NPCEnemy {
 	enemy := NPCEnemy{} //nolint:exhaustruct
 	enemy.EnemyReference = enemyRef
@@ -55,7 +56,7 @@ func enemyVariant(enemyRef references.EnemyReference) EnemyVariant {
 	case enemyRef.MonsterType == references.MonsterWhirlpool:
 		return EnemyVariantWhirlpool
 	case enemyRef.MonsterType == references.MonsterShadowlord ||
-		(enemyRef.KeyFrameTile != nil && enemyRef.KeyFrameTile.Index == indexes.ShadowLord_KeyIndex):
+		(enemyRef.KeyFrameTile != nil && enemyRef.KeyFrameTile.Index == indexes.ShadowLordKeyIndex):
 		return EnemyVariantShadowlord
 	default:
 		return EnemyVariantStandard
@@ -129,46 +130,57 @@ func (enemy *NPCEnemy) ShadowlordIdentity() (references.Shadowlord, bool) {
 	return enemy.shadowlord, enemy.variant == EnemyVariantShadowlord && enemy.shadowlord != references.NoShadowlord
 }
 
+// GetMapUnitType reports Enemy for every NPCEnemy.
 func (enemy *NPCEnemy) GetMapUnitType() MapUnitType {
 	return Enemy
 }
 
+// Pos returns the position by value; PosPtr exposes the live field for in-place updates.
 func (enemy *NPCEnemy) Pos() references.Position {
 	return enemy.mapUnitDetails.Position
 }
 
+// MapUnitDetails returns the shared per-unit state, which the caller may mutate.
 func (enemy *NPCEnemy) MapUnitDetails() *MapUnitDetails {
 	return &enemy.mapUnitDetails
 }
 
+// SetVisible shows or hides the unit; hidden units do not occupy tiles.
 func (enemy *NPCEnemy) SetVisible(visible bool) {
 	enemy.mapUnitDetails.Visible = visible
 }
 
+// IsVisible reports whether the unit is shown; hidden units are excluded from occupancy.
 func (enemy *NPCEnemy) IsVisible() bool {
 	return enemy.mapUnitDetails.Visible
 }
 
+// IsEmptyMapUnit reports whether the unit has no key frame tile, so it occupies no tile.
 func (enemy *NPCEnemy) IsEmptyMapUnit() bool {
 	return enemy.keyFrameTile == nil
 }
 
+// Floor returns the dungeon floor the unit is on.
 func (enemy *NPCEnemy) Floor() references.FloorNumber {
 	return enemy.mapUnitDetails.Floor
 }
 
+// PosPtr returns the live position so callers can update it in place.
 func (enemy *NPCEnemy) PosPtr() *references.Position {
 	return &enemy.mapUnitDetails.Position
 }
 
+// SetPos records a new map position without any movement or collision checks.
 func (enemy *NPCEnemy) SetPos(position references.Position) {
 	enemy.mapUnitDetails.Position = position
 }
 
+// SetFloor records the dungeon floor the unit occupies.
 func (enemy *NPCEnemy) SetFloor(floor references.FloorNumber) {
 	enemy.mapUnitDetails.Floor = floor
 }
 
+// GetKeySpriteIndex returns the sprite of the key frame tile, or sprite 0 when the unit has none.
 func (enemy *NPCEnemy) GetKeySpriteIndex() indexes.SpriteIndex {
 	if enemy.keyFrameTile == nil {
 		return indexes.SpriteIndex(0)

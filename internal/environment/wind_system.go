@@ -11,6 +11,8 @@ const WindTickIntervalMs int64 = 55
 
 const (
 	windCandidateCount      = 5
+	windChangeOdds          = 64 // one wind change per this many ticks on average
+	calmSailingTicks        = 4  // ticks per frigate move in calm; matches test expectations
 	windCalmRollRange       = 256
 	windCalmAcceptThreshold = 192
 )
@@ -25,14 +27,20 @@ type WindSystemCallbacks interface {
 	AddRowStr(message string)
 }
 
+// WindDirection is the compass direction the wind blows from, or Calm.
 type WindDirection int
 
 const (
-	Calm  WindDirection = 0
+	// Calm is no wind; ships stall.
+	Calm WindDirection = 0
+	// North wind blows toward the south.
 	North WindDirection = 1
+	// South wind blows toward the north.
 	South WindDirection = 2
-	East  WindDirection = 3
-	West  WindDirection = 4
+	// East wind blows toward the west.
+	East WindDirection = 3
+	// West wind blows toward the east.
+	West WindDirection = 4
 )
 
 func (w WindDirection) String() string {
@@ -52,10 +60,12 @@ func (w WindDirection) String() string {
 	}
 }
 
+// GetUIString returns the wind text shown in the status panel.
 func (w WindDirection) GetUIString() string {
 	return w.String() + " Winds"
 }
 
+// WindSystem tracks the current wind and its random changes on a fixed tick.
 type WindSystem struct {
 	rng           randomIntn
 	callbacks     WindSystemCallbacks
@@ -114,7 +124,7 @@ func (w *WindSystem) AdvanceThrough(elapsedMs int64) {
 // UpdateWindTick processes automatic wind changes (1/64 chance per tick)
 func (w *WindSystem) UpdateWindTick() {
 	// 1/64 chance per tick to change wind
-	if w.rng.Intn(64) == 0 {
+	if w.rng.Intn(windChangeOdds) == 0 {
 		w.generateRandomWindChange()
 	}
 }
@@ -147,8 +157,10 @@ func (w *WindSystem) SetWindByDirection(direction references.Direction, immediat
 		windDir = East
 	case references.Left:
 		windDir = West
+	case references.NoneDirection:
+		fallthrough
 	default:
-		return false // Invalid direction (including references.NoneDirection)
+		return false // Invalid direction
 	}
 
 	w.SetWind(windDir, immediate)
@@ -180,7 +192,7 @@ func (w *WindSystem) generateRandomWindChange() {
 func (w *WindSystem) GetFrigateSailingSpeed(direction references.Direction) int {
 	// If no wind (calm), ship movement is very slow - return high tick count
 	if w.currentWind == Calm {
-		return 4 // Stalled in calm conditions - matches test expectations
+		return calmSailingTicks // Stalled in calm conditions - matches test expectations
 	}
 
 	// Wind vectors in order are south, north, west, east; ref:SHIP-0001.
@@ -196,16 +208,18 @@ func (w *WindSystem) GetFrigateSailingSpeed(direction references.Direction) int 
 
 	// Convert direction to movement vector (Ultima V coordinate system)
 	// Note: In original C code, 0xff is used as -1 in comparisons
-	var dx, dy int
+	var dirX, dirY int
 	switch direction {
 	case references.Up: // North (DIR_NORTH: dy = 0xff)
-		dx, dy = 0, -1 // 0xff interpreted as -1 for comparison
+		dirX, dirY = 0, -1 // 0xff interpreted as -1 for comparison
 	case references.Down: // South (DIR_SOUTH: dy = 1)
-		dx, dy = 0, 1
+		dirX, dirY = 0, 1
 	case references.Right: // East (DIR_EAST: dx = 1)
-		dx, dy = 1, 0
+		dirX, dirY = 1, 0
 	case references.Left: // West (DIR_WEST: dx = 0xff)
-		dx, dy = -1, 0 // 0xff interpreted as -1 for comparison
+		dirX, dirY = -1, 0 // 0xff interpreted as -1 for comparison
+	case references.NoneDirection:
+		fallthrough
 	default:
 		return 1
 	}
@@ -213,10 +227,10 @@ func (w *WindSystem) GetFrigateSailingSpeed(direction references.Direction) int 
 	// Start at one wait; add one for each movement component differing from wind; ref:SHIP-0001.
 	windVec := windVectors[w.currentWind]
 	num := 1
-	if windVec[0] != dx {
+	if windVec[0] != dirX {
 		num++
 	}
-	if windVec[1] != dy {
+	if windVec[1] != dirY {
 		num++
 	}
 

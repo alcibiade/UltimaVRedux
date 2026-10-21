@@ -172,10 +172,9 @@ func TestExcerptArchiveSemanticColorsAndFooterFits(t *testing.T) {
 		require.Equal(t, pkgcolor.JournalArchived, background)
 		require.NotEqual(t, foreground, background)
 		dialog.ensureLayout()
-		PrepareKeyboardFooter(dialog.footerContentRect(), dialog.footerGuidance(), dialog.footerLineCount(), dialog.footerOutput)
 		width := dialog.footerContentRect().Dx()
-		footer := fitModifierFooterGuidance(dialog.footerGuidance(), dialog.font, width, dialog.footerLineCount())
-		lines := strings.Split(footer, "\n")
+		lines := packedFooterRows(dialog.font, dialog.footerGuidance(), width)
+		footer := strings.Join(lines, "\n")
 		require.LessOrEqual(t, len(lines), dialog.footerLineCount())
 		for _, line := range lines {
 			measured, _ := dialog.font.MeasureString(line)

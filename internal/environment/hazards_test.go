@@ -3,8 +3,8 @@ package environment
 import (
 	"testing"
 
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/rand"
 
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -77,7 +77,7 @@ type TestCharacterStats struct {
 }
 
 func TestHazardDetection(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -111,7 +111,7 @@ func TestHazardDetection(t *testing.T) {
 
 func TestSwampPoisonWithLowDexterity(t *testing.T) {
 	// Setup deterministic RNG
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -144,7 +144,7 @@ func TestSwampPoisonWithLowDexterity(t *testing.T) {
 
 func TestSwampPoisonWithHighDexterity(t *testing.T) {
 	// Setup deterministic RNG
-	rng := rand.New(rand.NewSource(99999))
+	rng := beradrng.New(99999)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -162,7 +162,7 @@ func TestSwampPoisonWithHighDexterity(t *testing.T) {
 }
 
 func TestSwampSkipsDeadAndPoisonedCharacters(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -267,7 +267,7 @@ func TestSwampPoisonIneligibleCharactersConsumeNoRNG(t *testing.T) {
 
 func TestLavaDamageApplication(t *testing.T) {
 	// Test lava damage with known RNG seed
-	rng := rand.New(rand.NewSource(54321))
+	rng := beradrng.New(54321)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -298,7 +298,7 @@ func TestLavaDamageApplication(t *testing.T) {
 }
 
 func TestFireplaceDamageOnlyInSmallMaps(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -322,7 +322,7 @@ func TestFireplaceDamageOnlyInSmallMaps(t *testing.T) {
 }
 
 func TestDeadCharacterFromDamage(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 
@@ -345,7 +345,7 @@ func TestDeadCharacterFromDamage(t *testing.T) {
 }
 
 func TestNoHazardForSafeTiles(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockSystemCallbacks{}
 	hazards := NewEnvironmentalHazards(rng, mockCallbacks)
 

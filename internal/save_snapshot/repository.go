@@ -126,12 +126,9 @@ func (repository *Repository) Load(qualifiedReference string) (Record, error) {
 	if err != nil {
 		return Record{}, fmt.Errorf("load save snapshot %s: %w", reference, err)
 	}
-	revisionData := data
-	if !envelope.Snapshot.NeedsMapUnitReconstruction() {
-		revisionData, err = EncodeCanonical(envelope)
-		if err != nil {
-			return Record{}, err
-		}
+	revisionData, err := EncodeCanonical(envelope)
+	if err != nil {
+		return Record{}, err
 	}
 
 	return Record{Reference: reference, Envelope: envelope, Revision: repositoryfs.ContentRevision(revisionData)}, nil

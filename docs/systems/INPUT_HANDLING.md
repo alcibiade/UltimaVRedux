@@ -50,13 +50,17 @@ separate acceptance from injected-source candidate testing.
 
 ## Routing Order
 
+Closing the game window during play opens the Exit to DOS choice instead of quitting; a second close while that choice is open,
+or any close outside play or after the game has ended, quits at once.
+
 Caps Lock is transparent to game-control polling: the shared Keyboard adapter
 excludes it before native/injected polling, including nil-receiver fallback. It
 cannot acknowledge all-key prompts, count as intro activity, hold release gates,
 or enter focus-return suppression. Real held controls still require release.
 Native committed text and composition keep their existing case policies.
 **Shift+M/Shift+J require physically held left or right Shift**, with existing
-context/other-modifier rules. Caps Lock alone routes M/J to Mix/Jimmy; Caps Lock
+context/other-modifier rules. While a text box has focus, Shift+J types a capital J
+instead of opening the Journal. Caps Lock alone routes M/J to Mix/Jimmy; Caps Lock
 plus physical Shift opens readers even if native text is lowercase. Native
 save-description Ctrl+U accepts either ASCII shortcut insertion (`u`/`U`) without
 changing composition ownership. Injected held-key and production reader round-trip
@@ -322,7 +326,7 @@ does not discard already owed actor work or projectile presentation. See
 Live `UI.AtlasUpdated` feedback never owns input or changes atlas selection. One
 scene FIFO coalesces pending updates for the same public site and keeps pending
 map updates ahead of the coalesced journal notice. At an unblocked boundary it
-flushes into the ordinary main Output, with styled Shift-M / Shift-J reader hints
+flushes into the ordinary main Output, with styled Shift+M / Shift+J reader hints
 and normal History retention. Secondary prompts, readers, modals, workflows,
 arrival presentation and fades defer the flush; both entry and exit of the frame
 must be clear. There is no timed map overlay, countdown, or notice dialog.
@@ -486,7 +490,7 @@ time, combat action, and gameplay RNG, including party-member target selection.
 Later effect failure does not refund committed costs.
 
 Interaction transcript text prompts normally use Escape to cancel. Blackthorn
-alone configures `ClearTextOnEscape`: `Esc: Clear text` clears the editor without
+alone configures `ClearTextOnEscape`: `[Esc] Clear text` clears the editor without
 submitting an answer, advancing the attempt, or releasing interrogation input
 (the interrogation belongs to [CRIME-0003](../gamefacts/CRIME_PRISON.md#crime-0003)).
 Return, including an empty Return, still submits an answer.
@@ -541,7 +545,7 @@ end-player completion. Boundary exits consume the token without dungeon
 end-player processing and transition to the route-selected world plane.
 
 Remaining unsupported bound keys that reach the dungeon primary handler report
-`Not implemented in dungeons.` and do not begin a command cycle or charge its
+`What?` and do not begin a command cycle or charge its
 minute. Party-selection numbers and Escape retain their global routing, while
 `Ctrl+M` toggles music without a dungeon cycle. A stale Look, Search, Klimb, or
 Quit secondary state is cleared without action or charge. Open, Jimmy, Search,
@@ -552,7 +556,9 @@ started workflow finalizers own exact-once full completion after cleanup.
 
 Shift+J is intercepted before queues, modal input, and primary handlers in
 exploration, conversations, retained prompts, workflows, dungeons, and combat
-including targeting. Terminal finale presentation is excluded. It opens the detached Quest
+including targeting. Terminal finale presentation is excluded, and so is a
+focused text box (typed Yell, conversation keyword or text prompt), where Shift+J
+types a capital J. It opens the detached Quest
 Journal without beginning a dungeon command cycle, calling `FinishTurn`, or
 finishing a combat action. Plain J continues to reach the existing Jimmy path.
 The top modal isolates Tab/Shift+Tab, repeatable Up/Down and Page Up/Page Down,

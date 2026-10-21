@@ -193,7 +193,6 @@ func (g *GameState) triggerCombatChestTrap(pcIndex int) CombatChestTrapResult {
 	default:
 		panic("combat chest selected an unknown trap type")
 	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	result := CombatChestTrapResult{
 		Type: trapType, ActorName: character.GetNameAsString(),
 		HPLost: beforeHP - character.GetCurrentHp(), Fatal: character.IsDead(),

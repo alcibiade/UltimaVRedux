@@ -104,7 +104,7 @@ func TestCurrentZStatsDossierStartsOnActingCombatPartyMember(t *testing.T) {
 		newZStatsTestCharacter("Iolo", party_state.Bard, party_state.Good, 4, 500),
 	)
 	state.activePlayerIndex = 0
-	state.CombatScene = &CombatState{ //nolint:exhaustruct // Only turn identity participates in this projection test.
+	state.CombatScene = &CombatState{
 		CurrentTurnIndex:       1,
 		CurrentTurnIdentity:    CombatTurnIdentity{IsPartyMember: true, EntityIndex: 1},
 		currentTurnIdentitySet: true,
@@ -322,7 +322,7 @@ func TestZStatsProjectsFullCatalogNames(t *testing.T) {
 }
 
 func newZStatsTestState(characters ...*party_state.PlayerCharacter) *GameState {
-	gameReferences := &references.GameReferences{ //nolint:exhaustruct // The dossier only needs embedded inventory references.
+	gameReferences := &references.GameReferences{
 		InventoryItemReferences: references.NewInventoryItemsReferences(),
 	}
 	state := initBlankGameState(gameReferences, &config.UltimaVConfiguration{}, 11, 11)
@@ -342,7 +342,7 @@ func newZStatsTestCharacter(
 	level byte,
 	experience uint16,
 ) *party_state.PlayerCharacter {
-	character := &party_state.PlayerCharacter{ //nolint:exhaustruct // Private resources and equipment use their invariant-preserving setters.
+	character := &party_state.PlayerCharacter{
 		Gender:       party_state.Male,
 		Class:        class,
 		Strength:     20,

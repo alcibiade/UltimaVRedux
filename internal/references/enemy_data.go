@@ -344,7 +344,7 @@ var monsterIDData = [nTotalEnemies]string{
 	/* 42 */ "x",
 	/* 43 */ "x",
 	/* 44 */ "MONGBATS",
-	/* 45 */ "CORPSERS",
+	/* 45 */ "CORPSERS", //nolint:misspell // Corpser is an original Ultima V monster.
 	/* 46 */ "ROTWORMS",
 	/* 47 */ "SHADOW LORD",
 }

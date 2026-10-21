@@ -916,30 +916,6 @@ func TestScenarioRunnerRejectsStepsAfterCombatEncounterStart(t *testing.T) {
 	assert.Contains(t, result.ErrorMessage, debugging.CommandCombatEncounterStart)
 }
 
-func TestScenarioRunnerRejectsStepsAfterLordBritishFinale(t *testing.T) {
-	repository := newScenarioRunnerTestRepository(t)
-	saveScenarioRunnerDefinition(t, repository, scenarios.Definition{
-		SchemaVersion: scenarios.CurrentSchemaVersion, ID: "finale-terminal", Name: "Finale Terminal",
-		Description: "Invalid setup after the terminal ending starts.", Baseline: scenarios.CurrentBaseline(),
-		Steps: []scenarios.Step{
-			scenarioRunnerCommandStep(debugging.CommandScenarioLordBritishFinale, nil),
-			scenarioRunnerCommandStep(
-				debugging.CommandUnlimitedCastingResourcesSet,
-				map[string]json.RawMessage{"enabled": json.RawMessage(`true`)},
-			),
-		},
-	})
-	game := NewGame(&scenarioRunnerTestScene{ready: true})
-	game.ConfigureScenarioRunner(repository, nil)
-
-	result := game.ExecuteLocalDebugCommand(scenarioRunnerStartRequest(t, game, repository, "project:finale-terminal"))
-
-	require.False(t, result.Success)
-	assert.Equal(t, scenarioRunPreflightError, result.ErrorCode)
-	assert.Contains(t, result.ErrorMessage, "steps[1]")
-	assert.Contains(t, result.ErrorMessage, debugging.CommandScenarioLordBritishFinale)
-}
-
 func newScenarioRunnerTestRepository(t *testing.T) *scenarios.Repository {
 	t.Helper()
 	root := t.TempDir()

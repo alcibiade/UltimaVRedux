@@ -65,18 +65,18 @@ func TestDungeonSkeletonCrumbleOverlaysOldSpecialWallPanel(t *testing.T) {
 
 func TestDungeonSkeletonCrumbleKeepsOverlayOnSourceSideOfClipBoundary(t *testing.T) {
 	target := references.Position{X: 4, Y: 3}
-	plan := dungeonRenderPlan{ //nolint:exhaustruct // The test constructs only the clip boundary under review.
+	plan := dungeonRenderPlan{
 		location:    references.Deceit,
 		floor:       0,
 		clipEnabled: true,
 		clipFrom:    2,
 		count:       3,
 	}
-	plan.ops[0] = dungeonRenderOp{kind: dungeonRenderPanel} //nolint:exhaustruct // Irrelevant fields use zero values.
-	plan.ops[1] = dungeonRenderOp{                          //nolint:exhaustruct // The target side panel supplies only structural fields.
+	plan.ops[0] = dungeonRenderOp{kind: dungeonRenderPanel}
+	plan.ops[1] = dungeonRenderOp{
 		kind: dungeonRenderPanel, role: dungeonRenderLeft, position: target, depth: 0,
 	}
-	plan.ops[2] = dungeonRenderOp{kind: dungeonRenderItem} //nolint:exhaustruct // Irrelevant fields use zero values.
+	plan.ops[2] = dungeonRenderOp{kind: dungeonRenderItem}
 	effect := dungeonSkeletonCrumbleEffect{location: references.Deceit, floor: 0, position: target, startedAt: 0}
 
 	appendDungeonSkeletonCrumble(&plan, &effect, 0)
@@ -127,12 +127,12 @@ func TestDungeonSkeletonCrumbleFizzLeavesReplacementWallStationary(t *testing.T)
 	canvas := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	clipLayer := ebiten.NewImage(dungeonCanvasWidth, dungeonCanvasHeight)
 	source := syntheticDungeonSpriteSource{panel: wall, delta: delta, item: wall}
-	plan := dungeonRenderPlan{ //nolint:exhaustruct // The test owns only the static wall and its fizz overlay.
+	plan := dungeonRenderPlan{
 		brightness: 1,
 		count:      2,
 	}
-	plan.ops[0] = dungeonRenderOp{kind: dungeonRenderPanel} //nolint:exhaustruct // The zero transform draws at the origin.
-	plan.ops[1] = dungeonRenderOp{                          //nolint:exhaustruct // The fizz requires only its panel and dissolve state.
+	plan.ops[0] = dungeonRenderOp{kind: dungeonRenderPanel}
+	plan.ops[1] = dungeonRenderOp{
 		kind: dungeonRenderSkeletonCrumble, spriteIndex: 20, dissolve: &state,
 	}
 

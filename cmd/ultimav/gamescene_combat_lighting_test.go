@@ -19,9 +19,6 @@ func TestCombatVisibility_IgnoresExplorationLighting(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(6, references.DungeonCombatTerritory, game_state.CombatEntrySouth)
 	require.NoError(t, err)
@@ -39,9 +36,6 @@ func TestCombatVisibility_DisablesLightTinting(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(6, references.DungeonCombatTerritory, game_state.CombatEntrySouth)
 	require.NoError(t, err)
@@ -51,7 +45,7 @@ func TestCombatVisibility_DisablesLightTinting(t *testing.T) {
 		map_state.PlayerLightTorch,
 	)
 	g := &GameScene{gameState: gs}
-	drawOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct
+	drawOptions := &ebiten.DrawImageOptions{}
 
 	assert.False(t, g.applyLightTinting(
 		references.Position{X: 5, Y: 2},
@@ -65,9 +59,6 @@ func TestDuskAmbientTintDoesNotChangeVisibilityLight(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	gs.DateTime.Hour = 19
 	gs.DateTime.Minute = 45
@@ -76,7 +67,7 @@ func TestDuskAmbientTintDoesNotChangeVisibilityLight(t *testing.T) {
 		"cosmetic dusk tint must not grant ambient visibility before night")
 
 	g := &GameScene{gameState: gs}
-	drawOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct
+	drawOptions := &ebiten.DrawImageOptions{}
 	assert.True(t, g.applyLightTinting(references.Position{}, drawOptions, 0))
 	want := float32(1 + (map_state.UnlitDarkeningFactor-1)*0.5)
 	assert.InDelta(t, want, drawOptions.ColorScale.R(), 0.0001)

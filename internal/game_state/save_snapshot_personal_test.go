@@ -247,14 +247,14 @@ func TestSaveSnapshotV24LegacyBasementResumePreservesActiveAbsence(t *testing.T)
 	require.NotNil(t, basementSourceChest(nextDay, 23))
 }
 
-func TestSaveSnapshotV12ReconstructionCannotRecreateConsumedOffFloorChest(t *testing.T) {
+func TestSaveSnapshotReconstructionCannotRecreateConsumedOffFloorChest(t *testing.T) {
 	state, _ := basementFixture(t)
 	state.initializeMoongateStage()
 	require.True(t, state.GoUpOneFloor())
 	snapshot, err := state.CaptureSaveSnapshot()
 	require.NoError(t, err)
-	// Exact post-promotion V12 reconstruction state: the obsolete death flag
-	// has become a saved-date ledger entry, and no active units were persisted.
+	// Legacy-import reconstruction state: an absent authored chest has become
+	// a saved-date ledger entry, and no active units were persisted.
 	snapshot.MapUnits, snapshot.ItemStacks, snapshot.MapMutations = nil, nil, nil
 	snapshot.MarkMapUnitsForReconstruction()
 	date := snapshot.World.Calendar

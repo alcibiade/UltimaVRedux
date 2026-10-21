@@ -100,7 +100,6 @@ func TestLadderTileCleanupValidation_Britain(t *testing.T) {
 			t.Logf("Testing non-ladder tile: %s (index %d)", nonLadderTile.Name, nonLadderTile.Index)
 
 			// Set a test map unit at non-ladder position
-			//nolint:exhaustruct // Test only sets relevant fields
 			testMapUnit := &references.Tile{Index: indexes.AvatarKeyIndex, Name: "TestUnit"}
 			currentMap.SetTileByLayer(map_state.MapUnitLayer, &nonLadderPos, testMapUnit.Index)
 

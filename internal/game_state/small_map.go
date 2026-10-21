@@ -7,6 +7,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// UpdateSmallMap rebuilds the current town, keep or other small map and its NPC controller, keeping basement chest lifetimes.
 func (g *GameState) UpdateSmallMap(tileRefs *references.Tiles, locs *references.LocationReferences) {
 	chests := g.basementChestLifetimes()
 	slr := locs.GetLocationReference(g.MapState.PlayerLocation.Location)

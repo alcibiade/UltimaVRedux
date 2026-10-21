@@ -69,12 +69,19 @@ func ValidateAtlasLandmarks(records []AtlasLandmarkObservation) error {
 	return nil
 }
 
-//nolint:cyclop // Bounded site/source/survey invariants are checked together at the persistence boundary.
+// atlasSiteClass sorts a site key into the ordinary-settlement, shrine and Guardians categories.
+func atlasSiteClass(siteKey uint8) (bool, bool, bool) {
+	ordinary := siteKey >= uint8(references.Moonglow) && siteKey <= uint8(references.SerpentsHold) &&
+		siteKey != uint8(references.Ararat)
+	shrine := siteKey >= atlasFirstShrineKey && siteKey <= atlasLastShrineKey
+	guardians := siteKey == AtlasGuardiansSiteKey
+
+	return ordinary, shrine, guardians
+}
+
+// validateAtlasLandmark checks the bounded site/source/survey invariants together at the persistence boundary.
 func validateAtlasLandmark(record AtlasLandmarkObservation) error {
-	ordinary := record.SiteKey >= uint8(references.Moonglow) && record.SiteKey <= uint8(references.SerpentsHold) &&
-		record.SiteKey != uint8(references.Ararat)
-	shrine := record.SiteKey >= atlasFirstShrineKey && record.SiteKey <= atlasLastShrineKey
-	guardians := record.SiteKey == AtlasGuardiansSiteKey
+	ordinary, shrine, guardians := atlasSiteClass(record.SiteKey)
 	if !ordinary && !shrine && !guardians {
 		return fmt.Errorf("%w: site key %d", ErrInvalidAtlasObservation, record.SiteKey)
 	}
@@ -83,23 +90,11 @@ func validateAtlasLandmark(record AtlasLandmarkObservation) error {
 		site.X < 0 || site.X > 255 || site.Y < 0 || site.Y > 255 {
 		return fmt.Errorf("%w: exterior %d", ErrInvalidAtlasObservation, record.SiteKey)
 	}
-	switch record.Kind {
-	case "towne", "village", "hut", "keep", "castle", "lighthouse", "shrine", "ruins", atlasGuardiansKind:
-	default:
-		return fmt.Errorf("%w: kind %q", ErrInvalidAtlasObservation, record.Kind)
+	if err := validateAtlasKindAndSource(record); err != nil {
+		return err
 	}
-	if record.Source != AtlasSourceLook && record.Source != AtlasSourceEnter &&
-		record.Source != AtlasSourceShrineIntroduction && record.Source != AtlasSourceSextantReceipt {
-		return fmt.Errorf("%w: source %q", ErrInvalidAtlasObservation, record.Source)
-	}
-	if shrine && (record.Kind != "shrine" && record.Kind != "ruins" || record.Source == AtlasSourceEnter) ||
-		ordinary && record.Source == AtlasSourceShrineIntroduction {
-		return fmt.Errorf("%w: source/category mismatch %d", ErrInvalidAtlasObservation, record.SiteKey)
-	}
-	if guardians && (record.Kind != atlasGuardiansKind || record.Source != AtlasSourceLook ||
-		record.Name != "" || record.Site.X != 233 || record.Site.Y != 235 ||
-		record.Survey.Measured && record.SurveySource != AtlasSourceLook) || !guardians && record.Kind == atlasGuardiansKind {
-		return fmt.Errorf("%w: Guardians evidence", ErrInvalidAtlasObservation)
+	if err := validateAtlasCategory(record, ordinary, shrine, guardians); err != nil {
+		return err
 	}
 	if err := validateAtlasReceipt(record); err != nil {
 		return err
@@ -109,6 +104,39 @@ func validateAtlasLandmark(record AtlasLandmarkObservation) error {
 	}
 
 	return validateAtlasSurvey(record, shrine)
+}
+
+func validateAtlasKindAndSource(record AtlasLandmarkObservation) error {
+	switch record.Kind {
+	case "towne", "village", "hut", "keep", "castle", "lighthouse", "shrine", "ruins", atlasGuardiansKind:
+	default:
+		return fmt.Errorf("%w: kind %q", ErrInvalidAtlasObservation, record.Kind)
+	}
+	if record.Source != AtlasSourceLook && record.Source != AtlasSourceEnter &&
+		record.Source != AtlasSourceShrineIntroduction && record.Source != AtlasSourceSextantReceipt {
+		return fmt.Errorf("%w: source %q", ErrInvalidAtlasObservation, record.Source)
+	}
+
+	return nil
+}
+
+func validateAtlasCategory(record AtlasLandmarkObservation, ordinary, shrine, guardians bool) error {
+	if shrine && (record.Kind != "shrine" && record.Kind != "ruins" || record.Source == AtlasSourceEnter) ||
+		ordinary && record.Source == AtlasSourceShrineIntroduction {
+		return fmt.Errorf("%w: source/category mismatch %d", ErrInvalidAtlasObservation, record.SiteKey)
+	}
+
+	return validateAtlasGuardians(record, guardians)
+}
+
+func validateAtlasGuardians(record AtlasLandmarkObservation, guardians bool) error {
+	if guardians && (record.Kind != atlasGuardiansKind || record.Source != AtlasSourceLook ||
+		record.Name != "" || record.Site.X != 233 || record.Site.Y != 235 ||
+		record.Survey.Measured && record.SurveySource != AtlasSourceLook) || !guardians && record.Kind == atlasGuardiansKind {
+		return fmt.Errorf("%w: Guardians evidence", ErrInvalidAtlasObservation)
+	}
+
+	return nil
 }
 
 func validateAtlasSurvey(record AtlasLandmarkObservation, shrine bool) error {

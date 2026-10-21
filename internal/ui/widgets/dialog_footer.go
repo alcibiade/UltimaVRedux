@@ -7,12 +7,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// DrawKeyboardFooter uses the shared key/description colours and measured
-// modifier-label fitting for scene-owned dialogs as well as reusable widgets.
-func DrawKeyboardFooter(
-	screen *ebiten.Image, content image.Rectangle, guidance string, capacity int, output *text.Output,
-) {
-	drawModifierFooter(screen, content, guidance, capacity, output)
+// DrawKeyboardFooter draws bracketed guidance with the shared hint packer for
+// scene-owned dialogs as well as reusable widgets.
+func DrawKeyboardFooter(screen *ebiten.Image, content image.Rectangle, guidance string, output *text.Output) {
+	drawModifierFooter(screen, content, guidance, output)
 }
 
 // FitDialogLine fits a status label without splitting UTF-8 or losing its prefix

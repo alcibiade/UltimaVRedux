@@ -572,7 +572,7 @@ func drainSurfaceCompletionWorkflow(t *testing.T, state *game_state.GameState, w
 }
 
 func newSurfaceCompletionTestScene(state *game_state.GameState) *GameScene {
-	return &GameScene{ //nolint:exhaustruct // Focused production surface-routing fixture.
+	return &GameScene{
 		gameState:            state,
 		keyboard:             input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:               text.NewOutput(nil, 1, 10, 80),

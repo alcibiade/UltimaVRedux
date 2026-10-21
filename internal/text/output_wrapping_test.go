@@ -65,7 +65,7 @@ func TestSplitSegmentsAtNewlines_ConsecutiveNewlines(t *testing.T) {
 }
 
 func TestOutputSetMaxCharsPerLineUpdatesStyledWrapping(t *testing.T) {
-	output := &Output{maxCharsPerLine: 40} //nolint:exhaustruct // Focused wrapping fixture.
+	output := &Output{maxCharsPerLine: 40}
 	output.SetMaxCharsPerLine(14)
 
 	wrapped := output.wrapStyledLine([]ColorSegment{{Text: "Squid attacks Shamino", Color: ucolor.EGARed}})
@@ -76,7 +76,7 @@ func TestOutputSetMaxCharsPerLineUpdatesStyledWrapping(t *testing.T) {
 }
 
 func TestWrapStyledLineMovesColoredWordIntactToNextLine(t *testing.T) {
-	output := &Output{maxCharsPerLine: 16} //nolint:exhaustruct // Focused wrapping fixture.
+	output := &Output{maxCharsPerLine: 16}
 	segments := []ColorSegment{
 		{Text: "Squid attacks ", Color: ucolor.EGARed},
 		{Text: "Shamino", Color: ucolor.EGAYellow},
@@ -114,7 +114,7 @@ func TestLineBuilderIndentsWrappedRowsWithoutRepeatingMarker(t *testing.T) {
 }
 
 func TestOutputSetMaxCharsPerLineRejectsInvalidWidth(t *testing.T) {
-	output := &Output{maxCharsPerLine: 40} //nolint:exhaustruct // Focused wrapping fixture.
+	output := &Output{maxCharsPerLine: 40}
 
 	assert.Panics(t, func() { output.SetMaxCharsPerLine(0) })
 	assert.Panics(t, func() { output.SetMaxCharsPerLine(-1) })

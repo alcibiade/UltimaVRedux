@@ -22,14 +22,14 @@ func TestNewNPCAIControllerLargeMapRequiresRandomProvider(t *testing.T) {
 // TestPirateShipCanMoveToTileRejectsShoals prevents pirate frigates from
 // entering coast water that player frigates cannot traverse.
 func TestPirateShipCanMoveToTileRejectsShoals(t *testing.T) {
-	assert.True(t, pirateShipCanMoveToTile(&references.Tile{Index: indexes.Water1}))      //nolint:exhaustruct
-	assert.True(t, pirateShipCanMoveToTile(&references.Tile{Index: indexes.Water2}))      //nolint:exhaustruct
-	assert.False(t, pirateShipCanMoveToTile(&references.Tile{Index: indexes.WaterCoast})) //nolint:exhaustruct
+	assert.True(t, pirateShipCanMoveToTile(&references.Tile{Index: indexes.Water1}))
+	assert.True(t, pirateShipCanMoveToTile(&references.Tile{Index: indexes.Water2}))
+	assert.False(t, pirateShipCanMoveToTile(&references.Tile{Index: indexes.WaterCoast}))
 }
 
 func TestCalculatePirateSeekDirectionsIncludesBothPlayerwardAxes(t *testing.T) {
-	controller := &NPCAIControllerLargeMap{ //nolint:exhaustruct // Focused deterministic direction fixture.
-		rng: rand.New(rand.NewSource(179)), //nolint:gosec // Deterministic gameplay test.
+	controller := &NPCAIControllerLargeMap{
+		rng: rand.New(rand.NewSource(179)),
 	}
 
 	directions := controller.calculatePirateSeekDirections(
@@ -42,7 +42,7 @@ func TestCalculatePirateSeekDirectionsIncludesBothPlayerwardAxes(t *testing.T) {
 }
 
 func TestPirateWindCadenceUsesOriginalRelativeSpeeds(t *testing.T) {
-	controller := &NPCAIControllerLargeMap{ //nolint:exhaustruct // Focused deterministic cadence fixture.
+	controller := &NPCAIControllerLargeMap{
 		rng: &fixedRandomProvider{value: 0},
 	}
 
@@ -64,8 +64,8 @@ func TestLargeMapEnemyRandomnessIsDeterministic(t *testing.T) {
 	t.Parallel()
 
 	const seed = 179
-	first := &NPCAIControllerLargeMap{rng: rand.New(rand.NewSource(seed))}  //nolint:gosec // Deterministic gameplay test.
-	second := &NPCAIControllerLargeMap{rng: rand.New(rand.NewSource(seed))} //nolint:gosec // Deterministic gameplay test.
+	first := &NPCAIControllerLargeMap{rng: rand.New(rand.NewSource(seed))}
+	second := &NPCAIControllerLargeMap{rng: rand.New(rand.NewSource(seed))}
 
 	for range 32 {
 		assert.Equal(t, first.getRandomPirateDirection(), second.getRandomPirateDirection())

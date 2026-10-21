@@ -192,7 +192,7 @@ func (g *GameState) SubmitLordBritishFinaleAnswer(answer byte) LordBritishFinale
 
 	return LordBritishFinaleAnswerResult{
 		Accepted: true, Prompt: state.prompt, Outcome: state.outcome,
-		MissingBox: answer == 'Y' && !hasBox,
+		MissingBox: !hasBox,
 	}
 }
 

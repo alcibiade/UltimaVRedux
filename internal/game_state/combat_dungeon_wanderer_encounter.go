@@ -79,7 +79,7 @@ func (g *GameState) startContactDungeonWandererCombat(
 		g.AsRandomProvider(),
 	)
 	if err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to prepare dungeon wanderer contact: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to prepare dungeon wanderer contact: %v", err)
 		g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 		return false
@@ -219,6 +219,8 @@ func (g *GameState) applyDungeonWandererExitRoute(
 			g.activeDungeon.roomContinuation = dungeonRoomContinuation{}
 		}
 	case CombatExitNone:
+	case CombatExitDoomMirror:
+		fallthrough
 	default:
 		panic("invalid dungeon wanderer exit route")
 	}

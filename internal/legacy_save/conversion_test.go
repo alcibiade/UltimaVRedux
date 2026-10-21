@@ -570,6 +570,16 @@ func TestConvertPendingShipDelivery(t *testing.T) {
 	if !unit.Vehicle.PendingDelivery || unit.Vehicle.Type != int(references.FrigateVehicle) || unit.Vehicle.Skiffs != 5 || unit.Position.X != 20 || unit.Position.Y != 21 {
 		t.Fatalf("pending delivery = %#v", unit)
 	}
+
+	bundle.Game.Dungeon.Skiffs = 0x80 | 20 // A frigate awaiting delivery with 20 skiffs.
+	result, err = Convert(bundle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Snapshot.MapUnits[0].Vehicle.Skiffs != references.MaxFrigateSkiffs ||
+		!hasConversionWarning(result.Warnings, "gam.skiffs", "redux_capacity_clamped") {
+		t.Fatalf("oversized pending delivery = %#v, warnings %#v", result.Snapshot.MapUnits[0], result.Warnings)
+	}
 }
 
 func TestConvertUnsupportedObjectWarnsWithExactSourcePath(t *testing.T) {

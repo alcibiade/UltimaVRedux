@@ -133,9 +133,33 @@ func runTests(ctx context.Context, settings options, environment []string, expec
 	if err != nil {
 		return err
 	}
+	selected := assignLaneScopes(settings, lanes)
+	var runErr error
+	for index, lane := range lanes {
+		if len(lane) == 0 || (settings.suite != suiteAll && settings.suite != laneScope(index)) {
+			continue
+		}
+		if runErr = ctx.Err(); runErr != nil {
+			break
+		}
+		if runErr = runLane(ctx, settings, environment, index, lane, stdout, stderr, runner); runErr != nil {
+			break
+		}
+	}
+
+	return errors.Join(runErr, validateResults(selected, settings.strict), writeSummary(stderr, expected))
+}
+
+// laneScope names the suite a partition lane belongs to: logic first, then render.
+func laneScope(index int) string {
+	return []string{suiteLogic, suiteRender}[index]
+}
+
+// assignLaneScopes tags every package with its lane scope and returns the ones the suite selects.
+func assignLaneScopes(settings options, lanes []map[string]*packageResult) map[string]*packageResult {
 	selected := make(map[string]*packageResult)
 	for index, lane := range lanes {
-		scope := []string{suiteLogic, suiteRender}[index]
+		scope := laneScope(index)
 		for _, name := range slices.Sorted(maps.Keys(lane)) {
 			result := lane[name]
 			result.scope = scope
@@ -145,53 +169,44 @@ func runTests(ctx context.Context, settings options, environment []string, expec
 			}
 		}
 	}
-	var runErr error
-	for index, lane := range lanes {
-		if len(lane) == 0 || (settings.suite != suiteAll && settings.suite != []string{suiteLogic, suiteRender}[index]) {
-			continue
-		}
-		if runErr = ctx.Err(); runErr != nil {
-			break
-		}
-		ordinary := make(map[string]*packageResult)
-		for _, name := range slices.Sorted(maps.Keys(lane)) {
-			result := lane[name]
-			if index == 1 && result.cohorts {
-				runErr = runNativeCohorts(ctx, settings, environment, name, result, stdout, stderr, runner)
-				if runErr != nil {
-					break
-				}
-			} else {
-				ordinary[name] = result
+
+	return selected
+}
+
+// runLane runs the native-cohort packages of the render lane one by one, then the
+// remaining packages of the lane in a single parallelism-controlled go test.
+func runLane(ctx context.Context, settings options, environment []string, index int,
+	lane map[string]*packageResult, stdout, stderr io.Writer, runner goRunner,
+) error {
+	ordinary := make(map[string]*packageResult)
+	for _, name := range slices.Sorted(maps.Keys(lane)) {
+		result := lane[name]
+		if index == 1 && result.cohorts {
+			if err := runNativeCohorts(ctx, settings, environment, name, result, stdout, stderr, runner); err != nil {
+				return err
 			}
-		}
-		if runErr != nil {
-			break
-		}
-		if len(ordinary) == 0 {
-			continue
-		}
-		parallelism := "1"
-		targets := slices.Sorted(maps.Keys(ordinary))
-		if index == 0 {
-			parallelism = logicParallelism(settings.profile, environment)
-		}
-		// Explicit flags prevent inherited GOFLAGS from selecting a subset,
-		// returning cached results, or raising graphics concurrency.
-		arguments := []string{
-			"test", goJSONFlag, "-count=1", "-run=.", "-skip=^$", "-list=", "-bench=", "-fuzz=",
-			goRaceFlagPrefix + strconv.FormatBool(settings.race), "-short=" + strconv.FormatBool(settings.short),
-			"-p=" + parallelism, "-parallel=" + parallelism,
-		}
-		arguments = append(arguments, targets...)
-		runErr = runTestPackages(ctx, arguments, environment, ordinary, stdout, stderr, runner)
-		runErr = errors.Join(runErr, validateResults(ordinary, settings.strict))
-		if runErr != nil {
-			break
+		} else {
+			ordinary[name] = result
 		}
 	}
+	if len(ordinary) == 0 {
+		return nil
+	}
+	parallelism := "1"
+	targets := slices.Sorted(maps.Keys(ordinary))
+	if index == 0 {
+		parallelism = logicParallelism(settings.profile, environment)
+	}
+	// Explicit flags prevent inherited GOFLAGS from selecting a subset,
+	// returning cached results, or raising graphics concurrency.
+	arguments := slices.Concat([]string{
+		"test", goJSONFlag, "-count=1", "-run=.", "-skip=^$", "-list=", "-bench=", "-fuzz=",
+		goRaceFlagPrefix + strconv.FormatBool(settings.race), "-short=" + strconv.FormatBool(settings.short),
+		"-p=" + parallelism, "-parallel=" + parallelism,
+	}, targets)
+	runErr := runTestPackages(ctx, arguments, environment, ordinary, stdout, stderr, runner)
 
-	return errors.Join(runErr, validateResults(selected, settings.strict), writeSummary(stderr, expected))
+	return errors.Join(runErr, validateResults(ordinary, settings.strict))
 }
 
 func runTestPackages(ctx context.Context, arguments, environment []string, expected map[string]*packageResult,

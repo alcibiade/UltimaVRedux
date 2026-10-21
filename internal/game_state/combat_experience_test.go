@@ -23,14 +23,11 @@ func TestFinalizeCombatMonsterDeathSaturatesExperience(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 1)
-			if gs == nil {
-				return
-			}
 			attackerIdx := gs.CombatScene.GetActiveCombatantIndex()
 			attacker := gs.PartyState.GetCharacter(attackerIdx)
 			attacker.Exp = test.startingXP
 			monster.SetCurrentHP(0)
-			nominalAward := CombatCalcExperience(monster.MaxHP())
+			nominalAward := combatCalcExperience(monster.MaxHP())
 			require.Greater(t, nominalAward, 1)
 
 			gs.finalizeCombatMonsterDeathWithPolicy(
@@ -58,9 +55,6 @@ func TestFinalizeCombatMonsterDeathSaturatesExperience(t *testing.T) {
 
 func TestCombatSpellKillUsesSaturatingExperienceAward(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 1)
-	if gs == nil {
-		return
-	}
 	casterIdentity := gs.CombatScene.GetCurrentTurnIdentity()
 	caster := gs.PartyState.GetCharacter(casterIdentity.EntityIndex)
 	caster.Exp = MaxExperienceValue - 1

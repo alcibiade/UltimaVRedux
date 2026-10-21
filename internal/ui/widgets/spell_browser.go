@@ -10,7 +10,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -352,25 +351,13 @@ func (p *spellPresentation) layout(width, height int) {
 
 // configureControls measures wrapped, styled hints before row capacity is computed.
 // Detail paging is shown only when Space actually pages details in this mode.
-func (p *spellPresentation) configureControls(controls []spellControlHint, detailPaging bool) {
+func (p *spellPresentation) configureControls(controls []ControlHint, detailPaging bool) {
 	rect := p.footerRect.Inset(p.padding)
 	prepareSpellOutput(p.footer, rect)
 	if detailPaging {
-		controls = append(controls, spellControlHint{key: "Space", action: "Next detail page"})
+		controls = append(controls, ControlHint{hintKeySpace, "Next detail page"})
 	}
-	line := p.footer.AppendLine()
-	lineWidth := 0.0
-	for _, hint := range controls {
-		width, _ := p.font.MeasureString("[" + hint.key + "] " + hint.action + "  ")
-		if lineWidth > 0 && lineWidth+width > float64(rect.Dx()) {
-			line.WordWrap().Done()
-			line = p.footer.AppendLine()
-			lineWidth = 0
-		}
-		appendSpellControl(line, hint.key, hint.action).Text("  ", DialogControlHintColor)
-		lineWidth += width
-	}
-	line.WordWrap().Done()
+	PackControlHints(p.footer, controls, rect.Dx(), etext.AlignStart)
 	height := int(math.Ceil(p.footer.GetTotalHeightForLines(p.footer.GetPanelContentLineCount())))
 	p.footerRect.Min.Y = p.footerRect.Max.Y - height - p.padding*spellBrowserRowLines
 	p.listRect.Max.Y, p.detailRect.Max.Y = p.footerRect.Min.Y, p.footerRect.Min.Y
@@ -495,7 +482,8 @@ func (p *spellPresentation) drawList(screen *ebiten.Image, browser *spellBrowser
 		p.row.AppendLine().Text("No matching spells", DialogEmptyColor).Done()
 		drawSpellOutput(screen, p.row, rect, 0, 1)
 	}
-	p.drawScrollHints(screen, rect, start, end, len(browser.filtered), rowHeight)
+	drawMasterDetailScrollIndicators(screen, rect, start, end, len(browser.filtered), rowHeight,
+		p.scrollGutter(), p.font, p.indicator)
 }
 
 func (p *spellPresentation) scrollGutter() int {
@@ -512,31 +500,11 @@ func (p *spellPresentation) drawPreparedHeading(screen *ebiten.Image, rect image
 	drawSpellOutput(screen, p.count, countRect, 0, 1)
 }
 
-func (p *spellPresentation) drawScrollHints(screen *ebiten.Image,
-	rect image.Rectangle, start, end, total, rowHeight int,
-) {
-	width, _ := p.font.MeasureString("M")
-	if start > 0 {
-		hint := image.Rect(rect.Max.X-int(math.Ceil(width)), rect.Min.Y+p.lineHeight, rect.Max.X, rect.Max.Y)
-		prepareSpellOutput(p.indicator, hint)
-		p.indicator.AppendLine().Text("^", DialogScrollIndicator).Done()
-		drawSpellOutput(screen, p.indicator, hint, 0, 1)
-	}
-	if end < total {
-		top := rect.Min.Y + (end-start-1)*rowHeight + rowHeight - int(math.Ceil(p.indicator.GetFontHeight()))
-		hint := image.Rect(rect.Max.X-int(math.Ceil(width)), top, rect.Max.X, rect.Max.Y)
-		prepareSpellOutput(p.indicator, hint)
-		p.indicator.AppendLine().Text("v", DialogScrollIndicator).Done()
-		drawSpellOutput(screen, p.indicator, hint, 0, 1)
-	}
-}
-
 func drawSpellCatalogRow(screen *ebiten.Image, rowOutput, countOutput *text.Output,
 	rect image.Rectangle, spell game_state.ZStatsSpell, selected, available bool,
 ) {
 	if selected {
-		vector.FillRect(screen, float32(rect.Min.X), float32(rect.Min.Y), float32(rect.Dx()), float32(rect.Dy()),
-			DialogSelectedBackground, false)
+		fillSelectedRow(screen, rect)
 	}
 	nameRect, countRect := prepareSpellCatalogRow(rowOutput, countOutput, rect, spell, selected, available)
 	drawSpellOutput(screen, rowOutput, nameRect, 0, spellBrowserRowLines)
@@ -569,6 +537,7 @@ func prepareSpellTextRow(rowOutput, countOutput *text.Output,
 		nameRect.Max.X -= int(math.Ceil(countWidth)) + spellBrowserCountGap
 	}
 	prepareSpellOutput(rowOutput, nameRect)
+	name = unavailableRowLabel(name, available)
 	rowOutput.AppendLine().Text(FitDialogLine(name, rowOutput.Font, nameRect.Dx()), nameColor).Done()
 	rowOutput.AppendLine().Text(FitDialogLine(effect, rowOutput.Font, nameRect.Dx()), effectColor).Done()
 	if count == "" {
@@ -667,7 +636,7 @@ func spellScopeLabel(scope references.SpellEffectScope) string {
 
 // Always start with the unpaged footer. Only genuine overflow adds the paging
 // control and its indicator, so footer wrapping cannot feed back across frames.
-func (p *spellPresentation) configureDetails(browser *spellBrowser, controls []spellControlHint,
+func (p *spellPresentation) configureDetails(browser *spellBrowser, controls []ControlHint,
 	statusHeight int, extra func(*text.Output),
 ) {
 	p.configureControls(controls, false)

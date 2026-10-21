@@ -733,7 +733,7 @@ func newApprovedToolTestState() *game_state.GameState {
 		DateTime:        datetime.UltimaDate{Year: 1, Month: 1, Day: 1},
 		ItemStacksMap:   *references.NewItemStacksMap(),
 		GameReferences:  &references.GameReferences{InventoryItemReferences: references.NewInventoryItemsReferences()},
-		SystemCallbacks: &game_state.SystemCallbacks{Screen: game_state.ScreenCallbacks{RefreshInventoryDisplay: func() {}}},
+		SystemCallbacks: &game_state.SystemCallbacks{},
 	}
 	state.PartyState.Inventory = *party_state.NewInventory()
 	state.SearchManager = game_state.NewSearchSystemManager(state)

@@ -34,9 +34,6 @@ func newDungeonInputTestScene(
 		WithRandomSeed(253).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return nil, nil, nil
-	}
 	state.DateTime.Hour = 12
 	if state.MoongateStage() > game_state.MoongateStageHidden {
 		state.DateTime.Hour = 20
@@ -48,7 +45,7 @@ func newDungeonInputTestScene(
 	setDungeonInputTestCell(t, state, references.Position{X: 0, Y: 1}, 0x00)
 	callbacks.Reset()
 
-	return &GameScene{ //nolint:exhaustruct // Focused dungeon-input fixture.
+	return &GameScene{
 		gameState:   state,
 		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},
@@ -1128,7 +1125,7 @@ func TestDungeonUnsupportedBoundCommandsDoNotStartCycle(t *testing.T) {
 
 			assert.Zero(t, state.DateTime.Minute)
 			assert.Equal(t, 5, state.ActiveDurationEffect.TurnsRemaining)
-			assert.Equal(t, []string{dungeonCommandNotImplemented}, callbacks.Messages)
+			assert.Equal(t, []string{dungeonUnboundKeyFeedback}, callbacks.Messages)
 			assert.Empty(t, callbacks.CommandPrompts)
 			assert.Equal(t, PrimaryInput, scene.secondaryKeyState)
 			assert.True(t, state.IsAtDungeonCommandBoundary())

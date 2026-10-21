@@ -69,9 +69,10 @@ type OverlayDialogBuilder struct {
 // NewOverlayDialog creates a new OverlayDialogBuilder with the given message.
 // All configuration must be explicitly set before calling Build().
 func NewOverlayDialog(message string) *OverlayDialogBuilder {
-	return &OverlayDialogBuilder{
-		message: message,
-	}
+	builder := new(OverlayDialogBuilder)
+	builder.message = message
+
+	return builder
 }
 
 // =====================================
@@ -265,7 +266,7 @@ func (b *OverlayDialogBuilder) build() *OverlayDialog {
 	if autoFit {
 		// Use auto-sizing with min chars from config
 		if autoSizing, ok := b.sizing.(AutoFitSizing); ok {
-			msgBuilder = msgBuilder.WithAutoSize(autoSizing.MaxWidthPercent, 0.6)
+			msgBuilder = msgBuilder.WithAutoSize(autoSizing.MaxWidthPercent, AutoSizeMaxHeightPercent)
 		} else {
 			msgBuilder = msgBuilder.WithAutoSizeDefault()
 		}

@@ -16,10 +16,10 @@ func TestDroppedCarpetDoesNotRunScheduledNPCAI(t *testing.T) {
 	carpet := map_units.NewNPCFriendlyVehiceNewRef(references.CarpetVehicle, position, 7)
 	carpet.SetPos(position)
 	carpet.SetFloor(0)
-	state := &map_state.MapState{ //nolint:exhaustruct // Vehicle filtering only needs the player's floor.
+	state := &map_state.MapState{
 		PlayerLocation: references.PlayerLocation{Floor: 0},
 	}
-	controller := &NPCAIControllerSmallMap{ //nolint:exhaustruct // A stationary vehicle must return before using other controller dependencies.
+	controller := &NPCAIControllerSmallMap{
 		dateTime: &datetime.UltimaDate{},
 		mapState: state,
 		mapUnits: map_units.MapUnits{carpet},

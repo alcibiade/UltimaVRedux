@@ -4,35 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
-	conversationcatalog "github.com/bradhannah/UltimaVRedux/internal/conversation/catalog"
-	"github.com/bradhannah/UltimaVRedux/internal/conversation/semantic"
 	"github.com/bradhannah/UltimaVRedux/internal/debugging"
-	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
 const (
-	vfxKapowDurationMs        = 500
-	vfxEarthquakePixelsScale  = 12.0
-	debugProjectileTilePixels = 16
-	debugDirectionEastName    = "east"
-	debugDirectionNorthName   = "north"
-	debugDirectionSouthName   = "south"
-	debugDirectionWestName    = "west"
-	debugProjectileArrow      = "arrow"
-	debugProjectileBlue       = "blue"
-	debugProjectileGreen      = "green"
-	debugProjectileRed        = "red"
-	debugVehicleNone          = "none"
-	debugVehicleHorse         = "horse"
-	debugVehicleCarpet        = "carpet"
-	debugVehicleSkiff         = "skiff"
-	debugVehicleFrigate       = "frigate"
-	debugVehicleAvatar        = "avatar"
-	debugVehicleDock          = "dock"
+	debugDirectionEastName  = "east"
+	debugDirectionNorthName = "north"
+	debugDirectionSouthName = "south"
+	debugDirectionWestName  = "west"
+	debugVehicleNone        = "none"
+	debugVehicleHorse       = "horse"
+	debugVehicleCarpet      = "carpet"
+	debugVehicleSkiff       = "skiff"
+	debugVehicleFrigate     = "frigate"
+	debugVehicleAvatar      = "avatar"
+	debugVehicleDock        = "dock"
 )
 
 var errInvalidSecondBatchDebugArgument = errors.New("invalid second-batch debug argument")
@@ -40,38 +29,6 @@ var errInvalidSecondBatchDebugArgument = errors.New("invalid second-batch debug 
 type debugPositionResult struct {
 	X int `json:"x"`
 	Y int `json:"y"`
-}
-
-type conversationCatalogResult struct {
-	Sources        []conversationSourceResult  `json:"sources"`
-	SelectedSource string                      `json:"selectedSource"`
-	Scripts        []conversationSummaryResult `json:"scripts"`
-}
-
-type conversationSourceResult struct {
-	ID          string `json:"id"`
-	ScriptCount int    `json:"scriptCount"`
-}
-
-type conversationSummaryResult struct {
-	Index         int    `json:"index"`
-	Dialog        int    `json:"dialog"`
-	SemanticID    string `json:"semanticId"`
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	TopicCount    int    `json:"topicCount"`
-	QuestionCount int    `json:"questionCount"`
-	Patched       bool   `json:"patched"`
-}
-
-type conversationDetailResult struct {
-	SourceID    string `json:"sourceId"`
-	Index       int    `json:"index"`
-	Dialog      int    `json:"dialog"`
-	SemanticID  string `json:"semanticId"`
-	Schema      string `json:"schema"`
-	Patched     bool   `json:"patched"`
-	RuntimeYAML string `json:"runtimeYaml"`
 }
 
 type combatEncounterOptionsResult struct {
@@ -123,41 +80,6 @@ type combatEncounterStartResult struct {
 	FriendCount  int                   `json:"friendCount"`
 	TotalCount   int                   `json:"totalCount"`
 	Positions    []debugPositionResult `json:"positions"`
-}
-
-type vfxStatusResult struct {
-	MapType                string                  `json:"mapType"`
-	Player                 debugPositionResult     `json:"player"`
-	MaximumX               int                     `json:"maximumX"`
-	MaximumY               int                     `json:"maximumY"`
-	VisualEffects          []visualEffectResult    `json:"visualEffects"`
-	ActiveProjectile       *activeProjectileResult `json:"activeProjectile,omitempty"`
-	LightingOverlayEnabled bool                    `json:"lightingOverlayEnabled"`
-	EarthquakeActive       bool                    `json:"earthquakeActive"`
-}
-
-type visualEffectResult struct {
-	WorldPosition *debugPositionResult `json:"worldPosition,omitempty"`
-	SpriteIndex   int                  `json:"spriteIndex"`
-	ScaleMinimum  float64              `json:"scaleMinimum"`
-	ScaleMaximum  float64              `json:"scaleMaximum"`
-	ScreenX       int                  `json:"screenX"`
-	ScreenY       int                  `json:"screenY"`
-	Type          string               `json:"type"`
-	Duration      float64              `json:"duration"`
-	Elapsed       float64              `json:"elapsed"`
-}
-
-type activeProjectileResult struct {
-	FromTileX    float64 `json:"fromTileX"`
-	FromTileY    float64 `json:"fromTileY"`
-	ToTileX      float64 `json:"toTileX"`
-	ToTileY      float64 `json:"toTileY"`
-	CurrentTileX float64 `json:"currentTileX"`
-	CurrentTileY float64 `json:"currentTileY"`
-	Type         string  `json:"type"`
-	TypeID       int     `json:"typeId"`
-	Active       bool    `json:"active"`
 }
 
 type monsterEcosystemResult struct {
@@ -237,318 +159,6 @@ type vehicleForceBoardResult struct {
 	VehicleStatus   vehicleStatusResult `json:"vehicleStatus"`
 	TerrainBypassed bool                `json:"terrainBypassed"`
 	MapUnitCount    int                 `json:"mapUnitCount"`
-}
-
-func (g *GameScene) executeSecondBatchSceneDebugCommand(request debugging.Request) (debugging.Result, bool) {
-	switch request.CommandID {
-	case debugging.CommandConversationScriptCatalog:
-		return g.executeConversationScriptCatalog(request), true
-	case debugging.CommandConversationScriptInspect:
-		return g.executeConversationScriptInspect(request), true
-	case debugging.CommandVFXStatus:
-		status := g.currentVFXStatus()
-		status.LightingOverlayEnabled = g.gameState.DebugOptions.LightOverlay
-
-		return debugSuccessResult(request, "VFX status loaded.", status), true
-	case debugging.CommandVFXKapow:
-		return g.executeVFXKapow(request), true
-	case debugging.CommandVFXProjectile:
-		return g.executeVFXProjectile(request), true
-	case debugging.CommandEnvironmentEarthquake:
-		return g.executeVFXEarthquake(request), true
-	default:
-		return debugging.Result{
-			SessionID: "", RequestID: "", CommandID: "", SceneGeneration: 0,
-			Invocation:             nil,
-			EffectiveExecutionMode: "", Success: false, Summary: "", ErrorCode: "", ErrorMessage: "",
-			Changes: nil, Data: nil,
-		}, false
-	}
-}
-
-func (g *GameScene) executeVFXEarthquake(request debugging.Request) debugging.Result {
-	if g.gameState.EventQueueManager.HasActiveWorkflows() {
-		return debugging.FailureResult(request, "gameplay_workflow_active", "earthquake presentation is unavailable while a gameplay workflow is active")
-	}
-	durationTenths := mustDebugIntegerArgument(request, "durationTenths")
-	intensityTenths := mustDebugIntegerArgument(request, "intensityTenths")
-	durationMs := durationTenths * 100
-	intensity := float64(intensityTenths) / 10
-	if !g.gameState.QueueDebugEarthquakeFeedback(durationMs, intensity) {
-		return debugging.FailureResult(request, "earthquake_already_active", "an earthquake presentation is already active")
-	}
-
-	return debugSuccessResultWithMode(request, debugging.ExecutionPresentation, "Earthquake presentation queued.", struct {
-		DurationTenths      int     `json:"durationTenths"`
-		DurationMs          int     `json:"durationMs"`
-		IntensityTenths     int     `json:"intensityTenths"`
-		Intensity           float64 `json:"intensity"`
-		MaximumOffsetPixels float64 `json:"maximumOffsetPixels"`
-		Queued              bool    `json:"queued"`
-	}{
-		DurationTenths: durationTenths, DurationMs: durationMs,
-		IntensityTenths: intensityTenths, Intensity: intensity,
-		MaximumOffsetPixels: intensity * vfxEarthquakePixelsScale, Queued: true,
-	})
-}
-
-func (g *GameScene) executeConversationScriptCatalog(request debugging.Request) debugging.Result {
-	semanticCatalog, failure := g.debugConversationCatalog(request)
-	if failure != nil {
-		return *failure
-	}
-	source := mustDebugStringArgument(request, "source")
-	keys := semanticCatalog.OriginalKeys(semantic.OriginalSource(source))
-	result := conversationCatalogResult{
-		Sources: make([]conversationSourceResult, 0), SelectedSource: source,
-		Scripts: make([]conversationSummaryResult, 0, len(keys)),
-	}
-	for _, originalSource := range []semantic.OriginalSource{
-		semantic.OriginalSourceCastle, semantic.OriginalSourceKeep,
-		semantic.OriginalSourceTowne, semantic.OriginalSourceDwelling,
-	} {
-		result.Sources = append(result.Sources, conversationSourceResult{
-			ID: string(originalSource), ScriptCount: len(semanticCatalog.OriginalKeys(originalSource)),
-		})
-	}
-	for _, key := range keys {
-		program, exists := semanticCatalog.Original(key.Source, key.Dialog)
-		if !exists {
-			panic("enumerated semantic conversation is missing from its immutable catalog")
-		}
-		definition, definitionErr := program.Definition()
-		if definitionErr != nil {
-			return debugging.FailureResult(request, "conversation_script_query_failed", definitionErr.Error())
-		}
-		result.Scripts = append(result.Scripts, conversationSummaryResult{
-			Index: key.Dialog - 1, Dialog: key.Dialog, SemanticID: program.ID(),
-			Name: semanticBodyText(definition.Name), Description: semanticBodyText(definition.Description),
-			TopicCount: len(definition.Topics), QuestionCount: len(definition.Questions), Patched: program.Patched(),
-		})
-	}
-
-	return debugSuccessResult(
-		request,
-		fmt.Sprintf("Conversation catalog loaded: %s (%d scripts).", source, len(result.Scripts)),
-		result,
-	)
-}
-
-func semanticBodyText(body semantic.Body) string {
-	var text strings.Builder
-	for _, action := range body {
-		var content semantic.RichText
-		switch value := action.(type) {
-		case *semantic.SayAction:
-			content = value.Content
-		case *semantic.NarrateAction:
-			content = value.Content
-		default:
-			continue
-		}
-		for _, part := range content {
-			switch value := part.(type) {
-			case *semantic.TextPart:
-				text.WriteString(value.Text)
-			case *semantic.RunicPart:
-				text.WriteString(value.Text)
-			case *semantic.LineBreakPart:
-				text.WriteByte('\n')
-			}
-		}
-	}
-
-	return text.String()
-}
-
-func (g *GameScene) executeConversationScriptInspect(request debugging.Request) debugging.Result {
-	semanticCatalog, failure := g.debugConversationCatalog(request)
-	if failure != nil {
-		return *failure
-	}
-	source := mustDebugStringArgument(request, "source")
-	index := mustDebugIntegerArgument(request, "index")
-	dialog := index + 1
-	program, exists := semanticCatalog.Original(semantic.OriginalSource(source), dialog)
-	if !exists {
-		return debugging.FailureResult(request, "conversation_script_not_found", fmt.Sprintf("semantic conversation is unavailable: %s/%d", source, dialog))
-	}
-
-	return debugSuccessResult(
-		request,
-		fmt.Sprintf("Conversation script loaded: %s dialog %d.", source, dialog),
-		newConversationDetailResult(source, index, program),
-	)
-}
-
-func (g *GameScene) debugConversationCatalog(request debugging.Request) (*conversationcatalog.Catalog, *debugging.Result) {
-	if g.gameState.GameReferences == nil || g.gameState.GameReferences.ConversationCatalog == nil {
-		result := debugging.FailureResult(
-			request,
-			"conversation_references_unavailable",
-			"semantic conversation catalog is not loaded",
-		)
-
-		return nil, &result
-	}
-
-	return g.gameState.GameReferences.ConversationCatalog, nil
-}
-
-func (g *GameScene) executeVFXKapow(request debugging.Request) debugging.Result {
-	position, err := g.debugPositionFromMode(request, "targetMode", "x", "y")
-	if err != nil {
-		return debugging.FailureResult(request, "invalid_vfx_position", err.Error())
-	}
-	g.gameState.EventQueueManager.TriggerFeedback("debug_workbench.vfx.kapow."+request.ID, event_queue.PriorityNormal,
-		func(sequence *event_queue.SequentialEventBuilder) {
-			sequence.First(func() { g.playKapowAtPosition(position) }).
-				Animate(vfxKapowDurationMs, func(float32) {}).
-				Finally(func() {})
-		})
-	result := debugSuccessResultWithMode(request, debugging.ExecutionPresentation, "Kapow presentation queued.", struct {
-		Position debugPositionResult `json:"position"`
-	}{Position: newDebugPosition(position)})
-
-	return result
-}
-
-func (g *GameScene) executeVFXProjectile(request debugging.Request) debugging.Result {
-	if g.activeProjectile != nil && g.activeProjectile.active {
-		return debugging.FailureResult(request, "projectile_already_active", "a projectile is already active")
-	}
-	if g.gameState.EventQueueManager.HasActiveWorkflows() {
-		return debugging.FailureResult(
-			request,
-			"gameplay_workflow_active",
-			"projectile presentation is unavailable while a gameplay workflow is active",
-		)
-	}
-	from, err := g.debugPositionFromMode(request, "fromMode", "fromX", "fromY")
-	if err != nil {
-		return debugging.FailureResult(request, "invalid_vfx_position", err.Error())
-	}
-	target, err := g.validDebugMapPosition(
-		mustDebugIntegerArgument(request, "toX"),
-		mustDebugIntegerArgument(request, "toY"),
-	)
-	if err != nil {
-		return debugging.FailureResult(request, "invalid_vfx_position", err.Error())
-	}
-	projectileType, ok := debugProjectileType(mustDebugStringArgument(request, "projectileType"))
-	if !ok {
-		return debugging.FailureResult(request, "invalid_projectile_type", "unsupported projectile type")
-	}
-	duration := CalculateProjectileDuration(
-		float64(from.X)*debugProjectileTilePixels,
-		float64(from.Y)*debugProjectileTilePixels,
-		float64(target.X)*debugProjectileTilePixels,
-		float64(target.Y)*debugProjectileTilePixels,
-		projectileType,
-		g.gameState.MapState.PlayerLocation.Location,
-	)
-	g.gameState.EventQueueManager.TriggerFeedback("debug_workbench.vfx.projectile."+request.ID, event_queue.PriorityNormal,
-		func(sequence *event_queue.SequentialEventBuilder) {
-			sequence.First(func() { g.startProjectile(from, target, projectileType) }).
-				Animate(duration, g.updateProjectileProgress).
-				Finally(g.clearProjectile)
-		})
-
-	return debugSuccessResultWithMode(request, debugging.ExecutionPresentation, "Projectile presentation queued.", struct {
-		From       debugPositionResult `json:"from"`
-		To         debugPositionResult `json:"to"`
-		Type       string              `json:"type"`
-		DurationMs uint64              `json:"durationMs"`
-	}{
-		From: newDebugPosition(from), To: newDebugPosition(target),
-		Type: mustDebugStringArgument(request, "projectileType"), DurationMs: duration,
-	})
-}
-
-func (g *GameScene) debugPositionFromMode(
-	request debugging.Request,
-	modeID, xID, yID string,
-) (references.Position, error) {
-	switch mustDebugStringArgument(request, modeID) {
-	case "player":
-		position := g.gameState.MapState.PlayerLocation.Position
-
-		return g.validDebugMapPosition(int(position.X), int(position.Y))
-	case "coordinates":
-		coordinateX, xSet, err := optionalDebugIntegerArgument(request, xID)
-		if err != nil {
-			return references.Position{}, err
-		}
-		coordinateY, ySet, err := optionalDebugIntegerArgument(request, yID)
-		if err != nil {
-			return references.Position{}, err
-		}
-		if !xSet || !ySet {
-			return references.Position{}, fmt.Errorf(
-				"%w: coordinate mode requires both x and y",
-				errInvalidSecondBatchDebugArgument,
-			)
-		}
-
-		return g.validDebugMapPosition(coordinateX, coordinateY)
-	default:
-		return references.Position{}, fmt.Errorf(
-			"%w: unsupported position mode",
-			errInvalidSecondBatchDebugArgument,
-		)
-	}
-}
-
-func (g *GameScene) validDebugMapPosition(coordinateX, coordinateY int) (references.Position, error) {
-	maximumX, maximumY := debugMapMaxima(g.gameState.MapState.PlayerLocation.Location.GetMapType())
-	if coordinateX < 0 || coordinateX > maximumX || coordinateY < 0 || coordinateY > maximumY {
-		return references.Position{}, fmt.Errorf(
-			"%w: position (%d,%d) is outside current map bounds 0..%d,0..%d",
-			errInvalidSecondBatchDebugArgument,
-			coordinateX,
-			coordinateY,
-			maximumX,
-			maximumY,
-		)
-	}
-
-	return references.Position{
-		X: references.Coordinate(coordinateX), //nolint:gosec // Logical bounds are validated above.
-		Y: references.Coordinate(coordinateY), //nolint:gosec // Logical bounds are validated above.
-	}, nil
-}
-
-func (g *GameScene) currentVFXStatus() vfxStatusResult {
-	location := g.gameState.MapState.PlayerLocation
-	maximumX, maximumY := debugMapMaxima(location.Location.GetMapType())
-	status := vfxStatusResult{
-		MapType: debugMapTypeName(location.Location.GetMapType()), Player: newDebugPosition(location.Position),
-		MaximumX: maximumX, MaximumY: maximumY,
-		VisualEffects: make([]visualEffectResult, 0, len(g.visualEffects)), ActiveProjectile: nil,
-		LightingOverlayEnabled: false, EarthquakeActive: g.gameState.IsDebugEarthquakeFeedbackActive(),
-	}
-	for _, effect := range g.visualEffects {
-		item := visualEffectResult{
-			WorldPosition: nil, SpriteIndex: int(effect.SpriteIndex), ScaleMinimum: effect.ScaleMin,
-			ScaleMaximum: effect.ScaleMax, ScreenX: effect.X, ScreenY: effect.Y, Type: effect.Type,
-			Duration: effect.Duration, Elapsed: effect.Elapsed,
-		}
-		if effect.WorldPos != nil {
-			position := newDebugPosition(*effect.WorldPos)
-			item.WorldPosition = &position
-		}
-		status.VisualEffects = append(status.VisualEffects, item)
-	}
-	if projectile := g.activeProjectile; projectile != nil {
-		status.ActiveProjectile = &activeProjectileResult{
-			FromTileX: projectile.fromTileX, FromTileY: projectile.fromTileY, ToTileX: projectile.toTileX,
-			ToTileY: projectile.toTileY, CurrentTileX: projectile.currentTileX, CurrentTileY: projectile.currentTileY,
-			Type:   debugProjectileTypeName(projectile.projectileType),
-			TypeID: int(projectile.projectileType), Active: projectile.active,
-		}
-	}
-
-	return status
 }
 
 //nolint:cyclop // Stable command dispatch is clearer as one exhaustive switch.
@@ -1035,14 +645,6 @@ func newVehicleStatusResult(snapshot game_state.PartyVehicleSnapshot) vehicleSta
 	}
 }
 
-func newConversationDetailResult(source string, index int, program *conversationcatalog.Program) conversationDetailResult {
-	return conversationDetailResult{
-		SourceID: source, Index: index, Dialog: index + 1,
-		SemanticID: program.ID(), Schema: semantic.SchemaVersion, Patched: program.Patched(),
-		RuntimeYAML: string(program.CanonicalYAML()),
-	}
-}
-
 func newDebugPosition(position references.Position) debugPositionResult {
 	return debugPositionResult{X: int(position.X), Y: int(position.Y)}
 }
@@ -1081,31 +683,6 @@ func debugCombatTerritoryName(territory references.CombatMapTerritory) string {
 	}
 
 	return "britannia"
-}
-
-func debugProjectileType(value string) (references.MissileType, bool) {
-	types := map[string]references.MissileType{
-		debugProjectileArrow: references.MissileArrow, "axe": references.MissileAxe, "rock": references.MissileRock,
-		"cannonball": references.MissileCannonBall, "violet": references.MissileViolet,
-		debugProjectileRed: references.MissileRed, debugProjectileBlue: references.MissileBlue,
-		debugProjectileGreen: references.MissileGreen,
-	}
-	projectileType, ok := types[value]
-
-	return projectileType, ok
-}
-
-func debugProjectileTypeName(projectileType references.MissileType) string {
-	for _, name := range []string{
-		debugProjectileArrow, "axe", "rock", "cannonball", "violet", debugProjectileRed,
-		debugProjectileBlue, debugProjectileGreen,
-	} {
-		if candidate, _ := debugProjectileType(name); candidate == projectileType {
-			return name
-		}
-	}
-
-	return debugMapUnknown
 }
 
 func debugVehicleName(vehicleType references.VehicleType) string {
@@ -1158,18 +735,21 @@ func debugVehicleDockLocation(value string) (references.Location, bool) {
 }
 
 func debugVehicleDockName(location references.Location) string {
-	switch location {
-	case references.Jhelom:
-		return "jhelom"
-	case references.Minoc:
-		return "minoc"
-	case references.EastBritanny:
-		return "east_britanny"
-	case references.BuccaneersDen:
-		return "buccaneers_den"
-	default:
-		return debugMapUnknown
+	for _, dock := range [...]struct {
+		location references.Location
+		name     string
+	}{
+		{references.Jhelom, "jhelom"},
+		{references.Minoc, "minoc"},
+		{references.EastBritanny, "east_britanny"},
+		{references.BuccaneersDen, "buccaneers_den"},
+	} {
+		if location == dock.location {
+			return dock.name
+		}
 	}
+
+	return debugMapUnknown
 }
 
 func debugDirectionName(direction references.Direction) string {

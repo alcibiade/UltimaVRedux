@@ -22,6 +22,11 @@ type WindProvider interface {
 
 const (
 	coinFlipOdds                    = 2
+	pathfindingRadius               = 15 // tiles around the player searched by A* for enemy movement
+	stalledShipSpeed                = 4  // wind speed multiplier at which a pirate ship cannot move
+	speedWithWind                   = 1
+	speedAgainstWind                = 2
+	speedCrosswind                  = 3
 	randomMovementOdds              = 4
 	directedPursuitWaitOdds         = 4
 	maxCardinalDirectionIndex       = 3
@@ -34,6 +39,7 @@ const (
 	minimumMonsterSpawnAxisDistance = 7
 )
 
+// NPCAIControllerLargeMap moves and spawns enemies and NPCs on the overworld or underworld map.
 type NPCAIControllerLargeMap struct {
 	World           references.World
 	tileRefs        *references.Tiles
@@ -49,6 +55,7 @@ type NPCAIControllerLargeMap struct {
 	positionOccupiedChance *map_units.XyOccupiedMap
 }
 
+// NewNPCAIControllerLargeMapInput carries the shared game state a large-map controller reads and mutates.
 type NewNPCAIControllerLargeMapInput struct {
 	World           references.World
 	TileRefs        *references.Tiles
@@ -61,28 +68,27 @@ type NewNPCAIControllerLargeMapInput struct {
 	RandomProvider  references.RandomProvider
 }
 
+// NewNPCAIControllerLargeMap builds a controller; it panics without a random provider.
 func NewNPCAIControllerLargeMap(input NewNPCAIControllerLargeMapInput) *NPCAIControllerLargeMap {
 	if input.RandomProvider == nil {
 		panic("large-map NPC AI requires a random provider")
 	}
 
-	npcsAiCont := &NPCAIControllerLargeMap{}
-	npcsAiCont.mapState = input.MapState
-	npcsAiCont.debugOptions = input.DebugOptions
-	npcsAiCont.tileRefs = input.TileRefs
-	npcsAiCont.World = input.World
-	npcsAiCont.enemyReferences = input.EnemyReferences
-	npcsAiCont.theOdds = input.TheOdds
-	npcsAiCont.dateTime = input.DateTime
-	npcsAiCont.windProvider = input.WindProvider
-	npcsAiCont.rng = input.RandomProvider
+	occupied := make(map_units.XyOccupiedMap)
 
-	xy := make(map_units.XyOccupiedMap)
-	npcsAiCont.positionOccupiedChance = &xy
-
-	npcsAiCont.mapUnits = make(map_units.MapUnits, 0, map_units.MaximumNpcsPerMap)
-
-	return npcsAiCont
+	return &NPCAIControllerLargeMap{
+		World:                  input.World,
+		tileRefs:               input.TileRefs,
+		mapState:               input.MapState,
+		debugOptions:           input.DebugOptions,
+		enemyReferences:        input.EnemyReferences,
+		theOdds:                input.TheOdds,
+		dateTime:               input.DateTime,
+		windProvider:           input.WindProvider,
+		rng:                    input.RandomProvider,
+		mapUnits:               make(map_units.MapUnits, 0, map_units.MaximumNpcsPerMap),
+		positionOccupiedChance: &occupied,
+	}
 }
 
 func (m *NPCAIControllerLargeMap) oneInXOdds(odds int) bool {
@@ -105,10 +111,12 @@ func (m *NPCAIControllerLargeMap) pickOneOf(first, second int) int {
 	return second
 }
 
+// GetNpcs returns the live unit list, which callers may mutate.
 func (m *NPCAIControllerLargeMap) GetNpcs() *map_units.MapUnits {
 	return &m.mapUnits
 }
 
+// PopulateMapFirstLoad is a no-op: large-map units are populated by spawning and saved state.
 func (m *NPCAIControllerLargeMap) PopulateMapFirstLoad() {
 }
 
@@ -128,6 +136,7 @@ func (m *NPCAIControllerLargeMap) placeNPCsOnLayeredMap() {
 	}
 }
 
+// AdvanceNextTurnCalcAndMoveNPCs runs one NPC turn where no enemy attacks.
 func (m *NPCAIControllerLargeMap) AdvanceNextTurnCalcAndMoveNPCs() {
 	m.AdvanceNextTurnWithActorCheck(func(*map_units.NPCEnemy) OutdoorActorAction { return OutdoorActorNoAttack })
 }
@@ -210,7 +219,7 @@ func (m *NPCAIControllerLargeMap) cleanupDistantEnemies() {
 
 		dx, dy := unit.PosPtr().GetWrappedAxisDistances(m.mapState.PlayerLocation.Position)
 
-		return dx+dy <= MaxTileDistanceBeforeCleanup
+		return dx+dy <= maxTileDistanceBeforeCleanup
 	})
 }
 
@@ -277,7 +286,7 @@ func (m *NPCAIControllerLargeMap) setBestNextPositionToMoveTowardsWalkablePoint(
 		m.enemyMovementOccupiedPositions(mapUnit),
 		true,
 		m.mapState.PlayerLocation.Position,
-		15,
+		pathfindingRadius,
 		references.XLargeMapTiles,
 		references.YLargeMapTiles)
 
@@ -299,11 +308,14 @@ func (m *NPCAIControllerLargeMap) setBestNextPositionToMoveTowardsWalkablePoint(
 func (m *NPCAIControllerLargeMap) setBestNextPositionToMoveTowardsWalkablePointDumb(mapUnit map_units.MapUnit) {
 	allDirections := mapUnit.PosPtr().GetFourDirectionsWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
 	// getting the current distance to the player will make sure they never move further away
-	fCurrentShortestDistance := mapUnit.PosPtr().GetWrappedDistanceBetweenWrapped(&m.mapState.PlayerLocation.Position, references.XLargeMapTiles, references.YLargeMapTiles)
+	playerPos := &m.mapState.PlayerLocation.Position
+	fCurrentShortestDistance := mapUnit.PosPtr().GetWrappedDistanceBetweenWrapped(
+		playerPos, references.XLargeMapTiles, references.YLargeMapTiles)
 	bestPos := *mapUnit.PosPtr()
 	bFound := false
 	for _, newPos := range allDirections {
-		fNewDistance := newPos.GetWrappedDistanceBetweenWrapped(&m.mapState.PlayerLocation.Position, references.XLargeMapTiles, references.YLargeMapTiles)
+		fNewDistance := newPos.GetWrappedDistanceBetweenWrapped(
+			playerPos, references.XLargeMapTiles, references.YLargeMapTiles)
 
 		if fNewDistance < fCurrentShortestDistance {
 			if !m.canEnemyMoveTo(mapUnit, newPos) {
@@ -344,6 +356,7 @@ func (m *NPCAIControllerLargeMap) moveRandomDirection(mapUnit map_units.MapUnit)
 	// If no valid random direction found, don't move
 }
 
+// FreshenExistingNPCsOnMap redraws every visible unit on the current map layer.
 func (m *NPCAIControllerLargeMap) FreshenExistingNPCsOnMap() {
 	m.mapState.GetLayeredMapByCurrentLocation().ClearMapUnitTiles()
 	m.placeNPCsOnLayeredMap()
@@ -364,7 +377,6 @@ func (m *NPCAIControllerLargeMap) generateTileBasedMonster() {
 
 			deltaX = m.randomSignedAxisDistance(minimumMonsterSpawnAxisDistance, xDistanceAway)
 		} else { // do deltaX
-
 			deltaY = m.randomSignedAxisDistance(minimumMonsterSpawnAxisDistance, yDistanceAway)
 			//nolint:gosec // G115: Viewport dimensions are bounded during initialization.
 			deltaX = references.Coordinate(m.pickOneOf(xDistanceAway, -xDistanceAway))
@@ -519,6 +531,7 @@ func (m *NPCAIControllerLargeMap) shouldEnemyMoveTo(
 	}
 }
 
+// RemoveAllEnemies satisfies NPCAIController by clearing hostile units.
 func (m *NPCAIControllerLargeMap) RemoveAllEnemies() {
 	m.ClearEnemies()
 }
@@ -579,7 +592,7 @@ func (m *NPCAIControllerLargeMap) shouldPirateShipMoveThisTick(mapUnit map_units
 	speedMultiplier := m.windProvider.GetPirateShipSpeedMultiplier(shipDirection)
 
 	// Speed multiplier 4 = stalled (don't move)
-	if speedMultiplier >= 4 {
+	if speedMultiplier >= stalledShipSpeed {
 		return false
 	}
 
@@ -591,11 +604,11 @@ func (m *NPCAIControllerLargeMap) shouldPirateShipMoveThisTick(mapUnit map_units
 
 func (m *NPCAIControllerLargeMap) shouldPirateShipMoveAtSpeed(speedMultiplier int) bool {
 	switch speedMultiplier {
-	case 1:
+	case speedWithWind:
 		return m.randomIntInRange(0, withWindMaxRoll) != 0 // 75% with the wind
-	case 2:
+	case speedAgainstWind:
 		return m.randomIntInRange(0, 1) == 0 // 50% against the wind
-	case 3:
+	case speedCrosswind:
 		return true // Crosswind is unrestricted
 	default:
 		return false // Stalled or unknown
@@ -642,7 +655,8 @@ func (m *NPCAIControllerLargeMap) rotatePirateShip(mapUnit map_units.MapUnit, ne
 	newTile := m.tileRefs.GetTile(newSprite)
 	enemy.SetFacing(newDirection, newTile)
 
-	logging.Debug(logging.CategoryAI, "Pirate ship at %v rotated to face %s", enemy.Pos(), newDirection.GetDirectionCompassName())
+	logging.Debugf(logging.CategoryAI, "Pirate ship at %v rotated to face %s",
+		enemy.Pos(), newDirection.GetDirectionCompassName())
 }
 
 // calculatePirateSeekDirections returns the two playerward axes in randomized
@@ -738,7 +752,7 @@ func (m *NPCAIControllerLargeMap) movePirateShipInDirection(
 
 	terrain := m.mapState.GetLayeredMapByCurrentLocation().GetTileTopMapOnlyTile(&wrappedPos)
 	if !pirateShipCanMoveToTile(terrain) || !m.canEnemyMoveTo(mapUnit, wrappedPos) {
-		logging.Debug(logging.CategoryAI, "Pirate ship at %v blocked moving %s (tile not passable)",
+		logging.Debugf(logging.CategoryAI, "Pirate ship at %v blocked moving %s (tile not passable)",
 			currentPos, direction.GetDirectionCompassName())
 
 		return false
@@ -746,7 +760,7 @@ func (m *NPCAIControllerLargeMap) movePirateShipInDirection(
 
 	m.rotatePirateShip(mapUnit, direction)
 	mapUnit.SetPos(wrappedPos)
-	logging.Debug(logging.CategoryAI, "Pirate ship moved from %v to %v (direction: %s)",
+	logging.Debugf(logging.CategoryAI, "Pirate ship moved from %v to %v (direction: %s)",
 		currentPos, wrappedPos, direction.GetDirectionCompassName())
 
 	return true
@@ -779,7 +793,7 @@ func (m *NPCAIControllerLargeMap) handleWhirlpoolMovement(mapUnit map_units.MapU
 
 	// Use the toggled state to determine if whirlpool should move (50% chance per turn)
 	if details.SkipNextTurn {
-		logging.Debug(logging.CategoryAI, "Whirlpool at %v skipping turn (XOR toggle=skip)", pos)
+		logging.Debugf(logging.CategoryAI, "Whirlpool at %v skipping turn (XOR toggle=skip)", pos)
 
 		return true // Whirlpool doesn't move this turn
 	}
@@ -787,17 +801,17 @@ func (m *NPCAIControllerLargeMap) handleWhirlpoolMovement(mapUnit map_units.MapU
 	oldPos := pos
 	// When whirlpool moves, 50% chance for random movement, 50% for seek behavior
 	if m.oneInXOdds(coinFlipOdds) {
-		logging.Debug(logging.CategoryAI, "Whirlpool at %v attempting random movement", oldPos)
+		logging.Debugf(logging.CategoryAI, "Whirlpool at %v attempting random movement", oldPos)
 		// Attempt bounded random cardinal movement.
 		m.moveRandomDirection(mapUnit)
 	} else {
-		logging.Debug(logging.CategoryAI, "Whirlpool at %v attempting seek movement", oldPos)
+		logging.Debugf(logging.CategoryAI, "Whirlpool at %v attempting seek movement", oldPos)
 		// Seek toward player
 		m.setBestNextPositionToMoveTowardsWalkablePoint(mapUnit)
 	}
 
 	newPos := enemy.Pos()
-	logging.Debug(logging.CategoryAI, "Whirlpool moved from %v to %v (moved=%v)", oldPos, newPos, oldPos != newPos)
+	logging.Debugf(logging.CategoryAI, "Whirlpool moved from %v to %v (moved=%v)", oldPos, newPos, oldPos != newPos)
 
 	return true // Handled whirlpool movement
 }

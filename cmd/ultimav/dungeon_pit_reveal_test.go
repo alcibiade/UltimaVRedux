@@ -39,12 +39,12 @@ func TestDungeonPitRevealProgress(t *testing.T) {
 func TestDungeonPitRevealMasksOnlyMatchingFloorHalvesWithoutChangingPlan(t *testing.T) {
 	target := references.Position{X: 4, Y: 3}
 	effect := dungeonPitRevealEffect{location: references.Deceit, floor: 0, position: target, startedAt: 100}
-	plan := dungeonRenderPlan{ //nolint:exhaustruct // Only structural rendering fields matter here.
+	plan := dungeonRenderPlan{
 		location: references.Deceit, floor: 0, clipEnabled: true, clipFrom: 3, brightness: 1,
 	}
 	for depth := range 4 {
 		for _, mirror := range []bool{false, true} {
-			floor := dungeonRenderOp{ //nolint:exhaustruct // Construct matching floor halves and near misses.
+			floor := dungeonRenderOp{
 				kind: dungeonRenderItem, role: dungeonRenderContents, position: target,
 				depth: depth, spriteIndex: 8 + depth, mirror: mirror, x: 10 + depth, y: 40,
 			}
@@ -92,10 +92,10 @@ func TestDungeonPitRevealSkipsInapplicablePlans(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			effect := dungeonPitRevealEffect{location: references.Deceit, floor: 0, startedAt: 100}
-			plan := dungeonRenderPlan{ //nolint:exhaustruct // A single otherwise matching floor operation.
+			plan := dungeonRenderPlan{
 				location: test.location, floor: test.floor, dark: test.dark, count: 1,
 			}
-			plan.ops[0] = dungeonRenderOp{kind: dungeonRenderItem, spriteIndex: 8} //nolint:exhaustruct // Zero position matches the effect.
+			plan.ops[0] = dungeonRenderOp{kind: dungeonRenderItem, spriteIndex: 8}
 			before := plan
 			applyDungeonPitReveal(&plan, &effect, 100+test.elapsed)
 			assert.Equal(t, before, plan)
@@ -202,11 +202,11 @@ func TestDungeonPitRevealPixelsPreserveBackground(t *testing.T) {
 	for _, elapsed := range []int64{0, 1500, 3000} {
 		state.ElapsedMs = elapsed
 		scene.updateDungeonPitReveals()
-		plan := dungeonRenderPlan{ //nolint:exhaustruct // Draw a pit on a contrasting stationary background.
+		plan := dungeonRenderPlan{
 			location: references.Deceit, brightness: 1, count: 2,
 		}
-		plan.ops[0] = dungeonRenderOp{kind: dungeonRenderPanel}                              //nolint:exhaustruct // Background at the origin.
-		plan.ops[1] = dungeonRenderOp{kind: dungeonRenderItem, spriteIndex: 8, x: 20, y: 40} //nolint:exhaustruct // Floor pit at a nonzero screen offset.
+		plan.ops[0] = dungeonRenderOp{kind: dungeonRenderPanel}
+		plan.ops[1] = dungeonRenderOp{kind: dungeonRenderItem, spriteIndex: 8, x: 20, y: 40}
 		for index := range scene.dungeonPitReveals {
 			applyDungeonPitReveal(&plan, &scene.dungeonPitReveals[index], elapsed)
 		}

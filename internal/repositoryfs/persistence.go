@@ -29,7 +29,7 @@ func PublishTemporaryFile(root, pattern string, data []byte, mode os.FileMode, p
 			if err != nil {
 				err = errors.Join(err, fmt.Errorf("remove temporary file: %w", cleanupErr))
 			} else {
-				logging.Warn(logging.CategorySystem, "Published file but could not remove temporary %s: %v", temporaryPath, cleanupErr)
+				logging.Warnf(logging.CategorySystem, "Published file but could not remove temporary %s: %v", temporaryPath, cleanupErr)
 			}
 		}
 	}()

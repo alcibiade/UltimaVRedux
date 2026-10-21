@@ -51,7 +51,7 @@ type introNarrativeFrame struct {
 
 type introNarrativePresentation struct {
 	assets         *sprites.NarrativeIntroAssets
-	scene          *minimap.MiniMapScene
+	scene          *minimap.Scene
 	executor       *minimap.ScriptExecutor
 	currentFrame   minimap.FrameID
 	frameStartedMs int64

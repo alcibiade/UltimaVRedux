@@ -65,7 +65,6 @@ func (g *GameState) SetQuestItemPresent(item references.QuestItem, present bool)
 	}
 
 	g.PartyState.Inventory.QuestItems.Set(item, after)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return before, after, nil
 }

@@ -1,15 +1,20 @@
 package references
 
+// Potion is one of the potion colours.
 type Potion int
 
+// ID returns the potion number within its item type.
 func (p Potion) ID() int {
 	return int(p)
 }
 
+// Type returns ItemTypePotion.
 func (p Potion) Type() ItemType {
 	return ItemTypePotion
 }
 
+// Potion colours in original order, starting at Blue.
+//
 //goland:noinspection GoUnusedConst
 const (
 	Blue   Potion = 0

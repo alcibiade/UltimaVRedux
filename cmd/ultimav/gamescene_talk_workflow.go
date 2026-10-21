@@ -116,8 +116,6 @@ func (g *GameScene) startTalkWorkflow(
 						references.FleeFromAvatar,
 						references.AIOverrideProvenanceAutomaticAstaroth,
 					)
-
-					g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
 				})
 		}).If(
 

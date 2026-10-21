@@ -521,12 +521,12 @@ func TestDungeonPresentationCoordinatesNormalizeOriginalViewport(t *testing.T) {
 func TestCurrentDungeonRenderStatePanicsWithoutActiveSnapshot(t *testing.T) {
 	t.Parallel()
 
-	state := &game_state.GameState{ //nolint:exhaustruct // The missing active dungeon is the condition under test.
-		MapState: map_state.MapState{ //nolint:exhaustruct // Only current location and lighting are read.
+	state := &game_state.GameState{
+		MapState: map_state.MapState{
 			PlayerLocation: dungeonTestPlayer(references.Position{}),
 		},
 	}
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused renderer contract fixture.
+	scene := &GameScene{gameState: state}
 	assert.PanicsWithValue(t, "dungeon map has no matching active dungeon snapshot", func() {
 		_, _, _ = scene.currentDungeonRenderState()
 	})
@@ -592,7 +592,7 @@ func TestDrawDungeonSpriteAppliesOriginalUpperAndMirroredOrientation(t *testing.
 		t.Run(test.name, func(t *testing.T) {
 			canvas := ebiten.NewImage(8, 8)
 			canvas.Fill(color.Black)
-			drawDungeonSprite(canvas, sprite, dungeonRenderOp{ //nolint:exhaustruct // Only transform fields affect this focused draw.
+			drawDungeonSprite(canvas, sprite, dungeonRenderOp{
 				x: 3, y: 4, mirror: test.mirror, top: test.top,
 			}, 1)
 
@@ -696,7 +696,7 @@ func (s syntheticDungeonSpriteSource) Monster(_, _ int) (*ebiten.Image, bool) {
 }
 
 func dungeonTestSnapshot(facing references.DungeonFacing) game_state.DungeonStateSnapshot {
-	return game_state.DungeonStateSnapshot{ //nolint:exhaustruct // Rendering tests need only cells and facing.
+	return game_state.DungeonStateSnapshot{
 		Facing: facing,
 	}
 }

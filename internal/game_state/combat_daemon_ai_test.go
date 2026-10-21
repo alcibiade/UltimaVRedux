@@ -28,9 +28,6 @@ func setupHostileSpecialMonsterTest(
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return nil, mock, nil, NoActiveMonster
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	clearCombatMonstersForTest(gs.CombatScene)
 	monsterRef := &(*gs.GameReferences.EnemyReferences)[monsterType]
@@ -70,9 +67,6 @@ func TestHostileDaemonPossessionRawSlotEligibilityAndSave(t *testing.T) {
 
 func TestShadowlordPossessionTargetsExactCloneSourceSlot(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	sourceEntry := gs.CombatScene.TurnQueue.GetEntryByIdentity(source)
 	require.NotNil(t, sourceEntry)
@@ -225,9 +219,6 @@ func TestHostileDaemonSuccessfulPossessionConsumesTurnAndRetiresWithoutCorpse(t 
 
 func TestShadowlordSuccessfulPossessionConsumesTurnWithoutRetiring(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.GetCharacter(0).Intelligence = 1
 
 	rng := newSequenceRNG(0, 29)
@@ -243,9 +234,6 @@ func TestShadowlordSuccessfulPossessionConsumesTurnWithoutRetiring(t *testing.T)
 
 func TestMonsterInvisibilityFollowsPossessionAndPrecedesGating(t *testing.T) {
 	gs, mock, blackthorn, blackthornIndex := setupHostileSpecialMonsterTest(t, references.MonsterBlackthorn)
-	if gs == nil {
-		return
-	}
 	require.True(t, blackthorn.HasAbility(references.PossessCharm))
 	require.True(t, blackthorn.HasAbility(references.Invisibility))
 	require.True(t, blackthorn.HasAbility(references.GatesInDaemon))
@@ -270,9 +258,6 @@ func TestMonsterInvisibilityFollowsPossessionAndPrecedesGating(t *testing.T) {
 
 func TestMonsterInvisibilityBoundaryAndPossessionPrecedence(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 
 	rng := newSequenceRNG(31, monsterSpecialThreshold)
 	assert.False(t, gs.executeHostileMonsterSpecialMoveWithRNG(shadowlord, shadowlordIndex, rng))
@@ -298,9 +283,6 @@ func TestMagicSuppressionSkipsMonsterSpecialRNG(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-			if gs == nil {
-				return
-			}
 			test.activate(gs)
 			rng := newSequenceRNG(0)
 
@@ -314,9 +296,6 @@ func TestMagicSuppressionSkipsMonsterSpecialRNG(t *testing.T) {
 
 func TestOrdinaryMonsterDoesNotConsumeSpecialRNG(t *testing.T) {
 	gs, mock, orc, orcIndex := setupHostileSpecialMonsterTest(t, references.MonsterOrc)
-	if gs == nil {
-		return
-	}
 	rng := newSequenceRNG(0)
 
 	assert.False(t, gs.executeHostileMonsterSpecialMoveWithRNG(orc, orcIndex, rng))
@@ -743,9 +722,6 @@ func TestBadtripConsumesOneChaosSwordInOriginalHandOrder(t *testing.T) {
 
 func TestShadowlordEscapeRecoversPossessedPCWhileOtherMonsterRemains(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 	addHostileOrcForShadowlordRecoveryTest(gs)
 	victim := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	require.True(t, gs.CombatScene.acquireCombatPossession(victim, shadowlord.CombatantID()))
@@ -776,9 +752,6 @@ func TestShadowlordEscapeRecoversPossessedPCWhileOtherMonsterRemains(t *testing.
 
 func TestShadowlordDeathRecoversPossessedPCWhileOtherMonsterRemains(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 	addHostileOrcForShadowlordRecoveryTest(gs)
 	victim := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	require.True(t, gs.CombatScene.acquireCombatPossession(victim, shadowlord.CombatantID()))
@@ -837,7 +810,7 @@ func gDaemonNearestPC(gs *GameState, daemon *CombatMonster, daemonIndex int) nea
 func firstLegalDaemonGatePosition(t *testing.T, gs *GameState) references.Position {
 	t.Helper()
 	ref := &(*gs.GameReferences.EnemyReferences)[references.MonsterDevil]
-	probe := &CombatMonster{monsterType: references.MonsterDevil, enemyRef: ref} //nolint:exhaustruct
+	probe := &CombatMonster{monsterType: references.MonsterDevil, enemyRef: ref}
 	for y := range references.YCombatMapTiles {
 		for x := range references.XCombatMapTiles {
 			position := references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}

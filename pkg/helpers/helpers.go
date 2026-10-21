@@ -3,7 +3,6 @@ package helpers
 
 import (
 	"cmp"
-	"reflect"
 )
 
 // Max returns the greater value, choosing b when the comparison is unordered.
@@ -35,14 +34,6 @@ func AbsInt(a int) int {
 	}
 
 	return a
-}
-
-// IsOfTypeInterface checks whether inst's type implements the interface holding iface.
-func IsOfTypeInterface(inst, iface interface{}) bool {
-	instType := reflect.TypeOf(inst)
-	ifaceType := reflect.TypeOf(&iface).Elem() // .Elem() to get the interface type
-
-	return instType.Implements(ifaceType)
 }
 
 // FilterFromSlice retains matching elements in order, reusing the input's backing array.

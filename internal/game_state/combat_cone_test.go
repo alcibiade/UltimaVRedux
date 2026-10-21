@@ -44,7 +44,7 @@ func addSyntheticConeMonster(
 	position references.Position,
 	intelligence int,
 ) (*CombatMonster, int) {
-	reference := references.EnemyReference{ //nolint:exhaustruct // Focused synthetic cone victim.
+	reference := references.EnemyReference{
 		MonsterType:  monsterType,
 		Name:         "Cone victim",
 		NamePlural:   "Cone victims",
@@ -320,9 +320,6 @@ func TestCombatConeStackedMonsterOutranksPCClone(t *testing.T) {
 
 func TestCombatConeTargeting_DefersConsumptionUntilConfirmed(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
 	caster.Level = 5
@@ -350,9 +347,6 @@ func TestCombatConeTargeting_DefersConsumptionUntilConfirmed(t *testing.T) {
 
 func TestCombatConeResolutionUsesExactCloneOrigin(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	clonePosition := references.Position{X: 5, Y: 5}
 	targetPosition := references.Position{X: 5, Y: 6}
@@ -386,9 +380,6 @@ func TestCombatConeResolutionUsesExactCloneOrigin(t *testing.T) {
 
 func TestCombatInZu_LeavesOriginalImmuneMonsterAwake(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterBlackthorn, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	gs.PartyState.GetCharacter(activeIdx).Intelligence = 255
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
@@ -407,9 +398,6 @@ func TestCombatInZu_LeavesOriginalImmuneMonsterAwake(t *testing.T) {
 
 func TestCombatInNoxHurToxifiesAtDexterityThreshold(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
 	gs.SetRandomSeed(1)
 	mock.Reset()
@@ -438,9 +426,6 @@ func TestCombatDexterityThresholdResult(t *testing.T) {
 
 func TestCombatInNoxHurSleepingMonsterUsesEffectiveDexterityOne(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
 	monster.currentDex = 30
 	monster.SetAsleep(true)
@@ -458,9 +443,6 @@ func TestCombatInNoxHurSleepingMonsterUsesEffectiveDexterityOne(t *testing.T) {
 
 func TestCombatConeTargeting_InNoxHurDefersResourcesUntilConfirmation(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
 	caster.Level = 7
@@ -481,9 +463,6 @@ func TestCombatConeTargeting_InNoxHurDefersResourcesUntilConfirmation(t *testing
 
 func TestCombatInFlamHurDamagesMonsterWithoutArmor(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
 	monster.enemyRef.Armour = 255
 	gs.SetRandomSeed(1)
@@ -504,9 +483,6 @@ func TestCombatInFlamHurDamagesMonsterWithoutArmor(t *testing.T) {
 
 func TestCombatInVasGravCorpInstantlyKillsFailedSave(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	gs.PartyState.GetCharacter(activeIdx).Intelligence = 255
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
@@ -527,9 +503,6 @@ func TestCombatInVasGravCorpInstantlyKillsFailedSave(t *testing.T) {
 
 func TestCombatInVasGravCorpIntelligenceSaveAndImmunityPreventDeath(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterBlackthorn, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	gs.PartyState.GetCharacter(activeIdx).Intelligence = 255
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
@@ -546,9 +519,6 @@ func TestCombatInVasGravCorpIntelligenceSaveAndImmunityPreventDeath(t *testing.T
 
 func TestCombatAdjacentSpellTargeting_EmptySquareKeepsResourcesAndTargeting(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
 	caster.Level = 4
@@ -570,9 +540,6 @@ func TestCombatAdjacentSpellTargeting_EmptySquareKeepsResourcesAndTargeting(t *t
 
 func TestCombatAdjacentSpellTargeting_ValidFieldConsumesAndResolves(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
 	caster.Level = 4
@@ -598,9 +565,6 @@ func TestCombatAdjacentSpellTargeting_ValidFieldConsumesAndResolves(t *testing.T
 
 func TestCombatAdjacentSpellTargeting_ConcealsPreviewWithoutRestrictingManualResolution(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
 	caster.Level = 4

@@ -1,9 +1,18 @@
 package party_state
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+)
+
+// PutItemInInventory rejection reasons.
+var (
+	ErrNoProvisionItem      = errors.New("invalid provision type: NoProvision should not be added to inventory")
+	ErrUnsupportedProvision = errors.New("unsupported provision type")
+	ErrUnsupportedQuestItem = errors.New("unsupported quest item")
+	ErrUnsupportedItemType  = errors.New("unsupported item type")
 )
 
 const (
@@ -13,7 +22,8 @@ const (
 	lockerSpellCount      = 48
 )
 
-type ProvisionsQuantity struct {
+// provisionsQuantity groups the consumable provisions; gold is kept separately on Inventory.
+type provisionsQuantity struct {
 	Food      ItemQuantityLarge
 	Gems      ItemQuantitySmall
 	Torches   ItemQuantitySmall
@@ -21,17 +31,19 @@ type ProvisionsQuantity struct {
 	SkullKeys ItemQuantitySmall
 }
 
+// Inventory is the party-wide stock of provisions, gold, equipment, spells, scrolls,
+// potions, quest items, reagents and moonstones, capped as in the original save.
 type Inventory struct {
-	Provisions ProvisionsQuantity
+	Provisions provisionsQuantity
 	Gold       ItemQuantityLarge
 
-	Equipment  InventoryQuantities[references.Equipment, *ItemQuantitySmall]
-	Spells     InventoryQuantities[references.Spell, *ItemQuantitySmall]
-	Scrolls    InventoryQuantities[references.Scroll, *ItemQuantityLarge]
-	Potions    InventoryQuantities[references.Potion, *ItemQuantitySmall]
-	QuestItems InventoryQuantities[references.QuestItem, *ItemQuantitySmall]
-	Reagent    InventoryQuantities[references.Reagent, *ItemQuantitySmall]
-	Moonstones InventoryQuantities[references.Moonstone, *ItemQuantitySmall]
+	Equipment  inventoryQuantities[references.Equipment, *ItemQuantitySmall]
+	Spells     inventoryQuantities[references.Spell, *ItemQuantitySmall]
+	Scrolls    inventoryQuantities[references.Scroll, *ItemQuantityLarge]
+	Potions    inventoryQuantities[references.Potion, *ItemQuantitySmall]
+	QuestItems inventoryQuantities[references.QuestItem, *ItemQuantitySmall]
+	Reagent    inventoryQuantities[references.Reagent, *ItemQuantitySmall]
+	Moonstones inventoryQuantities[references.Moonstone, *ItemQuantitySmall]
 }
 
 // InventoryLockerSnapshot is a complete, detached view of locker-managed inventory.
@@ -47,15 +59,16 @@ type InventoryLockerSnapshot struct {
 // SpellInventorySnapshot is a complete detached view of all 48 castable spell quantities.
 type SpellInventorySnapshot map[references.Spell]uint16
 
+// NewInventory returns an empty inventory with every quantity table allocated.
 func NewInventory() *Inventory {
-	inv := &Inventory{}
-	inv.Equipment = NewInventoryQuantities[references.Equipment, *ItemQuantitySmall]()
-	inv.Spells = NewInventoryQuantities[references.Spell, *ItemQuantitySmall]()
-	inv.Scrolls = NewInventoryQuantities[references.Scroll, *ItemQuantityLarge]()
-	inv.Potions = NewInventoryQuantities[references.Potion, *ItemQuantitySmall]()
-	inv.QuestItems = NewInventoryQuantities[references.QuestItem, *ItemQuantitySmall]()
-	inv.Reagent = NewInventoryQuantities[references.Reagent, *ItemQuantitySmall]()
-	inv.Moonstones = NewInventoryQuantities[references.Moonstone, *ItemQuantitySmall]()
+	inv := new(Inventory)
+	inv.Equipment = newInventoryQuantities[references.Equipment, *ItemQuantitySmall]()
+	inv.Spells = newInventoryQuantities[references.Spell, *ItemQuantitySmall]()
+	inv.Scrolls = newInventoryQuantities[references.Scroll, *ItemQuantityLarge]()
+	inv.Potions = newInventoryQuantities[references.Potion, *ItemQuantitySmall]()
+	inv.QuestItems = newInventoryQuantities[references.QuestItem, *ItemQuantitySmall]()
+	inv.Reagent = newInventoryQuantities[references.Reagent, *ItemQuantitySmall]()
+	inv.Moonstones = newInventoryQuantities[references.Moonstone, *ItemQuantitySmall]()
 
 	return inv
 }
@@ -102,74 +115,61 @@ func (i *Inventory) SpellSnapshot() SpellInventorySnapshot {
 	return snapshot
 }
 
+// PutItemInInventory adds the stack to the matching inventory table, or reports why
+// the item identity cannot be stored.
 func (i *Inventory) PutItemInInventory(item *references.ItemAndQuantity) error {
-	if item.Item.Type() == references.ItemTypeProvision {
-		switch references.Provision(item.Item.ID()) {
-		case references.Food:
-			i.Provisions.Food.IncrementBy(item.Quantity)
-		case references.Key:
-			i.Provisions.Keys.IncrementBy(item.Quantity)
-		case references.Gem:
-			i.Provisions.Gems.IncrementBy(item.Quantity)
-		case references.Torches:
-			i.Provisions.Torches.IncrementBy(item.Quantity)
-		case references.SkullKeys:
-			i.Provisions.SkullKeys.IncrementBy(item.Quantity)
-		case references.Gold:
-			i.Gold.IncrementBy(item.Quantity)
-		case references.NoProvision:
-			return fmt.Errorf("invalid provision type: NoProvision should not be added to inventory")
-		default:
-			return fmt.Errorf("unsupported provision type: %v", references.Provision(item.Item.ID()))
-		}
-	} else if item.Item.Type() == references.ItemTypeQuestItem {
+	switch item.Item.Type() {
+	case references.ItemTypeProvision:
+		return i.putProvision(item)
+	case references.ItemTypeQuestItem:
 		questItem := references.QuestItem(item.Item.ID())
 		switch questItem {
-		case references.Crown:
-			i.QuestItems.IncrementBy(references.Crown, item.Quantity)
-		case references.Sceptre:
-			i.QuestItems.IncrementBy(references.Sceptre, item.Quantity)
-		case references.Amulet:
-			i.QuestItems.IncrementBy(references.Amulet, item.Quantity)
-		case references.ShardOfFalsehood:
-			i.QuestItems.IncrementBy(references.ShardOfFalsehood, item.Quantity)
-		case references.ShardOfHatred:
-			i.QuestItems.IncrementBy(references.ShardOfHatred, item.Quantity)
-		case references.ShardOfCowardice:
-			i.QuestItems.IncrementBy(references.ShardOfCowardice, item.Quantity)
-		case references.Carpet:
-			i.QuestItems.IncrementBy(references.Carpet, item.Quantity)
-		case references.Grapple:
-			i.QuestItems.IncrementBy(references.Grapple, item.Quantity)
-		case references.Spyglass:
-			i.QuestItems.IncrementBy(references.Spyglass, item.Quantity)
-		case references.HMSCape:
-			i.QuestItems.IncrementBy(references.HMSCape, item.Quantity)
-		case references.PocketWatch:
-			i.QuestItems.IncrementBy(references.PocketWatch, item.Quantity)
-		case references.BlackBadge:
-			i.QuestItems.IncrementBy(references.BlackBadge, item.Quantity)
-		case references.WoodenBox:
-			i.QuestItems.IncrementBy(references.WoodenBox, item.Quantity)
-		case references.Sextant:
-			i.QuestItems.IncrementBy(references.Sextant, item.Quantity)
+		case references.Crown, references.Sceptre, references.Amulet, references.ShardOfFalsehood,
+			references.ShardOfHatred, references.ShardOfCowardice, references.Carpet, references.Grapple,
+			references.Spyglass, references.HMSCape, references.PocketWatch, references.BlackBadge,
+			references.WoodenBox, references.Sextant:
+			i.QuestItems.IncrementBy(questItem, item.Quantity)
 		default:
-			return fmt.Errorf("unsupported quest item: %v", questItem)
+			return fmt.Errorf("%w: %v", ErrUnsupportedQuestItem, questItem)
 		}
-	} else if item.Item.Type() == references.ItemTypeMoonstone {
-		moonstone := references.Moonstone(item.Item.ID())
-		i.Moonstones.IncrementBy(moonstone, item.Quantity)
-	} else if item.Item.Type() == references.ItemTypeEquipment {
-		equipment := references.Equipment(item.Item.ID())
-		i.Equipment.IncrementBy(equipment, item.Quantity)
-	} else if item.Item.Type() == references.ItemTypePotion {
+	case references.ItemTypeMoonstone:
+		i.Moonstones.IncrementBy(references.Moonstone(item.Item.ID()), item.Quantity)
+	case references.ItemTypeEquipment:
+		i.Equipment.IncrementBy(references.Equipment(item.Item.ID()), item.Quantity)
+	case references.ItemTypePotion:
 		i.Potions.IncrementBy(references.Potion(item.Item.ID()), item.Quantity)
-	} else if item.Item.Type() == references.ItemTypeScroll {
+	case references.ItemTypeScroll:
 		i.Scrolls.IncrementBy(references.Scroll(item.Item.ID()), item.Quantity)
-	} else if item.Item.Type() == references.ItemTypeReagent {
+	case references.ItemTypeReagent:
 		i.Reagent.IncrementBy(references.Reagent(item.Item.ID()), item.Quantity)
-	} else {
-		return fmt.Errorf("unsupported item type: %v", item.Item.Type())
+	case references.ItemTypeSpell:
+		// Spell stacks live in Inventory.Spells and are not accepted here.
+		fallthrough
+	default:
+		return fmt.Errorf("%w: %v", ErrUnsupportedItemType, item.Item.Type())
+	}
+
+	return nil
+}
+
+func (i *Inventory) putProvision(item *references.ItemAndQuantity) error {
+	switch references.Provision(item.Item.ID()) {
+	case references.Food:
+		i.Provisions.Food.IncrementBy(item.Quantity)
+	case references.Key:
+		i.Provisions.Keys.IncrementBy(item.Quantity)
+	case references.Gem:
+		i.Provisions.Gems.IncrementBy(item.Quantity)
+	case references.Torches:
+		i.Provisions.Torches.IncrementBy(item.Quantity)
+	case references.SkullKeys:
+		i.Provisions.SkullKeys.IncrementBy(item.Quantity)
+	case references.Gold:
+		i.Gold.IncrementBy(item.Quantity)
+	case references.NoProvision:
+		return ErrNoProvisionItem
+	default:
+		return fmt.Errorf("%w: %v", ErrUnsupportedProvision, references.Provision(item.Item.ID()))
 	}
 
 	return nil
@@ -200,8 +200,8 @@ func (i *Inventory) ConsumeMealTimeFood(hour int, activeMembers int) (bool, stri
 		}
 
 		return false, ""
-	} else {
-		// Party is starving - UI feedback handled by caller
-		return true, ""
 	}
+
+	// Party is starving - UI feedback handled by caller
+	return true, ""
 }

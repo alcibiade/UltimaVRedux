@@ -17,7 +17,7 @@ import (
 func TestClassifyOverworldEnemyContact(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct { //nolint:lll // Compact matrix keeps the source map table directly comparable.
+	tests := []struct {
 		name         string
 		enemy        *map_units.NPCEnemy
 		expectedType OverworldContactType
@@ -34,7 +34,7 @@ func TestClassifyOverworldEnemyContact(t *testing.T) {
 		},
 		{
 			name:         "land monster",
-			enemy:        newContactTestEnemy(references.MonsterOrc, indexes.Orc_KeyIndex, true, false, false),
+			enemy:        newContactTestEnemy(references.MonsterOrc, indexes.OrcKeyIndex, true, false, false),
 			expectedType: OverworldContactLandMonster,
 		},
 		{
@@ -49,12 +49,12 @@ func TestClassifyOverworldEnemyContact(t *testing.T) {
 		},
 		{
 			name:         "whirlpool",
-			enemy:        newContactTestEnemy(references.MonsterWhirlpool, indexes.Whirlpool_KeyIndex, true, true, false),
+			enemy:        newContactTestEnemy(references.MonsterWhirlpool, indexes.WhirlpoolKeyIndex, true, true, false),
 			expectedType: OverworldContactWhirlpool,
 		},
 		{
 			name:         "sandtrap",
-			enemy:        newContactTestEnemy(references.MonsterSandtrap, indexes.Sandtrap_KeyIndex, true, false, true),
+			enemy:        newContactTestEnemy(references.MonsterSandtrap, indexes.SandtrapKeyIndex, true, false, true),
 			expectedType: OverworldContactSandtrap,
 		},
 		{
@@ -114,7 +114,7 @@ func TestSelectOverworldCombatMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			terrain := &references.Tile{ //nolint:exhaustruct // Terrain selection fixture.
+			terrain := &references.Tile{
 				Index: tt.terrainIndex,
 			}
 			combatMap, err := SelectOverworldCombatMap(tt.contactType, tt.vehicleType, terrain)
@@ -688,9 +688,6 @@ func TestPirateDefeatDoesNotCreateSalvageFrigate(t *testing.T) {
 		WithRandomSeed(179).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	sourcePosition := references.Position{X: 51, Y: 50}
 	sourceEnemy := addPirateTestEnemy(t, gs, sourcePosition, indexes.PirateShipUp)
 	require.NoError(t, gs.StartOverworldCombatEncounter(sourceEnemy))
@@ -865,12 +862,12 @@ func newContactTestEnemy(
 ) *map_units.NPCEnemy {
 	var keyFrameTile *references.Tile
 	if spriteIndex != 0 {
-		keyFrameTile = &references.Tile{ //nolint:exhaustruct // Contact classification fixture.
+		keyFrameTile = &references.Tile{
 			Index: spriteIndex,
 		}
 	}
 
-	enemyReference := references.EnemyReference{ //nolint:exhaustruct // Contact classification fixture.
+	enemyReference := references.EnemyReference{
 		MonsterType:     monsterType,
 		KeyFrameTile:    keyFrameTile,
 		ActivelyAttacks: activelyAttacks,

@@ -9,6 +9,9 @@ import (
 // talkOffsetAdjust matches Origin’s 0x80 rule for phrase bytes.
 const talkOffsetAdjust = 0x80
 
+// errNoCompressedWord reports a TLK code byte outside the compressed-word table.
+var errNoCompressedWord = errors.New("no compressed word for code byte")
+
 // WordDict holds the compressed‑word table and a fast byte‑lookup map.
 type WordDict struct {
 	words       []string // index → word
@@ -64,7 +67,7 @@ func (d *WordDict) addRange(start, stop, offset int) {
 func (d *WordDict) Word(b byte) (string, error) {
 	idx, ok := d.byteToIndex[b]
 	if !ok || idx < 0 || idx >= len(d.words) {
-		return "", errors.New("no compressed word for code byte")
+		return "", errNoCompressedWord
 	}
 
 	return d.words[idx], nil

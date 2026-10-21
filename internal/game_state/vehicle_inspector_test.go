@@ -14,9 +14,9 @@ func newVehicleInspectorGameState(vehicleType references.VehicleType, hull int) 
 	vehicle := map_units.NewNPCFriendlyVehiceNewRef(vehicleType, references.Position{}, 0)
 	vehicle.GetVehicleDetails().SetHullHP(hull)
 
-	return &GameState{ //nolint:exhaustruct // Focused fixture initializes only inspector authority.
+	return &GameState{
 		PartyVehicle: *vehicle,
-		MapState: map_state.MapState{ //nolint:exhaustruct // PlayerLocation is the only map state read by this slice.
+		MapState: map_state.MapState{
 			PlayerLocation: references.PlayerLocation{
 				Location: references.BritanniaUnderworld,
 				Position: references.Position{X: 23, Y: 41},

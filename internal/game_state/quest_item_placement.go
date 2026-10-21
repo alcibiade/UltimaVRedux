@@ -129,22 +129,14 @@ func (gs *GameState) IsShardAtPosition(position references.Position) (bool, refe
 
 // IsLordBritishArtifact checks if a quest item is one of Lord British's three artifacts
 func IsLordBritishArtifact(questItem references.QuestItem) bool {
-	switch questItem {
-	case references.Crown, references.Sceptre, references.Amulet:
-		return true
-	default:
-		return false
-	}
+	return questItem == references.Crown || questItem == references.Sceptre || questItem == references.Amulet
 }
 
 // IsShard checks if a quest item is one of the three shards
 func IsShard(questItem references.QuestItem) bool {
-	switch questItem {
-	case references.ShardOfFalsehood, references.ShardOfHatred, references.ShardOfCowardice:
-		return true
-	default:
-		return false
-	}
+	return questItem == references.ShardOfFalsehood ||
+		questItem == references.ShardOfHatred ||
+		questItem == references.ShardOfCowardice
 }
 
 // GetVisibleQuestItemLights returns quest item light information for the current location

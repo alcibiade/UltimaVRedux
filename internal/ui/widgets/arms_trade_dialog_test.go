@@ -73,7 +73,7 @@ func TestArmsTradeDialogSellQuantitySellAllAndCancellation(t *testing.T) {
 		QuantityBefore: 5, MaxQuantity: 3, Sellable: true,
 	}
 	dialog := newTestArmsTradeDialog(keyboard, ArmsTradeIntent{Mode: ArmsShopSell, SellQuote: quote})
-	require.Contains(t, dialog.GetFooterGuidance(), "A: Sell All")
+	require.Contains(t, dialog.GetFooterGuidance(), "[M] Sell all")
 	pressArmsTradeKey(dialog, keyboard, ebiten.KeyA)
 	require.Equal(t, uint16(3), dialog.GetQuantity())
 	require.Contains(t, dialog.GetBodyText(), "500  ->  620")

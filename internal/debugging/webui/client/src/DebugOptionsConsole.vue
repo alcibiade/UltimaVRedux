@@ -26,6 +26,10 @@ const emit = defineEmits<{ setOption: [commandID: string, enabled: boolean] }>()
         <button type="button" role="switch" :aria-checked="data.dialogBoundsEnabled" :disabled="pending" @click="emit('setOption', 'overlay.dialog-bounds.set', !data.dialogBoundsEnabled)">{{ data.dialogBoundsEnabled ? 'ON' : 'OFF' }}</button>
       </article>
       <article>
+        <div><strong>Lighting Overlay</strong><p>Draw game-window light-distance diagnostics.</p></div>
+        <button type="button" role="switch" :aria-checked="data.lightingOverlayEnabled" :disabled="pending" @click="emit('setOption', 'overlay.lighting.set', !data.lightingOverlayEnabled)">{{ data.lightingOverlayEnabled ? 'ON' : 'OFF' }}</button>
+      </article>
+      <article>
         <div><strong>Unlimited Casting Resources</strong><p>Ignore prepared-spell and current MP costs for magical characters.</p></div>
         <button type="button" role="switch" :aria-checked="data.unlimitedCastingResources" :disabled="pending" @click="emit('setOption', 'magic.unlimited-casting-resources.set', !data.unlimitedCastingResources)">{{ data.unlimitedCastingResources ? 'ON' : 'OFF' }}</button>
       </article>

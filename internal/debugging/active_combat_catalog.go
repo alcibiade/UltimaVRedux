@@ -43,8 +43,8 @@ func activeCombatCommands() []CommandDefinition {
 	minimumLegacySeed, maximumLegacySeed := 1, 999999
 	minimumDamage, maximumDamage := 1, 999
 	encounterParameter := ParameterDefinition{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: activeCombatTextControlHint}
-	snapshotParameter := ParameterDefinition{ID: activeCombatExpectedSnapshotID, Name: "Reviewed Status Fingerprint", Kind: ParameterString, Required: true, ControlHint: "text"}
-	monsterParameter := ParameterDefinition{ID: "monsterId", Name: activeCombatMonsterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: "text"}
+	snapshotParameter := ParameterDefinition{ID: activeCombatExpectedSnapshotID, Name: "Reviewed Status Fingerprint", Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint}
+	monsterParameter := ParameterDefinition{ID: "monsterId", Name: activeCombatMonsterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: activeCombatTextControlHint}
 	expectedHPParameter := ParameterDefinition{ID: "expectedCurrentHp", Name: "Expected Current HP", Kind: ParameterInteger, Required: true, Minimum: &minimumCount, Maximum: &maximumDamage, ControlHint: controlHintNumber}
 
 	return []CommandDefinition{
@@ -65,11 +65,11 @@ func activeCombatCommands() []CommandDefinition {
 			Description: "Set one live monster's sleep condition at a quiescent player-turn boundary.",
 			Aliases:     []string{"combat sleep monster", "combat wake monster"},
 			Parameters: []ParameterDefinition{
-				{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, ControlHint: "text"},
-				{ID: "monsterId", Name: activeCombatMonsterName, Kind: ParameterString, Required: true, ControlHint: "text"},
+				{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
+				{ID: "monsterId", Name: activeCombatMonsterName, Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
 				{ID: "asleep", Name: "Asleep", Kind: ParameterBoolean, Required: true, ControlHint: controlHintSelect},
 				{ID: "expectedAsleep", Name: "Expected Current State", Kind: ParameterBoolean, Required: true, ControlHint: controlHintSelect},
-				{ID: activeCombatExpectedSnapshotID, Name: activeCombatExpectedSnapshot, Kind: ParameterString, Required: true, ControlHint: "text"},
+				{ID: activeCombatExpectedSnapshotID, Name: activeCombatExpectedSnapshot, Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
 			},
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 			Destructive:    false,
@@ -82,8 +82,8 @@ func activeCombatCommands() []CommandDefinition {
 				"without resolving victory, defeat, evacuation, or overworld contact.",
 			Aliases: []string{"combat exit"},
 			Parameters: []ParameterDefinition{
-				{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: "text"},
-				{ID: activeCombatExpectedSnapshotID, Name: activeCombatExpectedSnapshot, Kind: ParameterString, Required: true, ControlHint: "text"},
+				{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: activeCombatTextControlHint},
+				{ID: activeCombatExpectedSnapshotID, Name: activeCombatExpectedSnapshot, Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
 			},
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 			Destructive:    true,
@@ -95,8 +95,8 @@ func activeCombatCommands() []CommandDefinition {
 			Description: "Atomically add a reviewed monster batch at unoccupied authoritative combat-map positions.",
 			Aliases:     []string{"combat spawn"},
 			Parameters: []ParameterDefinition{
-				{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: "text"},
-				{ID: activeCombatExpectedSnapshotID, Name: activeCombatExpectedSnapshot, Kind: ParameterString, Required: true, ControlHint: "text"},
+				{ID: activeCombatEncounterID, Name: activeCombatEncounterName, Kind: ParameterString, Required: true, Pattern: activeCombatIdentifierPattern, ControlHint: activeCombatTextControlHint},
+				{ID: activeCombatExpectedSnapshotID, Name: activeCombatExpectedSnapshot, Kind: ParameterString, Required: true, ControlHint: activeCombatTextControlHint},
 				{ID: "monsterType", Name: "Monster Type ID", Kind: ParameterInteger, Required: true, Minimum: &minimumMonsterType, Maximum: &maximumMonsterType, ControlHint: controlHintNumber},
 				{ID: "countMode", Name: "Count Mode", Kind: ParameterEnum, Required: true, Choices: []Choice{{Value: "automatic", Label: "Automatic"}, {Value: "exact", Label: "Exact"}, {Value: "maximum", Label: "Maximum"}}, ControlHint: controlHintSelect},
 				{ID: "exactCount", Name: "Exact Count", Kind: ParameterInteger, Minimum: &minimumCount, Maximum: &maximumCount, ControlHint: controlHintNumber},

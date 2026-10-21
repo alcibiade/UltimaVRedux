@@ -243,15 +243,7 @@ func TestInnActionDialogSemanticBackgroundFooterColorsAndNoMouseAssumptions(t *t
 	require.NotContains(t, visible, "mouse")
 	require.NotContains(t, visible, "click")
 	require.NotContains(t, visible, "tab")
-	for _, line := range parseMerchantFooterGuidance(guidance) {
-		for _, segment := range line {
-			if strings.HasPrefix(segment.Text, "[") {
-				require.Equal(t, DialogControlKeyColor, segment.Color)
-			} else {
-				require.Equal(t, DialogControlHintColor, segment.Color)
-			}
-		}
-	}
+	requireKeyedGuidance(t, guidance)
 
 	screen := ebiten.NewImage(1280, 720)
 	t.Cleanup(screen.Dispose)

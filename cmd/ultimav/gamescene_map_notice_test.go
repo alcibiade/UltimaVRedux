@@ -47,8 +47,8 @@ func TestMapNoticeCoalescesSameSiteWaitsForArrivalAndSequencesJournal(t *testing
 	scene.updateJournalNoticeAfterFrame(true)
 	require.Equal(t, "Enter Fogsbane.", scene.output.JournalHistory(), "arrival dismissal retains its frame")
 	scene.updateJournalNotice()
-	expected := "Enter Fogsbane.\nMap updated: Fogsbane and its coordinates recorded.\n[Shift-M] View map\n" +
-		"Map updated: Unnamed hut recorded. Coordinates not measured.\n[Shift-M] View map\nJournal updated.\n[Shift-J] View journal"
+	expected := "Enter Fogsbane.\nMap updated: Fogsbane and its coordinates recorded.\n[Shift+M] View map\n" +
+		"Map updated: Unnamed hut recorded. Coordinates not measured.\n[Shift+M] View map\nJournal updated.\n[Shift+J] View journal"
 	require.Equal(t, expected, scene.output.JournalHistory())
 	require.Empty(t, scene.journalNotice.queue.pending)
 	scene.updateJournalNotice()
@@ -142,7 +142,7 @@ func TestMapNoticeNormalOutputLongNamesAndSemanticHints(t *testing.T) {
 			name := "A very long legitimately learned lighthouse name"
 			scene.atlasUpdated(journal.AtlasChange{EntryKey: "place", Name: name, Named: true})
 			scene.updateJournalNotice()
-			require.Equal(t, "Map updated: "+name+" identified. Coordinates not measured.\n[Shift-M] View map", output.JournalHistory())
+			require.Equal(t, "Map updated: "+name+" identified. Coordinates not measured.\n[Shift+M] View map", output.JournalHistory())
 			for _, row := range strings.Split(output.GetOutputStr(false), "\n") {
 				width, _ := font.MeasureString(row)
 				require.LessOrEqual(t, width, float64(calculateRightRailLayout(bounds).outputContent.Dx()))

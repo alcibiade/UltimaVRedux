@@ -140,7 +140,6 @@ func TestPaidHealerCureDeductsThenStealsThenAppliesEffect(t *testing.T) {
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.PartyState.Inventory.Gold.Set(100)
 	character := configureHealerTestCharacter(state, 0, party_state.Poisoned, 42, 60)
-	statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	expectedRNG := beradrng.New(seed)
@@ -162,8 +161,6 @@ func TestPaidHealerCureDeductsThenStealsThenAppliesEffect(t *testing.T) {
 	assert.Equal(t, uint16(42), result.HPAfter)
 	assert.Equal(t, party_state.Good, character.GetStatus())
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, *statsRefreshes)
-	assert.Equal(t, 1, *inventoryRefreshes)
 }
 
 func TestPaidHealerAllCureCommitsAtomicallyWithOnePaymentAndTheft(t *testing.T) {
@@ -175,7 +172,6 @@ func TestPaidHealerAllCureCommitsAtomicallyWithOnePaymentAndTheft(t *testing.T) 
 	state.PartyState.Inventory.Gold.Set(100)
 	first := configureHealerTestCharacter(state, 0, party_state.Poisoned, 42, 60)
 	second := configureHealerTestCharacter(state, 1, party_state.Poisoned, 18, 60)
-	statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	expectedRNG := beradrng.New(seed)
@@ -196,8 +192,6 @@ func TestPaidHealerAllCureCommitsAtomicallyWithOnePaymentAndTheft(t *testing.T) 
 	assert.Equal(t, party_state.Good, first.GetStatus())
 	assert.Equal(t, party_state.Good, second.GetStatus())
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, *statsRefreshes)
-	assert.Equal(t, 1, *inventoryRefreshes)
 }
 
 func TestHealerAllRejectsUnaffordableAggregateWithoutPartialTreatment(t *testing.T) {
@@ -207,7 +201,6 @@ func TestHealerAllRejectsUnaffordableAggregateWithoutPartialTreatment(t *testing
 	state.PartyState.Inventory.Gold.Set(49)
 	first := configureHealerTestCharacter(state, 0, party_state.Poisoned, 42, 60)
 	second := configureHealerTestCharacter(state, 1, party_state.Poisoned, 18, 60)
-	statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -218,8 +211,6 @@ func TestHealerAllRejectsUnaffordableAggregateWithoutPartialTreatment(t *testing
 	assert.Equal(t, party_state.Poisoned, first.GetStatus())
 	assert.Equal(t, party_state.Poisoned, second.GetStatus())
 	assert.Zero(t, state.GetRNG().Calls())
-	assert.Zero(t, *statsRefreshes)
-	assert.Zero(t, *inventoryRefreshes)
 }
 
 func TestSkaraBraeHealerAllUsesCharityWhenNoPatientAffordable(t *testing.T) {
@@ -229,7 +220,6 @@ func TestSkaraBraeHealerAllUsesCharityWhenNoPatientAffordable(t *testing.T) {
 	state.PartyState.Inventory.Gold.Set(29)
 	first := configureHealerTestCharacter(state, 0, party_state.Poisoned, 42, 60)
 	second := configureHealerTestCharacter(state, 1, party_state.Poisoned, 18, 60)
-	statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -245,8 +235,6 @@ func TestSkaraBraeHealerAllUsesCharityWhenNoPatientAffordable(t *testing.T) {
 	assert.Equal(t, party_state.Good, first.GetStatus())
 	assert.Equal(t, party_state.Good, second.GetStatus())
 	assert.Zero(t, state.GetRNG().Calls())
-	assert.Equal(t, 1, *statsRefreshes)
-	assert.Zero(t, *inventoryRefreshes)
 }
 
 func TestHealerHealRestoresFullHPWithoutChangingSleepOrPoison(t *testing.T) {
@@ -258,7 +246,6 @@ func TestHealerHealRestoresFullHPWithoutChangingSleepOrPoison(t *testing.T) {
 			if status != party_state.Poisoned {
 				configureHealerTestCharacter(state, 1, party_state.Good, 60, 60)
 			}
-			statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 
@@ -273,8 +260,6 @@ func TestHealerHealRestoresFullHPWithoutChangingSleepOrPoison(t *testing.T) {
 			assert.Equal(t, status, character.GetStatus())
 			assert.Equal(t, uint16(60), character.GetCurrentHp())
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Equal(t, 1, *statsRefreshes)
-			assert.Zero(t, *inventoryRefreshes)
 		})
 	}
 }
@@ -288,7 +273,6 @@ func TestSkaraBraeProvidesUnaffordableCureAndHealAsCharity(t *testing.T) {
 			state.PartyState.Inventory.Gold.Set(1)
 			status := party_state.Poisoned
 			character := configureHealerTestCharacter(state, 0, status, 18, 60)
-			statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 
@@ -302,8 +286,6 @@ func TestSkaraBraeProvidesUnaffordableCureAndHealAsCharity(t *testing.T) {
 			assert.Zero(t, result.Charge)
 			assert.Equal(t, uint16(1), state.PartyState.Inventory.Gold.Get())
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Equal(t, 1, *statsRefreshes)
-			assert.Zero(t, *inventoryRefreshes)
 			if service == references.HealerCure {
 				assert.Equal(t, party_state.Good, character.GetStatus())
 				assert.Equal(t, uint16(18), character.GetCurrentHp())
@@ -382,7 +364,6 @@ func TestHealerRejectsInvalidUnneededAndUnaffordableRequestsWithoutEffects(t *te
 			if test.status != party_state.Good && test.status != party_state.Poisoned {
 				configureHealerTestCharacter(state, 1, party_state.Good, 60, 60)
 			}
-			statsRefreshes, inventoryRefreshes := trackHealerRefreshes(state)
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 			beforeStatus := character.GetStatus()
@@ -398,8 +379,6 @@ func TestHealerRejectsInvalidUnneededAndUnaffordableRequestsWithoutEffects(t *te
 			assert.Equal(t, beforeStatus, character.GetStatus())
 			assert.Equal(t, beforeHP, character.GetCurrentHp())
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Zero(t, *statsRefreshes)
-			assert.Zero(t, *inventoryRefreshes)
 		})
 	}
 }
@@ -450,13 +429,4 @@ func configureHealerTestCharacter(
 	character.SetStatus(status)
 
 	return character
-}
-
-func trackHealerRefreshes(state *GameState) (*int, *int) {
-	statsRefreshes := 0
-	inventoryRefreshes := 0
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() { statsRefreshes++ }
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { inventoryRefreshes++ }
-
-	return &statsRefreshes, &inventoryRefreshes
 }

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 var errIntroArchiveInvalid = errors.New("intro archive is invalid")
@@ -16,7 +16,7 @@ func loadIntroArchive(dataDirectory, name string) (legacy.Archive, error) {
 	if !ok {
 		return legacy.Archive{}, fmt.Errorf("%w: graphics catalog has no entry for %s", errIntroArchiveInvalid, name)
 	}
-	path := filepath.Join(dataDirectory, name)
+	path := files.Resolve(dataDirectory, name)
 	data, err := os.ReadFile(path) //nolint:gosec // Configured original-data directory is user-selected.
 	if err != nil {
 		return legacy.Archive{}, fmt.Errorf("reading intro graphics %s: %w", path, err)

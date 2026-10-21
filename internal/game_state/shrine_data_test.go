@@ -273,21 +273,6 @@ func TestShrineData_StatBonuses(t *testing.T) {
 	}
 }
 
-// TestQuestStateConstants verifies quest state constants are distinct
-func TestQuestStateConstants(t *testing.T) {
-	t.Parallel()
-
-	states := map[int]string{
-		QuestStateNotAssigned:     "NotAssigned",
-		QuestStateReadyToComplete: "ReadyToComplete",
-		QuestStateOffering:        "Offering",
-	}
-
-	if len(states) != 3 {
-		t.Error("Quest state constants are not distinct")
-	}
-}
-
 func TestShrineDataQuestAssignmentsTeachOpposedViceAtCodex(t *testing.T) {
 	t.Parallel()
 

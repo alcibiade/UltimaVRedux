@@ -64,6 +64,7 @@ type IntroMenuScene struct {
 	borderSprites       *sprites.BorderSprites
 	ultimaFont          *text.UltimaFont
 	noticeOutput        *text.Output
+	versionOutput       *text.Output
 	keyboard            *input.Keyboard
 	config              *config.UltimaVConfiguration
 	audioManager        *audio.GameAudioManager
@@ -156,7 +157,7 @@ func createIntroMenuScene(gameConfig *config.UltimaVConfiguration, startAtMenu b
 	if !gameConfig.SoundDisabled {
 		intro.audioManager, err = audio.NewGameAudioManagerWithConfig(gameConfig.AudioConfiguration)
 		if err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to initialize audio system in intro: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to initialize audio system in intro: %v", err)
 			intro.audioManager = nil
 		}
 	}
@@ -177,6 +178,7 @@ func newIntroMenuState(
 		borderSprites:           sprites.NewBorderSprites(),
 		ultimaFont:              font,
 		noticeOutput:            text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, introNoticeLineCount, 80),
+		versionOutput:           newIntroVersionOutput(font),
 		keyboard:                input.NewKeyboard(250),
 		config:                  gameConfig,
 		audioManager:            nil,
@@ -235,7 +237,7 @@ func (m *IntroMenuScene) Activate() {
 	m.active = true
 	if m.audioManager != nil {
 		if err := m.audioManager.PlayMusicForContext("title"); err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to start title music: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to start title music: %v", err)
 		}
 	}
 }
@@ -246,7 +248,7 @@ func (m *IntroMenuScene) PrepareForSceneReplacement() {
 		return
 	}
 	if err := m.audioManager.StopBackgroundMusic(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop intro music: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop intro music: %v", err)
 	}
 }
 
@@ -261,7 +263,7 @@ func (m *IntroMenuScene) Dispose() {
 		return
 	}
 	if err := m.audioManager.Close(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to close intro audio: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to close intro audio: %v", err)
 	}
 	m.audioManager = nil
 }
@@ -269,6 +271,7 @@ func (m *IntroMenuScene) Dispose() {
 func (m *IntroMenuScene) InvalidateResolution() {
 	m.ultimaFont = text.NewUltimaFont(text.GetIntroFontSize())
 	m.noticeOutput.SetFont(m.ultimaFont, m.ultimaFont.TextFace.Metrics().HAscent*1.2)
+	m.versionOutput.SetFont(m.ultimaFont, m.ultimaFont.TextFace.Metrics().HAscent*1.2)
 }
 
 func (m *IntroMenuScene) GetUltimaConfiguration() *config.UltimaVConfiguration {
@@ -280,7 +283,9 @@ func (m *IntroMenuScene) PrepareInputForSceneActivation() {
 }
 
 //nolint:gochecknoglobals // Fixed input map.
-var boundKeysIntro = beradinput.NewBindings(ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter)
+var boundKeysIntro = beradinput.NewBindings(
+	ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyEscape,
+)
 
 //nolint:gochecknoglobals // All-key presentations use the keyboard adapter; Caps Lock is not actionable input.
 var boundKeysAny = func() []ebiten.Key {
@@ -338,11 +343,27 @@ func (m *IntroMenuScene) Update(game *Game) error {
 		return nil
 	}
 
+	if *pressedKey == ebiten.KeyEscape {
+		m.showExitConfirmation(game)
+
+		return nil
+	}
 	if *pressedKey == ebiten.KeyEnter || *pressedKey == ebiten.KeyNumpadEnter {
 		m.activateSelection(game)
 	}
 
 	return nil
+}
+
+// showExitConfirmation gives keyboard-only players a way out of the title menu.
+func (m *IntroMenuScene) showExitConfirmation(game *Game) {
+	var menu *widgets.ButtonListModal
+	cancel := func() { m.dialogStack.MustRemoveWidgetInstance(menu) }
+	placement := sprites.PercentBasedPlacement{StartPercentX: 0, EndPercentX: 1, StartPercentY: 0, EndPercentY: 1}
+	menu = widgets.NewButtonListModal("Exit Ultima V Redux?", cancel, m.keyboard, &placement)
+	menu.AddButton("Exit", game.requestExit)
+	menu.AddButton("Cancel", cancel)
+	m.dialogStack.PushModalDialog(menu)
 }
 
 func (m *IntroMenuScene) updateMenuNavigation() bool {
@@ -447,7 +468,7 @@ func (m *IntroMenuScene) startDataDirectorySetup(game *Game) {
 	host, err := originaldata.CurrentHostProfile()
 	if err != nil {
 		m.notice = "Data-directory setup could not inspect this computer."
-		logging.Warn(logging.CategoryUI, "Data-directory host setup failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Data-directory host setup failed: %v", err)
 
 		return
 	}
@@ -468,14 +489,14 @@ func (m *IntroMenuScene) startDataDirectorySetup(game *Game) {
 	)
 	if err := game.ReplaceScene(func() (Scene, error) { return setup, nil }); err != nil {
 		m.notice = "Data-directory setup could not be started."
-		logging.Warn(logging.CategoryUI, "Data-directory scene replacement failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Data-directory scene replacement failed: %v", err)
 	}
 }
 
 func (m *IntroMenuScene) startCharacterCreation(game *Game) {
 	if err := game.startCharacterCreation(); err != nil {
 		m.notice = "Character creation could not be started."
-		logging.Warn(logging.CategoryUI, "Character creation startup failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Character creation startup failed: %v", err)
 	}
 }
 
@@ -533,7 +554,7 @@ func (m *IntroMenuScene) startReturnToView() {
 		if err != nil {
 			m.showMenu()
 			m.notice = "Return to the View could not be loaded."
-			logging.Warn(logging.CategoryUI, "Return to the View loading failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Return to the View loading failed: %v", err)
 
 			return
 		}
@@ -543,7 +564,7 @@ func (m *IntroMenuScene) startReturnToView() {
 	if err != nil {
 		m.showMenu()
 		m.notice = "Return to the View could not be started."
-		logging.Warn(logging.CategoryUI, "Return to the View setup failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Return to the View setup failed: %v", err)
 
 		return
 	}
@@ -578,7 +599,7 @@ func (m *IntroMenuScene) resumeTitleMusic(context string) {
 	}
 	m.audioManager.GetMusicManager().SetSuppressed(audio.MusicCinematic, false)
 	if err := m.audioManager.PlayMusicForContext("title"); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to resume title music after %s: %v", context, err)
+		logging.Warnf(logging.CategoryAudio, "Failed to resume title music after %s: %v", context, err)
 	}
 }
 
@@ -587,7 +608,7 @@ func (m *IntroMenuScene) startNarrativeIntroduction() {
 		assets, err := sprites.LoadNarrativeIntroAssets(m.config.SavedConfigData.DataFilePath)
 		if err != nil {
 			m.notice = "Introduction could not be loaded."
-			logging.Warn(logging.CategoryUI, "Narrative Introduction loading failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Narrative Introduction loading failed: %v", err)
 
 			return
 		}
@@ -981,7 +1002,8 @@ func (m *IntroMenuScene) importLegacySave(
 		return
 	}
 	if len(legacySave.warnings) > 0 {
-		logging.Warn(logging.CategoryUI, "Legacy save import completed with %d conversion warnings", len(legacySave.warnings))
+		logging.Warnf(logging.CategoryUI,
+			"Legacy save import completed with %d conversion warnings", len(legacySave.warnings))
 	}
 }
 
@@ -1253,6 +1275,22 @@ func (m *IntroMenuScene) drawMenu(screen *ebiten.Image) {
 	}
 	m.ultimaFont.DrawIntroChoices(screen, m.nCurrentSelection, enabledChoices)
 	m.drawNotice(screen)
+	bounds := screen.Bounds()
+	m.versionOutput.DrawPanelContent(
+		screen,
+		image.Pt(bounds.Dx()/2, bounds.Dy()*19/20),
+		bounds.Dx()/2-bounds.Dx()/40,
+		textv2.AlignEnd,
+	)
+}
+
+// newIntroVersionOutput holds the title screen's version line, so bug reports
+// can quote it; the content never changes after construction.
+func newIntroVersionOutput(font *text.UltimaFont) *text.Output {
+	output := text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, 1, 80)
+	output.AppendLine().LightGray(runtimeGameVersion()).WithAlignment(textv2.AlignEnd).Done()
+
+	return output
 }
 
 func (m *IntroMenuScene) drawNotice(screen *ebiten.Image) {
@@ -1274,7 +1312,7 @@ func (m *IntroMenuScene) prepareNotice(bounds image.Rectangle) {
 	if m.notice != "" {
 		line := m.noticeOutput.AppendLine().WithAlignment(textv2.AlignCenter).Yellow(m.notice)
 		if m.legacyPrepareActive {
-			widgets.AppendControlHints(line.Text("  ", widgets.DialogControlHintColor), "Esc: Cancel")
+			widgets.AppendControlHints(line.Text("  ", widgets.DialogControlHintColor), "[Esc] Cancel")
 		}
 		line.WordWrap().Done()
 	}

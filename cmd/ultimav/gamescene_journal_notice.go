@@ -97,14 +97,14 @@ func (g *GameScene) updateJournalNoticeAfterFrame(blockedAtStart bool) {
 func (g *GameScene) writeKnowledgeNotice(change journal.AtlasChange) {
 	if change.EntryKey == "" {
 		g.output.AppendLine().Text("Journal updated.", widgets.DialogLabelColor).Done()
-		g.output.AppendLine().Text("[Shift-J]", widgets.DialogControlKeyColor).
+		g.output.AppendLine().Text("[Shift+J]", widgets.DialogControlKeyColor).
 			Text(" View journal", widgets.DialogControlHintColor).Done()
 
 		return
 	}
 	g.output.AppendLine().Text("Map updated: ", widgets.DialogLabelColor).
 		Text(strings.TrimPrefix(atlasNoticeHistory(change), "Map updated: "), widgets.DialogValueColor).Done()
-	g.output.AppendLine().Text("[Shift-M]", widgets.DialogControlKeyColor).
+	g.output.AppendLine().Text("[Shift+M]", widgets.DialogControlKeyColor).
 		Text(" View map", widgets.DialogControlHintColor).Done()
 }
 

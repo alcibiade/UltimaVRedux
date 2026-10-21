@@ -44,6 +44,7 @@ func AtlasMoonstoneChartKey(phase int) string {
 // REDUX DEVIATION: the physical supplied map becomes a readable, static chart;
 // these reference labels do not imply personal discoveries or authorize list-linked
 // geometry. IsSuppliedAtlasSymbol separately permits a finite decorative subset.
+// See ref:VIEW-0005.
 func SuppliedAtlasChart(world *WorldLocations) []AtlasChartPoint {
 	points := make([]AtlasChartPoint, 0, 34)
 	for _, item := range []struct {

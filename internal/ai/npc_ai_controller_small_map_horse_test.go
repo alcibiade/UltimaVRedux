@@ -272,7 +272,7 @@ func newHorseAITestController(
 	tileRefs := references.NewTileReferences()
 	emptyMap := &references.LargeMapReference{}
 	layeredMaps := map_state.NewLayeredMaps(tileRefs, emptyMap, emptyMap, 11, 11)
-	state := &map_state.MapState{ //nolint:exhaustruct // Horse movement only needs location and loaded map layers.
+	state := &map_state.MapState{
 		PlayerLocation: references.PlayerLocation{
 			Location: references.BritanniaUnderworld,
 			Position: references.Position{X: 31, Y: 31},
@@ -281,7 +281,7 @@ func newHorseAITestController(
 		LayeredMaps: *layeredMaps,
 	}
 	horse := newHorseAITestUnit(position, floor, indexes.HorseRight)
-	controller := &NPCAIControllerSmallMap{ //nolint:exhaustruct // Focused deterministic horse fixture.
+	controller := &NPCAIControllerSmallMap{
 		tileRefs:    tileRefs,
 		dateTime:    &datetime.UltimaDate{},
 		mapState:    state,

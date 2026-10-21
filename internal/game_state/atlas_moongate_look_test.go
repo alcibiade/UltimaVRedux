@@ -202,7 +202,7 @@ func TestActionLookLargeMapMoongateUsesMovedSourcePhaseAndRetiresOrigin(t *testi
 
 			// A remote return cannot update last seen or restore the origin label.
 			origin := references.ChartedMoonstoneOrigins()[phase].Location.Position
-			state.moonstoneSystem.BuryMoonstone(phase, uint8(origin.X), uint8(origin.Y), 0, 0) //nolint:gosec // Surface origin is byte-bounded.
+			state.moonstoneSystem.BuryMoonstone(phase, uint8(origin.X), uint8(origin.Y), 0, 0)
 			require.Equal(t, entry, atlasEntryByKey(t, state.CurrentAtlasDossier(), key))
 			state.ProcessWindThroughElapsed(state.ElapsedMs)
 			state = restoreAtlasSnapshot(t, state)

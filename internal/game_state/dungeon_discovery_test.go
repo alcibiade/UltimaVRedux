@@ -148,8 +148,8 @@ func TestPersistentHiddenPitReplayPreservesHighValuedFallDestination(t *testing.
 	var cells references.DungeonCells
 	require.True(t, cells.SetCell(0, position, 0x69))
 	require.True(t, cells.SetCell(1, position, 0xf0))
-	state := &GameState{ //nolint:exhaustruct // Focused replay fixture.
-		GameConfig: &config.UltimaVConfiguration{ //nolint:exhaustruct // Focused replay fixture.
+	state := &GameState{
+		GameConfig: &config.UltimaVConfiguration{
 			GameplayConfiguration: &config.GameplayConfiguration{
 				PersistHiddenDungeonDiscoveries: true,
 			},

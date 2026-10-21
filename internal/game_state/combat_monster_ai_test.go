@@ -83,9 +83,6 @@ func TestCombatPCTargetFixture_SingleActivePC(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -114,9 +111,6 @@ func TestCombatPCTargetFixture_PicksClosest(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -140,9 +134,6 @@ func TestCombatPCTargetFixture_PicksClosest(t *testing.T) {
 
 func TestShadowlordAndDoomCombatCanSelectInvisibleOpponents(t *testing.T) {
 	shadowState, _, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if shadowState == nil {
-		return
-	}
 	shadowState.CombatScene.SetPartyMemberInvisible(0, true)
 
 	shadowTarget := shadowState.findNearestOpponent(
@@ -154,9 +145,6 @@ func TestShadowlordAndDoomCombatCanSelectInvisibleOpponents(t *testing.T) {
 	assert.Equal(t, 0, shadowTarget.pcIndex)
 
 	orcState, _, orc, orcIndex := setupHostileSpecialMonsterTest(t, references.MonsterOrc)
-	if orcState == nil {
-		return
-	}
 	orcState.CombatScene.SetPartyMemberInvisible(0, true)
 	orcTarget := orcState.findNearestOpponent(
 		CombatTurnIdentity{IsPartyMember: false, EntityIndex: orcIndex},
@@ -182,9 +170,6 @@ func TestShadowlordAndDoomCombatCanSelectInvisibleOpponents(t *testing.T) {
 
 func TestNearestOpponentTieUsesReverseSourceQueueOrder(t *testing.T) {
 	gs, _, orc, orcIndex := setupHostileSpecialMonsterTest(t, references.MonsterOrc)
-	if gs == nil {
-		return
-	}
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	clone := gs.CombatScene.addPCCloneFromSource(
 		source,
@@ -211,9 +196,6 @@ func TestNearestOpponentTieUsesReverseSourceQueueOrder(t *testing.T) {
 
 func TestMonsterMeleeUsesExactCloneSleepAndPosition(t *testing.T) {
 	gs, mock, orc, orcIndex := setupHostileSpecialMonsterTest(t, references.MonsterOrc)
-	if gs == nil {
-		return
-	}
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	clonePosition := references.Position{X: 1, Y: 0}
 	clone := gs.CombatScene.addPCCloneFromSource(
@@ -241,9 +223,6 @@ func TestMonsterMeleeUsesExactCloneSleepAndPosition(t *testing.T) {
 
 func TestNoOpponentForcesEveryMonsterToOneHPAndFleeing(t *testing.T) {
 	gs, _, monster, monsterIndex := setupMonsterTeleportTest(t, false)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.SetPartyMemberInvisible(0, true)
 	secondRef := (*gs.GameReferences.EnemyReferences)[references.MonsterOrc]
 	second := NewCombatMonster(
@@ -271,9 +250,6 @@ func TestMonsterSeek_MovesTowardPC(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -317,9 +293,6 @@ func TestMonsterSeek_DoNotMoveFlag(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -352,9 +325,6 @@ func TestMonsterSeek_DoNotMoveFlag(t *testing.T) {
 
 func TestMonsterTeleportUnboxedPublishesTypedEvent(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, destination, _ := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	rng := newSequenceRNG(0, int(destination.X), int(destination.Y))
@@ -374,9 +344,6 @@ func TestMonsterTeleportUnboxedPublishesTypedEvent(t *testing.T) {
 
 func TestBoxedMonsterTeleportSkipsChanceRoll(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, destination, _ := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	for _, direction := range [4][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} {
@@ -402,9 +369,6 @@ func TestBoxedMonsterTeleportSkipsChanceRoll(t *testing.T) {
 
 func TestBoxedMonsterFailedTeleportDoesNotFallThroughToSeek(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, _, _ := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	for _, direction := range [4][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} {
@@ -430,9 +394,6 @@ func TestBoxedMonsterFailedTeleportDoesNotFallThroughToSeek(t *testing.T) {
 
 func TestMonsterTeleportChanceSkipFallsThroughToOrdinarySeek(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, _, nearest := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	expected := positionInDirection(from, nearest)
@@ -469,9 +430,6 @@ func TestMonsterTeleportInvalidDestinationFallsThroughToOrdinarySeek(t *testing.
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-			if gs == nil {
-				return
-			}
 			from, legalDestination, nearest := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 			monster.SetPosition(from)
 			expected := positionInDirection(from, nearest)
@@ -506,9 +464,6 @@ func TestMonsterTeleportSuppressionAndAbilityChecksPreserveRNG(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, monster, monsterIndex := setupMonsterTeleportTest(t, test.teleports)
-			if gs == nil {
-				return
-			}
 			from, _, nearest := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 			monster.SetPosition(from)
 			test.activate(gs)
@@ -525,9 +480,6 @@ func TestMonsterTeleportSuppressionAndAbilityChecksPreserveRNG(t *testing.T) {
 
 func TestMonsterAttackPrecedesTeleport(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, _, nearest := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	gs.CombatScene.SetPartyMemberPosition(0, positionInDirection(from, nearest))
@@ -548,9 +500,6 @@ func TestMonsterAttackPrecedesTeleport(t *testing.T) {
 
 func TestExecuteMonsterTurnReportsTeleportWithoutWalkingEvent(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, destination, _ := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	gs.SetRandomSeed(seedForTeleportDestination(t, gs, destination))
@@ -568,9 +517,6 @@ func TestExecuteMonsterTurnReportsTeleportWithoutWalkingEvent(t *testing.T) {
 
 func TestAdvanceCombatTurnSchedulesAndExecutesTeleport(t *testing.T) {
 	gs, mock, monster, monsterIndex := setupMonsterTeleportTest(t, true)
-	if gs == nil {
-		return
-	}
 	from, destination, _ := findMonsterTeleportTestPositions(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	gs.SetRandomSeed(seedForTeleportDestination(t, gs, destination))
@@ -593,9 +539,6 @@ func TestAdvanceCombatTurnSchedulesAndExecutesTeleport(t *testing.T) {
 
 func TestExecuteMonsterTurnRerollsConfusionBeforeSeek(t *testing.T) {
 	gs, _, monster, monsterIndex := setupMonsterTeleportTest(t, false)
-	if gs == nil {
-		return
-	}
 	from := findOpenSouthEastCombatPosition(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	gs.CombatScene.SetPartyMemberPosition(0, references.Position{X: from.X + 2, Y: from.Y})
@@ -618,9 +561,6 @@ func TestExecuteMonsterTurnRerollsConfusionBeforeSeek(t *testing.T) {
 
 func TestMonsterSeekUsesOriginalAxisBoundaryAndRandomDirectionMapping(t *testing.T) {
 	gs, _, monster, monsterIndex := setupMonsterTeleportTest(t, false)
-	if gs == nil {
-		return
-	}
 	from := findOpenSouthEastCombatPosition(t, gs, monster, monsterIndex)
 	monster.SetPosition(from)
 	nearest := nearestPCResult{pcIndex: 0, dirX: 1, dirY: 1, found: true}
@@ -655,9 +595,6 @@ func setupMonsterTeleportTest(
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return nil, mock, nil, NoActiveMonster
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	clearCombatMonstersForTest(gs.CombatScene)
 	for index := range party_state.MaxActiveParty {
@@ -819,9 +756,6 @@ func findOpenSouthEastCombatPosition(
 
 func TestMonsterMeleeAttack_NotAdjacent(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	manager := gs.CombatScene.MonsterManager
 	monster := manager.GetMonster(0)
@@ -840,9 +774,6 @@ func TestMonsterMeleeAttack_NotAdjacent(t *testing.T) {
 func TestMonsterMeleeAttack_AdjacentHitOrMiss(t *testing.T) {
 	// Use setupCombatWithMonster to get a monster adjacent to PC
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	manager := gs.CombatScene.MonsterManager
 	monster := manager.GetMonster(0)
@@ -861,9 +792,6 @@ func TestMonsterMeleeAttack_AdjacentHitOrMiss(t *testing.T) {
 
 func TestMonsterMeleeAttack_KillPC(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	manager := gs.CombatScene.MonsterManager
 	monster := manager.GetMonster(0)
@@ -917,9 +845,6 @@ func TestMonsterMeleeAttack_KillPC(t *testing.T) {
 func TestMonsterMeleeAttack_PoisonAbility(t *testing.T) {
 	// Spider has PoisonAtRange ability (original POISONS=0x0204 maps to PoisonAtRange|InfectWithPlague)
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterSpider, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	manager := gs.CombatScene.MonsterManager
 	monster := manager.GetMonster(0)
@@ -972,9 +897,6 @@ func TestMonsterMeleeAttack_PoisonAbility(t *testing.T) {
 
 func TestExecuteMonsterTurn_DeadMonsterSkipped(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	manager := gs.CombatScene.MonsterManager
 	monster := manager.GetMonster(0)
@@ -997,9 +919,6 @@ func TestExecuteMonsterTurn_DeadMonsterSkipped(t *testing.T) {
 
 func TestExecuteMonsterTurn_InactiveMonsterSkipped(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	manager := gs.CombatScene.MonsterManager
 	monster := manager.GetMonster(0)
@@ -1018,9 +937,6 @@ func TestExecuteMonsterTurn_InactiveMonsterSkipped(t *testing.T) {
 
 func TestExecuteMonsterTurn_PublishesCompletedMovement(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	monster.SetPosition(references.Position{X: 0, Y: 0})
 	gs.CombatScene.SetPartyMemberPosition(0, references.Position{X: 5, Y: 8})
@@ -1050,9 +966,6 @@ func TestExecuteMonsterTurn_PublishesCompletedMovement(t *testing.T) {
 
 func TestPlanMonsterTurn_AttackWhenAdjacent(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	entry := &TurnQueueEntry{Combatant: monster, EntityIndex: 0}
@@ -1078,9 +991,6 @@ func TestPlanMonsterTurnDoesNotClaimUnresolvedSpecialOrConfusionTarget(t *testin
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, monster, monsterIndex := setupHostileSpecialMonsterTest(t, test.monsterType)
-			if gs == nil {
-				return
-			}
 			gs.CombatScene.SetPartyMemberPosition(0, references.Position{X: 1, Y: 0})
 			test.activate(gs)
 
@@ -1095,9 +1005,6 @@ func TestPlanMonsterTurnDoesNotClaimUnresolvedSpecialOrConfusionTarget(t *testin
 
 func TestPlanMonsterTurnDoesNotClaimFleeingTarget(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	monster.SetFleeing(true)
 
 	plan := gs.planMonsterTurn(&TurnQueueEntry{Combatant: monster, EntityIndex: 0})
@@ -1109,9 +1016,6 @@ func TestPlanMonsterTurnDoesNotClaimFleeingTarget(t *testing.T) {
 
 func TestPlanMonsterTurn_SeekWhenNotAdjacent(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	monster.SetPosition(references.Position{X: 0, Y: 0})
 	entry := &TurnQueueEntry{Combatant: monster, EntityIndex: 0}
@@ -1158,9 +1062,6 @@ func TestPlanMonsterTurn_IdleForSleepingDeadInactiveOrNoTarget(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 
 			tt.setup(gs, monster)
 			entry := &TurnQueueEntry{Combatant: monster, EntityIndex: 0}
@@ -1205,9 +1106,6 @@ func forceNextMonsterTurnForTest(t *testing.T, gs *GameState, monsterIndex int) 
 
 func TestAdvanceCombatTurn_MonsterActsBeforePCTurn(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	// Move monster far away so it seeks instead of attacking
 	manager := gs.CombatScene.MonsterManager
@@ -1228,9 +1126,6 @@ func TestAdvanceCombatTurn_MonsterActsBeforePCTurn(t *testing.T) {
 
 func TestApplyCombatDamageToPC_ReportsActualOverkillDamage(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	pcIndex := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(pcIndex)
@@ -1254,9 +1149,6 @@ func TestApplyCombatDamageToPC_ReportsActualOverkillDamage(t *testing.T) {
 
 func TestAdvanceCombatTurn_SchedulerDelaysMonsterAction(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	forceNextMonsterTurnForTest(t, gs, 0)
 	monsterPosBefore := monster.Position()
@@ -1290,9 +1182,6 @@ func TestAdvanceCombatTurn_SchedulerDelaysMonsterAction(t *testing.T) {
 
 func TestAdvanceCombatTurn_MonsterKillsPC_DefeatCheck(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	// Only one PC active with 1 HP — deactivate others in both PartyActive and TurnQueue
 	for i := 1; i < party_state.MaxActiveParty; i++ {
@@ -1337,9 +1226,6 @@ func TestIsCombatPositionValid_OutOfBounds(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -1362,9 +1248,6 @@ func TestIsCombatPositionValid_OccupiedByPC(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -1388,9 +1271,6 @@ func TestIsCombatPositionValid_OccupiedByOtherMonster(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)

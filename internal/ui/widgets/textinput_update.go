@@ -17,102 +17,65 @@ func (t *TextInput) Update() {
 		return
 	}
 
-	var boundKey *ebiten.Key
 	key, keyStr := t.keyboard.GetAlphaNumericPressed()
 	if key != nil {
-		if !t.keyboard.TryToRegisterKeyPress(*key) {
-			return
-		}
-
-		if t.autoReplaceMode {
-			if !t.wouldNewCharacterBeValid(keyStr) {
-				return
-			}
-		}
-
-		if t.isPerfectMatchWithAutoFillFirstCharacter() {
-			if t.autoReplaceMode {
-				if !t.wouldNewCharacterBeValid(keyStr) {
-					return
-				}
-				t.output.Clear()
-			} else {
-				return
-			}
-		}
-
-		if t.freeText || t.inputValidationRegex != nil {
-			keyStr = t.printableKey(*key, keyStr)
-		}
-		t.addCharacter(keyStr)
-
-		if t.isPerfectMatchWithAutoFillFirstCharacter() {
-			t.tryToAutoComplete(false, true)
-		}
+		t.handleCharacterKey(*key, keyStr)
 
 		return
-	} else {
-		boundKey = t.keyboard.GetBoundKeyPressed(&nonAlphaNumericBoundKeys)
-		if boundKey == nil {
-			t.keyboard.SetAllowKeyPressImmediately()
-
-			return
-		}
-		if !t.keyboard.TryToRegisterKeyPress(*boundKey) {
-			return
-		}
 	}
 
-	switch *boundKey { //nolint:exhaustive
+	boundKey := t.keyboard.GetBoundKeyPressed(&nonAlphaNumericBoundKeys)
+	if boundKey == nil {
+		t.keyboard.SetAllowKeyPressImmediately()
+
+		return
+	}
+	if !t.keyboard.TryToRegisterKeyPress(*boundKey) {
+		return
+	}
+
+	t.handleBoundKey(*boundKey)
+}
+
+// handleCharacterKey adds a pressed letter or digit, honouring auto-replace and auto-fill modes.
+func (t *TextInput) handleCharacterKey(key ebiten.Key, keyStr string) {
+	if !t.keyboard.TryToRegisterKeyPress(key) {
+		return
+	}
+
+	if t.autoReplaceMode && !t.wouldNewCharacterBeValid(keyStr) {
+		return
+	}
+
+	if t.isPerfectMatchWithAutoFillFirstCharacter() {
+		if !t.autoReplaceMode {
+			return
+		}
+		t.output.Clear()
+	}
+
+	if t.freeText || t.inputValidationRegex != nil {
+		keyStr = t.printableKey(key, keyStr)
+	}
+	t.addCharacter(keyStr)
+
+	if t.isPerfectMatchWithAutoFillFirstCharacter() {
+		t.tryToAutoComplete(false, true)
+	}
+}
+
+// handleBoundKey handles punctuation, Enter, Space, Tab and the erase keys.
+func (t *TextInput) handleBoundKey(boundKey ebiten.Key) {
+	switch boundKey { //nolint:exhaustive
 	case ebiten.KeyApostrophe, ebiten.KeyBackslash, ebiten.KeyBracketLeft,
 		ebiten.KeyBracketRight, ebiten.KeyComma, ebiten.KeyEqual,
 		ebiten.KeyGraveAccent, ebiten.KeyMinus, ebiten.KeyPeriod,
 		ebiten.KeySemicolon, ebiten.KeySlash:
 		if t.freeText || t.inputValidationRegex != nil {
-			t.addCharacter(t.printableKey(*boundKey, ""))
+			t.addCharacter(t.printableKey(boundKey, ""))
 		}
 	case ebiten.KeyEnter, ebiten.KeyNumpadEnter:
-		if t.freeText {
-			if t.TextInputCallbacks.OnEnter != nil {
-				t.TextInputCallbacks.OnEnter()
-			}
-
-			return
-		}
-		// Regex mode: Enter should be handled by InputBox, not here
-		if t.textCommands == nil {
-			return
-		}
-
-		command := t.output.GetOutputStr(false)
-		matches := t.textCommands.GetAllPerfectMatches(command)
-
-		commandExecuted := false
-
-		if len(*matches) > 1 {
-			// Defense-in-depth: registration-time ValidateNoAmbiguousCommands
-			// should prevent this. If we get here, something is wrong.
-			logging.Error(logging.CategorySystem,
-				"Ambiguous debug command: %d perfect matches for %q (should never happen — check ValidateNoAmbiguousCommands)",
-				len(*matches), command)
-		} else if len(*matches) == 1 {
-			firstMatch := (*matches)[0]
-			if firstMatch.ExecuteCommand != nil {
-				firstMatch.ExecuteCommand(command, &firstMatch)
-				t.keyboard.SetLastKeyPressedNowPlusMs(keyPressDelay)
-				commandExecuted = true
-			}
-		}
-
-		if commandExecuted && t.TextInputCallbacks.OnCommandExecuted != nil {
-			t.TextInputCallbacks.OnCommandExecuted(command)
-		}
-
-		if t.TextInputCallbacks.OnEnter != nil {
-			t.TextInputCallbacks.OnEnter()
-		}
-
-		return
+		t.handleEnter()
 	case ebiten.KeySpace:
 		if t.freeText || t.inputValidationRegex != nil {
 			t.addCharacter(" ")
@@ -130,8 +93,49 @@ func (t *TextInput) Update() {
 			t.output.RemoveRightSideCharacter()
 		}
 	}
+}
 
-	return
+// handleEnter runs the typed command when it is a single perfect match, then fires OnEnter.
+func (t *TextInput) handleEnter() {
+	if t.freeText {
+		if t.TextInputCallbacks.OnEnter != nil {
+			t.TextInputCallbacks.OnEnter()
+		}
+
+		return
+	}
+	// Regex mode: Enter should be handled by InputBox, not here
+	if t.textCommands == nil {
+		return
+	}
+
+	command := t.output.GetOutputStr(false)
+	matches := t.textCommands.GetAllPerfectMatches(command)
+
+	commandExecuted := false
+
+	if len(*matches) > 1 {
+		// Defense-in-depth: registration-time ValidateNoAmbiguousCommands
+		// should prevent this. If we get here, something is wrong.
+		logging.Errorf(logging.CategorySystem,
+			"Ambiguous debug command: %d perfect matches for %q (should never happen — check ValidateNoAmbiguousCommands)",
+			len(*matches), command)
+	} else if len(*matches) == 1 {
+		firstMatch := (*matches)[0]
+		if firstMatch.ExecuteCommand != nil {
+			firstMatch.ExecuteCommand(command, &firstMatch)
+			t.keyboard.SetLastKeyPressedNowPlusMs(keyPressDelay)
+			commandExecuted = true
+		}
+	}
+
+	if commandExecuted && t.TextInputCallbacks.OnCommandExecuted != nil {
+		t.TextInputCallbacks.OnCommandExecuted(command)
+	}
+
+	if t.TextInputCallbacks.OnEnter != nil {
+		t.TextInputCallbacks.OnEnter()
+	}
 }
 
 func (t *TextInput) printableKey(key ebiten.Key, fallback string) string {

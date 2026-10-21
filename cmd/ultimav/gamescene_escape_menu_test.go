@@ -612,7 +612,7 @@ func TestEscapeMenuCancelAndFailureResumeAudio(t *testing.T) {
 }
 
 func newEscapeMenuTestScene() *GameScene {
-	return &GameScene{ //nolint:exhaustruct // Focused escape-menu fixture.
+	return &GameScene{
 		activePlaythrough: playthroughMetadata{id: testPlaythroughID},
 		gameConfig: &config.UltimaVConfiguration{
 			AudioConfiguration: &config.AudioConfiguration{},

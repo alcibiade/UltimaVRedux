@@ -32,7 +32,6 @@ const (
 	horseStableClosedText        = "The stables are closed."
 	horseShopPreviewStoppedText  = "Preview stopped before purchase authority."
 	horseShopProcessingText      = "Processing purchase"
-	horseShopLeaveFooter         = "[Enter/Esc] Leave"
 )
 
 var _ Widget = (*HorseShopDialog)(nil)
@@ -643,7 +642,7 @@ func (d *HorseShopDialog) footerGuidance() string {
 		return horseShopProcessingText
 	case HorseShopFarewell, HorseShopSuccess, HorseShopFundsRefusal,
 		HorseShopStableClosed, HorseShopPreviewStopped, HorseShopSessionError:
-		return horseShopLeaveFooter
+		return merchantLeaveFooter
 	default:
 		panic("HorseShopDialog.footerGuidance: unknown phase")
 	}

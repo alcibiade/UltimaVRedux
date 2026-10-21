@@ -88,18 +88,6 @@ func TestMigrateRuntimeWorldPreconditionsCopiesAndRemovesOnlyManagedArguments(t 
 			},
 		},
 		{
-			Type: StepCommand, CommandID: dungeonExplorerSetupCommand,
-			Arguments: map[string]CommandArgument{
-				"dungeon":                   {Literal: json.RawMessage(`"33"`)},
-				"expectedLocationId":        {Literal: json.RawMessage(`33`)},
-				"expectedFloor":             {Literal: json.RawMessage(`1`)},
-				"expectedX":                 {Literal: json.RawMessage(`2`)},
-				"expectedY":                 {Literal: json.RawMessage(`3`)},
-				"expectedSourceFingerprint": {Literal: json.RawMessage(`"review"`)},
-				"expectedDungeonRevision":   {Literal: json.RawMessage(`7`)},
-			},
-		},
-		{
 			Type: StepCommand, CommandID: "world.other",
 			Arguments: map[string]CommandArgument{"expectedX": {Literal: json.RawMessage(`4`)}},
 		},
@@ -107,35 +95,27 @@ func TestMigrateRuntimeWorldPreconditionsCopiesAndRemovesOnlyManagedArguments(t 
 
 	migrated, migrations := MigrateRuntimeWorldPreconditions(definition)
 
-	for stepIndex, argumentIDs := range [][]string{
-		{"expectedLocationId", "expectedFloor", "expectedX", "expectedY", "expectedSourceFingerprint"},
-		{"expectedLocationId", "expectedFloor", "expectedX", "expectedY", "expectedSourceFingerprint", "expectedDungeonRevision"},
-	} {
-		for _, argumentID := range argumentIDs {
-			if _, exists := migrated.Steps[stepIndex].Arguments[argumentID]; exists {
-				t.Fatalf("migrated step %d retained %s", stepIndex, argumentID)
-			}
+	for _, argumentID := range []string{"expectedLocationId", "expectedFloor", "expectedX", "expectedY", "expectedSourceFingerprint"} {
+		if _, exists := migrated.Steps[0].Arguments[argumentID]; exists {
+			t.Fatalf("migrated step retained %s", argumentID)
 		}
 	}
 	if got := string(migrated.Steps[0].Arguments["location"].Literal); got != `"33"` {
 		t.Fatalf("destination location = %s", got)
 	}
-	if got := string(migrated.Steps[2].Arguments["expectedX"].Literal); got != `4` {
+	if got := string(migrated.Steps[1].Arguments["expectedX"].Literal); got != `4` {
 		t.Fatalf("unrelated command expectedX = %s", got)
 	}
 	if got := string(definition.Steps[0].Arguments["expectedLocationId"].Literal); got != `2` {
 		t.Fatalf("input definition mutated: expectedLocationId = %s", got)
 	}
-	if len(migrations) != 11 {
-		t.Fatalf("migrations = %#v, want 11", migrations)
+	if len(migrations) != 5 {
+		t.Fatalf("migrations = %#v, want 5", migrations)
 	}
 	wantPaths := []string{
 		"$.steps[0].arguments.expectedLocationId", "$.steps[0].arguments.expectedFloor",
 		"$.steps[0].arguments.expectedX", "$.steps[0].arguments.expectedY",
 		"$.steps[0].arguments.expectedSourceFingerprint",
-		"$.steps[1].arguments.expectedLocationId", "$.steps[1].arguments.expectedFloor",
-		"$.steps[1].arguments.expectedX", "$.steps[1].arguments.expectedY",
-		"$.steps[1].arguments.expectedSourceFingerprint", "$.steps[1].arguments.expectedDungeonRevision",
 	}
 	for index, wantPath := range wantPaths {
 		if migrations[index].Path != wantPath || migrations[index].Code != MigrationRuntimeWorldPrecondition ||

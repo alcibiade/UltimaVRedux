@@ -128,8 +128,6 @@ func TestPurchaseTavernMealCommitsPaymentTheftFoodAndTransientVisual(t *testing.
 	layeredMap := state.GetLayeredMapByCurrentLocation()
 	require.NotNil(t, layeredMap)
 	layeredMap.SetTileByLayer(map_state.MapOverrideLayer, north, indexes.TableMiddle)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	quote, err := state.QuoteTavernMeal(session)
@@ -152,7 +150,6 @@ func TestPurchaseTavernMealCommitsPaymentTheftFoodAndTransientVisual(t *testing.
 	assert.Equal(t, TavernMealTableVisual{Show: true, Position: *north, SpriteIndex: indexes.TableFoodBottom}, result.TransientTableVisual)
 	assert.Equal(t, indexes.SpriteIndex(indexes.TableMiddle), layeredMap.GetTileTopMapOnlyTile(north).Index, "meal visual must not mutate the map")
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 	shop, err := state.GetTavernShopState(session)
 	require.NoError(t, err)
 	assert.True(t, shop.CustomerEligible)
@@ -247,8 +244,6 @@ func TestStopTavernDrinkingEstablishesCustomerWithoutOtherEffects(t *testing.T) 
 	state.PartyState.Inventory.Gold.Set(100)
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.SetRandomSeed(108)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	drink, err := state.QuoteTavernDrink(session)
@@ -272,7 +267,6 @@ func TestStopTavernDrinkingEstablishesCustomerWithoutOtherEffects(t *testing.T) 
 	assert.False(t, result.CustomerBefore)
 	assert.True(t, result.CustomerAfter)
 	assert.Zero(t, state.GetRNG().Calls())
-	assert.Zero(t, refreshes)
 
 	state.drunk = 2
 	_, err = state.QuoteTavernStop(session)
@@ -289,8 +283,6 @@ func TestWarnedTavernDrinkContinueIsAtomic(t *testing.T) {
 		state.PartyState.Inventory.Gold.Set(100)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.SetRandomSeed(seed)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernDrink(session)
@@ -314,7 +306,6 @@ func TestWarnedTavernDrinkContinueIsAtomic(t *testing.T) {
 		assert.Equal(t, 49, result.KarmaAfter)
 		assert.True(t, result.CustomerAfter)
 		assert.Equal(t, uint64(1), state.GetRNG().Calls())
-		assert.Equal(t, 1, refreshes)
 	})
 
 	t.Run("cancel", func(t *testing.T) {
@@ -324,8 +315,6 @@ func TestWarnedTavernDrinkContinueIsAtomic(t *testing.T) {
 		state.PartyState.Karma.Value = 50
 		state.PartyState.Inventory.Gold.Set(100)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernDrink(session)
@@ -344,7 +333,6 @@ func TestWarnedTavernDrinkContinueIsAtomic(t *testing.T) {
 		assert.Equal(t, 50, state.PartyState.Karma.Value)
 		assert.Zero(t, state.tavernCustomerSessionSequence)
 		assert.Zero(t, state.GetRNG().Calls())
-		assert.Zero(t, refreshes)
 	})
 
 	t.Run("unaffordable Continue", func(t *testing.T) {
@@ -461,8 +449,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		state.PartyState.Inventory.Provisions.Food.Set(0)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.SetRandomSeed(seed)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		state.PartyState.GetCharacter(0).Intelligence = 30
@@ -485,7 +471,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		assert.Equal(t, uint16(198)-expectedTheft, result.GoldAfterTheft)
 		assert.True(t, result.CustomerAfter)
 		assert.Equal(t, uint64(1), state.GetRNG().Calls())
-		assert.Equal(t, 1, refreshes)
 	})
 
 	t.Run("partial retains one pack and skips Faulinei", func(t *testing.T) {
@@ -493,8 +478,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		state.PartyState.Inventory.Gold.Set(60)
 		state.PartyState.Inventory.Provisions.Food.Set(0)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernProvisions(session)
@@ -512,7 +495,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		assert.Zero(t, result.Theft)
 		assert.True(t, result.CustomerAfter)
 		assert.Zero(t, state.GetRNG().Calls())
-		assert.Equal(t, 1, refreshes)
 	})
 
 	t.Run("saturation stops after charged partial final pack", func(t *testing.T) {
@@ -522,8 +504,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		state.PartyState.Inventory.Provisions.Food.Set(9980)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.SetRandomSeed(seed)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernProvisions(session)
@@ -540,7 +520,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		assert.NotZero(t, result.Theft)
 		assert.True(t, result.CustomerAfter)
 		assert.Equal(t, uint64(1), state.GetRNG().Calls())
-		assert.Equal(t, 1, refreshes)
 	})
 
 	t.Run("low-food charity ejects without theft or customer", func(t *testing.T) {
@@ -550,8 +529,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		state.PartyState.Inventory.Provisions.Food.Set(1)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.SetRandomSeed(seed)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernProvisions(session)
@@ -568,7 +545,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		assert.Zero(t, result.Theft)
 		assert.False(t, result.CustomerAfter)
 		assert.Equal(t, uint64(1), state.GetRNG().Calls())
-		assert.Equal(t, 1, refreshes)
 	})
 
 	t.Run("no-need ejection has no effects", func(t *testing.T) {
@@ -576,8 +552,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		state.PartyState.Inventory.Gold.Set(0)
 		state.PartyState.Inventory.Provisions.Food.Set(3)
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteTavernProvisions(session)
@@ -592,7 +566,6 @@ func TestPurchaseTavernProvisionsPreservesPerPackBoundaries(t *testing.T) {
 		assert.Zero(t, result.Theft)
 		assert.False(t, result.CustomerAfter)
 		assert.Zero(t, state.GetRNG().Calls())
-		assert.Zero(t, refreshes)
 	})
 }
 
@@ -709,8 +682,6 @@ func TestTavernInformationMatchingLockRepeatAndRNG(t *testing.T) {
 	state.PartyState.GetCharacter(0).Intelligence = 30
 	state.drunk = 3
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -750,7 +721,6 @@ func TestTavernInformationMatchingLockRepeatAndRNG(t *testing.T) {
 	assert.Equal(t, TavernInformationCompleted, second.Outcome)
 	assert.Equal(t, uint16(100), second.GoldAfterPayment)
 	assert.Zero(t, state.GetRNG().Calls())
-	assert.Equal(t, 2, refreshes)
 }
 
 func TestReviewTavernInformationByMerchantIDIsPureAndCustomerEligible(t *testing.T) {

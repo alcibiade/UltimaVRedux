@@ -124,7 +124,7 @@ func (mvs *MoongateVisualSystem) isCurrentRenderer(renderer *MoongateRenderer) b
 }
 
 func (mvs *MoongateVisualSystem) ResetForNewLocation() {
-	logging.Debug(
+	logging.Debugf(
 		logging.CategoryMoongate,
 		"Clearing %d moongate renderers for location transition",
 		len(mvs.activeRenderers),

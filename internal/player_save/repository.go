@@ -265,12 +265,9 @@ func (repository *Repository) load(slot SlotID, checkCompatibility bool) (Record
 	if err != nil {
 		return decodeUnsupportedRecord(slot, data, err, checkCompatibility)
 	}
-	revisionData := data
-	if !envelope.Snapshot.NeedsMapUnitReconstruction() {
-		revisionData, err = save_snapshot.EncodeCanonical(envelope)
-		if err != nil {
-			return Record{}, fmt.Errorf("canonicalize player save %s: %w", slot, err)
-		}
+	revisionData, err := save_snapshot.EncodeCanonical(envelope)
+	if err != nil {
+		return Record{}, fmt.Errorf("canonicalize player save %s: %w", slot, err)
 	}
 	record := Record{
 		Slot: slot, Envelope: envelope, Revision: repositoryfs.ContentRevision(revisionData),

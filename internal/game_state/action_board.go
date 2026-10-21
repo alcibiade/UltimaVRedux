@@ -68,6 +68,8 @@ func (g *GameState) ActionBoard() bool {
 	case references.FrigateVehicle:
 		g.SystemCallbacks.Message.AppendToCurrentRowStr("Ship")
 
+	case references.NoPartyVehicle, references.NPC:
+		fallthrough
 	default:
 		g.SystemCallbacks.Message.AppendToCurrentRowStr("What?")
 

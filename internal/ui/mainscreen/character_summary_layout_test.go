@@ -30,7 +30,7 @@ func TestCharacterRightTextBoundsLeaveScaledBorderInset(t *testing.T) {
 
 func TestCharacterTextRetainsUnchangedRowsAndRefreshesVisibleValues(t *testing.T) {
 	party := summaryBaselineParty()
-	summary := refreshTestCharacterSummary(t)
+	summary := &CharacterSummary{}
 	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeXLarge, characterOutputMaxLines)
 	screen := ebiten.NewImage(1, 1)
 	t.Cleanup(screen.Dispose)
@@ -65,10 +65,8 @@ func TestCharacterTextRetainsUnchangedRowsAndRefreshesVisibleValues(t *testing.T
 		t.Run(test.name, func(t *testing.T) {
 			before := row.builds
 			test.change()
-			// No explicit refresh callback: Draw must detect status transitions.
+			// No explicit refresh callback: Draw must reflect status transitions.
 			summary.Draw(party, screen, -1, false, -1)
-			require.Equal(t, character.GetStatus(), summary.previousStatuses[0])
-			require.False(t, summary.IsStatsRefreshNeeded())
 			summary.prepareCharacterText(0, character, test.wantColor)
 			require.Equal(t, before+1, row.builds)
 			require.Contains(t, row.left.GetOutputStr(false), test.wantLeft)

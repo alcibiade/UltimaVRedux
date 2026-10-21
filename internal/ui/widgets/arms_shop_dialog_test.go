@@ -390,8 +390,7 @@ func TestArmsShopDialogTerminalRefusalWaitsForAcknowledgement(t *testing.T) {
 			require.False(t, dialog.IsDismissed())
 			require.Equal(t, "No purchase: insufficient gold.", dialog.GetReceiptText())
 			require.Contains(t, dialog.GetDetailText(), "insufficient gold")
-			require.Contains(t, dialog.GetShell().GetFooterView().Guidance, "[Enter]")
-			require.Contains(t, dialog.GetShell().GetFooterView().Guidance, "[Esc]")
+			require.Contains(t, dialog.GetShell().GetFooterView().Guidance, "[Enter/Esc] Leave")
 
 			pressArmsShopKey(dialog, keyboard, key)
 			require.True(t, dialog.IsDismissed())
@@ -466,6 +465,25 @@ func TestArmsShopDialogGeometryAndEmptySellAreBounded(t *testing.T) {
 		pressArmsShopKey(dialog, keyboard, ebiten.KeyEnter)
 		_, ok := dialog.ConsumePendingTradeIntent()
 		require.False(t, ok)
+	}
+}
+
+func TestArmsShopDialogAcceptsDualWieldedReadiedQuantities(t *testing.T) {
+	// Each active member can ready one copy in each hand.
+	const readied = 2 * party_state.MaxActiveParty
+	state := testArmsShopState()
+	state.BuyQuotes[0].ReadiedQuantity = readied
+	state.SellQuotes[0].ReadiedQuantity = readied
+	keyboard := newWidgetTestKeyboard(0)
+
+	var dialog *ArmsShopDialog
+	require.NotPanics(t, func() { dialog = newTestArmsShopDialog(keyboard, state) })
+	for _, mode := range []ebiten.Key{ebiten.KeyB, ebiten.KeyS} {
+		pressArmsShopKey(dialog, keyboard, mode)
+		for dialog.GetSelectedEquipment() != references.Dagger {
+			pressArmsShopKey(dialog, keyboard, ebiten.KeyDown)
+		}
+		require.Contains(t, strings.Join(strings.Fields(dialog.GetDetailText()), " "), "Ready 12")
 	}
 }
 

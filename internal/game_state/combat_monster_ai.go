@@ -418,12 +418,12 @@ func (g *GameState) applyCombatDamageToPC(
 	if character.IsDead() {
 		g.markCombatPCDead(pcIdx)
 
-		logging.Info(logging.CategoryGameState,
+		logging.Infof(logging.CategoryGameState,
 			"PC %d (%s) killed by monster %s (idx=%d)",
 			pcIdx, pcName, monsterName, monsterIdx)
 	} else {
 		g.tryDragCombatPCUnder(monster, target, true, hpLost, false)
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Monster %s hit PC %d (%s) for %d damage, remainingHP=%d",
 			monsterName, pcIdx, pcName, damage, character.GetCurrentHp())
 	}
@@ -661,7 +661,7 @@ func (g *GameState) tryMonsterMoveAxis(
 
 	monster.SetPosition(newPos)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Monster %s (idx=%d) moved from (%d,%d) to (%d,%d)",
 		monster.MonsterType().Name(), monsterIdx,
 		from.X, from.Y, newPos.X, newPos.Y)
@@ -692,7 +692,7 @@ func (g *GameState) tryMonsterRandomDirections(
 		if isCombatPositionValidForMonster(g, newPos, monster, monsterIdx) {
 			monster.SetPosition(newPos)
 
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"Monster %s (idx=%d) random-moved from (%d,%d) to (%d,%d)",
 				monster.MonsterType().Name(), monsterIdx,
 				from.X, from.Y, newPos.X, newPos.Y)

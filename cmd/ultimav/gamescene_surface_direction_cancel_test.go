@@ -107,15 +107,7 @@ func TestSurfaceDirectionEscapeProductionRouteAndNextFreshCommand(t *testing.T) 
 	}
 }
 
-func TestSurfaceCancellationDoesNotClaimLegacyUseOrCombatDirections(t *testing.T) {
-	for _, location := range []references.Location{references.Britain, references.BritanniaUnderworld} {
-		scene, held, _, callbacks := newRunicReferenceTestScene(t, location)
-		scene.secondaryKeyState = UseDirectionInput
-		held[ebiten.KeyEscape] = true
-		require.False(t, scene.cancelSurfaceDirectionInput())
-		require.Equal(t, UseDirectionInput, scene.secondaryKeyState)
-		require.Empty(t, callbacks.TimeAdvanced())
-	}
+func TestSurfaceCancellationDoesNotClaimCombatDirections(t *testing.T) {
 	scene, _ := newCombatUseTestScene(t)
 	scene.secondaryKeyState = OpenDirectionInput
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)

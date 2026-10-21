@@ -173,6 +173,29 @@ Do not relabel stand-ins to hide genuine intent/content mismatches.
 New silent slots retain truthful unknown provenance, empty processing, no window
 or calibration. Their how-to-hear text describes intent, not audible acceptance.
 
+### Spell cast cues
+
+Prepared spells request `SoundMagic` with their success presentation unless
+listed below. Noncombat **No effect!**, failed Blink/dispel/door spells and
+no-room summons request `SoundSpellFailure`; a confirmed but ineffective combat
+party spell keeps `SoundMagic`.
+
+| Spell | Cue |
+|---|---|
+| Mani / Vas Mani / An Nox / An Zu | `SoundHeal` / `SoundGreatHeal` / `SoundCure` / `SoundAwakenSpell` with the target flash |
+| In Mani Corp | `SoundResurrect`; `SoundMagic` for **Not dead** |
+| In Xen Mani | `SoundCreateFood` with the party flash after the food is added |
+| In Wis | `SoundLocate` before the Runic coordinate overlay |
+| Wis Quas, Wis An Ylem, In Quas Wis | `SoundXRay` |
+| An Sanct / An Ex Por / In Ex Por | `SoundUnlock` / `SoundMagicLock` / `SoundMagicUnlock` at the mutation |
+| An Grav | `SoundDispel` (intentionally empty slot) on successful removal |
+| In Vas Por Ylem | `SoundEarthquake` with the one-second shake |
+| In Zu, In Nox Hur, In Vas Grav Corp, In Flam Hur | `SoundWhiteNoiseDamage` when the cone starts, even if it later proves ineffective |
+| Combat missiles (Grav Por, Vas Flam, Xen Corp, An Xen Ex, Rel Xen Bet, In Quas Xen) | `SoundMagic` at launch, then `SoundSpellImpact` on an unblocked non-field impact |
+
+Kal Xen Corp binding failure is shown with **Oops...** feedback and a hostile
+allegiance cue; it has no distinct failure sound.
+
 ### Admission, footsteps and injury lifetimes
 
 Redux configures eight SFX voices. SDK prepares replacements before admission;

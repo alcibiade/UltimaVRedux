@@ -1090,7 +1090,7 @@ func TestConfigurationDialogRetriesFailedRollbackInsteadOfPersistingCandidate(t 
 	dialog.Update()
 	require.Equal(t, configurationDisplayEditing, dialog.displayPhase)
 	require.True(t, dialog.displayRollbackRetry)
-	assert.Equal(t, "Enter: Retry restore  Esc: Cancel", dialog.configurationErrorGuidance())
+	assert.Equal(t, "[Enter] Retry restore   [Esc] Cancel", dialog.configurationErrorGuidance())
 
 	pressAudioSettingsKey(dialog, ebiten.KeyEnter)
 	assert.Equal(t, configurationDisplayReverting, dialog.displayPhase)
@@ -1136,7 +1136,7 @@ func pressAudioSettingsKey(dialog *ConfigurationDialog, key ebiten.Key) {
 }
 
 func dialogConfiguration(audioConfig *config.AudioConfiguration) *config.UltimaVConfiguration {
-	return &config.UltimaVConfiguration{ //nolint:exhaustruct // Focused dialog fixture.
+	return &config.UltimaVConfiguration{
 		AudioConfiguration: audioConfig,
 		DisplayConfiguration: &config.DisplayConfiguration{
 			Mode:              config.ModeWindowed,

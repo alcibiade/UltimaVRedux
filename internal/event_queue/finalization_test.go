@@ -111,24 +111,6 @@ func TestFinalization_HandoffToCleansUpThenHandsOff(t *testing.T) {
 	}
 }
 
-func TestFinalization_BackgroundLastRunsOnce(t *testing.T) {
-	manager := NewEventQueueManager(func() int64 { return 0 }, nil)
-	lastCalls := 0
-
-	manager.RegisterBackgroundQueue("background").
-		Sequential().
-		First(func() {}).Finally(
-
-		func() { lastCalls++ }).
-		Start()
-
-	manager.UpdateBackground()
-	manager.UpdateBackground()
-	if lastCalls != 1 {
-		t.Fatalf("Last calls = %d, want 1", lastCalls)
-	}
-}
-
 func TestFinalization_FirstAndLastMainQueue(t *testing.T) {
 	manager := NewEventQueueManager(func() int64 { return 0 }, nil)
 	var execution []string
@@ -259,12 +241,6 @@ func TestLifecycle_ShutdownFinalizesEveryLaneAndReleasesInput(t *testing.T) {
 	manager.TriggerFeedback("feedback", PriorityNormal, func(queue *SequentialEventBuilder) {
 		queue.First(func() {}).Wait(1000).Finally(func() { finallyCalls["feedback"]++ })
 	})
-	manager.RegisterBackgroundQueue("background").
-		Sequential().
-		First(func() {}).
-		Wait(1000).
-		Finally(func() { finallyCalls["background"]++ }).
-		Start()
 	manager.run(func() {
 		manager.Workflow("deferred").
 			Priority(PriorityNormal).
@@ -283,7 +259,7 @@ func TestLifecycle_ShutdownFinalizesEveryLaneAndReleasesInput(t *testing.T) {
 	manager.Shutdown()
 	manager.Shutdown()
 
-	for _, name := range []string{"active", "pending", "feedback", "background", "deferred", "deferred_feedback"} {
+	for _, name := range []string{"active", "pending", "feedback", "deferred", "deferred_feedback"} {
 		if finallyCalls[name] != 1 {
 			t.Errorf("%s Finally calls = %d, want 1", name, finallyCalls[name])
 		}
@@ -291,11 +267,10 @@ func TestLifecycle_ShutdownFinalizesEveryLaneAndReleasesInput(t *testing.T) {
 	if callbacks.InputBlocked {
 		t.Fatal("shutdown left callback input blocked")
 	}
-	if manager.HasActiveWorkflows() || manager.HasActiveBackgroundQueues() ||
+	if manager.HasActiveWorkflows() ||
 		manager.HasWorkflow("active") || manager.HasWorkflow("pending") ||
 		manager.HasWorkflow("deferred") || manager.HasFeedback("feedback") ||
-		manager.HasFeedback("deferred_feedback") ||
-		manager.HasBackground("background") {
+		manager.HasFeedback("deferred_feedback") {
 		t.Fatal("shutdown left queue registrations active")
 	}
 
@@ -308,21 +283,14 @@ func TestLifecycle_ShutdownFinalizesEveryLaneAndReleasesInput(t *testing.T) {
 	manager.TriggerFeedback("after_shutdown", PriorityNormal, func(queue *SequentialEventBuilder) {
 		queue.First(func() {}).Finally(func() { finallyCalls["after_feedback"]++ })
 	})
-	manager.RegisterBackgroundQueue("after_shutdown").
-		Sequential().
-		First(func() {}).
-		Finally(func() { finallyCalls["after_background"]++ }).
-		Start()
 	manager.Update()
 	manager.UpdateFeedback()
-	manager.UpdateBackground()
 
 	if finallyCalls["after_shutdown"] != 0 || finallyCalls["after_feedback"] != 0 ||
-		finallyCalls["after_background"] != 0 || finallyCalls["started_during_shutdown"] != 0 {
+		finallyCalls["started_during_shutdown"] != 0 {
 		t.Fatalf("starts after shutdown ran cleanup callbacks: %v", finallyCalls)
 	}
-	if manager.HasWorkflow("after_shutdown") || manager.HasFeedback("after_shutdown") ||
-		manager.HasBackground("after_shutdown") {
+	if manager.HasWorkflow("after_shutdown") || manager.HasFeedback("after_shutdown") {
 		t.Fatal("starts after shutdown registered live queues")
 	}
 }
@@ -357,27 +325,6 @@ func TestLifecycle_FeedbackCallbackCanShutdownManager(t *testing.T) {
 	}
 	if manager.HasFeedback("feedback") {
 		t.Fatal("shutdown left feedback queue registered")
-	}
-}
-
-func TestLifecycle_BackgroundCallbackCanShutdownManager(t *testing.T) {
-	manager := NewEventQueueManager(func() int64 { return 0 }, nil)
-	finallyCalls := 0
-	nextCalls := 0
-
-	manager.RegisterBackgroundQueue("background").
-		Sequential().
-		First(manager.Shutdown).
-		Then(func() { nextCalls++ }).
-		Finally(func() { finallyCalls++ }).
-		Start()
-
-	manager.UpdateBackground()
-	if finallyCalls != 1 || nextCalls != 0 {
-		t.Fatalf("callback counts = Finally:%d Next:%d, want 1 and 0", finallyCalls, nextCalls)
-	}
-	if manager.HasBackground("background") {
-		t.Fatal("shutdown left background queue registered")
 	}
 }
 

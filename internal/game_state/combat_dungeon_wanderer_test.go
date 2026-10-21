@@ -87,14 +87,14 @@ func TestPrepareDungeonWandererCombatStateUsesSelectedSlotsAndSharedDexJitter(t 
 	state := newDungeonStateTestGame(t, cells)
 	state.activeDungeon.facing = references.DungeonFacingNorth
 	enemyReferences := make(references.EnemyReferences, int(references.MonsterShadowlord)+1)
-	enemyReferences[references.MonsterRat] = references.EnemyReference{ //nolint:exhaustruct // Focused combat fixture.
+	enemyReferences[references.MonsterRat] = references.EnemyReference{
 		MonsterType: references.MonsterRat,
 		Dexterity:   20,
 		HitPoints:   10,
 		MaxPerMap:   1,
 		Friend:      &enemyReferences[references.MonsterTroll],
 	}
-	state.GameReferences = &references.GameReferences{EnemyReferences: &enemyReferences} //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{EnemyReferences: &enemyReferences}
 
 	values := append(make([]int, 0, 24),
 		15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
@@ -139,10 +139,10 @@ func TestPrepareDungeonWandererMaterializesSourceDepthCenterChestBeforeMonsters(
 	state := newDungeonStateTestGame(t, cells)
 	state.MapState.PlayerLocation.Floor = 7
 	enemyReferences := make(references.EnemyReferences, int(references.MonsterShadowlord)+1)
-	enemyReferences[references.MonsterRat] = references.EnemyReference{ //nolint:exhaustruct // Focused encounter fixture.
+	enemyReferences[references.MonsterRat] = references.EnemyReference{
 		MonsterType: references.MonsterRat, Dexterity: 20, HitPoints: 10, MaxPerMap: 1,
 	}
-	state.GameReferences = &references.GameReferences{EnemyReferences: &enemyReferences} //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{EnemyReferences: &enemyReferences}
 	values := append(make([]int, references.MaxMonstersPerMap),
 		0,          // One Rat.
 		0, 0, 0, 0, // Unused replacement choices.

@@ -86,9 +86,8 @@ remain the invoking workflow's responsibility.
   independently scaled and measured; north/south tags are centered within their
   own column, with separation even when all eight columns have known seams.
 
-The only close control is a fresh `Enter` or keypad `Enter`, after invoking keys
-have been released. Arrow keys do not move the party or inspect cells; Escape
-does not add a new cancellation path. Resizing rebuilds presentation resources
+Any fresh key closes the view, after invoking keys have been released, matching
+the surface Gem view. Arrow keys do not move the party or inspect cells. Resizing rebuilds presentation resources
 while preserving dismissal and input-release state.
 
 Focused coverage separates classification/reveal boundaries, small exact-RGBA
@@ -131,11 +130,11 @@ footer describes the current arrow action. Tab/Shift+Tab still changes category
 in either mode. Pan mode is local to the open dialog and resets on reopening.
 `0` (number row or keypad) restores canonical north-up 1×; `+` / `-` (including keypad Add/Subtract)
 choose 1× / 2× / 4×, spanning 256 / 128 / 64 tiles. `Enter` focuses an authorised
-selected point; `A` (shown as `A Avatar` only when a fix is available) focuses
+selected point; `A` (shown as `[A] Avatar` only when a fix is available) focuses
 the current valid sextant fix. Both focus actions raise 1× to 2× and retain an
 already closer zoom. Neither can use an
-unmeasured private site. Escape closes; PgUp/PgDn page details only when their
-content overflows. `L` shows/hides the single selected-place callout; there is no
+unmeasured private site. Escape closes; Space (or PgUp/PgDn) pages details only when
+their content overflows. `L` shows/hides the single selected-place callout; there is no
 automatic label-culling mode. In a category overview, `L` instead shows/hides all
 authorised in-view labels. `G` toggles the chart grid.
 
@@ -357,7 +356,7 @@ prompts, arrival presentation, modals, workflows, readers and fades defer it.
 
 `Map updated:` reports legitimate discovery/name/measurement changes, with
 measured/not-measured status but no exact coordinate pair; `Journal updated.`
-uses the same output channel. Separate `[Shift-M] View map` / `[Shift-J] View
+uses the same output channel. Separate `[Shift+M] View map` / `[Shift+J] View
 journal` lines use semantic key/hint colours; labels and values are likewise
 distinct. Normal Output wrapping and History retain these notices. There is no
 top-centre card, visible-time countdown, fade, focus, or dialog-stack entry.
@@ -520,8 +519,8 @@ offered for deliberate replacement only with an inspected raw-byte revision;
 Load stays disabled and the player browser offers no Delete.
 
 Up/Down navigation repeats deterministically; fresh physical taps bypass the
-shared delay. Enter invokes once, Escape cancels, and Left/Right is reserved for
-detail paging when needed. Page Up/Page Down has no slot action. Review labels
+shared delay. Enter invokes once, Escape cancels, and Space (or Left/Right) pages
+details when needed. Page Up/Page Down has no slot action. Review labels
 are opt-in; ordinary browsers do not inherit extra review geometry.
 
 See [player slots](../details/SAVE_SNAPSHOT_SCHEMA.md#player-slots) for persistence
@@ -700,8 +699,8 @@ closes. This labels the source without capturing unseen dialogue or learning clu
 For older records, once an explicit name is presented, earlier exchanges in that
 conversation and matching saved excerpts receive the detached attribution correction without modifying
 captured speech. The original Shadowlord sprite is integer-scaled without
-invented per-lord palettes. Shared footers distinguish keys from descriptions;
-Shift abbreviations must not become an ambiguous bare S.
+invented per-lord palettes. Shared footers distinguish keys from descriptions and
+keep full `Shift+` spellings.
 
 Verification: `quest_journal_dialog_test.go`, `quest_journal_feature_test.go`, `quest_journal_excerpts_test.go`,
 and the scene-owned Journal tests. Conversation capture semantics are in
@@ -759,10 +758,10 @@ widget tests rather than designing a parallel transaction framework.
 
 | Family / widget sources | Preserve when extending |
 |---|---|
-| Arms: `arms_shop_dialog.go`, `arms_trade_dialog.go` | Carried inventory is sale authority; READY counts are informational. Buy/Sell retain independent selection/scroll/sort. Ordinary Buy has no maximum shortcut; ammo is a fixed refill. Sell All uses the gold-safe maximum. Used-ammo refusal ends the session; zero-price/headroom refusals return to Sell. Capacity refusal returns to Buy; insufficient Buy funds terminate after acknowledgement. |
+| Arms: `arms_shop_dialog.go`, `arms_trade_dialog.go` | Carried inventory is sale authority; READY counts are informational. Buy/Sell retain independent selection/scroll/sort. M selects the Buy maximum or the gold-safe Sell all (A remains a Sell alias); ammo is a fixed refill. Used-ammo refusal ends the session; zero-price/headroom refusals return to Sell. Capacity refusal returns to Buy; insufficient Buy funds terminate after acknowledgement. |
 | Healer: `healer_shop_dialog.go`, `healer_treatment_dialog.go` | Services focus does not silently select a recipient. Individual and All intents require approval. Preserve distinct eligibility, funds blockers, and authoritative effect projections; refresh all recipients/prices after outcomes. |
 | Horse: `horse_shop_dialog.go`, `horse_purchase_dialog.go` | Placement/ownership/terrain details stay out of shopping UI. Approval Escape returns to Browse (a documented Redux deviation); success/funds/stable-closure outcomes remain one-shot terminal acknowledgements. Remote Preview does not claim Live placement availability. |
-| Ships: `ship_shop_dialog.go`, `ship_purchase_dialog.go`, `ship_dispatch_dialog.go`, `ship_travel_dialog.go` | Parent shows trusted berth/delivery projections. Frigate loading uses aggregate quantities; standalone delivery is one. Refresh after purchase/stale refusal. First vessel creation can open dispatch; reviewed harbour escort is separate from boarding. Preview stops before purchase or travel. |
+| Ships: `ship_shop_dialog.go`, `ship_purchase_dialog.go`, `ship_dispatch_dialog.go`, `ship_travel_dialog.go` | The selected card uses the shared white selection bar. Parent shows trusted berth/delivery projections. Frigate loading uses aggregate quantities; standalone delivery is one. Refresh after purchase/stale refusal. First vessel creation can open dispatch; reviewed harbour escort is separate from boarding. Preview stops before purchase or travel. |
 | Inn: `inn_shop_dialog.go`, `inn_action_dialog.go` | Rest/Leave/Pick Up retain mode. Ineligible rows remain inspectable with reasons; poison death and insufficient-funds guard consequences are visible before approval. Last-living-member Leave remains reviewable with warning. Approval Escape returns to Browse. Refresh complete roster/charge/result data; clear stale receipts on navigation. |
 | Guild: `guild_shop_dialog.go`, `guild_purchase_dialog.go` | Browsing does not replace latest speech; pitch appears in quantity approval. Cancellation retains exchange. Maximum comes from authority and permits a saturating final bundle. Zero maximum emits no request. Session errors disable purchase until dismissal. |
 
@@ -777,11 +776,11 @@ retains its existing quote-derived bounds and request type:
 
 | Form | Repeating adjustment | Existing one-shot shortcuts / limits |
 |---|---|---|
-| `ArmsTradeDialog` | Left/Right item count | Sell uses A for All; ordinary Buy has no maximum shortcut; ammunition remains a fixed refill. |
+| `ArmsTradeDialog` | Left/Right item count | Up/Down decrement/increment once; M selects the maximum (Sell all), with A as a Sell alias; ammunition remains a fixed refill. |
 | `GuildPurchaseDialog` | Left/Right bundle count | Up/Down decrement/increment once; M selects the quoted maximum, including the existing saturating final bundle. |
 | `ReagentPurchaseDialog` | Left/Right bundle count | Up/Down decrement/increment once; M selects the maximum supplied approval view. |
 | `ShipPurchaseDialog` | Left/Right loaded-skiff count | Up/Down decrement/increment once; M selects the maximum supplied approval view. Standalone vessel delivery remains one. |
-| `TavernActionDialog` | Left/Right ration-pack count | M selects MaximumUsefulPacks; other Tavern approvals keep their existing controls. |
+| `TavernActionDialog` | Left/Right ration-pack count | Up/Down decrement/increment once; M selects MaximumUsefulPacks; other Tavern approvals keep their existing controls. |
 
 A fresh plain Left/Right press steps immediately, then waits 300 ms before nominal
 120 ms repeats, quantized to Update ticks. Release stops repetition; rapid taps
@@ -884,7 +883,7 @@ full-width character header shows the selected character's `GetKeySpriteIndex`
 sprite at integer nearest-neighbour scale, name, and `CHAR N/count` in active-party
 order (including dead members in the count). Its measured text bounds reserve the
 portrait and position label. It labels the actual loadout as `Current equipment`,
-with Strength use, capacity, and remaining allowance. Tab/Shift-Tab cycles living
+with Strength use, capacity, and remaining allowance. Tab/Shift+Tab cycles living
 present members with wraparound; Left/Right and 1–6 remain shortcuts. Combat locks
 the acting character and omits character-switch hints. Footer hints wrap as
 measured key/action pairs so a key never separates from its description. Hand
@@ -913,14 +912,14 @@ Equipped-item inspection instead shows current Attack/Defense and `Uses N Streng
 or `No Strength required`, without removal deltas or a hypothetical budget. Availability
 refusals appear once in details; the footer points to that explanation rather
 than repeating it, including after a refused attempt. H switches the
-one-handed target; B opens an equipment Strength breakdown. Enter/Space equips an
+one-handed target; B opens an equipment Strength breakdown. Enter equips an
 empty slot or unreadies an equipped item; replacements first open a child review
 card listing removed gear, resulting ratings, and inventory returns. Fresh Enter
 confirms, Escape cancels the card, and held keys cannot leak into the parent.
 The Ready modal owns its child through resize, Journal suspension, and disposal.
 It emits a `ReadyEquipmentTransaction`; the scene workflow commits it and reports
-the result through `ApplyTransactionResult`. `[`/`]` pages overflow details
-without equipping, with a conditional page indicator beside DETAILS; changing
+the result through `ApplyTransactionResult`. Space (with `[`/`]` aliases) pages
+overflow details without equipping, with a conditional page indicator beside DETAILS; changing
 character/item or completing a transaction resets the detail page. Preview text
 never substitutes for authoritative revalidation.
 
@@ -1035,8 +1034,8 @@ and displayed rows synchronized without shrinking typography.
   The displayed mixing capacity includes stock headroom; the manual preparation
   maximum still follows reagent availability and previews discarded overflow.
   Cast list colours reflect authoritative caster readiness; Mix finder colours
-  reflect mixability. Unavailable names use light red on dark rows and darker red
-  on the white selection highlight. Details explain unavailable states in text. Escape leaves
+  reflect mixability. Unavailable names are dimmed and marked `[No]`, matching Use
+  and Ready. Details explain unavailable states in text. Escape leaves
   search before closing the owner. Navigation owns held arrows/page keys even
   while repeat-throttled. Space pages overflow details in syllable/browse mode;
   while searching it inserts a space into the query, so Escape returns to browse
@@ -1056,7 +1055,7 @@ and displayed rows synchronized without shrinking typography.
   Backspace/Delete restore one; zero maximum disables mixing. Both number rows
   work and separate rapid presses are accepted without movement-repeat delay.
   The preparation field displays its editable quantity, teaches typing digits
-  before Enter, and labels confirmation with the actual amount (`Enter: Mix 5`).
+  before Enter, and labels confirmation with the actual amount (`[Enter] Mix 5`).
 - `Ctrl+B` reopens the finder, preserving the unfinished preparation if cancelled.
   A successful standalone mix returns to the finder; a shortcut mix returns to
   its originating screen after the receipt. Mix previews ingredient cost and

@@ -75,9 +75,6 @@ func TestAllMerchantTypes(t *testing.T) {
 				assert.True(t, merchant.dialogNum.IsSpecial(),
 					"Dialog %d (%s) should be identified as special",
 					merchant.dialogNum, merchant.expectedType)
-				assert.False(t, merchant.dialogNum.IsRegularNPC(),
-					"Dialog %d (%s) should not be regular NPC",
-					merchant.dialogNum, merchant.expectedType)
 				assert.Equal(t, merchant.expectedType, merchant.dialogNum.GetMerchantType(),
 					"Dialog %d should return correct merchant type", merchant.dialogNum)
 			})
@@ -92,21 +89,20 @@ func TestSpecialNPCIdentification(t *testing.T) {
 		dialogNum    references.DialogNumber
 		isSpecial    bool
 		isMerchant   bool
-		isRegularNPC bool
 		expectedType string
 	}{
-		{"NoResponse", references.NoResponse, false, false, false, ""},
-		{"RegularNPC_50", references.DialogNumber(50), false, false, true, ""},
-		{"RegularNPC_127", references.DialogNumber(127), false, false, true, ""},
-		{"WeaponDealer", references.DialogWeaponDealer, true, true, false, "Weapon Dealer"},
-		{"Barkeeper", references.DialogBarkeeper, true, true, false, "Barkeeper"},
-		{"HorseDealer", references.DialogHorseDealer, true, true, false, "Horse Dealer"},
-		{"ShipDealer", references.DialogShipDealer, true, true, false, "Ship Dealer"},
-		{"MagicDealer", references.DialogMagicDealer, true, true, false, "Magic Dealer"},
-		{"GuildMaster", references.DialogGuildMaster, true, true, false, "Guild Master"},
-		{"Healer", references.DialogHealer, true, true, false, "Healer"},
-		{"Innkeeper", references.DialogInnkeeper, true, true, false, "Innkeeper"},
-		{"Guard", references.DialogGuard, true, false, false, "Guard"},
+		{"NoResponse", references.NoResponse, false, false, ""},
+		{"RegularNPC_50", references.DialogNumber(50), false, false, ""},
+		{"RegularNPC_127", references.DialogNumber(127), false, false, ""},
+		{"WeaponDealer", references.DialogWeaponDealer, true, true, "Weapon Dealer"},
+		{"Barkeeper", references.DialogBarkeeper, true, true, "Barkeeper"},
+		{"HorseDealer", references.DialogHorseDealer, true, true, "Horse Dealer"},
+		{"ShipDealer", references.DialogShipDealer, true, true, "Ship Dealer"},
+		{"MagicDealer", references.DialogMagicDealer, true, true, "Magic Dealer"},
+		{"GuildMaster", references.DialogGuildMaster, true, true, "Guild Master"},
+		{"Healer", references.DialogHealer, true, true, "Healer"},
+		{"Innkeeper", references.DialogInnkeeper, true, true, "Innkeeper"},
+		{"Guard", references.DialogGuard, true, false, "Guard"},
 	}
 
 	for _, tc := range testCases {
@@ -115,8 +111,6 @@ func TestSpecialNPCIdentification(t *testing.T) {
 				"Dialog %d (%s) IsSpecial should be %t", tc.dialogNum, tc.name, tc.isSpecial)
 			assert.Equal(t, tc.isMerchant, tc.dialogNum.IsMerchant(),
 				"Dialog %d (%s) IsMerchant should be %t", tc.dialogNum, tc.name, tc.isMerchant)
-			assert.Equal(t, tc.isRegularNPC, tc.dialogNum.IsRegularNPC(),
-				"Dialog %d (%s) IsRegularNPC should be %t", tc.dialogNum, tc.name, tc.isRegularNPC)
 			assert.Equal(t, tc.expectedType, tc.dialogNum.GetMerchantType(),
 				"Dialog %d (%s) GetMerchantType should return '%s'", tc.dialogNum, tc.name, tc.expectedType)
 		})

@@ -134,7 +134,7 @@ func TestResolveCampingRestAndWandererUsesPartyOrderedD63ThenD100(t *testing.T) 
 				uint16(1 + WandererHealMin + oracle.Intn(WandererHealMax-WandererHealMin+1)),
 			}
 			assert.Equal(t, test.wantWanderer, oracle.Intn(100) < 25)
-			scene := camping.NewCampingScene(6, NoGuardAssigned, gs.MapState.PlayerLocation)
+			scene := camping.NewCampingSceneWithCombatRef(6, NoGuardAssigned, gs.MapState.PlayerLocation, testCampingMap(t))
 			campState := gs.newCampingState(scene, false, false)
 
 			gs.resolveCampingRestAndWanderer(scene, campState)
@@ -169,7 +169,7 @@ func TestResolveCampingRestAndWandererForcedAppearanceConsumesNoD100(t *testing.
 	gs.SetRandomSeed(seed)
 	oracle := beradrng.New(seed)
 	wantHP := uint16(1 + WandererHealMin + oracle.Intn(WandererHealMax-WandererHealMin+1))
-	scene := camping.NewCampingScene(6, NoGuardAssigned, gs.MapState.PlayerLocation)
+	scene := camping.NewCampingSceneWithCombatRef(6, NoGuardAssigned, gs.MapState.PlayerLocation, testCampingMap(t))
 	campState := gs.newCampingState(scene, true, false)
 
 	gs.resolveCampingRestAndWanderer(scene, campState)

@@ -83,7 +83,7 @@ func (d *DungeonViewDialog) rebuildLayout(screenWidth, screenHeight int) {
 		return
 	}
 	d.screenWidth, d.screenHeight = screenWidth, screenHeight
-	d.border = newDialogBorder(d.placement, DialogBackgroundBlack)
+	d.border = newDialogBorder(d.placement)
 	d.bounds = d.border.GetBounds()
 	bounds := localDungeonViewBounds(d.border)
 	d.prepareOutputs(screenWidth, bounds.Dx())
@@ -130,7 +130,7 @@ func (d *DungeonViewDialog) prepareOutputs(screenWidth, width int) {
 		d.footerOutput.AppendLine().LightCyan("Matching W-E / N-S labels join opposite edges on this level.").Done()
 	}
 	d.footerOutput.AppendLine().LightGray("Current view only. Visible does not mean safe or reachable.").Done()
-	d.footerOutput.AppendLine().Text("Enter", DialogControlKeyColor).Text("  Return", DialogControlHintColor).Done()
+	AppendControlHints(d.footerOutput.AppendLine(), "[Any key] Close").Done()
 	d.footerOutput = d.footerOutput.WrappedCopyForWidth(width)
 }
 
@@ -238,7 +238,9 @@ func (d *DungeonViewDialog) Update() {
 		}
 		d.waitingForRelease = false
 	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
+	// Any key closes it, as the surface Gem view does.
+	if d.keyboard.IsAnyKeyPressed() {
+		d.keyboard.ResetReleaseDebouncing()
 		d.dismissed = true
 	}
 }

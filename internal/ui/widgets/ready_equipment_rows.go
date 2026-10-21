@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	readyItemPrefixRunes = 5 // Three marker cells, one bitmap icon, and a space.
+	readyItemPrefixRunes = 6 // The widest "[No]" marker, one bitmap icon, and a space.
 	readyNoneLabel       = "None"
 	readyMinSlotsShare   = 0.27
 	readyMinItemsShare   = 0.38
@@ -78,8 +78,7 @@ func (d *ReadyEquipmentDialog) readyColumnWidths(dialogWidth int) (int, int) {
 		measurement.Reset()
 		// Match the rendered segment boundaries: separately shaped text has
 		// different advances from one merged marker/name/quantity string.
-		line := measurement.AppendLine().Text("[", DialogControlHintColor).
-			Text("E", readyEquippedMarkerColor).Text("]", DialogControlHintColor).
+		line := measurement.AppendLine().Text(unavailableRowMarker, DialogControlHintColor).
 			EquipmentIconWithColor(equipment, readySlotIconColor).Text(" ", DialogItemNameColor).
 			Text(equipment.String(), DialogItemNameColor).Text(" (65535)", DialogItemQuantityColor)
 		listWidth = max(listWidth, measurement.MeasureLineSegments(line.GetSegments()))
@@ -105,20 +104,21 @@ func (d *ReadyEquipmentDialog) populateItemRow(item availableEquipment, selected
 	if item.Equipped {
 		nameColor, quantityColor = readyEquippedMarkerColor, readyEquippedMarkerColor
 	} else if !item.CanEquip {
-		nameColor, quantityColor, iconColor = readyUnequippableColor, readyUnequippableColor, readyUnequippableColor
+		nameColor, quantityColor = DialogUnavailableItemColor, DialogUnavailableItemColor
+		iconColor = DialogUnavailableItemColor
 	}
 	if selected {
 		nameColor, quantityColor, iconColor = DialogSelectedText, DialogSelectedText, DialogSelectedText
 		markColor, bracketColor = DialogSelectedCheckedMarkColor, DialogSelectedText
-		if !item.CanEquip {
-			nameColor = DialogSelectedUnavailableItemColor
-		}
 	}
 	d.itemsOutput.Reset()
 	line := d.itemsOutput.AppendLine()
-	if item.Equipped {
+	switch {
+	case item.Equipped:
 		line.Text("[", bracketColor).Text("E", markColor).Text("]", bracketColor)
-	} else {
+	case !item.CanEquip:
+		line.Text(unavailableRowMarker, nameColor)
+	default:
 		line.Text("   ", nameColor)
 	}
 	line.EquipmentIconWithColor(item.Equipment, iconColor).Text(" ", nameColor)

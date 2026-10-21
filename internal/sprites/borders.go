@@ -11,6 +11,10 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 )
 
+// referenceBorderHalfDivisor splits the reference border at its midpoint into the
+// corner and edge regions that are copied when the border is scaled.
+const referenceBorderHalfDivisor = 2
+
 //go:embed assets/VeryPixelatedRoundedBlueWhite.png
 var veryPixelatedRoundedBlueWhite []byte
 
@@ -20,11 +24,13 @@ var veryPixelatedRoundedBlueWhite []byte
 //nolint:gochecknoglobals // Bounded, synchronized reuse of immutable frames across scene-owned borrowers.
 var globalBorderCache = newBorderImageCache(borderCacheMaxBytes, borderCacheMaxEntries)
 
+// BorderSprites holds the border artwork used by the game's UI panels.
 type BorderSprites struct {
 	// the default border. It is
 	VeryPixelatedRoundedBlueWhite ReferenceBorder
 }
 
+// ReferenceBorder is a border image that is re-rasterized at a requested size.
 type ReferenceBorder struct {
 	border                    *ebiten.Image
 	referenceBorderDimensions *referenceBorderDimensions
@@ -47,11 +53,15 @@ type borderBits struct {
 	horizCopyRight *ebiten.Image
 }
 
+// NewBorderSprites decodes the embedded border artwork into a new BorderSprites.
 func NewBorderSprites() *BorderSprites {
-	borderSprites := &BorderSprites{}
-	borderSprites.VeryPixelatedRoundedBlueWhite.border = NewPngSprite(veryPixelatedRoundedBlueWhite)
-
-	return borderSprites
+	return &BorderSprites{
+		VeryPixelatedRoundedBlueWhite: ReferenceBorder{
+			border:                    NewPngSprite(veryPixelatedRoundedBlueWhite),
+			referenceBorderDimensions: nil,
+			referenceBorderBits:       nil,
+		},
+	}
 }
 
 //nolint:funlen // Keep the four edge strips and four corners in one auditable raster composition.
@@ -92,7 +102,7 @@ func (sb *ReferenceBorder) createBorderImageForWidth(
 	horizScaledOpRight.Translate(
 		float64(width-scaledDimensions.horizCopyRight.Dx()),
 		float64(scaledDimensions.topRight.Dy()))
-	for i := 0; i < height-(bothCornerHeight); i++ {
+	for range height - bothCornerHeight {
 		img.DrawImage(sb.referenceBorderBits.horizCopyRight, &ebiten.DrawImageOptions{GeoM: horizScaledOpRight})
 		horizScaledOpRight.Translate(0, 1)
 	}
@@ -117,7 +127,7 @@ func (sb *ReferenceBorder) createBorderImageForWidth(
 		float64(scaledDimensions.bottomLeft.Dx()),
 		float64(height-scaledDimensions.vertCopyRight.Dy()),
 	)
-	for i := 0; i < width-(bothCornerWidth); i++ {
+	for range width - bothCornerWidth {
 		img.DrawImage(sb.referenceBorderBits.vertCopyRight, &ebiten.DrawImageOptions{GeoM: vertScaledOpRight})
 		vertScaledOpRight.Translate(1, 0)
 	}
@@ -156,22 +166,25 @@ func (sb *ReferenceBorder) createBorderImageForWidth(
 }
 
 func (sb *ReferenceBorder) createBorderBits() *borderBits {
-	bits := borderBits{}
+	// make our corner and edge bits
+	dims := sb.referenceBorderDimensions
 
-	// make our corner bits
-	bits.topLeft = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.topLeft))
-	bits.bottomLeft = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.bottomLeft))
-	bits.topRight = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.topRight))
-	bits.bottomRight = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.bottomRight))
-	bits.horizCopyLeft = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.horizCopyLeft))
-	bits.vertCopyLeft = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.vertCopyLeft))
-	bits.horizCopyRight = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.horizCopyRight))
-	bits.vertCopyRight = ebiten.NewImageFromImage(sb.border.SubImage(sb.referenceBorderDimensions.vertCopyRight))
-
-	return &bits
+	return &borderBits{
+		topLeft:        ebiten.NewImageFromImage(sb.border.SubImage(dims.topLeft)),
+		bottomLeft:     ebiten.NewImageFromImage(sb.border.SubImage(dims.bottomLeft)),
+		topRight:       ebiten.NewImageFromImage(sb.border.SubImage(dims.topRight)),
+		bottomRight:    ebiten.NewImageFromImage(sb.border.SubImage(dims.bottomRight)),
+		horizCopyLeft:  ebiten.NewImageFromImage(sb.border.SubImage(dims.horizCopyLeft)),
+		vertCopyLeft:   ebiten.NewImageFromImage(sb.border.SubImage(dims.vertCopyLeft)),
+		horizCopyRight: ebiten.NewImageFromImage(sb.border.SubImage(dims.horizCopyRight)),
+		vertCopyRight:  ebiten.NewImageFromImage(sb.border.SubImage(dims.vertCopyRight)),
+	}
 }
 
-func (sb *ReferenceBorder) CreateSizedAndScaledBorderSprite(idealWidthForScaling int, placement PercentBasedPlacement) (*ebiten.Image, *ebiten.DrawImageOptions) {
+// CreateSizedAndScaledBorderSprite returns the border image for the current display size.
+func (sb *ReferenceBorder) CreateSizedAndScaledBorderSprite(
+	idealWidthForScaling int, placement PercentBasedPlacement,
+) (*ebiten.Image, *ebiten.DrawImageOptions) {
 	// THIS STUFF IS FOR PLACEMENT AFTER WE HAVE THE IMAGE
 	// get screen sizes
 	dm := display.GetManager()
@@ -200,28 +213,29 @@ func (sb *ReferenceBorder) CreateSizedAndScaledBorderSpriteForSize(
 	// Check if we already have this border cached (using read lock for performance)
 	if cachedBorder := globalBorderCache.get(cacheKey); cachedBorder != nil {
 		// Return cached border image with new draw options
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(xLeft, yTop)
+		drawOptions := &ebiten.DrawImageOptions{}
+		drawOptions.GeoM.Translate(xLeft, yTop)
 
-		return cachedBorder, op
+		return cachedBorder, drawOptions
 	}
 
 	// Border not cached, create it
 	// get the corners and copies before we scale it
 	sb.referenceBorderDimensions = getCornersOfReferenceBorder(sb.border.Bounds().Dx(), sb.border.Bounds().Dy())
 
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(xLeft, yTop)
+	drawOptions := &ebiten.DrawImageOptions{}
+	drawOptions.GeoM.Translate(xLeft, yTop)
 
 	sb.referenceBorderBits = sb.createBorderBits()
 	goodBorder := sb.createBorderImageForWidth(idealWidthForScaling, int(targetWidth), int(targetHeight), screenWidth)
 
 	globalBorderCache.put(cacheKey, goodBorder)
 
-	return goodBorder, op
+	return goodBorder, drawOptions
 }
 
-func ScalePoint(point *image.Point, scaleX, scaleY float64) image.Point {
+// scalePoint multiplies a point by the given scale factors, rounding to the nearest pixel.
+func scalePoint(point *image.Point, scaleX, scaleY float64) image.Point {
 	return image.Point{
 		X: int(math.Round(float64(point.X) * scaleX)),
 		Y: int(math.Round(float64(point.Y) * scaleY)),
@@ -231,36 +245,36 @@ func ScalePoint(point *image.Point, scaleX, scaleY float64) image.Point {
 func (r *referenceBorderDimensions) createScaledDimensions(scaleX, scaleY float64) *referenceBorderDimensions {
 	referenceBorderDimensions := referenceBorderDimensions{
 		topLeft: image.Rectangle{
-			Min: ScalePoint(&r.topLeft.Min, scaleX, scaleY),
-			Max: ScalePoint(&r.topLeft.Max, scaleX, scaleY),
+			Min: scalePoint(&r.topLeft.Min, scaleX, scaleY),
+			Max: scalePoint(&r.topLeft.Max, scaleX, scaleY),
 		},
 		bottomLeft: image.Rectangle{
-			Min: ScalePoint(&r.bottomLeft.Min, scaleX, scaleY),
-			Max: ScalePoint(&r.bottomLeft.Max, scaleX, scaleY),
+			Min: scalePoint(&r.bottomLeft.Min, scaleX, scaleY),
+			Max: scalePoint(&r.bottomLeft.Max, scaleX, scaleY),
 		},
 		topRight: image.Rectangle{
-			Min: ScalePoint(&r.topRight.Min, scaleX, scaleY),
-			Max: ScalePoint(&r.topRight.Max, scaleX, scaleY),
+			Min: scalePoint(&r.topRight.Min, scaleX, scaleY),
+			Max: scalePoint(&r.topRight.Max, scaleX, scaleY),
 		},
 		bottomRight: image.Rectangle{
-			Min: ScalePoint(&r.bottomRight.Min, scaleX, scaleY),
-			Max: ScalePoint(&r.bottomRight.Max, scaleX, scaleY),
+			Min: scalePoint(&r.bottomRight.Min, scaleX, scaleY),
+			Max: scalePoint(&r.bottomRight.Max, scaleX, scaleY),
 		},
 		horizCopyLeft: image.Rectangle{
-			Min: ScalePoint(&r.horizCopyLeft.Min, scaleX, 1),
-			Max: ScalePoint(&r.horizCopyLeft.Max, scaleX, 1),
+			Min: scalePoint(&r.horizCopyLeft.Min, scaleX, 1),
+			Max: scalePoint(&r.horizCopyLeft.Max, scaleX, 1),
 		},
 		vertCopyLeft: image.Rectangle{
-			Min: ScalePoint(&r.vertCopyLeft.Min, 1, scaleY),
-			Max: ScalePoint(&r.vertCopyLeft.Max, 1, scaleY),
+			Min: scalePoint(&r.vertCopyLeft.Min, 1, scaleY),
+			Max: scalePoint(&r.vertCopyLeft.Max, 1, scaleY),
 		},
 		horizCopyRight: image.Rectangle{
-			Min: ScalePoint(&r.horizCopyRight.Min, scaleX, 1),
-			Max: ScalePoint(&r.horizCopyRight.Max, scaleX, 1),
+			Min: scalePoint(&r.horizCopyRight.Min, scaleX, 1),
+			Max: scalePoint(&r.horizCopyRight.Max, scaleX, 1),
 		},
 		vertCopyRight: image.Rectangle{
-			Min: ScalePoint(&r.vertCopyRight.Min, 1, scaleY),
-			Max: ScalePoint(&r.vertCopyRight.Max, 1, scaleY),
+			Min: scalePoint(&r.vertCopyRight.Min, 1, scaleY),
+			Max: scalePoint(&r.vertCopyRight.Max, 1, scaleY),
 		},
 	}
 
@@ -271,42 +285,41 @@ func (r *referenceBorderDimensions) createScaledDimensions(scaleX, scaleY float6
 // Determines the corners for the border, plus the horizontal and vertical slices it will fill in the blanks with
 // NOTE: you must do this on the reference because you will muck up the aspect ratio if you do it AFTER a scale
 func getCornersOfReferenceBorder(width, height int) *referenceBorderDimensions {
-	referenceBorderDimensions := referenceBorderDimensions{}
-	xMiddle := int(math.Round(float64(width) / 2))
-	yMiddle := int(math.Round(float64(height) / 2))
+	xMiddle := int(math.Round(float64(width) / referenceBorderHalfDivisor))
+	yMiddle := int(math.Round(float64(height) / referenceBorderHalfDivisor))
 
-	referenceBorderDimensions.topLeft = image.Rectangle{
-		Min: image.Point{},
-		Max: image.Point{X: xMiddle - 1, Y: yMiddle - 1},
+	return &referenceBorderDimensions{
+		topLeft: image.Rectangle{
+			Min: image.Point{X: 0, Y: 0},
+			Max: image.Point{X: xMiddle - 1, Y: yMiddle - 1},
+		},
+		topRight: image.Rectangle{
+			Min: image.Point{X: xMiddle + 1, Y: 0},
+			Max: image.Point{X: width - 1, Y: yMiddle - 1},
+		},
+		bottomLeft: image.Rectangle{
+			Min: image.Point{X: 0, Y: yMiddle + 1},
+			Max: image.Point{X: xMiddle - 1, Y: height - 1},
+		},
+		bottomRight: image.Rectangle{
+			Min: image.Point{X: xMiddle + 1, Y: yMiddle + 1},
+			Max: image.Point{X: width - 1, Y: height - 1},
+		},
+		horizCopyLeft: image.Rectangle{
+			Min: image.Point{X: 0, Y: yMiddle},
+			Max: image.Point{X: width / referenceBorderHalfDivisor, Y: yMiddle + 1},
+		},
+		vertCopyLeft: image.Rectangle{
+			Min: image.Point{X: xMiddle, Y: 0},
+			Max: image.Point{X: xMiddle + 1, Y: height / referenceBorderHalfDivisor},
+		},
+		horizCopyRight: image.Rectangle{
+			Min: image.Point{X: width / referenceBorderHalfDivisor, Y: yMiddle},
+			Max: image.Point{X: width, Y: yMiddle + 1},
+		},
+		vertCopyRight: image.Rectangle{
+			Min: image.Point{X: xMiddle, Y: height / referenceBorderHalfDivisor},
+			Max: image.Point{X: xMiddle + 1, Y: height},
+		},
 	}
-	referenceBorderDimensions.topRight = image.Rectangle{
-		Min: image.Point{X: xMiddle + 1, Y: 0},
-		Max: image.Point{X: width - 1, Y: yMiddle - 1},
-	}
-	referenceBorderDimensions.bottomLeft = image.Rectangle{
-		Min: image.Point{X: 0, Y: yMiddle + 1},
-		Max: image.Point{X: xMiddle - 1, Y: height - 1},
-	}
-	referenceBorderDimensions.bottomRight = image.Rectangle{
-		Min: image.Point{X: xMiddle + 1, Y: yMiddle + 1},
-		Max: image.Point{X: width - 1, Y: height - 1},
-	}
-	referenceBorderDimensions.horizCopyLeft = image.Rectangle{
-		Min: image.Point{X: 0, Y: yMiddle},
-		Max: image.Point{X: width / 2, Y: yMiddle + 1},
-	}
-	referenceBorderDimensions.vertCopyLeft = image.Rectangle{
-		Min: image.Point{X: xMiddle, Y: 0},
-		Max: image.Point{X: xMiddle + 1, Y: height / 2},
-	}
-	referenceBorderDimensions.horizCopyRight = image.Rectangle{
-		Min: image.Point{X: width / 2, Y: yMiddle},
-		Max: image.Point{X: width, Y: yMiddle + 1},
-	}
-	referenceBorderDimensions.vertCopyRight = image.Rectangle{
-		Min: image.Point{X: xMiddle, Y: height / 2},
-		Max: image.Point{X: xMiddle + 1, Y: height},
-	}
-
-	return &referenceBorderDimensions
 }

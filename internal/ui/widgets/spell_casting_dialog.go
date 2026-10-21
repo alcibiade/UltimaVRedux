@@ -76,13 +76,7 @@ func (d *SpellCastingDialog) Update() {
 		return
 	}
 	d.ensureLayout()
-	if d.keyboard.IsModifierPressed(input.ModifierCtrl) && d.keyboard.IsTextKeyPressedAndRegister(ebiten.KeyM) {
-		if d.currentContext == references.ContextCombat {
-			d.notice = "Cannot mix during combat."
-		} else if spell := d.GetSelectedSpell(); spell != references.InvalidSpell {
-			d.pendingMixSpell = &spell
-		}
-
+	if d.handleMixShortcut() {
 		return
 	}
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
@@ -92,21 +86,8 @@ func (d *SpellCastingDialog) Update() {
 
 		return
 	}
-	if !d.casterSelectionLocked && d.keyboard.IsKeyPressedAndRegister(ebiten.KeyTab) {
-		direction := 1
-		if d.keyboard.IsModifierPressed(input.ModifierShift) {
-			direction = -1
-		}
-		d.cycleCaster(direction)
-
+	if d.handleCasterKeys() {
 		return
-	}
-	if !d.browser.searching && !d.casterSelectionLocked {
-		if digit := d.keyboard.IsNumberKeyPressedAndRegister(); digit >= 1 && digit <= 6 {
-			d.selectCaster(digit - 1)
-
-			return
-		}
 	}
 	previousSpell, previousQuery := d.GetSelectedSpell(), d.browser.query
 	if d.browser.handleInput(d.keyboard, d.view.font) {
@@ -119,6 +100,48 @@ func (d *SpellCastingDialog) Update() {
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
 		d.Dismiss()
 	}
+}
+
+// handleMixShortcut requests mixing of the selected spell on Ctrl+M, which is
+// refused during combat. It reports whether the shortcut was pressed.
+func (d *SpellCastingDialog) handleMixShortcut() bool {
+	if !d.keyboard.IsModifierPressed(input.ModifierCtrl) || !d.keyboard.IsTextKeyPressedAndRegister(ebiten.KeyM) {
+		return false
+	}
+	if d.currentContext == references.ContextCombat {
+		d.notice = "Cannot mix during combat."
+	} else if spell := d.GetSelectedSpell(); spell != references.InvalidSpell {
+		d.pendingMixSpell = &spell
+	}
+
+	return true
+}
+
+// handleCasterKeys changes an unlocked caster with Tab/Shift+Tab, or with a
+// party digit while not searching. It reports whether the caster key was used.
+func (d *SpellCastingDialog) handleCasterKeys() bool {
+	if d.casterSelectionLocked {
+		return false
+	}
+	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyTab) {
+		direction := 1
+		if d.keyboard.IsModifierPressed(input.ModifierShift) {
+			direction = -1
+		}
+		d.cycleCaster(direction)
+
+		return true
+	}
+	if d.browser.searching {
+		return false
+	}
+	if digit := d.keyboard.IsNumberKeyPressedAndRegister(); digit >= 1 && digit <= 6 {
+		d.selectCaster(digit - 1)
+
+		return true
+	}
+
+	return false
 }
 
 // Draw renders the shared catalog with a caster strip and fixed action status.
@@ -187,8 +210,7 @@ func (d *SpellCastingDialog) prepareStatus(rect image.Rectangle) {
 	}
 	line := output.AppendLine().Text(message, statusColor)
 	if !valid && d.notice == "" && message == "Prepare a mixture first." && d.currentContext != references.ContextCombat {
-		line.Text("  ", DialogControlHintColor)
-		appendSpellControl(line, "Ctrl+M", "Mix")
+		AppendControlHints(line.Text(controlHintSeparator, DialogControlHintColor), "[Ctrl+M] Mix")
 	}
 	line.WordWrap().Done()
 }

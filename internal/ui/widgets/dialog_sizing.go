@@ -7,6 +7,12 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
+// Default dialog padding as fractions of the screen.
+const (
+	defaultDialogHorizontalPadding = 0.04
+	defaultDialogVerticalPadding   = 0.06
+)
+
 // DialogPlacement defines the screen-relative positioning of a dialog
 type DialogPlacement struct {
 	StartPercentX float64
@@ -31,7 +37,9 @@ type DialogAutoSizingParams struct {
 }
 
 // NewDialogAutoSizingParams creates a DialogAutoSizingParams with default padding values
-func NewDialogAutoSizingParams(centerX, centerY float64, contentLines, charsPerLine, promptLines int, fontPoint, lineSpacing float64) DialogAutoSizingParams {
+func NewDialogAutoSizingParams(
+	centerX, centerY float64, contentLines, charsPerLine, promptLines int, fontPoint, lineSpacing float64,
+) DialogAutoSizingParams {
 	return DialogAutoSizingParams{
 		CenterX:           centerX,
 		CenterY:           centerY,
@@ -40,8 +48,8 @@ func NewDialogAutoSizingParams(centerX, centerY float64, contentLines, charsPerL
 		PromptLines:       promptLines,
 		FontPoint:         fontPoint,
 		LineSpacing:       lineSpacing,
-		HorizontalPadding: 0.04, // Default 4% horizontal padding
-		VerticalPadding:   0.06, // Default 6% vertical padding
+		HorizontalPadding: defaultDialogHorizontalPadding,
+		VerticalPadding:   defaultDialogVerticalPadding,
 	}
 }
 
@@ -78,8 +86,8 @@ func CalculateDialogAutoSizeDimensions(params DialogAutoSizingParams) DialogPlac
 	heightPercent := requiredHeightPixels / float64(screenHeight)
 
 	// Center the dialog at the specified center point
-	halfWidth := widthPercent / 2.0
-	halfHeight := heightPercent / 2.0
+	halfWidth := widthPercent / halfDivisor
+	halfHeight := heightPercent / halfDivisor
 
 	return DialogPlacement{
 		StartPercentX: params.CenterX - halfWidth,

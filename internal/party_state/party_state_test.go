@@ -187,8 +187,8 @@ func TestSwapMembers_AvatarCannotBeSwapped(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when swapping Avatar, got nil")
 	}
-	if err.Error() != "Avatar must lead" {
-		t.Errorf("Expected 'Avatar must lead' error, got: %s", err.Error())
+	if err.Error() != "avatar must lead" {
+		t.Errorf("Expected avatar-must-lead error, got: %s", err.Error())
 	}
 
 	// Try with reversed order
@@ -196,8 +196,8 @@ func TestSwapMembers_AvatarCannotBeSwapped(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error when swapping with Avatar, got nil")
 	}
-	if err.Error() != "Avatar must lead" {
-		t.Errorf("Expected 'Avatar must lead' error, got: %s", err.Error())
+	if err.Error() != "avatar must lead" {
+		t.Errorf("Expected avatar-must-lead error, got: %s", err.Error())
 	}
 
 	// Verify Avatar is still at position 0

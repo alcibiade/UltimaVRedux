@@ -36,7 +36,7 @@ func (g *GameState) TriggerFountainInteraction() bool {
 	// Delegate to UI layer for dialog sequence
 	g.SystemCallbacks.Flow.WorldInteraction.ShowFountainInteraction()
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Fountain interaction triggered at %v",
 		g.MapState.PlayerLocation.Location)
 

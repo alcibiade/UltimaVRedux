@@ -23,7 +23,7 @@ func (*countingDialog) Draw(_ *ebiten.Image) {}
 func (d *countingDialog) Update()            { d.updates++ }
 
 func TestGameSceneUpdatesTopModalOnceAndProgressesNonBlockingDialog(t *testing.T) {
-	scene := &GameScene{} //nolint:exhaustruct // Focused dialog routing fixture.
+	scene := &GameScene{}
 	modal := &countingDialog{}
 	feedback := &countingDialog{}
 	scene.dialogStack.PushModalDialog(modal)
@@ -47,7 +47,7 @@ func TestFinishSpellCastingWorkflowRemovesOwnedPhaseInput(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 	keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
-	scene := &GameScene{gameState: gs, keyboard: keyboard} //nolint:exhaustruct // Focused spell cleanup fixture.
+	scene := &GameScene{gameState: gs, keyboard: keyboard}
 	dialog := widgets.NewInputBox("To phase:", nil, keyboard).
 		WithRegexValidation("^[1-8]$").
 		WithResultCallback(func(string, bool) {}).
@@ -61,21 +61,20 @@ func TestFinishSpellCastingWorkflowRemovesOwnedPhaseInput(t *testing.T) {
 	assert.Equal(t, 0, scene.dialogStack.Count())
 }
 
-func TestActionFeedbackUsesNoBackgroundQueueAndRetainsProtectedSurvivor(t *testing.T) {
+func TestActionFeedbackRetainsProtectedSurvivor(t *testing.T) {
 	manager := display.GetManager()
 	saved := *manager
 	t.Cleanup(func() { *manager = saved })
 	manager.PublishLogicalSize(1920, 1080)
-	gs := &game_state.GameState{} //nolint:exhaustruct // Focused transient feedback fixture.
+	gs := &game_state.GameState{}
 	gs.EventQueueManager = event_queue.NewEventQueueManager(func() int64 { return gs.ElapsedMs }, nil)
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused transient feedback fixture.
+	scene := &GameScene{gameState: gs}
 
 	scene.ShowActionFeedback("Unlocked!", false)
 	scene.ShowActionFeedback("Key broke!", false)
 
 	require.Len(t, scene.transientActionFeedback, 2)
 	assert.Equal(t, 2, scene.dialogStack.Count())
-	assert.False(t, gs.EventQueueManager.HasActiveBackgroundQueues())
 
 	gs.ElapsedMs = widgets.ActionFeedbackDisplayMs + widgets.ActionFeedbackFadeOutMs
 	scene.updateTransientActionFeedback()
@@ -94,8 +93,8 @@ func TestActionFeedbackIsolatedLifecycleUsesExactSceneClockBoundaries(t *testing
 	saved := *manager
 	t.Cleanup(func() { *manager = saved })
 	manager.PublishLogicalSize(1920, 1080)
-	gs := &game_state.GameState{}      //nolint:exhaustruct // Focused transient feedback fixture.
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused transient feedback fixture.
+	gs := &game_state.GameState{}
+	scene := &GameScene{gameState: gs}
 
 	scene.ShowActionFeedback("a hidden door!", false)
 	require.Len(t, scene.transientActionFeedback, 1)
@@ -131,15 +130,15 @@ func TestActionFeedbackIsolatedLifecycleUsesExactSceneClockBoundaries(t *testing
 func TestActionFeedbackUsesLowerPositionOnlyForDungeonExploration(t *testing.T) {
 	t.Parallel()
 
-	dungeonState := &game_state.GameState{} //nolint:exhaustruct // Focused presentation routing fixture.
+	dungeonState := &game_state.GameState{}
 	dungeonState.MapState.PlayerLocation.Location = references.Deceit
-	worldState := &game_state.GameState{} //nolint:exhaustruct // Focused presentation routing fixture.
+	worldState := &game_state.GameState{}
 	worldState.MapState.PlayerLocation.Location = references.Britain
-	combatState := &game_state.GameState{} //nolint:exhaustruct // Focused presentation routing fixture.
+	combatState := &game_state.GameState{}
 	combatState.MapState.PlayerLocation.Location = references.CombatLocation
-	dungeonScene := &GameScene{gameState: dungeonState} //nolint:exhaustruct // Focused presentation routing fixture.
-	worldScene := &GameScene{gameState: worldState}     //nolint:exhaustruct // Focused presentation routing fixture.
-	combatScene := &GameScene{gameState: combatState}   //nolint:exhaustruct // Focused presentation routing fixture.
+	dungeonScene := &GameScene{gameState: dungeonState}
+	worldScene := &GameScene{gameState: worldState}
+	combatScene := &GameScene{gameState: combatState}
 
 	assert.Equal(t, widgets.PositionMapCenterBottom, dungeonScene.actionFeedbackPosition())
 	assert.Equal(t, widgets.PositionMapCenterLower, worldScene.actionFeedbackPosition())
@@ -151,8 +150,8 @@ func TestActionFeedbackAboveModalDoesNotHideOrRemoveModal(t *testing.T) {
 	saved := *manager
 	t.Cleanup(func() { *manager = saved })
 	manager.PublishLogicalSize(1920, 1080)
-	gs := &game_state.GameState{}      //nolint:exhaustruct // Focused transient feedback fixture.
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused transient feedback fixture.
+	gs := &game_state.GameState{}
+	scene := &GameScene{gameState: gs}
 	modal := &countingDialog{}
 	scene.dialogStack.PushModalDialog(modal)
 
@@ -173,8 +172,8 @@ func TestActionFeedbackExpirationToleratesEarlierRemoval(t *testing.T) {
 	saved := *manager
 	t.Cleanup(func() { *manager = saved })
 	manager.PublishLogicalSize(1920, 1080)
-	gs := &game_state.GameState{}      //nolint:exhaustruct // Focused transient feedback fixture.
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused transient feedback fixture.
+	gs := &game_state.GameState{}
+	scene := &GameScene{gameState: gs}
 	modal := &countingDialog{}
 	scene.dialogStack.PushModalDialog(modal)
 	scene.ShowActionFeedback("Klimb-Up!", false)
@@ -191,8 +190,8 @@ func TestActionFeedbackExpirationToleratesEarlierRemoval(t *testing.T) {
 }
 
 func TestActionFeedbackInvalidLifecyclePanics(t *testing.T) {
-	gs := &game_state.GameState{}      //nolint:exhaustruct // Focused transient feedback fixture.
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused transient feedback fixture.
+	gs := &game_state.GameState{}
+	scene := &GameScene{gameState: gs}
 	feedback := &transientActionFeedback{
 		dialog: &widgets.MessageDialog{},
 		phase:  transientFeedbackPhase(99),
@@ -207,16 +206,13 @@ func TestCombatExitCompletesWhileActionFeedbackIsVisible(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
 		game_state.CombatEntryNorth,
 	))
 	gs.CombatScene.Victory = true
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused combat feedback lifecycle fixture.
+	scene := &GameScene{gameState: gs}
 	scene.ShowActionFeedback("No trap!", false)
 
 	members := gs.ActiveCombatPartyMembers()

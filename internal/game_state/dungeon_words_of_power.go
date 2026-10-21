@@ -22,6 +22,7 @@ const (
 // DungeonIndex represents the index in the DungeonStates array
 type DungeonIndex int
 
+// DungeonIndex values, one per dungeon in DungeonStates order.
 const (
 	DeceitIndex   DungeonIndex = 0 // Deceit dungeon
 	DespiseIndex  DungeonIndex = 1 // Despise dungeon
@@ -32,18 +33,6 @@ const (
 	HythlothIndex DungeonIndex = 6 // Hythloth dungeon
 	DoomIndex     DungeonIndex = 7 // Doom dungeon
 )
-
-// WordToDungeonMap maps Words of Power to their corresponding dungeons
-var WordToDungeonMap = map[string]references.Location{
-	WordFallax:    references.Deceit,
-	WordVilis:     references.Despise,
-	WordInopia:    references.Destard,
-	WordMalum:     references.Wrong,
-	WordAvidus:    references.Covetous,
-	WordInfama:    references.Shame,
-	WordIgnavus:   references.Hythloth,
-	WordVeramocor: references.Doom,
-}
 
 //nolint:gochecknoglobals // Canonical dungeon word rows are immutable after initialization.
 var canonicalDungeonWords = [...]struct {
@@ -61,16 +50,15 @@ var canonicalDungeonWords = [...]struct {
 	{WordVeramocor, references.Doom, indexes.CaveEntrance},
 }
 
-// DungeonToIndexMap maps dungeon locations to their array indices
-var DungeonToIndexMap = map[references.Location]DungeonIndex{
-	references.Deceit:   DeceitIndex,
-	references.Despise:  DespiseIndex,
-	references.Destard:  DestardIndex,
-	references.Wrong:    WrongIndex,
-	references.Covetous: CovetousIndex,
-	references.Shame:    ShameIndex,
-	references.Hythloth: HythlothIndex,
-	references.Doom:     DoomIndex,
+// dungeonIndex returns the DungeonStates slot of a dungeon; canonicalDungeonWords lists dungeons in slot order.
+func dungeonIndex(dungeon references.Location) (DungeonIndex, bool) {
+	for i, candidate := range canonicalDungeonWords {
+		if candidate.dungeon == dungeon {
+			return DungeonIndex(i), true
+		}
+	}
+
+	return 0, false
 }
 
 // GetDungeonEntranceCoordinates returns the eight canonical exterior
@@ -115,7 +103,7 @@ func dungeonOpenEntranceSprite(dungeon references.Location) indexes.SpriteIndex 
 
 // IsDungeonOpen returns true if the specified dungeon is currently open (unsealed)
 func (gs *GameState) IsDungeonOpen(dungeon references.Location) bool {
-	index, exists := DungeonToIndexMap[dungeon]
+	index, exists := dungeonIndex(dungeon)
 	if !exists {
 		return false // Not a valid dungeon
 	}
@@ -125,7 +113,7 @@ func (gs *GameState) IsDungeonOpen(dungeon references.Location) bool {
 
 // ToggleDungeon switches a dungeon between open and sealed states
 func (gs *GameState) ToggleDungeon(dungeon references.Location) bool {
-	index, exists := DungeonToIndexMap[dungeon]
+	index, exists := dungeonIndex(dungeon)
 	if !exists {
 		return false // Not a valid dungeon
 	}
@@ -137,9 +125,13 @@ func (gs *GameState) ToggleDungeon(dungeon references.Location) bool {
 // GetDungeonForWord returns the dungeon location for a given Word of Power (case-insensitive)
 func GetDungeonForWord(word string) (references.Location, bool) {
 	upperWord := strings.ToUpper(strings.TrimSpace(word))
-	dungeon, exists := WordToDungeonMap[upperWord]
+	for _, candidate := range canonicalDungeonWords {
+		if candidate.word == upperWord {
+			return candidate.dungeon, true
+		}
+	}
 
-	return dungeon, exists
+	return 0, false
 }
 
 // GetDungeonForResponse returns the first complete canonical Word contained in
@@ -156,17 +148,6 @@ func GetDungeonForResponse(response string) (references.Location, bool) {
 	}
 
 	return references.Location(0), false
-}
-
-// GetWordForDungeon returns the Word of Power for a given dungeon
-func GetWordForDungeon(dungeon references.Location) string {
-	for word, location := range WordToDungeonMap {
-		if location == dungeon {
-			return word
-		}
-	}
-
-	return ""
 }
 
 // InitializeDungeonStatesFromSave initializes dungeon states from save file data

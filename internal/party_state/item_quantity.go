@@ -7,6 +7,7 @@ const (
 	ItemQuantitySmallMax uint16 = 99
 )
 
+// ItemQuantity is a capped inventory stack; decrements report whether enough was held.
 type ItemQuantity interface {
 	IncrementByOne()
 	DecrementByOne() bool
@@ -18,29 +19,35 @@ type ItemQuantity interface {
 	SetHasOne()
 }
 
+// ItemQuantityLarge is a stack capped at ItemQuantityLargeMax (gold, food, scrolls).
 type ItemQuantityLarge struct {
 	quantity uint16
 	activity QuantityActivity
 }
 
+// SetHasOne sets the stack to exactly one.
 func (l *ItemQuantityLarge) SetHasOne() {
 	l.Set(1)
 }
 
+// HasSome reports whether the stack is non-empty.
 func (l *ItemQuantityLarge) HasSome() bool {
 	return l.Get() > 0
 }
 
+// ItemQuantitySmall is a stack capped at ItemQuantitySmallMax (items, reagents, keys).
 type ItemQuantitySmall struct {
 	quantity uint16
 	activity QuantityActivity
 }
 
+// SetHasOne sets the stack to exactly one.
 func (s *ItemQuantitySmall) SetHasOne() {
 	s.activity.record(s.quantity, 1)
 	s.quantity = 1
 }
 
+// HasSome reports whether the stack is non-empty; a nil stack is empty.
 func (s *ItemQuantitySmall) HasSome() bool {
 	if s == nil {
 		return false
@@ -49,16 +56,19 @@ func (s *ItemQuantitySmall) HasSome() bool {
 	return s.Get() > 0
 }
 
+// Get returns the held quantity.
 func (l *ItemQuantityLarge) Get() uint16 {
 	return l.quantity
 }
 
+// Set stores the quantity, clamped to ItemQuantityLargeMax.
 func (l *ItemQuantityLarge) Set(quantity uint16) {
 	next := min(quantity, ItemQuantityLargeMax)
 	l.activity.record(l.quantity, next)
 	l.quantity = next
 }
 
+// Get returns the held quantity; a nil stack holds zero.
 func (s *ItemQuantitySmall) Get() uint16 {
 	if s == nil {
 		return 0
@@ -67,6 +77,7 @@ func (s *ItemQuantitySmall) Get() uint16 {
 	return s.quantity
 }
 
+// Set stores the quantity, clamped to ItemQuantitySmallMax; a nil stack ignores it.
 func (s *ItemQuantitySmall) Set(quantity uint16) {
 	if s == nil {
 		return
@@ -92,10 +103,12 @@ func decBy(currentQuantity uint16, decBy uint16) (uint16, bool) {
 	return currentQuantity - decBy, true
 }
 
+// IncrementByOne adds one, saturating at ItemQuantityLargeMax.
 func (l *ItemQuantityLarge) IncrementByOne() {
 	l.Set(incBy(l.quantity, 1, ItemQuantityLargeMax))
 }
 
+// DecrementByOne removes one and reports false, changing nothing, when the stack is empty.
 func (l *ItemQuantityLarge) DecrementByOne() bool {
 	newQuantity, bWasEnough := decBy(l.quantity, 1)
 	if !bWasEnough {
@@ -106,10 +119,12 @@ func (l *ItemQuantityLarge) DecrementByOne() bool {
 	return true
 }
 
+// IncrementBy adds the amount, saturating at ItemQuantityLargeMax.
 func (l *ItemQuantityLarge) IncrementBy(incByQuantity uint16) {
 	l.Set(incBy(l.quantity, incByQuantity, ItemQuantityLargeMax))
 }
 
+// DecrementBy removes the amount and reports false, changing nothing, when too few are held.
 func (l *ItemQuantityLarge) DecrementBy(decByQuantity uint16) bool {
 	newQuantity, bWasEnough := decBy(l.quantity, decByQuantity)
 	if !bWasEnough {
@@ -120,10 +135,12 @@ func (l *ItemQuantityLarge) DecrementBy(decByQuantity uint16) bool {
 	return true
 }
 
+// IncrementByOne adds one, saturating at ItemQuantitySmallMax.
 func (s *ItemQuantitySmall) IncrementByOne() {
 	s.Set(incBy(s.quantity, 1, ItemQuantitySmallMax))
 }
 
+// DecrementByOne removes one and reports false, changing nothing, when the stack is empty.
 func (s *ItemQuantitySmall) DecrementByOne() bool {
 	newQuantity, bWasEnough := decBy(s.quantity, 1)
 	if !bWasEnough {
@@ -134,10 +151,12 @@ func (s *ItemQuantitySmall) DecrementByOne() bool {
 	return true
 }
 
+// IncrementBy adds the amount, saturating at ItemQuantitySmallMax.
 func (s *ItemQuantitySmall) IncrementBy(incByQuantity uint16) {
 	s.Set(incBy(s.quantity, incByQuantity, ItemQuantitySmallMax))
 }
 
+// DecrementBy removes the amount and reports false, changing nothing, when too few are held.
 func (s *ItemQuantitySmall) DecrementBy(decByQuantity uint16) bool {
 	newQuantity, bWasEnough := decBy(s.quantity, decByQuantity)
 	if !bWasEnough {

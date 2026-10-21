@@ -1,9 +1,12 @@
 package references
 
+// Location identifies a map. Values 1-40 are the original maps; 0xFC-0xFF are virtual locations such as camping.
 type Location byte
 
+// GeneralMapType is the kind of map a location opens.
 type GeneralMapType int
 
+// General map kinds; LargeMapType covers the overworld and underworld.
 const (
 	LargeMapType GeneralMapType = iota
 	SmallMapType
@@ -12,6 +15,8 @@ const (
 	CampingMapType
 )
 
+// Locations; EmptyLocation means no location.
+//
 //goland:noinspection GoSnakeCaseUsage
 const (
 	EmptyLocation       Location = 0xFF
@@ -85,13 +90,15 @@ const (
 	DynamicSpawnIndex = -1
 )
 
+// GetMapType returns the kind of map this location opens.
 func (l Location) GetMapType() GeneralMapType {
-	switch l {
-	case BritanniaUnderworld:
+	switch {
+	case l == BritanniaUnderworld:
 		return LargeMapType
-	case Deceit, Despise, Destard, Wrong, Covetous, Shame, Hythloth, Doom:
+	case l >= Deceit && l <= Doom:
 		return DungeonMapType
-	case CombatRestingShrine, CampingLocation, ShrineLocation, CodexLocation, CombatLocation, BlackthornPrison, FinaleLocation:
+	case l == CombatRestingShrine || l == CampingLocation || l == ShrineLocation || l == CodexLocation ||
+		l == CombatLocation || l == BlackthornPrison || l == FinaleLocation:
 		return CombatMapType
 	}
 

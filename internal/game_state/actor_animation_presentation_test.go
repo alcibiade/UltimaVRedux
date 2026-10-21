@@ -66,7 +66,7 @@ func TestSurfaceActorAnimationExcludesObjectsVehiclesAndHazards(t *testing.T) {
 	state, _ := NewIntegrationTestBuilder(t).WithLocation(references.Britain).WithSystemCallbacks().Build()
 	state.ActivateTimeStopEffect(20)
 	var reference references.NPCReference
-	reference.SetKeyIndex(indexes.Rat_KeyIndex)
+	reference.SetKeyIndex(indexes.RatKeyIndex)
 	actor := map_units.NewNPCFriendly(reference, 7)
 	actor.SetFloor(state.MapState.PlayerLocation.Floor)
 	key, slow, valid := state.SurfaceActorAnimation(actor)
@@ -84,7 +84,7 @@ func TestSurfaceActorAnimationExcludesObjectsVehiclesAndHazards(t *testing.T) {
 		_, _, valid = state.SurfaceActorAnimation(object)
 		assert.False(t, valid, "object sprite %d", sprite)
 	}
-	reference.SetKeyIndex(indexes.Rat_KeyIndex)
+	reference.SetKeyIndex(indexes.RatKeyIndex)
 	replacement := map_units.NewNPCFriendly(reference, 7)
 	replacement.SetFloor(actor.Floor())
 	replacementKey, _, valid := state.SurfaceActorAnimation(replacement)

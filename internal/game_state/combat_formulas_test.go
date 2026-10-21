@@ -381,7 +381,7 @@ func TestCombatApplyDamageModifiers_ImmortalAndUndead(t *testing.T) {
 	assert.Equal(t, 0, CombatApplyDamageModifiers(10, true, true, false))
 }
 
-// CombatCalcExperience tests the maximum-HP-derived kill award. ref:PROGRESS-0002
+// combatCalcExperience tests the maximum-HP-derived kill award. ref:PROGRESS-0002
 
 func TestCombatCalcExperience(t *testing.T) {
 	tests := []struct {
@@ -400,7 +400,7 @@ func TestCombatCalcExperience(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.expected, CombatCalcExperience(tt.maxHP))
+			assert.Equal(t, tt.expected, combatCalcExperience(tt.maxHP))
 		})
 	}
 }
@@ -556,6 +556,6 @@ func TestCombatFormulas_FullPipeline_GlassSwordKill(t *testing.T) {
 	assert.True(t, dmgResult.WeaponShattered)
 
 	// XP from a high-HP dragon kill
-	xp := CombatCalcExperience(100)
+	xp := combatCalcExperience(100)
 	assert.Equal(t, 26, xp)
 }

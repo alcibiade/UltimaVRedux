@@ -255,7 +255,8 @@ func (d *CombatLootDialog) prepareText(width, screenWidth, padding int) (int, in
 	d.output.Reset()
 	d.output.AppendLine().Text(d.notice, DialogLabelColor).WordWrap().Done()
 	if d.ready {
-		AppendControlHints(d.output.AppendLine(), "Up/Down: Scroll   Enter/Esc: Continue").WordWrap().Done()
+		PackControlHints(d.output, []ControlHint{{hintKeyUpDown, "Scroll"}, {"Enter/Esc", "Continue"}},
+			width-padding*lootSides, etext.AlignStart)
 	} else {
 		d.output.AppendLine().Text("Revealing contents...", DialogControlHintColor).WordWrap().Done()
 	}
@@ -378,9 +379,9 @@ func (d *CombatLootDialog) prepareSummaryFooter(width int, scrolling bool) {
 		output.AppendLine().Text(d.notice, DialogLabelColor).Done()
 	}
 	if scrolling {
-		AppendControlHints(output.AppendLine(), "Up/Down: Scroll").Done()
+		AppendControlHints(output.AppendLine(), "[Up/Down] Scroll").Done()
 	}
-	AppendControlHints(output.AppendLine(), "Enter/Esc: Continue").Done()
+	AppendControlHints(output.AppendLine(), "[Enter/Esc] Continue").Done()
 	d.output = output.WrappedCopyForWidth(width)
 }
 

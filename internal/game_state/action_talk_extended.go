@@ -8,6 +8,8 @@ import (
 // FindNPCInDirection matches conversation targeting: check the adjacent tile, then one
 // additional tile only when the otherwise-empty adjacent terrain is talk-through.
 // See ref:TALK-0005.
+//
+//nolint:ireturn // The unit found may be an NPC, enemy or vehicle; callers check which.
 func (g *GameState) FindNPCInDirection(startPos references.Position, direction references.Direction, maxDistance int) (*references.Position, map_units.MapUnit) {
 	if maxDistance < 1 {
 		return nil, nil

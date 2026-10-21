@@ -50,6 +50,9 @@ Final confirmation consumes one mixture and circle MP once; later resistance,
 obstruction, no effect, or random placement failure remains paid. Precommit
 rejection consumes no gameplay time, action, or RNG. Resource/level debug overrides
 are explicit Redux settings, distinct from proving an original build branch.
+Precommit rejections include every prepared combat Cast while Negate Magic is
+active (**Absorbed!**, In An included), combat Vas Mani before victory, and An Tym
+while a Shadowlord would absorb it.
 
 Metadata owns legal contexts and separate selection/effect scope. The support
 table owns implemented contexts. Crosshair, adjacent-tile, and cone workflows
@@ -149,6 +152,13 @@ to floor; successful Jimmy changes both to the matching regular door, retaining
 its existing physical-unlock roll and key-consumption rules. An Ex Por cannot
 re-lock an already-open floor square. Chest objects and Skull Key resource rules
 remain separate from these terrain transitions.
+
+Redux In Quas Corp scans every active non-PC monster entry regardless of loyalty,
+so party-loyal summons and charmed monsters can also become 1 HP and flee; whether
+the original filters by loyalty is not established. Successful An Xen Ex, Rel Xen
+Bet and In Quas Xen currently publish the generic zero-damage spell event, so the
+Combat Event line reads "... but causes no harm" instead of naming the charm or
+release, transformation or clone. This is a known text defect, not a deviation.
 
 #### Outdoor Blink window and lifecycle
 
@@ -361,7 +371,9 @@ fresh hostile child. Do not replace the original unbounded loop with an imagined
 safe failure or infer arbitrary original RNG argument order from Redux's order.
 Redux deliberately bounds destination sampling to 256 attempts, returning a paid
 failure rather than risking nontermination or permitting free placement rerolls;
-capacity/target validation remains free before commitment.
+capacity/target validation remains free before commitment. A Redux PC clone is an
+extra battlefield entry backed by the same roster character, so HP and status are
+shared rather than copied.
 
 Dungeon fields accept only a facing packed byte whose value after clearing bit
 0x08 is zero, preserving that bit. Electric field 0x8B is creatable, but original

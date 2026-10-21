@@ -290,7 +290,7 @@ func TestProductionWindemereDevilHostileContactQueuesOrdinaryCombat(t *testing.T
 	}
 	require.NotNil(t, source)
 	state.MapState.PlayerLocation.Position = source.Pos().Down()
-	scene := &GameScene{ //nolint:exhaustruct // Focused pending-interaction dispatcher fixture.
+	scene := &GameScene{
 		gameState: state,
 		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 64, 128),
@@ -357,7 +357,7 @@ func TestProductionVisitLocalRatAndBatBlockedContactOwnsOnlyMovementTurn(t *test
 			state.PartyState.Karma.Value = 60
 			state.SetCriminalStatus(false)
 			callbacks.Reset()
-			scene := &GameScene{ //nolint:exhaustruct // Focused production movement/contact fixture.
+			scene := &GameScene{
 				gameState:            state,
 				keyboard:             input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 				output:               text.NewOutput(nil, 1, 64, 128),
@@ -516,7 +516,7 @@ func newProductionShadowlordAttackScene(
 	}
 	state.PartyState.Inventory.QuestItems.Set(references.ShardOfFalsehood, 1)
 	callbacks.Reset()
-	scene := &GameScene{ //nolint:exhaustruct // Focused production Attack input fixture.
+	scene := &GameScene{
 		gameState:         state,
 		keyboard:          input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:            text.NewOutput(nil, 1, 64, 128),

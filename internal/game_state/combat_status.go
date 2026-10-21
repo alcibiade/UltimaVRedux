@@ -33,7 +33,6 @@ func (g *GameState) finishDirectedCombatAttack(target CombatTurnIdentity, wasSle
 		return
 	}
 	g.setCombatPCSleeping(target, false)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	g.publishCombatPCConditionEvent(target, CombatConditionWoke)
 }
 
@@ -66,7 +65,6 @@ func (g *GameState) processPossessedPCTurnStart(identity CombatTurnIdentity) com
 	condition := CombatConditionSleeping
 	if g.RandomIntInRange(0, combatMonsterWakeRollMaximum) == combatMonsterWakeRollMaximum {
 		g.setCombatPCSleeping(identity, false)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 		condition = CombatConditionWoke
 	}
 	g.SystemCallbacks.Message.AddRowStr("Zzzzz...")
@@ -86,13 +84,12 @@ func (g *GameState) processCombatPCTurnStart(identity CombatTurnIdentity) combat
 	condition := CombatConditionSleeping
 	if g.RandomIntInRange(0, combatPCWakeRollMaximum) < combatPCWakeThreshold {
 		g.setCombatPCSleeping(identity, false)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 		condition = CombatConditionWoke
 	}
 
 	g.SystemCallbacks.Message.AddRowStr("Zzzzz...")
 	g.publishCombatPCConditionEvent(identity, condition)
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat PC %d/%d sleep turn resolved: condition=%d",
 		identity.EntityIndex, identity.Slot, condition)
 
@@ -109,7 +106,7 @@ func (g *GameState) processUndergroundPCTurnStart(identity CombatTurnIdentity) c
 		condition = CombatConditionRegurgitated
 	}
 	g.publishCombatPCConditionEvent(identity, condition)
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat PC %d/%d underground turn resolved: condition=%d",
 		identity.EntityIndex, identity.Slot, condition)
 
@@ -147,7 +144,7 @@ func (g *GameState) processCombatMonsterTurnStart(monsterIndex int) combatTurnSt
 	}
 
 	g.publishCombatConditionEvent(monsterIndex, false, condition)
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat monster %d sleep turn resolved: condition=%d", monsterIndex, condition)
 
 	return combatTurnSkipped

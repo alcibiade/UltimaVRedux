@@ -91,6 +91,18 @@ layout and semantic text boundary.
 
 Builders returned by `AppendLine` require `Done()` to commit the line. Panel code uses `Reset`; circular scrolling output normally keeps its existing index.
 
+Keyboard hints use one grammar, `[Key] Action`, with three spaces between hints
+and the spellings `Esc`, `Enter`, `Space`, `Tab`, `Shift+X`, `Ctrl+X`, `Up/Down`,
+`Left/Right`, `PgUp/PgDn` and `Home/End`. Typed hints are `ControlHint` values;
+`PackControlHints` colours keys with `DialogControlKeyColor` and actions with
+`DialogControlHintColor`, wraps only between complete hints, and tightens the
+separator only when that saves a row. `AppendControlHints` and
+`ParseControlHints` read the same grammar from guidance strings; text outside
+brackets stays prose. Where Space is otherwise free, Space pages detail panes.
+Selected rows use the white `DialogSelectedBackground` bar (`fillSelectedRow`)
+with `DialogSelectedText`; unchoosable Use, Ready and spell rows are dimmed with
+`DialogUnavailableItemColor` and carry the `[No]` marker.
+
 ## Construction And Invariants
 
 Create exported components through their `New...` constructors. Builders collect optional configuration and perform contract checks in `Build`.

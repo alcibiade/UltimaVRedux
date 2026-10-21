@@ -80,6 +80,17 @@ func TestTavernShopDialogLocationTabsCanonicalRowsAndBrightActiveMode(t *testing
 	}
 }
 
+func TestTavernOrderRowsUseSharedSelectionBarAndStateUnaffordableGold(t *testing.T) {
+	setMerchantShellTestResolution(t, 1280, 720)
+	state := testTavernState(references.TavernMenuRumBoar)
+	setTestTavernGold(&state, 0)
+	dialog := newTestTavernShopDialog(newWidgetTestKeyboard(0), state, nil)
+	workspace := compactTavernText(dialog.GetWorkspaceText())
+	require.Contains(t, workspace, fmt.Sprintf("(need %d gold)", state.Meal.Charge))
+	require.NotContains(t, workspace, "> [")
+	require.False(t, dialog.rowSelectionBounds.Empty())
+}
+
 func TestTavernShopDialogLockedConversationHidesTopicsAndUnlockedInputIsVisible(t *testing.T) {
 	queue := newTavernRuneQueue()
 	keyboard := newWidgetTestKeyboard(0)
@@ -557,7 +568,7 @@ func testTavernState(variant references.TavernMenuVariant) game_state.TavernShop
 		food   = uint16(50)
 		diners = 3
 	)
-	mealCharge := uint16(menu.Meal.BasePrice * diners) //nolint:gosec // Small fixed test fixture.
+	mealCharge := uint16(menu.Meal.BasePrice * diners)
 	state := game_state.TavernShopState{
 		Merchant: merchant, PricingCharacterIndex: 0, PricingCharacterName: "Avatar",
 		PricingIntelligence: 20, Gold: gold, Food: food, DinerCount: diners,
@@ -578,10 +589,10 @@ func testTavernState(variant references.TavernMenuVariant) game_state.TavernShop
 		}
 		state.Wines = make([]game_state.TavernDrinkQuote, len(wines))
 		for index, wine := range wines {
-			state.Wines[index] = testTavernDrinkQuote(state, index, wine, uint16(wine.Price)) //nolint:gosec // Fixed canonical prices.
+			state.Wines[index] = testTavernDrinkQuote(state, index, wine, uint16(wine.Price))
 		}
 	} else {
-		charge := uint16(menu.Drink.UnitPrice * diners) //nolint:gosec // Small fixed test fixture.
+		charge := uint16(menu.Drink.UnitPrice * diners)
 		state.Drink = testTavernDrinkQuote(state, game_state.TavernOrdinaryDrinkWineIndex, references.TavernWine{}, charge)
 	}
 	if menu.Provision.Available {
@@ -600,14 +611,14 @@ func testTavernProvisionApprovals(
 	for packCount := 1; packCount <= tavernMaximumProvisionPacks; packCount++ {
 		purchased := min(packCount, int(quote.GoldBefore)/quote.PricePerPack)
 		total := purchased * quote.PricePerPack
-		foodAfter := uint16(min(9999, int(quote.FoodBefore)+purchased*int(quote.Provision.PackQuantity))) //nolint:gosec // Test projection saturates.
+		foodAfter := uint16(min(9999, int(quote.FoodBefore)+purchased*int(quote.Provision.PackQuantity)))
 		outcome := game_state.TavernProvisionCompleted
 		if purchased < packCount {
 			outcome = game_state.TavernProvisionPartial
 		}
 		approvals[packCount-1] = game_state.TavernProvisionApproval{
 			PackCount: packCount, PurchasedPacks: purchased, Outcome: outcome,
-			TotalCost: total, GoldAfterPurchases: quote.GoldBefore - uint16(total), //nolint:gosec // Bounded test fixture.
+			TotalCost: total, GoldAfterPurchases: quote.GoldBefore - uint16(total),
 			FoodAfter: foodAfter, ActualFood: foodAfter - quote.FoodBefore,
 		}
 	}
@@ -688,7 +699,7 @@ func testTavernInformationQuote(
 	after := state.Gold
 	affordable := int(state.Gold) >= price
 	if affordable {
-		after -= uint16(price) //nolint:gosec // Fixed bounded test prices.
+		after -= uint16(price)
 	}
 
 	return game_state.TavernInformationQuote{

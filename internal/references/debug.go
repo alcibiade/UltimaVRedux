@@ -1,5 +1,6 @@
 package references
 
+// DebugOptions are developer toggles; all default to off.
 type DebugOptions struct {
 	FreeMove                         bool
 	MonsterGen                       bool

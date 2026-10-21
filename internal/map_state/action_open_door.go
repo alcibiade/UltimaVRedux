@@ -5,15 +5,21 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// DoorOpenState is the outcome of an attempt to open a door.
 type DoorOpenState int
 
 const (
+	// OpenDoorLocked means the door is locked and needs a key.
 	OpenDoorLocked DoorOpenState = iota
+	// OpenDoorLockedMagical means the door is held shut by a magic lock.
 	OpenDoorLockedMagical
+	// OpenDoorNotADoor means the target tile is not a door.
 	OpenDoorNotADoor
+	// OpenDoorOpened means the door was opened.
 	OpenDoorOpened
 )
 
+// OpenDoor opens the door next to the player in direction and starts its auto-close timer.
 func (m *MapState) OpenDoor(direction references.Direction) DoorOpenState {
 	newPosition := direction.GetNewPositionInDirection(&m.PlayerLocation.Position)
 	theMap := m.LayeredMaps.GetLayeredMap(references.SmallMapType, m.PlayerLocation.Floor)
@@ -36,14 +42,14 @@ func (m *MapState) OpenDoor(direction references.Direction) DoorOpenState {
 func OpenDoorAt(theMap *LayeredMap, position *references.Position) DoorOpenState {
 	targetTile := theMap.GetTileTopMapOnlyTile(position)
 
-	switch targetTile.Index {
-	case indexes.MagicLockDoor, indexes.MagicLockDoorWithView:
+	doorIndex := targetTile.Index
+	if doorIndex == indexes.MagicLockDoor || doorIndex == indexes.MagicLockDoorWithView {
 		return OpenDoorLockedMagical
-	case indexes.LockedDoor, indexes.LockedDoorView:
+	}
+	if doorIndex == indexes.LockedDoor || doorIndex == indexes.LockedDoorView {
 		return OpenDoorLocked
-	case indexes.RegularDoor, indexes.RegularDoorView:
-		break
-	default:
+	}
+	if doorIndex != indexes.RegularDoor && doorIndex != indexes.RegularDoorView {
 		return OpenDoorNotADoor
 	}
 

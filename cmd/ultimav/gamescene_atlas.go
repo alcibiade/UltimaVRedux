@@ -57,7 +57,7 @@ func (g *GameScene) openAtlas(game *Game) {
 		var err error
 		texture, err = game.atlasTexture.load(g.gameState.GameReferences.OverworldLargeMapReference)
 		if err != nil {
-			logging.Warn(logging.CategoryUI, "Traveller's map geography unavailable: %v", err)
+			logging.Warnf(logging.CategoryUI, "Traveller's map geography unavailable: %v", err)
 		}
 	}
 	g.keyboard.PrepareForTransition(0)

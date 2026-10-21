@@ -124,7 +124,7 @@ func TestAstarothTalkShowsResponseThenDamagesOnceAndRemainsAstaroth(t *testing.T
 }
 
 func TestAstarothAttackContactPrecedesCombatAndArrestWithoutAnotherTurn(t *testing.T) {
-	for _, sprite := range []indexes.SpriteIndex{indexes.TownsPerson_KeyIndex, indexes.Guard_KeyIndex} {
+	for _, sprite := range []indexes.SpriteIndex{indexes.TownsPersonKeyIndex, indexes.GuardKeyIndex} {
 		for _, action := range []references.AiType{references.ExtortOrAttackOrFollow, references.DrudgeWorthThing} {
 			t.Run(fmt.Sprintf("shape%d/action%d", sprite, action), func(t *testing.T) {
 				fixture := newMerchantTalkFixture(t, references.NewMagincia, references.MerchantGuildNewMagincia)
@@ -240,7 +240,7 @@ func newFaulineiNormalTalkFixture(t *testing.T) *merchantTalkFixture {
 		Location: references.Stonegate, DialogNumber: 10, NpcType: references.NoStatedNpc,
 		Schedule: references.NPCSchedule{X: [3]byte{5, 5, 5}, Y: [3]byte{5, 5, 5}},
 	}
-	reference.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	reference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, 1)
 	npc.SetPos(references.Position{X: 5, Y: 5})
 	npc.SetFloor(state.MapState.PlayerLocation.Floor)
@@ -282,7 +282,7 @@ func shadowlordTalkTestGuard(
 	provenance references.AIOverrideProvenance,
 ) *map_units.NPCFriendly {
 	reference := references.NPCReference{DialogNumber: byte(references.DialogGuard), NpcType: references.Guard}
-	reference.SetKeyIndex(indexes.Guard_KeyIndex)
+	reference.SetKeyIndex(indexes.GuardKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, 1)
 	npc.MapUnitDetails().SetAIOverride(aiType, provenance)
 

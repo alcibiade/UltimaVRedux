@@ -265,41 +265,6 @@ type MerchantTesterOpenData struct {
 	Y              int    `json:"y"`
 }
 
-// DungeonExplorerCellData describes one packed semantic cell on the active floor.
-type DungeonExplorerCellData struct {
-	X        int    `json:"x"`
-	Y        int    `json:"y"`
-	Raw      int    `json:"raw"`
-	KindID   int    `json:"kindId"`
-	KindName string `json:"kindName"`
-	Payload  int    `json:"payload"`
-	Bit08    bool   `json:"bit08"`
-	Player   bool   `json:"player"`
-}
-
-// DungeonExplorerStatusData is the typed semantic Dungeon Explorer payload.
-type DungeonExplorerStatusData struct {
-	SourceFingerprint          string                    `json:"sourceFingerprint"`
-	Active                     bool                      `json:"active"`
-	SetupAvailable             bool                      `json:"setupAvailable"`
-	SetupUnavailableReason     string                    `json:"setupUnavailableReason,omitempty"`
-	LocationID                 int                       `json:"locationId"`
-	LocationName               string                    `json:"locationName"`
-	Floor                      int                       `json:"floor"`
-	DisplayLevel               int                       `json:"displayLevel"`
-	X                          int                       `json:"x"`
-	Y                          int                       `json:"y"`
-	FacingID                   int                       `json:"facingId"`
-	FacingLabel                string                    `json:"facingLabel"`
-	LastDirectionID            int                       `json:"lastDirectionId"`
-	LastDirectionLabel         string                    `json:"lastDirectionLabel"`
-	Lit                        bool                      `json:"lit"`
-	TorchMinutesRemaining      int                       `json:"torchMinutesRemaining"`
-	MagicLightMinutesRemaining int                       `json:"magicLightMinutesRemaining"`
-	Revision                   uint64                    `json:"revision"`
-	Cells                      []DungeonExplorerCellData `json:"cells"`
-}
-
 // SaveSnapshotCompatibility reports whether this process can hydrate a capture.
 type SaveSnapshotCompatibility struct {
 	Compatible bool   `json:"compatible"`

@@ -43,9 +43,6 @@ func newCombatSummonTestState(t *testing.T) (*GameState, *MockSystemCallbacks) {
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return nil, nil
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 
 	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
@@ -94,9 +91,6 @@ func TestCombatSummonsAreImplementedNoTargetSpells(t *testing.T) {
 
 func TestCastCombatKalXenStopsAfterEightPlacementAttempts(t *testing.T) {
 	gs, mock := newCombatSummonTestState(t)
-	if gs == nil {
-		return
-	}
 	values := []int{0}
 	for range combatSummonPlacementAttempts {
 		values = append(values, 15, 15)
@@ -115,9 +109,6 @@ func TestCastCombatKalXenStopsAfterEightPlacementAttempts(t *testing.T) {
 
 func TestCastCombatKalXenCreatesPartyLoyalMonsterAndStructuredEvent(t *testing.T) {
 	gs, mock := newCombatSummonTestState(t)
-	if gs == nil {
-		return
-	}
 	rng := newStrictSummonRNG(t, 6, 5, 5, 0)
 
 	result := gs.castCombatKalXen(rng)
@@ -141,9 +132,6 @@ func TestCastCombatKalXenCreatesPartyLoyalMonsterAndStructuredEvent(t *testing.T
 
 func TestCastCombatInBetXenStacksFourIndependentInsects(t *testing.T) {
 	gs, mock := newCombatSummonTestState(t)
-	if gs == nil {
-		return
-	}
 	rng := newStrictSummonRNG(t, 4, 7, 0, 1, 2, 3)
 
 	result := gs.summonCombatMonsters(
@@ -173,9 +161,6 @@ func TestCastCombatInBetXenStacksFourIndependentInsects(t *testing.T) {
 
 func TestCastCombatInBetXenStopsAtRemainingOriginalCapacity(t *testing.T) {
 	gs, _ := newCombatSummonTestState(t)
-	if gs == nil {
-		return
-	}
 	ref, err := gs.enemyReferenceForCombat(references.MonsterOrc)
 	require.NoError(t, err)
 	for index := 0; index < sourceCombatQueueSlots-sourceMonsterSlotStart-1; index++ {
@@ -204,9 +189,6 @@ func TestCastCombatInBetXenStopsAtRemainingOriginalCapacity(t *testing.T) {
 
 func TestCastCombatKalXenDoesNotMutateAtFullCapacity(t *testing.T) {
 	gs, mock := newCombatSummonTestState(t)
-	if gs == nil {
-		return
-	}
 	ref, err := gs.enemyReferenceForCombat(references.MonsterOrc)
 	require.NoError(t, err)
 	for index := range sourceCombatQueueSlots - sourceMonsterSlotStart {
@@ -230,9 +212,6 @@ func TestCastCombatKalXenDoesNotMutateAtFullCapacity(t *testing.T) {
 func TestCombatSummonCapacityFailurePreservesCreateEntryRNGOrder(t *testing.T) {
 	t.Run("queue full skips dex roll", func(t *testing.T) {
 		gs, _ := newCombatSummonTestState(t)
-		if gs == nil {
-			return
-		}
 		source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 		for gs.CombatScene.TurnQueue.hasFreeSourceSlot(sourceMonsterSlotStart) {
 			identity := gs.CombatScene.addPCCloneFromSource(
@@ -255,9 +234,6 @@ func TestCombatSummonCapacityFailurePreservesCreateEntryRNGOrder(t *testing.T) {
 
 	t.Run("object full consumes dex roll", func(t *testing.T) {
 		gs, _ := newCombatSummonTestState(t)
-		if gs == nil {
-			return
-		}
 		for gs.CombatScene.hasFreeOriginalObjectSlot() {
 			gs.CombatScene.AddObject(NewCombatLooseItem(
 				references.Position{X: 1, Y: 1}, references.Food, 1, indexes.ItemFood,
@@ -296,9 +272,6 @@ func TestCastCombatKalXenCorpBindingBoundary(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock := newCombatSummonTestState(t)
-			if gs == nil {
-				return
-			}
 			casterIdx := 0
 			gs.PartyState.GetCharacter(casterIdx).Intelligence = 20
 			rng := newStrictSummonRNG(t, 5, 5, 0, test.bindingRollZero)
@@ -322,9 +295,6 @@ func TestCastCombatKalXenCorpBindingBoundary(t *testing.T) {
 
 func TestKalXenCorpScrollAlwaysBindsDaemon(t *testing.T) {
 	gs, mock := newCombatSummonTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.SetRandomSeed(1)
 	result := gs.UseCombatKalXenCorpScroll(0)
 

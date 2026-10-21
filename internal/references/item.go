@@ -9,11 +9,12 @@ type Item interface {
 // ItemType is the type of an item. An Item is a carriable object.
 type ItemType int
 
+// ItemType values are the type half of an item identity and are stable.
 const (
 	ItemTypeReagent   ItemType = 0
 	ItemTypeEquipment ItemType = 1
 	ItemTypeSpell     ItemType = 2
-	// ItemTypeSpecialItem = 3 - REMOVED: Special items merged into QuestItem
+	// ItemTypeScroll follows the removed value 3: special items were merged into QuestItem.
 	ItemTypeScroll    = 4
 	ItemTypePotion    = 5
 	ItemTypeShard     = 6

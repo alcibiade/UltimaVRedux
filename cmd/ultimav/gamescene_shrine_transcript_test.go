@@ -498,7 +498,7 @@ func newShrineTranscriptTestScene(t *testing.T) (*GameScene, *game_state.MockSys
 		WithSystemCallbacks().
 		Build()
 
-	return &GameScene{ //nolint:exhaustruct // Focused shrine transcript fixture.
+	return &GameScene{
 		gameState: state,
 		keyboard:  newPresentationTestKeyboard(),
 		output:    text.NewOutput(nil, 1, 20, 80),
@@ -564,7 +564,7 @@ func waitForShrineTranscriptResult(
 		scene.gameState.EventQueueManager.Update()
 		if scene.dialogStack.PeekTopModalDialog() == transcript &&
 			transcript.ActivePrompt() == "" && !transcript.InputComplete() &&
-			transcript.ControlHint() == "Enter/Esc: Close" &&
+			transcript.ControlHint() == "[Enter/Esc] Close" &&
 			strings.Contains(strings.Join(strings.Fields(transcript.TranscriptText()), " "), content) {
 			return transcript
 		}

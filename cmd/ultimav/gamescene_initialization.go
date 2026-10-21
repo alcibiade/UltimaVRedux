@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"path"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
-	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -34,7 +33,7 @@ var (
 
 // NewGameScene creates a new GameScene with all necessary systems initialized
 func NewGameScene(gameConfig *config.UltimaVConfiguration) (*GameScene, error) {
-	saveFilePath := path.Join(gameConfig.SavedConfigData.DataFilePath, "SAVED.GAM")
+	saveFilePath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, "SAVED.GAM")
 
 	return NewGameSceneFromLegacySaveFile(gameConfig, saveFilePath)
 }
@@ -53,7 +52,7 @@ func NewGameSceneFromLegacySaveFile(
 		return nil, fmt.Errorf("converting original save bundle: %w", err)
 	}
 	if len(conversion.Warnings) > 0 {
-		logging.Warn(logging.CategoryGameState, "Original save conversion completed with %d warnings", len(conversion.Warnings))
+		logging.Warnf(logging.CategoryGameState, "Original save conversion completed with %d warnings", len(conversion.Warnings))
 	}
 
 	return NewGameSceneFromSaveSnapshot(gameConfig, conversion.Snapshot)
@@ -194,7 +193,7 @@ func newGameScene(
 	if !gameConfig.SoundDisabled {
 		gameScene.audioManager, err = audio.NewGameAudioManagerWithConfig(gameConfig.AudioConfiguration)
 		if err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to initialize audio system: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to initialize audio system: %v", err)
 			gameScene.audioManager = nil
 		}
 	}
@@ -211,7 +210,7 @@ func (g *GameScene) Activate() {
 		return
 	}
 
-	map_state.SetAmbientLightRadius(g.gameConfig.GetAmbientLightRadius())
+	g.gameState.MapState.Lighting.SetAmbientLightRadius(g.gameConfig.GetAmbientLightRadius())
 	const desiredTPS = 60
 	ebiten.SetTPS(desiredTPS)
 	ebiten.SetScreenClearedEveryFrame(false)
@@ -227,7 +226,7 @@ func (g *GameScene) Activate() {
 	if g.audioManager != nil {
 		currentLocation := g.gameState.MapState.PlayerLocation.Location
 		if err := g.audioManager.PlayMusicForLocation(currentLocation); err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to start background music for location %v: %v", currentLocation, err)
+			logging.Warnf(logging.CategoryAudio, "Failed to start background music for location %v: %v", currentLocation, err)
 		}
 	}
 }

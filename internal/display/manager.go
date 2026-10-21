@@ -99,7 +99,6 @@ type DisplayManager struct {
 	persistableHeight     int
 	maximizeIssued        bool
 
-	onResolutionChange       []func(width, height int)
 	mapPopupViewportProvider func(image.Rectangle) image.Rectangle
 }
 
@@ -238,12 +237,6 @@ func (dm *DisplayManager) Update() bool {
 		}
 	} else {
 		dm.pending = false
-	}
-	if changed {
-		width, height := dm.GetCurrentSize()
-		for _, callback := range dm.onResolutionChange {
-			callback(width, height)
-		}
 	}
 
 	return changed

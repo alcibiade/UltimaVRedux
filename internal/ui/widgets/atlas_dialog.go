@@ -141,8 +141,9 @@ func (d *AtlasDialog) Update() {
 		return
 	}
 	for _, key := range []ebiten.Key{ebiten.KeyDigit0, ebiten.KeyNumpad0, ebiten.KeyEqual, ebiten.KeyMinus,
-		ebiten.KeyNumpadAdd, ebiten.KeyNumpadSubtract, ebiten.KeyEnter, ebiten.KeyL,
-		ebiten.KeyG, ebiten.KeyA, ebiten.KeyPageUp, ebiten.KeyPageDown, ebiten.KeyN, ebiten.KeyE, ebiten.KeyD} {
+		ebiten.KeyNumpadAdd, ebiten.KeyNumpadSubtract, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyL,
+		ebiten.KeyG, ebiten.KeyA, ebiten.KeyPageUp, ebiten.KeyPageDown, ebiten.KeySpace,
+		ebiten.KeyN, ebiten.KeyE, ebiten.KeyD} {
 		if d.keyboard.IsTextKeyPressedAndRegister(key) {
 			d.handleKey(key)
 
@@ -224,23 +225,39 @@ func (d *AtlasDialog) handleKey(key ebiten.Key) {
 	case ebiten.KeyG:
 		d.view.Grid = !d.view.Grid
 	case ebiten.KeyA:
-		if d.dossier.CurrentFix.Measured {
-			d.center(d.dossier.CurrentFix.Location)
-		} else {
-			d.status = d.dossier.FixUnavailable
-		}
-	case ebiten.KeyEnter:
-		if !d.view.Overview && len(d.entries) > 0 {
-			if p, ok := d.entries[d.selection].PlotPosition(); ok {
-				d.center(p)
-			} else {
-				d.status = "Measure this place to locate it from the list."
-			}
-		}
+		d.centerOnCurrentFix()
+	case ebiten.KeyEnter, ebiten.KeyNumpadEnter:
+		d.centerOnSelection()
 	case ebiten.KeyPageUp:
 		d.detailPage = max(0, d.detailPage-1)
 	case ebiten.KeyPageDown:
 		d.detailPage++
+	case ebiten.KeySpace:
+		_, pages := d.prepareDetails()
+		d.detailPage = (d.detailPage + 1) % pages
+	}
+}
+
+// centerOnCurrentFix centres the map on the measured party position, or
+// explains why no position fix is available.
+func (d *AtlasDialog) centerOnCurrentFix() {
+	if d.dossier.CurrentFix.Measured {
+		d.center(d.dossier.CurrentFix.Location)
+	} else {
+		d.status = d.dossier.FixUnavailable
+	}
+}
+
+// centerOnSelection centres the map on the selected list place when its
+// position is known; the overview and an empty list have no selection.
+func (d *AtlasDialog) centerOnSelection() {
+	if d.view.Overview || len(d.entries) == 0 {
+		return
+	}
+	if position, ok := d.entries[d.selection].PlotPosition(); ok {
+		d.center(position)
+	} else {
+		d.status = "Measure this place to locate it from the list."
 	}
 }
 
@@ -351,6 +368,9 @@ func (d *AtlasDialog) drawDirectory(screen *ebiten.Image) {
 			d.drawPlaceRow(screen, r, d.entries[i], i == d.selection)
 		}
 	}
+	count := d.presentationRowCount()
+	drawMasterDetailScrollIndicators(screen, d.listRect, start, min(count, start+capacity), count,
+		rowHeight, int(math.Ceil(d.font.TextFace.Size)), d.font, d.row)
 }
 
 func fitAtlasText(font *text.UltimaFont, value string, width int) string {
@@ -523,8 +543,7 @@ func (d *AtlasDialog) prepareDetails() (int, int) {
 	}
 	d.row.Reset()
 	d.row.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(d.detailRect.Dx())))
-	d.row.AppendLine().Textf("%d/%d  ", DialogControlHintColor, d.detailPage+1, pages).
-		Text("PgUp/PgDn", DialogControlKeyColor).Text(" More", DialogControlHintColor).Done()
+	AppendControlHints(d.row.AppendLine(), fmt.Sprintf("%d/%d   [Space] More", d.detailPage+1, pages)).Done()
 
 	return capacity, pages
 }

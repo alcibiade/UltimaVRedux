@@ -36,10 +36,10 @@ type AstronomyDialog struct {
 	// Data for rendering (set on creation, used during initial render)
 	shadowlordPlanetIndices []int // Indices 0-7 of planets with Shadowlords
 	spriteSheet             *sprites.SpriteSheet
-	planetXPositions        [8]int // Calculated X positions for each planet
-	gameYear                uint16 // Game year for planet calculations
-	gameMonth               byte   // Game month
-	gameDay                 byte   // Game day
+	planetXPositions        [astronomyPlanetCount]int // Calculated X positions for each planet
+	gameYear                uint16                    // Game year for planet calculations
+	gameMonth               byte                      // Game month
+	gameDay                 byte                      // Game day
 	starPositions           [astronomyStarCount]image.Point
 }
 
@@ -61,53 +61,82 @@ const (
 	astronomyYearCycle        = 100
 	astronomyStarAreaRatio    = 0.9
 	astronomyRenderedStarSize = 4
+
+	astronomyTrackLength     = 22  // Track positions per planet
+	astronomyTrackStop       = '#' // Valid planet position in an astronomyPlanetTracks row
+	astronomyDaysPerMonth    = 28
+	astronomyMonthsPerYear   = 13
+	astronomyPlanetAreaRatio = 0.9  // Planets use the top 90% of the dialog height
+	astronomyTrackRows       = 20.0 // Original track height in rows
+
+	// Artwork is drawn at three times the original pixel size.
+	astronomyPixelScale       = 3
+	astronomyPlanetRadius     = 4  // 9x9 planet centre
+	astronomyPlanetArmOffset  = 6  // Cardinal planet extensions
+	astronomyCometOffset      = 15 // Comet head distance right of its planet
+	astronomyCometHeadRadius  = 4  // 9-pixel-tall comet head
+	astronomyCometHeadHeight  = 9
+	astronomyCometTailLength  = 21
+	astronomyCenterDivisor    = 2
+	astronomyTelescopeSize    = 18 // Telescope sprite size in source pixels
+	astronomyTelescopeScale   = 4.0
+	astronomyTelescopePadding = 4 // Pixels between the telescope and the dialog bottom
 )
 
-// Original planet-track coordinates; ref:ASTRO-0005.
-// Y positions for each planet (fixed vertical position per planet)
-var planetYPositions = [8]int{18, 17, 15, 13, 11, 8, 5, 1}
+// astronomyPlanetYPositions returns the fixed vertical track row of each planet.
+// The planet-track functions hold the original coordinates; ref:ASTRO-0005.
+func astronomyPlanetYPositions() [astronomyPlanetCount]int {
+	return [astronomyPlanetCount]int{18, 17, 15, 13, 11, 8, 5, 1}
+}
 
-// Starting X index for each planet
-var planetStartIndex = [8]int{18, 2, 8, 15, 11, 6, 4, 2}
+// astronomyPlanetStartIndex returns each planet's zero-based track index at the
+// reference date.
+func astronomyPlanetStartIndex() [astronomyPlanetCount]int {
+	return [astronomyPlanetCount]int{18, 2, 8, 15, 11, 6, 4, 2}
+}
 
-// Movement patterns - 22 positions per planet (true = valid position)
-// Planet 0 is slowest (3 positions), Planet 7 is fastest (22 positions)
-var planetPatterns = [8][22]bool{
-	{false, false, false, false, true, false, false, false, false, false, false, true, false, false, false, false, false, false, true, false, false, false},
-	{false, false, true, false, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false, false, true, false},
-	{false, false, true, false, false, true, false, false, true, false, false, true, false, false, true, false, false, true, false, false, true, false},
-	{false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true},
-	{true, false, true, false, true, false, true, false, true, true, false, true, false, true, true, false, true, false, true, true, false, true},
-	{false, true, true, true, false, true, true, true, false, true, true, true, true, true, false, true, true, true, false, true, true, true},
-	{false, true, true, true, true, true, true, false, true, true, true, true, true, true, true, false, true, true, true, true, true, true},
-	{true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true},
+// astronomyPlanetTracks returns each planet's movement pattern; astronomyTrackStop
+// marks a valid position. Planet 0 is slowest (3 positions) and planet 7 is
+// fastest (22 positions).
+func astronomyPlanetTracks() [astronomyPlanetCount]string {
+	return [astronomyPlanetCount]string{
+		"....#......#......#...",
+		"..#....#...#...#....#.",
+		"..#..#..#..#..#..#..#.",
+		".#.#.#.#.#.#.#.#.#.#.#",
+		"#.#.#.#.##.#.##.#.##.#",
+		".###.###.#####.###.###",
+		".######.#######.######",
+		"######################",
+	}
 }
 
 // calculatePlanetXPosition calculates the one-based planet column based on game date.
 // Uses the original date-driven track walk; ref:ASTRO-0005.
 func calculatePlanetXPosition(planet int, year uint16, month, day byte) int {
 	const refYear, refMonth, refDay = 39, 4, 5
+	track := astronomyPlanetTracks()[planet]
 	currentYear := int(year % astronomyYearCycle)
 	currentMonth := int(month)
 	currentDay := int(day)
-	idx := planetStartIndex[planet]
+	idx := astronomyPlanetStartIndex()[planet]
 	for currentYear > refYear || (currentYear == refYear && currentMonth > refMonth) ||
 		(currentYear == refYear && currentMonth == refMonth && currentDay > refDay) {
 		currentDay--
 		if currentDay == 0 {
-			currentDay = 28
+			currentDay = astronomyDaysPerMonth
 			currentMonth--
 		}
 		if currentMonth == 0 {
-			currentMonth = 13
+			currentMonth = astronomyMonthsPerYear
 			currentYear--
 		}
 		for {
 			idx--
 			if idx < 0 {
-				idx = 21
+				idx = astronomyTrackLength - 1
 			}
-			if planetPatterns[planet][idx] {
+			if track[idx] == astronomyTrackStop {
 				break
 			}
 		}
@@ -122,23 +151,6 @@ func NewAstronomyDialog(config AstronomyDialogConfig) *AstronomyDialog {
 	if config.RandomIntInRange == nil {
 		panic("AstronomyDialog requires RandomIntInRange")
 	}
-	a := &AstronomyDialog{
-		placement:               config.Placement,
-		keyboard:                config.Keyboard,
-		spriteSheet:             config.SpriteSheet,
-		shadowlordPlanetIndices: config.ShadowlordPlanetIndices,
-		gameYear:                config.GameYear,
-		gameMonth:               config.GameMonth,
-		gameDay:                 config.GameDay,
-		dismissed:               false,
-		waitingForRelease:       true, // Start waiting for trigger keys to be released
-		drawOptions:             &ebiten.DrawImageOptions{},
-	}
-
-	// Calculate planet X positions based on game date
-	for i := range astronomyPlanetCount {
-		a.planetXPositions[i] = calculatePlanetXPosition(i, a.gameYear, a.gameMonth, a.gameDay)
-	}
 
 	// Initialize keyboard debouncing - wait for current keys to be released
 	if config.Keyboard != nil {
@@ -146,22 +158,43 @@ func NewAstronomyDialog(config AstronomyDialogConfig) *AstronomyDialog {
 	}
 
 	// Create border with opaque black interior
-	a.border = newDialogBorder(config.Placement, DialogBackgroundBlack)
-	a.bounds = a.border.GetBounds()
+	border := newDialogBorder(config.Placement)
+	bounds := border.GetBounds()
 	screenWidth, screenHeight := display.GetManager().GetCurrentSize()
-	a.pixelUnit = getClassicUIPixelUnit(screenWidth, screenHeight)
 
-	// Create buffer for static rendering
-	a.buffer = ebiten.NewImage(a.bounds.Dx(), a.bounds.Dy())
-	a.generateStars(config.RandomIntInRange)
+	dialog := &AstronomyDialog{
+		buffer:                  ebiten.NewImage(bounds.Dx(), bounds.Dy()), // Static render target
+		drawOptions:             &ebiten.DrawImageOptions{},
+		border:                  border,
+		placement:               config.Placement,
+		bounds:                  bounds,
+		pixelUnit:               getClassicUIPixelUnit(screenWidth, screenHeight),
+		hint:                    staticViewerHint{output: nil, width: 0},
+		dismissed:               false,
+		waitingForRelease:       true, // Start waiting for trigger keys to be released
+		keyboard:                config.Keyboard,
+		shadowlordPlanetIndices: config.ShadowlordPlanetIndices,
+		spriteSheet:             config.SpriteSheet,
+		planetXPositions:        [astronomyPlanetCount]int{}, // Calculated below from the game date
+		gameYear:                config.GameYear,
+		gameMonth:               config.GameMonth,
+		gameDay:                 config.GameDay,
+		starPositions:           [astronomyStarCount]image.Point{}, // Generated below
+	}
+
+	// Calculate planet X positions based on game date
+	for planet := range astronomyPlanetCount {
+		dialog.planetXPositions[planet] = calculatePlanetXPosition(planet, config.GameYear, config.GameMonth, config.GameDay)
+	}
+	dialog.generateStars(config.RandomIntInRange)
 
 	// Position draw options for the buffer
-	a.drawOptions.GeoM.Translate(float64(a.bounds.Min.X), float64(a.bounds.Min.Y))
+	dialog.drawOptions.GeoM.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
 
 	// Render everything to buffer once
-	a.renderToBuffer()
+	dialog.renderToBuffer()
 
-	return a
+	return dialog
 }
 
 func (a *AstronomyDialog) generateStars(randomIntInRange func(int, int) int) {
@@ -215,59 +248,53 @@ func (a *AstronomyDialog) renderStars() {
 
 // renderPlanets draws 8 planets at calculated positions based on game date.
 func (a *AstronomyDialog) renderPlanets() {
-	white := stdcolor.White
-
-	height := a.bounds.Dy()
-	width := a.bounds.Dx()
-
-	// Scale positions to our display (original was ~20 unit height, 22 X positions)
-	yScale := float64(height) * 0.9 / 20.0 // 90% height for planets
-
-	for i := range astronomyPlanetCount {
-		cx := astronomyPlanetX(a.planetXPositions[i], width)
-		// Track Y offsets are used directly: screen Y grows downward; ref:ASTRO-0005.
-		cy := int(float64(planetYPositions[i]) * yScale)
-
+	planetY := a.planetYPositions()
+	for planet := range astronomyPlanetCount {
+		centerX := astronomyPlanetX(a.planetXPositions[planet], a.bounds.Dx())
 		// Draw planet as cross/plus shape
-		a.drawPlanetCross(cx, cy, white)
+		a.drawPlanetCross(centerX, planetY[planet], stdcolor.White)
 	}
 }
 
+// planetYPositions scales the original track rows (about 20 rows tall) into the
+// planet area. Track Y offsets are used directly: screen Y grows downward; ref:ASTRO-0005.
+func (a *AstronomyDialog) planetYPositions() [astronomyPlanetCount]int {
+	yScale := float64(a.bounds.Dy()) * astronomyPlanetAreaRatio / astronomyTrackRows
+	positions := astronomyPlanetYPositions()
+	for planet, row := range positions {
+		positions[planet] = int(float64(row) * yScale)
+	}
+
+	return positions
+}
+
 // drawPlanetCross draws a planet as a 9x9 center with cardinal extensions (3x original size).
-func (a *AstronomyDialog) drawPlanetCross(cx, cy int, c stdcolor.Color) {
+func (a *AstronomyDialog) drawPlanetCross(centerX, centerY int, fill stdcolor.Color) {
 	// 9x9 center (3x scale from original 3x3)
-	for dx := -4; dx <= 4; dx++ {
-		for dy := -4; dy <= 4; dy++ {
-			a.setPixelSafe(cx+dx, cy+dy, c)
+	for dx := -astronomyPlanetRadius; dx <= astronomyPlanetRadius; dx++ {
+		for dy := -astronomyPlanetRadius; dy <= astronomyPlanetRadius; dy++ {
+			a.setPixelSafe(centerX+dx, centerY+dy, fill)
 		}
 	}
 
 	// Cardinal extensions at ±6 (3x scale from original ±2)
-	a.setPixelSafe(cx-6, cy, c)
-	a.setPixelSafe(cx+6, cy, c)
-	a.setPixelSafe(cx, cy-6, c)
-	a.setPixelSafe(cx, cy+6, c)
+	a.setPixelSafe(centerX-astronomyPlanetArmOffset, centerY, fill)
+	a.setPixelSafe(centerX+astronomyPlanetArmOffset, centerY, fill)
+	a.setPixelSafe(centerX, centerY-astronomyPlanetArmOffset, fill)
+	a.setPixelSafe(centerX, centerY+astronomyPlanetArmOffset, fill)
 }
 
 // renderComets draws red comets near planets where Shadowlords are located.
 func (a *AstronomyDialog) renderComets() {
-	red := pkgcolor.EGALightRed
-
-	height := a.bounds.Dy()
-	width := a.bounds.Dx()
-
-	yScale := float64(height) * 0.9 / 20.0
-
+	planetY := a.planetYPositions()
 	for _, planetIndex := range a.shadowlordPlanetIndices {
 		if planetIndex < 0 || planetIndex >= astronomyPlanetCount {
 			continue
 		}
 
-		cx := astronomyPlanetX(a.planetXPositions[planetIndex], width)
-		cy := int(float64(planetYPositions[planetIndex]) * yScale)
-
+		centerX := astronomyPlanetX(a.planetXPositions[planetIndex], a.bounds.Dx())
 		// Draw comet tail extending right from planet (offset 15 = 3x original 5)
-		a.drawCometTail(cx+15, cy, red)
+		a.drawCometTail(centerX+astronomyCometOffset, planetY[planetIndex], pkgcolor.EGALightRed)
 	}
 }
 
@@ -280,17 +307,17 @@ func astronomyPlanetX(column, width int) int {
 }
 
 // drawCometTail draws a comet tail pattern at the given position (3x original size).
-func (a *AstronomyDialog) drawCometTail(x, y int, c stdcolor.Color) {
+func (a *AstronomyDialog) drawCometTail(headX, headY int, fill stdcolor.Color) {
 	// Comet head (3x scale: 9 pixels tall, original was 3)
-	for dy := -4; dy <= 4; dy++ {
-		a.setPixelSafe(x, y+dy, c)
+	for dy := -astronomyCometHeadRadius; dy <= astronomyCometHeadRadius; dy++ {
+		a.setPixelSafe(headX, headY+dy, fill)
 	}
 
 	// Tail extending right (3x scale: 21 pixels long, original was 7)
-	for dx := 1; dx <= 21; dx++ {
-		height := 9 - (dx / 3) // Tail tapers from 9 down to ~2
-		for dy := -height / 2; dy <= height/2; dy++ {
-			a.setPixelSafe(x+dx, y+dy, c)
+	for dx := 1; dx <= astronomyCometTailLength; dx++ {
+		height := astronomyCometHeadHeight - (dx / astronomyPixelScale) // Tail tapers from 9 down to ~2
+		for dy := -height / astronomyCenterDivisor; dy <= height/astronomyCenterDivisor; dy++ {
+			a.setPixelSafe(headX+dx, headY+dy, fill)
 		}
 	}
 }
@@ -304,17 +331,16 @@ func (a *AstronomyDialog) renderTelescope() {
 	// Get the telescope sprite (18x18 with border)
 	telescopeSprite := a.spriteSheet.GetSprite(indexes.Telescope)
 
-	// Scale factor and resulting size
-	const scale = 4.0
-	scaledSize := int(18 * scale) // 72 pixels
+	// Scaled size: 72 pixels
+	scaledSize := int(astronomyTelescopeSize * astronomyTelescopeScale)
 
 	// Calculate center position at bottom of dialog
-	bottomAreaY := a.bounds.Dy() - scaledSize - 4 // 4px padding from bottom
-	centerX := (a.bounds.Dx() - scaledSize) / 2
+	bottomAreaY := a.bounds.Dy() - scaledSize - astronomyTelescopePadding
+	centerX := (a.bounds.Dx() - scaledSize) / astronomyCenterDivisor
 
 	// Draw telescope sprite to buffer (4x scaled)
 	opts := &ebiten.DrawImageOptions{}
-	opts.GeoM.Scale(scale, scale)
+	opts.GeoM.Scale(astronomyTelescopeScale, astronomyTelescopeScale)
 	opts.GeoM.Translate(float64(centerX), float64(bottomAreaY))
 	a.buffer.DrawImage(telescopeSprite, opts)
 }
@@ -333,7 +359,7 @@ func (a *AstronomyDialog) Draw(screen *ebiten.Image) {
 	screen.DrawImage(a.buffer, a.drawOptions)
 
 	DrawClassicPixelRoundedFrame(screen, a.bounds, a.pixelUnit, DialogRuleColor)
-	a.hint.draw(screen, a.bounds, "Any key: Close")
+	a.hint.draw(screen, a.bounds, ControlHint{"Any key", hintActionClose})
 }
 
 // Update implements Widget interface.

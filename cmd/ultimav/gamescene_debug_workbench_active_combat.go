@@ -744,12 +744,12 @@ func newActiveCombatPartyResults(state *game_state.GameState) []activeCombatPart
 }
 
 func activeCombatPartyStatus(status party_state.CharacterStatus) string {
-	reference := party_state.CharacterStatuses.GetById(status)
-	if reference == nil {
+	name, ok := status.FriendlyName()
+	if !ok {
 		return fmt.Sprintf("status_%d", status)
 	}
 
-	return reference.FriendlyName
+	return name
 }
 
 func newActiveCombatMonsterResults(combat *game_state.CombatState) []activeCombatMonsterResult {

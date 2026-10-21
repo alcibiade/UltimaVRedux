@@ -429,8 +429,9 @@ Covetous concealed payload, driver color exchange, and narrative bytes require
 separate binary evidence. Loader arithmetic/control flow does not certify the old
 authored tables. These are explicit unresolved dispositions, not invented replacements.
 
-**REDUX DEVIATION: DNG-0015:** Redux freezes the failed tableau. Genuine missing-box
-failure (final Yes without box) waits 5,000 deterministic ms and offers the matching
-dedicated pre-Doom checkpoint or main menu; other failed answers offer menu only.
+**REDUX DEVIATION: DNG-0015:** Redux freezes the failed tableau. A failure without
+the box, whatever the final answer, waits 5,000 deterministic ms and offers the
+matching dedicated pre-Doom checkpoint or main menu; failing while holding the box
+offers menu only.
 The canonical checkpoint is outside eight player slots and needs the exact opaque
 Doom-run association. This provides bounded recovery from the terminal original path.

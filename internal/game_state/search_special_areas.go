@@ -100,7 +100,7 @@ func (ssm *SearchSystemManager) checkReagentCaches(searchPos *references.Positio
 	}
 
 	// Check each reagent cache location
-	for i, cacheLocation := range reagentCacheLocations {
+	for i, cacheLocation := range reagentCacheLocations() {
 		// Check if this is the right coordinates
 		if searchPos.X != cacheLocation.X || searchPos.Y != cacheLocation.Y {
 			continue

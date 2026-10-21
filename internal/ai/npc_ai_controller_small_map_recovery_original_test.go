@@ -31,7 +31,7 @@ func TestSerpentsHoldOriginalGuardScheduledTravelRecovery(t *testing.T) {
 	emptyMap := &references.LargeMapReference{}
 	layeredMaps := map_state.NewLayeredMaps(refs.TileReferences, emptyMap, emptyMap, 11, 11)
 	layeredMaps.ResetAndCreateSmallMap(slr, refs.TileReferences, 11, 11)
-	state := &map_state.MapState{ //nolint:exhaustruct // Controller-only integration fixture.
+	state := &map_state.MapState{
 		PlayerLocation: references.PlayerLocation{
 			Location: references.SerpentsHold,
 			Position: references.Position{X: 15, Y: 25},

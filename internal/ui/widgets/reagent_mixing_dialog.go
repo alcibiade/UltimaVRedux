@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -354,9 +353,9 @@ func (d *ReagentMixingDialog) drawPreparation(screen *ebiten.Image) {
 	status := view.searchRect.Inset(view.padding)
 	prepareSpellOutput(view.search, status)
 	view.search.AppendLine().Text(d.preparationStatus(), DialogLabelColor).WordWrap().Done()
-	line := appendSpellControl(view.search.AppendLine(), "0-9", "Type quantity")
+	line := AppendControlHints(view.search.AppendLine(), "[0-9] Type quantity")
 	line.Text("; then ", DialogControlHintColor)
-	appendSpellControl(line, "Enter", fmt.Sprintf("Mix %d", d.getEffectiveQuantity())).Done()
+	AppendControlHints(line, fmt.Sprintf("[Enter] Mix %d", d.getEffectiveQuantity())).Done()
 	drawSpellOutput(screen, view.search, status, 0, view.search.GetPanelContentLineCount())
 	d.drawIngredients(screen)
 	rect := view.detailRect.Inset(view.padding)
@@ -411,7 +410,8 @@ func (d *ReagentMixingDialog) drawIngredients(screen *ebiten.Image) {
 		row := image.Rect(list.Min.X, top, list.Max.X-view.scrollGutter(), min(list.Max.Y, top+rowHeight))
 		d.drawIngredientRow(screen, row, reagent, index == d.reagentListState.GetCurrentIndex())
 	}
-	view.drawScrollHints(screen, list, start, end, len(d.reagentInventory), rowHeight)
+	drawMasterDetailScrollIndicators(screen, list, start, end, len(d.reagentInventory), rowHeight,
+		view.scrollGutter(), view.font, view.indicator)
 }
 
 func (d *ReagentMixingDialog) drawIngredientRow(screen *ebiten.Image, rect image.Rectangle,
@@ -420,8 +420,7 @@ func (d *ReagentMixingDialog) drawIngredientRow(screen *ebiten.Image, rect image
 	output := d.view.row
 	nameColor, _ := spellRowColours(selected, reagent.Quantity > 0)
 	if selected {
-		vector.FillRect(screen, float32(rect.Min.X), float32(rect.Min.Y), float32(rect.Dx()), float32(rect.Dy()),
-			DialogSelectedBackground, false)
+		fillSelectedRow(screen, rect)
 	}
 	rect = spellRowContentRect(output, rect)
 	prepareSpellOutput(output, rect)

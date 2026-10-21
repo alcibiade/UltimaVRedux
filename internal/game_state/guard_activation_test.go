@@ -23,14 +23,14 @@ func TestActivateGuardsProcessesActiveNPCsInOriginalSlotOrder(t *testing.T) {
 	controller, ok := state.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 	require.True(t, ok)
 
-	guard := guardActivationTestNPC(0, indexes.Guard_KeyIndex, 0, false)
-	hidden := guardActivationTestNPC(1, indexes.TownsPerson_KeyIndex, 1, true)
+	guard := guardActivationTestNPC(0, indexes.GuardKeyIndex, 0, false)
+	hidden := guardActivationTestNPC(1, indexes.TownsPersonKeyIndex, 1, true)
 	hidden.SetVisible(false)
-	firstCivilian := guardActivationTestNPC(2, indexes.TownsPerson_KeyIndex, 1, true)
-	staticCivilian := guardActivationTestNPC(3, indexes.TownsPerson_KeyIndex, 1, false)
+	firstCivilian := guardActivationTestNPC(2, indexes.TownsPersonKeyIndex, 1, true)
+	staticCivilian := guardActivationTestNPC(3, indexes.TownsPersonKeyIndex, 1, false)
 	invalidShape := guardActivationTestNPC(4, indexes.Apparation1, 1, true)
-	daemon := guardActivationTestNPC(5, indexes.Daemon_KeyIndex, 0, false)
-	shadowlord := guardActivationTestNPC(6, indexes.ShadowLord_KeyIndex, 0, false)
+	daemon := guardActivationTestNPC(5, indexes.DaemonKeyIndex, 0, false)
+	shadowlord := guardActivationTestNPC(6, indexes.ShadowLordKeyIndex, 0, false)
 	lastCivilian := guardActivationTestNPC(7, indexes.MerchantKeyIndex, 1, true)
 	for _, npc := range []*map_units.NPCFriendly{guard, firstCivilian, staticCivilian, invalidShape, lastCivilian} {
 		npc.MapUnitDetails().SetCurrentPath([]references.Position{{X: 2, Y: 2}, {X: 3, Y: 3}})
@@ -106,7 +106,7 @@ func TestActivateGuardsPreservesAutomaticShadowlordProvenanceAcrossLawAI(t *test
 			Build()
 		controller, ok := state.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 		require.True(t, ok)
-		guard := guardActivationTestNPC(0, indexes.Guard_KeyIndex, 0, false)
+		guard := guardActivationTestNPC(0, indexes.GuardKeyIndex, 0, false)
 		guard.MapUnitDetails().SetAIOverride(
 			references.FleeFromAvatar,
 			references.AIOverrideProvenanceAutomaticNosfentor,
@@ -127,7 +127,7 @@ func TestActivateGuardsPreservesAutomaticShadowlordProvenanceAcrossLawAI(t *test
 			Build()
 		controller, ok := state.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 		require.True(t, ok)
-		civilian := guardActivationTestNPC(0, indexes.TownsPerson_KeyIndex, 1, true)
+		civilian := guardActivationTestNPC(0, indexes.TownsPersonKeyIndex, 1, true)
 		civilian.MapUnitDetails().SetAIOverride(
 			references.DrudgeWorthThing,
 			references.AIOverrideProvenanceAutomaticAstaroth,
@@ -163,7 +163,7 @@ func TestActivateGuardsAuthoredActorsPursueBeyondActionSixRange(t *testing.T) {
 			slot := test.slot
 			if slot < 0 {
 				for index, ref := range *refs {
-					if ref.GetSpriteIndex() == indexes.Guard_KeyIndex {
+					if ref.GetSpriteIndex() == indexes.GuardKeyIndex {
 						slot = index
 						break
 					}
@@ -292,4 +292,15 @@ func guardActivationTestNPC(
 	reference.SetKeyIndex(sprite)
 
 	return map_units.NewNPCFriendly(reference, slot)
+}
+
+func countTrue(values []bool) int {
+	count := 0
+	for _, value := range values {
+		if value {
+			count++
+		}
+	}
+
+	return count
 }

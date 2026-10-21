@@ -5,6 +5,7 @@ import "github.com/bradhannah/UltimaVRedux/internal/references"
 // SearchResult represents the outcome of a search operation
 type SearchResult int
 
+// SearchResult outcomes of one search attempt.
 const (
 	SearchResultNotFound SearchResult = iota
 	SearchResultFoundItem
@@ -26,6 +27,7 @@ const (
 // SearchLocationStatus represents the status of a location for overlay rendering
 type SearchLocationStatus int
 
+// SearchLocationStatus values, one per overlay colour.
 const (
 	SearchLocationNotSearchable SearchLocationStatus = iota // No overlay
 	SearchLocationUnsearched                                // Green overlay

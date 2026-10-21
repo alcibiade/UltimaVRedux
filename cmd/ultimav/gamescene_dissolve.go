@@ -82,7 +82,7 @@ func (g *GameScene) setWandererDissolveLevel(level float64) {
 		g.gameState.CampingScene.SetWandererDissolveLevel(level)
 	}
 
-	logging.Debug(logging.CategoryGameState, "Wanderer dissolve level set to %.2f", level)
+	logging.Debugf(logging.CategoryGameState, "Wanderer dissolve level set to %.2f", level)
 }
 
 // initializeWandererDissolveEffect creates a new dissolve effect for the wanderer sprite
@@ -91,7 +91,7 @@ func (g *GameScene) initializeWandererDissolveEffect() {
 	// Get wanderer sprite dimensions (using Apparation1/Wizard1 sprite)
 	wandererSprite := g.spriteSheet.GetSprite(indexes.Apparation1)
 	if wandererSprite == nil {
-		logging.Warn(logging.CategoryGameState, "Failed to get wanderer sprite for dissolve effect initialization")
+		logging.Warnf(logging.CategoryGameState, "Failed to get wanderer sprite for dissolve effect initialization")
 
 		return
 	}
@@ -106,20 +106,20 @@ func (g *GameScene) initializeWandererDissolveEffect() {
 		rng.New(wandererDissolveSeed),
 	)
 
-	logging.Debug(logging.CategoryGameState, "Initialized wanderer dissolve effect (%dx%d)", spriteWidth, spriteHeight)
+	logging.Debugf(logging.CategoryGameState, "Initialized wanderer dissolve effect (%dx%d)", spriteWidth, spriteHeight)
 }
 
 // cleanupWandererDissolveEffect releases the wanderer dissolve effect resources
 // Called when camping ends or wanderer disappears
 func (g *GameScene) cleanupWandererDissolveEffect() {
 	g.wandererDissolve.Cleanup()
-	logging.Debug(logging.CategoryGameState, "Cleaned up wanderer dissolve effect")
+	logging.Debugf(logging.CategoryGameState, "Cleaned up wanderer dissolve effect")
 }
 
 func (g *GameScene) setAvatarDissolveLevel(level float64) {
 	// Update DissolveEffectState (handles both level and effect progress)
 	g.avatarDissolve.UpdateProgress(level)
-	logging.Debug(logging.CategoryGameState, "Avatar dissolve level set to %.2f", level)
+	logging.Debugf(logging.CategoryGameState, "Avatar dissolve level set to %.2f", level)
 }
 
 // initializeAvatarDissolveEffect creates a new dissolve effect for the avatar sprite
@@ -128,7 +128,7 @@ func (g *GameScene) initializeAvatarDissolveEffect() {
 	// Get avatar sprite dimensions
 	avatarSprite := g.spriteSheet.GetSprite(indexes.AvatarKeyIndex)
 	if avatarSprite == nil {
-		logging.Warn(logging.CategoryGameState, "Failed to get avatar sprite for dissolve effect initialization")
+		logging.Warnf(logging.CategoryGameState, "Failed to get avatar sprite for dissolve effect initialization")
 
 		return
 	}
@@ -143,14 +143,14 @@ func (g *GameScene) initializeAvatarDissolveEffect() {
 		rng.New(avatarDissolveSeed),
 	)
 
-	logging.Debug(logging.CategoryGameState, "Initialized avatar dissolve effect (%dx%d)", spriteWidth, spriteHeight)
+	logging.Debugf(logging.CategoryGameState, "Initialized avatar dissolve effect (%dx%d)", spriteWidth, spriteHeight)
 }
 
 // cleanupAvatarDissolveEffect releases the avatar dissolve effect resources
 // Called when teleportation ends or avatar rematerializes
 func (g *GameScene) cleanupAvatarDissolveEffect() {
 	g.avatarDissolve.Cleanup()
-	logging.Debug(logging.CategoryGameState, "Cleaned up avatar dissolve effect")
+	logging.Debugf(logging.CategoryGameState, "Cleaned up avatar dissolve effect")
 }
 
 // Note: Death Scene Apparition Dissolve Effects removed - now uses generic tile dissolve system
@@ -160,7 +160,7 @@ func (g *GameScene) cleanupAvatarDissolveEffect() {
 
 func (g *GameScene) setMapFadeLevel(level float64) {
 	g.mapFadeLevel = level
-	logging.Debug(logging.CategoryGameState, "Map fade level set to %.2f", level)
+	logging.Debugf(logging.CategoryGameState, "Map fade level set to %.2f", level)
 }
 
 // =============================================================================
@@ -261,7 +261,7 @@ func (g *GameScene) startTileDissolveWithOptions(
 		layerStr = "OverFade"
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Started tile dissolve ID=%d sprite=%d at (%d,%d) mode=%s outline=%d posMode=%s layer=%s",
 		id, opts.SpriteIndex, opts.Position.X, opts.Position.Y, modeStr, opts.OutlineColor, posStr, layerStr)
 
@@ -344,7 +344,7 @@ func (g *GameScene) StopTileDissolve(id int) {
 
 			g.activeTileDissolves = g.activeTileDissolves[:lastIdx]
 
-			logging.Debug(logging.CategoryGameState, "Stopped tile dissolve ID=%d", id)
+			logging.Debugf(logging.CategoryGameState, "Stopped tile dissolve ID=%d", id)
 
 			return
 		}
@@ -363,6 +363,6 @@ func (g *GameScene) StopAllTileDissolves() {
 	g.activeTileDissolves = g.activeTileDissolves[:0] // Clear slice but keep capacity
 
 	if count > 0 {
-		logging.Debug(logging.CategoryGameState, "Stopped all tile dissolves (count=%d)", count)
+		logging.Debugf(logging.CategoryGameState, "Stopped all tile dissolves (count=%d)", count)
 	}
 }

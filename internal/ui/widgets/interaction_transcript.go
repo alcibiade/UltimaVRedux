@@ -23,6 +23,11 @@ const (
 	interactionTranscriptPromptMarker   = "  > "
 	interactionTranscriptMaxWidth       = 0.66
 	interactionTranscriptMinInputChars  = 4
+	interactionTranscriptSides          = 2 // Padding applies to both sides of the card
+
+	// Yes/no prompts record these responses for any accepted y/n key.
+	interactionTranscriptYes = "Yes"
+	interactionTranscriptNo  = "No"
 )
 
 type interactionTranscriptMode int
@@ -99,33 +104,7 @@ func NewInteractionTranscript(
 	if keyboard == nil {
 		panic("NewInteractionTranscript: keyboard is required")
 	}
-	if config.MaxLines <= 0 {
-		panic("NewInteractionTranscript: max lines must be positive")
-	}
-	if config.MaxInputLength <= 0 {
-		panic("NewInteractionTranscript: max input length must be positive")
-	}
-	if len(config.WidthSamples) == 0 {
-		panic("NewInteractionTranscript: width samples are required")
-	}
-	centerYPercent := config.CenterYPercent
-	if centerYPercent == 0 {
-		centerYPercent = interactionTranscriptDefaultCenterY
-	}
-	if centerYPercent <= 0 || centerYPercent >= 1 {
-		panic("NewInteractionTranscript: center Y percent must be between zero and one")
-	}
-	var panelPlacement *sprites.PercentBasedPlacement
-	if config.PanelPlacement != nil {
-		placement := *config.PanelPlacement
-		if placement.StartPercentX < 0 || placement.EndPercentX > 1 ||
-			placement.StartPercentY < 0 || placement.EndPercentY > 1 ||
-			placement.StartPercentX >= placement.EndPercentX ||
-			placement.StartPercentY >= placement.EndPercentY {
-			panic("NewInteractionTranscript: panel placement must be a non-empty screen region")
-		}
-		panelPlacement = &placement
-	}
+	centerYPercent, panelPlacement := validateInteractionTranscriptConfig(config)
 
 	dialog := &InteractionTranscript{
 		keyboard:          keyboard,
@@ -163,6 +142,42 @@ func NewInteractionTranscript(
 	dialog.ensureLayout(width, height)
 
 	return dialog
+}
+
+// validateInteractionTranscriptConfig panics on an unusable configuration and
+// returns the resolved vertical centre and a private copy of any panel placement.
+func validateInteractionTranscriptConfig(
+	config InteractionTranscriptConfig,
+) (float64, *sprites.PercentBasedPlacement) {
+	if config.MaxLines <= 0 {
+		panic("NewInteractionTranscript: max lines must be positive")
+	}
+	if config.MaxInputLength <= 0 {
+		panic("NewInteractionTranscript: max input length must be positive")
+	}
+	if len(config.WidthSamples) == 0 {
+		panic("NewInteractionTranscript: width samples are required")
+	}
+	centerYPercent := config.CenterYPercent
+	if centerYPercent == 0 {
+		centerYPercent = interactionTranscriptDefaultCenterY
+	}
+	if centerYPercent <= 0 || centerYPercent >= 1 {
+		panic("NewInteractionTranscript: center Y percent must be between zero and one")
+	}
+	var panelPlacement *sprites.PercentBasedPlacement
+	if config.PanelPlacement != nil {
+		placement := *config.PanelPlacement
+		if placement.StartPercentX < 0 || placement.EndPercentX > 1 ||
+			placement.StartPercentY < 0 || placement.EndPercentY > 1 ||
+			placement.StartPercentX >= placement.EndPercentX ||
+			placement.StartPercentY >= placement.EndPercentY {
+			panic("NewInteractionTranscript: panel placement must be a non-empty screen region")
+		}
+		panelPlacement = &placement
+	}
+
+	return centerYPercent, panelPlacement
 }
 
 func newInteractionTranscriptTextInput(keyboard *input.Keyboard, maxInputLength int) *TextInput {
@@ -278,6 +293,11 @@ func (d *InteractionTranscript) beginConfirmation(mode interactionTranscriptMode
 	d.updateInputPlacement()
 }
 
+// AcceptsText reports whether a text prompt is waiting for typed input.
+func (d *InteractionTranscript) AcceptsText() bool {
+	return d.mode == interactionTranscriptText && !d.inputComplete
+}
+
 // InputComplete reports whether the active prompt or acknowledgement has completed.
 func (d *InteractionTranscript) InputComplete() bool {
 	return d.inputComplete
@@ -376,13 +396,13 @@ func (d *InteractionTranscript) updatePromptInput() {
 			}
 			switch comparableResponse {
 			case "y":
-				response = "Yes"
+				response = interactionTranscriptYes
 			case "n":
-				response = "No"
+				response = interactionTranscriptNo
 			case "Y":
-				response = "Yes"
+				response = interactionTranscriptYes
 			case "N":
-				response = "No"
+				response = interactionTranscriptNo
 			default:
 				return
 			}
@@ -453,23 +473,15 @@ func (d *InteractionTranscript) ensureLayout(width, height int) {
 		footerLines = 2
 		footerHeight = int(math.Ceil(measurementOutput.GetTotalHeightForLines(footerLines)))
 	} else {
-		maximumPanelWidth := int(math.Round(interactionTranscriptMaxWidth * float64(width)))
-		panelWidth := min(width-padding*2, maximumPanelWidth, preferredContentWidth+padding*2)
-		panelHeight := padding*2 + transcriptHeight + gap + footerHeight
-		centerX := int(math.Round(DialogHorizontalMapOnly.ToPercentage() * float64(width)))
-		centerY := int(math.Round(d.centerYPercent * float64(height)))
-		panelMinX := centeredPromptRectMinX(centerX, panelWidth, width, padding)
-		panelMinY := min(max(padding, centerY-panelHeight/2), height-padding-panelHeight)
-		panelRect = image.Rect(panelMinX, panelMinY, panelMinX+panelWidth, panelMinY+panelHeight)
+		panelRect = d.centeredPanelRect(width, height, padding,
+			image.Pt(preferredContentWidth, transcriptHeight+gap+footerHeight))
 	}
 	contentRect := insetRectangle(panelRect, padding)
 	characterWidth, _ := d.font.MeasureString("M")
 	charsPerLine = min(charsPerLine, max(1, int(float64(contentRect.Dx())/characterWidth)))
-	if d.panelPlacement != nil {
-		transcriptHeight = max(1, contentRect.Dy()-gap-footerHeight)
-	}
 	effectiveMaxLines := d.maxLines
 	if d.panelPlacement != nil {
+		transcriptHeight = max(1, contentRect.Dy()-gap-footerHeight)
 		effectiveMaxLines = max(effectiveMaxLines, measurementOutput.GetLineCapacity(transcriptHeight))
 	}
 	transcriptRect := image.Rect(
@@ -499,6 +511,22 @@ func (d *InteractionTranscript) ensureLayout(width, height int) {
 	d.rebuildTranscriptOutput()
 	d.rebuildFooterOutput()
 	d.updateInputPlacement()
+}
+
+// centeredPanelRect fits the default card around content (the preferred width and
+// the transcript, gap and footer height), centred over the map at the configured
+// height and kept inside the screen padding.
+func (d *InteractionTranscript) centeredPanelRect(width, height, padding int, content image.Point) image.Rectangle {
+	maximumPanelWidth := int(math.Round(interactionTranscriptMaxWidth * float64(width)))
+	panelWidth := min(width-padding*interactionTranscriptSides, maximumPanelWidth,
+		content.X+padding*interactionTranscriptSides)
+	panelHeight := padding*interactionTranscriptSides + content.Y
+	centerX := int(math.Round(DialogHorizontalMapOnly.ToPercentage() * float64(width)))
+	centerY := int(math.Round(d.centerYPercent * float64(height)))
+	panelMinX := centeredPromptRectMinX(centerX, panelWidth, width, padding)
+	panelMinY := min(max(padding, centerY-panelHeight/2), height-padding-panelHeight)
+
+	return image.Rect(panelMinX, panelMinY, panelMinX+panelWidth, panelMinY+panelHeight)
 }
 
 func (d *InteractionTranscript) preferredContentSize() (int, int) {
@@ -588,7 +616,7 @@ func (d *InteractionTranscript) rebuildFooterOutput() {
 		case interactionTranscriptText:
 			hint = textSubmitControlHint
 			if d.clearTextOnEscape {
-				hint = "Enter: Submit   Esc: Clear text"
+				hint = "[Enter] Submit   [Esc] Clear text"
 			}
 		case interactionTranscriptAcknowledgement:
 			hint = DialogCloseHint

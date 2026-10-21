@@ -20,7 +20,7 @@ func (g *Game) prepareExcerptMigration(envelope save_snapshot.Envelope) (save_sn
 		return snapshot, nil
 	}
 	if g.notebookRoot == "" || !save_snapshot.ValidPlaythroughID(envelope.Metadata.PlaythroughID) {
-		logging.Warn(logging.CategoryConversation,
+		logging.Warnf(logging.CategoryConversation,
 			"Old save has no excerpt migration directory or identity; starting with no excerpts")
 
 		return snapshot, nil

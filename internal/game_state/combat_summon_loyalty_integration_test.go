@@ -11,9 +11,6 @@ import (
 
 func TestCombatAutoActionIgnoresPartyLoyalSummon(t *testing.T) {
 	gs, _, hostile := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
 	activePosition := gs.CombatScene.GetPartyMemberPosition(activeIndex)
 	hostile.SetActive(false)
@@ -31,9 +28,6 @@ func TestCombatAutoActionIgnoresPartyLoyalSummon(t *testing.T) {
 
 func TestPartyConeSpellsAffectPartyLoyalSummonWithoutChangingAttackTarget(t *testing.T) {
 	gs, _, hostile := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	hostile.SetActive(false)
 	allyRef := *mustCombatEnemyReference(t, gs, references.MonsterSkeleton)
 	allyRef.HitPoints = 100 // Isolate cone damage from death/treasure RNG.

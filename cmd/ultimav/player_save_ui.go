@@ -96,7 +96,7 @@ func playerSaveSlotView(summary player_save.SlotSummary, mode playerSaveBrowserM
 	}
 
 	if summary.Problem != "" {
-		logging.Warn(logging.CategoryGameState, "Inspect player save %s: %s", summary.Slot, summary.Problem)
+		logging.Warnf(logging.CategoryGameState, "Inspect player save %s: %s", summary.Slot, summary.Problem)
 	}
 	var problem string
 	switch summary.Status {
@@ -139,7 +139,7 @@ func playerSaveSlotView(summary player_save.SlotSummary, mode playerSaveBrowserM
 }
 
 func playerSaveFailureMessage(action string, err error) string {
-	logging.Warn(logging.CategoryGameState, "Player save %s failed: %v", action, err)
+	logging.Warnf(logging.CategoryGameState, "Player save %s failed: %v", action, err)
 	if errors.Is(err, player_save.ErrStaleRevision) {
 		return playerSaveErrorDetail(err)
 	}

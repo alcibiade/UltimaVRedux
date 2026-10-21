@@ -14,7 +14,6 @@ import (
 
 func TestPartyEquipmentLoadoutUpdateAppliesReviewedMixedSourceChanges(t *testing.T) {
 	state := newApprovedToolTestState()
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {}
 	initializeEmptyInventoryLockerRoster(state)
 	require.NoError(t, state.SetAvatarName("Avatar"))
 	avatar := state.PartyState.GetCharacter(0)
@@ -97,7 +96,6 @@ func TestPartyEquipmentLoadoutUpdateRejectsManufacturedAmmo(t *testing.T) {
 
 func TestPartyEquipmentLoadoutUpdateAppliesAllActiveMembersWithExactChanges(t *testing.T) {
 	state := newApprovedToolTestState()
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {}
 	initializeEmptyInventoryLockerRoster(state)
 	require.NoError(t, state.SetAvatarName("Avatar"))
 	avatar := state.PartyState.GetCharacter(0)
@@ -139,7 +137,7 @@ func TestPartyEquipmentLoadoutScenarioRuntimeReviewUsesCurrentState(t *testing.T
 	state := newApprovedToolTestState()
 	initializeEmptyInventoryLockerRoster(state)
 	require.NoError(t, state.SetAvatarName("Avatar"))
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused scenario resolution fixture.
+	scene := &GameScene{gameState: state}
 	definition, ok := debugging.NewInitialCatalog().Get(debugging.CommandPartyEquipmentLoadoutUpdate)
 	require.True(t, ok)
 	request, err := scene.ResolveScenarioRuntimeParameters(debugging.Request{

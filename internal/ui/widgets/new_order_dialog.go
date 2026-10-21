@@ -16,9 +16,10 @@ var _ Widget = (*NewOrderDialog)(nil)
 // NewOrderStage represents the current stage of the two-stage selection.
 type NewOrderStage int
 
+// New Order stages: pick the first companion, then the one to swap it with.
 const (
-	Stage1_SelectFirst NewOrderStage = iota
-	Stage2_SelectSecond
+	Stage1SelectFirst NewOrderStage = iota
+	Stage2SelectSecond
 
 	newOrderStatusGood     = "Good"
 	newOrderStatusPoisoned = "Poisoned"
@@ -75,9 +76,10 @@ func NewNewOrderDialog(
 		swapCallback:       swapCallback,
 		cancelCallback:     cancelCallback,
 		activeSlot:         activeSlot,
-		stage:              Stage1_SelectFirst,
+		stage:              Stage1SelectFirst,
 		selected:           firstMovableNewOrderOption(options),
 		firstSelectedIndex: -1,
+		isComplete:         false,
 	}
 	dialog.keyboard.SetForceWaitAnyKey(DialogDismissalDelayMs)
 
@@ -161,15 +163,15 @@ func (d *NewOrderDialog) HandleNumber(position int) {
 func (d *NewOrderDialog) HandleEnter() {
 	option := d.options[d.selected]
 	if option.CharacterIndex == party_state.AvatarCharacterIndex ||
-		(d.stage == Stage2_SelectSecond && option.CharacterIndex == d.firstSelectedIndex) {
+		(d.stage == Stage2SelectSecond && option.CharacterIndex == d.firstSelectedIndex) {
 		return
 	}
 	switch d.stage {
-	case Stage1_SelectFirst:
+	case Stage1SelectFirst:
 		d.firstSelectedIndex = option.CharacterIndex
-		d.stage = Stage2_SelectSecond
+		d.stage = Stage2SelectSecond
 		d.moveToNextSwapOption()
-	case Stage2_SelectSecond:
+	case Stage2SelectSecond:
 		d.isComplete = true
 		d.swapCallback(d.firstSelectedIndex, option.CharacterIndex)
 	default:
@@ -179,8 +181,8 @@ func (d *NewOrderDialog) HandleEnter() {
 
 // HandleEscape cancels stage 1 or returns stage 2 to the first choice.
 func (d *NewOrderDialog) HandleEscape() {
-	if d.stage == Stage2_SelectSecond {
-		d.stage = Stage1_SelectFirst
+	if d.stage == Stage2SelectSecond {
+		d.stage = Stage1SelectFirst
 		d.firstSelectedIndex = -1
 
 		return
@@ -233,7 +235,7 @@ func (d *NewOrderDialog) viewOptions() []CharacterSelectionOption {
 
 			continue
 		}
-		if d.stage == Stage1_SelectFirst {
+		if d.stage == Stage1SelectFirst {
 			option.State = CharacterSelectionAvailable
 			option.Details = []string{"Choose the first companion to move."}
 
@@ -280,19 +282,19 @@ func (d *NewOrderDialog) optionByCharacterIndex(characterIndex int) CharacterSel
 }
 
 func (d *NewOrderDialog) title() string {
-	if d.stage == Stage1_SelectFirst {
+	if d.stage == Stage1SelectFirst {
 		return "New Order"
 	}
 
 	return "Swap " + d.optionByCharacterIndex(d.firstSelectedIndex).Name + " With..."
 }
 
-func (d *NewOrderDialog) footer() [2]string {
-	if d.stage == Stage1_SelectFirst {
-		return [2]string{"Arrows/1-6: Inspect   Enter: Lock", "Esc: Cancel"}
+func (d *NewOrderDialog) footer() string {
+	if d.stage == Stage1SelectFirst {
+		return "[Arrows/1-6] Inspect   [Enter/Space] Lock   [Esc] Cancel"
 	}
 
-	return [2]string{"Arrows/1-6: Inspect   Enter: Swap", "Esc: Choose First"}
+	return "[Arrows/1-6] Inspect   [Enter/Space] Swap   [Esc] Choose First"
 }
 
 // IsComplete reports whether the dialog has swapped or cancelled.
@@ -322,6 +324,8 @@ func newOrderOptions(partyState *party_state.PartyState) []CharacterSelectionOpt
 			Active:         false,
 			Facts:          nil,
 			Details:        details,
+			Health:         nil,
+			Resources:      nil,
 		})
 	}
 

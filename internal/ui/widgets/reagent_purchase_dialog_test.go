@@ -138,15 +138,7 @@ func TestReagentPurchaseDialogIsCenteredOpaqueAndResolutionSafe(t *testing.T) {
 		"[Left/Right] Quantity   [M] Max\n[Enter] Confirm   [Esc] Back",
 		dialog.GetFooterGuidance(),
 	)
-	for _, line := range parseMerchantFooterGuidance(dialog.GetFooterGuidance()) {
-		for _, segment := range line {
-			if strings.HasPrefix(segment.Text, "[") {
-				assert.Equal(t, DialogControlKeyColor, segment.Color)
-			} else {
-				assert.Equal(t, DialogControlHintColor, segment.Color)
-			}
-		}
-	}
+	requireKeyedGuidance(t, dialog.GetFooterGuidance())
 	assert.Equal(t, reagentPurchaseFooterLines, dialog.footerOutput.GetPanelContentLineCount())
 	requireImageRegionContainsColor(t, screen, dialog.frame.footerText, DialogControlKeyColor)
 	requireImageRegionContainsColor(t, screen, dialog.frame.footerText, DialogControlHintColor)

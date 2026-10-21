@@ -31,8 +31,6 @@ func (g *GameScene) updateWindAndEffects() {
 
 	g.gameState.EventQueueManager.Update()
 
-	// Background queues remain available for event-queue-owned effects.
-	g.gameState.EventQueueManager.UpdateBackground()
 	g.gameState.EventQueueManager.UpdateFeedback()
 	g.moongateVisualSystem.Update()
 	g.updateAmbientSounds()

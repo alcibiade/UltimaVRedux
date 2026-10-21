@@ -275,7 +275,7 @@ func TestShipShopUnaffordableFrigateSkiffRemainsReviewable(t *testing.T) {
 	assert.Equal(t, before, shipMapUnitValueSnapshots(shipShopOverworldUnits(t, state)))
 }
 
-func TestPurchaseShipCommitsPaymentTheftDeliveryAndRefreshInOrder(t *testing.T) {
+func TestPurchaseShipCommitsPaymentTheftAndDelivery(t *testing.T) {
 	const seed = 240212
 
 	state, npc := newOpenShipShopTestState(t, references.MerchantShipJhelom)
@@ -293,15 +293,6 @@ func TestPurchaseShipCommitsPaymentTheftDeliveryAndRefreshInOrder(t *testing.T) 
 	expectedAfterTheft := expectedAfterPayment - expectedTheft
 	units := shipShopOverworldUnits(t, state)
 	beforeUnits := len(*units)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, expectedAfterTheft, state.PartyState.Inventory.Gold.Get())
-		vehicle := units.GetVehicleAtPositionAndFloorOrNil(shop.Berth.Position, references.MainFloor)
-		require.NotNil(t, vehicle)
-		assert.True(t, vehicle.GetVehicleDetails().IsPendingDelivery())
-		assert.Equal(t, 2, vehicle.GetVehicleDetails().GetSkiffQuantity())
-	}
 
 	result, err := state.PurchaseShip(session, shipPurchaseRequest(shop, quote))
 
@@ -329,10 +320,11 @@ func TestPurchaseShipCommitsPaymentTheftDeliveryAndRefreshInOrder(t *testing.T) 
 	}, result)
 	assert.Equal(t, expectedAfterTheft, state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 	assert.Len(t, *units, beforeUnits+1)
 	vehicle := units.GetVehicleAtPositionAndFloorOrNil(result.DockPosition, references.MainFloor)
 	require.NotNil(t, vehicle)
+	assert.True(t, vehicle.GetVehicleDetails().IsPendingDelivery())
+	assert.Equal(t, 2, vehicle.GetVehicleDetails().GetSkiffQuantity())
 	assert.Equal(t, map_units.SailFurled, vehicle.GetVehicleDetails().GetSailState())
 	assert.Equal(t, map_units.MaxHullHP, vehicle.GetVehicleDetails().GetHullHP())
 }
@@ -409,8 +401,6 @@ func TestPurchaseShipLoadsReviewedSkiffQuantityAtomically(t *testing.T) {
 	request.ReviewedTotalPrice = approval.TotalPrice
 	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 
 	result, err := state.PurchaseShip(session, request)
 
@@ -421,9 +411,8 @@ func TestPurchaseShipLoadsReviewedSkiffQuantityAtomically(t *testing.T) {
 	assert.Equal(t, 2, result.SkiffCountBefore)
 	assert.Equal(t, 5, result.SkiffCountAfter)
 	assert.Equal(t, 5, frigate.GetVehicleDetails().GetSkiffQuantity())
-	assert.Equal(t, uint16(2000-result.Price)-expectedTheft, state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Reviewed total is affordable.
+	assert.Equal(t, uint16(2000-result.Price)-expectedTheft, state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestPurchaseShipRejectsQuantityBeyondRemainingCapacityAtomically(t *testing.T) {
@@ -439,15 +428,12 @@ func TestPurchaseShipRejectsQuantityBeyondRemainingCapacityAtomically(t *testing
 	request := shipPurchaseRequest(shop, shop.SkiffQuote)
 	request.Quantity = 2
 	request.ReviewedTotalPrice = shop.SkiffQuote.Price * 2
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 
 	_, err = state.PurchaseShip(session, request)
 
 	require.ErrorIs(t, err, ErrInvalidShipPurchase)
 	assert.Equal(t, uint16(2000), state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, 11, frigate.GetVehicleDetails().GetSkiffQuantity())
-	assert.Zero(t, refreshes)
 }
 
 func TestPurchaseShipRejectsFundsRefusalsAndStaleFingerprintsAtomically(t *testing.T) {
@@ -483,15 +469,12 @@ func TestPurchaseShipRejectsFundsRefusalsAndStaleFingerprintsAtomically(t *testi
 		shop, err := state.GetShipShopState(session)
 		require.NoError(t, err)
 		beforeUnits := shipMapUnitValueSnapshots(shipShopOverworldUnits(t, state))
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 
 		_, err = state.PurchaseShip(session, shipPurchaseRequest(shop, shop.SkiffQuote))
 
 		require.ErrorIs(t, err, ErrShipPurchaseRefused)
 		assert.Equal(t, uint16(2000), state.PartyState.Inventory.Gold.Get())
 		assert.Zero(t, state.GetRNG().Calls())
-		assert.Zero(t, refreshes)
 		assert.Equal(t, beforeUnits, shipMapUnitValueSnapshots(shipShopOverworldUnits(t, state)))
 	})
 
@@ -564,15 +547,12 @@ func TestPurchaseShipRejectsFundsRefusalsAndStaleFingerprintsAtomically(t *testi
 			goldBefore := state.PartyState.Inventory.Gold.Get()
 			unitsBefore := shipMapUnitValueSnapshots(shipShopOverworldUnits(t, state))
 			rngBefore := state.GetRNG().Calls()
-			refreshes := 0
-			state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 
 			_, err = state.PurchaseShip(session, request)
 
 			require.ErrorIs(t, err, ErrInvalidShipPurchase)
 			assert.Equal(t, goldBefore, state.PartyState.Inventory.Gold.Get())
 			assert.Equal(t, rngBefore, state.GetRNG().Calls())
-			assert.Zero(t, refreshes)
 			assert.Equal(t, unitsBefore, shipMapUnitValueSnapshots(shipShopOverworldUnits(t, state)))
 		})
 	}

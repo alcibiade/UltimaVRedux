@@ -183,7 +183,7 @@ func (mm *MusicManager) Update() {
 		if err := mm.audioManager.ensureAssetsLoaded(); err != nil {
 			mm.mutex.Lock()
 			if !mm.loadFailureLogged {
-				logging.Warn(logging.CategoryAudio, "Load scheduled music: %v", err)
+				logging.Warnf(logging.CategoryAudio, "Load scheduled music: %v", err)
 				mm.loadFailureLogged = true
 			}
 			mm.mutex.Unlock()
@@ -198,7 +198,7 @@ func (mm *MusicManager) Update() {
 	mm.mutex.Lock()
 	defer mm.mutex.Unlock()
 	if err := mm.policy.update(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Update music policy: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Update music policy: %v", err)
 	}
 }
 

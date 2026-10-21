@@ -181,7 +181,8 @@ func (g *GameScene) Update(game *Game) error {
 		// The closing key must not advance gameplay in its dismissal frame.
 		return nil
 	}
-	if g.finalePresentation == nil && g.keyboard.IsModifierComboPressed(input.ModifierShift, ebiten.KeyJ) &&
+	if g.finalePresentation == nil && !g.textEntryFocused() &&
+		g.keyboard.IsModifierComboPressed(input.ModifierShift, ebiten.KeyJ) &&
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyJ) {
 		g.ResetTransientCommandInput()
 		g.gameState.ActionQuestJournal()
@@ -192,7 +193,7 @@ func (g *GameScene) Update(game *Game) error {
 	switch g.updateLordBritishFinaleInput() {
 	case finaleInputReturnBeforeDoom:
 		if err := game.returnBeforeDoom(g); err != nil {
-			logging.Warn(logging.CategoryGameState, "Unable to restore pre-Doom recovery checkpoint: %v", err)
+			logging.Warnf(logging.CategoryGameState, "Unable to restore pre-Doom recovery checkpoint: %v", err)
 			g.showDoomRecoveryFailure(err)
 		}
 
@@ -260,7 +261,7 @@ func (g *GameScene) Update(game *Game) error {
 			return nil
 		}
 		if err := g.gameState.ResolvePendingOverworldContact(); err != nil {
-			logging.Error(logging.CategoryGameState, "Unable to resolve overworld contact: %v", err)
+			logging.Errorf(logging.CategoryGameState, "Unable to resolve overworld contact: %v", err)
 			g.gameState.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 		}
 
@@ -269,7 +270,7 @@ func (g *GameScene) Update(game *Game) error {
 
 	if g.gameState.HasPendingDungeonRoomEncounter() {
 		if err := g.gameState.ResolvePendingDungeonRoomEncounter(); err != nil {
-			logging.Error(logging.CategoryGameState, "Unable to enter fixed dungeon room: %v", err)
+			logging.Errorf(logging.CategoryGameState, "Unable to enter fixed dungeon room: %v", err)
 			g.gameState.SystemCallbacks.Message.AddRowStr("Room combat could not begin.")
 		}
 
@@ -371,6 +372,10 @@ func (g *GameScene) Update(game *Game) error {
 	}
 
 	acceptedKey := *boundKey
+	// Menus and readers below must not open over a ship that keeps sailing.
+	if g.interruptAutomaticSailingForCommand(acceptedKey) {
+		return nil
+	}
 	if g.handleBattleSummaryShortcut(acceptedKey) {
 		return nil
 	}
@@ -542,4 +547,16 @@ func (g *GameScene) handleActivePlayerSelection(key ebiten.Key) bool {
 	}
 
 	return false // Not a number key we handle
+}
+
+// textEntry is a modal that turns letter keys into typed text.
+type textEntry interface {
+	AcceptsText() bool
+}
+
+// textEntryFocused lets Shift+J type a capital J instead of opening the Journal.
+func (g *GameScene) textEntryFocused() bool {
+	entry, ok := g.dialogStack.PeekTopModalDialog().(textEntry)
+
+	return ok && entry.AcceptsText()
 }

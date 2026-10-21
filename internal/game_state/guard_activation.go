@@ -120,9 +120,9 @@ func guardActivationSlots(controller *ai.NPCAIControllerSmallMap) [map_units.Max
 func guardActivationHostileShape(unit map_units.MapUnit) bool {
 	sprite := unit.GetKeySpriteIndex()
 
-	return sprite == indexes.Guard_KeyIndex ||
-		sprite == indexes.Daemon_KeyIndex ||
-		sprite == indexes.ShadowLord_KeyIndex
+	return sprite == indexes.GuardKeyIndex ||
+		sprite == indexes.DaemonKeyIndex ||
+		sprite == indexes.ShadowLordKeyIndex
 }
 
 func guardActivationNPCIsHostile(unit map_units.MapUnit) bool {

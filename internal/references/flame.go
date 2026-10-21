@@ -71,6 +71,8 @@ type FlameLocation struct {
 // FlameLocations maps each Flame to its exact position in the world.
 // Truth: Lycaeum (15,9), floor 2; Love: Empath Abbey (15,3), floor 1;
 // Courage: Serpent's Hold (15,16), basement. See ref:SHADOW-0005.
+//
+//nolint:gochecknoglobals // Fixed original-game reference data, read-only after init.
 var FlameLocations = map[FlameOfPrinciple]FlameLocation{
 	FlameOfTruth: {
 		Location: Lycaeum,

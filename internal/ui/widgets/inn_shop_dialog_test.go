@@ -275,15 +275,7 @@ func TestInnShopDialogPreviewLabelsKeyboardOnlyFooterAndSemanticBacking(t *testi
 	require.NotContains(t, strings.ToLower(guidance), "tab")
 	require.NotContains(t, strings.ToLower(guidance), "mouse")
 	require.NotContains(t, strings.ToLower(guidance), "click")
-	for _, line := range parseMerchantFooterGuidance(guidance) {
-		for _, segment := range line {
-			if strings.HasPrefix(segment.Text, "[") {
-				require.Equal(t, DialogControlKeyColor, segment.Color)
-			} else {
-				require.Equal(t, DialogControlHintColor, segment.Color)
-			}
-		}
-	}
+	requireKeyedGuidance(t, guidance)
 
 	screen := ebiten.NewImage(1280, 720)
 	t.Cleanup(screen.Dispose)
@@ -592,7 +584,7 @@ func testInnGuest(
 ) game_state.InnGuestRow {
 	identity := testInnIdentity(name, party_state.Fighter)
 	billed := max(int(months), 1)
-	charge := uint16(1234 * billed) //nolint:gosec // Test values are deliberately bounded four-digit charges.
+	charge := uint16(1234 * billed)
 	affordable := charge <= 4321
 	goldAfter := uint16(4321)
 	if affordable {

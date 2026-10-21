@@ -94,7 +94,7 @@ func (g *GameState) PerformSneakCheck(character *party_state.PlayerCharacter) bo
 func (g *GameState) GetLivingAwakePartyMembers() []*party_state.PlayerCharacter {
 	var members []*party_state.PlayerCharacter
 
-	g.PartyState.ForEachCharacter(func(index int, char *party_state.PlayerCharacter) {
+	g.PartyState.ForEachCharacter(func(_ int, char *party_state.PlayerCharacter) {
 		if char.PartyMap != party_state.PartyMapActive {
 			return
 		}

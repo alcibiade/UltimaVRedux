@@ -26,7 +26,7 @@ func (m *CombatMonsterManager) AddMonster(monster *CombatMonster) int {
 	index := len(m.monsters)
 	m.monsters = append(m.monsters, monster)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Added combat monster: type=%s hp=%d index=%d",
 		monster.MonsterType().Name(), monster.CurrentHP(), index)
 

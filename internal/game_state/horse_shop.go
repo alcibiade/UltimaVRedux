@@ -113,45 +113,9 @@ func (g *GameState) GetHorseShopState(session MerchantSession) (HorseShopState, 
 // ReviewHorseShopByMerchantID builds a production price without issuing a
 // session, invoking callbacks, consuming RNG, advancing time, or mutating map state.
 func (g *GameState) ReviewHorseShopByMerchantID(id references.MerchantID) (HorseShopReview, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil {
-		return HorseShopReview{}, fmt.Errorf("%w: merchant references are unavailable", ErrInvalidMerchantSession)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return HorseShopReview{}, fmt.Errorf("%w: unknown merchant ID %q", ErrInvalidMerchantSession, id)
-	}
-	if merchant.Family != references.MerchantFamilyHorse {
-		return HorseShopReview{}, fmt.Errorf("%w: merchant %q is not a horse dealer", ErrInvalidHorsePurchase, id)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return HorseShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return HorseShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return HorseShopReview{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyHorse, ErrInvalidHorsePurchase, "a horse dealer")
+	if err != nil {
+		return HorseShopReview{}, err
 	}
 	buyer, buyerIndex := g.merchantPricingCharacter()
 	if buyer == nil {
@@ -256,7 +220,6 @@ func (g *GameState) PurchaseHorse(
 	}
 	result.Direction = insertedHorse.GetVehicleDetails().CurrentDirection()
 	result.OwnedByNPC = insertedHorse.GetVehicleDetails().IsOwnedByNPC
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }

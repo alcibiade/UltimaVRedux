@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue"
-import { invalidateInstrumentReview, useInstrumentDraft, useInstrumentError } from "./instrument_session"
-import { validateDraft } from "./command_forms"
+import { invalidateInstrumentReview, useInstrumentDraft } from "./instrument_session"
 import { vOwnedModal } from "./owned_modal"
 
 import type { ScenarioStatusData } from "./approved_tool_views"
 import type { OptionSets } from "./command_forms"
-import type { Choice, CommandDefinition, ParameterDefinition } from "./protocol"
+import type { CommandDefinition, ParameterDefinition } from "./protocol"
 import ScenarioArgumentEditor from "./ScenarioArgumentEditor.vue"
 import ScenarioStepSummary from "./ScenarioStepSummary.vue"
 import {
@@ -41,14 +40,6 @@ const props = defineProps<{
   data?: ScenarioStatusData
   updatedAt?: Date
   pendingStatus: boolean
-  pendingDirect: boolean
-  pendingHourly: boolean
-  pendingGuards: boolean
-  pendingWaterfall: boolean
-  pendingBridgeTroll: boolean
-  pendingWord: boolean
-  pendingBlackthornInterrogation: boolean
-  pendingLordBritishFinale: boolean
   pendingHoleUp: boolean
   pendingKillParty: boolean
   pendingDeathSequence: boolean
@@ -61,7 +52,6 @@ const props = defineProps<{
   historicalRunIssue?: string
   reviewedBaselineRevision?: string
   reviewedSceneGeneration?: number
-  wordChoices: Choice[]
   composer: ScenarioComposerDraft
   definitionList?: ScenarioDefinitionListResult
   runStatus?: ScenarioRunStatusResult
@@ -95,30 +85,17 @@ const emit = defineEmits<{
 
 const search = useInstrumentDraft("scenario.search", "")
 const sourceFilter = useInstrumentDraft<"all" | ScenarioSource>("scenario.source", "all")
-const seed = useInstrumentDraft<number | string>("scenario.seed", 12345)
-const word = useInstrumentDraft("scenario.word", "fallax")
 const campingHours = useInstrumentDraft("scenario.hours", 8)
 const campingGuard = useInstrumentDraft("scenario.guard", "")
 const forceWanderer = useInstrumentDraft("scenario.wanderer", false)
 const forceAmbush = useInstrumentDraft("scenario.ambush", false)
-const finaleWoodenBox = useInstrumentDraft("scenario.box", true)
-type ReviewedQuickSetup = {
-  operation: "direct" | "hourly" | "bridge" | "blackthorn" | "finale"
-  seed: number | string
-  woodenBox: boolean
-  partyFingerprint: string
-}
-const armed = ref<ReviewedQuickSetup>()
 const armedDeath = ref<{ operation: "kill-party" | "death-sequence"; fingerprint: string }>()
 const reviewPanel = ref<"project-write" | "delete" | "duplicate">()
-const reportError = useInstrumentError()
-const quickIssue = ref("")
 function cancelQuickReview(): void {
-  armed.value = undefined
   armedDeath.value = undefined
 }
 invalidateInstrumentReview(() => { cancelQuickReview(); reviewPanel.value = undefined })
-watch([seed, finaleWoodenBox, () => props.activeTask, () => props.data?.partyFingerprint, () => props.data?.wipeReview?.fingerprint], cancelQuickReview, { flush: "sync" })
+watch([() => props.activeTask, () => props.data?.partyFingerprint, () => props.data?.wipeReview?.fingerprint], cancelQuickReview, { flush: "sync" })
 const confirmation = ref("")
 const duplicateSource = ref<ScenarioSource>("personal")
 const duplicateID = ref("")
@@ -314,48 +291,6 @@ function confirmDuplicate(): void {
     destinationName: duplicateName.value,
   })
   reviewPanel.value = undefined
-}
-
-function stage(operation: "direct" | "hourly" | "bridge" | "blackthorn" | "finale"): void {
-  quickIssue.value = ""
-  if (["direct", "hourly", "bridge"].includes(operation)) {
-    const commandID = operation === "direct" ? "scenario.starvation.trigger" : operation === "hourly" ? "scenario.starvation.force-hourly" : "scenario.bridge-troll.start"
-    const command = commandIndex.value.get(commandID)
-    const issue = !String(seed.value).trim() ? "Enter a whole number. Blank is not zero."
-      : command ? Object.values(validateDraft(command, { seed: String(seed.value) }, props.optionSets)).join(" ") : "The setup is unavailable in the current catalog."
-    if (issue) {
-      cancelQuickReview()
-      quickIssue.value = `Seed: ${issue}`
-      reportError(quickIssue.value)
-      return
-    }
-  }
-  if (armed.value?.operation !== operation) {
-    armed.value = {
-      operation,
-      seed: seed.value,
-      woodenBox: finaleWoodenBox.value,
-      partyFingerprint: props.data?.partyFingerprint ?? "",
-    }
-    return
-  }
-  const reviewed = armed.value
-  const commands = {
-    direct: "scenario.starvation.trigger",
-    hourly: "scenario.starvation.force-hourly",
-    bridge: "scenario.bridge-troll.start",
-    blackthorn: "scenario.blackthorn-interrogation.start",
-    finale: "scenario.lord-british-finale.start",
-  }
-  emit("run", {
-    commandID: commands[operation],
-    argumentsByID: operation === "direct" || operation === "hourly" || operation === "bridge"
-      ? { seed: String(reviewed.seed) }
-      : operation === "finale"
-        ? { expectedPartyFingerprint: reviewed.partyFingerprint, woodenBox: String(reviewed.woodenBox) }
-        : { expectedPartyFingerprint: reviewed.partyFingerprint },
-  })
-  armed.value = undefined
 }
 
 function stageDeath(operation: "kill-party" | "death-sequence"): void {
@@ -940,24 +875,14 @@ function formatTimestamp(value: string): string {
 
     <section v-else class="scenario-quick-setups" data-scenario-screen="quick-setups">
       <p class="scenario-utility-note">QUICK SETUPS ARE IMMUTABLE BUILT-IN TEST UTILITIES. THEY ARE NOT SAVED SCENARIO SCRIPTS.</p>
-      <p v-if="quickIssue" class="error-line" role="alert">{{ quickIssue }}</p>
-      <section v-if="armed || armedDeath" class="locker-review" data-quick-review>
-        <p v-if="armed">REVIEWED {{ armed.operation.toUpperCase() }}: {{ ['direct', 'hourly', 'bridge'].includes(armed.operation) ? `SEED ${armed.seed}` : armed.operation === 'finale' ? `WOODEN BOX ${armed.woodenBox ? 'OWNED' : 'ABSENT'}` : `PARTY ${armed.partyFingerprint}` }}</p>
-        <p v-else-if="armedDeath">REVIEWED {{ armedDeath.operation }}: PARTY {{ armedDeath.fingerprint }}</p>
+      <section v-if="armedDeath" class="locker-review" data-quick-review>
+        <p>REVIEWED {{ armedDeath.operation }}: PARTY {{ armedDeath.fingerprint }}</p>
         <button type="button" @click="cancelQuickReview">CANCEL REVIEW</button>
       </section>
       <template v-if="data"><div class="scenario-context"><div><span>LOCATION</span><strong>{{ data.locationName }}</strong><small>{{ data.mapType }} · FLOOR {{ data.floor }}</small></div><div><span>TIME</span><strong>{{ data.time }}</strong><small>{{ data.date }}</small></div><div><span>FOOD</span><strong>{{ data.food }}</strong><small>{{ data.allPartyDead ? 'PARTY DEAD' : 'PARTY ACTIVE' }}</small></div><div><span>CONTEXT</span><strong>{{ blocked ? 'BLOCKED' : 'READY' }}</strong><small>{{ data.gameplayTerminal ? 'TERMINAL FINALE' : data.finaleActive ? 'FINALE HANDOFF' : data.combatActive ? 'COMBAT' : data.dialogActive ? 'DIALOG' : data.gameplayWorkflowActive ? 'WORKFLOW' : data.scriptedSceneActive ? 'SCRIPTED SCENE' : 'SAFE TO RUN' }}</small></div></div>
         <section class="scenario-party"><header><strong>ACTIVE PARTY BASELINE</strong><small>{{ updatedAt ? `SYNC ${updatedAt.toLocaleTimeString([], { hour12: false })}` : 'WAITING' }}</small></header><div v-for="member in data.party" :key="member.partyPosition" class="scenario-party-row"><strong>P{{ member.partyPosition }} · {{ member.name }}</strong><span>HP {{ member.currentHp }}/{{ member.maximumHp }}</span><span>MP {{ member.currentMp }}</span><span>XP {{ member.experience }}</span><small>{{ member.status }}</small></div></section>
         <div class="scenario-grid">
           <section class="scenario-card hole-up-card"><header><strong>HOLE UP</strong><small>PRODUCTION CAMPING WORKFLOW</small></header><p>Queue camping with explicit encounter branches against this reviewed active party.</p><label>HOURS<input v-model.number="campingHours" type="number" min="1" max="24" /></label><label>GUARD<select v-model="campingGuard"><option value="">No guard</option><option v-for="member in data.party" :key="member.rosterIndex" :value="String(member.rosterIndex)">{{ member.name }}</option></select></label><label><input v-model="forceWanderer" type="checkbox" /> FORCE WANDERER</label><label><input v-model="forceAmbush" type="checkbox" /> FORCE AMBUSH</label><button type="button" :disabled="blocked || pendingHoleUp || campingHours < 1 || campingHours > 24" @click="emit('run', { commandID: 'command-test.hole-up', argumentsByID: { hours: String(campingHours), forceWanderer: String(forceWanderer), forceAmbush: String(forceAmbush), expectedPartyFingerprint: data.partyFingerprint, ...(campingGuard ? { guardRosterIndex: campingGuard } : {}) } })">{{ pendingHoleUp ? 'QUEUEING...' : 'QUEUE CAMPING' }}</button></section>
-          <section class="scenario-card danger-card"><header><strong>DIRECT STARVATION</strong><small>FOOD/TIME PRESERVED</small></header><p>Apply one seeded 1-8 HP starvation roll to every living active character.</p><label>SEED<input v-model="seed" type="number" min="0" max="2147483647" /></label><button type="button" :disabled="blocked || pendingDirect" @click="stage('direct')">{{ pendingDirect ? 'RUNNING...' : armed?.operation === 'direct' ? 'CONFIRM DAMAGE' : 'REVIEW DAMAGE' }}</button></section>
-          <section class="scenario-card danger-card"><header><strong>HOURLY STARVATION</strong><small>DESTRUCTIVE SETUP</small></header><p>Set food to zero, set the hour to 12, and execute the authentic hourly meal check.</p><label>SEED<input v-model="seed" type="number" min="0" max="2147483647" /></label><button type="button" :disabled="blocked || pendingHourly" @click="stage('hourly')">{{ pendingHourly ? 'RUNNING...' : armed?.operation === 'hourly' ? 'CONFIRM FOOD/TIME/DAMAGE' : 'REVIEW HOURLY CHECK' }}</button></section>
-          <section class="scenario-card"><header><strong>TOWN GUARD HOSTILITY</strong><small>{{ data.guards.supported ? 'SMALL MAP' : 'UNAVAILABLE' }}</small></header><p v-if="data.guards.supported">Criminal {{ data.guards.criminal ? 'YES' : 'NO' }} · Hostile {{ data.guards.hostilePotentialGuardCount }}/{{ data.guards.potentialGuardCount }}</p><p v-else>{{ data.guards.unavailableReason }}</p><button type="button" :disabled="blocked || pendingGuards || !data.guards.supported || data.guards.potentialGuardCount === 0" @click="emit('run', { commandID: 'scenario.guards.activate', argumentsByID: {} })">{{ pendingGuards ? 'ACTIVATING...' : 'ACTIVATE GUARDS' }}</button></section>
-          <section class="scenario-card waterfall-setup-card"><header><strong>WATERFALL ENTRY</strong><small>AUTHENTIC TRIGGER</small></header><p>Move one step before the original waterfall tile. Walk south once to begin the production hazard workflow.</p><button type="button" :disabled="blocked || pendingWaterfall" @click="emit('run', { commandID: 'scenario.waterfall.setup', argumentsByID: {} })">{{ pendingWaterfall ? 'POSITIONING...' : 'SET UP WATERFALL' }}</button></section>
-          <section class="scenario-card bridge-troll-card"><header><strong>BRIDGE TROLL</strong><small>PRODUCTION SNEAK / ATTACK</small></header><p>Move onto an original troll bridge, force the first sneak check to fail, and remove all gold. Refuse the toll or try to pay to enter combat.</p><label>SEED<input v-model="seed" type="number" min="0" max="2147483647" /></label><button type="button" :disabled="blocked || pendingBridgeTroll" @click="stage('bridge')">{{ pendingBridgeTroll ? 'STARTING...' : armed?.operation === 'bridge' ? 'CONFIRM GOLD / DEX / POSITION' : 'REVIEW SNEAK + ATTACK' }}</button></section>
-          <section class="scenario-card danger-card blackthorn-interrogation-card"><header><strong>BLACKTHORN INTERROGATION</strong><small>PRODUCTION PRISON WORKFLOW</small></header><p>Open the Shrine of Honesty, move to Blackthorn's Palace, and begin the full mantra interrogation. Answers can ruin the shrine and martyr a companion.</p><button type="button" class="danger-button" :disabled="blocked || pendingBlackthornInterrogation" @click="stage('blackthorn')">{{ pendingBlackthornInterrogation ? 'STARTING...' : armed?.operation === 'blackthorn' ? 'CONFIRM PALACE / SHRINE / PARTY' : 'REVIEW INTERROGATION' }}</button></section>
-          <section class="scenario-card danger-card lord-british-finale-card"><header><strong>LORD BRITISH FINALE</strong><small>TERMINAL PRODUCTION WORKFLOW</small></header><p>Begin the rescue-room sequence and ending. Sandalwood Box ownership determines whether an accepted Yes answer can reach the success ending.</p><label>SANDALWOOD BOX<select v-model="finaleWoodenBox"><option :value="true">OWNED</option><option :value="false">ABSENT</option></select></label><button type="button" class="danger-button" :disabled="blocked || pendingLordBritishFinale" @click="stage('finale')">{{ pendingLordBritishFinale ? 'STARTING...' : armed?.operation === 'finale' ? 'CONFIRM TERMINAL FINALE' : 'REVIEW ENDING' }}</button></section>
-          <section class="scenario-card word-setup-card"><header><strong>WORD OF POWER</strong><small>PRODUCTION YELL</small></header><p>Move beside the original dungeon entrance, then use Yell normally.</p><label for="scenario-word">WORD<select id="scenario-word" v-model="word"><option v-for="choice in wordChoices" :key="choice.value" :value="choice.value">{{ choice.label }}</option></select></label><button type="button" :disabled="blocked || pendingWord" @click="emit('run', { commandID: 'scenario.word.setup', argumentsByID: { word } })">{{ pendingWord ? 'POSITIONING...' : 'SET UP DUNGEON' }}</button></section>
           <section class="scenario-card danger-card death-wipe-card"><header><strong>KILL ACTIVE PARTY</strong><small>ATOMIC WIPE ONLY</small></header><p>Set the reviewed active party to zero HP and Dead without starting resurrection.</p><small>{{ data.wipeReview.members.length }} MEMBERS · REVIEW {{ data.wipeReview.fingerprint.slice(0, 12) }}</small><button type="button" class="danger-button" :disabled="blocked || pendingKillParty || data.wipeReview.members.length === 0" @click="stageDeath('kill-party')">{{ pendingKillParty ? 'WIPING...' : armedDeath?.operation === 'kill-party' ? 'CONFIRM DESTRUCTIVE WIPE' : 'REVIEW PARTY WIPE' }}</button></section>
           <section class="scenario-card danger-card death-sequence-card"><header><strong>DEATH / RESURRECTION</strong><small>PRODUCTION WORKFLOW</small></header><p>Atomically wipe the reviewed party, then queue the production resurrection workflow.</p><small>{{ data.wipeReview.members.map((member) => `${member.name} ${member.hp} HP`).join(' · ') }}</small><button type="button" class="danger-button" :disabled="blocked || pendingDeathSequence || data.wipeReview.members.length === 0" @click="stageDeath('death-sequence')">{{ pendingDeathSequence ? 'QUEUEING...' : armedDeath?.operation === 'death-sequence' ? 'CONFIRM WIPE + WORKFLOW' : 'REVIEW DEATH SEQUENCE' }}</button></section>
         </div></template><p v-else class="empty-state">WAITING FOR SCENARIO STATUS</p>

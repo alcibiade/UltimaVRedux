@@ -139,7 +139,7 @@ func TestLordBritishFinaleNonMissingBoxFailureDoesNotOfferRecovery(t *testing.T)
 	presentation := scene.finalePresentation
 	presentation.mode = finaleFailureScreen
 	presentation.recoveryOffered = false
-	presentation.dialog.SetControlHint("Any key: Return to Main Menu")
+	presentation.dialog.SetControlHint("[Any key] Return to Main Menu")
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
 
 	assert.Equal(t, finaleFailureScreen, presentation.mode)
@@ -398,14 +398,14 @@ func TestFinaleCancellationCleansPresentationOwnedState(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{ //nolint:exhaustruct // Focused finale cancellation fixture.
+	scene := &GameScene{
 		gameState: state,
 		miniMapScene: minimap.NewMiniMapScene().AddActor(
 			minimap.ActorLordBritish,
 			references.Position{X: 5, Y: 8},
 			0,
 		),
-		finalePresentation: &lordBritishFinalePresentation{ //nolint:exhaustruct // Cancellation requires only owned fields.
+		finalePresentation: &lordBritishFinalePresentation{
 			mode: finaleRescueMap,
 		},
 		screenFlashIntensity: 1,
@@ -449,7 +449,7 @@ func newLordBritishFinaleWorkflowTestScene(t *testing.T, hasBox bool) *GameScene
 		state.PartyState.Inventory.QuestItems.Set(references.WoodenBox, 1)
 	}
 	font, _ := newMainOutput(1280)
-	scene := &GameScene{ //nolint:exhaustruct // Focused production finale workflow fixture.
+	scene := &GameScene{
 		gameConfig: state.GameConfig,
 		gameState:  state,
 		// Simulated prompt input must not mix with keys held on the host desktop.
@@ -528,7 +528,7 @@ func finaleMapFixtureConfig(t *testing.T) *config.UltimaVConfiguration {
 	data[finaleFixtureMapOffset+6*finaleFixtureMapRowBytes+8] = byte(indexes.ChairBackForward)
 	require.NoError(t, os.WriteFile(filepath.Join(directory, "MISCMAPS.DAT"), data, 0o600))
 
-	return &config.UltimaVConfiguration{ //nolint:exhaustruct // Finale loading requires only the original-data path.
+	return &config.UltimaVConfiguration{
 		SavedConfigData: &config.UltimaVConfigurationFlags{DataFilePath: directory},
 	}
 }
@@ -548,7 +548,7 @@ func finaleAssetFixture() *sprites.EndgameAssets {
 		"We must remain here a while.",
 	}
 
-	return &sprites.EndgameAssets{ //nolint:exhaustruct // Draw-only assets are unnecessary for workflow sequencing.
+	return &sprites.EndgameAssets{
 		Shapes: make(map[string][]*ebiten.Image), Narrative: nil,
 		ArtText:  []string{"art-1", "art-2", "art-3", "art-4", "art-5", "art-6"},
 		Messages: messages,

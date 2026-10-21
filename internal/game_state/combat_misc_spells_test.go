@@ -12,9 +12,6 @@ import (
 
 func TestCastCombatAnYlemRemovesOnlyOriginalObjectTiles(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	origin := references.Position{X: 5, Y: 5}
 	target := references.Position{X: 5, Y: 6}
@@ -31,9 +28,6 @@ func TestCastCombatAnYlemRemovesOnlyOriginalObjectTiles(t *testing.T) {
 
 func TestCastCombatAnYlemUsesExactCloneOrigin(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	clonePosition := references.Position{X: 2, Y: 2}
 	target := references.Position{X: 2, Y: 3}
@@ -53,9 +47,6 @@ func TestCastCombatAnYlemUsesExactCloneOrigin(t *testing.T) {
 
 func TestCastCombatWisQuasRevealsActiveInvisibleMonsters(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	monster.SetInvisible(true)
 
 	assert.Equal(t, []references.Position{monster.Position()}, gs.CastCombatWisQuas())
@@ -65,9 +56,6 @@ func TestCastCombatWisQuasRevealsActiveInvisibleMonsters(t *testing.T) {
 
 func TestCombatAdjacentSpellTargetingAnYlemDefersResourcesUntilValidConfirmation(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
 	caster.Level = 1
@@ -93,9 +81,6 @@ func TestCombatAdjacentSpellTargetingAnYlemDefersResourcesUntilValidConfirmation
 
 func TestCastCombatInVasPorYlemDamagesEligibleHostileMonster(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	monster.currentDex = 1
 	gs.SetRandomSeed(1)

@@ -220,12 +220,6 @@ func TestPurchaseReagentOfferCommitsPaidSaturationInAuthoritativeOrder(t *testin
 	expectedRNG := beradrng.New(seed)
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 	expectedTheft = min(expectedTheft, uint16(61))
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, uint16(61)-expectedTheft, state.PartyState.Inventory.Gold.Get())
-		assert.Equal(t, uint16(99), state.PartyState.Inventory.Reagent.Get(references.BloodMoss))
-	}
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	beforeTime := state.DateTime
@@ -252,8 +246,9 @@ func TestPurchaseReagentOfferCommitsPaidSaturationInAuthoritativeOrder(t *testin
 		Theft:             expectedTheft,
 		GoldAfterTheft:    uint16(61) - expectedTheft,
 	}, result)
+	assert.Equal(t, uint16(61)-expectedTheft, state.PartyState.Inventory.Gold.Get())
+	assert.Equal(t, uint16(99), state.PartyState.Inventory.Reagent.Get(references.BloodMoss))
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 	assert.Equal(t, beforeTime, state.DateTime)
 }
 
@@ -263,8 +258,6 @@ func TestPurchaseReagentOfferExactPaymentStillInvokesFaulineiOnce(t *testing.T) 
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.PartyState.Inventory.Gold.Set(20)
 	state.PartyState.Inventory.Reagent.Set(references.SulfurAsh, 0)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -280,7 +273,6 @@ func TestPurchaseReagentOfferExactPaymentStillInvokesFaulineiOnce(t *testing.T) 
 	assert.Zero(t, result.GoldAfterTheft)
 	assert.Equal(t, uint16(12), result.ActualReceipt)
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing.T) {
@@ -299,8 +291,6 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 
@@ -314,7 +304,7 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			BundleCount: 0,
 		})
 		require.ErrorIs(t, err, ErrInvalidReagentPurchase)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5)
 	})
 
 	t.Run("gold changed after quote", func(t *testing.T) {
@@ -323,8 +313,6 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		quote, err := state.QuoteReagentOffer(session, references.Ginseng)
@@ -337,7 +325,7 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			BundleCount: 1,
 		})
 		require.ErrorIs(t, err, ErrInvalidReagentPurchase)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 0, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 0, 5)
 	})
 
 	t.Run("quantity changed after quote", func(t *testing.T) {
@@ -346,8 +334,6 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		_, err = state.QuoteReagentOffer(session, references.Ginseng)
@@ -359,7 +345,7 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			BundleCount: 1,
 		})
 		require.ErrorIs(t, err, ErrInvalidReagentPurchase)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 99, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 99)
 	})
 
 	t.Run("superseded session and ineligible buyer", func(t *testing.T) {
@@ -368,8 +354,6 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 		state.ShadowlordState.AutomaticPresence = references.Faulinei
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		first, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		current, err := state.BeginMerchantSession(npc)
@@ -381,15 +365,13 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 		state.PartyState.GetCharacter(current.PricingCharacterIndex()).SetStatus(party_state.Dead)
 		_, err = state.PurchaseReagentOffer(current, request)
 		require.ErrorIs(t, err, ErrInvalidMerchantSession)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5)
 	})
 
 	t.Run("wrong floor", func(t *testing.T) {
 		state, npc := newOpenMerchantTestState(t, references.MerchantReagentMoonglow)
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		npc.SetFloor(state.MapState.PlayerLocation.Floor + 1)
@@ -398,15 +380,13 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			Reagent: references.Ginseng, BundleCount: 1,
 		})
 		require.ErrorIs(t, err, ErrInvalidMerchantSession)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5)
 	})
 
 	t.Run("location changed", func(t *testing.T) {
 		state, npc := newOpenMerchantTestState(t, references.MerchantReagentMoonglow)
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		state.MapState.PlayerLocation.Location = references.Britain
@@ -415,15 +395,13 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			Reagent: references.Ginseng, BundleCount: 1,
 		})
 		require.ErrorIs(t, err, ErrInvalidMerchantSession)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5)
 	})
 
 	t.Run("schedule closed", func(t *testing.T) {
 		state, npc := newOpenMerchantTestState(t, references.MerchantReagentMoonglow)
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		setMerchantDesiredSlot(t, state, npc, 0)
@@ -432,15 +410,13 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			Reagent: references.Ginseng, BundleCount: 1,
 		})
 		require.ErrorIs(t, err, ErrMerchantClosed)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5)
 	})
 
 	t.Run("mounted after quote", func(t *testing.T) {
 		state, npc := newOpenMerchantTestState(t, references.MerchantReagentMoonglow)
 		state.PartyState.Inventory.Gold.Set(500)
 		state.PartyState.Inventory.Reagent.Set(references.Ginseng, 5)
-		refreshes := 0
-		state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 		session, err := state.BeginMerchantSession(npc)
 		require.NoError(t, err)
 		setPartyTestVehicle(state, references.HorseVehicle)
@@ -449,7 +425,7 @@ func TestReagentOperationsRejectInvalidAndStaleRequestsWithoutEffects(t *testing
 			Reagent: references.Ginseng, BundleCount: 1,
 		})
 		require.ErrorIs(t, err, ErrMerchantHorsebackRefusal)
-		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5, refreshes)
+		assertReagentPurchaseUnchanged(t, state, references.Ginseng, 500, 5)
 	})
 }
 
@@ -457,8 +433,6 @@ func TestPurchaseReagentOfferSupportsRepeatedPurchasesInOneSession(t *testing.T)
 	state, npc := newOpenMerchantTestState(t, references.MerchantReagentYew)
 	state.PartyState.Inventory.Gold.Set(100)
 	state.PartyState.Inventory.Reagent.Set(references.SpiderSilk, 0)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	beforeTime := state.DateTime
@@ -480,7 +454,6 @@ func TestPurchaseReagentOfferSupportsRepeatedPurchasesInOneSession(t *testing.T)
 	assert.Equal(t, uint16(6), second.QuantityAfter)
 	assert.Equal(t, 26, second.TotalPrice)
 	assert.Equal(t, uint16(61), state.PartyState.Inventory.Gold.Get())
-	assert.Equal(t, 2, refreshes)
 	assert.Zero(t, state.GetRNG().Calls())
 	assert.Equal(t, beforeTime, state.DateTime)
 }
@@ -535,11 +508,9 @@ func assertReagentPurchaseUnchanged(
 	reagent references.Reagent,
 	wantGold uint16,
 	wantQuantity uint16,
-	refreshes int,
 ) {
 	t.Helper()
 	assert.Equal(t, wantGold, state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, wantQuantity, state.PartyState.Inventory.Reagent.Get(reagent))
 	assert.Zero(t, state.GetRNG().Calls())
-	assert.Zero(t, refreshes)
 }

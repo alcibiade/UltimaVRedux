@@ -130,8 +130,8 @@ func (g *GameScene) drawCombatPartySpellHUD(screen *ebiten.Image, turnBounds, ev
 		bottom.AppendLine().Text(preview.Consequence, widgets.DialogValueColor).WordWrap().Done()
 	}
 	bottom.AppendLine().Text("Cost: ", widgets.DialogLabelColor).Textf("%d MP + 1 mixture", widgets.DialogValueColor, references.GetSpellCircle(targeting.Request.Spell)).WordWrap().Done()
-	widgets.AppendControlHints(bottom.AppendLine(), "Arrows/keypad: Aim   Tab: Next recipient").WordWrap().Done()
-	widgets.AppendControlHints(bottom.AppendLine(), "Enter: Cast   Esc: Cancel").WordWrap().Done()
+	widgets.AppendControlHints(bottom.AppendLine(), "[Arrows/keypad] Aim   [Tab] Next recipient").WordWrap().Done()
+	widgets.AppendControlHints(bottom.AppendLine(), "[Enter] Cast   [Esc] Cancel").WordWrap().Done()
 	top.DrawPanelContent(screen, turnBounds.Min, turnBounds.Dx(), etext.AlignStart)
 	bottom.DrawPanelContent(screen, eventBounds.Min, eventBounds.Dx(), etext.AlignStart)
 }

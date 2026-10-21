@@ -28,7 +28,6 @@ const (
 	// Talk dialog uses FontSizeLarge (20pt) with 1.3x line spacing (26pt) for readability
 	talkFontSize              = widgets.FontSizeLarge // 20pt
 	talkLineSpacingMultiplier = 1.3                   // 26/20 = 1.3 for extra readability
-	talkMaxLines              = 11
 	talkContinuousMaxLines    = 14
 	talkMaxCharsInput         = 45
 	talkHistoryMaxEntries     = 256
@@ -57,8 +56,6 @@ const (
 const (
 	textRectStartPercentX = talkPercentOffEdge + percentTextIndentFromBorder
 	textRectEndPercentX   = .75 + .01 - talkPercentOffEdge
-	textRectStartPercentY = 0.57
-	textRectEndPercentY   = 0.82
 )
 const (
 	textInputStartPercentX = textRectStartPercentX
@@ -70,9 +67,7 @@ const (
 const (
 	maxPauseSplits = 2 // Split at first pause marker only (before + after)
 	// UI text constants
-	promptSpaceSuffix     = " "               // Space appended after input prompts
-	interestPlaceholder   = " name, job, bye" // Topic suggestions; controls belong to the styled footer.
-	backgroundInsetPixels = 5                 // Inset from border for background rect
+	interestPlaceholder = " name, job, bye" // Topic suggestions; controls belong to the styled footer.
 )
 
 // LinearTalkDialog presents one stateful conversation engine.
@@ -224,7 +219,7 @@ func (d *LinearTalkDialog) initializeResizeableVisualElements() {
 }
 
 func (d *LinearTalkDialog) reflowTranscriptOutput() {
-	maxLines := linearTalkOutputMaxLines(activeLinearTalkPresentation)
+	maxLines := talkContinuousMaxLines
 	if d.Output == nil {
 		d.font, d.Output = widgets.GetScaledFontWithOutput(widgets.FontConfig{
 			Size:                  talkFontSize,
@@ -290,17 +285,6 @@ func (d *LinearTalkDialog) initializeConversationTextInput() {
 	} else {
 		d.TextInput.SetFontPoint(widgets.GetScaledLineHeight(talkFontSize))
 	}
-}
-
-func linearTalkOutputMaxLines(style linearTalkPresentationStyle) int {
-	switch style {
-	case linearTalkPresentationJoined:
-		return talkMaxLines
-	case linearTalkPresentationContinuousColon, linearTalkPresentationContinuousMarker:
-		return talkContinuousMaxLines
-	}
-
-	panic("linearTalkOutputMaxLines: unsupported presentation style")
 }
 
 // startConversation initiates the conversation and displays initial output
@@ -406,7 +390,7 @@ func (d *LinearTalkDialog) displayResponseOutput() {
 
 			d.beginPauseAnimation()
 
-			logging.Debug(logging.CategoryUI,
+			logging.Debugf(logging.CategoryUI,
 				"Started segment-based pause animation, pending: %d segments", len(d.pendingSegments))
 		} else {
 			// No pause marker - render all segments
@@ -423,7 +407,7 @@ func (d *LinearTalkDialog) displayResponseOutput() {
 		d.pendingSegments = nil
 		d.pendingContinues = outputContinuesAfterText(beforePause, d.currentResponse.ContinuesPreviousOutput)
 		d.beginPauseAnimation()
-		logging.Debug(logging.CategoryUI, "Started pause animation, pending: %d chars", len(d.pendingOutput))
+		logging.Debugf(logging.CategoryUI, "Started pause animation, pending: %d chars", len(d.pendingOutput))
 	} else {
 		d.outputTextToDialog(d.currentResponse.Output, d.currentResponse.ContinuesPreviousOutput)
 	}
@@ -454,62 +438,24 @@ func (d *LinearTalkDialog) setInputPromptFromResponse() {
 }
 
 func (d *LinearTalkDialog) addInputPrompt(prompt string) {
-	d.addInputPromptForStyle(prompt, activeLinearTalkPresentation)
-}
-
-func (d *LinearTalkDialog) addInputPromptForStyle(prompt string, style linearTalkPresentationStyle) {
-	switch style {
-	case linearTalkPresentationJoined:
-		d.Output.AddStyledPrompt([]text.ColorSegment{
-			{
-				Text: prompt + promptSpaceSuffix, Color: ultimacolor.EGALightGreen,
-				FontType: text.FontTypeNormal, FontScale: text.FontScaleNormal,
-			},
-		}, etext.AlignStart)
-	case linearTalkPresentationContinuousColon, linearTalkPresentationContinuousMarker:
-		d.Output.AddStyledText([]text.ColorSegment{
-			{
-				Text: linearTalkContinuousPrompt(prompt, style), Color: ultimacolor.EGALightGreen,
-				FontType: text.FontTypeNormal, FontScale: text.FontScaleNormal,
-			},
-		}, etext.AlignStart)
-		d.Output.AddStyledPrompt(linearTalkResponseMarkerSegments(style), etext.AlignStart)
-	}
-}
-
-func linearTalkContinuousPrompt(prompt string, style linearTalkPresentationStyle) string {
-	if style == linearTalkPresentationContinuousColon && prompt == "You respond:" {
-		return "You respond-"
-	}
-
-	return prompt
-}
-
-func linearTalkResponseMarkerSegments(style linearTalkPresentationStyle) []text.ColorSegment {
-	switch style {
-	case linearTalkPresentationContinuousColon:
-		return []text.ColorSegment{{
-			Text: ": ", Color: ultimacolor.EGALightGreen, FontType: text.FontTypeNormal,
+	d.Output.AddStyledText([]text.ColorSegment{
+		{
+			Text: prompt, Color: ultimacolor.EGALightGreen,
+			FontType: text.FontTypeNormal, FontScale: text.FontScaleNormal,
+		},
+	}, etext.AlignStart)
+	// REDUX DEVIATION: TALK-0004: original conversation input echoes after a plain colon.
+	// Redux uses the classic command marker to distinguish the live response row.
+	d.Output.AddStyledPrompt([]text.ColorSegment{
+		{
+			Text: ">", Color: ultimacolor.EGALightGreen, FontType: text.FontTypeCommandPrompt,
 			FontScale: text.FontScaleNormal,
-		}}
-	case linearTalkPresentationContinuousMarker:
-		// REDUX DEVIATION: TALK-0004: original conversation input echoes after a plain colon.
-		// C3 uses the existing classic command marker to distinguish the live response row.
-		return []text.ColorSegment{
-			{
-				Text: ">", Color: ultimacolor.EGALightGreen, FontType: text.FontTypeCommandPrompt,
-				FontScale: text.FontScaleNormal,
-			},
-			{
-				Text: " ", Color: ultimacolor.EGALightGreen, FontType: text.FontTypeNormal,
-				FontScale: text.FontScaleNormal,
-			},
-		}
-	case linearTalkPresentationJoined:
-		panic("linearTalkResponseMarkerSegments: joined presentation has no transcript marker")
-	}
-
-	panic("linearTalkResponseMarkerSegments: unsupported presentation style")
+		},
+		{
+			Text: " ", Color: ultimacolor.EGALightGreen, FontType: text.FontTypeNormal,
+			FontScale: text.FontScaleNormal,
+		},
+	}, etext.AlignStart)
 }
 
 // onEnter commits user input to the active prompt or response-marker row.
@@ -644,4 +590,9 @@ func outputContinuesAfterSegments(segments []conversation.TextSegment, inherited
 	}
 
 	return outputContinuesAfterText(segments[len(segments)-1].Text, inherited)
+}
+
+// AcceptsText reports whether the player is typing a keyword.
+func (d *LinearTalkDialog) AcceptsText() bool {
+	return d.historyPanel == nil && !d.waitingForKeypressContinue && !d.waitingForDismissal
 }

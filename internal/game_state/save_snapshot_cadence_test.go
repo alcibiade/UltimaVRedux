@@ -1,7 +1,6 @@
 package game_state
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -111,62 +110,6 @@ func TestSaveSnapshotCadenceOriginalImportStartsAllPhasesFalse(t *testing.T) {
 	assert.False(t, state.townQuicknessActorSkip)
 	assert.False(t, state.outdoorMountedActorSkip)
 	assert.False(t, state.quicknessWorldActorSkip)
-}
-
-func TestSaveSnapshotCadenceHistoricalQuicknessPreservesNextReachedGate(t *testing.T) {
-	for _, location := range []references.Location{references.Britain, references.BritanniaUnderworld} {
-		for _, oldSkipNext := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/skip=%v", location, oldSkipNext), func(t *testing.T) {
-				state, _ := NewIntegrationTestBuilder(t).WithLocation(location).WithFloor(0).
-					WithPlayerAt(15, 15).WithSystemCallbacks().Build()
-				state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectQuickness, TurnsRemaining: 30}
-				snapshot, err := state.CaptureSaveSnapshot()
-				require.NoError(t, err)
-				envelope := save_snapshot.Envelope{
-					Format: save_snapshot.EnvelopeFormat, EnvelopeVersion: save_snapshot.CurrentEnvelopeVersion,
-					Metadata: save_snapshot.Metadata{Name: "Historical cadence", CreatedAt: time.Date(2026, 9, 6, 0, 0, 0, 0, time.UTC)},
-					Snapshot: snapshot,
-				}
-				data, err := save_snapshot.EncodeCanonical(envelope)
-				require.NoError(t, err)
-				var document map[string]any
-				require.NoError(t, json.Unmarshal(data, &document))
-				wire := document["snapshot"].(map[string]any)
-				wire["version"] = 14
-				delete(wire, "excerpts")
-				removeSnapshotV24Fields(wire)
-				delete(wire, "openDoor")
-				delete(wire, "presentation")
-				delete(wire, "lastConversation")
-				delete(wire, "dungeonJournal")
-				delete(wire, "moonstoneJournal")
-				delete(wire, "atlasLandmarks")
-				if units, ok := wire["mapUnits"].([]any); ok {
-					for _, value := range units {
-						delete(value.(map[string]any), "surfaceChestAssessment")
-					}
-				}
-				for _, entry := range wire["redux"].(map[string]any)["questJournal"].([]any) {
-					delete(entry.(map[string]any), "sourceName")
-				}
-				effects := wire["effects"].(map[string]any)
-				delete(effects, "townMountedActorSkip")
-				delete(effects, "townQuicknessActorSkip")
-				delete(effects, "outdoorMountedActorSkip")
-				effects["quicknessWorldActorSkip"] = oldSkipNext
-				data, err = json.Marshal(document)
-				require.NoError(t, err)
-				decoded, err := save_snapshot.Decode(data)
-				require.NoError(t, err)
-				hydrated, err := NewGameStateFromSaveSnapshot(decoded.Snapshot, state.GameConfig, state.GameReferences,
-					xTilesVisibleOnGameScreen, yTilesVisibleOnGameScreen)
-				require.NoError(t, err)
-				assert.Equal(t, !oldSkipNext, hydrated.shouldProcessNonCombatWorldActorsForCommand(true))
-				assert.Equal(t, oldSkipNext, hydrated.shouldProcessNonCombatWorldActorsForCommand(true))
-				assert.Equal(t, snapshot.Random.SourceCalls, hydrated.GetRNG().Calls())
-			})
-		}
-	}
 }
 
 func TestSaveSnapshotMoongateContractionWaitsForStableRegrowth(t *testing.T) {

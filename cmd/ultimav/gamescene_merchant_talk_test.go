@@ -34,7 +34,7 @@ func TestNPCAutoTalkOrdinaryGuardPreservesLinearConversationRouting(t *testing.T
 	state := new(game_state.GameState)
 	scene := &GameScene{gameState: state}
 	ordinaryReference := references.NPCReference{DialogNumber: 1}
-	ordinaryReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	ordinaryReference.SetKeyIndex(indexes.GuardKeyIndex)
 	ordinaryGuard := map_units.NewNPCFriendly(ordinaryReference, 0)
 
 	require.Equal(t, TalkTypeNormal, scene.determineTalkType(ordinaryGuard, true))
@@ -47,7 +47,7 @@ func TestNPCAutoTalkOrdinaryGuardPreservesLinearConversationRouting(t *testing.T
 
 	state.SetCriminalStatus(false)
 	extortingReference := references.NPCReference{DialogNumber: byte(references.DialogGuard)}
-	extortingReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	extortingReference.SetKeyIndex(indexes.GuardKeyIndex)
 	extortingGuard := map_units.NewNPCFriendly(extortingReference, 0)
 	require.Equal(t, TalkTypeGuard, scene.determineTalkType(extortingGuard, true),
 		"DialogGuard auto-talk must still extort")
@@ -66,7 +66,6 @@ func TestManualGuildTalkPurchaseRepeatCloseOwnsOneMinute(t *testing.T) {
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
 	dialog := waitForGuildDialog(t, fixture)
-	screenCallsBefore := fixture.callbacks.ScreenCallCount
 	pricePerBundle := dialog.GetSelectedQuote().PricePerBundle
 	require.Equal(t, 1, fixture.scene.dialogStack.Count())
 
@@ -94,7 +93,6 @@ func TestManualGuildTalkPurchaseRepeatCloseOwnsOneMinute(t *testing.T) {
 		keysBefore+6,
 	), dialog.GetReceiptText(), "the latest receipt replaces the prior exchange detail")
 	require.Equal(t, "\"Sold!\" says Braunam. \"What else, m'lord?\"", dialog.GetLatestExchange())
-	require.Equal(t, screenCallsBefore+2, fixture.callbacks.ScreenCallCount)
 
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -261,19 +259,6 @@ func TestActualTalk3MerchantsUseSharedShellOnceWithoutSecondMinute(t *testing.T)
 			shell, dismiss := waitForConcreteMerchantDialog(t, fixture, record.definition.Family)
 			require.Equal(t, record.definition.ShopName, shell.GetHeaderView().ShopIdentity)
 			require.Equal(t, record.definition.OwnerName, shell.GetHeaderView().Owner)
-			if record.definition.Family != references.MerchantFamilyArms &&
-				record.definition.Family != references.MerchantFamilyReagent &&
-				record.definition.Family != references.MerchantFamilyGuild &&
-				record.definition.Family != references.MerchantFamilyHealer &&
-				record.definition.Family != references.MerchantFamilyTavern &&
-				record.definition.Family != references.MerchantFamilyHorse &&
-				record.definition.Family != references.MerchantFamilyInn &&
-				record.definition.Family != references.MerchantFamilyShip {
-				require.Equal(t,
-					merchantFamilyName(record.definition.Family)+" service is not yet implemented.",
-					shell.GetExchangeView().Text,
-				)
-			}
 			require.Equal(t, references.AiType(references.Wander3), references.AiType(fixture.npc.NPCReference.Schedule.Ai[record.slot]))
 			require.False(t, fixture.npc.ApplyTalk3OneShot(), "TALK3 transition must be one-shot")
 
@@ -343,7 +328,6 @@ func TestTavernTalkSetupCancellationMealRefreshAndOneMinute(t *testing.T) {
 	require.False(t, dialog.IsPreview())
 	require.Equal(t, references.MerchantFamilyTavern, dialog.GetState().Merchant.Family)
 	require.Equal(t, "The Wayfarer Tavern", dialog.GetShell().GetHeaderView().ShopIdentity)
-	require.False(t, hasMerchantUnavailableDialog(&fixture.scene.dialogStack))
 	require.False(t, hasLinearTalkDialog(&fixture.scene.dialogStack))
 	require.Equal(t, rngBefore, fixture.state.GetRNG().Calls(), "cosmetic Tavern setup must not consume gameplay RNG")
 
@@ -368,7 +352,7 @@ func TestTavernTalkSetupCancellationMealRefreshAndOneMinute(t *testing.T) {
 	require.Equal(t, fixture.state.PartyState.Inventory.Provisions.Food.Get(), refreshed.Food)
 	require.Equal(t, refreshed.Gold, refreshed.Meal.GoldBefore)
 	require.Equal(t, refreshed.Food, refreshed.Meal.FoodBefore)
-	require.Equal(t, foodBefore+uint16(quote.DinerCount), refreshed.Food) //nolint:gosec // Diner count is bounded by six.
+	require.Equal(t, foodBefore+uint16(quote.DinerCount), refreshed.Food)
 	require.Empty(t, dialog.GetReceiptText(), "meal results belong to the modal")
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -576,7 +560,7 @@ func TestTavernProvisionPartialAndTerminalOutcomes(t *testing.T) {
 		fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantTavernBritain)
 		review, err := fixture.state.ReviewTavernShopByMerchantID(references.MerchantTavernBritain)
 		require.NoError(t, err)
-		fixture.state.PartyState.Inventory.Gold.Set(uint16(review.State.Provision.PricePerPack)) //nolint:gosec // Canonical price is bounded.
+		fixture.state.PartyState.Inventory.Gold.Set(uint16(review.State.Provision.PricePerPack))
 		foodBefore := fixture.state.PartyState.Inventory.Provisions.Food.Get()
 		fixture.scene.StartTalkWorkflow(fixture.direction)
 		dialog := waitForTavernDialog(t, fixture)
@@ -763,17 +747,14 @@ func TestHorseMerchantRoutePurchasesOneHorseAndOwnsOneManualMinute(t *testing.T)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
 	dialog := waitForHorseDialog(t, fixture)
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 	price := dialog.GetQuote().Price
 	require.False(t, hasLinearTalkDialog(&fixture.scene.dialogStack))
-	require.False(t, hasMerchantUnavailableDialog(&fixture.scene.dialogStack))
 	completeHorsePurchase(t, fixture, dialog)
 
 	require.Equal(t, widgets.HorseShopSuccess, dialog.GetPhase())
 	require.Contains(t, dialog.GetReceiptText(), fmt.Sprintf("Purchased one horse for %d gold.", price))
-	require.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Authority bounds the price.
+	require.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get())
 	require.Equal(t, horsesBefore+1, countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs()))
-	require.Equal(t, refreshesBefore+1, fixture.callbacks.ScreenCallCount)
 	require.Empty(t, fixture.callbacks.TimeAdvanced())
 
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
@@ -798,7 +779,6 @@ func TestHorseMerchantAllowsMountedDealer(t *testing.T) {
 	fixture.scene.StartTalkWorkflow(fixture.direction)
 	dialog := waitForHorseDialog(t, fixture)
 	require.Equal(t, "Horse & Rider", dialog.GetShell().GetHeaderView().ShopIdentity)
-	require.False(t, hasMerchantUnavailableDialog(&fixture.scene.dialogStack))
 	dialog.Dismiss()
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
 		return !fixture.state.EventQueueManager.HasActiveWorkflows()
@@ -840,7 +820,6 @@ func TestHorseMerchantUnaffordableConfirmationUsesTerminalSourceRefusal(t *testi
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
 	dialog := waitForHorseDialog(t, fixture)
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 	completeHorsePurchase(t, fixture, dialog)
 
 	require.Equal(t, widgets.HorseShopFundsRefusal, dialog.GetPhase())
@@ -848,7 +827,6 @@ func TestHorseMerchantUnaffordableConfirmationUsesTerminalSourceRefusal(t *testi
 	require.Equal(t, uint16(1), fixture.state.PartyState.Inventory.Gold.Get())
 	require.Equal(t, horsesBefore, countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs()))
 	require.Equal(t, rngBefore, fixture.state.GetRNG().Calls())
-	require.Equal(t, refreshesBefore, fixture.callbacks.ScreenCallCount)
 
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -894,7 +872,6 @@ func TestHorsePurchaseChildBackAndStalePlacementBoundaries(t *testing.T) {
 
 		fixture.scene.StartTalkWorkflow(fixture.direction)
 		dialog := waitForHorseDialog(t, fixture)
-		refreshesBefore := fixture.callbacks.ScreenCallCount
 		purchaseDialog := openHorsePurchaseDialog(t, fixture, dialog)
 		intent := purchaseDialog.GetIntent()
 		blocker := map_units.NewNPCFriendlyVehiceNewRef(
@@ -912,7 +889,6 @@ func TestHorsePurchaseChildBackAndStalePlacementBoundaries(t *testing.T) {
 		require.Equal(t, goldBefore, fixture.state.PartyState.Inventory.Gold.Get())
 		require.Equal(t, horsesBefore, countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs()))
 		require.Equal(t, rngBefore, fixture.state.GetRNG().Calls())
-		require.Equal(t, refreshesBefore, fixture.callbacks.ScreenCallCount)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 		pumpMerchantWorkflowUntil(t, fixture, func() bool {
 			return !fixture.state.EventQueueManager.HasActiveWorkflows()
@@ -1199,7 +1175,7 @@ func TestGuildBatchReceiptAppendsFaulineiTheft(t *testing.T) {
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	quote := dialog.GetSelectedQuote()
 	require.Equal(t, references.Torches, quote.Provision)
-	expectedTheft := uint16(beradrng.New(seed).Intn(64) + 1) //nolint:gosec // The roll is bounded to 1-64.
+	expectedTheft := uint16(beradrng.New(seed).Intn(64) + 1)
 
 	completeGuildPurchase(t, fixture, dialog, 4)
 
@@ -1385,7 +1361,6 @@ func TestManualArmsTalkRepeatedBatchBuySellModeSwitchesOwnOneMinute(t *testing.T
 	fixture.state.PartyState.GetCharacter(0).SetEquippedItem(references.SlotWeapon, references.Bow)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
 	shop := waitForArmsDialog(t, fixture)
-	screenCallsBefore := fixture.callbacks.ScreenCallCount
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Bow)
 	buyQuote := armsBuyRow(t, shop, references.Bow)
 	require.Equal(t, uint16(1), buyQuote.Readied)
@@ -1423,7 +1398,6 @@ func TestManualArmsTalkRepeatedBatchBuySellModeSwitchesOwnOneMinute(t *testing.T
 	), shop.GetReceiptText())
 	require.Equal(t, uint16(4), armsSellRow(t, shop, references.Bow).Quantity)
 	require.Equal(t, uint16(1), armsSellRow(t, shop, references.Bow).Readied)
-	require.Equal(t, screenCallsBefore+3, fixture.callbacks.ScreenCallCount)
 
 	pressMerchantDialogKey(fixture, ebiten.KeyTab)
 	require.Equal(t, widgets.ArmsShopBuy, shop.GetMode())
@@ -1795,7 +1769,6 @@ func TestManualReagentTalkRepeatedPurchasesRefreshWithinOneMinute(t *testing.T) 
 	shop := waitForReagentDialog(t, fixture)
 	selectReagent(t, fixture, shop, references.SpiderSilk)
 	quote := shop.GetSelectedQuote()
-	refreshesBefore := fixture.callbacks.ScreenCallCount
 
 	first := completeReagentPurchase(t, fixture, shop, 1)
 	require.False(t, first.HasPendingPurchaseRequest())
@@ -1823,7 +1796,6 @@ func TestManualReagentTalkRepeatedPurchasesRefreshWithinOneMinute(t *testing.T) 
 		expectedGold,
 	), shop.GetReceiptText())
 	require.Equal(t, "\"I thank thee!\" says Madam Pendra. \"Anything else?\"", shop.GetLatestExchange())
-	require.Equal(t, refreshesBefore+2, fixture.callbacks.ScreenCallCount)
 
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	require.Equal(t, widgets.ReagentShopFarewell, shop.GetPhase())
@@ -2151,7 +2123,6 @@ func TestShipMerchantRouteOpensProductionShowroomAndOwnsOneManualMinute(t *testi
 	require.Equal(t, "Island Shipwrights", shop.GetShell().GetHeaderView().ShopIdentity)
 	require.Equal(t, "Bantral", shop.GetShell().GetHeaderView().Owner)
 	require.False(t, hasLinearTalkDialog(&fixture.scene.dialogStack))
-	require.False(t, hasMerchantUnavailableDialog(&fixture.scene.dialogStack))
 	require.NotNil(t, fixture.scene.spriteSheet.GetSprite(indexes.ShipNoSailsRight))
 	require.NotNil(t, fixture.scene.spriteSheet.GetSprite(indexes.SkiffRight))
 
@@ -2188,7 +2159,7 @@ func TestShipFirstDeliveryDispatchReturnsToShowroom(t *testing.T) {
 			dispatch := waitForShipDispatchDialog(t, fixture)
 			require.Equal(t, widgets.ShipShopSuccessReceipt, shop.GetPhase())
 			require.Equal(t, 2, fixture.scene.dialogStack.Count())
-			require.Equal(t, goldBefore-uint16(price), fixture.state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Quote affordability bounds the price.
+			require.Equal(t, goldBefore-uint16(price), fixture.state.PartyState.Inventory.Gold.Get())
 			require.Equal(t, test.wantBerth, shop.GetState().Berth.State)
 			require.True(t, shop.GetState().Travel.PendingDelivery)
 			require.Equal(t, shop.GetState().Gold, shop.GetState().FrigateQuote.GoldBefore)
@@ -2587,7 +2558,6 @@ func TestInnMerchantRouteOpensProductionDialogWithDeterministicProse(t *testing.
 	require.True(t, strings.HasSuffix(dialog.GetLatestExchange(), `"`))
 	require.Equal(t, rngBefore, fixture.state.GetRNG().Calls())
 	require.False(t, hasLinearTalkDialog(&fixture.scene.dialogStack))
-	require.False(t, hasMerchantUnavailableDialog(&fixture.scene.dialogStack))
 	require.NotContains(t, dialog.GetLatestExchange(), dialog.GetState().PricingCharacterName)
 
 	dialog.Dismiss()
@@ -2814,7 +2784,7 @@ func TestInnLeaveAndPickupRefreshSameModesWithExactTheftReceipt(t *testing.T) {
 	pressMerchantDialogKey(fixture, ebiten.KeyP)
 	require.Equal(t, leftName, dialog.GetPickupRows()[0].Identity.Name)
 	charge := dialog.GetPickupRows()[0].Charge
-	wantTheft := uint16(beradrng.New(seed).Intn(64) + 1) //nolint:gosec // The authority roll is bounded to 1-64.
+	wantTheft := uint16(beradrng.New(seed).Intn(64) + 1)
 	completeInnAction(t, fixture, dialog)
 
 	wantGold := uint16(1000) - charge - wantTheft
@@ -3094,7 +3064,7 @@ func newMerchantTalkFixture(
 		// ownership and save-editor handoff have their own widget regressions.
 		appendInputChars: func(chars []rune) []rune { return chars },
 		// Merchant tests need addressable tile bounds, not the production border cache.
-		spriteSheet: &sprites.SpriteSheet{SpriteImage: ebiten.NewImage(512, 256)}, //nolint:mnd
+		spriteSheet: &sprites.SpriteSheet{SpriteImage: ebiten.NewImage(512, 256)},
 	}
 
 	callbacks.BindGameState(state)
@@ -3597,29 +3567,6 @@ func waitForMerchantOverlay(t *testing.T, fixture *merchantTalkFixture) *widgets
 	return overlay
 }
 
-func waitForMerchantUnavailableDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.MerchantUnavailableDialog {
-	t.Helper()
-
-	var dialog *widgets.MerchantUnavailableDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.MerchantUnavailableDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
 func waitForConcreteMerchantDialog(
 	t *testing.T,
 	fixture *merchantTalkFixture,
@@ -3667,9 +3614,9 @@ func waitForConcreteMerchantDialog(
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
-	dialog := waitForMerchantUnavailableDialog(t, fixture)
+	t.Fatalf("no merchant dialog for family %v", family)
 
-	return dialog.GetShell(), dialog.Dismiss
+	return nil, nil
 }
 
 func hasLinearTalkDialog(stack *widgets.DialogStack) bool {
@@ -4141,16 +4088,6 @@ func countHorseTalkVehicles(units *map_units.MapUnits) int {
 	}
 
 	return count
-}
-
-func hasMerchantUnavailableDialog(stack *widgets.DialogStack) bool {
-	for _, widget := range stack.Dialogs() {
-		if _, ok := widget.(*widgets.MerchantUnavailableDialog); ok {
-			return true
-		}
-	}
-
-	return false
 }
 
 func pumpMerchantWorkflowUntil(

@@ -189,15 +189,7 @@ func TestTavernActionDialogPreviewResponsiveSemanticFooterAndLifecycle(t *testin
 	require.False(t, dialog.GetBounds().Empty())
 	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
 
-	for _, line := range parseMerchantFooterGuidance(dialog.GetFooterGuidance()) {
-		for _, segment := range line {
-			if strings.HasPrefix(segment.Text, "[") {
-				require.Equal(t, DialogControlKeyColor, segment.Color)
-			} else {
-				require.Equal(t, DialogControlHintColor, segment.Color)
-			}
-		}
-	}
+	requireKeyedGuidance(t, dialog.GetFooterGuidance())
 	require.True(t, dialog.IsVisible())
 	dialog.Dismiss()
 	require.True(t, dialog.IsComplete())

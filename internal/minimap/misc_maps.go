@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 )
 
 const (
@@ -25,7 +26,7 @@ type MiscMap struct {
 
 // LoadMiscMap loads one of the original prison, shrine, Codex, or endgame maps.
 func LoadMiscMap(dataDir string, index int) (MiscMap, error) {
-	path := filepath.Join(dataDir, miscMapsFileName)
+	path := files.Resolve(dataDir, miscMapsFileName)
 	data, err := os.ReadFile(path) //nolint:gosec // Configured original-data directory is user-selected.
 	if err != nil {
 		return MiscMap{}, fmt.Errorf("reading %s: %w", path, err)

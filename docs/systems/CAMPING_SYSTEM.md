@@ -102,7 +102,7 @@ center campfire/feature, and no fixed-room trigger slots.
 Responsibilities remain separate:
 
 - `LayeredMap` owns terrain loaded from `BRIT.CBT` and uses the normal tile rendering pipeline.
-- `CampingMap` owns party positions, the moving guard position, campfire position, and monster entry points.
+- `camping.Map` owns party positions, the moving guard position, campfire position, and monster entry points.
 - `CampingScene` owns requested hours, five-minute cycles, interruption state, original location, and wanderer presentation state.
 
 Both outdoor and dungeon scenes use exact five-minute cycles and 12 cycles per

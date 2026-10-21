@@ -41,7 +41,7 @@ func (m *SaveDescriptionEntryModal) configureDescriptionRendering() {
 	m.border = newDialogBorder(sprites.PercentBasedPlacement{
 		StartPercentX: saveDescriptionModalStartX, EndPercentX: saveDescriptionModalEndX,
 		StartPercentY: saveDescriptionCenterPercent - halfHeight, EndPercentY: saveDescriptionCenterPercent + halfHeight,
-	}, DialogBackgroundBlack)
+	})
 }
 
 func (m *SaveDescriptionEntryModal) calculateRects() saveDescriptionEntryRects {

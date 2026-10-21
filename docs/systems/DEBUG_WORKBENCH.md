@@ -246,7 +246,7 @@ transition interval so the instrument remains retryable.
 | Workflow | Run gameplay orchestration and presentation | Moongate teleport |
 | Coordinated alteration | Validate and apply several durable domains | Replace party inventory and statuses |
 | Scene restart | Hydrate a detached complete state | Load or broadly edit a save snapshot |
-| Presentation | Change or test game-window/browser presentation without gameplay mutation | Toggle an overlay or test a visual effect |
+| Presentation | Change game-window/browser presentation without gameplay mutation | Toggle an overlay |
 
 The server resolves the effective execution mode and availability for each request. Client metadata is advisory only.
 

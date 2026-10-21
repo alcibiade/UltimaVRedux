@@ -94,7 +94,7 @@ func TestOutdoorCampingUsesExactFiveMinuteCyclesWithoutIntermediatePlayerUpdates
 	poisoned.SetHp(20)
 	poisoned.SetEquippedItem(references.SlotRing, references.RingRegeneration)
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectProtection, TurnsRemaining: 4}
-	scene := camping.NewCampingScene(2, NoGuardAssigned, state.MapState.PlayerLocation)
+	scene := camping.NewCampingSceneWithCombatRef(2, NoGuardAssigned, state.MapState.PlayerLocation, testCampingMap(t))
 	campState := state.newCampingState(scene, true, false)
 
 	assert.Equal(t, 5, scene.CycleMinutes)
@@ -190,7 +190,7 @@ func TestCampingHealingSkipsInactiveRoster(t *testing.T) {
 	inactive.PartyMap = party_state.PartyMapUnrecruited
 	inactive.SetHp(1)
 	inactive.SetStatus(party_state.Good)
-	scene := camping.NewCampingScene(6, NoGuardAssigned, state.MapState.PlayerLocation)
+	scene := camping.NewCampingSceneWithCombatRef(6, NoGuardAssigned, state.MapState.PlayerLocation, testCampingMap(t))
 
 	state.applyCampingHealing(scene)
 
@@ -203,7 +203,7 @@ func TestCampingAmbushChecksOnlyAfterLiveHourTransition(t *testing.T) {
 	state, _ := newCampingAmbushTestState(t)
 	state.DateTime.Hour = 10
 	state.DateTime.Minute = 45
-	scene := camping.NewCampingScene(2, NoGuardAssigned, state.MapState.PlayerLocation)
+	scene := camping.NewCampingSceneWithCombatRef(2, NoGuardAssigned, state.MapState.PlayerLocation, testCampingMap(t))
 	campingState := &CampingState{
 		AmbushedAt: NoAmbush, AmbushCheckHour: state.DateTime.Hour, ForceWanderer: true,
 	}
@@ -490,6 +490,28 @@ func TestCampingAmbushUsesWeightedPoolAndInterleavedSourceRNGOrder(t *testing.T)
 		assert.Equal(t, expectedTypes[monsterIndex], monster.MonsterType())
 		assert.Equal(t, expectedPositions[monsterIndex], monster.Position())
 		assert.Equal(t, expectedDexterity[monsterIndex], monster.CurrentDex())
+	}
+}
+
+func TestCampingAmbushersNeverSpawnOnTheWanderingGuard(t *testing.T) {
+	state, _ := newCampingAmbushTestState(t)
+	combatMap, err := references.LoadCampingMap(state.GameConfig)
+	require.NoError(t, err)
+	for _, slot := range combatMap.MonsterPositions {
+		scene := camping.NewCampingSceneWithCombatRef(6, 0, state.MapState.PlayerLocation, combatMap)
+		scene.CampingMap.GuardPosition = slot
+		campState := state.newCampingState(scene, false, false)
+		state.initializeCampingPartyRings(campState)
+		combat, err := state.prepareCampingParty(scene, campState, combatMap)
+		require.NoError(t, err)
+		state.SetRandomSeed(8743)
+
+		_, err = state.populateOutdoorCampingCombat(combat, references.CampingAmbushMonsters[0])
+		require.NoError(t, err)
+
+		for index := range combat.MonsterManager.Count() {
+			assert.NotEqual(t, slot, combat.MonsterManager.GetMonster(index).Position(), "guard on %+v", slot)
+		}
 	}
 }
 

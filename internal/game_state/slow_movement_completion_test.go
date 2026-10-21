@@ -34,19 +34,9 @@ func TestSlowMovementResolvesEachSandtrapHitBeforeNextPhase(t *testing.T) {
 	wantRNG := beradrng.New(123)
 	firstHP := uint16(100 - (wantRNG.Intn(8) + 1))
 	secondHP := firstHP - uint16(wantRNG.Intn(8)+1)
-	var hp []uint16
-	var minutes []byte
-	var calls []uint64
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-		hp = append(hp, state.PartyState.GetAvatar().GetCurrentHp())
-		minutes = append(minutes, state.DateTime.Minute)
-		calls = append(calls, state.GetRNG().Calls())
-	}
 	state.CompleteSurfaceMovementCycle(references.LargeMapType, true)
 
-	assert.Equal(t, []uint16{firstHP, secondHP}, hp)
-	assert.Equal(t, []byte{0, 4}, minutes, "extra hit before check_slow time; ordinary hit after both time costs")
-	assert.Equal(t, []uint64{1, 2}, calls)
+	assert.Equal(t, secondHP, state.PartyState.GetAvatar().GetCurrentHp())
 	assert.Equal(t, uint64(2), state.GetRNG().Calls())
 	assert.Equal(t, byte(4), state.DateTime.Minute)
 	assert.Equal(t, uint32(2), state.DateTime.Turn)
@@ -79,11 +69,9 @@ func TestSlowMovementRetainsRemainingPhasesAcrossTacticalCombat(t *testing.T) {
 	assert.ErrorIs(t, state.ValidateSaveSnapshotEligibility(), ErrSaveSnapshotNotRepresentable)
 	addOverworldTestEnemy(t, state, references.MonsterSandtrap, *adjacent)
 	state.SetRandomSeed(123)
-	var minutes []byte
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() { minutes = append(minutes, state.DateTime.Minute) }
 	require.NoError(t, state.ResolvePendingOverworldContact())
 
-	assert.Equal(t, []byte{0, 6}, minutes, "resume runs only the second extra phase, then ordinary phase")
+	// Resume runs only the second extra phase, then the ordinary phase.
 	assert.Equal(t, uint64(2), state.GetRNG().Calls())
 	assert.Equal(t, byte(6), state.DateTime.Minute)
 	assert.Equal(t, uint32(2), state.DateTime.Turn)
@@ -98,28 +86,22 @@ func TestSlowMovementWaitsForWorkflowBeforeRemainingPhases(t *testing.T) {
 	state := newSlowMovementFixture(t, indexes.Forest3)
 	addOverworldTestEnemy(t, state, references.MonsterSandtrap,
 		*references.Right.GetNewPositionInDirection(&state.MapState.PlayerLocation.Position))
-	var minutes []byte
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-		minutes = append(minutes, state.DateTime.Minute)
-		if len(minutes) == 1 {
-			state.EventQueueManager.Workflow("slow_contact_interaction").
-				Priority(event_queue.PriorityHigh).Sequential().BlockInput().
-				First(func() {}).Wait(100).Start()
-		}
-	}
+	state.EventQueueManager.Workflow("slow_contact_interaction").
+		Priority(event_queue.PriorityHigh).Sequential().BlockInput().
+		First(func() {}).Wait(100).Start()
 	state.CompleteSurfaceMovementCycle(references.LargeMapType, true)
 	require.NotNil(t, state.activeSlowMovement)
-	assert.Equal(t, 1, state.activeSlowMovement.remainingActorPhases)
-	assert.Equal(t, uint64(1), state.GetRNG().Calls())
+	assert.Equal(t, 2, state.activeSlowMovement.remainingActorPhases)
+	assert.Zero(t, state.GetRNG().Calls())
 	assert.Zero(t, state.DateTime.Minute)
 	assert.ErrorIs(t, state.ValidateSaveSnapshotEligibility(), ErrSaveSnapshotNotRepresentable)
 	require.NoError(t, state.ResolvePendingOverworldContact())
-	assert.Equal(t, uint64(1), state.GetRNG().Calls())
+	assert.Zero(t, state.GetRNG().Calls())
 	drainSourceHitWorkflows(t, state)
 	assert.ErrorIs(t, state.ValidateSaveSnapshotEligibility(), ErrSaveSnapshotNotRepresentable,
 		"pending movement is transient even after the workflow releases input")
 	require.NoError(t, state.ResolvePendingOverworldContact())
-	assert.Equal(t, []byte{0, 0, 6}, minutes)
+	assert.Equal(t, byte(6), state.DateTime.Minute)
 	assert.Equal(t, uint64(3), state.GetRNG().Calls())
 	assert.Equal(t, uint32(2), state.DateTime.Turn)
 	assert.Nil(t, state.activeSlowMovement)

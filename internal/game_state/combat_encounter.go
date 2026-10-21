@@ -280,7 +280,7 @@ func (g *GameState) StartOverworldCombatEncounter(enemy *map_units.NPCEnemy) err
 
 	g.SystemCallbacks.Message.AddRowStr(enemy.EnemyReference.NamePlural)
 	g.SystemCallbacks.Message.AddRowStr("Attacked!")
-	logging.Info(logging.CategoryGameState,
+	logging.Infof(logging.CategoryGameState,
 		"Started overworld combat: source=%s map=%d monsters=%d world=%d position=%v",
 		enemy.EnemyReference.Name, origin.CombatMap, count, origin.World, origin.Position)
 

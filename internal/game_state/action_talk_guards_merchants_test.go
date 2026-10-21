@@ -92,7 +92,6 @@ func TestSpecialDialogNumberIdentification(t *testing.T) {
 		guardDialog := references.DialogGuard
 		assert.True(t, guardDialog.IsSpecial(), "Guards should be special")
 		assert.False(t, guardDialog.IsMerchant(), "Guards are not merchants")
-		assert.False(t, guardDialog.IsRegularNPC(), "Guards are not regular NPCs")
 
 		// Test various merchant dialog numbers
 		merchants := []references.DialogNumber{
@@ -107,14 +106,11 @@ func TestSpecialDialogNumberIdentification(t *testing.T) {
 				"Merchant %d (%s) should be special", merchant, merchant.GetMerchantType())
 			assert.True(t, merchant.IsMerchant(),
 				"Dialog %d should be merchant", merchant)
-			assert.False(t, merchant.IsRegularNPC(),
-				"Merchant %d should not be regular NPC", merchant)
 		}
 
 		// Test regular NPC dialog numbers
 		regularNPC := references.DialogNumber(50)
 		assert.False(t, regularNPC.IsSpecial(), "Regular NPC should not be special")
 		assert.False(t, regularNPC.IsMerchant(), "Regular NPC should not be merchant")
-		assert.True(t, regularNPC.IsRegularNPC(), "Dialog 50 should be regular NPC")
 	})
 }

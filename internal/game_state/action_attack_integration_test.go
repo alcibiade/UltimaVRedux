@@ -216,9 +216,6 @@ func TestAttackCommand_DungeonMap_Integration(t *testing.T) {
 		WithLocation(references.BritanniaUnderworld).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	attachDungeonStateForTest(t, gs, references.DungeonCells{})
 	mockCallbacks.Reset()
 

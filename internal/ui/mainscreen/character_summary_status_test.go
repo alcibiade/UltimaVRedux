@@ -11,19 +11,6 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
-// Refresh tests need only the owned surfaces that Draw clears, not an atlas or fonts.
-func refreshTestCharacterSummary(t *testing.T) *CharacterSummary {
-	t.Helper()
-	summary := &CharacterSummary{}
-	for index := range summary.characterSummaryImage {
-		image := ebiten.NewImage(1, 1)
-		t.Cleanup(image.Dispose)
-		summary.characterSummaryImage[index] = image
-		summary.previousStatuses[index] = party_state.Good
-	}
-	return summary
-}
-
 func TestCharacterSummary_StatusColorMapping(t *testing.T) {
 	summary := &CharacterSummary{}
 	for _, test := range []struct {
@@ -83,36 +70,8 @@ func TestCharacterSummary_StatusEffectOutlines(t *testing.T) {
 	assert.False(t, summary.shouldApplyStatusOutline(party_state.Good))
 }
 
-func TestCharacterSummary_StatusRefreshLogic(t *testing.T) {
-	summary := refreshTestCharacterSummary(t)
-	screen := ebiten.NewImage(1, 1)
-	t.Cleanup(screen.Dispose)
-	party := party_state.LoadFromRaw([4192]byte{})
-	party.GetCharacter(0).PartyMap = party_state.PartyMapActive
-	party.GetCharacter(0).SetStatus(party_state.Good)
-	assert.False(t, summary.IsStatsRefreshNeeded())
-
-	t.Run("RefreshFlagClearedAfterDraw", func(t *testing.T) {
-		summary.MarkStatsChanged()
-		assert.True(t, summary.IsStatsRefreshNeeded())
-		summary.UpdateStatsDisplay()
-		assert.True(t, summary.IsStatsRefreshNeeded(), "UpdateStatsDisplay leaves refresh pending until Draw")
-		summary.Draw(party, screen, -1, false, -1)
-		assert.False(t, summary.IsStatsRefreshNeeded())
-	})
-	t.Run("StatusChangeTriggersRefresh", func(t *testing.T) {
-		party.GetCharacter(0).SetStatus(party_state.Poisoned)
-		assert.True(t, summary.detectStatusChanges(party))
-		assert.True(t, summary.IsStatsRefreshNeeded())
-		assert.Equal(t, party_state.Poisoned, summary.previousStatuses[0])
-		summary.Draw(party, screen, -1, false, -1)
-		assert.False(t, summary.IsStatsRefreshNeeded())
-		assert.False(t, summary.detectStatusChanges(party), "unchanged statuses must not request refresh")
-	})
-}
-
 func TestCharacterSummary_StatusEffectsErrorHandling(t *testing.T) {
-	summary := refreshTestCharacterSummary(t)
+	summary := &CharacterSummary{}
 	screen := ebiten.NewImage(1, 1)
 	t.Cleanup(screen.Dispose)
 	t.Run("InvalidStatusHandling", func(t *testing.T) {

@@ -8,12 +8,12 @@ let app: VueApp<Element> | undefined
 let root: HTMLDivElement
 
 const recent: NavigationSurface = {
-  id: "codex:codex.consumable.catalog",
+  id: "codex:shrine.status",
   workspace: "codex",
   workspaceLabel: "Codex",
-  label: "Consumables Codex",
-  description: "Original and current Redux behavior.",
-  commandId: "codex.consumable.catalog",
+  label: "Shrine Reference",
+  description: "Browse immutable virtue reference data.",
+  commandId: "shrine.status",
   commands: [],
 }
 
@@ -35,7 +35,7 @@ describe("Workbench Home", () => {
     mount({ recents: [recent], connected: true, onOpenPalette: openPalette, onOpenSurface: openSurface })
 
     click("[data-home-go-to]")
-    click('[data-home-recent="codex:codex.consumable.catalog"]')
+    click('[data-home-recent="codex:shrine.status"]')
 
     expect(openPalette).toHaveBeenCalledOnce()
     expect(openSurface).toHaveBeenCalledOnce()

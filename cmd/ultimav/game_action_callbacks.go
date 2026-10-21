@@ -180,7 +180,7 @@ func (g *GameActionCallbacks) CallGuards() {
 	state := g.gameScene.gameState
 	state.SetCriminalStatus(true)
 	if _, err := state.ActivateGuards(); err != nil {
-		logging.Warn(logging.CategoryGameState, "Unable to activate guards: %v", err)
+		logging.Warnf(logging.CategoryGameState, "Unable to activate guards: %v", err)
 	}
 }
 
@@ -233,104 +233,79 @@ func (g *GameActionCallbacks) GoToJail() {
 //	5: Grapples, 6: Carpets, 7: Sextant, 8: Spyglass,
 //	9: Badge, 10: Skull Keys
 //
-// Quantity limits:
-// - Equipment: max 99
-// - Provisions (Food/Gold): max 9999
-// - Provisions (Keys/Gems/Torches/SkullKeys): max 99
-// - Special Items (Grapple/Carpet/Sextant/Spyglass/Badge): max 99
-//
-//nolint:cyclop,funlen // Keep the original grant-ID dispatch, mutation and matching receipt together for auditability.
+// A gift at its carrying limit grants nothing, and the receipt says so.
 func (g *GameActionCallbacks) GiveItem(itemID int) {
-	logging.Debug(logging.CategoryConversation, "GiveItem processing - itemID=%d", itemID)
-
-	// Equipment items (itemID < 64)
-	if itemID < conversationEquipmentLimit {
-		// Direct mapping to Equipment enum
-		equipment := references.Equipment(itemID)
-		g.gameScene.gameState.PartyState.Inventory.Equipment.IncrementByOne(equipment)
-
-		// Get equipment name for feedback
-		equipmentName := equipment.String()
-		g.dialogOutput.AddTextWithColor("Received: "+equipmentName, ucolor.EGAYellow)
-		logging.Info(logging.CategoryConversation, "GiveItem: Equipment %d (Equipment enum value %d)", itemID, equipment)
+	name, quantity, grant, known := g.conversationGift(itemID)
+	if !known {
+		logging.Warnf(logging.CategoryConversation, "GiveItem: Unknown itemID %d", itemID)
+		g.dialogOutput.AddTextWithColor(fmt.Sprintf("Received: Item #%d", itemID), ucolor.EGAYellow)
 
 		return
 	}
+	before := quantity()
+	grant()
+	if quantity() == before {
+		g.dialogOutput.AddTextWithColor("Thou canst carry no more "+name+"!", ucolor.EGAYellow)
 
-	// Provisions and special items (itemID >= 65)
-	if itemID >= conversationProvisionFirst && itemID <= conversationProvisionLast {
-		itemOffset := itemID - conversationProvisionFirst
+		return
+	}
+	logging.Infof(logging.CategoryConversation, "GiveItem: %s (itemID %d)", name, itemID)
+	g.dialogOutput.AddTextWithColor("Received: "+name, ucolor.EGAYellow)
+}
 
-		switch itemOffset {
-		case conversationGiftFood:
-			g.gameScene.gameState.PartyState.Inventory.Provisions.Food.IncrementByOne()
-			g.dialogOutput.AddTextWithColor("Received: Food", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Food")
+// conversationGift resolves an original conversation grant ID to its name, a
+// quantity reader and the grant itself.
+func (g *GameActionCallbacks) conversationGift(itemID int) (string, func() uint16, func(), bool) {
+	state := g.gameScene.gameState
+	inventory := &state.PartyState.Inventory
+	if itemID < conversationEquipmentLimit {
+		equipment := references.Equipment(itemID)
 
-		case conversationGiftGold:
-			g.gameScene.gameState.PartyState.Inventory.Gold.IncrementByOne()
-			g.dialogOutput.AddTextWithColor("Received: Gold", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Gold")
-
-		case conversationGiftKeys:
-			g.gameScene.gameState.PartyState.Inventory.Provisions.Keys.IncrementByOne()
-			g.dialogOutput.AddTextWithColor("Received: Keys", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Keys")
-
-		case conversationGiftGems:
-			g.gameScene.gameState.PartyState.Inventory.Provisions.Gems.IncrementByOne()
-			g.dialogOutput.AddTextWithColor("Received: Gems", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Gems")
-
-		case conversationGiftTorches:
-			g.gameScene.gameState.PartyState.Inventory.Provisions.Torches.IncrementByOne()
-			g.dialogOutput.AddTextWithColor("Received: Torches", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Torches")
-
-		case conversationGiftGrapple:
-			g.gameScene.gameState.PartyState.Inventory.QuestItems.IncrementByOne(references.Grapple)
-			name := g.gameScene.gameState.GameReferences.InventoryItemReferences.GetQuestItemDisplayName(references.Grapple)
-			g.dialogOutput.AddTextWithColor("Received: "+name, ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Grapple (QuestItem)")
-
-		case conversationGiftCarpet:
-			g.gameScene.gameState.PartyState.Inventory.QuestItems.IncrementByOne(references.Carpet)
-			name := g.gameScene.gameState.GameReferences.InventoryItemReferences.GetQuestItemDisplayName(references.Carpet)
-			g.dialogOutput.AddTextWithColor("Received: "+name, ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Carpet (QuestItem)")
-
-		case conversationGiftSextant:
-			g.gameScene.gameState.GrantSextant()
-			g.dialogOutput.AddTextWithColor("Received: Sextant", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Sextant (QuestItem)")
-
-		case conversationGiftSpyglass:
-			g.gameScene.gameState.PartyState.Inventory.QuestItems.IncrementByOne(references.Spyglass)
-			g.dialogOutput.AddTextWithColor("Received: Spyglass", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Spyglass (QuestItem)")
-
-		case conversationGiftBadge:
-			g.gameScene.gameState.PartyState.Inventory.QuestItems.IncrementByOne(references.BlackBadge)
-			g.dialogOutput.AddTextWithColor("Received: Black Badge", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: BlackBadge (QuestItem)")
-
-		case conversationGiftSkullKeys:
-			g.gameScene.gameState.PartyState.Inventory.Provisions.SkullKeys.IncrementByOne()
-			g.dialogOutput.AddTextWithColor("Received: Skull Keys", ucolor.EGAYellow)
-			logging.Info(logging.CategoryConversation, "GiveItem: Skull Keys")
-
-		default:
-			logging.Warn(logging.CategoryConversation,
-				"GiveItem: Unknown provision type offset %d (itemID %d)", itemOffset, itemID)
-			g.dialogOutput.AddTextWithColor(fmt.Sprintf("Received: Item #%d", itemID), ucolor.EGAYellow)
+		return equipment.String(), func() uint16 { return inventory.Equipment.Get(equipment) },
+			func() { inventory.Equipment.IncrementByOne(equipment) }, true
+	}
+	provision := func(name string, quantity interface {
+		Get() uint16
+		IncrementByOne()
+	}) (string, func() uint16, func(), bool) {
+		return name, quantity.Get, quantity.IncrementByOne, true
+	}
+	questItem := func(item references.QuestItem, name string) (string, func() uint16, func(), bool) {
+		if name == "" {
+			name = state.GameReferences.InventoryItemReferences.GetQuestItemDisplayName(item)
 		}
 
-		return
+		return name, func() uint16 { return inventory.QuestItems.Get(item) },
+			func() { inventory.QuestItems.IncrementByOne(item) }, true
 	}
+	switch itemID - conversationProvisionFirst {
+	case conversationGiftFood:
+		return provision("Food", &inventory.Provisions.Food)
+	case conversationGiftGold:
+		return provision("Gold", &inventory.Gold)
+	case conversationGiftKeys:
+		return provision("Keys", &inventory.Provisions.Keys)
+	case conversationGiftGems:
+		return provision("Gems", &inventory.Provisions.Gems)
+	case conversationGiftTorches:
+		return provision("Torches", &inventory.Provisions.Torches)
+	case conversationGiftSkullKeys:
+		return provision("Skull Keys", &inventory.Provisions.SkullKeys)
+	case conversationGiftGrapple:
+		return questItem(references.Grapple, "")
+	case conversationGiftCarpet:
+		return questItem(references.Carpet, "")
+	case conversationGiftSpyglass:
+		return questItem(references.Spyglass, "Spyglass")
+	case conversationGiftBadge:
+		return questItem(references.BlackBadge, "Black Badge")
+	case conversationGiftSextant:
+		name, quantity, _, _ := questItem(references.Sextant, "Sextant")
 
-	// Unknown itemID
-	logging.Warn(logging.CategoryConversation, "GiveItem: Unknown itemID %d (out of range)", itemID)
-	g.dialogOutput.AddTextWithColor(fmt.Sprintf("Received: Item #%d", itemID), ucolor.EGAYellow)
+		return name, quantity, state.GrantSextant, true
+	default:
+		return "", nil, nil, false
+	}
 }
 
 // DiscoverKnowledge records player knowledge revealed by semantic conversation actions.
@@ -496,12 +471,12 @@ func (g *GameActionCallbacks) DeductGoldSimple(amount int, npcName string) error
 			g.dialogOutput.AddTextWithColor("Generous donation! Karma improved!", ucolor.EGAYellow)
 		}
 
-		logging.Info(logging.CategoryConversation,
+		logging.Infof(logging.CategoryConversation,
 			"DeductGoldSimple: Beggar karma bonus applied - gave %d gp, remaining=%d, karma+%d",
 			amount, remainingGold, karmaBonus)
 	}
 
-	logging.Info(logging.CategoryConversation, "DeductGoldSimple: Gave %d gp to %s, remaining=%d",
+	logging.Infof(logging.CategoryConversation, "DeductGoldSimple: Gave %d gp to %s, remaining=%d",
 		amount, npcName, g.gameScene.gameState.PartyState.Inventory.Gold.Get())
 
 	return nil
@@ -523,7 +498,7 @@ func (g *GameActionCallbacks) TimedPause() {
 	// Callback for logging/tracking pause events
 	// Note: The engine writes the pause marker directly to its output buffer
 	// so it's interspersed correctly with conversation text
-	logging.Debug(logging.CategoryConversation, "TimedPause: callback invoked (marker written by engine)")
+	logging.Debugf(logging.CategoryConversation, "TimedPause: callback invoked (marker written by engine)")
 }
 
 // === Game State Query Callbacks ===

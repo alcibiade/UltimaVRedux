@@ -11,8 +11,13 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 )
 
-var _ Widget = &Border{}
+// borderTranslucentAlpha is the interior opacity of a standard (non-opaque) border.
+const borderTranslucentAlpha = 0.85
 
+var _ Widget = (*Border)(nil)
+
+// Border is a framed panel with a translucent or opaque interior. It lays out
+// from a percent-based placement and builds its images lazily on first draw.
 type Border struct {
 	border            *ebiten.Image
 	borderDrawOptions *ebiten.DrawImageOptions
@@ -29,11 +34,13 @@ type Border struct {
 	logicalWidth, logicalHeight int
 }
 
+// Draw paints the interior fill, then the frame on top.
 func (b *Border) Draw(screen *ebiten.Image) {
 	b.DrawBackground(screen)
 	b.DrawBorder(screen)
 }
 
+// DrawBackground paints only the interior fill, creating it on first use.
 func (b *Border) DrawBackground(screen *ebiten.Image) {
 	if b.background == nil {
 		b.initializeInterior()
@@ -42,6 +49,7 @@ func (b *Border) DrawBackground(screen *ebiten.Image) {
 	screen.DrawImage(b.background, b.backgroundDrawOptions)
 }
 
+// DrawBorder paints only the frame, creating it on first use.
 func (b *Border) DrawBorder(screen *ebiten.Image) {
 	if b.border == nil {
 		b.initializeBorders(b.placement)
@@ -49,32 +57,38 @@ func (b *Border) DrawBorder(screen *ebiten.Image) {
 	screen.DrawImage(b.border, b.borderDrawOptions)
 }
 
+// Update does nothing; a border has no per-frame state.
 func (b *Border) Update() {
 }
 
-func NewBorder(percentBasedPlacement sprites.PercentBasedPlacement, bordersWithScaling int, interiorColor color.Color) *Border {
-	b := &Border{}
-	b.bordersWithScaling = bordersWithScaling
+// NewBorder creates a border whose interior is drawn at borderTranslucentAlpha.
+func NewBorder(
+	percentBasedPlacement sprites.PercentBasedPlacement, bordersWithScaling int, interiorColor color.Color,
+) *Border {
+	border := new(Border)
+	border.bordersWithScaling = bordersWithScaling
 
-	b.interiorColor = interiorColor
-	b.interiorAlpha = 0.85
+	border.interiorColor = interiorColor
+	border.interiorAlpha = borderTranslucentAlpha
 
-	b.initializeGeometry(percentBasedPlacement)
+	border.initializeGeometry(percentBasedPlacement)
 
-	return b
+	return border
 }
 
 // NewOpaqueBorder creates a border with a fully opaque background (no transparency)
-func NewOpaqueBorder(percentBasedPlacement sprites.PercentBasedPlacement, bordersWithScaling int, interiorColor color.Color) *Border {
-	b := &Border{}
-	b.bordersWithScaling = bordersWithScaling
+func NewOpaqueBorder(
+	percentBasedPlacement sprites.PercentBasedPlacement, bordersWithScaling int, interiorColor color.Color,
+) *Border {
+	border := new(Border)
+	border.bordersWithScaling = bordersWithScaling
 
-	b.interiorColor = interiorColor
-	b.interiorAlpha = 1.0 // Fully opaque
+	border.interiorColor = interiorColor
+	border.interiorAlpha = 1.0 // Fully opaque
 
-	b.initializeGeometry(percentBasedPlacement)
+	border.initializeGeometry(percentBasedPlacement)
 
-	return b
+	return border
 }
 
 // func (b *Border) SetInteriorColor(color color.Color) {

@@ -56,7 +56,7 @@ func TestProgramDefinitionIsDetached(t *testing.T) {
 	canonical := program.CanonicalYAML()
 	canonical[0] = 'X'
 	assert.Equal(t, data, program.CanonicalYAML())
-	assert.False(t, program.Patched())
+	assert.False(t, program.patched)
 }
 
 func TestNewIndexesOriginalDefinitions(t *testing.T) {
@@ -70,7 +70,7 @@ func TestNewIndexesOriginalDefinitions(t *testing.T) {
 	program, exists := catalog.Original(semantic.OriginalSourceTowne, 1)
 	require.True(t, exists)
 	assert.Equal(t, definition.ID, program.ID())
-	assert.False(t, program.Patched())
+	assert.False(t, program.patched)
 }
 
 func TestOriginalKeysAreOrderedDetachedAndSourceSpecific(t *testing.T) {
@@ -112,11 +112,11 @@ func TestAddOriginalRetainsPatchedCanonicalDocument(t *testing.T) {
 	require.NoError(t, err)
 	program, exists := catalog.Original(semantic.OriginalSourceKeep, 10)
 	require.True(t, exists)
-	assert.True(t, program.Patched())
+	assert.True(t, program.patched)
 	assert.Equal(t, edited, program.CanonicalYAML())
 	loaded, err := program.Definition()
 	require.NoError(t, err)
-	assert.Equal(t, "Patched Mara", loaded.Name[0].(*semantic.SayAction).Content[0].(*semantic.TextPart).Text) //nolint:forcetypeassert // Test data fixes both closed unions.
+	assert.Equal(t, "Patched Mara", loaded.Name[0].(*semantic.SayAction).Content[0].(*semantic.TextPart).Text)
 }
 
 func testConversationDefinition(id string, origin semantic.Origin) *semantic.Conversation {

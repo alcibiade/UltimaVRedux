@@ -99,8 +99,6 @@ func (eqm *EventQueueManager) reserveQueue(queue *NamedEventQueue) bool {
 			return false
 		}
 		eqm.feedbackQueues[queue.name] = queue
-	case queueLaneBackground:
-		panic("EventQueue: background queue reached normal start routing")
 	default:
 		panic("EventQueue: queue has unknown execution lane")
 	}
@@ -114,8 +112,6 @@ func (eqm *EventQueueManager) dispatchQueue(queue *NamedEventQueue) {
 		eqm.dispatchWorkflow(queue)
 	case queueLaneFeedback:
 		eqm.dispatchFeedback(queue)
-	case queueLaneBackground:
-		panic("EventQueue: background queue reached deferred dispatch")
 	default:
 		panic("EventQueue: queue has unknown execution lane")
 	}
@@ -264,7 +260,7 @@ func (eqm *EventQueueManager) updateWorkflow() {
 
 	// Phase 3.5: Check for termination request (HandoffTo pattern)
 	if queue.terminateRequested {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Queue '%s' has terminateRequested=true - executing Finally() and marking for deletion",
 			queueName)
 
@@ -276,7 +272,7 @@ func (eqm *EventQueueManager) updateWorkflow() {
 
 		// Handle automatic input unblocking before deletion
 		if queue.inputBlockOwned {
-			logging.Debug(logging.CategoryGameState, "EventQueue: Unblocking input for terminated queue '%s'", queueName)
+			logging.Debugf(logging.CategoryGameState, "EventQueue: Unblocking input for terminated queue '%s'", queueName)
 			eqm.releaseInputBlock(queue)
 		}
 
@@ -294,7 +290,7 @@ func (eqm *EventQueueManager) updateWorkflow() {
 
 		// Remove from queues map BEFORE calling onComplete
 		// This ensures the terminated queue can't be referenced during new queue creation
-		logging.Debug(logging.CategoryGameState, "EventQueue: Deleting terminated queue '%s'", queueName)
+		logging.Debugf(logging.CategoryGameState, "EventQueue: Deleting terminated queue '%s'", queueName)
 		delete(eqm.queues, queueName)
 
 		// OnComplete may now create the chained queue at depth zero.
@@ -320,7 +316,7 @@ func (eqm *EventQueueManager) updateWorkflow() {
 	// Phase 6: Delete empty queues and remove from active list
 	activeQueueDeleted := false
 	for _, queueName := range queuesToDelete {
-		logging.Debug(logging.CategoryGameState, "EventQueue: Deleting empty queue '%s'", queueName)
+		logging.Debugf(logging.CategoryGameState, "EventQueue: Deleting empty queue '%s'", queueName)
 
 		queueToDelete := eqm.queues[queueName]
 		if queueToDelete == nil {
@@ -416,15 +412,14 @@ func removeQueueAt(queues []*NamedEventQueue, index int) []*NamedEventQueue {
 
 // promoteNextPendingQueue promotes the highest priority pending queue to active
 // Called when the active queue completes
-// NOTE: Caller must hold eqm.mu lock
 func (eqm *EventQueueManager) promoteNextPendingQueue() {
 	// Clear active queue
 	eqm.activeQueue = nil
-	logging.Debug(logging.CategoryGameState, "EventQueue: Active queue cleared")
+	logging.Debugf(logging.CategoryGameState, "EventQueue: Active queue cleared")
 
 	// If no pending queues, we're done
 	if len(eqm.pendingQueues) == 0 {
-		logging.Debug(logging.CategoryGameState, "EventQueue: No pending queues to promote")
+		logging.Debugf(logging.CategoryGameState, "EventQueue: No pending queues to promote")
 
 		return
 	}
@@ -439,7 +434,7 @@ func (eqm *EventQueueManager) promoteNextPendingQueue() {
 
 	eqm.pendingQueues = removeQueueAt(eqm.pendingQueues, highestPriorityIndex)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"EventQueue: Promoted queue '%s' (priority %d) to active, %d pending remaining",
 		promotedQueue.name, promotedQueue.priority, len(eqm.pendingQueues))
 }
@@ -496,7 +491,7 @@ func (eqm *EventQueueManager) processInputWaiting(queue *NamedEventQueue, curren
 	if queue.requireKeyRelease {
 		if !keyPressed {
 			queue.requireKeyRelease = false
-			logging.Debug(logging.CategoryGameState, "EventQueue: Keys released - ready for new input")
+			logging.Debugf(logging.CategoryGameState, "EventQueue: Keys released - ready for new input")
 		}
 		queue.keyWasPressed = keyPressed
 
@@ -505,7 +500,7 @@ func (eqm *EventQueueManager) processInputWaiting(queue *NamedEventQueue, curren
 
 	// Use edge detection: key is pressed AND wasn't pressed last frame
 	if keyPressed && !queue.keyWasPressed {
-		logging.Debug(logging.CategoryGameState, "EventQueue: Key pressed - resuming from wait point")
+		logging.Debugf(logging.CategoryGameState, "EventQueue: Key pressed - resuming from wait point")
 		queue.waitingForInput = false
 		queue.lastUpdateTime = currentTime
 
@@ -527,7 +522,7 @@ func (eqm *EventQueueManager) schedulePostInputActions(queue *NamedEventQueue, c
 			Action:    queue.pendingNextAction,
 		}
 		queue.events = append(queue.events, nextEvent)
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Scheduled pending action for %d (delay: %d)",
 			nextExecuteAt, queue.pendingNextDelay)
 
@@ -563,14 +558,14 @@ func (eqm *EventQueueManager) processPendingInputUnblock(
 	}
 
 	if !anyKeyPressed {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: All keys released - unblocking input for queue '%s'", queueName)
 		eqm.releaseInputBlock(queue)
 		queue.pendingInputUnblock = false
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Queue '%s' ready for deletion after input unblock", queueName)
 	} else {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Queue '%s' waiting for key release before unblocking", queueName)
 	}
 }
@@ -595,13 +590,13 @@ func (eqm *EventQueueManager) processDelayedEvents(
 			// Check for termination request after each event execution
 			// (HandoffTo may have been called during the event callback)
 			if queue.terminateRequested {
-				logging.Debug(logging.CategoryGameState,
+				logging.Debugf(logging.CategoryGameState,
 					"EventQueue: Termination requested during event execution - skipping remaining events")
 				// Return empty slice - no remaining events matter since we're terminating
 				return nil
 			}
 		} else {
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"EventQueue: Event in queue '%s' not ready - scheduled for %d (current: %d)",
 				queueName, event.ExecuteAt, currentTime)
 			remainingEvents = append(remainingEvents, event)
@@ -618,7 +613,7 @@ func (eqm *EventQueueManager) executeDelayedEvent(
 	event *DelayedEvent,
 	currentTime int64,
 ) {
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"EventQueue: Executing event in queue '%s' scheduled for %d (current: %d)",
 		queueName, event.ExecuteAt, currentTime)
 
@@ -629,14 +624,14 @@ func (eqm *EventQueueManager) executeDelayedEvent(
 	}
 
 	if err != nil {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Event in queue '%s' returned error: %v", queueName, err)
 		_ = err
 	}
 
 	// Don't schedule any more actions if termination was requested
 	if queue.terminateRequested {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Termination requested - skipping next action scheduling")
 
 		return
@@ -644,7 +639,7 @@ func (eqm *EventQueueManager) executeDelayedEvent(
 
 	if event.NextAction != nil {
 		if event.IsWaitPoint {
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"EventQueue: Event is wait point - storing next action for input")
 			queue.waitingForInput = true
 			queue.pendingNextAction = event.NextAction
@@ -658,7 +653,7 @@ func (eqm *EventQueueManager) executeDelayedEvent(
 				Action:    event.NextAction,
 			}
 			queue.events = append(queue.events, nextEvent)
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"EventQueue: Chained next action scheduled for %d (delay: %d)",
 				nextExecuteAt, event.NextDelay)
 		}
@@ -711,16 +706,16 @@ func (eqm *EventQueueManager) handleQueueCleanup(
 			eqm.beginQueueFinalization(queue)
 		}
 		if queue.autoBlockUnblockInput && eqm.systemCallbacks != nil && queue.inputBlockOwned {
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"EventQueue: Queue '%s' is empty - entering pendingInputUnblock state", queueName)
 			queue.pendingInputUnblock = true
 		} else {
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"EventQueue: Queue '%s' is empty - marking for cleanup", queueName)
 			*queuesToDelete = append(*queuesToDelete, queueName)
 		}
 	} else {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Queue '%s' not empty - delayed: %d, continuous: %d, waitingForInput: %t, pendingInputUnblock: %t",
 			queueName, len(queue.events), len(queue.continuousEvents), queue.waitingForInput, queue.pendingInputUnblock)
 	}
@@ -728,21 +723,21 @@ func (eqm *EventQueueManager) handleQueueCleanup(
 
 // blockInputIfNeeded blocks input with reference counting
 func (eqm *EventQueueManager) blockInputIfNeeded() {
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"EventQueue: blockInputIfNeeded called - current count: %d", eqm.inputBlockCount)
 	if eqm.inputBlockCount == 0 {
 		// First queue requesting block
-		logging.Debug(logging.CategoryGameState, "EventQueue: Blocking input (first queue)")
+		logging.Debugf(logging.CategoryGameState, "EventQueue: Blocking input (first queue)")
 		eqm.systemCallbacks.BlockAllInput(true)
 	}
 	eqm.inputBlockCount++
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"EventQueue: Input block count now: %d", eqm.inputBlockCount)
 }
 
 // unblockInputIfNeeded unblocks input with reference counting
 func (eqm *EventQueueManager) unblockInputIfNeeded() {
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"EventQueue: unblockInputIfNeeded called - current count: %d", eqm.inputBlockCount)
 
 	if eqm.inputBlockCount <= 0 {
@@ -750,11 +745,11 @@ func (eqm *EventQueueManager) unblockInputIfNeeded() {
 	}
 
 	eqm.inputBlockCount--
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"EventQueue: Input block count now: %d", eqm.inputBlockCount)
 	if eqm.inputBlockCount == 0 {
 		// Last queue finished - unblock input
-		logging.Debug(logging.CategoryGameState, "EventQueue: Unblocking input (last queue finished)")
+		logging.Debugf(logging.CategoryGameState, "EventQueue: Unblocking input (last queue finished)")
 		eqm.systemCallbacks.BlockAllInput(false)
 	}
 }
@@ -884,7 +879,6 @@ func (eqm *EventQueueManager) Shutdown() {
 	eqm.deferredStarts = nil
 	eqm.activeFeedbackQueue = nil
 	eqm.pendingFeedbackQueues = nil
-	eqm.activeBackgroundQueues = nil
 	if eqm.inputBlockCount != 0 {
 		panic(fmt.Sprintf("EventQueue: shutdown left %d input blocks owned", eqm.inputBlockCount))
 	}
@@ -919,123 +913,4 @@ func (eqm *EventQueueManager) cancelQueueForShutdown(queue *NamedEventQueue) {
 	queue.inputWaitCallback = nil
 	queue.onComplete = nil
 	queue.lifecycle = queueFinalized
-}
-
-// UpdateBackground processes all background queues concurrently with the main queue.
-// Called from gamescene_update.go after Update() to process visual effects.
-// Background queues never block input and run independently of main queue lifecycle.
-// All active background queues are processed in parallel - each fades independently.
-func (eqm *EventQueueManager) UpdateBackground() {
-	if eqm.shutdown {
-		return
-	}
-	eqm.updateBackground()
-	eqm.flushDeferredStarts()
-}
-
-func (eqm *EventQueueManager) updateBackground() {
-	if len(eqm.activeBackgroundQueues) == 0 {
-		return
-	}
-
-	currentTime := eqm.timeSource()
-
-	// Process ALL active background queues concurrently
-	// Collect queues that are still active after processing
-	remainingQueues := make([]*NamedEventQueue, 0, len(eqm.activeBackgroundQueues))
-
-	for _, queue := range eqm.activeBackgroundQueues {
-		previousContinuousCount := len(queue.continuousEvents)
-		logging.Debug(logging.CategoryGameState,
-			"EventQueue: UpdateBackground processing '%s' with %d events, currentTime=%d",
-			queue.name, len(queue.events), currentTime)
-
-		// Process delayed events (simplified - no input waiting for background queues)
-		// Track original length to preserve any events chained during execution
-		originalLen := len(queue.events)
-		remainingEvents := make([]*DelayedEvent, 0)
-
-		for i := range originalLen {
-			event := queue.events[i]
-			if event.ExecuteAt <= currentTime {
-				eqm.executeBackgroundEvent(queue, event, currentTime)
-				if eqm.shutdown {
-					return
-				}
-			} else {
-				remainingEvents = append(remainingEvents, event)
-			}
-		}
-
-		// Append any newly chained events (added during execution) to remaining events
-		if len(queue.events) > originalLen {
-			remainingEvents = append(remainingEvents, queue.events[originalLen:]...)
-		}
-
-		queue.events = remainingEvents
-
-		queue.continuousEvents = eqm.processContinuousEvents(queue, currentTime, previousContinuousCount)
-		if eqm.shutdown {
-			return
-		}
-
-		// Check if this queue is complete
-		if len(queue.events) == 0 && len(queue.continuousEvents) == 0 {
-			logging.Debug(logging.CategoryGameState,
-				"EventQueue: Background queue '%s' completed", queue.name)
-
-			// Remove from queues map
-			queueKey := "bg_" + queue.name
-			delete(eqm.queues, queueKey)
-			eqm.beginQueueFinalization(queue)
-			if eqm.shutdown {
-				return
-			}
-			eqm.completeQueueFinalization(queue)
-			// Don't add to remainingQueues - this queue is done
-		} else {
-			// Queue still has work - keep it active
-			remainingQueues = append(remainingQueues, queue)
-		}
-	}
-
-	// Update active queues to only those still running
-	eqm.activeBackgroundQueues = remainingQueues
-}
-
-// executeBackgroundEvent executes a single background event and handles chaining
-func (eqm *EventQueueManager) executeBackgroundEvent(
-	queue *NamedEventQueue,
-	event *DelayedEvent,
-	currentTime int64,
-) {
-	logging.Debug(logging.CategoryGameState,
-		"EventQueue: Executing background event in queue '%s'", queue.name)
-
-	// Execute callback
-	if err := eqm.runError(event.Action); err != nil {
-		logging.Debug(logging.CategoryGameState,
-			"EventQueue: Background event returned error: %v", err)
-	}
-	if eqm.shutdown {
-		return
-	}
-
-	// Handle chaining to next action
-	if event.NextAction != nil {
-		nextExecuteAt := currentTime + event.NextDelay
-		//nolint:exhaustruct
-		nextEvent := &DelayedEvent{
-			ExecuteAt: nextExecuteAt,
-			Action:    event.NextAction,
-		}
-		queue.events = append(queue.events, nextEvent)
-		logging.Debug(logging.CategoryGameState,
-			"EventQueue: Chained background action scheduled for %d", nextExecuteAt)
-	}
-}
-
-// HasActiveBackgroundQueues returns true if there are any active background queues
-func (eqm *EventQueueManager) HasActiveBackgroundQueues() bool {
-	return len(eqm.activeBackgroundQueues) > 0
 }

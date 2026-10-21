@@ -42,7 +42,7 @@ func (g *GameScene) PrepareForSceneReplacement() {
 		return
 	}
 	if err := g.audioManager.StopBackgroundMusic(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop music before scene replacement: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop music before scene replacement: %v", err)
 	}
 }
 
@@ -127,7 +127,7 @@ func (g *GameScene) Dispose() {
 		return
 	}
 	if err := g.audioManager.Close(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to close audio during scene disposal: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to close audio during scene disposal: %v", err)
 	}
 	g.audioManager = nil
 }

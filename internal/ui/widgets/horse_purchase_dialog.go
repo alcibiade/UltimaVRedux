@@ -157,32 +157,12 @@ func (d *HorsePurchaseDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return
 	}
-	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: horsePurchaseLineSpacing,
-		MaxLines: 1, MaxChars: horsePurchaseMinimumTextChars,
+	d.headerOutput, d.bodyOutput, d.footerOutput = d.frame.newOutputs(merchantModalTextBudget{
+		lineSpacing:      horsePurchaseLineSpacing,
+		maximumBodyLines: horsePurchaseMaximumBodyLines,
+		footerLines:      horsePurchaseFooterLines,
+		minimumChars:     horsePurchaseMinimumTextChars,
 	})
-	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: horsePurchaseLineSpacing,
-		MaxLines: horsePurchaseMaximumBodyLines, MaxChars: horsePurchaseMinimumTextChars,
-	})
-	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: horsePurchaseLineSpacing,
-		MaxLines: horsePurchaseFooterLines, MaxChars: horsePurchaseMinimumTextChars,
-	})
-	d.headerOutput.SetMaxCharsPerLine(max(
-		horsePurchaseMinimumTextChars,
-		d.headerOutput.Font.CharsForWidth(max(1, d.frame.headerText.Dx())),
-	))
-	d.bodyOutput = text.NewOutput(
-		bodyFont,
-		bodyOutput.GetLineSpacing(),
-		max(1, bodyOutput.GetLineCapacity(max(1, d.frame.bodyText.Dy()))),
-		max(horsePurchaseMinimumTextChars, bodyFont.CharsForWidth(max(1, d.frame.bodyText.Dx()))),
-	)
-	d.footerOutput.SetMaxCharsPerLine(max(
-		horsePurchaseMinimumTextChars,
-		d.footerOutput.Font.CharsForWidth(max(1, d.frame.footerText.Dx())),
-	))
 	d.populateOutputs()
 }
 
@@ -210,8 +190,7 @@ func (d *HorsePurchaseDialog) populateOutputs() {
 	}
 
 	d.footerOutput.Reset()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("[Enter]").LightGray(" Confirm   ").White("[Esc]").LightGray(" Back").WordWrap().Done()
+	appendControlGuidance(d.footerOutput, "[Enter] Confirm   [Esc] Back", d.frame.footerText.Dx())
 }
 
 func horsePurchasePlacement() sprites.PercentBasedPlacement {

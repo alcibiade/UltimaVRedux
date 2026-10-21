@@ -317,17 +317,17 @@ func (g *GameScene) thenShowInputBoxConfigured(
 		var inputDialog *widgets.InputBox
 
 		return q.Then(func() {
-			logging.Debug(logging.CategoryUI, "thenShowInputBox: Creating InputBox with prompt=%q", prompt)
+			logging.Debugf(logging.CategoryUI, "thenShowInputBox: Creating InputBox with prompt=%q", prompt)
 			// Create InputBox with result callback that sets flags
 			builder := widgets.NewInputBox(prompt, nil, g.keyboard).
 				WithRegexValidation(validation).
 				WithResultCallback(func(text string, wasSubmitted bool) {
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: resultCallback invoked, text=%q, submitted=%v, inputComplete was %v",
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: resultCallback invoked, text=%q, submitted=%v, inputComplete was %v",
 						text, wasSubmitted, inputComplete)
 					inputComplete = true
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: inputComplete set to true, calling onResult")
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: inputComplete set to true, calling onResult")
 					onResult(text, wasSubmitted)
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: onResult completed")
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: onResult completed")
 				}).
 				WithAutoReplace(false).
 				WithTextLines(2).
@@ -343,12 +343,12 @@ func (g *GameScene) thenShowInputBoxConfigured(
 			}
 
 			g.dialogStack.PushModalDialog(inputDialog)
-			logging.Debug(logging.CategoryUI, "thenShowInputBox: InputBox pushed to dialog stack")
+			logging.Debugf(logging.CategoryUI, "thenShowInputBox: InputBox pushed to dialog stack")
 		}).
 			While(
 				func() bool {
 					result := !inputComplete
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: While condition check, inputComplete=%v, continuing=%v",
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: While condition check, inputComplete=%v, continuing=%v",
 						inputComplete, result)
 
 					return result
@@ -357,16 +357,16 @@ func (g *GameScene) thenShowInputBoxConfigured(
 				DialogPollingRateMs,
 			).
 			Then(func() {
-				logging.Debug(logging.CategoryUI, "thenShowInputBox: While loop exited, removing dialog")
-				// Remove specific dialog instance from stack (safe with concurrent background queues)
+				logging.Debugf(logging.CategoryUI, "thenShowInputBox: While loop exited, removing dialog")
+				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				g.dialogStack.RemoveWidgetInstance(inputDialog)
 				if len(instance) > 0 {
 					*instance[0] = nil
 				}
 				g.keyboard.SetForceWaitAnyKey(KeyboardDebounceMs)
-				logging.Debug(logging.CategoryUI, "thenShowInputBox: Dialog removed, keyboard debounce set")
+				logging.Debugf(logging.CategoryUI, "thenShowInputBox: Dialog removed, keyboard debounce set")
 			}).
 			Wait(KeyboardDebounceMs)
 	}
@@ -457,9 +457,9 @@ func (g *GameScene) thenShowCampDurationInput(
 				DialogPollingRateMs,
 			).
 			Then(func() {
-				// Remove specific dialog instance from stack (safe with concurrent background queues)
+				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				g.dialogStack.RemoveWidgetInstance(inputDialog)
 				g.keyboard.SetForceWaitAnyKey(KeyboardDebounceMs)
 			}).
@@ -545,9 +545,9 @@ func (g *GameScene) thenShowGuardSelection(
 				DialogPollingRateMs,
 			).
 			Then(func() {
-				// Remove specific dialog instance from stack (safe with concurrent background queues)
+				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				if *dialog != nil {
 					g.dialogStack.RemoveWidgetInstance(*dialog)
 				}
@@ -620,7 +620,7 @@ func (g *GameScene) thenShowDungeonEarthquake() func(*event_queue.SequentialEven
 			Then(func() {
 				// Stage 4: Remove dialog from stack after fade completes
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				g.dialogStack.RemoveWidgetInstance(dialog)
 			})
 	}
@@ -859,7 +859,7 @@ func (g *GameScene) thenShowLinearTalkDialog(
 			}).
 			While(
 				func() bool {
-					return dialogCreated && g.dialogStack.GetIndexOfDialogType(LinearTalkDialog{}) >= 0
+					return dialogCreated && g.dialogStack.ContainsWidgetInstance(dialog)
 				},
 				func() {},
 				DialogPollingRateMs,
@@ -997,9 +997,6 @@ func (g *GameScene) thenHandleGuardTalk(
 					func(yesQ *event_queue.SequentialEventBuilder) {
 						yesQ.Then(func() {
 							paymentResult = g.gameState.CommitGuardTribute(review)
-							if paymentResult == game_state.GuardTributePaid {
-								g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
-							}
 						}).If(
 							func() bool { return paymentResult == game_state.GuardTributeInsufficientGold },
 							func(arrestQ *event_queue.SequentialEventBuilder) {
@@ -1067,7 +1064,7 @@ func (g *GameScene) thenShowNewOrderDialog(
 
 					err := g.gameState.SwapPartyMembers(first, second)
 					if err != nil {
-						logging.Warn(logging.CategoryUI, "SwapMembers failed: %v", err)
+						logging.Warnf(logging.CategoryUI, "SwapMembers failed: %v", err)
 						swapExecuted = false
 
 						return

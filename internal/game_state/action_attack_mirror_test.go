@@ -48,7 +48,7 @@ func TestIntactMirrorBreakingConsumesNormalTownTurn(t *testing.T) {
 }
 
 func TestIntactMirrorTakesPrecedenceOverOccupyingNPC(t *testing.T) {
-	fixture := newDefenselessAttackFixture(t, indexes.Mirror, indexes.TownsPerson_KeyIndex, 1)
+	fixture := newDefenselessAttackFixture(t, indexes.Mirror, indexes.TownsPersonKeyIndex, 1)
 	currentMap := fixture.state.GetLayeredMapByCurrentLocation()
 	currentMap.SetTileByLayer(
 		map_state.MapOverrideLayer,

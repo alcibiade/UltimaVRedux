@@ -86,7 +86,7 @@ func Import(dataDir string) (*ImportResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	dictionary, err := importDictionary(inputs[files.DATA_OVL])
+	dictionary, err := importDictionary(inputs[files.DataOvl])
 	if err != nil {
 		return nil, err
 	}
@@ -136,14 +136,14 @@ func importDictionary(dataOvl []byte) (map[byte]string, error) {
 		return nil, fmt.Errorf(
 			"%w: %s needs at least 0x%x bytes, has 0x%x",
 			errImportCompressedWords,
-			files.DATA_OVL,
+			files.DataOvl,
 			compressedWordsOffset+compressedWordsLength,
 			len(dataOvl),
 		)
 	}
 	dictionary, err := parseWordTable(dataOvl[compressedWordsOffset : compressedWordsOffset+compressedWordsLength])
 	if err != nil {
-		return nil, fmt.Errorf("parsing compressed words from %s offset 0x%x: %w", files.DATA_OVL, compressedWordsOffset, err)
+		return nil, fmt.Errorf("parsing compressed words from %s offset 0x%x: %w", files.DataOvl, compressedWordsOffset, err)
 	}
 
 	return dictionary, nil
@@ -195,18 +195,18 @@ func Extract(options Options) (result *Result, err error) {
 	if err != nil {
 		return nil, err
 	}
-	dataOvl := inputs[files.DATA_OVL]
+	dataOvl := inputs[files.DataOvl]
 	if len(dataOvl) < compressedWordsOffset+compressedWordsLength {
 		return nil, fmt.Errorf(
 			"reading compressed words from %s: need at least 0x%x bytes, have 0x%x",
-			files.DATA_OVL,
+			files.DataOvl,
 			compressedWordsOffset+compressedWordsLength,
 			len(dataOvl),
 		)
 	}
 	dictionary, err := parseWordTable(dataOvl[compressedWordsOffset : compressedWordsOffset+compressedWordsLength])
 	if err != nil {
-		return nil, fmt.Errorf("parsing compressed words from %s offset 0x%x: %w", files.DATA_OVL, compressedWordsOffset, err)
+		return nil, fmt.Errorf("parsing compressed words from %s offset 0x%x: %w", files.DataOvl, compressedWordsOffset, err)
 	}
 
 	parent := filepath.Dir(output)
@@ -630,25 +630,25 @@ func readInputs(dataDir string) (map[string][]byte, []SourceDigest, error) {
 }
 
 func sourceFilenames() []string {
-	return []string{files.DATA_OVL, files.CASTLE_TLK, files.TOWNE_TLK, files.DWELLING_TLK, files.KEEP_TLK}
+	return []string{files.DataOvl, files.CastleTlk, files.TowneTlk, files.DwellingTlk, files.KeepTlk}
 }
 
 func conversationSources() []sourceSpec {
 	return []sourceSpec{
 		{
-			filename: files.CASTLE_TLK, directory: "castle",
+			filename: files.CastleTlk, directory: "castle",
 			source: semantic.OriginalSourceCastle, count: castleConversationCount,
 		},
 		{
-			filename: files.TOWNE_TLK, directory: "towne",
+			filename: files.TowneTlk, directory: "towne",
 			source: semantic.OriginalSourceTowne, count: towneConversationCount,
 		},
 		{
-			filename: files.DWELLING_TLK, directory: "dwelling",
+			filename: files.DwellingTlk, directory: "dwelling",
 			source: semantic.OriginalSourceDwelling, count: dwellingConversationCount,
 		},
 		{
-			filename: files.KEEP_TLK, directory: "keep",
+			filename: files.KeepTlk, directory: "keep",
 			source: semantic.OriginalSourceKeep, count: keepConversationCount,
 		},
 	}

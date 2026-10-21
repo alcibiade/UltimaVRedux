@@ -41,7 +41,7 @@ func TestNumberKeyRoutingPreservesNumpadMovementAwayFromHarpsichord(t *testing.T
 		WithSystemCallbacks().
 		WithRandomSeed(79).
 		Build()
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused number-routing fixture.
+	scene := &GameScene{gameState: state}
 
 	assert.False(t, scene.handleNumberKey(ebiten.KeyNumpad8))
 	assert.True(t, scene.handleNumberKey(ebiten.Key8))

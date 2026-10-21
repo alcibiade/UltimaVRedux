@@ -137,12 +137,12 @@ func TestScriptBuilder_ComplexSequence(t *testing.T) {
 }
 
 // Face adds a face step for a single actor to change direction
-func (b *MiniMapScriptBuilder) Face(actor ActorID, direction references.Direction) *MiniMapScriptBuilder {
+func (b *ScriptBuilder) Face(actor ActorID, direction references.Direction) *ScriptBuilder {
 	return b.FaceActors([]ActorID{actor}, direction)
 }
 
 // FaceActors adds a face step for multiple actors to change direction
-func (b *MiniMapScriptBuilder) FaceActors(actors []ActorID, direction references.Direction) *MiniMapScriptBuilder {
+func (b *ScriptBuilder) FaceActors(actors []ActorID, direction references.Direction) *ScriptBuilder {
 	b.script.Steps = append(b.script.Steps, ScriptStep{
 		Type:      StepFace,
 		ActorIDs:  actors,
@@ -153,7 +153,7 @@ func (b *MiniMapScriptBuilder) FaceActors(actors []ActorID, direction references
 }
 
 // Wait adds a wait step for the specified duration
-func (b *MiniMapScriptBuilder) Wait(durationMs int) *MiniMapScriptBuilder {
+func (b *ScriptBuilder) Wait(durationMs int) *ScriptBuilder {
 	b.script.Steps = append(b.script.Steps, ScriptStep{
 		Type:     StepWait,
 		Duration: durationMs,

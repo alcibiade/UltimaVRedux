@@ -25,7 +25,6 @@ export function scenarioStatusCompletion(requestId: string): object {
     date: "1-1-1", time: "12:00", food: 100, combatActive: false, dialogActive: false,
     gameplayWorkflowActive: false, scriptedSceneActive: false, gameplayTerminal: false, finaleActive: false, allPartyDead: false,
     party: [{ rosterIndex: 0, partyPosition: 1, name: "Avatar", class: "Avatar", status: "Good", currentHp: 100, maximumHp: 100, currentMp: 20, experience: 500, level: 5 }],
-    guards: { supported: true, criminal: false, potentialGuardCount: 2, hostilePotentialGuardCount: 0 },
   })
 }
 

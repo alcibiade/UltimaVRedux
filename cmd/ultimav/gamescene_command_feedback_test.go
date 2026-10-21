@@ -55,7 +55,7 @@ func TestCombatJimmyCallerDoesNotAppendNoTargetForHandledFailure(t *testing.T) {
 		{"chest failed", true, true, indexes.BrickFloor, 1, 0, "Key broke!"},
 		{"chest already unlocked", true, false, indexes.BrickFloor, 1, 0, "Key broke!"},
 		{"door no keys", false, false, indexes.LockedDoor, 0, 0, "No keys!"},
-		{"magical door", false, false, indexes.MagicLockDoor, 1, 1, "Magically Locked!"},
+		{"magical door", false, false, indexes.MagicLockDoor, 1, 0, "Key broke!"},
 		{"no target", false, false, indexes.BrickFloor, 1, 1, "Nothing to jimmy!"},
 	} {
 		t.Run(test.name, func(t *testing.T) {

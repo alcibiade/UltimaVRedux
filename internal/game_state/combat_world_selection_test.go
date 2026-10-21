@@ -22,18 +22,10 @@ func TestCombatWorldSelectionRoundTrips(t *testing.T) {
 					state.CombatScene.SetSoloMoveCharacter(0)
 					state.CombatScene.ExitRoute = CombatExitWest
 					state.CombatScene.Victory = reason == CombatVictory
-					refreshedSelection := -2
-					state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-						if state.CombatScene == nil {
-							refreshedSelection = state.GetActivePlayerIndex()
-						}
-					}
-
 					state.EndCombat(reason)
 
 					require.Nil(t, state.CombatScene)
 					assert.Equal(t, selected, state.GetActivePlayerIndex())
-					assert.Equal(t, selected, refreshedSelection, "stats refresh sees the restored world selection")
 					assert.False(t, state.IsSoloMoveMode())
 				})
 			}

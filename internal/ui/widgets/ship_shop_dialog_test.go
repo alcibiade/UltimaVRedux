@@ -108,7 +108,7 @@ func TestShipShopDialogPendingFrigateManifestAndSemanticBacking(t *testing.T) {
 	screen := ebiten.NewImage(1280, 720)
 	dialog.Draw(screen)
 	requireImageRegionContainsColor(t, screen, dialog.GetManifestBounds(), MerchantDialogBackgroundColor)
-	requireImageRegionContainsColor(t, screen, dialog.GetOfferCardBounds(0), pkgcolor.EGABlue)
+	requireImageRegionContainsColor(t, screen, dialog.GetOfferCardBounds(0), pkgcolor.EGAWhite)
 	requireImageRegionContainsColor(t, screen, dialog.cardSpriteBounds[0], pkgcolor.EGALightMagenta)
 	requireImageRegionContainsColor(t, screen, dialog.cardSpriteBounds[1], pkgcolor.EGALightCyan)
 }
@@ -479,7 +479,7 @@ func setShipShopGold(state *game_state.ShipShopState, gold uint16) {
 		quote.GoldAfterPayment = gold
 		quote.Affordable = quote.Price <= int(gold)
 		if quote.Affordable {
-			quote.GoldAfterPayment = gold - uint16(quote.Price) //nolint:gosec // Test quote prices are bounded.
+			quote.GoldAfterPayment = gold - uint16(quote.Price)
 		}
 		setTestShipQuoteApprovals(quote)
 	}
@@ -500,7 +500,7 @@ func setTestShipQuoteApprovals(quote *game_state.ShipPurchaseQuote) {
 		affordable := total <= int(quote.GoldBefore)
 		afterGold := quote.GoldBefore
 		if affordable {
-			afterGold -= uint16(total) //nolint:gosec // Test totals are bounded by affordability.
+			afterGold -= uint16(total)
 		}
 		skiffsAfter := quote.Berth.SkiffCount
 		switch quote.Action {

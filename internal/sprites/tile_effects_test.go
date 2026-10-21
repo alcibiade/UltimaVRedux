@@ -37,7 +37,7 @@ func TestEffect_WithBackground(t *testing.T) {
 func TestEffect_WithBounds_InclusiveCoordinates(t *testing.T) {
 	// WithBounds(6, 1, 12, 4) should affect pixels 6-12 on x, 1-4 on y (inclusive)
 	pipeline := Effect().
-		WithBounds(6, 1, 12, 4).
+		WithBounds(inclusiveTileBounds{6, 1, 12, 4}).
 		AddVerticalRise(FilterAll).
 		Build()
 
@@ -96,7 +96,7 @@ func TestEffect_FluentChaining(t *testing.T) {
 	// Test that all methods return the builder for chaining
 	pipeline := Effect().
 		WithBackground(indexes.BrickFloor).
-		WithBounds(0, 0, 15, 15).
+		WithBounds(inclusiveTileBounds{0, 0, 15, 15}).
 		WithInterval(200).
 		AddVerticalRise(FilterRedOnly).
 		AddWaveDisplace(FilterYellowOnly).
@@ -121,14 +121,14 @@ func TestEffect_Build_PanicsWithNoEffects(t *testing.T) {
 func TestEffect_Build_PanicsWithNegativeBounds(t *testing.T) {
 	assert.Panics(t, func() {
 		Effect().
-			WithBounds(-1, 0, 10, 10).
+			WithBounds(inclusiveTileBounds{-1, 0, 10, 10}).
 			AddVerticalRise(FilterAll).
 			Build()
 	}, "Build() should panic with negative x1")
 
 	assert.Panics(t, func() {
 		Effect().
-			WithBounds(0, -1, 10, 10).
+			WithBounds(inclusiveTileBounds{0, -1, 10, 10}).
 			AddVerticalRise(FilterAll).
 			Build()
 	}, "Build() should panic with negative y1")
@@ -137,14 +137,14 @@ func TestEffect_Build_PanicsWithNegativeBounds(t *testing.T) {
 func TestEffect_Build_PanicsWithBoundsExceedingTileSize(t *testing.T) {
 	assert.Panics(t, func() {
 		Effect().
-			WithBounds(0, 0, 16, 15). // x2=16 -> max.X=17 > TileSize(16)
+			WithBounds(inclusiveTileBounds{0, 0, 16, 15}). // x2=16 -> max.X=17 > TileSize(16)
 			AddVerticalRise(FilterAll).
 			Build()
 	}, "Build() should panic when bounds exceed tile size")
 
 	assert.Panics(t, func() {
 		Effect().
-			WithBounds(0, 0, 15, 16). // y2=16 -> max.Y=17 > TileSize(16)
+			WithBounds(inclusiveTileBounds{0, 0, 15, 16}). // y2=16 -> max.Y=17 > TileSize(16)
 			AddVerticalRise(FilterAll).
 			Build()
 	}, "Build() should panic when bounds exceed tile size")
@@ -154,7 +154,7 @@ func TestEffect_Build_AcceptsMaxValidBounds(t *testing.T) {
 	// WithBounds(0, 0, 15, 15) should be valid (full tile)
 	assert.NotPanics(t, func() {
 		Effect().
-			WithBounds(0, 0, 15, 15).
+			WithBounds(inclusiveTileBounds{0, 0, 15, 15}).
 			AddVerticalRise(FilterAll).
 			Build()
 	}, "Build() should accept max valid bounds (0,0,15,15)")

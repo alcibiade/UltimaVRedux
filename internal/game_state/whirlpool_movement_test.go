@@ -21,7 +21,7 @@ func TestWhirlpoolMovement_SkipTurnBehavior(t *testing.T) {
 		Build()
 
 	// Create whirlpool enemy reference
-	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.Whirlpool_KeyIndex)
+	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.WhirlpoolKeyIndex)
 	whirlpoolEnemy := references.EnemyReference{
 		MonsterType:          references.MonsterWhirlpool,
 		KeyFrameTile:         whirlpoolTile,
@@ -130,7 +130,7 @@ func TestWhirlpoolMovement_MovementWhenActive(t *testing.T) {
 	gs.SetRandomSeed(12345)
 
 	// Create whirlpool enemy reference
-	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.Whirlpool_KeyIndex)
+	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.WhirlpoolKeyIndex)
 	whirlpoolEnemy := references.EnemyReference{
 		MonsterType:          references.MonsterWhirlpool,
 		KeyFrameTile:         whirlpoolTile,
@@ -198,7 +198,7 @@ func TestWhirlpoolMovement_MovementWhenActive(t *testing.T) {
 	getWhirlpool := func() *map_units.NPCEnemy {
 		enemies := gs.CurrentNPCAIController.GetNpcs().GetEnemies()
 		for i := range enemies {
-			if enemies[i].EnemyReference.KeyFrameTile.Index == indexes.Whirlpool_KeyIndex {
+			if enemies[i].EnemyReference.KeyFrameTile.Index == indexes.WhirlpoolKeyIndex {
 				return &enemies[i]
 			}
 		}
@@ -272,7 +272,7 @@ func TestWhirlpoolMovement_FlagRequired(t *testing.T) {
 		Build()
 
 	// Create whirlpool tile but WITHOUT HasWhirlpoolMovement flag
-	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.Whirlpool_KeyIndex)
+	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.WhirlpoolKeyIndex)
 	nonWhirlpoolEnemy := references.EnemyReference{
 		KeyFrameTile:         whirlpoolTile,
 		HitPoints:            1,
@@ -383,7 +383,7 @@ func TestWhirlpoolMovement_MixedBehavior(t *testing.T) {
 	gs.SetRandomSeed(54321)
 
 	// Create whirlpool enemy
-	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.Whirlpool_KeyIndex)
+	whirlpoolTile := gs.GameReferences.TileReferences.GetTile(indexes.WhirlpoolKeyIndex)
 	whirlpoolEnemy := references.EnemyReference{
 		MonsterType:          references.MonsterWhirlpool,
 		KeyFrameTile:         whirlpoolTile,
@@ -450,7 +450,7 @@ func TestWhirlpoolMovement_MixedBehavior(t *testing.T) {
 	getWhirlpool := func() *map_units.NPCEnemy {
 		enemies := gs.CurrentNPCAIController.GetNpcs().GetEnemies()
 		for i := range enemies {
-			if enemies[i].EnemyReference.KeyFrameTile.Index == indexes.Whirlpool_KeyIndex {
+			if enemies[i].EnemyReference.KeyFrameTile.Index == indexes.WhirlpoolKeyIndex {
 				return &enemies[i]
 			}
 		}

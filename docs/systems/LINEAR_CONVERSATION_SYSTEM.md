@@ -33,7 +33,7 @@ resulting catalog is executed by `SemanticConversationEngine`.
 Original TLK records, opcodes, keywords, and flow are documented separately in
 [Talk System Structure](../gamefacts/TALK_SYSTEM_STRUCTURE.md).
 
-Gameplay, Workbench inspection, and offline lookup all use the semantic catalog.
+Gameplay and offline lookup both use the semantic catalog.
 Original binary decoding belongs to the importer; no compatibility AST or
 second interpreter is loaded. Shared response/action contracts live in
 `internal/conversation/protocol.go`. Talk callbacks expose NPC dialog creation
@@ -164,7 +164,7 @@ Actual curated changes publish through mandatory `UI.JournalChanged`; the scene
 stamps finite visit metadata and coalesces one notice per newly informative
 response, not per fact/tab. Repeated disclosures and hydration are quiet. The
 ordinary main Output `Journal updated.` notice and separately styled
-`[Shift-J] View journal` hint share one scene-owned pending queue with map updates.
+`[Shift+J] View journal` hint share one scene-owned pending queue with map updates.
 Notices wait for conversation, secondary prompts, readers, arrival modal, fade
 and workflow ownership to clear at both frame entry and exit, then flush into
 normal Output/History. Pending map updates precede the coalesced journal notice.
@@ -180,6 +180,9 @@ loops cannot duplicate or refresh the survey. The existing receipt text stays
 conversation-owned; `UI.AtlasUpdated` queues one coordinate update after commit,
 appended when the conversation releases output ownership. Setup, debug
 inventory changes and hydration do not call this live grant operation.
+
+A conversation gift that would exceed its carrying limit grants nothing and prints
+"Thou canst carry no more <item>!" instead of the usual "Received:" line.
 
 `ErrInsufficientPayment` is an ordinary refusal, not a resumable callback error.
 It abandons all paid continuation frames, the active question, and pending
@@ -327,21 +330,14 @@ path, or hunk mismatches.
 
 ## Inspection And Tests
 
-The Workbench Conversation Script Explorer is inspection-only and reads the
-exact patched semantic document from the production catalog. Source counts and
-dialog summaries use sorted actual catalog identities, not a separately decoded
-model. NPC Schedule Index resolves names, descriptions, and Explorer links from
-the same semantic programs. Inspection does not execute or mutate conversations.
-The browser request index remains zero-based; semantic dialog identities are
-one-based. Neither is an NPC map-unit slot.
-
-For offline lookup, `go run ./cmd/ref_dump --output u5dump/json` exports
+Semantic dialog identities are one-based and are not NPC map-unit slots. For
+offline lookup, `go run ./cmd/ref_dump --output u5dump/json` exports
 `ConversationCatalog.json` alongside NPC, tile, and location snapshots.
 Conversation values are the exact post-patch semantic documents converted to
 JSON, not another script format. `scripts/npc-lookup.py` uses them for name and
 topic/question-keyword searches; location/schedule lookup uses `NPCReferences.json`.
-These generated snapshots contain original game text, are private, and must not
-be committed. Regenerate them after source data or project patches change.
+These generated snapshots contain original game data, are private, and are
+git-ignored. Regenerate them after source data or project patches change.
 
 Focused verification:
 

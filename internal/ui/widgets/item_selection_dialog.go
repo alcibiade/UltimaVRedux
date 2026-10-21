@@ -680,19 +680,11 @@ func (d *ItemSelectionDialog) drawListRow(
 	textColor := DialogItemNameColor
 	quantityColor := DialogItemQuantityColor
 	if item.UnavailableReason != "" {
-		textColor = pkgcolor.UITextDisabled.RGBA()
-		quantityColor = pkgcolor.UITextDisabled.RGBA()
+		textColor = DialogUnavailableItemColor
+		quantityColor = DialogUnavailableItemColor
 	}
 	if selected {
-		vector.FillRect(
-			screen,
-			float32(rect.Min.X),
-			float32(rect.Min.Y),
-			float32(rect.Dx()),
-			float32(rect.Dy()),
-			DialogSelectedBackground,
-			false,
-		)
+		fillSelectedRow(screen, rect)
 		textColor = DialogSelectedText
 		quantityColor = DialogSelectedText
 	}
@@ -705,7 +697,7 @@ func (d *ItemSelectionDialog) drawListRow(
 
 	d.rowOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(nameWidth)))
 	d.rowOutput.Reset()
-	d.rowOutput.AppendLine().Text(useItemRowLabel(item), textColor).Done()
+	d.rowOutput.AppendLine().Text(unavailableRowLabel(item.Name, item.UnavailableReason == ""), textColor).Done()
 	d.rowOutput.DrawPanelContent(
 		screen,
 		image.Pt(rect.Min.X+padding, rect.Min.Y),
@@ -819,9 +811,8 @@ func (d *ItemSelectionDialog) drawFooter(screen *ebiten.Image) {
 	drawModifierFooter(
 		screen,
 		content,
-		"[Tab/Shift-Tab] Category"+details+"\n"+
-			"[Up/Dn] Item  [Shift+Up/Dn] Page  [Enter] "+enter+"  [Esc] Cancel",
-		itemDialogFooterLines,
+		"[Tab/Shift+Tab] Category"+details+"\n"+
+			"[Up/Down] Item   [Shift+Up/Down] Page   [Enter] "+enter+"   [Esc] Cancel",
 		d.footerOutput,
 	)
 }
@@ -863,12 +854,15 @@ func (d *ItemSelectionDialog) actionDetailLines(item game_state.UseableItemInfo)
 	return lines
 }
 
-func useItemRowLabel(item game_state.UseableItemInfo) string {
-	if item.UnavailableReason != "" {
-		return "[No] " + item.Name
+// unavailableRowMarker marks a row that cannot be chosen in text as well as colour.
+const unavailableRowMarker = "[No]"
+
+func unavailableRowLabel(name string, available bool) string {
+	if !available {
+		return unavailableRowMarker + " " + name
 	}
 
-	return item.Name
+	return name
 }
 
 func (d *ItemSelectionDialog) loreDetailLines(item game_state.UseableItemInfo) []itemSelectionDetailLine {

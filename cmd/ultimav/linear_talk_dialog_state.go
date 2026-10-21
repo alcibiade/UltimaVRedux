@@ -6,6 +6,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+// Post-accept keyboard delays (ms) that stop the keypress ending a talk state from reaching underlying input.
+const (
+	dismissalPostAcceptDelayMs = 150
+	keyWaitPostAcceptDelayMs   = 50
+)
+
 // beginPauseAnimation starts the pause animation sequence and hides UI elements
 func (d *LinearTalkDialog) beginPauseAnimation() {
 	d.isPausing = true
@@ -37,7 +43,7 @@ func (d *LinearTalkDialog) finishCurrentPause() {
 	// Count the consumed control token in the original semantic source stream.
 	d.presentedSourceBytes += len(conversation.PauseMarker)
 	d.commitPresentedKnowledge()
-	logging.Debug(logging.CategoryUI, "Finishing pause %d", d.currentPauseIndex)
+	logging.Debugf(logging.CategoryUI, "Finishing pause %d", d.currentPauseIndex)
 
 	// Check for segment-based pending output first (runic text support)
 	if len(d.pendingSegments) > 0 {
@@ -62,7 +68,7 @@ func (d *LinearTalkDialog) finishCurrentPause() {
 			d.pauseStartMs = d.gameScene.gameState.ElapsedMs
 			d.currentPauseIndex++
 
-			logging.Debug(logging.CategoryUI, "Starting pause %d, pending: %d chars", d.currentPauseIndex, len(d.pendingOutput))
+			logging.Debugf(logging.CategoryUI, "Starting pause %d, pending: %d chars", d.currentPauseIndex, len(d.pendingOutput))
 		} else {
 			// No more pauses - display remaining output - preserve newlines
 			d.outputTextToDialog(d.pendingOutput, d.pendingContinues)
@@ -70,13 +76,13 @@ func (d *LinearTalkDialog) finishCurrentPause() {
 			d.pendingContinues = false
 			d.endPauseAnimation()
 
-			logging.Debug(logging.CategoryUI, "All pauses complete")
+			logging.Debugf(logging.CategoryUI, "All pauses complete")
 		}
 	} else {
 		// No more output - done pausing
 		d.endPauseAnimation()
 
-		logging.Debug(logging.CategoryUI, "Pause complete, no more output")
+		logging.Debugf(logging.CategoryUI, "Pause complete, no more output")
 	}
 }
 
@@ -95,7 +101,8 @@ func (d *LinearTalkDialog) finishCurrentPauseWithSegments() {
 		d.pauseStartMs = d.gameScene.gameState.ElapsedMs
 		d.currentPauseIndex++
 
-		logging.Debug(logging.CategoryUI, "Starting segment pause %d, pending: %d segments", d.currentPauseIndex, len(d.pendingSegments))
+		logging.Debugf(logging.CategoryUI, "Starting segment pause %d, pending: %d segments",
+			d.currentPauseIndex, len(d.pendingSegments))
 	} else {
 		// No more pauses - display remaining segments
 		d.outputSegmentsToDialog(d.pendingSegments, d.pendingContinues)
@@ -103,7 +110,7 @@ func (d *LinearTalkDialog) finishCurrentPauseWithSegments() {
 		d.pendingContinues = false
 		d.endPauseAnimation()
 
-		logging.Debug(logging.CategoryUI, "All segment pauses complete")
+		logging.Debugf(logging.CategoryUI, "All segment pauses complete")
 	}
 }
 
@@ -118,9 +125,9 @@ func (d *LinearTalkDialog) finishCurrentPauseWithSegments() {
 func (d *LinearTalkDialog) enterDismissalWaitState() {
 	d.waitingForDismissal = true
 
-	// Prepare keyboard for transition with 150ms post-accept delay
+	// Prepare keyboard for transition with a post-accept delay
 	// This prevents the dismissal keypress from bleeding into underlying game input.
-	d.gameScene.keyboard.PrepareForTransition(150)
+	d.gameScene.keyboard.PrepareForTransition(dismissalPostAcceptDelayMs)
 
 	// Flush legitimate callback feedback before presenting the terminal footer.
 	if d.callbacks != nil {
@@ -137,7 +144,7 @@ func (d *LinearTalkDialog) enterDismissalWaitState() {
 	d.TextInput.ClearPlaceholder()
 	d.TextInput.SetCursorVisible(false)
 
-	logging.Debug(logging.CategoryUI, "Entered dismissal wait state")
+	logging.Debugf(logging.CategoryUI, "Entered dismissal wait state")
 }
 
 // enterKeyWaitState blocks input; the footer presents the KeyWait (0x8F) hint.
@@ -159,9 +166,9 @@ func (d *LinearTalkDialog) enterDismissalWaitState() {
 func (d *LinearTalkDialog) enterKeyWaitState() {
 	d.waitingForKeypressContinue = true
 
-	// Prepare keyboard for transition with 50ms post-accept delay
+	// Prepare keyboard for transition with a post-accept delay
 	// This prevents the continue keypress from registering as subsequent input
-	d.gameScene.keyboard.PrepareForTransition(50)
+	d.gameScene.keyboard.PrepareForTransition(keyWaitPostAcceptDelayMs)
 	if d.callbacks != nil {
 		accumulatedOutput := d.callbacks.GetAccumulatedOutput()
 		if accumulatedOutput != "" {
@@ -177,7 +184,7 @@ func (d *LinearTalkDialog) enterKeyWaitState() {
 	// shows a footer hint without inserting instructions into speech or input.
 	d.TextInput.SetCursorVisible(false)
 
-	logging.Debug(logging.CategoryUI, "Entered KeyWait state")
+	logging.Debugf(logging.CategoryUI, "Entered KeyWait state")
 }
 
 // consumeCurrentlyPressedKeys marks all currently pressed keys as consumed in the keyboard state

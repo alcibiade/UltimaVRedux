@@ -93,19 +93,7 @@ func (d *InnActionDialog) Draw(screen *ebiten.Image) {
 	}
 	d.ensureLayout()
 	d.frame.draw(screen)
-	d.headerOutput.DrawPanelContent(
-		screen,
-		image.Pt(d.frame.headerText.Min.X, verticallyCenteredOutputY(d.frame.headerText, d.headerOutput)),
-		d.frame.headerText.Dx(),
-		etext.AlignCenter,
-	)
-	d.bodyOutput.DrawPanelContent(screen, d.frame.bodyText.Min, d.frame.bodyText.Dx(), etext.AlignStart)
-	d.footerOutput.DrawPanelContent(
-		screen,
-		image.Pt(d.frame.footerText.Min.X, verticallyCenteredOutputY(d.frame.footerText, d.footerOutput)),
-		d.frame.footerText.Dx(),
-		etext.AlignCenter,
-	)
+	d.frame.drawOutputs(screen, d.headerOutput, d.bodyOutput, d.footerOutput)
 }
 
 // Update confirms or cancels the exact reviewed request after transition-key release.
@@ -233,13 +221,7 @@ func (d *InnActionDialog) populateOutputs() {
 	}
 
 	d.footerOutput.Reset()
-	for _, segments := range parseMerchantFooterGuidance(d.GetFooterGuidance()) {
-		line := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range segments {
-			line.Text(segment.Text, segment.Color)
-		}
-		line.Done()
-	}
+	appendControlGuidance(d.footerOutput, d.GetFooterGuidance(), d.frame.footerText.Dx())
 }
 
 func (d *InnActionDialog) populateRestBody() {

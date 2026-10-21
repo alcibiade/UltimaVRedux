@@ -1,5 +1,13 @@
 package party_state
 
+import "math"
+
+// Starvation deals one inclusive 1..starvationMaxDamage hit per living member (ref:ENV-0001).
+const (
+	starvationMinDamage = 1
+	starvationMaxDamage = 8
+)
+
 // CountActiveMembers returns the count of party members who are not dead or sleeping
 // Used for food consumption calculations
 func (p *PartyState) CountActiveMembers() int {
@@ -18,12 +26,12 @@ func (p *PartyState) CountActiveMembers() int {
 // Starvation uses ordered party damage; ref:PROV-0001 and ref:ENV-0001.
 // Each living character takes random(1,8) damage
 // NOTE: This uses GameState's RNG, caller must provide it via method on GameState
-func (p *PartyState) DamageFromStarvation(rng func(min, max int) int) []int {
+func (p *PartyState) DamageFromStarvation(rng func(lo, hi int) int) []int {
 	var deadIndexes []int
 
 	// Process active living members in roster order; ref:ENV-0001.
-	for i := range p.characters {
-		character := p.characters[i]
+	for index := range p.characters {
+		character := p.characters[index]
 
 		// Only damage living characters (not dead)
 		// Dead or absent members consume no damage draw; ref:ENV-0001.
@@ -35,13 +43,17 @@ func (p *PartyState) DamageFromStarvation(rng func(min, max int) int) []int {
 
 		// Each living member receives a separate inclusive 1..8 draw; ref:ENV-0001.
 		// Apply random 1-8 starvation damage per character
-		damage := rng(1, 8)
-		character.SubtractHp(uint16(damage))
+		damage := rng(starvationMinDamage, starvationMaxDamage)
+		var hpLoss uint16
+		if damage > 0 && damage <= math.MaxUint16 {
+			hpLoss = uint16(damage)
+		}
+		character.SubtractHp(hpLoss)
 
 		// Check for death from starvation
 		if oldHp > 0 && character.GetCurrentHp() == 0 {
 			character.MarkAsDead()
-			deadIndexes = append(deadIndexes, i)
+			deadIndexes = append(deadIndexes, index)
 		}
 	}
 
@@ -57,13 +69,4 @@ func (p *PartyState) HasPoisonedCharacter() bool {
 	}
 
 	return false
-}
-
-// min helper function for uint16
-func min[T ~uint8 | ~uint16 | ~int](a, b T) T {
-	if a < b {
-		return a
-	}
-
-	return b
 }

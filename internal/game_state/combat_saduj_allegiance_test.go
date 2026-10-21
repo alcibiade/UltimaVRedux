@@ -29,7 +29,7 @@ func TestCombatSadujUsesCanonicalIdentityAcrossSourceAndClone(t *testing.T) {
 	party := party_state.NewPartyStateFromRoster(roster)
 	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
 	combat := NewCombatState(combatMap, CombatEntryNorth, party)
-	state := &GameState{PartyState: *party, CombatScene: combat} //nolint:exhaustruct // Focused allegiance fixture.
+	state := &GameState{PartyState: *party, CombatScene: combat}
 
 	avatar := CombatTurnIdentity{IsPartyMember: true, EntityIndex: party_state.AvatarCharacterIndex}
 	saduj := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 1}

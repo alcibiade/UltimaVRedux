@@ -37,7 +37,7 @@ func TestSetAvatarNameRestoresSelectableIdentity(t *testing.T) {
 }
 
 func TestMaximizeActivePartyUsesProgressionAndRecoveryRules(t *testing.T) {
-	state, callbacks := newPartyRosterAuthorityTestState(t, 3)
+	state, _ := newPartyRosterAuthorityTestState(t, 3)
 	first := state.PartyState.GetCharacter(0)
 	avatarName := first.GetNameAsString()
 	first.Level, first.Exp = 2, 50
@@ -70,7 +70,6 @@ func TestMaximizeActivePartyUsesProgressionAndRecoveryRules(t *testing.T) {
 	assert.Equal(t, avatarName, first.GetNameAsString(), "progression changes must preserve Avatar identity")
 	assert.Equal(t, uint16(9000), second.Exp)
 	assert.Equal(t, byte(4), second.GetCurrentMp())
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 }
 
 func TestMaximizeActivePartySupportsVacantNativeSlots(t *testing.T) {
@@ -87,7 +86,7 @@ func TestMaximizeActivePartySupportsVacantNativeSlots(t *testing.T) {
 }
 
 func TestPartyMutationRejectsStaleAndCombatBeforeMutation(t *testing.T) {
-	state, callbacks := newPartyRosterAuthorityTestState(t, 2)
+	state, _ := newPartyRosterAuthorityTestState(t, 2)
 	snapshot := state.CurrentPartyRosterSnapshot()
 	state.PartyState.GetCharacter(0).Strength++
 	changed := state.CurrentPartyRosterSnapshot()
@@ -95,7 +94,6 @@ func TestPartyMutationRejectsStaleAndCombatBeforeMutation(t *testing.T) {
 	_, err := state.MaximizeActiveParty(snapshot.Fingerprint)
 	require.ErrorIs(t, err, ErrStalePartyRoster)
 	assert.Equal(t, changed, state.CurrentPartyRosterSnapshot())
-	assert.Zero(t, callbacks.StatsDisplayUpdated)
 
 	state.MapState.PlayerLocation.Location = references.CombatLocation
 	_, err = state.FillActiveParty(changed.Fingerprint)
@@ -104,7 +102,7 @@ func TestPartyMutationRejectsStaleAndCombatBeforeMutation(t *testing.T) {
 }
 
 func TestSetPartyRosterStatusesIsAtomicAndMaintainsHPConsistency(t *testing.T) {
-	state, callbacks := newPartyRosterAuthorityTestState(t, 3)
+	state, _ := newPartyRosterAuthorityTestState(t, 3)
 	state.PartyState.GetCharacter(0).SetHp(20)
 	state.PartyState.GetCharacter(1).SetHp(30)
 	snapshot := state.CurrentPartyRosterSnapshot()
@@ -141,7 +139,6 @@ func TestSetPartyRosterStatusesIsAtomicAndMaintainsHPConsistency(t *testing.T) {
 		assert.Equal(t, uint16(1), character.GetCurrentHp())
 	}
 	assert.Equal(t, goodResult.After, state.CurrentPartyRosterSnapshot())
-	assert.Equal(t, 2, callbacks.StatsDisplayUpdated)
 }
 
 func TestFillActivePartyPreservesContiguousRosterOrder(t *testing.T) {
@@ -171,7 +168,7 @@ func TestFillActivePartyPreservesContiguousRosterOrder(t *testing.T) {
 }
 
 func TestAddInactiveRosterMemberUsesStableIndexAndStalePrecondition(t *testing.T) {
-	state, callbacks := newPartyRosterAuthorityTestState(t, 2)
+	state, _ := newPartyRosterAuthorityTestState(t, 2)
 	before := state.CurrentPartyRosterSnapshot()
 	targetName := before.Characters[8].Name
 
@@ -183,7 +180,6 @@ func TestAddInactiveRosterMemberUsesStableIndexAndStalePrecondition(t *testing.T
 	assert.Equal(t, targetName, state.PartyState.GetCharacter(2).GetNameAsString())
 	assert.True(t, state.PartyState.GetCharacter(2).IsInParty())
 	assert.Equal(t, 3, state.PartyState.GetActivePartyCount())
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 
 	current := state.CurrentPartyRosterSnapshot()
 	_, err = state.AddInactiveRosterMember(AddInactiveRosterMemberRequest{
@@ -209,7 +205,7 @@ func TestAddInactiveRosterMemberRejectsCapacity(t *testing.T) {
 }
 
 func TestPartyRosterAuthoritySupportsVacantNativeSlots(t *testing.T) {
-	state, callbacks := newPartyRosterAuthorityTestState(t, 1)
+	state, _ := newPartyRosterAuthorityTestState(t, 1)
 	var roster [party_state.NRosterSlots]*party_state.PlayerCharacter
 	roster[0] = state.PartyState.GetCharacter(0)
 	roster[8] = state.PartyState.GetCharacter(8)
@@ -223,7 +219,6 @@ func TestPartyRosterAuthoritySupportsVacantNativeSlots(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, state.PartyState.GetActivePartyCount())
 	assert.Equal(t, before.Characters[8].Name, state.PartyState.GetCharacter(1).GetNameAsString())
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 	_, err = state.AddInactiveRosterMember(AddInactiveRosterMemberRequest{
 		ExpectedFingerprint: result.After.Fingerprint,
 		RosterIndex:         8,

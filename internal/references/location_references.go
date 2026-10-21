@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
@@ -18,7 +18,7 @@ type LocationReferences struct {
 	mapsByStr      map[string]*SmallLocationReference
 	config         *config.UltimaVConfiguration
 	dataOvl        *DataOvl
-	WorldLocations *WorldLocations `json:"world_locations" yaml:"world_locations"`
+	WorldLocations *WorldLocations `json:"worldLocations" yaml:"worldLocations"`
 
 	npcRefs *NPCReferences
 }
@@ -35,10 +35,14 @@ func isDungeonLocation(location Location) bool {
 	return location >= Deceit && location <= Doom
 }
 
+// GetLocationReference returns the small map loaded for location, or nil when
+// none was loaded.
 func (s *LocationReferences) GetLocationReference(location Location) *SmallLocationReference {
 	return s.maps[location]
 }
 
+// GetSmallLocationReference returns the small map whose location name matches name
+// case-insensitively, or nil when there is none.
 func (s *LocationReferences) GetSmallLocationReference(name string) *SmallLocationReference {
 	return s.mapsByStr[strings.ToLower(name)]
 }
@@ -67,7 +71,7 @@ func newSingleMapReferences(config *config.UltimaVConfiguration, dataOvl *DataOv
 func (s *LocationReferences) addLocation(location Location, bHasBasement bool, nFloors, nOffset int) (int, error) {
 	maps := make(map[int]*SmallLocationReference)
 	// get the file
-	mapFileAndPath := path.Join(s.config.SavedConfigData.DataFilePath, GetSmallMapFile(GetMapMasterFromLocation(location)))
+	mapFileAndPath := files.Resolve(s.config.SavedConfigData.DataFilePath, GetSmallMapFile(GetMapMasterFromLocation(location)))
 
 	// a bit wasteful since it's open a few times, but... fast computers...
 	theChunksSerial, err := os.ReadFile(mapFileAndPath)

@@ -19,7 +19,7 @@ type legacyObjectSource struct {
 	active   bool
 }
 
-//nolint:cyclop,funlen // Source authority branches are clearest beside the ordered-list conversion.
+//nolint:funlen // Source authority branches are clearest beside the ordered-list conversion.
 func convertMapObjects(bundle Bundle, snapshot *save_snapshot.SaveSnapshot, warnings *[]ConversionWarning) {
 	game := bundle.Game
 	sources := []legacyObjectSource{
@@ -477,6 +477,7 @@ func convertObjectVehicle(
 	}
 
 	vehicle := &save_snapshot.VehicleSnapshot{
+		VesselID:          0, // Unregistered: original saves have no Atlas vessel IDs
 		Type:              int(vehicleType),
 		CurrentDirection:  direction,
 		PreviousDirection: direction,
@@ -533,12 +534,7 @@ func convertPendingShipDelivery(
 
 		return
 	}
-	vehicleType := references.SkiffVehicle
-	skiffs := 0
-	if game.Dungeon.Skiffs&originalFrigateDelivery != 0 {
-		vehicleType = references.FrigateVehicle
-		skiffs = int(game.Dungeon.Skiffs & originalSkiffCountMask)
-	}
+	vehicle := pendingDeliveryVehicle(game, warnings)
 	controller := [2]int{int(references.BritanniaUnderworld), int(references.OVERWORLD)}
 	slot, ok := firstUnusedLegacySlot(snapshot.MapUnits, references.OVERWORLD)
 	if !ok {
@@ -551,14 +547,6 @@ func convertPendingShipDelivery(
 
 		return
 	}
-	var vehicle save_snapshot.VehicleSnapshot
-	vehicle.Type = int(vehicleType)
-	vehicle.CurrentDirection = int(references.Right)
-	vehicle.PreviousDirection = int(references.Right)
-	vehicle.Skiffs = skiffs
-	vehicle.Hull = defaultShipHull
-	vehicle.PendingDelivery = true
-
 	var unit save_snapshot.MapUnitSnapshot
 	unit.World = int(references.OVERWORLD)
 	unit.ControllerOrder = orders[controller]
@@ -573,8 +561,43 @@ func convertPendingShipDelivery(
 	unit.Visible = true
 	unit.AIOverrideProvenance = string(references.AIOverrideProvenanceNone)
 	unit.CurrentPath = make([]save_snapshot.PositionSnapshot, 0)
-	unit.Vehicle = &vehicle
+	unit.Vehicle = vehicle
 	snapshot.MapUnits = append(snapshot.MapUnits, unit)
+}
+
+// pendingDeliveryVehicle returns the skiff or frigate awaiting delivery
+// according to the GAM marker.
+func pendingDeliveryVehicle(game SavedGame, warnings *[]ConversionWarning) *save_snapshot.VehicleSnapshot {
+	vehicle := &save_snapshot.VehicleSnapshot{
+		VesselID:          0, // Unregistered: original saves have no Atlas vessel IDs
+		Type:              int(references.SkiffVehicle),
+		CurrentDirection:  int(references.Right),
+		PreviousDirection: int(references.Right),
+		Skiffs:            0,
+		OwnedByNPC:        false,
+		Hull:              defaultShipHull,
+		SailState:         0,
+		HasHMSCape:        false,
+		PendingDelivery:   true,
+	}
+	if game.Dungeon.Skiffs&originalFrigateDelivery == 0 {
+		return vehicle
+	}
+	vehicle.Type = int(references.FrigateVehicle)
+	vehicle.Skiffs = int(game.Dungeon.Skiffs & originalSkiffCountMask)
+	// The original adds skiffs to an awaiting frigate without limit; Redux
+	// clamps it like a moored one rather than refusing the whole import.
+	if vehicle.Skiffs > references.MaxFrigateSkiffs {
+		vehicle.Skiffs = references.MaxFrigateSkiffs
+		addConversionWarning(
+			warnings,
+			"gam.skiffs",
+			"redux_capacity_clamped",
+			fmt.Sprintf("pending frigate skiffs were clamped to %d", references.MaxFrigateSkiffs),
+		)
+	}
+
+	return vehicle
 }
 
 func firstUnusedLegacySlot(units []save_snapshot.MapUnitSnapshot, world references.World) (int, bool) {

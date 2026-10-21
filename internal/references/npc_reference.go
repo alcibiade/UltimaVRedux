@@ -7,6 +7,7 @@ import (
 // NPCType general type of NPC.
 type NPCType byte
 
+// NPC types, using the original NPC type codes that start at 0x81.
 const (
 	Blacksmith  NPCType = 0x81
 	Barkeeper   NPCType = 0x82
@@ -23,12 +24,13 @@ const (
 	// unknowns may be crown and sandlewood box.
 )
 
+// NPCReference is one NPC slot of a map: its appearance, dialog number, location and schedule.
 type NPCReference struct {
-	Position     Position    `json:"position"      yaml:"position"`
-	Location     Location    `json:"location"      yaml:"location"`
-	DialogNumber byte        `json:"dialog_number" yaml:"dialog_number"`
-	Schedule     NPCSchedule `json:"schedule"      yaml:"schedule"`
-	NpcType      NPCType     `json:"npc_type"      yaml:"npc_type"`
+	Position     Position    `json:"position"     yaml:"position"`
+	Location     Location    `json:"location"     yaml:"location"`
+	DialogNumber byte        `json:"dialogNumber" yaml:"dialogNumber"`
+	Schedule     NPCSchedule `json:"schedule"     yaml:"schedule"`
+	NpcType      NPCType     `json:"npcType"      yaml:"npcType"`
 }
 
 const secondHalfSpriteTableIndex = 0x100
@@ -56,6 +58,7 @@ func isValidType(nType int) bool {
 	return false
 }
 
+// NewNPCReferenceForVehicle returns a stationary vehicle shaped NPC at the position on the floor.
 func NewNPCReferenceForVehicle(vehicle VehicleType, position Position, floorNumber FloorNumber) *NPCReference {
 	npcRef := &NPCReference{}
 	npcRef.Position = position
@@ -78,10 +81,12 @@ func NewNPCReferenceForSurfaceChest(location Location, position Position, floorN
 	return npcRef
 }
 
+// GetSpriteIndex returns the sprite used to draw the NPC.
 func (n *NPCReference) GetSpriteIndex() indexes.SpriteIndex {
 	return indexes.SpriteIndex(int(n.NpcType) + secondHalfSpriteTableIndex)
 }
 
+// SetKeyIndex stores the sprite as the NPC type, which keeps only the offset into the second half of the sprite table.
 func (n *NPCReference) SetKeyIndex(index indexes.SpriteIndex) {
 	n.NpcType = NPCType(index - secondHalfSpriteTableIndex)
 }
@@ -106,6 +111,7 @@ func (n *NPCReference) SmallMapCombatMonsterType() (MonsterType, bool) {
 	return monster, true
 }
 
+// GetVehicleType returns the vehicle the NPC sprite shows, or NoPartyVehicle when it is not a vehicle.
 func (n *NPCReference) GetVehicleType() VehicleType {
 	spriteIndex := n.GetSpriteIndex()
 	if spriteIndex.IsSkiff() {
@@ -124,14 +130,16 @@ func (n *NPCReference) GetVehicleType() VehicleType {
 	return NoPartyVehicle
 }
 
+// IsEmptyNPC always returns false: an NPCReference is never an empty slot.
 func (n *NPCReference) IsEmptyNPC() bool {
 	return false
 }
 
+// GetNPCType returns the NPC type from the dialog number or sprite, NoStatedNpc when it cannot be told.
 func (n *NPCReference) GetNPCType() NPCType {
 	tileIndex := n.GetSpriteIndex()
 
-	if tileIndex.IsPartOfAnimation(indexes.Guard_KeyIndex) {
+	if tileIndex.IsPartOfAnimation(indexes.GuardKeyIndex) {
 		return Guard
 	}
 	if isDaemonSprite(tileIndex) {
@@ -161,16 +169,17 @@ func (n *NPCReference) GetNPCType() NPCType {
 }
 
 func isDaemonSprite(sprite indexes.SpriteIndex) bool {
-	return sprite >= indexes.Daemon_KeyIndex &&
-		sprite < indexes.Daemon_KeyIndex+indexes.StandardNumberOfAnimationFrames
+	return sprite >= indexes.DaemonKeyIndex &&
+		sprite < indexes.DaemonKeyIndex+indexes.StandardNumberOfAnimationFrames
 }
 
+// WantsToAttackAvatarWhenBadStuffGoesDown reports whether the NPC is a guard, daemon or Shadowlord, which turn on the Avatar once the town turns hostile.
 func (n *NPCReference) WantsToAttackAvatarWhenBadStuffGoesDown() bool {
 	spriteIndex := n.GetSpriteIndex()
 
-	return spriteIndex.IsPartOfAnimation(indexes.Guard_KeyIndex) ||
-		spriteIndex.IsPartOfAnimation(indexes.Daemon_KeyIndex) ||
-		spriteIndex.IsPartOfAnimation(indexes.ShadowLord_KeyIndex)
+	return spriteIndex.IsPartOfAnimation(indexes.GuardKeyIndex) ||
+		spriteIndex.IsPartOfAnimation(indexes.DaemonKeyIndex) ||
+		spriteIndex.IsPartOfAnimation(indexes.ShadowLordKeyIndex)
 }
 
 // IsBeggar returns true if this NPC is a beggar based on their sprite.

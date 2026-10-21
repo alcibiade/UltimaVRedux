@@ -36,9 +36,6 @@ func TestCombatDefeatRequestsRecoveryOnceAfterMapRestoration(t *testing.T) {
 
 func TestPresentedLethalMonsterStepRequestsRecoveryAfterCombatRestoration(t *testing.T) {
 	state, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if state == nil {
-		return
-	}
 	returnLocation := state.CombatScene.PreCombatPlayerLocation
 	activeIndex := state.CombatScene.GetActiveCombatantIndex()
 	for index := range state.CombatScene.PartyActive {

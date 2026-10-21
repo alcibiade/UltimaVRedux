@@ -523,7 +523,7 @@ func TestNPCTerrainUsesOverridesNotMapUnitSprites(t *testing.T) {
 	}{
 		{"brick override opens fireplace", indexes.Fireplace, indexes.BrickFloor, indexes.NoSprites, false, true},
 		{"fireplace override blocks brick", indexes.BrickFloor, indexes.Fireplace, indexes.NoSprites, false, false},
-		{"NPC sprite cannot block brick terrain", indexes.BrickFloor, indexes.NoSprites, indexes.TownsPerson_KeyIndex, false, true},
+		{"NPC sprite cannot block brick terrain", indexes.BrickFloor, indexes.NoSprites, indexes.TownsPersonKeyIndex, false, true},
 		{"floor sprite cannot open fireplace", indexes.Fireplace, indexes.NoSprites, indexes.BrickFloor, false, false},
 		{"sprite cannot hide blocked override", indexes.BrickFloor, indexes.Fireplace, indexes.BrickFloor, false, false},
 		{"sprite cannot hide open override", indexes.Fireplace, indexes.BrickFloor, indexes.Fireplace, false, true},

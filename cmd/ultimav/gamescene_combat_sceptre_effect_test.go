@@ -48,11 +48,11 @@ func TestCombatSceptreEffectsExpireIndependentlyOnGameplayClock(t *testing.T) {
 	scene, _ := newCombatUseTestScene(t)
 	scene.gameState.ElapsedMs = 100
 	scene.showCombatSceptreActorEffect()
-	scene.showCombatFieldDispelEffect(game_state.CombatEvent{ //nolint:exhaustruct // Focused timing fixture.
+	scene.showCombatFieldDispelEffect(game_state.CombatEvent{
 		To: references.Position{X: 4, Y: 5},
 	})
 	scene.gameState.ElapsedMs += 100
-	scene.showCombatFieldDispelEffect(game_state.CombatEvent{ //nolint:exhaustruct // Focused timing fixture.
+	scene.showCombatFieldDispelEffect(game_state.CombatEvent{
 		To: references.Position{X: 6, Y: 5},
 	})
 
@@ -71,7 +71,7 @@ func TestCombatSceptreEffectsExpireIndependentlyOnGameplayClock(t *testing.T) {
 func TestCombatSceptreEffectsClearOutsideCombat(t *testing.T) {
 	scene, _ := newCombatUseTestScene(t)
 	scene.showCombatSceptreActorEffect()
-	scene.showCombatFieldDispelEffect(game_state.CombatEvent{ //nolint:exhaustruct // Focused cleanup fixture.
+	scene.showCombatFieldDispelEffect(game_state.CombatEvent{
 		To: references.Position{X: 4, Y: 5},
 	})
 

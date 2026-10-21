@@ -31,7 +31,11 @@ const (
 const autoOpenPauseDurationMs = int64(150) // Pause duration in milliseconds
 
 // StartAutoOpenSequence begins an auto-open door animation sequence
-func (a *AutoOpenDoorState) StartAutoOpenSequence(direction references.Direction, targetPos *references.Position, currentElapsedMs int64) {
+func (a *AutoOpenDoorState) StartAutoOpenSequence(
+	direction references.Direction,
+	targetPos *references.Position,
+	currentElapsedMs int64,
+) {
 	a.isActive = true
 	a.direction = direction
 	a.startElapsedMs = currentElapsedMs
@@ -57,9 +61,12 @@ func (a *AutoOpenDoorState) Update(gameScene *GameScene, currentElapsedMs int64)
 	}
 
 	elapsedSinceStart := currentElapsedMs - a.startElapsedMs
-	result := &AutoOpenResult{}
+	result := &AutoOpenResult{ShouldShowMessage: false, Message: "", ShouldMovePlayer: false, MoveFailed: false}
 
 	switch a.phase {
+	case AutoOpenPhaseNone:
+		// Inactive; nothing to advance.
+
 	case AutoOpenPhaseOpenDoor:
 		// Open the door - ActionOpenSmallMap handles time advancement and "Opened!" message
 		if gameScene.gameState.ActionOpenSmallMap(a.direction) {

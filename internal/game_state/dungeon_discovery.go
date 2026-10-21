@@ -156,6 +156,7 @@ func (g *GameState) applyPersistentDungeonDiscoveries(
 				// REDUX DEVIATION: Original visits discard map mutations on re-entry. Replay
 				// applies Search semantics to pristine 0x61 sources and fall semantics to
 				// pristine 0x69 sources while retaining the evolving chained-pit state.
+				// See ref:DNG-0014.
 				if immutableSource.Raw() == 0x61 || below.Raw() < 0x90 {
 					cells.SetCell(
 						discovery.floor+1,

@@ -21,6 +21,8 @@ go.work.sum
 /GEN/
 /graphics_export/
 /temp_dump/
+# Generated from the original game data; never committed.
+/u5dump/
 /test_output/
 /.ruff_cache/
 /.cache/

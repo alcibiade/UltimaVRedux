@@ -331,15 +331,15 @@ func testReagentQuote(
 		PricePerBundle:    price,
 		Gold:              gold,
 		QuantityBefore:    owned,
-		UsefulBundles:     uint16(useful),     //nolint:gosec // Test values are inventory bounded.
-		AffordableBundles: uint16(affordable), //nolint:gosec // Test values are gold bounded.
-		MaxBundles:        uint16(maximum),    //nolint:gosec // Test values are inventory bounded.
+		UsefulBundles:     uint16(useful),
+		AffordableBundles: uint16(affordable),
+		MaxBundles:        uint16(maximum),
 		Full:              owned == party_state.ItemQuantitySmallMax,
 		BlockReason:       reason,
 		ApprovalViews:     make([]game_state.ReagentPurchaseApprovalView, maximum),
 	}
 	for index := range quote.ApprovalViews {
-		count := uint16(index + 1) //nolint:gosec // Test maximum is at most 99.
+		count := uint16(index + 1)
 		requested := bundle * count
 		after := min(party_state.ItemQuantitySmallMax, owned+requested)
 		receipt := after - owned
@@ -357,7 +357,7 @@ func testReagentQuote(
 			PricePerBundle:    price,
 			TotalPrice:        total,
 			GoldBefore:        gold,
-			GoldAfterPayment:  gold - uint16(total), //nolint:gosec // Test count is affordability bounded.
+			GoldAfterPayment:  gold - uint16(total),
 			PaidOverflow:      receipt < requested,
 			OverflowQuantity:  requested - receipt,
 		}

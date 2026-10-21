@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/files"
@@ -44,14 +43,18 @@ const (
 	UNDERWORLD World = -1
 )
 
+// NewLargeMapReference loads the overworld map for OVERWORLD and the underworld
+// map for any other world.
 func NewLargeMapReference(gameConfig *config.UltimaVConfiguration, world World) (*LargeMapReference, error) {
 	if world == OVERWORLD {
 		return loadLargeMapFromFile(OVERWORLD, gameConfig)
-	} else {
-		return loadLargeMapFromFile(UNDERWORLD, gameConfig)
 	}
+
+	return loadLargeMapFromFile(UNDERWORLD, gameConfig)
 }
 
+// GetSpriteIndex returns the stored tile at the wrapped position, with animated
+// waterfall and clock tiles reduced to their first frame.
 func (m *LargeMapReference) GetSpriteIndex(x, y Coordinate) indexes.SpriteIndex {
 	pos := Position{X: x, Y: y}
 	wrappedPos := pos.GetWrapped(XLargeMapTiles, YLargeMapTiles)
@@ -60,9 +63,9 @@ func (m *LargeMapReference) GetSpriteIndex(x, y Coordinate) indexes.SpriteIndex 
 }
 
 func initialLargeMapSprite(sprite indexes.SpriteIndex) indexes.SpriteIndex {
-	if sprite >= indexes.Waterfall_KeyIndex &&
-		sprite < indexes.Waterfall_KeyIndex+indexes.StandardNumberOfAnimationFrames {
-		return indexes.Waterfall_KeyIndex
+	if sprite >= indexes.WaterfallKeyIndex &&
+		sprite < indexes.WaterfallKeyIndex+indexes.StandardNumberOfAnimationFrames {
+		return indexes.WaterfallKeyIndex
 	}
 	if sprite == indexes.Clock2 {
 		return indexes.Clock1
@@ -73,10 +76,10 @@ func initialLargeMapSprite(sprite indexes.SpriteIndex) indexes.SpriteIndex {
 
 //nolint:nonamedreturns // The deferred overlay close preserves read failures and rejects a failed close.
 func loadLargeMapFromFile(world World, gameConfig *config.UltimaVConfiguration) (result *LargeMapReference, err error) {
-	mapFileAndPath, dataOvlFileAndPath := path.Join(gameConfig.SavedConfigData.DataFilePath, files.BRIT_DAT),
-		path.Join(gameConfig.SavedConfigData.DataFilePath, files.DATA_OVL)
+	mapFileAndPath, dataOvlFileAndPath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.BritDat),
+		files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.DataOvl)
 	if world == UNDERWORLD {
-		mapFileAndPath = path.Join(gameConfig.SavedConfigData.DataFilePath, files.UNDER_DAT)
+		mapFileAndPath = files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.UnderDat)
 		dataOvlFileAndPath = ""
 	}
 

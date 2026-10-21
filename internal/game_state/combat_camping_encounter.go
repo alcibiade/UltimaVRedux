@@ -175,7 +175,14 @@ func (g *GameState) populateOutdoorCampingCombat(
 		randomIndex := g.GetRNG().Intn(len(positions))
 		positions[positionIndex], positions[randomIndex] = positions[randomIndex], positions[positionIndex]
 	}
-	count := g.resolveCampingAmbushCount(enemyRef.MaxPerMap)
+	// A guard who wandered onto a spawn slot keeps it; ambushers use the rest.
+	free := make([]references.Position, 0, len(positions))
+	for _, position := range positions {
+		if !campingPartyOccupies(combat, position) {
+			free = append(free, position)
+		}
+	}
+	count := min(g.resolveCampingAmbushCount(enemyRef.MaxPerMap), len(free))
 	result := CampingAmbushResult{MonsterType: ambusher}
 	for monsterIndex := range count {
 		monsterType := ambusher
@@ -183,7 +190,7 @@ func (g *GameState) populateOutdoorCampingCombat(
 			references.ShouldUseFriend(monsterIndex, count, g.AsRandomProvider()) {
 			monsterType = enemyRef.Friend.MonsterType
 		}
-		position := positions[monsterIndex]
+		position := free[monsterIndex]
 
 		monsterRef := enemyRef
 		if monsterType != ambusher {
@@ -318,4 +325,14 @@ func (g *GameState) deferSurfaceCommandCycleForCampingCombat(originMapType refer
 	origin.completeSurfaceCycle = true
 
 	return true
+}
+
+func campingPartyOccupies(combat *CombatState, position references.Position) bool {
+	for partyIndex, active := range combat.PartyActive {
+		if active && combat.PartyPositions[partyIndex] == position {
+			return true
+		}
+	}
+
+	return false
 }

@@ -28,7 +28,7 @@ func loggingCommands() []CommandDefinition {
 		{Value: "FATAL", Label: "Fatal", Metadata: nil},
 	}
 	booleanParameter := func(name string) []ParameterDefinition {
-		return []ParameterDefinition{{ID: "enabled", Name: name, Kind: ParameterBoolean, Required: true, ControlHint: controlHintSelect}}
+		return []ParameterDefinition{{ID: parameterEnabled, Name: name, Kind: ParameterBoolean, Required: true, ControlHint: controlHintSelect}}
 	}
 
 	return []CommandDefinition{
@@ -53,7 +53,7 @@ func loggingCommands() []CommandDefinition {
 			Description: "Explicitly enable or disable one categorized logging channel.", Aliases: []string{"debug log"},
 			Parameters: []ParameterDefinition{
 				{ID: "category", Name: "Category", Kind: ParameterEnum, Required: true, Choices: categoryChoices, ControlHint: controlHintSelect},
-				{ID: "enabled", Name: "Enabled", Kind: ParameterBoolean, Required: true, ControlHint: controlHintSelect},
+				{ID: parameterEnabled, Name: "Enabled", Kind: ParameterBoolean, Required: true, ControlHint: controlHintSelect},
 			},
 			ExecutionModes: []ExecutionMode{ExecutionLiveSafe}, Destructive: false,
 		},

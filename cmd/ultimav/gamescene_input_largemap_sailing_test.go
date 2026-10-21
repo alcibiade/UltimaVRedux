@@ -28,7 +28,7 @@ func TestStartAutomaticSailingConsumesInputWhileWorkflowNameRemainsLive(t *testi
 		First(func() {}).
 		Wait(1000).
 		Start()
-	scene := &GameScene{ //nolint:exhaustruct // Focused duplicate-workflow regression fixture.
+	scene := &GameScene{
 		gameState: &game_state.GameState{EventQueueManager: manager},
 	}
 

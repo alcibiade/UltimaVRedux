@@ -177,9 +177,6 @@ func TestActiveNegateMagicAbsorbsEveryPreparedCombatCast(t *testing.T) {
 	for _, spell := range []references.Spell{references.InAn, references.InXenMani} {
 		t.Run(references.GetSpellName(spell), func(t *testing.T) {
 			gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 			caster := gs.PartyState.GetCharacter(casterIdx)
 			caster.Class = party_state.Wizard
@@ -273,9 +270,6 @@ func TestAnTymRemainsAvailableInDoomWithoutPresentShadowlord(t *testing.T) {
 
 func TestVasManiCombatVictoryGatePrecedesTargetAndResources(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(casterIdx)
 	caster.Class = party_state.Wizard

@@ -13,33 +13,33 @@ import (
 
 func TestValidateInstallationRequiresExactInitialTemplates(t *testing.T) {
 	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, files.DATA_OVL), make([]byte, originalDataOvlSize), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, files.DataOvl), make([]byte, originalDataOvlSize), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	err := ValidateInstallation(context.Background(), directory)
-	if err == nil || !strings.Contains(err.Error(), files.INIT_GAM) {
-		t.Fatalf("ValidateInstallation() error = %v, want missing %s", err, files.INIT_GAM)
+	if err == nil || !strings.Contains(err.Error(), files.InitGam) {
+		t.Fatalf("ValidateInstallation() error = %v, want missing %s", err, files.InitGam)
 	}
 
-	if err := os.WriteFile(filepath.Join(directory, files.INIT_GAM), make([]byte, originalInitGamSize), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, files.InitGam), make([]byte, originalInitGamSize), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(directory, files.INIT_OOL), make([]byte, originalInitObjectsSize-1), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, files.InitOol), make([]byte, originalInitObjectsSize-1), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	err = ValidateInstallation(context.Background(), directory)
-	if err == nil || !strings.Contains(err.Error(), files.INIT_OOL) {
-		t.Fatalf("ValidateInstallation() error = %v, want invalid %s", err, files.INIT_OOL)
+	if err == nil || !strings.Contains(err.Error(), files.InitOol) {
+		t.Fatalf("ValidateInstallation() error = %v, want invalid %s", err, files.InitOol)
 	}
 }
 
 func TestValidateInstallationRequiresLazyGameplayCatalogue(t *testing.T) {
 	directory := t.TempDir()
 	fixtures := map[string]int{
-		files.DATA_OVL: originalDataOvlSize,
-		files.INIT_GAM: originalInitGamSize,
-		files.INIT_OOL: originalInitObjectsSize,
+		files.DataOvl: originalDataOvlSize,
+		files.InitGam: originalInitGamSize,
+		files.InitOol: originalInitObjectsSize,
 	}
 	for name, size := range fixtures {
 		if err := os.WriteFile(filepath.Join(directory, name), make([]byte, size), 0o600); err != nil {
@@ -48,13 +48,13 @@ func TestValidateInstallationRequiresLazyGameplayCatalogue(t *testing.T) {
 	}
 
 	err := ValidateInstallation(context.Background(), directory)
-	if err == nil || !strings.Contains(err.Error(), files.BRIT_DAT) {
-		t.Fatalf("ValidateInstallation() error = %v, want missing %s", err, files.BRIT_DAT)
+	if err == nil || !strings.Contains(err.Error(), files.BritDat) {
+		t.Fatalf("ValidateInstallation() error = %v, want missing %s", err, files.BritDat)
 	}
 }
 
 func TestValidateInstallationWithAvailableLocalOriginalData(t *testing.T) {
-	directory := testoriginaldata.Directory(t, files.DATA_OVL)
+	directory := testoriginaldata.Directory(t, files.DataOvl)
 	if err := ValidateInstallation(context.Background(), directory); err != nil {
 		t.Fatalf("ValidateInstallation() error = %v", err)
 	}

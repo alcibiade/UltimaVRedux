@@ -15,7 +15,7 @@ func TestSpriteOverrideManager_BasicOperations(t *testing.T) {
 	assert.False(t, exists)
 
 	// Test setting an override
-	testSprite := indexes.BardPlaying_KeyIndex
+	testSprite := indexes.BardPlayingKeyIndex
 	manager.Set("camping", "guard", testSprite)
 
 	// Verify override was set
@@ -37,7 +37,7 @@ func TestSpriteOverrideManager_ClearOperations(t *testing.T) {
 	manager := NewSpriteOverrideManager()
 
 	// Set up test data
-	manager.Set("camping", "guard", indexes.BardPlaying_KeyIndex)
+	manager.Set("camping", "guard", indexes.BardPlayingKeyIndex)
 	manager.Set("camping", "party_0", indexes.SpriteIndex(indexes.DeadBody))
 	manager.Set("combat", "party_1", indexes.SpriteIndex(indexes.DeadBody))
 
@@ -67,7 +67,7 @@ func TestSpriteOverrideManager_ReplaceOverride(t *testing.T) {
 	manager := NewSpriteOverrideManager()
 
 	// Set initial override
-	original := indexes.BardPlaying_KeyIndex
+	original := indexes.BardPlayingKeyIndex
 	manager.Set("camping", "guard", original)
 
 	// Replace with new override
@@ -86,7 +86,7 @@ func TestSpriteOverrideManager_ConcurrentAccess(t *testing.T) {
 
 	// This is a basic test for concurrent access
 	// In a real concurrent scenario, we'd use goroutines
-	manager.Set("camping", "guard", indexes.BardPlaying_KeyIndex)
+	manager.Set("camping", "guard", indexes.BardPlayingKeyIndex)
 
 	// Concurrent reads should not interfere
 	sprite1, exists1 := manager.Get("camping", "guard")

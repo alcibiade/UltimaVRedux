@@ -19,9 +19,6 @@ func setupPlayerRangedAttackTest(
 ) (*GameState, *MockSystemCallbacks, *CombatMonster, int, references.Position) {
 	t.Helper()
 	gs, mock := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return nil, nil, nil, 0, references.Position{}
-	}
 	setOpenCombatMissileMap(gs)
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	origin := references.Position{X: 2, Y: 5}
@@ -114,9 +111,6 @@ func TestPlayerRangedAmmoWeaponsCommitThenResolve(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, target, targetIndex, _ := setupPlayerRangedAttackTest(t, test.weapon, references.MonsterOrc, 3)
-			if gs == nil {
-				return
-			}
 			gs.PartyState.Inventory.Equipment.Set(test.ammo, 2)
 			hpBefore := target.CurrentHP()
 
@@ -147,9 +141,6 @@ func TestPlayerRangedAmmoWeaponsCommitThenResolve(t *testing.T) {
 
 func TestLastAmmoUnreadiesEveryExactFiringWeapon(t *testing.T) {
 	gs, _, _, _, _ := setupPlayerRangedAttackTest(t, references.Crossbow, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	otherIndex := (attackerIndex + 1) % party_state.MaxActiveParty
 	require.True(t, gs.PartyState.GetCharacter(otherIndex).IsInParty())
@@ -180,9 +171,6 @@ func TestUnavailableCombatAttackSourcesRejectZeroAmmoBeforeAim(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, test.weapon, references.MonsterOrc, 3)
-			if gs == nil {
-				return
-			}
 			gs.PartyState.Inventory.Equipment.Set(test.ammo, 0)
 			gs.SetRandomSeed(77)
 			expectedNextRandom := gs.GetRNG().Intn(1000)
@@ -204,9 +192,6 @@ func TestUnavailableCombatAttackSourcesRejectZeroAmmoBeforeAim(t *testing.T) {
 
 func TestUnavailableCombatAttackSourcesAdvancesPastZeroAmmo(t *testing.T) {
 	gs, mock, _, _, _ := setupPlayerRangedAttackTest(t, references.Bow, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	gs.PartyState.GetCharacter(attackerIndex).SetEquippedItem(references.SlotShield, references.SpikedShield)
 	gs.CombatScene.AttackTargeting = nil
@@ -225,9 +210,6 @@ func TestUnavailableCombatAttackSourcesAdvancesPastZeroAmmo(t *testing.T) {
 
 func TestPlayerRangedZeroAmmoConfirmationSkipsWithoutRNGOrLaunch(t *testing.T) {
 	gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, references.Bow, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.Inventory.Equipment.Set(references.Arrows, 0)
 	gs.SetRandomSeed(77)
 	expectedNextRandom := gs.GetRNG().Intn(1000)
@@ -258,9 +240,6 @@ func TestEmptyRangedAimConsumesOnlyFlamingOil(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, _, _, _ := setupPlayerRangedAttackTest(t, test.weapon, references.MonsterOrc, 3)
-			if gs == nil {
-				return
-			}
 			emptyAim := references.Position{X: 2, Y: 2}
 			gs.CombatScene.AttackTargeting.Cursor = emptyAim
 			gs.PartyState.Inventory.Equipment.Set(test.inventoryItem, 2)
@@ -289,9 +268,6 @@ func TestEmptyRangedAimConsumesOnlyFlamingOil(t *testing.T) {
 
 func TestCombatCloneRangedAttackUsesExactIdentityAndPosition(t *testing.T) {
 	gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, references.Sling, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	clonePosition := references.Position{X: 1, Y: 5}
 	clone := gs.CombatScene.addPCCloneFromSource(
@@ -320,9 +296,6 @@ func TestCombatCloneRangedAttackUsesExactIdentityAndPosition(t *testing.T) {
 
 func TestPhysicalRangedAttackCanHitManuallySelectedInvisibleMonster(t *testing.T) {
 	gs, _, target, _, _ := setupPlayerRangedAttackTest(t, references.Sling, references.MonsterShadowlord, 3)
-	if gs == nil {
-		return
-	}
 	target.SetInvisible(true)
 
 	confirmation := gs.ConfirmCombatAttackTarget()
@@ -337,9 +310,6 @@ func TestCloneThrownWeaponRecoveryUsesCloneRange(t *testing.T) {
 	gs, _, target, _, targetPosition := setupPlayerRangedAttackTest(
 		t, references.Dagger, references.MonsterOrc, 3,
 	)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex}
 	clonePosition := references.Position{X: targetPosition.X - 1, Y: targetPosition.Y}
@@ -367,9 +337,6 @@ func TestCombatCloneDirectRangedTargetUsesLoyaltyAndHitRoll(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, _, _, targetPosition := setupPlayerRangedAttackTest(t, references.Sling, references.MonsterOrc, 3)
-			if gs == nil {
-				return
-			}
 			clearCombatMonstersForTest(gs.CombatScene)
 			attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 			targetIndex := (attackerIndex + 1) % party_state.MaxActiveParty
@@ -407,9 +374,6 @@ func TestRecoverableThrownWeaponConsumptionByRangeAndSpare(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, _, _, _ := setupPlayerRangedAttackTest(t, references.Dagger, references.MonsterOrc, test.distance)
-			if gs == nil {
-				return
-			}
 			gs.PartyState.Inventory.Equipment.Set(references.Dagger, test.spares)
 
 			confirmation := gs.ConfirmCombatAttackTarget()
@@ -424,9 +388,6 @@ func TestRecoverableThrownWeaponConsumptionByRangeAndSpare(t *testing.T) {
 
 func TestMagicAxeReturnsWithoutConsumptionAndWaitsForImpact(t *testing.T) {
 	gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, references.MagicAxe, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	hpBefore := target.CurrentHP()
 
 	confirmation := gs.ConfirmCombatAttackTarget()
@@ -447,9 +408,6 @@ func TestMagicAxeReturnsWithoutConsumptionAndWaitsForImpact(t *testing.T) {
 
 func TestRangedInterferenceSkipsOnlyCurrentSource(t *testing.T) {
 	gs, mock, _, _, targetPosition := setupPlayerRangedAttackTest(t, references.Bow, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(attackerIndex)
 	character.SetEquippedItem(references.SlotHelm, references.SpikedHelm)
@@ -493,9 +451,6 @@ func TestRangedInterferenceSkipsOnlyCurrentSource(t *testing.T) {
 
 func TestBlockedRangedLaunchCommitsResourceAndPublishesEndpointWithoutImpact(t *testing.T) {
 	gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, references.Bow, references.MonsterOrc, 4)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.Inventory.Equipment.Set(references.Arrows, 2)
 	blockedPosition := references.Position{X: 4, Y: 5}
 	setBlockedCombatMissileMap(gs, blockedPosition)
@@ -517,9 +472,6 @@ func TestBlockedRangedLaunchCommitsResourceAndPublishesEndpointWithoutImpact(t *
 
 func TestMissRedirectCanDamageFriendlyCollateralAndNeverSelf(t *testing.T) {
 	gs, mock, target, _, targetPosition := setupPlayerRangedAttackTest(t, references.MagicAxe, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	attacker := gs.PartyState.GetCharacter(attackerIndex)
 	attacker.Dexterity = 1
@@ -578,9 +530,6 @@ func TestPlayerRangedDirectSafetyUsesEffectiveLoyalty(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, _, _, targetPosition := setupPlayerRangedAttackTest(t, references.Bow, references.MonsterOrc, 3)
-			if gs == nil {
-				return
-			}
 			clearCombatMonstersForTest(gs.CombatScene)
 			attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 			targetIndex := (attackerIndex + 1) % party_state.MaxActiveParty
@@ -601,9 +550,6 @@ func TestPlayerRangedDirectSafetyUsesEffectiveLoyalty(t *testing.T) {
 
 func TestPlayerRangedPhysicalPipelineAppliesArmorAndUndeadModifier(t *testing.T) {
 	gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, references.Bow, references.MonsterSkeleton, 3)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.Inventory.Equipment.Set(references.Arrows, 2)
 
 	confirmation := gs.ConfirmCombatAttackTarget()
@@ -620,9 +566,6 @@ func TestPlayerRangedPhysicalPipelineAppliesArmorAndUndeadModifier(t *testing.T)
 
 func TestPendingRangedAttackResolvesExactlyOnce(t *testing.T) {
 	gs, mock, target, _, _ := setupPlayerRangedAttackTest(t, references.Sling, references.MonsterOrc, 3)
-	if gs == nil {
-		return
-	}
 	confirmation := gs.ConfirmCombatAttackTarget()
 	require.Equal(t, CombatAttackSourcePending, confirmation.Outcome)
 	hpBefore := target.CurrentHP()
@@ -642,9 +585,6 @@ func TestPendingRangedAttackResolvesExactlyOnce(t *testing.T) {
 func TestControlledRangedAttackUsesPendingBlockedAndImpactLifecycle(t *testing.T) {
 	t.Run("impact", func(t *testing.T) {
 		gs, mock := setupControlledMonsterTest(t)
-		if gs == nil {
-			return
-		}
 		setOpenCombatMissileMap(gs)
 		attacker, attackerIndex := addControlledTestMonster(
 			gs, references.MonsterDevil, references.Position{X: 2, Y: 5}, CombatMonsterLoyaltyParty,
@@ -670,9 +610,6 @@ func TestControlledRangedAttackUsesPendingBlockedAndImpactLifecycle(t *testing.T
 
 	t.Run("blocked", func(t *testing.T) {
 		gs, mock := setupControlledMonsterTest(t)
-		if gs == nil {
-			return
-		}
 		setOpenCombatMissileMap(gs)
 		_, attackerIndex := addControlledTestMonster(
 			gs, references.MonsterDevil, references.Position{X: 2, Y: 5}, CombatMonsterLoyaltyParty,

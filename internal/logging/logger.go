@@ -1,8 +1,11 @@
+// Package logging records categorized, leveled diagnostics for the game and
+// its tools, and always keeps warnings and errors.
 package logging
 
 import (
 	"fmt"
-	"log"
+	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +18,13 @@ type Logger struct {
 	categoryStates map[string]bool // Per-category enabled/disabled state
 	minLevel       LogLevel        // Minimum level to log
 	outputToStdout bool            // Whether to output to stdout (controlled by debug command)
-	outputToFile   bool            // Whether to output to file (future feature)
-	entries        []Entry
-	entryStart     int
-	entryCount     int
-	nextSequence   uint64
+	// diagnostics receives every WARN and ERROR line, whatever the switches say,
+	// so a player's bug report can include them.
+	diagnostics  io.Writer
+	entries      []Entry
+	entryStart   int
+	entryCount   int
+	nextSequence uint64
 }
 
 // NewLogger creates a new logger instance with default settings
@@ -33,11 +38,12 @@ func newLoggerWithCapacity(capacity int) *Logger {
 	}
 
 	return &Logger{
+		mu:             sync.RWMutex{},
 		enabled:        false, // Disabled by default as requested
 		categoryStates: make(map[string]bool),
 		minLevel:       DEBUG, // Allow all levels by default
 		outputToStdout: false, // Controlled by debug command
-		outputToFile:   false, // Future feature
+		diagnostics:    nil,
 		entries:        make([]Entry, capacity),
 		entryStart:     0,
 		entryCount:     0,
@@ -46,6 +52,8 @@ func newLoggerWithCapacity(capacity int) *Logger {
 }
 
 // Global logger instance
+//
+//nolint:gochecknoglobals // The single process-wide sink behind the package logging functions.
 var globalLogger = NewLogger()
 
 // GetGlobalLogger returns the global logger instance
@@ -105,50 +113,62 @@ func (l *Logger) GetMinLevel() LogLevel {
 	return l.minLevel
 }
 
-// Log logs a message with the specified level and category
-func (l *Logger) Log(level LogLevel, category string, format string, args ...interface{}) {
+// SetDiagnosticsWriter selects where WARN and ERROR lines are always written.
+func (l *Logger) SetDiagnosticsWriter(writer io.Writer) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.diagnostics = writer
+}
+
+// Logf logs a message with the specified level and category. WARN and ERROR
+// are always recorded; the switches only filter DEBUG and INFO and stdout.
+func (l *Logger) Logf(level LogLevel, category string, format string, args ...interface{}) {
 	timestamp := time.Now()
 	l.mu.Lock()
-	if !l.enabled || level < l.minLevel || !l.categoryStates[category] {
+	selected := l.enabled && level >= l.minLevel && l.categoryStates[category]
+	if !selected && level < WARN {
 		l.mu.Unlock()
 
 		return
 	}
 	message := fmt.Sprintf(format, args...)
 	l.appendEntryLocked(timestamp, level, category, message)
-	outputToStdout := l.outputToStdout
+	logLine := fmt.Sprintf("[%s] %s [%s] %s",
+		timestamp.Format("2006-01-02 15:04:05.000"), level.String(), strings.ToUpper(category), message)
+	if level >= WARN && l.diagnostics != nil {
+		if _, err := fmt.Fprintln(l.diagnostics, logLine); err != nil {
+			// Stop writing to a failed log rather than disturbing every caller.
+			l.diagnostics = nil
+		}
+	}
+	outputToStdout := selected && l.outputToStdout
 	l.mu.Unlock()
-	logLine := fmt.Sprintf("[%s] %s [%s] %s", timestamp.Format("2006-01-02 15:04:05.000"), level.String(), strings.ToUpper(category), message)
 
-	// Output to stdout if enabled
 	if outputToStdout {
-		fmt.Println(logLine)
-	}
-
-	// For FATAL level, also use the standard log package for immediate visibility
-	if level == FATAL {
-		log.Printf("FATAL [%s] %s", strings.ToUpper(category), message)
+		if _, err := fmt.Fprintln(os.Stdout, logLine); err != nil {
+			l.SetStdoutEnabled(false) // Stop echoing to an unusable stdout.
+		}
 	}
 }
 
-// Debug logs a debug message
-func (l *Logger) Debug(category string, format string, args ...interface{}) {
-	l.Log(DEBUG, category, format, args...)
+// Debugf logs a debug message
+func (l *Logger) Debugf(category string, format string, args ...interface{}) {
+	l.Logf(DEBUG, category, format, args...)
 }
 
-// Info logs an info message
-func (l *Logger) Info(category string, format string, args ...interface{}) {
-	l.Log(INFO, category, format, args...)
+// Infof logs an info message
+func (l *Logger) Infof(category string, format string, args ...interface{}) {
+	l.Logf(INFO, category, format, args...)
 }
 
-// Warn logs a warning message
-func (l *Logger) Warn(category string, format string, args ...interface{}) {
-	l.Log(WARN, category, format, args...)
+// Warnf logs a warning message
+func (l *Logger) Warnf(category string, format string, args ...interface{}) {
+	l.Logf(WARN, category, format, args...)
 }
 
-// Error logs an error message
-func (l *Logger) Error(category string, format string, args ...interface{}) {
-	l.Log(ERROR, category, format, args...)
+// Errorf logs an error message
+func (l *Logger) Errorf(category string, format string, args ...interface{}) {
+	l.Logf(ERROR, category, format, args...)
 }
 
 // GetCategoryStates returns the current state of all categories for saving
@@ -191,27 +211,32 @@ func SetCategoryEnabled(category string, enabled bool) {
 	globalLogger.SetCategoryEnabled(category, enabled)
 }
 
+// SetDiagnosticsWriter selects where the global logger always writes WARN and ERROR.
+func SetDiagnosticsWriter(writer io.Writer) {
+	globalLogger.SetDiagnosticsWriter(writer)
+}
+
 // SetStdoutEnabled sets stdout logging state
 func SetStdoutEnabled(enabled bool) {
 	globalLogger.SetStdoutEnabled(enabled)
 }
 
-// Debug logs a debug message using the global logger
-func Debug(category string, format string, args ...interface{}) {
-	globalLogger.Debug(category, format, args...)
+// Debugf logs a debug message using the global logger
+func Debugf(category string, format string, args ...interface{}) {
+	globalLogger.Debugf(category, format, args...)
 }
 
-// Info logs an info message using the global logger
-func Info(category string, format string, args ...interface{}) {
-	globalLogger.Info(category, format, args...)
+// Infof logs an info message using the global logger
+func Infof(category string, format string, args ...interface{}) {
+	globalLogger.Infof(category, format, args...)
 }
 
-// Warn logs a warning message using the global logger
-func Warn(category string, format string, args ...interface{}) {
-	globalLogger.Warn(category, format, args...)
+// Warnf logs a warning message using the global logger
+func Warnf(category string, format string, args ...interface{}) {
+	globalLogger.Warnf(category, format, args...)
 }
 
-// Error logs an error message using the global logger
-func Error(category string, format string, args ...interface{}) {
-	globalLogger.Error(category, format, args...)
+// Errorf logs an error message using the global logger
+func Errorf(category string, format string, args ...interface{}) {
+	globalLogger.Errorf(category, format, args...)
 }

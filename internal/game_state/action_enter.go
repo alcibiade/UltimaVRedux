@@ -117,7 +117,7 @@ func (g *GameState) ResolveEnterLargeMap() EnterLargeMapOutcome {
 				if newLocation == references.Doom && !g.ShadowlordState.AllDefeated() {
 					g.SystemCallbacks.Message.AddRowStr("Attacked at entrance!")
 					if _, err := g.startDoomEntranceCombatEncounter(); err != nil {
-						logging.Error(logging.CategoryGameState, "Unable to start Doom entrance combat: %v", err)
+						logging.Errorf(logging.CategoryGameState, "Unable to start Doom entrance combat: %v", err)
 						g.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 
 						return EnterLargeMapRejected

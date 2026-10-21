@@ -12,31 +12,33 @@ import (
 
 // reagentCacheLocations defines three midnight caches: Mandrake at
 // (182,54) and (97,165), Nightshade at (44,137). ref:MIX-0001
-var reagentCacheLocations = [3]ReagentCacheLocation{
-	// Index 0: Mandrake root at (0xb6, 0x36) = (182, 54)
-	{
-		X: 182, Y: 54,
-		ReagentType: references.MandrakeRoot,
-		MinQuantity: 2, MaxQuantity: 15,
-		Message:       "mandrake root!",
-		ReagentOffset: 7, // offsetr[0] = 0x07
-	},
-	// Index 1: Mandrake root at (0x61, 0xa5) = (97, 165)
-	{
-		X: 97, Y: 165,
-		ReagentType: references.MandrakeRoot,
-		MinQuantity: 2, MaxQuantity: 15,
-		Message:       "mandrake root!",
-		ReagentOffset: 7, // offsetr[1] = 0x07
-	},
-	// Index 2: Nightshade at (0x2c, 0x89) = (44, 137)
-	{
-		X: 44, Y: 137,
-		ReagentType: references.NightShade,
-		MinQuantity: 2, MaxQuantity: 15,
-		Message:       "nightshade!",
-		ReagentOffset: 6, // offsetr[2] = 0x06
-	},
+func reagentCacheLocations() [3]ReagentCacheLocation {
+	return [3]ReagentCacheLocation{
+		// Index 0: Mandrake root at (0xb6, 0x36) = (182, 54)
+		{
+			X: 182, Y: 54,
+			ReagentType: references.MandrakeRoot,
+			MinQuantity: 2, MaxQuantity: 15,
+			Message:       "mandrake root!",
+			ReagentOffset: 7, // offsetr[0] = 0x07
+		},
+		// Index 1: Mandrake root at (0x61, 0xa5) = (97, 165)
+		{
+			X: 97, Y: 165,
+			ReagentType: references.MandrakeRoot,
+			MinQuantity: 2, MaxQuantity: 15,
+			Message:       "mandrake root!",
+			ReagentOffset: 7, // offsetr[1] = 0x07
+		},
+		// Index 2: Nightshade at (0x2c, 0x89) = (44, 137)
+		{
+			X: 44, Y: 137,
+			ReagentType: references.NightShade,
+			MinQuantity: 2, MaxQuantity: 15,
+			Message:       "nightshade!",
+			ReagentOffset: 6, // offsetr[2] = 0x06
+		},
+	}
 }
 
 // ReagentCacheLocation represents a reagent cache location from original Search/Get/Open/Jimmy rules reagent-cache search
@@ -228,7 +230,6 @@ func (ssm *SearchSystemManager) checkCorpses(searchPos *references.Position, cha
 		changes.observePoison(statusBefore, character)
 		ssm.gameState.publishTransientStatusChanges(changes)
 		ssm.gameState.SystemCallbacks.Audio.PlaySoundEffect(SoundPoison)
-		ssm.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
 	}
 	if outcome.hasItem {
 		item := references.ItemAndQuantity{Item: outcome.item, Quantity: outcome.quantity}
@@ -379,7 +380,7 @@ func (ssm *SearchSystemManager) buildNothingFoundMessage(location string) string
 		return MessageNothingOfNote
 	}
 
-	// REDUX DEVIATION: Original object-specific results contain authored line breaks;
+	// Original object-specific results contain authored line breaks;
 	// Redux supplies prose and lets each output surface wrap to its measured width.
 	return prelude + ", thou dost find nothing of note."
 }
@@ -443,33 +444,33 @@ func (ssm *SearchSystemManager) FormatFoundItems(items []references.ItemAndQuant
 		case references.Torches:
 			if item.Quantity == 1 {
 				return "a torch!"
-			} else {
-				return fmt.Sprintf("%d torches!", item.Quantity)
 			}
+
+			return fmt.Sprintf("%d torches!", item.Quantity)
 		case references.SkullKeys:
 			if item.Quantity == 1 {
 				return "skull keys!"
-			} else {
-				return fmt.Sprintf("%d skull keys!", item.Quantity)
 			}
+
+			return fmt.Sprintf("%d skull keys!", item.Quantity)
 		case references.GlassSword:
 			if item.Quantity == 1 {
 				return "a glass sword!"
-			} else {
-				return fmt.Sprintf("%d glass swords!", item.Quantity)
 			}
+
+			return fmt.Sprintf("%d glass swords!", item.Quantity)
 		case references.NightShade:
 			if item.Quantity == 1 {
 				return "1 sprig of nightshade!"
-			} else {
-				return fmt.Sprintf("%d sprigs of nightshade!", item.Quantity)
 			}
+
+			return fmt.Sprintf("%d sprigs of nightshade!", item.Quantity)
 		case references.MandrakeRoot:
 			if item.Quantity == 1 {
 				return "mandrake root!"
-			} else {
-				return fmt.Sprintf("%d mandrake root!", item.Quantity)
 			}
+
+			return fmt.Sprintf("%d mandrake root!", item.Quantity)
 		default:
 			return fmt.Sprintf("an item! (type: %d, qty: %d)", item.Item.ID(), item.Quantity)
 		}
@@ -478,38 +479,26 @@ func (ssm *SearchSystemManager) FormatFoundItems(items []references.ItemAndQuant
 	return fmt.Sprintf("%d items!", len(items))
 }
 
-// getTileLocationName returns the location name for a given tile index
+// getTileLocationName returns the location name for a given tile index, or
+// an empty string when the tile has no searchable furniture name.
 func (ssm *SearchSystemManager) getTileLocationName(tileIndex indexes.SpriteIndex) string {
-	switch tileIndex {
-	case indexes.DeadTree:
-		return "stump"
-	case indexes.Bookcase:
-		return "shelf"
-	case indexes.BookcaseLeft, indexes.BookcaseRight:
-		return "bookshelf"
-	case indexes.Well:
-		return "well"
-	case indexes.EndTable:
-		return "desk"
-	case indexes.Barrel:
-		return "barrel"
-	case indexes.Vanity:
-		return "vanity"
-	case indexes.LeftBed, indexes.RightBed:
-		return "bed"
-	case indexes.Dresser:
-		return "dresser"
-	case indexes.Box:
-		return "trunk"
-	case indexes.Fireplace:
-		return "fireplace"
-	case indexes.Brazier:
-		return "brazier"
-	case indexes.StoneBrickWall:
-		return "wall"
-	default:
-		return ""
-	}
+	return map[indexes.SpriteIndex]string{
+		indexes.DeadTree:       "stump",
+		indexes.Bookcase:       "shelf",
+		indexes.BookcaseLeft:   "bookshelf",
+		indexes.BookcaseRight:  "bookshelf",
+		indexes.Well:           "well",
+		indexes.EndTable:       "desk",
+		indexes.Barrel:         "barrel",
+		indexes.Vanity:         "vanity",
+		indexes.LeftBed:        "bed",
+		indexes.RightBed:       "bed",
+		indexes.Dresser:        "dresser",
+		indexes.Box:            "trunk",
+		indexes.Fireplace:      "fireplace",
+		indexes.Brazier:        "brazier",
+		indexes.StoneBrickWall: "wall",
+	}[tileIndex]
 }
 
 func topTileAt(gameState *GameState, position *references.Position) *references.Tile {
@@ -628,9 +617,9 @@ func (ssm *SearchSystemManager) GetSearchLocationStatus(pos *references.Position
 			// Check if this location has been found
 			if ssm.authenticLocationManager.IsLocationFound(location.Index) {
 				return SearchLocationAlreadyFound
-			} else {
-				return SearchLocationUnsearched
 			}
+
+			return SearchLocationUnsearched
 		}
 	}
 

@@ -287,7 +287,10 @@ func TestScenarioRunnerCancellationPreservesProductionWorkflowGate(t *testing.T)
 	assert.Equal(t, &scenarios.RunRNG{Seed: "18446744073709551615", SourceCalls: "1"}, game.scenarioRun.status.Launch.RNG)
 	game.updateScenarioRun()
 	assert.Equal(t, scenarioRunQueued, game.scenarioRun.status.State)
-	mutation := debugging.Request{SessionID: "test", ID: "workflow-gated", CommandID: debugging.CommandScenarioWaterfallSetup}
+	mutation := debugging.Request{
+		SessionID: "test", ID: "workflow-gated", CommandID: debugging.CommandQuestItemEnsure,
+		Arguments: map[string]json.RawMessage{"item": json.RawMessage(`"sextant"`)},
+	}
 	assert.Equal(t, scenarioRunActiveError, game.executeDebugCommand(mutation).ErrorCode)
 	result = game.executeDebugCommand(scenarioCancelRequest(game.scenarioRun.status.RunID))
 	require.True(t, result.Success, result.ErrorMessage)

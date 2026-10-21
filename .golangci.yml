@@ -120,7 +120,6 @@ linters:
       - OLD/
       - bin/
       - temp_dump/
-      - u5dump/
       - testdata/
       - ".*_test\\.go$"  # Exclude all test files from strict linting
     rules:
@@ -174,7 +173,7 @@ linters:
           - nlreturn
           - varnamelen
           - wrapcheck
-        path: "^(cmd/graphics-export/|internal/graphics/)"
+        path: "^pkg/graphics/"
 issues:
   max-issues-per-linter: 100
   max-same-issues: 10

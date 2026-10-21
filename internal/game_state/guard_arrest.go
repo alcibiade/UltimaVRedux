@@ -55,7 +55,7 @@ func (gs *GameState) ExecuteJailSentence() int {
 	gs.TransitionToLocation(jailLocation, jailFloor, jailPosition, TransitionFullLocation, false)
 	gs.ClearCriminalStatus()
 
-	logging.Info(logging.CategoryGameState,
+	logging.Infof(logging.CategoryGameState,
 		"Jailed: Location=%v, Pos=(%d,%d), Floor=%d, Release=%d:%02d, Elapsed=%d, Keys confiscated",
 		jailLocation, jailPosition.X, jailPosition.Y, jailFloor,
 		gs.DateTime.Hour, gs.DateTime.Minute, elapsedMinutes)
@@ -72,14 +72,14 @@ func (gs *GameState) RefuseArrest(source *map_units.NPCFriendly, completeSourceT
 	gs.SystemCallbacks.Message.AddRowStr("")
 
 	if err := gs.QueueSmallMapCombatEncounter(source, SmallMapEncounterArrestRefusal); err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to queue arrest combat: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to queue arrest combat: %v", err)
 		gs.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 
 		return false
 	}
 	gs.pendingSmallMapEncounter.Consequences.CompleteSourceTurn = completeSourceTurn
 
-	logging.Info(logging.CategoryGameState, "Player refused arrest - Guard combat queued")
+	logging.Infof(logging.CategoryGameState, "Player refused arrest - Guard combat queued")
 
 	return true
 }

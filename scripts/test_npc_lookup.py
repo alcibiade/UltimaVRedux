@@ -46,10 +46,10 @@ class SemanticLookupTests(unittest.TestCase):
     ) -> None:
         npcs = {
             "npcs": [
-                {"location": 17, "dialog_number": 7},  # Same number, wrong family.
-                {"location": 2, "dialog_number": 6},  # Off-by-one neighbor.
-                {"location": 2, "dialog_number": 7},
-                {"location": 3, "dialog_number": 7},
+                {"location": 17, "dialogNumber": 7},  # Same number, wrong family.
+                {"location": 2, "dialogNumber": 6},  # Off-by-one neighbor.
+                {"location": 2, "dialogNumber": 7},
+                {"location": 3, "dialogNumber": 7},
             ]
         }
         with (

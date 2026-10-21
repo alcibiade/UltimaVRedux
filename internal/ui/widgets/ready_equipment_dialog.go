@@ -30,8 +30,6 @@ var (
 	readyEquippedMarkerColor stdcolor.Color = color.EGALightGreen
 	// readySlotIconColor is for the equipment slot type icons (helm, weapon, etc.)
 	readySlotIconColor stdcolor.Color = color.EGAYellow
-	// readyUnequippableColor is for items that cannot be equipped (red text)
-	readyUnequippableColor stdcolor.Color = color.EGALightRed
 )
 
 var _ Widget = (*ReadyEquipmentDialog)(nil)
@@ -429,7 +427,7 @@ func (d *ReadyEquipmentDialog) Update() {
 
 		return
 	}
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyBracketRight) {
+	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyBracketRight) {
 		d.cycleDetailPage(1)
 
 		return
@@ -445,9 +443,7 @@ func (d *ReadyEquipmentDialog) Update() {
 		return
 	}
 
-	// Handle Space/Enter to equip/unequip
-	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace) ||
-		d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
+	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
 		d.toggleEquipSelected()
 
 		return
@@ -764,74 +760,45 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 	cursorPos := d.itemListNav.GetCursorScreenPosition()
 
 	for i := startIdx; i < endIdx; i++ {
-		item := d.availableItems[i]
 		screenRow := i - startIdx
 		rowTop := contentStartY + screenRow*lineHeight
-
-		isSelected := screenRow == cursorPos
-
-		// Draw selection highlight
-		if isSelected {
-			highlightPadding := float32(fontSize * readyHighlightPaddingRatio)
-			vector.FillRect(screen,
-				float32(bounds.Min.X),
-				float32(rowTop)-highlightPadding,
-				float32(bounds.Dx()),
-				float32(fontSize)+highlightPadding*readyCenterDivisor,
-				color.EGAWhite,
-				false)
-		}
-
-		row := d.itemTextRect(bounds, rowTop)
-		d.populateItemRow(item, isSelected, row.Dx())
-		clipBounds := row.Intersect(screen.Bounds())
-		if !clipBounds.Empty() {
-			clipped, ok := screen.SubImage(clipBounds).(*ebiten.Image)
-			if !ok {
-				panic("Ready item row clip is not an image")
-			}
-			d.itemsOutput.DrawPanelContent(clipped, row.Min, row.Dx(), etext.AlignStart)
-		}
+		d.drawItemRow(screen, bounds, rowTop, d.availableItems[i], screenRow == cursorPos)
 	}
 
-	// Draw scroll indicators
-	d.drawScrollIndicators(screen, bounds, contentStartY, lineHeight)
+	// Centre the shared cues on the highlighted text rows inside the item gutter.
+	list := image.Rect(bounds.Min.X, contentStartY-(lineHeight-int(fontSize))/readyCenterDivisor,
+		bounds.Max.X-itemDialogTextPadding-readyDetailInset, bounds.Max.Y)
+	drawMasterDetailScrollIndicators(screen, list, startIdx, endIdx, len(d.availableItems), lineHeight,
+		d.itemScrollGutter(), d.font, d.itemsOutput)
 }
 
-// drawScrollIndicators draws up/down arrows if there are more items
-func (d *ReadyEquipmentDialog) drawScrollIndicators(
-	screen *ebiten.Image, bounds image.Rectangle, contentStartY int, lineHeight int,
+// drawItemRow draws one available item at rowTop, highlighted when selected and
+// clipped to its text row.
+func (d *ReadyEquipmentDialog) drawItemRow(
+	screen *ebiten.Image, bounds image.Rectangle, rowTop int, item availableEquipment, isSelected bool,
 ) {
-	rightPadding := itemDialogTextPadding + readyDetailInset
-	indicatorWidth := d.itemScrollGutter()
-	indicatorX := bounds.Max.X - rightPadding - indicatorWidth
-
-	// Up arrow if items above
-	if d.itemListNav.HasItemsAbove() {
-		d.itemsOutput.Reset()
-		d.itemsOutput.AppendLine().Text("^", DialogScrollIndicator).Done()
-		d.itemsOutput.DrawPanelContent(
-			screen,
-			image.Pt(indicatorX, contentStartY),
-			indicatorWidth,
-			etext.AlignCenter,
-		)
+	// Draw selection highlight
+	if isSelected {
+		fontSize := d.font.TextFace.Size
+		highlightPadding := float32(fontSize * readyHighlightPaddingRatio)
+		vector.FillRect(screen,
+			float32(bounds.Min.X),
+			float32(rowTop)-highlightPadding,
+			float32(bounds.Dx()),
+			float32(fontSize)+highlightPadding*readyCenterDivisor,
+			color.EGAWhite,
+			false)
 	}
 
-	// Down arrow if items below
-	if d.itemListNav.HasItemsBelow() {
-		_, endIdx := d.itemListNav.GetVisibleRange()
-		startIdx, _ := d.itemListNav.GetVisibleRange()
-		visibleCount := endIdx - startIdx
-		downY := contentStartY + (visibleCount-1)*lineHeight
-		d.itemsOutput.Reset()
-		d.itemsOutput.AppendLine().Text("v", DialogScrollIndicator).Done()
-		d.itemsOutput.DrawPanelContent(
-			screen,
-			image.Pt(indicatorX, downY),
-			indicatorWidth,
-			etext.AlignCenter,
-		)
+	row := d.itemTextRect(bounds, rowTop)
+	d.populateItemRow(item, isSelected, row.Dx())
+	clipBounds := row.Intersect(screen.Bounds())
+	if !clipBounds.Empty() {
+		clipped, ok := screen.SubImage(clipBounds).(*ebiten.Image)
+		if !ok {
+			panic("Ready item row clip is not an image")
+		}
+		d.itemsOutput.DrawPanelContent(clipped, row.Min, row.Dx(), etext.AlignStart)
 	}
 }
 
@@ -958,7 +925,6 @@ const (
 	readyCharacterLines        = 12
 	readyLineSpacingMultiplier = 1.2
 	readyHighlightPaddingRatio = 0.1
-	readyItemNavigationKey     = "Up/Down"
 )
 
 // drawStatusBar draws the status bar (bottom)
@@ -999,47 +965,23 @@ func (d *ReadyEquipmentDialog) populateStatusOutput(contentWidth int) {
 	d.appendStatusControls(action, contentWidth)
 }
 
-type readyControlHint struct {
-	key    string
-	action string
-}
-
-// Wrap between complete hints, never between a key/chord and its action.
+// Space pages details; [ and ] remain unadvertised paging aliases.
 func (d *ReadyEquipmentDialog) appendStatusControls(action string, width int) {
-	var hints []readyControlHint
+	var hints []ControlHint
 	if !d.request.LockCharacter {
-		hints = append(hints, readyControlHint{"Tab", "Next character"}, readyControlHint{"Shift-Tab", "Previous"})
+		hints = append(hints, ControlHint{"Tab", "Next character"}, ControlHint{"Shift+Tab", "Previous"})
 	}
-	hints = append(hints, readyControlHint{readyItemNavigationKey, "Item"}, readyControlHint{"Enter/Space", action},
-		readyControlHint{"H", "Hand"}, readyControlHint{"B", "Strength breakdown"})
+	hints = append(hints, ControlHint{hintKeyUpDown, hintActionItem}, ControlHint{hintKeyEnter, action},
+		ControlHint{"H", "Hand"}, ControlHint{"B", "Strength breakdown"})
 	if d.detailPageCount() > 1 {
-		hints = append(hints, readyControlHint{"[ / ]", "Details"})
+		hints = append(hints, ControlHint{hintKeySpace, "Details"})
 	}
-	hints = append(hints, readyControlHint{readyEscapeKey, readyCloseAction})
-	line := d.statusOutput.AppendLine()
-	used := 0.0
-	gap, _ := d.font.MeasureString("  ")
-	for _, hint := range hints {
-		advance, _ := d.font.MeasureString(hint.key + " " + hint.action)
-		if used > 0 && used+gap+advance > float64(width) {
-			line.Done()
-			line = d.statusOutput.AppendLine()
-			used = 0
-		}
-		if used > 0 {
-			line.Text("  ", DialogControlHintColor)
-			used += gap
-		}
-		line.Text(hint.key, DialogControlKeyColor).Text(" "+hint.action, DialogControlHintColor)
-		used += advance
-	}
-	line.Done()
+	hints = append(hints, ControlHint{hintKeyEsc, hintActionClose})
+	PackControlHints(d.statusOutput, hints, width, etext.AlignStart)
 }
 
 const (
 	readySelectionUnavailable = "Unavailable"
-	readyEscapeKey            = "Esc"
-	readyCloseAction          = "Close"
 )
 
 func (d *ReadyEquipmentDialog) selectionGuidance() (string, string) {

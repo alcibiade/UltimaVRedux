@@ -20,7 +20,6 @@ const (
 //go:embed testdata/britain2_SAVED.GAM
 var saveFile []byte
 
-//nolint:gochecknoglobals
 var (
 	baseGameReferences   *references.GameReferences
 	cachedIntegrationCfg *config.UltimaVConfiguration

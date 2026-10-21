@@ -316,18 +316,12 @@ measured new placements have only their new plot. Static supplied origin artwork
 does not enter `PlotPosition`, mapped counts, or interactive labels. An earned
 point coincident with its matching origin coalesces visually.
 
-Native v21 added retirement/current-placement persistence. Frozen v20 migration
-uses saved personal evidence or carried inventory to prove retirement, and clears
-surveys inconsistent with the latest placed, uncarried site, including pickup
-measurements and surveys predating reburial at identical coordinates. Possession-
-only imports retire the origin but invent no site, visit, time, or survey; their
+Native snapshots persist origin retirement and the current placement, and reject
+surveys inconsistent with the latest placed, uncarried site. Possession-only
+legacy imports retire the origin but invent no site, visit, time, or survey; their
 atlas row remains personally undiscovered. Hidden placement bytes/current position
-cannot manufacture observations.
+cannot manufacture observations. Native snapshots accept `look` as first discovery
+evidence in its existing fields.
 
-Current v24 accepts `look` as first discovery evidence in its existing fields
-without a version bump. Frozen v20–v23 permit later Look context but reject
-`firstSource: "look"`. Tests cover both contracts. This preserves reader honesty
-without retroactively manufacturing historical recognition.
-
-**Implementation:** `internal/game_state/journal_moonstones.go`, `internal/journal/moonstones.go`, `internal/save_snapshot/migration_v20.go`
+**Implementation:** `internal/game_state/journal_moonstones.go`, `internal/journal/moonstones.go`, `internal/save_snapshot/validation_v20.go`, `internal/save_snapshot/legacy_inference.go`
 **Tests:** `internal/save_snapshot/moongate_look_test.go`, `internal/game_state/journal_moonstones_test.go`

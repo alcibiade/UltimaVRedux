@@ -312,7 +312,7 @@ func (s *dataSetupScene) drawValidation(screen *ebiten.Image) {
 		White("Your original files will not be changed.").Done()
 	s.body.DrawPanelContent(screen, image.Pt(width/8, height*2/5), width*3/4, etext.AlignCenter)
 	s.footer.Reset()
-	widgets.AppendControlHints(s.footer.AppendLine().WithAlignment(etext.AlignCenter), "Esc: Cancel").Done()
+	widgets.AppendControlHints(s.footer.AppendLine().WithAlignment(etext.AlignCenter), "[Esc] Cancel").Done()
 	s.footer.DrawPanelContent(screen, image.Pt(width/10, height*4/5), width*8/10, etext.AlignCenter)
 }
 
@@ -337,7 +337,7 @@ func (s *dataSetupScene) drawSearch(screen *ebiten.Image) {
 		White("Recommended fallback: " + originaldata.RecommendedDirectory(s.host)).WordWrap().Done()
 	s.body.DrawPanelContent(screen, image.Pt(width/8, height*2/5), width*3/4, etext.AlignCenter)
 	s.footer.Reset()
-	widgets.AppendControlHints(s.footer.AppendLine().WithAlignment(etext.AlignCenter), "Esc: Cancel").Done()
+	widgets.AppendControlHints(s.footer.AppendLine().WithAlignment(etext.AlignCenter), "[Esc] Cancel").Done()
 	s.footer.DrawPanelContent(screen, image.Pt(width/10, height*4/5), width*8/10, etext.AlignCenter)
 }
 

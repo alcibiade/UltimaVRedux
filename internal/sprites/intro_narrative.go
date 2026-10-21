@@ -6,11 +6,11 @@ import (
 	"image"
 	stdcolor "image/color"
 	"os"
-	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 const introductionStoryBlockCount = 20
@@ -55,7 +55,7 @@ func LoadNarrativeIntroAssets(dataDir string) (*NarrativeIntroAssets, error) {
 	if err != nil {
 		return nil, err
 	}
-	storyPath := filepath.Join(dataDir, "STORY.DAT")
+	storyPath := files.Resolve(dataDir, "STORY.DAT")
 	storyData, err := os.ReadFile(storyPath) //nolint:gosec // Configured original-data directory is user-selected.
 	if err != nil {
 		return nil, fmt.Errorf("reading introduction text %s: %w", storyPath, err)

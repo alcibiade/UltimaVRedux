@@ -36,11 +36,6 @@ func (aslm *AuthenticSearchLocationManager) SearchAtPosition(x, y references.Coo
 	return result
 }
 
-// HasActiveBlackthornInterrogation reports transient authoritative ownership.
-func (g *GameState) HasActiveBlackthornInterrogation() bool {
-	return g.blackthornSession != nil
-}
-
 // SetPoisoned sets the monster's poisoned state.
 func (m *CombatMonster) SetPoisoned(poisoned bool) {
 	m.conditions.isPoisoned = poisoned
@@ -56,7 +51,7 @@ func (m *CombatMonsterManager) RemoveMonster(index int) *CombatMonster {
 	removed := m.monsters[index]
 	m.monsters = append(m.monsters[:index], m.monsters[index+1:]...)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Removed combat monster: type=%s index=%d",
 		removed.MonsterType().Name(), index)
 
@@ -97,7 +92,7 @@ func (q *CombatTurnQueue) TotalEntryCount() int {
 
 // SetDungeonState sets the open/closed state of a specific dungeon
 func (g *GameState) SetDungeonState(dungeon references.Location, isOpen bool) {
-	index, exists := DungeonToIndexMap[dungeon]
+	index, exists := dungeonIndex(dungeon)
 	if !exists {
 		return // Not a valid dungeon
 	}
@@ -151,7 +146,7 @@ func (g *GameState) transitionToCombatMapReference(
 	g.initializeCombatPartyRings(combatState)
 	g.commitCombatTransition(combatState, territory)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Transitioned to combat map: %s (index=%d, territory=%d, entry=%d)",
 		combatMap.MapName, combatMap.MapIndex, territory, entryDir)
 }
@@ -271,4 +266,16 @@ func (g *GameState) BuildTeleportationSequence(destination MoongateDestination) 
 // Returns true while the retained logical cascade owns completion. ref:ENV-0003.
 func (g *GameState) ProcessWaterfallHazard(_ *references.Position) bool {
 	return g.startWaterfallHazard(nil)
+}
+
+// DebugSetupDungeon installs a fresh dungeon visit at one exact coordinate and
+// replaces carried light with the requested state, without consuming time or RNG.
+func (g *GameState) DebugSetupDungeon(
+	location references.Location,
+	floor references.FloorNumber,
+	position references.Position,
+	facing references.DungeonFacing,
+	lit bool,
+) (DungeonSetupResult, error) {
+	return g.debugSetupDungeon(location, floor, position, facing, references.DungeonLastDirection(facing), &lit)
 }

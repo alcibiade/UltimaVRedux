@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
@@ -32,15 +32,15 @@ const (
 
 var errReturnViewDataInvalid = errors.New("return to the View data is invalid")
 
-// ReturnViewData contains validated original maps and a typed MiniMapScript.
+// ReturnViewData contains validated original maps and a typed Script.
 type ReturnViewData struct {
 	Maps   map[FrameID]TileMap
-	Script *MiniMapScript
+	Script *Script
 }
 
 // LoadReturnViewData loads and decodes the original attract sequence.
 func LoadReturnViewData(dataDir string) (*ReturnViewData, error) {
-	path := filepath.Join(dataDir, returnViewFileName)
+	path := files.Resolve(dataDir, returnViewFileName)
 	data, err := os.ReadFile(path) //nolint:gosec // Configured original-data directory is user-selected.
 	if err != nil {
 		return nil, fmt.Errorf("reading Return to the View data %s: %w", path, err)
@@ -85,7 +85,7 @@ func decodeReturnViewMaps(data []byte) map[FrameID]TileMap {
 }
 
 //nolint:cyclop,gocognit // Direct, bounds-checked translation of the original 16-opcode RTTV stream.
-func decodeReturnViewScript(data []byte) (*MiniMapScript, error) {
+func decodeReturnViewScript(data []byte) (*Script, error) {
 	builder := NewMiniMapScript("return_to_the_view")
 	commands := make([]TileCommand, 0, len(data)/2)
 	position := 0

@@ -9,6 +9,8 @@ import "github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 // walkingPassableTiles contains all tiles that can be walked on by the avatar
 // Comprehensive list based on original Ultima V C code analysis - 74 tiles total
 // IMPORTANT: If a tile is not in this map, it is NOT walkable
+//
+//nolint:gochecknoglobals // Read-only passability table looked up per tile move.
 var walkingPassableTiles = map[indexes.SpriteIndex]bool{
 	// Basic terrain tiles
 	indexes.Explosion:   true,
@@ -140,6 +142,8 @@ var walkingPassableTiles = map[indexes.SpriteIndex]bool{
 // boatPassableTiles contains all tiles that can be traversed by boat (frigate)
 // Ships pass only terrain at or below Sea (2); ref:VEH-0001.
 // Terrain types: DEEP (1), SEA (2), SHOALS (3) - frigates cannot traverse shoals
+//
+//nolint:gochecknoglobals // Read-only passability table looked up per tile move.
 var boatPassableTiles = map[indexes.SpriteIndex]bool{
 	indexes.Water1: true, // DEEP water (terrain type 1)
 	indexes.Water2: true, // SEA water (terrain type 2)
@@ -148,6 +152,8 @@ var boatPassableTiles = map[indexes.SpriteIndex]bool{
 
 // skiffPassableTiles contains all tiles that can be traversed by skiff
 // Skiffs can go in shallow water and some streams
+//
+//nolint:gochecknoglobals // Read-only passability table looked up per tile move.
 var skiffPassableTiles = map[indexes.SpriteIndex]bool{
 	indexes.Water1:        true,
 	indexes.Water2:        true,
@@ -174,6 +180,8 @@ var skiffPassableTiles = map[indexes.SpriteIndex]bool{
 
 // carpetAdditionalPassableTiles contains tiles that carpets can fly over but walking cannot
 // These are in addition to walkingPassableTiles
+//
+//nolint:gochecknoglobals // Read-only passability table looked up per tile move.
 var carpetAdditionalPassableTiles = map[indexes.SpriteIndex]bool{
 	indexes.Water1:        true,
 	indexes.Water2:        true,

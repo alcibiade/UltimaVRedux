@@ -118,17 +118,15 @@ loading cannot manufacture prior boat use.
 Codex Word of Power knowledge and acknowledgement of the complete revelation
 are separate facts. Retain a completion boolean for the final acknowledged page,
 enriching the existing Chronicle identity without moving its earlier word-learning
-boundary or changing original provenance. Historical word/shrine flags do not
-prove that the player saw the final paragraph, so promotion leaves completion
-false until an actual revisit earns it.
+boundary or changing original provenance. Word/shrine flags do not prove that
+the player saw the final paragraph, so completion stays false until an actual
+revisit earns it.
 
 Daily basement-chest history is independent of whether those objects are loaded.
 Persist three optional full dates and explicit authored/generated chest lifetime
 identity, rather than overloading permanent NPC-death flags or recognizing an
 authored chest by a reused runtime slot. Hydration restores actual objects and
-absence without becoming a replenishment trigger. Only proven obsolete flags for
-the three exact daily identities promote to consumption on the saved date;
-off-floor absence and other dead NPCs cannot establish daily history.
+absence without becoming a replenishment trigger.
 
 ### Versioning
 
@@ -137,20 +135,22 @@ supported versions, strict field requirements, migration behavior, and limits
 belong in [Save Snapshot Schema](../details/SAVE_SNAPSHOT_SCHEMA.md) and
 [Workbench scenarios](../systems/DEBUG_WORKBENCH.md#scenarios), not a second
 version ledger in this ADR. Unsupported versions are rejected rather than
-guessed, and schema changes require deliberate compatibility decisions.
+guessed, and schema changes require deliberate compatibility decisions. Native
+compatibility starts at the first publicly shipped snapshot version; earlier
+pre-release snapshots are unsupported rather than carried as promotion code.
 
 An extension to a closed knowledge or Chronicle catalog also requires a snapshot
 version, even when JSON member shapes are unchanged: older validators cannot
-interpret the newly learned fact. Promotion preserves prior knowledge rather
-than inferring discoveries from reference data or completed dialogue flags.
+interpret the newly learned fact. Promotion and import preserve prior knowledge
+rather than inferring discoveries from reference data or completed dialogue flags.
 This also applies to taught melodies: the stable knowledge identity and first
 disclosure provenance persist, while playable instructions are projected by the
 current presentation and performance progress remains separate gameplay state.
 
-Historical DTOs must also freeze nested types whose current runtime shape evolves.
-A new required journal field must not retroactively become required in an old
-save. Private observed sites, public measured coordinates, physical chest state,
-and learned chest assessments are distinct authorities. Migration preserves old
+A frozen promotion DTO must also freeze nested types whose current runtime shape
+evolves. A new required journal field must not retroactively become required in
+an old save. Private observed sites, public measured coordinates, physical chest
+state, and learned chest assessments are distinct authorities. Import preserves old
 evidence without manufacturing surveys or inferring inspection from hidden trap
 bits. Carried moonstones can establish possession-only recognition; immutable
 charted origins and raw world placement cannot establish earned observations.
@@ -165,8 +165,8 @@ from immutable chart metadata: comparing current coordinates cannot distinguish
 an untouched origin from a stone returned there after pickup. Surveys authorize
 only the current observed placement, so pickup and relocation erase previous-site
 measurement authority rather than maintaining a historical destination trail.
-Historical promotion proves retirement from persisted handling/relocation or
-carried inventory; possession alone never fabricates a personal visit or date.
+Legacy import proves retirement only from carried inventory; possession alone
+never fabricates a personal visit or date.
 Personal atlas discovery is a derived reader flag, independent of name knowledge,
 supplied symbols, and survey eligibility, and therefore does not add save state.
 
@@ -175,19 +175,16 @@ the user's current navigation preference. A flexible measurement remains earned
 after the option is disabled or a checkpoint is reloaded. Validation uses only
 the saved policy, date, location, and action evidence: ordinary original-policy
 surveys remain nighttime-only, and both policies authorize only Britannia surface
-coordinates. Historical DTOs predating policy provenance exclude the flag and
-promote as original-policy measurements; newer frozen DTOs preserve the saved
-policy. Neither live settings nor migration can fabricate daytime authority.
+coordinates. Neither live settings nor import can fabricate daytime authority.
 Canonical settlement fixes do not create atlas visits or names.
 
 Narrow acquisition exceptions require their own finite evidence, not a falsified
 policy flag. A live Greyhaven sextant receipt can authorize only its canonical
 exterior survey while preserving the prior Enter name and truthful measurement
 preference. Saved source/site/date constraints distinguish that receipt from an
-ordinary daytime observation; ownership or historical promotion cannot infer it.
+ordinary daytime observation; ownership cannot infer it.
 Guardians recognition similarly uses a bounded unnamed Look identity rather than
-granting arbitrary landmark names or expanding the domain of every older save.
-Frozen historical atlas DTOs and schemas retain their prior sources and limits.
+granting arbitrary landmark names.
 
 ## Consequences
 

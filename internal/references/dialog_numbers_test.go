@@ -9,7 +9,6 @@ import (
 func TestDialogNumbers(t *testing.T) {
 	t.Run("NoResponse", func(t *testing.T) {
 		assert.Equal(t, DialogNumber(0), NoResponse)
-		assert.False(t, NoResponse.IsRegularNPC())
 		assert.False(t, NoResponse.IsMerchant())
 		assert.False(t, NoResponse.IsSpecial())
 	})
@@ -17,7 +16,6 @@ func TestDialogNumbers(t *testing.T) {
 	t.Run("RegularNPC", func(t *testing.T) {
 		// Test a regular NPC dialog number
 		regularNPC := DialogNumber(50)
-		assert.True(t, regularNPC.IsRegularNPC())
 		assert.False(t, regularNPC.IsMerchant())
 		assert.False(t, regularNPC.IsSpecial())
 		assert.Equal(t, "", regularNPC.GetMerchantType())
@@ -25,14 +23,12 @@ func TestDialogNumbers(t *testing.T) {
 
 	t.Run("MerchantThreshold", func(t *testing.T) {
 		assert.Equal(t, DialogNumber(128), MerchantThreshold)
-		assert.False(t, MerchantThreshold.IsRegularNPC())
 		assert.False(t, MerchantThreshold.IsMerchant())
 		assert.True(t, MerchantThreshold.IsSpecial())
 	})
 
 	t.Run("WeaponDealer", func(t *testing.T) {
 		assert.Equal(t, DialogNumber(129), DialogWeaponDealer)
-		assert.False(t, DialogWeaponDealer.IsRegularNPC())
 		assert.True(t, DialogWeaponDealer.IsMerchant())
 		assert.True(t, DialogWeaponDealer.IsSpecial())
 		assert.Equal(t, "Weapon Dealer", DialogWeaponDealer.GetMerchantType())
@@ -62,14 +58,12 @@ func TestDialogNumbers(t *testing.T) {
 		for _, m := range merchants {
 			assert.True(t, m.dialog.IsMerchant(), "Dialog %d should be merchant", m.dialog)
 			assert.True(t, m.dialog.IsSpecial(), "Dialog %d should be special", m.dialog)
-			assert.False(t, m.dialog.IsRegularNPC(), "Dialog %d should not be regular NPC", m.dialog)
 			assert.Equal(t, m.expected, m.dialog.GetMerchantType(), "Wrong merchant type for dialog %d", m.dialog)
 		}
 	})
 
 	t.Run("Guard", func(t *testing.T) {
 		assert.Equal(t, DialogNumber(255), DialogGuard)
-		assert.False(t, DialogGuard.IsRegularNPC())
 		assert.False(t, DialogGuard.IsMerchant()) // Guards are not merchants
 		assert.True(t, DialogGuard.IsSpecial())
 		assert.Equal(t, "Guard", DialogGuard.GetMerchantType())
@@ -77,7 +71,6 @@ func TestDialogNumbers(t *testing.T) {
 
 	t.Run("UnsupportedSpecial", func(t *testing.T) {
 		unknown := DialogNumber(137)
-		assert.False(t, unknown.IsRegularNPC())
 		assert.False(t, unknown.IsMerchant())
 		assert.True(t, unknown.IsSpecial())
 		assert.Equal(t, "", unknown.GetMerchantType())

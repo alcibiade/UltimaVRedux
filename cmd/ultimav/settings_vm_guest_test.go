@@ -22,7 +22,7 @@ func TestMain(_ *testing.M) {
 	logging.SetCategoryEnabled(logging.CategorySystem, true)
 	logging.SetStdoutEnabled(true)
 	if err := runSettingsVMGuest(); err != nil {
-		logging.Error(logging.CategorySystem, "VM settings proof: %v", err)
+		logging.Errorf(logging.CategorySystem, "VM settings proof: %v", err)
 		os.Exit(1)
 	}
 }
@@ -63,7 +63,7 @@ func runSettingsVMGuest() error {
 	if !proof.complete {
 		return fmt.Errorf("host stopped before rollback state and pixels were verified (tick %d)", proof.tick)
 	}
-	logging.Info(logging.CategorySystem, "VM settings proof: state, persisted configuration and rendered rollback passed")
+	logging.Infof(logging.CategorySystem, "VM settings proof: state, persisted configuration and rendered rollback passed")
 
 	return nil
 }

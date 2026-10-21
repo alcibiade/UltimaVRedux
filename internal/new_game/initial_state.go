@@ -50,12 +50,12 @@ func PrepareInitialSnapshot(
 		return legacy_save.ConversionResult{}, err
 	}
 
-	gam, err := readInitialTemplate(originalDataDirectory, files.INIT_GAM, legacy_save.SavedGameSize)
+	gam, err := readInitialTemplate(originalDataDirectory, files.InitGam, legacy_save.SavedGameSize)
 	if err != nil {
 		return legacy_save.ConversionResult{}, err
 	}
 
-	initObjects, err := readInitialTemplate(originalDataDirectory, files.INIT_OOL, initialObjectsSize)
+	initObjects, err := readInitialTemplate(originalDataDirectory, files.InitOol, initialObjectsSize)
 	if err != nil {
 		return legacy_save.ConversionResult{}, err
 	}
@@ -147,7 +147,7 @@ func buildInitialSavedObjects(initObjects []byte) ([]byte, error) {
 		return nil, fmt.Errorf(
 			"%w: %s must be exactly %d bytes; got %d",
 			ErrInvalidInitialTemplate,
-			files.INIT_OOL,
+			files.InitOol,
 			initialObjectsSize,
 			len(initObjects),
 		)

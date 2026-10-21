@@ -134,7 +134,7 @@ func TestAdvanceGameplayMinutesTimeStopFreezesCalendarAndLight(t *testing.T) {
 func TestCombatCalendarAdvanceConsumesMagicLightOnlyWhenMinuteAdvances(t *testing.T) {
 	state := newMagicLightLifecycleState(t)
 	state.ActivateLightEffect(3)
-	state.CombatScene = &CombatState{TurnQueue: NewCombatTurnQueue()} //nolint:exhaustruct // Focused clock fixture.
+	state.CombatScene = &CombatState{TurnQueue: NewCombatTurnQueue()}
 
 	state.advanceCombatQueueTime()
 	assert.Equal(t, 3, state.MagicLightMinutesRemaining)

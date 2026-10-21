@@ -33,7 +33,7 @@ func TestLargeMapEnterRoutingCompletesOutdoorTurnExactlyOnce(t *testing.T) {
 			entrance := state.MapState.PlayerLocation
 			beforeEntryTime := state.DateTime
 			callbacks.Reset()
-			scene := &GameScene{ //nolint:exhaustruct // Focused production routing fixture.
+			scene := &GameScene{
 				gameState: state,
 				keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 			}
@@ -86,7 +86,7 @@ func TestLargeMapEnterRoutingFinishesNonDungeonTurn(t *testing.T) {
 	state.SetShrineRuined(0, true)
 	beforeEnter := state.DateTime
 	callbacks.Reset()
-	scene := &GameScene{ //nolint:exhaustruct // Focused production routing fixture.
+	scene := &GameScene{
 		gameState: state,
 		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 	}

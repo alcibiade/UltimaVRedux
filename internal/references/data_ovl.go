@@ -21,10 +21,11 @@ const (
 	nTalkCompressedWordsLength = 0x24e
 )
 
+// DataOvl holds the string tables read from the original DATA.OVL: location names, talk compressed words and file names.
 type DataOvl struct {
-	LocationNames   []string `json:"location_names"   yaml:"location_names"`
-	CompressedWords []string `json:"compressed_words" yaml:"compressed_words"`
-	Filenames       []string `json:"filenames"        yaml:"filenames"`
+	LocationNames   []string `json:"locationNames"   yaml:"locationNames"`
+	CompressedWords []string `json:"compressedWords" yaml:"compressedWords"`
+	Filenames       []string `json:"filenames"       yaml:"filenames"`
 }
 
 func readNullTerminatedStrings(data *[]byte, offset, n int) ([]string, error) {
@@ -43,7 +44,7 @@ func readNullTerminatedStrings(data *[]byte, offset, n int) ([]string, error) {
 
 		// Check if we have reached the end of data without finding enough null terminators
 		if end == len(*data) {
-			return nil, fmt.Errorf("unexpected end of data before reading %d strings", n)
+			return nil, fmt.Errorf("%w: unexpected end of data before reading %d strings", errInvalidDataOvlStringTable, n)
 		}
 
 		// Extract the string

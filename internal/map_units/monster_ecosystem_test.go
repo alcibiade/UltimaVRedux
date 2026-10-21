@@ -12,7 +12,7 @@ func TestRemoveAllEnemiesPreservesFriendliesAndVehicles(t *testing.T) {
 	units := make(MapUnits, 0, MaximumNpcsPerMap)
 	friendly := NewNPCFriendly(references.NPCReference{NpcType: references.NoStatedNpc}, 1)
 	vehicle := NewNPCFriendlyVehiceNewRef(references.SkiffVehicle, references.Position{X: 2, Y: 2}, 0)
-	enemy := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 2) //nolint:exhaustruct
+	enemy := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 2)
 	units = append(units, friendly, vehicle, &enemy)
 
 	removed := units.RemoveAllEnemies()
@@ -29,7 +29,7 @@ func TestAddEnemyHonorsCurrentMapUnitCapacity(t *testing.T) {
 	for i := range units {
 		units[i] = NewNPCFriendly(references.NPCReference{NpcType: references.NoStatedNpc}, i)
 	}
-	enemy := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, references.DynamicSpawnIndex) //nolint:exhaustruct
+	enemy := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, references.DynamicSpawnIndex)
 
 	assert.False(t, units.AddEnemy(enemy))
 	assert.Len(t, units, MaximumNpcsPerMap)
@@ -37,12 +37,12 @@ func TestAddEnemyHonorsCurrentMapUnitCapacity(t *testing.T) {
 
 func TestAddEnemyReusesVacantRuntimeTokenAfterEnemyClear(t *testing.T) {
 	firstFriendly := NewNPCFriendly(references.NPCReference{NpcType: references.NoStatedNpc}, 0)
-	removedEnemy := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 1) //nolint:exhaustruct
+	removedEnemy := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterRat}, 1)
 	secondFriendly := NewNPCFriendly(references.NPCReference{NpcType: references.NoStatedNpc}, 2)
 	units := MapUnits{firstFriendly, &removedEnemy, secondFriendly}
 
 	require.Equal(t, 1, units.RemoveAllEnemies())
-	replacement := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterOrc}, references.DynamicSpawnIndex) //nolint:exhaustruct
+	replacement := NewEnemyNPC(references.EnemyReference{MonsterType: references.MonsterOrc}, references.DynamicSpawnIndex)
 	require.True(t, units.AddEnemy(replacement))
 	require.Len(t, units, 3)
 	assert.Equal(t, 1, units[2].MapUnitDetails().NPCNum)

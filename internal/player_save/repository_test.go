@@ -153,23 +153,23 @@ func TestRepositoryListDerivesActivePartyCountFromFullRoster(t *testing.T) {
 	}
 }
 
-func TestRepositoryLoadsVersionTwelveWithCanonicalCurrentRevision(t *testing.T) {
+func TestRepositoryLoadsMinimumVersionWithCanonicalCurrentRevision(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "player-saves")
 	repository := newTestRepository(t, root, nil)
 	if err := repository.ensureRoot(); err != nil {
 		t.Fatal(err)
 	}
-	data := historicalPlayerSaveData(t, 12)
+	data := minimumVersionPlayerSaveData(t, testEnvelope(testTime(1)))
 	if err := os.WriteFile(filepath.Join(root, "slot-01.json"), data, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	record, err := repository.Load(Slot01)
 	if err != nil {
-		t.Fatalf("Load(version 12) error = %v", err)
+		t.Fatalf("Load(minimum version) error = %v", err)
 	}
 	if record.Envelope.Snapshot.Version != save_snapshot.CurrentVersion || record.Envelope.Snapshot.Dungeon != nil {
-		t.Fatalf("Load(version 12) snapshot = %#v", record.Envelope.Snapshot)
+		t.Fatalf("Load(minimum version) snapshot = %#v", record.Envelope.Snapshot)
 	}
 	canonical, err := save_snapshot.EncodeCanonical(record.Envelope)
 	if err != nil {
@@ -178,49 +178,10 @@ func TestRepositoryLoadsVersionTwelveWithCanonicalCurrentRevision(t *testing.T) 
 	wantRevision := fmt.Sprintf("%x", sha256.Sum256(canonical))
 	rawRevision := fmt.Sprintf("%x", sha256.Sum256(data))
 	if record.Revision != wantRevision || record.Revision == rawRevision {
-		t.Fatalf("Load(version 12) revision = %q, want canonical v%d %q and not raw historical %q", record.Revision, save_snapshot.CurrentVersion, wantRevision, rawRevision)
+		t.Fatalf("Load(minimum version) revision = %q, want canonical v%d %q and not raw historical %q", record.Revision, save_snapshot.CurrentVersion, wantRevision, rawRevision)
 	}
 	if raw, readErr := os.ReadFile(filepath.Join(root, "slot-01.json")); readErr != nil || !bytes.Equal(raw, data) {
-		t.Fatalf("Load(version 12) rewrote source bytes: error=%v", readErr)
-	}
-}
-
-func TestRepositoryLoadsVersionTwelveReconstructionWithRawRevision(t *testing.T) {
-	root := filepath.Join(t.TempDir(), "player-saves")
-	repository := newTestRepository(t, root, nil)
-	if err := repository.ensureRoot(); err != nil {
-		t.Fatal(err)
-	}
-	data := historicalPlayerSaveData(t, 12)
-	var document map[string]any
-	if err := json.Unmarshal(data, &document); err != nil {
-		t.Fatal(err)
-	}
-	snapshot := document["snapshot"].(map[string]any)
-	snapshot["mapUnits"] = nil
-	snapshot["redux"].(map[string]any)["reconstructMapUnits"] = true
-	data, err := json.Marshal(document)
-	if err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(root, "slot-01.json")
-	if err = os.WriteFile(path, data, 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	record, err := repository.Load(Slot01)
-	if err != nil {
-		t.Fatalf("Load(version 12 reconstruction) error = %v", err)
-	}
-	if !record.Envelope.Snapshot.NeedsMapUnitReconstruction() {
-		t.Fatal("Load(version 12 reconstruction) lost transient reconstruction metadata")
-	}
-	wantRevision := fmt.Sprintf("%x", sha256.Sum256(data))
-	if record.Revision != wantRevision {
-		t.Fatalf("Load(version 12 reconstruction) revision = %q, want raw historical %q", record.Revision, wantRevision)
-	}
-	if raw, readErr := os.ReadFile(path); readErr != nil || !bytes.Equal(raw, data) {
-		t.Fatalf("Load(version 12 reconstruction) rewrote source bytes: error=%v", readErr)
+		t.Fatalf("Load(minimum version) rewrote source bytes: error=%v", readErr)
 	}
 }
 
@@ -500,40 +461,46 @@ func TestRepositoryCompatibilityValidationOnlyReceivesDecodedSnapshots(t *testin
 
 func TestRepositoryListsUnsupportedSnapshotVersionAsReclaimableIncompatible(t *testing.T) {
 	t.Parallel()
-	root := t.TempDir()
-	envelope := testEnvelope(testTime(1))
-	data, err := save_snapshot.EncodeCanonical(envelope)
-	if err != nil {
-		t.Fatal(err)
-	}
-	data = bytes.Replace(
-		data,
-		[]byte(fmt.Sprintf(`"version": %d`, save_snapshot.CurrentVersion)),
-		[]byte(`"version": 99`),
-		1,
-	)
-	if err = os.WriteFile(filepath.Join(root, "slot-02.json"), data, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	repository := newTestRepository(t, root, nil)
+	// Older native saves below the compatibility floor are reclaimable just like future ones.
+	for _, version := range []int{save_snapshot.MinimumVersion - 1, 99} {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			t.Parallel()
+			root := t.TempDir()
+			envelope := testEnvelope(testTime(1))
+			data, err := save_snapshot.EncodeCanonical(envelope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data = bytes.Replace(
+				data,
+				[]byte(fmt.Sprintf(`"version": %d`, save_snapshot.CurrentVersion)),
+				[]byte(fmt.Sprintf(`"version": %d`, version)),
+				1,
+			)
+			if err = os.WriteFile(filepath.Join(root, "slot-02.json"), data, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			repository := newTestRepository(t, root, nil)
 
-	summary := repository.List()[1]
-	if summary.Status != SlotIncompatible || summary.Revision == "" || summary.Metadata.SnapshotVersion != 99 {
-		t.Fatalf("unsupported summary = %#v", summary)
-	}
-	var unsupported *save_snapshot.UnsupportedVersionError
-	_, loadErr := repository.Load(Slot02)
-	if !errors.As(loadErr, &unsupported) {
-		t.Fatal("unsupported slot load did not preserve typed version error")
-	}
-	replacement := testEnvelope(testTime(2))
-	if _, err = repository.Save(Slot02, replacement, summary.Revision); err != nil {
-		t.Fatalf("Save(reclaim unsupported slot) error = %v", err)
-	}
-	if loaded, loadErr := repository.Load(Slot02); loadErr != nil ||
-		loaded.Envelope.Metadata.Name != replacement.Metadata.Name ||
-		loaded.Envelope.Snapshot.Version != replacement.Snapshot.Version {
-		t.Fatalf("Load(reclaimed slot) = %#v, %v", loaded, loadErr)
+			summary := repository.List()[1]
+			if summary.Status != SlotIncompatible || summary.Revision == "" || summary.Metadata.SnapshotVersion != version {
+				t.Fatalf("unsupported summary = %#v", summary)
+			}
+			var unsupported *save_snapshot.UnsupportedVersionError
+			_, loadErr := repository.Load(Slot02)
+			if !errors.As(loadErr, &unsupported) {
+				t.Fatal("unsupported slot load did not preserve typed version error")
+			}
+			replacement := testEnvelope(testTime(2))
+			if _, err = repository.Save(Slot02, replacement, summary.Revision); err != nil {
+				t.Fatalf("Save(reclaim unsupported slot) error = %v", err)
+			}
+			if loaded, loadErr := repository.Load(Slot02); loadErr != nil ||
+				loaded.Envelope.Metadata.Name != replacement.Metadata.Name ||
+				loaded.Envelope.Snapshot.Version != replacement.Snapshot.Version {
+				t.Fatalf("Load(reclaimed slot) = %#v, %v", loaded, loadErr)
+			}
+		})
 	}
 }
 
@@ -827,12 +794,8 @@ func clonePlayerSaveJSON(t *testing.T, source map[string]any) map[string]any {
 	return clone
 }
 
-func historicalPlayerSaveData(t *testing.T, version int) []byte {
-	t.Helper()
-	return historicalPlayerSaveEnvelopeData(t, version, testEnvelope(testTime(1)))
-}
-
-func historicalPlayerSaveEnvelopeData(t *testing.T, version int, envelope save_snapshot.Envelope) []byte {
+// minimumVersionPlayerSaveData encodes the oldest supported native shape.
+func minimumVersionPlayerSaveData(t *testing.T, envelope save_snapshot.Envelope) []byte {
 	t.Helper()
 	data, err := save_snapshot.EncodeCanonical(envelope)
 	if err != nil {
@@ -843,126 +806,8 @@ func historicalPlayerSaveEnvelopeData(t *testing.T, version int, envelope save_s
 		t.Fatal(err)
 	}
 	snapshot := document["snapshot"].(map[string]any)
-	snapshot["version"] = float64(version)
-	if version < 25 {
-		delete(snapshot, "excerpts")
-	}
-	if version <= 23 {
-		for _, field := range []string{"basementChestHistory", "atlasNotes", "atlasFleet", "codexRevelationComplete"} {
-			delete(snapshot, field)
-		}
-		if vehicle, ok := snapshot["partyVehicle"].(map[string]any); ok {
-			delete(vehicle, "vesselId")
-		}
-		if units, ok := snapshot["mapUnits"].([]any); ok {
-			for _, value := range units {
-				unit := value.(map[string]any)
-				delete(unit, "surfaceChestAuthored")
-				delete(unit, "surfaceChestTransient")
-				if vehicle, ok := unit["vehicle"].(map[string]any); ok {
-					delete(vehicle, "vesselId")
-				}
-			}
-		}
-	}
-	if version <= 22 {
-		delete(snapshot, "openDoor")
-	}
-	if version <= 21 {
-		for _, value := range snapshot["dungeonJournal"].([]any) {
-			for _, site := range value.(map[string]any)["sites"].([]any) {
-				delete(site.(map[string]any)["survey"].(map[string]any), "flexible")
-			}
-		}
-		for _, family := range []string{"moonstoneJournal", "atlasLandmarks"} {
-			if records, ok := snapshot[family].([]any); ok {
-				for _, value := range records {
-					delete(value.(map[string]any)["survey"].(map[string]any), "flexible")
-				}
-			}
-		}
-	}
-	if version <= 20 {
-		for _, value := range snapshot["moonstoneJournal"].([]any) {
-			delete(value.(map[string]any), "originalSiteRetired")
-		}
-	}
-	if version <= 19 {
-		delete(snapshot, "moonstoneJournal")
-		delete(snapshot, "atlasLandmarks")
-		for _, value := range snapshot["dungeonJournal"].([]any) {
-			observation := value.(map[string]any)
-			delete(observation, "sites")
-			observation["entranceSeen"], observation["open"] = false, false
-			observation["entranceX"], observation["entranceY"], observation["entranceFloor"] = 0, 0, 0
-		}
-		if units, ok := snapshot["mapUnits"].([]any); ok {
-			for _, value := range units {
-				delete(value.(map[string]any), "surfaceChestAssessment")
-			}
-		}
-		if dungeon, ok := snapshot["dungeon"].(map[string]any); ok {
-			delete(dungeon, "chestAssessments")
-		}
-	}
-	if version <= 16 {
-		delete(snapshot, "lastConversation")
-		delete(snapshot, "dungeonJournal")
-	}
-	if version <= 15 {
-		delete(snapshot, "presentation")
-		delete(snapshot, "lastConversation")
-		delete(snapshot, "dungeonJournal")
-		delete(snapshot, "moonstoneJournal")
-		delete(snapshot, "atlasLandmarks")
-		units, _ := snapshot["mapUnits"].([]any)
-		for _, value := range units {
-			delete(value.(map[string]any), "surfaceChestAssessment")
-		}
-		for _, event := range snapshot["redux"].(map[string]any)["questJournal"].([]any) {
-			delete(event.(map[string]any), "sourceName")
-		}
-	}
-	if version <= 14 {
-		effects := snapshot["effects"].(map[string]any)
-		delete(effects, "townMountedActorSkip")
-		delete(effects, "townQuicknessActorSkip")
-		delete(effects, "outdoorMountedActorSkip")
-	}
-	if version == 13 {
-		continuation := snapshot["continuation"].(map[string]any)
-		delete(continuation, "openingCampaignEncounterReduction")
-		delete(continuation, "combatActionTimeCounter")
-	}
-	redux := snapshot["redux"].(map[string]any)
-	if version == 12 {
-		delete(snapshot, "continuation")
-		redux["reconstructMapUnits"] = false
-
-		data, err = json.Marshal(document)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		return data
-	}
-	if version < 10 {
-		delete(redux, "lordBritishPassageOpen")
-	}
-	if version < 9 {
-		delete(redux, "questJournal")
-	}
-	if version < 8 {
-		delete(snapshot["progression"].(map[string]any)["shadowlords"].(map[string]any), "townAssignments")
-	}
-	if version < 7 {
-		delete(redux, "playerKnowledge")
-	}
-	if version < 6 {
-		effects := snapshot["effects"].(map[string]any)
-		delete(effects, "drunk")
-		delete(effects, "smashed")
-	}
+	snapshot["version"] = float64(save_snapshot.MinimumVersion)
+	delete(snapshot, "excerpts")
 	data, err = json.Marshal(document)
 	if err != nil {
 		t.Fatal(err)
@@ -971,74 +816,35 @@ func historicalPlayerSaveEnvelopeData(t *testing.T, version int, envelope save_s
 	return data
 }
 
-func TestHistoricalPlayerSaveFixturesRemainLoadableThroughV24(t *testing.T) {
-	for version := 12; version <= 24; version++ {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			data := historicalPlayerSaveData(t, version)
-			envelope, err := save_snapshot.Decode(data)
-			if err != nil {
-				t.Fatal(err)
-			}
-			expected := testEnvelope(testTime(1))
-			if version == 12 {
-				expected.Snapshot.Continuation.ActivePlayerIndex = -1
-				expected.Snapshot.Continuation.BeggarKarmaCounter = 100
-			}
-			if !reflect.DeepEqual(expected.Snapshot, envelope.Snapshot) || expected.Metadata != envelope.Metadata ||
-				!envelope.NeedsExcerptMigration() {
-				t.Fatalf("historical v%d fixture changed authoritative state", version)
-			}
-		})
+func TestMinimumVersionPlayerSavePreservesVehiclesAndChest(t *testing.T) {
+	source := testEnvelope(testTime(1))
+	source.Snapshot.AtlasFleet.LastID = 2
+	source.Snapshot.PartyVehicle = &save_snapshot.VehicleSnapshot{
+		Type: int(references.FrigateVehicle), VesselID: 1, Hull: 87, Skiffs: 2,
 	}
-}
-
-func TestHistoricalPlayerSaveFixturesPreserveVehiclesAndChestThroughV24(t *testing.T) {
-	for version := 12; version <= 24; version++ {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			source := testEnvelope(testTime(1))
-			source.Snapshot.AtlasFleet.LastID = 2
-			source.Snapshot.PartyVehicle = &save_snapshot.VehicleSnapshot{
-				Type: int(references.FrigateVehicle), VesselID: 1, Hull: 87, Skiffs: 2,
-			}
-			number := 0x87
-			kind := save_snapshot.MapUnitKindChest
-			if version < 14 {
-				kind = save_snapshot.MapUnitKindNPC
-			}
-			source.Snapshot.MapUnits = []save_snapshot.MapUnitSnapshot{
-				{Kind: save_snapshot.MapUnitKindVehicle, NPCNum: 1, Position: source.Snapshot.World.Position,
-					AIOverrideProvenance: string(references.AIOverrideProvenanceNone),
-					Vehicle:              &save_snapshot.VehicleSnapshot{Type: int(references.SkiffVehicle), VesselID: 2, Hull: 99}},
-				{Kind: kind, NPCNum: 2, ControllerOrder: 1, Position: source.Snapshot.World.Position,
-					AIOverrideProvenance: string(references.AIOverrideProvenanceNone), SurfaceChestNumber: &number},
-			}
-			data := historicalPlayerSaveEnvelopeData(t, version, source)
-			root := filepath.Join(t.TempDir(), "player-saves")
-			repository := newTestRepository(t, root, nil)
-			if err := repository.ensureRoot(); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(filepath.Join(root, "slot-01.json"), data, 0o600); err != nil {
-				t.Fatal(err)
-			}
-			record, err := repository.Load(Slot01)
-			if err != nil {
-				t.Fatalf("Load(v%d vehicles/chest) error = %v", version, err)
-			}
-			expected := source
-			if version < 24 {
-				expected.Snapshot.AtlasFleet.LastID = 0
-				expected.Snapshot.PartyVehicle.VesselID = 0
-				expected.Snapshot.MapUnits[0].Vehicle.VesselID = 0
-			}
-			if version == 12 {
-				expected.Snapshot.Continuation.ActivePlayerIndex = -1
-				expected.Snapshot.Continuation.BeggarKarmaCounter = 100
-			}
-			if !reflect.DeepEqual(expected.Snapshot, record.Envelope.Snapshot) || expected.Metadata != record.Envelope.Metadata ||
-				!record.Envelope.NeedsExcerptMigration() {
-				t.Fatalf("historical v%d fixture changed vehicle/chest state beyond empty registration defaults", version)
-			}
-		})
+	number := 0x87
+	source.Snapshot.MapUnits = []save_snapshot.MapUnitSnapshot{
+		{Kind: save_snapshot.MapUnitKindVehicle, NPCNum: 1, Position: source.Snapshot.World.Position,
+			AIOverrideProvenance: string(references.AIOverrideProvenanceNone),
+			Vehicle:              &save_snapshot.VehicleSnapshot{Type: int(references.SkiffVehicle), VesselID: 2, Hull: 99}},
+		{Kind: save_snapshot.MapUnitKindChest, NPCNum: 2, ControllerOrder: 1, Position: source.Snapshot.World.Position,
+			AIOverrideProvenance: string(references.AIOverrideProvenanceNone), SurfaceChestNumber: &number},
+	}
+	data := minimumVersionPlayerSaveData(t, source)
+	root := filepath.Join(t.TempDir(), "player-saves")
+	repository := newTestRepository(t, root, nil)
+	if err := repository.ensureRoot(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "slot-01.json"), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	record, err := repository.Load(Slot01)
+	if err != nil {
+		t.Fatalf("Load(minimum version vehicles/chest) error = %v", err)
+	}
+	if !reflect.DeepEqual(source.Snapshot, record.Envelope.Snapshot) || source.Metadata != record.Envelope.Metadata ||
+		!record.Envelope.NeedsExcerptMigration() {
+		t.Fatal("minimum-version fixture changed authoritative vehicle/chest state")
 	}
 }

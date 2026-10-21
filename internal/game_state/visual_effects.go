@@ -35,7 +35,7 @@ const (
 	starvationFlashDurationMs = 250
 )
 
-// showStarvationFeedback provides consistent starvation visual/audio feedback
+// ShowStarvationFeedback provides consistent starvation visual/audio feedback
 // Used during bed rest and camping when party has no food
 func (g *GameState) ShowStarvationFeedback() {
 	g.EventQueueManager.TriggerFeedback(
@@ -58,7 +58,7 @@ func (g *GameState) ShowStarvationFeedback() {
 	)
 }
 
-// showDeathFeedback provides consistent death visual/audio feedback
+// ShowDeathFeedback provides consistent death visual/audio feedback
 // Used when characters die during rest sequences
 func (g *GameState) ShowDeathFeedback() {
 	g.EventQueueManager.TriggerFeedback(
@@ -81,7 +81,7 @@ func (g *GameState) ShowDeathFeedback() {
 	)
 }
 
-// showPoisonFeedback provides consistent poison visual/audio feedback
+// ShowPoisonFeedback provides consistent poison visual/audio feedback
 // Used when poison damage is applied during bed rest
 func (g *GameState) ShowPoisonFeedback() {
 	g.EventQueueManager.TriggerFeedback(

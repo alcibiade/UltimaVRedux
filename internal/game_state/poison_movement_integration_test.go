@@ -48,9 +48,6 @@ func TestRepeatedConsumedUpdatesCoalescePoisonFeedback(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	character := gs.PartyState.GetCharacter(0)
 	character.SetHp(10)
 	character.SetStatus(party_state.Poisoned)

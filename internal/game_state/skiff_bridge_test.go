@@ -29,7 +29,7 @@ func TestSkiffBridgeCollisionUsesEffectiveTerrainDirectionAndOccupancy(t *testin
 	vehicle.SetPartyVehicleDirection(references.Up)
 	ref := references.NPCReference{Location: references.Britain,
 		Schedule: references.CreateNPCScheduledFixedOneLocation(bridge, 0)}
-	ref.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	ref.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	occupant := map_units.NewNPCFriendly(ref, 0)
 	occupant.SetPos(bridge)
 	occupant.SetFloor(0)

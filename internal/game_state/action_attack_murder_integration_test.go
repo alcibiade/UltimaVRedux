@@ -27,7 +27,7 @@ func TestDefenselessMurderAppliesCompleteConsequences(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			fixture := newDefenselessAttackFixture(t, test.tile, indexes.TownsPerson_KeyIndex, 1)
+			fixture := newDefenselessAttackFixture(t, test.tile, indexes.TownsPersonKeyIndex, 1)
 
 			result := fixture.state.ActionAttackSmallMap(references.Up)
 
@@ -76,7 +76,7 @@ func TestNewSystemCallbacksRejectsMissingKapowCallback(t *testing.T) {
 
 func TestDefenselessMurderUsesActorTypeForBlackthornImmunity(t *testing.T) {
 	t.Run("dialogue 14 civilian is not immune", func(t *testing.T) {
-		fixture := newDefenselessAttackFixture(t, indexes.Stocks, indexes.TownsPerson_KeyIndex, 14)
+		fixture := newDefenselessAttackFixture(t, indexes.Stocks, indexes.TownsPersonKeyIndex, 14)
 
 		require.True(t, fixture.state.ActionAttackSmallMap(references.Up))
 
@@ -106,7 +106,7 @@ func TestDefenselessMurderUsesActorTypeForBlackthornImmunity(t *testing.T) {
 }
 
 func TestDefenselessGuardDeathIsNotPersistent(t *testing.T) {
-	fixture := newDefenselessAttackFixture(t, indexes.Manacles, indexes.Guard_KeyIndex, 0)
+	fixture := newDefenselessAttackFixture(t, indexes.Manacles, indexes.GuardKeyIndex, 0)
 
 	require.True(t, fixture.state.ActionAttackSmallMap(references.Up))
 
@@ -116,9 +116,9 @@ func TestDefenselessGuardDeathIsNotPersistent(t *testing.T) {
 }
 
 func TestDefenselessMurderActivatesGuardsInSlotOrderBeforeImpact(t *testing.T) {
-	fixture := newDefenselessAttackFixture(t, indexes.LeftBed, indexes.TownsPerson_KeyIndex, 1)
+	fixture := newDefenselessAttackFixture(t, indexes.LeftBed, indexes.TownsPersonKeyIndex, 1)
 	fixture.victim.MapUnitDetails().NPCNum = 2
-	firstCivilian := defenselessAttackNPC(1, indexes.TownsPerson_KeyIndex, 1, true, references.Britain)
+	firstCivilian := defenselessAttackNPC(1, indexes.TownsPersonKeyIndex, 1, true, references.Britain)
 	firstCivilian.SetPos(references.Position{X: 8, Y: 8})
 	lastCivilian := defenselessAttackNPC(3, indexes.MerchantKeyIndex, 1, true, references.Britain)
 	lastCivilian.SetPos(references.Position{X: 9, Y: 9})
@@ -150,7 +150,7 @@ func TestDefenselessMurderActivatesGuardsInSlotOrderBeforeImpact(t *testing.T) {
 }
 
 func TestDefenselessMurderDeathSurvivesNativeHydration(t *testing.T) {
-	fixture := newDefenselessAttackFixture(t, indexes.Stocks, indexes.TownsPerson_KeyIndex, 1)
+	fixture := newDefenselessAttackFixture(t, indexes.Stocks, indexes.TownsPersonKeyIndex, 1)
 	require.True(t, fixture.state.ActionAttackSmallMap(references.Up))
 	fixture.state.TransitionToLocation(
 		references.Yew,
@@ -260,7 +260,7 @@ func newDefenselessAttackFixture(
 	victim := defenselessAttackNPC(victimSlot, victimSprite, dialogNumber, true, references.Britain)
 	victim.SetPos(target)
 	victim.SetFloor(0)
-	guard := defenselessAttackNPC(0, indexes.Guard_KeyIndex, 0, false, references.Britain)
+	guard := defenselessAttackNPC(0, indexes.GuardKeyIndex, 0, false, references.Britain)
 	guard.SetPos(references.Position{X: 8, Y: 8})
 	guard.SetFloor(0)
 	controller.GetNpcs().ReplaceWith([]map_units.MapUnit{victim, guard})

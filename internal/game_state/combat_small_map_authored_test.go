@@ -223,7 +223,7 @@ func TestAuthoredSmallMapGroupsUseDeterministicFriendsAndFixedBatCount(t *testin
 		}
 	}
 	state, _, source := authoredSmallMapCombatFixture(t, references.Yew, 15)
-	source.NPCReference.SetKeyIndex(indexes.Bat_KeyIndex)
+	source.NPCReference.SetKeyIndex(indexes.BatKeyIndex)
 	result, err := state.StartSmallMapCombatEncounter(source, SmallMapEncounterHostileNPCAdjacency)
 	require.NoError(t, err)
 	assert.Equal(t, 16, result.PrimaryCount, "group bitmap, not location eligibility, selects original swarm composition")
@@ -341,7 +341,7 @@ func TestSmallMapHostileHandoffRevalidatesActionAndKeepsGuardArrest(t *testing.T
 	source.MapUnitDetails().SetOverriddenAiType(references.Fixed)
 	require.ErrorIs(t, state.ResolvePendingOverworldContact(), ErrInvalidSmallMapEncounter)
 	assert.Nil(t, state.CombatScene)
-	source.NPCReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	source.NPCReference.SetKeyIndex(indexes.GuardKeyIndex)
 	source.MapUnitDetails().SetOverriddenAiType(references.ExtortOrAttackOrFollow)
 	_, err := state.StartSmallMapCombatEncounter(source, SmallMapEncounterHostileNPCAdjacency)
 	require.ErrorIs(t, err, ErrInvalidSmallMapEncounter)

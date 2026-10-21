@@ -12,8 +12,8 @@ type WalkingSoundPlayer interface {
 
 // ScriptExecutor animates a script on a scene, frame by frame
 type ScriptExecutor struct {
-	scene              *MiniMapScene
-	script             *MiniMapScript
+	scene              *Scene
+	script             *Script
 	currentStepIndex   int
 	elapsedMs          int // Time elapsed for current step
 	walkProgress       map[ActorID]*walkState
@@ -33,14 +33,18 @@ type walkState struct {
 }
 
 // NewScriptExecutor creates a new executor for the given scene and script
-func NewScriptExecutor(scene *MiniMapScene, script *MiniMapScript) *ScriptExecutor {
+func NewScriptExecutor(scene *Scene, script *Script) *ScriptExecutor {
 	return NewScriptExecutorWithSounds(scene, script, nil)
 }
 
 // NewScriptExecutorWithSounds creates a new executor with optional walking sound support.
 // If walkingSoundPlayer is provided and a walk step has PlayWalkingSounds=true,
 // the player will be called on each step to play appropriate walking sounds.
-func NewScriptExecutorWithSounds(scene *MiniMapScene, script *MiniMapScript, player WalkingSoundPlayer) *ScriptExecutor {
+func NewScriptExecutorWithSounds(
+	scene *Scene,
+	script *Script,
+	player WalkingSoundPlayer,
+) *ScriptExecutor {
 	if scene == nil {
 		panic("ScriptExecutor: scene cannot be nil")
 	}
@@ -207,24 +211,14 @@ func (e *ScriptExecutor) executeWalk(step *ScriptStep, deltaMs int) {
 		allComplete := true
 
 		for _, actorID := range step.ActorIDs {
-			ws := e.walkProgress[actorID]
-			if ws == nil {
+			walker := e.walkProgress[actorID]
+			if walker == nil {
 				continue
 			}
 
-			if ws.stepsTaken < ws.totalSteps {
-				// Take one step toward target
-				ws.currentPos = takeOneStep(ws.currentPos, ws.targetPos)
-				ws.stepsTaken++
-				e.scene.SetActorPosition(actorID, ws.currentPos)
+			e.stepWalker(step, actorID, walker)
 
-				// Play walking sound if enabled for this step
-				if step.PlayWalkingSounds && e.walkingSoundPlayer != nil {
-					e.walkingSoundPlayer.PlayWalkingSoundAt(ws.currentPos)
-				}
-			}
-
-			if ws.stepsTaken < ws.totalSteps {
+			if walker.stepsTaken < walker.totalSteps {
 				allComplete = false
 			}
 		}
@@ -232,6 +226,22 @@ func (e *ScriptExecutor) executeWalk(step *ScriptStep, deltaMs int) {
 		if allComplete {
 			e.advanceToNextStep()
 		}
+	}
+}
+
+// stepWalker takes one step toward the target if the actor has not arrived yet.
+func (e *ScriptExecutor) stepWalker(step *ScriptStep, actorID ActorID, walker *walkState) {
+	if walker.stepsTaken >= walker.totalSteps {
+		return
+	}
+
+	walker.currentPos = takeOneStep(walker.currentPos, walker.targetPos)
+	walker.stepsTaken++
+	e.scene.SetActorPosition(actorID, walker.currentPos)
+
+	// Play walking sound if enabled for this step
+	if step.PlayWalkingSounds && e.walkingSoundPlayer != nil {
+		e.walkingSoundPlayer.PlayWalkingSoundAt(walker.currentPos)
 	}
 }
 
@@ -298,18 +308,15 @@ func takeOneStep(current, target references.Position) references.Position {
 
 	// Prioritize vertical movement first (Y axis), then horizontal (X axis)
 	// This matches the shrine walking pattern (north first)
-	if current.Y != target.Y {
-		if current.Y < target.Y {
-			result.Y++
-		} else {
-			result.Y--
-		}
-	} else if current.X != target.X {
-		if current.X < target.X {
-			result.X++
-		} else {
-			result.X--
-		}
+	switch {
+	case current.Y < target.Y:
+		result.Y++
+	case current.Y > target.Y:
+		result.Y--
+	case current.X < target.X:
+		result.X++
+	case current.X > target.X:
+		result.X--
 	}
 
 	return result

@@ -17,6 +17,8 @@ const (
 	gameAreaWidthPercent  = 0.735 // 73.5% of screen width
 	gameAreaHeightPercent = 0.96  // 96% of screen height
 
+	axisCount = 2.0 // X and Y scales averaged into one uniform factor
+
 	// Safety limits for mask dimensions
 	minMaskSize = 8   // Prevent too coarse dissolve
 	maxMaskSize = 512 // Prevent excessive memory usage
@@ -51,7 +53,7 @@ func CalculateDissolveScaleFactor() float64 {
 
 	// Use average of X and Y scales for uniform mask scaling
 	// (This matches how tiles are scaled to fit the screen)
-	averageScale := (scaleX + scaleY) / 2.0
+	averageScale := (scaleX + scaleY) / axisCount
 
 	// Ensure minimum scale of 1.0 (never create masks larger than target)
 	if averageScale < 1.0 {

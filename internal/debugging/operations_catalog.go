@@ -40,7 +40,7 @@ func operationalCommands() []CommandDefinition {
 		return CommandDefinition{
 			ID: id, Category: category, Name: name, Description: description, Aliases: aliases,
 			Parameters: []ParameterDefinition{{
-				ID: "enabled", Name: "Enabled", Kind: ParameterBoolean, Required: true,
+				ID: parameterEnabled, Name: "Enabled", Kind: ParameterBoolean, Required: true,
 				ControlHint: controlHintSelect, Availability: []string{contextGameplay},
 			}},
 			ExecutionModes: []ExecutionMode{mode}, Destructive: false,

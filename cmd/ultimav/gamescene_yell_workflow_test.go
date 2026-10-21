@@ -97,7 +97,7 @@ func newOutdoorYellWorkflowScene(t *testing.T) (*GameScene, *game_state.MockSyst
 		WithFloor(references.FloorNumber(references.OVERWORLD)).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{ //nolint:exhaustruct // Focused production Yell workflow fixture.
+	scene := &GameScene{
 		gameState: state,
 		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 20, 80),

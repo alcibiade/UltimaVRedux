@@ -6,8 +6,10 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// VehicleType is what the party travels on; NPC marks a non-party vehicle.
 type VehicleType int
 
+// Vehicle kinds; NoPartyVehicle means the party is on foot.
 const (
 	NoPartyVehicle VehicleType = iota
 	CarpetVehicle
@@ -17,6 +19,7 @@ const (
 	NPC
 )
 
+// GetUnBoardedSpriteByDirection returns the sprite for the vehicle when no one is aboard.
 func (v VehicleType) GetUnBoardedSpriteByDirection(direction Direction) indexes.SpriteIndex {
 	switch v {
 	case CarpetVehicle:
@@ -27,11 +30,13 @@ func (v VehicleType) GetUnBoardedSpriteByDirection(direction Direction) indexes.
 		}
 
 		return indexes.HorseRight
+	case NoPartyVehicle, SkiffVehicle, FrigateVehicle, NPC:
 	}
 
 	return v.GetBoardedSpriteByDirection(direction, direction)
 }
 
+// GetBoardedSpriteByDirection returns the sprite for the vehicle while the party is aboard, given the previous and current direction.
 func (v VehicleType) GetBoardedSpriteByDirection(previousDirection, direction Direction) indexes.SpriteIndex {
 	switch v {
 	case CarpetVehicle:
@@ -58,6 +63,8 @@ func (v VehicleType) GetBoardedSpriteByDirection(previousDirection, direction Di
 			return indexes.ShipNoSailsUp
 		case Down:
 			return indexes.ShipNoSailsDown
+		case NoneDirection:
+			return indexes.ShipNoSailsRight
 		default:
 			return indexes.ShipNoSailsRight
 		}
@@ -71,14 +78,18 @@ func (v VehicleType) GetBoardedSpriteByDirection(previousDirection, direction Di
 			return indexes.SkiffUp
 		case Down:
 			return indexes.SkiffDown
+		case NoneDirection:
+			return indexes.SkiffLeft
 		default:
 			return indexes.SkiffLeft
 		}
-	default:
-		return indexes.AvatarKeyIndex
+	case NoPartyVehicle, NPC:
 	}
+
+	return indexes.AvatarKeyIndex
 }
 
+// GetMovementPrefix returns the movement verb printed before a direction, such as "Ride ".
 func (v VehicleType) GetMovementPrefix() string {
 	switch v {
 	case CarpetVehicle:
@@ -91,11 +102,13 @@ func (v VehicleType) GetMovementPrefix() string {
 		return "Row "
 	case NoPartyVehicle:
 		return ""
-	default:
-		return ""
+	case NPC:
 	}
+
+	return ""
 }
 
+// GetLowerCaseName returns the lower case vehicle name.
 func (v VehicleType) GetLowerCaseName() string {
 	switch v {
 	case NoPartyVehicle:
@@ -108,7 +121,8 @@ func (v VehicleType) GetLowerCaseName() string {
 		return "skiff"
 	case HorseVehicle:
 		return "horse"
-	default:
-		panic(fmt.Sprintf("bad vehicle type %d", v))
+	case NPC:
 	}
+
+	panic(fmt.Sprintf("bad vehicle type %d", v))
 }

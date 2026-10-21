@@ -337,7 +337,7 @@ func (friendly *NPCFriendly) GetKeySpriteIndex() indexes.SpriteIndex {
 	// This prevents vehicles from rendering as corpse/splat sprites (indices 286-287)
 	// which were incorrectly calculated from Vehicle NPCType (0x1F=31) + offset (256) = 287
 	if friendly.NPCReference.GetNPCType() == references.Vehicle {
-		return friendly.vehicleDetails.GetUnBoardedSpriteIndex()
+		return friendly.vehicleDetails.getUnBoardedSpriteIndex()
 	}
 
 	return friendly.NPCReference.GetSpriteIndex()

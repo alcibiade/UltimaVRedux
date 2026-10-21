@@ -18,6 +18,7 @@ const (
 	singleTownSize = (sizeOfNPCSchedule * npcsPerTown) + (npcsPerTown * 2)
 )
 
+// NPCReferences holds every NPC slot of the original game, npcsPerTown slots for each location.
 type NPCReferences struct {
 	Npcs []NPCReference `json:"npcs" yaml:"npcs"`
 }
@@ -67,12 +68,13 @@ func getNPCsFromFile(path string, locationOffset int) ([]NPCReference, error) {
 	return npcs, nil
 }
 
-func (n *NPCReferences) getNPCIndexesByLocation(location Location) (startIndex, endIndex int) {
+func (n *NPCReferences) getNPCIndexesByLocation(location Location) (int, int) {
 	adjLocationIndex := int(location) - 1
 
 	return adjLocationIndex * npcsPerTown, adjLocationIndex*npcsPerTown + npcsPerTown
 }
 
+// GetNPCReferencesByLocation returns the NPC slots of one location.
 func (n *NPCReferences) GetNPCReferencesByLocation(location Location) *[]NPCReference {
 	startIndex, endIndex := n.getNPCIndexesByLocation(location)
 	npcs := n.Npcs[startIndex:endIndex]

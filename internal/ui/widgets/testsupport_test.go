@@ -69,10 +69,10 @@ func (d *GuildPurchaseDialog) GetBodyText() string {
 // GetFooterGuidance returns the exact keyboard guidance currently displayed.
 func (d *GuildPurchaseDialog) GetFooterGuidance() string {
 	if d.quote.MaxBundles > 0 {
-		return "Left/Right: Quantity  M: Max\nEnter: Confirm  Esc: Back"
+		return merchantQuantityFooter
 	}
 
-	return "Esc: Back"
+	return "[Esc] Back"
 }
 
 // GetFontSize returns the semantic font size used throughout the modal.
@@ -425,11 +425,6 @@ func (s *MerchantDialogShell) GetFooterBounds() image.Rectangle {
 // GetFontSize returns the semantic font size used throughout the shell.
 func (s *MerchantDialogShell) GetFontSize() StandardFontSize {
 	return FontSizeMainScreen
-}
-
-// IsVisible reports whether the dialog still owns presentation and input.
-func (d *MerchantUnavailableDialog) IsVisible() bool {
-	return !d.dismissed
 }
 
 // GetFirstSelectedIndex returns the locked character index.

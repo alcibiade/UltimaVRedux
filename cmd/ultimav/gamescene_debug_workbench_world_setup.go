@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"strconv"
 
 	"github.com/bradhannah/UltimaVRedux/internal/debugging"
@@ -18,6 +19,9 @@ func (g *GameScene) executeWorldSetupDebugCommand(request debugging.Request) (de
 		if err != nil {
 			panic("validated world setup location is not an integer")
 		}
+		if locationID < 0 || locationID > math.MaxUint8 {
+			panic("validated world setup location is outside the byte range")
+		}
 		operation, err := g.gameState.DebugEnterSmallLocation(references.Location(locationID))
 
 		return worldSetupOperationResult(request, "Named location entered.", g.gameState, operation, err), true
@@ -25,9 +29,11 @@ func (g *GameScene) executeWorldSetupDebugCommand(request debugging.Request) (de
 		if result, blocked := g.worldSetupBlockedResult(request); blocked {
 			return result, true
 		}
-		operation, err := g.gameState.DebugSetFloor(
-			references.FloorNumber(mustDebugIntegerArgument(request, "floor")),
-		)
+		floor := mustDebugIntegerArgument(request, "floor")
+		if floor < math.MinInt8 || floor > math.MaxInt8 {
+			panic("validated world setup floor is outside the int8 range")
+		}
+		operation, err := g.gameState.DebugSetFloor(references.FloorNumber(floor))
 
 		return worldSetupOperationResult(request, "Exact floor selected.", g.gameState, operation, err), true
 	case debugging.CommandMovementLandmarkTravel:

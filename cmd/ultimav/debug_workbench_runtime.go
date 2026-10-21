@@ -46,11 +46,11 @@ func startDebugWorkbench(game *Game, port int) (*runningDebugWorkbench, error) {
 	}
 	game.debugDiscoveryPolling.Store(true)
 
-	logging.Info(logging.CategorySystem, "Debug workbench available at %s", server.URL())
+	logging.Infof(logging.CategorySystem, "Debug workbench available at %s", server.URL())
 	go func() {
 		defer game.stopDebugDiscoveryPolling()
 		for serveErr := range server.Errors() {
-			logging.Error(logging.CategorySystem, "Debug workbench server failed: %v", serveErr)
+			logging.Errorf(logging.CategorySystem, "Debug workbench server failed: %v", serveErr)
 		}
 	}()
 

@@ -3,10 +3,11 @@ package main
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 func TestIntroPresentationWorkflowRunsScriptAndFinalizes(t *testing.T) {

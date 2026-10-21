@@ -115,8 +115,8 @@ func TestInputBoxPromptCardUsesClassicFrameAndPreservesTextOnResize(t *testing.T
 		dialog.layout.panelRect.Min.X+dialog.layout.panelRect.Dx()/2,
 		dialog.layout.questionTextRect.Max.Y+dialog.layout.lineGap/2,
 	))
-	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "Y/N: Choose")
-	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "Enter: Confirm")
+	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "[Y/N] Choose")
+	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "[Enter] Confirm")
 	require.Equal(t, dialog.textQuestion.Font.TextFace.Size, dialog.footerOutput.Font.TextFace.Size)
 	requireImageRegionContainsColor(t, screen, dialog.layout.footerTextRect, DialogControlHintColor)
 	require.Equal(t, ucolor.DialogInputTextColor, dialog.textInput.promptColor)
@@ -207,13 +207,13 @@ func TestInputBoxPromptCardFooterMatchesInputMode(t *testing.T) {
 			dialog: NewInputBox("Proceed?", yesNoCommand, keyboard).
 				WithAutoReplace(true).
 				Build(),
-			expected: "Y/N: Choose   Enter: Confirm",
+			expected: "[Y/N] Choose   [Enter] Confirm",
 		},
 		{
 			name: "grammar confirmation",
 			dialog: NewInputBox("Proceed?", yesNoCommand, keyboard).
 				Build(),
-			expected: "Enter: Confirm",
+			expected: "[Enter] Confirm",
 		},
 		{
 			name: "regex submission",
@@ -221,7 +221,7 @@ func TestInputBoxPromptCardFooterMatchesInputMode(t *testing.T) {
 				WithRegexValidation("^[a-zA-Z]*$").
 				WithResultCallback(callback).
 				Build(),
-			expected: "Enter: Submit   Esc: Cancel",
+			expected: "[Enter] Submit   [Esc] Cancel",
 		},
 		{
 			name: "escape clears",
@@ -230,7 +230,7 @@ func TestInputBoxPromptCardFooterMatchesInputMode(t *testing.T) {
 				WithResultCallback(callback).
 				WithEscapeClearsText().
 				Build(),
-			expected: "Enter: Submit   Esc: Clear",
+			expected: "[Enter] Submit   [Esc] Clear",
 		},
 		{
 			name: "space cancels",
@@ -239,7 +239,7 @@ func TestInputBoxPromptCardFooterMatchesInputMode(t *testing.T) {
 				WithResultCallback(callback).
 				WithSpaceCancellation().
 				Build(),
-			expected: "Enter: Submit   Esc/Space: Cancel",
+			expected: "[Enter] Submit   [Esc/Space] Cancel",
 		},
 	}
 

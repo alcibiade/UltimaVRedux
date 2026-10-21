@@ -84,8 +84,6 @@ func NewHealerTreatmentDialog(config HealerTreatmentDialogConfig) *HealerTreatme
 }
 
 // Draw renders the nested approval modal.
-//
-
 func (d *HealerTreatmentDialog) Draw(screen *ebiten.Image) {
 	if screen == nil || d.dismissed {
 		return
@@ -157,25 +155,12 @@ func (d *HealerTreatmentDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return
 	}
-	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: healerTreatmentLineSpacing,
-		MaxLines: 1, MaxChars: healerTreatmentMinimumTextChars,
+	d.headerOutput, d.bodyOutput, d.footerOutput = d.frame.newOutputs(merchantModalTextBudget{
+		lineSpacing:      healerTreatmentLineSpacing,
+		maximumBodyLines: healerTreatmentMaximumBodyLines,
+		footerLines:      healerTreatmentFooterLines,
+		minimumChars:     healerTreatmentMinimumTextChars,
 	})
-	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: healerTreatmentLineSpacing,
-		MaxLines: healerTreatmentMaximumBodyLines, MaxChars: healerTreatmentMinimumTextChars,
-	})
-	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: healerTreatmentLineSpacing,
-		MaxLines: healerTreatmentFooterLines, MaxChars: healerTreatmentMinimumTextChars,
-	})
-	d.headerOutput.SetMaxCharsPerLine(max(healerTreatmentMinimumTextChars,
-		d.headerOutput.Font.CharsForWidth(max(1, d.frame.headerText.Dx()))))
-	d.bodyOutput = text.NewOutput(bodyFont, bodyOutput.GetLineSpacing(),
-		max(1, bodyOutput.GetLineCapacity(max(1, d.frame.bodyText.Dy()))),
-		max(healerTreatmentMinimumTextChars, bodyFont.CharsForWidth(max(1, d.frame.bodyText.Dx()))))
-	d.footerOutput.SetMaxCharsPerLine(max(healerTreatmentMinimumTextChars,
-		d.footerOutput.Font.CharsForWidth(max(1, d.frame.footerText.Dx()))))
 	d.populateOutputs()
 }
 
@@ -193,8 +178,7 @@ func (d *HealerTreatmentDialog) populateOutputs() {
 		d.populateRecipientBody()
 	}
 	d.footerOutput.Reset()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("Enter").LightGray(": Confirm  ").White("Esc").LightGray(": Back").Done()
+	appendControlGuidance(d.footerOutput, "[Enter] Confirm   [Esc] Back", d.frame.footerText.Dx())
 }
 
 func (d *HealerTreatmentDialog) populateRecipientBody() {

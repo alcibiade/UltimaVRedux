@@ -12,15 +12,18 @@ const (
 	startDockYOffset = 0x4D8A
 )
 
+// DockReference is the overworld position of the dock belonging to a town.
 type DockReference struct {
 	Location Location `json:"location" yaml:"location"`
 	Position Position `json:"position" yaml:"position"`
 }
 
+// DockReferences lists the docks read from DATA.OVL, in GetListOfAllLocationsWithDocks order.
 type DockReferences struct {
 	Docks []DockReference `json:"docks" yaml:"docks"`
 }
 
+// GetListOfAllLocationsWithDocks returns the locations that have a dock, in DATA.OVL dock-table order.
 func GetListOfAllLocationsWithDocks() []Location {
 	return []Location{Jhelom, Minoc, EastBritanny, BuccaneersDen}
 }

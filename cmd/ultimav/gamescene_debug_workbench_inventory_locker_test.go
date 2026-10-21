@@ -65,8 +65,6 @@ func TestInventoryProvisionSetEnforcesReviewedQuantityAndReportsSemanticChange(t
 func TestInventoryReagentSetEnforcesReviewedQuantityAndReturnsRefreshedLocker(t *testing.T) {
 	state := newApprovedToolTestState()
 	state.PartyState.Inventory.Reagent.Set(references.Garlic, 4)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 
 	result, handled := executeInventoryLockerDebugCommand(debugging.Request{
 		SessionID: "test", ID: "set", CommandID: debugging.CommandInventoryReagentSet,
@@ -82,7 +80,6 @@ func TestInventoryReagentSetEnforcesReviewedQuantityAndReturnsRefreshedLocker(t 
 	assert.Equal(t, "inventory.reagents.2.quantity", result.Changes[0].Path)
 	assert.JSONEq(t, `4`, string(result.Changes[0].Before))
 	assert.JSONEq(t, `9`, string(result.Changes[0].After))
-	assert.Equal(t, 1, refreshes)
 	var after inventoryLockerResult
 	require.NoError(t, json.Unmarshal(result.Data, &after))
 	assert.Equal(t, uint16(9), after.Reagents[references.Garlic].Quantity)

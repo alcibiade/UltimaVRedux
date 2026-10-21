@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
@@ -204,7 +204,7 @@ func LoadCombatMap(mapIndex int, territory CombatMapTerritory, gameConfig *confi
 
 	// Get the appropriate CBT file path
 	cbtFile := GetCombatMapFile(territory)
-	fullPath := filepath.Join(gameConfig.SavedConfigData.DataFilePath, cbtFile)
+	fullPath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, cbtFile)
 
 	// Read the entire CBT file
 	data, err := os.ReadFile(fullPath)
@@ -283,7 +283,7 @@ func LoadCombatMap(mapIndex int, territory CombatMapTerritory, gameConfig *confi
 		cmr.dungeonTriggerSlots = triggerSlots
 	}
 
-	logging.Debug(logging.CategorySystem, "Loaded combat map %d from %s", mapIndex, cbtFile)
+	logging.Debugf(logging.CategorySystem, "Loaded combat map %d from %s", mapIndex, cbtFile)
 
 	return cmr, nil
 }

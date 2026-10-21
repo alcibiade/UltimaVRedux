@@ -53,9 +53,6 @@ func TestDoomInteriorCombatUsesAuthoritativeOrigin(t *testing.T) {
 
 func TestDoomInteriorPartyDefenseUsesMysticArmourGateAndSeparateProtection(t *testing.T) {
 	state, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 279)
-	if state == nil {
-		return
-	}
 	character := state.PartyState.GetCharacter(0)
 	character.SetEquippedItem(references.SlotHelm, references.IronHelm)
 	character.SetEquippedItem(references.SlotArmour, references.PlateMail)

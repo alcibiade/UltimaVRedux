@@ -1,21 +1,32 @@
+// Package party_state holds the party roster, inventory and karma of the original save.
 package party_state
 
 import (
 	"errors"
 	"fmt"
 	"strings"
-	"unsafe"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
 // SwapMembers error values
 var (
-	ErrAvatarMustLead    = errors.New("Avatar must lead")
+	ErrAvatarMustLead    = errors.New("avatar must lead")
 	ErrIndexOutOfBounds  = errors.New("index out of active party bounds")
 	ErrNoCharacterAtSlot = errors.New("no character at index")
 )
 
+// Roster recruitment error values.
+var (
+	ErrNPCNotInRoster       = errors.New("NPC not found in roster")
+	ErrRosterIndexInvalid   = errors.New("roster index out of bounds")
+	ErrPartyFull            = errors.New("party is full")
+	ErrNoCharacterAtRoster  = errors.New("no character at roster index")
+	ErrAlreadyInActiveParty = errors.New("already in the party")
+)
+
+// PartyState holds the 16-slot character roster, the shared inventory, karma and the
+// per-location met and dead NPC flags of the original SAVED.GAM party block.
 type PartyState struct {
 	characters [NRosterSlots]*PlayerCharacter // private - use GetCharacter()/ForEachCharacter()
 	Inventory  Inventory
@@ -143,7 +154,9 @@ func (p *PartyState) RestoreNPCFlags(met, dead map[references.Location][]bool) {
 	}
 }
 
-func LoadFromRaw(raw [4192]byte) (p *PartyState) {
+// LoadFromRaw builds a PartyState from the original 4192-byte party block of SAVED.GAM:
+// a 16-record character roster at offset 2 followed by the met and dead NPC flag masks.
+func LoadFromRaw(raw [4192]byte) *PartyState {
 	partyState := newPartyState()
 	const lCharacters = 0x02
 	const metNpcsOffset = 0x634  // Corrected offset for met NPCs
@@ -151,11 +164,11 @@ func LoadFromRaw(raw [4192]byte) (p *PartyState) {
 	const npcFlagLocationCount = 32
 	const bitsPerByte = 8
 
-	characterPtr := (*[NRosterSlots]PlayerCharacter)(unsafe.Pointer(&raw[lCharacters]))
-
-	// Convert value array to pointer array - load all 16 roster slots
+	// Decode all 16 roster slots; each record is one packed original character.
 	for i := range NRosterSlots {
-		partyState.characters[i] = &characterPtr[i]
+		start := lCharacters + i*characterRecordSize
+		character := decodeCharacter(raw[start : start+characterRecordSize])
+		partyState.characters[i] = &character
 	}
 
 	// Each original array is 32 little-endian 32-bit location masks indexed by onmap-1.
@@ -194,11 +207,11 @@ func (p *PartyState) HasRoom() bool {
 // 3. Swap roster slots to keep party members at head (slots 0-5)
 //
 // Parameters:
-//   - npcRef: NPC reference containing position and game data
+//   - npcRef: unused; recruitment matches on name only
 //   - npcName: NPC name extracted from the semantic conversation definition
 //
 // Returns error if NPC not found in roster.
-func (p *PartyState) JoinNPC(npcRef references.NPCReference, npcName string) error {
+func (p *PartyState) JoinNPC(_ references.NPCReference, npcName string) error {
 	// 1. Search roster (16 entries) for matching NPC by name (case insensitive, 3-char max)
 	// Original Ultima V used 3-byte character arrays for NPC names in SAVED.GAM
 	var rosterIndex = -1
@@ -219,7 +232,7 @@ func (p *PartyState) JoinNPC(npcRef references.NPCReference, npcName string) err
 	}
 
 	if rosterIndex == -1 {
-		return fmt.Errorf("NPC %s not found in roster", npcName)
+		return fmt.Errorf("%w: %s", ErrNPCNotInRoster, npcName)
 	}
 
 	// 2. Mark NPC as in party
@@ -260,22 +273,22 @@ func (p *PartyState) JoinNPC(npcRef references.NPCReference, npcName string) err
 func (p *PartyState) AddCharacterToActiveParty(rosterIndex int) error {
 	// Validate index
 	if rosterIndex < 0 || rosterIndex >= NRosterSlots {
-		return fmt.Errorf("roster index %d out of bounds [0,%d)", rosterIndex, NRosterSlots)
+		return fmt.Errorf("%w: %d [0,%d)", ErrRosterIndexInvalid, rosterIndex, NRosterSlots)
 	}
 
 	// Check if party has room
 	if !p.HasRoom() {
-		return fmt.Errorf("party is full (%d/%d members)", MaxActiveParty, MaxActiveParty)
+		return fmt.Errorf("%w (%d/%d members)", ErrPartyFull, MaxActiveParty, MaxActiveParty)
 	}
 
 	char := p.characters[rosterIndex]
 	if char == nil {
-		return fmt.Errorf("no character at roster index %d", rosterIndex)
+		return fmt.Errorf("%w %d", ErrNoCharacterAtRoster, rosterIndex)
 	}
 
 	// Check if already in party
 	if char.PartyMap == PartyMapActive {
-		return fmt.Errorf("%s is already in the party", char.GetNameAsString())
+		return fmt.Errorf("%s is %w", char.GetNameAsString(), ErrAlreadyInActiveParty)
 	}
 
 	// Mark character as in party
@@ -329,6 +342,7 @@ func (p *PartyState) PickUpCharacterFromInn(guestIndex int) int {
 	return partySize
 }
 
+// HasMetNPC reports whether the Avatar has met the NPC with the given index at a location.
 func (p *PartyState) HasMetNPC(location references.Location, npcID int) bool {
 	if locationNPCs, ok := p.metNpcs[location]; ok {
 		if npcID >= 0 && npcID < len(locationNPCs) {
@@ -339,20 +353,23 @@ func (p *PartyState) HasMetNPC(location references.Location, npcID int) bool {
 	return false
 }
 
+// AvatarName returns the Avatar name stored in roster slot 0.
 func (p *PartyState) AvatarName() string {
 	avatar := p.GetAvatar()
 
 	return avatar.GetNameAsString()
 }
 
-func (p *PartyState) SetMet(location references.Location, npcId int) {
-	validateNPCFlagIdentity(location, npcId)
-	p.metNpcs[location][npcId] = true
+// SetMet records that the Avatar has met an NPC; it panics on an unknown location or NPC index.
+func (p *PartyState) SetMet(location references.Location, npcID int) {
+	validateNPCFlagIdentity(location, npcID)
+	p.metNpcs[location][npcID] = true
 }
 
-func (p *PartyState) SetDeadNpc(location references.Location, npcId int) {
-	validateNPCFlagIdentity(location, npcId)
-	p.deadNpcs[location][npcId] = true
+// SetDeadNpc records an NPC as persistently absent; it panics on an unknown location or NPC index.
+func (p *PartyState) SetDeadNpc(location references.Location, npcID int) {
+	validateNPCFlagIdentity(location, npcID)
+	p.deadNpcs[location][npcID] = true
 }
 
 func validateNPCFlagIdentity(location references.Location, npcID int) {
@@ -373,10 +390,10 @@ func validateNPCFlagIdentity(location references.Location, npcID int) {
 // The shared original flag stores killed NPCs, freed prisoners, and recruited companions;
 // callers remain responsible for presenting those causes distinctly.
 // Original NPC removal records persistent actor absence; ref:CRIME-0004.
-func (p *PartyState) IsNPCDead(location references.Location, npcId int) bool {
+func (p *PartyState) IsNPCDead(location references.Location, npcID int) bool {
 	if deadNpcs, ok := p.deadNpcs[location]; ok {
-		if npcId >= 0 && npcId < len(deadNpcs) {
-			return deadNpcs[npcId]
+		if npcID >= 0 && npcID < len(deadNpcs) {
+			return deadNpcs[npcID]
 		}
 	}
 

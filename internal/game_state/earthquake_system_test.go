@@ -46,7 +46,7 @@ func TestEarthquakeSystemCommitsTypedDamageInActiveSlotOrder(t *testing.T) {
 	wantFirst := expected.Intn(8) + 1
 	wantSecond := expected.Intn(8) + 1
 	recorder := &earthquakeResultRecorder{}
-	system := NewEarthquakeSystem(rng, recorder)
+	system := newEarthquakeSystem(rng, recorder)
 
 	result, triggered := system.CheckForRandomEarthquake(true, &state.PartyState)
 

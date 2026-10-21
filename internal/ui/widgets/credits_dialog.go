@@ -84,7 +84,7 @@ func (d *CreditsDialog) ensureLayout() {
 	d.border = newDialogBorder(sprites.PercentBasedPlacement{
 		StartPercentX: creditsMargin, EndPercentX: 1 - creditsMargin,
 		StartPercentY: creditsMargin, EndPercentY: 1 - creditsMargin,
-	}, DialogBackgroundBlack)
+	})
 	font, metrics := GetScaledFontWithOutput(FontConfig{
 		Size: FontSizeMainScreen, MaxLines: 1, MaxChars: 1, LineSpacing: 0, LineSpacingMultiplier: creditsLineSpacing,
 	})
@@ -172,11 +172,8 @@ func (d *CreditsDialog) updateFooter() {
 	d.footerState = state
 	d.footer.Reset()
 	d.footer.AppendLine().Text("State: ", DialogLabelColor).Text(state, DialogValueColor).Done()
-	d.footer.AppendLine().Text("[Space]", DialogControlKeyColor).Text(" Pause/Resume  ", DialogControlHintColor).
-		Text("[Up/Down]", DialogControlKeyColor).Text(" Scroll  ", DialogControlHintColor).
-		Text("[PgUp/PgDn / Shift+Up/Down]", DialogControlKeyColor).Text(" Page  ", DialogControlHintColor).
-		Text("[Home/End]", DialogControlKeyColor).Text(" First/Last  ", DialogControlHintColor).
-		Text("[Esc]", DialogControlKeyColor).Text(" Close", DialogControlHintColor).WordWrap().Done()
+	AppendControlHints(d.footer.AppendLine(), "[Space] Pause/Resume   [Up/Down] Scroll   "+
+		"[Shift+Up/Down/PgUp/PgDn] Page   [Home/End] First/Last   [Esc] Close").WordWrap().Done()
 }
 
 // Update advances only presentation and owns all credits input while modal.

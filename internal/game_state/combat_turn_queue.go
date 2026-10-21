@@ -270,7 +270,7 @@ func (q *CombatTurnQueue) addCombatant(
 		pcLabel = "PC"
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"CombatTurnQueue: added %s entityIndex=%d sourceSlot=%d dex=%d countdown=%d",
 		pcLabel, entityIndex, sourceSlot, dex, countdown)
 }
@@ -373,7 +373,7 @@ func (q *CombatTurnQueue) AdvanceToNextActor() *TurnQueueEntry {
 		// Other entries' dispatches never advance this entry's generation.
 		entry.dispatchGeneration++
 
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"CombatTurnQueue: actor entityIndex=%d isPC=%t dex=%d (action #%d)",
 			entry.EntityIndex, entry.Combatant.IsPC(), dex, q.actionCount)
 
@@ -381,7 +381,7 @@ func (q *CombatTurnQueue) AdvanceToNextActor() *TurnQueueEntry {
 	}
 
 	// No active combatants found after full scan
-	logging.Warn(logging.CategoryGameState,
+	logging.Warnf(logging.CategoryGameState,
 		"CombatTurnQueue: no active combatants found after %d iterations", maxIterations)
 
 	return nil
@@ -553,7 +553,7 @@ func (q *CombatTurnQueue) MarkDead(entityIndex int, isPC bool) {
 		if entry.EntityIndex == entityIndex && entry.Combatant.IsPC() == isPC {
 			entry.status = turnQueueDead
 
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"CombatTurnQueue: marked dead entityIndex=%d isPC=%t", entityIndex, isPC)
 
 			return
@@ -601,7 +601,7 @@ func (q *CombatTurnQueue) MarkFled(entityIndex int, isPC bool) {
 			entry.sourceSlotReleased = true
 			entry.originalObjectSlot = 0
 
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"CombatTurnQueue: marked fled entityIndex=%d isPC=%t", entityIndex, isPC)
 
 			return
@@ -628,7 +628,7 @@ func (q *CombatTurnQueue) MarkAbsorbed(identity CombatTurnIdentity) {
 	entry.status = turnQueueAbsorbed
 	entry.sourceSlotReleased = true
 	entry.originalObjectSlot = 0
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"CombatTurnQueue: marked absorbed entityIndex=%d slot=%d", identity.EntityIndex, identity.Slot)
 }
 

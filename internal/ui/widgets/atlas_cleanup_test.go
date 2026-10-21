@@ -180,7 +180,7 @@ func TestAtlasFooterUsesTwoMeasuredPhysicalRowsAndLargerMap(t *testing.T) {
 						require.NotContains(t, dialog.footer.GetOutputStr(false), "Home")
 						require.NotContains(t, dialog.footer.GetOutputStr(false), "PgUp")
 						if !fix {
-							require.NotContains(t, dialog.footer.GetOutputStr(false), "A Avatar")
+							require.NotContains(t, dialog.footer.GetOutputStr(false), "[A] Avatar")
 						}
 					}
 				}

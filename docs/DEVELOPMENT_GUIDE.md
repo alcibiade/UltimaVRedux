@@ -8,9 +8,7 @@ particular editor or assistant.
 
 ## Setup
 
-The application source is public, with a development preview installable from
-`main`. No version tag or packaged release has been published. For local
-development, provision:
+The application source is public. For local development, provision:
 
 - Go: use Go 1.27's latest patch or newer; `go.mod` declares `go 1.27.0` and
   `toolchain go1.27.1`. Provision the selected toolchain before offline validation.
@@ -22,8 +20,8 @@ development, provision:
   provision its dependencies separately before offline checks.
 
 Player installation needs neither Node, Make, an AI tool, nor a C compiler;
-see [installation acceptance](INSTALL.md#installation-acceptance) for the verified
-macOS scope and deferred native Linux/Windows testing.
+see [platform status](INSTALL.md#platform-status) for what has been verified on
+each target.
 Race-instrumented developer tests have separate native compiler requirements.
 The text editor adapter uses the supported, deprecated `exp/textinput.Field`
 for IME composition and selection; replacing it requires preserving those
@@ -52,7 +50,7 @@ changing the game pin. No application workspace or local replacement is required
 the throwaway bridge substitutes only the candidate game, never the SDK.
 
 Reusable audio development guidance and the optional OpenCode domain skill are
-[SDK-owned](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/README.md#converting-an-existing-subsystem).
+[SDK-owned](https://github.com/bradhannah/berad-sdk/blob/main/README.md#converting-an-existing-subsystem).
 The [Redux audio guide](systems/AUDIO_SYSTEM.md) owns this application's callbacks,
 world/music policy, assets and listening acceptance; generic editor/authoring
 contracts are linked upstream rather than maintained twice. No assistant or
@@ -303,6 +301,7 @@ limit. These settings reduce pressure; they are not a hard process-tree RSS cap.
 Ambient Go flags, workspaces, and architecture tuning are disabled. It produces:
 
 - `ultimav_<version>_darwin_arm64.tar.gz`
+- `ultimav_<version>_darwin_amd64.tar.gz`
 - `ultimav_<version>_windows_amd64.zip`
 - `ultimav_<version>_linux_amd64.tar.gz`
 - `ultimav_<version>_linux_arm64.tar.gz`
@@ -316,10 +315,12 @@ and top-level Go/dependency license notices. Review notice coverage when changin
 dependencies, particularly licenses in nested directories. Source game data,
 settings, saves, and unrelated checkout files are not copied into the payload.
 Go build metadata is trimmed of local source paths; `release.json` records the
-commit because the exported source has no Git directory. Archive timestamps are
+commit because the exported source has no Git directory. The build stamps the
+version into the binary (`-X main.version`), which `ultimav --version`, the title
+screen, crash logs and saves report. Archive timestamps are
 not normalized, so byte-for-byte reproducibility is not claimed.
 
-The final output directory appears only when all four builds and checksums finish.
+The final output directory appears only when every build and checksum finishes.
 Failures clean up staged output and do not replace an earlier release. Test the
 packaging logic with `python3 -B -m unittest discover -s scripts -p test_package_release.py -v`.
 Run `make validate` for implementation changes; packaging does not replace the

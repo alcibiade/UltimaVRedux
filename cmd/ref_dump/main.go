@@ -1,5 +1,4 @@
 // Package main provides JSON snapshots used by developer lookup scripts.
-
 package main
 
 import (
@@ -20,15 +19,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	dumpDirMode  os.FileMode = 0o750
+	dumpFileMode os.FileMode = 0o600
+)
+
+// errOutputDirRequired reports a dump request without a destination directory.
+var errOutputDirRequired = errors.New("output directory is required")
+
 // dumpReferences writes the reference snapshots consumed by developer lookup scripts.
 func dumpReferences(outputDir string) error {
 	if outputDir == "" {
-		return fmt.Errorf("output directory is required")
+		return errOutputDirRequired
 	}
 
 	// Create output directory if it doesn't exist
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(outputDir, 0750); err != nil {
+		if err := os.MkdirAll(outputDir, dumpDirMode); err != nil {
 			return fmt.Errorf("failed to create output directory: %w", err)
 		}
 	}
@@ -64,7 +71,7 @@ func dumpReferences(outputDir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to encode data for %s: %w", name, err)
 		}
-		if err := os.WriteFile(filePath, output, 0600); err != nil {
+		if err := os.WriteFile(filePath, output, dumpFileMode); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", filePath, err)
 		}
 	}
@@ -140,21 +147,20 @@ func removeRetiredDumpFiles(outputDir string) error {
 func main() {
 	var outputDir string
 
-	rootCmd := &cobra.Command{
-		Use:   "ref_dump",
-		Short: "Generate JSON snapshots for developer lookup scripts",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			return dumpReferences(outputDir)
-		},
+	rootCmd := new(cobra.Command)
+	rootCmd.Use = "ref_dump"
+	rootCmd.Short = "Generate JSON snapshots for developer lookup scripts"
+	rootCmd.RunE = func(_ *cobra.Command, _ []string) error {
+		return dumpReferences(outputDir)
 	}
 
 	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "Directory to dump the files into (required)")
 	if err := rootCmd.MarkFlagRequired("output"); err != nil {
-		logging.Error(logging.CategorySystem, "Error marking flag as required: %v", err)
+		logging.Errorf(logging.CategorySystem, "Error marking flag as required: %v", err)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
-		logging.Error(logging.CategorySystem, "Command execution failed: %v", err)
+		logging.Errorf(logging.CategorySystem, "Command execution failed: %v", err)
 		os.Exit(1)
 	}
 }

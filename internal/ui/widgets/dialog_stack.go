@@ -4,7 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
-	"github.com/bradhannah/UltimaVRedux/pkg/helpers"
 )
 
 // dialogEntry represents a dialog in the stack with its modal status.
@@ -32,10 +31,10 @@ type DialogStack struct {
 func (d *DialogStack) PushModalDialog(dialog Widget) {
 	d.mustNotContain(dialog)
 	previousModal := d.PeekTopModalDialog()
-	logging.Info(logging.CategoryUI, "PushModalDialog called, stack size before: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushModalDialog called, stack size before: %d", len(d.entries))
 	d.entries = append(d.entries, dialogEntry{widget: dialog, isModal: true})
 	d.updateModalFocus(previousModal, dialog)
-	logging.Info(logging.CategoryUI, "PushModalDialog completed, stack size after: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushModalDialog completed, stack size after: %d", len(d.entries))
 }
 
 // PushNonBlockingDialog adds a non-blocking dialog to the stack.
@@ -43,13 +42,15 @@ func (d *DialogStack) PushModalDialog(dialog Widget) {
 // Use this for action feedback popups and other informational displays that shouldn't interrupt gameplay.
 func (d *DialogStack) PushNonBlockingDialog(dialog Widget) {
 	d.mustNotContain(dialog)
-	logging.Info(logging.CategoryUI, "PushNonBlockingDialog called, stack size before: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushNonBlockingDialog called, stack size before: %d", len(d.entries))
 	d.entries = append(d.entries, dialogEntry{widget: dialog, isModal: false})
-	logging.Info(logging.CategoryUI, "PushNonBlockingDialog completed, stack size after: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushNonBlockingDialog completed, stack size after: %d", len(d.entries))
 }
 
 // PeekTopModalDialog returns the highest input-blocking dialog without removing it.
 // Non-blocking dialogs may be physically above it in the stack.
+//
+//nolint:ireturn // The stack holds many dialog types; callers check which is on top.
 func (d *DialogStack) PeekTopModalDialog() Widget {
 	for i := len(d.entries) - 1; i >= 0; i-- {
 		if d.entries[i].isModal {
@@ -77,31 +78,24 @@ func (d *DialogStack) HasModalDialog() bool {
 	return false
 }
 
-func (d *DialogStack) GetIndexOfDialogType(iface interface{}) int {
-	for i, entry := range d.entries {
-		if helpers.IsOfTypeInterface(entry.widget, iface) {
-			return i
-		}
-	}
-
-	return -1
-}
-
+// GetOrAssertTopInputBox returns the top modal dialog as an InputBox. It returns
+// nil when no modal is open, and logs a warning and returns nil when the top
+// modal is another widget type.
 func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
-	w := d.PeekTopModalDialog()
-	if w == nil {
+	top := d.PeekTopModalDialog()
+	if top == nil {
 		return nil
 	}
 
-	ib, ok := w.(*InputBox)
+	inputBox, ok := top.(*InputBox)
 
 	if !ok {
-		logging.Warn(logging.CategoryUI, "Expected InputBox on dialog stack but found different type, returning nil")
+		logging.Warnf(logging.CategoryUI, "Expected InputBox on dialog stack but found different type, returning nil")
 
 		return nil // Graceful degradation instead of crash
 	}
 
-	return ib
+	return inputBox
 }
 
 // RemoveWidgetInstance removes a specific widget instance from the stack by pointer equality.
@@ -109,19 +103,19 @@ func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
 // This is safer than RemoveWidget when multiple dialogs of the same type may exist,
 // as it matches by instance rather than by type.
 func (d *DialogStack) RemoveWidgetInstance(widget Widget) bool {
-	for i, entry := range d.entries {
+	for index, entry := range d.entries {
 		if entry.widget == widget {
 			previousModal := d.PeekTopModalDialog()
-			d.entries = append(d.entries[:i], d.entries[i+1:]...)
+			d.entries = append(d.entries[:index], d.entries[index+1:]...)
 			d.updateModalFocus(previousModal, d.PeekTopModalDialog())
-			logging.Debug(logging.CategoryUI,
-				"RemoveWidgetInstance: Removed widget at index %d, stack size now: %d", i, len(d.entries))
+			logging.Debugf(logging.CategoryUI,
+				"RemoveWidgetInstance: Removed widget at index %d, stack size now: %d", index, len(d.entries))
 
 			return true
 		}
 	}
 
-	logging.Debug(logging.CategoryUI, "RemoveWidgetInstance: Widget not found in stack (already removed or never added)")
+	logging.Debugf(logging.CategoryUI, "RemoveWidgetInstance: Widget not found in stack (already removed or never added)")
 
 	return false
 }

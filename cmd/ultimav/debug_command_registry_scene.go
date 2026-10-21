@@ -52,17 +52,6 @@ func registerCoreSceneDebugCommands(registry *debugCommandRegistry) {
 }
 
 func registerSecondBatchDebugCommands(registry *debugCommandRegistry) {
-	registry.registerGroup("scene tools", debugCommandScene, sceneHandledDebugCommand(
-		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
-			return scene.executeSecondBatchSceneDebugCommand(request)
-		}),
-		debugging.CommandConversationScriptCatalog,
-		debugging.CommandConversationScriptInspect,
-		debugging.CommandVFXStatus,
-		debugging.CommandVFXKapow,
-		debugging.CommandVFXProjectile,
-		debugging.CommandEnvironmentEarthquake,
-	)
 	stateHandler := func(context debugCommandContext, request debugging.Request) debugging.Result {
 		return executeSecondBatchStateDebugCommand(request, context.scene.gameState)
 	}
@@ -133,32 +122,11 @@ func registerSeventhBatchDebugCommands(registry *debugCommandRegistry) {
 }
 
 func registerScenarioDebugCommands(registry *debugCommandRegistry) {
-	handler := sceneHandledDebugCommand(
+	registry.registerGroup("scenario lab", debugCommandScene, sceneHandledDebugCommand(
 		func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
 			return scene.executeScenarioDebugCommand(request)
-		})
-	registry.registerGroup("scenario lab", debugCommandScene, handler,
+		}),
 		debugging.CommandScenarioStatus,
-		debugging.CommandScenarioStarvationTrigger,
-		debugging.CommandScenarioStarvationHourly,
-		debugging.CommandScenarioGuardsActivate,
-		debugging.CommandScenarioWaterfallSetup,
-		debugging.CommandScenarioBridgeTroll,
-		debugging.CommandScenarioWordSetup,
-	)
-	registry.registerScene(
-		debugging.CommandScenarioBlackthornInterrogation,
-		"scenario lab",
-		handler,
-		nil,
-		resolveScriptedSceneRuntime,
-	)
-	registry.registerScene(
-		debugging.CommandScenarioLordBritishFinale,
-		"scenario lab",
-		handler,
-		nil,
-		resolveScriptedSceneRuntime,
 	)
 }
 
@@ -173,19 +141,11 @@ func registerWorldSetupDebugCommands(registry *debugCommandRegistry) {
 	)
 }
 
-func registerWorldDungeonExplorerDebugCommands(registry *debugCommandRegistry) {
+func registerWorldNavigatorDebugCommands(registry *debugCommandRegistry) {
 	handler := sceneHandledDebugCommand(func(scene *GameScene, request debugging.Request) (debugging.Result, bool) {
-		return scene.executeWorldDungeonExplorerDebugCommand(request)
+		return scene.executeWorldNavigatorDebugCommand(request)
 	})
 	registry.registerScene(debugging.CommandWorldPositionSet, "world navigator", handler, nil, resolveWorldPositionRuntime)
-	registry.registerGroup("dungeon explorer", debugCommandScene, handler, debugging.CommandDungeonExplorerStatus)
-	registry.registerScene(
-		debugging.CommandDungeonExplorerSetup,
-		"dungeon explorer",
-		handler,
-		nil,
-		resolveDungeonSetupRuntime,
-	)
 }
 
 func registerOperationalDebugCommands(registry *debugCommandRegistry) {
@@ -383,14 +343,6 @@ func resolvePartyEquipmentRuntime(scene *GameScene, request debugging.Request) (
 	return request, nil
 }
 
-func resolveScriptedSceneRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
-	request.Arguments["expectedPartyFingerprint"] = mustDebugJSON(
-		scene.gameState.CurrentPartyRosterSnapshot().Fingerprint,
-	)
-
-	return request, nil
-}
-
 func resolveWorldPositionRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
 	current := scene.gameState.MapState.PlayerLocation
 	request.Arguments["expectedLocationId"] = mustDebugJSON(int(current.Location))
@@ -398,16 +350,6 @@ func resolveWorldPositionRuntime(scene *GameScene, request debugging.Request) (d
 	request.Arguments["expectedX"] = mustDebugJSON(int(current.Position.X))
 	request.Arguments["expectedY"] = mustDebugJSON(int(current.Position.Y))
 	request.Arguments["expectedSourceFingerprint"] = mustDebugJSON(debugWorldSourceFingerprint(scene.gameState))
-
-	return request, nil
-}
-
-func resolveDungeonSetupRuntime(scene *GameScene, request debugging.Request) (debugging.Request, error) {
-	request, err := resolveWorldPositionRuntime(scene, request)
-	if err != nil {
-		return request, err
-	}
-	request.Arguments["expectedDungeonRevision"] = mustDebugJSON(currentDungeonRevision(scene.gameState))
 
 	return request, nil
 }

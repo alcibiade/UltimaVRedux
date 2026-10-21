@@ -197,7 +197,7 @@ func (g *GameState) StartSmallMapCannonFireWorkflow(
 
 		g.SetCriminalStatus(true)
 		if _, err := g.ActivateGuards(); err != nil {
-			logging.Warn(logging.CategoryGameState, "Unable to activate guards: %v", err)
+			logging.Warnf(logging.CategoryGameState, "Unable to activate guards: %v", err)
 		}
 	}).ThenSequence(g.ProjectileAnimationSequence(
 		cannonPos,

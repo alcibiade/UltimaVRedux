@@ -1,10 +1,9 @@
 # Ultima V Redux
 
 Ultima V Redux is a Go/Ebitengine recreation of Ultima V, available as a public
-development preview installed from `main`. No version tag or packaged release has
-been published. Describe repository availability and native platform acceptance
-honestly; [installation guidance](docs/INSTALL.md#installation-acceptance) records
-the verified scope and remaining platform limits.
+preview: prerelease builds on GitHub Releases and the moving `main` line. Describe
+availability and native platform acceptance honestly;
+[platform status](docs/INSTALL.md#platform-status) records the verified scope.
 
 Read [README.md](README.md), [installation guidance](docs/INSTALL.md),
 [contribution policy](CONTRIBUTING.md), and the [documentation catalog](docs/README.md).

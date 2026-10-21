@@ -18,6 +18,9 @@ type escapeDeparture uint8
 const (
 	escapeDepartureMainMenu escapeDeparture = iota
 	escapeDepartureApplication
+	// escapeDepartureWindowClose is Exit to DOS reached from the window's close
+	// button; Cancel returns straight to play instead of to the Escape menu.
+	escapeDepartureWindowClose
 )
 
 type playerSaveWriteFlow struct {
@@ -33,7 +36,7 @@ func (g *GameScene) openEscapeDeparturePrompt(game *Game, departure escapeDepart
 		escapeDepartureTitle(departure),
 		func() {
 			g.dialogStack.MustRemoveWidgetInstance(prompt)
-			g.DoEscapeMenu(game)
+			g.cancelEscapeDeparture(game, departure)
 		},
 		g.keyboard,
 		&gameScreenPercents,
@@ -65,10 +68,10 @@ func (g *GameScene) openEscapeDeparturePrompt(game *Game, departure escapeDepart
 	})
 	prompt.AddButton("Cancel", func() {
 		g.dialogStack.MustRemoveWidgetInstance(prompt)
-		g.DoEscapeMenu(game)
+		g.cancelEscapeDeparture(game, departure)
 	})
 	g.dialogStack.PushModalDialog(prompt)
-	g.keyboard.SetForceWaitAnyKey(escapeMenuForceWaitTimeMs)
+	g.keyboard.PrepareForTransition(0)
 }
 
 func (g *GameScene) quickSaveBeforeDeparture(game *Game, departure escapeDeparture) {
@@ -122,11 +125,37 @@ func (g *GameScene) completeEscapeDeparture(game *Game, departure escapeDepartur
 		if err := game.returnToMainMenu(g.gameConfig); err != nil {
 			g.openEscapeDeparturePrompt(game, departure, "Main menu failed: "+err.Error())
 		}
-	case escapeDepartureApplication:
+	case escapeDepartureApplication, escapeDepartureWindowClose:
 		game.requestExit()
 	default:
 		panic("GameScene.completeEscapeDeparture: unsupported destination")
 	}
+}
+
+func (g *GameScene) cancelEscapeDeparture(game *Game, departure escapeDeparture) {
+	if departure == escapeDepartureWindowClose {
+		g.windowCloseDepartureOpen = false
+
+		return
+	}
+	g.DoEscapeMenu(game)
+}
+
+// HandleWindowCloseRequest offers the Exit to DOS save choices on the first
+// window close request. A repeated request while those choices are open, or a
+// request after the game has ended, closes the window at once.
+func (g *GameScene) HandleWindowCloseRequest(game *Game) bool {
+	if g.windowCloseDepartureOpen || g.gameState.IsGameplayTerminal() {
+		return false
+	}
+	g.closeAtlasSession(true)
+	if g.journalSession != nil {
+		g.closeJournalSession(g.journalSession, false)
+	}
+	g.windowCloseDepartureOpen = true
+	g.openEscapeDeparturePrompt(game, escapeDepartureWindowClose, "")
+
+	return true
 }
 
 func escapeDepartureTitle(departure escapeDeparture) string {

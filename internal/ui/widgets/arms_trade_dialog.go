@@ -112,11 +112,9 @@ func NewArmsTradeDialog(config ArmsTradeDialogConfig) *ArmsTradeDialog {
 			footerMinimumLines:    armsTradeFooterLines,
 		}),
 	}
-	if config.Intent.Mode == ArmsShopSell {
-		dialog.quantityInput = newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld, ebiten.KeyA)
-	} else {
-		dialog.quantityInput = newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld)
-	}
+	// M is the shared Max key; A remains the former Sell all alias.
+	dialog.quantityInput = newQuantityInput(config.Keyboard, config.Keyboard.IsKeyHeld,
+		ebiten.KeyM, ebiten.KeyA, ebiten.KeyUp, ebiten.KeyDown)
 	dialog.ensureLayout()
 
 	return dialog
@@ -187,16 +185,16 @@ func (d *ArmsTradeDialog) GetRefusalKind() ArmsTradeRefusalKind { return d.refus
 // GetFooterGuidance returns only controls valid for this trade.
 func (d *ArmsTradeDialog) GetFooterGuidance() string {
 	if d.refusal != ArmsTradeNoRefusal {
-		return "Enter or Esc: Acknowledge"
+		return "[Enter/Esc] Acknowledge"
 	}
 	if d.intent.Mode == ArmsShopBuy && d.intent.BuyQuote.AmmoRefill {
-		return "Enter: Confirm  Esc: Back"
+		return "[Enter] Confirm   [Esc] Back"
 	}
 	if d.intent.Mode == ArmsShopSell {
-		return "Left/Right: Quantity  A: Sell All\nEnter: Confirm  Esc: Back"
+		return "[Left/Right] Quantity   [M] Sell all\n[Enter] Confirm   [Esc] Back"
 	}
 
-	return "Left/Right: Quantity\nEnter: Confirm  Esc: Back"
+	return merchantQuantityFooter
 }
 
 // GetBounds returns the centered modal bounds.
@@ -228,11 +226,11 @@ func (d *ArmsTradeDialog) handleQuantityInput() bool {
 	}
 	maximum := d.maximumQuantity()
 	switch *key { //nolint:exhaustive // The quantity helper returns only this dialog's configured keys.
-	case ebiten.KeyA:
+	case ebiten.KeyM, ebiten.KeyA:
 		d.setQuantity(maximum)
-	case ebiten.KeyLeft:
+	case ebiten.KeyLeft, ebiten.KeyUp:
 		d.setQuantity(max(uint16(1), d.quantity-1))
-	case ebiten.KeyRight:
+	case ebiten.KeyRight, ebiten.KeyDown:
 		d.setQuantity(min(maximum, d.quantity+1))
 	}
 
@@ -371,13 +369,7 @@ func (d *ArmsTradeDialog) populateSellBody() {
 
 func (d *ArmsTradeDialog) populateFooter() {
 	d.footerOutput.Reset()
-	for _, line := range parseMerchantFooterGuidance(d.GetFooterGuidance()) {
-		builder := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range line {
-			builder.Text(segment.Text, segment.Color)
-		}
-		builder.Done()
-	}
+	appendControlGuidance(d.footerOutput, d.GetFooterGuidance(), d.frame.footerText.Dx())
 }
 
 func armsTradePlacement() sprites.PercentBasedPlacement {

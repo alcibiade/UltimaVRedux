@@ -21,8 +21,8 @@ func TestLargeMapDistanceCleanupPreservesFriendlyVehicles(t *testing.T) {
 		farPosition,
 		references.MainFloor,
 	)
-	enemyReference := references.EnemyReference{ //nolint:exhaustruct // Cleanup needs only nonempty hostile identity.
-		KeyFrameTile: &references.Tile{Index: indexes.Rat_KeyIndex}, //nolint:exhaustruct
+	enemyReference := references.EnemyReference{
+		KeyFrameTile: &references.Tile{Index: indexes.RatKeyIndex},
 	}
 	farEnemy := map_units.NewEnemyNPC(enemyReference, 1)
 	farEnemy.SetPos(farPosition)
@@ -31,8 +31,8 @@ func TestLargeMapDistanceCleanupPreservesFriendlyVehicles(t *testing.T) {
 	nearEnemy.SetPos(references.Position{X: 2, Y: 2})
 	nearEnemy.SetVisible(true)
 
-	controller := &NPCAIControllerLargeMap{ //nolint:exhaustruct // Focused cleanup fixture.
-		mapState: &map_state.MapState{ //nolint:exhaustruct
+	controller := &NPCAIControllerLargeMap{
+		mapState: &map_state.MapState{
 			PlayerLocation: references.PlayerLocation{Position: playerPosition},
 		},
 		mapUnits: map_units.MapUnits{vehicle, &farEnemy, &nearEnemy},

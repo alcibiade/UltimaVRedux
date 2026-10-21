@@ -10,6 +10,7 @@ func convertDungeon(game SavedGame, snapshot *save_snapshot.SaveSnapshot) {
 	dungeon := &save_snapshot.DungeonSnapshot{
 		Location:          int(game.Position.Location),
 		Cells:             make([]int, len(game.Dungeon.Cells)),
+		ChestAssessments:  [save_snapshot.DungeonCellCount]int{},
 		Facing:            int(game.Dungeon.Facing),
 		LastDirection:     int(game.Dungeon.LastDirection),
 		Wanderer:          nil,

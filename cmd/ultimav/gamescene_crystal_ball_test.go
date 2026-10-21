@@ -30,7 +30,7 @@ func TestCrystalBallRetainsFramingTranscriptUntilGemView(t *testing.T) {
 	scene.gameState.PartyState.GetCharacter(option.CharacterIndex).Intelligence = 99
 	selector.HandleEnter()
 
-	waitForCrystalBallTranscriptResult(t, scene, transcript, "Strange vision!", "Enter/Esc: Continue")
+	waitForCrystalBallTranscriptResult(t, scene, transcript, "Strange vision!", "[Enter/Esc] Continue")
 	require.Contains(t, transcript.TranscriptText(), option.Name+" looks into the crystal ball.")
 	require.NotContains(t, transcript.TranscriptText(), "Who will look?")
 	acknowledgeCrystalBallTranscript(t, scene, transcript)
@@ -59,7 +59,7 @@ func TestCrystalBallDeathVisionRetainsResultUntilAcknowledged(t *testing.T) {
 	hpBefore := character.GetCurrentHp()
 	selector.HandleEnter()
 
-	waitForCrystalBallTranscriptResult(t, scene, transcript, "Death vision!", "Enter/Esc: Close")
+	waitForCrystalBallTranscriptResult(t, scene, transcript, "Death vision!", "[Enter/Esc] Close")
 	require.Equal(t, hpBefore-1, character.GetCurrentHp())
 	require.Contains(t, transcript.TranscriptText(), option.Name+" looks into the crystal ball.")
 	require.NotContains(t, transcript.TranscriptText(), "Who will look?")
@@ -106,10 +106,10 @@ func TestCrystalBallUsesEligibleActiveViewerWithoutSelector(t *testing.T) {
 				viewer := state.PartyState.GetCharacter(1)
 				viewer.SetStatus(status)
 				avatar.Intelligence, viewer.Intelligence = 99, 0
-				result, hint := "Death vision!", "Enter/Esc: Close"
+				result, hint := "Death vision!", "[Enter/Esc] Close"
 				if success {
 					avatar.Intelligence, viewer.Intelligence = 0, 99
-					result, hint = "Strange vision!", "Enter/Esc: Continue"
+					result, hint = "Strange vision!", "[Enter/Esc] Continue"
 				}
 				require.True(t, state.SetActivePlayer(1))
 				hpBefore := make([]uint16, state.PartyState.GetCharacterCount())
@@ -174,8 +174,6 @@ func TestCrystalBallClearsIneligibleActiveViewerBeforeFallback(t *testing.T) {
 
 			scene.StartCrystalBallWorkflow()
 			_, selector := waitForCrystalBallSelector(t, scene)
-			// Check the notification before a getter can itself clear a stale actor.
-			require.Equal(t, 1, callbacks.StatsDisplayUpdated)
 			require.Equal(t, -1, state.GetActivePlayerIndex())
 			require.NotEqual(t, 1, selector.GetCurrentOption().CharacterIndex)
 			selector.HandleEscape()
@@ -196,7 +194,7 @@ func newCrystalBallWorkflowTestScene(t *testing.T) (*GameScene, *game_state.Mock
 		WithSystemCallbacks().
 		Build()
 
-	return &GameScene{ //nolint:exhaustruct // Focused crystal-ball workflow fixture.
+	return &GameScene{
 		gameState:   state,
 		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:      text.NewOutput(nil, 1, 20, 80),

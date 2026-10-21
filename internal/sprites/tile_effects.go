@@ -171,9 +171,14 @@ func (builder *TileEffectBuilder) WithBackground(sprite indexes.SpriteIndex) *Ti
 	return builder
 }
 
+// inclusiveTileBounds is a rectangle of original tile pixels; both corners are included.
+type inclusiveTileBounds struct {
+	x1, y1, x2, y2 int
+}
+
 // WithBounds translates inclusive original-tile coordinates to a rectangle.
-func (builder *TileEffectBuilder) WithBounds(x1, y1, x2, y2 int) *TileEffectBuilder {
-	builder.pipeline.Bounds = image.Rect(x1, y1, x2+1, y2+1)
+func (builder *TileEffectBuilder) WithBounds(bounds inclusiveTileBounds) *TileEffectBuilder {
+	builder.pipeline.Bounds = image.Rect(bounds.x1, bounds.y1, bounds.x2+1, bounds.y2+1)
 
 	return builder
 }

@@ -21,7 +21,7 @@ import (
 // Lighthouse timing and rotation constants from original Ultima V.
 const (
 	// LighthouseUpdateIntervalMs controls rotation speed.
-	// REDUX DEVIATION: Original display timing was approximately 18Hz (55ms);
+	// Original display timing was approximately 18Hz (55ms);
 	// Redux uses 110ms for smoother visuals.
 	LighthouseUpdateIntervalMs = 110
 
@@ -155,6 +155,7 @@ func NewLighthouseState() *LighthouseState {
 		currentAngle: UninitializedAngle,
 		litTilesMap:  make(map[references.Position]bool),
 		lastUpdateMs: 0,
+		isLargeMap:   false,
 	}
 }
 
@@ -193,9 +194,9 @@ func (ls *LighthouseState) SetPositions(positions []references.Position) {
 	}
 
 	// Debug logging to verify lighthouse detection
-	logging.Debug(logging.CategoryLighthouse, "SetPositions: %d lighthouse(s) set", len(ls.positions))
+	logging.Debugf(logging.CategoryLighthouse, "SetPositions: %d lighthouse(s) set", len(ls.positions))
 	for i, pos := range ls.positions {
-		logging.Debug(logging.CategoryLighthouse, "  Lighthouse %d at (%d, %d)", i+1, pos.X, pos.Y)
+		logging.Debugf(logging.CategoryLighthouse, "  Lighthouse %d at (%d, %d)", i+1, pos.X, pos.Y)
 	}
 }
 
@@ -279,7 +280,7 @@ func (ls *LighthouseState) rotate() {
 // lightShape adds all tiles from the given shape index to litTilesMap.
 func (ls *LighthouseState) lightShape(shapeIndex int) {
 	// Wrap shape index to valid range
-	shapeIndex = shapeIndex % (MaxLighthouseAngle + 1)
+	shapeIndex %= MaxLighthouseAngle + 1
 
 	shape := &lighthouseConeShapes[shapeIndex]
 
@@ -304,7 +305,7 @@ func (ls *LighthouseState) lightShape(shapeIndex int) {
 // unlightShape removes all tiles from the given shape index from litTilesMap.
 func (ls *LighthouseState) unlightShape(shapeIndex int) {
 	// Wrap shape index to valid range
-	shapeIndex = shapeIndex % (MaxLighthouseAngle + 1)
+	shapeIndex %= MaxLighthouseAngle + 1
 
 	shape := &lighthouseConeShapes[shapeIndex]
 

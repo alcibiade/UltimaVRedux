@@ -1,15 +1,20 @@
 package references
 
+// Reagent is one of the eight magic reagents.
 type Reagent int
 
+// ID returns the reagent number within its item type.
 func (r Reagent) ID() int {
 	return int(r)
 }
 
+// Type returns ItemTypeReagent.
 func (r Reagent) Type() ItemType {
 	return ItemTypeReagent
 }
 
+// Reagents in original order, starting at SulfurAsh.
+//
 //goland:noinspection GoUnusedConst
 const (
 	SulfurAsh    Reagent = 0

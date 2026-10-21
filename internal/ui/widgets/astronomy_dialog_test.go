@@ -100,7 +100,7 @@ func TestCalculatePlanetXPositionUsesTwoDigitYearAndLeavesEarlierDatesAtStart(t 
 	t.Parallel()
 
 	assert.Equal(t, calculatePlanetXPosition(7, 39, 4, 6), calculatePlanetXPosition(7, 139, 4, 6))
-	assert.Equal(t, planetStartIndex[7]+1, calculatePlanetXPosition(7, 38, 13, 28))
+	assert.Equal(t, astronomyPlanetStartIndex()[7]+1, calculatePlanetXPosition(7, 38, 13, 28))
 	assert.Equal(t, 3, calculatePlanetXPosition(7, 39, 4, 5))
 	assert.Equal(t, 2, calculatePlanetXPosition(7, 39, 4, 6))
 	assert.Equal(t, 12, calculatePlanetXPosition(0, 39, 4, 6))

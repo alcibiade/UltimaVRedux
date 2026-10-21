@@ -20,10 +20,10 @@ func (debugVehicleTestRNG) Intn(int) int { return 0 }
 
 func newDebugVehicleTestState() (*GameState, *ecosystemTestController) {
 	controller := &ecosystemTestController{units: make(map_units.MapUnits, 0)}
-	state := &GameState{ //nolint:exhaustruct
+	state := &GameState{
 		CurrentNPCAIController: controller,
 		PartyVehicle:           map_units.NewNPCFriendlyVehiceNoVehicle(),
-		MapState: map_state.MapState{ //nolint:exhaustruct
+		MapState: map_state.MapState{
 			PlayerLocation: references.PlayerLocation{
 				Location: references.BritanniaUnderworld,
 				Position: references.Position{X: 10, Y: 11},
@@ -39,7 +39,7 @@ func newDebugVehicleTestState() (*GameState, *ecosystemTestController) {
 }
 
 func newDebugVehicleLargeMapController(state *GameState) *ai.NPCAIControllerLargeMap {
-	return ai.NewNPCAIControllerLargeMap(ai.NewNPCAIControllerLargeMapInput{ //nolint:exhaustruct
+	return ai.NewNPCAIControllerLargeMap(ai.NewNPCAIControllerLargeMapInput{
 		World:          references.OVERWORLD,
 		MapState:       &state.MapState,
 		DebugOptions:   &state.DebugOptions,
@@ -53,7 +53,7 @@ func TestSpawnDebugVehicleUsesDestinationMapAndDoesNotAdvanceTime(t *testing.T) 
 	state, currentController := newDebugVehicleTestState()
 	dockController := newDebugVehicleLargeMapController(state)
 	dockPosition := references.Position{X: 44, Y: 55}
-	state.GameReferences = &references.GameReferences{ //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{
 		DockReferences: &references.DockReferences{Docks: []references.DockReference{
 			{Location: references.Jhelom, Position: dockPosition},
 		}},
@@ -271,7 +271,7 @@ func TestDebugVehicleRequestsRejectUnsupportedTypesAndDock(t *testing.T) {
 	assert.ErrorIs(t, spawnTypeErr, ErrDebugVehicleUnsupportedType)
 	assert.ErrorIs(t, boardTypeErr, ErrDebugVehicleUnsupportedType)
 
-	state.GameReferences = &references.GameReferences{ //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{
 		DockReferences: &references.DockReferences{Docks: []references.DockReference{
 			{Location: references.Jhelom, Position: references.Position{X: 1, Y: 2}},
 		}},

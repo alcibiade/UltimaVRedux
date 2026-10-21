@@ -124,7 +124,7 @@ func TestMoonstoneJournalLookSourceRequiresFullSite(t *testing.T) {
 		g.MapState.PlayerLocation = location
 		_, identified := g.moonstoneSourceAt(pos)
 		assert.False(t, identified, "same XY is not the same map/floor")
-		g.moonstoneSystem.BuryMoonstone(2, 14, 15, uint8(location.Location), uint8(location.Floor)) //nolint:gosec // Legacy signed floor.
+		g.moonstoneSystem.BuryMoonstone(2, 14, 15, uint8(location.Location), uint8(location.Floor))
 		phase, identified := g.moonstoneSourceAt(pos)
 		assert.True(t, identified)
 		assert.Equal(t, 2, phase)

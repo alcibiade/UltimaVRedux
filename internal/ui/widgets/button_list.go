@@ -26,10 +26,11 @@ const (
 	buttonListDescriptionRows        = 4
 	buttonListDescriptionSpacing     = 1.2
 	buttonListFooterLines            = 2
-	buttonListFooterTopText          = "Arrows: Select  Enter: Choose"
+	buttonListFooterTopText          = "[Arrows] Select   [Enter] Choose"
+	buttonListReadHint               = "[Shift+Up/Down] Read   "
 )
 
-var _ Widget = &ButtonListModal{}
+var _ Widget = (*ButtonListModal)(nil)
 
 type buttonListItem struct {
 	text     string
@@ -83,6 +84,8 @@ type ButtonListModal struct {
 	lastHeight            int
 }
 
+// NewButtonListModal creates an empty menu titled titleText; add choices with
+// AddButton. Escape invokes closeNoActionCallback. All arguments are required.
 func NewButtonListModal(
 	titleText string,
 	closeNoActionCallback func(),
@@ -110,6 +113,7 @@ func NewButtonListModal(
 	return modal
 }
 
+// Draw renders the card, title, description page, buttons and control footer.
 func (b *ButtonListModal) Draw(screen *ebiten.Image) {
 	if screen == nil {
 		return
@@ -224,6 +228,8 @@ func (b *ButtonListModal) SetEscapeLabel(label string) {
 	b.invalidateLayout()
 }
 
+// Update moves the selection, pages the description, and runs the selected
+// button's callback on Enter or the close callback on Escape.
 func (b *ButtonListModal) Update() {
 	key, owned := b.Poll(b.keyboard,
 		ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyPageUp, ebiten.KeyPageDown)
@@ -244,15 +250,18 @@ func (b *ButtonListModal) Update() {
 		return
 	}
 
-	switch *boundKey {
-	case ebiten.KeyEscape:
+	if *boundKey == ebiten.KeyEscape {
 		b.closeNoActionCallback()
-	case ebiten.KeyEnter, ebiten.KeyNumpadEnter:
-		if b.currentSelectionIndex >= 0 && b.currentSelectionIndex < len(b.items) {
-			callback := b.items[b.currentSelectionIndex].callback
-			if callback != nil {
-				callback()
-			}
+
+		return
+	}
+	if *boundKey != ebiten.KeyEnter && *boundKey != ebiten.KeyNumpadEnter {
+		return
+	}
+	if b.currentSelectionIndex >= 0 && b.currentSelectionIndex < len(b.items) {
+		callback := b.items[b.currentSelectionIndex].callback
+		if callback != nil {
+			callback()
 		}
 	}
 }
@@ -269,6 +278,7 @@ func (b *ButtonListModal) navigate(key ebiten.Key) {
 	}
 }
 
+// GoDown selects the next button, wrapping from the last to the first.
 func (b *ButtonListModal) GoDown() {
 	if len(b.items) == 0 {
 		return
@@ -276,6 +286,7 @@ func (b *ButtonListModal) GoDown() {
 	b.currentSelectionIndex = (b.currentSelectionIndex + 1) % len(b.items)
 }
 
+// GoUp selects the previous button, wrapping from the first to the last.
 func (b *ButtonListModal) GoUp() {
 	if len(b.items) == 0 {
 		return
@@ -287,6 +298,7 @@ func (b *ButtonListModal) GoUp() {
 	}
 }
 
+// AddButton appends a choice; the first button added becomes the selection.
 func (b *ButtonListModal) AddButton(buttonText string, onClickCallback func()) {
 	b.items = append(b.items, buttonListItem{text: buttonText, callback: onClickCallback})
 	if b.currentSelectionIndex == -1 {
@@ -421,31 +433,25 @@ func (b *ButtonListModal) configureLayoutOutputs(contentWidth, rowWidth int) int
 
 func (b *ButtonListModal) escapeFooterText() string {
 	if b.descriptionPageCount() > 1 {
-		return "Shift+Up/Dn: Read  Esc: " + b.escapeLabel
+		return buttonListReadHint + "[Esc] " + b.escapeLabel
 	}
 
-	return "Esc: " + b.escapeLabel
+	return "[Esc] " + b.escapeLabel
 }
 
 func (b *ButtonListModal) footerBottomTextForMeasurement() string {
 	if b.description != "" {
-		return "Shift+Up/Dn: Read  Esc: " + b.escapeLabel
+		return buttonListReadHint + "[Esc] " + b.escapeLabel
 	}
 
 	return b.escapeFooterText()
 }
 
 func (b *ButtonListModal) populateFooterOutput(contentWidth int) {
-	contentWidth = max(1, contentWidth)
-	b.footerOutput.SetMaxCharsPerLine(max(1, b.footerOutput.Font.CharsForWidth(contentWidth)))
 	b.footerOutput.Reset()
-	b.footerOutput.AppendLine().Text("Arrows", DialogControlKeyColor).Text(": Select  ", DialogControlHintColor).
-		Text("Enter", DialogControlKeyColor).Text(": Choose", DialogControlHintColor).Done()
-	line := b.footerOutput.AppendLine()
-	if b.descriptionPageCount() > 1 {
-		line.Text("Shift+Up/Dn", DialogControlKeyColor).Text(": Read  ", DialogControlHintColor)
+	for _, row := range []string{buttonListFooterTopText, b.escapeFooterText()} {
+		PackControlHints(b.footerOutput, ParseControlHints(row), contentWidth, etext.AlignStart)
 	}
-	line.Text("Esc", DialogControlKeyColor).Text(": "+b.escapeLabel, DialogControlHintColor).Done()
 }
 
 func (b *ButtonListModal) descriptionPageCount() int {

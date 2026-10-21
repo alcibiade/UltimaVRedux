@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDungeonKnowledgeV16RoundTripAndHistoricalRejection(t *testing.T) {
+func TestDungeonKnowledgeV16RoundTrip(t *testing.T) {
 	t.Parallel()
 	compiled, _ := compileCurrentNativeSaveSchema(t)
 	snapshot := validSnapshot()
@@ -46,35 +46,11 @@ func TestDungeonKnowledgeV16RoundTripAndHistoricalRejection(t *testing.T) {
 			assert.Equal(t, current, decoded.Snapshot, "v16 decoding must not invent events or overwrite provenance")
 		})
 	}
-	for version, encode := range map[int]func(*testing.T, SaveSnapshot, func(map[string]any)) []byte{
-		12: versionTwelveEnvelopeData, 13: versionThirteenEnvelopeData, 14: versionFourteenEnvelopeData, 15: versionFifteenEnvelopeData,
-	} {
-		t.Run(fmt.Sprintf("historical/%d", version), func(t *testing.T) {
-			archived, _ := compileNativeSaveSchema(t, version)
-			for index, entry := range snapshot.Redux.PlayerKnowledge {
-				t.Run(entry.Key, func(t *testing.T) {
-					previous := validSnapshot()
-					previous.Redux.PlayerKnowledge = []PlayerKnowledgeSnapshot{entry}
-					data := encode(t, previous, nil)
-					_, err := Decode(data)
-					assert.ErrorIs(t, err, ErrInvalidSnapshot, "old versions reject dungeon lore before promotion or backfill")
-					assert.Error(t, archived.Validate(archivedEnvelopeOneSchemaInstance(t, data)))
-					previous.Redux.PlayerKnowledge = []PlayerKnowledgeSnapshot{}
-					previous.Redux.QuestJournal = []QuestJournalEventSnapshot{snapshot.Redux.QuestJournal[index]}
-					previous.Redux.QuestJournal[0].Sequence = 1
-					data = encode(t, previous, nil)
-					_, err = Decode(data)
-					assert.ErrorIs(t, err, ErrInvalidSnapshot)
-					assert.Error(t, archived.Validate(archivedEnvelopeOneSchemaInstance(t, data)))
-				})
-			}
-		})
-	}
 }
 
 func TestDungeonKnowledgeV16RejectsInvalidLoreWithSchemaParity(t *testing.T) {
 	t.Parallel()
-	compiled, _ := compileNativeSaveSchemaFile(t, "native-save-e2-s16.schema.json")
+	compiled, _ := compileCurrentNativeSaveSchema(t)
 	for name, mutate := range map[string]func(*PlayerKnowledgeSnapshot){
 		"unknown dungeon":         func(entry *PlayerKnowledgeSnapshot) { entry.Key = "abyss.word_of_power" },
 		"wrong suffix":            func(entry *PlayerKnowledgeSnapshot) { entry.Key = "doom.word-of-power" },

@@ -34,9 +34,10 @@ func (s Shadowlord) String() string {
 		return "Astaroth"
 	case Nosfentor:
 		return "Nosfentor"
-	default:
-		return "Unknown"
+	case NoShadowlord:
 	}
+
+	return "Unknown"
 }
 
 // GetAntiVirtue returns the anti-virtue this Shadowlord represents.
@@ -48,9 +49,10 @@ func (s Shadowlord) GetAntiVirtue() string {
 		return "Hatred"
 	case Nosfentor:
 		return "Cowardice"
-	default:
-		return "Unknown"
+	case NoShadowlord:
 	}
+
+	return "Unknown"
 }
 
 // GetPresenceMessage returns the atmospheric message displayed when entering a town
@@ -63,9 +65,10 @@ func (s Shadowlord) GetPresenceMessage() string {
 		return "An air of hatred\ndoth surround thee..."
 	case Nosfentor:
 		return "An air of cowardice\ndoth surround thee..."
-	default:
-		return "An air of darkness\ndoth surround thee..."
+	case NoShadowlord:
 	}
+
+	return "An air of darkness\ndoth surround thee..."
 }
 
 // ShadowlordFromName returns a Shadowlord by name (case insensitive substring match).

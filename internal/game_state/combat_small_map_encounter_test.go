@@ -54,14 +54,14 @@ func TestSmallMapNPCMonsterTypeUsesShapesNotLocationAllowlists(t *testing.T) {
 		want     references.MonsterType
 		wantErr  bool
 	}{
-		{name: "Windemere devil", location: references.Windemere, npcSlot: 10, sprite: indexes.Daemon_KeyIndex, want: references.MonsterDevil},
-		{name: "other Windemere slot", location: references.Windemere, npcSlot: 9, sprite: indexes.Daemon_KeyIndex, want: references.MonsterDevil},
-		{name: "daemon elsewhere", location: references.Stonegate, npcSlot: 10, sprite: indexes.Daemon_KeyIndex, want: references.MonsterDevil},
-		{name: "Iolo hut rat", location: references.IolosHut, npcSlot: 1, sprite: indexes.Rat_KeyIndex, want: references.MonsterRat},
-		{name: "other Iolo rat slot", location: references.IolosHut, npcSlot: 4, sprite: indexes.Rat_KeyIndex, want: references.MonsterRat},
-		{name: "Skara Brae bat", location: references.SkaraBrae, npcSlot: 8, sprite: indexes.Bat_KeyIndex, want: references.MonsterBat},
-		{name: "other Skara bat slot", location: references.SkaraBrae, npcSlot: 7, sprite: indexes.Bat_KeyIndex, want: references.MonsterBat},
-		{name: "rat elsewhere", location: references.Yew, npcSlot: 1, sprite: indexes.Rat_KeyIndex, want: references.MonsterRat},
+		{name: "Windemere devil", location: references.Windemere, npcSlot: 10, sprite: indexes.DaemonKeyIndex, want: references.MonsterDevil},
+		{name: "other Windemere slot", location: references.Windemere, npcSlot: 9, sprite: indexes.DaemonKeyIndex, want: references.MonsterDevil},
+		{name: "daemon elsewhere", location: references.Stonegate, npcSlot: 10, sprite: indexes.DaemonKeyIndex, want: references.MonsterDevil},
+		{name: "Iolo hut rat", location: references.IolosHut, npcSlot: 1, sprite: indexes.RatKeyIndex, want: references.MonsterRat},
+		{name: "other Iolo rat slot", location: references.IolosHut, npcSlot: 4, sprite: indexes.RatKeyIndex, want: references.MonsterRat},
+		{name: "Skara Brae bat", location: references.SkaraBrae, npcSlot: 8, sprite: indexes.BatKeyIndex, want: references.MonsterBat},
+		{name: "other Skara bat slot", location: references.SkaraBrae, npcSlot: 7, sprite: indexes.BatKeyIndex, want: references.MonsterBat},
+		{name: "rat elsewhere", location: references.Yew, npcSlot: 1, sprite: indexes.RatKeyIndex, want: references.MonsterRat},
 		{name: "quest object", location: references.Stonegate, npcSlot: 9, sprite: indexes.SpriteIndex(437), want: references.MonsterNone, wantErr: true},
 	}
 
@@ -627,7 +627,7 @@ func emptyAdjacentAttackPosition(
 }
 
 func smallMapTerrain(index indexes.SpriteIndex) *references.Tile {
-	return &references.Tile{Index: index} //nolint:exhaustruct // Map selection needs only the source tile index.
+	return &references.Tile{Index: index}
 }
 
 func findSmallMapDoorForCombatReturnTest(

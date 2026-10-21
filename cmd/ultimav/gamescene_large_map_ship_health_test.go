@@ -12,7 +12,7 @@ import (
 )
 
 func TestLargeMapShipHealthReturnsPirateHull(t *testing.T) {
-	tile := &references.Tile{Index: indexes.PirateShipUp} //nolint:exhaustruct // Sprite identity fixture.
+	tile := &references.Tile{Index: indexes.PirateShipUp}
 	pirate := map_units.NewEnemyNPC(references.NewPirateShipEnemyReference(tile), 1)
 	pirate.SetCurrentHP(63)
 

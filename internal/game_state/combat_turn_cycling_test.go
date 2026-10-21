@@ -31,9 +31,6 @@ func TestCombatTurnCycling_NormalMode_AdvancesThroughActiveMembers(t *testing.T)
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -90,9 +87,6 @@ func TestCombatTurnCycling_NormalMode_SyncsActivePlayerIndex(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.True(t, gs.SetActivePlayer(1))
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
@@ -119,9 +113,6 @@ func TestAdvanceCombatTurn_PCTurnPromptUsesMessageOutput(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -155,9 +146,6 @@ func TestCombatSoloMode_OnlySoloCharacterGetsTurn(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -189,9 +177,6 @@ func TestCombatSoloModePresentedTurnsFastForwardSkippedPC(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
@@ -241,9 +226,6 @@ func TestCombatSoloModePresentedTurnsFastForwardSkippedPC(t *testing.T) {
 
 func TestCombatSoloModeFastForwardStopsForHostileTurn(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeMembers := gs.ActiveCombatPartyMembers()
 	require.GreaterOrEqual(t, len(activeMembers), 2)
 	skippedPC, selectedPC := activeMembers[0], activeMembers[1]
@@ -281,9 +263,6 @@ func TestCombatSoloModeFastForwardsSkippedPCAfterVictory(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0, references.BritanniaCombatTerritory, CombatEntryNorth,
 	))
@@ -323,9 +302,6 @@ func TestCombatSoloMode_CannotMoveSelectedCharacterOutOfTurn(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -396,9 +372,6 @@ func TestCombatSoloMode_ClearRestoresNormalCycling(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -433,9 +406,6 @@ func TestCombatSoloModeDoesNotAutoPassPossessedPC(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	active := gs.ActiveCombatPartyMembers()
 	require.GreaterOrEqual(t, len(active), 2)
@@ -470,9 +440,6 @@ func TestCombatMovement_BlockedByMonster(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -509,9 +476,6 @@ func TestCombatMovement_DeadMonsterDoesNotBlock(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)

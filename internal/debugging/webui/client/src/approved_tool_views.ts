@@ -262,39 +262,6 @@ export interface MerchantTesterOpenData {
   y: number
 }
 
-export interface DungeonExplorerCellData {
-  x: number
-  y: number
-  raw: number
-  kindId: number
-  kindName: string
-  payload: number
-  bit08: boolean
-  player: boolean
-}
-
-export interface DungeonExplorerStatusData {
-  sourceFingerprint: string
-  active: boolean
-  setupAvailable: boolean
-  setupUnavailableReason?: string
-  locationId: number
-  locationName: string
-  floor: number
-  displayLevel: number
-  x: number
-  y: number
-  facingId: number
-  facingLabel: string
-  lastDirectionId: number
-  lastDirectionLabel: string
-  lit: boolean
-  torchMinutesRemaining: number
-  magicLightMinutesRemaining: number
-  revision: number
-  cells: DungeonExplorerCellData[]
-}
-
 export interface ScenarioStatusData {
   partyFingerprint: string
   wipeReview: ActivePartyWipeReviewData
@@ -324,13 +291,6 @@ export interface ScenarioStatusData {
     experience: number
     level: number
   }>
-  guards: {
-    supported: boolean
-    unavailableReason?: string
-    criminal: boolean
-    potentialGuardCount: number
-    hostilePotentialGuardCount: number
-  }
 }
 
 export interface ActivePartyWipeReviewData {
@@ -398,38 +358,6 @@ export interface DebugPositionData {
   y: number
 }
 
-export interface ConversationSourceData {
-  id: string
-  scriptCount: number
-}
-
-export interface ConversationSummaryData {
-  index: number
-  dialog: number
-  semanticId: string
-  name: string
-  description: string
-  topicCount: number
-  questionCount: number
-  patched: boolean
-}
-
-export interface ConversationCatalogData {
-  sources: ConversationSourceData[]
-  selectedSource: string
-  scripts: ConversationSummaryData[]
-}
-
-export interface ConversationDetailData {
-  sourceId: string
-  index: number
-  dialog: number
-  semanticId: string
-  schema: string
-  patched: boolean
-  runtimeYaml: string
-}
-
 export interface DebugOptionData {
   id: number
   name: string
@@ -484,41 +412,6 @@ export interface CombatEncounterStartData {
   friendCount: number
   totalCount: number
   positions: DebugPositionData[]
-}
-
-export interface VisualEffectData {
-  worldPosition?: DebugPositionData
-  spriteIndex: number
-  scaleMinimum: number
-  scaleMaximum: number
-  screenX: number
-  screenY: number
-  type: string
-  duration: number
-  elapsed: number
-}
-
-export interface ActiveProjectileData {
-  fromTileX: number
-  fromTileY: number
-  toTileX: number
-  toTileY: number
-  currentTileX: number
-  currentTileY: number
-  type: string
-  typeId: number
-  active: boolean
-}
-
-export interface VFXStatusData {
-  mapType: string
-  player: DebugPositionData
-  maximumX: number
-  maximumY: number
-  visualEffects: VisualEffectData[]
-  activeProjectile?: ActiveProjectileData
-  lightingOverlayEnabled: boolean
-  earthquakeActive: boolean
 }
 
 export interface MonsterEnemyData {
@@ -588,6 +481,7 @@ export interface DebugOptionsStatusData {
   dialogBoundsEnabled: boolean
   unlimitedCastingResources: boolean
   bypassSpellLevelRestrictions: boolean
+  lightingOverlayEnabled: boolean
 }
 
 export interface ReduxModificationsStatusData {

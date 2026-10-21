@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
@@ -15,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
-	"github.com/bradhannah/UltimaVRedux/internal/repositoryfs"
 )
 
 // Formats must be registered AND asserted. JSON Schema maxLength measures
@@ -27,40 +24,14 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 			return err
 		}
 		var snapshot SaveSnapshot
-		if version == 24 {
+		if version == MinimumVersion {
 			var previous saveSnapshotV24
 			if err = decodeRequiredJSON(data, &previous); err != nil {
 				return err
 			}
 			snapshot = previous.validationView()
-		} else if version == 23 {
-			var previous saveSnapshotV23
-			if err = decodeRequiredJSON(data, &previous); err != nil {
-				return err
-			}
-			snapshot = previous.validationView()
-		} else if version == 22 {
-			var previous saveSnapshotV22
-			if err = decodeRequiredJSON(data, &previous); err != nil {
-				return err
-			}
-			snapshot = previous.validationView()
-		} else if version == 21 {
-			var previous saveSnapshotV21
-			if err = decodeRequiredJSON(data, &previous); err != nil {
-				return err
-			}
-			snapshot = previous.validationView()
-		} else if version == 20 {
-			var previous saveSnapshotV20
-			if err = decodeRequiredJSON(data, &previous); err != nil {
-				return err
-			}
-			snapshot = previous.validationView()
-		} else {
-			if err = decodeRequiredJSON(data, &snapshot); err != nil {
-				return err
-			}
+		} else if err = decodeRequiredJSON(data, &snapshot); err != nil {
+			return err
 		}
 		var issues []Issue
 		add := func(path, code, message string) {
@@ -69,9 +40,7 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 		validateWorldJournal(snapshot, add)
 		validateChestAssessments(snapshot, add)
 		validateOpenDoor(snapshot, add)
-		if version >= 24 {
-			validatePersonalStateV24(snapshot, add)
-		}
+		validatePersonalStateV24(snapshot, add)
 		if version >= 25 {
 			if err = snapshot.Excerpts.Validate(); err != nil {
 				add("excerpts", "invalid", err.Error())
@@ -122,7 +91,7 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 		}
 		var issues []Issue
 		// Life-state consistency belongs to the complete snapshot validator.
-		validateQuestJournal(events, [3]bool{}, version, func(path, code, message string) {
+		validateQuestJournal(events, [3]bool{}, func(path, code, message string) {
 			issues = append(issues, Issue{Path: path, Code: code, Message: message})
 		})
 		if len(issues) != 0 {
@@ -130,30 +99,6 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 		}
 		return nil
 	}})
-}
-
-func removeJournalV16Fields(snapshot map[string]any) {
-	removeV20Fields(snapshot)
-	delete(snapshot, "lastConversation")
-	delete(snapshot, "dungeonJournal")
-	delete(snapshot, "presentation")
-	for _, value := range snapshot["redux"].(map[string]any)["questJournal"].([]any) {
-		delete(value.(map[string]any), "sourceName")
-	}
-}
-
-func versionFifteenEnvelopeData(t *testing.T, snapshot SaveSnapshot, mutate func(map[string]any)) []byte {
-	t.Helper()
-	document := currentEnvelopeDocument(t, snapshot)
-	body := document["snapshot"].(map[string]any)
-	body["version"] = 15
-	removeJournalV16Fields(body)
-	if mutate != nil {
-		mutate(body)
-	}
-	data, err := json.Marshal(document)
-	require.NoError(t, err)
-	return data
 }
 
 func TestJournalV16HistoryByteAndCanonicalSchemaParity(t *testing.T) {
@@ -299,133 +244,6 @@ func assertJournalWireRejected(t *testing.T, schema *jsonschema.Schema, instance
 	_, err = Decode(data)
 	assert.Error(t, err)
 	assert.Error(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-}
-
-func TestJournalV16HistoricalPromotionIsQuietAndHonest(t *testing.T) {
-	t.Parallel()
-	for version, encode := range map[int]func(*testing.T, SaveSnapshot, func(map[string]any)) []byte{
-		12: versionTwelveEnvelopeData, 13: versionThirteenEnvelopeData, 14: versionFourteenEnvelopeData, 15: versionFifteenEnvelopeData,
-	} {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			source := validSnapshot()
-			source.Redux.PlayerKnowledge = append(validLoreKnowledge(), validPlayerKnowledge()...)
-			source.Progression.Dungeons = [DungeonCount]bool{true, true, true, true, true, true, true, true}
-			source.Progression.Shadowlords.Alive[0] = false
-			source.Redux.QuestJournal = []QuestJournalEventSnapshot{{Sequence: 1, Kind: QuestJournalEventShadowlordDefeated, Subject: QuestJournalSubjectFaulinei, Source: QuestJournalSourceMigration, Acknowledged: true}}
-			decoded, err := Decode(encode(t, source, nil))
-			require.NoError(t, err)
-			assert.Equal(t, CurrentVersion, decoded.Snapshot.Version)
-			assert.Equal(t, source.Redux.PlayerKnowledge, decoded.Snapshot.Redux.PlayerKnowledge, "preserve unread, source and date without inferred associations")
-			assert.Equal(t, source.Redux.QuestJournal[0], decoded.Snapshot.Redux.QuestJournal[0])
-			assert.Equal(t, journal.EmptyPresentation(), decoded.Snapshot.Presentation, "old projected facts start seen with no transcript")
-			require.Len(t, decoded.Snapshot.Redux.QuestJournal, 1+len(validLoreKnowledge()), "dungeon progress does not fabricate Word of Power lore or events")
-			for index, lore := range validLoreKnowledge() {
-				event := decoded.Snapshot.Redux.QuestJournal[index+1]
-				assert.Equal(t, QuestJournalEventKnowledgeLearned, event.Kind)
-				assert.Equal(t, lore.Category+"."+lore.Key, event.Subject)
-				assert.Equal(t, lore.DiscoveredOn, event.OccurredOn)
-				assert.Equal(t, lore.Source.Kind, event.Source)
-				assert.Equal(t, lore.Source.DisplayName, event.SourceName)
-				assert.True(t, event.Acknowledged)
-			}
-			canonical, err := EncodeCanonical(decoded)
-			require.NoError(t, err)
-			reloaded, err := Decode(canonical)
-			require.NoError(t, err)
-			decoded.legacyExcerpts = false
-			assert.Equal(t, decoded, reloaded, "do not duplicate backfill on current reload")
-		})
-	}
-}
-
-func TestJournalV16FrozenVersionsRejectNewSemantics(t *testing.T) {
-	t.Parallel()
-	for version, encode := range map[int]func(*testing.T, SaveSnapshot, func(map[string]any)) []byte{
-		12: versionTwelveEnvelopeData, 13: versionThirteenEnvelopeData, 14: versionFourteenEnvelopeData, 15: versionFifteenEnvelopeData,
-	} {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			compiled, _ := compileNativeSaveSchema(t, version)
-			for name, mutate := range map[string]func(map[string]any){
-				"presentation": func(body map[string]any) { body["presentation"] = journal.EmptyPresentation() },
-				"new category": func(body map[string]any) {
-					body["redux"].(map[string]any)["playerKnowledge"].([]any)[0].(map[string]any)["category"] = "journal"
-					body["redux"].(map[string]any)["playerKnowledge"].([]any)[0].(map[string]any)["key"] = "domain.falsehood"
-				},
-				"new key": func(body map[string]any) {
-					body["redux"].(map[string]any)["playerKnowledge"].([]any)[0].(map[string]any)["key"] = "domain.falsehood"
-				},
-				"observation": func(body map[string]any) {
-					body["redux"].(map[string]any)["playerKnowledge"].([]any)[0].(map[string]any)["source"].(map[string]any)["kind"] = "observation"
-				},
-				"revelation": func(body map[string]any) {
-					body["redux"].(map[string]any)["playerKnowledge"].([]any)[0].(map[string]any)["source"].(map[string]any)["kind"] = "revelation"
-				},
-				"new event kind": func(body map[string]any) {
-					body["redux"].(map[string]any)["questJournal"].([]any)[0].(map[string]any)["kind"] = "knowledge-learned"
-				},
-				"codex event kind": func(body map[string]any) {
-					body["redux"].(map[string]any)["questJournal"].([]any)[0].(map[string]any)["kind"] = "codex-answer-learned"
-				},
-				"new event source": func(body map[string]any) {
-					body["redux"].(map[string]any)["questJournal"].([]any)[0].(map[string]any)["source"] = "dialogue"
-				},
-				"sourceName": func(body map[string]any) {
-					body["redux"].(map[string]any)["questJournal"].([]any)[0].(map[string]any)["sourceName"] = ""
-				},
-			} {
-				t.Run(name, func(t *testing.T) {
-					source := validSnapshot()
-					source.Redux.PlayerKnowledge = validLoreKnowledge()
-					source.Progression.Shadowlords.Alive[0] = false
-					source.Redux.QuestJournal = []QuestJournalEventSnapshot{{Sequence: 1, Kind: QuestJournalEventShadowlordDefeated, Subject: QuestJournalSubjectFaulinei, Source: QuestJournalSourceMigration, Acknowledged: true}}
-					data := encode(t, source, mutate)
-					_, err := Decode(data)
-					assert.Error(t, err)
-					assert.Error(t, compiled.Validate(archivedEnvelopeOneSchemaInstance(t, data)))
-				})
-			}
-		})
-	}
-}
-
-func TestJournalV16PreservesV15CadenceAndCanonicalRepositoryRevision(t *testing.T) {
-	t.Parallel()
-	source := validSnapshot()
-	source.Effects.DurationType, source.Effects.DurationTurns = 'Q', 7
-	source.Effects.QuicknessWorldActorSkip, source.Effects.TownMountedActorSkip = true, true
-	source.Effects.TownQuicknessActorSkip, source.Effects.OutdoorMountedActorSkip = true, true
-	data := versionFifteenEnvelopeData(t, source, nil)
-	decoded, err := Decode(data)
-	require.NoError(t, err)
-	assert.Equal(t, source, decoded.Snapshot, "all v15 cadence bits retain their meaning")
-	_, err = DecodeUnsupportedVersion(data)
-	assert.ErrorIs(t, err, ErrInvalidEnvelope)
-	repository, roots := newTestRepository(t)
-	require.NoError(t, os.MkdirAll(roots[0], 0o755))
-	path := filepath.Join(roots[0], "journal-v15.json")
-	require.NoError(t, os.WriteFile(path, data, 0o600))
-	loaded, err := repository.Load("project:journal-v15")
-	require.NoError(t, err)
-	canonical, err := EncodeCanonical(loaded.Envelope)
-	require.NoError(t, err)
-	assert.Equal(t, repositoryfs.ContentRevision(canonical), loaded.Revision)
-	assert.NotEqual(t, repositoryfs.ContentRevision(data), loaded.Revision)
-	retained, err := os.ReadFile(path)
-	require.NoError(t, err)
-	assert.Equal(t, data, retained)
-}
-
-func TestJournalV16SchemaRetainsUnchangedDefinitions(t *testing.T) {
-	t.Parallel()
-	_, previous := compileNativeSaveSchemaFile(t, "native-save-e2-s15.schema.json")
-	_, current := compileNativeSaveSchemaFile(t, "native-save-e2-s16.schema.json")
-	before := previous.(map[string]any)["$defs"].(map[string]any)
-	after := current.(map[string]any)["$defs"].(map[string]any)
-	for name, definition := range before {
-		if strings.HasPrefix(name, "bundled") && name != "bundled303" && name != "bundled304" || name == "continuation" {
-			assert.Equal(t, definition, after[name], name)
-		}
-	}
 }
 
 func TestJournalV16LoreSourceUnicodeWhitespaceSchemaParity(t *testing.T) {

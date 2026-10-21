@@ -165,7 +165,6 @@ func (g *GameState) actionGetDungeonMap() bool {
 			return references.DungeonCell(before.Raw() & 0x08)
 		})
 		g.generateDungeonChestLoot()
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 		g.SystemCallbacks.Screen.UpdateDisplay()
 
 		return true
@@ -279,7 +278,6 @@ func (g *GameState) applyChestTrap(characterIndex int) {
 		panic("dungeon chest selected unknown trap")
 	}
 	g.publishTransientStatusChanges(changes)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 }
 
 func (g *GameState) processDungeonCurrentCellBomb() {
@@ -302,7 +300,6 @@ func (g *GameState) processDungeonCurrentCellBomb() {
 		g.PartyState.GetCharacter(index).SubtractHp(uint16(damage)) //nolint:gosec // Source damage is 1d8.
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	g.SystemCallbacks.Screen.UpdateDisplay()
 }
 
@@ -405,7 +402,6 @@ func (g *GameState) ApplyDungeonFountainChoice(
 	}
 	g.publishTransientStatusChanges(changes)
 	g.SystemCallbacks.Message.AddRowStr(result.Outcome)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result
 }

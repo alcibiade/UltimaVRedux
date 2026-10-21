@@ -12,9 +12,6 @@ import (
 
 func TestMonsterMeleeRemembersEngagerBeforeMiss(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	target := findNearestPC(monster.Position(), gs.CombatScene)
 	require.True(t, target.found)
 	require.Equal(t, monsterAdjacentDistance, target.distance)
@@ -50,9 +47,6 @@ func TestMonsterMeleeRemembersEngagerBeforeMiss(t *testing.T) {
 
 func TestRememberMeleeEngagerReplacesWithoutFallingBack(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	target := CombatTurnIdentity{IsPartyMember: true, EntityIndex: firstActiveCombatPC(gs)}
 	valid := CombatTurnIdentity{IsPartyMember: false, EntityIndex: 0}
 	inactiveReplacement := CombatTurnIdentity{IsPartyMember: false, EntityIndex: 99}
@@ -70,9 +64,6 @@ func TestRememberMeleeEngagerReplacesWithoutFallingBack(t *testing.T) {
 
 func TestCombatCastInterferencePreservesExactActorResourcesAndRNG(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	target := findNearestPC(monster.Position(), gs.CombatScene)
 	require.True(t, target.found)
 	gs.CombatScene.CurrentTurnIdentity = target.identity
@@ -131,9 +122,6 @@ func TestValidRememberedMeleeEngagerValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			target := CombatTurnIdentity{IsPartyMember: true, EntityIndex: firstActiveCombatPC(gs)}
 			attacker := CombatTurnIdentity{IsPartyMember: false, EntityIndex: 0}
 			gs.rememberMeleeEngager(target, attacker)
@@ -154,9 +142,6 @@ func TestValidRememberedMeleeEngagerValidation(t *testing.T) {
 
 func TestRememberedMeleeEngagerUsesExactCloneIdentity(t *testing.T) {
 	gs, callbacks, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := firstActiveCombatPC(gs)
 	clone := gs.CombatScene.addPCCloneFromSource(
 		CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex},
@@ -184,9 +169,6 @@ func TestRememberedMeleeEngagerUsesExactCloneIdentity(t *testing.T) {
 func TestRememberedMeleeEngagerClearsAtActionAndSkipCompletion(t *testing.T) {
 	t.Run("completed action", func(t *testing.T) {
 		gs, _ := setupCombatStatusTest(t)
-		if gs == nil {
-			return
-		}
 		target := CombatTurnIdentity{IsPartyMember: true, EntityIndex: firstActiveCombatPC(gs)}
 		gs.CombatScene.CurrentTurnIdentity = target
 		gs.CombatScene.currentTurnIdentitySet = true
@@ -200,9 +182,6 @@ func TestRememberedMeleeEngagerClearsAtActionAndSkipCompletion(t *testing.T) {
 
 	t.Run("skipped action", func(t *testing.T) {
 		gs, _ := setupCombatStatusTest(t)
-		if gs == nil {
-			return
-		}
 		target := CombatTurnIdentity{IsPartyMember: true, EntityIndex: firstActiveCombatPC(gs)}
 		gs.setCombatPCSleeping(target, true)
 		forceNextCombatActor(gs.CombatScene.TurnQueue, target.EntityIndex, true)

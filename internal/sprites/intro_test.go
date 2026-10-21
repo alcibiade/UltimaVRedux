@@ -4,8 +4,9 @@ import (
 	"image"
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 var (

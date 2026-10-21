@@ -15,7 +15,6 @@ type JimmyDoorState int
 const (
 	JimmyDoorNoLockPicks JimmyDoorState = iota
 	JimmyUnlocked
-	JimmyLockedMagical
 	JimmyNotADoor
 	JimmyBrokenPick
 	JimmyPrisonerFreed
@@ -94,10 +93,6 @@ func (g *GameState) actionJimmySurface(
 		g.SystemCallbacks.UI.ShowActionFeedback("Key broke!", true)
 
 		return false
-	case JimmyLockedMagical:
-		g.SystemCallbacks.UI.ShowActionFeedback("Magically Locked!", true)
-
-		return false
 	case JimmyDoorNoLockPicks:
 		g.SystemCallbacks.UI.ShowActionFeedback("No Keys!", true)
 
@@ -139,7 +134,7 @@ func (g *GameState) ActionJimmyCombatMapWithDisarm(direction references.Directio
 
 		return true, nil
 	}
-	result := g.jimmySurfaceDoorAt(g.GetCurrentLayeredMap(), targetPos, combatant)
+	result := g.jimmyWorldDoorAt(g.GetCurrentLayeredMap(), targetPos, combatant)
 	if result == JimmyUnlocked {
 		g.setCombatTerrain(*targetPos, g.GetCurrentLayeredMap().GetTileTopMapOnlyTile(targetPos).Index)
 	}
@@ -332,13 +327,17 @@ func (g *GameState) jimmyWorldDoorAt(
 	if targetTile == nil {
 		return JimmyNotADoor
 	}
+	keys := &g.PartyState.Inventory.Provisions.Keys
 	switch targetTile.Index { //nolint:exhaustive // Only surface lock families are relevant.
 	case indexes.LockedDoor, indexes.LockedDoorView:
+		if !keys.HasSome() {
+			return JimmyDoorNoLockPicks
+		}
 		if player == nil {
 			return JimmyNoCharacter
 		}
 		if !g.isJimmySuccessful(player) {
-			g.PartyState.Inventory.Provisions.Keys.DecrementByOne()
+			keys.DecrementByOne()
 
 			return JimmyBrokenPick
 		}
@@ -350,9 +349,12 @@ func (g *GameState) jimmyWorldDoorAt(
 
 		return JimmyUnlocked
 	case indexes.MagicLockDoor, indexes.MagicLockDoorWithView:
-		// Original Search/Get/Open/Jimmy rules: a magical surface lock always breaks one key.
-		// See ref:PROV-0004.
-		g.PartyState.Inventory.Provisions.Keys.DecrementByOne()
+		if !keys.HasSome() {
+			return JimmyDoorNoLockPicks
+		}
+		// Original Search/Get/Open/Jimmy rules: a magical lock always breaks one
+		// key, in towns and on combat maps alike. See ref:PROV-0004.
+		keys.DecrementByOne()
 
 		return JimmyBrokenPick
 	default:
@@ -402,45 +404,11 @@ func (g *GameState) jimmySurfaceChest(
 	return JimmyChestUnlocked
 }
 
-func (g *GameState) jimmySurfaceDoorAt(
-	theMap *map_state.LayeredMap,
-	targetPos *references.Position,
-	player *party_state.PlayerCharacter,
-) JimmyDoorState {
-	targetTile := theMap.GetTileTopMapOnlyTile(targetPos)
-	switch targetTile.Index { //nolint:exhaustive // Only surface-style door tile families are relevant.
-	case indexes.LockedDoor, indexes.LockedDoorView:
-		if !g.PartyState.Inventory.Provisions.Keys.HasSome() {
-			return JimmyDoorNoLockPicks
-		}
-
-		if !g.isJimmySuccessful(player) {
-			g.PartyState.Inventory.Provisions.Keys.DecrementByOne()
-
-			return JimmyBrokenPick
-		}
-
-		unlockedDoor := indexes.SpriteIndex(indexes.RegularDoor)
-		if targetTile.Is(indexes.LockedDoorView) {
-			unlockedDoor = indexes.RegularDoorView
-		}
-		theMap.SetTileByLayer(map_state.MapOverrideLayer, targetPos, unlockedDoor)
-
-		return JimmyUnlocked
-	case indexes.MagicLockDoor, indexes.MagicLockDoorWithView:
-		return JimmyLockedMagical
-	default:
-		return JimmyNotADoor
-	}
-}
-
 func (g *GameState) reportCombatJimmyResult(result JimmyDoorState) bool {
 	switch result {
 	case JimmyUnlocked:
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundUnlock)
 		g.SystemCallbacks.UI.ShowActionFeedback("Unlocked!", true)
-	case JimmyLockedMagical:
-		g.SystemCallbacks.UI.ShowActionFeedback("Magically Locked!", true)
 	case JimmyBrokenPick:
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundKeyBreak)
 		g.SystemCallbacks.UI.ShowActionFeedback("Key broke!", true)

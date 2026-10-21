@@ -18,7 +18,7 @@ import (
 
 func TestMapExposureOriginalSource(t *testing.T) {
 	t.Parallel()
-	directory := originaldata.Directory(t, files.DATA_OVL, files.CASTLE_DAT, files.KEEP_DAT, files.TOWNE_DAT)
+	directory := originaldata.Directory(t, files.DataOvl, files.CastleDat, files.KeepDat, files.TowneDat)
 	configuration, err := config.LoadUltimaVConfiguration("", directory)
 	require.NoError(t, err)
 	dataOvl, err := references.NewDataOvl(configuration)

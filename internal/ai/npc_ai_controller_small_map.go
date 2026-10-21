@@ -262,6 +262,7 @@ func (n *NPCAIControllerSmallMap) isAffectedByShadowlord(npc *map_units.NPCFrien
 	// the schedule loop has advanced its index to 4, rather than testing the current actor's shape.
 	// Redux applies the routine's stated per-candidate ordinary-NPC rule so an
 	// unrelated array element cannot decide every candidate's eligibility.
+	// See ref:SHADOW-0003.
 	shape := npc.GetKeySpriteIndex()
 	if shape < indexes.Wizard1 || shape >= indexes.Apparation1 {
 		return false
@@ -299,7 +300,7 @@ func (n *NPCAIControllerSmallMap) calculateNextEnemyPosition(enemy *map_units.NP
 
 	// Original action 6 engages below Manhattan distance four; ref:NPC-0003.
 	if distance >= shadowlordPursuitRange {
-		logging.Debug(logging.CategoryAI,
+		logging.Debugf(logging.CategoryAI,
 			"Shadowlord at (%d, %d) not pursuing - player too far (distance %d >= %d)",
 			enemyPos.X, enemyPos.Y, distance, shadowlordPursuitRange)
 
@@ -308,7 +309,7 @@ func (n *NPCAIControllerSmallMap) calculateNextEnemyPosition(enemy *map_units.NP
 
 	// Check if Shadowlord is adjacent to Avatar
 	if enemyPos.IsNextTo(avatarPos, enemy.Floor(), n.mapState.PlayerLocation.Floor) {
-		logging.Debug(logging.CategoryAI,
+		logging.Debugf(logging.CategoryAI,
 			"Shadowlord adjacent to player at (%d, %d) - awaiting encounter handoff",
 			enemyPos.X, enemyPos.Y)
 

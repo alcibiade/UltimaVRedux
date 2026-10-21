@@ -35,8 +35,8 @@ class NPCReference(TypedDict):
     """Fields consumed from a ref_dump NPC record."""
 
     location: int
-    dialog_number: int
-    npc_type: int
+    dialogNumber: int
+    npcType: int
     schedule: Schedule
 
 
@@ -264,7 +264,7 @@ def find_npc_by_name(name: str, location_id: int | None = None) -> list[NameMatc
         for npc_index, npc in enumerate(npc_refs["npcs"]):
             location = npc["location"]
             source = LOCATION_TO_MAP_TYPE.get(location, "").lower()
-            if npc["dialog_number"] != origin["dialog"] or source != origin["source"]:
+            if npc["dialogNumber"] != origin["dialog"] or source != origin["source"]:
                 continue
             if location_id is not None and location != location_id:
                 continue
@@ -289,7 +289,7 @@ def find_npc_by_dialog(
 
     results: list[NPCDetails] = []
     for i, npc in enumerate(npc_refs["npcs"]):
-        if npc.get("dialog_number") == dialog_num:
+        if npc.get("dialogNumber") == dialog_num:
             if location_id is None or npc.get("location") == location_id:
                 results.append(
                     {
@@ -297,7 +297,7 @@ def find_npc_by_dialog(
                         "location": npc.get("location"),
                         "location_name": get_location_name(npc.get("location")),
                         "dialog_number": dialog_num,
-                        "npc_type": npc.get("npc_type"),
+                        "npc_type": npc.get("npcType"),
                         "schedule": npc.get("schedule"),
                         "tlk_file": get_tlk_file(npc.get("location")),
                     }
@@ -325,14 +325,14 @@ def list_npcs_in_location(location_name: str) -> list[NPCSummary]:
     results: list[NPCSummary] = []
     for i, npc in enumerate(npc_refs["npcs"]):
         if npc.get("location") == location_id:
-            dn = npc.get("dialog_number", 0)
+            dn = npc.get("dialogNumber", 0)
             # Skip empty/guard NPCs for cleaner output
             if 0 < dn < 128:
                 results.append(
                     {
                         "npc_index": i,
                         "dialog_number": dn,
-                        "npc_type": npc.get("npc_type"),
+                        "npc_type": npc.get("npcType"),
                         "schedule": npc.get("schedule"),
                     }
                 )
@@ -380,8 +380,8 @@ def show_npc_schedule(npc_index: int) -> NPCDetails | None:
         "npc_index": npc_index,
         "location": npc.get("location"),
         "location_name": get_location_name(npc.get("location")),
-        "dialog_number": npc.get("dialog_number"),
-        "npc_type": npc.get("npc_type"),
+        "dialog_number": npc.get("dialogNumber"),
+        "npc_type": npc.get("npcType"),
         "schedule": npc.get("schedule"),
         "tlk_file": get_tlk_file(npc.get("location")),
     }

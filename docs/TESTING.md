@@ -7,6 +7,9 @@ explains the rationale for real-data integration coverage.
 ## Principles
 
 - Use standard Go `*_test.go` tests close to the package under test.
+- **A test is not a test without at least one valuable assertion**: one that fails
+  when the behaviour it names regresses. Logging, "did not panic", restating a
+  constant or a test that cannot fail does not count; delete such tests.
 - Add a regression test for every bug fix and explain the behavior it protects.
 - Keep unit tests independent of copyrighted Ultima V assets.
 - Use real game data when parsing, map layout, save state, or cross-system behavior is part of the assertion.
@@ -174,15 +177,8 @@ human CLI invocation and result loading.
   directory. Establish stable gameplay first so the latter can persist rollback.
   A successful converter exit is not this interactive acceptance.
 
-Production compilation has passed for darwin/arm64, linux/arm64, linux/amd64, and
-windows/amd64. Anonymous public `@main` installation of the game and converter,
-installed help, and bounded no-sound startup outside the checkout have passed on
-Apple Silicon macOS. The maintainer separately tested the game on macOS and
-reported that it looks good; these results do not establish a full manual
-acceptance matrix. Native Linux and Windows testing is deferred with the
-maintainer's approval, and their runtime behavior remains unverified. See
-[installation acceptance](INSTALL.md#installation-acceptance) for the verified
-conditions. Keep build/install results, including `CGO_ENABLED=0`, separate from
+[Platform status](INSTALL.md#platform-status) records what has been verified on
+each target. Keep build/install results, including `CGO_ENABLED=0`, separate from
 native graphics, audio, keyboard/IME, setup, save/load, and update acceptance.
 
 Use default skipping for public asset-independent runs. Private original-data

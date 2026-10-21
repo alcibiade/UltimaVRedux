@@ -193,7 +193,7 @@ func TestRelHurProductionBuilderHandlesRejectedDirection(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 	mock.Reset()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused builder fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 	workflow := state.EventQueueManager.Workflow("test_surface_spell_dispatch").
 		Priority(event_queue.PriorityNormal).
 		Sequential().
@@ -335,7 +335,7 @@ func TestVasRelPorProductionDispatchOwnsTransitionResourcesAndOneMinute(t *testi
 
 			validation := state.ValidateAndConsumeSpellResources(request)
 			require.True(t, validation.Valid, validation.ErrorMsg)
-			scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused dispatch fixture.
+			scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 			castState := &spellCastingWorkflowState{moongateDestination: destination}
 			workflow := state.EventQueueManager.Workflow("test_surface_spell_dispatch").
 				Priority(event_queue.PriorityNormal).
@@ -369,7 +369,7 @@ func TestActualMoongateTeleportUsesDestinationWithoutOwningTimeOrSyntheticDaytim
 		Build()
 	state.DateTime.Hour = 12
 	mock.Reset()
-	scene := &GameScene{ //nolint:exhaustruct // Focused transition callback fixture.
+	scene := &GameScene{
 		gameState:            state,
 		moongateVisualSystem: NewMoongateVisualSystem(state),
 	}

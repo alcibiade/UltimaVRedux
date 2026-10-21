@@ -39,7 +39,7 @@ func TestActivatedAuthoredStonegateShadowlordsBypassTerrainNotOccupancy(t *testi
 					assert.False(t, controller.canOriginalNPCMoveTo(civilian, destination, npcMovementApproach), "ordinary actors still obey terrain")
 					if occupied {
 						blockerRef := references.NPCReference{Schedule: references.CreateNPCScheduledFixedOneLocation(destination, 0)}
-						blockerRef.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+						blockerRef.SetKeyIndex(indexes.TownsPersonKeyIndex)
 						blocker := map_units.NewNPCFriendly(blockerRef, 4)
 						blocker.PlaceAtScheduleSlot(0)
 						controller.mapUnits = append(controller.mapUnits, blocker)

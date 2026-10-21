@@ -16,6 +16,7 @@ func (g *GameState) registerAtlasVessel(vehicle *map_units.VehicleDetails) {
 	}
 	// REDUX DEVIATION: ordinary sextant readings require eligible context/hour.
 	// Automatic fleet bookkeeping is the user-directed possession-only convenience.
+	// See ref:VIEW-0007.
 	if g.atlasFleet.LastID >= journal.MaxAtlasIdentity {
 		panic("atlas vessel identity exhausted")
 	}

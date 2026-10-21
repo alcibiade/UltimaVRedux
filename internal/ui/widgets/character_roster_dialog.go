@@ -97,7 +97,8 @@ func (o CharacterSelectionOption) statusColor(fallback stdcolor.Color) stdcolor.
 	case party_state.Sleep:
 		return pkgcolor.EGAMagenta
 	case party_state.Charmed:
-		return pkgcolor.EGABlue
+		// Dark EGA blue is unreadable as text on black; portraits keep it.
+		return pkgcolor.EGALightBlue
 	case party_state.Dead:
 		return pkgcolor.EGARed
 	case party_state.Good:
@@ -112,7 +113,7 @@ type characterRosterDialogView struct {
 	rosterTitle string
 	options     []CharacterSelectionOption
 	selected    int
-	footer      [2]string
+	footer      string
 }
 
 type characterRosterDialogLayout struct {
@@ -510,13 +511,9 @@ func characterRosterDetailColor(state CharacterSelectionState) stdcolor.Color {
 	}
 }
 
-func (s *characterRosterDialogShell) drawFooter(screen *ebiten.Image, footer [2]string) {
+func (s *characterRosterDialogShell) drawFooter(screen *ebiten.Image, footer string) {
 	s.footerOutput.Reset()
-	line := AppendControlHints(s.footerOutput.AppendLine(), footer[0])
-	if footer[1] != "" {
-		AppendControlHints(line.Text("   ", DialogControlHintColor), footer[1])
-	}
-	line.WordWrap().Done()
+	AppendControlHints(s.footerOutput.AppendLine(), footer).WordWrap().Done()
 	totalHeight := int(math.Ceil(s.footerOutput.GetTotalHeightForLines(characterRosterDialogFooterMaximumLines)))
 	content := insetCharacterRosterRect(s.layout.footerRect, s.layout.padding)
 	y := content.Min.Y + max(0, (content.Dy()-totalHeight)/characterRosterDialogCenterDivisor)

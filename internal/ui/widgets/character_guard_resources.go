@@ -155,11 +155,9 @@ func (s *characterRosterDialogShell) appendGuardDetail(option CharacterSelection
 	}
 }
 
-func (s *characterRosterDialogShell) appendGuardFooter(footer [2]string) {
+func (s *characterRosterDialogShell) appendGuardFooter(footer string, width int) {
 	s.footerOutput.Reset()
-	for _, line := range footer {
-		AppendControlHints(s.footerOutput.AppendLine(), line).WordWrap().Done()
-	}
+	PackControlHints(s.footerOutput, ParseControlHints(footer), width, etext.AlignCenter)
 }
 
 // All seven rows and the longest explanation reserve measured space at opening
@@ -181,13 +179,12 @@ func (s *characterRosterDialogShell) calculateGuardResourceLayout(width, height 
 	panel.Max.X = panel.Min.X + panelWidth
 	contentWidth := panel.Dx() - padding*characterRosterDialogCenterDivisor
 	s.detailOutput.SetMaxCharsPerLine(max(1, s.bodyFont.CharsForWidth(contentWidth)))
-	s.footerOutput.SetMaxCharsPerLine(max(1, s.footerOutput.Font.CharsForWidth(contentWidth)))
 	detailLines := 1
 	for _, option := range view.options {
 		s.appendGuardDetail(option)
 		detailLines = max(detailLines, s.detailOutput.GetPanelContentLineCount())
 	}
-	s.appendGuardFooter(view.footer)
+	s.appendGuardFooter(view.footer, contentWidth)
 	headerHeight := guardOutputHeight(s.titleOutput, 1) + padding*characterRosterDialogCenterDivisor
 	rowLines := 1
 	if s.guardResourcesCompact {
@@ -235,8 +232,10 @@ func (s *characterRosterDialogShell) guardResourcePreferredWidth(view characterR
 	}
 	titleWidth, _ := s.titleOutput.Font.MeasureString(view.title)
 	preferred = max(preferred, int(math.Ceil(titleWidth)))
-	for _, line := range view.footer {
-		footerWidth, _ := s.footerOutput.Font.MeasureString(line)
+	// Reserve the two-row footer: actions on the first row, then the final cancel hint.
+	hints := ParseControlHints(view.footer)
+	for _, row := range [][]ControlHint{hints[:len(hints)-1], hints[len(hints)-1:]} {
+		footerWidth, _ := s.footerOutput.Font.MeasureString(joinControlHints(row, controlHintSeparator))
 		preferred = max(preferred, int(math.Ceil(footerWidth)))
 	}
 
@@ -353,8 +352,8 @@ func (s *characterRosterDialogShell) drawGuardResources(screen *ebiten.Image, vi
 	drawGuardResourceOutput(screen, s.headerOutput, detailHeader, etext.AlignStart)
 	s.appendGuardDetail(option)
 	drawGuardResourceOutput(screen, s.detailOutput, s.layout.detailBodyRect, etext.AlignStart)
-	s.appendGuardFooter(view.footer)
 	footer := s.layout.footerRect.Inset(s.layout.padding)
+	s.appendGuardFooter(view.footer, footer.Dx())
 	drawGuardResourceOutput(screen, s.footerOutput, footer, etext.AlignCenter)
 	DrawClassicPixelRoundedFrame(screen, panel, s.layout.pixelUnit, DialogRuleLightColor)
 	for _, y := range []int{s.layout.headerRect.Max.Y, s.layout.detailRect.Min.Y, s.layout.footerRect.Min.Y} {

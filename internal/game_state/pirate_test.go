@@ -30,9 +30,6 @@ func TestPirateCannonResolvesBeforeOrderedProjectileAndImpact(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	target := gs.MapState.PlayerLocation.Position
 	gs.PartyVehicle = map_units.NewNPCFriendlyVehiceNoVehicle()
 	pirate := addPirateTestEnemy(t, gs, references.Position{X: 100, Y: 98}, indexes.PirateShipDown)
@@ -47,7 +44,6 @@ func TestPirateCannonResolvesBeforeOrderedProjectileAndImpact(t *testing.T) {
 
 	gs.FirePirateCannon(pirate, target)
 	assert.Less(t, avatar.GetCurrentHp(), hpBefore)
-	assert.Equal(t, 1, mock.StatsDisplayUpdated)
 	for range 10 {
 		gs.ElapsedMs += 1000
 		gs.EventQueueManager.Update()
@@ -173,7 +169,6 @@ func TestPirateAttackPhaseWarnsAndFiresAllAlignedInSourceOrder(t *testing.T) {
 	assert.Equal(t, references.Up, warning.Facing())
 	assert.Equal(t, uint16(wantHP), member.GetCurrentHp())
 	assert.Equal(t, uint64(2), gs.GetRNG().Calls())
-	assert.Equal(t, 2, mock.StatsDisplayUpdated)
 
 	drainGameplayWorkflows(t, gs)
 	assert.Equal(t, []string{"* BOOOM! *", "* Pirate ship turns *", "* BOOOM! *"}, mock.Messages)

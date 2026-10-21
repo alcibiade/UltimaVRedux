@@ -97,12 +97,20 @@ func runApplication() error {
 	var webprofile = flag.Bool("webprofile", false, "enable web-based profiling on :6060")
 	var noSound = flag.Bool("no-sound", false, "disable music, sound effects, and ambient audio for this session")
 	var debugWorkbench = flag.Bool("debug-workbench", false, "enable browser debug workbench")
+	var showVersion = flag.Bool("version", false, "print the game version and exit")
 	var debugWorkbenchPort = flag.Int(
 		"debug-workbench-port",
 		workbench.DefaultPort,
 		"browser debug workbench loopback port",
 	)
 	flag.Parse()
+	if *showVersion {
+		if _, err := fmt.Fprintln(os.Stdout, "Ultima V Redux "+runtimeGameVersion()); err != nil {
+			return fmt.Errorf("printing version: %w", err)
+		}
+
+		return nil
+	}
 	defer text.CloseRenderer()
 
 	// Start CPU profiling if requested
@@ -114,7 +122,7 @@ func runApplication() error {
 		}
 		defer func() {
 			if closeErr := profileFile.Close(); closeErr != nil {
-				logging.Warn(logging.CategorySystem, "Closing CPU profile: %v", closeErr)
+				logging.Warnf(logging.CategorySystem, "Closing CPU profile: %v", closeErr)
 			}
 		}()
 		if err := pprof.StartCPUProfile(profileFile); err != nil {
@@ -122,7 +130,7 @@ func runApplication() error {
 			return fmt.Errorf("starting CPU profile: %w", err)
 		}
 		defer pprof.StopCPUProfile()
-		logging.Info(logging.CategorySystem, "CPU profiling enabled, writing to %s", *cpuprofile)
+		logging.Infof(logging.CategorySystem, "CPU profiling enabled, writing to %s", *cpuprofile)
 	}
 
 	// Enable web-based profiling if requested
@@ -131,21 +139,23 @@ func runApplication() error {
 		http.HandleFunc("/debug/performance", func(writer http.ResponseWriter, _ *http.Request) {
 			writer.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(writer).Encode(metrics.Snapshot()); err != nil {
-				logging.Warn(logging.CategorySystem, "Encoding profiling metrics: %v", err)
+				logging.Warnf(logging.CategorySystem, "Encoding profiling metrics: %v", err)
 			}
 		})
 		go func() {
 			const profilerHeaderTimeout = 10 * time.Second
-			logging.Info(logging.CategorySystem, "Profiling server: http://localhost:6060/debug/pprof")
+			logging.Infof(logging.CategorySystem, "Profiling server: http://localhost:6060/debug/pprof")
 			//nolint:exhaustruct // Loopback diagnostic server uses standard defaults except header/idle deadlines.
 			server := &http.Server{Addr: "localhost:6060", ReadHeaderTimeout: profilerHeaderTimeout, IdleTimeout: time.Minute}
-			logging.Debug(logging.CategorySystem, "pprof server result: %v", server.ListenAndServe())
+			logging.Debugf(logging.CategorySystem, "pprof server result: %v", server.ListenAndServe())
 		}()
 	}
 
 	// Set the window title and size
 	ebiten.SetWindowTitle("Ultima V Redux")
 	ebiten.SetRunnableOnUnfocused(true)
+	// Gameplay offers to save before a window close; Game.Update decides.
+	ebiten.SetWindowClosingHandled(true)
 
 	startup := config.LoadStartupConfiguration()
 	gameConfig := startup.Configuration
@@ -258,7 +268,7 @@ func runApplication() error {
 		var err error
 		debugServer, err = startDebugWorkbench(game, *debugWorkbenchPort)
 		if err != nil {
-			logging.Error(logging.CategorySystem, "Debug workbench unavailable: %v", err)
+			logging.Errorf(logging.CategorySystem, "Debug workbench unavailable: %v", err)
 		}
 	}
 
@@ -270,13 +280,13 @@ func runApplication() error {
 		activeConfiguration.DisplayConfiguration.WindowWidth = windowWidth
 		activeConfiguration.DisplayConfiguration.WindowHeight = windowHeight
 		if err := activeConfiguration.UpdateSaveFile(); err != nil {
-			logging.Warn(logging.CategoryConfig, "Failed to save final window size: %v", err)
+			logging.Warnf(logging.CategoryConfig, "Failed to save final window size: %v", err)
 		} else {
 			displayManager.CommitNormalWindowSize(windowWidth, windowHeight)
 		}
 	}
 	if err := shutdownDebugWorkbench(debugServer); err != nil {
-		logging.Warn(logging.CategorySystem, "Debug workbench shutdown failed: %v", err)
+		logging.Warnf(logging.CategorySystem, "Debug workbench shutdown failed: %v", err)
 	}
 	game.disposeActiveScene()
 
@@ -298,7 +308,7 @@ func runApplication() error {
 			// System failure: An incomplete requested profile cannot be reported as successful.
 			return fmt.Errorf("closing memory profile: %w", closeErr)
 		}
-		logging.Info(logging.CategorySystem, "Memory profile written to %s", *memprofile)
+		logging.Infof(logging.CategorySystem, "Memory profile written to %s", *memprofile)
 	}
 
 	if runErr != nil {
@@ -316,13 +326,13 @@ func configureRuntimeServices(
 	scenarioOptions scenarioStartupOptions,
 ) error {
 	if err := configurePlayerSaveRepository(game, playerSaveOptions); err != nil {
-		logging.Error(logging.CategorySystem, "Player save repository unavailable: %v", err)
+		logging.Errorf(logging.CategorySystem, "Player save repository unavailable: %v", err)
 	}
 	if err := configureSnapshotRepository(game, snapshotOptions); err != nil {
-		logging.Error(logging.CategorySystem, "Save snapshot repository unavailable: %v", err)
+		logging.Errorf(logging.CategorySystem, "Save snapshot repository unavailable: %v", err)
 	}
 	if err := configureScenarioRunner(game, scenarioOptions); err != nil {
-		logging.Error(logging.CategorySystem, "Scripted scenarios unavailable: %v", err)
+		logging.Errorf(logging.CategorySystem, "Scripted scenarios unavailable: %v", err)
 		if scenarioOptions.reference != "" {
 			return err
 		}

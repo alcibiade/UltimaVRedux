@@ -11,26 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func removeV24Fields(body map[string]any) {
-	delete(body, "excerpts")
-	for _, member := range []string{"basementChestHistory", "atlasNotes", "atlasFleet", "codexRevelationComplete"} {
-		delete(body, member)
-	}
-	if vehicle, ok := body["partyVehicle"].(map[string]any); ok {
-		delete(vehicle, "vesselId")
-	}
-	if units, ok := body["mapUnits"].([]any); ok {
-		for _, value := range units {
-			unit := value.(map[string]any)
-			delete(unit, "surfaceChestAuthored")
-			delete(unit, "surfaceChestTransient")
-			if vehicle, ok := unit["vehicle"].(map[string]any); ok {
-				delete(vehicle, "vesselId")
-			}
-		}
-	}
-}
-
 func v24PersonalSnapshot() SaveSnapshot {
 	snapshot := validSnapshot()
 	snapshot.BasementChestHistory[0].LastOpened = &BritannianDateSnapshot{Year: 139, Month: 13, Day: 28}
@@ -184,109 +164,6 @@ func TestV24RequiredPersonalMembers(t *testing.T) {
 	}
 }
 
-func TestV24EveryHistoricalVersionPromotesConservatively(t *testing.T) {
-	for version := 12; version <= 23; version++ {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			source := validSnapshot()
-			source.PartyVehicle = &VehicleSnapshot{Type: int(references.FrigateVehicle), Hull: 99}
-			source.MapUnits = append(source.MapUnits, MapUnitSnapshot{Kind: MapUnitKindVehicle, NPCNum: 3,
-				ControllerOrder: 1, Position: validPosition(), AIOverrideProvenance: "none",
-				Vehicle: &VehicleSnapshot{Type: int(references.SkiffVehicle), Hull: 99}})
-			data := historicalV20TestData(t, version, source)
-			var document map[string]any
-			require.NoError(t, json.Unmarshal(data, &document))
-			body := document["snapshot"].(map[string]any)
-			flags := []NPCFlagSnapshot{{Location: int(references.LordBritishsCastle - references.Moonglow), NPC: 23},
-				{Location: int(references.LordBritishsCastle - references.Moonglow), NPC: 25},
-				{Location: int(references.LordBritishsCastle - references.Moonglow), NPC: 31}, {Location: 17, NPC: 24}}
-			body["party"].(map[string]any)["deadNpcs"] = flags
-			data, err := json.Marshal(document)
-			require.NoError(t, err)
-			if version <= 15 {
-				schema, _ := compileNativeSaveSchema(t, version)
-				require.NoError(t, schema.Validate(archivedEnvelopeOneSchemaInstance(t, data)))
-			} else {
-				schema, _ := compileNativeSaveSchemaFile(t, fmt.Sprintf("native-save-e2-s%d.schema.json", version))
-				require.NoError(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-			}
-			decoded, err := Decode(data)
-			require.NoError(t, err)
-			got := decoded.Snapshot
-			require.Equal(t, CurrentVersion, got.Version)
-			require.Equal(t, flags[2:], got.Party.DeadNPCs)
-			date := &BritannianDateSnapshot{Year: source.World.Calendar.Year, Month: source.World.Calendar.Month, Day: source.World.Calendar.Day}
-			require.Equal(t, date, got.BasementChestHistory[0].LastOpened)
-			require.Nil(t, got.BasementChestHistory[1].LastOpened)
-			require.Equal(t, date, got.BasementChestHistory[2].LastOpened)
-			require.Zero(t, got.AtlasFleet.LastID)
-			require.Zero(t, got.AtlasNotes.LastID)
-			require.Empty(t, got.AtlasNotes.Records)
-			require.False(t, got.CodexRevelationComplete)
-			require.Zero(t, got.PartyVehicle.VesselID)
-			require.Equal(t, source.Random, got.Random)
-			for _, inject := range []func(map[string]any){
-				func(b map[string]any) { b["codexRevelationComplete"] = false },
-				func(b map[string]any) { b["basementChestHistory"] = []any{} },
-				func(b map[string]any) { b["atlasNotes"] = map[string]any{"lastId": 0, "records": nil} },
-				func(b map[string]any) { b["atlasFleet"] = map[string]any{"lastId": 0} },
-				func(b map[string]any) { b["partyVehicle"].(map[string]any)["vesselId"] = 0 },
-				func(b map[string]any) {
-					b["mapUnits"].([]any)[1].(map[string]any)["vehicle"].(map[string]any)["vesselId"] = 0
-				},
-				func(b map[string]any) { b["mapUnits"].([]any)[0].(map[string]any)["surfaceChestTransient"] = false },
-			} {
-				mutated := cloneJSONDocument(t, document)
-				inject(mutated["snapshot"].(map[string]any))
-				invalid, marshalErr := json.Marshal(mutated)
-				require.NoError(t, marshalErr)
-				_, decodeErr := Decode(invalid)
-				require.ErrorIs(t, decodeErr, ErrInvalidEnvelope)
-			}
-		})
-	}
-}
-
-func TestV24HistoricalWordKnowledgeDoesNotCompleteCodex(t *testing.T) {
-	for version := 16; version <= 23; version++ {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			source := validSnapshot()
-			addV24CodexWord(&source)
-			for i := range source.Progression.Shrines {
-				source.Progression.Shrines[i].Completed = true
-			}
-			source.CodexRevelationComplete = true
-			decoded, err := Decode(historicalV20TestData(t, version, source))
-			require.NoError(t, err)
-			require.False(t, decoded.Snapshot.CodexRevelationComplete, "neither word knowledge nor completed quests proves final acknowledgement")
-			require.Equal(t, source.Redux.PlayerKnowledge, decoded.Snapshot.Redux.PlayerKnowledge)
-			require.Equal(t, source.Redux.QuestJournal, decoded.Snapshot.Redux.QuestJournal)
-		})
-	}
-}
-
-func TestV24HistoricalBasementSurvivorKeepsAssessmentAndLoot(t *testing.T) {
-	for version := 20; version <= 23; version++ {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			source := validSnapshot()
-			position := PositionSnapshot{Location: int(references.LordBritishsCastle), Floor: -1, X: 17, Y: 22}
-			source.World.Position = position
-			number := 0x8c
-			source.MapUnits = []MapUnitSnapshot{{Kind: MapUnitKindChest, NPCNum: 24, Position: position,
-				AIOverrideProvenance: "none", SurfaceChestNumber: &number, SurfaceChestAssessment: int(references.ChestTrapped), SurfaceChestAuthored: true}}
-			source.ItemStacks = []ItemStackSnapshot{{Position: position, Items: []ItemSnapshot{{Type: 9, ID: 5, Quantity: 3}}}}
-			source.MapMutations = nil
-			decoded, err := Decode(historicalV20TestData(t, version, source))
-			require.NoError(t, err)
-			require.True(t, decoded.Snapshot.MapUnits[0].SurfaceChestAuthored)
-			require.False(t, decoded.Snapshot.MapUnits[0].SurfaceChestTransient)
-			require.Equal(t, source.MapUnits, decoded.Snapshot.MapUnits)
-			require.Equal(t, source.ItemStacks, decoded.Snapshot.ItemStacks)
-			require.Equal(t, source.Random, decoded.Snapshot.Random)
-			require.Equal(t, [3]BasementChestDailyRecordSnapshot{}, decoded.Snapshot.BasementChestHistory)
-		})
-	}
-}
-
 func TestV24ChestLifetimeSchemaAndIdentityValidation(t *testing.T) {
 	schema, _ := compileCurrentNativeSaveSchema(t)
 	snapshot := validSnapshot()
@@ -357,21 +234,4 @@ func TestV24CompleteCodexPreservesValidFirstDiscoverySources(t *testing.T) {
 			requireV23RoundTrip(t, schema, snapshot)
 		})
 	}
-}
-
-func TestV24V12ReconstructionKeepsMigratedBasementHistory(t *testing.T) {
-	source := validSnapshot()
-	source.World.Position = PositionSnapshot{Location: int(references.LordBritishsCastle), X: 15, Y: 21, Floor: 0}
-	data := versionTwelveEnvelopeData(t, source, func(body map[string]any) {
-		body["mapUnits"], body["itemStacks"], body["mapMutations"] = nil, nil, nil
-		body["redux"].(map[string]any)["reconstructMapUnits"] = true
-		body["party"].(map[string]any)["deadNpcs"] = []NPCFlagSnapshot{{Location: int(references.LordBritishsCastle - references.Moonglow), NPC: 23}}
-	})
-	decoded, err := Decode(data)
-	require.NoError(t, err)
-	require.True(t, decoded.Snapshot.NeedsMapUnitReconstruction())
-	require.Empty(t, decoded.Snapshot.MapUnits)
-	require.Empty(t, decoded.Snapshot.Party.DeadNPCs)
-	date := source.World.Calendar
-	require.Equal(t, &BritannianDateSnapshot{Year: date.Year, Month: date.Month, Day: date.Day}, decoded.Snapshot.BasementChestHistory[0].LastOpened)
 }

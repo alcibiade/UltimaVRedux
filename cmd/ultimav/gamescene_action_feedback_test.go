@@ -320,9 +320,9 @@ func TestActionFeedbackResponsiveSurfaceAndDungeonSafeBounds(t *testing.T) {
 			name := fmt.Sprintf("%dx%d/location-%d", size.X, size.Y, location)
 			t.Run(name, func(t *testing.T) {
 				manager.PublishLogicalSize(size.X, size.Y)
-				state := &game_state.GameState{} //nolint:exhaustruct // Focused responsive fixture.
+				state := &game_state.GameState{}
 				state.MapState.PlayerLocation.Location = location
-				scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused responsive fixture.
+				scene := &GameScene{gameState: state}
 				scene.ShowActionFeedback("one", false)
 				first := scene.transientActionFeedback[0]
 				preferred := transientFeedbackNormalCenter
@@ -399,9 +399,9 @@ func newTransientFeedbackTestScene(t *testing.T, location references.Location) (
 	saved := *manager
 	t.Cleanup(func() { *manager = saved })
 	manager.PublishLogicalSize(1280, 720)
-	state := &game_state.GameState{} //nolint:exhaustruct // Focused presentation fixture.
+	state := &game_state.GameState{}
 	state.MapState.PlayerLocation.Location = location
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused presentation fixture.
+	scene := &GameScene{gameState: state}
 	t.Cleanup(scene.clearTransientActionFeedback)
 
 	return scene, state

@@ -21,7 +21,7 @@ func TestGemViewWorkflowRemovesDialogAfterDismissal(t *testing.T) {
 		WithPlayerAt(10, 10).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused dialog fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 	var dialog *widgets.GemViewDialog
 
 	state.EventQueueManager.Workflow("test_gem_view_lifecycle").
@@ -51,8 +51,8 @@ func TestGemViewWorkflowRemovesDialogAfterDismissal(t *testing.T) {
 }
 
 func TestFinishSpellCastingWorkflowRestoresOwnedViewState(t *testing.T) {
-	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused cleanup fixture.
-	dialog := widgets.NewGemViewDialog(widgets.GemViewDialogConfig{                           //nolint:exhaustruct // Rendering is not exercised.
+	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
+	dialog := widgets.NewGemViewDialog(widgets.GemViewDialogConfig{
 		Placement: centeredGameDialogPercents,
 		Keyboard:  scene.keyboard,
 	})
@@ -74,7 +74,7 @@ func TestFinishSpellCastingWorkflowRestoresOwnedViewState(t *testing.T) {
 }
 
 func TestFinishSpellCastingWorkflowPreservesPreviousXRayState(t *testing.T) {
-	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), xRayVisionActive: true} //nolint:exhaustruct // Focused cleanup fixture.
+	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld), xRayVisionActive: true}
 	state := &spellCastingWorkflowState{restoreXRay: true, previousXRay: true}
 
 	scene.finishSpellCastingWorkflow(state)
@@ -91,7 +91,7 @@ func TestSurfaceViewTileSourceWrapsAndExcludesUnits(t *testing.T) {
 		WithPlayerAt(0, 0).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused map-source fixture.
+	scene := &GameScene{gameState: state}
 	position := references.Position{X: 255, Y: 255}
 	theMap := state.GetLayeredMapByCurrentLocation()
 	theMap.SetTileByLayer(map_state.MapLayer, &position, indexes.Grass)
@@ -107,7 +107,7 @@ func TestGemViewWorkflowDoesNotOwnTimeAdvancement(t *testing.T) {
 		WithPlayerAt(10, 10).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused dialog fixture.
+	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartGemViewWorkflow()
 	state.EventQueueManager.Update()

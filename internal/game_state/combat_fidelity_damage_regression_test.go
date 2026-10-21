@@ -175,7 +175,7 @@ func TestCombatDirectFireFieldPreservesPlayerKillExperience(t *testing.T) {
 	require.True(t, state.ResolvePendingCombatSpell())
 
 	assert.True(t, target.IsDead())
-	assert.Equal(t, experienceBefore+uint16(CombatCalcExperience(target.MaxHP())), caster.Exp)
+	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(target.MaxHP())), caster.Exp)
 }
 
 func TestCombatDirectPCFireUsesMagicDamageWhileStandingFireUsesZeroToTen(t *testing.T) {

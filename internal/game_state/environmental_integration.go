@@ -6,7 +6,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
-	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
@@ -14,19 +13,14 @@ import (
 // Earthquake effect timing constants
 const (
 	earthquakeRandomFeedbackName = "earthquake_random_effect"
-	earthquakeDebugFeedbackName  = "debug_workbench.vfx.earthquake"
 
 	// Random earthquake parameters (triggered in underworld)
 	earthquakeRandomDurationMs = 4000 // 4 second shake duration
 	earthquakeRandomPixels     = 10.0 // Shake pixel range
 
 	// Audio fade timing
-	earthquakeSoundFadeInMs      = 500  // Standard earthquake sound fade in
-	earthquakeSoundFadeOutMs     = 500  // Standard fade out
-	earthquakeSoundFadeOutSlowMs = 1000 // Slower fade out for custom earthquakes
-
-	// Custom earthquake scaling
-	earthquakeIntensityToPixelsScale = 12.0 // Multiplier from intensity to pixel range
+	earthquakeSoundFadeInMs  = 500 // Standard earthquake sound fade in
+	earthquakeSoundFadeOutMs = 500 // Standard fade out
 )
 
 // Environmental hazard timing constants
@@ -99,7 +93,6 @@ func (g *GameState) cachePlayerUpdateStatuses() playerUpdateStatusCache {
 	}
 	if active := g.activePlayerIndex; active >= 0 && result.Active[active] && result.Statuses[active] == party_state.Dead {
 		g.activePlayerIndex = -1
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	}
 
 	return result
@@ -511,34 +504,6 @@ func (g *GameState) checkForUnderworldEarthquake() {
 	}
 
 	g.earthquakeSystem.CheckForRandomEarthquake(g.MapState.IsUnderworld(), &g.PartyState)
-}
-
-// QueueDebugEarthquakeFeedback starts one parameterized presentation-only earthquake.
-func (g *GameState) QueueDebugEarthquakeFeedback(durationMs int, intensity float64) bool {
-	if g.EventQueueManager.HasFeedback(earthquakeDebugFeedbackName) {
-		return false
-	}
-	shakePixels := intensity * earthquakeIntensityToPixelsScale
-	logging.Debug(logging.CategoryGameState, "Queuing debug earthquake: duration=%dms intensity=%.2f", durationMs, intensity)
-	g.EventQueueManager.TriggerFeedback(earthquakeDebugFeedbackName, event_queue.PriorityNormal,
-		func(sequence *event_queue.SequentialEventBuilder) {
-			var voice SoundVoice = SilentSoundVoice{}
-			sequence.First(func() {
-				voice = g.SystemCallbacks.Audio.Play(SoundEarthquake).FadeIn(earthquakeSoundFadeInMs).StartOwned()
-			}).ThenSequence(
-				NewPartyStateBuilder(g).ToAllParty().WithShake(durationMs, shakePixels).Build(),
-			).Finally(func() {
-				g.SystemCallbacks.Visual.SetScreenShakeOffset(0, 0)
-				voice.Stop(earthquakeSoundFadeOutSlowMs)
-			})
-		})
-
-	return true
-}
-
-// IsDebugEarthquakeFeedbackActive reports pending, active, or finalizing debug earthquake feedback.
-func (g *GameState) IsDebugEarthquakeFeedbackActive() bool {
-	return g.EventQueueManager.HasFeedback(earthquakeDebugFeedbackName)
 }
 
 // SetWindByDirection sets wind using references.Direction (for spell integration)

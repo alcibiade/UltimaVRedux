@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"image"
 	"os"
-	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 const (
@@ -129,7 +129,7 @@ func LoadCharacterCreationAssets(dataDir string) (*CharacterCreationAssets, erro
 	if err != nil {
 		return nil, fmt.Errorf("loading character creation font: %w", err)
 	}
-	questionPath := filepath.Join(dataDir, "QUESTION.DAT")
+	questionPath := files.Resolve(dataDir, "QUESTION.DAT")
 	questionData, err := os.ReadFile(questionPath) //nolint:gosec // Configured original-data directory is user-selected.
 	if err != nil {
 		return nil, fmt.Errorf("reading character creation text %s: %w", questionPath, err)

@@ -347,7 +347,7 @@ func (g *GameScene) addLordBritishFailureFinale(
 	})
 	if !recoveryOffered {
 		q.Then(func() {
-			dialog.SetControlHint("Any key: Return to Main Menu")
+			dialog.SetControlHint("[Any key] Return to Main Menu")
 		})
 
 		return

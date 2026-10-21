@@ -1313,104 +1313,6 @@
     "destructive": false
   },
   {
-    "id": "conversation.script.catalog",
-    "category": "Conversations",
-    "name": "Conversation Script Catalog",
-    "description": "List loaded runtime semantic conversations for one original source.",
-    "searchTerms": [
-      "talk",
-      "dialogue",
-      "dialog",
-      "npc",
-      "tlk",
-      "conversation"
-    ],
-    "parameters": [
-      {
-        "id": "source",
-        "name": "Source",
-        "kind": "enum",
-        "required": false,
-        "default": "towne",
-        "choices": [
-          {
-            "value": "castle",
-            "label": "Castle"
-          },
-          {
-            "value": "keep",
-            "label": "Keep"
-          },
-          {
-            "value": "towne",
-            "label": "Towne"
-          },
-          {
-            "value": "dwelling",
-            "label": "Dwelling"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "conversation.script.inspect",
-    "category": "Conversations",
-    "name": "Inspect Conversation Script",
-    "description": "Inspect the exact patched semantic document executed by Redux.",
-    "parameters": [
-      {
-        "id": "source",
-        "name": "Source",
-        "kind": "enum",
-        "required": true,
-        "choices": [
-          {
-            "value": "castle",
-            "label": "Castle"
-          },
-          {
-            "value": "keep",
-            "label": "Keep"
-          },
-          {
-            "value": "towne",
-            "label": "Towne"
-          },
-          {
-            "value": "dwelling",
-            "label": "Dwelling"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay"
-        ]
-      },
-      {
-        "id": "index",
-        "name": "Script Index",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 47,
-        "controlHint": "number"
-      }
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
     "id": "combat.encounter.options",
     "category": "Combat",
     "name": "Encounter Options",
@@ -1752,224 +1654,6 @@
     ],
     "destructive": false,
     "scenarioTerminal": true
-  },
-  {
-    "id": "vfx.status",
-    "category": "VFX",
-    "name": "VFX Status",
-    "description": "Show active visual effects and projectile state.",
-    "searchTerms": [
-      "visual effects",
-      "projectile",
-      "earthquake",
-      "lighting",
-      "renderer",
-      "presentation"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "vfx.kapow",
-    "category": "VFX",
-    "name": "Kapow",
-    "description": "Present a kapow effect without gameplay mutation.",
-    "parameters": [
-      {
-        "id": "targetMode",
-        "name": "Target",
-        "kind": "enum",
-        "required": true,
-        "choices": [
-          {
-            "value": "player",
-            "label": "Player"
-          },
-          {
-            "value": "coordinates",
-            "label": "Coordinates"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay"
-        ]
-      },
-      {
-        "id": "x",
-        "name": "X",
-        "kind": "integer",
-        "required": false,
-        "minimum": 0,
-        "maximum": 255,
-        "controlHint": "number"
-      },
-      {
-        "id": "y",
-        "name": "Y",
-        "kind": "integer",
-        "required": false,
-        "minimum": 0,
-        "maximum": 255,
-        "controlHint": "number"
-      }
-    ],
-    "executionModes": [
-      "presentation"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "vfx.projectile",
-    "category": "VFX",
-    "name": "Projectile",
-    "description": "Present one serialized projectile without gameplay mutation.",
-    "parameters": [
-      {
-        "id": "fromMode",
-        "name": "From",
-        "kind": "enum",
-        "required": true,
-        "choices": [
-          {
-            "value": "player",
-            "label": "Player"
-          },
-          {
-            "value": "coordinates",
-            "label": "Coordinates"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay"
-        ]
-      },
-      {
-        "id": "fromX",
-        "name": "From X",
-        "kind": "integer",
-        "required": false,
-        "minimum": 0,
-        "maximum": 255,
-        "controlHint": "number"
-      },
-      {
-        "id": "fromY",
-        "name": "From Y",
-        "kind": "integer",
-        "required": false,
-        "minimum": 0,
-        "maximum": 255,
-        "controlHint": "number"
-      },
-      {
-        "id": "toX",
-        "name": "To X",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 255,
-        "controlHint": "number"
-      },
-      {
-        "id": "toY",
-        "name": "To Y",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 255,
-        "controlHint": "number"
-      },
-      {
-        "id": "projectileType",
-        "name": "Projectile",
-        "kind": "enum",
-        "required": true,
-        "choices": [
-          {
-            "value": "arrow",
-            "label": "Arrow"
-          },
-          {
-            "value": "axe",
-            "label": "Axe"
-          },
-          {
-            "value": "rock",
-            "label": "Rock"
-          },
-          {
-            "value": "cannonball",
-            "label": "Cannonball"
-          },
-          {
-            "value": "violet",
-            "label": "Violet"
-          },
-          {
-            "value": "red",
-            "label": "Red"
-          },
-          {
-            "value": "blue",
-            "label": "Blue"
-          },
-          {
-            "value": "green",
-            "label": "Green"
-          }
-        ],
-        "controlHint": "select"
-      }
-    ],
-    "executionModes": [
-      "presentation"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "environment.earthquake",
-    "category": "VFX",
-    "name": "Earthquake",
-    "description": "Present a serialized earthquake without damage, messages, or input blocking.",
-    "aliases": [
-      "env earthquake"
-    ],
-    "parameters": [
-      {
-        "id": "durationTenths",
-        "name": "Duration (Tenths)",
-        "kind": "integer",
-        "required": true,
-        "default": 20,
-        "minimum": 1,
-        "maximum": 100,
-        "controlHint": "number",
-        "availability": [
-          "gameplay"
-        ]
-      },
-      {
-        "id": "intensityTenths",
-        "name": "Intensity (Tenths)",
-        "kind": "integer",
-        "required": true,
-        "default": 8,
-        "minimum": 1,
-        "maximum": 20,
-        "controlHint": "number",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "presentation"
-    ],
-    "destructive": false
   },
   {
     "id": "monster.ecosystem.status",
@@ -4224,6 +3908,7 @@
       "collision",
       "placeholders",
       "dialog bounds",
+      "lighting overlay",
       "debug overlays",
       "unlimited casting",
       "spell level bypass"
@@ -4468,183 +4153,11 @@
     "searchTerms": [
       "test setup",
       "reproduce",
-      "starvation",
-      "guards",
-      "waterfall",
-      "bridge troll",
-      "word of power",
+      "camping",
       "death"
     ],
     "executionModes": [
       "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "scenario.starvation.trigger",
-    "category": "Scenarios",
-    "name": "Trigger Starvation Damage",
-    "description": "Apply one deterministic starvation damage check without changing food or time.",
-    "aliases": [
-      "pc starving"
-    ],
-    "parameters": [
-      {
-        "id": "seed",
-        "name": "Deterministic Seed",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 2147483647,
-        "controlHint": "number",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "coordinated_alteration"
-    ],
-    "destructive": true
-  },
-  {
-    "id": "scenario.starvation.force-hourly",
-    "category": "Scenarios",
-    "name": "Force Hourly Starvation",
-    "description": "Set food to zero, set hour 12, and run the authentic hourly meal check.",
-    "aliases": [
-      "pc starving force"
-    ],
-    "parameters": [
-      {
-        "id": "seed",
-        "name": "Deterministic Seed",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 2147483647,
-        "controlHint": "number",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "coordinated_alteration"
-    ],
-    "destructive": true
-  },
-  {
-    "id": "scenario.guards.activate",
-    "category": "Scenarios",
-    "name": "Activate Town Guards",
-    "description": "Mark the party criminal and make all eligible guards on the current small map hostile.",
-    "aliases": [
-      "guards activate"
-    ],
-    "executionModes": [
-      "live_safe"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "scenario.waterfall.setup",
-    "category": "Scenarios",
-    "name": "Set Up Waterfall Entry",
-    "description": "Move to the tile immediately before the canonical waterfall trigger step.",
-    "aliases": [
-      "mv special falls"
-    ],
-    "executionModes": [
-      "synchronized_live"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "scenario.bridge-troll.start",
-    "category": "Scenarios",
-    "name": "Test Bridge Troll Sneak and Attack",
-    "description": "Move onto an original troll bridge, force the first sneak check to fail, set gold to zero, and start the production toll workflow.",
-    "aliases": [
-      "bridge troll",
-      "troll attack"
-    ],
-    "parameters": [
-      {
-        "id": "seed",
-        "name": "Deterministic Seed",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 2147483647,
-        "controlHint": "number",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "workflow"
-    ],
-    "destructive": true,
-    "scenarioTerminal": true
-  },
-  {
-    "id": "scenario.word.setup",
-    "category": "Scenarios",
-    "name": "Set Up Word of Power",
-    "description": "Move beside the original dungeon entrance matching one Word of Power.",
-    "aliases": [
-      "command yell"
-    ],
-    "parameters": [
-      {
-        "id": "word",
-        "name": "Word of Power",
-        "kind": "enum",
-        "required": true,
-        "choices": [
-          {
-            "value": "fallax",
-            "label": "FALLAX · Deceit"
-          },
-          {
-            "value": "vilis",
-            "label": "VILIS · Despise"
-          },
-          {
-            "value": "inopia",
-            "label": "INOPIA · Destard"
-          },
-          {
-            "value": "malum",
-            "label": "MALUM · Wrong"
-          },
-          {
-            "value": "avidus",
-            "label": "AVIDUS · Covetous"
-          },
-          {
-            "value": "infama",
-            "label": "INFAMA · Shame"
-          },
-          {
-            "value": "ignavus",
-            "label": "IGNAVUS · Hythloth"
-          },
-          {
-            "value": "veramocor",
-            "label": "VERAMOCOR · Doom"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "synchronized_live"
     ],
     "destructive": false
   },
@@ -5386,149 +4899,6 @@
       "coordinated_alteration"
     ],
     "destructive": true
-  },
-  {
-    "id": "codex.equipment.catalog",
-    "category": "Codex",
-    "name": "Equipment Compendium",
-    "description": "Browse immutable original equipment identities, combat values, requirements, and abilities.",
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.monster.catalog",
-    "category": "Codex",
-    "name": "Monster Bestiary",
-    "description": "Browse immutable monster identities, original combat data, movement flags, and abilities.",
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.spell.catalog",
-    "category": "Codex",
-    "name": "Spell and Reagent Grimoire",
-    "description": "Compare all original spells with Redux targeting, formulas, visuals, audio, events, issues, opportunities, and code references.",
-    "searchTerms": [
-      "spell",
-      "magic",
-      "reagent",
-      "targeting",
-      "audio",
-      "visual",
-      "formula",
-      "known issues",
-      "code references"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.tile.catalog",
-    "category": "Codex",
-    "name": "Tile Atlas",
-    "description": "Browse immutable tile identities, rendering metadata, and derived passability rules.",
-    "searchTerms": [
-      "sprites",
-      "tiles",
-      "passability",
-      "terrain",
-      "animation",
-      "lighting"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.location.catalog",
-    "category": "Codex",
-    "name": "World Gazetteer",
-    "description": "Browse location identities, map families, floors, and original overworld entrances.",
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.npc.catalog",
-    "category": "Codex",
-    "name": "NPC Schedule Index",
-    "description": "Browse loaded NPC identities, dialogue references, sprites, and scheduled behavior.",
-    "searchTerms": [
-      "npc",
-      "schedule",
-      "dialogue",
-      "conversation",
-      "sprite",
-      "ai"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.quest.catalog",
-    "category": "Codex",
-    "name": "Quest Artifact Ledger",
-    "description": "Browse immutable quest-artifact identities, sprites, and pickup descriptions.",
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.save-format.catalog",
-    "category": "Codex",
-    "name": "Save Format Explorer",
-    "description": "Browse documented canonical SAVED.GAM layout and important field offsets.",
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.search-location.catalog",
-    "category": "Codex",
-    "name": "Search Location Atlas",
-    "description": "Decode the original search-location catalog, payloads, and repeat requirements (CMD-0007).",
-    "searchTerms": [
-      "search",
-      "atlas",
-      "sjog",
-      "object",
-      "payload",
-      "repeat"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "codex.consumable.catalog",
-    "category": "Codex",
-    "name": "Consumables Codex",
-    "description": "Compare original potion and scroll behavior with current Redux support and deviations.",
-    "searchTerms": [
-      "potion",
-      "scroll",
-      "consumable",
-      "original",
-      "redux",
-      "support"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
   },
   {
     "id": "save.snapshot.list",
@@ -6276,7 +5646,9 @@
         "controlHint": "select"
       }
     ],
-    "executionModes": ["live_safe"],
+    "executionModes": [
+      "live_safe"
+    ],
     "destructive": false,
     "scenarioExcluded": true
   },
@@ -6294,7 +5666,9 @@
         "controlHint": "select"
       }
     ],
-    "executionModes": ["live_safe"],
+    "executionModes": [
+      "live_safe"
+    ],
     "destructive": false,
     "scenarioExcluded": true
   },
@@ -6315,7 +5689,9 @@
         "controlHint": "number"
       }
     ],
-    "executionModes": ["live_safe"],
+    "executionModes": [
+      "live_safe"
+    ],
     "destructive": false,
     "scenarioExcluded": true
   },
@@ -6388,8 +5764,17 @@
     "category": "Redux Modifications",
     "name": "Set Smooth Surface Movement",
     "description": "Persist optional camera scrolling while walking, riding, flying or boating; mounts animate 25% faster and automatic sailing follows its cadence. Gameplay timing, combat and dungeons are unchanged.",
-    "aliases": ["smooth movement", "surface scrolling"],
-    "searchTerms": ["redux", "presentation", "camera", "smooth", "movement"],
+    "aliases": [
+      "smooth movement",
+      "surface scrolling"
+    ],
+    "searchTerms": [
+      "redux",
+      "presentation",
+      "camera",
+      "smooth",
+      "movement"
+    ],
     "parameters": [
       {
         "id": "enabled",
@@ -6400,7 +5785,9 @@
         "controlHint": "select"
       }
     ],
-    "executionModes": ["live_safe"],
+    "executionModes": [
+      "live_safe"
+    ],
     "destructive": false,
     "scenarioExcluded": true
   },
@@ -6409,8 +5796,16 @@
     "category": "Redux Modifications",
     "name": "Set Flexible Sextant Use",
     "description": "Persist optional daytime and settlement sextant use on all floors, including cellars; dungeons, Underworld and ownership requirements remain excluded.",
-    "aliases": ["flexible sextant", "sextant navigation"],
-    "searchTerms": ["redux", "navigation", "sextant", "flexible"],
+    "aliases": [
+      "flexible sextant",
+      "sextant navigation"
+    ],
+    "searchTerms": [
+      "redux",
+      "navigation",
+      "sextant",
+      "flexible"
+    ],
     "parameters": [
       {
         "id": "enabled",
@@ -6421,7 +5816,9 @@
         "controlHint": "select"
       }
     ],
-    "executionModes": ["live_safe"],
+    "executionModes": [
+      "live_safe"
+    ],
     "destructive": false,
     "scenarioExcluded": true
   },
@@ -6825,258 +6222,6 @@
     "destructive": false
   },
   {
-    "id": "dungeon.explorer.status",
-    "category": "Dungeon Explorer",
-    "name": "Dungeon Explorer",
-    "description": "Inspect the active semantic dungeon floor, facing, lighting, and packed cells.",
-    "aliases": [
-      "dungeon status",
-      "dungeon map"
-    ],
-    "searchTerms": [
-      "dungeon",
-      "map",
-      "cells",
-      "facing",
-      "lighting",
-      "semantic",
-      "explorer"
-    ],
-    "executionModes": [
-      "query"
-    ],
-    "destructive": false
-  },
-  {
-    "id": "dungeon.explorer.setup",
-    "category": "Dungeon Explorer",
-    "name": "Set Up Dungeon",
-    "description": "Atomically install one reviewed dungeon, floor, coordinate, facing, and light setup.",
-    "aliases": [
-      "dungeon setup",
-      "enter dungeon"
-    ],
-    "searchTerms": [
-      "dungeon",
-      "setup",
-      "floor",
-      "position",
-      "facing",
-      "lighting",
-      "explorer"
-    ],
-    "parameters": [
-      {
-        "id": "dungeon",
-        "name": "Dungeon",
-        "kind": "enum",
-        "required": true,
-        "choices": [
-          {
-            "value": "33",
-            "label": "Deceit"
-          },
-          {
-            "value": "34",
-            "label": "Despise"
-          },
-          {
-            "value": "35",
-            "label": "Destard"
-          },
-          {
-            "value": "36",
-            "label": "Wrong"
-          },
-          {
-            "value": "37",
-            "label": "Covetous"
-          },
-          {
-            "value": "38",
-            "label": "Shame"
-          },
-          {
-            "value": "39",
-            "label": "Hythloth"
-          },
-          {
-            "value": "40",
-            "label": "Doom"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ]
-      },
-      {
-        "id": "floor",
-        "name": "Floor",
-        "kind": "integer",
-        "required": false,
-        "default": 0,
-        "minimum": 0,
-        "maximum": 7,
-        "controlHint": "number",
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ]
-      },
-      {
-        "id": "x",
-        "name": "X",
-        "kind": "integer",
-        "required": false,
-        "default": 4,
-        "minimum": 0,
-        "maximum": 7,
-        "controlHint": "number",
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ]
-      },
-      {
-        "id": "y",
-        "name": "Y",
-        "kind": "integer",
-        "required": false,
-        "default": 4,
-        "minimum": 0,
-        "maximum": 7,
-        "controlHint": "number",
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ]
-      },
-      {
-        "id": "facing",
-        "name": "Facing",
-        "kind": "enum",
-        "required": false,
-        "default": "east",
-        "choices": [
-          {
-            "value": "north",
-            "label": "North"
-          },
-          {
-            "value": "east",
-            "label": "East"
-          },
-          {
-            "value": "south",
-            "label": "South"
-          },
-          {
-            "value": "west",
-            "label": "West"
-          }
-        ],
-        "controlHint": "select",
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ]
-      },
-      {
-        "id": "lit",
-        "name": "Lit",
-        "kind": "boolean",
-        "required": false,
-        "default": true,
-        "controlHint": "select",
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ]
-      },
-      {
-        "id": "expectedLocationId",
-        "name": "Reviewed Location",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 40,
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ],
-        "scenarioRuntime": true
-      },
-      {
-        "id": "expectedFloor",
-        "name": "Reviewed Floor",
-        "kind": "integer",
-        "required": true,
-        "minimum": -1,
-        "maximum": 7,
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ],
-        "scenarioRuntime": true
-      },
-      {
-        "id": "expectedX",
-        "name": "Reviewed X",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 255,
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ],
-        "scenarioRuntime": true
-      },
-      {
-        "id": "expectedY",
-        "name": "Reviewed Y",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "maximum": 255,
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ],
-        "scenarioRuntime": true
-      },
-      {
-        "id": "expectedSourceFingerprint",
-        "name": "Reviewed Source Fingerprint",
-        "kind": "string",
-        "required": true,
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ],
-        "scenarioRuntime": true
-      },
-      {
-        "id": "expectedDungeonRevision",
-        "name": "Reviewed Dungeon Revision",
-        "kind": "integer",
-        "required": true,
-        "minimum": 0,
-        "availability": [
-          "gameplay",
-          "outside_combat"
-        ],
-        "scenarioRuntime": true
-      }
-    ],
-    "executionModes": [
-      "synchronized_live"
-    ],
-    "destructive": false
-  },
-  {
     "id": "combat.dungeon-room.clear",
     "category": "Active Combat",
     "name": "Clear Fixed Dungeon Room",
@@ -7261,85 +6406,6 @@
     ],
     "destructive": true,
     "scenarioExcluded": true
-  },
-  {
-    "id": "scenario.blackthorn-interrogation.start",
-    "category": "Scenarios",
-    "name": "Test Blackthorn Interrogation",
-    "description": "Open the first shrine, move to Blackthorn's Palace, and start the production interrogation workflow.",
-    "aliases": [
-      "blackthorn interrogation",
-      "blackthorn prison"
-    ],
-    "searchTerms": [
-      "scripted scene",
-      "martyr",
-      "mantra",
-      "palace",
-      "prison"
-    ],
-    "parameters": [
-      {
-        "id": "expectedPartyFingerprint",
-        "name": "Reviewed Party",
-        "kind": "string",
-        "required": true,
-        "availability": [
-          "gameplay"
-        ],
-        "scenarioRuntime": true
-      }
-    ],
-    "executionModes": [
-      "workflow"
-    ],
-    "destructive": true
-  },
-  {
-    "id": "scenario.lord-british-finale.start",
-    "category": "Scenarios",
-    "name": "Test Lord British Finale",
-    "description": "Choose Sandalwood Box ownership and start the production terminal Lord British rescue and ending workflow.",
-    "aliases": [
-      "lord british finale",
-      "endgame",
-      "ending"
-    ],
-    "searchTerms": [
-      "scripted scene",
-      "doom",
-      "rescue",
-      "wooden box",
-      "certificate"
-    ],
-    "parameters": [
-      {
-        "id": "expectedPartyFingerprint",
-        "name": "Reviewed Party",
-        "kind": "string",
-        "required": true,
-        "availability": [
-          "gameplay"
-        ],
-        "scenarioRuntime": true
-      },
-      {
-        "id": "woodenBox",
-        "name": "Sandalwood Box Ownership",
-        "kind": "boolean",
-        "required": true,
-        "default": true,
-        "controlHint": "select",
-        "availability": [
-          "gameplay"
-        ]
-      }
-    ],
-    "executionModes": [
-      "workflow"
-    ],
-    "destructive": true,
-    "scenarioTerminal": true
   },
   {
     "id": "display.mode.set",

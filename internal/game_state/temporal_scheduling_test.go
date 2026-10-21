@@ -28,9 +28,6 @@ func TestQuicknessAlternatesNonCombatNPCProcessing(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	controller := &countingNPCController{}
 	gs.CurrentNPCAIController = controller
 	require.True(t, gs.ActivateQuicknessEffect(4))
@@ -72,9 +69,6 @@ func TestCombatQuicknessForecastMarksMonsterLoyalActionsUncertainWithoutRNG(t *t
 
 func TestCombatQuicknessMonsterGateConsumesOneRollWithoutExpiringDuration(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	require.True(t, gs.ActivateQuicknessEffect(1))
 	queue := gs.CombatScene.TurnQueue
 	forceNextCombatActor(queue, 0, false)
@@ -110,9 +104,6 @@ func TestCombatQuicknessMonsterGateConsumesOneRollWithoutExpiringDuration(t *tes
 
 func TestAnTymEffectiveDexRespectsLoyaltyAndPCIdentity(t *testing.T) {
 	gs, _, hostile := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	hostileDexterity := hostile.GetDexterity()
 	require.True(t, gs.ActivateTimeStopEffect(10))
 	hostileIdentity := CombatTurnIdentity{EntityIndex: 0}
@@ -176,9 +167,6 @@ func TestAnTymSuppressesMonsterLoyalActionBeforeSleepProcessing(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			identity := test.prepare(gs, monster)
 			require.True(t, gs.ActivateTimeStopEffect(10))
 			gs.CombatScene.presentTurns = true

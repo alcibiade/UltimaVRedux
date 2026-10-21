@@ -1,10 +1,14 @@
 package indexes
 
+// StandardNumberOfAnimationFrames is the frame count of a standard animation
+// sequence, counted from its key index.
 const StandardNumberOfAnimationFrames = 4
 
+// SpriteIndex identifies one sprite in the shared atlas; NoSprites marks none.
 type SpriteIndex int
 
-//goland:noinspection GoSnakeCaseUsage,GoUnusedConst
+// Sprite identities indexing the shared sprite atlas, each named for the
+// original Ultima V tile it shows.
 const (
 	NoSprites                       SpriteIndex = -1
 	Explosion                                   = 0
@@ -539,88 +543,98 @@ const (
 	GrazedBang                                  = 528
 )
 
-//goland:noinspection GoSnakeCaseUsage,GoUnusedConst
+// Animation key indices mark the first frame of each animation sequence; the
+// following frames are the next StandardNumberOfAnimationFrames sprites.
 const (
-	// Animation key indices - these mark the start of 4-frame animation sequences
-	MageKeyIndex           SpriteIndex = 320 // Same as Wizard1
-	WizardKeyIndex         SpriteIndex = 320 // Same as Wizard1
-	BardKeyIndex           SpriteIndex = 324 // Bard1
-	FighterKeyIndex        SpriteIndex = 328 // Fighter1
-	AvatarKeyIndex         SpriteIndex = 332 // Avatar1
-	TownsPerson_KeyIndex   SpriteIndex = 336 // TownsPerson1
-	MerchantKeyIndex       SpriteIndex = 340 // Merchant1
-	BardPlaying_KeyIndex   SpriteIndex = 348 // BardPlaying1
-	Beggar_KeyIndex        SpriteIndex = 365 // Begger2 (note: CSV has typo)
-	Guard_KeyIndex         SpriteIndex = 368 // Guard1
-	Rat_KeyIndex           SpriteIndex = 400 // Rat1
-	Bat_KeyIndex           SpriteIndex = 404 // Bat1
-	Spider_KeyIndex        SpriteIndex = 408 // Spider1
-	Ghost_KeyIndex         SpriteIndex = 412 // Ghost1
-	Slime_KeyIndex         SpriteIndex = 416 // Slime1
-	Reaper_KeyIndex        SpriteIndex = 420 // Gremlin1
-	Gazer_KeyIndex         SpriteIndex = 424 // Mimic1
-	Orc_KeyIndex           SpriteIndex = 432 // Gazer1
-	Skeleton_KeyIndex      SpriteIndex = 452 // Skeleton1
-	StoneGargoyle_KeyIndex SpriteIndex = 440 // StoneGargoyle1
-	Snake_KeyIndex         SpriteIndex = 456 // Snake1
-	Dragon_KeyIndex        SpriteIndex = 476 // Dragon1
-	Daemon_KeyIndex        SpriteIndex = 472 // Daemon1
-	Troll_KeyIndex         SpriteIndex = 484 // Troll1
-	Whirlpool_KeyIndex     SpriteIndex = 492 // Whirpool1
-	Sandtrap_KeyIndex      SpriteIndex = 480 // SandTrap1
-	ShadowLord_KeyIndex    SpriteIndex = 508 // ShadowLord1
-	Waterfall_KeyIndex     SpriteIndex = 212 // Waterfall1
-	Fountain_KeyIndex      SpriteIndex = 216 // Fountain1
-	Manacles_Prisoner      SpriteIndex = 356 // WallPrisoner1
+	MageKeyIndex          SpriteIndex = 320 // Same as Wizard1
+	WizardKeyIndex        SpriteIndex = 320 // Same as Wizard1
+	BardKeyIndex          SpriteIndex = 324 // Bard1
+	FighterKeyIndex       SpriteIndex = 328 // Fighter1
+	AvatarKeyIndex        SpriteIndex = 332 // Avatar1
+	TownsPersonKeyIndex   SpriteIndex = 336 // TownsPerson1
+	MerchantKeyIndex      SpriteIndex = 340 // Merchant1
+	BardPlayingKeyIndex   SpriteIndex = 348 // BardPlaying1
+	BeggarKeyIndex        SpriteIndex = 365 // Begger2 (note: CSV has typo)
+	GuardKeyIndex         SpriteIndex = 368 // Guard1
+	RatKeyIndex           SpriteIndex = 400 // Rat1
+	BatKeyIndex           SpriteIndex = 404 // Bat1
+	SpiderKeyIndex        SpriteIndex = 408 // Spider1
+	GhostKeyIndex         SpriteIndex = 412 // Ghost1
+	SlimeKeyIndex         SpriteIndex = 416 // Slime1
+	ReaperKeyIndex        SpriteIndex = 420 // Gremlin1
+	GazerKeyIndex         SpriteIndex = 424 // Mimic1
+	OrcKeyIndex           SpriteIndex = 432 // Gazer1
+	SkeletonKeyIndex      SpriteIndex = 452 // Skeleton1
+	StoneGargoyleKeyIndex SpriteIndex = 440 // StoneGargoyle1
+	SnakeKeyIndex         SpriteIndex = 456 // Snake1
+	DragonKeyIndex        SpriteIndex = 476 // Dragon1
+	DaemonKeyIndex        SpriteIndex = 472 // Daemon1
+	TrollKeyIndex         SpriteIndex = 484 // Troll1
+	WhirlpoolKeyIndex     SpriteIndex = 492 // Whirpool1
+	SandtrapKeyIndex      SpriteIndex = 480 // SandTrap1
+	ShadowLordKeyIndex    SpriteIndex = 508 // ShadowLord1
+	WaterfallKeyIndex     SpriteIndex = 212 // Waterfall1
+	FountainKeyIndex      SpriteIndex = 216 // Fountain1
+	ManaclesPrisoner      SpriteIndex = 356 // WallPrisoner1
 )
 
+// IsDoor reports whether s is any door tile: plain, windowed or magic-locked.
 func (s SpriteIndex) IsDoor() bool {
-	return s == RegularDoor || s == LockedDoor || s == RegularDoorView || s == LockedDoorView || s == MagicLockDoorWithView || s == MagicLockDoor
+	return s == RegularDoor || s == LockedDoor || s == RegularDoorView ||
+		s == LockedDoorView || s == MagicLockDoorWithView || s == MagicLockDoor
 }
 
+// IsUnlockedDoor reports whether s is a regular door, with or without a view
+// window, rather than a locked one.
 func (s SpriteIndex) IsUnlockedDoor() bool {
 	return s == RegularDoor || s == RegularDoorView
 }
 
+// IsWindowedDoor reports whether s is a door with a view window.
 func (s SpriteIndex) IsWindowedDoor() bool {
 	return s == RegularDoorView || s == LockedDoorView || s == MagicLockDoorWithView
 }
 
+// IsBed reports whether s is a bed tile, including the occupied bed.
 func (s SpriteIndex) IsBed() bool {
 	return s == LeftBed || s == SleepingInBed || s == RightBed
 }
 
+// IsStairs reports whether s is a staircase tile facing any direction.
 func (s SpriteIndex) IsStairs() bool {
 	return s == StairsSouth || s == StairsWest || s == StairsNorth || s == StairsEast
 }
 
+// IsFrigateFurled reports whether s is a frigate with its sails furled.
 func (s SpriteIndex) IsFrigateFurled() bool {
 	return s == ShipNoSailsLeft || s == ShipNoSailsRight || s == ShipNoSailsDown || s == ShipNoSailsUp
 }
 
+// IsHorseUnBoarded reports whether s is a horse with no rider.
 func (s SpriteIndex) IsHorseUnBoarded() bool {
 	return s == HorseLeft || s == HorseRight
 }
 
+// IsSkiff reports whether s is a skiff facing any direction.
 func (s SpriteIndex) IsSkiff() bool {
 	return s == SkiffDown || s == SkiffLeft || s == SkiffRight || s == SkiffUp
 }
 
+// IsMagicCarpetUnboarded reports whether s is the magic carpet with no rider.
 func (s SpriteIndex) IsMagicCarpetUnboarded() bool {
 	return s == Carpet2
 }
 
+// IsPartOfAnimation reports whether s belongs to the animation that starts at
+// keyFrameIndex: that sprite and the next StandardNumberOfAnimationFrames-1.
+// Sprites below 304 are not animated and match only keyFrameIndex itself.
 func (s SpriteIndex) IsPartOfAnimation(keyFrameIndex SpriteIndex) bool {
 	const lowestPossibleAnimationIndex = 304
 	if s < lowestPossibleAnimationIndex {
 		return s == keyFrameIndex
 	}
 
-	if s >= keyFrameIndex && s <= keyFrameIndex+StandardNumberOfAnimationFrames {
-		return true
-	}
-
-	return false
+	return s >= keyFrameIndex && s < keyFrameIndex+StandardNumberOfAnimationFrames
 }
 
 // IsBeggar returns true if the sprite is part of the beggar animation sequence.
@@ -633,12 +647,7 @@ func (s SpriteIndex) IsBeggar() bool {
 
 // IsSign reports whether this terrain selects sign inspection; ref:SIGN-0003.
 func (s SpriteIndex) IsSign() bool {
-	switch s {
-	case SimpleCross, StoneHeadstone, Sign, SmallSign, SignWarning:
-		return true
-	}
-
-	return false
+	return s == SimpleCross || s == StoneHeadstone || s == Sign || s == SmallSign || s == SignWarning
 }
 
 // IsBardPlaying returns true if the sprite is part of the BANJO_PLAYER animation sequence.

@@ -197,7 +197,7 @@ func (g *GameState) collectShadowlordPresenceData(
 	if references.IsStonegateLocation(location) {
 		lords := g.ShadowlordState.GetLivingShadowlords()
 		if len(lords) > 0 {
-			logging.Info(logging.CategoryGameState,
+			logging.Infof(logging.CategoryGameState,
 				"collectShadowlordPresenceData: Stonegate - %d living Shadowlords present",
 				len(lords))
 		}
@@ -214,7 +214,7 @@ func (g *GameState) collectShadowlordPresenceData(
 	// Original: original town rules - "been thrown in jail lately? (entered @ py=4)"
 	// See ref:NPC-0002.
 	if position.Y == 4 {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"collectShadowlordPresenceData: skipping - player entered via jail (y=4)")
 		g.clearPhysicalShadowlords()
 		g.ShadowlordState.ClearAutomaticPresence()
@@ -224,7 +224,7 @@ func (g *GameState) collectShadowlordPresenceData(
 
 	lord := g.GetShadowlordForLocation(location)
 	if lord == references.NoShadowlord {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"collectShadowlordPresenceData: no Shadowlord assigned to %s",
 			location.String())
 
@@ -234,14 +234,14 @@ func (g *GameState) collectShadowlordPresenceData(
 		return nil
 	}
 
-	logging.Info(logging.CategoryGameState,
+	logging.Infof(logging.CategoryGameState,
 		"collectShadowlordPresenceData: %s is present at %s",
 		lord.String(), location.String())
 
 	// The physical encounter is authoritative. Do not mutate automatic state,
 	// NPC behavior, map terrain, or presentation data unless insertion succeeds.
 	if !g.ensureSingleAutomaticShadowlordNPC(lord, location) {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"collectShadowlordPresenceData: failed to insert %s at %s", lord.String(), location.String())
 		g.ShadowlordState.ClearAutomaticPresence()
 
@@ -256,7 +256,7 @@ func (g *GameState) collectShadowlordPresenceData(
 
 	destroyed, total := g.ApplyShadowlordMapEffects(lord)
 	if destroyed > 0 {
-		logging.Info(logging.CategoryGameState,
+		logging.Infof(logging.CategoryGameState,
 			"collectShadowlordPresenceData: %s destroyed %d/%d crops/trees",
 			lord.String(), destroyed, total)
 	}

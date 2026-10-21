@@ -123,7 +123,7 @@ func TestTerrainDitherIndoorBoundaryProtectsOnlyTouchingQuarters(t *testing.T) {
 }
 
 func TestTerrainDitherIndoorSerpentsHoldOriginal(t *testing.T) {
-	directory := originaldata.Directory(t, files.DATA_OVL, files.KEEP_DAT)
+	directory := originaldata.Directory(t, files.DataOvl, files.KeepDat)
 	configuration, err := config.LoadUltimaVConfiguration("", directory)
 	require.NoError(t, err)
 	data, err := references.NewDataOvl(configuration)

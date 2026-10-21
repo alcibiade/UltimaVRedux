@@ -17,7 +17,6 @@ These scenarios validate the current Shadowlord implementation through normal ga
 | World Diagnostics | `shadowlord.status` | Inspect life state, active presence, summoning, and persistent assignments |
 | World Navigator | `world.position.status`, `world.position.set` | Review and atomically apply a location, valid floor, and bounded coordinate draft |
 | Quest Inventory | `quest.item.status`, `quest.item.ensure`, `quest.shard.use` | Grant, inspect, and use shards through typed production workflows |
-| Scenarios | `scenario.guards.activate` | Create a criminal/hostile-guard setup for arrest testing |
 | Logging Control | Typed logging status and mutation commands | Enable `gamestate` diagnostics when needed |
 | Saves | Typed snapshot commands | Restore a known living-Shadowlord baseline between destructive cases |
 
@@ -33,7 +32,7 @@ An exact draft within the current map changes coordinates only. Moving to Y=4
 after entering a town does not simulate jail entry and does not rerun town-entry
 checks.
 
-To test normal entry presentation, use **Codex > World Gazetteer** to find the town's overworld entrance, teleport to a passable adjacent overworld coordinate with World Navigator, and walk onto the entrance in the game window.
+To test normal entry presentation, select the town in **World Navigator** and read its world-map entrance placement, teleport to a passable adjacent overworld coordinate, and walk onto the entrance in the game window.
 
 ## Quick Bug Check
 
@@ -112,7 +111,7 @@ Expected:
 
 1. Use **World Diagnostics** to choose one assigned town.
 2. Exit to the overworld in the game window.
-3. Use **World Gazetteer** and **World Navigator** to stage beside that town's overworld entrance.
+3. Use **World Navigator**'s world-entrance placement to stage beside that town's overworld entrance.
 4. Walk onto the entrance normally.
 5. Dismiss the presence dialog and refresh **World Diagnostics**.
 
@@ -403,7 +402,7 @@ The implemented arrest path sends the party to Yew jail at 25,4 on floor 0. It d
 
 1. Advance midnight boundaries until **World Diagnostics** reports an assignment in Yew.
 2. Enter a different, unassigned town with guards.
-3. In **Scenarios**, execute **Activate Town Guards** (`scenario.guards.activate`).
+3. In the game window, attack a defenseless townsperson to commit the town-attack crime and turn the guards hostile.
 4. Approach or talk to a guard and surrender to the arrest prompt.
 5. After the jail sequence, refresh **World Navigator** and **World Diagnostics**.
 

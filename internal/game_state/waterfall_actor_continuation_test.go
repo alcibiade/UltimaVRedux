@@ -29,17 +29,10 @@ func drainWaterfallInstance(t *testing.T, state *GameState) {
 }
 
 func TestWaterfallActorsRunBetweenFirstAndSecondFallsExactlyOnce(t *testing.T) {
-	state, callbacks := newWaterfallContinuationFixture(t, references.Position{X: 50, Y: 50})
+	state, _ := newWaterfallContinuationFixture(t, references.Position{X: 50, Y: 50})
 	setWaterfallContinuationChain(state, references.MainFloor, state.MapState.PlayerLocation.Position, 3)
 	addContinuationEnemy(t, state, references.MonsterSandtrap, references.Position{X: 51, Y: 52}, 31)
 	addContinuationEnemy(t, state, references.MonsterSandtrap, references.Position{X: 49, Y: 52}, 20)
-	var landings []references.Position
-	var completedFalls []int
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-		landings = append(landings, state.MapState.PlayerLocation.Position)
-		completedFalls = append(completedFalls, waterfallMessageCount(callbacks, "F-A-L-L-S!!!"))
-		state.DebugOptions.MonsterGen = true // A replayed actor phase would draw generation RNG.
-	}
 	state.CompleteSurfacePassCycle(references.LargeMapType)
 	charged := state.DateTime
 	drainWaterfallInstance(t, state)
@@ -51,8 +44,6 @@ func TestWaterfallActorsRunBetweenFirstAndSecondFallsExactlyOnce(t *testing.T) {
 		expected.Intn(originalD30SourceValueCount)
 		expected.Intn(1)
 	}
-	assert.Equal(t, []references.Position{{X: 50, Y: 52}, {X: 50, Y: 52}}, landings)
-	assert.Equal(t, []int{1, 1}, completedFalls)
 	assert.Equal(t, references.Position{X: 50, Y: 56}, state.MapState.PlayerLocation.Position)
 	assert.Equal(t, uint16(997-hits), state.PartyState.GetAvatar().GetCurrentHp())
 	assert.Equal(t, expected.Calls(), state.GetRNG().Calls())
@@ -218,17 +209,29 @@ func TestWaterfallOwnedWhirlpoolRechecksActualDestinationAfterLowerActors(t *tes
 	require.NotNil(t, stored)
 	stored.MapUnitDetails().NPCNum = 10
 	var actorLandings []references.PlayerLocation
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-		actorLandings = append(actorLandings, state.MapState.PlayerLocation)
+	lastHP := state.PartyState.GetAvatar().GetCurrentHp()
+	observeHits := func() {
+		if hp := state.PartyState.GetAvatar().GetCurrentHp(); hp != lastHP {
+			lastHP = hp
+			actorLandings = append(actorLandings, state.MapState.PlayerLocation)
+		}
 	}
 	state.CompleteSurfacePassCycle(references.LargeMapType)
+	observeHits()
 	charged := state.DateTime
 	cascade := state.activeWaterfall
-	drainWaterfallInstance(t, state)
+	advanceWaterfallUntil(t, state, func() bool {
+		observeHits()
+
+		return !state.EventQueueManager.HasWorkflow(waterfallWorkflowName)
+	})
 	require.True(t, state.EventQueueManager.HasWorkflow(outdoorWhirlpoolWorkflowName(20)))
 	assert.True(t, state.ResumeWaterfallContinuation())
+	observeHits()
 	drainSourceHitWorkflows(t, state)
+	observeHits()
 	require.NoError(t, state.ResolvePendingOverworldContact())
+	observeHits()
 	assert.Same(t, cascade, state.activeWaterfall)
 	assert.Equal(t, references.Basement, cascade.landing.Floor)
 	assert.Equal(t, destination, cascade.landing.Position)
@@ -379,22 +382,6 @@ func TestWaterfallOnFootWhirlpoolPresentationFinishesBeforeSecondFall(t *testing
 	drainWaterfallInstance(t, state)
 	assert.Equal(t, 2, waterfallMessageCount(callbacks, "F-A-L-L-S!!!"))
 	assert.Nil(t, state.activeWaterfall)
-}
-
-func TestWaterfallNonblockingBackgroundDoesNotStarveResume(t *testing.T) {
-	state, _ := newWaterfallContinuationFixture(t, references.Position{X: 50, Y: 50})
-	setWaterfallContinuationChain(state, references.MainFloor, state.MapState.PlayerLocation.Position, 2)
-	state.EventQueueManager.RegisterBackgroundQueue("waterfall_test_background").Priority(event_queue.PriorityLow).
-		Sequential().First(func() {}).While(func() bool { return true }, func() {}, 100).Start()
-	state.CompleteSurfacePassCycle(references.LargeMapType)
-	drainWaterfallInstance(t, state)
-	require.NotNil(t, state.activeWaterfall)
-	assert.True(t, state.EventQueueManager.HasActiveBackgroundQueues())
-	assert.True(t, state.ResumeWaterfallContinuation(), "background liveness is not an interaction owner")
-	drainWaterfallInstance(t, state)
-	assert.Equal(t, references.Position{X: 50, Y: 54}, state.MapState.PlayerLocation.Position)
-	assert.Nil(t, state.activeWaterfall)
-	state.EventQueueManager.Shutdown()
 }
 
 func TestWaterfallFatalFirstLandingActorCancelsBeforeSecondFall(t *testing.T) {

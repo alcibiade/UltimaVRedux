@@ -1,3 +1,4 @@
+// Package helpers provides test fixtures that load the original game data and its references.
 package helpers
 
 import (
@@ -13,7 +14,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/test/originaldata"
 )
 
-// Helper for loading test configuration (assumes Ultima V data is available)
+// LoadTestConfiguration loads the configuration for the original game data; the test is
+// skipped or failed when that data is unavailable.
 func LoadTestConfiguration(t *testing.T) *config.UltimaVConfiguration {
 	t.Helper()
 
@@ -72,6 +74,7 @@ func LoadGameData() (*config.UltimaVConfiguration, *references.GameReferences, e
 	return cfg, refs, nil
 }
 
+// LoadTestGameReferences loads the game references for config, failing the test on error.
 func LoadTestGameReferences(t *testing.T, config *config.UltimaVConfiguration) *references.GameReferences {
 	t.Helper()
 

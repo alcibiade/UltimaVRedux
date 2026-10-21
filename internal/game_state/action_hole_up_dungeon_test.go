@@ -57,7 +57,7 @@ func TestDungeonCampingDefersMealConsumptionUntilCommandCompletion(t *testing.T)
 	state.DateTime.Minute = 1
 	state.lastProcessedHour = 5
 	state.PartyState.Inventory.Provisions.Food.Set(100)
-	scene := camping.NewDungeonCampingScene(1, NoGuardAssigned, state.MapState.PlayerLocation, nil)
+	scene := camping.NewDungeonCampingScene(1, NoGuardAssigned, state.MapState.PlayerLocation, &references.CombatMapReference{})
 	plan := &DungeonCampingPlan{}
 	campState := state.newCampingState(scene, false, false)
 
@@ -96,7 +96,7 @@ func TestDungeonCommandPrechargeDefersHourlyFoodUntilFullCompletion(t *testing.T
 func TestDungeonCampingBardCompletionEnablesFirstGuardWanderRoll(t *testing.T) {
 	state, callbacks := newDungeonCampingTestStateWithCallbacks(t)
 	state.PartyState.GetCharacter(0).Class = party_state.Bard
-	scene := camping.NewDungeonCampingScene(1, 0, state.MapState.PlayerLocation, nil)
+	scene := camping.NewDungeonCampingScene(1, 0, state.MapState.PlayerLocation, &references.CombatMapReference{})
 	campState := state.newCampingState(scene, false, false)
 	state.setupBardGuard(scene, campState)
 	require.True(t, campState.BardMusicPlaying)
@@ -185,14 +185,14 @@ func TestDungeonCampingCenterChestDisplaysBlocksGuardAndSurvivesAmbushHandoff(t 
 	state.MapState.PlayerLocation.Floor = 7
 	enemyReferences := make(references.EnemyReferences, int(references.MonsterShadowlord)+1)
 	tileReferences := references.NewTileReferences()
-	state.GameReferences = &references.GameReferences{ //nolint:exhaustruct // Asset-free generated-camp fixture.
+	state.GameReferences = &references.GameReferences{
 		EnemyReferences: &enemyReferences,
 		TileReferences:  tileReferences,
 	}
 	command := DungeonCommandCycle{id: 1}
 	scene, plan, err := state.PrepareDungeonCampingPlan(1, 0, command)
 	require.NoError(t, err)
-	enemyReferences[plan.monster] = references.EnemyReference{ //nolint:exhaustruct // Selected homogeneous ambusher.
+	enemyReferences[plan.monster] = references.EnemyReference{
 		MonsterType: plan.monster, Dexterity: 10, HitPoints: 10, MaxPerMap: plan.monsterCount,
 	}
 	center := references.Position{X: 5, Y: 5}

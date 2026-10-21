@@ -60,7 +60,7 @@ func TestZStatsContentBudgetPreservesBaseline(t *testing.T) {
 			}
 			require.LessOrEqual(t, d.footerOutput.GetTotalHeightForLines(d.footerOutput.GetPanelContentLineCount()),
 				float64(d.layout.footerRect.Inset(d.layout.padding).Dy()))
-			require.Contains(t, d.footerOutput.GetOutputStr(false), "Tab/Shift-Tab")
+			require.Contains(t, d.footerOutput.GetOutputStr(false), "Tab/Shift+Tab")
 			require.Contains(t, d.footerOutput.GetOutputStr(false), "Close")
 		}
 		d.switchTab(ZStatsDossierSpellsTab)

@@ -129,7 +129,7 @@ func TestAllSpellTargetingProfilesUseCatalogScopeOutsideCombat(t *testing.T) {
 		for _, context := range []SpellContext{ContextOverworld, ContextTown, ContextDungeon} {
 			expected := SpellTargetingProfile{Selection: info.Targeting, Scope: info.Scope}
 			if context == ContextDungeon {
-				switch spell { //nolint:exhaustive // Only dungeon profile overrides are listed.
+				switch spell {
 				case AnSanct, InFlamGrav, InNoxGrav, InZuGrav, InSanctGrav, AnGrav:
 					expected.Selection = TargetAutomatic
 				}

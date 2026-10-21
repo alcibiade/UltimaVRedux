@@ -4,12 +4,11 @@ import (
 	"math"
 	"testing"
 
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/rand"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestWindAdvanceRejectsOverflowBeforeRandomDraw(t *testing.T) {
@@ -103,7 +102,7 @@ func TestWindDirectionString(t *testing.T) {
 }
 
 func TestNewWindSystem(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 
 	windSystem := NewWindSystem(rng, mockCallbacks)
@@ -114,7 +113,7 @@ func TestNewWindSystem(t *testing.T) {
 }
 
 func TestSetWindManually(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -143,7 +142,7 @@ func TestSetWindManually(t *testing.T) {
 }
 
 func TestSetWindByDirection(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -179,11 +178,11 @@ func TestSetWindByDirection(t *testing.T) {
 
 func TestAutomaticWindChangeDeterminism(t *testing.T) {
 	// Test that wind changes are deterministic with fixed seed
-	rng1 := rand.New(rand.NewSource(12345))
+	rng1 := beradrng.New(12345)
 	mockCallbacks1 := &MockWindSystemCallbacks{}
 	windSystem1 := NewWindSystem(rng1, mockCallbacks1)
 
-	rng2 := rand.New(rand.NewSource(12345))
+	rng2 := beradrng.New(12345)
 	mockCallbacks2 := &MockWindSystemCallbacks{}
 	windSystem2 := NewWindSystem(rng2, mockCallbacks2)
 
@@ -200,7 +199,7 @@ func TestAutomaticWindChangeDeterminism(t *testing.T) {
 
 func TestAutomaticWindChangeFrequency(t *testing.T) {
 	// Test that wind changes occur approximately 1/64 of the time
-	rng := rand.New(rand.NewSource(99999))
+	rng := beradrng.New(99999)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -265,7 +264,7 @@ func (r *scriptedWindRNG) Intn(limit int) int {
 }
 
 func TestFrigateSailingSpeed_AuthenticUltimaV(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -315,7 +314,7 @@ func TestFrigateSailingSpeed_AuthenticUltimaV(t *testing.T) {
 
 func TestFrigateSailingTiming(t *testing.T) {
 	// Test the ship movement timing system: updtcnt >= num % 3
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -350,7 +349,7 @@ func TestFrigateSailingTiming(t *testing.T) {
 }
 
 func TestFrigateSailingCalm(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -365,7 +364,7 @@ func TestFrigateSailingCalm(t *testing.T) {
 }
 
 func TestFrigateSailingInvalidDirection(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 
@@ -377,7 +376,7 @@ func TestFrigateSailingInvalidDirection(t *testing.T) {
 }
 
 func TestWindSystemInvalidDirections(t *testing.T) {
-	rng := rand.New(rand.NewSource(12345))
+	rng := beradrng.New(12345)
 	mockCallbacks := &MockWindSystemCallbacks{}
 	windSystem := NewWindSystem(rng, mockCallbacks)
 

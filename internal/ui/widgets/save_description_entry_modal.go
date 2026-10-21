@@ -187,15 +187,8 @@ func (m *SaveDescriptionEntryModal) preparePresentation(width, height int) saveD
 	}
 
 	m.hintOutput.Reset()
-	m.hintOutput.AppendLine().Text("Ctrl+U", DialogControlKeyColor).
-		Text(": Clear description", DialogControlHintColor).
-		Done()
-	m.hintOutput.AppendLine().
-		Text("Enter", DialogControlKeyColor).
-		Text(": Save    ", DialogControlHintColor).
-		Text("Esc", DialogControlKeyColor).
-		Text(": Back", DialogControlHintColor).
-		Done()
+	AppendControlHints(m.hintOutput.AppendLine(), "[Ctrl+U] Clear description").Done()
+	AppendControlHints(m.hintOutput.AppendLine(), "[Enter] Save   [Esc] Back").Done()
 
 	return rects
 }
@@ -361,7 +354,7 @@ func (m *SaveDescriptionEntryModal) handleNativeInput(previous string, start, en
 		// The native Field retains input errors; keep the text and explanation
 		// visible until Escape rather than silently returning to the browser.
 		if m.validationMessage != saveDescriptionInputErrorMessage {
-			logging.Warn(logging.CategoryUI, "Text entry input failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Text entry input failed: %v", err)
 		}
 		m.validationMessage = saveDescriptionInputErrorMessage
 		if m.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
@@ -750,7 +743,7 @@ func (m *SaveDescriptionEntryModal) ensureRendering(width, height int) {
 	m.border = newDialogBorder(sprites.PercentBasedPlacement{
 		StartPercentX: saveDescriptionModalStartX, EndPercentX: saveDescriptionModalEndX,
 		StartPercentY: 0, EndPercentY: 1,
-	}, DialogBackgroundBlack)
+	})
 	m.font, m.fieldOutput = GetScaledFontWithOutput(FontConfig{
 		Size:                  FontSizeMainScreen,
 		LineSpacing:           0,

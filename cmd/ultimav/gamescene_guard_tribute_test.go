@@ -79,7 +79,6 @@ func TestGuardTributePaymentUsesSharedTalkLifecycle(t *testing.T) {
 			} else {
 				require.Equal(t, test.expectedMinutes, fixture.callbacks.TimeAdvanced())
 			}
-			require.Equal(t, 1, fixture.callbacks.ScreenCallCount)
 			require.Equal(t, 1, fixture.callbacks.BlockInputCalls)
 			require.Equal(t, 1, fixture.callbacks.UnblockInputCalls)
 			require.False(t, fixture.state.EventQueueManager.HasActiveWorkflows())
@@ -374,7 +373,7 @@ func newGuardTributeFixture(
 		Location:     location,
 		Schedule:     references.CreateNPCScheduledFixedOneLocation(guardPosition, floor),
 	}
-	guardReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	guardReference.SetKeyIndex(indexes.GuardKeyIndex)
 	guard := map_units.NewNPCFriendly(guardReference, 0)
 	guard.PlaceAtScheduleSlot(0)
 	state.CurrentNPCAIController.GetNpcs().ReplaceWith([]map_units.MapUnit{guard})

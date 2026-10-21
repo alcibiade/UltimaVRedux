@@ -81,9 +81,6 @@ func TestSceptreBarrierClearSurvivesNativeSnapshot(t *testing.T) {
 
 func TestCombatSceptreClearsTerrainInBothCombatRepresentations(t *testing.T) {
 	state, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if state == nil {
-		return
-	}
 	state.PartyState.Inventory.QuestItems.Set(references.Sceptre, 1)
 	activeIdx := state.CombatScene.GetActiveCombatantIndex()
 	state.CombatScene.SetPartyMemberPosition(activeIdx, references.Position{X: 2, Y: 2})
@@ -109,9 +106,6 @@ func TestCombatSceptreClearsTerrainInBothCombatRepresentations(t *testing.T) {
 
 func TestCombatSceptreUsesExactClonePosition(t *testing.T) {
 	state, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if state == nil {
-		return
-	}
 	identity := state.CombatScene.GetCurrentTurnIdentity()
 	originalPosition := references.Position{X: 7, Y: 7}
 	clonePosition := references.Position{X: 2, Y: 2}

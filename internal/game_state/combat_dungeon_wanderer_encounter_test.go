@@ -12,9 +12,6 @@ import (
 
 func TestDirectDungeonAttackStartsGeneratedCombatWithoutEndPlayerProcessing(t *testing.T) {
 	state, callbacks := newDungeonWandererEncounterTestState(t, 0)
-	if state == nil {
-		return
-	}
 	state.MapState.Lighting.RestoreTorchMinutes(0)
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectProtection, TurnsRemaining: 5}
 	state.activeDungeon.wanderer = &DungeonWanderer{
@@ -39,9 +36,6 @@ func TestDirectDungeonAttackStartsGeneratedCombatWithoutEndPlayerProcessing(t *t
 
 func TestDirectDungeonAttackRequiresWandererInWrappedFacingCell(t *testing.T) {
 	state, callbacks := newDungeonWandererEncounterTestState(t, 0)
-	if state == nil {
-		return
-	}
 	state.MapState.PlayerLocation.Position = references.Position{X: 7, Y: 1}
 	state.activeDungeon.wanderer = &DungeonWanderer{
 		Monster: references.MonsterRat, Floor: 0,
@@ -65,9 +59,6 @@ func TestDirectDungeonAttackRequiresWandererInWrappedFacingCell(t *testing.T) {
 
 func TestDirectDungeonAttackReturnIgnoresCardinalExitAndRegenerates(t *testing.T) {
 	state, _ := newDungeonWandererEncounterTestState(t, 3)
-	if state == nil {
-		return
-	}
 	originalPosition := state.MapState.PlayerLocation.Position
 	state.activeDungeon.wanderer = &DungeonWanderer{
 		Monster: references.MonsterGhost, Floor: 3,
@@ -88,9 +79,6 @@ func TestDirectDungeonAttackReturnIgnoresCardinalExitAndRegenerates(t *testing.T
 
 func TestDirectDungeonAttackReturnAppliesVerticalExitOnly(t *testing.T) {
 	state, _ := newDungeonWandererEncounterTestState(t, 3)
-	if state == nil {
-		return
-	}
 	state.activeDungeon.wanderer = &DungeonWanderer{
 		Monster: references.MonsterGhost, Floor: 3,
 		Position: references.Position{X: 2, Y: 1}, PreviousPosition: references.Position{X: 2, Y: 2},
@@ -115,9 +103,6 @@ func TestDirectDungeonAttackReturnAppliesVerticalExitOnly(t *testing.T) {
 
 func TestAutomaticDungeonContactSuspendsAndResumesFullEndPlayer(t *testing.T) {
 	state, callbacks, party, attackOrigin := prepareDungeonWandererContactTest(t, 0)
-	if state == nil {
-		return
-	}
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectProtection, TurnsRemaining: 5}
 	callbacks.Reset()
 
@@ -155,9 +140,6 @@ func TestAutomaticDungeonContactSuspendsAndResumesFullEndPlayer(t *testing.T) {
 
 func TestAutomaticDungeonContactExitOntoHiddenPitFallsBeforeCommandCompletes(t *testing.T) {
 	state, _, party, _ := prepareDungeonWandererContactTest(t, 0)
-	if state == nil {
-		return
-	}
 	pitPosition, moved := applyDungeonCardinalExit(party, CombatExitWest)
 	require.True(t, moved)
 	_, err := state.TransformDungeonCell(0, pitPosition, func(references.DungeonCell) references.DungeonCell {
@@ -185,9 +167,6 @@ func TestAutomaticDungeonContactExitOntoHiddenPitFallsBeforeCommandCompletes(t *
 
 func TestAutomaticDungeonContactVerticalExitResumesOnDestinationFloor(t *testing.T) {
 	state, _, _, _ := prepareDungeonWandererContactTest(t, 3)
-	if state == nil {
-		return
-	}
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectProtection, TurnsRemaining: 5}
 
 	token, _ := state.BeginDungeonCommandCycle()
@@ -216,9 +195,6 @@ func TestAutomaticDungeonContactBoundaryExitReleasesCommandBeforeLeaving(t *test
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			state, _, _, _ := prepareDungeonWandererContactTest(t, test.floor)
-			if state == nil {
-				return
-			}
 			state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectProtection, TurnsRemaining: 5}
 
 			token, _ := state.BeginDungeonCommandCycle()
@@ -239,9 +215,6 @@ func TestAutomaticDungeonContactBoundaryExitReleasesCommandBeforeLeaving(t *test
 
 func TestAutomaticDungeonContactDefersFinalEffectsThroughReturnedRoom(t *testing.T) {
 	state, _, party, _ := prepareDungeonWandererContactTest(t, 0)
-	if state == nil {
-		return
-	}
 	roomPosition, moved := applyDungeonCardinalExit(party, CombatExitEast)
 	require.True(t, moved)
 	_, err := state.TransformDungeonCell(0, roomPosition, func(references.DungeonCell) references.DungeonCell {
@@ -282,9 +255,6 @@ func newDungeonWandererEncounterTestState(
 		WithSystemCallbacks().
 		WithRandomSeed(268).
 		Build()
-	if state == nil {
-		return nil, callbacks
-	}
 	attachDungeonStateForTest(t, state, references.DungeonCells{})
 	state.MapState.PlayerLocation.Floor = floor
 	callbacks.Reset()
@@ -299,9 +269,6 @@ func prepareDungeonWandererContactTest(
 	t.Helper()
 	const seed = 3265
 	state, callbacks := newDungeonWandererEncounterTestState(t, floor)
-	if state == nil {
-		return nil, callbacks, references.Position{}, references.Position{}
-	}
 	attackOrigin := references.Position{X: 3, Y: 3}
 	control := beradrng.New(seed)
 	direction := dungeonWandererDirection(control.Intn(4))
