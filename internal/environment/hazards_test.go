@@ -44,14 +44,6 @@ func (m *MockSystemCallbacks) AddRowStr(message string) {
 	m.Messages = append(m.Messages, message)
 }
 
-func (m *MockSystemCallbacks) SetScreenFlash(r, g, b, intensity float64, durationMs int) {
-	m.ScreenFlashes = append(m.ScreenFlashes, ScreenFlashCall{
-		R: r, G: g, B: b,
-		Intensity:  intensity,
-		DurationMs: durationMs,
-	})
-}
-
 func (m *MockSystemCallbacks) Reset() {
 	m.Messages = m.Messages[:0]
 	m.ScreenFlashes = m.ScreenFlashes[:0]

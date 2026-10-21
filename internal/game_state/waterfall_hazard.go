@@ -17,15 +17,6 @@ const (
 	waterfallUnderworldEntryY = 138 // 0x8a; the waterfall tile itself is at Y=137.
 )
 
-// ProcessWaterfallHazard starts a cascade without charging an ordinary turn.
-// The argument is retained for compatibility; eligibility always uses the current
-// authoritative map and position, never a cached movement destination. Production
-// commands enter through surface completion, which also retains their actor tail.
-// Returns true while the retained logical cascade owns completion. ref:ENV-0003.
-func (g *GameState) ProcessWaterfallHazard(_ *references.Position) bool {
-	return g.startWaterfallHazard(nil)
-}
-
 // IsWaterfallHazardActive includes the actor/contact interlude between workflow
 // instances as well as pending, deferred and finalizing queue ownership.
 func (g *GameState) IsWaterfallHazardActive() bool {

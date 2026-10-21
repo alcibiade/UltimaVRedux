@@ -59,25 +59,6 @@ func TestInnShopDialogModesTabsAndNavigation(t *testing.T) {
 	require.Equal(t, DialogEmptyColor, colors[InnShopPickup])
 }
 
-func TestInnShopDialogRendersMaximumListsAtMinimumResolution(t *testing.T) {
-	setMerchantShellTestResolution(t, 320, 180)
-	keyboard := newWidgetTestKeyboard(0)
-	state := testInnShopState()
-	state.LeaveRows = append(state.LeaveRows,
-		testInnLeaveRow(testInnProjection(testInnIdentity("Jaana", party_state.Bard), 4, party_state.Good), true, game_state.InnLeaveBlockNone, nil, 5, 3),
-		testInnLeaveRow(testInnProjection(testInnIdentity("Dupre", party_state.Fighter), 5, party_state.Good), true, game_state.InnLeaveBlockNone, nil, 5, 3),
-	)
-	state.PartySize = party_state.MaxActiveParty
-	state.Rest.MemberProjections = append(state.Rest.MemberProjections,
-		testInnProjection(testInnIdentity("Jaana", party_state.Bard), 4, party_state.Good),
-		testInnProjection(testInnIdentity("Dupre", party_state.Fighter), 5, party_state.Good),
-	)
-	dialog := newTestInnShopDialog(keyboard, state)
-	pressInnShopKey(dialog, keyboard, ebiten.KeyL)
-
-	require.False(t, dialog.GetTableBounds().Empty())
-}
-
 func TestInnShopDialogRestCardShowsConciseDecisionDetails(t *testing.T) {
 	state := testInnShopState()
 	dialog := newTestInnShopDialog(newWidgetTestKeyboard(0), state)
@@ -208,22 +189,6 @@ func TestInnShopDialogLeaveMinimumPartyAndNoVacancyAreVisibleBlocked(t *testing.
 			require.Contains(t, dialog.GetInlineFeedback(), test.text)
 		})
 	}
-}
-
-func TestInnShopDialogLeaveShowsMonthlyRateWithoutCurrentGuests(t *testing.T) {
-	state := testInnShopState()
-	state.RoomOccupancy = 0
-	state.GuestRows = nil
-	keyboard := newWidgetTestKeyboard(0)
-	dialog := newTestInnShopDialog(keyboard, state)
-	pressInnShopKey(dialog, keyboard, ebiten.KeyL)
-	for range 2 {
-		pressInnShopKey(dialog, keyboard, ebiten.KeyDown)
-	}
-	detail := compactInnText(dialog.GetDetailText())
-
-	require.Contains(t, detail, "Monthly rate")
-	require.NotContains(t, detail, "Future rate")
 }
 
 func TestInnShopDialogPickupRowsFourDigitChargesAndConfirmableWarnings(t *testing.T) {

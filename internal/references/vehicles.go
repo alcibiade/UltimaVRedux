@@ -79,25 +79,6 @@ func (v VehicleType) GetBoardedSpriteByDirection(previousDirection, direction Di
 	}
 }
 
-func (v VehicleType) RequiresNewSprite(currentDirection, newDirection Direction) bool {
-	switch v {
-	case CarpetVehicle, HorseVehicle:
-		if currentDirection == Up || currentDirection == Down || currentDirection == newDirection {
-			return false
-		}
-
-		return true
-	case SkiffVehicle:
-		return currentDirection != newDirection
-	case FrigateVehicle:
-		return currentDirection != newDirection
-	case NoPartyVehicle:
-		return false
-	}
-	// Programming bug: all VehicleType values should be handled above
-	panic("Unexpected: must have valid vehicle")
-}
-
 func (v VehicleType) GetMovementPrefix() string {
 	switch v {
 	case CarpetVehicle:
@@ -130,20 +111,4 @@ func (v VehicleType) GetLowerCaseName() string {
 	default:
 		panic(fmt.Sprintf("bad vehicle type %d", v))
 	}
-}
-
-func (v VehicleType) GetExitString() string {
-	if v == NoPartyVehicle {
-		return "X-it what?"
-	}
-
-	return fmt.Sprintf("Xit- %s!", v.GetLowerCaseName())
-}
-
-func (v VehicleType) GetBoardString() string {
-	if v == NoPartyVehicle {
-		return "X-it what?"
-	}
-
-	return fmt.Sprintf("Board %s!", v.GetLowerCaseName())
 }

@@ -560,9 +560,6 @@ func (d *TavernShopDialog) ConsumePendingTopicIntent() (TavernTopicIntent, bool)
 	return intent, true
 }
 
-// HasPendingTopicIntent reports whether workflow must ask authority to match raw input.
-func (d *TavernShopDialog) HasPendingTopicIntent() bool { return d.pendingTopic != nil }
-
 // ApplyInformationQuote installs an authority-recognized quote and opens compact approval.
 func (d *TavernShopDialog) ApplyInformationQuote(
 	topic TavernTopicIntent,
@@ -614,9 +611,6 @@ func (d *TavernShopDialog) ConsumePendingActionIntent() (TavernActionIntent, boo
 	return intent, true
 }
 
-// HasPendingActionIntent reports whether workflow must open TavernActionDialog.
-func (d *TavernShopDialog) HasPendingActionIntent() bool { return d.pendingIntent != nil }
-
 // CancelActionApproval returns to the exact Order subflow or topic input that opened approval.
 func (d *TavernShopDialog) CancelActionApproval() {
 	if d.phase != TavernShopAwaitingApproval {
@@ -636,17 +630,6 @@ func (d *TavernShopDialog) AcceptActionApproval(request TavernActionRequest) {
 	d.pendingIntent = nil
 	d.awaitingRequest = request
 	d.transitionTo(TavernShopAwaitingResult)
-	d.syncPresentation()
-}
-
-// ApplyState replaces the complete detached Tavern snapshot while preserving stable presentation state.
-func (d *TavernShopDialog) ApplyState(refreshed game_state.TavernShopState) {
-	if d.phase != TavernShopBrowse {
-		panic("TavernShopDialog.ApplyState: dialog must be browsing")
-	}
-	d.applyState(refreshed)
-	d.syncTopicFocus()
-	d.clearTransientPresentation()
 	d.syncPresentation()
 }
 
@@ -730,31 +713,6 @@ func (d *TavernShopDialog) ApplySessionError(message string) {
 	d.syncPresentation()
 }
 
-// GetState returns a defensive copy of the current detached Tavern snapshot.
-func (d *TavernShopDialog) GetState() game_state.TavernShopState {
-	return cloneTavernShopState(d.state)
-}
-
-// GetMode returns the persistent Order or location-specific conversation mode.
-func (d *TavernShopDialog) GetMode() TavernShopMode { return d.mode }
-
-// GetOrderSubflow returns the current menu or wine state.
-func (d *TavernShopDialog) GetOrderSubflow() TavernOrderSubflow { return d.subflow }
-
-// GetPhase returns the workflow-owned parent phase.
-func (d *TavernShopDialog) GetPhase() TavernShopDialogPhase { return d.phase }
-
-// GetOrderRows returns only the canonical meal, drink, and available provision choices.
-func (d *TavernShopDialog) GetOrderRows() []TavernOrderRow {
-	return append([]TavernOrderRow(nil), tavernOrderRows(d.state)...)
-}
-
-// GetSelectedOrderIndex returns the stable Order row selection.
-func (d *TavernShopDialog) GetSelectedOrderIndex() int { return d.selectedOrder }
-
-// GetSelectedWineIndex returns the source-order selected wine row.
-func (d *TavernShopDialog) GetSelectedWineIndex() int { return d.selectedWine }
-
 // GetTopicInput returns a defensive string copy of the raw input.
 func (d *TavernShopDialog) GetTopicInput() string {
 	if d.topicField != nil {
@@ -764,55 +722,10 @@ func (d *TavernShopDialog) GetTopicInput() string {
 	return string(d.topicInput)
 }
 
-// GetTranscript returns a defensive append-only successful paid transcript.
-func (d *TavernShopDialog) GetTranscript() []TavernTranscriptEntry {
-	return append([]TavernTranscriptEntry(nil), d.transcript...)
-}
-
-// GetTranscriptViewport returns a defensive copy of the currently visible paid pairs.
-func (d *TavernShopDialog) GetTranscriptViewport() []TavernTranscriptEntry {
-	start, end := d.transcriptViewportRange()
-
-	return append([]TavernTranscriptEntry(nil), d.transcript[start:end]...)
-}
-
-// GetTranscriptScroll returns the first visible transcript pair index.
-func (d *TavernShopDialog) GetTranscriptScroll() int { return d.transcriptScroll }
-
-// GetTranscriptPageSize returns the responsive number of visible paid pairs.
-func (d *TavernShopDialog) GetTranscriptPageSize() int { return d.transcriptPageSize() }
-
 // GetInformationTabLabel returns the exact location-specific persistent mode label.
 func (d *TavernShopDialog) GetInformationTabLabel() string {
 	return fmt.Sprintf("[%c]%s", d.state.Menu.Information.Key, d.state.Menu.Information.Name[1:])
 }
-
-// GetModeHeaderText returns visible Preview and bright/subdued persistent tabs.
-func (d *TavernShopDialog) GetModeHeaderText() string {
-	if d.modeOutput == nil {
-		return ""
-	}
-
-	return d.modeOutput.GetOutputStr(false)
-}
-
-// GetWorkspaceText returns current rendered workspace copy for focused tests.
-func (d *TavernShopDialog) GetWorkspaceText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
-// GetLatestExchange returns current finalized merchant copy.
-func (d *TavernShopDialog) GetLatestExchange() string { return d.latestExchange }
-
-// GetReceiptText returns current workflow-supplied result copy.
-func (d *TavernShopDialog) GetReceiptText() string { return d.receiptText }
-
-// GetInlineFeedback returns the current neutral topic failure or session error.
-func (d *TavernShopDialog) GetInlineFeedback() string { return d.inlineFeedback }
 
 // GetShell returns the shared merchant shell.
 func (d *TavernShopDialog) GetShell() *MerchantDialogShell { return d.shell }
@@ -823,32 +736,6 @@ func (d *TavernShopDialog) GetWorkspaceBounds() image.Rectangle {
 
 	return d.shell.GetWorkspaceBounds()
 }
-
-// GetFontSize returns the standard main-screen merchant font size.
-func (d *TavernShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether approved requests stop before authority.
-func (d *TavernShopDialog) IsPreview() bool { return d.preview }
-
-// IsAwaitingResult reports whether workflow authority owns an accepted request.
-func (d *TavernShopDialog) IsAwaitingResult() bool { return d.phase == TavernShopAwaitingResult }
-
-// ShowWithoutAnimation makes a non-complete Tavern parent immediately visible.
-func (d *TavernShopDialog) ShowWithoutAnimation() {
-	if !d.dismissed {
-		d.visible = true
-		d.prepareForTransition()
-	}
-}
-
-// Hide releases the native subject session while retaining the Tavern workspace.
-func (d *TavernShopDialog) Hide() {
-	d.visible = false
-	d.prepareForTransition()
-}
-
-// IsComplete reports whether the parent has been permanently dismissed.
-func (d *TavernShopDialog) IsComplete() bool { return d.dismissed }
 
 // IsDismissed reports whether workflow may remove the parent.
 func (d *TavernShopDialog) IsDismissed() bool { return d.dismissed }
@@ -1119,12 +1006,6 @@ func (d *TavernShopDialog) transcriptViewportRange() (int, int) {
 	}
 
 	return start, end
-}
-
-func (d *TavernShopDialog) transcriptPageSize() int {
-	start, end := d.transcriptViewportRange()
-
-	return max(1, end-start)
 }
 
 func (d *TavernShopDialog) transcriptTailStart() int {

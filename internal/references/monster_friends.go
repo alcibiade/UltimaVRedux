@@ -33,24 +33,3 @@ func (e *EnemyReference) GetFriendType() MonsterType {
 
 	return e.Friend.MonsterType
 }
-
-// GetFriendType returns the friend monster type for a given monster by MonsterType.
-// This is a convenience method for use with EnemyReferences slice.
-//
-// Returns the friend's MonsterType, or MonsterNone if the index is invalid.
-func (refs EnemyReferences) GetFriendType(monsterType MonsterType) MonsterType {
-	if !monsterType.IsValid() {
-		return MonsterNone
-	}
-
-	if int(monsterType) >= len(refs) {
-		return MonsterNone
-	}
-
-	enemyRef := refs[monsterType]
-	if enemyRef.Friend == nil {
-		return monsterType
-	}
-
-	return enemyRef.Friend.MonsterType
-}

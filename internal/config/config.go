@@ -15,7 +15,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
-	"github.com/bradhannah/UltimaVRedux/pkg/helpers"
 )
 
 // Static errors for consistent error handling
@@ -150,30 +149,6 @@ const (
 	MaxCombatMovementSpeedFactor     = 4.0
 )
 
-// GetCombatMovementSpeedFactor reads the legacy snapshot only.
-//
-// Deprecated: use UltimaVConfiguration.GetCombatSpeedFactor for runtime behavior.
-func (d *DebugConfiguration) GetCombatMovementSpeedFactor() float64 {
-	if d == nil || !validCombatMovementSpeedFactor(d.CombatMovementSpeedFactor) {
-		return DefaultCombatMovementSpeedFactor
-	}
-
-	return d.CombatMovementSpeedFactor
-}
-
-// SetCombatMovementSpeedFactor updates the inert legacy snapshot without persistence.
-//
-// Deprecated: use UltimaVConfiguration.SetCombatSpeedFactor for player preferences.
-func (d *DebugConfiguration) SetCombatMovementSpeedFactor(factor float64) bool {
-	if d == nil || !validCombatMovementSpeedFactor(factor) {
-		return false
-	}
-
-	d.CombatMovementSpeedFactor = factor
-
-	return true
-}
-
 func validCombatMovementSpeedFactor(factor float64) bool {
 	return !math.IsNaN(factor) && !math.IsInf(factor, 0) &&
 		factor >= MinCombatMovementSpeedFactor && factor <= MaxCombatMovementSpeedFactor
@@ -206,26 +181,6 @@ func (a *AudioConfiguration) SetAmbientVolume(sliderValue int) {
 	a.AmbientVolume = clampSliderValue(sliderValue)
 }
 
-// Clone creates a deep copy of the AudioConfiguration
-func (a *AudioConfiguration) Clone() *AudioConfiguration {
-	return &AudioConfiguration{
-		MusicVolume:       a.MusicVolume,
-		SoundEffectVolume: a.SoundEffectVolume,
-		AmbientVolume:     a.AmbientVolume,
-	}
-}
-
-// SetTargetFPS sets the target FPS with validation
-func (d *DisplayConfiguration) SetTargetFPS(fps int) {
-	if fps < 0 {
-		fps = 0 // 0 = unlimited
-	}
-	if fps > maximumTargetFPS {
-		fps = maximumTargetFPS
-	}
-	d.TargetFPS = fps
-}
-
 // GetFrameInterval returns the minimum time between frames in milliseconds
 func (d *DisplayConfiguration) GetFrameInterval() int64 {
 	if !d.EnableFpsLimiting || d.TargetFPS <= 0 {
@@ -233,17 +188,6 @@ func (d *DisplayConfiguration) GetFrameInterval() int64 {
 	}
 
 	return millisecondsPerSecond / int64(d.TargetFPS)
-}
-
-// Clone creates a deep copy of the DisplayConfiguration
-func (d *DisplayConfiguration) Clone() *DisplayConfiguration {
-	return &DisplayConfiguration{
-		Mode:              d.Mode,
-		WindowWidth:       d.WindowWidth,
-		WindowHeight:      d.WindowHeight,
-		TargetFPS:         d.TargetFPS,
-		EnableFpsLimiting: d.EnableFpsLimiting,
-	}
 }
 
 // UltimaVConfiguration owns active preferences, original data, and the selected persistence source.
@@ -579,24 +523,6 @@ func (uc *UltimaVConfiguration) GetSignsDataFilePath() string {
 	return path.Join(uc.SavedConfigData.DataFilePath, files.SIGNS_DAT)
 }
 
-// GetCurrentTrackedWindowResolution returns active dimensions or the legacy/default fallback.
-func (uc *UltimaVConfiguration) GetCurrentTrackedWindowResolution() ScreenResolution {
-	if uc.DisplayConfiguration != nil &&
-		validDisplayDimensions(uc.DisplayConfiguration.WindowWidth, uc.DisplayConfiguration.WindowHeight) {
-		return ScreenResolution{
-			X: uc.DisplayConfiguration.WindowWidth,
-			Y: uc.DisplayConfiguration.WindowHeight,
-		}
-	}
-	resolutions := uc.windowResolutions()
-	if uc.SavedConfigData != nil &&
-		uc.SavedConfigData.Resolution >= 0 && uc.SavedConfigData.Resolution < len(resolutions) {
-		return resolutions[uc.SavedConfigData.Resolution]
-	}
-
-	return ScreenResolution{X: MinimumWindowWidth, Y: MinimumWindowHeight}
-}
-
 func (uc *UltimaVConfiguration) windowResolutions() []ScreenResolution {
 	if len(uc.allWindowConfigs) != 0 {
 		return uc.allWindowConfigs
@@ -619,88 +545,6 @@ func (uc *UltimaVConfiguration) syncLegacyDisplayModel() {
 			return
 		}
 	}
-}
-
-// GetWindowResolutionOptions returns a detached copy of supported window resolutions.
-func (uc *UltimaVConfiguration) GetWindowResolutionOptions() []ScreenResolution {
-	return append([]ScreenResolution(nil), uc.windowResolutions()...)
-}
-
-// GetWindowResolutionIndex returns the persisted supported-resolution index.
-func (uc *UltimaVConfiguration) GetWindowResolutionIndex() int {
-	if uc.SavedConfigData == nil {
-		return 0
-	}
-
-	return uc.SavedConfigData.Resolution
-}
-
-// SetWindowResolutionIndex selects an exact supported resolution without persisting it.
-func (uc *UltimaVConfiguration) SetWindowResolutionIndex(index int) bool {
-	resolutions := uc.windowResolutions()
-	if index < 0 || index >= len(resolutions) ||
-		uc.SavedConfigData == nil || uc.DisplayConfiguration == nil {
-		return false
-	}
-	uc.SavedConfigData.Resolution = index
-	uc.DisplayConfiguration.WindowWidth = resolutions[index].X
-	uc.DisplayConfiguration.WindowHeight = resolutions[index].Y
-	if !uc.DisplayConfiguration.Mode.IsValid() {
-		uc.DisplayConfiguration.Mode = ModeWindowed
-	}
-
-	return true
-}
-
-// IncrementHigherResolution selects and persists the next supported resolution.
-func (uc *UltimaVConfiguration) IncrementHigherResolution() error {
-	if uc.SavedConfigData == nil || uc.DisplayConfiguration == nil {
-		return ErrDisplayConfigNil
-	}
-	beforeDisplay := *uc.DisplayConfiguration
-	beforeIndex := uc.SavedConfigData.Resolution
-	index := helpers.Min(len(uc.windowResolutions())-1, helpers.Max(beforeIndex, 0)+1)
-	if !uc.SetWindowResolutionIndex(index) {
-		return fmt.Errorf("%w: %d", ErrResolutionIndex, index)
-	}
-	if err := uc.UpdateSaveFile(); err != nil {
-		*uc.DisplayConfiguration = beforeDisplay
-		uc.SavedConfigData.Resolution = beforeIndex
-
-		return err
-	}
-
-	return nil
-}
-
-// DecrementLowerResolution selects and persists the previous supported resolution.
-func (uc *UltimaVConfiguration) DecrementLowerResolution() error {
-	if uc.SavedConfigData == nil || uc.DisplayConfiguration == nil {
-		return ErrDisplayConfigNil
-	}
-	beforeDisplay := *uc.DisplayConfiguration
-	beforeIndex := uc.SavedConfigData.Resolution
-	index := helpers.Max(beforeIndex-1, 0)
-	if !uc.SetWindowResolutionIndex(index) {
-		return fmt.Errorf("%w: %d", ErrResolutionIndex, index)
-	}
-	if err := uc.UpdateSaveFile(); err != nil {
-		*uc.DisplayConfiguration = beforeDisplay
-		uc.SavedConfigData.Resolution = beforeIndex
-
-		return err
-	}
-
-	return nil
-}
-
-// SaveWindowConfiguration persists resolution and fullscreen state.
-func (uc *UltimaVConfiguration) SaveWindowConfiguration() error {
-	if uc.DisplayConfiguration == nil {
-		return ErrDisplayConfigNil
-	}
-
-	return uc.UpdateSaveFile()
 }
 
 // UpdateSaveFile persists changed runtime preferences and initializes absent
@@ -787,21 +631,6 @@ func setInitializedConfiguration(configuration *viper.Viper, model *UltimaVConfi
 	if model.DebugConfiguration != nil {
 		setDebugConfiguration(configuration, *model.DebugConfiguration)
 	}
-}
-
-// SaveAudioConfiguration immediately persists current audio settings to config file
-func (uc *UltimaVConfiguration) SaveAudioConfiguration() error {
-	if uc.AudioConfiguration == nil {
-		return ErrAudioConfigNil
-	}
-
-	if err := uc.saveConfiguration(func(candidate *viper.Viper) {
-		setAudioConfiguration(candidate, *uc.AudioConfiguration)
-	}); err != nil {
-		return fmt.Errorf("saving audio configuration: %w", err)
-	}
-
-	return nil
 }
 
 // SaveConfigurationSettings atomically persists the player-facing settings.
@@ -956,23 +785,6 @@ func (uc *UltimaVConfiguration) SaveDebugConfiguration() error {
 		setDebugConfiguration(candidate, *uc.DebugConfiguration)
 	}); err != nil {
 		return fmt.Errorf("saving debug configuration: %w", err)
-	}
-
-	return nil
-}
-
-// SaveGameplayConfiguration immediately persists current gameplay settings.
-func (uc *UltimaVConfiguration) SaveGameplayConfiguration() error {
-	if uc.ConfigurationEditing() {
-		return ErrConfigurationEditing
-	}
-	if uc.GameplayConfiguration == nil {
-		return ErrGameplayConfigNil
-	}
-	if err := uc.saveConfiguration(func(candidate *viper.Viper) {
-		setGameplayConfiguration(candidate, *uc.GameplayConfiguration)
-	}); err != nil {
-		return fmt.Errorf("saving gameplay configuration: %w", err)
 	}
 
 	return nil

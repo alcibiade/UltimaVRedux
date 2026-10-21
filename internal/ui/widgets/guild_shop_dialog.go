@@ -245,11 +245,6 @@ func (d *GuildShopDialog) updateBrowse() {
 	}
 }
 
-// HasPendingPurchaseIntent reports whether the workflow has an unconsumed selection intent.
-func (d *GuildShopDialog) HasPendingPurchaseIntent() bool {
-	return d.pendingIntent != nil
-}
-
 // ConsumePendingPurchaseIntent returns and clears the one pending quantity-selection intent.
 func (d *GuildShopDialog) ConsumePendingPurchaseIntent() (GuildPurchaseIntent, bool) {
 	if d.pendingIntent == nil {
@@ -349,24 +344,9 @@ func (d *GuildShopDialog) ApplySessionError(message string) {
 	d.syncPresentation()
 }
 
-// GetSelectedIndex returns the selected canonical catalog row.
-func (d *GuildShopDialog) GetSelectedIndex() int {
-	return d.listState.GetCurrentIndex()
-}
-
 // GetSelectedQuote returns the currently selected trusted quote.
 func (d *GuildShopDialog) GetSelectedQuote() game_state.GuildOfferQuote {
 	return d.selectedQuote()
-}
-
-// GetCatalogQuotes returns the canonical Keys, Gems, Torches snapshot.
-func (d *GuildShopDialog) GetCatalogQuotes() [guildShopOfferCount]game_state.GuildOfferQuote {
-	return d.offers
-}
-
-// GetPhase returns the current workflow phase.
-func (d *GuildShopDialog) GetPhase() GuildShopDialogPhase {
-	return d.phase
 }
 
 // GetShell returns this concrete dialog's shared presentation shell.
@@ -374,77 +354,9 @@ func (d *GuildShopDialog) GetShell() *MerchantDialogShell {
 	return d.shell
 }
 
-// GetLatestExchange returns the one currently displayed merchant exchange.
-func (d *GuildShopDialog) GetLatestExchange() string {
-	return d.latestExchange
-}
-
-// IsPreview reports whether the dialog stops before purchase authority.
-func (d *GuildShopDialog) IsPreview() bool { return d.preview }
-
-// GetReceiptText returns the current detached receipt/status text.
-func (d *GuildShopDialog) GetReceiptText() string {
-	return d.receiptText
-}
-
-// GetSelectedNote returns the compact note for the currently selected quote.
-func (d *GuildShopDialog) GetSelectedNote() string {
-	note, _ := guildSelectionNote(d.selectedQuote())
-
-	return note
-}
-
-// GetStatusText returns the currently displayed selection note or receipt.
-func (d *GuildShopDialog) GetStatusText() string {
-	if d.statusOutput == nil {
-		return ""
-	}
-
-	return d.statusOutput.GetOutputStr(false)
-}
-
-// GetCatalogBounds returns the compact currently rendered catalog bounds.
-func (d *GuildShopDialog) GetCatalogBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.catalogBounds
-}
-
-// GetStatusBounds returns the always-visible status panel beneath the catalog.
-func (d *GuildShopDialog) GetStatusBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.statusBounds
-}
-
-// GetCatalogRowBounds returns one current fixed-height row.
-func (d *GuildShopDialog) GetCatalogRowBounds(index int) image.Rectangle {
-	if index < 0 || index >= guildShopOfferCount {
-		panic("GuildShopDialog.GetCatalogRowBounds: index out of range")
-	}
-	d.ensureLayout()
-
-	return d.catalogRows[index]
-}
-
-// GetFontSize returns the semantic font size used throughout Guild presentation.
-func (d *GuildShopDialog) GetFontSize() StandardFontSize {
-	return FontSizeMainScreen
-}
-
-// IsAwaitingResult reports whether duplicate workflow completion is blocked.
-func (d *GuildShopDialog) IsAwaitingResult() bool {
-	return d.phase == GuildShopAwaitingResult
-}
-
 // IsDismissed reports whether the dialog may be removed.
 func (d *GuildShopDialog) IsDismissed() bool {
 	return d.dismissed
-}
-
-// IsVisible reports whether the dialog still owns presentation and input.
-func (d *GuildShopDialog) IsVisible() bool {
-	return !d.dismissed
 }
 
 // Dismiss closes the shop without producing a purchase request.

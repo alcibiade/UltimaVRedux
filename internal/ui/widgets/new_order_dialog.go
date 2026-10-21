@@ -298,23 +298,6 @@ func (d *NewOrderDialog) footer() [2]string {
 // IsComplete reports whether the dialog has swapped or cancelled.
 func (d *NewOrderDialog) IsComplete() bool { return d.isComplete }
 
-// GetFirstSelectedIndex returns the locked character index.
-func (d *NewOrderDialog) GetFirstSelectedIndex() int { return d.firstSelectedIndex }
-
-// GetStage returns the active selection stage.
-func (d *NewOrderDialog) GetStage() NewOrderStage { return d.stage }
-
-// GetTitle returns the contextual current title.
-func (d *NewOrderDialog) GetTitle() string { return d.title() }
-
-// GetCurrentSelectionIndex returns the inspected party character index.
-func (d *NewOrderDialog) GetCurrentSelectionIndex() int {
-	return d.options[d.selected].CharacterIndex
-}
-
-// GetOptions returns the current detached rows, including stage-specific preview.
-func (d *NewOrderDialog) GetOptions() []CharacterSelectionOption { return d.viewOptions() }
-
 func newOrderOptions(partyState *party_state.PartyState) []CharacterSelectionOption {
 	options := make([]CharacterSelectionOption, 0, party_state.MaxActiveParty)
 	for index := range party_state.MaxActiveParty {

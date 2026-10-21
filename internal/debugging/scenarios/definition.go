@@ -210,13 +210,6 @@ func (baseline Baseline) Validate() error {
 	return nil
 }
 
-// Bind validates launch values, applies defaults, and produces concrete ordered steps.
-func (definition Definition) Bind(values map[string]json.RawMessage) ([]BoundStep, error) {
-	steps, _, err := definition.BindWithValues(values)
-
-	return steps, err
-}
-
 // BindWithValues also returns the detached launch values actually used, including
 // defaults and values not referenced by a step. An empty map is known, not unknown.
 func (definition Definition) BindWithValues(values map[string]json.RawMessage) ([]BoundStep, map[string]json.RawMessage, error) {

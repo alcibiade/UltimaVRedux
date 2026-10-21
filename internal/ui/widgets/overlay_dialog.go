@@ -143,38 +143,14 @@ func (o *OverlayDialog) Dismiss() {
 // CONFIGURATION ACCESSORS (for testing)
 // =====================================
 
-// GetMessage returns the dialog message.
-func (o *OverlayDialog) GetMessage() string {
-	return o.message
-}
-
-// GetContentText returns all currently rendered dialog content.
-func (o *OverlayDialog) GetContentText() string {
-	if o.dialog == nil || o.dialog.output == nil {
-		return ""
-	}
-
-	return o.dialog.output.GetOutputStr(false)
-}
-
 // GetDurationMs returns the configured duration (0 for user-dismissed).
 func (o *OverlayDialog) GetDurationMs() int {
 	return o.durationMs
 }
 
-// IsTimed returns true if this is a timed auto-dismiss dialog.
-func (o *OverlayDialog) IsTimed() bool {
-	return o.isTimed
-}
-
 // IsDurationExternallyManaged reports whether the dialog owner controls expiry.
 func (o *OverlayDialog) IsDurationExternallyManaged() bool {
 	return o.durationExternallyManaged
-}
-
-// IsUserDismissed returns true if this is a user-dismissed dialog.
-func (o *OverlayDialog) IsUserDismissed() bool {
-	return !o.isTimed
 }
 
 // =====================================

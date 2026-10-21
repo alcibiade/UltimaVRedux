@@ -27,24 +27,8 @@ func PartyMapAtInn(location references.Location) PartyMap {
 	return PartyMap(location)
 }
 
-// IsActive reports whether the character belongs to the packed active roster prefix.
-func (p PartyMap) IsActive() bool { return p == PartyMapActive }
-
-// IsUnrecruited reports whether the character has not joined the party yet.
-func (p PartyMap) IsUnrecruited() bool { return p == PartyMapUnrecruited }
-
 // IsMartyr reports whether Blackthorn executed the character.
 func (p PartyMap) IsMartyr() bool { return p == PartyMapMartyr }
-
-// InnLocation returns the stored map ID when this is an inn-held companion.
-func (p PartyMap) InnLocation() (references.Location, bool) {
-	location := references.Location(p)
-	if location < references.Moonglow || location > references.Doom || p == PartyMapMartyr {
-		return references.EmptyLocation, false
-	}
-
-	return location, true
-}
 
 type PlayerCharacter struct {
 	Name         [NMaxPlayerNameSize]byte

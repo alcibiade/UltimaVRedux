@@ -172,24 +172,6 @@ func TestSizingStrategy_FixedLinesSizing_GetConfig(t *testing.T) {
 	assert.False(t, autoFit, "FixedLinesSizing should return autoFit=false")
 }
 
-// TestPosition_GetHorizontalPercent verifies horizontal position percentages.
-func TestPosition_GetHorizontalPercent(t *testing.T) {
-	tests := []struct {
-		name     string
-		position Position
-		expected float64
-	}{
-		{"MapCenter", Position{HorizontalMapCenter, VerticalCenter}, 0.37},
-		{"ScreenCenter", Position{HorizontalScreenCenter, VerticalCenter}, 0.50},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.InDelta(t, tt.expected, tt.position.GetHorizontalPercent(), 0.01)
-		})
-	}
-}
-
 // TestPosition_GetVerticalPercent verifies vertical position percentages.
 func TestPosition_GetVerticalPercent(t *testing.T) {
 	tests := []struct {

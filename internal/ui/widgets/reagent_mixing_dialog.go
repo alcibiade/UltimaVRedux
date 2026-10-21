@@ -474,9 +474,6 @@ func (d *ReagentMixingDialog) populatePreparation() {
 // IsDismissed implements Widget.
 func (d *ReagentMixingDialog) IsDismissed() bool { return d.isDismissed }
 
-// IsAwaitingConfirmation reports whether the owner is processing an attempt.
-func (d *ReagentMixingDialog) IsAwaitingConfirmation() bool { return d.awaitingConfirmation }
-
 // HasPendingMixRequest reports a confirmed, unconsumed preparation intent.
 func (d *ReagentMixingDialog) HasPendingMixRequest() bool { return d.pendingMixRequest != nil }
 

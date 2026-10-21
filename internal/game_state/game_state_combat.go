@@ -685,23 +685,6 @@ func (combatState *CombatState) IsPartyMemberActive(memberIndex int) bool {
 	return combatState.PartyActive[memberIndex]
 }
 
-// IsPartyMemberInvisible reports whether monsters can see the party member.
-func (combatState *CombatState) IsPartyMemberInvisible(memberIndex int) bool {
-	if memberIndex < 0 || memberIndex >= party_state.MaxActiveParty {
-		return false
-	}
-
-	return combatState.PartyInvisible[memberIndex]
-}
-
-// SetPartyMemberInvisible updates encounter-local party invisibility.
-func (combatState *CombatState) SetPartyMemberInvisible(memberIndex int, invisible bool) {
-	if memberIndex < 0 || memberIndex >= party_state.MaxActiveParty {
-		panic("combat party invisibility index out of range")
-	}
-	combatState.PartyInvisible[memberIndex] = invisible
-}
-
 func (g *GameState) markCombatPCDead(pcIndex int) {
 	for identity := range g.CombatScene.possessions {
 		if identity.EntityIndex == pcIndex {
@@ -778,18 +761,6 @@ func (combatState *CombatState) findNextActiveIndex(startIndex int) int {
 	}
 	// No active members (should not happen in normal gameplay)
 	return 0
-}
-
-// GetActivePartyCount returns the number of active party members in combat
-func (combatState *CombatState) GetActivePartyCount() int {
-	count := 0
-	for _, active := range combatState.PartyActive {
-		if active {
-			count++
-		}
-	}
-
-	return count
 }
 
 // --- Solo Move Mode Methods ---
@@ -904,23 +875,6 @@ func (combatState *CombatState) addClonedMonsterToQueue(
 	return index
 }
 
-// ReplaceMonsterAt deletes the old entry before creating its replacement.
-func (combatState *CombatState) ReplaceMonsterAt(index int, monster *CombatMonster) {
-	if combatState.MonsterManager.GetMonster(index) == nil {
-		panic("CombatState.ReplaceMonsterAt: missing monster")
-	}
-	combatState.ReplaceCombatantWithMonster(CombatTurnIdentity{EntityIndex: index}, monster)
-}
-
-// ReplaceCombatantWithMonster ports Rel Xen Bet's deleteobj()+createentry()
-// sequence: the target slot is released, then the rat uses the lowest free
-// monster-region source slot with a fresh countdown.
-func (combatState *CombatState) ReplaceCombatantWithMonster(identity CombatTurnIdentity, monster *CombatMonster) int {
-	index, _ := combatState.replaceCombatantWithMonster(identity, monster)
-
-	return index
-}
-
 // Capture removed identity before releasing storage; GameState decides whether
 // this replacement is an authoritative controller-release outcome.
 func (combatState *CombatState) replaceCombatantWithMonster(identity CombatTurnIdentity, monster *CombatMonster) (int, CombatantID) {
@@ -984,40 +938,6 @@ func (g *GameState) getActiveCombatantPosition() references.Position {
 // CombatState field - added to GameState struct via game_state_combat.go
 // Access via g.CombatScene
 
-// TransitionToCombatMap loads a combat map and sets up combat mode.
-// mapIndex: the combat map index (0-15 for Britannia, varies for dungeon)
-// territory: BritanniaCombatTerritory or DungeonCombatTerritory
-// entryDir: the direction from which the party enters combat
-func (g *GameState) TransitionToCombatMap(
-	mapIndex int,
-	territory references.CombatMapTerritory,
-	entryDir CombatEntryDirection,
-) error {
-	// Load the combat map
-	combatMap, err := references.LoadCombatMap(mapIndex, territory, g.GameConfig)
-	if err != nil {
-		return fmt.Errorf("loading combat map %d: %w", mapIndex, err)
-	}
-	g.transitionToCombatMapReference(combatMap, territory, entryDir)
-
-	return nil
-}
-
-func (g *GameState) transitionToCombatMapReference(
-	combatMap *references.CombatMapReference,
-	territory references.CombatMapTerritory,
-	entryDir CombatEntryDirection,
-) {
-	combatState := NewCombatState(combatMap, entryDir, &g.PartyState)
-	g.configureCombatTurnQueue(combatState)
-	g.initializeCombatPartyRings(combatState)
-	g.commitCombatTransition(combatState, territory)
-
-	logging.Debug(logging.CategoryGameState,
-		"Transitioned to combat map: %s (index=%d, territory=%d, entry=%d)",
-		combatMap.MapName, combatMap.MapIndex, territory, entryDir)
-}
-
 // commitCombatTransition installs a fully prepared combat state. Callers must
 // complete all recoverable validation before invoking it.
 func (g *GameState) commitCombatTransition(
@@ -1059,29 +979,6 @@ func (g *GameState) commitCombatTransition(
 	// Combat starts in round-robin mode with no explicit party member selected.
 	g.ClearActivePlayer()
 	g.SystemCallbacks.Screen.UpdateDisplay()
-}
-
-// TransitionToDungeonCombatMap loads a dungeon room combat map.
-// dungeonIndex: the dungeon (0-6, mapping Deceit→0, Destard→1, etc.)
-// roomIndex: the room number within the dungeon (0-15)
-// entryDir: the direction from which the party enters combat
-func (g *GameState) TransitionToDungeonCombatMap(
-	dungeonIndex references.DungeonCombatIndex,
-	roomIndex int,
-	entryDir CombatEntryDirection,
-) error {
-	if roomIndex < 0 || roomIndex >= references.MaxDungeonRooms {
-		return fmt.Errorf("%w: %d (valid: 0-%d)", ErrRoomIndexOutOfRange, roomIndex, references.MaxDungeonRooms-1)
-	}
-
-	mapIndex := references.CalculateDungeonCombatMapIndex(dungeonIndex, roomIndex)
-
-	if err := g.TransitionToCombatMap(mapIndex, references.DungeonCombatTerritory, entryDir); err != nil {
-		return err
-	}
-	g.CombatScene.ExitContext = CombatExitDungeonRoom
-
-	return nil
 }
 
 const combatVictoryExitFadeMs int64 = 750

@@ -1,24 +1,15 @@
 package game_state
 
 import (
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
 	"github.com/bradhannah/UltimaVRedux/internal/ai"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
-
-// SpawnShadowlordNPC creates and spawns a Shadowlord enemy NPC at the specified position.
-// Called when a Shadowlord is successfully summoned at a Keep.
-// The Shadowlord spawns 2 tiles north of the player (at playerY - 2).
-//
-// Based on original command rules - Shadowlord appears above player after summoning.
-// See ref:SHADOW-0002.
-func (g *GameState) SpawnShadowlordNPC(lord references.Shadowlord) bool {
-	return g.insertShadowlordNPC(lord) != nil
-}
 
 func (g *GameState) insertShadowlordNPC(lord references.Shadowlord) *map_units.NPCEnemy {
 	playerPos := g.MapState.PlayerLocation.Position
@@ -30,19 +21,6 @@ func (g *GameState) insertShadowlordNPC(lord references.Shadowlord) *map_units.N
 	}
 
 	return g.insertShadowlordNPCAtPosition(lord, spawnPos, true)
-}
-
-// SpawnShadowlordNPCAtPosition creates a Shadowlord enemy NPC at an explicit
-// passable position. Source-fixed Yell and automatic placement use their
-// unexported terrain policy instead.
-//
-// Parameters:
-//   - lord: Which Shadowlord to spawn
-//   - spawnPos: The position to spawn at
-//
-// Returns true if spawn was successful, false otherwise.
-func (g *GameState) SpawnShadowlordNPCAtPosition(lord references.Shadowlord, spawnPos references.Position) bool {
-	return g.insertShadowlordNPCAtPosition(lord, spawnPos, false) != nil
 }
 
 func (g *GameState) insertShadowlordNPCAtPosition(

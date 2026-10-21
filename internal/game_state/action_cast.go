@@ -63,17 +63,6 @@ func (g *GameState) ValidateSpellTargetingPrerequisites(request CastRequest) Spe
 	return g.validateSpellResourcesWithoutTarget(request)
 }
 
-// ValidateAndConsumePartyTargetSpellResources commits a prepared character
-// spell after final target confirmation, with the same validation as other routes.
-func (g *GameState) ValidateAndConsumePartyTargetSpellResources(request CastRequest) SpellValidationResult {
-	profile := references.GetSpellTargetingProfile(request.Spell, g.GetCurrentSpellContext())
-	if profile.Selection != references.TargetPartyMember {
-		panic("party-target resource commit called for another targeting mode")
-	}
-
-	return g.ValidateAndConsumeSpellResources(request)
-}
-
 // ValidateVasRelPorPrerequisites validates everything required before asking
 // for a destination phase. It never commits MP or a prepared spell.
 func (g *GameState) ValidateVasRelPorPrerequisites(request CastRequest) SpellValidationResult {

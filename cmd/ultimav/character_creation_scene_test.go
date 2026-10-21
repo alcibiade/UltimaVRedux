@@ -8,13 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
-	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestCharacterCreationSceneCompletesDeterministicWorkflow(t *testing.T) {
@@ -146,52 +147,6 @@ func TestCharacterCreationSceneCancellationCallbackCanReplaceSceneReentrantly(t 
 	require.NotPanics(t, func() { require.NoError(t, game.Update()) })
 	assert.Same(t, replacement, game.currentScene)
 	assert.True(t, fixture.scene.disposed)
-}
-
-func TestCharacterCreationSceneCancellationBoundaries(t *testing.T) {
-	t.Run("name escape cancels", func(t *testing.T) {
-		cancelled := 0
-		fixture := newCharacterCreationSceneFixture(t, CharacterCreationCallbacks{
-			OnComplete: func(character_creation.Result) { t.Fatal("unexpected completion") },
-			OnCancel:   func() { cancelled++ },
-		})
-		fixture.press(ebiten.KeyEscape)
-		assert.Equal(t, 1, cancelled)
-		assert.Equal(t, characterCreationCancelled, fixture.scene.state)
-		_, available := fixture.scene.Result()
-		assert.False(t, available)
-		fixture.press(ebiten.KeyEscape)
-		assert.Equal(t, 1, cancelled)
-	})
-
-	t.Run("empty enter cancels", func(t *testing.T) {
-		cancelled := 0
-		fixture := newCharacterCreationSceneFixture(t, CharacterCreationCallbacks{
-			OnComplete: func(character_creation.Result) { t.Fatal("unexpected completion") },
-			OnCancel:   func() { cancelled++ },
-		})
-		fixture.press(ebiten.KeyEnter)
-		assert.Equal(t, 1, cancelled)
-	})
-
-	t.Run("post identity escape confirms discard", func(t *testing.T) {
-		cancelled := 0
-		fixture := newCharacterCreationSceneFixture(t, CharacterCreationCallbacks{
-			OnComplete: func(character_creation.Result) { t.Fatal("unexpected completion") },
-			OnCancel:   func() { cancelled++ },
-		})
-		fixture.typeRunes("Avatar")
-		fixture.press(ebiten.KeyEnter)
-		fixture.press(ebiten.KeyM)
-		fixture.press(ebiten.KeyEscape)
-		assert.Equal(t, characterCreationDiscardConfirmation, fixture.scene.state)
-		fixture.press(ebiten.KeyN)
-		assert.Equal(t, characterCreationIntroduction, fixture.scene.state)
-		fixture.press(ebiten.KeyEscape)
-		fixture.press(ebiten.KeyY)
-		assert.Equal(t, 1, cancelled)
-		assert.Equal(t, characterCreationCancelled, fixture.scene.state)
-	})
 }
 
 func TestCharacterCreationSceneNameEditingAndRuneFiltering(t *testing.T) {

@@ -31,9 +31,9 @@ workflow makes snapshot capture ineligible.
 
 `MoongateVisualSystem` maintains presentation resources for buried or exposed,
 uncollected moonstones near the player. It never owns stage or gameplay
-eligibility. Core source checks use `GetActiveMoongatePositions` and
-`HasActiveMoongateAtPosition` to match the current map and floor as well as the
-coordinate.
+eligibility. Core source checks use `GameState.IsMoongateActiveAt`, which matches
+the current map and floor as well as the coordinate through
+`MoonstoneSystem.CanCreateMoongateAt`.
 
 Current presentation limitation: `MoongateVisualSystem.Update` reads the raw
 moonstone records and filters state and distance, but not map or floor identity.

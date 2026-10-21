@@ -875,18 +875,6 @@ func (ls *LightSourceTintingState) calculateBreathingModulationWithParams(
 	return breathValue
 }
 
-// IsTileLit returns true if the tile at the given position is lit by any light source.
-func (ls *LightSourceTintingState) IsTileLit(pos references.Position) bool {
-	contributions, ok := ls.litTilesMap[pos]
-
-	return ok && len(contributions) > 0
-}
-
-// GetLitTileCount returns the number of tiles currently lit (for debugging).
-func (ls *LightSourceTintingState) GetLitTileCount() int {
-	return len(ls.litTilesMap)
-}
-
 // Clear removes all lit tiles (used when leaving a map).
 func (ls *LightSourceTintingState) Clear() {
 	ls.litTilesMap = make(map[references.Position][]LightContribution)
@@ -896,26 +884,6 @@ func (ls *LightSourceTintingState) Clear() {
 // ============================================================================
 // Lighthouse Integration
 // ============================================================================
-
-// ClearLighthouseTiles removes all lighthouse contributions from the lit tiles map.
-// Called before re-injecting lighthouse tiles after rotation.
-func (ls *LightSourceTintingState) ClearLighthouseTiles() {
-	for pos, contributions := range ls.litTilesMap {
-		// Filter out lighthouse contributions
-		filtered := contributions[:0]
-		for _, c := range contributions {
-			if c.SourceIndex != LighthouseMarkerIndex {
-				filtered = append(filtered, c)
-			}
-		}
-
-		if len(filtered) > 0 {
-			ls.litTilesMap[pos] = filtered
-		} else {
-			delete(ls.litTilesMap, pos)
-		}
-	}
-}
 
 // InjectLighthouseTiles adds lighthouse-lit tiles to the tinting state.
 // This integrates the lighthouse's rotating beam with the unified light source system.

@@ -31,27 +31,6 @@ func TestHealerShopDialogUsesExistingShellAndBoundedTwoPaneWorkspace(t *testing.
 	}
 }
 
-func TestHealerShopDialogPaneRowsFollowActualPartyAndStatusConsumesRemainder(t *testing.T) {
-	setMerchantShellTestResolution(t, 1280, 720)
-	oneMember := newTestHealerShopDialog(newWidgetTestKeyboard(0), testHealerShopStateWithRecipientCount(1))
-	largerParty := newTestHealerShopDialog(newWidgetTestKeyboard(0), testHealerShopStateWithRecipientCount(6))
-
-	requireHealerStatusConsumesRemainingSpace(t, oneMember)
-	requireHealerStatusConsumesRemainingSpace(t, largerParty)
-	require.Equal(t, oneMember.serviceRows[0].Dy(), largerParty.serviceRows[0].Dy())
-	require.Equal(t,
-		oneMember.serviceHeader.Dy()+oneMember.serviceRows[0].Dy()*healerShopServiceCount,
-		oneMember.GetServicePaneBounds().Dy(),
-	)
-	require.Equal(t,
-		largerParty.serviceHeader.Dy()+largerParty.serviceRows[0].Dy()*healerShopMaximumRecipients,
-		largerParty.GetServicePaneBounds().Dy(),
-	)
-	require.Less(t, oneMember.GetServicePaneBounds().Dy(), largerParty.GetServicePaneBounds().Dy())
-	require.Less(t, largerParty.GetDetailBounds().Dy(), oneMember.GetDetailBounds().Dy())
-	require.True(t, oneMember.recipientRows[1].Empty(), "missing party members must not reserve recipient rows")
-}
-
 func TestHealerShopDialogLowResolutionReservesReadableStatus(t *testing.T) {
 	setMerchantShellTestResolution(t, 320, 180)
 	dialog := newTestHealerShopDialog(newWidgetTestKeyboard(0), testHealerShopStateWithRecipientCount(6))

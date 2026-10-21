@@ -81,18 +81,6 @@ type Position struct {
 	Vertical   VerticalAnchor
 }
 
-// GetHorizontalPercent returns the horizontal position as a percentage (0.0-1.0)
-func (p Position) GetHorizontalPercent() float64 {
-	switch p.Horizontal {
-	case HorizontalMapCenter:
-		return 0.37 // Map area center
-	case HorizontalScreenCenter:
-		return 0.50 // Full screen center
-	default:
-		return 0.50
-	}
-}
-
 // GetVerticalPercent returns the vertical position as a percentage (0.0-1.0)
 func (p Position) GetVerticalPercent() float64 {
 	switch p.Vertical {

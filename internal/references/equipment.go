@@ -372,17 +372,6 @@ func (e Equipment) inventorySprite() indexes.SpriteIndex {
 	}
 }
 
-// ShortString returns the abbreviated display name (max ~12 chars).
-// Falls back to full Name if no ShortName is defined.
-func (e Equipment) ShortString() string {
-	def := getDefinition(e)
-	if def.ShortName != "" {
-		return def.ShortName
-	}
-
-	return def.Name
-}
-
 // GetSlotType returns which slot this equipment uses.
 // Uses the centralized equipmentDefinitions map.
 func (e Equipment) GetSlotType() EquipmentSlot {
@@ -408,21 +397,6 @@ func (e Equipment) IsArmour() bool {
 // IsShield returns true if this equipment is a shield.
 func (e Equipment) IsShield() bool {
 	return e.GetSlotType() == SlotShield
-}
-
-// IsHelm returns true if this equipment is a helm.
-func (e Equipment) IsHelm() bool {
-	return e.GetSlotType() == SlotHelm
-}
-
-// IsRing returns true if this equipment is a ring.
-func (e Equipment) IsRing() bool {
-	return e.GetSlotType() == SlotRing
-}
-
-// IsAmulet returns true if this equipment is an amulet.
-func (e Equipment) IsAmulet() bool {
-	return e.GetSlotType() == SlotAmulet
 }
 
 // IsAmmo returns true if this equipment is ammunition (not equippable).

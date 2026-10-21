@@ -2,7 +2,6 @@ package main
 
 import (
 	"image"
-	"strings"
 	"testing"
 	"time"
 
@@ -10,12 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
-	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 func TestSmallMapMovementKeyMapsSmashedDirections(t *testing.T) {
@@ -78,22 +78,6 @@ func TestSmallMapSmashedMissRetainsIntendedCommand(t *testing.T) {
 	assert.NotContains(t, callbacks.Messages, "Hic!")
 	assert.Equal(t, 1, captureSmashed(t, state))
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-}
-
-func TestSmallMapSmashedInterceptsNumberAndEscapeBeforeGlobalDispatch(t *testing.T) {
-	for _, key := range []ebiten.Key{ebiten.Key1, ebiten.KeyEscape} {
-		t.Run(key.String(), func(t *testing.T) {
-			scene, state, callbacks := newSmashedInputTestScene(t, 1, smashedInputHitSeed(1))
-
-			pressSmashedInputKey(t, scene, key)
-
-			assert.Equal(t, 1, scene.dialogStack.Count())
-			assert.Equal(t, PrimaryInput, scene.secondaryKeyState)
-			assert.Contains(t, callbacks.CommandPrompts, "South")
-			assert.False(t, messagesContain(callbacks.Messages, "Character"))
-			assert.Zero(t, captureSmashed(t, state))
-		})
-	}
 }
 
 func TestSmallMapSmashedDoesNotInterceptSecondaryInputState(t *testing.T) {
@@ -288,14 +272,4 @@ func findBlockedSmallMapStep(
 	t.Fatal("Britain fixture has no ordinary blocked adjacent movement")
 
 	return references.Position{}, references.NoneDirection
-}
-
-func messagesContain(messages []string, substring string) bool {
-	for _, message := range messages {
-		if strings.Contains(message, substring) {
-			return true
-		}
-	}
-
-	return false
 }

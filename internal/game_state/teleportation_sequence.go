@@ -9,27 +9,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// BuildTeleportationSequence returns a function that adds teleportation phases to an existing event queue builder.
-// This allows the caller to integrate teleportation into a larger sequence without nested queues.
-//
-// The returned function adds the following phases:
-// - Phase 1: Avatar dissolve out (1 second)
-// - Phase 2: Map fade to black (2 seconds)
-// - Phase 3: Execute actual teleportation (instant)
-// - Phase 4: Map fade from black (2 seconds)
-// - Phase 5: Avatar dissolve in (1 second)
-//
-// Total duration: 6 seconds
-//
-// Usage:
-//
-//	queue.First(func() { /* setup */ }).
-//	    ThenSequence(gs.BuildTeleportationSequence(destination)).
-//	    Last(func() { /* cleanup */ })
-func (gs *GameState) BuildTeleportationSequence(destination MoongateDestination) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	return gs.buildTeleportationSequence(destination, journal.MoonstoneSourceNone)
-}
-
 // BuildMoongateTeleportationSequence preserves the source gate during departure
 // and fully materializes the destination gate before the map and Avatar return.
 func (gs *GameState) BuildMoongateTeleportationSequence(destination MoongateDestination) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {

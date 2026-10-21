@@ -109,11 +109,6 @@ func (s *SmallLocationReference) CopyDungeonCells() (DungeonCells, bool) {
 // 	return indexes.SpriteIndex(s.rawData[int(nFloor)][x][y])
 // }
 
-// GetEnteringText returns the location's display name.
-func (s *SmallLocationReference) GetEnteringText() string {
-	return s.Location.String()
-}
-
 // GetExitingText returns the text to display when leaving a location
 // Mirrors getEnteringText() pattern with "Leaving" instead of "Enter"
 //
@@ -254,44 +249,4 @@ func (s *SmallLocationReference) CanGoDownOneFloor(currentFloor FloorNumber) boo
 // GetNPCReferences returns the location's authored NPC reference collection.
 func (s *SmallLocationReference) GetNPCReferences() *[]NPCReference {
 	return s.npcRefs
-}
-
-// GetClosestLadder returns the closest authored directional connection, or
-// (-1,-1) when none exists. Runtime route selection must additionally check
-// persistent terrain overrides, occupancy and reachability.
-func (s *SmallLocationReference) GetClosestLadder(npcCurrentPosition Position, nCurrentFloor, nTargetFloor FloorNumber) Position {
-	ladderOrStairType := GetLadderOfStairsType(nCurrentFloor, nTargetFloor)
-	ls := s.getListOfAllLaddersAndStairs(nCurrentFloor, ladderOrStairType)
-
-	if len(ls) == 0 {
-		// Runtime routes must handle missing connections as pending travel.
-		return Position{X: -1, Y: -1}
-	}
-	bestPosition := ls[0]
-	for _, pos := range ls[1:] {
-		if npcCurrentPosition.HeuristicTileDistance(pos) < npcCurrentPosition.HeuristicTileDistance(bestPosition) {
-			bestPosition = pos
-		}
-	}
-
-	return bestPosition
-}
-
-func (s *SmallLocationReference) getListOfAllLaddersAndStairs(nFloor FloorNumber, ladderOrStairType LadderOrStairType) []Position {
-	positions := make([]Position, 0)
-	if s.rawData[int(nFloor)] == nil {
-		return positions
-	}
-
-	for x := Coordinate(0); x <= s.GetMaxX(); x++ {
-		for y := Coordinate(0); y <= s.GetMaxY(); y++ {
-			pos := Position{X: x, Y: y}
-			isLadderOrStair := IsSpecificLadderOrStairs(s.GetTileNumber(pos, nFloor), ladderOrStairType)
-			if isLadderOrStair {
-				positions = append(positions, pos)
-			}
-		}
-	}
-
-	return positions
 }

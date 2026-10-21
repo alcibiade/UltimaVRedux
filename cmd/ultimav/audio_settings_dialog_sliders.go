@@ -221,18 +221,3 @@ func (d *ConfigurationDialog) adjustFocusedSlider(delta int) {
 }
 
 // Slider accessor methods for testing
-
-// GetMusicVolumeSlider returns the music volume slider for testing.
-func (d *ConfigurationDialog) GetMusicVolumeSlider() *widgets.Slider {
-	return d.musicSlider
-}
-
-// GetSFXVolumeSlider returns the SFX volume slider for testing.
-func (d *ConfigurationDialog) GetSFXVolumeSlider() *widgets.Slider {
-	return d.sfxSlider
-}
-
-// GetAmbientVolumeSlider returns the ambient volume slider for testing.
-func (d *ConfigurationDialog) GetAmbientVolumeSlider() *widgets.Slider {
-	return d.ambientSlider
-}

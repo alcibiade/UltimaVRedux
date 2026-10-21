@@ -1,7 +1,6 @@
 package config
 
 import (
-	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -216,13 +215,6 @@ func TestGameplayPreferencesDefaultTrueOnlyWhenAbsent(t *testing.T) {
 	} {
 		configuration.source.Set(key, false)
 		assert.False(t, configuration.gameplayBooleanDefaultTrue(key))
-	}
-}
-
-func TestCombatMovementSpeedPreferenceFallsBackToDefault(t *testing.T) {
-	for _, factor := range []float64{0, 0.24, 4.01, math.NaN(), math.Inf(1)} {
-		debugConfiguration := &DebugConfiguration{CombatMovementSpeedFactor: factor}
-		assert.Equal(t, DefaultCombatMovementSpeedFactor, debugConfiguration.GetCombatMovementSpeedFactor())
 	}
 }
 

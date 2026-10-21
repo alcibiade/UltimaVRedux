@@ -14,6 +14,8 @@ import (
 	textv2 "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
@@ -23,7 +25,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
-	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -261,11 +262,6 @@ func newCharacterCreationScene(
 		terminal:       false,
 		disposed:       false,
 	}
-}
-
-// Result returns the detached completed result even after scene disposal.
-func (scene *CharacterCreationScene) Result() (character_creation.Result, bool) {
-	return scene.result, scene.hasResult
 }
 
 func (scene *CharacterCreationScene) GetUltimaConfiguration() *config.UltimaVConfiguration {

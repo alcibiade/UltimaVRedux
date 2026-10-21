@@ -147,29 +147,6 @@ func IsShard(questItem references.QuestItem) bool {
 	}
 }
 
-// GetQuestItemLightRadius returns the light emission radius for a quest item at a given position
-// Returns 0 if no quest item is at the position or if the item is in inventory (not visible)
-func (gs *GameState) GetQuestItemLightRadius(position references.Position) int {
-	hasQuestItem, questItem := gs.IsQuestItemAtPosition(position)
-	if !hasQuestItem {
-		return 0
-	}
-
-	// Check if quest item is visible (not in inventory)
-	if !gs.IsQuestItemVisible(position, questItem) {
-		return 0
-	}
-
-	// Return appropriate light radius based on item type
-	if IsLordBritishArtifact(questItem) {
-		return map_state.ArtifactLightDistance // Artifacts emit stronger light
-	} else if IsShard(questItem) {
-		return map_state.ShardLightDistance // Shards emit moderate light
-	}
-
-	return 0 // Default: no light
-}
-
 // GetVisibleQuestItemLights returns quest item light information for the current location
 // Returns data needed for the lighting system to add quest items as light sources
 func (gs *GameState) GetVisibleQuestItemLights() []map_state.QuestItemLightInfo {

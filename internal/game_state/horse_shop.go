@@ -170,16 +170,6 @@ func (g *GameState) ReviewHorseShopByMerchantID(id references.MerchantID) (Horse
 	return HorseShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
 }
 
-// QuoteHorsePurchase returns the current canonical price and delivery fingerprint.
-func (g *GameState) QuoteHorsePurchase(session MerchantSession) (HorsePurchaseQuote, error) {
-	state, err := g.GetHorseShopState(session)
-	if err != nil {
-		return HorsePurchaseQuote{}, err
-	}
-
-	return state.Quote, nil
-}
-
 // PurchaseHorse revalidates and commits one original horse transaction.
 func (g *GameState) PurchaseHorse(
 	session MerchantSession,

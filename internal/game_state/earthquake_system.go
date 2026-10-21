@@ -54,11 +54,6 @@ func (e *EarthquakeSystem) CheckForRandomEarthquake(
 	return e.triggerEarthquake(partyState), true
 }
 
-// TriggerEarthquakeManually commits earthquake damage without the random eligibility roll.
-func (e *EarthquakeSystem) TriggerEarthquakeManually(partyState *party_state.PartyState) EarthquakeResult {
-	return e.triggerEarthquake(partyState)
-}
-
 func (e *EarthquakeSystem) triggerEarthquake(partyState *party_state.PartyState) EarthquakeResult {
 	result := EarthquakeResult{Damage: make([]EarthquakeDamage, 0, party_state.MaxActiveParty)}
 	for index := range party_state.MaxActiveParty {

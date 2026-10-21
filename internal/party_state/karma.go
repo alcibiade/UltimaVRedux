@@ -14,14 +14,6 @@ func NewKarma(karma byte) Karma {
 	return k
 }
 
-func (k *Karma) DecreaseKarma(decreaseBy int) {
-	k.AddDiff(-decreaseBy)
-}
-
-func (k *Karma) IncreaseKarma(increaseBy int) {
-	k.AddDiff(increaseBy)
-}
-
 func (k *Karma) AddDiff(nDiff int) {
 	k.Value = k.Value + nDiff
 	if k.Value < 0 {

@@ -152,33 +152,3 @@ func TestMovementConsistency_DirectionalOperations(t *testing.T) {
 		})
 	}
 }
-
-// TestPositionHashConsistency ensures position hashing works correctly for movement
-func TestPositionHashConsistency_Movement(t *testing.T) {
-	// Test that adjacent positions have different hashes
-	center := references.Position{X: 100, Y: 100}
-	centerHash := center.GetHash()
-
-	adjacentPositions := []references.Position{
-		{X: 99, Y: 100},  // Left
-		{X: 101, Y: 100}, // Right
-		{X: 100, Y: 99},  // Up
-		{X: 100, Y: 101}, // Down
-	}
-
-	for _, pos := range adjacentPositions {
-		hash := pos.GetHash()
-		if hash == centerHash {
-			t.Errorf("Hash collision: position (%d,%d) has same hash as (%d,%d): %d",
-				pos.X, pos.Y, center.X, center.Y, hash)
-		}
-	}
-
-	// Test hash consistency - same position should always have same hash
-	for i := 0; i < 10; i++ {
-		if center.GetHash() != centerHash {
-			t.Errorf("Hash inconsistency: position (%d,%d) produced different hash on iteration %d",
-				center.X, center.Y, i)
-		}
-	}
-}

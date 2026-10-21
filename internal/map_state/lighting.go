@@ -63,10 +63,6 @@ func NewLighting(gameDimensions GameDimensions) Lighting {
 	return l
 }
 
-func (l *Lighting) GetBaselineRadius() float32 {
-	return l.baselineFactor
-}
-
 func (l *Lighting) HasTorchLit() bool {
 	return l.torchMinutesRemaining > 0
 }
@@ -127,11 +123,6 @@ func (l *Lighting) AdvanceMinutes(minutes int) {
 		return
 	}
 	l.torchMinutesRemaining = helpers.Max(l.torchMinutesRemaining-minutes, 0)
-}
-
-// AdvanceTurn is retained for callers that explicitly model one elapsed minute.
-func (l *Lighting) AdvanceTurn() {
-	l.AdvanceMinutes(1)
 }
 
 func (l *Lighting) BuildGameScreenDistanceMap(centrePos references.Position) DistanceMap {

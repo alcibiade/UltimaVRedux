@@ -50,13 +50,6 @@ func (g *GameState) resolveCommittedCombatCone(
 	}
 }
 
-// CastCombatInNoxHur applies the original poison-wind cone to every combatant
-// in its terrain-clipped footprint. Toxify applies when effective DEX is no
-// greater than the D30 roll: poison a Good PC, otherwise deal direct damage.
-func (g *GameState) CastCombatInNoxHur(casterIdx int, direction references.Direction) []references.Position {
-	return g.castCommittedCombatCone(references.InNoxHur, casterIdx, direction)
-}
-
 func (g *GameState) resolveCombatInNoxHur(
 	casterIdx int,
 	candidates []references.Position,
@@ -64,27 +57,11 @@ func (g *GameState) resolveCombatInNoxHur(
 	return g.resolveCombatConeResults(references.InNoxHur, casterIdx, candidates).processedPositions()
 }
 
-// CastCombatInFlamHur applies the original flame-wind cone. Each occupied tile
-// takes direct random damage from 0 through 30 without an armor reduction.
-// original spell projection rules and original command rules establish the inclusive source contract;
-// the external RNG implementation is unavailable for binary confirmation.
-// See ref:SPELL-0003.
-func (g *GameState) CastCombatInFlamHur(casterIdx int, direction references.Direction) []references.Position {
-	return g.castCommittedCombatCone(references.InFlamHur, casterIdx, direction)
-}
-
 func (g *GameState) resolveCombatInFlamHur(
 	casterIdx int,
 	candidates []references.Position,
 ) []references.Position {
 	return g.resolveCombatConeResults(references.InFlamHur, casterIdx, candidates).processedPositions()
-}
-
-// CastCombatInVasGravCorp applies the original energy-vortex cone. Targets
-// first receive an intelligence save; spell-immune and immortal monsters
-// cannot be killed. A failed save deals the original instant-death value.
-func (g *GameState) CastCombatInVasGravCorp(casterIdx int, direction references.Direction) []references.Position {
-	return g.castCommittedCombatCone(references.InVasGravCorp, casterIdx, direction)
 }
 
 func (g *GameState) resolveCombatInVasGravCorp(

@@ -3,7 +3,11 @@ package main
 import (
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/stretchr/testify/require"
+
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
+	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
@@ -11,8 +15,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/stretchr/testify/require"
 )
 
 func waitForCampingGuard(t *testing.T, scene *GameScene, update func()) *widgets.CharacterSelectionDialog {
@@ -131,7 +133,7 @@ func TestSurfaceCampingGuardCancellationAndExplicitChoices(t *testing.T) {
 				}
 				expectedDate.Advance(game_state.DefaultLargeMapMinutesPerTurn)
 				require.Equal(t, expectedDate, state.DateTime, "twelve camp cycles plus exactly one ordinary completion")
-				callbacks.AssertTimeAdvanced(camping.MinutesPerHour + game_state.DefaultLargeMapMinutesPerTurn)
+				callbacks.AssertTimeAdvanced(datetime.MinutesPerHour + game_state.DefaultLargeMapMinutesPerTurn)
 				for range 3 {
 					require.NoError(t, scene.Update(nil))
 				}

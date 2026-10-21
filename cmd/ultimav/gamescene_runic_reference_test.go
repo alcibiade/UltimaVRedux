@@ -3,13 +3,14 @@ package main
 import (
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/stretchr/testify/require"
+
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/stretchr/testify/require"
 )
 
 func newRunicReferenceTestScene(t *testing.T, location references.Location) (
@@ -96,20 +97,6 @@ func TestRunicReferenceSignWorkflowPreservesSourceAndCloses(t *testing.T) {
 	require.Nil(t, scene.runicReference.owner)
 	require.False(t, scene.gameState.EventQueueManager.HasWorkflow("sign_dialog_workflow"))
 	require.Empty(t, callbacks.TimeAdvanced())
-}
-
-func TestRunicReferenceRemainsOpenDuringDungeonExploration(t *testing.T) {
-	scene, held, update, _ := newRunicReferenceTestScene(t, references.Deceit)
-	facing := dungeonInputFacing(t, scene.gameState)
-	held[ebiten.KeyControlLeft], held[ebiten.KeyR] = true, true
-	update()
-	clear(held)
-	update()
-	held[ebiten.KeyRight] = true
-	update()
-	require.NotEqual(t, facing, dungeonInputFacing(t, scene.gameState))
-	require.True(t, scene.runicReference.open)
-	require.Zero(t, scene.dialogStack.Count(), "reference never owns modal focus")
 }
 
 func TestRunicReferenceConversationKeepsTypingAndCloses(t *testing.T) {

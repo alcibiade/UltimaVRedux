@@ -178,26 +178,11 @@ func (d *ArmsTradeDialog) ConsumePendingRequest() (ArmsTradeRequest, bool) {
 	return request, true
 }
 
-// HasPendingRequest reports whether Enter emitted an unconsumed request.
-func (d *ArmsTradeDialog) HasPendingRequest() bool { return d.pending != nil }
-
 // GetIntent returns the trusted detached quote shown by the modal.
 func (d *ArmsTradeDialog) GetIntent() ArmsTradeIntent { return d.intent }
 
-// GetQuantity returns the selected transaction quantity.
-func (d *ArmsTradeDialog) GetQuantity() uint16 { return d.quantity }
-
 // GetRefusalKind returns the local no-request refusal classification.
 func (d *ArmsTradeDialog) GetRefusalKind() ArmsTradeRefusalKind { return d.refusal }
-
-// GetBodyText returns the current finalized prose and projections.
-func (d *ArmsTradeDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
 
 // GetFooterGuidance returns only controls valid for this trade.
 func (d *ArmsTradeDialog) GetFooterGuidance() string {
@@ -221,17 +206,11 @@ func (d *ArmsTradeDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetFontSize returns the semantic modal font size.
-func (d *ArmsTradeDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
 // IsCancelled reports whether Escape dismissed the modal.
 func (d *ArmsTradeDialog) IsCancelled() bool { return d.cancelled }
 
 // IsDismissed reports whether the modal can be removed.
 func (d *ArmsTradeDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns presentation and input.
-func (d *ArmsTradeDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
 func (d *ArmsTradeDialog) Dismiss() {

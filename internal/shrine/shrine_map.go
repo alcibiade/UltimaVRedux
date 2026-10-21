@@ -112,39 +112,6 @@ func (sm *ShrineMap) IsValidPosition(x, y int) bool {
 	return x >= 0 && x < MiniMapSize && y >= 0 && y < MiniMapSize
 }
 
-// GetCenterPosition returns the center position (altar for shrine, codex stand for codex)
-func (sm *ShrineMap) GetCenterPosition() references.Position {
-	return sm.CenterPosition
-}
-
-// GetEntrancePosition returns the entrance position
-func (sm *ShrineMap) GetEntrancePosition() references.Position {
-	return sm.EntrancePosition
-}
-
-// HasMapData returns true if map data was loaded from MISCMAPS.DAT
-func (sm *ShrineMap) HasMapData() bool {
-	return sm.MapData != nil
-}
-
-// IsCodexMap returns true if this is the Codex map (not a shrine)
-func (sm *ShrineMap) IsCodexMap() bool {
-	if sm.MapData == nil {
-		return false
-	}
-
-	return sm.MapData.MapType == MiniMapCodex
-}
-
-// GetMapType returns the type of mini-map (shrine, codex, etc.)
-func (sm *ShrineMap) GetMapType() MiniMapType {
-	if sm.MapData == nil {
-		return MiniMapShrine // Default to shrine
-	}
-
-	return sm.MapData.MapType
-}
-
 // miniMapIndices maps MiniMapType to MISCMAPS.DAT indices
 var miniMapIndices = map[MiniMapType]int{
 	MiniMapShrine: 1, // Shrine map at index 1 (offset 176)

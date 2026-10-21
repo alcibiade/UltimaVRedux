@@ -109,28 +109,8 @@ func (d *ShipDispatchDialog) ConsumePendingTravelIntent() (ShipTravelIntent, boo
 	return intent, true
 }
 
-// HasPendingTravelIntent reports whether D selected an available reviewed escort.
-func (d *ShipDispatchDialog) HasPendingTravelIntent() bool { return d.pendingTravel != nil }
-
 // ShouldContinueShopping reports whether Enter acknowledged the refreshed showroom.
 func (d *ShipDispatchDialog) ShouldContinueShopping() bool { return d.continueShopping }
-
-// GetState returns the detached refreshed state displayed by the modal.
-func (d *ShipDispatchDialog) GetState() game_state.ShipShopState { return d.state }
-
-// GetTitleText returns the dispatch title.
-func (d *ShipDispatchDialog) GetTitleText() string {
-	d.ensureLayout()
-
-	return d.headerOutput.GetOutputStr(false)
-}
-
-// GetBodyText returns the player-facing berth, vessel, skiff, and escort summary.
-func (d *ShipDispatchDialog) GetBodyText() string {
-	d.ensureLayout()
-
-	return d.bodyOutput.GetOutputStr(false)
-}
 
 // GetFooterGuidance returns the available keyboard-only dispatch choices.
 func (d *ShipDispatchDialog) GetFooterGuidance() string {
@@ -148,21 +128,8 @@ func (d *ShipDispatchDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetBodyBounds returns the semantically backed dispatch body.
-func (d *ShipDispatchDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard merchant font size.
-func (d *ShipDispatchDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
 // IsDismissed reports whether the workflow can remove the modal.
 func (d *ShipDispatchDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns input.
-func (d *ShipDispatchDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the dispatch modal without choosing an action.
 func (d *ShipDispatchDialog) Dismiss() { d.dismissed = true }

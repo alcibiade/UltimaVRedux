@@ -22,18 +22,3 @@ func (g *GameState) GetShadowlordPlanetIndices() []int {
 
 	return indices
 }
-
-// GetAllShadowlordPositions returns a map of town locations to their assigned Shadowlords.
-// Only includes towns that have a living Shadowlord assigned.
-func (g *GameState) GetAllShadowlordPositions() map[references.Location]references.Shadowlord {
-	positions := make(map[references.Location]references.Shadowlord)
-
-	for loc := ShadowlordTownMinLocation; loc <= ShadowlordTownMaxLocation; loc++ {
-		lord := g.GetShadowlordForLocation(references.Location(loc))
-		if lord != references.NoShadowlord {
-			positions[references.Location(loc)] = lord
-		}
-	}
-
-	return positions
-}

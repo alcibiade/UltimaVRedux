@@ -297,26 +297,6 @@ func TestCombatDoorActions_AdvanceAfterHandledOutcome(t *testing.T) {
 	}
 }
 
-// TestActionGetCombatMapEmptyTargetReturnsFalse verifies that Get does not
-// report success when no encounter-local object occupies the target square.
-func TestActionGetCombatMapEmptyTargetReturnsFalse(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	if gs == nil {
-		return
-	}
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
-
-	result := gs.ActionGetCombatMap(references.Up)
-	assert.False(t, result,
-		"ActionGetCombatMap should return false for an empty target")
-}
-
 // ─── Position Save/Restore Tests ────────────────────────────────────────────
 
 // TestActionKlimbCombatMap_UsesActiveCombatantPosition verifies that

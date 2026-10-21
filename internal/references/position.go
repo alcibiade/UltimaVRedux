@@ -7,8 +7,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/helpers"
 )
 
-type GetTileFromPosition func(*Position) *Tile
-
 type Coordinate int16
 
 type Position struct {
@@ -113,15 +111,6 @@ func (p *Position) GetWrappedDistanceBetweenWrapped(p2 *Position, maxX, maxY Coo
 	return math.Sqrt(dx*dx + dy*dy)
 }
 
-func (p *Position) GetDistanceBetween(p2 *Position) float64 {
-	dx := float64(p.X - p2.X)
-	dy := float64(p.Y - p2.Y)
-	preSqrt := dx*dx + dy*dy
-	result := math.Sqrt(preSqrt)
-
-	return result
-}
-
 func (p *Position) GoLeft(bLarge bool) {
 	mapSize := XSmallMapTiles
 	if bLarge {
@@ -174,14 +163,6 @@ func (p *Position) GetWrapped(maxX, maxY Coordinate) *Position {
 	return p
 }
 
-func (p *Position) GetHash() int32 {
-	const prime1, prime2 = 73856093, 19349663 // Use prime numbers for better distribution
-	x := int32(p.X) * prime1
-	y := int32(p.Y) * prime2
-
-	return (x ^ y) & 0x7FFFFFFF // Ensures the result is within 32-bit signed int range
-}
-
 // AnimationHash packs an X/Y position without overflowing Coordinate's int16
 // representation. Animation code decodes X by dividing the result by 256.
 func (p Position) AnimationHash() int32 {
@@ -205,69 +186,12 @@ func (p *Position) HeuristicTileDistance(b Position) int {
 	return helpers.AbsInt(int(p.X-b.X)) + helpers.AbsInt(int(p.Y-b.Y))
 }
 
-func (p *Position) IsZeros() bool {
-	return p.X == 0 && p.Y == 0
-}
-
 func (p *Position) IsNextTo(position Position, floor1 FloorNumber, floor2 FloorNumber) bool {
 	// Must be on same floor AND orthogonally adjacent (not diagonal)
 	// Orthogonal adjacency: either same X with Y±1, or same Y with X±1
 	return floor1 == floor2 &&
 		((p.X == position.X && helpers.AbsInt(int(p.Y-position.Y)) == 1) ||
 			(p.Y == position.Y && helpers.AbsInt(int(p.X-position.X)) == 1))
-}
-
-func (p *Position) IsLineOfSightClear(to Position, getTileFromPosition GetTileFromPosition) bool {
-	deltaX := int(to.X - p.X)
-	deltaY := int(to.Y - p.Y)
-
-	stepX, stepY := 1, 1
-	if deltaX < 0 {
-		stepX, deltaX = -1, -deltaX
-	}
-
-	if deltaY < 0 {
-		stepY, deltaY = -1, -deltaY
-	}
-
-	err := deltaX - deltaY
-	currentX, currentY := int(p.X), int(p.Y)
-	targetX, targetY := int(to.X), int(to.Y)
-
-	var tile *Tile
-
-	for currentX != targetX || currentY != targetY {
-		e2 := 2 * err
-		if e2 > -deltaY {
-			err -= deltaY
-			currentX += stepX
-		}
-
-		if e2 < deltaX {
-			err += deltaX
-			currentY += stepY
-		}
-
-		if currentX == targetX && currentY == targetY {
-			break // reached destination; we don't mind if it's opaque
-		}
-
-		toPos := Position{
-			X: Coordinate(currentX),
-			Y: Coordinate(currentY),
-		}
-		tile = getTileFromPosition(&toPos)
-
-		if tile == nil {
-			return false
-		}
-
-		if tile.IsWindow() || tile.IsWall() {
-			return false
-		}
-	}
-
-	return true
 }
 
 // GetDominateDirection determines the dominant directional axis (horizontal or vertical) from the

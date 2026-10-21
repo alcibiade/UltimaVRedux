@@ -326,52 +326,6 @@ func (g *GameState) ReviewInnShopByMerchantID(id references.MerchantID) (InnShop
 	return InnShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
 }
 
-// QuoteInnRest returns the current trusted nightly summary.
-func (g *GameState) QuoteInnRest(session MerchantSession) (InnRestQuote, error) {
-	state, err := g.GetInnShopState(session)
-	if err != nil {
-		return InnRestQuote{}, err
-	}
-
-	return state.Rest, nil
-}
-
-// QuoteInnLeave returns one current active-member leave row.
-func (g *GameState) QuoteInnLeave(
-	session MerchantSession,
-	character InnCharacterIdentity,
-) (InnLeaveRow, error) {
-	state, err := g.GetInnShopState(session)
-	if err != nil {
-		return InnLeaveRow{}, err
-	}
-	for _, row := range state.LeaveRows {
-		if row.Identity == character {
-			return row, nil
-		}
-	}
-
-	return InnLeaveRow{}, fmt.Errorf("%w: active character %q is unavailable", ErrInvalidInnRequest, character.Name)
-}
-
-// QuoteInnPickup returns one current stored-guest bill and projection.
-func (g *GameState) QuoteInnPickup(
-	session MerchantSession,
-	character InnCharacterIdentity,
-) (InnGuestRow, error) {
-	state, err := g.GetInnShopState(session)
-	if err != nil {
-		return InnGuestRow{}, err
-	}
-	for _, row := range state.GuestRows {
-		if row.Identity == character {
-			return row, nil
-		}
-	}
-
-	return InnGuestRow{}, fmt.Errorf("%w: guest %q is unavailable", ErrInvalidInnRequest, character.Name)
-}
-
 // RestAtInn revalidates and commits one complete original overnight transaction.
 func (g *GameState) RestAtInn(session MerchantSession, request InnRestRequest) (InnRestResult, error) {
 	state, err := g.GetInnShopState(session)

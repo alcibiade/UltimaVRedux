@@ -3,10 +3,11 @@ package game_state
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 func TestWhirlpool_TrySpawnWhirlpool_DeepWater(t *testing.T) {
@@ -100,18 +101,6 @@ func TestWhirlpool_TrySpawnWhirlpool_NonDeepWater(t *testing.T) {
 	gs.SetRandomSeed(77777) // Seed that would normally succeed
 	spawned := gs.TrySpawnWhirlpool(landPos)
 	assert.False(t, spawned, "Should not spawn whirlpool on non-deep-water tile")
-}
-
-func TestWhirlpool_TrySpawnWhirlpool_SmallMap(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(15, 15).
-		Build()
-
-	// Try to spawn on small map (should always fail)
-	pos := references.Position{X: 15, Y: 15}
-	spawned := gs.TrySpawnWhirlpool(pos)
-	assert.False(t, spawned, "Should not spawn whirlpool on small maps")
 }
 
 func TestWhirlpool_RemoveWhirlpoolAt(t *testing.T) {

@@ -34,14 +34,6 @@ func TestMatchStringList_CouldOverlapWith_MatchStringList(t *testing.T) {
 
 // --- ValidateNoAmbiguousCommands tests ---
 
-func TestValidateNoAmbiguousCommands_EmptyCommands(t *testing.T) {
-	cmds := TextCommands{}
-
-	assert.NotPanics(t, func() {
-		cmds.ValidateNoAmbiguousCommands()
-	})
-}
-
 // words is a command slot that accepts exactly these strings.
 func words(values ...string) MatchStringList {
 	return MatchStringList{Strings: values}

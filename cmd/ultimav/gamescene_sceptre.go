@@ -6,12 +6,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// StartSceptreWorkflow initiates surface/town Sceptre use.
-// Sceptre context and field-removal rules are documented in ref:QUEST-0003.
-func (g *GameScene) StartSceptreWorkflow() {
-	g.startSceptreWorkflow(nil)
-}
-
 func (g *GameScene) startSceptreWorkflow(complete func()) {
 	origin := g.gameState.MapState.PlayerLocation
 	quantity := g.gameState.PartyState.Inventory.QuestItems.Get(references.Sceptre)

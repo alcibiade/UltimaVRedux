@@ -70,31 +70,6 @@ func guardResourceTestView(dialog *CharacterSelectionDialog) characterRosterDial
 	}
 }
 
-func TestGuardResourcesDetachedAtEveryBoundary(t *testing.T) {
-	options := guardResourceTestOptions()
-	dialog := newGuardResourceTestDialog(options, func(int) {}, func() {})
-	want := *options[0].Resources
-	options[0].Resources.CurrentHP = 1
-	options[0].Resources.MaximumHP = 2
-	options[0].Resources.CurrentMP = 3
-	options[0].Resources.MaximumMP = 4
-	current := dialog.GetCurrentOption()
-	require.Equal(t, want, *current.Resources)
-	current.Resources.CurrentHP = 5
-	current.Resources.MaximumHP = 6
-	current.Resources.CurrentMP = 7
-	current.Resources.MaximumMP = 8
-	exposed := dialog.GetOptions()
-	require.Equal(t, want, *exposed[0].Resources)
-	exposed[0].Resources.CurrentHP = 9
-	exposed[0].Resources.MaximumHP = 10
-	exposed[0].Resources.CurrentMP = 11
-	exposed[0].Resources.MaximumMP = 12
-	require.Equal(t, want, *dialog.GetCurrentOption().Resources)
-	require.Nil(t, dialog.GetOptions()[6].Resources)
-	require.Nil(t, dialog.GetOptions()[0].Health)
-}
-
 func TestGuardResourcesValuesRemainExactAndNoOneBlank(t *testing.T) {
 	options := guardResourceTestOptions()
 	options[0].Facts = []CharacterSelectionFact{{Label: "HP", Value: "not resource data"}}

@@ -68,20 +68,6 @@ func (s Shadowlord) GetPresenceMessage() string {
 	}
 }
 
-// ToQuestItem returns the corresponding QuestItem shard for this Shadowlord.
-func (s Shadowlord) ToQuestItem() QuestItem {
-	switch s {
-	case Faulinei:
-		return ShardOfFalsehood
-	case Astaroth:
-		return ShardOfHatred
-	case Nosfentor:
-		return ShardOfCowardice
-	default:
-		return ShardOfFalsehood
-	}
-}
-
 // ShadowlordFromName returns a Shadowlord by name (case insensitive substring match).
 // Returns -1 if no match found.
 func ShadowlordFromName(name string) Shadowlord {
@@ -223,15 +209,6 @@ func (s *ShadowlordState) ClearAutomaticPresence() {
 // HasAutomaticPresence returns true if a Shadowlord is automatically present.
 func (s *ShadowlordState) HasAutomaticPresence() bool {
 	return s.AutomaticPresence != NoShadowlord
-}
-
-// Reset restores all Shadowlords to alive and clears all presence states.
-func (s *ShadowlordState) Reset() {
-	s.Alive = [ShadowlordCount]bool{true, true, true}
-	s.TownAssignments = [ShadowlordCount]Location{}
-	s.LastCalled = NoShadowlord
-	s.Summoned = false
-	s.AutomaticPresence = NoShadowlord
 }
 
 // AllDefeated returns true if all three Shadowlords have been defeated.

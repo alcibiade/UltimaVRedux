@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
 	beradinput "github.com/bradhannah/berad-sdk/modules/berad-input"
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
 )
 
 // Keyboard tracks key consumption, repeat timing, and release gates across input owners.
@@ -173,16 +174,6 @@ func (k *Keyboard) SetForceWaitAnyKey(ms int) {
 // SetAllowKeyPressImmediately bypasses repeat delay after transition and release gates pass.
 func (k *Keyboard) SetAllowKeyPressImmediately() {
 	k.forceRegisterNextKeyPressed = true
-}
-
-// SimulateKeyPress simulates a key press for testing purposes
-// This bypasses the normal key press timing restrictions
-func (k *Keyboard) SimulateKeyPress(key ebiten.Key) {
-	if k.keys.Suspended() {
-		return
-	}
-	k.simulatedKeyPressed = key
-	k.hasSimulatedKeyPress = true
 }
 
 // IsKeyPressedGetKey returns the key when physically pressed, without consuming it.

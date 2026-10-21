@@ -27,9 +27,6 @@ type atlasNoteSession struct{ active bool }
 // Record returns detached initial text, position and creation time for the editor.
 func (d *AtlasNoteDraft) Record() journal.AtlasNoteRecord { return d.original }
 
-// Creating distinguishes a newly captured point from an existing-note edit.
-func (d *AtlasNoteDraft) Creating() bool { return d.creating }
-
 // ContextLabel explains settlement-exterior fixes without exposing room coordinates.
 func (d *AtlasNoteDraft) ContextLabel() string { return d.contextLabel }
 

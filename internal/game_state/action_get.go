@@ -565,11 +565,6 @@ func (g *GameState) ActionGetLargeMap(direction references.Direction) bool {
 	return false
 }
 
-// ActionGetCombatMap delegates collection and reports whether combat handled the request.
-func (g *GameState) ActionGetCombatMap(direction references.Direction) bool {
-	return g.GetCombatItem(direction).Handled
-}
-
 // CombatPickupResult reports committed inventory movement for a compact receipt.
 type CombatPickupResult struct {
 	Handled  bool

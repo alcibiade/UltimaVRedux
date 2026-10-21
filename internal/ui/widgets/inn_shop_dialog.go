@@ -380,9 +380,6 @@ func (d *InnShopDialog) ConsumePendingActionIntent() (InnActionIntent, bool) {
 	return intent, true
 }
 
-// HasPendingActionIntent reports whether the workflow must open InnActionDialog.
-func (d *InnShopDialog) HasPendingActionIntent() bool { return d.pendingIntent != nil }
-
 // CancelActionApproval returns to the same parent mode after Escape in InnActionDialog.
 func (d *InnShopDialog) CancelActionApproval() {
 	if d.phase != InnShopAwaitingApproval {
@@ -400,16 +397,6 @@ func (d *InnShopDialog) AcceptActionApproval(request InnActionRequest) {
 	}
 	d.pendingIntent = nil
 	d.transitionTo(InnShopAwaitingResult)
-	d.syncPresentation()
-}
-
-// ApplyState replaces a complete detached snapshot while preserving mode and stable row identity.
-func (d *InnShopDialog) ApplyState(refreshed game_state.InnShopState) {
-	if d.phase != InnShopBrowse {
-		panic("InnShopDialog.ApplyState: dialog must be browsing")
-	}
-	d.applyState(refreshed)
-	d.clearTransientPresentation()
 	d.syncPresentation()
 }
 
@@ -458,18 +445,6 @@ func (d *InnShopDialog) ApplySessionError(message string) {
 	d.syncPresentation()
 }
 
-// GetState returns a defensive copy of the current detached Inn snapshot.
-func (d *InnShopDialog) GetState() game_state.InnShopState { return cloneInnShopState(d.state) }
-
-// GetMode returns the persistent Rest, Leave, or Pick Up mode.
-func (d *InnShopDialog) GetMode() InnShopMode { return d.mode }
-
-// IsHelpVisible reports whether the concise Inn service guide owns the workspace.
-func (d *InnShopDialog) IsHelpVisible() bool { return d.helpVisible }
-
-// GetPhase returns the workflow-owned parent phase.
-func (d *InnShopDialog) GetPhase() InnShopDialogPhase { return d.phase }
-
 // GetSelectedIndex returns the selected row index, or zero in Rest mode.
 func (d *InnShopDialog) GetSelectedIndex() int {
 	switch d.mode {
@@ -482,47 +457,6 @@ func (d *InnShopDialog) GetSelectedIndex() int {
 	default:
 		panic("InnShopDialog.GetSelectedIndex: unknown mode")
 	}
-}
-
-// GetSelectedIdentity returns the selected stable character identity for list modes.
-func (d *InnShopDialog) GetSelectedIdentity() (game_state.InnCharacterIdentity, bool) {
-	switch d.mode {
-	case InnShopLeave:
-		if len(d.state.LeaveRows) > 0 {
-			return d.state.LeaveRows[d.selectedLeave].Identity, true
-		}
-	case InnShopPickup:
-		if len(d.state.GuestRows) > 0 {
-			return d.state.GuestRows[d.selectedPickup].Identity, true
-		}
-	case InnShopRest:
-	default:
-		if d.mode != InnShopRest {
-			panic("InnShopDialog.GetSelectedIdentity: unknown mode")
-		}
-	}
-
-	return emptyInnCharacterIdentity(), false
-}
-
-// GetLeaveRows returns defensive copies in original active-party order.
-func (d *InnShopDialog) GetLeaveRows() []game_state.InnLeaveRow {
-	rows := make([]game_state.InnLeaveRow, len(d.state.LeaveRows))
-	for index, row := range d.state.LeaveRows {
-		rows[index] = cloneInnLeaveRow(row)
-	}
-
-	return rows
-}
-
-// GetPickupRows returns defensive copies in current-Inn roster order.
-func (d *InnShopDialog) GetPickupRows() []game_state.InnGuestRow {
-	rows := make([]game_state.InnGuestRow, len(d.state.GuestRows))
-	for index, row := range d.state.GuestRows {
-		rows[index] = cloneInnGuestRow(row)
-	}
-
-	return rows
 }
 
 // GetLeaveRowText returns the full player-facing values for one Leave row.
@@ -556,68 +490,14 @@ func (d *InnShopDialog) GetPickupRowText(index int) [innShopPickupColumns]string
 	}
 }
 
-// GetModeHeaderText returns the visible Preview label and persistent mode tabs.
-func (d *InnShopDialog) GetModeHeaderText() string {
-	if d.modeOutput == nil {
-		return ""
-	}
-
-	return d.modeOutput.GetOutputStr(false)
-}
-
-// GetDetailText returns the active consequence card, row detail, or receipt.
-func (d *InnShopDialog) GetDetailText() string {
-	if d.detailOutput == nil {
-		return ""
-	}
-
-	return d.detailOutput.GetOutputStr(false)
-}
-
 // GetLatestExchange returns the current finalized merchant exchange.
 func (d *InnShopDialog) GetLatestExchange() string { return d.latestExchange }
 
 // GetReceiptText returns the current workflow-supplied result presentation.
 func (d *InnShopDialog) GetReceiptText() string { return d.receiptText }
 
-// GetInlineFeedback returns the latest blocked-action explanation.
-func (d *InnShopDialog) GetInlineFeedback() string { return d.inlineFeedback }
-
 // GetShell returns the unchanged shared merchant shell.
 func (d *InnShopDialog) GetShell() *MerchantDialogShell { return d.shell }
-
-// GetCardBounds returns the Rest consequence card or list-mode detail card.
-func (d *InnShopDialog) GetCardBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.cardBounds
-}
-
-// GetTableBounds returns the Leave/Pick Up table, or an empty rectangle in Rest mode.
-func (d *InnShopDialog) GetTableBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.tableBounds
-}
-
-// GetFontSize returns the standard main-screen merchant font size.
-func (d *InnShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether approved actions stop before authority.
-func (d *InnShopDialog) IsPreview() bool { return d.preview }
-
-// IsAwaitingResult reports whether workflow authority owns an approved request.
-func (d *InnShopDialog) IsAwaitingResult() bool { return d.phase == InnShopAwaitingResult }
-
-// ShowWithoutAnimation makes a non-complete Inn parent immediately visible.
-func (d *InnShopDialog) ShowWithoutAnimation() {
-	if !d.dismissed {
-		d.visible = true
-	}
-}
-
-// IsComplete reports whether the parent has been permanently dismissed.
-func (d *InnShopDialog) IsComplete() bool { return d.dismissed }
 
 // IsDismissed reports whether the workflow may remove the parent.
 func (d *InnShopDialog) IsDismissed() bool { return d.dismissed }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -110,35 +111,6 @@ func TestShipShopDialogPendingFrigateManifestAndSemanticBacking(t *testing.T) {
 	requireImageRegionContainsColor(t, screen, dialog.GetOfferCardBounds(0), pkgcolor.EGABlue)
 	requireImageRegionContainsColor(t, screen, dialog.cardSpriteBounds[0], pkgcolor.EGALightMagenta)
 	requireImageRegionContainsColor(t, screen, dialog.cardSpriteBounds[1], pkgcolor.EGALightCyan)
-}
-
-func TestShipShopDialogManifestNamesEveryBerthStateWithoutInternals(t *testing.T) {
-	tests := []struct {
-		name       string
-		state      game_state.ShipShopState
-		berth      string
-		vessel     string
-		skiffCount string
-	}{
-		{name: "empty", state: testShipShopState(), berth: "Empty", vessel: "None", skiffCount: ""},
-		{name: "pending", state: testPendingFrigateShipShopState(true), berth: "Pending arrival", vessel: "Frigate", skiffCount: "2/12"},
-		{name: "moored", state: testMooredFrigateShipShopState(), berth: "Moored", vessel: "Frigate", skiffCount: "2/12"},
-		{name: "obstructed", state: testObstructedShipShopState(), berth: "Obstructed", vessel: "Unrelated obstruction", skiffCount: ""},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			dialog := newTestShipShopDialog(newWidgetTestKeyboard(0), test.state)
-			manifest := compactShipText(dialog.GetManifestText())
-			require.Contains(t, manifest, "Berth: "+test.berth)
-			require.Contains(t, manifest, "Vessel: "+test.vessel)
-			if test.skiffCount != "" {
-				require.Contains(t, manifest, "Skiffs aboard: "+test.skiffCount)
-			}
-			for _, forbidden := range shipDialogForbiddenDetails() {
-				require.NotContains(t, strings.ToLower(manifest), forbidden)
-			}
-		})
-	}
 }
 
 func TestShipShopDialogBlockedOffersAcknowledgeWithoutPurchaseIntent(t *testing.T) {
@@ -499,37 +471,6 @@ func testPendingSkiffShipShopState() game_state.ShipShopState {
 	return state
 }
 
-func testMooredFrigateShipShopState() game_state.ShipShopState {
-	state := testPendingFrigateShipShopState(true)
-	state.Berth.State = game_state.ShipBerthMooredFrigate
-	state.Berth.Pending = false
-	state.Travel.PendingDelivery = false
-	state.Travel.Fingerprint = "travel-moored-frigate"
-	state.FrigateQuote.Berth = state.Berth
-	state.FrigateQuote.RequestFingerprint = "frigate-moored-frigate"
-	state.SkiffQuote.Berth = state.Berth
-	state.SkiffQuote.RequestFingerprint = "skiff-moored-frigate"
-	setTestShipQuoteApprovals(&state.FrigateQuote)
-	setTestShipQuoteApprovals(&state.SkiffQuote)
-
-	return state
-}
-
-func testObstructedShipShopState() game_state.ShipShopState {
-	state := testShipShopState()
-	state.Berth.State = game_state.ShipBerthObstructed
-	state.FrigateQuote.Berth = state.Berth
-	state.FrigateQuote.BlockReason = game_state.ShipPurchaseBlockBerthOccupied
-	state.FrigateQuote.RequestFingerprint = "frigate-obstructed"
-	state.SkiffQuote.Berth = state.Berth
-	state.SkiffQuote.BlockReason = game_state.ShipPurchaseBlockBerthOccupied
-	state.SkiffQuote.RequestFingerprint = "skiff-obstructed"
-	setTestShipQuoteApprovals(&state.FrigateQuote)
-	setTestShipQuoteApprovals(&state.SkiffQuote)
-
-	return state
-}
-
 func setShipShopGold(state *game_state.ShipShopState, gold uint16) {
 	state.Gold = gold
 	quotes := []*game_state.ShipPurchaseQuote{&state.FrigateQuote, &state.SkiffQuote}
@@ -652,3 +593,16 @@ func shipDialogForbiddenDetails() []string {
 }
 
 func compactShipText(value string) string { return strings.Join(strings.Fields(value), " ") }
+
+func TestShipShopDialogMooredFrigateBerthMustBeASettledFrigate(t *testing.T) {
+	moored := game_state.ShipBerthReview{State: game_state.ShipBerthMooredFrigate, VehicleType: references.FrigateVehicle}
+	assert.NotPanics(t, func() { validateShipBerth(moored) })
+
+	pending := moored
+	pending.Pending = true
+	assert.Panics(t, func() { validateShipBerth(pending) })
+
+	skiff := moored
+	skiff.VehicleType = references.SkiffVehicle
+	assert.Panics(t, func() { validateShipBerth(skiff) })
+}

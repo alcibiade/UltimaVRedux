@@ -293,21 +293,6 @@ func (d *InteractionTranscript) Submitted() bool {
 	return d.submitted
 }
 
-// ActivePrompt returns the prompt currently accepting text.
-func (d *InteractionTranscript) ActivePrompt() string {
-	return d.activePrompt
-}
-
-// TranscriptText returns the currently visible bounded transcript text.
-func (d *InteractionTranscript) TranscriptText() string {
-	return d.transcriptOutput.GetOutputStr(false)
-}
-
-// ControlHint returns the currently visible keyboard guidance.
-func (d *InteractionTranscript) ControlHint() string {
-	return d.footerOutput.GetOutputStr(false)
-}
-
 // SetControlHint displays presentation-owned guidance without taking input ownership.
 func (d *InteractionTranscript) SetControlHint(hint string) {
 	d.controlHint = strings.TrimSpace(hint)

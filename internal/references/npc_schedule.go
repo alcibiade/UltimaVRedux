@@ -68,22 +68,6 @@ func CreateNPCScheduledFixedOneLocation(position Position, floorNumber FloorNumb
 	return npcSchedule
 }
 
-// GetPreviousIndividualNPCBehaviourByUltimaDate returns the preceding destination slot.
-func (n *NPCSchedule) GetPreviousIndividualNPCBehaviourByUltimaDate(ud datetime.UltimaDate) IndividualNPCBehaviour {
-	index := int(n.DesiredSlot(ud))
-	if index == 0 {
-		index = len(n.Ai) - 1
-	} else {
-		index--
-	}
-
-	return IndividualNPCBehaviour{
-		Ai:       AiType(n.Ai[index]),
-		Position: Position{X: Coordinate(n.X[index]), Y: Coordinate(n.Y[index])},
-		Floor:    FloorNumber(n.Floor[index]),
-	}
-}
-
 // GetIndividualNPCBehaviourByUltimaDate resolves the selected action and destination.
 func (n *NPCSchedule) GetIndividualNPCBehaviourByUltimaDate(ud datetime.UltimaDate) IndividualNPCBehaviour {
 	return n.GetIndividualNPCBehaviourBySlot(n.DesiredSlot(ud))
@@ -142,13 +126,6 @@ func (n *NPCSchedule) getScheduleIndex(date datetime.UltimaDate) int {
 	}
 
 	return best
-}
-
-// OverrideAllAI replaces the action of each destination slot.
-func (n *NPCSchedule) OverrideAllAI(ai AiType) {
-	for i := 0; i < len(n.Ai); i++ {
-		n.Ai[i] = byte(ai)
-	}
 }
 
 // OverrideAllPositions replaces the coordinates of each destination slot.

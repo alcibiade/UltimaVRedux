@@ -151,16 +151,6 @@ func newSaveDescriptionEntryModal(
 	return modal
 }
 
-// AutoCloseAndPop removes this exact widget instance after its result callback.
-func (m *SaveDescriptionEntryModal) AutoCloseAndPop(stack *DialogStack) *SaveDescriptionEntryModal {
-	if stack == nil {
-		panic("SaveDescriptionEntryModal.AutoCloseAndPop: dialog stack is nil")
-	}
-	m.autoCloseStack = stack
-
-	return m
-}
-
 // Draw renders the modal, description field, and keyboard hints.
 func (m *SaveDescriptionEntryModal) Draw(screen *ebiten.Image) {
 	if screen == nil {
@@ -590,34 +580,6 @@ func (m *SaveDescriptionEntryModal) anyKeyPressed(keys ...ebiten.Key) bool {
 	return false
 }
 
-// Dismiss cancels the modal programmatically. Repeated dismissal is harmless.
-func (m *SaveDescriptionEntryModal) Dismiss() {
-	m.finish(false)
-}
-
-// Submit validates and submits the current text programmatically.
-func (m *SaveDescriptionEntryModal) Submit() {
-	if m.finished {
-		return
-	}
-	m.submit()
-}
-
-// GetText returns the entered description.
-func (m *SaveDescriptionEntryModal) GetText() string {
-	return m.field.Text()
-}
-
-// GetValidationMessage returns the current inline validation or native input error.
-func (m *SaveDescriptionEntryModal) GetValidationMessage() string {
-	return m.validationMessage
-}
-
-// SetValidationMessage replaces the current inline validation message.
-func (m *SaveDescriptionEntryModal) SetValidationMessage(message string) {
-	m.validationMessage = strings.TrimSpace(message)
-}
-
 // SetText replaces a valid description and places the cursor at the end.
 func (m *SaveDescriptionEntryModal) SetText(value string) {
 	if !m.acceptFieldText(value) {
@@ -625,16 +587,6 @@ func (m *SaveDescriptionEntryModal) SetText(value string) {
 	}
 	m.setFieldTextAndSelection(value, len(value), len(value))
 	m.validationMessage = ""
-}
-
-// IsFinished reports whether the modal has submitted or cancelled.
-func (m *SaveDescriptionEntryModal) IsFinished() bool {
-	return m.finished
-}
-
-// GetResult returns the modal's SaveDescriptionEntryResult.
-func (m *SaveDescriptionEntryModal) GetResult() interface{} {
-	return m.result
 }
 
 func (m *SaveDescriptionEntryModal) onDialogFocusChanged(focused bool) {

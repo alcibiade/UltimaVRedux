@@ -105,20 +105,6 @@ func (g *GameState) appendPendingSkiffDeepWaterDamage(queue *event_queue.Sequent
 	})
 }
 
-// SkiffDeepWaterDamageSequence lets a workflow own a qualifying hazard inline.
-// An owner that must await damage uses ThenSequence, never a child workflow plus
-// a wait for its name; that remains safe even for high/critical-priority callers.
-// The owner must clear transient visuals in Finally via ClearSkiffDeepWaterEffects.
-func (g *GameState) SkiffDeepWaterDamageSequence(position references.Position) event_queue.Sequence {
-	return func(queue *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		if !g.isSkiffDeepWaterDamageEligible(&position) {
-			return queue
-		}
-
-		return queue.ThenSequence(g.skiffDeepWaterDamageSequence(func() {}))
-	}
-}
-
 func (g *GameState) skiffDeepWaterDamageSequence(onTerminal func()) event_queue.Sequence {
 	return func(queue *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var hadLivingParty bool

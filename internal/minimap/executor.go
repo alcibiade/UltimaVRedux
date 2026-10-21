@@ -74,34 +74,6 @@ func (e *ScriptExecutor) Interrupt() {
 	e.awaitingAdvance = false
 }
 
-// GetCurrentStep returns the active step for presentation rendering.
-func (e *ScriptExecutor) GetCurrentStep() *ScriptStep {
-	if e.IsComplete() {
-		return nil
-	}
-
-	return &e.script.Steps[e.currentStepIndex]
-}
-
-// GetStepProgress returns normalized progress for the current timed step.
-func (e *ScriptExecutor) GetStepProgress() float64 {
-	step := e.GetCurrentStep()
-	if step == nil {
-		return 1
-	}
-	duration := scriptStepDuration(step)
-	if duration <= 0 {
-		return 0
-	}
-
-	return min(float64(e.elapsedMs)/float64(duration), 1)
-}
-
-// GetCurrentStepIndex returns the index of the currently executing step
-func (e *ScriptExecutor) GetCurrentStepIndex() int {
-	return e.currentStepIndex
-}
-
 // IsWaitingForAdvance reports whether the script is paused at an explicit input gate.
 func (e *ScriptExecutor) IsWaitingForAdvance() bool {
 	return e.awaitingAdvance
@@ -189,21 +161,6 @@ func (e *ScriptExecutor) executeTileCommand(command *TileCommand, deltaMs int) (
 	e.advanceToNextStep()
 
 	return deltaMs - consumedMs, false
-}
-
-func scriptStepDuration(step *ScriptStep) int {
-	switch step.Type {
-	case StepWalk:
-		return step.DelayMs
-	case StepWait:
-		return step.Duration
-	case StepTileCommand:
-		return tileCommandDuration(step.TileCommand)
-	case StepFace, StepSetVisible, StepSetSprite, StepSetFrame, StepAwaitAdvance:
-		return 0
-	default:
-		return 0
-	}
 }
 
 func tileCommandDuration(command *TileCommand) int {

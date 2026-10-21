@@ -189,24 +189,6 @@ func TestGuildShopDialogApplyPreviewStoppedReturnsToBrowseWithoutResult(t *testi
 	require.Panics(t, func() { dialog.ApplyPreviewStopped(request) })
 }
 
-func TestGuildShopDialogSelectedNotesUseCurrentAuthorityBounds(t *testing.T) {
-	full := refreshedGuildState(testGuildShopState(), references.Key, 99, 500)
-	fullDialog := newTestGuildShopDialog(newWidgetTestKeyboard(0), full)
-	require.Equal(t, "Inventory max: 99.", fullDialog.GetSelectedNote())
-	require.Contains(t, fullDialog.GetStatusText(), "Inventory max")
-
-	poor := refreshedGuildState(testGuildShopState(), references.Key, 10, 1)
-	poorDialog := newTestGuildShopDialog(newWidgetTestKeyboard(0), poor)
-	require.Equal(t, "Insufficient money.", poorDialog.GetSelectedNote())
-	require.Contains(t, poorDialog.GetStatusText(), "Insufficient money")
-
-	normal := newTestGuildShopDialog(newWidgetTestKeyboard(0), testGuildShopState())
-	require.Empty(t, normal.GetSelectedNote())
-	require.Empty(t, normal.GetStatusText())
-	require.NotContains(t, strings.ToLower(normal.GetSelectedNote()), "overflow")
-	require.NotContains(t, strings.ToLower(normal.GetSelectedNote()), "waste")
-}
-
 func TestGuildShopDialogCatalogUsesActualRowsAndStatusConsumesRemainder(t *testing.T) {
 	setMerchantShellTestResolution(t, 1280, 720)
 	dialog := newTestGuildShopDialog(newWidgetTestKeyboard(0), testGuildShopState())

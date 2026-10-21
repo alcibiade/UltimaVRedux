@@ -125,17 +125,6 @@ func (r *MerchantReferences) Definition(id MerchantID) (MerchantDefinition, bool
 	return definition, ok
 }
 
-// DefinitionForCatalog returns the active merchant assigned to a family row.
-// Source rows with no active merchant are deliberately absent.
-func (r *MerchantReferences) DefinitionForCatalog(
-	family MerchantFamily,
-	row int,
-) (MerchantDefinition, bool) {
-	definition, ok := r.byCatalog[merchantCatalogKey{family: family, row: row}]
-
-	return definition, ok
-}
-
 // Resolve validates an original merchant Talk code, location, and local NPC index.
 func (r *MerchantReferences) Resolve(
 	dialogNumber DialogNumber,

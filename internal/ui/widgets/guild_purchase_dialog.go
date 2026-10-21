@@ -197,11 +197,6 @@ func (d *GuildPurchaseDialog) handleQuantityInput() bool {
 	return owned
 }
 
-// HasPendingPurchaseRequest reports whether confirmation emitted an unconsumed request.
-func (d *GuildPurchaseDialog) HasPendingPurchaseRequest() bool {
-	return d.pending != nil
-}
-
 // ConsumePendingPurchaseRequest returns and clears the one confirmed request.
 func (d *GuildPurchaseDialog) ConsumePendingPurchaseRequest() (game_state.GuildPurchaseRequest, bool) {
 	if d.pending == nil {
@@ -216,45 +211,11 @@ func (d *GuildPurchaseDialog) ConsumePendingPurchaseRequest() (game_state.GuildP
 	return request, true
 }
 
-// GetBundleCount returns the currently selected number of bundles.
-func (d *GuildPurchaseDialog) GetBundleCount() uint16 {
-	return d.bundleCount
-}
-
-// GetQuote returns the trusted quote displayed by the modal.
-func (d *GuildPurchaseDialog) GetQuote() game_state.GuildOfferQuote {
-	return d.quote
-}
-
-// GetPitch returns the finalized original pitch displayed by the modal.
-func (d *GuildPurchaseDialog) GetPitch() string {
-	return d.pitch
-}
-
-// GetBodyText returns the current quantity and projected-value presentation.
-func (d *GuildPurchaseDialog) GetBodyText() string {
-	return d.bodyOutput.GetOutputStr(false)
-}
-
-// GetFooterGuidance returns the exact keyboard guidance currently displayed.
-func (d *GuildPurchaseDialog) GetFooterGuidance() string {
-	if d.quote.MaxBundles > 0 {
-		return "Left/Right: Quantity  M: Max\nEnter: Confirm  Esc: Back"
-	}
-
-	return "Esc: Back"
-}
-
 // GetBounds returns the nested modal's centered outer bounds.
 func (d *GuildPurchaseDialog) GetBounds() image.Rectangle {
 	d.ensureLayout()
 
 	return d.frame.bounds()
-}
-
-// GetFontSize returns the semantic font size used throughout the modal.
-func (d *GuildPurchaseDialog) GetFontSize() StandardFontSize {
-	return FontSizeMainScreen
 }
 
 // IsCancelled reports whether Escape closed the modal without confirmation.
@@ -265,11 +226,6 @@ func (d *GuildPurchaseDialog) IsCancelled() bool {
 // IsDismissed reports whether the modal can be removed from the dialog stack.
 func (d *GuildPurchaseDialog) IsDismissed() bool {
 	return d.dismissed
-}
-
-// IsVisible reports whether the modal still owns presentation and input.
-func (d *GuildPurchaseDialog) IsVisible() bool {
-	return !d.dismissed
 }
 
 // Dismiss closes the modal without emitting a request.

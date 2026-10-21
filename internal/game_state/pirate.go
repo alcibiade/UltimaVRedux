@@ -1,8 +1,6 @@
 package game_state
 
 import (
-	"slices"
-
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -33,16 +31,6 @@ func isPiratePredicate() map_units.EnemyMatchFunc {
 	return func(enemy *map_units.NPCEnemy) bool {
 		return enemy.Variant() == map_units.EnemyVariantPirate
 	}
-}
-
-// ForceSpawnPirateAtRandomLocation spawns a pirate ship at a random off-screen
-// deep water location, bypassing probability checks. Used for debug commands.
-//
-// Returns true if pirate was spawned, false if no valid location found
-func (g *GameState) ForceSpawnPirateAtRandomLocation() bool {
-	_, spawned := g.ForceSpawnPirateAtRandomLocationWithPosition()
-
-	return spawned
 }
 
 // ForceSpawnPirateAtRandomLocationWithPosition returns the inserted position on success.
@@ -162,11 +150,6 @@ func (g *GameState) getPirateSpriteForDirection(direction references.Direction) 
 	}
 }
 
-// HasAnyPirate returns true if any pirate ship exists on the current map
-func (g *GameState) HasAnyPirate() bool {
-	return g.CurrentNPCAIController.GetNpcs().HasEnemyMatching(isPiratePredicate())
-}
-
 // Pirate attack constants matching original Ultima V
 // See ref:SHIP-0005.
 const (
@@ -203,35 +186,6 @@ type pirateAttackRequest struct {
 	fireball bool
 }
 
-// CheckPirateAttack handles aligned pirate fire at a distance below
-// four tiles. A misaligned pirate retains one warning/rotation phase.
-// Already aligned pirates fire in descending object-slot order within
-// the phase; cardinal contact has its separate earlier route. ref:SHIP-0005
-func (g *GameState) CheckPirateAttack() bool {
-	// Only check on large maps
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return false
-	}
-
-	// Get all pirate ships using generic lookup
-	npcs := g.CurrentNPCAIController.GetNpcs()
-	pirates := npcs.GetEnemiesMatching(isPiratePredicate())
-	playerPos := g.MapState.PlayerLocation.Position
-	floor := g.MapState.PlayerLocation.Floor
-	slices.SortFunc(pirates, func(left, right *map_units.NPCEnemy) int {
-		return right.MapUnitDetails().NPCNum - left.MapUnitDetails().NPCNum
-	})
-
-	acted := false
-	for _, pirate := range pirates {
-		if pirate.IsVisible() && pirate.Floor() == floor && g.checkPirateActorAttack(pirate, playerPos) {
-			acted = true
-		}
-	}
-
-	return acted
-}
-
 func (g *GameState) checkPirateActorAttack(pirate *map_units.NPCEnemy, target references.Position) bool {
 	dx, dy := pirate.PosPtr().GetWrappedAxisDistances(target)
 	if !pirateInCannonRange(dx, dy) {
@@ -257,16 +211,6 @@ func pirateInCannonRange(absDisX, absDisY int) bool {
 	inRangeOnYAxis := absDisY == 0 && absDisX > 0 && absDisX < pirateAttackRange
 
 	return inRangeOnXAxis || inRangeOnYAxis
-}
-
-// FirePirateCannon fires a cannon from pirate ship to player position
-// See ref:SHIP-0005.
-func (g *GameState) FirePirateCannon(pirate *map_units.NPCEnemy, targetPos references.Position) {
-	result := g.resolvePirateCannon(pirate, targetPos)
-	g.pirateAttackQueue = append(g.pirateAttackQueue, pirateAttackRequest{
-		result: result,
-	})
-	g.startPirateAttackWorkflow()
 }
 
 func (g *GameState) resolvePirateCannon(

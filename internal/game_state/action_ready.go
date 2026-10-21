@@ -344,26 +344,6 @@ func (g *GameState) readyCombatActorValid(identity CombatTurnIdentity) bool {
 	return entry != nil && entry.status == turnQueueActive && entry.Combatant.IsPC()
 }
 
-func (g *GameState) ActionReadySmallMap() bool {
-	g.SystemCallbacks.Message.ShowCommandPrompt("Ready...")
-	request, outcome := g.BeginReadyEquipment(false)
-	if outcome == ReadyBeginDialog {
-		g.SystemCallbacks.Flow.Items.ShowReadyDialog(request)
-	}
-
-	return outcome != ReadyBeginRejected
-}
-
-func (g *GameState) ActionReadyLargeMap() bool {
-	g.SystemCallbacks.Message.ShowCommandPrompt("Ready...")
-	request, outcome := g.BeginReadyEquipment(false)
-	if outcome == ReadyBeginDialog {
-		g.SystemCallbacks.Flow.Items.ShowReadyDialog(request)
-	}
-
-	return outcome != ReadyBeginRejected
-}
-
 // ActionReadyCombatMap validates and opens Ready for the exact scheduled PC.
 func (g *GameState) ActionReadyCombatMap() ReadyBeginOutcome {
 	request, outcome := g.BeginReadyEquipment(true)
@@ -372,14 +352,4 @@ func (g *GameState) ActionReadyCombatMap() ReadyBeginOutcome {
 	}
 
 	return outcome
-}
-
-func (g *GameState) ActionReadyDungeonMap() bool {
-	g.SystemCallbacks.Message.ShowCommandPrompt("Ready...")
-	request, outcome := g.BeginReadyEquipment(false)
-	if outcome == ReadyBeginDialog {
-		g.SystemCallbacks.Flow.Items.ShowReadyDialog(request)
-	}
-
-	return outcome != ReadyBeginRejected
 }

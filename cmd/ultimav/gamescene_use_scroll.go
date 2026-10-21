@@ -111,18 +111,6 @@ func (g *GameScene) thenUseCombatTimeStopScroll() event_queue.Sequence {
 	}
 }
 
-// StartWindChangeScrollWorkflow initiates the Wind Change scroll workflow.
-// Prompts for direction using a popup dialog, then executes the scroll effect.
-// Wind scroll direction selection precedes the effect (ref:CONSUME-0003).
-//
-// Flow:
-//  1. Display popup with "Wind change!\nDirection-" prompt
-//  2. Wait for cardinal arrow/keypad input or Space (pass)
-//  3. Execute wind change, consume scroll, show "Rel Hur!" and direction popup
-func (g *GameScene) StartWindChangeScrollWorkflow() {
-	g.startWindChangeScrollWorkflow(nil)
-}
-
 func (g *GameScene) startWindChangeScrollWorkflow(complete func()) {
 	origin := g.gameState.MapState.PlayerLocation
 	quantity := g.gameState.PartyState.Inventory.Scrolls.Get(references.ScrollRelHur)
@@ -164,17 +152,6 @@ const (
 	lightScrollInvertDurationMs = 300 // Duration of invert effect in milliseconds
 )
 
-// StartLightScrollWorkflow initiates the Vas Lor (Light) scroll workflow.
-// Plays magic sound, shows invert effect, then activates the light.
-//
-// Flow:
-//  1. Play magic sound and start screen invert effect
-//  2. Wait for invert effect to complete
-//  3. Activate light effect (240 gameplay minutes)
-func (g *GameScene) StartLightScrollWorkflow() {
-	g.startLightScrollWorkflow(nil)
-}
-
 func (g *GameScene) startLightScrollWorkflow(complete func()) {
 	effectApplied := false
 	applyEffect := func() {
@@ -210,19 +187,6 @@ const (
 	timeStopInvertDurationMs   = 300  // Duration of invert effect in milliseconds
 	timeStopNoEffectDurationMs = 2000 // Timed popup duration for blocked locations
 )
-
-// StartTimeStopScrollWorkflow initiates the An Tym (Negate Time) scroll workflow.
-// ref:CONSUME-0003: blocked in Stonegate (0x1d) and Doom (0x28).
-//
-// Flow:
-//  1. Check location restriction (Doom/Stonegate → "No effect!" timed popup)
-//  2. Play magic sound and start screen invert effect
-//  3. Wait for invert effect to complete
-//  4. Activate time stop effect (20 turns duration)
-//  5. Show "Negate time!" persist popup (player must acknowledge)
-func (g *GameScene) StartTimeStopScrollWorkflow() {
-	g.startTimeStopScrollWorkflow(nil)
-}
 
 func (g *GameScene) startTimeStopScrollWorkflow(complete func()) {
 	// Location validation - blocked in Doom and Stonegate
@@ -295,18 +259,6 @@ const (
 	resurrectionFlashDurationMs    = 400  // White/gold flash duration in milliseconds
 	resurrectionNoTargetDurationMs = 2000 // Timed popup for no dead targets
 )
-
-// StartResurrectionScrollWorkflow initiates the In Mani Corp (Resurrection) scroll workflow.
-// Shows character selection for all party members and applies resurrection to dead targets.
-//
-// Flow:
-//  1. Show character selection dialog
-//  2. On confirmation: consume the scroll
-//  3. If dead: resurrect, play magic sound, and show the white/gold flash
-//  4. If living: report no effect
-func (g *GameScene) StartResurrectionScrollWorkflow() {
-	g.startResurrectionScrollWorkflow(nil)
-}
 
 func (g *GameScene) startResurrectionScrollWorkflow(complete func()) {
 	origin := g.gameState.MapState.PlayerLocation

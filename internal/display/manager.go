@@ -6,9 +6,9 @@ import (
 	"image"
 	"sync"
 
-	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/bradhannah/UltimaVRedux/internal/config"
 )
 
 const (
@@ -461,68 +461,6 @@ func (dm *DisplayManager) cancelUnobservedRequest() {
 	dm.requestedWindowHeight = dm.lastNormalHeight
 	dm.pending = false
 	dm.requestActive = false
-}
-
-// SetWindowSize retains the legacy non-fullscreen setter behavior.
-func (dm *DisplayManager) SetWindowSize(width, height int) {
-	if dm.backend.IsFullscreen() {
-		return
-	}
-	if err := dm.RequestMode(config.ModeWindowed, width, height); err != nil {
-		logging.Warn(logging.CategoryUI, "Window size request rejected: %v", err)
-	}
-}
-
-// SetFullscreen retains the legacy fullscreen toggle API.
-func (dm *DisplayManager) SetFullscreen(fullscreen bool) {
-	mode := config.ModeWindowed
-	if fullscreen {
-		mode = config.ModeFullscreen
-	}
-	width, height := dm.LastNormalWindowSize()
-	if err := dm.RequestMode(mode, width, height); err != nil {
-		logging.Warn(logging.CategoryUI, "Fullscreen request rejected: %v", err)
-	}
-}
-
-// IsFullscreen reports the last observed fullscreen state.
-func (dm *DisplayManager) IsFullscreen() bool {
-	return dm.mode == config.ModeFullscreen
-}
-
-// CenterWindow centers a non-fullscreen window on the current monitor.
-func (dm *DisplayManager) CenterWindow() {
-	if dm.backend.IsFullscreen() {
-		return
-	}
-	monitorWidth, monitorHeight := dm.backend.MonitorSize()
-	windowWidth, windowHeight := dm.backend.WindowSize()
-	dm.backend.SetWindowPosition(
-		monitorWidth/2-windowWidth/2,
-		monitorHeight/2-windowHeight/2,
-	)
-}
-
-// RegisterResolutionChangeCallback adds a callback for observed display changes.
-func (dm *DisplayManager) RegisterResolutionChangeCallback(callback func(width, height int)) {
-	dm.onResolutionChange = append(dm.onResolutionChange, callback)
-}
-
-// GetScaleFactor returns the scale factor based on a reference width.
-func (dm *DisplayManager) GetScaleFactor(referenceWidth int) float64 {
-	width, _ := dm.GetCurrentSize()
-
-	return float64(width) / float64(referenceWidth)
-}
-
-// GetAspectRatio returns the current logical aspect ratio.
-func (dm *DisplayManager) GetAspectRatio() float64 {
-	width, height := dm.GetCurrentSize()
-	if height == 0 {
-		return 1.0
-	}
-
-	return float64(width) / float64(height)
 }
 
 func aspectFit16By9(width, height int) (int, int) {

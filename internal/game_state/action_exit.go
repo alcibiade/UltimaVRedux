@@ -89,13 +89,6 @@ const (
 	exitVehicleNoMapSlot
 )
 
-// ExitVehicle exits the current vehicle and returns the authoritative abandoned map vehicle.
-func (g *GameState) ExitVehicle() *map_units.NPCFriendly {
-	vehicle, _ := g.exitVehicle()
-
-	return vehicle
-}
-
 func (g *GameState) exitVehicle() (*map_units.NPCFriendly, exitVehicleResult) {
 	exitingVehicleType := g.PartyVehicle.GetVehicleDetails().VehicleType
 	if exitingVehicleType < references.CarpetVehicle || exitingVehicleType > references.FrigateVehicle {

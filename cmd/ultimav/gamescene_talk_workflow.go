@@ -8,22 +8,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
-// StartTalkWorkflow initiates a unified talk workflow using an event queue.
-// This replaces the old ActionTalkSmallMapExtended with a single event queue
-// that handles all talk types:
-//   - NoNPC: "No-one to talk to!"
-//   - ShadowlordHostile: Damage party with red flash, NPC flees
-//   - ShadowlordFlee: "Don't hurt me!" message
-//   - Guard: Arrest or extortion dialog
-//   - Normal: LinearTalkDialog for full conversation
-//   - NonFriendly: "Can't talk to that!"
-//
-// This fixes the "red screen stays forever" bug by using PartyStateBuilder
-// for Shadowlord damage effects, which guarantees cleanup.
-func (g *GameScene) StartTalkWorkflow(direction references.Direction) {
-	g.startTalkWorkflow(direction, nil, true, false)
-}
-
 func (g *GameScene) startSurfaceTalkWorkflow(direction references.Direction) {
 	g.startTalkWorkflow(direction, nil, true, true)
 }

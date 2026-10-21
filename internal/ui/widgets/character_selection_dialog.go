@@ -197,27 +197,6 @@ func (d *CharacterSelectionDialog) footer() [2]string {
 	}
 }
 
-// GetTitle returns the action-specific dialog title.
-func (d *CharacterSelectionDialog) GetTitle() string { return d.title }
-
-// GetCurrentSelection returns the inspected character index, or -1 for No One.
-func (d *CharacterSelectionDialog) GetCurrentSelection() int {
-	return d.options[d.selected].CharacterIndex
-}
-
-// GetCurrentOption returns a defensive copy of the inspected projection.
-func (d *CharacterSelectionDialog) GetCurrentOption() CharacterSelectionOption {
-	return cloneCharacterSelectionOption(d.options[d.selected])
-}
-
-// GetOptions returns defensive copies of all visible rows.
-func (d *CharacterSelectionDialog) GetOptions() []CharacterSelectionOption {
-	return cloneCharacterSelectionOptions(d.options)
-}
-
-// HasSelection reports whether the dialog has a visible inspected row.
-func (d *CharacterSelectionDialog) HasSelection() bool { return len(d.options) > 0 }
-
 func initialCharacterSelection(options []CharacterSelectionOption) int {
 	for index, option := range options {
 		if option.confirmable() {

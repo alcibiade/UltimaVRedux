@@ -215,8 +215,3 @@ func (g *GameState) FinishBlackthornInterrogation() {
 	)
 	g.ProcessPendingProvisionHours()
 }
-
-// HasActiveBlackthornInterrogation reports transient authoritative ownership.
-func (g *GameState) HasActiveBlackthornInterrogation() bool {
-	return g.blackthornSession != nil
-}

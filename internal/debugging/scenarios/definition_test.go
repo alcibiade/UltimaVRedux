@@ -146,59 +146,6 @@ func TestDecodeDefinitionRejectsUnknownAndTrailingJSON(t *testing.T) {
 	}
 }
 
-func TestBindSupportsAllParameterKindsAndConstraints(t *testing.T) {
-	t.Parallel()
-	minimum, maximum := 1, 3
-	definition := Definition{
-		SchemaVersion: CurrentSchemaVersion,
-		ID:            "parameter-kinds",
-		Name:          "Parameter kinds",
-		Description:   "Exercises every catalog parameter kind.",
-		Baseline:      CurrentBaseline(),
-		Parameters: []debugging.ParameterDefinition{
-			{ID: "text", Name: "Text", Kind: debugging.ParameterString, Required: true, Pattern: `^[a-z]+$`},
-			{ID: "count", Name: "Count", Kind: debugging.ParameterInteger, Required: true, Minimum: &minimum, Maximum: &maximum},
-			{ID: "counts", Name: "Counts", Kind: debugging.ParameterIntegerList, Required: true, Minimum: &minimum, Maximum: &maximum},
-			{ID: "flag", Name: "Flag", Kind: debugging.ParameterBoolean, Required: true},
-			{ID: "mode", Name: "Mode", Kind: debugging.ParameterEnum, Required: true, Choices: []debugging.Choice{{Value: "safe", Label: "Safe"}}},
-			{ID: "character", Name: "Character", Kind: debugging.ParameterCharacter, Required: true},
-			{ID: "location", Name: "Location", Kind: debugging.ParameterLocation, Required: true},
-			{ID: "monster", Name: "Monster", Kind: debugging.ParameterMonster, Required: true},
-			{ID: "equipment", Name: "Equipment", Kind: debugging.ParameterEquipment, Required: true},
-		},
-		Steps: []Step{{Type: StepNote, Note: "Parameters are launch-only in this test."}},
-	}
-	values := map[string]json.RawMessage{
-		"text": json.RawMessage(`"valid"`), "count": json.RawMessage(`2`), "counts": json.RawMessage(`[1,3]`),
-		"flag": json.RawMessage(`true`), "mode": json.RawMessage(`"safe"`), "character": json.RawMessage(`"avatar"`),
-		"location": json.RawMessage(`"britain"`), "monster": json.RawMessage(`"orc"`), "equipment": json.RawMessage(`"sword"`),
-	}
-	if _, err := definition.Bind(values); err != nil {
-		t.Fatalf("Bind() error = %v", err)
-	}
-
-	values["mode"] = json.RawMessage(`"unsafe"`)
-	if _, err := definition.Bind(values); !errors.Is(err, ErrInvalidParameters) {
-		t.Fatalf("Bind(invalid enum) error = %v", err)
-	}
-}
-
-func TestBindRejectsMissingUnknownAndInvalidValues(t *testing.T) {
-	t.Parallel()
-	definition := validDefinition()
-	tests := []map[string]json.RawMessage{
-		nil,
-		{"seed": json.RawMessage(`11`)},
-		{"seed": json.RawMessage(`true`)},
-		{"seed": json.RawMessage(`1`), "unknown": json.RawMessage(`2`)},
-	}
-	for _, values := range tests {
-		if _, err := definition.Bind(values); !errors.Is(err, ErrInvalidParameters) {
-			t.Fatalf("Bind(%v) error = %v, want ErrInvalidParameters", values, err)
-		}
-	}
-}
-
 func validDefinition() Definition {
 	minimum, maximum := 0, 10
 	return Definition{
@@ -250,4 +197,57 @@ func mustJSON(t *testing.T, value any) string {
 		t.Fatalf("marshal JSON: %v", err)
 	}
 	return string(data)
+}
+
+func TestBindWithValuesSupportsAllParameterKindsAndConstraints(t *testing.T) {
+	t.Parallel()
+	minimum, maximum := 1, 3
+	definition := Definition{
+		SchemaVersion: CurrentSchemaVersion,
+		ID:            "parameter-kinds",
+		Name:          "Parameter kinds",
+		Description:   "Exercises every catalog parameter kind.",
+		Baseline:      CurrentBaseline(),
+		Parameters: []debugging.ParameterDefinition{
+			{ID: "text", Name: "Text", Kind: debugging.ParameterString, Required: true, Pattern: `^[a-z]+$`},
+			{ID: "count", Name: "Count", Kind: debugging.ParameterInteger, Required: true, Minimum: &minimum, Maximum: &maximum},
+			{ID: "counts", Name: "Counts", Kind: debugging.ParameterIntegerList, Required: true, Minimum: &minimum, Maximum: &maximum},
+			{ID: "flag", Name: "Flag", Kind: debugging.ParameterBoolean, Required: true},
+			{ID: "mode", Name: "Mode", Kind: debugging.ParameterEnum, Required: true, Choices: []debugging.Choice{{Value: "safe", Label: "Safe"}}},
+			{ID: "character", Name: "Character", Kind: debugging.ParameterCharacter, Required: true},
+			{ID: "location", Name: "Location", Kind: debugging.ParameterLocation, Required: true},
+			{ID: "monster", Name: "Monster", Kind: debugging.ParameterMonster, Required: true},
+			{ID: "equipment", Name: "Equipment", Kind: debugging.ParameterEquipment, Required: true},
+		},
+		Steps: []Step{{Type: StepNote, Note: "Parameters are launch-only in this test."}},
+	}
+	values := map[string]json.RawMessage{
+		"text": json.RawMessage(`"valid"`), "count": json.RawMessage(`2`), "counts": json.RawMessage(`[1,3]`),
+		"flag": json.RawMessage(`true`), "mode": json.RawMessage(`"safe"`), "character": json.RawMessage(`"avatar"`),
+		"location": json.RawMessage(`"britain"`), "monster": json.RawMessage(`"orc"`), "equipment": json.RawMessage(`"sword"`),
+	}
+	if _, _, err := definition.BindWithValues(values); err != nil {
+		t.Fatalf("BindWithValues() error = %v", err)
+	}
+
+	values["mode"] = json.RawMessage(`"unsafe"`)
+	if _, _, err := definition.BindWithValues(values); !errors.Is(err, ErrInvalidParameters) {
+		t.Fatalf("BindWithValues(invalid enum) error = %v", err)
+	}
+}
+
+func TestBindWithValuesRejectsMissingUnknownAndInvalidValues(t *testing.T) {
+	t.Parallel()
+	definition := validDefinition()
+	tests := []map[string]json.RawMessage{
+		nil,
+		{"seed": json.RawMessage(`11`)},
+		{"seed": json.RawMessage(`true`)},
+		{"seed": json.RawMessage(`1`), "unknown": json.RawMessage(`2`)},
+	}
+	for _, values := range tests {
+		if _, _, err := definition.BindWithValues(values); !errors.Is(err, ErrInvalidParameters) {
+			t.Fatalf("BindWithValues(%v) error = %v, want ErrInvalidParameters", values, err)
+		}
+	}
 }

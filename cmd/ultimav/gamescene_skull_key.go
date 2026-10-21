@@ -1,20 +1,13 @@
 package main
 
 import (
+	"github.com/hajimehoshi/ebiten/v2"
+
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
-	"github.com/hajimehoshi/ebiten/v2"
 )
-
-// StartSkullKeyWorkflow initiates the skull key unlock workflow with event queue.
-// Skull Keys unlock magic doors; consumption follows ref:PROV-0006.
-// REDUX DEVIATION: PROV-0006: original Use pays before unlocking. Redux prompts
-// first, then pays for a confirmed direction even when no door is unlocked.
-func (g *GameScene) StartSkullKeyWorkflow(commit *game_state.SkullKeyUseCommit) {
-	g.startSkullKeyWorkflow(commit, nil)
-}
 
 func (g *GameScene) startSkullKeyWorkflow(commit *game_state.SkullKeyUseCommit, complete func()) {
 	commitSequence := g.gameState.CastUseCommitSequence()

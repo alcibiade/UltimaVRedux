@@ -19,17 +19,6 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
-// OverlayType represents different kinds of debug overlays
-type OverlayType int
-
-const (
-	OverlayTypeLight OverlayType = iota
-	OverlayTypeSearch
-	OverlayTypeMoonstone   // Moonstone locations
-	OverlayTypePathfinding // Future expansion
-	OverlayTypeCollision   // Future expansion
-)
-
 // OverlayRenderer handles rendering of debug overlays on the game map
 type OverlayRenderer struct {
 	// Pre-allocated overlay image to avoid per-frame allocations
@@ -285,27 +274,6 @@ func (r *OverlayRenderer) renderSearchOverlay(g *GameScene) {
 }
 
 // Note: isPositionSearchable has been replaced by GetSearchLocationStatus enum method
-
-// SetOverlayColor allows customization of overlay colors
-func (r *OverlayRenderer) SetOverlayColor(overlayType OverlayType, color color.RGBA) {
-	switch overlayType {
-	case OverlayTypeLight:
-		r.lightOverlayColor = color
-	case OverlayTypeSearch:
-		r.searchOverlayColor = color
-	case OverlayTypeMoonstone:
-		r.moonstoneOverlayColor = color
-	case OverlayTypePathfinding:
-		r.pathOverlayColor = color
-	case OverlayTypeCollision:
-		r.collisionOverlayColor = color
-	}
-}
-
-// ToggleMoonstoneOverlay enables or disables the moonstone debug overlay
-func (r *OverlayRenderer) ToggleMoonstoneOverlay() {
-	r.moonstoneOverlayEnabled = !r.moonstoneOverlayEnabled
-}
 
 // SetMoonstoneOverlayEnabled explicitly controls moonstone overlay rendering.
 func (r *OverlayRenderer) SetMoonstoneOverlayEnabled(enabled bool) {

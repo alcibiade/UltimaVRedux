@@ -139,13 +139,6 @@ func (g *GameActionCallbacks) SetDialogOutput(output *text.Output) {
 	g.dialogOutput = output
 }
 
-// Crout adds a single blank line to the dialog output.
-// Outputs a carriage return in the conversation transcript (ref:TALK-0002).
-// Used to add visual spacing in conversation text formatting.
-func (g *GameActionCallbacks) Crout() {
-	g.dialogOutput.AddText("\n")
-}
-
 // === Core Action Callbacks ===
 
 // JoinParty attempts to add the NPC to the player's party.

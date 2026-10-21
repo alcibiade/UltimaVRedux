@@ -400,16 +400,6 @@ func (g *GameState) ReviewTavernShopByMerchantID(id references.MerchantID) (Tave
 	return TavernShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
 }
 
-// QuoteTavernMeal returns the current trusted meal charge.
-func (g *GameState) QuoteTavernMeal(session MerchantSession) (TavernMealQuote, error) {
-	state, err := g.GetTavernShopState(session)
-	if err != nil {
-		return TavernMealQuote{}, err
-	}
-
-	return state.Meal, nil
-}
-
 // PurchaseTavernMeal revalidates and commits one meal order.
 func (g *GameState) PurchaseTavernMeal(
 	session MerchantSession,
@@ -466,32 +456,6 @@ func (g *GameState) PurchaseTavernMeal(
 	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
-}
-
-// QuoteTavernDrink returns the current ordinary drink quote.
-func (g *GameState) QuoteTavernDrink(session MerchantSession) (TavernDrinkQuote, error) {
-	state, err := g.GetTavernShopState(session)
-	if err != nil {
-		return TavernDrinkQuote{}, err
-	}
-	if state.Menu.Drink.IsWineList {
-		return TavernDrinkQuote{}, fmt.Errorf("%w: merchant %q offers a wine list", ErrInvalidTavernRequest, state.Merchant.ID)
-	}
-
-	return state.Drink, nil
-}
-
-// QuoteTavernWine returns one fixed-price canonical wine quote.
-func (g *GameState) QuoteTavernWine(session MerchantSession, wineIndex int) (TavernDrinkQuote, error) {
-	state, err := g.GetTavernShopState(session)
-	if err != nil {
-		return TavernDrinkQuote{}, err
-	}
-	if !state.Menu.Drink.IsWineList || wineIndex < 0 || wineIndex >= len(state.Wines) {
-		return TavernDrinkQuote{}, fmt.Errorf("%w: wine index %d is unavailable", ErrInvalidTavernRequest, wineIndex)
-	}
-
-	return state.Wines[wineIndex], nil
 }
 
 // PurchaseTavernDrink revalidates and commits an ordinary drink or wine decision.
@@ -624,19 +588,6 @@ func (g *GameState) StopTavernDrinking(
 	g.tavernCustomerSessionSequence = session.sequence
 
 	return result, nil
-}
-
-// QuoteTavernProvisions returns the active menu's canonical per-pack quote.
-func (g *GameState) QuoteTavernProvisions(session MerchantSession) (TavernProvisionQuote, error) {
-	state, err := g.GetTavernShopState(session)
-	if err != nil {
-		return TavernProvisionQuote{}, err
-	}
-	if !state.Menu.Provision.Available {
-		return TavernProvisionQuote{}, fmt.Errorf("%w: provisions are unavailable", ErrInvalidTavernRequest)
-	}
-
-	return state.Provision, nil
 }
 
 // PurchaseTavernProvisions preserves the original independently committed per-pack loop.

@@ -222,7 +222,7 @@ Call `GameState.FinishTurn` only when the assertion includes end-of-turn process
 
 ## System Callback Tests
 
-`MockSystemCallbacks` in `internal/game_state/mock_callbacks_helpers.go` installs the mandatory callback groups and records messages, audio, visuals, flow, dialogs, and related interactions. Prefer its assertion methods, such as `AssertMessageContains`, `AssertSoundEffectPlayed`, and `AssertTimeAdvanced`, when they express the contract clearly. Call `Reset` between independent actions in one test.
+`MockSystemCallbacks` in `internal/game_state/mock_callbacks_helpers.go` installs the mandatory callback groups and records messages, audio, visuals, flow, dialogs, and related interactions. Prefer its assertion methods, such as `AssertMessageContains` and `AssertTimeAdvanced`, when they express the contract clearly. Call `Reset` between independent actions in one test.
 
 Assert both state mutation and externally visible feedback when both are part of the command contract. Do not import Ebitengine into core tests just to observe presentation behavior.
 

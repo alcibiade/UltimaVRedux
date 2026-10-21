@@ -16,14 +16,6 @@ func (g *GameState) ActionNewOrderLargeMap() bool {
 	return g.canReorderParty()
 }
 
-// ActionNewOrderCombatMap handles the New Order command during combat.
-// Party reordering is disabled during active combat - returns false with error message.
-func (g *GameState) ActionNewOrderCombatMap() bool {
-	g.SystemCallbacks.Message.AddRowStr("Not during combat!")
-
-	return false
-}
-
 // ActionNewOrderDungeonMap checks if the New Order command is allowed in dungeons.
 // Returns true if two non-leader companions can be swapped, false otherwise.
 func (g *GameState) ActionNewOrderDungeonMap() bool {

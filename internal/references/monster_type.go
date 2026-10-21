@@ -127,38 +127,6 @@ func (m MonsterType) IsUndead() bool {
 	return m == MonsterGhost || m == MonsterSkeleton || m == MonsterDevil || m == MonsterShadowlord
 }
 
-// IsFixedGroup returns true if this monster type has a fixed group size
-// (Guards=8, Swarms=16, Solo=1) rather than random.
-func (m MonsterType) IsFixedGroup() bool {
-	return m == MonsterGuard || m.IsSwarm() || m.IsSolo()
-}
-
-// IsSwarm returns true if this monster appears in swarms of 16.
-// Uses the fixed appearance bound 16; ref:ENEMY-0003.
-func (m MonsterType) IsSwarm() bool {
-	return m == MonsterBat || m == MonsterMongbat || m == MonsterSlime
-}
-
-// IsSolo returns true if this monster always appears alone.
-// Uses the fixed appearance bound 1; ref:ENEMY-0003.
-//
-//nolint:exhaustive // Default case handles all other monster types
-func (m MonsterType) IsSolo() bool {
-	switch m {
-	case MonsterAvatar, MonsterWanderer, MonsterBlackthorn, MonsterLordBritish,
-		MonsterSeaSerpent, MonsterMimic, MonsterGargoyle, MonsterDragon,
-		MonsterSandtrap, MonsterShadowlord:
-		return true
-	default:
-		return false
-	}
-}
-
-// IsGuard returns true if this is a guard (appears in groups of 8).
-func (m MonsterType) IsGuard() bool {
-	return m == MonsterGuard
-}
-
 // monsterTypeNames maps MonsterType to human-readable names.
 // Matches the creature display-name order in ref:ENEMY-0001.
 //

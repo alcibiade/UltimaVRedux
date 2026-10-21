@@ -159,10 +159,6 @@ func (mu *MapUnitDetails) SetAIOverride(
 	mu.aiOverrideProvenance = provenance
 }
 
-func (mu *MapUnitDetails) HasOverriddenAiType() bool {
-	return mu.overriddenAiType != 0
-}
-
 func (mu *MapUnitDetails) GetOverriddenAiType() references.AiType {
 	return mu.overriddenAiType
 }

@@ -40,10 +40,6 @@ func (mr *MoongateRenderer) GetPosition() references.Position {
 	return mr.position
 }
 
-func (mr *MoongateRenderer) GetPhaseIndex() int {
-	return mr.phaseIndex
-}
-
 // GetDrawInfo derives visible rows directly from the authoritative stage.
 func (mr *MoongateRenderer) GetDrawInfo(
 	stage game_state.MoongateStage,
@@ -148,19 +144,6 @@ func (mvs *MoongateVisualSystem) GetActiveRenderers() []*MoongateRenderer {
 	}
 
 	return renderers
-}
-
-func (mvs *MoongateVisualSystem) GetActiveMoongateAt(pos references.Position) *MoongateRenderer {
-	if mvs.gameState.MoongateStage() == game_state.MoongateStageHidden {
-		return nil
-	}
-	for _, renderer := range mvs.activeRenderers {
-		if renderer.GetPosition() == pos && mvs.isCurrentRenderer(renderer) {
-			return renderer
-		}
-	}
-
-	return nil
 }
 
 func (mvs *MoongateVisualSystem) GetVisibleMoongatePositions() []references.Position {

@@ -94,11 +94,6 @@ func (d *MerchantUnavailableDialog) IsDismissed() bool {
 	return d.dismissed
 }
 
-// IsVisible reports whether the dialog still owns presentation and input.
-func (d *MerchantUnavailableDialog) IsVisible() bool {
-	return !d.dismissed
-}
-
 // GetShell returns the concrete dialog's shared presentation shell.
 func (d *MerchantUnavailableDialog) GetShell() *MerchantDialogShell {
 	return d.shell

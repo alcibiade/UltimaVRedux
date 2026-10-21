@@ -54,12 +54,6 @@ func (g *GameState) CastCombatWisQuas() []references.Position {
 	return revealed
 }
 
-// CastCombatInVasPorYlem applies the original earthquake to hostile combatants
-// whose DEX does not exceed their individual D30 roll.
-func (g *GameState) CastCombatInVasPorYlem(casterIdx int) []references.Position {
-	return g.CastCombatEarthquakeResult(casterIdx).processedPositions()
-}
-
 // CastCombatEarthquakeResult resolves each eligible hostile entry once, retaining
 // avoidance as well as actual HP damage. Friendly/inactive entries are excluded.
 func (g *GameState) CastCombatEarthquakeResult(casterIdx int) CombatAreaSpellResult {

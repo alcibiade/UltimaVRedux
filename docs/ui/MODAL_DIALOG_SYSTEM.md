@@ -185,8 +185,6 @@ if !stack.RemoveWidgetInstance(dialog) {
 
 Use `MustRemoveWidgetInstance` when loss of stack ownership is a programming error. It panics if the instance is absent and is used by strict auto-pop contracts.
 
-`RemoveWidget` removes the first matching type and logs if none exists. It is unsuitable when several overlays or message dialogs can coexist.
-
 ## Visibility Versus Ownership
 
 `MessageDialog.Hide` may begin a fade while the dialog remains visible and must continue receiving updates. Remove it only after the fade interval or in guaranteed cleanup.

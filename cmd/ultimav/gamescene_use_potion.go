@@ -8,16 +8,9 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/semantic_input"
 )
 
-// StartPotionWorkflow initiates the potion usage workflow with character selection.
-// Called from GameState.usePotion via SystemCallbacks.Flow.Items.StartPotionWorkflow.
-//
-// Flow: Select a character → Consume potion → Roll random effect → Apply it.
-//
-// Potion effects and substitution are documented in ref:CONSUME-0002.
-func (g *GameScene) StartPotionWorkflow(commit *game_state.PotionUseCommit) {
-	g.startPotionWorkflow(commit, nil)
-}
-
+// startPotionWorkflow selects a character, consumes the potion, rolls its random
+// effect and applies it. Potion effects and substitution are documented in
+// ref:CONSUME-0002.
 func (g *GameScene) startPotionWorkflow(commit *game_state.PotionUseCommit, complete func()) {
 	g.startCharacterSelectPotionWorkflow(commit, complete)
 }
@@ -249,20 +242,6 @@ func (g *GameScene) startCharacterSelectPotionWorkflow(
 			g.gameState.AdvanceGameplayMinutesAndProcessProvisions(1)
 		}
 	}).Start()
-}
-
-// StartXRayVisionWorkflow initiates X-Ray vision effect (White potion).
-// Reveals full map until any keypress.
-func (g *GameScene) StartXRayVisionWorkflow(showMislabelMsg bool) {
-	g.gameState.EventQueueManager.Workflow("xray_vision_workflow").
-		Priority(event_queue.PriorityNormal).
-		Sequential().BlockInput().
-		First(func() {}).ThenSequence(g.thenPresentXRayVision(showMislabelMsg)).Finally(
-		func() {
-			g.clearPotionEffectDialog()
-			g.xRayVisionActive = false
-			g.keyboard.ResetReleaseDebouncing()
-		}).Start()
 }
 
 func (g *GameScene) thenPresentXRayVision(showMislabelMsg bool) event_queue.Sequence {

@@ -123,13 +123,6 @@ func (c *CharacterSummary) SetBounds(bounds image.Rectangle) {
 	c.bounds = bounds
 }
 
-// MarkStatsChanged flags that the character stats display needs refresh.
-// This is called by SystemCallbacks when character data changes to trigger
-// display updates on the next frame.
-func (c *CharacterSummary) MarkStatsChanged() {
-	c.needsStatsRefresh = true
-}
-
 // UpdateStatsDisplay forces immediate refresh of character stats display.
 // Clears cached character images and sets refresh flag to force complete redraw.
 // Use this when character data has changed significantly.
@@ -139,12 +132,6 @@ func (c *CharacterSummary) UpdateStatsDisplay() {
 		c.characterSummaryImage[i].Clear()
 	}
 	c.needsStatsRefresh = true
-}
-
-// IsStatsRefreshNeeded returns whether the stats display needs refresh.
-// Used by rendering systems to determine if cached displays are still valid.
-func (c *CharacterSummary) IsStatsRefreshNeeded() bool {
-	return c.needsStatsRefresh
 }
 
 // getStatusColor returns the color to use for a character's status effect.

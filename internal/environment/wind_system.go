@@ -223,19 +223,6 @@ func (w *WindSystem) GetFrigateSailingSpeed(direction references.Direction) int 
 	return num
 }
 
-// IncrementUpdateCount increments the internal update counter for sailing timing
-func (w *WindSystem) IncrementUpdateCount() {
-	w.updateCounter++
-}
-
-// ShouldMoveShip returns true if the ship should move based on wind timing
-// Used in sailing mode: updtcnt >= num % 3
-func (w *WindSystem) ShouldMoveShip(direction references.Direction) bool {
-	speed := w.GetFrigateSailingSpeed(direction)
-
-	return w.updateCounter >= (speed % 3)
-}
-
 // IsWindCalm returns true if current wind is calm
 func (w *WindSystem) IsWindCalm() bool {
 	return w.currentWind == Calm

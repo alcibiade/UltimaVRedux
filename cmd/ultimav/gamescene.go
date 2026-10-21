@@ -6,6 +6,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
@@ -19,7 +21,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
-	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/mainscreen"
@@ -123,11 +124,6 @@ func (d *DissolveEffectState) UpdateProgress(progress float64) {
 // GetLevel returns the current dissolve level (for TeleportationManager compatibility).
 func (d *DissolveEffectState) GetLevel() float64 {
 	return d.level
-}
-
-// SetLevel sets the dissolve level directly (for TeleportationManager compatibility).
-func (d *DissolveEffectState) SetLevel(level float64) {
-	d.level = level
 }
 
 // Cleanup releases all resources associated with the dissolve effect.
@@ -406,10 +402,6 @@ func (g *GameScene) openConfigurationDialog() {
 
 	// Push to dialog stack
 	g.dialogStack.PushModalDialog(configurationDialog)
-}
-
-func (g *GameScene) GetCurrentLocationReference() *references.SmallLocationReference {
-	return g.gameReferences.LocationReferences.GetLocationReference(g.gameState.MapState.PlayerLocation.Location)
 }
 
 // Visual effects methods moved to gamescene_visual_effects.go

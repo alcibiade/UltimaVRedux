@@ -339,9 +339,6 @@ func (d *ArmsShopDialog) ConsumePendingTradeIntent() (ArmsTradeIntent, bool) {
 	return intent, true
 }
 
-// HasPendingTradeIntent reports whether the workflow has an unconsumed modal intent.
-func (d *ArmsShopDialog) HasPendingTradeIntent() bool { return d.pendingIntent != nil }
-
 // CancelPendingTrade returns from the nested modal without changing the snapshot.
 func (d *ArmsShopDialog) CancelPendingTrade() {
 	if d.phase != ArmsShopAwaitingTrade {
@@ -454,106 +451,17 @@ func (d *ArmsShopDialog) ApplySessionError(message string) {
 	d.syncPresentation()
 }
 
-// GetMode returns the active Buy or Sell table.
-func (d *ArmsShopDialog) GetMode() ArmsShopMode { return d.mode }
-
 // GetSort returns the active mode's independent ordering.
 func (d *ArmsShopDialog) GetSort() ArmsShopSort { return d.activeMode().sort }
-
-// GetPhase returns the workflow-owned shop phase.
-func (d *ArmsShopDialog) GetPhase() ArmsShopDialogPhase { return d.phase }
-
-// IsAwaitingResult reports whether authority completion is pending.
-func (d *ArmsShopDialog) IsAwaitingResult() bool { return d.phase == ArmsShopAwaitingResult }
 
 // GetSelectedIndex returns the selected index in the active sorted table.
 func (d *ArmsShopDialog) GetSelectedIndex() int { return d.activeMode().list.GetCurrentIndex() }
 
-// GetScrollOffset returns the active table's first visible row index.
-func (d *ArmsShopDialog) GetScrollOffset() int { return d.activeMode().list.GetScrollOffset() }
-
-// GetSelectedEquipment returns stable selected equipment identity.
-func (d *ArmsShopDialog) GetSelectedEquipment() references.Equipment { return d.selectedEquipment() }
-
-// GetRows returns detached active sorted row views.
-func (d *ArmsShopDialog) GetRows() []ArmsShopRowView {
-	mode := d.activeMode()
-	rows := make([]ArmsShopRowView, d.rowCount())
-	for index := range rows {
-		rows[index] = d.rowView(index, index == mode.list.GetCurrentIndex())
-	}
-
-	return rows
-}
-
-// GetVisibleRows returns detached views for the active scroll window.
-func (d *ArmsShopDialog) GetVisibleRows() []ArmsShopRowView {
-	start, end := d.activeMode().list.GetVisibleRange()
-	rows := make([]ArmsShopRowView, 0, end-start)
-	for index := start; index < end; index++ {
-		rows = append(rows, d.rowView(index, index == d.GetSelectedIndex()))
-	}
-
-	return rows
-}
-
-// GetReceiptText returns the compact detail-strip receipt, if any.
-func (d *ArmsShopDialog) GetReceiptText() string { return d.receiptText }
-
-// GetDetailText returns the current two-line detail or receipt presentation.
-func (d *ArmsShopDialog) GetDetailText() string {
-	if d.detailOutput == nil {
-		return ""
-	}
-
-	return d.detailOutput.GetOutputStr(false)
-}
-
-// GetLatestExchange returns the current finalized merchant exchange.
-func (d *ArmsShopDialog) GetLatestExchange() string { return d.latestExchange }
-
 // GetShell returns the common merchant shell.
 func (d *ArmsShopDialog) GetShell() *MerchantDialogShell { return d.shell }
 
-// GetWorkspaceContentBounds returns the bounded Arms-owned workspace.
-func (d *ArmsShopDialog) GetWorkspaceContentBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.workspaceContent
-}
-
-// GetTableBounds returns the active table frame.
-func (d *ArmsShopDialog) GetTableBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.tableBounds
-}
-
-// GetDetailBounds returns the remaining-space detail/receipt panel.
-func (d *ArmsShopDialog) GetDetailBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.detailBounds
-}
-
-// GetSortBounds returns the sort status region below the table frame.
-func (d *ArmsShopDialog) GetSortBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.sortBounds
-}
-
-// IsPreview reports whether the dialog stops before transaction authority.
-func (d *ArmsShopDialog) IsPreview() bool { return d.preview }
-
-// GetFontSize returns the semantic font size used throughout Arms presentation.
-func (d *ArmsShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
 // IsDismissed reports whether the shop can be removed.
 func (d *ArmsShopDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the shop still owns presentation.
-func (d *ArmsShopDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the shop without emitting a request.
 func (d *ArmsShopDialog) Dismiss() { d.dismissed = true }

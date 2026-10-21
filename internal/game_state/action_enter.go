@@ -44,13 +44,6 @@ func (outcome EnterLargeMapOutcome) Accepted() bool {
 	return outcome != EnterLargeMapRejected
 }
 
-// ActionEnterLargeMap handles entering buildings from the large map.
-// Deprecated callers needing only broad command acceptance may use this wrapper;
-// orchestration that depends on the destination must use ResolveEnterLargeMap.
-func (g *GameState) ActionEnterLargeMap() bool {
-	return g.ResolveEnterLargeMap().Accepted()
-}
-
 // ResolveEnterLargeMap handles Enter and exposes its exact authoritative outcome.
 func (g *GameState) ResolveEnterLargeMap() EnterLargeMapOutcome {
 	g.SystemCallbacks.Message.ShowCommandPrompt("Enter ")
@@ -148,16 +141,6 @@ func (g *GameState) ResolveEnterLargeMap() EnterLargeMapOutcome {
 	g.SystemCallbacks.Message.AppendToCurrentRowStr("What?")
 
 	return EnterLargeMapRejected
-}
-
-// IsDungeonEnterAttempt reports whether Enter at the current world coordinate
-// is governed by dungeon admission timing, including rejected admission.
-func (g *GameState) IsDungeonEnterAttempt() bool {
-	location := g.GameReferences.LocationReferences.WorldLocations.GetLocationByPosition(
-		g.MapState.PlayerLocation.Position,
-	)
-
-	return location != references.EmptyLocation && location.GetMapType() == references.DungeonMapType
 }
 
 // IsDoomEnterAttempt reports whether the current world coordinate names Doom,

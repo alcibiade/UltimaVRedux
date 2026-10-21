@@ -117,20 +117,10 @@ func (s *ScrollableListState) GetCurrentIndex() int {
 	return s.currentIndex
 }
 
-// GetScrollOffset returns the index of the first visible item.
-func (s *ScrollableListState) GetScrollOffset() int {
-	return s.scrollOffset
-}
-
 // GetCursorScreenPosition returns the cursor position on screen (0 to visibleSlots-1).
 // This is where to draw the selection indicator relative to the visible items.
 func (s *ScrollableListState) GetCursorScreenPosition() int {
 	return s.currentIndex - s.scrollOffset
-}
-
-// IsScrollingNeeded returns true if there are more items than visible slots.
-func (s *ScrollableListState) IsScrollingNeeded() bool {
-	return s.totalItems > s.visibleSlots
 }
 
 // GetVisibleRange returns the start (inclusive) and end (exclusive) indices

@@ -224,21 +224,6 @@ func (b *ButtonListModal) SetEscapeLabel(label string) {
 	b.invalidateLayout()
 }
 
-// ButtonWidthPercent reports the configured row width.
-func (b *ButtonListModal) ButtonWidthPercent() float64 {
-	return b.buttonWidthPercent
-}
-
-// ButtonTexts returns the button labels in navigation order.
-func (b *ButtonListModal) ButtonTexts() []string {
-	texts := make([]string, len(b.items))
-	for index, item := range b.items {
-		texts[index] = item.text
-	}
-
-	return texts
-}
-
 func (b *ButtonListModal) Update() {
 	key, owned := b.Poll(b.keyboard,
 		ebiten.KeyUp, ebiten.KeyDown, ebiten.KeyLeft, ebiten.KeyRight, ebiten.KeyPageUp, ebiten.KeyPageDown)

@@ -331,26 +331,6 @@ func (s *Slider) SetValue(value int) {
 	s.notifyValueChanged(oldValue, s.currentValue)
 }
 
-// GetMinValue returns the minimum value (test accessor)
-func (s *Slider) GetMinValue() int {
-	return s.minValue
-}
-
-// GetLabel returns the slider label (test accessor)
-func (s *Slider) GetLabel() string {
-	return s.label
-}
-
-// GetMaxValue returns the maximum value
-func (s *Slider) GetMaxValue() int {
-	return s.maxValue
-}
-
-// SetLabel sets the slider label
-func (s *Slider) SetLabel(label string) {
-	s.label = label
-}
-
 // HasFocus returns whether the slider has keyboard focus
 func (s *Slider) HasFocus() bool {
 	return s.hasFocus
@@ -359,22 +339,6 @@ func (s *Slider) HasFocus() bool {
 // SetFocus sets whether the slider has keyboard focus
 func (s *Slider) SetFocus(focused bool) {
 	s.hasFocus = focused
-}
-
-// IsVisible returns whether the slider is visible
-func (s *Slider) IsVisible() bool {
-	return s.isVisible
-}
-
-// SetVisible sets whether the slider is visible
-func (s *Slider) SetVisible(visible bool) {
-	s.isVisible = visible
-}
-
-// SetPlacement updates the slider's responsive screen placement.
-func (s *Slider) SetPlacement(placement sprites.PercentBasedPlacement) {
-	s.placement = placement
-	s.bounds = nil
 }
 
 // SetBounds updates the slider's placement in logical screen pixels.
@@ -393,25 +357,4 @@ func (s *Slider) getBounds() image.Rectangle {
 	}
 
 	return *sprites.GetRectangleFromPercents(s.placement)
-}
-
-// SetColors updates the slider colors
-func (s *Slider) SetColors(track, handle, label, background stdcolor.Color) {
-	if track != nil {
-		s.trackColor = track
-	}
-	if handle != nil {
-		s.handleColor = handle
-	}
-	if label != nil {
-		s.labelColor = label
-	}
-	if background != nil {
-		s.backgroundColor = background
-	}
-}
-
-// SetOnValueChanged sets the callback function for value changes
-func (s *Slider) SetOnValueChanged(callback func(oldValue, newValue int)) {
-	s.onValueChanged = callback
 }

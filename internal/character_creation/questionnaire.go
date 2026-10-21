@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
+	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 )
 
 const (
@@ -49,9 +50,6 @@ const (
 	Spirituality
 	Humility
 )
-
-// Valid reports whether the value identifies one of the eight virtues.
-func (virtue Virtue) Valid() bool { return virtue >= Honesty && virtue < VirtueCount }
 
 // String returns the original character-creation spelling of a virtue.
 func (virtue Virtue) String() string {

@@ -225,11 +225,6 @@ func (v *VehicleDetails) SetSailState(state SailState) {
 	v.SailState = state
 }
 
-// GetHasHMSCape returns the nonauthoritative compatibility field.
-func (v *VehicleDetails) GetHasHMSCape() bool {
-	return v.HasHMSCape
-}
-
 // TakeHullDamage reduces hull HP by the given amount
 // Returns true if ship is destroyed (HullHP <= 0), false otherwise
 // HP is clamped to 0 minimum (no negative values)
@@ -244,27 +239,4 @@ func (v *VehicleDetails) TakeHullDamage(amount int) bool {
 // Only relevant for frigates in gameplay
 func (v *VehicleDetails) IsShipDestroyed() bool {
 	return v.HullHP <= 0
-}
-
-// GetHullWarningMessage returns warning message based on current hull HP
-// Based on original Ultima V:
-//   - HP < 10 shows "DANGER: SHIP BADLY DAMAGED!"; ref:SHIP-0003.
-//   - HP 0 shows "Ship sunk!"; ref:SHIP-0003.
-//
-// Returns empty string if HP >= 10 (healthy ship)
-func (v *VehicleDetails) GetHullWarningMessage() string {
-	if v.HullHP <= 0 {
-		return "Ship sunk!"
-	}
-	if v.HullHP < 10 {
-		return "DANGER: SHIP BADLY DAMAGED!"
-	}
-
-	return "" // Healthy ship, no warning
-}
-
-// RepairHull increases hull HP by the given amount
-// HP is clamped to 99 maximum (original Ultima V max)
-func (v *VehicleDetails) RepairHull(amount int) {
-	v.HullHP = clampHullHP(v.HullHP + amount)
 }
