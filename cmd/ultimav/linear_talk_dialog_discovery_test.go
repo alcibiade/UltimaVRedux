@@ -83,7 +83,7 @@ func TestTalkDiscoveryStagesInitialOutputUntilMountAndCoalescesResponse(t *testi
 	require.Equal(t, revision, scene.journalVisits.Revision)
 	dialog.Close()
 	scene.updateJournalNotice()
-	require.Equal(t, "Journal updated.\n[Shift-J] View journal", scene.output.JournalHistory())
+	require.Equal(t, "Journal updated.\n[Shift+J] View journal", scene.output.JournalHistory())
 	scene.updateJournalNotice()
 	require.Equal(t, 1, strings.Count(scene.output.JournalHistory(), "Journal updated."))
 }

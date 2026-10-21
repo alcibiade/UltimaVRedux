@@ -75,13 +75,10 @@ var (
 	//nolint:gochecknoglobals // Shared immutable semantic UI colour.
 	DialogAtlasUndiscoveredColor stdcolor.Color = color.EGALightGray
 
-	// DialogUnavailableItemColor marks unavailable actions against the dark list background.
+	// DialogUnavailableItemColor dims Use, Ready and spell rows that also carry the
+	// "[No]" text marker. Selected rows keep DialogSelectedText.
 	//nolint:gochecknoglobals // Shared immutable semantic UI colour.
-	DialogUnavailableItemColor stdcolor.Color = color.EGALightRed
-
-	// DialogSelectedUnavailableItemColor keeps unavailable actions red and legible on white selection.
-	//nolint:gochecknoglobals // Shared immutable semantic UI colour.
-	DialogSelectedUnavailableItemColor stdcolor.Color = color.EGARed
+	DialogUnavailableItemColor stdcolor.Color = color.UITextDisabled.RGBA()
 
 	// DialogScrollIndicator - Arrows showing more content above/below visible area
 	// Examples: "^" at top, "v" at bottom of scrollable lists
@@ -105,7 +102,7 @@ var (
 	DialogStatusWarningColor stdcolor.Color = color.EGARed
 
 	// DialogControlKeyColor - Keyboard keys shown in control hints
-	// Examples: "[Space]", "[ESC]", "[Up/Dn]", "[</>/1-6]"
+	// Examples: "[Space]", "[Esc]", "[Up/Down]", "[</>/1-6]"
 	// Visual role: Highlighted to stand out from hint descriptions
 	DialogControlKeyColor stdcolor.Color = color.EGAWhite
 

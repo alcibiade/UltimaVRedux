@@ -114,30 +114,6 @@ func TestMerchantDialogShellBoundsLatestExchangeAndGuidance(t *testing.T) {
 	shell.ensureLayout()
 }
 
-func TestParseMerchantFooterGuidanceAssignsKeyAndHintColors(t *testing.T) {
-	lines := parseMerchantFooterGuidance("[Up/Down] Select   [Enter] Buy   [Esc] Leave")
-
-	require.Len(t, lines, 1)
-	require.Equal(t, []merchantFooterSegment{
-		{Text: "[Up/Down]", Color: DialogControlKeyColor},
-		{Text: " Select   ", Color: DialogControlHintColor},
-		{Text: "[Enter]", Color: DialogControlKeyColor},
-		{Text: " Buy   ", Color: DialogControlHintColor},
-		{Text: "[Esc]", Color: DialogControlKeyColor},
-		{Text: " Leave", Color: DialogControlHintColor},
-	}, lines[0])
-}
-
-func TestParseMerchantFooterGuidancePreservesMalformedBracketsAsHints(t *testing.T) {
-	lines := parseMerchantFooterGuidance("Use [Enter\nOr Esc]")
-
-	require.Len(t, lines, 2)
-	require.Equal(t, "Use [Enter", lines[0][0].Text)
-	requireColorEqual(t, DialogControlHintColor, lines[0][0].Color)
-	require.Equal(t, "Or Esc]", lines[1][0].Text)
-	requireColorEqual(t, DialogControlHintColor, lines[1][0].Color)
-}
-
 func TestMerchantDialogShellFooterOutputPreservesPlainGuidance(t *testing.T) {
 	setMerchantShellTestResolution(t, 1280, 720)
 	guidance := "[Up/Down] Select   [Enter] Buy   [Esc] Leave"
@@ -162,7 +138,7 @@ func TestMerchantDialogShellRefreshAndResolutionRebuildPreserveData(t *testing.T
 	shell.Refresh(
 		MerchantDialogHeaderView{ShopIdentity: "The Rusty Sword", Owner: "Ronan", PartyGold: "975"},
 		MerchantDialogExchangeView{Text: "A refreshed exchange."},
-		MerchantDialogFooterView{Guidance: "Enter: Confirm  Esc: Leave"},
+		MerchantDialogFooterView{Guidance: "[Enter] Confirm   [Esc] Leave"},
 	)
 	initialWorkspace := shell.GetWorkspaceBounds()
 
@@ -173,7 +149,7 @@ func TestMerchantDialogShellRefreshAndResolutionRebuildPreserveData(t *testing.T
 	require.Greater(t, largeWorkspace.Dy(), initialWorkspace.Dy())
 	require.Equal(t, "The Rusty Sword", shell.GetHeaderView().ShopIdentity)
 	require.Equal(t, "A refreshed exchange.", shell.GetExchangeView().Text)
-	require.Equal(t, "Enter: Confirm  Esc: Leave", shell.GetFooterView().Guidance)
+	require.Equal(t, "[Enter] Confirm   [Esc] Leave", shell.GetFooterView().Guidance)
 	require.Contains(t, shell.headerOutput.GetOutputStr(false), "The Rusty Sword")
 	require.Equal(t, "A refreshed exchange.", strings.Join(strings.Fields(shell.exchangeOutput.GetOutputStr(false)), " "))
 }

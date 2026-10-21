@@ -77,7 +77,7 @@ func TestTalkFooterStatesFitAndDoNotMoveInlineInput(t *testing.T) {
 			}
 			require.Equal(t, layout, dialog.layoutWithFooter(bounds))
 			widgets.PrepareKeyboardFooter(layout.footerRect, dialog.conversationFooterGuidance(layout.footerRect.Dx()),
-				talkFooterLines, dialog.footerOutput)
+				dialog.footerOutput)
 			require.Equal(t, transcript, dialog.Output.GetOutputStr(true), "preparing hints must not change speech or retained history")
 			require.Equal(t, "FLAM", dialog.TextInput.GetText())
 			for _, line := range strings.Split(dialog.footerOutput.GetOutputStr(false), "\n") {

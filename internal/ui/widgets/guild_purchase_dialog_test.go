@@ -71,10 +71,11 @@ func TestGuildPurchaseDialogQuantityBoundsProjectionAndSingleRequest(t *testing.
 	require.NotContains(t, strings.ToUpper(dialog.GetBodyText()), "TOTAL PRICE")
 	require.Contains(t, dialog.totalOutput.GetOutputStr(false), "TOTAL PRICE")
 	require.Contains(t, dialog.totalOutput.GetOutputStr(false), "12 GOLD")
-	require.Equal(t, "Left/Right: Quantity  M: Max\nEnter: Confirm  Esc: Back", dialog.GetFooterGuidance())
+	require.Equal(t, merchantQuantityFooter, dialog.GetFooterGuidance())
 	require.Equal(t, guildPurchaseFooterLines, dialog.footerOutput.GetPanelContentLineCount())
-	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "Left/Right: Quantity  M: Max")
-	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "Enter: Confirm  Esc: Back")
+	require.Contains(t, strings.Join(strings.Fields(dialog.footerOutput.GetOutputStr(false)), " "),
+		"[Left/Right] Quantity [M] Max", "a tighter separator keeps the quantity row whole")
+	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "[Enter] Confirm   [Esc] Back")
 	require.NotContains(t, dialog.GetFooterGuidance(), "Up/Down")
 
 	pressGuildPurchaseKey(dialog, keyboard, ebiten.KeyLeft)
@@ -161,7 +162,7 @@ func TestGuildPurchaseDialogZeroMaxStatesAllowOnlyEscape(t *testing.T) {
 			require.Contains(t, dialog.GetBodyText(), test.note)
 			require.True(t, dialog.totalBounds.Empty())
 			require.Zero(t, dialog.totalOutput.GetPanelContentLineCount())
-			require.Equal(t, "Esc: Back", dialog.GetFooterGuidance())
+			require.Equal(t, "[Esc] Back", dialog.GetFooterGuidance())
 			require.Equal(t, 1, dialog.footerOutput.GetPanelContentLineCount())
 			screen := ebiten.NewImage(1280, 720)
 			t.Cleanup(screen.Dispose)

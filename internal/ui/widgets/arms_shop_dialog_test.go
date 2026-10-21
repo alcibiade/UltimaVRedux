@@ -390,8 +390,7 @@ func TestArmsShopDialogTerminalRefusalWaitsForAcknowledgement(t *testing.T) {
 			require.False(t, dialog.IsDismissed())
 			require.Equal(t, "No purchase: insufficient gold.", dialog.GetReceiptText())
 			require.Contains(t, dialog.GetDetailText(), "insufficient gold")
-			require.Contains(t, dialog.GetShell().GetFooterView().Guidance, "[Enter]")
-			require.Contains(t, dialog.GetShell().GetFooterView().Guidance, "[Esc]")
+			require.Contains(t, dialog.GetShell().GetFooterView().Guidance, "[Enter/Esc] Leave")
 
 			pressArmsShopKey(dialog, keyboard, key)
 			require.True(t, dialog.IsDismissed())

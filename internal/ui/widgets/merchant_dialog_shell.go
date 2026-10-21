@@ -3,7 +3,6 @@ package widgets
 import (
 	"fmt"
 	"image"
-	stdcolor "image/color"
 	"math"
 	"strings"
 	"unicode/utf8"
@@ -53,11 +52,6 @@ type MerchantDialogFooterView struct {
 	Guidance string
 }
 
-type merchantFooterSegment struct {
-	Text  string
-	Color stdcolor.Color
-}
-
 // MerchantDialogShellConfig configures the presentation-only merchant shell.
 type MerchantDialogShellConfig struct {
 	Header         MerchantDialogHeaderView
@@ -65,6 +59,13 @@ type MerchantDialogShellConfig struct {
 	Footer         MerchantDialogFooterView
 	MerchantSprite *ebiten.Image
 }
+
+// merchantQuantityFooter is the shared quantity approval guidance. Up/Down
+// silently alias Left/Right in every quantity approval.
+const merchantQuantityFooter = "[Left/Right] Quantity   [M] Max\n[Enter] Confirm   [Esc] Back"
+
+// merchantLeaveFooter is the shared acknowledgement when a shop can only be left.
+const merchantLeaveFooter = "[Enter/Esc] Leave"
 
 type merchantDialogShellLayout struct {
 	header       image.Rectangle
@@ -473,16 +474,7 @@ func (s *MerchantDialogShell) populateFooterOutput() {
 		s.footerOutput.Font.CharsForWidth(max(1, s.footerText.Dx())),
 		capacity,
 	)
-	for _, line := range parseMerchantFooterGuidance(guidance) {
-		builder := s.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		if len(line) == 0 {
-			builder.Text("", DialogControlHintColor)
-		}
-		for _, segment := range line {
-			builder.Text(segment.Text, segment.Color)
-		}
-		builder.WordWrap().Done()
-	}
+	appendControlGuidance(s.footerOutput, guidance, s.footerText.Dx())
 }
 
 func fitMerchantFooterGuidance(
@@ -516,45 +508,26 @@ func fitMerchantFooterGuidance(
 	return strings.Join(lines, "\n")
 }
 
-func parseMerchantFooterGuidance(guidance string) [][]merchantFooterSegment {
+func parseMerchantFooterGuidance(guidance string) [][]ControlHint {
 	guidance = strings.ReplaceAll(guidance, "\r\n", "\n")
 	guidance = strings.ReplaceAll(guidance, "\r", "\n")
 	sourceLines := strings.Split(guidance, "\n")
-	sourceLines = sourceLines[:min(len(sourceLines), merchantShellFooterMaximumLines)]
-	lines := make([][]merchantFooterSegment, 0, len(sourceLines))
-	for _, sourceLine := range sourceLines {
-		var segments []merchantFooterSegment
-		for cursor := 0; cursor < len(sourceLine); {
-			openingOffset := strings.IndexByte(sourceLine[cursor:], '[')
-			if openingOffset < 0 {
-				segments = append(segments, colonControlHintSegments(sourceLine[cursor:])...)
-
-				break
-			}
-			opening := cursor + openingOffset
-			closingOffset := strings.IndexByte(sourceLine[opening+1:], ']')
-			if closingOffset < 0 {
-				segments = append(segments, merchantFooterSegment{
-					Text:  sourceLine[cursor:],
-					Color: DialogControlHintColor,
-				})
-
-				break
-			}
-			if opening > cursor {
-				segments = append(segments, colonControlHintSegments(sourceLine[cursor:opening])...)
-			}
-			closing := opening + 1 + closingOffset
-			segments = append(segments, merchantFooterSegment{
-				Text:  sourceLine[opening : closing+1],
-				Color: DialogControlKeyColor,
-			})
-			cursor = closing + 1
-		}
-		lines = append(lines, segments)
+	lines := make([][]ControlHint, min(len(sourceLines), merchantShellFooterMaximumLines))
+	for index := range lines {
+		lines[index] = ParseControlHints(sourceLines[index])
 	}
 
 	return lines
+}
+
+// appendControlGuidance centres each bracketed guidance source line, packed into width.
+func appendControlGuidance(output *text.Output, guidance string, width int) {
+	for _, hints := range parseMerchantFooterGuidance(guidance) {
+		if len(hints) == 0 {
+			appendControlHintRow(output.AppendLine().WithAlignment(etext.AlignCenter), nil, controlHintSeparator).Done()
+		}
+		PackControlHints(output, hints, width, etext.AlignCenter)
+	}
 }
 
 func (s *MerchantDialogShell) drawHeader(screen *ebiten.Image) {

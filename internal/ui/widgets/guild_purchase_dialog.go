@@ -390,15 +390,11 @@ func (d *GuildPurchaseDialog) populateOutputs() {
 
 func (d *GuildPurchaseDialog) populateFooterOutput() {
 	d.footerOutput.Reset()
+	guidance := "[Esc] Back"
 	if d.quote.MaxBundles > 0 {
-		d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-			White("Left/Right").LightGray(": Quantity  ").White("M").LightGray(": Max").Done()
-		d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-			White("Enter").LightGray(": Confirm  ").White("Esc").LightGray(": Back").Done()
-	} else {
-		d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-			White("Esc").LightGray(": Back").Done()
+		guidance = merchantQuantityFooter
 	}
+	appendControlGuidance(d.footerOutput, guidance, d.frame.footerText.Dx())
 }
 
 func quotedGuildPitch(pitch string) string {

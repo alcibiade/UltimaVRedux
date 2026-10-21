@@ -155,13 +155,7 @@ func (d *ShipTravelDialog) populateOutputs() {
 		DialogValueColor,
 	).WordWrap().Done()
 	d.footerOutput.Reset()
-	for _, segments := range parseMerchantFooterGuidance(d.GetFooterGuidance()) {
-		line := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range segments {
-			line.Text(segment.Text, segment.Color)
-		}
-		line.WordWrap().Done()
-	}
+	appendControlGuidance(d.footerOutput, d.GetFooterGuidance(), d.frame.footerText.Dx())
 }
 
 func shipTravelPlacement() sprites.PercentBasedPlacement {

@@ -1011,7 +1011,7 @@ func (g *GameScene) showCurrentCombatAttackPrompt() {
 		escape = "Skip item"
 	}
 	g.showCombatAimControls(combatAttackActionLabel, escape)
-	widgets.AppendControlHints(g.appendLineBuilderDualOutput(), "Space: Skip at origin").WordWrap().Done()
+	widgets.AppendControlHints(g.appendLineBuilderDualOutput(), "[Space] Skip at origin").WordWrap().Done()
 	g.showCombatAttackTargetContext()
 }
 
@@ -1030,8 +1030,8 @@ func (g *GameScene) showCombatAttackTargetContext() {
 }
 
 func (g *GameScene) showCombatAimControls(action, escape string) {
-	widgets.AppendControlHints(g.appendLineBuilderDualOutput(), "Arrows/keypad: Aim").WordWrap().Done()
-	widgets.AppendControlHints(g.appendLineBuilderDualOutput(), "Enter: "+action+"   Esc: "+escape).WordWrap().Done()
+	widgets.AppendControlHints(g.appendLineBuilderDualOutput(), "[Arrows/keypad] Aim").WordWrap().Done()
+	widgets.AppendControlHints(g.appendLineBuilderDualOutput(), "[Enter] "+action+"   [Esc] "+escape).WordWrap().Done()
 }
 
 // Combat Map Secondary Action Handlers

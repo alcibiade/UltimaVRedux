@@ -144,10 +144,10 @@ func (d *CommandHelpDialog) populatePage() {
 	}
 	d.footer.AppendLine().Text(title, DialogHeaderColor).
 		Text("   No time or resources spent", DialogControlHintColor).WordWrap().Done()
-	d.footer.AppendLine().Text("[Tab/Shift-Tab]", DialogControlKeyColor).
+	d.footer.AppendLine().Text("[Tab/Shift+Tab]", DialogControlKeyColor).
 		Text(" Commands/Status  ", DialogControlHintColor).
 		Text("[Up/Down]", DialogControlKeyColor).Text(" Scroll  ", DialogControlHintColor).
-		Text("[Shift+Up/Dn/PgUp/PgDn]", DialogControlKeyColor).Text(" Page  ", DialogControlHintColor).
+		Text("[Shift+Up/Down/PgUp/PgDn]", DialogControlKeyColor).Text(" Page  ", DialogControlHintColor).
 		Text("[Space]", DialogControlKeyColor).Text(" Next  ", DialogControlHintColor).
 		Text("[Home/End]", DialogControlKeyColor).Text(" First/Last  ", DialogControlHintColor).
 		Text("[Esc]", DialogControlKeyColor).Text(" Close", DialogControlHintColor).WordWrap().Done()

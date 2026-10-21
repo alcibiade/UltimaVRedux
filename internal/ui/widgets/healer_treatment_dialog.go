@@ -193,8 +193,7 @@ func (d *HealerTreatmentDialog) populateOutputs() {
 		d.populateRecipientBody()
 	}
 	d.footerOutput.Reset()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("Enter").LightGray(": Confirm  ").White("Esc").LightGray(": Back").Done()
+	appendControlGuidance(d.footerOutput, "[Enter] Confirm   [Esc] Back", d.frame.footerText.Dx())
 }
 
 func (d *HealerTreatmentDialog) populateRecipientBody() {

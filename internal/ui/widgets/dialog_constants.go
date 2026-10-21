@@ -75,9 +75,9 @@ const (
 // Shared acknowledgement guidance. Keep timed notices footerless and match the
 // hint to the keys accepted by the dialog or its owning workflow.
 const (
-	DialogCloseHint    = "Enter/Esc: Close"
-	DialogContinueHint = "Enter/Esc: Continue"
-	DialogAnyKeyHint   = "Any key: Continue"
+	DialogCloseHint    = "[Enter/Esc] Close"
+	DialogContinueHint = "[Enter/Esc] Continue"
+	DialogAnyKeyHint   = "[Any key] Continue"
 )
 
 // Action feedback popup constants - small, centered popups for command responses.

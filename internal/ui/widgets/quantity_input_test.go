@@ -65,7 +65,7 @@ func newQuantityDialogFixture(t *testing.T, kind string, keyboard *input.Keyboar
 		dialog := newTestArmsTradeDialog(keyboard, ArmsTradeIntent{Mode: ArmsShopBuy, BuyQuote: quote})
 		return quantityDialogFixture{
 			dialog: dialog, quantity: func() int { return int(dialog.GetQuantity()) },
-			maximum: int(quote.MaxQuantity), maxKey: ebiten.KeyMax,
+			maximum: int(quote.MaxQuantity), maxKey: ebiten.KeyM, aliases: true,
 			consume: func() (int, bool) {
 				request, ok := dialog.ConsumePendingRequest()
 				if ok {
@@ -83,7 +83,7 @@ func newQuantityDialogFixture(t *testing.T, kind string, keyboard *input.Keyboar
 		dialog := newTestArmsTradeDialog(keyboard, ArmsTradeIntent{Mode: ArmsShopSell, SellQuote: quote})
 		return quantityDialogFixture{
 			dialog: dialog, quantity: func() int { return int(dialog.GetQuantity()) },
-			maximum: int(quote.MaxQuantity), maxKey: ebiten.KeyA,
+			maximum: int(quote.MaxQuantity), maxKey: ebiten.KeyM, aliases: true,
 			consume: func() (int, bool) {
 				request, ok := dialog.ConsumePendingRequest()
 				if ok {
@@ -129,7 +129,7 @@ func newQuantityDialogFixture(t *testing.T, kind string, keyboard *input.Keyboar
 		dialog := NewTavernActionDialog(TavernActionDialogConfig{Keyboard: keyboard, Intent: intent})
 		return quantityDialogFixture{
 			dialog: dialog, quantity: dialog.GetProvisionPackCount,
-			maximum: intent.Provision.MaximumUsefulPacks, maxKey: ebiten.KeyM,
+			maximum: intent.Provision.MaximumUsefulPacks, maxKey: ebiten.KeyM, aliases: true,
 			consume: func() (int, bool) {
 				request, ok := dialog.ConsumePendingRequest()
 				if ok {

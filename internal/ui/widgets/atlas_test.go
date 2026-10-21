@@ -123,9 +123,9 @@ func TestAtlasAvatarShortcutKeyboardZoomAvailabilityAndFocus(t *testing.T) {
 						dialog.onDialogFocusChanged(focused)
 						dialog.buildFooter()
 						if available {
-							require.Contains(t, dialog.footer.GetOutputStr(false), "A Avatar")
+							require.Contains(t, dialog.footer.GetOutputStr(false), "[A] Avatar")
 						} else {
-							require.NotContains(t, dialog.footer.GetOutputStr(false), "A Avatar")
+							require.NotContains(t, dialog.footer.GetOutputStr(false), "[A] Avatar")
 						}
 						before := view
 						keyboard.SimulateKeyPress(ebiten.KeyA)

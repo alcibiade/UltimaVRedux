@@ -819,7 +819,7 @@ func (scene *CharacterCreationScene) drawTerminalNotice() {
 		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), scene.terminalHint)
 	}
 	if scene.state == characterCreationComplete {
-		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), "Esc: Discard.")
+		widgets.AppendControlHints(line.Text(" ", widgets.DialogControlHintColor), "[Esc] Discard")
 	}
 	line.Done()
 	scene.promptOutput.DrawPanelContent(scene.canvas, image.Pt(8, 176), 304, textv2.AlignCenter)

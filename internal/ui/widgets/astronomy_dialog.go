@@ -333,7 +333,7 @@ func (a *AstronomyDialog) Draw(screen *ebiten.Image) {
 	screen.DrawImage(a.buffer, a.drawOptions)
 
 	DrawClassicPixelRoundedFrame(screen, a.bounds, a.pixelUnit, DialogRuleColor)
-	a.hint.draw(screen, a.bounds, "Any key: Close")
+	a.hint.draw(screen, a.bounds, ControlHint{"Any key", hintActionClose})
 }
 
 // Update implements Widget interface.

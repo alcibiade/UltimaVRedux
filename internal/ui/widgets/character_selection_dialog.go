@@ -181,7 +181,7 @@ func (d *CharacterSelectionDialog) handleNumberKey() bool {
 	return false
 }
 
-func (d *CharacterSelectionDialog) footer() [2]string {
+func (d *CharacterSelectionDialog) footer() string {
 	numberRange := "1-6"
 	for _, option := range d.options {
 		if option.PartyPosition == 0 {
@@ -191,10 +191,7 @@ func (d *CharacterSelectionDialog) footer() [2]string {
 		}
 	}
 
-	return [2]string{
-		"Arrows/" + numberRange + ": Inspect   Enter: " + d.confirmLabel,
-		"Esc: " + d.cancelLabel,
-	}
+	return "[Arrows/" + numberRange + "] Inspect   [Enter] " + d.confirmLabel + "   [Esc] " + d.cancelLabel
 }
 
 func initialCharacterSelection(options []CharacterSelectionOption) int {

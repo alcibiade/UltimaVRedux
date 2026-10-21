@@ -179,6 +179,8 @@ func TestAtlasNoteReaderRetainsEveryDescriptionParagraphForPaging(t *testing.T) 
 	dialog.detailPage = 1000
 	dialog.prepareDetails()
 	require.Greater(t, dialog.detailPage, 0)
+	dialog.handleKey(ebiten.KeySpace)
+	require.Zero(t, dialog.detailPage, "Space pages details and wraps from the last page")
 }
 
 func (e *AtlasNoteEditor) prepareFieldScroll(field int, layout atlasEditorFieldLayout) ([]atlasEditorLine, int) {

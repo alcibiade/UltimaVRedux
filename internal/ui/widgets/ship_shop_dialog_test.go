@@ -108,7 +108,7 @@ func TestShipShopDialogPendingFrigateManifestAndSemanticBacking(t *testing.T) {
 	screen := ebiten.NewImage(1280, 720)
 	dialog.Draw(screen)
 	requireImageRegionContainsColor(t, screen, dialog.GetManifestBounds(), MerchantDialogBackgroundColor)
-	requireImageRegionContainsColor(t, screen, dialog.GetOfferCardBounds(0), pkgcolor.EGABlue)
+	requireImageRegionContainsColor(t, screen, dialog.GetOfferCardBounds(0), pkgcolor.EGAWhite)
 	requireImageRegionContainsColor(t, screen, dialog.cardSpriteBounds[0], pkgcolor.EGALightMagenta)
 	requireImageRegionContainsColor(t, screen, dialog.cardSpriteBounds[1], pkgcolor.EGALightCyan)
 }

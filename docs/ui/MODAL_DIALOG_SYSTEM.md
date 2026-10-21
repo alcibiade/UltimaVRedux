@@ -281,7 +281,7 @@ menu and the in-game Escape menu. It keeps detached original and staged copies
 of Sound, Display, and Gameplay settings. The title-menu route opens on Display;
 the Escape-menu route opens on Sound. Sound changes may preview through the
 audio manager, but no persisted configuration model changes before Apply. Tab
-and Shift-Tab change section in either direction; Up/Down changes the active row;
+and Shift+Tab change section in either direction; Up/Down changes the active row;
 Left/Right changes stepped Gameplay values, Sound values or Display choices;
 Space toggles a selected Gameplay checkbox. Numeric boundaries clamp without
 wrapping and do not require entering a separate editor.

@@ -35,7 +35,6 @@ const (
 	tavernConversationBaseLines  = 3
 	tavernTranscriptMinimumLines = 2
 	tavernActionUnknownLabel     = "Unknown"
-	tavernShopLeaveFooter        = "[Enter/Esc] Leave"
 )
 
 var _ Widget = (*TavernShopDialog)(nil)
@@ -242,6 +241,7 @@ type TavernShopDialog struct {
 	topicBounds          image.Rectangle
 	topicCaretBounds     image.Rectangle
 	topicSelectionBounds image.Rectangle
+	rowSelectionBounds   image.Rectangle
 	inputKeysReady       bool
 	visible              bool
 	dismissed            bool
@@ -355,6 +355,7 @@ func (d *TavernShopDialog) Draw(screen *ebiten.Image) {
 		etext.AlignCenter,
 	)
 	d.drawTopicSelection(screen)
+	fillSelectedRow(screen, d.rowSelectionBounds)
 	d.bodyOutput.DrawPanelContent(screen, d.bodyText.Min, max(1, d.bodyText.Dx()), etext.AlignStart)
 	d.drawTopicCaret(screen)
 }
@@ -1183,6 +1184,7 @@ func (d *TavernShopDialog) populateBodyOutput() {
 	d.topicBounds = image.Rect(0, 0, 0, 0)
 	d.topicCaretBounds = image.Rect(0, 0, 0, 0)
 	d.topicSelectionBounds = image.Rect(0, 0, 0, 0)
+	d.rowSelectionBounds = image.Rect(0, 0, 0, 0)
 	if d.receiptText != "" && d.mode != TavernShopConversation {
 		if d.preview {
 			d.bodyOutput.AppendLine().Text("PREVIEW", DialogStatusWarningColor).Done()
@@ -1208,16 +1210,17 @@ func (d *TavernShopDialog) populateBodyOutput() {
 
 func (d *TavernShopDialog) populateOrderBody() {
 	d.bodyOutput.AppendLine().Text("ORDER", DialogHeaderColor).Done()
-	rows := tavernOrderRows(d.state)
-	for index, row := range rows {
-		prefix := "  "
-		color := DialogValueColor
-		if index == d.selectedOrder && d.phase == TavernShopBrowse {
-			prefix = "> "
-			color = DialogLabelColor
+	for index, row := range tavernOrderRows(d.state) {
+		charge, affordable := uint16(0), true
+		switch row.Item {
+		case TavernOrderMeal:
+			charge, affordable = d.state.Meal.Charge, d.state.Meal.Affordable
+		case TavernOrderDrink:
+			charge, affordable = d.state.Drink.Charge, d.state.Drink.Affordable || d.state.Menu.Drink.IsWineList
+		case TavernOrderProvision: // Charity can still answer an empty purse.
 		}
-		price := d.orderRowPrice(row.Item)
-		d.bodyOutput.AppendLine().Textf("%s[%c] %s%s", color, prefix, row.Key, row.Name, price).Done()
+		d.appendTavernRow(index == d.selectedOrder,
+			fmt.Sprintf("[%c] %s%s", row.Key, row.Name, d.orderRowPrice(row.Item)), charge, affordable)
 	}
 	d.bodyOutput.AppendLine().LightGrayf(
 		"Meals and ordinary drinks serve %d party members.", d.state.DinerCount,
@@ -1231,16 +1234,26 @@ func (d *TavernShopDialog) populateOrderBody() {
 func (d *TavernShopDialog) populateWineBody() {
 	d.bodyOutput.AppendLine().Text("CHOOSE WINE", DialogHeaderColor).Done()
 	for index, quote := range d.state.Wines {
-		prefix := "  "
-		color := DialogValueColor
-		if index == d.selectedWine && d.phase == TavernShopBrowse {
-			prefix = "> "
-			color = DialogLabelColor
-		}
-		d.bodyOutput.AppendLine().Textf(
-			"%s[%c] %-10s %d gold", color, prefix, 'A'+rune(index), quote.Wine.Name, quote.Charge,
-		).Done()
+		d.appendTavernRow(index == d.selectedWine,
+			fmt.Sprintf("[%c] %-10s %d gold", 'A'+rune(index), quote.Wine.Name, quote.Charge), quote.Charge, quote.Affordable)
 	}
+}
+
+// appendTavernRow uses the shared selection bar and, like Reagent and Arms,
+// dims an unaffordable choice and states the gold it needs.
+func (d *TavernShopDialog) appendTavernRow(selected bool, label string, charge uint16, affordable bool) {
+	color := DialogValueColor
+	if !affordable {
+		label += fmt.Sprintf(" (need %d gold)", charge)
+		color = DialogEmptyColor
+	}
+	if selected && d.phase == TavernShopBrowse {
+		spacing := d.bodyOutput.GetLineSpacing()
+		top := d.bodyText.Min.Y + int(float64(d.bodyOutput.GetPanelContentLineCount())*spacing)
+		d.rowSelectionBounds = image.Rect(d.bodyText.Min.X, top, d.bodyText.Max.X, top+int(math.Ceil(spacing)))
+		color = DialogSelectedText
+	}
+	d.bodyOutput.AppendLine().Text(label, color).Done()
 }
 
 func (d *TavernShopDialog) populateConversationBody() {
@@ -1327,13 +1340,13 @@ func (d *TavernShopDialog) footerGuidance() string {
 				back = "Back to menu"
 			}
 
-			return "[Up/Dn] Select  [Enter] Order\n[Tab] Conversation  [Esc] " + back
+			return "[Up/Down] Select  [Enter] Order\n[Tab] Conversation  [Esc] " + back
 		}
 		if !d.state.CustomerEligible {
 			return "[Tab/Esc] Back to Order"
 		}
 
-		return "[Enter] Ask about subject  [Tab/Esc] Back to Order\n[Shift+Up/Dn/PgUp/PgDn] Read history"
+		return "[Enter] Ask about subject  [Tab/Esc] Back to Order\n[Shift+Up/Down/PgUp/PgDn] Read history"
 	case TavernShopAwaitingTopicQuote:
 		return "Checking subject"
 	case TavernShopAwaitingApproval:
@@ -1341,7 +1354,7 @@ func (d *TavernShopDialog) footerGuidance() string {
 	case TavernShopAwaitingResult:
 		return "Processing Tavern action"
 	case TavernShopSessionError:
-		return tavernShopLeaveFooter
+		return merchantLeaveFooter
 	default:
 		panic("TavernShopDialog.footerGuidance: unknown phase")
 	}

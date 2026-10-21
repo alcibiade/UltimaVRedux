@@ -275,15 +275,7 @@ func TestInnShopDialogPreviewLabelsKeyboardOnlyFooterAndSemanticBacking(t *testi
 	require.NotContains(t, strings.ToLower(guidance), "tab")
 	require.NotContains(t, strings.ToLower(guidance), "mouse")
 	require.NotContains(t, strings.ToLower(guidance), "click")
-	for _, line := range parseMerchantFooterGuidance(guidance) {
-		for _, segment := range line {
-			if strings.HasPrefix(segment.Text, "[") {
-				require.Equal(t, DialogControlKeyColor, segment.Color)
-			} else {
-				require.Equal(t, DialogControlHintColor, segment.Color)
-			}
-		}
-	}
+	requireKeyedGuidance(t, guidance)
 
 	screen := ebiten.NewImage(1280, 720)
 	t.Cleanup(screen.Dispose)

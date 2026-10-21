@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
@@ -24,6 +25,12 @@ func drawMasterDetailCenteredLine(
 	output.AppendLine().WithAlignment(etext.AlignCenter).Text(value, lineColor).Done()
 	top := rect.Min.Y + max(0, (rect.Dy()-int(math.Ceil(output.GetFontHeight())))/2) //nolint:mnd // Geometric center.
 	output.DrawPanelContent(screen, image.Pt(rect.Min.X, top), max(1, rect.Dx()), etext.AlignCenter)
+}
+
+// fillSelectedRow draws the shared white bar behind a row drawn in DialogSelectedText.
+func fillSelectedRow(screen *ebiten.Image, row image.Rectangle) {
+	vector.FillRect(screen, float32(row.Min.X), float32(row.Min.Y), float32(row.Dx()), float32(row.Dy()),
+		DialogSelectedBackground, false)
 }
 
 func drawMasterDetailScrollIndicators(

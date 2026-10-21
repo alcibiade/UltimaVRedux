@@ -6,33 +6,33 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/hajimehoshi/ebiten/v2"
+	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMerchantFooterColonBracketAndPlainStatusSemantics(t *testing.T) {
-	for _, source := range []string{
-		"Left/Right: Quantity  A: Sell All\nEnter: Confirm  Esc: Back",
-		"[Enter] Confirm  Esc: Back", "Enter or Esc: Leave",
-		"Processing: please wait", "Use [Enter\nOr Esc]",
-	} {
-		var textLines []string
-		for _, line := range parseMerchantFooterGuidance(source) {
-			var plain strings.Builder
-			for _, segment := range line {
-				plain.WriteString(segment.Text)
-				if strings.Contains(segment.Text, "Quantity") || strings.Contains(segment.Text, "Processing") ||
-					strings.Contains(segment.Text, "Confirm") || strings.Contains(segment.Text, "Sell All") {
-					require.Equal(t, DialogControlHintColor, segment.Color)
-				}
-				if strings.TrimSpace(segment.Text) == "Enter" || segment.Text == "[Enter]" || segment.Text == "Left/Right" {
-					require.Equal(t, DialogControlKeyColor, segment.Color)
-				}
-			}
-			textLines = append(textLines, plain.String())
+// requireKeyedGuidance asserts that footer guidance is complete "[Key] Action" hints.
+func requireKeyedGuidance(t *testing.T, guidance string) {
+	t.Helper()
+	for _, line := range parseMerchantFooterGuidance(guidance) {
+		for _, hint := range line {
+			require.NotEmpty(t, hint.Key, guidance)
 		}
-		require.Equal(t, source, strings.Join(textLines, "\n"))
 	}
+}
+
+func TestBracketedControlHintsParsePackAndPreserveProse(t *testing.T) {
+	require.Equal(t, []ControlHint{{"", "Delete excerpt?"}, {"Enter", "Delete"}, {"Other keys", "Close"},
+		{"Arrows", ""}, {"", "[Enter"}}, ParseControlHints("Delete excerpt?  [Enter] Delete [Other keys] Close [Arrows] [Enter"))
+	output := text.NewOutput(text.NewUltimaFont(16), 1, 8, 1)
+	hints := []ControlHint{{"Up/Down", "Select"}, {"Enter", "Buy"}, {"Esc", "Leave"}}
+	width, _ := output.Font.MeasureString("[Up/Down] Select   [Enter] Buy")
+	PackControlHints(output, hints, int(width)+1, etext.AlignStart)
+	require.Equal(t, "[Up/Down] Select   [Enter] Buy \n[Esc] Leave", output.GetOutputStr(false))
+	line := AppendControlHints(output.AppendLine(), "[Esc] Leave")
+	require.Equal(t, []text.ColorSegment{{Text: "[Esc]", Color: DialogControlKeyColor},
+		{Text: " Leave", Color: DialogControlHintColor}}, line.GetSegments())
 }
 
 func TestArmsAndAcknowledgementActualOutputsUseControlColours(t *testing.T) {
@@ -48,7 +48,7 @@ func TestArmsAndAcknowledgementActualOutputsUseControlColours(t *testing.T) {
 	_, hints := dialog.footerOutput.FirstPanelLineWithColor(0, dialog.footerOutput.GetPanelContentLineCount(), DialogControlHintColor)
 	require.True(t, keys)
 	require.True(t, hints)
-	require.Contains(t, strings.Join(strings.Fields(dialog.footerOutput.GetOutputStr(false)), " "), "Sell All")
+	require.Contains(t, strings.Join(strings.Fields(dialog.footerOutput.GetOutputStr(false)), " "), "[M] Sell all")
 	screen := ebiten.NewImage(1280, 720)
 	t.Cleanup(screen.Deallocate)
 	dialog.Draw(screen)

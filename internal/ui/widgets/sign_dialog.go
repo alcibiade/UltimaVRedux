@@ -169,7 +169,7 @@ func (d *SignDialog) Draw(screen *ebiten.Image) {
 	screen.DrawImage(d.buffer, d.drawOptions)
 
 	DrawClassicPixelRoundedFrame(screen, d.bounds, d.pixelUnit, DialogRuleColor)
-	d.hint.draw(screen, d.bounds, "Ctrl+R: Runes   Other keys: Close")
+	d.hint.draw(screen, d.bounds, ControlHint{"Ctrl+R", "Runes"}, ControlHint{"Other keys", hintActionClose})
 }
 
 // Update implements Widget interface.

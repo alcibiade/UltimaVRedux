@@ -503,7 +503,7 @@ func (g *GemViewDialog) Draw(screen *ebiten.Image) {
 	screen.DrawImage(buffer, g.drawOptions)
 
 	DrawClassicPixelRoundedFrame(screen, g.bounds, g.pixelUnit, DialogRuleColor)
-	g.hint.draw(screen, g.bounds, "Any key: Close")
+	g.hint.draw(screen, g.bounds, ControlHint{"Any key", hintActionClose})
 }
 
 // drawPlayerFlash draws a white rectangle at the player's position.

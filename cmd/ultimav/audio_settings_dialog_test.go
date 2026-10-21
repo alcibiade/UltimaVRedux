@@ -1090,7 +1090,7 @@ func TestConfigurationDialogRetriesFailedRollbackInsteadOfPersistingCandidate(t 
 	dialog.Update()
 	require.Equal(t, configurationDisplayEditing, dialog.displayPhase)
 	require.True(t, dialog.displayRollbackRetry)
-	assert.Equal(t, "Enter: Retry restore  Esc: Cancel", dialog.configurationErrorGuidance())
+	assert.Equal(t, "[Enter] Retry restore   [Esc] Cancel", dialog.configurationErrorGuidance())
 
 	pressAudioSettingsKey(dialog, ebiten.KeyEnter)
 	assert.Equal(t, configurationDisplayReverting, dialog.displayPhase)

@@ -16,7 +16,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
-	pkgcolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -31,7 +30,6 @@ const (
 	shipShopFrigateSkiffs       = 2
 	shipShopCenterDivisor       = 2
 	shipShopShowroomHeightRatio = 0.43
-	shipShopLeaveFooter         = "[Enter/Esc] Leave"
 )
 
 var _ Widget = (*ShipShopDialog)(nil)
@@ -682,7 +680,7 @@ func (d *ShipShopDialog) drawShowroom(screen *ebiten.Image) {
 		bounds := d.cardBounds[index]
 		background := MerchantDialogBackgroundColor
 		if index == d.selected && d.phase == ShipShopBrowse {
-			background = pkgcolor.EGABlue
+			background = DialogSelectedBackground
 		}
 		vector.FillRect(screen, float32(bounds.Min.X), float32(bounds.Min.Y),
 			float32(bounds.Dx()), float32(bounds.Dy()), background, false)
@@ -829,7 +827,7 @@ func (d *ShipShopDialog) footerGuidance() string {
 		return d.browseFooterGuidance()
 	}
 	if shipShopTerminalPhase(d.phase) {
-		return shipShopLeaveFooter
+		return merchantLeaveFooter
 	}
 
 	return shipShopActiveFooterGuidance(d.phase)
@@ -885,7 +883,7 @@ func (d *ShipShopDialog) pixelUnit() int {
 
 func shipCardColors(quote game_state.ShipPurchaseQuote, selected bool) (stdcolor.Color, stdcolor.Color) {
 	if selected {
-		return pkgcolor.EGAWhite, pkgcolor.EGAWhite
+		return DialogSelectedText, DialogSelectedText
 	}
 	if quote.BlockReason.IsBlocked() {
 		return DialogEmptyColor, DialogEmptyColor

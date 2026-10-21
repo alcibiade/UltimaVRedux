@@ -349,7 +349,7 @@ func (d *QuestJournalDialog) exchangeFooterGuidance() string {
 			paging += "[Space] Next  "
 		}
 		if d.detailPage > 0 {
-			paging += "[Shift-Space] Previous  "
+			paging += "[Shift+Space] Previous  "
 		}
 	}
 
@@ -358,7 +358,7 @@ func (d *QuestJournalDialog) exchangeFooterGuidance() string {
 		reference = "  [Ctrl+R] Rune reference"
 	}
 
-	return "[Up/Dn] Exchange  " + paging + action + reference + "  [/] Search  [Tab/Shift-Tab] Tab  [Esc/Shift-J] Close"
+	return "[Up/Down] Exchange  " + paging + action + reference + "  [/] Search  [Tab/Shift+Tab] Tab  [Esc/Shift+J] Close"
 }
 
 func (d *QuestJournalDialog) hasRunicExchange() bool {

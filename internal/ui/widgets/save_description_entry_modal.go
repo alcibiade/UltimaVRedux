@@ -187,15 +187,8 @@ func (m *SaveDescriptionEntryModal) preparePresentation(width, height int) saveD
 	}
 
 	m.hintOutput.Reset()
-	m.hintOutput.AppendLine().Text("Ctrl+U", DialogControlKeyColor).
-		Text(": Clear description", DialogControlHintColor).
-		Done()
-	m.hintOutput.AppendLine().
-		Text("Enter", DialogControlKeyColor).
-		Text(": Save    ", DialogControlHintColor).
-		Text("Esc", DialogControlKeyColor).
-		Text(": Back", DialogControlHintColor).
-		Done()
+	AppendControlHints(m.hintOutput.AppendLine(), "[Ctrl+U] Clear description").Done()
+	AppendControlHints(m.hintOutput.AppendLine(), "[Enter] Save   [Esc] Back").Done()
 
 	return rects
 }

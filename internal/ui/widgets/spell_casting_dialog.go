@@ -187,8 +187,7 @@ func (d *SpellCastingDialog) prepareStatus(rect image.Rectangle) {
 	}
 	line := output.AppendLine().Text(message, statusColor)
 	if !valid && d.notice == "" && message == "Prepare a mixture first." && d.currentContext != references.ContextCombat {
-		line.Text("  ", DialogControlHintColor)
-		appendSpellControl(line, "Ctrl+M", "Mix")
+		AppendControlHints(line.Text(controlHintSeparator, DialogControlHintColor), "[Ctrl+M] Mix")
 	}
 	line.WordWrap().Done()
 }

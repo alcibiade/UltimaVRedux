@@ -142,7 +142,8 @@ func (d *AtlasDialog) Update() {
 	}
 	for _, key := range []ebiten.Key{ebiten.KeyDigit0, ebiten.KeyNumpad0, ebiten.KeyEqual, ebiten.KeyMinus,
 		ebiten.KeyNumpadAdd, ebiten.KeyNumpadSubtract, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyL,
-		ebiten.KeyG, ebiten.KeyA, ebiten.KeyPageUp, ebiten.KeyPageDown, ebiten.KeyN, ebiten.KeyE, ebiten.KeyD} {
+		ebiten.KeyG, ebiten.KeyA, ebiten.KeyPageUp, ebiten.KeyPageDown, ebiten.KeySpace,
+		ebiten.KeyN, ebiten.KeyE, ebiten.KeyD} {
 		if d.keyboard.IsTextKeyPressedAndRegister(key) {
 			d.handleKey(key)
 
@@ -241,6 +242,9 @@ func (d *AtlasDialog) handleKey(key ebiten.Key) {
 		d.detailPage = max(0, d.detailPage-1)
 	case ebiten.KeyPageDown:
 		d.detailPage++
+	case ebiten.KeySpace:
+		_, pages := d.prepareDetails()
+		d.detailPage = (d.detailPage + 1) % pages
 	}
 }
 
@@ -526,8 +530,7 @@ func (d *AtlasDialog) prepareDetails() (int, int) {
 	}
 	d.row.Reset()
 	d.row.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(d.detailRect.Dx())))
-	d.row.AppendLine().Textf("%d/%d  ", DialogControlHintColor, d.detailPage+1, pages).
-		Text("PgUp/PgDn", DialogControlKeyColor).Text(" More", DialogControlHintColor).Done()
+	AppendControlHints(d.row.AppendLine(), fmt.Sprintf("%d/%d   [Space] More", d.detailPage+1, pages)).Done()
 
 	return capacity, pages
 }

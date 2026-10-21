@@ -86,7 +86,7 @@ func TestOverlayDialogConfirmationShowsFooterOnlyWhileAwaitingInput(t *testing.T
 	dialog.ShowWithoutAnimation()
 
 	require.True(t, dialog.dialog.hasPromptOutput())
-	require.Equal(t, "Enter/Esc: Close", dialog.dialog.promptOutput.GetOutputStr(false))
+	require.Equal(t, "[Enter/Esc] Close", dialog.dialog.promptOutput.GetOutputStr(false))
 	screen := ebiten.NewImage(1280, 720)
 	t.Cleanup(screen.Dispose)
 	dialog.Draw(screen)

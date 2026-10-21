@@ -90,7 +90,7 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 				require.LessOrEqual(t, advance, float64(b.footerTextRect.Dx()))
 			}
 			require.NotContains(t, b.footerOutput.GetOutputStr(false), "Page Up")
-			require.Contains(t, b.footerOutput.GetOutputStr(false), "Left/Right: Details")
+			require.Contains(t, b.footerOutput.GetOutputStr(false), "[Space] Details")
 			require.Contains(t, strings.Join(strings.Fields(b.detailOutput.GetOutputStr(false)), " "), strings.TrimSpace(views[0].Description))
 			t.Logf("secondary descriptions visible: %v; row height %d", b.showDescriptions, b.rowRects[0].Dy())
 			require.True(t, b.showDescriptions, "measured eight-row layout fits at supported sizes")
@@ -167,7 +167,7 @@ func TestSaveSlotBrowserSelectedFolderReviewFitsSupportedSizes(t *testing.T) {
 
 			require.True(t, browser.reviewFrameRect.In(browser.detailRect))
 			require.Less(t, browser.reviewFrameRect.Max.Y, browser.detailTextRect.Min.Y)
-			require.Contains(t, browser.footerOutput.GetOutputStr(false), "Esc: Back")
+			require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Esc] Back")
 			screen := ebiten.NewImageWithOptions(browser.reviewTextRect, nil)
 			browser.drawReview(screen)
 			screen.Dispose()

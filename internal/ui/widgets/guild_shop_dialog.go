@@ -490,15 +490,7 @@ func (d *GuildShopDialog) drawCatalog(screen *ebiten.Image) {
 		rowBounds := d.catalogRows[row]
 		selected := row == d.listState.GetCurrentIndex()
 		if selected {
-			vector.FillRect(
-				screen,
-				float32(rowBounds.Min.X),
-				float32(rowBounds.Min.Y),
-				float32(rowBounds.Dx()),
-				float32(rowBounds.Dy()),
-				DialogSelectedBackground,
-				false,
-			)
+			fillSelectedRow(screen, rowBounds)
 		}
 		textColor := DialogItemNameColor
 		if selected {
@@ -620,7 +612,7 @@ func (d *GuildShopDialog) footerGuidance() string {
 	case GuildShopAwaitingResult:
 		return "Processing purchase"
 	case GuildShopError:
-		return "[Enter/Esc] Leave"
+		return merchantLeaveFooter
 	default:
 		panic("GuildShopDialog.footerGuidance: unknown phase")
 	}

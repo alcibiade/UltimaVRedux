@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
@@ -202,74 +201,33 @@ func (d *AtlasDialog) buildPositionStatus() {
 
 // Help stays in two physical rows: describe only the active pane's actions.
 // Alternate close shortcuts and conditional detail paging live outside this footer.
-const (
-	atlasEnterKey    = "Enter"
-	atlasEscapeKey   = "Esc"
-	atlasSelectHint  = "Select"
-	atlasCloseHint   = "Close"
-	atlasCategoryKey = "Tab/Shift+Tab"
-)
-
-func (d *AtlasDialog) helpRows() [2][][2]string {
-	first := [][2]string{{atlasCategoryKey, "Category"}, {"Up/Down", atlasSelectHint},
-		{atlasEnterKey, "Show"}, {"+/-", "Zoom"}, {"0", "World"}}
+func (d *AtlasDialog) helpRows() [2][]ControlHint {
+	category, selection := ControlHint{hintKeyTabCycle, "Category"}, ControlHint{hintKeyUpDown, hintActionSelect}
+	zoom, world := ControlHint{"+/-", "Zoom"}, ControlHint{"0", "World"}
+	first := []ControlHint{category, selection, {hintKeyEnter, "Show"}, zoom, world}
 	if d.view.Overview {
-		first = [][2]string{{atlasCategoryKey, "Category"}, {"Up/Down", atlasSelectHint}, {"+/-", "Zoom"}, {"0", "World"}}
+		first = []ControlHint{category, selection, zoom, world}
 	}
 	pan := "Pan"
 	if d.panning {
-		first = [][2]string{{atlasCategoryKey, "Category"}, {"Arrows", "Pan"}, {"+/-", "Zoom"}, {"0", "World"}}
+		first = []ControlHint{category, {"Arrows", "Pan"}, zoom, world}
 		pan = "Places"
 	}
-	second := [][2]string{{"P", pan}, {"L", "Label"}, {"G", "Grid"}}
+	second := []ControlHint{{"P", pan}, {"L", "Label"}, {"G", "Grid"}}
 	if d.view.Overview {
-		second[1][1] = "Labels"
+		second[1].Action = "Labels"
 	}
 	if d.dossier.CurrentFix.Measured {
-		second = append(second, [2]string{"A", "Avatar"})
+		second = append(second, ControlHint{"A", "Avatar"})
 	}
-	second = append(second, [2]string{atlasEscapeKey, atlasCloseHint})
+	second = append(second, ControlHint{hintKeyEsc, hintActionClose})
 
-	return [2][][2]string{first, second}
-}
-
-func atlasHelpText(hints [][2]string, gap string) string {
-	parts := make([]string, len(hints))
-	for i, hint := range hints {
-		parts[i] = hint[0] + " " + hint[1]
-	}
-
-	return strings.Join(parts, gap)
+	return [2][]ControlHint{first, second}
 }
 
 func (d *AtlasDialog) buildFooter() {
-	rows := d.helpRows()
-	gap := "   "
-	for len(gap) > 1 {
-		fits := true
-		for _, row := range rows {
-			width, _ := d.font.MeasureString(atlasHelpText(row, gap))
-			fits = fits && width <= float64(d.footerRect.Dx())
-		}
-		if fits {
-			break
-		}
-		gap = gap[:len(gap)-1]
-	}
-	maxChars := 1
-	for _, row := range rows {
-		maxChars = max(maxChars, utf8.RuneCountInString(atlasHelpText(row, gap)))
-	}
 	d.footer.Reset()
-	d.footer.SetMaxCharsPerLine(maxChars)
-	for _, hints := range rows {
-		line := d.footer.AppendLine()
-		for i, hint := range hints {
-			if i > 0 {
-				line.Text(gap, DialogControlHintColor)
-			}
-			line.Text(hint[0], DialogControlKeyColor).Text(" "+hint[1], DialogControlHintColor)
-		}
-		line.Done()
+	for _, hints := range d.helpRows() {
+		PackControlHints(d.footer, hints, d.footerRect.Dx(), etext.AlignStart)
 	}
 }

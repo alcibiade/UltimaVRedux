@@ -552,7 +552,7 @@ func (d *HealerShopDialog) drawServicePane(screen *ebiten.Image) {
 		focused := d.focus == HealerShopServices && index == d.selectedService && d.phase == HealerShopBrowse
 		retained := index == d.selectedService && !focused
 		if focused {
-			d.fillSelectedRow(screen, row)
+			fillSelectedRow(screen, row)
 		}
 		textColor := DialogItemNameColor
 		if retained {
@@ -598,7 +598,7 @@ func (d *HealerShopDialog) drawRecipientRow(
 	projection := recipient.Treatments[d.selectedService]
 	focused := d.recipientRowFocused(index)
 	if focused {
-		d.fillSelectedRow(screen, row)
+		fillSelectedRow(screen, row)
 	}
 	textColor := healerRecipientRowColor(
 		projection.Eligibility,
@@ -726,18 +726,6 @@ func (d *HealerShopDialog) drawRowRule(screen *ebiten.Image, row image.Rectangle
 	)
 }
 
-func (d *HealerShopDialog) fillSelectedRow(screen *ebiten.Image, row image.Rectangle) {
-	vector.FillRect(
-		screen,
-		float32(row.Min.X),
-		float32(row.Min.Y),
-		float32(row.Dx()),
-		float32(row.Dy()),
-		DialogSelectedBackground,
-		false,
-	)
-}
-
 func (d *HealerShopDialog) populateDetailOutput() {
 	if d.detailOutput == nil || len(d.state.Recipients) == 0 {
 		return
@@ -853,7 +841,7 @@ func (d *HealerShopDialog) footerGuidance() string {
 	case HealerShopAwaitingResult:
 		return "Processing treatment"
 	case HealerShopSessionError:
-		return "[Enter/Esc] Leave"
+		return merchantLeaveFooter
 	default:
 		panic("HealerShopDialog.footerGuidance: unknown phase")
 	}

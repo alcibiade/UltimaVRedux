@@ -238,9 +238,9 @@ func TestSaveDescriptionMeasuredLayoutAtSupportedSizes(t *testing.T) {
 			require.LessOrEqual(t, m.noticeOutput.GetTotalHeightForLines(m.noticeOutput.GetPanelContentLineCount()), float64(rects.notice.Dy()))
 			require.Equal(t, GetScaledFont(FontSizeDialogTitle).TextFace.Size, m.titleOutput.Font.TextFace.Size)
 			require.Contains(t, strings.Join(strings.Fields(m.noticeOutput.GetOutputStr(false)), " "), m.notice)
-			require.Contains(t, m.hintOutput.GetOutputStr(false), "Ctrl+U: Clear description")
-			require.Contains(t, m.hintOutput.GetOutputStr(false), "Enter: Save")
-			require.Contains(t, m.hintOutput.GetOutputStr(false), "Esc: Back")
+			require.Contains(t, m.hintOutput.GetOutputStr(false), "[Ctrl+U] Clear description")
+			require.Contains(t, m.hintOutput.GetOutputStr(false), "[Enter] Save")
+			require.Contains(t, m.hintOutput.GetOutputStr(false), "[Esc] Back")
 			if size.X != 1280 && size.X != 1366 {
 				return
 			}

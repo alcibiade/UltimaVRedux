@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/bradhannah/UltimaVRedux/internal/text"
@@ -46,12 +47,8 @@ func (md *MessageDialog) SetAcknowledgementPrompt(hint string) {
 	// copy. A tiny content-width source buffer must not overwrite its key prefix.
 	md.promptOutput.SetMaxCharsPerLine(max(1, utf8.RuneCountInString(hint)))
 	md.promptOutput.SetColor(DialogControlHintColor)
-	for _, segments := range parseMerchantFooterGuidance(hint) {
-		line := md.promptOutput.AppendLine()
-		for _, segment := range segments {
-			line.Text(segment.Text, segment.Color)
-		}
-		line.Done()
+	for _, line := range strings.Split(hint, "\n") {
+		AppendControlHints(md.promptOutput.AppendLine(), line).Done()
 	}
 	md.contentDirty = true
 }

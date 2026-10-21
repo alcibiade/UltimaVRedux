@@ -151,10 +151,9 @@ func TestGuardResourcesMeasuredLayoutAllRowsAtEveryResolution(t *testing.T) {
 				wantDetail += strings.Join(option.Details, " ")
 				require.Equal(t, strings.Fields(wantDetail), strings.Fields(shell.detailOutput.GetOutputStr(false)))
 			}
-			shell.appendGuardFooter(dialog.footer())
+			shell.appendGuardFooter(dialog.footer(), layout.footerRect.Inset(layout.padding).Dx())
 			require.Equal(t, guardResourceFooterLines, shell.footerOutput.GetPanelContentLineCount())
-			footer := dialog.footer()
-			require.Equal(t, strings.Fields(strings.Join(footer[:], " ")), strings.Fields(shell.footerOutput.GetOutputStr(false)))
+			require.Equal(t, strings.Fields(dialog.footer()), strings.Fields(shell.footerOutput.GetOutputStr(false)))
 			require.LessOrEqual(t, shell.footerOutput.GetPanelContentLineCount(), shell.footerOutput.GetLineCapacity(layout.footerRect.Inset(layout.padding).Dy()))
 			require.LessOrEqual(t, layout.rosterBodyRect.Max.Y, layout.detailRect.Min.Y)
 			require.LessOrEqual(t, layout.detailBodyRect.Max.Y, layout.footerRect.Min.Y)
@@ -217,9 +216,9 @@ func TestGuardResourcesCompactTypographyUsesMeasuredHeight(t *testing.T) {
 				"use the largest fitting guard typography, rather than shrinking all narrow viewports")
 			require.True(t, shell.guardResourceLayoutFits(fixture.size.X, fixture.size.Y, view))
 			require.Equal(t, -1, dialog.GetCurrentSelection(), "resizing does not change No One inspection")
-			shell.appendGuardFooter(view.footer)
+			shell.appendGuardFooter(view.footer, shell.layout.footerRect.Inset(shell.layout.padding).Dx())
 			require.Equal(t, fixture.footerLines, shell.footerOutput.GetPanelContentLineCount())
-			require.Equal(t, strings.Fields(strings.Join(view.footer[:], " ")),
+			require.Equal(t, strings.Fields(view.footer),
 				strings.Fields(shell.footerOutput.GetOutputStr(false)), "wrapping cannot overwrite a hint")
 		})
 	}

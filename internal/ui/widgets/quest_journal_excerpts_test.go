@@ -26,8 +26,8 @@ func TestExchangePagingFooterFitsSupportedResolutions(t *testing.T) {
 		dialog.pageSelectedExchange(1)
 		require.Greater(t, dialog.GetDetailPageCount(), 2)
 		width := dialog.footerContentRect().Dx()
-		footer := fitModifierFooterGuidance(dialog.footerGuidance(), dialog.font, width, questJournalFooterLines)
-		lines := strings.Split(footer, "\n")
+		lines := packedFooterRows(dialog.font, dialog.footerGuidance(), width)
+		footer := strings.Join(lines, "\n")
 		require.LessOrEqual(t, len(lines), questJournalFooterLines, "%dx%d: %s", resolution.X, resolution.Y, footer)
 		for _, line := range lines {
 			measured, _ := dialog.font.MeasureString(line)
@@ -178,7 +178,7 @@ func TestExchangePagingUsesOnlySpaceAndKeepsSelection(t *testing.T) {
 			require.Equal(t, end, covered)
 			require.Equal(t, pages-1, dialog.GetDetailPage(), "Space at the end must not wrap")
 			require.NotContains(t, dialog.footerGuidance(), "[Space] Next")
-			require.Contains(t, dialog.footerGuidance(), "[Shift-Space] Previous")
+			require.Contains(t, dialog.footerGuidance(), "[Shift+Space] Previous")
 			for range pages {
 				press(ebiten.KeySpace, true)
 			}

@@ -164,7 +164,7 @@ Actual curated changes publish through mandatory `UI.JournalChanged`; the scene
 stamps finite visit metadata and coalesces one notice per newly informative
 response, not per fact/tab. Repeated disclosures and hydration are quiet. The
 ordinary main Output `Journal updated.` notice and separately styled
-`[Shift-J] View journal` hint share one scene-owned pending queue with map updates.
+`[Shift+J] View journal` hint share one scene-owned pending queue with map updates.
 Notices wait for conversation, secondary prompts, readers, arrival modal, fade
 and workflow ownership to clear at both frame entry and exit, then flush into
 normal Output/History. Pending map updates precede the coalesced journal notice.

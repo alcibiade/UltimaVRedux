@@ -11,7 +11,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -1036,8 +1035,7 @@ func (d *ArmsShopDialog) drawWorkspace(screen *ebiten.Image) {
 		bounds := d.rowBounds[screenRow]
 		selected := index == d.GetSelectedIndex()
 		if selected {
-			vector.FillRect(screen, float32(bounds.Min.X), float32(bounds.Min.Y), float32(bounds.Dx()), float32(bounds.Dy()),
-				DialogSelectedBackground, false)
+			fillSelectedRow(screen, bounds)
 		}
 		view := d.rowView(index, selected)
 		textColor := DialogItemNameColor
@@ -1230,13 +1228,13 @@ func (d *ArmsShopDialog) syncPresentation() {
 func (d *ArmsShopDialog) footerGuidance() string {
 	switch d.phase {
 	case ArmsShopBrowse:
-		return "[B] Buy  [S] Sell  [R] Sort  [Shift+Up/Dn/Pg] Page\n[Up/Down] Select  [Enter] Trade  [Esc] Leave"
+		return "[B] Buy  [S] Sell  [R] Sort  [Shift+Up/Down/PgUp/PgDn] Page\n[Up/Down] Select  [Enter] Trade  [Esc] Leave"
 	case ArmsShopAwaitingTrade:
 		return "Complete or cancel the trade dialog"
 	case ArmsShopAwaitingResult:
 		return "Processing trade"
 	case ArmsShopTerminalRefusal, ArmsShopSessionError:
-		return "[Enter] or [Esc] Leave"
+		return merchantLeaveFooter
 	default:
 		panic("ArmsShopDialog.footerGuidance: unknown phase")
 	}

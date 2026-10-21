@@ -200,7 +200,7 @@ func (d *ReadyEquipmentDialog) showReplacementConfirmation(transaction game_stat
 		readyReviewLine{label: "", value: fmt.Sprintf("%d remaining after replacement.",
 			preview.Strength-preview.Resulting.Strength)},
 		readyReviewLine{label: "", value: "Removed items return to party inventory."})
-	d.showReviewCard(lines, "Enter: Replace   Esc: Cancel")
+	d.showReviewCard(lines, "[Enter] Replace   [Esc] Cancel")
 }
 
 func (d *ReadyEquipmentDialog) showStrengthBreakdown() {
@@ -220,7 +220,7 @@ func (d *ReadyEquipmentDialog) showStrengthBreakdown() {
 	lines = append(lines,
 		readyReviewLine{"Current equipment: ", fmt.Sprintf("%d of %d Strength", used, character.Strength)},
 		readyReviewLine{"Remaining: ", strconv.Itoa(int(character.Strength) - used)})
-	d.showReviewCard(lines, "Enter/Esc: Back")
+	d.showReviewCard(lines, "[Enter/Esc] Back")
 }
 
 // The Ready modal owns this child card and its input. Journal suspension preserves

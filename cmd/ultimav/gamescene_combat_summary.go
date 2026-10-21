@@ -33,7 +33,7 @@ func (g *GameScene) showBattleSummary(conclusion game_state.CombatConclusion) {
 		g.dialogStack.MustRemoveWidgetInstance(dialog)
 		g.battleSummaryDialog = nil
 		g.keyboard.PrepareForTransition(0)
-		widgets.AppendControlHints(g.output.AppendLine(), "F4: Last battle").Done()
+		widgets.AppendControlHints(g.output.AppendLine(), "[F4] Last battle").Done()
 	})
 	g.battleSummaryDialog = dialog
 	g.dialogStack.PushModalDialog(dialog)

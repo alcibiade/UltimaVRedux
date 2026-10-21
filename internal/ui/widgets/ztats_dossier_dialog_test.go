@@ -537,9 +537,9 @@ func TestZStatsDossierDialogSpaceLoopsCapacityBoundDetailPagesAndSelectionResets
 	footer := dialog.footerOutput.GetOutputStr(false)
 	require.LessOrEqual(t, dialog.footerOutput.GetPanelContentLineCount(), zStatsDossierFooterMaxLines)
 	require.Contains(t, footer, "Tab")
-	require.Contains(t, footer, "Up/Dn/Pg")
+	require.Contains(t, footer, "[Up/Down]")
 	require.Contains(t, footer, "Space")
-	require.Contains(t, footer, "ESC")
+	require.Contains(t, footer, "[Esc]")
 
 	pressZStatsDossierKey(dialog, keyboard, ebiten.KeySpace)
 	require.Equal(t, 1, dialog.detailPage)
@@ -577,15 +577,15 @@ func TestZStatsDossierDialogArmoryNamesAndSpellCounts(t *testing.T) {
 	dialog.prepareFooter()
 	footer := dialog.footerOutput.GetOutputStr(false)
 	require.Contains(t, footer, "Tab")
-	require.Contains(t, footer, "A-Z/BS")
-	require.Contains(t, footer, "Up/Dn/Pg")
+	require.Contains(t, footer, "A-Z/Backspace")
+	require.Contains(t, footer, "[Up/Down]")
 	require.NotContains(t, footer, "F1")
-	require.Contains(t, footer, "ESC")
+	require.Contains(t, footer, "[Esc]")
 
 	dialog.switchTab(ZStatsDossierCharacterTab)
 	dialog.prepareFooter()
 	characterFooter := dialog.footerOutput.GetOutputStr(false)
-	require.Contains(t, characterFooter, "L/R/1-6")
+	require.Contains(t, characterFooter, "Left/Right/1-6")
 }
 
 func requireZStatsWideLayout(t *testing.T, layout zStatsDossierLayout) {

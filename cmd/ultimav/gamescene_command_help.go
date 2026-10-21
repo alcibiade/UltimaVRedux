@@ -56,7 +56,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 		{Key: "P", Purpose: "Push", NextInput: direction},
 		{Key: "Q", Purpose: "Quick save", NextInput: "Save to the active player slot. Confirm Quick Save defaults On: answer Y/N, then acknowledge the result. Off saves immediately with a message; errors still need acknowledgement. Save or load a slot first."},
 		{Key: "Ctrl+Q", Purpose: "Quick load", NextInput: "Reload the active player slot immediately, without confirmation or saving the current game. Works at normal player input, including controlled-monster combat turns. Unavailable chords are discarded; release before retrying. No Shift/Alt/Meta; Caps Lock is neutral."},
-		{Key: "R", Purpose: "Ready equipment", NextInput: "Choose character/item; Space applies the displayed Equip/Unready operation immediately. Tab/Shift+Tab pages longer details."},
+		{Key: "R", Purpose: "Ready equipment", NextInput: "Choose character/item; Enter applies the displayed Equip/Unready operation immediately. Space pages longer details."},
 		{Key: "S", Purpose: commandLabelSearch, NextInput: direction},
 		{Key: "T", Purpose: "Talk", NextInput: direction + " Type topics or phrases; Enter submits. NAME/JOB/BYE; PgUp reviews this conversation only."},
 		{Key: "U", Purpose: "Use an item", NextInput: "Choose item/user, then follow its target prompt."},
@@ -102,7 +102,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 					"Final confirmation spends MP and one mixture. " +
 					"Cancelling beforehand costs no MP, mixture, or gameplay time and preserves the combat action."
 			case "R":
-				entry.NextInput = "Choose equipment for the acting character; Space applies the displayed Equip/Unready operation immediately."
+				entry.NextInput = "Choose equipment for the acting character; Enter applies the displayed Equip/Unready operation immediately."
 			case commandHelpPartyKeys:
 				entry.NextInput = "Top-row 0 restores all-party control even during enemy or skipped turns and clears any queued verb. " +
 					"The current action finishes normally; subsequent eligible turns follow DEX order. " +

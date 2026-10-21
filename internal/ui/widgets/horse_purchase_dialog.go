@@ -210,8 +210,7 @@ func (d *HorsePurchaseDialog) populateOutputs() {
 	}
 
 	d.footerOutput.Reset()
-	d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter).
-		White("[Enter]").LightGray(" Confirm   ").White("[Esc]").LightGray(" Back").WordWrap().Done()
+	appendControlGuidance(d.footerOutput, "[Enter] Confirm   [Esc] Back", d.frame.footerText.Dx())
 }
 
 func horsePurchasePlacement() sprites.PercentBasedPlacement {

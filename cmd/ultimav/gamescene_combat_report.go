@@ -76,11 +76,11 @@ func (g *GameScene) appendCombatReportHeader() {
 	line.Done()
 	if pending := hud.pendingResults(); pending > 0 {
 		line = hud.eventOutput.AppendLine()
-		widgets.AppendControlHints(line, fmt.Sprintf("F3: Results (%d)", pending)).Done()
+		widgets.AppendControlHints(line, fmt.Sprintf("[F3] Results (%d)", pending)).Done()
 	}
 	if hud.historyOffset > 0 {
 		line = hud.eventOutput.AppendLine()
-		widgets.AppendControlHints(line, "End: Live")
+		widgets.AppendControlHints(line, "[End] Live")
 		if hud.unreadEvents > 0 {
 			line.Textf(" +%d", widgets.DialogValueColor, hud.unreadEvents)
 		}

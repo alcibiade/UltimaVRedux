@@ -214,7 +214,7 @@ func (d *QuestJournalDialog) drawShadowlordSprite(screen *ebiten.Image) {
 
 func (d *QuestJournalDialog) footerGuidance() string {
 	if d.runicReferenceOpen {
-		return "[Ctrl+R/Esc] Close rune reference  [Space/Shift-Space] Detail page  [Shift-J] Close Journal"
+		return "[Ctrl+R/Esc] Close rune reference  [Space/Shift+Space] Detail page  [Shift+J] Close Journal"
 	}
 	if d.deletePending {
 		return "Permanently delete excerpt?  [Enter] Delete  [Esc] Cancel"
@@ -223,8 +223,8 @@ func (d *QuestJournalDialog) footerGuidance() string {
 		return d.exchangeFooterGuidance()
 	}
 	if d.searching {
-		return "[Up/Dn] Select  [Shift+Up/Dn] Page  [Home/End] First/Last  " +
-			"[Enter] Open  [Esc] Back  [Shift-J] Close"
+		return "[Up/Down] Select  [Shift+Up/Down] Page  [Home/End] First/Last  " +
+			"[Enter] Open  [Esc] Back  [Shift+J] Close"
 	}
 
 	paging := ""
@@ -232,59 +232,20 @@ func (d *QuestJournalDialog) footerGuidance() string {
 		paging = fmt.Sprintf("[Space] Detail %d/%d  ", d.detailPage+1, pages)
 	}
 
-	return "[Up/Dn] Select  [Shift+Up/Dn] List page  [/] Search  " +
-		"[Tab/Shift-Tab] Tab  " + paging + "[Esc/Shift-J] Close"
+	return "[Up/Down] Select  [Shift+Up/Down] List page  [/] Search  " +
+		"[Tab/Shift+Tab] Tab  " + paging + "[Esc/Shift+J] Close"
 }
 
-// Both affected dialogs use the same measured modifier policy, without the
-// generic footer fitter silently truncating the last control hint.
-func fitModifierFooterGuidance(guidance string, font *text.UltimaFont, width, capacity int) string {
-	for _, shift := range [...]string{"Shift", "Shft", "Shf"} {
-		candidate := strings.ReplaceAll(guidance, "Shift", shift)
-		lines := []string{""}
-		fits := true
-		for _, hint := range strings.Split(strings.ReplaceAll(candidate, "\n", "  "), "  ") {
-			hintWidth, _ := font.MeasureString(hint)
-			fits = fits && hintWidth <= float64(width)
-			last := len(lines) - 1
-			joined := strings.TrimSpace(lines[last] + "  " + hint)
-			measured, _ := font.MeasureString(joined)
-			if measured <= float64(width) || lines[last] == "" {
-				lines[last] = joined
-			} else {
-				lines = append(lines, hint)
-			}
-		}
-		if fits && len(lines) <= capacity {
-			return strings.Join(lines, "\n")
-		}
-	}
-	// The supported layouts have room for the complete hints. Keep every hint
-	// rather than silently deleting one if an unsupported placement is too small.
-	return strings.ReplaceAll(guidance, "Shift", "Shf")
-}
-
-func drawModifierFooter(
-	screen *ebiten.Image, content image.Rectangle, guidance string, capacity int, output *text.Output,
-) {
-	PrepareKeyboardFooter(content, guidance, capacity, output)
+func drawModifierFooter(screen *ebiten.Image, content image.Rectangle, guidance string, output *text.Output) {
+	PrepareKeyboardFooter(content, guidance, output)
 	output.DrawPanelContent(screen,
 		image.Pt(content.Min.X, verticallyCenteredOutputY(content, output)), content.Dx(), etext.AlignCenter)
 }
 
-// PrepareKeyboardFooter fits complete keyboard hints to content and replaces output
-// with styled physical rows. It measures and composes presentation only: it does
-// not draw, consume input, change focus, or invoke gameplay callbacks. The caller
-// owns output and supplies a positive row capacity and the intended content bounds.
-func PrepareKeyboardFooter(content image.Rectangle, guidance string, capacity int, output *text.Output) {
-	guidance = fitModifierFooterGuidance(guidance, output.Font, content.Dx(), capacity)
-	output.SetMaxCharsPerLine(max(1, len(guidance)))
+// PrepareKeyboardFooter replaces output with the complete bracketed hints packed
+// into measured rows for content. Source line breaks are soft. It composes
+// presentation only: it does not draw, consume input, or invoke callbacks.
+func PrepareKeyboardFooter(content image.Rectangle, guidance string, output *text.Output) {
 	output.Reset()
-	for _, line := range parseMerchantFooterGuidance(guidance) {
-		builder := output.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range line {
-			builder.Text(segment.Text, segment.Color)
-		}
-		builder.Done()
-	}
+	PackControlHints(output, ParseControlHints(strings.ReplaceAll(guidance, "\n", " ")), content.Dx(), etext.AlignCenter)
 }

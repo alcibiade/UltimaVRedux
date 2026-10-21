@@ -38,7 +38,6 @@ const (
 	innShopCenterDivisor         = 2
 	innShopColumnName            = "NAME"
 	innShopColumnStatus          = "STATUS"
-	innShopLeaveFooter           = "[Enter/Esc] Leave"
 	innStatusDead                = "Dead"
 	innStatusUnknown             = "Unknown"
 )
@@ -935,12 +934,7 @@ func (d *InnShopDialog) drawRosterTable(screen *ebiten.Image) {
 	for index, bounds := range d.rowBounds {
 		selected := index == d.GetSelectedIndex() && d.phase == InnShopBrowse
 		if selected {
-			vector.FillRect(
-				screen,
-				float32(bounds.Min.X), float32(bounds.Min.Y),
-				float32(bounds.Dx()), float32(bounds.Dy()),
-				DialogSelectedBackground, false,
-			)
+			fillSelectedRow(screen, bounds)
 		}
 		if d.mode == InnShopLeave {
 			values := d.GetLeaveRowText(index)
@@ -1231,7 +1225,7 @@ func (d *InnShopDialog) footerGuidance() string {
 	case InnShopAwaitingResult:
 		return "Processing Inn action"
 	case InnShopSessionError:
-		return innShopLeaveFooter
+		return merchantLeaveFooter
 	default:
 		panic("InnShopDialog.footerGuidance: unknown phase")
 	}

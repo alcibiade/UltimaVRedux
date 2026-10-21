@@ -322,7 +322,7 @@ does not discard already owed actor work or projectile presentation. See
 Live `UI.AtlasUpdated` feedback never owns input or changes atlas selection. One
 scene FIFO coalesces pending updates for the same public site and keeps pending
 map updates ahead of the coalesced journal notice. At an unblocked boundary it
-flushes into the ordinary main Output, with styled Shift-M / Shift-J reader hints
+flushes into the ordinary main Output, with styled Shift+M / Shift+J reader hints
 and normal History retention. Secondary prompts, readers, modals, workflows,
 arrival presentation and fades defer the flush; both entry and exit of the frame
 must be clear. There is no timed map overlay, countdown, or notice dialog.
@@ -486,7 +486,7 @@ time, combat action, and gameplay RNG, including party-member target selection.
 Later effect failure does not refund committed costs.
 
 Interaction transcript text prompts normally use Escape to cancel. Blackthorn
-alone configures `ClearTextOnEscape`: `Esc: Clear text` clears the editor without
+alone configures `ClearTextOnEscape`: `[Esc] Clear text` clears the editor without
 submitting an answer, advancing the attempt, or releasing interrogation input
 (the interrogation belongs to [CRIME-0003](../gamefacts/CRIME_PRISON.md#crime-0003)).
 Return, including an empty Return, still submits an answer.

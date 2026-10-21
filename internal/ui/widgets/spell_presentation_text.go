@@ -10,19 +10,10 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
-type spellControlHint struct {
-	key    string
-	action string
-}
-
 const (
 	spellBackAction  = "Back"
 	spellCasterLabel = "Caster"
 )
-
-func appendSpellControl(line *text.LineBuilder, key, action string) *text.LineBuilder {
-	return line.Text("["+key+"]", DialogControlKeyColor).Text(" "+action, DialogControlHintColor)
-}
 
 func appendSpellField(line *text.LineBuilder, label, value string) *text.LineBuilder {
 	return line.Text(label+": ", DialogLabelColor).Text(value, DialogValueColor)
@@ -49,9 +40,6 @@ func spellRowContentRect(output *text.Output, rect image.Rectangle) image.Rectan
 }
 
 func spellRowColours(selected, available bool) (stdcolor.Color, stdcolor.Color) {
-	if selected && !available {
-		return DialogSelectedUnavailableItemColor, DialogSelectedText
-	}
 	if selected {
 		return DialogSelectedText, DialogSelectedText
 	}
@@ -77,19 +65,19 @@ func appendReagentMark(line *text.LineBuilder, checked, selected bool) *text.Lin
 	return line.Text("[", bracketColor).Text(mark, markColor).Text("] ", bracketColor)
 }
 
-func spellFinderControls(action, escape string, searching bool) []spellControlHint {
-	controls := []spellControlHint{{"Up/Dn", "Browse"}, {"Shift+Up/Dn", "Page"}, {"Ctrl+O", "Filter"}}
+func spellFinderControls(action, escape string, searching bool) []ControlHint {
+	controls := []ControlHint{{hintKeyUpDown, "Browse"}, {hintKeyShiftPage, hintActionPage}, {"Ctrl+O", "Filter"}}
 	if searching {
-		controls = append(controls, spellControlHint{"Ctrl+U", "Clear search"})
+		controls = append(controls, ControlHint{"Ctrl+U", "Clear search"})
 	} else {
-		controls = append(controls, spellControlHint{"/", "Search"},
-			spellControlHint{"Letters", "Spell initials"}, spellControlHint{"Backspace", "Remove syllable"})
+		controls = append(controls, ControlHint{"/", hintActionSearch},
+			ControlHint{"Letters", "Spell initials"}, ControlHint{"Backspace", "Remove syllable"})
 	}
 
-	return append(controls, spellControlHint{"Enter", action}, spellControlHint{"Esc", escape})
+	return append(controls, ControlHint{hintKeyEnter, action}, ControlHint{hintKeyEsc, escape})
 }
 
-func (d *ReagentMixingDialog) controls() []spellControlHint {
+func (d *ReagentMixingDialog) controls() []ControlHint {
 	if !d.preparing {
 		escape := "Close"
 		if d.hasPreparation || d.browser.searching {
@@ -99,27 +87,28 @@ func (d *ReagentMixingDialog) controls() []spellControlHint {
 		return spellFinderControls("Choose spell", escape, d.browser.searching)
 	}
 
-	return []spellControlHint{
-		{"Up/Dn", "Ingredients"}, {"Shift+Up/Dn", "Page"}, {"Space", "Toggle"}, {"0-9", "Type quantity"},
+	return []ControlHint{
+		{hintKeyUpDown, "Ingredients"}, {hintKeyShiftPage, hintActionPage}, {hintKeySpace, "Toggle"},
+		{"0-9", "Type quantity"},
 		{"Backspace/Del", "Reset to 1"}, {"Ctrl+B", "Find spell"},
 		{"Ctrl+F", "Maximum that fits"},
-		{"Enter", fmt.Sprintf("Mix %d", d.getEffectiveQuantity())}, {"Esc", spellBackAction},
+		{hintKeyEnter, fmt.Sprintf("Mix %d", d.getEffectiveQuantity())}, {hintKeyEsc, spellBackAction},
 	}
 }
 
-func (d *SpellCastingDialog) controls() []spellControlHint {
+func (d *SpellCastingDialog) controls() []ControlHint {
 	escape := "Close"
 	if d.browser.searching {
 		escape = "Leave search"
 	}
 	controls := spellFinderControls("Cast", escape, d.browser.searching)
 	if d.currentContext != references.ContextCombat {
-		controls = append(controls, spellControlHint{"Ctrl+M", "Mix"})
+		controls = append(controls, ControlHint{"Ctrl+M", "Mix"})
 	}
 	if !d.casterSelectionLocked {
-		controls = append(controls, spellControlHint{"Tab/Shift+Tab", spellCasterLabel})
+		controls = append(controls, ControlHint{hintKeyTabCycle, spellCasterLabel})
 		if !d.browser.searching {
-			controls = append(controls, spellControlHint{"1-6", spellCasterLabel})
+			controls = append(controls, ControlHint{"1-6", spellCasterLabel})
 		}
 	}
 

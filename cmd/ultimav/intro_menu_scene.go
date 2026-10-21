@@ -1311,7 +1311,7 @@ func (m *IntroMenuScene) prepareNotice(bounds image.Rectangle) {
 	if m.notice != "" {
 		line := m.noticeOutput.AppendLine().WithAlignment(textv2.AlignCenter).Yellow(m.notice)
 		if m.legacyPrepareActive {
-			widgets.AppendControlHints(line.Text("  ", widgets.DialogControlHintColor), "Esc: Cancel")
+			widgets.AppendControlHints(line.Text("  ", widgets.DialogControlHintColor), "[Esc] Cancel")
 		}
 		line.WordWrap().Done()
 	}

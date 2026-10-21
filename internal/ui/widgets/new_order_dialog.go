@@ -287,12 +287,12 @@ func (d *NewOrderDialog) title() string {
 	return "Swap " + d.optionByCharacterIndex(d.firstSelectedIndex).Name + " With..."
 }
 
-func (d *NewOrderDialog) footer() [2]string {
+func (d *NewOrderDialog) footer() string {
 	if d.stage == Stage1_SelectFirst {
-		return [2]string{"Arrows/1-6: Inspect   Enter: Lock", "Esc: Cancel"}
+		return "[Arrows/1-6] Inspect   [Enter/Space] Lock   [Esc] Cancel"
 	}
 
-	return [2]string{"Arrows/1-6: Inspect   Enter: Swap", "Esc: Choose First"}
+	return "[Arrows/1-6] Inspect   [Enter/Space] Swap   [Esc] Choose First"
 }
 
 // IsComplete reports whether the dialog has swapped or cancelled.

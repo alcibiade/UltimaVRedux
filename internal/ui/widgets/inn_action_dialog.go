@@ -233,13 +233,7 @@ func (d *InnActionDialog) populateOutputs() {
 	}
 
 	d.footerOutput.Reset()
-	for _, segments := range parseMerchantFooterGuidance(d.GetFooterGuidance()) {
-		line := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-		for _, segment := range segments {
-			line.Text(segment.Text, segment.Color)
-		}
-		line.Done()
-	}
+	appendControlGuidance(d.footerOutput, d.GetFooterGuidance(), d.frame.footerText.Dx())
 }
 
 func (d *InnActionDialog) populateRestBody() {

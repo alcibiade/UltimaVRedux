@@ -38,9 +38,9 @@ func (d *LinearTalkDialog) layoutWithFooter(bounds image.Rectangle) linearTalkDi
 func (d *LinearTalkDialog) conversationFooterGuidance(width int) string {
 	acknowledge := ""
 	if d.historyPanel == nil && d.waitingForKeypressContinue {
-		acknowledge = "[Space] Continue  "
+		acknowledge = "[Space] Continue   "
 	} else if d.historyPanel == nil && d.waitingForDismissal {
-		acknowledge = "[Space] Close  "
+		acknowledge = "[Space] Close   "
 	}
 	if d.excerptNotice != "" && d.excerptNotice != "Excerpt kept" {
 		// Keep the failure's prefix readable without allowing an OS path or other
@@ -54,17 +54,17 @@ func (d *LinearTalkDialog) conversationFooterGuidance(width int) string {
 		keep = "[Tab] Excerpt kept"
 	}
 	if d.historyPanel != nil {
-		return "[Up/Dn] Exchange  [Shift+Up/Dn/Pg] Read  " + keep + "  [Esc] Back"
+		return "[Up/Down] Exchange   [Shift+Up/Down/PgUp/PgDn] Read   " + keep + "   [Esc] Back"
 	}
 
-	return acknowledge + keep + "  [Shift+Up/PgUp] History  [Shift+J] Journal"
+	return acknowledge + keep + "   [Shift+Up/PgUp] History   [Shift+J] Journal"
 }
 
 func (d *LinearTalkDialog) drawConversationFooter(screen *ebiten.Image, layout linearTalkDialogLayout) {
 	vector.FillRect(screen, float32(layout.frameRect.Min.X), float32(layout.footerDividerY),
 		float32(layout.frameRect.Dx()), float32(layout.pixelUnit), widgets.DialogRuleColor, false)
 	widgets.DrawKeyboardFooter(screen, layout.footerRect, d.conversationFooterGuidance(layout.footerRect.Dx()),
-		talkFooterLines, d.footerOutput)
+		d.footerOutput)
 }
 
 func (d *LinearTalkDialog) setExcerptNotice(message string, brief bool) {

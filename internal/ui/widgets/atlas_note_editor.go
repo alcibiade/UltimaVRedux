@@ -400,37 +400,14 @@ func (e *AtlasNoteEditor) layoutEditorFooter() {
 	e.fieldRects[1].Max.Y = e.validationRect.Min.Y - margin
 }
 
-// Pack whole key/action pairs using actual font widths. Output receives explicit
-// physical rows with exact rune budgets, so it cannot split Esc from Cancel later.
 func (e *AtlasNoteEditor) buildEditorHints(width int) {
-	hints := [][2]string{{"Tab/Shift+Tab", "Field"}, {atlasEnterKey, "Paragraph"},
-		{"Ctrl+Enter", "Save"}, {atlasEscapeKey, "Cancel"}}
+	hints := []ControlHint{{hintKeyTabCycle, "Field"}, {hintKeyEnter, "Paragraph"},
+		{"Ctrl+Enter", "Save"}, {hintKeyEsc, "Cancel"}}
 	if e.config.Deleting {
-		hints = [][2]string{{atlasEnterKey, "Delete"}, {atlasEscapeKey, "Keep"}}
+		hints = []ControlHint{{hintKeyEnter, "Delete"}, {hintKeyEsc, "Keep"}}
 	}
-	const gap = "   "
 	e.output.Reset()
-	start := 0
-	for end := 1; end <= len(hints); end++ {
-		measured, _ := e.font.MeasureString(atlasHelpText(hints[start:end], gap))
-		if measured > float64(width) && end-start > 1 {
-			e.appendEditorHintRow(hints[start:end-1], gap)
-			start = end - 1
-		}
-	}
-	e.appendEditorHintRow(hints[start:], gap)
-}
-
-func (e *AtlasNoteEditor) appendEditorHintRow(hints [][2]string, gap string) {
-	e.output.SetMaxCharsPerLine(max(1, utf8.RuneCountInString(atlasHelpText(hints, gap))))
-	line := e.output.AppendLine()
-	for index, hint := range hints {
-		if index > 0 {
-			line.Text(gap, DialogControlHintColor)
-		}
-		line.Text(hint[0], DialogControlKeyColor).Text(" "+hint[1], DialogControlHintColor)
-	}
-	line.Done()
+	PackControlHints(e.output, hints, width, etext.AlignStart)
 }
 
 //nolint:mnd // Right text inset matches the editor pane's interior budget.

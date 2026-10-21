@@ -651,7 +651,7 @@ func (d *QuestJournalDialog) drawDetail(screen *ebiten.Image) {
 
 func (d *QuestJournalDialog) drawFooter(screen *ebiten.Image) {
 	content := d.footerContentRect()
-	drawModifierFooter(screen, content, d.footerGuidance(), d.footerLineCount(), d.footerOutput)
+	drawModifierFooter(screen, content, d.footerGuidance(), d.footerOutput)
 }
 
 func (d *QuestJournalDialog) footerLineCount() int {

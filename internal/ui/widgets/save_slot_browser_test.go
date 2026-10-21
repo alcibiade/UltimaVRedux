@@ -8,7 +8,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 
-	pkgcolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -45,12 +44,7 @@ func TestSaveSlotBrowserDisabledPrimaryRemainsSelectable(t *testing.T) {
 	require.Equal(t, 1, browser.GetSelectedIndex())
 	pressSaveSlotBrowserKey(browser, keyboard, ebiten.KeyEnter)
 	require.Zero(t, primaryCalls)
-	require.Contains(t, browser.footerOutput.GetOutputStr(false), "Enter: Select")
-
-	screen := ebiten.NewImageWithOptions(browser.footerTextRect, &ebiten.NewImageOptions{Unmanaged: true})
-	t.Cleanup(screen.Dispose)
-	browser.drawFooter(screen)
-	requireImageRegionContainsColor(t, screen, browser.footerTextRect, pkgcolor.UITextDisabled.RGBA())
+	require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Select unavailable")
 }
 
 func TestSaveSlotBrowserDeleteHasNoBrowserAction(t *testing.T) {
@@ -136,7 +130,7 @@ func TestSaveSlotBrowserEmptyModels(t *testing.T) {
 	pressSaveSlotBrowserKey(browser, keyboard, ebiten.KeyEnter)
 	pressSaveSlotBrowserKey(browser, keyboard, ebiten.KeyDelete)
 	require.Zero(t, primaryCalls)
-	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "Enter: Select")
+	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Select unavailable")
 	browser.ensureLayout()
 	notice := "This save changed since you opened the screen. Review the slot and try again."
 	browser.SetNotice(notice)
@@ -173,6 +167,8 @@ func TestSaveSlotBrowserProblemTextRemainsCompleteAndPaged(t *testing.T) {
 		pressSaveSlotBrowserKey(browser, keyboard, ebiten.KeyLeft)
 	}
 	require.Zero(t, browser.detailPage)
+	pressSaveSlotBrowserKey(browser, keyboard, ebiten.KeySpace)
+	require.Equal(t, 1, browser.detailPage, "Space pages details as well as Left/Right")
 	require.Zero(t, primaryCalls, "unavailable entries must remain disabled on every detail page")
 }
 
@@ -363,10 +359,10 @@ func TestSaveSlotBrowserFooterUsesClassicTwoLineLayout(t *testing.T) {
 	require.True(t, browser.footerTextRect.In(browser.footerRect))
 	require.Less(t, browser.listRect.Max.Y, browser.footerRect.Min.Y)
 	require.Equal(t, saveSlotBrowserFooterLineCount, browser.footerOutput.GetPanelContentLineCount())
-	require.Contains(t, footerText, "Up/Down: Slot")
+	require.Contains(t, footerText, "[Up/Down] Slot")
 	require.NotContains(t, footerText, "Page Up/Page Down")
-	require.Contains(t, footerText, "Enter: Save")
-	require.Contains(t, footerText, "Esc: Cancel")
+	require.Contains(t, footerText, "[Enter] Save")
+	require.Contains(t, footerText, "[Esc] Cancel")
 
 	screen := ebiten.NewImage(browser.lastScreenWidth, browser.lastScreenHeight)
 	t.Cleanup(screen.Dispose)
@@ -379,8 +375,8 @@ func TestSaveSlotBrowserFooterUsesConfiguredPrimaryActionLabel(t *testing.T) {
 		PrimaryActionLabel: "Import",
 	})
 
-	require.Contains(t, browser.footerOutput.GetOutputStr(false), "Enter: Import")
-	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "Enter: Save")
+	require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Import")
+	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Save")
 }
 
 func TestSaveSlotBrowserFooterUsesConfiguredCancelActionLabel(t *testing.T) {
@@ -389,8 +385,8 @@ func TestSaveSlotBrowserFooterUsesConfiguredCancelActionLabel(t *testing.T) {
 	})
 
 	footer := browser.footerOutput.GetOutputStr(false)
-	require.Contains(t, footer, "Esc: Back")
-	require.NotContains(t, footer, "Esc: Cancel")
+	require.Contains(t, footer, "[Esc] Back")
+	require.NotContains(t, footer, "[Esc] Cancel")
 }
 
 func TestSaveSlotBrowserDrawsSelectedFolderReview(t *testing.T) {
@@ -422,10 +418,10 @@ func TestSaveSlotBrowserResizeRebuildsFooterAndPreservesSelection(t *testing.T) 
 		PrimaryActionLabel: "Load",
 	})
 	require.Equal(t, saveSlotBrowserFooterLineCount, browser.footerOutput.GetPanelContentLineCount())
-	require.Contains(t, browser.footerOutput.GetOutputStr(false), "Up/Down: Slot")
+	require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Up/Down] Slot")
 	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "Page Up/Page Down")
-	require.Contains(t, browser.footerOutput.GetOutputStr(false), "Enter: Load")
-	require.Contains(t, browser.footerOutput.GetOutputStr(false), "Esc: Cancel")
+	require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Load")
+	require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Esc] Cancel")
 	pressSaveSlotBrowserKey(browser, keyboard, ebiten.KeyDown)
 	originalFooter := browser.footerOutput
 	originalRect := browser.footerRect
@@ -438,7 +434,7 @@ func TestSaveSlotBrowserResizeRebuildsFooterAndPreservesSelection(t *testing.T) 
 	require.NotEqual(t, originalRect, browser.footerRect)
 	require.True(t, browser.footerRect.In(browser.outerBorder.GetInteriorBounds()))
 	require.Equal(t, saveSlotBrowserFooterLineCount, browser.footerOutput.GetPanelContentLineCount())
-	require.Contains(t, browser.footerOutput.GetOutputStr(false), "Enter: Load")
+	require.Contains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Load")
 }
 
 func TestSaveSlotBrowserRowsReserveNewestColumn(t *testing.T) {
@@ -479,7 +475,7 @@ func TestSaveSlotBrowserWithNoNavigableRowsHasNoSelection(t *testing.T) {
 	require.Equal(t, -1, browser.GetSelectedIndex())
 	_, selected := browser.GetSelectedView()
 	require.False(t, selected)
-	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "Enter: Select")
+	require.NotContains(t, browser.footerOutput.GetOutputStr(false), "[Enter] Select unavailable")
 	require.Contains(t, strings.Join(strings.Fields(browser.detailOutput.GetOutputStr(false)), " "), "No saved games to load.")
 }
 

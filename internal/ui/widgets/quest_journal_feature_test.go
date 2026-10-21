@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"image"
 	"strings"
 	"testing"
 
@@ -126,8 +127,10 @@ func TestQuestJournalLayoutAndCompleteFooterAtAllSizes(t *testing.T) {
 			for tab := range questJournalTabCount {
 				dialog.activeTab = QuestJournalTab(tab)
 				dialog.enterTab()
-				guidance := fitModifierFooterGuidance(dialog.footerGuidance(), dialog.font, dialog.footerContentRect().Dx(), dialog.footerLineCount())
-				for _, line := range strings.Split(guidance, "\n") {
+				rows := packedFooterRows(dialog.font, dialog.footerGuidance(), dialog.footerContentRect().Dx())
+				require.LessOrEqual(t, len(rows), dialog.footerLineCount())
+				guidance := strings.Join(rows, "\n")
+				for _, line := range rows {
 					width, _ := dialog.font.MeasureString(line)
 					require.LessOrEqual(t, width, float64(dialog.footerContentRect().Dx()), "%s", line)
 				}
@@ -285,24 +288,30 @@ func TestQuestJournalSelectedStarIsMonochrome(t *testing.T) {
 	require.Positive(t, black)
 }
 
-func TestQuestJournalSharedShiftFooterPolicy(t *testing.T) {
-	font := text.NewUltimaFont(16)
-	for _, modifier := range []string{"Shift", "Shft", "Shf"} {
-		expected := "[" + modifier + "-J] Close"
-		width, _ := font.MeasureString(expected)
-		require.Equal(t, expected, fitModifierFooterGuidance("[Shift-J] Close", font, int(width), 1))
+// packedFooterRows exposes every packed row, including any beyond a footer's capacity.
+func packedFooterRows(font *text.UltimaFont, guidance string, width int) []string {
+	output := text.NewOutput(font, 1, 8, 1)
+	PrepareKeyboardFooter(image.Rect(0, 0, width, 1), guidance, output)
+
+	rows := strings.Split(output.GetOutputStr(false), "\n")
+	for index := range rows {
+		rows[index] = strings.TrimSpace(rows[index])
 	}
+
+	return rows
+}
+
+func TestQuestJournalSharedFooterPolicy(t *testing.T) {
 	for _, size := range append(config.SupportedWindowResolutions(), config.ScreenResolution{X: 320, Y: 200}) {
 		setQuestJournalTestResolution(t, size.X, size.Y)
 		item := NewItemSelectionDialog(ItemSelectionDialogConfig{
 			Keyboard: newWidgetTestKeyboard(0), OnSelect: func(game_state.UseableItemInfo) {}, OnCancel: func() {},
 		})
-		PrepareKeyboardFooter(item.footerContentRect(),
-			"[Tab/Shift-Tab] Category  [Space] Details\n"+
-				"[Up/Dn] Item  [Shift+Up/Dn] Page  [Enter] Use  [Esc] Cancel",
-			itemDialogFooterLines, item.footerOutput)
-		guidance := item.footerOutput.GetOutputStr(true)
-		require.NotContains(t, guidance, "S-Tab")
+		rows := packedFooterRows(item.font, "[Tab/Shift+Tab] Category   [Space] Details\n"+
+			"[Up/Down] Item   [Shift+Up/Down] Page   [Enter] Use   [Esc] Cancel", item.footerContentRect().Dx())
+		require.LessOrEqual(t, len(rows), itemDialogFooterLines, "%v", size)
+		guidance := strings.Join(rows, "\n")
+		require.Contains(t, guidance, "[Shift+Up/Down] Page")
 		require.Contains(t, guidance, "Category")
 		require.Contains(t, guidance, "Cancel")
 		for _, line := range strings.Split(guidance, "\n") {
@@ -311,8 +320,9 @@ func TestQuestJournalSharedShiftFooterPolicy(t *testing.T) {
 		}
 		dialog := NewQuestJournalDialog(testQuestJournalDossier(), testQuestJournalConfig(newWidgetTestKeyboard(0)))
 		dialog.beginSearch()
-		PrepareKeyboardFooter(dialog.footerContentRect(), dialog.footerGuidance(), dialog.footerLineCount(), dialog.footerOutput)
-		for _, line := range strings.Split(dialog.footerOutput.GetOutputStr(true), "\n") {
+		rows = packedFooterRows(dialog.font, dialog.footerGuidance(), dialog.footerContentRect().Dx())
+		require.LessOrEqual(t, len(rows), dialog.footerLineCount(), "%v", size)
+		for _, line := range rows {
 			width, _ := dialog.font.MeasureString(line)
 			require.LessOrEqual(t, width, float64(dialog.footerContentRect().Dx()))
 		}

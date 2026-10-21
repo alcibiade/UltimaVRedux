@@ -272,15 +272,7 @@ func TestHealerShopDialogUsesKeyboardOnlyGuidance(t *testing.T) {
 	assert.NotContains(t, guidance, "c/h/r")
 	assert.NotContains(t, guidance, "mouse")
 	assert.NotContains(t, guidance, "click")
-	for _, line := range parseMerchantFooterGuidance(dialog.GetShell().GetFooterView().Guidance) {
-		for _, segment := range line {
-			if strings.HasPrefix(segment.Text, "[") {
-				assert.Equal(t, DialogControlKeyColor, segment.Color)
-			} else {
-				assert.Equal(t, DialogControlHintColor, segment.Color)
-			}
-		}
-	}
+	requireKeyedGuidance(t, dialog.GetShell().GetFooterView().Guidance)
 }
 
 func TestHealerShopDialogAllShortcutBuildsAggregateRequest(t *testing.T) {

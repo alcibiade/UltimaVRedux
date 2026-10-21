@@ -1036,7 +1036,8 @@ func (d *ZStatsDossierDialog) drawListPane(screen *ebiten.Image, rect image.Rect
 		rowRect := image.Rect(body.Min.X, rowTop, body.Max.X, min(body.Max.Y, rowTop+rowHeight))
 		d.drawListRow(screen, rowRect, index, index == selection)
 	}
-	d.drawScrollIndicators(screen, body, start, end, count, rowHeight)
+	drawMasterDetailScrollIndicators(screen, body, start, end, count, rowHeight,
+		d.scrollIndicatorWidth(), d.bodyFont, d.rowOutput)
 }
 
 func (d *ZStatsDossierDialog) drawSpellFilter(screen *ebiten.Image, rect image.Rectangle) {
@@ -1059,15 +1060,7 @@ func (d *ZStatsDossierDialog) drawListRow(
 		return
 	}
 	if selected {
-		vector.FillRect(
-			screen,
-			float32(rect.Min.X),
-			float32(rect.Min.Y),
-			float32(rect.Dx()),
-			float32(rect.Dy()),
-			DialogSelectedBackground,
-			false,
-		)
+		fillSelectedRow(screen, rect)
 	}
 	d.prepareListRow(rect, index, selected)
 	clippedRect := rect.Intersect(screen.Bounds())
@@ -1269,26 +1262,6 @@ func (d *ZStatsDossierDialog) countedRowLabel(name, suffix string) string {
 	}
 
 	return label
-}
-
-func (d *ZStatsDossierDialog) drawScrollIndicators(
-	screen *ebiten.Image,
-	body image.Rectangle,
-	start int,
-	end int,
-	count int,
-	rowHeight int,
-) {
-	indicatorX := body.Max.X - d.scrollIndicatorWidth()
-	if start > 0 {
-		rect := image.Rect(indicatorX, body.Min.Y, body.Max.X, body.Min.Y+rowHeight)
-		d.drawOutputLine(screen, rect, "^", DialogScrollIndicator, etext.AlignCenter)
-	}
-	if end < count {
-		top := body.Min.Y + max(0, end-start-1)*rowHeight
-		rect := image.Rect(indicatorX, top, body.Max.X, min(body.Max.Y, top+rowHeight))
-		d.drawOutputLine(screen, rect, "v", DialogScrollIndicator, etext.AlignCenter)
-	}
 }
 
 func (d *ZStatsDossierDialog) scrollIndicatorWidth() int {
@@ -1805,42 +1778,33 @@ func (d *ZStatsDossierDialog) prepareFooter() image.Rectangle {
 	if d.detailPageCount() > 1 {
 		textRect.Max.X = max(textRect.Min.X, d.layout.pageLabelRect.Min.X-d.layout.padding)
 	}
-	d.footerOutput.SetMaxCharsPerLine(max(1, d.bodyFont.CharsForWidth(max(1, textRect.Dx()))))
 	d.footerOutput.Reset()
-	line := d.footerOutput.AppendLine().WithAlignment(etext.AlignCenter)
-	line.Text("[Tab/Shift-Tab]", DialogControlKeyColor).Text(": Section  ", DialogControlHintColor)
+	searching := d.activeTab == ZStatsDossierSpellsTab && d.spellBrowser.searching
+	hints := []ControlHint{{hintKeyTabCycle, "Section"}}
 	switch d.activeTab {
 	case ZStatsDossierCharacterTab:
-		line.Text("[L/R/1-6]", DialogControlKeyColor).Text(": Character  ", DialogControlHintColor).
-			Text("[Up/Dn/Pg]", DialogControlKeyColor).Text(": Equipment  ", DialogControlHintColor)
-	case ZStatsDossierProvisionsTab, ZStatsDossierArmoryTab:
-		line.Text("[Up/Dn/Pg]", DialogControlKeyColor).Text(": Item  ", DialogControlHintColor)
+		hints = append(hints, ControlHint{"Left/Right/1-6", "Character"}, ControlHint{hintKeyUpDown, "Equipment"})
 	case ZStatsDossierSpellsTab:
-		if d.spellBrowser.searching {
-			line.Text("[Ctrl+U]", DialogControlKeyColor).Text(": Clear search  ", DialogControlHintColor)
+		if searching {
+			hints = append(hints, ControlHint{"Ctrl+U", "Clear search"})
 		} else {
-			line.Text("[A-Z/BS]", DialogControlKeyColor).Text(": Initials  ", DialogControlHintColor).
-				Text("[/]", DialogControlKeyColor).Text(": Search  ", DialogControlHintColor)
+			hints = append(hints, ControlHint{"A-Z/Backspace", "Initials"}, ControlHint{"/", hintActionSearch})
 		}
-		line.Text("[Ctrl+O]", DialogControlKeyColor).Text(": Filter  ", DialogControlHintColor).
-			Text("[Ctrl+M]", DialogControlKeyColor).Text(": Mix  ", DialogControlHintColor).
-			Text("[Up/Dn/Pg]", DialogControlKeyColor).Text(": Spell  ", DialogControlHintColor)
-	case ZStatsDossierReagentsTab, ZStatsDossierPotionsTab, ZStatsDossierScrollsTab:
-		line.Text("[Up/Dn/Pg]", DialogControlKeyColor).Text(": Item  ", DialogControlHintColor)
-	case ZStatsDossierItemsTab:
-		line.Text("[Up/Dn/Pg]", DialogControlKeyColor).Text(": Item  ", DialogControlHintColor)
+		hints = append(hints, ControlHint{"Ctrl+O", "Filter"}, ControlHint{"Ctrl+M", "Mix"},
+			ControlHint{hintKeyUpDown, "Spell"})
+	case ZStatsDossierProvisionsTab, ZStatsDossierArmoryTab, ZStatsDossierReagentsTab,
+		ZStatsDossierPotionsTab, ZStatsDossierScrollsTab, ZStatsDossierItemsTab:
+		hints = append(hints, ControlHint{hintKeyUpDown, hintActionItem})
 	}
-	line.Text("[Shift+Up/Dn]", DialogControlKeyColor).Text(": List page  ", DialogControlHintColor)
-	if d.detailPageCount() > 1 {
-		if d.activeTab != ZStatsDossierSpellsTab || !d.spellBrowser.searching {
-			line.Text("[Space]", DialogControlKeyColor).Text(": Page  ", DialogControlHintColor)
-		}
+	hints = append(hints, ControlHint{hintKeyShiftPage, "List page"})
+	if d.detailPageCount() > 1 && !searching {
+		hints = append(hints, ControlHint{hintKeySpace, hintActionPage})
 	}
-	escapeAction := ": Close"
-	if d.activeTab == ZStatsDossierSpellsTab && d.spellBrowser.searching {
-		escapeAction = ": Leave search"
+	escape := ControlHint{hintKeyEsc, hintActionClose}
+	if searching {
+		escape.Action = "Leave search"
 	}
-	line.Text("[ESC]", DialogControlKeyColor).Text(escapeAction, DialogControlHintColor).WordWrap().Done()
+	PackControlHints(d.footerOutput, append(hints, escape), textRect.Dx(), etext.AlignCenter)
 
 	return textRect
 }

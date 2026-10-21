@@ -250,7 +250,7 @@ func TestJournalNoticeCoalescesWithoutInputOrSaveRestriction(t *testing.T) {
 	require.Zero(t, scene.dialogStack.Count())
 	snapshot, err := scene.CaptureSaveSnapshot()
 	require.NoError(t, err)
-	require.Equal(t, "A retained message.\nJournal updated.\n[Shift-J] View journal", snapshot.Presentation.History)
+	require.Equal(t, "A retained message.\nJournal updated.\n[Shift+J] View journal", snapshot.Presentation.History)
 	require.Equal(t, scene.journalVisits, snapshot.Presentation.Visits)
 	// Drawing cannot duplicate the normal-output notice.
 	screen := newPresentationRaster(1280, 720)

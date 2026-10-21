@@ -26,7 +26,8 @@ const (
 	buttonListDescriptionRows        = 4
 	buttonListDescriptionSpacing     = 1.2
 	buttonListFooterLines            = 2
-	buttonListFooterTopText          = "Arrows: Select  Enter: Choose"
+	buttonListFooterTopText          = "[Arrows] Select   [Enter] Choose"
+	buttonListReadHint               = "[Shift+Up/Down] Read   "
 )
 
 var _ Widget = &ButtonListModal{}
@@ -421,31 +422,25 @@ func (b *ButtonListModal) configureLayoutOutputs(contentWidth, rowWidth int) int
 
 func (b *ButtonListModal) escapeFooterText() string {
 	if b.descriptionPageCount() > 1 {
-		return "Shift+Up/Dn: Read  Esc: " + b.escapeLabel
+		return buttonListReadHint + "[Esc] " + b.escapeLabel
 	}
 
-	return "Esc: " + b.escapeLabel
+	return "[Esc] " + b.escapeLabel
 }
 
 func (b *ButtonListModal) footerBottomTextForMeasurement() string {
 	if b.description != "" {
-		return "Shift+Up/Dn: Read  Esc: " + b.escapeLabel
+		return buttonListReadHint + "[Esc] " + b.escapeLabel
 	}
 
 	return b.escapeFooterText()
 }
 
 func (b *ButtonListModal) populateFooterOutput(contentWidth int) {
-	contentWidth = max(1, contentWidth)
-	b.footerOutput.SetMaxCharsPerLine(max(1, b.footerOutput.Font.CharsForWidth(contentWidth)))
 	b.footerOutput.Reset()
-	b.footerOutput.AppendLine().Text("Arrows", DialogControlKeyColor).Text(": Select  ", DialogControlHintColor).
-		Text("Enter", DialogControlKeyColor).Text(": Choose", DialogControlHintColor).Done()
-	line := b.footerOutput.AppendLine()
-	if b.descriptionPageCount() > 1 {
-		line.Text("Shift+Up/Dn", DialogControlKeyColor).Text(": Read  ", DialogControlHintColor)
+	for _, row := range []string{buttonListFooterTopText, b.escapeFooterText()} {
+		PackControlHints(b.footerOutput, ParseControlHints(row), contentWidth, etext.AlignStart)
 	}
-	line.Text("Esc", DialogControlKeyColor).Text(": "+b.escapeLabel, DialogControlHintColor).Done()
 }
 
 func (b *ButtonListModal) descriptionPageCount() int {

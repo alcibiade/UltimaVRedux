@@ -91,7 +91,7 @@ func TestCompletedCharacterCanRetryOrConfirmDiscard(t *testing.T) {
 	scene.transitionTo(characterCreationComplete)
 	scene.hasResult = true
 	scene.result = character_creation.Result{Name: "Avatar"}
-	scene.configureTerminalAction(func() { retried++ }, "Save failed.", "Enter: Retry.")
+	scene.configureTerminalAction(func() { retried++ }, "Save failed.", "[Enter] Retry")
 	fixture.press(ebiten.KeyEscape)
 	require.Equal(t, characterCreationDiscardConfirmation, scene.state)
 	fixture.press(ebiten.KeyEscape)

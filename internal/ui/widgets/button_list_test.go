@@ -87,7 +87,7 @@ func TestButtonListModalSupportsLongDescriptionsAndExplicitEscapeAction(t *testi
 
 	assert.Contains(t, modal.descriptionOutput.GetOutputStr(false), "Settings file:")
 	assert.Contains(t, modal.descriptionOutput.GetOutputStr(false), "DATA.OVL")
-	assert.Contains(t, modal.footerOutput.GetOutputStr(false), "Esc: Quit")
+	assert.Contains(t, modal.footerOutput.GetOutputStr(false), "[Esc] Quit")
 	assert.GreaterOrEqual(t, modal.layout.cardRect.Min.Y, 0)
 	assert.LessOrEqual(t, modal.layout.cardRect.Max.Y, 720)
 }
@@ -102,7 +102,7 @@ func TestButtonListModalPagesDescriptionsWithoutCircularReordering(t *testing.T)
 	assert.Equal(t, 2, modal.descriptionPageCount())
 	assert.Contains(t, modal.descriptionOutput.GetOutputStr(false), "first")
 	assert.Contains(t, modal.descriptionOutput.GetOutputStr(false), "actionable suffix")
-	assert.Contains(t, modal.footerOutput.GetOutputStr(false), "Shift+Up/Dn: Read")
+	assert.Contains(t, modal.footerOutput.GetOutputStr(false), "[Shift+Up/Down] Read")
 
 	modal.keyboard.SimulateKeyPress(ebiten.KeyPageDown)
 	modal.Update()
@@ -129,7 +129,7 @@ func TestButtonListModalRetainsDescriptionsBeyondFormerCircularCapacity(t *testi
 func TestButtonListModalCardCanExpandWithoutResizingRows(t *testing.T) {
 	const (
 		buttonWidth = 0.28
-		borderWidth = 0.396
+		borderWidth = 0.45
 	)
 	modal := newTestButtonListModal("Exit to DOS")
 	modal.SetButtonWidthPercent(buttonWidth)

@@ -32,7 +32,6 @@ const (
 	reagentShopDoubleInset      = 2
 	reagentShopLineSpacing      = 1.08
 	reagentShopMinimumTextChars = 8
-	reagentShopErrorFooter      = "[Enter/Esc] Leave"
 )
 
 var _ Widget = (*ReagentShopDialog)(nil)
@@ -453,8 +452,7 @@ func (d *ReagentShopDialog) drawCatalog(screen *ebiten.Image) {
 		row := d.catalogRows[index-start]
 		selected := index == d.GetSelectedIndex()
 		if selected {
-			vector.FillRect(screen, float32(row.Min.X), float32(row.Min.Y),
-				float32(row.Dx()), float32(row.Dy()), DialogSelectedBackground, false)
+			fillSelectedRow(screen, row)
 		}
 		nameColor, valueColor := reagentCatalogRowColors(d.state.Offers[index], selected)
 		values := d.GetCatalogRowText(index)
@@ -580,7 +578,7 @@ func (d *ReagentShopDialog) footerGuidance() string {
 	case ReagentShopAwaitingResult:
 		return "Processing purchase"
 	case ReagentShopFarewell, ReagentShopSessionError:
-		return reagentShopErrorFooter
+		return merchantLeaveFooter
 	default:
 		panic("ReagentShopDialog.footerGuidance: unknown phase")
 	}

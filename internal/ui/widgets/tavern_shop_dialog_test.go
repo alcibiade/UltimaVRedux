@@ -80,6 +80,17 @@ func TestTavernShopDialogLocationTabsCanonicalRowsAndBrightActiveMode(t *testing
 	}
 }
 
+func TestTavernOrderRowsUseSharedSelectionBarAndStateUnaffordableGold(t *testing.T) {
+	setMerchantShellTestResolution(t, 1280, 720)
+	state := testTavernState(references.TavernMenuRumBoar)
+	setTestTavernGold(&state, 0)
+	dialog := newTestTavernShopDialog(newWidgetTestKeyboard(0), state, nil)
+	workspace := compactTavernText(dialog.GetWorkspaceText())
+	require.Contains(t, workspace, fmt.Sprintf("(need %d gold)", state.Meal.Charge))
+	require.NotContains(t, workspace, "> [")
+	require.False(t, dialog.rowSelectionBounds.Empty())
+}
+
 func TestTavernShopDialogLockedConversationHidesTopicsAndUnlockedInputIsVisible(t *testing.T) {
 	queue := newTavernRuneQueue()
 	keyboard := newWidgetTestKeyboard(0)

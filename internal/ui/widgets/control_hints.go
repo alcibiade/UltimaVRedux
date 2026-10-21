@@ -3,8 +3,8 @@ package widgets
 import (
 	"image"
 	"math"
-	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
@@ -14,69 +14,143 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-// AppendControlHints styles existing "Key: Action" hints separated by two or
-// more spaces without changing their wording, spacing, or line ownership.
+// ControlHint is one keyboard control shown as "[Key] Action". Keys use the
+// shared spellings (Esc, Enter, Space, Tab, Shift+X, Ctrl+X, Up/Down,
+// Left/Right, PgUp/PgDn, Home/End). An empty Key is plain guidance prose.
+type ControlHint struct {
+	Key    string
+	Action string
+}
+
+// Shared key spellings and actions repeated across typed hints.
+const (
+	hintKeyEnter     = "Enter"
+	hintKeyEsc       = "Esc"
+	hintKeySpace     = "Space"
+	hintKeyUpDown    = "Up/Down"
+	hintKeyTabCycle  = "Tab/Shift+Tab"
+	hintKeyShiftPage = "Shift+Up/Down"
+	hintActionClose  = "Close"
+	hintActionItem   = "Item"
+	hintActionPage   = "Page"
+	hintActionSearch = "Search"
+	hintActionSelect = "Select"
+)
+
+// controlHintSeparator separates complete hints within one physical row. A
+// packed footer tightens it only when that saves a row.
+const controlHintSeparator = "   "
+
+func (h ControlHint) String() string {
+	switch {
+	case h.Key == "":
+		return h.Action
+	case h.Action == "":
+		return "[" + h.Key + "]"
+	default:
+		return "[" + h.Key + "] " + h.Action
+	}
+}
+
+func joinControlHints(hints []ControlHint, separator string) string {
+	parts := make([]string, len(hints))
+	for index, hint := range hints {
+		parts[index] = hint.String()
+	}
+
+	return strings.Join(parts, separator)
+}
+
+// ParseControlHints reads one row of bracketed "[Key] Action" guidance. Text
+// outside a complete bracket pair stays prose, so malformed input is preserved.
+func ParseControlHints(guidance string) []ControlHint {
+	var hints []ControlHint
+	for guidance = strings.TrimSpace(guidance); guidance != ""; {
+		opening := strings.IndexByte(guidance, '[')
+		closing := -1
+		if opening >= 0 {
+			closing = strings.IndexByte(guidance[opening:], ']')
+		}
+		if opening != 0 || closing < 0 {
+			end := len(guidance)
+			if opening > 0 && closing >= 0 {
+				end = opening
+			}
+			hints = append(hints, ControlHint{Key: "", Action: strings.TrimSpace(guidance[:end])})
+			guidance = strings.TrimSpace(guidance[end:])
+
+			continue
+		}
+		rest := guidance[closing+1:]
+		next := strings.IndexByte(rest, '[')
+		if next < 0 {
+			next = len(rest)
+		}
+		hints = append(hints, ControlHint{Key: guidance[1:closing], Action: strings.TrimSpace(rest[:next])})
+		guidance = strings.TrimSpace(rest[next:])
+	}
+
+	return hints
+}
+
+// AppendControlHints styles one row of bracketed guidance on line.
 func AppendControlHints(line *text.LineBuilder, guidance string) *text.LineBuilder {
-	for _, segment := range colonControlHintSegments(guidance) {
-		line.Text(segment.Text, segment.Color)
+	return appendControlHintRow(line, ParseControlHints(guidance), controlHintSeparator)
+}
+
+func appendControlHintRow(line *text.LineBuilder, hints []ControlHint, separator string) *text.LineBuilder {
+	if len(hints) == 0 {
+		return line.Text("", DialogControlHintColor) // Keep a blank guidance row.
+	}
+	for index, hint := range hints {
+		if index > 0 {
+			line.Text(separator, DialogControlHintColor)
+		}
+		if hint.Key == "" {
+			line.Text(hint.Action, DialogControlHintColor)
+
+			continue
+		}
+		line.Text("["+hint.Key+"]", DialogControlKeyColor)
+		if hint.Action != "" {
+			line.Text(" "+hint.Action, DialogControlHintColor)
+		}
 	}
 
 	return line
 }
 
-// Only recognized control labels get key ink. Plain status prose containing a
-// colon stays prose; parse logical source lines before their descriptions wrap.
-func colonControlHintSegments(guidance string) []merchantFooterSegment {
-	if !strings.Contains(guidance, ":") {
-		return []merchantFooterSegment{{Text: guidance, Color: DialogControlHintColor}}
-	}
-	var segments []merchantFooterSegment
-	for index, hint := range strings.Split(guidance, "  ") {
-		if index > 0 {
-			segments = append(segments, merchantFooterSegment{Text: "  ", Color: DialogControlHintColor})
-		}
-		key, action, found := strings.Cut(hint, ":")
-		if found && isControlHintLabel(key) {
-			segments = append(segments, merchantFooterSegment{Text: key, Color: DialogControlKeyColor},
-				merchantFooterSegment{Text: ":" + action, Color: DialogControlHintColor})
-		} else {
-			segments = append(segments, merchantFooterSegment{Text: hint, Color: DialogControlHintColor})
+// PackControlHints appends hints to output as measured physical rows, wrapping
+// only between complete hints so a key never separates from its action.
+func PackControlHints(output *text.Output, hints []ControlHint, width int, align etext.Align) {
+	separator, rows := controlHintSeparator, packControlHintRows(output.Font, hints, width, controlHintSeparator)
+	for _, tighter := range [...]string{"  ", " "} {
+		if candidate := packControlHintRows(output.Font, hints, width, tighter); len(candidate) < len(rows) {
+			separator, rows = tighter, candidate
 		}
 	}
-
-	return segments
+	for _, row := range rows {
+		runes := utf8.RuneCountInString(joinControlHints(row, separator))
+		output.SetMaxCharsPerLine(max(runes, output.Font.CharsForWidth(max(1, width))))
+		appendControlHintRow(output.AppendLine().WithAlignment(align), row, separator).Done()
+	}
 }
 
-func isControlHintLabel(label string) bool {
-	if strings.EqualFold(strings.TrimSpace(label), "Any key") {
-		return true
-	}
-	parts := strings.FieldsFunc(label, func(r rune) bool { return r == '/' || r == '+' || r == '-' || r == ' ' })
-	if len(parts) == 0 {
-		return false
-	}
-	for _, part := range parts {
-		if !isControlHintKey(part) {
-			return false
+func packControlHintRows(font *text.UltimaFont, hints []ControlHint, width int, separator string) [][]ControlHint {
+	var rows [][]ControlHint
+	start := 0
+	for end := 1; end <= len(hints); end++ {
+		measured, _ := font.MeasureString(joinControlHints(hints[start:end], separator))
+		if measured > float64(width) && end-start > 1 {
+			rows = append(rows, hints[start:end-1])
+			start = end - 1
 		}
 	}
-
-	return true
-}
-
-func isControlHintKey(part string) bool {
-	if len(part) == 1 && (part[0] >= 'A' && part[0] <= 'Z' || part[0] >= '0' && part[0] <= '9') {
-		return true
+	if start < len(hints) {
+		rows = append(rows, hints[start:])
 	}
-	switch strings.ToLower(part) {
-	case "enter", "esc", "escape", "tab", "space", "up", "dn", "down", "left", "right", "home", "end",
-		"pgup", "pgdn", "pageup", "pagedown", "backspace", "delete", "ctrl", "shift", "shft", "shf", "alt", "meta", "or":
-		return true
-	}
-	const lastFunctionKey = 12
-	number, err := strconv.Atoi(strings.TrimPrefix(part, "F"))
 
-	return strings.HasPrefix(part, "F") && err == nil && number >= 1 && number <= lastFunctionKey
+	return rows
 }
 
 // staticViewerHint keeps return guidance outside the original artwork.
@@ -92,7 +166,7 @@ const (
 	staticViewerHintLineSpacing = 1.2
 )
 
-func (h *staticViewerHint) draw(screen *ebiten.Image, artwork image.Rectangle, guidance string) {
+func (h *staticViewerHint) draw(screen *ebiten.Image, artwork image.Rectangle, hints ...ControlHint) {
 	width, _ := display.GetManager().GetCurrentSize()
 	if h.output == nil || h.width != width {
 		h.width = width
@@ -101,8 +175,7 @@ func (h *staticViewerHint) draw(screen *ebiten.Image, artwork image.Rectangle, g
 			LineSpacingMultiplier: staticViewerHintLineSpacing}, width)
 	}
 	h.output.Reset()
-	h.output.SetMaxCharsPerLine(max(1, h.output.Font.CharsForWidth(artwork.Dx())))
-	AppendControlHints(h.output.AppendLine(), guidance).WordWrap().Done()
+	PackControlHints(h.output, hints, artwork.Dx(), etext.AlignCenter)
 	height := int(math.Ceil(h.output.GetTotalHeightForLines(h.output.GetPanelContentLineCount())))
 	gap := max(1, height/staticViewerHintGapDivisor)
 	top := artwork.Max.Y + gap

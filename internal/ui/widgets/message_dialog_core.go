@@ -427,7 +427,8 @@ func (b *MessageDialogBuilder) calculateAutoSizeDimensions(
 ) MessageDialogConfig {
 	if b.enableInputDismissal {
 		// The automatic footer must fit even when the message or explicit capacity is tiny.
-		charsPerLine = max(charsPerLine, len(DialogCloseHint))
+		// One spare column covers key brackets, which are wider than an average column.
+		charsPerLine = max(charsPerLine, len(DialogCloseHint)+1)
 		textLines = max(textLines, DialogConfirmationLines)
 	}
 	// Calculate prompt split if dual output mode enabled

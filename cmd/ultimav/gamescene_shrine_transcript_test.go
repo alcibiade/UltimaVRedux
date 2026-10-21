@@ -564,7 +564,7 @@ func waitForShrineTranscriptResult(
 		scene.gameState.EventQueueManager.Update()
 		if scene.dialogStack.PeekTopModalDialog() == transcript &&
 			transcript.ActivePrompt() == "" && !transcript.InputComplete() &&
-			transcript.ControlHint() == "Enter/Esc: Close" &&
+			transcript.ControlHint() == "[Enter/Esc] Close" &&
 			strings.Contains(strings.Join(strings.Fields(transcript.TranscriptText()), " "), content) {
 			return transcript
 		}

@@ -593,7 +593,7 @@ func (d *InteractionTranscript) rebuildFooterOutput() {
 		case interactionTranscriptText:
 			hint = textSubmitControlHint
 			if d.clearTextOnEscape {
-				hint = "Enter: Submit   Esc: Clear text"
+				hint = "[Enter] Submit   [Esc] Clear text"
 			}
 		case interactionTranscriptAcknowledgement:
 			hint = DialogCloseHint
