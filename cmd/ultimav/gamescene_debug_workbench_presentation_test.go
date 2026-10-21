@@ -14,7 +14,7 @@ import (
 )
 
 func TestExecutePresentationOverlayCommandsUseExplicitState(t *testing.T) {
-	scene := &GameScene{ //nolint:exhaustruct // Focused presentation-command fixture.
+	scene := &GameScene{
 		gameState:       &game_state.GameState{},
 		overlayRenderer: NewOverlayRenderer(),
 	}

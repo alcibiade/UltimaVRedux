@@ -53,7 +53,7 @@ func TestFrigateHeadingChangeFinishesExactlyOneTurn(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 	gs.DebugOptions.MonsterGen = false
-	scene := &GameScene{ //nolint:exhaustruct // Focused heading-turn input fixture.
+	scene := &GameScene{
 		gameState:            gs,
 		keyboard:             input.NewKeyboardWithKeyStateSource(0, func(ebiten.Key) bool { return false }),
 		output:               text.NewOutput(nil, 1, 10, 80),

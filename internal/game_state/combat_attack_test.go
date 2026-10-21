@@ -320,7 +320,7 @@ func TestCombatMonsterDeathFinalizesTreasureAndXPOnce(t *testing.T) {
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	attacker := gs.PartyState.GetCharacter(attackerIndex)
 	experienceBefore := attacker.Exp
-	diagnostics := CombatDiagnostics{} //nolint:exhaustruct // Death-finalization test does not inspect attack rolls.
+	diagnostics := CombatDiagnostics{}
 
 	gs.applyCombatDamageToMonster(monster, 0, 1, false, attacker, attackerIndex, diagnostics)
 
@@ -349,7 +349,7 @@ func TestCombatMonsterDeathLeavesCorpseWhenTreasureRollFails(t *testing.T) {
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	attacker := gs.PartyState.GetCharacter(attackerIndex)
-	diagnostics := CombatDiagnostics{} //nolint:exhaustruct // Death-object test does not inspect attack rolls.
+	diagnostics := CombatDiagnostics{}
 	gs.applyCombatDamageToMonster(monster, 0, 1, false, attacker, attackerIndex, diagnostics)
 
 	object, found := gs.CombatScene.ObjectAt(monster.Position())
@@ -373,7 +373,7 @@ func TestHeadlessDeathUsesMonsterSplat(t *testing.T) {
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	attacker := gs.PartyState.GetCharacter(attackerIndex)
-	diagnostics := CombatDiagnostics{} //nolint:exhaustruct // Corpse-sprite test does not inspect attack rolls.
+	diagnostics := CombatDiagnostics{}
 	gs.applyCombatDamageToMonster(monster, 0, 1, false, attacker, attackerIndex, diagnostics)
 
 	object, found := gs.CombatScene.ObjectAt(monster.Position())
@@ -464,7 +464,7 @@ func TestCombatAttack_MultiSlot(t *testing.T) {
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 
 	// Ensure monster has enough HP to survive multiple hits
-	monster.SetCurrentHP(100) //nolint:mnd // High HP to survive multiple hits
+	monster.SetCurrentHP(100)
 
 	result := gs.ActionAttackCombatMap(references.Down)
 	assert.True(t, result, "Attack should return true")

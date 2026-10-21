@@ -11,7 +11,7 @@ import (
 // TestSetCalendarTimeSetsExactTimeWithoutAdvancing prevents debug clock edits from consuming a turn or simulating elapsed time.
 func TestSetCalendarTimeSetsExactTimeWithoutAdvancing(t *testing.T) {
 	initial := datetime.UltimaDate{Year: 3, Month: 4, Day: 5, Hour: 6, Minute: 7, Turn: 99}
-	gs := &GameState{DateTime: initial, ElapsedMs: 1234} //nolint:exhaustruct
+	gs := &GameState{DateTime: initial, ElapsedMs: 1234}
 
 	change, err := gs.SetCalendarTime(23, 59)
 	if err != nil {
@@ -48,7 +48,7 @@ func TestSetCalendarTimeRejectsInvalidValuesAtomically(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			initial := datetime.UltimaDate{Year: 1, Month: 2, Day: 3, Hour: 4, Minute: 5, Turn: 6}
-			gs := &GameState{DateTime: initial} //nolint:exhaustruct
+			gs := &GameState{DateTime: initial}
 
 			change, err := gs.SetCalendarTime(test.hour, test.minute)
 			if err == nil {
@@ -64,7 +64,7 @@ func TestSetCalendarTimeRejectsInvalidValuesAtomically(t *testing.T) {
 // TestSetCalendarDaySetsExactDayWithoutChangingClockOrTurn prevents a day edit from changing unrelated calendar fields.
 func TestSetCalendarDaySetsExactDayWithoutChangingClockOrTurn(t *testing.T) {
 	initial := datetime.UltimaDate{Year: 3, Month: 4, Day: 5, Hour: 6, Minute: 7, Turn: 99}
-	gs := &GameState{DateTime: initial} //nolint:exhaustruct
+	gs := &GameState{DateTime: initial}
 
 	change, err := gs.SetCalendarDay(28)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestSetCalendarDaySetsExactDayWithoutChangingClockOrTurn(t *testing.T) {
 func TestSetCalendarDayRejectsInvalidValuesAtomically(t *testing.T) {
 	for _, day := range []int{0, 29} {
 		initial := datetime.UltimaDate{Year: 1, Month: 2, Day: 3, Hour: 4, Minute: 5, Turn: 6}
-		gs := &GameState{DateTime: initial} //nolint:exhaustruct
+		gs := &GameState{DateTime: initial}
 
 		change, err := gs.SetCalendarDay(day)
 		if err == nil {
@@ -112,8 +112,8 @@ func TestTeleportPlayerOnCurrentMapUsesLogicalMapBounds(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			initialPosition := references.Position{X: 1, Y: 2}
 			initialDate := datetime.UltimaDate{Day: 3, Hour: 4, Minute: 5, Turn: 6}
-			gs := &GameState{ //nolint:exhaustruct
-				MapState: map_state.MapState{ //nolint:exhaustruct
+			gs := &GameState{
+				MapState: map_state.MapState{
 					PlayerLocation: references.PlayerLocation{
 						Location: test.location,
 						Position: initialPosition,
@@ -163,8 +163,8 @@ func TestTeleportPlayerOnCurrentMapRejectsOutOfBoundsAtomically(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			initial := references.Position{X: 3, Y: 4}
-			gs := &GameState{ //nolint:exhaustruct
-				MapState: map_state.MapState{ //nolint:exhaustruct
+			gs := &GameState{
+				MapState: map_state.MapState{
 					PlayerLocation: references.PlayerLocation{Location: test.location, Position: initial},
 				},
 			}
@@ -183,8 +183,8 @@ func TestTeleportPlayerOnCurrentMapRejectsOutOfBoundsAtomically(t *testing.T) {
 // TestTeleportPlayerOnCurrentMapRejectsNonWorldMap prevents same-map navigation from corrupting specialized combat-map state.
 func TestTeleportPlayerOnCurrentMapRejectsNonWorldMap(t *testing.T) {
 	initial := references.Position{X: 3, Y: 4}
-	gs := &GameState{ //nolint:exhaustruct
-		MapState: map_state.MapState{ //nolint:exhaustruct
+	gs := &GameState{
+		MapState: map_state.MapState{
 			PlayerLocation: references.PlayerLocation{Location: references.CombatLocation, Position: initial},
 		},
 	}

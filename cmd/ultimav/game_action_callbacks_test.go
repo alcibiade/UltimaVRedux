@@ -47,7 +47,7 @@ func TestGameActionCallbacksJoinPartyTypedFailures(t *testing.T) {
 func TestGameActionCallbacksDiscoverKnowledgeMapsSpellAndDialogueSource(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
 	callbacks := NewGameActionCallbacks(
-		&GameScene{gameState: state}, //nolint:exhaustruct // Focused conversation callback fixture.
+		&GameScene{gameState: state},
 		references.NPCReference{},
 		nil,
 	)
@@ -78,7 +78,7 @@ func TestGameActionCallbacksDiscoverKnowledgeMapsSpellAndDialogueSource(t *testi
 func TestGameActionCallbacksDiscoverKnowledgeRejectsUnsupportedID(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
 	callbacks := NewGameActionCallbacks(
-		&GameScene{gameState: state}, //nolint:exhaustruct // Focused conversation callback fixture.
+		&GameScene{gameState: state},
 		references.NPCReference{},
 		nil,
 	)
@@ -144,7 +144,7 @@ func TestGameActionCallbacksRoutesAllEightWordsOfPower(t *testing.T) {
 func TestGameActionCallbacksDiscoverKnowledgeMapsAllLoreAndPreservesFirstMetadata(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
 	callbacks := NewGameActionCallbacks(
-		&GameScene{gameState: state}, //nolint:exhaustruct // Focused conversation callback fixture.
+		&GameScene{gameState: state},
 		references.NPCReference{},
 		nil,
 	)
@@ -206,7 +206,7 @@ func TestGameActionCallbacksGoToJailDelegatesToCanonicalSentence(t *testing.T) {
 	state.PartyState.Inventory.Provisions.Keys.Set(4)
 	state.SetCriminalStatus(true)
 	callbacks := NewGameActionCallbacks(
-		&GameScene{gameState: state}, //nolint:exhaustruct // Focused conversation callback fixture.
+		&GameScene{gameState: state},
 		references.NPCReference{},
 		nil,
 	)
@@ -230,7 +230,7 @@ func TestGameActionCallbacksCallGuardsOwnsCriminalStatusAndContinuesOnActivation
 		Build()
 	state.CurrentNPCAIController = nil
 	callbacks := NewGameActionCallbacks(
-		&GameScene{gameState: state}, //nolint:exhaustruct // Focused conversation callback fixture.
+		&GameScene{gameState: state},
 		references.NPCReference{},
 		nil,
 	)
@@ -245,7 +245,7 @@ func newGameActionCallbacksKnowledgeState(t *testing.T) *game_state.GameState {
 	snapshot.World.Position = saveSnapshotLargeMapPosition(10, 20)
 	snapshot.World.LastLargeMapPosition = snapshot.World.Position
 	snapshot.Wind.NextTickMs = environment.WindTickIntervalMs
-	gameReferences := &references.GameReferences{ //nolint:exhaustruct // Hydration needs only map and identity references.
+	gameReferences := &references.GameReferences{
 		OverworldLargeMapReference:  &references.LargeMapReference{},
 		UnderworldLargeMapReference: &references.LargeMapReference{},
 		LocationReferences:          &references.LocationReferences{},
@@ -253,7 +253,7 @@ func newGameActionCallbacksKnowledgeState(t *testing.T) *game_state.GameState {
 	}
 	state, err := game_state.NewGameStateFromSaveSnapshot(
 		snapshot,
-		&config.UltimaVConfiguration{}, //nolint:exhaustruct // Hydration does not read configuration for this fixture.
+		&config.UltimaVConfiguration{},
 		gameReferences,
 		xTilesVisibleOnGameScreen,
 		yTilesVisibleOnGameScreen,

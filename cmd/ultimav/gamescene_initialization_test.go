@@ -50,8 +50,8 @@ func TestNewGameSceneFromInitTemplateFileWrapsDungeonAssetErrors(t *testing.T) {
 	if err := os.WriteFile(filePath, make([]byte, 4192), 0o600); err != nil {
 		t.Fatalf("writing legacy save fixture: %v", err)
 	}
-	gameConfig := &config.UltimaVConfiguration{ //nolint:exhaustruct // Only the data path is reached by this failure fixture.
-		SavedConfigData: &config.UltimaVConfigurationFlags{ //nolint:exhaustruct // Only the data path is relevant.
+	gameConfig := &config.UltimaVConfiguration{
+		SavedConfigData: &config.UltimaVConfigurationFlags{
 			DataFilePath: dataPath,
 		},
 	}
@@ -271,11 +271,11 @@ func TestNewGameSceneFromSaveSnapshotRejectsInvalidSnapshot(t *testing.T) {
 }
 
 func snapshotTestGameConfig(gameDataPath string) *config.UltimaVConfiguration {
-	return &config.UltimaVConfiguration{ //nolint:exhaustruct // Focused real-data scene fixture.
-		SavedConfigData: &config.UltimaVConfigurationFlags{ //nolint:exhaustruct // Only the data path is persisted.
+	return &config.UltimaVConfiguration{
+		SavedConfigData: &config.UltimaVConfigurationFlags{
 			DataFilePath: gameDataPath,
 		},
-		DebugConfiguration: &config.DebugConfiguration{}, //nolint:exhaustruct // Defaults are sufficient.
+		DebugConfiguration: &config.DebugConfiguration{},
 		SoundDisabled:      true,
 	}
 }

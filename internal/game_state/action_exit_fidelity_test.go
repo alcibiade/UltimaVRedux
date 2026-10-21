@@ -44,7 +44,7 @@ func TestNearbyVehicleExitClassifier(t *testing.T) {
 
 			switch {
 			case test.player:
-				reference := references.NPCReference{ //nolint:exhaustruct // Only identity and fixed placement matter here.
+				reference := references.NPCReference{
 					Schedule: references.CreateNPCScheduledFixedOneLocation(candidate, test.objectFloor),
 				}
 				reference.SetKeyIndex(indexes.BasicAvatar)
@@ -53,7 +53,7 @@ func TestNearbyVehicleExitClassifier(t *testing.T) {
 				player.SetFloor(test.objectFloor)
 				*state.CurrentNPCAIController.GetNpcs() = append(*state.CurrentNPCAIController.GetNpcs(), player)
 			case test.npc:
-				reference := references.NPCReference{ //nolint:exhaustruct // Only identity and fixed placement matter here.
+				reference := references.NPCReference{
 					Schedule: references.CreateNPCScheduledFixedOneLocation(candidate, test.objectFloor),
 				}
 				reference.SetKeyIndex(indexes.Guard1)

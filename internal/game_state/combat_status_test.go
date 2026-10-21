@@ -381,5 +381,5 @@ func lastCombatConditionEvent(t *testing.T, events []CombatEvent) CombatEvent {
 	}
 
 	t.Fatal("no combat condition event published")
-	return CombatEvent{} //nolint:exhaustruct // Unreachable after Fatal.
+	return CombatEvent{}
 }

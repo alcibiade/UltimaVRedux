@@ -23,7 +23,7 @@ func TestGazerDeathLeavesCorpseAndCreatesSameSquareInsect(t *testing.T) {
 	randomCallsBefore := gs.GetRNG().Calls()
 
 	gs.applyCombatDamageToMonster(
-		gazer, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		gazer, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 
 	assert.True(t, gazer.IsDead())
@@ -121,7 +121,7 @@ func TestGargoyleDeathReplacesUnderlyingCombatTerrain(t *testing.T) {
 	randomCallsBefore := gs.GetRNG().Calls()
 
 	gs.applyCombatDamageToMonster(
-		gargoyle, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		gargoyle, 0, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 
 	assert.True(t, gargoyle.IsDead())
@@ -168,7 +168,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	mock.Reset()
 
 	gs.applyCombatDamageToMonster(
-		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 
 	assert.True(t, shadowlord.IsDead())
@@ -192,7 +192,7 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 	assert.Equal(t, position, vanished.Position)
 
 	gs.applyCombatDamageToMonster(
-		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{}, //nolint:exhaustruct
+		shadowlord, shadowlordIndex, 1, false, attacker, attackerIndex, CombatDiagnostics{},
 	)
 	assert.Equal(t, 1, countCombatEvents(mock.CombatEvents, CombatEventVanished))
 	assert.Equal(t, experienceBefore+uint16(combatCalcExperience(shadowlord.MaxHP())), attacker.Exp)
@@ -255,7 +255,7 @@ func TestImmortalDisappearingMonsterDoesNotReachDeathHandling(t *testing.T) {
 
 	gs.applyCombatDamageToMonster(
 		blackthorn, 0, 0, true, attacker, attackerIndex,
-		CombatDiagnostics{TargetImmortal: true}, //nolint:exhaustruct // Exercises forced-kill suppression only.
+		CombatDiagnostics{TargetImmortal: true},
 	)
 
 	assert.Equal(t, hpBefore, blackthorn.CurrentHP())

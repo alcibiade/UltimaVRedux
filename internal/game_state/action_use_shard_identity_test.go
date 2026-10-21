@@ -47,7 +47,7 @@ func TestUseItemDispatchesExactSelectedShard(t *testing.T) {
 	}
 
 	for _, fixture := range shardRitualFixtures {
-		require.True(t, state.UseItem(UseableItemInfo{ItemType: fixture.shard})) //nolint:exhaustruct
+		require.True(t, state.UseItem(UseableItemInfo{ItemType: fixture.shard}))
 	}
 
 	assert.Equal(t, []references.QuestItem{

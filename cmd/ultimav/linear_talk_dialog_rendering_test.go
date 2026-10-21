@@ -35,8 +35,8 @@ func TestLinearTalkDialogLayoutJoinsTranscriptAndInputPanes(t *testing.T) {
 func TestLinearTalkDialogC3KeepsUndividedTranscriptAboveFooter(t *testing.T) {
 	setLinearTalkDialogTestResolution(t, 1280, 720)
 	keyboard := newPresentationTestKeyboard()
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused rendering fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Only display-dependent dialog initialization is needed.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{},
 			keyboard:  keyboard,
 		},
@@ -53,8 +53,8 @@ func TestLinearTalkDialogC3KeepsUndividedTranscriptAboveFooter(t *testing.T) {
 func TestLinearTalkDialogC3BufferCanFillVisibleTranscript(t *testing.T) {
 	setTalkHistoryTestResolution(t, 1280, 720)
 	keyboard := newPresentationTestKeyboard()
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused rendering fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Only display-dependent dialog initialization is needed.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{},
 			keyboard:  keyboard,
 		},
@@ -69,8 +69,8 @@ func TestLinearTalkDialogC3BufferCanFillVisibleTranscript(t *testing.T) {
 func TestLinearTalkDialogC3InputSharesFinalTranscriptRow(t *testing.T) {
 	setLinearTalkDialogTestResolution(t, 1280, 720)
 	keyboard := newPresentationTestKeyboard()
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused rendering fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Only display-dependent dialog initialization is needed.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{},
 			keyboard:  keyboard,
 		},

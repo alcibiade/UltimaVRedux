@@ -30,7 +30,7 @@ func (f *fixedRNG) Intn(n int) int {
 	}
 	// Simple deterministic value: val mod n, cycling slowly
 	result := f.val % n
-	f.val = (f.val*1103515245 + 12345) & 0x7fffffff //nolint:mnd // LCG constants
+	f.val = (f.val*1103515245 + 12345) & 0x7fffffff
 	return result
 }
 

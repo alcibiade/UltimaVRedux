@@ -250,7 +250,7 @@ func TestWordForDungeon(t *testing.T) {
 }
 
 func TestGetDungeonEntranceCoordinatesMatchOriginalTownTables(t *testing.T) {
-	state := &GameState{} //nolint:exhaustruct // Coordinate authority does not require initialized state.
+	state := &GameState{}
 	assert.Equal(t, map[references.Location]references.Position{
 		references.Deceit:   {X: 0xf0, Y: 0x49},
 		references.Despise:  {X: 0x5b, Y: 0x43},
@@ -264,7 +264,7 @@ func TestGetDungeonEntranceCoordinatesMatchOriginalTownTables(t *testing.T) {
 }
 
 func TestGameState_IsDungeonOpen(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
+	gs := &GameState{}
 
 	// Test default state (all closed)
 	assert.False(t, gs.IsDungeonOpen(references.Deceit))
@@ -281,7 +281,7 @@ func TestGameState_IsDungeonOpen(t *testing.T) {
 }
 
 func TestGameState_ToggleDungeon(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
+	gs := &GameState{}
 
 	// Initially all dungeons are closed (false)
 	newState := gs.ToggleDungeon(references.Deceit)
@@ -299,7 +299,7 @@ func TestGameState_ToggleDungeon(t *testing.T) {
 }
 
 func TestGameState_InitializeDungeonStatesFromSave(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
+	gs := &GameState{}
 
 	t.Run("Default initialization with empty save data", func(t *testing.T) {
 		gs.InitializeDungeonStatesFromSave([]byte{})

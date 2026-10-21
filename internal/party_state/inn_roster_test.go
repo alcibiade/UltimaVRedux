@@ -49,7 +49,7 @@ func TestPickUpCharacterFromInnPreservesCompleteRecordOrder(t *testing.T) {
 func innRosterTestParty() *PartyState {
 	var roster [NRosterSlots]*PlayerCharacter
 	for index := range roster {
-		character := &PlayerCharacter{PartyMap: PartyMapActive, Strength: byte(index + 1)} //nolint:gosec // Fixed test range.
+		character := &PlayerCharacter{PartyMap: PartyMapActive, Strength: byte(index + 1)}
 		copy(character.Name[:], fmt.Sprintf("C%02d", index))
 		roster[index] = character
 	}

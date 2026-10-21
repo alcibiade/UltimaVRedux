@@ -79,7 +79,7 @@ func TestTilePaletteModeFollowsDisplayedDungeonContext(t *testing.T) {
 	assert.Equal(t, tilePaletteNormal, scene.tilePaletteMode())
 
 	state.MapState.PlayerLocation.Location = references.CombatLocation
-	state.CombatScene = &game_state.CombatState{ //nolint:exhaustruct // Palette context needs only map territory.
+	state.CombatScene = &game_state.CombatState{
 		CombatMapRef: references.NewCombatMapReference(0, references.DungeonCombatTerritory),
 	}
 	assert.Equal(t, tilePaletteDungeon, scene.tilePaletteMode())
@@ -118,7 +118,7 @@ func TestTilePaletteModeCoversEveryDungeonTacticalOrigin(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			state := new(game_state.GameState)
 			state.MapState.PlayerLocation.Location = references.CombatLocation
-			state.CombatScene = &game_state.CombatState{ //nolint:exhaustruct // Palette context needs only map territory and origin.
+			state.CombatScene = &game_state.CombatState{
 				CombatMapRef: references.NewCombatMapReference(0, references.DungeonCombatTerritory),
 			}
 			configureOrigin(state.CombatScene)
@@ -132,7 +132,7 @@ func TestTilePaletteModeCoversEveryDungeonTacticalOrigin(t *testing.T) {
 func TestDrawTilePaletteSpriteAppliesDungeonModeBeforeColorScale(t *testing.T) {
 	state := new(game_state.GameState)
 	state.MapState.PlayerLocation.Location = references.CombatLocation
-	state.CombatScene = &game_state.CombatState{ //nolint:exhaustruct // Palette context needs only map territory.
+	state.CombatScene = &game_state.CombatState{
 		CombatMapRef: references.NewCombatMapReference(0, references.DungeonCombatTerritory),
 	}
 	scene := &GameScene{gameState: state}

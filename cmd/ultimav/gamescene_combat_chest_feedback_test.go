@@ -447,7 +447,7 @@ func finishChestFeedbackSummaryForTest(t *testing.T, scene *GameScene) {
 func newChestFeedbackScopeTestScene(t *testing.T) (*GameScene, *game_state.GameState) {
 	t.Helper()
 	scene, state := newTransientFeedbackTestScene(t, references.Britain)
-	state.CombatScene = &game_state.CombatState{EncounterID: 1} //nolint:exhaustruct // Presentation identity only.
+	state.CombatScene = &game_state.CombatState{EncounterID: 1}
 	t.Cleanup(scene.clearTransientActionFeedback)
 
 	return scene, state

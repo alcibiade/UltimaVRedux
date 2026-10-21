@@ -267,7 +267,7 @@ func newOriginalScheduleTestController(
 	tileRefs := references.NewTileReferences()
 	emptyMap := &references.LargeMapReference{}
 	layeredMaps := map_state.NewLayeredMaps(tileRefs, emptyMap, emptyMap, 11, 11)
-	state := &map_state.MapState{ //nolint:exhaustruct // Focused source-action fixture.
+	state := &map_state.MapState{
 		PlayerLocation: references.PlayerLocation{
 			Location: references.BritanniaUnderworld,
 			Position: references.Position{X: 30, Y: 30},
@@ -281,7 +281,7 @@ func newOriginalScheduleTestController(
 	reference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, 0)
 	npc.PlaceAtScheduleSlot(0)
-	controller := &NPCAIControllerSmallMap{ //nolint:exhaustruct // Focused source-action fixture.
+	controller := &NPCAIControllerSmallMap{
 		tileRefs:    tileRefs,
 		dateTime:    &datetime.UltimaDate{},
 		mapState:    state,

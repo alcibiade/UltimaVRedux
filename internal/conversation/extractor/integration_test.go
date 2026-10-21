@@ -241,9 +241,9 @@ func loadOriginalConversation(
 ) (*semantic.Conversation, []AuditEntry) {
 	t.Helper()
 
-	tlkData, err := os.ReadFile(filepath.Join(dataDir, filename)) //nolint:gosec // Test data path is explicit.
+	tlkData, err := os.ReadFile(filepath.Join(dataDir, filename))
 	require.NoError(t, err)
-	dataOvl, err := os.ReadFile(filepath.Join(dataDir, "DATA.OVL")) //nolint:gosec // Test data path is explicit.
+	dataOvl, err := os.ReadFile(filepath.Join(dataDir, "DATA.OVL"))
 	require.NoError(t, err)
 	dictionary, err := parseWordTable(dataOvl[compressedWordsOffset : compressedWordsOffset+compressedWordsLength])
 	require.NoError(t, err)
@@ -334,7 +334,7 @@ func treeDigest(root string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		data, err := os.ReadFile(filename) //nolint:gosec // Paths come from walking the selected test tree.
+		data, err := os.ReadFile(filename)
 		if err != nil {
 			return "", err
 		}

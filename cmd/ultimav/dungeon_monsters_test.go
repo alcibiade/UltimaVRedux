@@ -149,7 +149,7 @@ func TestDungeonWandererContentsRemainFarToNear(t *testing.T) {
 }
 
 func TestDungeonMonsterAnimationMatchesSourceInstructionsAndTimeStop(t *testing.T) {
-	plan := dungeonRenderPlan{location: references.Deceit, floor: 0} //nolint:exhaustruct // Animation reads stable identity only.
+	plan := dungeonRenderPlan{location: references.Deceit, floor: 0}
 	wanderer := game_state.DungeonWanderer{Floor: 0, Position: references.Position{X: 4, Y: 2}}
 
 	rat, ratArchive, ok := references.DungeonWanderingMonsterDefinitionFor(references.MonsterRat)

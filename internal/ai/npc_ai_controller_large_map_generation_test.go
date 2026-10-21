@@ -106,7 +106,6 @@ func TestLargeMapMonsterGenerationExhaustivelyMatchesOriginalSourceThreshold(t *
 	}
 }
 
-//nolint:mnd // Independent terrain/hour attempt thresholds; ref:ENEMY-0004.
 func originalSourceGenerationProbability(
 	tile indexes.SpriteIndex,
 	hour uint8,
@@ -248,7 +247,7 @@ func TestGeneratedLargeMapMonsterStartsBeyondViewportWithVacantToken(t *testing.
 	candidate := references.Position{X: 107, Y: 108}
 	layeredMap.SetTileByLayer(map_state.MapLayer, &candidate, indexes.Grass)
 
-	friendly := map_units.NewNPCFriendly(references.NPCReference{}, 1) //nolint:exhaustruct
+	friendly := map_units.NewNPCFriendly(references.NPCReference{}, 1)
 	controller.mapUnits = map_units.MapUnits{friendly}
 	controller.generateTileBasedMonster()
 
@@ -282,7 +281,7 @@ func newLargeMapGenerationTestController(
 	tileRefs := references.NewTileReferences()
 	emptyMap := &references.LargeMapReference{}
 	layeredMaps := map_state.NewLayeredMaps(tileRefs, emptyMap, emptyMap, 19, 13)
-	state := &map_state.MapState{ //nolint:exhaustruct // Focused generation fixture.
+	state := &map_state.MapState{
 		PlayerLocation: references.PlayerLocation{
 			Location: references.BritanniaUnderworld,
 			Position: references.Position{X: 100, Y: 100},
@@ -294,7 +293,7 @@ func newLargeMapGenerationTestController(
 	}
 	odds := references.NewDefaultTheOdds()
 	enemies := references.NewAllEnemyReferences(tileRefs)
-	controller := &NPCAIControllerLargeMap{ //nolint:exhaustruct // Focused generation fixture.
+	controller := &NPCAIControllerLargeMap{
 		tileRefs:        tileRefs,
 		mapState:        state,
 		debugOptions:    &references.DebugOptions{MonsterGen: true},

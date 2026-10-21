@@ -119,7 +119,7 @@ func TestReadBundlePropagatesExactFileLengthValidation(t *testing.T) {
 func TestReadBundleRejectsHugeFileBeforeAllocation(t *testing.T) {
 	directory := t.TempDir()
 	gamPath := filepath.Join(directory, "SAVED.GAM")
-	file, err := os.Create(gamPath) //nolint:gosec // Test fixture path is isolated.
+	file, err := os.Create(gamPath)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -380,7 +380,7 @@ func setHorseShopGold(state *game_state.HorseShopState, gold uint16) {
 	state.Quote.Affordable = int(gold) >= state.Quote.Price
 	state.Quote.GoldAfterPayment = gold
 	if state.Quote.Affordable {
-		state.Quote.GoldAfterPayment = gold - uint16(state.Quote.Price) //nolint:gosec // Test price is bounded.
+		state.Quote.GoldAfterPayment = gold - uint16(state.Quote.Price)
 	}
 }
 
@@ -416,7 +416,7 @@ func acceptedHorsePurchase(
 }
 
 func successfulHorsePurchaseResult(intent HorsePurchaseIntent, theft uint16) game_state.HorsePurchaseResult {
-	price := uint16(intent.Quote.Price) //nolint:gosec // Test quote is bounded.
+	price := uint16(intent.Quote.Price)
 	return game_state.HorsePurchaseResult{
 		MerchantID:            intent.Request.ReviewedMerchantID,
 		PricingCharacterIndex: intent.Request.ReviewedPricingCharacterIndex,

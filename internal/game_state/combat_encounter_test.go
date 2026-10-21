@@ -17,7 +17,7 @@ import (
 func TestClassifyOverworldEnemyContact(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct { //nolint:lll // Compact matrix keeps the source map table directly comparable.
+	tests := []struct {
 		name         string
 		enemy        *map_units.NPCEnemy
 		expectedType OverworldContactType
@@ -114,7 +114,7 @@ func TestSelectOverworldCombatMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			terrain := &references.Tile{ //nolint:exhaustruct // Terrain selection fixture.
+			terrain := &references.Tile{
 				Index: tt.terrainIndex,
 			}
 			combatMap, err := SelectOverworldCombatMap(tt.contactType, tt.vehicleType, terrain)
@@ -862,12 +862,12 @@ func newContactTestEnemy(
 ) *map_units.NPCEnemy {
 	var keyFrameTile *references.Tile
 	if spriteIndex != 0 {
-		keyFrameTile = &references.Tile{ //nolint:exhaustruct // Contact classification fixture.
+		keyFrameTile = &references.Tile{
 			Index: spriteIndex,
 		}
 	}
 
-	enemyReference := references.EnemyReference{ //nolint:exhaustruct // Contact classification fixture.
+	enemyReference := references.EnemyReference{
 		MonsterType:     monsterType,
 		KeyFrameTile:    keyFrameTile,
 		ActivelyAttacks: activelyAttacks,

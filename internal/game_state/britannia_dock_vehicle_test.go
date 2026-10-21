@@ -16,7 +16,7 @@ func TestPlaceVehicleAtBritanniaDockInsertsPendingVehicleAndActivatesInPlace(t *
 	state, _ := newDebugVehicleTestState()
 	controller := newDebugVehicleLargeMapController(state)
 	dockPosition := references.Position{X: 0x27, Y: 0xdd}
-	state.GameReferences = &references.GameReferences{ //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{
 		DockReferences: &references.DockReferences{Docks: []references.DockReference{
 			{Location: references.Jhelom, Position: dockPosition},
 		}},
@@ -64,7 +64,7 @@ func TestPlaceVehicleAtBritanniaDockRejectsOccupiedDockAtomically(t *testing.T) 
 	state, _ := newDebugVehicleTestState()
 	controller := newDebugVehicleLargeMapController(state)
 	dockPosition := references.Position{X: 0x97, Y: 0x15}
-	state.GameReferences = &references.GameReferences{ //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{
 		DockReferences: &references.DockReferences{Docks: []references.DockReference{
 			{Location: references.Minoc, Position: dockPosition},
 		}},

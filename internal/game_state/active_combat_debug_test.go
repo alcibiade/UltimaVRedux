@@ -49,7 +49,7 @@ func newActiveCombatDebugTestState() (*GameState, *CombatMonster) {
 	reference := activeCombatDebugEnemyReference()
 	monster := NewCombatMonster(references.MonsterOrc, &reference, references.Position{X: 4, Y: 4}, newFixedRNG(1))
 	combat.AddMonsterToQueue(monster)
-	state := &GameState{ //nolint:exhaustruct // Focused combat authority fixture.
+	state := &GameState{
 		PartyState:  *party,
 		CombatScene: combat,
 	}
@@ -60,7 +60,7 @@ func newActiveCombatDebugTestState() (*GameState, *CombatMonster) {
 }
 
 func activeCombatDebugEnemyReference() references.EnemyReference {
-	return references.EnemyReference{ //nolint:exhaustruct // Focused monster fixture.
+	return references.EnemyReference{
 		MonsterType: references.MonsterOrc,
 		Dexterity:   12,
 		HitPoints:   20,
@@ -355,7 +355,7 @@ func newCombatMutationTestState(
 		monsters = append(monsters, monster)
 	}
 	mock := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Focused authoritative combat mutation fixture.
+	state := &GameState{
 		PartyState: *party, CombatScene: combat, SystemCallbacks: mock.ToSystemCallbacks(),
 	}
 	state.SetRandomSeed(1)
@@ -385,7 +385,7 @@ func newDebugCombatSpawnTestState() *GameState {
 	}
 	combat := NewCombatState(combatMap, CombatEntryNorth, party)
 	combat.EncounterID = 9
-	orc := references.EnemyReference{ //nolint:exhaustruct // Focused monster fixture.
+	orc := references.EnemyReference{
 		MonsterType: references.MonsterOrc, Dexterity: 12, HitPoints: 20, MaxPerMap: 6,
 		Name: "Orc", NamePlural: "Orcs", EnemyAbilities: map[references.EnemyAbility]bool{},
 	}
@@ -394,9 +394,9 @@ func newDebugCombatSpawnTestState() *GameState {
 	))
 	enemyReferences := make(references.EnemyReferences, references.TotalMonsterTypes)
 	enemyReferences[references.MonsterOrc] = orc
-	state := &GameState{ //nolint:exhaustruct // Focused authoritative combat fixture.
+	state := &GameState{
 		PartyState: *party, CombatScene: combat,
-		GameReferences: &references.GameReferences{EnemyReferences: &enemyReferences}, //nolint:exhaustruct // Spawn requires only enemy references.
+		GameReferences: &references.GameReferences{EnemyReferences: &enemyReferences},
 	}
 	state.SetRandomSeed(1)
 	state.MapState.PlayerLocation.Location = references.CombatLocation

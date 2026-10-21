@@ -116,7 +116,7 @@ func TestAddOriginalRetainsPatchedCanonicalDocument(t *testing.T) {
 	assert.Equal(t, edited, program.CanonicalYAML())
 	loaded, err := program.Definition()
 	require.NoError(t, err)
-	assert.Equal(t, "Patched Mara", loaded.Name[0].(*semantic.SayAction).Content[0].(*semantic.TextPart).Text) //nolint:forcetypeassert // Test data fixes both closed unions.
+	assert.Equal(t, "Patched Mara", loaded.Name[0].(*semantic.SayAction).Content[0].(*semantic.TextPart).Text)
 }
 
 func testConversationDefinition(id string, origin semantic.Origin) *semantic.Conversation {

@@ -48,10 +48,10 @@ func TestActionBoardSelectsAndRemovesVehicleOnCurrentFloor(t *testing.T) {
 func TestBoardVehiclePanicsWhenCurrentFloorVehicleCannotBeRemoved(t *testing.T) {
 	position := references.Position{X: 12, Y: 34}
 	vehicle := map_units.NewNPCFriendlyVehiceNewRef(references.HorseVehicle, position, 1)
-	state := &GameState{ //nolint:exhaustruct // The invariant check only needs vehicle storage and player location.
+	state := &GameState{
 		PartyVehicle:           map_units.NewNPCFriendlyVehiceNoVehicle(),
 		CurrentNPCAIController: &ecosystemTestController{units: map_units.MapUnits{}},
-		MapState: map_state.MapState{ //nolint:exhaustruct // PlayerLocation is the only map state used by boarding.
+		MapState: map_state.MapState{
 			PlayerLocation: references.PlayerLocation{Position: position, Floor: 1},
 		},
 	}

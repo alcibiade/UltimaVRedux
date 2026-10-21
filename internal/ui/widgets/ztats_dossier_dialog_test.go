@@ -680,7 +680,7 @@ func testZStatsDossier() game_state.ZStatsDossier {
 			SpriteIndex:      indexes.SpriteIndex(265),
 			Name:             "Armory Item",
 			Category:         "Weapon",
-			Available:        uint16(index % 2), //nolint:gosec // Small deterministic fixture value.
+			Available:        uint16(index % 2),
 			Readied:          1,
 			Attack:           index,
 			StrengthRequired: 2,

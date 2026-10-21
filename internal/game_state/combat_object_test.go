@@ -122,7 +122,7 @@ func TestCombatStateOnlyBlocksMovementForBlockingObjects(t *testing.T) {
 
 	position := references.Position{X: 6, Y: 4}
 	combatState := &CombatState{}
-	combatState.AddObject(CombatObject{ //nolint:exhaustruct // Loose-object fixture uses zero-value number.
+	combatState.AddObject(CombatObject{
 		position:       position,
 		sprite:         indexes.ItemMoney,
 		blocksMovement: false,

@@ -45,7 +45,7 @@ func newDungeonInputTestScene(
 	setDungeonInputTestCell(t, state, references.Position{X: 0, Y: 1}, 0x00)
 	callbacks.Reset()
 
-	return &GameScene{ //nolint:exhaustruct // Focused dungeon-input fixture.
+	return &GameScene{
 		gameState:   state,
 		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		spriteSheet: &sprites.SpriteSheet{},

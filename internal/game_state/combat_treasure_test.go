@@ -48,7 +48,7 @@ func TestCombatTreasureRollBoundaries(t *testing.T) {
 func TestCombatDeathObjectEligibility(t *testing.T) {
 	t.Parallel()
 
-	enemy := references.EnemyReference{ //nolint:exhaustruct // Only treasure eligibility fields are relevant.
+	enemy := references.EnemyReference{
 		HitPoints:      10,
 		TreasureNumber: 10,
 		EnemyAbilities: map[references.EnemyAbility]bool{},
@@ -60,13 +60,13 @@ func TestCombatDeathObjectEligibility(t *testing.T) {
 		newFixedRNG(1),
 	)
 
-	assert.True(t, combatDeathObjectEligible(monster, &references.Tile{Index: indexes.Grass}))   //nolint:exhaustruct
-	assert.False(t, combatDeathObjectEligible(monster, &references.Tile{Index: indexes.Water1})) //nolint:exhaustruct
+	assert.True(t, combatDeathObjectEligible(monster, &references.Tile{Index: indexes.Grass}))
+	assert.False(t, combatDeathObjectEligible(monster, &references.Tile{Index: indexes.Water1}))
 	assert.False(t,
-		combatDeathObjectEligible(monster, &references.Tile{Index: indexes.BrickWallArchway})) //nolint:exhaustruct
+		combatDeathObjectEligible(monster, &references.Tile{Index: indexes.BrickWallArchway}))
 
 	enemy.EnemyAbilities[references.NoCorpse] = true
-	assert.False(t, combatDeathObjectEligible(monster, &references.Tile{Index: indexes.Grass})) //nolint:exhaustruct
+	assert.False(t, combatDeathObjectEligible(monster, &references.Tile{Index: indexes.Grass}))
 }
 
 func TestRollCombatTreasureConsumesOriginalNumberOfRolls(t *testing.T) {

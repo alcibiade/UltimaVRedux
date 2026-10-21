@@ -22,7 +22,7 @@ func TestOriginalCatalogIntegration(t *testing.T) {
 	assert.Equal(t, "original.keep.010", balinor.ID())
 	definition, err := balinor.Definition()
 	require.NoError(t, err)
-	assert.Equal(t, 10, definition.Origin.(*semantic.OriginalOrigin).Dialog) //nolint:forcetypeassert // Catalog validates this union.
+	assert.Equal(t, 10, definition.Origin.(*semantic.OriginalOrigin).Dialog)
 }
 
 func TestOriginalCatalogKnowledgePatches(t *testing.T) {

@@ -16,7 +16,7 @@ func TestTextInputCommandColorMatchesManualAndHistoryText(t *testing.T) {
 			grammar.MatchStringList{Strings: []string{"teleport"}, Description: "Destination"},
 		}, nil),
 	}
-	input := &TextInput{ //nolint:exhaustruct // Focused syntax-color fixture.
+	input := &TextInput{
 		output:       text.NewOutput(nil, 0, 1, 90),
 		textCommands: &commands,
 		inputColors: TextInputColors{

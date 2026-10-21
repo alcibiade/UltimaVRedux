@@ -289,7 +289,7 @@ func TestLoadDungeonCombatMapTriggersMatchOriginalData(t *testing.T) {
 }
 
 func combatMapTestConfig(dataPath string) *config.UltimaVConfiguration {
-	gameConfig := &config.UltimaVConfiguration{} //nolint:exhaustruct // Loader test needs only the data path.
+	gameConfig := &config.UltimaVConfiguration{}
 	gameConfig.SavedConfigData = &config.UltimaVConfigurationFlags{
 		Resolution:   0,
 		FullScreen:   false,

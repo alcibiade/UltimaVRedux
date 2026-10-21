@@ -352,7 +352,7 @@ func TestTavernTalkSetupCancellationMealRefreshAndOneMinute(t *testing.T) {
 	require.Equal(t, fixture.state.PartyState.Inventory.Provisions.Food.Get(), refreshed.Food)
 	require.Equal(t, refreshed.Gold, refreshed.Meal.GoldBefore)
 	require.Equal(t, refreshed.Food, refreshed.Meal.FoodBefore)
-	require.Equal(t, foodBefore+uint16(quote.DinerCount), refreshed.Food) //nolint:gosec // Diner count is bounded by six.
+	require.Equal(t, foodBefore+uint16(quote.DinerCount), refreshed.Food)
 	require.Empty(t, dialog.GetReceiptText(), "meal results belong to the modal")
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -560,7 +560,7 @@ func TestTavernProvisionPartialAndTerminalOutcomes(t *testing.T) {
 		fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantTavernBritain)
 		review, err := fixture.state.ReviewTavernShopByMerchantID(references.MerchantTavernBritain)
 		require.NoError(t, err)
-		fixture.state.PartyState.Inventory.Gold.Set(uint16(review.State.Provision.PricePerPack)) //nolint:gosec // Canonical price is bounded.
+		fixture.state.PartyState.Inventory.Gold.Set(uint16(review.State.Provision.PricePerPack))
 		foodBefore := fixture.state.PartyState.Inventory.Provisions.Food.Get()
 		fixture.scene.StartTalkWorkflow(fixture.direction)
 		dialog := waitForTavernDialog(t, fixture)
@@ -753,7 +753,7 @@ func TestHorseMerchantRoutePurchasesOneHorseAndOwnsOneManualMinute(t *testing.T)
 
 	require.Equal(t, widgets.HorseShopSuccess, dialog.GetPhase())
 	require.Contains(t, dialog.GetReceiptText(), fmt.Sprintf("Purchased one horse for %d gold.", price))
-	require.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Authority bounds the price.
+	require.Equal(t, uint16(500-price), fixture.state.PartyState.Inventory.Gold.Get())
 	require.Equal(t, horsesBefore+1, countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs()))
 	require.Empty(t, fixture.callbacks.TimeAdvanced())
 
@@ -1175,7 +1175,7 @@ func TestGuildBatchReceiptAppendsFaulineiTheft(t *testing.T) {
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	quote := dialog.GetSelectedQuote()
 	require.Equal(t, references.Torches, quote.Provision)
-	expectedTheft := uint16(beradrng.New(seed).Intn(64) + 1) //nolint:gosec // The roll is bounded to 1-64.
+	expectedTheft := uint16(beradrng.New(seed).Intn(64) + 1)
 
 	completeGuildPurchase(t, fixture, dialog, 4)
 
@@ -2159,7 +2159,7 @@ func TestShipFirstDeliveryDispatchReturnsToShowroom(t *testing.T) {
 			dispatch := waitForShipDispatchDialog(t, fixture)
 			require.Equal(t, widgets.ShipShopSuccessReceipt, shop.GetPhase())
 			require.Equal(t, 2, fixture.scene.dialogStack.Count())
-			require.Equal(t, goldBefore-uint16(price), fixture.state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Quote affordability bounds the price.
+			require.Equal(t, goldBefore-uint16(price), fixture.state.PartyState.Inventory.Gold.Get())
 			require.Equal(t, test.wantBerth, shop.GetState().Berth.State)
 			require.True(t, shop.GetState().Travel.PendingDelivery)
 			require.Equal(t, shop.GetState().Gold, shop.GetState().FrigateQuote.GoldBefore)
@@ -2784,7 +2784,7 @@ func TestInnLeaveAndPickupRefreshSameModesWithExactTheftReceipt(t *testing.T) {
 	pressMerchantDialogKey(fixture, ebiten.KeyP)
 	require.Equal(t, leftName, dialog.GetPickupRows()[0].Identity.Name)
 	charge := dialog.GetPickupRows()[0].Charge
-	wantTheft := uint16(beradrng.New(seed).Intn(64) + 1) //nolint:gosec // The authority roll is bounded to 1-64.
+	wantTheft := uint16(beradrng.New(seed).Intn(64) + 1)
 	completeInnAction(t, fixture, dialog)
 
 	wantGold := uint16(1000) - charge - wantTheft
@@ -3064,7 +3064,7 @@ func newMerchantTalkFixture(
 		// ownership and save-editor handoff have their own widget regressions.
 		appendInputChars: func(chars []rune) []rune { return chars },
 		// Merchant tests need addressable tile bounds, not the production border cache.
-		spriteSheet: &sprites.SpriteSheet{SpriteImage: ebiten.NewImage(512, 256)}, //nolint:mnd
+		spriteSheet: &sprites.SpriteSheet{SpriteImage: ebiten.NewImage(512, 256)},
 	}
 
 	callbacks.BindGameState(state)

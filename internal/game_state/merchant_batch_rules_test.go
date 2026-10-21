@@ -54,7 +54,7 @@ func TestMerchantBatchEconomicUnits(t *testing.T) {
 					}
 					gold := uint16(9999)
 					if tight {
-						gold = uint16(2 * price) //nolint:gosec // Canonical test prices are bounded.
+						gold = uint16(2 * price)
 					}
 					state.PartyState.Inventory.Gold.Set(gold)
 					assert.Zero(t, state.GetRNG().Calls(), "quotes must not draw theft")
@@ -98,7 +98,7 @@ func TestMerchantBatchEconomicUnits(t *testing.T) {
 						remaining -= payment
 						stolen := min(remaining, expected.Intn(64)+1)
 						remaining -= stolen
-						expectedTheft += uint16(stolen) //nolint:gosec // Theft is 0..64.
+						expectedTheft += uint16(stolen)
 					}
 					assert.Equal(t, expectedTheft, theft)
 					assert.Equal(t, remaining, int(state.PartyState.Inventory.Gold.Get()))

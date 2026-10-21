@@ -479,7 +479,7 @@ func setShipShopGold(state *game_state.ShipShopState, gold uint16) {
 		quote.GoldAfterPayment = gold
 		quote.Affordable = quote.Price <= int(gold)
 		if quote.Affordable {
-			quote.GoldAfterPayment = gold - uint16(quote.Price) //nolint:gosec // Test quote prices are bounded.
+			quote.GoldAfterPayment = gold - uint16(quote.Price)
 		}
 		setTestShipQuoteApprovals(quote)
 	}
@@ -500,7 +500,7 @@ func setTestShipQuoteApprovals(quote *game_state.ShipPurchaseQuote) {
 		affordable := total <= int(quote.GoldBefore)
 		afterGold := quote.GoldBefore
 		if affordable {
-			afterGold -= uint16(total) //nolint:gosec // Test totals are bounded by affordability.
+			afterGold -= uint16(total)
 		}
 		skiffsAfter := quote.Berth.SkiffCount
 		switch quote.Action {

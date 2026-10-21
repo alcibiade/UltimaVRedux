@@ -411,7 +411,7 @@ func TestPurchaseShipLoadsReviewedSkiffQuantityAtomically(t *testing.T) {
 	assert.Equal(t, 2, result.SkiffCountBefore)
 	assert.Equal(t, 5, result.SkiffCountAfter)
 	assert.Equal(t, 5, frigate.GetVehicleDetails().GetSkiffQuantity())
-	assert.Equal(t, uint16(2000-result.Price)-expectedTheft, state.PartyState.Inventory.Gold.Get()) //nolint:gosec // Reviewed total is affordable.
+	assert.Equal(t, uint16(2000-result.Price)-expectedTheft, state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
 }
 

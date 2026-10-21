@@ -16,7 +16,7 @@ import (
 
 func TestInterceptSmashedCommandZeroConsumesNoRNG(t *testing.T) {
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{SystemCallbacks: callbacks.ToSystemCallbacks()} //nolint:exhaustruct // Focused zero-state fixture.
+	state := &GameState{SystemCallbacks: callbacks.ToSystemCallbacks()}
 	state.SetRandomSeed(239)
 
 	result, err := state.InterceptSmashedCommand()
@@ -29,7 +29,7 @@ func TestInterceptSmashedCommandZeroConsumesNoRNG(t *testing.T) {
 
 func TestInterceptSmashedCommandMissConsumesOnlyChanceRoll(t *testing.T) {
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Focused miss fixture must not need town authority.
+	state := &GameState{
 		smashed:         3,
 		SystemCallbacks: callbacks.ToSystemCallbacks(),
 	}
@@ -171,7 +171,7 @@ func TestInterceptSmashedCommandReactivatesGuardsOnRepeatedHits(t *testing.T) {
 
 func TestInterceptSmashedCommandGuardFailureStopsBeforeDecrementAndDirection(t *testing.T) {
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Missing controller is the failure under test.
+	state := &GameState{
 		smashed:         1,
 		SystemCallbacks: callbacks.ToSystemCallbacks(),
 	}

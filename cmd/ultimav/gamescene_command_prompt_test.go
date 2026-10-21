@@ -32,7 +32,7 @@ func TestMapCommandHandlersUseOriginalPrompt(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			mockCallbacks.Reset()
-			scene := &GameScene{ //nolint:exhaustruct // Focused command-output fixture.
+			scene := &GameScene{
 				gameState: gameState,
 				keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 			}

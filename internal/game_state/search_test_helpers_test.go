@@ -8,8 +8,6 @@ import (
 
 // testDebugPrintFoundStatus is a test helper that prints detailed status of all found search locations
 // (moved from authentic_search_location_manager.go to keep test-only code in test files)
-//
-//nolint:unused // Test helper used by multiple search test files
 func testDebugPrintFoundStatus(aslm *AuthenticSearchLocationManager) string {
 	allLocations := references.GetAllSearchLocations()
 	result := fmt.Sprintf("=== SEARCH LOCATION DEBUG STATUS ===\n")

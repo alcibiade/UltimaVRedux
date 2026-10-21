@@ -29,16 +29,16 @@ func TestOriginalBalinorProductionDialogRows(t *testing.T) {
 	avatar := &party_state.PlayerCharacter{PartyMap: party_state.PartyMapActive}
 	copy(avatar.Name[:], "Avatar")
 	roster[0] = avatar
-	state := &game_state.GameState{ //nolint:exhaustruct // Production conversation fixture needs only catalog, location, party, and debug state.
+	state := &game_state.GameState{
 		PartyState: *party_state.NewPartyStateFromRoster(roster),
-		MapState: map_state.MapState{ //nolint:exhaustruct // Only current location participates in conversation resolution.
+		MapState: map_state.MapState{
 			PlayerLocation: references.PlayerLocation{Location: references.Stonegate},
 		},
-		GameReferences: &references.GameReferences{ConversationCatalog: catalog}, //nolint:exhaustruct // Focused catalog fixture.
+		GameReferences: &references.GameReferences{ConversationCatalog: catalog},
 	}
 	keyboard := newPresentationTestKeyboard()
-	scene := &GameScene{gameState: state, keyboard: keyboard} //nolint:exhaustruct // Focused production dialog fixture.
-	npc := map_units.NewNPCFriendly(references.NPCReference{  //nolint:exhaustruct // Balinor identity fields only.
+	scene := &GameScene{gameState: state, keyboard: keyboard}
+	npc := map_units.NewNPCFriendly(references.NPCReference{
 		Location: references.Stonegate, DialogNumber: 10, NpcType: references.NoStatedNpc,
 	}, 1)
 
@@ -84,8 +84,8 @@ func TestLinearTalkDialogKeyWaitDoesNotChangeConversationOutput(t *testing.T) {
 	keyboard := newPresentationTestKeyboard()
 	output := text.NewOutput(nil, 1, 8, 45)
 	output.AddTextRaw("\"Before\"\n\n")
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused KeyWait presentation fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Focused KeyWait presentation fixture.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{},
 			keyboard:  keyboard,
 		},
@@ -110,9 +110,9 @@ func TestLinearTalkDialogKeyWaitDoesNotChangeConversationOutput(t *testing.T) {
 func TestLinearTalkDialogResponseCanContinuePreviousOutput(t *testing.T) {
 	output := text.NewOutput(nil, 1, 8, 45)
 	output.AddTextRaw("\"Before ")
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused response-presentation fixture.
+	dialog := &LinearTalkDialog{
 		Output: output,
-		currentResponse: &conversation.ConversationResponse{ //nolint:exhaustruct // Protocol fixture sets relevant fields only.
+		currentResponse: &conversation.ConversationResponse{
 			Output:                  "after.\"",
 			ContinuesPreviousOutput: true,
 		},
@@ -125,7 +125,7 @@ func TestLinearTalkDialogResponseCanContinuePreviousOutput(t *testing.T) {
 
 func TestLinearTalkDialogPromptAddsResponseMarkerRow(t *testing.T) {
 	output := text.NewOutput(nil, 1, 4, 45)
-	dialog := &LinearTalkDialog{Output: output} //nolint:exhaustruct // Focused prompt presentation fixture.
+	dialog := &LinearTalkDialog{Output: output}
 
 	dialog.addInputPrompt("Your interest?")
 
@@ -148,9 +148,9 @@ func TestLinearTalkDialogNormalResponseSpacing(t *testing.T) {
 			prompt := []text.ColorSegment{{Text: "Your interest? ", Color: ultimacolor.EGALightGreen}}
 			output.AddStyledPrompt(prompt, etext.AlignStart)
 			output.AppendText(testCase.input)
-			dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused response-presentation fixture.
+			dialog := &LinearTalkDialog{
 				Output: output,
-				currentResponse: &conversation.ConversationResponse{ //nolint:exhaustruct // Relevant protocol fields only.
+				currentResponse: &conversation.ConversationResponse{
 					Output: "\n\n" + testCase.response + "\n\n", ContinuesPreviousOutput: true,
 				},
 			}
@@ -174,9 +174,9 @@ func TestLinearTalkDialogRunicResponseSpacing(t *testing.T) {
 	prompt := []text.ColorSegment{{Text: "Your interest? ", Color: ultimacolor.EGALightGreen}}
 	output.AddStyledPrompt(prompt, etext.AlignStart)
 	output.AppendText("RUNE")
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused runic response-presentation fixture.
+	dialog := &LinearTalkDialog{
 		Output: output,
-		currentResponse: &conversation.ConversationResponse{ //nolint:exhaustruct // Relevant protocol fields only.
+		currentResponse: &conversation.ConversationResponse{
 			Output: "\n\n\"VILIS\"\n\n",
 			Segments: []conversation.TextSegment{
 				{Text: "\n\n\"", IsRunic: false},
@@ -207,8 +207,8 @@ func TestLinearTalkDialogDismissalSpacing(t *testing.T) {
 		etext.AlignStart,
 	)
 	output.AppendText("BYE")
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused dismissal-presentation fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Focused dismissal-presentation fixture.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{}, keyboard: keyboard,
 		},
 		Output: output,
@@ -216,7 +216,7 @@ func TestLinearTalkDialogDismissalSpacing(t *testing.T) {
 			sprites.PercentBasedPlacement{}, widgets.GetScaledLineHeight(talkFontSize), talkMaxCharsInput,
 			nil, widgets.TextInputCallbacks{}, keyboard,
 		),
-		currentResponse: &conversation.ConversationResponse{ //nolint:exhaustruct // Relevant protocol fields only.
+		currentResponse: &conversation.ConversationResponse{
 			Output: "\n\n\"Farewell.\"\n", ContinuesPreviousOutput: true,
 		},
 	}
@@ -240,10 +240,10 @@ func TestLinearTalkDialogDismissalOrdersCallbackOutputBeforeHint(t *testing.T) {
 		etext.AlignStart,
 	)
 	output.AppendText("JOIN")
-	callbacks := &GameActionCallbacks{} //nolint:exhaustruct // Focused accumulated-output fixture.
+	callbacks := &GameActionCallbacks{}
 	callbacks.ShowOutput("Chuckles has joined thee!")
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused dismissal-presentation fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Focused dismissal-presentation fixture.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{}, keyboard: keyboard,
 		},
 		Output: output,
@@ -252,7 +252,7 @@ func TestLinearTalkDialogDismissalOrdersCallbackOutputBeforeHint(t *testing.T) {
 			nil, widgets.TextInputCallbacks{}, keyboard,
 		),
 		callbacks: callbacks,
-		currentResponse: &conversation.ConversationResponse{ //nolint:exhaustruct // Relevant protocol fields only.
+		currentResponse: &conversation.ConversationResponse{
 			Output: "\n\n\"I shall join thee.\"\n", ContinuesPreviousOutput: true,
 		},
 	}
@@ -273,10 +273,10 @@ func TestLinearTalkDialogDismissalOrdersCallbackOutputBeforeHint(t *testing.T) {
 func TestLinearTalkDialogCapacityRefusalOrdersAuthoredOutputBeforeCallback(t *testing.T) {
 	keyboard := newPresentationTestKeyboard()
 	output := text.NewOutput(nil, 1, 6, 90)
-	callbacks := &GameActionCallbacks{} //nolint:exhaustruct // Focused accumulated-output fixture.
+	callbacks := &GameActionCallbacks{}
 	callbacks.ShowOutput("\nThou hast no room for me in thy party!\n")
-	dialog := &LinearTalkDialog{ //nolint:exhaustruct // Focused refusal-presentation fixture.
-		gameScene: &GameScene{ //nolint:exhaustruct // Focused key-wait presentation fixture.
+	dialog := &LinearTalkDialog{
+		gameScene: &GameScene{
 			gameState: &game_state.GameState{}, keyboard: keyboard,
 		},
 		Output: output,
@@ -285,7 +285,7 @@ func TestLinearTalkDialogCapacityRefusalOrdersAuthoredOutputBeforeCallback(t *te
 			nil, widgets.TextInputCallbacks{}, keyboard,
 		),
 		callbacks: callbacks,
-		currentResponse: &conversation.ConversationResponse{ //nolint:exhaustruct // Relevant protocol fields only.
+		currentResponse: &conversation.ConversationResponse{
 			Output: "\"I shall join thee.\"", ContinuesPreviousOutput: true, WaitingForKeypress: true,
 		},
 	}

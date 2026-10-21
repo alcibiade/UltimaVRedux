@@ -170,7 +170,7 @@ func newSmashedInputTestScene(
 	state.DateTime.Hour = 12
 
 	keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
-	scene := &GameScene{ //nolint:exhaustruct // Focused production Update routing fixture.
+	scene := &GameScene{
 		gameState:            state,
 		keyboard:             keyboard,
 		output:               text.NewOutput(nil, 1, 64, 128),

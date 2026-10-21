@@ -275,7 +275,7 @@ func TestActionFeedbackConfigurationCancelAndFailedApplyPreserveLiveCards(t *tes
 
 func setActionPopupLimitForTest(scene *GameScene, limit int) {
 	if scene.gameConfig == nil {
-		scene.gameConfig = &config.UltimaVConfiguration{} //nolint:exhaustruct // Only the applied gameplay preference is needed.
+		scene.gameConfig = &config.UltimaVConfiguration{}
 	}
 	if scene.gameConfig.GameplayConfiguration == nil {
 		scene.gameConfig.GameplayConfiguration = config.DefaultGameplayConfiguration()

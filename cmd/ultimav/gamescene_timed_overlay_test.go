@@ -106,7 +106,7 @@ func TestTimedOverlayDisposalRemovesExactOwnedInstance(t *testing.T) {
 }
 
 func newTimedOverlayTestScene() *GameScene {
-	return &GameScene{ //nolint:exhaustruct // Focused timed-overlay ownership fixture.
+	return &GameScene{
 		gameState: &game_state.GameState{ElapsedMs: 100},
 	}
 }

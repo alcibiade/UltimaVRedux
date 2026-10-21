@@ -125,7 +125,7 @@ func TestOrdinaryDirectionInputMatrix(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			scene := &GameScene{ //nolint:exhaustruct // Focused production direction-input fixture.
+			scene := &GameScene{
 				keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 				output:   text.NewOutput(nil, 1, 10, 80),
 			}
@@ -487,7 +487,7 @@ func TestCombatKlimbSelectedLadderFailureRepromptsSameExactAction(t *testing.T) 
 }
 
 func TestCombatCrosshairKeepsDistinctDiagonalAndEscapeInput(t *testing.T) {
-	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)} //nolint:exhaustruct // Focused crosshair fixture.
+	scene := &GameScene{keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 	scene.keyboard.SimulateKeyPress(ebiten.KeyNumpad7)
 
 	dx, dy, moved := scene.getCombatTargetMovement()

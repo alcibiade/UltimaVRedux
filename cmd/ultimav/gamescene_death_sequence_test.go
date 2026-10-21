@@ -15,7 +15,7 @@ import (
 
 func TestDeathKarmaReportWaitsForAcknowledgementAndCleansUp(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
-	scene := &GameScene{ //nolint:exhaustruct // Focused report lifecycle fixture.
+	scene := &GameScene{
 		gameState: state,
 		keyboard:  input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:    text.NewOutput(nil, 1, 10, 80),

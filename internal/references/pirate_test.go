@@ -12,7 +12,7 @@ import (
 // TestNewPirateShipEnemyReference prevents natural water generation from
 // producing the immobile person-in-stocks representation for pirate ships.
 func TestNewPirateShipEnemyReference(t *testing.T) {
-	tile := &Tile{Index: indexes.PirateShipLeft} //nolint:exhaustruct // Sprite identity fixture.
+	tile := &Tile{Index: indexes.PirateShipLeft}
 
 	pirate := NewPirateShipEnemyReference(tile)
 
@@ -26,7 +26,7 @@ func TestNewPirateShipEnemyReference(t *testing.T) {
 }
 
 func TestNewPirateShipEnemyReferenceRejectsNonPirateTile(t *testing.T) {
-	tile := &Tile{Index: indexes.Water1} //nolint:exhaustruct // Invalid identity fixture.
+	tile := &Tile{Index: indexes.Water1}
 
 	assert.PanicsWithValue(t, "pirate ship requires a pirate ship tile", func() {
 		NewPirateShipEnemyReference(tile)

@@ -17,7 +17,7 @@ func TestExecuteScenarioStatusReportsActiveContext(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused Scenario Lab fixture.
+	scene := &GameScene{gameState: state}
 
 	status, handled := scene.executeScenarioDebugCommand(debugging.Request{
 		SessionID: "test", ID: "status", CommandID: debugging.CommandScenarioStatus,

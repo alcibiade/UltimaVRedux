@@ -14,7 +14,7 @@ func TestGetVisibleEnemyAtPositionAndFloorOrNil(t *testing.T) {
 	t.Parallel()
 
 	position := references.Position{X: 12, Y: 34}
-	enemy := NewEnemyNPC(references.EnemyReference{}, 1) //nolint:exhaustruct // Identity-only lookup fixture.
+	enemy := NewEnemyNPC(references.EnemyReference{}, 1)
 	enemy.SetPos(position)
 	enemy.SetFloor(2)
 	enemy.SetVisible(true)
@@ -31,7 +31,7 @@ func TestGetVisibleEnemyAtPositionAndFloorOrNilFiltersInvalidContacts(t *testing
 	t.Parallel()
 
 	position := references.Position{X: 12, Y: 34}
-	enemy := NewEnemyNPC(references.EnemyReference{}, 1) //nolint:exhaustruct // Identity-only lookup fixture.
+	enemy := NewEnemyNPC(references.EnemyReference{}, 1)
 	enemy.SetPos(position)
 	enemy.SetFloor(2)
 	enemy.SetVisible(true)
@@ -51,8 +51,8 @@ func TestRemoveEnemyRemovesExactStoredInstance(t *testing.T) {
 	t.Parallel()
 
 	position := references.Position{X: 12, Y: 34}
-	first := NewEnemyNPC(references.EnemyReference{}, 1)  //nolint:exhaustruct // Identity-only removal fixture.
-	second := NewEnemyNPC(references.EnemyReference{}, 2) //nolint:exhaustruct // Identity-only removal fixture.
+	first := NewEnemyNPC(references.EnemyReference{}, 1)
+	second := NewEnemyNPC(references.EnemyReference{}, 2)
 	first.SetPos(position)
 	second.SetPos(position)
 	first.SetVisible(true)
@@ -69,8 +69,8 @@ func TestRemoveEnemyRemovesExactStoredInstance(t *testing.T) {
 
 func TestEnemyInstanceOwnsDurabilityFacingVariantAndShadowlordIdentity(t *testing.T) {
 	t.Parallel()
-	up := &references.Tile{Index: indexes.PirateShipUp}     //nolint:exhaustruct // Sprite identity is sufficient.
-	left := &references.Tile{Index: indexes.PirateShipLeft} //nolint:exhaustruct // Sprite identity is sufficient.
+	up := &references.Tile{Index: indexes.PirateShipUp}
+	left := &references.Tile{Index: indexes.PirateShipLeft}
 	pirateReference := references.NewPirateShipEnemyReference(up)
 	pirate := NewEnemyNPC(pirateReference, 1)
 	pirate.SetCurrentHP(43)
@@ -85,8 +85,8 @@ func TestEnemyInstanceOwnsDurabilityFacingVariantAndShadowlordIdentity(t *testin
 
 	shadowlord := NewEnemyNPC(references.EnemyReference{
 		MonsterType:  references.MonsterShadowlord,
-		KeyFrameTile: &references.Tile{Index: indexes.ShadowLordKeyIndex}, //nolint:exhaustruct
-	}, 2) //nolint:exhaustruct
+		KeyFrameTile: &references.Tile{Index: indexes.ShadowLordKeyIndex},
+	}, 2)
 	shadowlord.SetShadowlordIdentity(references.Nosfentor)
 	lord, ok := shadowlord.ShadowlordIdentity()
 	assert.True(t, ok)

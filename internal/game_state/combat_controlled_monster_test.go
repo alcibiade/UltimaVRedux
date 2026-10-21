@@ -318,7 +318,7 @@ func TestPCAttackRejectsPartyLoyalMonsterAsFriendly(t *testing.T) {
 func TestControlledMonsterMeleePublishesMonsterIdentitiesAndAwardsNoXP(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
 
-	attackerRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
+	attackerRef := &references.EnemyReference{
 		MonsterType: references.MonsterOrc,
 		Name:        "Controlled Orc",
 		Damage:      100,
@@ -326,7 +326,7 @@ func TestControlledMonsterMeleePublishesMonsterIdentitiesAndAwardsNoXP(t *testin
 		HitPoints:   20,
 		AttackRange: 1,
 	}
-	targetRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
+	targetRef := &references.EnemyReference{
 		MonsterType: references.MonsterTroll,
 		Name:        "Target Troll",
 		Dexterity:   1,

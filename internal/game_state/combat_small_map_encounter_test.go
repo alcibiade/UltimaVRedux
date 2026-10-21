@@ -627,7 +627,7 @@ func emptyAdjacentAttackPosition(
 }
 
 func smallMapTerrain(index indexes.SpriteIndex) *references.Tile {
-	return &references.Tile{Index: index} //nolint:exhaustruct // Map selection needs only the source tile index.
+	return &references.Tile{Index: index}
 }
 
 func findSmallMapDoorForCombatReturnTest(

@@ -370,7 +370,7 @@ func testGuildQuote(
 		PricePerBundle: price,
 		Gold:           gold,
 		QuantityBefore: quantity,
-		MaxBundles:     uint16(min(usefulBundles, affordableBundles)), //nolint:gosec // Test values are bounded.
+		MaxBundles:     uint16(min(usefulBundles, affordableBundles)),
 	}
 }
 
@@ -424,7 +424,7 @@ func refreshedGuildState(
 		if remaining > 0 {
 			usefulBundles = (remaining + int(quote.BundleQuantity) - 1) / int(quote.BundleQuantity)
 		}
-		quote.MaxBundles = uint16(min(usefulBundles, int(gold)/quote.PricePerBundle)) //nolint:gosec // Test values are bounded.
+		quote.MaxBundles = uint16(min(usefulBundles, int(gold)/quote.PricePerBundle))
 	}
 
 	return state

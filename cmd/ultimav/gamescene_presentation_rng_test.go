@@ -16,7 +16,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
 )
 
-var sharedPresentationTestSpriteSheet = sync.OnceValue(sprites.NewSpriteSheet) //nolint:gochecknoglobals // Shared immutable atlas avoids repeated GPU-heavy setup.
+var sharedPresentationTestSpriteSheet = sync.OnceValue(sprites.NewSpriteSheet)
 
 func TestDissolvePresentationPreservesGameplayRNGSnapshot(t *testing.T) {
 	scene, _ := newShardWorkflowTestScene(t)

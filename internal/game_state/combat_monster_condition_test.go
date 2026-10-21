@@ -72,7 +72,7 @@ func TestSurvivingMonsterHitAppliesConditionOnlyForNormalDamage(t *testing.T) {
 func newConditionTestMonster(t *testing.T) *CombatMonster {
 	t.Helper()
 
-	reference := references.EnemyReference{HitPoints: 20} //nolint:exhaustruct // Only HP is relevant to condition().
+	reference := references.EnemyReference{HitPoints: 20}
 	monster := NewCombatMonster(references.MonsterGazer, &reference, references.Position{}, newFixedRNG(0))
 	require.Equal(t, 20, monster.MaxHP())
 

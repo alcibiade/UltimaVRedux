@@ -23,7 +23,7 @@ func TestCharacterCreationFlowBuildsOriginalNewGameAtIolosHut(t *testing.T) {
 	templateBytes := make(map[string][]byte, 2)
 	for _, filename := range []string{files.InitGam, files.InitOol} {
 		path := filepath.Join(directory, filename)
-		data, err := os.ReadFile(path) //nolint:gosec // Explicit optional original-data test input.
+		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatalf("loading selected original %s: %v", filename, err)
 		}
@@ -75,7 +75,7 @@ func TestCharacterCreationFlowBuildsOriginalNewGameAtIolosHut(t *testing.T) {
 	assertCanonicalPreparedPlayerSave(t, repository.saves[0].envelope.Snapshot)
 
 	for filename, before := range templateBytes {
-		after, err := os.ReadFile(filepath.Join(directory, filename)) //nolint:gosec // Same explicit test input as above.
+		after, err := os.ReadFile(filepath.Join(directory, filename))
 		require.NoError(t, err)
 		assert.Equal(t, before, after)
 	}

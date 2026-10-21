@@ -133,7 +133,7 @@ func TestActiveCombatExitDiscardsReviewedEncounterWithoutResolvingOrigin(t *test
 func TestGameSceneRoutesActiveCombatExitCommand(t *testing.T) {
 	state, _ := newActiveCombatWorkbenchTestState()
 	status := newActiveCombatResult(state)
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused scene-dispatch regression fixture.
+	scene := &GameScene{gameState: state}
 
 	result := scene.ExecuteDebugCommand(debugging.Request{
 		SessionID: "test", ID: "exit", CommandID: debugging.CommandCombatExitDebug,
@@ -150,7 +150,7 @@ func TestGameSceneRoutesActiveCombatExitCommand(t *testing.T) {
 func TestGameSceneRejectsActiveCombatExitDuringMovement(t *testing.T) {
 	state, _ := newActiveCombatWorkbenchTestState()
 	status := newActiveCombatResult(state)
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused scene-dispatch regression fixture.
+	scene := &GameScene{gameState: state}
 	scene.combatMovement.Active = true
 
 	result := scene.ExecuteDebugCommand(debugging.Request{
@@ -377,7 +377,7 @@ func newActiveCombatWorkbenchTestState() (*game_state.GameState, *game_state.Com
 	}
 	combat := game_state.NewCombatState(combatMap, game_state.CombatEntryNorth, party)
 	combat.EncounterID = 9
-	reference := references.EnemyReference{ //nolint:exhaustruct // Focused monster fixture.
+	reference := references.EnemyReference{
 		MonsterType: references.MonsterOrc,
 		Dexterity:   12,
 		HitPoints:   20,
@@ -397,11 +397,11 @@ func newActiveCombatWorkbenchTestState() (*game_state.GameState, *game_state.Com
 	combat.AddMonsterToQueue(monster)
 	enemyReferences := make(references.EnemyReferences, references.TotalMonsterTypes)
 	enemyReferences[references.MonsterOrc] = reference
-	state := &game_state.GameState{ //nolint:exhaustruct // Focused active-combat fixture.
+	state := &game_state.GameState{
 		PartyState:     *party,
 		CombatScene:    combat,
-		GameReferences: &references.GameReferences{EnemyReferences: &enemyReferences}, //nolint:exhaustruct // Spawn requires only enemy references.
-		SystemCallbacks: &game_state.SystemCallbacks{ //nolint:exhaustruct // Focused fixture wires callbacks reached by combat exit and victory.
+		GameReferences: &references.GameReferences{EnemyReferences: &enemyReferences},
+		SystemCallbacks: &game_state.SystemCallbacks{
 			Combat: game_state.NewCombatCallbacks(
 				func(game_state.CombatEvent) {},
 				func(game_state.CombatConclusion) {},

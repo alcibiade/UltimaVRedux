@@ -463,7 +463,7 @@ func TestFreshLiveAndClearedFixedRoomLoadsRestoreSourceTriggers(t *testing.T) {
 	state.GameConfig = syntheticCombatConfig(dataPath)
 	tiles := references.NewTileReferences()
 	enemyReferences := syntheticTriggerEnemyReferences()
-	state.GameReferences = &references.GameReferences{ //nolint:exhaustruct // Fixed-room fixture needs only combat references.
+	state.GameReferences = &references.GameReferences{
 		TileReferences:  tiles,
 		EnemyReferences: &enemyReferences,
 	}
@@ -547,9 +547,9 @@ func newSyntheticDungeonTriggerCombatState(
 	tiles := references.NewTileReferences()
 	enemyReferences := syntheticTriggerEnemyReferences()
 	callbacks := NewMockSystemCallbacks(t)
-	state := &GameState{ //nolint:exhaustruct // Focused synthetic combat fixture.
+	state := &GameState{
 		PartyState: *party,
-		GameReferences: &references.GameReferences{ //nolint:exhaustruct // Combat fixture needs only these references.
+		GameReferences: &references.GameReferences{
 			TileReferences:  tiles,
 			EnemyReferences: &enemyReferences,
 		},
@@ -622,7 +622,7 @@ func writeSyntheticDungeonTrigger(
 }
 
 func syntheticCombatConfig(dataPath string) *config.UltimaVConfiguration {
-	gameConfig := &config.UltimaVConfiguration{} //nolint:exhaustruct // Synthetic loader needs only the data path.
+	gameConfig := &config.UltimaVConfiguration{}
 	gameConfig.SavedConfigData = &config.UltimaVConfigurationFlags{
 		Resolution:   0,
 		FullScreen:   false,
@@ -634,7 +634,7 @@ func syntheticCombatConfig(dataPath string) *config.UltimaVConfiguration {
 
 func syntheticTriggerEnemyReferences() references.EnemyReferences {
 	enemyReferences := make(references.EnemyReferences, references.TotalMonsterTypes)
-	enemyReferences[references.MonsterOrc] = references.EnemyReference{ //nolint:exhaustruct // Focused combat fixture.
+	enemyReferences[references.MonsterOrc] = references.EnemyReference{
 		MonsterType:  references.MonsterOrc,
 		Name:         "Orc",
 		NamePlural:   "Orcs",

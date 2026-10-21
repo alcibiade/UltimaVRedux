@@ -21,7 +21,7 @@ import (
 )
 
 func TestCombatPartySpriteIndexUsesOriginalInvisiblePlayerTile(t *testing.T) {
-	character := &party_state.PlayerCharacter{} //nolint:exhaustruct // Sprite-selection fixture.
+	character := &party_state.PlayerCharacter{}
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.InvisiblePlayer), combatPartySpriteIndex(character, true, false))
 	assert.Equal(t, indexes.RatKeyIndex, combatPartySpriteIndex(character, false, true))
@@ -38,7 +38,7 @@ func TestCombatEventAudioRequestsOneResultCueAndSkipsAreaEvents(t *testing.T) {
 	gs, callbacks := game_state.NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).WithSystemCallbacks().Build()
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Only combat event audio is under test.
+	scene := &GameScene{gameState: gs}
 	cases := []struct {
 		kind   game_state.CombatEventKind
 		result game_state.CombatFeedbackResult
@@ -56,7 +56,7 @@ func TestCombatEventAudioRequestsOneResultCueAndSkipsAreaEvents(t *testing.T) {
 	}
 	for _, test := range cases {
 		before := len(callbacks.SoundEffectsPlayed)
-		scene.recordCombatEvent(game_state.CombatEvent{ //nolint:exhaustruct // Only the event result decides the request.
+		scene.recordCombatEvent(game_state.CombatEvent{
 			Kind: test.kind, Result: test.result,
 		})
 		if test.want == nil {
@@ -70,7 +70,7 @@ func TestCombatEventAudioRequestsOneResultCueAndSkipsAreaEvents(t *testing.T) {
 func soundEffectPointer(effect game_state.SoundEffect) *game_state.SoundEffect { return &effect }
 
 func TestCombatUtilitySpellPlainTextDescribesPersistentMutation(t *testing.T) {
-	event := game_state.CombatEvent{ //nolint:exhaustruct // Text fixture needs only utility fields.
+	event := game_state.CombatEvent{
 		Kind:          game_state.CombatEventUtilitySpell,
 		UtilityResult: game_state.CombatUtilityDoorMagicLocked,
 		Diagnostics:   game_state.CombatDiagnostics{Spell: references.AnExPor},
@@ -94,8 +94,8 @@ func TestCombatHUDFormatsMonsterVisibilityAndTeleportEvents(t *testing.T) {
 		references.MonsterShadowlord, monsterRef, references.Position{X: 2, Y: 2}, gs.AsRandomProvider(),
 	)
 	monsterIndex := gs.CombatScene.AddMonsterToQueue(monster)
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused event-text fixture.
-	event := game_state.CombatEvent{   //nolint:exhaustruct // Focused visibility fixture.
+	scene := &GameScene{gameState: gs}
+	event := game_state.CombatEvent{
 		Kind:       game_state.CombatEventVisibility,
 		Attacker:   game_state.CombatFeedbackEntity{Index: monsterIndex},
 		Visibility: game_state.CombatVisibilityHidden,
@@ -158,7 +158,7 @@ func TestCombatHUDDetailDefaultsOff(t *testing.T) {
 }
 
 func TestCurrentCombatTurnIdentityIsHiddenBeforeTurnsStart(t *testing.T) {
-	combat := &game_state.CombatState{} //nolint:exhaustruct // Focused HUD transition fixture.
+	combat := &game_state.CombatState{}
 
 	_, valid := currentCombatTurnIdentity(combat)
 
@@ -255,7 +255,7 @@ func TestCombatEventLineCapacityFitsCompleteGlyphHeight(t *testing.T) {
 
 func TestCombatHUDStartsEachEncounterWithBattleMessage(t *testing.T) {
 	hud := newCombatHUD()
-	combat := &game_state.CombatState{} //nolint:exhaustruct // Identity-only HUD lifecycle fixture.
+	combat := &game_state.CombatState{}
 
 	hud.sync(combat)
 	require.Equal(t, 1, hud.historyCount)
@@ -298,7 +298,7 @@ func TestAbbreviateCombatLabelUsesFourCharacters(t *testing.T) {
 
 func TestCombatHUDSpriteSizeUsesMapScale(t *testing.T) {
 	screen := newPresentationRaster(1280, 720)
-	scene := &GameScene{mapImage: ebiten.NewImage(304, 208)} //nolint:exhaustruct // Focused scale fixture.
+	scene := &GameScene{mapImage: ebiten.NewImage(304, 208)}
 	sprite := ebiten.NewImage(18, 18)
 
 	width, height := scene.combatHUDSpriteSize(screen, sprite)
@@ -535,7 +535,7 @@ func TestCombatEventLineUsesDistinctMarker(t *testing.T) {
 		MaxLines:              combatHUDOutputLines,
 		MaxChars:              combatHUDOutputChars,
 	})
-	scene := &GameScene{combatHUD: hud} //nolint:exhaustruct // Focused event-marker fixture.
+	scene := &GameScene{combatHUD: hud}
 
 	segments := scene.newCombatEventLine().GetSegments()
 
@@ -553,7 +553,7 @@ func TestCombatEventLineCountReservesMarkerColumn(t *testing.T) {
 		MaxChars:              combatHUDOutputChars,
 	})
 	hud.eventMaxChars = len("Victory!")
-	scene := &GameScene{combatHUD: hud} //nolint:exhaustruct // Focused marker-width fixture.
+	scene := &GameScene{combatHUD: hud}
 
 	lines := scene.combatEventLineCount(game_state.CombatEvent{Kind: game_state.CombatEventVictory})
 
@@ -572,7 +572,7 @@ func TestCombatEventRangeUsesAvailableLineBudget(t *testing.T) {
 	for range 10 {
 		hud.addEvent(game_state.CombatEvent{Kind: game_state.CombatEventBattleBegun})
 	}
-	scene := &GameScene{combatHUD: hud} //nolint:exhaustruct // Focused history-range fixture.
+	scene := &GameScene{combatHUD: hud}
 
 	start, count := scene.visibleCombatEventRange(8)
 
@@ -634,7 +634,7 @@ func TestCombatHUDHistoryKeysDoNotTouchCombatState(t *testing.T) {
 	hud.eventOutput = output
 	hud.historyCount = 10
 	hud.eventLineBudget = 6
-	scene := &GameScene{combatHUD: hud} //nolint:exhaustruct // Focused HUD input fixture.
+	scene := &GameScene{combatHUD: hud}
 
 	assert.True(t, scene.handleCombatHUDInput(ebiten.KeyPageUp))
 	assert.Equal(t, 1, hud.historyOffset)

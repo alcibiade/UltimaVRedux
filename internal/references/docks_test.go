@@ -23,7 +23,7 @@ func TestNewDocksLoadsCanonicalShipwrightCoordinates(t *testing.T) {
 		rawData[startDockYOffset+index] = byte(dock.Position.Y)
 	}
 
-	docks, err := NewDocks(&config.UltimaVConfiguration{RawDataOvl: rawData}) //nolint:exhaustruct
+	docks, err := NewDocks(&config.UltimaVConfiguration{RawDataOvl: rawData})
 	require.NoError(t, err)
 	require.NotNil(t, docks)
 	assert.Equal(t, expected, docks.Docks)

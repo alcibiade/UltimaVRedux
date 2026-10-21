@@ -13,7 +13,7 @@ import (
 )
 
 func TestCombatExitRouteRequiresSameDungeonRoomExit(t *testing.T) {
-	combat := &CombatState{ //nolint:exhaustruct // Focused exit-route fixture.
+	combat := &CombatState{
 		ExitContext: CombatExitDungeonRoom,
 		ExitRoute:   CombatExitNone,
 	}

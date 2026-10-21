@@ -1136,7 +1136,7 @@ func pressAudioSettingsKey(dialog *ConfigurationDialog, key ebiten.Key) {
 }
 
 func dialogConfiguration(audioConfig *config.AudioConfiguration) *config.UltimaVConfiguration {
-	return &config.UltimaVConfiguration{ //nolint:exhaustruct // Focused dialog fixture.
+	return &config.UltimaVConfiguration{
 		AudioConfiguration: audioConfig,
 		DisplayConfiguration: &config.DisplayConfiguration{
 			Mode:              config.ModeWindowed,

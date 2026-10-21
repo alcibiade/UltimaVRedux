@@ -10,7 +10,7 @@ import (
 
 func TestLoadRejectsOversizedArchiveBeforeReading(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "TITLE.BIT")
-	file, err := os.Create(path) //nolint:gosec // Test fixture path is isolated.
+	file, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -53,7 +53,7 @@ func TestGameSceneQuestJournalModalIsNoTimeAcrossGameplayContexts(t *testing.T) 
 				TurnsRemaining: 7,
 			}
 			keyboard := newPresentationTestKeyboard()
-			scene := &GameScene{ //nolint:exhaustruct // Focused journal routing fixture.
+			scene := &GameScene{
 				gameState:   state,
 				keyboard:    keyboard,
 				output:      text.NewOutput(nil, 1, 64, 80),
@@ -125,7 +125,7 @@ func TestGameSceneQuestJournalModalIsNoTimeAcrossGameplayContexts(t *testing.T) 
 func TestGameSceneQuestJournalOwnsExactModalAndInputIsolation(t *testing.T) {
 	state := newGameActionCallbacksKnowledgeState(t)
 	keyboard := newPresentationTestKeyboard()
-	scene := &GameScene{ //nolint:exhaustruct // Focused modal lifecycle fixture.
+	scene := &GameScene{
 		gameState:   state,
 		keyboard:    keyboard,
 		output:      text.NewOutput(nil, 1, 64, 80),
@@ -281,7 +281,7 @@ func TestPlainJStillStartsJimmyOnSmallMap(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{ //nolint:exhaustruct // Focused plain-J regression fixture.
+	scene := &GameScene{
 		gameState:         state,
 		keyboard:          newPresentationTestKeyboard(),
 		autoOpenDoorState: &AutoOpenDoorState{},

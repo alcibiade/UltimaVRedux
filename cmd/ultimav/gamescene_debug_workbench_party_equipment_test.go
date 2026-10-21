@@ -137,7 +137,7 @@ func TestPartyEquipmentLoadoutScenarioRuntimeReviewUsesCurrentState(t *testing.T
 	state := newApprovedToolTestState()
 	initializeEmptyInventoryLockerRoster(state)
 	require.NoError(t, state.SetAvatarName("Avatar"))
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused scenario resolution fixture.
+	scene := &GameScene{gameState: state}
 	definition, ok := debugging.NewInitialCatalog().Get(debugging.CommandPartyEquipmentLoadoutUpdate)
 	require.True(t, ok)
 	request, err := scene.ResolveScenarioRuntimeParameters(debugging.Request{

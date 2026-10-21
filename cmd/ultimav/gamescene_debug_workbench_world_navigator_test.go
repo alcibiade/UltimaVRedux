@@ -524,7 +524,7 @@ func newWorldNavigatorDebugTestScene(t *testing.T) *GameScene {
 		WithSystemCallbacks().
 		Build()
 
-	return &GameScene{gameState: state} //nolint:exhaustruct // Focused Workbench adapter fixture.
+	return &GameScene{gameState: state}
 }
 
 func worldPositionSetDebugRequest(

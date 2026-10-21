@@ -104,7 +104,7 @@ func TestCombatSummonSequenceMutatesOnceAndCleansPresentation(t *testing.T) {
 		WithRandomSeed(1).
 		Build()
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
-	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused workflow fixture.
+	scene := &GameScene{gameState: gs}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	before := gs.CombatScene.MonsterManager.Count()
 	finished := false
@@ -136,7 +136,7 @@ func TestCombatInvocationCleanupClearsEveryTemporaryChannel(t *testing.T) {
 	scene := &GameScene{
 		combatSummonEffect: &combatSummonSpellEffect{},
 		combatRepelEffect:  &combatRepelSpellEffect{},
-	} //nolint:exhaustruct // Cleanup fixture.
+	}
 
 	scene.clearCombatInvocationEffects()
 

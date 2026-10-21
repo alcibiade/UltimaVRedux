@@ -194,7 +194,7 @@ func newCrystalBallWorkflowTestScene(t *testing.T) (*GameScene, *game_state.Mock
 		WithSystemCallbacks().
 		Build()
 
-	return &GameScene{ //nolint:exhaustruct // Focused crystal-ball workflow fixture.
+	return &GameScene{
 		gameState:   state,
 		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:      text.NewOutput(nil, 1, 20, 80),

@@ -810,7 +810,7 @@ func gDaemonNearestPC(gs *GameState, daemon *CombatMonster, daemonIndex int) nea
 func firstLegalDaemonGatePosition(t *testing.T, gs *GameState) references.Position {
 	t.Helper()
 	ref := &(*gs.GameReferences.EnemyReferences)[references.MonsterDevil]
-	probe := &CombatMonster{monsterType: references.MonsterDevil, enemyRef: ref} //nolint:exhaustruct
+	probe := &CombatMonster{monsterType: references.MonsterDevil, enemyRef: ref}
 	for y := range references.YCombatMapTiles {
 		for x := range references.XCombatMapTiles {
 			position := references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}

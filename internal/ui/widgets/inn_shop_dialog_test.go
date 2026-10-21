@@ -584,7 +584,7 @@ func testInnGuest(
 ) game_state.InnGuestRow {
 	identity := testInnIdentity(name, party_state.Fighter)
 	billed := max(int(months), 1)
-	charge := uint16(1234 * billed) //nolint:gosec // Test values are deliberately bounded four-digit charges.
+	charge := uint16(1234 * billed)
 	affordable := charge <= 4321
 	goldAfter := uint16(4321)
 	if affordable {

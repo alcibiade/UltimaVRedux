@@ -498,7 +498,7 @@ func newShrineTranscriptTestScene(t *testing.T) (*GameScene, *game_state.MockSys
 		WithSystemCallbacks().
 		Build()
 
-	return &GameScene{ //nolint:exhaustruct // Focused shrine transcript fixture.
+	return &GameScene{
 		gameState: state,
 		keyboard:  newPresentationTestKeyboard(),
 		output:    text.NewOutput(nil, 1, 20, 80),

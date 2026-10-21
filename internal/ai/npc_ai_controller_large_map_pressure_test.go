@@ -121,7 +121,7 @@ func filledEncounterPressureTerrain(
 }
 
 func runOriginalPursuitOracle(scenario encounterPressureScenario, seed int64, phaseLimit int) int {
-	rng := rand.New(rand.NewSource(seed)) //nolint:gosec // Fixed-seed gameplay characterization.
+	rng := rand.New(rand.NewSource(seed))
 	position := scenario.start
 	for phase := 1; phase <= phaseLimit; phase++ {
 		if cardinallyAdjacent(position, scenario.player) {
@@ -142,7 +142,7 @@ func originalPursuitOracleStep(
 	xStep := references.Position{X: position.X + signCoordinate(player.X-position.X), Y: position.Y}
 	yStep := references.Position{X: position.X, Y: position.Y + signCoordinate(player.Y-position.Y)}
 	playerward := [2]references.Position{xStep, yStep}
-	if rng.Intn(2) != 0 { //nolint:gosec // Fixed-seed gameplay characterization.
+	if rng.Intn(2) != 0 {
 		playerward[0], playerward[1] = playerward[1], playerward[0]
 	}
 	for _, destination := range playerward {
@@ -154,7 +154,7 @@ func originalPursuitOracleStep(
 
 	directions := position.GetFourDirectionsWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
 	for range 3 {
-		destination := directions[rng.Intn(len(directions))] //nolint:gosec // Fixed-seed gameplay characterization.
+		destination := directions[rng.Intn(len(directions))]
 		if encounterPressureTileLegal(terrain, destination) {
 			return originalPursuitMoveTo(position, destination, terrain[destination], rng)
 		}
@@ -171,11 +171,11 @@ func originalPursuitMoveTo(
 ) references.Position {
 	switch tile {
 	case 4, 6, 7, 8, 30, 31:
-		if rng.Intn(2) != 0 { //nolint:gosec // Fixed-seed gameplay characterization.
+		if rng.Intn(2) != 0 {
 			return position
 		}
 	case 9, 10, 11, 12, 13, 14, 15:
-		if rng.Intn(3) != 2 { //nolint:gosec // Fixed-seed gameplay characterization.
+		if rng.Intn(3) != 2 {
 			return position
 		}
 	}
@@ -198,7 +198,7 @@ func runLargeMapPursuitController(
 	phaseLimit int,
 ) int {
 	t.Helper()
-	rng := rand.New(rand.NewSource(seed)) //nolint:gosec // Fixed-seed gameplay characterization.
+	rng := rand.New(rand.NewSource(seed))
 	controller, layeredMap := newLargeMapGenerationTestController(
 		t, references.FloorNumber(references.OVERWORLD), 12, rng,
 	)

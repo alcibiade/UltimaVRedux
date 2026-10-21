@@ -106,7 +106,7 @@ func combatVanishTestEvent(
 		Position:    position,
 	}
 
-	return game_state.CombatEvent{ //nolint:exhaustruct // Focused vanish presentation fixture.
+	return game_state.CombatEvent{
 		Kind:     game_state.CombatEventVanished,
 		Attacker: game_state.CombatFeedbackEntity{Index: index, Position: position},
 		From:     position,

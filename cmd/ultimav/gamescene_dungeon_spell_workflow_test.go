@@ -468,7 +468,7 @@ func TestProductionDungeonVasRelPorInstallsCrossDungeonDestination(t *testing.T)
 	caster.SetMp(8)
 	state.PartyState.Inventory.Spells.Set(references.VasRelPor, 1)
 	stone := state.GetMoonstoneSystem().GetMoonstoneByIndex(int(datetime.MoonPhaseFirstQuarter))
-	stone.X, stone.Y = uint8(destination.X), uint8(destination.Y) //nolint:gosec // Dungeon coordinates are 0..7.
+	stone.X, stone.Y = uint8(destination.X), uint8(destination.Y)
 	stone.Map = uint8(references.Doom)
 	stone.Level = 1
 	stone.State = game_state.MoonstoneStateBuried

@@ -6,7 +6,7 @@ import (
 
 // createTestGameStateForShrine creates a minimal GameState for shrine testing
 func createTestGameStateForShrine() *GameState {
-	gs := &GameState{SystemCallbacks: journalTestCallbacks()} //nolint:exhaustruct
+	gs := &GameState{SystemCallbacks: journalTestCallbacks()}
 	// Fields are zero-initialized, which is correct for testing
 	return gs
 }

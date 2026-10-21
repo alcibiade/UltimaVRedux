@@ -11,8 +11,8 @@ import (
 )
 
 func TestPlayWalkingSoundAtWithoutAudioIsNoOp(t *testing.T) {
-	scene := &GameScene{ //nolint:exhaustruct // Focused no-sound shrine fixture.
-		gameState: &game_state.GameState{ //nolint:exhaustruct // Only shrine presentation state is used.
+	scene := &GameScene{
+		gameState: &game_state.GameState{
 			ShrineScene: shrine.NewShrineScene(0, references.PlayerLocation{}),
 		},
 	}

@@ -374,13 +374,13 @@ func TestControlledMonsterDamageUsesFixedRatingAndAppliesRating99(t *testing.T) 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock := setupControlledMonsterTest(t)
-			attackerRef := &references.EnemyReference{ //nolint:exhaustruct // Source-derived damage fixture.
+			attackerRef := &references.EnemyReference{
 				MonsterType: references.MonsterOrc,
 				Name:        "Controlled attacker",
 				Damage:      test.damage,
 				HitPoints:   20,
 			}
-			targetRef := &references.EnemyReference{ //nolint:exhaustruct // HP above 99 proves forced death.
+			targetRef := &references.EnemyReference{
 				MonsterType: test.target,
 				Name:        "Target",
 				HitPoints:   200,
@@ -532,7 +532,7 @@ func TestGazerHitSleepsBeforeDamageInMeleeAndRange(t *testing.T) {
 func TestControlledRangedPoisonFallbackIsSelectedFatalDamage(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
 	setOpenCombatMissileMap(gs)
-	attackerRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
+	attackerRef := &references.EnemyReference{
 		MonsterType:          references.MonsterSnake,
 		Name:                 "Controlled Snake",
 		Dexterity:            99,
@@ -543,7 +543,7 @@ func TestControlledRangedPoisonFallbackIsSelectedFatalDamage(t *testing.T) {
 		LargeMapMissile:      references.MissileGreen,
 		EnemyAbilities:       map[references.EnemyAbility]bool{references.PoisonAtRange: true},
 	}
-	targetRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
+	targetRef := &references.EnemyReference{
 		MonsterType: references.MonsterOrc,
 		Name:        "Target Orc",
 		Dexterity:   1,

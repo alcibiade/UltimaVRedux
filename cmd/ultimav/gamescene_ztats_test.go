@@ -34,7 +34,7 @@ func TestGameSceneShowZStatsDossierOwnsExactModalLifecycle(t *testing.T) {
 		InitialCharacterIndex:  7,
 	}
 	keyboard := input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)
-	scene := &GameScene{ //nolint:exhaustruct // Focused dossier lifecycle fixture.
+	scene := &GameScene{
 		gameState:   state,
 		keyboard:    keyboard,
 		spriteSheet: sharedPresentationTestSpriteSheet(),
@@ -103,7 +103,7 @@ func TestExplorationZStatsRoutingDoesNotFinishTurn(t *testing.T) {
 				EffectType: game_state.DurationEffectProtection, TurnsRemaining: 7,
 			}
 			callbacks.Reset()
-			scene := &GameScene{ //nolint:exhaustruct // Focused production command-routing fixture.
+			scene := &GameScene{
 				gameState:         state,
 				keyboard:          input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 				spriteSheet:       sharedPresentationTestSpriteSheet(),
@@ -203,7 +203,7 @@ func TestCombatZStatsRoutingDoesNotFinishAction(t *testing.T) {
 		EffectType: game_state.DurationEffectProtection, TurnsRemaining: 7,
 	}
 	callbacks.Reset()
-	scene := &GameScene{ //nolint:exhaustruct // Focused production combat-routing fixture.
+	scene := &GameScene{
 		gameState:   state,
 		keyboard:    input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld),
 		output:      text.NewOutput(nil, 1, 10, 80),

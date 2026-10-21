@@ -44,7 +44,7 @@ func addSyntheticConeMonster(
 	position references.Position,
 	intelligence int,
 ) (*CombatMonster, int) {
-	reference := references.EnemyReference{ //nolint:exhaustruct // Focused synthetic cone victim.
+	reference := references.EnemyReference{
 		MonsterType:  monsterType,
 		Name:         "Cone victim",
 		NamePlural:   "Cone victims",

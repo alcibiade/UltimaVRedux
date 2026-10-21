@@ -146,7 +146,7 @@ func newLordBritishFinaleTestState(t *testing.T, partyCount int) *GameState {
 	state, _ := newDoomMirrorCombatTestState(t, partyCount, false)
 	state.CombatScene = nil
 	state.finaleHandoffPending = true
-	state.GameReferences = &references.GameReferences{TileReferences: references.NewTileReferences()} //nolint:exhaustruct
+	state.GameReferences = &references.GameReferences{TileReferences: references.NewTileReferences()}
 
 	return state
 }

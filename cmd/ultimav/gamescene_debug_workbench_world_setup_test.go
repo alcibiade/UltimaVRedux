@@ -18,7 +18,7 @@ func TestExecuteWorldSetupCommandsUseTypedSceneAdapter(t *testing.T) {
 		WithFloor(0).
 		WithSystemCallbacks().
 		Build()
-	scene := &GameScene{gameState: state} //nolint:exhaustruct // Focused Workbench world-setup fixture.
+	scene := &GameScene{gameState: state}
 
 	enter, handled := scene.executeWorldSetupDebugCommand(debugging.Request{
 		SessionID: "test", ID: "enter", CommandID: debugging.CommandMovementEnterLocation,
