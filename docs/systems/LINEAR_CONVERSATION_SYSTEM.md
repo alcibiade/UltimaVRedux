@@ -181,6 +181,9 @@ conversation-owned; `UI.AtlasUpdated` queues one coordinate update after commit,
 appended when the conversation releases output ownership. Setup, debug
 inventory changes and hydration do not call this live grant operation.
 
+A conversation gift that would exceed its carrying limit grants nothing and prints
+"Thou canst carry no more <item>!" instead of the usual "Received:" line.
+
 `ErrInsufficientPayment` is an ordinary refusal, not a resumable callback error.
 It abandons all paid continuation frames, the active question, and pending
 name/key waits, then returns to topics. A subsequent No, NAME, BYE, or new topic

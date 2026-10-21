@@ -50,13 +50,17 @@ separate acceptance from injected-source candidate testing.
 
 ## Routing Order
 
+Closing the game window during play opens the Exit to DOS choice instead of quitting; a second close while that choice is open,
+or any close outside play or after the game has ended, quits at once.
+
 Caps Lock is transparent to game-control polling: the shared Keyboard adapter
 excludes it before native/injected polling, including nil-receiver fallback. It
 cannot acknowledge all-key prompts, count as intro activity, hold release gates,
 or enter focus-return suppression. Real held controls still require release.
 Native committed text and composition keep their existing case policies.
 **Shift+M/Shift+J require physically held left or right Shift**, with existing
-context/other-modifier rules. Caps Lock alone routes M/J to Mix/Jimmy; Caps Lock
+context/other-modifier rules. While a text box has focus, Shift+J types a capital J
+instead of opening the Journal. Caps Lock alone routes M/J to Mix/Jimmy; Caps Lock
 plus physical Shift opens readers even if native text is lowercase. Native
 save-description Ctrl+U accepts either ASCII shortcut insertion (`u`/`U`) without
 changing composition ownership. Injected held-key and production reader round-trip
