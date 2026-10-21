@@ -89,9 +89,40 @@ func ValidateGameplayConfiguration(settings GameplayConfiguration) error {
 	return nil
 }
 
+// DefaultGameplayConfiguration returns a complete valid model, including numeric
+// defaults. These are the only gameplay defaults: loading starts from them and
+// applies what the configuration file sets, and detached settings and
+// lightweight fixtures use them directly.
+func DefaultGameplayConfiguration() *GameplayConfiguration {
+	return &GameplayConfiguration{
+		BatchMerchantTheft:              true,
+		AllowRepeatedMonsterDivision:    false,
+		ShowConcealedTurnOrderSlots:     true,
+		PersistHiddenDungeonDiscoveries: true,
+		ShowSubduedUnlitDungeons:        true,
+		SmoothSurfaceMovement:           false,
+		FlexibleSextantUse:              false,
+		CombatSpeedFactor:               CombatSpeedSpec().Default,
+		ConfirmQuickSave:                true,
+		ShowCombatHPBars:                true,
+		MaxVisibleActionPopups:          int(ActionPopupsSpec().Default),
+	}
+}
+
+// loadGameplayPreferences replaces each default with the configured value, if
+// the configuration file sets one.
 func (uc *UltimaVConfiguration) loadGameplayPreferences() {
-	settings := uc.GameplayConfiguration
-	settings.CombatSpeedFactor = CombatSpeedSpec().Default
+	settings := DefaultGameplayConfiguration()
+	uc.GameplayConfiguration = settings
+	uc.configuredBoolean(&settings.BatchMerchantTheft, gameplayBatchMerchantTheftKey)
+	uc.configuredBoolean(&settings.SmoothSurfaceMovement, gameplaySmoothSurfaceMovementKey)
+	uc.configuredBoolean(&settings.FlexibleSextantUse, gameplayFlexibleSextantUseKey)
+	uc.configuredBoolean(&settings.AllowRepeatedMonsterDivision, "Gameplay.Combat.AllowRepeatedMonsterDivision")
+	uc.configuredBoolean(&settings.ShowConcealedTurnOrderSlots, gameplayShowConcealedTurnOrderSlotsKey)
+	uc.configuredBoolean(&settings.PersistHiddenDungeonDiscoveries, gameplayPersistHiddenDungeonDiscoveriesKey)
+	uc.configuredBoolean(&settings.ShowSubduedUnlitDungeons, gameplayShowSubduedUnlitDungeonsKey)
+	uc.configuredBoolean(&settings.ConfirmQuickSave, gameplayConfirmQuickSaveKey)
+	uc.configuredBoolean(&settings.ShowCombatHPBars, gameplayShowCombatHPBarsKey)
 	if uc.source.IsSet(gameplayCombatSpeedKey) {
 		settings.CombatSpeedFactor = uc.source.GetFloat64(gameplayCombatSpeedKey)
 	} else if uc.source.IsSet(legacyCombatSpeedKey) {
@@ -105,9 +136,6 @@ func (uc *UltimaVConfiguration) loadGameplayPreferences() {
 			logging.Warn(logging.CategoryConfig, "%s", message)
 		}
 	}
-	settings.ConfirmQuickSave = uc.gameplayBooleanDefaultTrue(gameplayConfirmQuickSaveKey)
-	settings.ShowCombatHPBars = uc.gameplayBooleanDefaultTrue(gameplayShowCombatHPBarsKey)
-	settings.MaxVisibleActionPopups = int(ActionPopupsSpec().Default)
 	if uc.source.IsSet(gameplayMaxActionPopupsKey) {
 		settings.MaxVisibleActionPopups = uc.source.GetInt(gameplayMaxActionPopupsKey)
 	}

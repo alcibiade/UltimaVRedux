@@ -214,8 +214,15 @@ func TestGameplayPreferencesDefaultTrueOnlyWhenAbsent(t *testing.T) {
 		gameplayShowConcealedTurnOrderSlotsKey,
 	} {
 		configuration.source.Set(key, false)
-		assert.False(t, configuration.gameplayBooleanDefaultTrue(key))
+		value := true
+		configuration.configuredBoolean(&value, key)
+		assert.False(t, value)
 	}
+}
+
+func TestEmptyConfigurationLoadsTheGameplayDefaults(t *testing.T) {
+	configuration, _ := configurationFixture(t, "{}\n")
+	assert.Equal(t, DefaultGameplayConfiguration(), configuration.GameplayConfiguration)
 }
 
 func TestAudioConfigurationMethods(t *testing.T) {
