@@ -181,7 +181,8 @@ func (g *GameScene) Update(game *Game) error {
 		// The closing key must not advance gameplay in its dismissal frame.
 		return nil
 	}
-	if g.finalePresentation == nil && g.keyboard.IsModifierComboPressed(input.ModifierShift, ebiten.KeyJ) &&
+	if g.finalePresentation == nil && !g.textEntryFocused() &&
+		g.keyboard.IsModifierComboPressed(input.ModifierShift, ebiten.KeyJ) &&
 		g.keyboard.IsKeyPressedAndRegister(ebiten.KeyJ) {
 		g.ResetTransientCommandInput()
 		g.gameState.ActionQuestJournal()
@@ -371,6 +372,10 @@ func (g *GameScene) Update(game *Game) error {
 	}
 
 	acceptedKey := *boundKey
+	// Menus and readers below must not open over a ship that keeps sailing.
+	if g.interruptAutomaticSailingForCommand(acceptedKey) {
+		return nil
+	}
 	if g.handleBattleSummaryShortcut(acceptedKey) {
 		return nil
 	}
@@ -542,4 +547,16 @@ func (g *GameScene) handleActivePlayerSelection(key ebiten.Key) bool {
 	}
 
 	return false // Not a number key we handle
+}
+
+// textEntry is a modal that turns letter keys into typed text.
+type textEntry interface {
+	AcceptsText() bool
+}
+
+// textEntryFocused lets Shift+J type a capital J instead of opening the Journal.
+func (g *GameScene) textEntryFocused() bool {
+	entry, ok := g.dialogStack.PeekTopModalDialog().(textEntry)
+
+	return ok && entry.AcceptsText()
 }

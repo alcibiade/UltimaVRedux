@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -292,8 +293,8 @@ func TestClearShadowlordOnFloorChange_Integration(t *testing.T) {
 	// Verify summoned
 	assert.True(t, gs.ShadowlordState.Summoned, "Shadowlord should be summoned")
 
-	// Change floor within Lycaeum
-	gs.TransitionToLocation(references.Lycaeum, 1, gs.MapState.PlayerLocation.Position, TransitionFloorOnly, false)
+	// Climb a ladder or stairs within Lycaeum, the route players actually take.
+	require.True(t, gs.GoUpOneFloor())
 
 	// Summoned state should be cleared (different floor)
 	assert.False(t, gs.ShadowlordState.Summoned, "Shadowlord should be cleared after floor change")

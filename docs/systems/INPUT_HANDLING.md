@@ -541,7 +541,7 @@ end-player completion. Boundary exits consume the token without dungeon
 end-player processing and transition to the route-selected world plane.
 
 Remaining unsupported bound keys that reach the dungeon primary handler report
-`Not implemented in dungeons.` and do not begin a command cycle or charge its
+`What?` and do not begin a command cycle or charge its
 minute. Party-selection numbers and Escape retain their global routing, while
 `Ctrl+M` toggles music without a dungeon cycle. A stale Look, Search, Klimb, or
 Quit secondary state is cleared without action or charge. Open, Jimmy, Search,
@@ -552,7 +552,9 @@ started workflow finalizers own exact-once full completion after cleanup.
 
 Shift+J is intercepted before queues, modal input, and primary handlers in
 exploration, conversations, retained prompts, workflows, dungeons, and combat
-including targeting. Terminal finale presentation is excluded. It opens the detached Quest
+including targeting. Terminal finale presentation is excluded, and so is a
+focused text box (typed Yell, conversation keyword or text prompt), where Shift+J
+types a capital J. It opens the detached Quest
 Journal without beginning a dungeon command cycle, calling `FinishTurn`, or
 finishing a combat action. Plain J continues to reach the existing Jimmy path.
 The top modal isolates Tab/Shift+Tab, repeatable Up/Down and Page Up/Page Down,

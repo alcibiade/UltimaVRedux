@@ -219,7 +219,7 @@ func TestActionJimmyCombatMap_DoorOutcomes(t *testing.T) {
 		{"unlock windowed", indexes.LockedDoorView, 2, true, indexes.RegularDoorView, 2, true},
 		{"broken key", indexes.LockedDoor, 2, false, indexes.LockedDoor, 1, true},
 		{"no keys", indexes.LockedDoor, 0, true, indexes.LockedDoor, 0, true},
-		{"magic lock", indexes.MagicLockDoor, 2, true, indexes.MagicLockDoor, 2, true},
+		{"magic lock breaks a key", indexes.MagicLockDoor, 2, true, indexes.MagicLockDoor, 1, true},
 		{"not lock", indexes.BrickFloor, 2, true, indexes.BrickFloor, 2, false},
 	}
 

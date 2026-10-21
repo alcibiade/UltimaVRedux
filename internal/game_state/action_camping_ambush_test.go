@@ -493,6 +493,28 @@ func TestCampingAmbushUsesWeightedPoolAndInterleavedSourceRNGOrder(t *testing.T)
 	}
 }
 
+func TestCampingAmbushersNeverSpawnOnTheWanderingGuard(t *testing.T) {
+	state, _ := newCampingAmbushTestState(t)
+	combatMap, err := references.LoadCampingMap(state.GameConfig)
+	require.NoError(t, err)
+	for _, slot := range combatMap.MonsterPositions {
+		scene := camping.NewCampingSceneWithCombatRef(6, 0, state.MapState.PlayerLocation, combatMap)
+		scene.CampingMap.GuardPosition = slot
+		campState := state.newCampingState(scene, false, false)
+		state.initializeCampingPartyRings(campState)
+		combat, err := state.prepareCampingParty(scene, campState, combatMap)
+		require.NoError(t, err)
+		state.SetRandomSeed(8743)
+
+		_, err = state.populateOutdoorCampingCombat(combat, references.CampingAmbushMonsters[0])
+		require.NoError(t, err)
+
+		for index := range combat.MonsterManager.Count() {
+			assert.NotEqual(t, slot, combat.MonsterManager.GetMonster(index).Position(), "guard on %+v", slot)
+		}
+	}
+}
+
 func newCampingAmbushTestState(t *testing.T) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 	state, callbacks := NewIntegrationTestBuilder(t).

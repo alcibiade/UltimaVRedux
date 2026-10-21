@@ -9,7 +9,6 @@ import (
 )
 
 const (
-	escapeMenuForceWaitTimeMs    = 750
 	escapeMenuButtonWidthPercent = 0.22
 )
 
@@ -32,7 +31,8 @@ func (g *GameScene) DoEscapeMenu(game *Game) {
 		func() {
 			g.dialogStack.MustRemoveWidgetInstance(buttonList)
 			g.resumeAudio()
-			g.keyboard.SetForceWaitAnyKey(escapeMenuForceWaitTimeMs)
+			// The closing key must be released before gameplay sees input again.
+			g.keyboard.PrepareForTransition(0)
 		},
 		g.keyboard,
 		&gameScreenPercents) // Center on map area, not full screen

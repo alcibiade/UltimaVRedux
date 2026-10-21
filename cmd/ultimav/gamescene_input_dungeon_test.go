@@ -1128,7 +1128,7 @@ func TestDungeonUnsupportedBoundCommandsDoNotStartCycle(t *testing.T) {
 
 			assert.Zero(t, state.DateTime.Minute)
 			assert.Equal(t, 5, state.ActiveDurationEffect.TurnsRemaining)
-			assert.Equal(t, []string{dungeonCommandNotImplemented}, callbacks.Messages)
+			assert.Equal(t, []string{dungeonUnboundKeyFeedback}, callbacks.Messages)
 			assert.Empty(t, callbacks.CommandPrompts)
 			assert.Equal(t, PrimaryInput, scene.secondaryKeyState)
 			assert.True(t, state.IsAtDungeonCommandBoundary())

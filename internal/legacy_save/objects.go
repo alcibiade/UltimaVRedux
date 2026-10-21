@@ -538,6 +538,17 @@ func convertPendingShipDelivery(
 	if game.Dungeon.Skiffs&originalFrigateDelivery != 0 {
 		vehicleType = references.FrigateVehicle
 		skiffs = int(game.Dungeon.Skiffs & originalSkiffCountMask)
+		// The original adds skiffs to an awaiting frigate without limit; Redux
+		// clamps it like a moored one rather than refusing the whole import.
+		if skiffs > references.MaxFrigateSkiffs {
+			skiffs = references.MaxFrigateSkiffs
+			addConversionWarning(
+				warnings,
+				"gam.skiffs",
+				"redux_capacity_clamped",
+				fmt.Sprintf("pending frigate skiffs were clamped to %d", references.MaxFrigateSkiffs),
+			)
+		}
 	}
 	controller := [2]int{int(references.BritanniaUnderworld), int(references.OVERWORLD)}
 	slot, ok := firstUnusedLegacySlot(snapshot.MapUnits, references.OVERWORLD)

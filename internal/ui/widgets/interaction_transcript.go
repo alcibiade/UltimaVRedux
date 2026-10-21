@@ -278,6 +278,11 @@ func (d *InteractionTranscript) beginConfirmation(mode interactionTranscriptMode
 	d.updateInputPlacement()
 }
 
+// AcceptsText reports whether a text prompt is waiting for typed input.
+func (d *InteractionTranscript) AcceptsText() bool {
+	return d.mode == interactionTranscriptText && !d.inputComplete
+}
+
 // InputComplete reports whether the active prompt or acknowledgement has completed.
 func (d *InteractionTranscript) InputComplete() bool {
 	return d.inputComplete

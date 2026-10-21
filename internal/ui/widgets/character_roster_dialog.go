@@ -97,7 +97,8 @@ func (o CharacterSelectionOption) statusColor(fallback stdcolor.Color) stdcolor.
 	case party_state.Sleep:
 		return pkgcolor.EGAMagenta
 	case party_state.Charmed:
-		return pkgcolor.EGABlue
+		// Dark EGA blue is unreadable as text on black; portraits keep it.
+		return pkgcolor.EGALightBlue
 	case party_state.Dead:
 		return pkgcolor.EGARed
 	case party_state.Good:

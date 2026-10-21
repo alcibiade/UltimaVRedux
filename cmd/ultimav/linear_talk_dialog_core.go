@@ -645,3 +645,8 @@ func outputContinuesAfterSegments(segments []conversation.TextSegment, inherited
 
 	return outputContinuesAfterText(segments[len(segments)-1].Text, inherited)
 }
+
+// AcceptsText reports whether the player is typing a keyword.
+func (d *LinearTalkDialog) AcceptsText() bool {
+	return d.historyPanel == nil && !d.waitingForKeypressContinue && !d.waitingForDismissal
+}

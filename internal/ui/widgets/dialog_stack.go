@@ -4,7 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
-	"github.com/bradhannah/UltimaVRedux/pkg/helpers"
 )
 
 // dialogEntry represents a dialog in the stack with its modal status.
@@ -75,16 +74,6 @@ func (d *DialogStack) HasModalDialog() bool {
 	}
 
 	return false
-}
-
-func (d *DialogStack) GetIndexOfDialogType(iface interface{}) int {
-	for i, entry := range d.entries {
-		if helpers.IsOfTypeInterface(entry.widget, iface) {
-			return i
-		}
-	}
-
-	return -1
 }
 
 func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {

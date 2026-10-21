@@ -12,15 +12,9 @@ import (
 const (
 	climbingFallWorkflowName = "climbing_fall_effect"
 
-	// Damage thresholds for enhanced effects
-	MinorDamageThreshold       = 1 // 1-2 damage: basic falling sound only
-	SignificantDamageThreshold = 3 // 3+ damage: screen shake + enhanced effects
-	SevereDamageThreshold      = 4 // 4-5 damage: white noise + longer effects
-
-	// Visual effect parameters for falling damage (gray flash, not fire red)
-	FallFlashGray        = 0.5 // Gray impact flash (R=G=B for grayscale)
-	FallShakeDurationMs  = 200 // Base duration for significant falls
-	SevereFallDurationMs = 300 // Longer duration for severe falls
+	// Every climbing fall flashes gray, shakes the screen and plays white noise.
+	fallShakeDurationMs = 300
+	fallShakePixels     = 10.0
 )
 
 // Klimb floor transition timing constants (2x faster than Enter transitions)
@@ -410,27 +404,7 @@ func (g *GameState) GoUpOneFloor() bool {
 	if !g.CanGoUpOneFloor() {
 		return false
 	}
-
-	g.resetHarpsichordMelody()
-	g.discardSurfaceChestLootOnDeparture()
-	g.ItemStacksMap = *references.NewItemStacksMap()
-	g.MapState.PlayerLocation.Floor++
-
-	// Update map state based on map type
-	switch g.MapState.PlayerLocation.Location.GetMapType() {
-	case references.SmallMapType:
-		// Perform hard NPC reset to match original Ultima V behavior
-		// Original: town floor travel -> terrain reconstruction -> scheduled NPC placement
-		// See ref:CMD-0005.
-		g.hardResetSmallMapAfterFloorChange()
-	case references.LargeMapType:
-		// Refresh quest items (shards) on large maps when changing floors
-		g.RefreshQuestItemsOnMap()
-	case references.CombatMapType, references.DungeonMapType, references.CampingMapType:
-		// This helper changes the floor without rebuilding these map types.
-	}
-	g.restoreSurfaceCorpsesForCurrentMap()
-	g.reconcileBasementChestsOnEntry()
+	g.changeFloorBy(1)
 
 	return true
 }
@@ -440,11 +414,20 @@ func (g *GameState) GoDownOneFloor() bool {
 	if !g.CanGoDownOneFloor() {
 		return false
 	}
+	g.changeFloorBy(-1)
 
+	return true
+}
+
+// changeFloorBy applies a ladder, stair or trapdoor floor change, including the
+// floor-change rules TransitionToLocation applies for TransitionFloorOnly.
+func (g *GameState) changeFloorBy(delta references.FloorNumber) {
+	floor := g.MapState.PlayerLocation.Floor + delta
+	g.clearShadowlordIfLeavingKeep(g.MapState.PlayerLocation.Location, floor, TransitionFloorOnly)
 	g.resetHarpsichordMelody()
 	g.discardSurfaceChestLootOnDeparture()
 	g.ItemStacksMap = *references.NewItemStacksMap()
-	g.MapState.PlayerLocation.Floor--
+	g.MapState.PlayerLocation.Floor = floor
 
 	// Update map state based on map type
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
@@ -461,8 +444,6 @@ func (g *GameState) GoDownOneFloor() bool {
 	}
 	g.restoreSurfaceCorpsesForCurrentMap()
 	g.reconcileBasementChestsOnEntry()
-
-	return true
 }
 
 // hardResetSmallMapAfterFloorChange reloads terrain and places NPCs at
@@ -574,30 +555,6 @@ func (g *GameState) performClimbingDexterityChecks() []int {
 	return injuredMembers
 }
 
-// calculateClimbingDamagePreview estimates the likely damage range that would be applied
-// Used to determine visual/audio effects before the damage is actually applied
-func (g *GameState) calculateClimbingDamagePreview(injuredMembers []int) int {
-	if len(injuredMembers) == 0 {
-		return 0
-	}
-
-	// For climbing falls, damage range is 1-5 per member
-	// We'll estimate based on average-high damage to ensure appropriate effects
-	// This gives us a reasonable preview without affecting the actual RNG state
-	maxPreviewDamage := 0
-
-	for range injuredMembers {
-		// Estimate 3-4 damage per injured member (middle-high range)
-		estimatedDamage := 4 // Conservative estimate for effect determination
-		if estimatedDamage > maxPreviewDamage {
-			maxPreviewDamage = estimatedDamage
-		}
-	}
-
-	return maxPreviewDamage
-}
-
-// StartClimbingFallWorkflow creates a staged climbing fall workflow using PartyStateBuilder
 func (g *GameState) StartClimbingFallWorkflow(injuredMembers []int) {
 	routeOwnsCycle := g.surfaceCycleOwned
 	if g.EventQueueManager == nil {
@@ -611,23 +568,11 @@ func (g *GameState) StartClimbingFallWorkflow(injuredMembers []int) {
 		return
 	}
 
-	// Calculate damage severity upfront to determine visual effects
-	maxSingleDamage := g.calculateClimbingDamagePreview(injuredMembers)
-
-	// Build damage effect based on severity
 	builder := NewPartyStateBuilder(g).
-		WithRandomDamage(1, 5).      // 1-5 HP damage (climbing falls)
-		ToCharacters(injuredMembers) // Only injured members
-
-	if maxSingleDamage >= SignificantDamageThreshold {
-		// Add visual effects for significant falls
-		builder = builder.
-			FlashGray(). // Gray impact flash
-			WithShake(   // Shake based on severity
-				getDuration(maxSingleDamage),
-				getShakePixels(maxSingleDamage),
-			)
-	}
+		WithRandomDamage(1, 5).       // 1-5 HP damage (climbing falls)
+		ToCharacters(injuredMembers). // Only injured members
+		FlashGray().
+		WithShake(fallShakeDurationMs, fallShakePixels)
 
 	// Build complete event queue
 	g.EventQueueManager.Workflow(climbingFallWorkflowName).
@@ -642,12 +587,8 @@ func (g *GameState) StartClimbingFallWorkflow(injuredMembers []int) {
 		}).ThenSequence(
 
 		builder.Build()).
-
-		// Phase 3: White noise for severe damage
 		Then(func() {
-			if maxSingleDamage >= SevereDamageThreshold {
-				g.SystemCallbacks.Audio.Play(SoundWhiteNoiseDamage).Start()
-			}
+			g.SystemCallbacks.Audio.Play(SoundWhiteNoiseDamage).Start()
 		}).
 
 		// Phase 4: Advance game time
@@ -661,22 +602,4 @@ func (g *GameState) StartClimbingFallWorkflow(injuredMembers []int) {
 		}
 	}).
 		Start()
-}
-
-// getDuration returns shake duration based on damage severity
-func getDuration(damage int) int {
-	if damage >= SevereDamageThreshold {
-		return SevereFallDurationMs // 300ms
-	}
-
-	return FallShakeDurationMs // 200ms
-}
-
-// getShakePixels returns shake pixel range based on damage severity
-func getShakePixels(damage int) float64 {
-	if damage >= SevereDamageThreshold {
-		return 10.0 // Severe shake
-	}
-
-	return 6.0 // Moderate shake
 }

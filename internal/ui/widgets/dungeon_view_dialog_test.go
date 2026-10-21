@@ -380,11 +380,11 @@ func assertDungeonViewEdgeTextBounds(t *testing.T, dialog *DungeonViewDialog) {
 	}
 }
 
-func TestDungeonViewDialogRequiresFreshEnterOnRepeatedOpening(t *testing.T) {
+func TestDungeonViewDialogClosesOnAnyFreshKeyOnRepeatedOpening(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
 	held := map[ebiten.Key]bool{ebiten.KeyEnter: true}
 	keyboard := input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return held[key] })
-	for cycle, closeKey := range []ebiten.Key{ebiten.KeyEnter, ebiten.KeyNumpadEnter} {
+	for cycle, closeKey := range []ebiten.Key{ebiten.KeyEnter, ebiten.KeyEscape} {
 		dialog := NewDungeonViewDialog(DungeonViewDialogConfig{
 			Placement: dungeonViewSamplePlacement(), Keyboard: keyboard, Model: dungeonViewSampleModel("simple"),
 		})
@@ -393,13 +393,7 @@ func TestDungeonViewDialogRequiresFreshEnterOnRepeatedOpening(t *testing.T) {
 		clear(held)
 		keyboard.ClearFrameConsumption()
 		dialog.Update()
-		for _, ignored := range []ebiten.Key{ebiten.KeyEscape, ebiten.KeyPeriod, ebiten.KeyUp, ebiten.KeyDown} {
-			held[ignored] = true
-			keyboard.ClearFrameConsumption()
-			dialog.Update()
-			require.False(t, dialog.IsDismissed())
-			delete(held, ignored)
-		}
+		require.False(t, dialog.IsDismissed())
 		held[closeKey] = true
 		keyboard.SetAllowKeyPressImmediately()
 		dialog.Update()

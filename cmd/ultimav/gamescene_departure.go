@@ -71,7 +71,7 @@ func (g *GameScene) openEscapeDeparturePrompt(game *Game, departure escapeDepart
 		g.cancelEscapeDeparture(game, departure)
 	})
 	g.dialogStack.PushModalDialog(prompt)
-	g.keyboard.SetForceWaitAnyKey(escapeMenuForceWaitTimeMs)
+	g.keyboard.PrepareForTransition(0)
 }
 
 func (g *GameScene) quickSaveBeforeDeparture(game *Game, departure escapeDeparture) {

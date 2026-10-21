@@ -141,7 +141,7 @@ func (d *AtlasDialog) Update() {
 		return
 	}
 	for _, key := range []ebiten.Key{ebiten.KeyDigit0, ebiten.KeyNumpad0, ebiten.KeyEqual, ebiten.KeyMinus,
-		ebiten.KeyNumpadAdd, ebiten.KeyNumpadSubtract, ebiten.KeyEnter, ebiten.KeyL,
+		ebiten.KeyNumpadAdd, ebiten.KeyNumpadSubtract, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyL,
 		ebiten.KeyG, ebiten.KeyA, ebiten.KeyPageUp, ebiten.KeyPageDown, ebiten.KeyN, ebiten.KeyE, ebiten.KeyD} {
 		if d.keyboard.IsTextKeyPressedAndRegister(key) {
 			d.handleKey(key)
@@ -229,7 +229,7 @@ func (d *AtlasDialog) handleKey(key ebiten.Key) {
 		} else {
 			d.status = d.dossier.FixUnavailable
 		}
-	case ebiten.KeyEnter:
+	case ebiten.KeyEnter, ebiten.KeyNumpadEnter:
 		if !d.view.Overview && len(d.entries) > 0 {
 			if p, ok := d.entries[d.selection].PlotPosition(); ok {
 				d.center(p)
@@ -351,6 +351,9 @@ func (d *AtlasDialog) drawDirectory(screen *ebiten.Image) {
 			d.drawPlaceRow(screen, r, d.entries[i], i == d.selection)
 		}
 	}
+	count := d.presentationRowCount()
+	drawMasterDetailScrollIndicators(screen, d.listRect, start, min(count, start+capacity), count,
+		rowHeight, int(math.Ceil(d.font.TextFace.Size)), d.font, d.row)
 }
 
 func fitAtlasText(font *text.UltimaFont, value string, width int) string {

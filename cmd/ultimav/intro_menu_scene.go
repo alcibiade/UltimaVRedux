@@ -283,7 +283,9 @@ func (m *IntroMenuScene) PrepareInputForSceneActivation() {
 }
 
 //nolint:gochecknoglobals // Fixed input map.
-var boundKeysIntro = beradinput.NewBindings(ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter)
+var boundKeysIntro = beradinput.NewBindings(
+	ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyEscape,
+)
 
 //nolint:gochecknoglobals // All-key presentations use the keyboard adapter; Caps Lock is not actionable input.
 var boundKeysAny = func() []ebiten.Key {
@@ -341,11 +343,27 @@ func (m *IntroMenuScene) Update(game *Game) error {
 		return nil
 	}
 
+	if *pressedKey == ebiten.KeyEscape {
+		m.showExitConfirmation(game)
+
+		return nil
+	}
 	if *pressedKey == ebiten.KeyEnter || *pressedKey == ebiten.KeyNumpadEnter {
 		m.activateSelection(game)
 	}
 
 	return nil
+}
+
+// showExitConfirmation gives keyboard-only players a way out of the title menu.
+func (m *IntroMenuScene) showExitConfirmation(game *Game) {
+	var menu *widgets.ButtonListModal
+	cancel := func() { m.dialogStack.MustRemoveWidgetInstance(menu) }
+	placement := sprites.PercentBasedPlacement{StartPercentX: 0, EndPercentX: 1, StartPercentY: 0, EndPercentY: 1}
+	menu = widgets.NewButtonListModal("Exit Ultima V Redux?", cancel, m.keyboard, &placement)
+	menu.AddButton("Exit", game.requestExit)
+	menu.AddButton("Cancel", cancel)
+	m.dialogStack.PushModalDialog(menu)
 }
 
 func (m *IntroMenuScene) updateMenuNavigation() bool {

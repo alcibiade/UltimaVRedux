@@ -63,12 +63,16 @@ func TestDungeonGemViewTwiceRestoresImmediateDungeonInput(t *testing.T) {
 	scene, mock := newDungeonViewTestScene(t)
 	state := scene.gameState
 	state.PartyState.Inventory.Provisions.Gems.Set(2)
+	held := map[ebiten.Key]bool{}
+	scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return held[key] })
 
 	for range 2 {
 		scene.dungeonMapInputHandler(ebiten.KeyV)
 		dialog := waitForDungeonViewDialog(t, scene)
-		scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
+		held[ebiten.KeyEscape] = true
+		scene.keyboard.SetAllowKeyPressImmediately()
 		dialog.Update()
+		held[ebiten.KeyEscape] = false
 		require.True(t, dialog.IsDismissed())
 		drainDungeonWorkflow(t, scene, "dungeon_view_workflow")
 

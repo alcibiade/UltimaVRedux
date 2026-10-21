@@ -859,7 +859,7 @@ func (g *GameScene) thenShowLinearTalkDialog(
 			}).
 			While(
 				func() bool {
-					return dialogCreated && g.dialogStack.GetIndexOfDialogType(LinearTalkDialog{}) >= 0
+					return dialogCreated && g.dialogStack.ContainsWidgetInstance(dialog)
 				},
 				func() {},
 				DialogPollingRateMs,

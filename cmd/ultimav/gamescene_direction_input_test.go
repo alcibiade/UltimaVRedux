@@ -520,3 +520,33 @@ func commandStateName(state InputState) string {
 		return "unknown"
 	}
 }
+
+func TestOverworldKlimbFallEndsTheTurnAfterItsDamage(t *testing.T) {
+	state, callbacks := game_state.NewIntegrationTestBuilder(t).
+		WithLocation(references.BritanniaUnderworld).
+		WithPlayerAt(50, 50).
+		WithSystemCallbacks().
+		Build()
+	state.DebugOptions.MonsterGen = false
+	state.PartyState.Inventory.QuestItems.Set(references.Grapple, 1)
+	avatar := state.PartyState.GetCharacter(0)
+	avatar.Dexterity = 0 // Every climbing check fails.
+	hitPoints := avatar.GetCurrentHp()
+	peak := references.Position{X: 50, Y: 49}
+	state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &peak, indexes.SmallMountains)
+	callbacks.Reset()
+	scene := newSurfaceCompletionTestScene(state)
+	scene.secondaryKeyState = KlimbDirectionInput
+	scene.keyboard.SimulateKeyPress(ebiten.KeyUp)
+
+	scene.largeMapHandleSecondaryInput()
+
+	assert.Empty(t, callbacks.TimeAdvanced(), "the turn waits for the fall")
+	assert.Equal(t, hitPoints, avatar.GetCurrentHp())
+	for range 200 {
+		state.ElapsedMs += 50
+		state.EventQueueManager.Update()
+	}
+	assert.Less(t, avatar.GetCurrentHp(), hitPoints)
+	assert.NotEmpty(t, callbacks.TimeAdvanced(), "the turn ends once the damage has landed")
+}

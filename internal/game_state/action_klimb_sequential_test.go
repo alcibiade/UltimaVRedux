@@ -55,16 +55,6 @@ func TestKlimbHelperMethods(t *testing.T) {
 		}
 	})
 
-	t.Run("calculateClimbingDamagePreview", func(t *testing.T) {
-		// Test with no injured members
-		maxDamage := gs.calculateClimbingDamagePreview([]int{})
-		assert.Equal(t, 0, maxDamage, "No injured members should result in 0 damage")
-
-		// Test with injured members
-		maxDamage = gs.calculateClimbingDamagePreview([]int{0, 1})
-		assert.Equal(t, 4, maxDamage, "Should return conservative damage estimate")
-	})
-
 	t.Run("productionClimbingFallDamage", func(t *testing.T) {
 		initialHP0 := gs.PartyState.GetCharacter(0).GetCurrentHp()
 		initialHP1 := gs.PartyState.GetCharacter(1).GetCurrentHp()

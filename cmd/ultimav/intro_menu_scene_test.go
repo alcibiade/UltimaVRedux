@@ -125,6 +125,27 @@ func TestIntroMenuNavigationClampsAtEdges(t *testing.T) {
 	assert.Equal(t, len(text.IntroChoices)-1, scene.nCurrentSelection)
 }
 
+func TestIntroMenuEscapeAsksBeforeExiting(t *testing.T) {
+	scene := newIntroInputTestScene()
+	game := NewGame(scene)
+	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
+	require.NoError(t, scene.Update(game))
+	prompt, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal)
+	require.True(t, ok)
+	assert.Equal(t, []string{"Exit", "Cancel"}, prompt.ButtonTexts())
+
+	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
+	require.NoError(t, scene.Update(game))
+	assert.Zero(t, scene.dialogStack.Count(), "Escape on the prompt cancels")
+	assert.False(t, game.exitRequested)
+
+	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
+	require.NoError(t, scene.Update(game))
+	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
+	require.NoError(t, scene.Update(game))
+	assert.True(t, game.exitRequested)
+}
+
 func TestIntroMenuSetDataDirectoryStartsGuidedSetup(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

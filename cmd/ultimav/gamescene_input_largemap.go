@@ -308,6 +308,11 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 		g.secondaryKeyState = PrimaryInput
 	case KlimbDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionKlimbLargeMap(direction), originMapType)
+		// A fall's damage lands in its workflow; finish the turn after it, as town Klimb does.
+		if result.State == surfaceCommandCompleted && g.gameState.EventQueueManager.HasActiveWorkflows() {
+			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
+			g.deferSurfaceCommandCompletion(result)
+		}
 		g.secondaryKeyState = PrimaryInput
 	case LookDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionLookLargeMap(direction), originMapType)

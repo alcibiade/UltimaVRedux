@@ -98,6 +98,21 @@ func TestJournalInterruptPreservesTalkAndWaitsForClosingKeyRelease(t *testing.T)
 	require.True(t, dialog.waitingForKeypressContinue)
 }
 
+func TestShiftJTypesWhileAConversationKeywordIsBeingEntered(t *testing.T) {
+	dialog := newBoundaryTalkDialog(t, boundaryTalkDefinition(semantic.Body{
+		&semantic.NarrateAction{Content: semantic.RichText{&semantic.TextPart{Text: "Visible"}}},
+		&semantic.WaitForKeyAction{},
+	}))
+	scene := dialog.gameScene
+	scene.dialogStack.PushModalDialog(dialog)
+	dialog.mount()
+	require.True(t, dialog.waitingForKeypressContinue)
+	require.False(t, scene.textEntryFocused(), "a key wait still lets Shift+J open the Journal")
+
+	dialog.waitingForKeypressContinue = false
+	require.True(t, scene.textEntryFocused(), "keyword entry takes Shift+J as a capital J")
+}
+
 func TestConversationExcerptWaitIsolationAndPresentedTail(t *testing.T) {
 	dialog := newBoundaryTalkDialog(t, boundaryTalkDefinition(semantic.Body{
 		&semantic.NarrateAction{Content: semantic.RichText{&semantic.TextPart{Text: "Visible first"}}},

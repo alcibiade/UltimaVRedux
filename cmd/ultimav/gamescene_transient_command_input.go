@@ -51,6 +51,10 @@ func (g *GameScene) beginTransientCommandInputFrame() bool {
 	if !g.commandInputFocused() {
 		state.wasUnfocused = true
 		g.ResetTransientCommandInput()
+		// Leaving the window is a safe pause: the ship must not sail on unattended.
+		if g.gameState.IsSailing() {
+			g.gameState.CompleteAutomaticSailingInterruption()
+		}
 
 		return false
 	}

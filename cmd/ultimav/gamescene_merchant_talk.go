@@ -330,7 +330,7 @@ func (g *GameScene) applyArmsBuyRequest(
 	if reviewErr == nil && !reflect.DeepEqual(current, *state) {
 		for _, quote := range current.BuyQuotes {
 			if quote.Equipment == request.Equipment && request.Quantity <= quote.MaxQuantity {
-				dialog.ApplySessionError("The reviewed Arms ledger changed. Please review again.")
+				dialog.ApplySessionError("The ledger changed while you browsed. Leave and speak to the merchant again.")
 
 				return
 			}
@@ -1289,7 +1289,7 @@ func (g *GameScene) commitHealerTreatment(
 	}
 	current, reviewErr := g.gameState.GetHealerShopState(session)
 	if reviewErr != nil || !reflect.DeepEqual(current, *state) {
-		dialog.ApplySessionError("The reviewed healer records changed. Please review again.")
+		dialog.ApplySessionError("The healer's records changed while you browsed. Leave and speak again.")
 
 		return
 	}

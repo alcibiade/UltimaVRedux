@@ -536,6 +536,11 @@ func (i *InputBox) Update() {
 	}
 }
 
+// AcceptsText reports that letter keys type into this box.
+func (i *InputBox) AcceptsText() bool {
+	return true
+}
+
 func (i *InputBox) GetText() string {
 	return i.textInput.GetText()
 }
