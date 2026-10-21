@@ -273,11 +273,6 @@ func IsImplementedSpellInContext(spell references.Spell, context references.Spel
 	return GetImplementedSpellContexts(spell).HasContext(context)
 }
 
-// IsImplementedCombatSpell reports whether combat validation may commit resources.
-func IsImplementedCombatSpell(spell references.Spell) bool {
-	return IsImplementedSpellInContext(spell, references.ContextCombat)
-}
-
 // GetCurrentSpellContext returns the SpellContext for the current map type.
 func (g *GameState) GetCurrentSpellContext() references.SpellContext {
 	switch g.MapState.PlayerLocation.Location.GetMapType() {

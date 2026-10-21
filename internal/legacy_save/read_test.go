@@ -51,66 +51,6 @@ func TestReadBundleFindsCaseInsensitiveExactSiblingWithoutWriting(t *testing.T) 
 	}
 }
 
-func TestResolveSavedGamePathAcceptsDirectoryFileCaseAndHomeShorthand(t *testing.T) {
-	home := t.TempDir()
-	directory := filepath.Join(home, "Original Saves")
-	if err := os.Mkdir(directory, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	gamPath := filepath.Join(directory, "saved.gam")
-	if err := os.WriteFile(gamPath, []byte("gam"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "SaVeD.OoL"), []byte("ool"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	for _, input := range []string{
-		directory,
-		filepath.Join(directory, "SAVED.GAM"),
-		filepath.Join("~", "Original Saves"),
-	} {
-		resolved, err := ResolveSavedGamePath(input, home)
-		if err != nil {
-			t.Fatalf("ResolveSavedGamePath(%q) error = %v", input, err)
-		}
-		if resolved != gamPath {
-			t.Fatalf("ResolveSavedGamePath(%q) = %q, want %q", input, resolved, gamPath)
-		}
-	}
-}
-
-func TestResolveSavedGamePathRejectsMissingAndAmbiguousPairs(t *testing.T) {
-	directory := t.TempDir()
-	if err := os.WriteFile(filepath.Join(directory, "SAVED.GAM"), []byte("gam"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	_, err := ResolveSavedGamePath(directory, directory)
-	assertValidationIssue(t, err, "ool", "missing_sibling", -1)
-
-	if err := os.WriteFile(filepath.Join(directory, "SAVED.OOL"), []byte("ool"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(directory, "saved.gam"), []byte("gam"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	entries, readErr := os.ReadDir(directory)
-	if readErr != nil {
-		t.Fatal(readErr)
-	}
-	gamMatches := 0
-	for _, entry := range entries {
-		if strings.EqualFold(entry.Name(), "SAVED.GAM") {
-			gamMatches++
-		}
-	}
-	if gamMatches < 2 {
-		return // The host filesystem does not permit case-distinct sibling names.
-	}
-	_, err = ResolveSavedGamePath(directory, directory)
-	assertValidationIssue(t, err, "gam", "ambiguous_sibling", -1)
-}
-
 func TestReadBundleRequiresExactSiblingName(t *testing.T) {
 	directory := t.TempDir()
 	gam, ool := validBundleBytes()
@@ -230,4 +170,64 @@ func assertValidationIssue(t *testing.T, err error, path, code string, offset in
 	if issue.Path != path || issue.Code != code || issue.Offset != offset || issue.Message == "" {
 		t.Fatalf("issue = %#v, want path=%q code=%q offset=%d and a message", issue, path, code, offset)
 	}
+}
+
+func TestResolveSavedGamePathAcceptsDirectoryFileCaseAndHomeShorthand(t *testing.T) {
+	home := t.TempDir()
+	directory := filepath.Join(home, "Original Saves")
+	if err := os.Mkdir(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	gamPath := filepath.Join(directory, "saved.gam")
+	if err := os.WriteFile(gamPath, []byte("gam"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "SaVeD.OoL"), []byte("ool"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, input := range []string{
+		directory,
+		filepath.Join(directory, "SAVED.GAM"),
+		filepath.Join("~", "Original Saves"),
+	} {
+		resolved, err := ResolveSavedGamePathContext(context.Background(), input, home)
+		if err != nil {
+			t.Fatalf("ResolveSavedGamePathContext(%q) error = %v", input, err)
+		}
+		if resolved != gamPath {
+			t.Fatalf("ResolveSavedGamePathContext(%q) = %q, want %q", input, resolved, gamPath)
+		}
+	}
+}
+
+func TestResolveSavedGamePathRejectsMissingAndAmbiguousPairs(t *testing.T) {
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "SAVED.GAM"), []byte("gam"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := ResolveSavedGamePathContext(context.Background(), directory, directory)
+	assertValidationIssue(t, err, "ool", "missing_sibling", -1)
+
+	if err := os.WriteFile(filepath.Join(directory, "SAVED.OOL"), []byte("ool"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "saved.gam"), []byte("gam"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	entries, readErr := os.ReadDir(directory)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	gamMatches := 0
+	for _, entry := range entries {
+		if strings.EqualFold(entry.Name(), "SAVED.GAM") {
+			gamMatches++
+		}
+	}
+	if gamMatches < 2 {
+		return // The host filesystem does not permit case-distinct sibling names.
+	}
+	_, err = ResolveSavedGamePathContext(context.Background(), directory, directory)
+	assertValidationIssue(t, err, "gam", "ambiguous_sibling", -1)
 }

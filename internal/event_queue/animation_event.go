@@ -52,16 +52,6 @@ func (a *AnimateEvent) Execute(deltaMs uint64) EventResult {
 	return EventContinue
 }
 
-// NewAnimateEvent creates a new animation event
-func NewAnimateEvent(durationMs uint64, onFrame func(float32)) *AnimateEvent {
-	return &AnimateEvent{
-		DurationMs: durationMs,
-		ElapsedMs:  0,
-		OnFrame:    onFrame,
-		OnComplete: nil,
-	}
-}
-
 // NewAnimateEventWithCallback creates a new animation event with completion callback
 func NewAnimateEventWithCallback(durationMs uint64, onFrame func(float32), onComplete func()) *AnimateEvent {
 	return &AnimateEvent{

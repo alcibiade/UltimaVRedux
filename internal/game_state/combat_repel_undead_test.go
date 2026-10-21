@@ -11,7 +11,7 @@ import (
 )
 
 func TestAnXenCorpIsImplementedNoTargetCombatSpell(t *testing.T) {
-	assert.True(t, IsImplementedCombatSpell(references.AnXenCorp))
+	assert.True(t, IsImplementedSpellInContext(references.AnXenCorp, references.ContextCombat))
 	assert.Equal(t, references.TargetAutomatic, references.GetSpellInfo(references.AnXenCorp).Targeting)
 }
 

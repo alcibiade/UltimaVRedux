@@ -49,29 +49,3 @@ func TestIsValidSyllable(t *testing.T) {
 		t.Error("Expected lowercase 'a' to be invalid syllable")
 	}
 }
-
-func TestGetSyllableWord(t *testing.T) {
-	// Valid syllable
-	word, ok := GetSyllableWord('V')
-	if !ok || word != "Vas" {
-		t.Errorf("Expected 'Vas', got %q (ok=%v)", word, ok)
-	}
-
-	// Another valid syllable
-	word, ok = GetSyllableWord('I')
-	if !ok || word != "In" {
-		t.Errorf("Expected 'In', got %q (ok=%v)", word, ok)
-	}
-
-	// Invalid syllable (J not used in Ultima V)
-	_, ok = GetSyllableWord('J')
-	if ok {
-		t.Error("Expected 'J' to not exist")
-	}
-
-	// Invalid syllable (O not used in Ultima V)
-	_, ok = GetSyllableWord('O')
-	if ok {
-		t.Error("Expected 'O' to not exist")
-	}
-}

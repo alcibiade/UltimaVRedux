@@ -65,7 +65,6 @@ type MessageDialog struct {
 	maskedBuffer             *ebiten.Image               // Persistent buffer for dissolve masking
 	contentDirty             bool                        // Flag indicating content needs re-rendering
 	dissolveEffect           *visual.PixelDissolveEffect // GPU-accelerated dissolve effect
-	rng                      *rand.Rand                  // RNG for dissolve effect
 	disableDirtyOptimization bool                        // Debug flag to bypass dirty checks
 	lastScreenWidth          int
 	lastScreenHeight         int
@@ -78,8 +77,7 @@ type MessageDialog struct {
 	bakedBounds          image.Rectangle
 
 	// Static content flag
-	staticContent bool          // If true, dialog does not accept mirrored text via addRowStr()
-	headerIcon    *ebiten.Image // Optional borrowed receipt icon; first content row is reserved.
+	staticContent bool // If true, dialog does not accept mirrored text via addRowStr()
 }
 
 // MessageDialogConfig defines the size and position of the message dialog
@@ -147,10 +145,8 @@ type MessageDialogBuilder struct {
 	enableInputDismissal bool             // Default: false (managed by Event Queue)
 	keyboard             *input.Keyboard  // Only needed if enableInputDismissal = true
 	onDismiss            func()           // Optional: callback on dismissal
-	autoCloseStack       *DialogStack     // Optional: stack that must own the built dialog
 	fadeInMs             int              // Default: 3000
 	fadeOutMs            int              // Default: 1000
-	rng                  *rand.Rand       // Optional custom RNG
 	contentAlignment     ContentAlignment // Default: ContentAlignBottomUp (terminal-style)
 
 	// Explicit text capacity configuration (nil = use Medium preset defaults: 10 lines, 45 chars)
@@ -285,31 +281,6 @@ func (b *MessageDialogBuilder) WithInputDismissal(keyboard *input.Keyboard) *Mes
 //	    Build()
 func (b *MessageDialogBuilder) WithDismissCallback(callback func()) *MessageDialogBuilder {
 	b.onDismiss = callback
-
-	return b
-}
-
-// AutoCloseAndPop is a convenience method that configures automatic dialog stack removal.
-// Creates a dismiss callback that pops the dialog from the provided stack.
-// Only works with WithInputDismissal() - requires enableInputDismissal = true.
-//
-// Parameters:
-//   - dialogStack: Dialog stack reference for auto-pop (captured in closure)
-//
-// Example usage:
-//
-//	overlay := widgets.NewOverlayDialog("Success!").
-//	    AsConfirmation().
-//	    WithUserDismissed(keyboard).
-//	    AutoPopFromStack(dialogStack).
-//	    Build()
-//	overlay.ShowWithoutAnimation()
-//	dialogStack.PushModalDialog(overlay)  // Direct push - implements Widget
-func (b *MessageDialogBuilder) AutoCloseAndPop(dialogStack *DialogStack) *MessageDialogBuilder {
-	if dialogStack == nil {
-		panic("MessageDialog.AutoCloseAndPop: dialog stack is nil")
-	}
-	b.autoCloseStack = dialogStack
 
 	return b
 }
@@ -638,20 +609,10 @@ func (b *MessageDialogBuilder) Build() *MessageDialog {
 		fadeDurationOutMs:     b.fadeOutMs,
 		fadeStartTime:         0,
 		animationClock:        func() int64 { return time.Now().UnixMilli() },
-		rng:                   b.rng,
 		staticContent:         b.staticContent,
 		lastScreenWidth:       0,
 		lastScreenHeight:      0,
 	}
-	if b.autoCloseStack != nil {
-		if b.onDismiss != nil {
-			panic("MessageDialog.Build: AutoCloseAndPop cannot be combined with WithDismissCallback")
-		}
-		dialog.onDismiss = func() {
-			b.autoCloseStack.MustRemoveWidgetInstance(dialog)
-		}
-	}
-
 	dialog.initializeVisualElements()
 
 	// Add initial message if provided
@@ -696,12 +657,8 @@ func (md *MessageDialog) updateFrameBounds() {
 	})
 }
 
-// getEffectRNG returns the RNG for dissolve effects, creating one with fixed seed if not provided
+// getEffectRNG returns a fixed-seed RNG for dissolve effects.
 func (md *MessageDialog) getEffectRNG() *rand.Rand {
-	if md.rng != nil {
-		return md.rng
-	}
-
 	return rand.New(rand.NewSource(12345))
 }
 

@@ -217,7 +217,7 @@ func TestActionFeedbackOffRejectsPrebuiltCardsWithoutHiddenOwnership(t *testing.
 	scene.ShowActionFeedback("old", false)
 	old := scene.transientActionFeedback[0].dialog
 	setActionPopupLimitForTest(scene, 0)
-	dialog := widgets.NewItemReceiptDialog("receipt", widgets.PositionMapCenterLower, nil)
+	dialog := widgets.NewActionFeedbackDialog("receipt", widgets.PositionMapCenterLower)
 	scene.admitTransientActionFeedback(dialog, state.ElapsedMs)
 	assert.False(t, dialog.IsVisible())
 	assert.False(t, old.IsVisible())

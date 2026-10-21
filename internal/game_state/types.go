@@ -11,13 +11,6 @@ package game_state
 
 //goland:noinspection ALL
 
-type BritOrUnderworld byte
-
-const (
-	Britannia  BritOrUnderworld = 0x00
-	Underworld BritOrUnderworld = 0xFF
-)
-
 type MoonstoneStatus byte
 
 const (

@@ -218,12 +218,6 @@ func (b *PartyStateBuilder) FlashGray() *PartyStateBuilder {
 	return b.WithFlash(flashStandardDurationMs, flashGrayR, flashGrayG, flashGrayB, flashStandardIntensity)
 }
 
-// FlashLongGray adds an extended gray flash effect (fall/impact damage pattern).
-// Standard: 1000ms duration, 0.7 intensity.
-func (b *PartyStateBuilder) FlashLongGray() *PartyStateBuilder {
-	return b.WithFlash(flashStandardDurationMs*5, flashGrayR, flashGrayG, flashGrayB, flashStandardIntensity)
-}
-
 // FlashGreen adds green flash effect (poison/swamp pattern)
 // Standard: 400ms duration, 0.3 intensity (subtle sickly green mist)
 func (b *PartyStateBuilder) FlashGreen() *PartyStateBuilder {

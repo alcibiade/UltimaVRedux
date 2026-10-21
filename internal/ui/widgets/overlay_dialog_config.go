@@ -45,12 +45,6 @@ var (
 
 	// SizingCompact is a small fixed-size dialog (2 lines, 35 chars)
 	SizingCompact = FixedLinesSizing{Lines: 2, CharsPerLine: 35}
-
-	// SizingMedium is a medium fixed-size dialog (6 lines, 40 chars)
-	SizingMedium = FixedLinesSizing{Lines: 6, CharsPerLine: 40}
-
-	// SizingLarge is a large fixed-size dialog (10 lines, 50 chars)
-	SizingLarge = FixedLinesSizing{Lines: 10, CharsPerLine: 50}
 )
 
 // =====================================
@@ -137,14 +131,8 @@ var (
 	// PositionScreenCenter is centered on the full screen
 	PositionScreenCenter = Position{HorizontalScreenCenter, VerticalCenter}
 
-	// PositionMapCenterTop is at the top of the map area
-	PositionMapCenterTop = Position{HorizontalMapCenter, VerticalTop}
-
 	// PositionMapCenterBottom keeps brief feedback clear of the primary map view.
 	PositionMapCenterBottom = Position{HorizontalMapCenter, VerticalBottom}
-
-	// PositionScreenLower is centered on screen but lower (for death messages)
-	PositionScreenLower = Position{HorizontalScreenCenter, VerticalLower}
 )
 
 // =====================================
@@ -176,15 +164,6 @@ func (e EffectsConfig) HasAnyEffect() bool {
 var (
 	// EffectsNone disables all fade effects (instant show/hide)
 	EffectsNone = EffectsConfig{FadeInMs: 0, FadeOutMs: 0}
-
-	// EffectsQuick provides quick fade animations (300ms each)
-	EffectsQuick = EffectsConfig{FadeInMs: 300, FadeOutMs: 300}
-
-	// EffectsStandard provides standard fade animations (500ms each)
-	EffectsStandard = EffectsConfig{FadeInMs: 500, FadeOutMs: 500}
-
-	// EffectsSlow provides slow fade animations (3000ms in, 1000ms out)
-	EffectsSlow = EffectsConfig{FadeInMs: 3000, FadeOutMs: 1000}
 )
 
 // =====================================

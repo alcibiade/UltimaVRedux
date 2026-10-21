@@ -75,17 +75,9 @@ func (m MatchStringList) getListOfMatches(currentStr string) *[]string {
 // input as this MatchStringList. Checks whether any string in this list
 // prefix-matches any accepted value of the other match.
 func (m MatchStringList) CouldOverlapWith(other Match) bool {
-	switch o := other.(type) {
-	case MatchString:
-		return anyStringSharesFirstChar(o.Str, m.Strings)
-	case MatchStringList:
+	if o, ok := other.(MatchStringList); ok {
 		return anyStringListOverlap(m.Strings, o.Strings)
-	case MatchInt:
-		return anyStringOverlapsInt(m.Strings, o.IntMin, o.IntMax)
-	case MatchPlayerCharacter:
-		// Conservative: MatchPlayerCharacter accepts ints, "all", class names
-		return true
-	default:
-		return true
 	}
+
+	return true
 }

@@ -526,11 +526,6 @@ func (e *AtlasNoteEditor) drawField(screen *ebiten.Image, field int) {
 	}
 }
 
-//nolint:unused // Geometry tests exercise accepted-draft scrolling independently of native preedit.
-func (e *AtlasNoteEditor) prepareFieldScroll(field int, layout atlasEditorFieldLayout) ([]atlasEditorLine, int) {
-	return e.scrollForContent(field, layout, e.fields[field], e.cursors[field])
-}
-
 func (e *AtlasNoteEditor) scrollForContent(
 	field int, layout atlasEditorFieldLayout, content []rune, caret int,
 ) ([]atlasEditorLine, int) {

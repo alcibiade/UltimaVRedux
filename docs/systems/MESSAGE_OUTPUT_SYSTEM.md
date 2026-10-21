@@ -69,8 +69,8 @@ Each result has one explicit history owner, independent of the popup setting:
 
 Do not deduplicate strings: two harvests may legitimately emit identical results.
 The popup cap cannot change crop, theft, loot, turn or RNG effects. A future typed
-receipt using `NewItemReceiptDialog` must enter the shared transient admission
-path and establish its history owner; constructing a prefab alone does neither.
+item receipt must enter the shared transient admission path and establish its
+history owner; constructing a dialog alone does neither.
 
 A successfully applied lower cap retires excess existing cards on the next normal
 scene update, without a new message or resize, including cards covered by a modal

@@ -46,10 +46,6 @@ func TestMarshalDeterministicAcrossQuestionMapOrder(t *testing.T) {
 	second, err := semantic.Marshal(comprehensiveConversation(true))
 	require.NoError(t, err)
 	assert.Equal(t, first, second)
-
-	var output bytes.Buffer
-	require.NoError(t, semantic.Write(&output, comprehensiveConversation(true)))
-	assert.Equal(t, first, output.Bytes())
 }
 
 func TestMarshalRoundTripsReduxOrigin(t *testing.T) {

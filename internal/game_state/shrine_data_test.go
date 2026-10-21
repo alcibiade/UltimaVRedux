@@ -101,9 +101,9 @@ func TestGetShrineForWord_AllWords(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.word, func(t *testing.T) {
 			t.Parallel()
-			got := GetShrineForWord(tc.word)
+			got := GetShrineForWordResponse(tc.word)
 			if got != tc.wantIndex {
-				t.Errorf("GetShrineForWord(%q) = %d, want %d", tc.word, got, tc.wantIndex)
+				t.Errorf("GetShrineForWordResponse(%q) = %d, want %d", tc.word, got, tc.wantIndex)
 			}
 		})
 	}

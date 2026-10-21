@@ -17,14 +17,14 @@ import (
 //   - Effects: WithEffects() or use a template
 //   - ContentAlignment: WithContentAlignment() or use a template
 //   - TextAlignment: WithTextAlignment() or use a template
-//   - Duration: Exactly one of WithDuration(), WithExternallyManagedDuration(), or WithUserDismissed()
+//   - Duration: Exactly one of WithExternallyManagedDuration() or WithUserDismissed()
 //
 // Example usage:
 //
 //	// Concise with template
 //	dialog := widgets.NewOverlayDialog("Success!").
 //	    AsOverlayFeedback().
-//	    WithDuration(1000).
+//	    WithExternallyManagedDuration(1000).
 //	    Build()
 //
 //	// Fully explicit
@@ -43,7 +43,6 @@ type OverlayDialogBuilder struct {
 	// Required appearance configuration
 	sizing       SizingStrategy
 	position     Position
-	centerX      *float64
 	effects      EffectsConfig
 	contentAlign ContentAlignment
 	textAlign    OverlayTextAlignment
@@ -63,7 +62,6 @@ type OverlayDialogBuilder struct {
 	effectsSet          bool
 	contentAlignSet     bool
 	textAlignSet        bool
-	durationSet         bool // True if WithDuration() called
 	externalDurationSet bool // True if WithExternallyManagedDuration() called
 	userDismissSet      bool // True if WithUserDismissed() called
 }
@@ -93,19 +91,7 @@ func (b *OverlayDialogBuilder) WithSizing(s SizingStrategy) *OverlayDialogBuilde
 // Required - Build() panics if not set (unless using a template).
 func (b *OverlayDialogBuilder) WithPosition(p Position) *OverlayDialogBuilder {
 	b.position = p
-	b.centerX = nil
 	b.positionSet = true
-
-	return b
-}
-
-// WithHorizontalCenter overrides the horizontal anchor with a screen fraction.
-// The configured vertical anchor is unchanged; a later WithPosition resets this override.
-func (b *OverlayDialogBuilder) WithHorizontalCenter(x float64) *OverlayDialogBuilder {
-	if !(x >= 0 && x <= 1) {
-		panic("OverlayDialog.WithHorizontalCenter: expected a screen fraction between 0 and 1")
-	}
-	b.centerX = &x
 
 	return b
 }
@@ -140,16 +126,6 @@ func (b *OverlayDialogBuilder) WithTextAlignment(a OverlayTextAlignment) *Overla
 // =====================================
 // REQUIRED: Duration (exactly one)
 // =====================================
-
-// WithDuration sets timed auto-dismiss behavior.
-// The dialog will automatically hide after the specified duration.
-// Cannot be combined with WithUserDismissed() - Build() panics if both are set.
-func (b *OverlayDialogBuilder) WithDuration(durationMs int) *OverlayDialogBuilder {
-	b.durationMs = durationMs
-	b.durationSet = true
-
-	return b
-}
 
 // WithExternallyManagedDuration configures a timed dialog whose owner controls expiry.
 // OverlayDialog.Update will not advance or hide it. This is intended for owners with
@@ -186,7 +162,7 @@ func (b *OverlayDialogBuilder) MirrorToOutput(output *text.Output) *OverlayDialo
 // AutoPopFromStack automatically pops the dialog from the stack when dismissed.
 //
 // IMPORTANT: This only works for user-dismissed dialogs (WithUserDismissed).
-// For timed dialogs (WithDuration), use explicit cleanup in Finally():
+// For timed dialogs (WithExternallyManagedDuration), use explicit cleanup in Finally():
 //
 //	.Finally(func() { g.dialogStack.PopModalDialog() })
 //
@@ -259,7 +235,7 @@ func (b *OverlayDialogBuilder) validate() {
 
 	// Check duration - exactly one required
 	durationModeCount := 0
-	for _, configured := range []bool{b.durationSet, b.externalDurationSet, b.userDismissSet} {
+	for _, configured := range []bool{b.externalDurationSet, b.userDismissSet} {
 		if configured {
 			durationModeCount++
 		}
@@ -271,7 +247,7 @@ func (b *OverlayDialogBuilder) validate() {
 
 	if durationModeCount == 0 {
 		missing = append(missing,
-			"Duration (call WithDuration(ms), WithExternallyManagedDuration(ms), or WithUserDismissed(keyboard))")
+			"Duration (call WithExternallyManagedDuration(ms) or WithUserDismissed(keyboard))")
 	}
 
 	if len(missing) > 0 {
@@ -300,10 +276,6 @@ func (b *OverlayDialogBuilder) build() *OverlayDialog {
 	// Configure position
 	msgBuilder = msgBuilder.WithHorizontalPosition(b.position.GetHorizontalMode())
 	msgBuilder = msgBuilder.WithVerticalPosition(b.position.GetVerticalPercent())
-	if b.centerX != nil {
-		msgBuilder.centerX = b.centerX
-		msgBuilder.screenRelative = true
-	}
 
 	// Configure effects
 	if b.effects.HasAnyEffect() {
@@ -338,7 +310,7 @@ func (b *OverlayDialogBuilder) build() *OverlayDialog {
 		dialog:                    messageDialog,
 		message:                   b.message,
 		durationMs:                b.durationMs,
-		isTimed:                   b.durationSet || b.externalDurationSet,
+		isTimed:                   b.externalDurationSet,
 		durationExternallyManaged: b.externalDurationSet,
 		mirrorToOutput:            b.mirrorToOutput,
 		onDismiss:                 b.onDismiss,
@@ -358,63 +330,3 @@ func (b *OverlayDialogBuilder) build() *OverlayDialog {
 // =====================================
 // GETTER METHODS (for testing)
 // =====================================
-
-// IsSizingSet returns true if sizing has been configured.
-func (b *OverlayDialogBuilder) IsSizingSet() bool {
-	return b.sizingSet
-}
-
-// IsPositionSet returns true if position has been configured.
-func (b *OverlayDialogBuilder) IsPositionSet() bool {
-	return b.positionSet
-}
-
-// IsEffectsSet returns true if effects have been configured.
-func (b *OverlayDialogBuilder) IsEffectsSet() bool {
-	return b.effectsSet
-}
-
-// IsContentAlignmentSet returns true if content alignment has been configured.
-func (b *OverlayDialogBuilder) IsContentAlignmentSet() bool {
-	return b.contentAlignSet
-}
-
-// IsTextAlignmentSet returns true if text alignment has been configured.
-func (b *OverlayDialogBuilder) IsTextAlignmentSet() bool {
-	return b.textAlignSet
-}
-
-// IsDurationSet returns true if self-managed timed duration has been configured.
-func (b *OverlayDialogBuilder) IsDurationSet() bool {
-	return b.durationSet
-}
-
-// IsExternalDurationSet returns true if externally managed timing has been configured.
-func (b *OverlayDialogBuilder) IsExternalDurationSet() bool {
-	return b.externalDurationSet
-}
-
-// IsUserDismissedSet returns true if user-dismissed mode has been configured.
-func (b *OverlayDialogBuilder) IsUserDismissedSet() bool {
-	return b.userDismissSet
-}
-
-// GetSizing returns the configured sizing strategy (nil if not set).
-func (b *OverlayDialogBuilder) GetSizing() SizingStrategy {
-	return b.sizing
-}
-
-// GetPosition returns the configured position.
-func (b *OverlayDialogBuilder) GetPosition() Position {
-	return b.position
-}
-
-// GetEffects returns the configured effects.
-func (b *OverlayDialogBuilder) GetEffects() EffectsConfig {
-	return b.effects
-}
-
-// GetDurationMs returns the configured duration in milliseconds.
-func (b *OverlayDialogBuilder) GetDurationMs() int {
-	return b.durationMs
-}

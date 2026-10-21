@@ -20,9 +20,7 @@ const (
 	highDexterity            = 25
 	testMaxDexterity         = 30
 	extremelyLowDexterity    = 1
-	testAdvanceTime          = 100
 	expectedMinPoisonedCount = 1
-	expectedScreenFlashCount = 1
 	expectedMinMessageCount  = 2
 	partySize                = 4
 
@@ -31,7 +29,6 @@ const (
 	greenMistGreen     = 0.6
 	greenMistBlue      = 0.2
 	greenMistIntensity = 0.3
-	greenMistDuration  = 400
 )
 
 func TestSwampPoisonEventQueue_Integration(t *testing.T) {

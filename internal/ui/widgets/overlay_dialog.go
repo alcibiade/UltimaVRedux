@@ -16,8 +16,8 @@ import (
 // Create using NewOverlayDialog() builder:
 //
 //	dialog := widgets.NewOverlayDialog("Success!").
-//	    AsOverlayFeedback().      // Template sets appearance
-//	    WithDuration(1000).       // Explicit duration choice
+//	    AsOverlayFeedback().                 // Template sets appearance
+//	    WithExternallyManagedDuration(1000). // Explicit duration choice
 //	    Build()
 type OverlayDialog struct {
 	// Underlying dialog implementation
@@ -30,10 +30,6 @@ type OverlayDialog struct {
 	durationExternallyManaged bool // true when the owner, rather than Update, controls expiry
 	mirrorToOutput            *text.Output
 	onDismiss                 func()
-
-	// Timing state for timed dialogs
-	elapsedMs   int
-	autoHideSet bool
 }
 
 // =====================================
@@ -58,27 +54,11 @@ func (o *OverlayDialog) PrepareLayout(bounds image.Rectangle) {
 	}
 }
 
-// Update handles per-frame updates including timing and input.
+// Update handles per-frame input. Timed dialogs stay visible until their owner
+// removes them; Update never expires them.
 func (o *OverlayDialog) Update() {
-	if o.dialog == nil {
-		return
-	}
-
-	o.dialog.Update()
-
-	// Externally managed dialogs remain visible until their owner removes them.
-	if o.isTimed && !o.durationExternallyManaged && o.IsVisible() {
-		// Accumulate time (assuming ~60fps, ~16ms per frame)
-		o.elapsedMs += 16
-
-		if o.elapsedMs >= o.durationMs && !o.autoHideSet {
-			o.autoHideSet = true
-			o.dialog.HideWithoutAnimation()
-
-			if o.onDismiss != nil {
-				o.onDismiss()
-			}
-		}
+	if o.dialog != nil {
+		o.dialog.Update()
 	}
 }
 
@@ -90,8 +70,6 @@ func (o *OverlayDialog) Update() {
 func (o *OverlayDialog) Show() {
 	if o.dialog != nil {
 		o.dialog.Show()
-		o.elapsedMs = 0
-		o.autoHideSet = false
 
 		// Mirror to output if configured
 		if o.mirrorToOutput != nil && o.message != "" {
@@ -104,8 +82,6 @@ func (o *OverlayDialog) Show() {
 func (o *OverlayDialog) ShowWithoutAnimation() {
 	if o.dialog != nil {
 		o.dialog.ShowWithoutAnimation()
-		o.elapsedMs = 0
-		o.autoHideSet = false
 
 		// Mirror to output if configured
 		if o.mirrorToOutput != nil && o.message != "" {
@@ -142,11 +118,11 @@ func (o *OverlayDialog) IsVisible() bool {
 // =====================================
 
 // IsDismissed returns true if the dialog has been dismissed.
-// For timed dialogs, this returns true when duration has elapsed.
+// Timed dialogs are never dismissed by the dialog itself: their owner removes them.
 // For user-dismissed dialogs, this returns true when user presses any key.
 func (o *OverlayDialog) IsDismissed() bool {
 	if o.isTimed {
-		return o.autoHideSet
+		return false
 	}
 
 	if o.dialog != nil {

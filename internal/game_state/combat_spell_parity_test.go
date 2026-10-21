@@ -12,7 +12,7 @@ func TestCombatSpellMetadataAndGateStayInParity(t *testing.T) {
 	combatSpells := references.GetSpellsByContext(references.ContextCombat)
 	assert.Len(t, combatSpells, 38)
 	for _, spell := range combatSpells {
-		assert.Truef(t, IsImplementedCombatSpell(spell), "%s is combat metadata but cannot pass the cast gate", references.GetSpellName(spell))
+		assert.Truef(t, IsImplementedSpellInContext(spell, references.ContextCombat), "%s is combat metadata but cannot pass the cast gate", references.GetSpellName(spell))
 	}
 }
 

@@ -97,11 +97,6 @@ func SetAmbientLightRadius(radius int) {
 	ambientLightRadius = radius
 }
 
-// GetAmbientLightRadius returns the current ambient light radius.
-func GetAmbientLightRadius() int {
-	return ambientLightRadius
-}
-
 // ============================================================================
 // Math helpers
 // ============================================================================

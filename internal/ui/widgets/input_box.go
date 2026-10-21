@@ -125,12 +125,7 @@ type InputBoxBuilder struct {
 	escapeClearsText bool
 	spaceCancels     bool
 
-	// Dismiss callback
-	onDismiss      func() // Optional: callback after resultCallback
 	autoCloseStack *DialogStack
-
-	// Custom override
-	customConfig *InputBoxConfig // Full custom configuration (highest priority)
 }
 
 const (
@@ -302,23 +297,6 @@ func (b *InputBoxBuilder) WithSpaceCancellation() *InputBoxBuilder {
 	return b
 }
 
-// WithDismissCallback sets a callback to execute after result callback.
-// Provides maximum flexibility for custom cleanup logic.
-// Callback executes AFTER resultCallback completes.
-//
-// Example usage:
-//
-//	dialog := widgets.NewInputBox("Enter name:", textCmd, keyboard).
-//	    WithDismissCallback(func() {
-//	        dialogStack.PopModalDialog()
-//	    }).
-//	    Build()
-func (b *InputBoxBuilder) WithDismissCallback(callback func()) *InputBoxBuilder {
-	b.onDismiss = callback
-
-	return b
-}
-
 // AutoCloseAndPop is a convenience method that configures automatic dialog stack removal.
 // Creates a dismiss callback that pops the dialog from the provided stack.
 // Callback executes AFTER resultCallback completes.
@@ -335,44 +313,6 @@ func (b *InputBoxBuilder) AutoCloseAndPop(dialogStack *DialogStack) *InputBoxBui
 		panic("InputBox.AutoCloseAndPop: dialog stack is nil")
 	}
 	b.autoCloseStack = dialogStack
-
-	return b
-}
-
-// WithYesNoCallbacks configures the InputBox as a yes/no prompt with callbacks.
-// This is a convenience method that creates the yes/no grammar command internally
-// and applies optimal defaults for yes/no prompts.
-//
-// Parameters:
-//   - onYes: Callback executed when user enters "yes" (can be nil)
-//   - onNo: Callback executed when user enters "no" (can be nil)
-//   - dialogStack: DialogStack for accessing and popping the input box
-//
-// Automatically applies:
-//   - AutoReplace mode (single-character 'y'/'n' input)
-//   - TextLines = 2 (unless already set)
-//
-// Example usage:
-//
-//	dialog := widgets.NewInputBox("Are you sure?", nil, keyboard).
-//	    WithYesNoCallbacks(
-//	        func() { executeYesAction() },
-//	        func() { executeNoAction() },
-//	        &g.dialogStack,
-//	    ).
-//	    Build()
-func (b *InputBoxBuilder) WithYesNoCallbacks(onYes func(), onNo func(), dialogStack *DialogStack) *InputBoxBuilder {
-	// Create yes/no command internally
-	b.textCommand = NewYesNoCommand(onYes, onNo, dialogStack)
-
-	// Apply yes/no optimized defaults
-	b.autoReplace = true
-
-	// Set default question lines if not already specified
-	if b.textLines == nil {
-		lines := 2
-		b.textLines = &lines
-	}
 
 	return b
 }
@@ -397,54 +337,44 @@ func (b *InputBoxBuilder) Build() *InputBox {
 		panic("InputBox regex mode requires WithResultCallback() to handle Enter/Escape")
 	}
 
-	// Determine config to use
-	var config InputBoxConfig
-	if b.customConfig != nil {
-		// Custom config takes highest priority
-		config = *b.customConfig
-	} else {
-		// Auto-size from center point + content requirements
-		// Apply defaults for unspecified coordinates
-		centerX := DialogHorizontalMapOnly.ToPercentage() // Default X: map-centered (37%)
-		if b.centerX != nil {
-			centerX = *b.centerX
-		}
-
-		centerY := 0.70 // Default Y: 70% from top (standard InputBox bottom position)
-		if b.centerY != nil {
-			centerY = *b.centerY
-		}
-
-		textLines := 2     // Default
-		charsPerLine := 32 // Default InputBox width
-
-		if b.textLines != nil {
-			textLines = *b.textLines
-		}
-		if b.charsPerLine != nil {
-			charsPerLine = *b.charsPerLine
-		}
-
-		config = b.calculateAutoSizeDimensions(centerX, centerY, textLines, charsPerLine)
-		config.AutoReplace = b.autoReplace
-
-		// Populate regex mode fields if present
-		if b.regexPattern != nil {
-			config.RegexPattern = *b.regexPattern
-		}
-		if b.resultCallback != nil {
-			config.ResultCallback = b.resultCallback
-		}
-		config.EscapeClearsText = b.escapeClearsText
-		config.SpaceCancels = b.spaceCancels
+	// Auto-size from center point + content requirements
+	// Apply defaults for unspecified coordinates
+	centerX := DialogHorizontalMapOnly.ToPercentage() // Default X: map-centered (37%)
+	if b.centerX != nil {
+		centerX = *b.centerX
 	}
 
+	centerY := 0.70 // Default Y: 70% from top (standard InputBox bottom position)
+	if b.centerY != nil {
+		centerY = *b.centerY
+	}
+
+	textLines := 2     // Default
+	charsPerLine := 32 // Default InputBox width
+
+	if b.textLines != nil {
+		textLines = *b.textLines
+	}
+	if b.charsPerLine != nil {
+		charsPerLine = *b.charsPerLine
+	}
+
+	config := b.calculateAutoSizeDimensions(centerX, centerY, textLines, charsPerLine)
+	config.AutoReplace = b.autoReplace
+
+	// Populate regex mode fields if present
+	if b.regexPattern != nil {
+		config.RegexPattern = *b.regexPattern
+	}
+	if b.resultCallback != nil {
+		config.ResultCallback = b.resultCallback
+	}
+	config.EscapeClearsText = b.escapeClearsText
+	config.SpaceCancels = b.spaceCancels
+
 	// Create InputBox from config
-	inputBox := createInputBoxFromConfig(b.question, b.textCommand, b.keyboard, config, b.onDismiss)
+	inputBox := createInputBoxFromConfig(b.question, b.textCommand, b.keyboard, config)
 	if b.autoCloseStack != nil {
-		if b.onDismiss != nil {
-			panic("InputBox.Build: AutoCloseAndPop cannot be combined with WithDismissCallback")
-		}
 		inputBox.onDismiss = func() {
 			b.autoCloseStack.MustRemoveWidgetInstance(inputBox)
 		}
@@ -484,13 +414,14 @@ func (b *InputBoxBuilder) calculateAutoSizeDimensions(centerX, centerY float64, 
 
 // createInputBoxFromConfig constructs an InputBox from a configuration struct.
 // This is the low-level constructor used by the builder's Build() method.
-func createInputBoxFromConfig(question string, textCommand *grammar.TextCommand, keyboard *input.Keyboard, config InputBoxConfig, onDismiss func()) *InputBox {
+func createInputBoxFromConfig(
+	question string, textCommand *grammar.TextCommand, keyboard *input.Keyboard, config InputBoxConfig,
+) *InputBox {
 	inputBox := &InputBox{}
 	inputBox.font = GetScaledFont(inputBoxFontSize)
 
 	inputBox.Question = question
 	inputBox.keyboard = keyboard
-	inputBox.onDismiss = onDismiss
 	inputBox.config = config
 
 	// Determine operating mode

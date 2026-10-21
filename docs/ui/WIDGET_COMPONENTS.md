@@ -16,19 +16,16 @@ Paths in this table are relative to `internal/ui/widgets/` unless stated.
 | Styled text | `internal/text/`: `text.Output` | Commit line builders with `Done`; rendering remains inside Output. |
 | Thematic sprite chrome | `borders.go`: `Border` | Keep intentional blue/white chrome; do not globally recolor it to style transient dialogs. |
 | Classic functional cards | `classic_pixel_panes.go`, `save_slot_browser.go` | Shared stepped silhouette, measured interiors, fill before content, frames last. |
-| Owner-driven choice | `button.go`: `Button` | `Update` does not read input; the owner calls `Activate`. |
 | Bounded numeric setting | `slider.go`: `Slider` | Focused Left/Right changes integer values; no pointer/drag path. |
-| Busy presentation | `loading_indicator.go` | Owner manages Start/Stop and visibility; animation requires active updates. |
 | Grammar or free-text editor | `textinput_core.go`, `textinput_update.go`, `textinput_autocomplete.go` | Input callbacks report choices; gameplay stays outside the widget. |
-| Validated prompt | `input_box.go`, `input_box_prefabs.go` | Grammar and regex modes are exclusive; use Yell, sleep-duration, and yes/no prefabs. |
+| Validated prompt | `input_box.go`, `input_box_prefabs.go` | Grammar and regex modes are exclusive; use the yes/no prefab. |
 | Native checkpoint description input | `save_description_entry_modal.go`, `save_description_layout.go` | Preserve native focus/composition and owner-held draft/revision state. |
 | Mutable narrative | `message_dialog_core.go`, `message_dialog_content.go` | Reserve prompt capacity before using prompt methods. |
 | Timed/acknowledged popup | `overlay_dialog_builder.go`, `overlay_dialog_templates.go` | Exactly one duration mode and one removal owner. |
 | Staged interaction | `interaction_transcript.go` | Captures raw responses; the workflow owns sequencing and authority. |
 | Chest discovery / completed battle totals | `combat_loot_dialog.go` | Detached icon/text rows; discovery owns reveal/acknowledgement. Summary is a narrower bottom-anchored, upward-growing card with right-aligned totals and clipped overflow; constructor requires exact-instance dismissal ownership. |
 | Keyboard menu | `button_list.go`: `ButtonListModal` | Repeated arrow navigation; Enter invokes once; Escape invokes owner close. |
-| Tabs / scrolling selection | `tabbed_interface.go`, `scrollable_list_state.go` | List state is not a widget or input owner. |
-| Focus decoration | `focus_indicator.go` | FocusManager does not read keys; owner maps traversal and updates/draws it. |
+| Scrolling selection | `scrollable_list_state.go` | List state is not a widget or input owner. |
 | Player checkpoint selection | `save_slot_browser.go` | Detached views; no persistence or revision authority. |
 | Journal reading | `quest_journal_dialog.go`, `quest_journal_search.go`, `quest_journal_excerpts.go` | Detached opening snapshot; scene owns pause, acknowledgements, and persistence. |
 | Traveller's map / personal notes | `atlas_dialog.go`, `atlas_panels.go`, `atlas_view.go`, `atlas_render.go`, `atlas_note_editor.go` | Detached point authorities and separate supplied artwork; scene owns pause/preferences and note intents; application lends one geography texture. |
@@ -880,7 +877,7 @@ commitment and cancellation; the picker itself owns neither.
 
 For specialized Ready, Cast, Mix, and read-only views, use the component map and
 the corresponding scene workflow. Required constructor dependencies and result
-polling differ by component; do not infer them from a generic ModalDialog type.
+polling differ by component; there is no generic result-bearing dialog type.
 
 Ready deliberately retains its compact 20-size body and 26-size headings. A
 full-width character header shows the selected character's `GetKeySpriteIndex`

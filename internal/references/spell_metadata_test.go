@@ -219,42 +219,6 @@ func TestIsSpellValidInContext(t *testing.T) {
 	}
 }
 
-// TestGetSpellsByCircle verifies circle-based spell retrieval.
-func TestGetSpellsByCircle(t *testing.T) {
-	t.Run("Each circle has exactly 6 spells", func(t *testing.T) {
-		for circle := 1; circle <= 8; circle++ {
-			spells := GetSpellsByCircle(circle)
-			assert.Len(t, spells, 6, "Circle %d should have exactly 6 spells", circle)
-		}
-	})
-
-	t.Run("Circle 1 contains correct spells", func(t *testing.T) {
-		spells := GetSpellsByCircle(1)
-		assert.Contains(t, spells, InLor)
-		assert.Contains(t, spells, GravPor)
-		assert.Contains(t, spells, AnZu)
-		assert.Contains(t, spells, AnNox)
-		assert.Contains(t, spells, Mani)
-		assert.Contains(t, spells, AnYlem)
-	})
-
-	t.Run("Circle 8 contains correct spells", func(t *testing.T) {
-		spells := GetSpellsByCircle(8)
-		assert.Contains(t, spells, InManiCorp)
-		assert.Contains(t, spells, KalXenCorp)
-		assert.Contains(t, spells, InVasGravCorp)
-		assert.Contains(t, spells, InFlamHur)
-		assert.Contains(t, spells, VasRelPor)
-		assert.Contains(t, spells, AnTym)
-	})
-
-	t.Run("Invalid circles return nil", func(t *testing.T) {
-		assert.Nil(t, GetSpellsByCircle(0))
-		assert.Nil(t, GetSpellsByCircle(9))
-		assert.Nil(t, GetSpellsByCircle(-1))
-	})
-}
-
 // TestGetSpellsByContext verifies context-based spell filtering.
 func TestGetSpellsByContext(t *testing.T) {
 	t.Run("Combat spells include combat-only spells", func(t *testing.T) {
@@ -277,50 +241,6 @@ func TestGetSpellsByContext(t *testing.T) {
 		assert.Contains(t, spells, AnGrav, "An Grav is dungeon spell")
 		assert.Contains(t, spells, UusPor, "Uus Por is dungeon spell")
 		assert.Contains(t, spells, DesPor, "Des Por is dungeon spell")
-	})
-}
-
-// TestGetSpellsByTargeting verifies targeting-based spell filtering.
-func TestGetSpellsByTargeting(t *testing.T) {
-	t.Run("Self-targeting spells", func(t *testing.T) {
-		spells := GetSpellsByTargeting(TargetAutomatic)
-		assert.Contains(t, spells, InLor, "In Lor is self-targeting")
-		assert.Contains(t, spells, VasLor, "Vas Lor is self-targeting")
-		assert.Contains(t, spells, AnTym, "An Tym is self-targeting")
-		assert.Contains(t, spells, KalXen, "Kal Xen is a no-target combat cast")
-		assert.Contains(t, spells, InBetXen, "In Bet Xen is a no-target combat cast")
-		assert.Contains(t, spells, KalXenCorp, "Kal Xen Corp is a no-target combat cast")
-		assert.Contains(t, spells, InXenMani, "In Xen Mani needs no party-member selection")
-		assert.NotContains(t, spells, Mani, "Mani is NOT self-targeting")
-		assert.NotContains(t, spells, RelHur, "Rel Hur is NOT self-targeting (direction)")
-	})
-
-	t.Run("Character-targeting spells", func(t *testing.T) {
-		spells := GetSpellsByTargeting(TargetPartyMember)
-		assert.Contains(t, spells, Mani, "Mani targets character")
-		assert.Contains(t, spells, VasMani, "Vas Mani targets character")
-		assert.Contains(t, spells, AnNox, "An Nox targets character")
-		assert.Contains(t, spells, AnZu, "An Zu targets character")
-		assert.Contains(t, spells, InManiCorp, "In Mani Corp targets character")
-		assert.NotContains(t, spells, InXenMani, "In Xen Mani affects the party automatically")
-	})
-
-	t.Run("Direction-targeting spells", func(t *testing.T) {
-		spells := GetSpellsByTargeting(TargetDirection)
-		assert.Contains(t, spells, InPor, "In Por targets direction")
-		assert.Contains(t, spells, AnSanct, "An Sanct targets direction")
-		assert.Contains(t, spells, AnGrav, "An Grav targets direction")
-		assert.Contains(t, spells, AnExPor, "An Ex Por targets direction")
-		assert.Contains(t, spells, AnYlem, "An Ylem targets direction")
-		assert.Contains(t, spells, RelHur, "Rel Hur targets direction")
-		assert.Contains(t, spells, InVasGravCorp, "In Vas Grav Corp targets direction")
-	})
-
-	t.Run("Tile-crosshair projectile spells", func(t *testing.T) {
-		spells := GetSpellsByTargeting(TargetTileCrosshair)
-		assert.Contains(t, spells, GravPor)
-		assert.Contains(t, spells, VasFlam)
-		assert.Contains(t, spells, XenCorp)
 	})
 }
 

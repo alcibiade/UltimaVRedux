@@ -3,7 +3,6 @@ package game_state
 import (
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 // QuestItemPlacementData contains the location information for placing quest items (shards and artifacts)
@@ -13,9 +12,6 @@ type QuestItemPlacementData struct {
 	Location      references.Location
 	Floor         references.FloorNumber
 }
-
-// ShardPlacementData is an alias for backwards compatibility
-type ShardPlacementData = QuestItemPlacementData
 
 // GetAllQuestItemPlacements returns placement information for all quest items (shards + artifacts)
 //
@@ -65,21 +61,6 @@ func GetAllQuestItemPlacements() []QuestItemPlacementData {
 			Floor:         -1,                                  // Underworld floor
 		},
 	}
-}
-
-// GetShardPlacementData returns the placement information for shards only (backwards compatibility)
-func GetShardPlacementData() []QuestItemPlacementData {
-	allItems := GetAllQuestItemPlacements()
-	var shards []QuestItemPlacementData
-	for _, item := range allItems {
-		if item.QuestItemType == references.ShardOfFalsehood ||
-			item.QuestItemType == references.ShardOfHatred ||
-			item.QuestItemType == references.ShardOfCowardice {
-			shards = append(shards, item)
-		}
-	}
-
-	return shards
 }
 
 // IsQuestItemVisible determines if a quest item should be visible at a given position
@@ -145,11 +126,6 @@ func (gs *GameState) IsShardAtPosition(position references.Position) (bool, refe
 
 // Note: GetQuestItemSpriteIndex() has been moved to InventoryItemReferences.GetQuestItemSpriteIndex()
 // It uses the shared quest-item definitions for consistency with inventory presentation.
-
-// GetShardSpriteIndex returns the sprite index used for shards (backwards compatibility)
-func GetShardSpriteIndex() indexes.SpriteIndex {
-	return indexes.Shard // All shards use the dedicated Shard sprite (436 = 180+256)
-}
 
 // IsLordBritishArtifact checks if a quest item is one of Lord British's three artifacts
 func IsLordBritishArtifact(questItem references.QuestItem) bool {

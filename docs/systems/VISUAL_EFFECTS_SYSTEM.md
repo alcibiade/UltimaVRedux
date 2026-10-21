@@ -139,7 +139,7 @@ gameplay rules and scope of this Redux presentation choice are
 
 `SetScreenFlashColor` selects RGB components in the `0.0` to `1.0` range. `SetScreenFlashIntensity` supplies the current alpha. `drawScreenFlashEffect` draws the color over the map area only; the right-side UI and dialogs remain unaffected. Flash rendering is skipped in a dungeon while no light source is active.
 
-The caller owns the intensity curve. Current effects commonly use a triangle or sine wave and explicitly restore intensity to zero. `PartyStateBuilder` provides `FlashRed`, `FlashWater`, `FlashGray`, `FlashLongGray`, `FlashGreen`, `FlashOrange`, `FlashPurple`, `FlashWhite`, and `FlashInverted` presets.
+The caller owns the intensity curve. Current effects commonly use a triangle or sine wave and explicitly restore intensity to zero. `PartyStateBuilder` provides `FlashRed`, `FlashWater`, `FlashGray`, `FlashGreen`, `FlashOrange`, `FlashPurple`, `FlashWhite`, and `FlashInverted` presets.
 
 ### Dungeon Injury Feedback
 

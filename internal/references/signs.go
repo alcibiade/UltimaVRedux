@@ -243,18 +243,8 @@ func IsRunicChar(b byte) bool {
 	return b&SignHighBitMask == 0
 }
 
-// IsNormalChar returns true if the byte represents a normal (IBM) character (high bit set).
-func IsNormalChar(b byte) bool {
-	return b&SignHighBitMask != 0
-}
-
 // GetCharIndex returns the character index (0-127) for rendering.
 // For normal characters, this masks off the high bit.
 func GetCharIndex(b byte) int {
 	return int(b & SignCharIndexMask)
-}
-
-// IsSignPause returns true if the original renderer waited for a key at this byte.
-func IsSignPause(b byte) bool {
-	return b == SignPauseMarker
 }

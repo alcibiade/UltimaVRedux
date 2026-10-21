@@ -97,3 +97,8 @@ func TestWindDisplayShouldDisplay(t *testing.T) {
 		})
 	}
 }
+
+// ensureText draws the label for a wind direction; layout tests use it without a screen.
+func (w *WindDisplay) ensureText(windDirection environment.WindDirection) {
+	w.ensureLabel(windDirection.GetUIString())
+}

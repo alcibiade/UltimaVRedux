@@ -1,8 +1,6 @@
 package references
 
 import (
-	"strings"
-
 	"github.com/bradhannah/UltimaVRedux/internal/files"
 )
 
@@ -127,29 +125,6 @@ const (
 // DungeonNames returns the list of valid dungeon names for debug commands
 func DungeonNames() []string {
 	return []string{"deceit", "destard", "wrong", "covetous", "shame", "hythloth", "doom"}
-}
-
-// DungeonNameToIndex converts a dungeon name string to DungeonCombatIndex.
-// Returns the index and true if valid, or 0 and false if not found.
-func DungeonNameToIndex(name string) (DungeonCombatIndex, bool) {
-	switch strings.ToLower(name) {
-	case "deceit":
-		return DeceitDungeon, true
-	case "destard":
-		return DestardDungeon, true
-	case "wrong":
-		return WrongDungeon, true
-	case "covetous":
-		return CovetousDungeon, true
-	case "shame":
-		return ShameDungeon, true
-	case "hythloth":
-		return HythlothDungeon, true
-	case "doom":
-		return DoomDungeon, true
-	default:
-		return 0, false
-	}
 }
 
 // CalculateDungeonCombatMapIndex calculates the linear map index for dungeon combat.

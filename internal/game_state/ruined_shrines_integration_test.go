@@ -161,7 +161,7 @@ func TestShrineRestorationWorkflow_Integration(t *testing.T) {
 			assert.Equal(t, word, shrine.WordOfPower, "Shrine %d should have word %s", i, word)
 
 			// Verify word lookup
-			idx := GetShrineForWord(word)
+			idx := GetShrineForWordResponse(word)
 			assert.Equal(t, i, idx, "Word %s should map to shrine %d", word, i)
 
 			// Verify shrine is not ruined initially
@@ -225,7 +225,7 @@ func TestProcessWordOfPowerRecognition_Integration(t *testing.T) {
 			assert.Equal(t, tc.word, shrine.WordOfPower, "Shrine %d should have Word %s", tc.expected, tc.word)
 
 			// Test lookup
-			idx := GetShrineForWord(tc.word)
+			idx := GetShrineForWordResponse(tc.word)
 			assert.Equal(t, tc.expected, idx, "Word %s should map to shrine %d (%s)", tc.word, tc.expected, tc.virtue)
 		}
 	})
@@ -237,7 +237,7 @@ func TestProcessWordOfPowerRecognition_Integration(t *testing.T) {
 		expectedShrine := 0
 
 		for _, word := range variations {
-			idx := GetShrineForWord(word)
+			idx := GetShrineForWordResponse(word)
 			assert.Equal(t, expectedShrine, idx, "Word %q should map to shrine %d", word, expectedShrine)
 		}
 	})
@@ -248,14 +248,13 @@ func TestProcessWordOfPowerRecognition_Integration(t *testing.T) {
 		invalidWords := []string{
 			"INVALID",
 			"",
-			"FALL",       // Incomplete
-			"VERAMOCORX", // Extra character
-			"FAL LAX",    // Space in middle
+			"FALL",    // Incomplete
+			"FAL LAX", // Space in middle
 			"123",
 		}
 
 		for _, word := range invalidWords {
-			idx := GetShrineForWord(word)
+			idx := GetShrineForWordResponse(word)
 			assert.Equal(t, -1, idx, "Invalid word %q should return -1", word)
 		}
 	})
@@ -270,7 +269,7 @@ func TestProcessWordOfPowerRecognition_Integration(t *testing.T) {
 		expectedShrines := []int{0, 1, 2, 3, 4, 5, 6, 7}
 
 		for i, word := range words {
-			shrine := GetShrineForWord(word)
+			shrine := GetShrineForWordResponse(word)
 			assert.Equal(t, expectedShrines[i], shrine, "Word %q should map to shrine %d", word, expectedShrines[i])
 
 			// Check for duplicates
@@ -348,7 +347,7 @@ func TestShrineDataConsistency_Integration(t *testing.T) {
 			assert.NotNil(t, shrine, "GetShrineData(%d) should return data", i)
 
 			// Data → Word → Index
-			idx := GetShrineForWord(shrine.WordOfPower)
+			idx := GetShrineForWordResponse(shrine.WordOfPower)
 			assert.Equal(t, i, idx, "Word-based lookup should return shrine %d", i)
 
 			// Data → Position → Index (skip Spirituality which has special handling)

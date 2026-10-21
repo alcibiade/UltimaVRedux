@@ -2,7 +2,6 @@ package widgets
 
 import (
 	"image"
-	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -13,101 +12,6 @@ import (
 // =====================================
 // VALIDATION TESTS - Required Config
 // =====================================
-
-// TestOverlayDialog_Build_PanicsIfSizingMissing verifies that Build() panics
-// when sizing is not configured.
-func TestOverlayDialog_Build_PanicsIfSizingMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when sizing is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "Sizing", "Panic message should mention Sizing")
-	}()
-
-	NewOverlayDialog("Test").
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithDuration(1000).
-		Build()
-}
-
-// TestOverlayDialog_Build_PanicsIfPositionMissing verifies that Build() panics
-// when position is not configured.
-func TestOverlayDialog_Build_PanicsIfPositionMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when position is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "Position", "Panic message should mention Position")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithDuration(1000).
-		Build()
-}
-
-// TestOverlayDialog_Build_PanicsIfEffectsMissing verifies that Build() panics
-// when effects are not configured.
-func TestOverlayDialog_Build_PanicsIfEffectsMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when effects are missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "Effects", "Panic message should mention Effects")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithDuration(1000).
-		Build()
-}
-
-// TestOverlayDialog_Build_PanicsIfContentAlignmentMissing verifies that Build() panics
-// when content alignment is not configured.
-func TestOverlayDialog_Build_PanicsIfContentAlignmentMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when content alignment is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "ContentAlignment", "Panic message should mention ContentAlignment")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithTextAlignment(TextAlignCenter).
-		WithDuration(1000).
-		Build()
-}
-
-// TestOverlayDialog_Build_PanicsIfTextAlignmentMissing verifies that Build() panics
-// when text alignment is not configured.
-func TestOverlayDialog_Build_PanicsIfTextAlignmentMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when text alignment is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "TextAlignment", "Panic message should mention TextAlignment")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithDuration(1000).
-		Build()
-}
 
 // TestOverlayDialog_Build_PanicsIfDurationMissing verifies that Build() panics
 // when neither duration method is called.
@@ -125,29 +29,6 @@ func TestOverlayDialog_Build_PanicsIfDurationMissing(t *testing.T) {
 		WithEffects(EffectsNone).
 		WithContentAlignment(ContentAlignCenter).
 		WithTextAlignment(TextAlignCenter).
-		Build()
-}
-
-// TestOverlayDialog_Build_PanicsIfBothDurationMethodsCalled verifies that Build() panics
-// when both WithDuration() and WithUserDismissed() are called.
-func TestOverlayDialog_Build_PanicsIfBothDurationMethodsCalled(t *testing.T) {
-	keyboard := newWidgetTestKeyboard(100)
-
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when both duration methods are called")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "cannot combine duration modes", "Panic message should explain the conflict")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithDuration(1000).
-		WithUserDismissed(keyboard).
 		Build()
 }
 
@@ -171,50 +52,6 @@ func TestOverlayDialog_Build_PanicsWithMultipleMissingFields(t *testing.T) {
 // VALIDATION TESTS - Builder State Tracking
 // =====================================
 
-// TestOverlayDialogBuilder_TracksConfiguredState verifies that the builder
-// correctly tracks which configuration has been set.
-func TestOverlayDialogBuilder_TracksConfiguredState(t *testing.T) {
-	keyboard := newWidgetTestKeyboard(100)
-
-	// Fresh builder should have nothing set
-	b := NewOverlayDialog("Test")
-	assert.False(t, b.IsSizingSet(), "Fresh builder should not have sizing set")
-	assert.False(t, b.IsPositionSet(), "Fresh builder should not have position set")
-	assert.False(t, b.IsEffectsSet(), "Fresh builder should not have effects set")
-	assert.False(t, b.IsContentAlignmentSet(), "Fresh builder should not have content alignment set")
-	assert.False(t, b.IsTextAlignmentSet(), "Fresh builder should not have text alignment set")
-	assert.False(t, b.IsDurationSet(), "Fresh builder should not have duration set")
-	assert.False(t, b.IsExternalDurationSet(), "Fresh builder should not have external duration set")
-	assert.False(t, b.IsUserDismissedSet(), "Fresh builder should not have user dismissed set")
-
-	// Set each and verify
-	b.WithSizing(SizingAutoFitDefault)
-	assert.True(t, b.IsSizingSet(), "Sizing should be set after WithSizing()")
-
-	b.WithPosition(PositionMapCenterLower)
-	assert.True(t, b.IsPositionSet(), "Position should be set after WithPosition()")
-
-	b.WithEffects(EffectsNone)
-	assert.True(t, b.IsEffectsSet(), "Effects should be set after WithEffects()")
-
-	b.WithContentAlignment(ContentAlignCenter)
-	assert.True(t, b.IsContentAlignmentSet(), "Content alignment should be set after WithContentAlignment()")
-
-	b.WithTextAlignment(TextAlignCenter)
-	assert.True(t, b.IsTextAlignmentSet(), "Text alignment should be set after WithTextAlignment()")
-
-	b.WithDuration(1000)
-	assert.True(t, b.IsDurationSet(), "Duration should be set after WithDuration()")
-	assert.False(t, b.IsExternalDurationSet(), "External duration should not be set after WithDuration()")
-	assert.False(t, b.IsUserDismissedSet(), "User dismissed should not be set after WithDuration()")
-
-	// Test user dismissed separately
-	b2 := NewOverlayDialog("Test2").WithUserDismissed(keyboard)
-	assert.True(t, b2.IsUserDismissedSet(), "User dismissed should be set after WithUserDismissed()")
-	assert.False(t, b2.IsDurationSet(), "Duration should not be set after WithUserDismissed()")
-	assert.False(t, b2.IsExternalDurationSet(), "External duration should not be set after WithUserDismissed()")
-}
-
 func TestOverlayDialog_ExternallyManagedDurationDoesNotAdvanceInUpdate(t *testing.T) {
 	dismissals := 0
 	dialog := NewOverlayDialog("Scene owned").
@@ -235,82 +72,9 @@ func TestOverlayDialog_ExternallyManagedDurationDoesNotAdvanceInUpdate(t *testin
 	assert.Zero(t, dismissals)
 }
 
-func TestOverlayDialog_SelfManagedDurationStillAdvancesInUpdate(t *testing.T) {
-	dialog := NewOverlayDialog("Widget owned").
-		AsOverlayFeedback().
-		WithDuration(32).
-		Build()
-	assert.Equal(t, "Widget owned", dialog.GetMessage())
-	assert.Equal(t, 32, dialog.GetDurationMs())
-	assert.True(t, dialog.IsTimed())
-	assert.False(t, dialog.IsUserDismissed())
-	assert.False(t, dialog.IsVisible())
-	assert.False(t, dialog.IsDismissed())
-	dialog.ShowWithoutAnimation()
-
-	dialog.Update()
-	assert.True(t, dialog.IsVisible())
-	elapsed, fade, dismissed := dialog.elapsedMs, dialog.dialog.fadeState, dialog.IsDismissed()
-	for range 3 {
-		dialog.PrepareLayout(image.Rect(0, 0, 1280, 720))
-	}
-	assert.Equal(t, elapsed, dialog.elapsedMs, "preparation does not spend timed lifetime")
-	assert.Equal(t, fade, dialog.dialog.fadeState)
-	assert.Equal(t, dismissed, dialog.IsDismissed())
-	dialog.Update()
-
-	assert.False(t, dialog.IsDurationExternallyManaged())
-	assert.True(t, dialog.IsDismissed())
-	assert.False(t, dialog.IsVisible())
-}
-
-func TestOverlayDialog_BuildRejectsBothTimedDurationModes(t *testing.T) {
-	assert.PanicsWithValue(t,
-		"OverlayDialog.Build(): cannot combine duration modes - choose exactly one",
-		func() {
-			NewOverlayDialog("Test").
-				AsOverlayFeedback().
-				WithDuration(1000).
-				WithExternallyManagedDuration(1000).
-				Build()
-		})
-}
-
 // =====================================
 // TEMPLATE TESTS
 // =====================================
-
-// TestOverlayDialog_AsOverlayFeedback_SetsAllAppearanceConfig verifies that
-// the AsOverlayFeedback template sets all required appearance configuration.
-func TestOverlayDialog_AsOverlayFeedback_SetsAllAppearanceConfig(t *testing.T) {
-	b := NewOverlayDialog("Test").AsOverlayFeedback()
-
-	assert.True(t, b.IsSizingSet(), "AsOverlayFeedback should set sizing")
-	assert.True(t, b.IsPositionSet(), "AsOverlayFeedback should set position")
-	assert.True(t, b.IsEffectsSet(), "AsOverlayFeedback should set effects")
-	assert.True(t, b.IsContentAlignmentSet(), "AsOverlayFeedback should set content alignment")
-	assert.True(t, b.IsTextAlignmentSet(), "AsOverlayFeedback should set text alignment")
-
-	// Duration should NOT be set by template
-	assert.False(t, b.IsDurationSet(), "AsOverlayFeedback should NOT set duration")
-	assert.False(t, b.IsUserDismissedSet(), "AsOverlayFeedback should NOT set user dismissed")
-}
-
-// TestOverlayDialog_AsConfirmation_SetsAllAppearanceConfig verifies that
-// the AsConfirmation template sets all required appearance configuration.
-func TestOverlayDialog_AsConfirmation_SetsAllAppearanceConfig(t *testing.T) {
-	b := NewOverlayDialog("Test").AsConfirmation()
-
-	assert.True(t, b.IsSizingSet(), "AsConfirmation should set sizing")
-	assert.True(t, b.IsPositionSet(), "AsConfirmation should set position")
-	assert.True(t, b.IsEffectsSet(), "AsConfirmation should set effects")
-	assert.True(t, b.IsContentAlignmentSet(), "AsConfirmation should set content alignment")
-	assert.True(t, b.IsTextAlignmentSet(), "AsConfirmation should set text alignment")
-
-	// Duration should NOT be set by template
-	assert.False(t, b.IsDurationSet(), "AsConfirmation should NOT set duration")
-	assert.False(t, b.IsUserDismissedSet(), "AsConfirmation should NOT set user dismissed")
-}
 
 func TestOverlayDialogConfirmationShowsFooterOnlyWhileAwaitingInput(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
@@ -384,61 +148,6 @@ func TestOverlayDialogUserDismissalAlwaysShowsSharedFooter(t *testing.T) {
 	}
 }
 
-func TestTimedConfirmationRemainsFooterless(t *testing.T) {
-	setResponsiveDialogTestResolution(t, 1280, 720)
-	for _, builder := range []*OverlayDialogBuilder{
-		NewOverlayDialog("Brief notice").AsConfirmation().WithDuration(1000),
-		NewOverlayDialog("Brief notice").AsOverlayFeedback().WithDuration(1000),
-		NewOverlayDialog("Scene notice").AsConfirmation().WithExternallyManagedDuration(1000),
-		NewOverlayDialog("Brief notice").AsBriefFeedback(),
-		NewOverlayDialog("Custom message").WithSizing(FixedLinesSizing{Lines: 4, CharsPerLine: 50}).
-			WithPosition(PositionScreenCenter).WithEffects(EffectsConfig{FadeInMs: 500, FadeOutMs: 200}).
-			WithContentAlignment(ContentAlignTop).WithTextAlignment(TextAlignLeft).WithDuration(2000),
-	} {
-		dialog := builder.Build()
-		require.True(t, dialog.IsTimed())
-		require.False(t, dialog.IsUserDismissed())
-		require.False(t, dialog.dialog.hasPromptOutput())
-	}
-}
-
-// TestOverlayDialog_TemplateCanBeOverridden verifies that template settings
-// can be overridden by subsequent builder calls.
-func TestOverlayDialog_TemplateCanBeOverridden(t *testing.T) {
-	b := NewOverlayDialog("Test").
-		AsOverlayFeedback().                // Sets MapCenterLower
-		WithPosition(PositionScreenCenter). // Override to ScreenCenter
-		WithEffects(EffectsSlow)            // Override effects
-
-	assert.Equal(t, PositionScreenCenter, b.GetPosition(), "Position should be overridden")
-	assert.Equal(t, EffectsSlow, b.GetEffects(), "Effects should be overridden")
-}
-
-func TestOverlayDialogHorizontalCenterOverridePreservesVerticalPositionAndResize(t *testing.T) {
-	setResponsiveDialogTestResolution(t, 1280, 720)
-	builder := NewOverlayDialog("Cured!").AsConfirmation().
-		WithHorizontalCenter(0.24).WithUserDismissed(newWidgetTestKeyboard(0))
-	dialog := builder.Build()
-	dialog.ShowWithoutAnimation()
-	for _, width := range []int{1280, 1920} {
-		height := width * 9 / 16
-		setResponsiveDialogTestResolution(t, width, height)
-		dialog.PrepareLayout(image.Rect(0, 0, width, height))
-		bounds := dialog.dialog.frameBounds
-		assert.InDelta(t, 0.24*float64(width), float64(bounds.Min.X+bounds.Max.X)/2, 1)
-		assert.InDelta(t, 0.70*float64(height), float64(bounds.Min.Y+bounds.Max.Y)/2, 1)
-	}
-	reset := builder.WithPosition(PositionScreenCenter).Build()
-	assert.InDelta(t, 0.5, (reset.dialog.config.StartPercentX+reset.dialog.config.EndPercentX)/2, 0.0001)
-	assert.InDelta(t, 0.5, (reset.dialog.config.StartPercentY+reset.dialog.config.EndPercentY)/2, 0.0001)
-}
-
-func TestOverlayDialogHorizontalCenterRejectsInvalidFractions(t *testing.T) {
-	for _, x := range []float64{-0.1, 1.1, math.NaN(), math.Inf(1)} {
-		assert.Panics(t, func() { NewOverlayDialog("Cured!").AsConfirmation().WithHorizontalCenter(x) })
-	}
-}
-
 // =====================================
 // CONFIG TYPE TESTS
 // =====================================
@@ -504,22 +213,21 @@ func TestPosition_GetVerticalPercent(t *testing.T) {
 // TestEffectsConfig_HasFadeIn verifies fade-in detection.
 func TestEffectsConfig_HasFadeIn(t *testing.T) {
 	assert.False(t, EffectsNone.HasFadeIn(), "EffectsNone should not have fade-in")
-	assert.True(t, EffectsQuick.HasFadeIn(), "EffectsQuick should have fade-in")
-	assert.True(t, EffectsSlow.HasFadeIn(), "EffectsSlow should have fade-in")
+	assert.True(t, EffectsConfig{FadeInMs: 300, FadeOutMs: 300}.HasFadeIn(), "a fade-in duration should have fade-in")
+	assert.False(t, EffectsConfig{FadeOutMs: 1000}.HasFadeIn(), "fade-out only should not have fade-in")
 }
 
 // TestEffectsConfig_HasFadeOut verifies fade-out detection.
 func TestEffectsConfig_HasFadeOut(t *testing.T) {
 	assert.False(t, EffectsNone.HasFadeOut(), "EffectsNone should not have fade-out")
-	assert.True(t, EffectsQuick.HasFadeOut(), "EffectsQuick should have fade-out")
-	assert.True(t, EffectsSlow.HasFadeOut(), "EffectsSlow should have fade-out")
+	assert.True(t, EffectsConfig{FadeInMs: 300, FadeOutMs: 300}.HasFadeOut(), "a fade-out duration should have fade-out")
+	assert.False(t, EffectsConfig{FadeInMs: 3000}.HasFadeOut(), "fade-in only should not have fade-out")
 }
 
 // TestEffectsConfig_HasAnyEffect verifies any-effect detection.
 func TestEffectsConfig_HasAnyEffect(t *testing.T) {
 	assert.False(t, EffectsNone.HasAnyEffect(), "EffectsNone should not have any effect")
-	assert.True(t, EffectsQuick.HasAnyEffect(), "EffectsQuick should have effects")
-	assert.True(t, EffectsSlow.HasAnyEffect(), "EffectsSlow should have effects")
+	assert.True(t, EffectsConfig{FadeInMs: 300, FadeOutMs: 300}.HasAnyEffect(), "both fades should have effects")
 
 	// Custom config with only fade-in
 	fadeInOnly := EffectsConfig{FadeInMs: 500, FadeOutMs: 0}
@@ -546,18 +254,6 @@ func TestSizingPresets(t *testing.T) {
 	assert.False(t, autoFit, "SizingCompact should not be auto-fit")
 	assert.Equal(t, 2, lines, "SizingCompact should have 2 lines")
 	assert.Equal(t, 35, chars, "SizingCompact should have 35 chars")
-
-	// SizingMedium
-	lines, chars, autoFit = SizingMedium.GetConfig()
-	assert.False(t, autoFit, "SizingMedium should not be auto-fit")
-	assert.Equal(t, 6, lines, "SizingMedium should have 6 lines")
-	assert.Equal(t, 40, chars, "SizingMedium should have 40 chars")
-
-	// SizingLarge
-	lines, chars, autoFit = SizingLarge.GetConfig()
-	assert.False(t, autoFit, "SizingLarge should not be auto-fit")
-	assert.Equal(t, 10, lines, "SizingLarge should have 10 lines")
-	assert.Equal(t, 50, chars, "SizingLarge should have 50 chars")
 }
 
 // TestPositionPresets verifies preset position values.
@@ -567,37 +263,130 @@ func TestPositionPresets(t *testing.T) {
 
 	assert.Equal(t, HorizontalScreenCenter, PositionScreenCenter.Horizontal)
 	assert.Equal(t, VerticalCenter, PositionScreenCenter.Vertical)
-
-	assert.Equal(t, HorizontalMapCenter, PositionMapCenterTop.Horizontal)
-	assert.Equal(t, VerticalTop, PositionMapCenterTop.Vertical)
 }
 
 // TestEffectsPresets verifies preset effects values.
 func TestEffectsPresets(t *testing.T) {
 	assert.Equal(t, 0, EffectsNone.FadeInMs)
 	assert.Equal(t, 0, EffectsNone.FadeOutMs)
-
-	assert.Equal(t, 300, EffectsQuick.FadeInMs)
-	assert.Equal(t, 300, EffectsQuick.FadeOutMs)
-
-	assert.Equal(t, 500, EffectsStandard.FadeInMs)
-	assert.Equal(t, 500, EffectsStandard.FadeOutMs)
-
-	assert.Equal(t, 3000, EffectsSlow.FadeInMs)
-	assert.Equal(t, 1000, EffectsSlow.FadeOutMs)
 }
 
 // =====================================
 // INTEGRATION TESTS - Dialog Creation
 // =====================================
 
-// TestOverlayDialog_ShowHide_WorksCorrectly verifies show/hide functionality.
+func TestOverlayDialog_Build_PanicsIfSizingMissing(t *testing.T) {
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Build() should panic when sizing is missing")
+		panicMsg := r.(string)
+		assert.Contains(t, panicMsg, "Sizing", "Panic message should mention Sizing")
+	}()
+
+	NewOverlayDialog("Test").
+		WithPosition(PositionMapCenterLower).
+		WithEffects(EffectsNone).
+		WithContentAlignment(ContentAlignCenter).
+		WithTextAlignment(TextAlignCenter).
+		WithExternallyManagedDuration(1000).
+		Build()
+}
+
+func TestOverlayDialog_Build_PanicsIfPositionMissing(t *testing.T) {
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Build() should panic when position is missing")
+		panicMsg := r.(string)
+		assert.Contains(t, panicMsg, "Position", "Panic message should mention Position")
+	}()
+
+	NewOverlayDialog("Test").
+		WithSizing(SizingAutoFitDefault).
+		WithEffects(EffectsNone).
+		WithContentAlignment(ContentAlignCenter).
+		WithTextAlignment(TextAlignCenter).
+		WithExternallyManagedDuration(1000).
+		Build()
+}
+
+func TestOverlayDialog_Build_PanicsIfEffectsMissing(t *testing.T) {
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Build() should panic when effects are missing")
+		panicMsg := r.(string)
+		assert.Contains(t, panicMsg, "Effects", "Panic message should mention Effects")
+	}()
+
+	NewOverlayDialog("Test").
+		WithSizing(SizingAutoFitDefault).
+		WithPosition(PositionMapCenterLower).
+		WithContentAlignment(ContentAlignCenter).
+		WithTextAlignment(TextAlignCenter).
+		WithExternallyManagedDuration(1000).
+		Build()
+}
+
+func TestOverlayDialog_Build_PanicsIfContentAlignmentMissing(t *testing.T) {
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Build() should panic when content alignment is missing")
+		panicMsg := r.(string)
+		assert.Contains(t, panicMsg, "ContentAlignment", "Panic message should mention ContentAlignment")
+	}()
+
+	NewOverlayDialog("Test").
+		WithSizing(SizingAutoFitDefault).
+		WithPosition(PositionMapCenterLower).
+		WithEffects(EffectsNone).
+		WithTextAlignment(TextAlignCenter).
+		WithExternallyManagedDuration(1000).
+		Build()
+}
+
+func TestOverlayDialog_Build_PanicsIfTextAlignmentMissing(t *testing.T) {
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Build() should panic when text alignment is missing")
+		panicMsg := r.(string)
+		assert.Contains(t, panicMsg, "TextAlignment", "Panic message should mention TextAlignment")
+	}()
+
+	NewOverlayDialog("Test").
+		WithSizing(SizingAutoFitDefault).
+		WithPosition(PositionMapCenterLower).
+		WithEffects(EffectsNone).
+		WithContentAlignment(ContentAlignCenter).
+		WithExternallyManagedDuration(1000).
+		Build()
+}
+
+func TestOverlayDialog_Build_PanicsIfBothDurationMethodsCalled(t *testing.T) {
+	keyboard := newWidgetTestKeyboard(100)
+
+	defer func() {
+		r := recover()
+		require.NotNil(t, r, "Build() should panic when both duration methods are called")
+		panicMsg := r.(string)
+		assert.Contains(t, panicMsg, "cannot combine duration modes", "Panic message should explain the conflict")
+	}()
+
+	NewOverlayDialog("Test").
+		WithSizing(SizingAutoFitDefault).
+		WithPosition(PositionMapCenterLower).
+		WithEffects(EffectsNone).
+		WithContentAlignment(ContentAlignCenter).
+		WithTextAlignment(TextAlignCenter).
+		WithExternallyManagedDuration(1000).
+		WithUserDismissed(keyboard).
+		Build()
+}
+
 func TestOverlayDialog_ShowHide_WorksCorrectly(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1920, 1080)
 
 	dialog := NewOverlayDialog("Test").
 		AsOverlayFeedback().
-		WithDuration(1000).
+		WithExternallyManagedDuration(1000).
 		Build()
 
 	assert.False(t, dialog.IsVisible(), "Dialog should start invisible")
@@ -607,4 +396,39 @@ func TestOverlayDialog_ShowHide_WorksCorrectly(t *testing.T) {
 
 	dialog.HideWithoutAnimation()
 	assert.False(t, dialog.IsVisible(), "Dialog should be invisible after Hide")
+}
+
+// The appearance templates must supply every required setting except the duration.
+func TestOverlayDialog_TemplatesSupplyAllAppearanceConfig(t *testing.T) {
+	for name, template := range map[string]func(*OverlayDialogBuilder) *OverlayDialogBuilder{
+		"AsConfirmation":    (*OverlayDialogBuilder).AsConfirmation,
+		"AsOverlayFeedback": (*OverlayDialogBuilder).AsOverlayFeedback,
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				template(NewOverlayDialog("Test")).WithExternallyManagedDuration(1000).Build()
+			})
+			assert.PanicsWithValue(t, "OverlayDialog.Build(): missing required configuration:\n  - "+
+				"Duration (call WithExternallyManagedDuration(ms) or WithUserDismissed(keyboard))", func() {
+				template(NewOverlayDialog("Test")).Build()
+			})
+		})
+	}
+}
+
+func TestTimedConfirmationRemainsFooterless(t *testing.T) {
+	setResponsiveDialogTestResolution(t, 1280, 720)
+	for _, builder := range []*OverlayDialogBuilder{
+		NewOverlayDialog("Scene notice").AsConfirmation().WithExternallyManagedDuration(1000),
+		NewOverlayDialog("Brief notice").AsOverlayFeedback().WithExternallyManagedDuration(1000),
+		NewOverlayDialog("Custom message").WithSizing(FixedLinesSizing{Lines: 4, CharsPerLine: 50}).
+			WithPosition(PositionScreenCenter).WithEffects(EffectsConfig{FadeInMs: 500, FadeOutMs: 200}).
+			WithContentAlignment(ContentAlignTop).WithTextAlignment(TextAlignLeft).WithExternallyManagedDuration(2000),
+	} {
+		dialog := builder.Build()
+		require.True(t, dialog.IsTimed())
+		require.False(t, dialog.IsUserDismissed())
+		require.False(t, dialog.IsDismissed(), "the owner, not the dialog, ends a timed overlay")
+		require.False(t, dialog.dialog.hasPromptOutput())
+	}
 }

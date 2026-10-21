@@ -42,24 +42,6 @@ type ShrineScene struct {
 	ShrineMap *ShrineMap
 }
 
-// NewShrineScene creates a new shrine scene for meditation
-func NewShrineScene(shrineIndex int, originalPlayerLocation references.PlayerLocation) *ShrineScene {
-	scene := &ShrineScene{
-		ShrineIndex:            shrineIndex,
-		Phase:                  PhaseEntering,
-		WalkStep:               0,
-		IsActive:               true,
-		OriginalPlayerLocation: originalPlayerLocation,
-	}
-
-	// Create the shrine map
-	scene.ShrineMap = NewShrineMap()
-
-	logging.Debug(logging.CategoryGameState, "Created shrine scene for shrine %d", shrineIndex)
-
-	return scene
-}
-
 // NewShrineSceneWithMap creates a shrine scene with a specific map reference
 func NewShrineSceneWithMap(shrineIndex int, originalPlayerLocation references.PlayerLocation, mapData *MiniMapData) *ShrineScene {
 	scene := &ShrineScene{

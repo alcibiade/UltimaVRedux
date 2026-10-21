@@ -10,7 +10,6 @@ import (
 const (
 	messagePopupCenterDivisor = 2
 	messagePopupMarginLines   = 2
-	itemReceiptIconRows       = 2
 )
 
 // resolvePopupLayout retains the original output and placement so a dialog can
@@ -50,9 +49,6 @@ func (md *MessageDialog) resolvePopupLayout(screen image.Rectangle) {
 		textWidth := max(1, int(math.Floor((width-2*messagePercentTextIndentFromBorder)*float64(screen.Dx()))))
 		md.renderOutput = md.output.WrappedCopyForWidth(textWidth)
 		lines := md.renderOutput.GetPanelContentLineCount()
-		if md.headerIcon != nil {
-			lines += itemReceiptIconRows
-		}
 		if md.hasPromptOutput() {
 			md.renderPrompt = md.promptOutput.WrappedCopyForWidth(textWidth)
 			md.config.PromptLines = max(md.baseConfig.PromptLines, md.renderPrompt.GetPanelContentLineCount())
@@ -97,11 +93,7 @@ func (md *MessageDialog) MeasureCompleteCard(
 	left = max(available.Min.X, min(left, available.Max.X-width))
 	textWidth := max(1, width-int(math.Round(2*messagePercentTextIndentFromBorder*float64(screen.Dx()))))
 	md.renderOutput = md.output.WrappedCopyForWidth(textWidth)
-	lines := md.renderOutput.GetPanelContentLineCount()
-	if md.headerIcon != nil {
-		lines += itemReceiptIconRows
-	}
-	lines = max(md.baseConfig.TextLines, lines)
+	lines := max(md.baseConfig.TextLines, md.renderOutput.GetPanelContentLineCount())
 	md.renderPrompt = md.promptOutput
 	promptLines := md.baseConfig.PromptLines
 	if md.hasPromptOutput() {

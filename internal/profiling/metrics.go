@@ -57,9 +57,6 @@ func Enable() *Metrics {
 	return metrics
 }
 
-// Disable stops collection without discarding a caller's completed snapshot.
-func Disable() { active.Store(nil) }
-
 // Count records work only while diagnostics are enabled.
 func Count(counter Counter) {
 	if metrics := active.Load(); metrics != nil {

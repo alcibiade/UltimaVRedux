@@ -12,8 +12,6 @@ func (p Provision) Type() ItemType {
 	return ItemTypeProvision
 }
 
-const NumberOfProvisions = 5
-
 const NoProvision Provision = -1
 
 const (

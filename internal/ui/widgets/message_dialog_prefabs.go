@@ -2,8 +2,6 @@ package widgets
 
 import (
 	"strings"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // Shared dialog sizing constants are defined in dialog_constants.go.
@@ -71,18 +69,6 @@ func NewCampingResultDialog(message string) *MessageDialog {
 //   - *MessageDialog configured for action feedback display
 func NewActionFeedbackDialog(message string, position Position) *MessageDialog {
 	return newSourceSizedFeedbackDialog(message, position, actionFeedbackTextLines, actionFeedbackCharsPerLine)
-}
-
-// NewItemReceiptDialog shares the bounded transient-feedback lifecycle and
-// reserves a measured first row for the item's borrowed, read-only icon.
-func NewItemReceiptDialog(message string, position Position, icon *ebiten.Image) *MessageDialog {
-	lines := strings.Count(message, "\n") + 1 + itemReceiptIconRows
-	dialog := newSourceSizedFeedbackDialog(message, position, lines, actionFeedbackCharsPerLine)
-	dialog.config.ContentAlignment = ContentAlignTop
-	dialog.baseConfig.ContentAlignment = ContentAlignTop
-	dialog.headerIcon = icon
-
-	return dialog
 }
 
 // NewSearchFeedbackDialog sizes transient feedback to retain every Search line.

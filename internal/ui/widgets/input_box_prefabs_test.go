@@ -171,25 +171,6 @@ func TestInputBoxPromptAndEnteredTextShareVisibleVerticalCenter(t *testing.T) {
 		"prompt and entered text should share a visible vertical center")
 }
 
-func TestInputBoxPromptCardUsesDynamicSharedPaneWidth(t *testing.T) {
-	setResponsiveDialogTestResolution(t, 1280, 720)
-	shortDialog := newTestYesNoInputBox("Proceed?")
-	longDialog := newTestYesNoInputBox("A guard demands a 20 gp tribute to Blackthorn! Dost thou pay?")
-	yellDialog := NewYellDialog(newWidgetTestKeyboard(0), func(string, bool) {})
-
-	require.Less(t, shortDialog.layout.panelRect.Dx(), longDialog.layout.panelRect.Dx())
-	footerFont := GetScaledFont(inputBoxFontSize)
-	footerTextWidth, _ := footerFont.MeasureString(shortDialog.footerPlainText())
-	require.GreaterOrEqual(t, shortDialog.layout.panelRect.Dx(),
-		int(math.Ceil(footerTextWidth))+shortDialog.layout.padding*2,
-		"guidance should fit when another visible requirement determines card width")
-	configuredYellWidth := int(
-		(yellDialog.config.EndPercentX - yellDialog.config.StartPercentX) * float64(yellDialog.lastWidth),
-	)
-	require.Less(t, yellDialog.layout.panelRect.Dx(), configuredYellWidth,
-		"input capacity should cap pane width rather than forcing it")
-}
-
 func TestInputBoxPromptCardStaysOnScreenAtSupportedResolutions(t *testing.T) {
 	for _, size := range []struct {
 		width  int
@@ -319,4 +300,32 @@ func requireColorBounds(
 	require.True(t, found, "expected color %v in %v", target, region)
 
 	return bounds
+}
+
+func TestInputBoxPromptCardUsesDynamicSharedPaneWidth(t *testing.T) {
+	setResponsiveDialogTestResolution(t, 1280, 720)
+	shortDialog := newTestYesNoInputBox("Proceed?")
+	longDialog := newTestYesNoInputBox("A guard demands a 20 gp tribute to Blackthorn! Dost thou pay?")
+	// A short text entry on a wide configured pane, like the yell prompt.
+	yellDialog := NewInputBox("What dost thou yell?", nil, newWidgetTestKeyboard(0)).
+		WithRegexValidation("^[a-zA-Z]{0,10}$").
+		WithResultCallback(func(string, bool) {}).
+		WithAutoReplace(false).
+		WithTextLines(DialogConfirmationLines).
+		WithCharsPerLine(dialogDefaultCharsPerLine).
+		WithHorizontalPosition(DialogHorizontalMapOnly).
+		WithVerticalPosition(DialogDefaultVerticalPos).
+		Build()
+
+	require.Less(t, shortDialog.layout.panelRect.Dx(), longDialog.layout.panelRect.Dx())
+	footerFont := GetScaledFont(inputBoxFontSize)
+	footerTextWidth, _ := footerFont.MeasureString(shortDialog.footerPlainText())
+	require.GreaterOrEqual(t, shortDialog.layout.panelRect.Dx(),
+		int(math.Ceil(footerTextWidth))+shortDialog.layout.padding*2,
+		"guidance should fit when another visible requirement determines card width")
+	configuredYellWidth := int(
+		(yellDialog.config.EndPercentX - yellDialog.config.StartPercentX) * float64(yellDialog.lastWidth),
+	)
+	require.Less(t, yellDialog.layout.panelRect.Dx(), configuredYellWidth,
+		"input capacity should cap pane width rather than forcing it")
 }

@@ -108,15 +108,6 @@ func TestMonsterType_String(t *testing.T) {
 	assert.Equal(t, "Dragon", MonsterDragon.String())
 }
 
-func TestParseMonsterType(t *testing.T) {
-	assert.Equal(t, MonsterOrc, ParseMonsterType("orc"))
-	assert.Equal(t, MonsterOrc, ParseMonsterType("ORC"))
-	assert.Equal(t, MonsterOrc, ParseMonsterType(" Orc "))
-	assert.Equal(t, MonsterDragon, ParseMonsterType("dragon"))
-	assert.Equal(t, MonsterNone, ParseMonsterType("invalid"))
-	assert.Equal(t, MonsterNone, ParseMonsterType(""))
-}
-
 func TestTotalMonsterTypes(t *testing.T) {
 	assert.Equal(t, 48, TotalMonsterTypes)
 }

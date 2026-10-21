@@ -145,3 +145,13 @@ func TestAnimateEvent_ZeroDuration(t *testing.T) {
 	assert.Len(t, progressValues, 1)
 	assert.Equal(t, float32(1.0), progressValues[0])
 }
+
+// NewAnimateEvent creates a new animation event
+func NewAnimateEvent(durationMs uint64, onFrame func(float32)) *AnimateEvent {
+	return &AnimateEvent{
+		DurationMs: durationMs,
+		ElapsedMs:  0,
+		OnFrame:    onFrame,
+		OnComplete: nil,
+	}
+}

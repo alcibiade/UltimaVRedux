@@ -37,32 +37,6 @@ func (b *MiniMapScriptBuilder) WalkActors(actors []ActorID, target references.Po
 	return b
 }
 
-// Wait adds a wait step for the specified duration
-func (b *MiniMapScriptBuilder) Wait(durationMs int) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{
-		Type:     StepWait,
-		Duration: durationMs,
-	})
-
-	return b
-}
-
-// Face adds a face step for a single actor to change direction
-func (b *MiniMapScriptBuilder) Face(actor ActorID, direction references.Direction) *MiniMapScriptBuilder {
-	return b.FaceActors([]ActorID{actor}, direction)
-}
-
-// FaceActors adds a face step for multiple actors to change direction
-func (b *MiniMapScriptBuilder) FaceActors(actors []ActorID, direction references.Direction) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{
-		Type:      StepFace,
-		ActorIDs:  actors,
-		Direction: direction,
-	})
-
-	return b
-}
-
 // SetVisible adds a visibility step for a single actor
 func (b *MiniMapScriptBuilder) SetVisible(actor ActorID, visible bool) *MiniMapScriptBuilder {
 	b.script.Steps = append(b.script.Steps, ScriptStep{

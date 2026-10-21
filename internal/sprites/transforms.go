@@ -25,11 +25,6 @@ type PercentBasedPlacement struct {
 	EndPercentY   float64
 }
 
-// PercentBasedCenterPoint locates a widget's center in screen percentages.
-type PercentBasedCenterPoint struct {
-	X, Y float64
-}
-
 // GetRectangleFromPercents resolves a placement against the current logical screen.
 func GetRectangleFromPercents(placement PercentBasedPlacement) *image.Rectangle {
 	dm := display.GetManager()

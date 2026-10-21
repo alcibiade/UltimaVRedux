@@ -135,3 +135,25 @@ func TestDungeonActorClockPlannerSeparatesEnvironmentTime(t *testing.T) {
 	ordinary := buildDungeonRenderPlan(&snapshot, player, true, false, false, clock.phaseMs)
 	assert.Equal(t, dungeonMonsterPlanOps(ordinary), dungeonMonsterPlanOps(later))
 }
+
+// buildDungeonRenderPlan is the fixed-epoch entry point rendering tests use; production supplies
+// the persistent actor clock to buildDungeonRenderPlanWithPresentation.
+func buildDungeonRenderPlan(
+	snapshot *game_state.DungeonStateSnapshot,
+	player references.PlayerLocation,
+	lit bool,
+	showSubduedUnlit bool,
+	timeStopped bool,
+	presentationTimeMs int64,
+) dungeonRenderPlan {
+	// Compatibility entry point for detached, fixed-epoch callers. Production
+	// supplies the persistent actor clock to the extended builder below.
+	var clock actorAnimationClock
+	clock.update(0, timeStopped)
+	clock.update(presentationTimeMs, timeStopped)
+
+	return buildDungeonRenderPlanWithPresentation(snapshot, player, lit, showSubduedUnlit, dungeonRenderPresentation{
+		environmentTimeMs: presentationTimeMs, creatureTimeMs: clock.phaseMs,
+		state: nil, fieldDispels: nil,
+	})
+}

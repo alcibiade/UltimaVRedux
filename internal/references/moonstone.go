@@ -1,19 +1,5 @@
 package references
 
-// MoongateAnimState represents the current animation state of a moongate
-type MoongateAnimState int
-
-const (
-	// MoongateHidden means moongate is not visible
-	MoongateHidden MoongateAnimState = iota
-	// MoongateGrowing means moongate is appearing from bottom to top
-	MoongateGrowing
-	// MoongateStable means moongate is fully grown and stable
-	MoongateStable
-	// MoongateShrinking means moongate is disappearing from top to bottom
-	MoongateShrinking
-)
-
 // InitialMoonstoneData represents the unchanging starting positions of moonstones
 // Initial buried moonstone sites; ref:MOON-0001.
 type InitialMoonstoneData struct {

@@ -109,16 +109,11 @@ var (
 //
 //nolint:gochecknoglobals,mnd // Read-only compatibility palette; literal channel values preserve its exact colors.
 var (
-	Gray                   = EGADarkGray
 	Black                  = EGABlack
 	White                  = EGAWhite
 	Green                  = color.RGBA{R: 0, G: 255, B: 0, A: 255}   // Non-EGA green kept for compatibility
 	Red                    = color.RGBA{R: 255, G: 0, B: 0, A: 255}   // Non-EGA red kept for compatibility
 	Yellow                 = color.RGBA{R: 0, G: 255, B: 255, A: 255} // This appears to be cyan, kept for compatibility
-	UltimaBlue             = color.RGBA{R: 22, G: 7, B: 178, A: 255}  // Custom Ultima blue
-	BlackSemi              = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x77}
-	LighterBlackSemi       = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xAA}
-	LighterBlueSemi        = color.RGBA{R: 0x00, G: 0x00, B: 0xFF, A: 0x77}
 	DisabledTextBackground = color.RGBA{R: 16, G: 16, B: 16, A: 0x77}
 	TextInputColor         = EGALightGray
 	TextPlaceHolderColor   = EGALightGray
@@ -198,11 +193,6 @@ func (cb *ColorBuilder) Light() *ColorBuilder {
 	return cb.Alpha(AlphaLight)
 }
 
-// Medium sets alpha to 180 (medium transparency)
-func (cb *ColorBuilder) Medium() *ColorBuilder {
-	return cb.Alpha(AlphaMedium)
-}
-
 // Opaque sets alpha to 255 (fully opaque)
 func (cb *ColorBuilder) Opaque() *ColorBuilder {
 	return cb.Alpha(AlphaOpaque)
@@ -216,24 +206,6 @@ func (cb *ColorBuilder) Intensity(factor float32) *ColorBuilder {
 	newB := clampColorChannel(uint32(float32(cb.b) * factor))
 
 	return &ColorBuilder{r: newR, g: newG, b: newB, a: cb.a}
-}
-
-// Brighten increases brightness (factor > 1.0 makes brighter)
-func (cb *ColorBuilder) Brighten(factor float32) *ColorBuilder {
-	if factor < 1.0 {
-		factor = 1.0 // Ensure brightening
-	}
-
-	return cb.Intensity(factor)
-}
-
-// Darken decreases brightness (factor < 1.0 makes darker)
-func (cb *ColorBuilder) Darken(factor float32) *ColorBuilder {
-	if factor > 1.0 {
-		factor = 1.0 // Ensure darkening
-	}
-
-	return cb.Intensity(factor)
 }
 
 // RGBA returns the final color.RGBA result
@@ -291,16 +263,10 @@ var (
 //
 //nolint:gochecknoglobals // Shared read-only palette keeps visual effect identities consistent across callers.
 var (
-	// Explosion/Combat Effects
-	MissileYellow = EGAYellow  // Yellow projectile base
-	MagicPurple   = EGAMagenta // Magic effects
 
 	// Map Fade/Transition
 	MapFadeBlack = EGABlack // Base color for fades
 
-	// Moongate Colors
-	MoongateCenter = color.RGBA{150, 100, 255, AlphaOpaque} // Custom purple center
-	MoongateRing   = color.RGBA{120, 80, 220, AlphaOpaque}  // Custom purple ring
 )
 
 // Overlay Effect Colors - ColorBuilder Variables for pulsing glows and auras

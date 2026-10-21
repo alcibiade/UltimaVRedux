@@ -32,9 +32,6 @@ var ErrAudioCatalog = sdkcatalog.ErrAudioCatalog
 // proposed moments and review notes remain here; measurement/rendering are shared.
 type Catalog sdkcatalog.Catalog
 
-// CatalogAsset describes a shared recording inventory row.
-type CatalogAsset = sdkcatalog.CatalogAsset
-
 // CatalogMoment describes an enriched semantic cue or context.
 type CatalogMoment = sdkcatalog.CatalogMoment
 

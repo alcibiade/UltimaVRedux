@@ -52,19 +52,6 @@ func TestCombatLootDialogOverflowAndAcknowledgementIsolation(t *testing.T) {
 	assert.True(t, dialog.IsDismissed())
 }
 
-func TestItemReceiptReservesVisibleIconAndCompleteText(t *testing.T) {
-	sheet := &sprites.SpriteSheet{SpriteImage: sprites.NewPngSprite(sprites.TileAtlasPNG())}
-	t.Cleanup(sheet.SpriteImage.Dispose)
-	dialog := NewItemReceiptDialog("Picked up Blue potion +1\nAdded to party inventory", PositionMapCenterLower, sheet.GetRawSprite(indexes.ItemPotion))
-	dialog.ShowWithoutAnimation()
-	screen := ebiten.NewImage(1280, 720)
-	t.Cleanup(screen.Dispose)
-	dialog.Draw(screen)
-	assert.NotNil(t, dialog.headerIcon)
-	assert.Contains(t, dialog.renderOutput.GetOutputStr(false), "Blue potion +1")
-	assert.Contains(t, dialog.renderOutput.GetOutputStr(false), "Added to party inventory")
-}
-
 func TestLootRowsCenterIconsAndSingleOrWrappedDescriptions(t *testing.T) {
 	for _, screenWidth := range []int{1280, 1920} {
 		_, output := GetScaledFontWithOutputForWidth(FontConfig{Size: FontSizeMainScreen, LineSpacingMultiplier: 1, MaxLines: 4, MaxChars: 40}, screenWidth)

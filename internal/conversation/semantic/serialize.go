@@ -2,9 +2,7 @@ package semantic
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,8 +11,6 @@ import (
 )
 
 const canonicalIndent = 2
-
-var errNilYAMLWriter = errors.New("YAML writer is nil")
 
 // Marshal validates a conversation and returns canonical v1 YAML.
 func Marshal(conversation *Conversation) ([]byte, error) {
@@ -33,26 +29,6 @@ func Marshal(conversation *Conversation) ([]byte, error) {
 	}
 
 	return buffer.Bytes(), nil
-}
-
-// Write validates a conversation and writes canonical v1 YAML.
-func Write(writer io.Writer, conversation *Conversation) error {
-	data, err := Marshal(conversation)
-	if err != nil {
-		return err
-	}
-	if writer == nil {
-		return fmt.Errorf("writing semantic conversation YAML: %w", errNilYAMLWriter)
-	}
-	written, err := writer.Write(data)
-	if err != nil {
-		return fmt.Errorf("writing semantic conversation YAML: %w", err)
-	}
-	if written != len(data) {
-		return fmt.Errorf("writing semantic conversation YAML: %w", io.ErrShortWrite)
-	}
-
-	return nil
 }
 
 func conversationYAMLNode(conversation *Conversation) *yaml.Node {

@@ -173,7 +173,7 @@ func (md *MessageDialog) IsFinished() bool {
 	return md.dismissed
 }
 
-// GetResult returns the dialog result (currently returns dismissal state for ModalDialog interface).
+// GetResult returns the dialog's dismissal state.
 func (md *MessageDialog) GetResult() interface{} {
 	return md.dismissed
 }

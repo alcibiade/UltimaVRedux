@@ -12,11 +12,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/repositoryfs"
 )
 
-const (
-	//nolint:unused // Referenced by package-level repository persistence tests.
-	repositoryLockName = repositoryfs.ReferenceLockName
-)
-
 var (
 	// ErrSnapshotNotFound indicates that a referenced capture does not exist.
 	ErrSnapshotNotFound = errors.New("save snapshot not found")

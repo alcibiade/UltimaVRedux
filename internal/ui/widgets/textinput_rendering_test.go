@@ -3,18 +3,17 @@ package widgets
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/grammar"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTextInputCommandColorMatchesManualAndHistoryText(t *testing.T) {
 	commands := grammar.TextCommands{
 		*grammar.NewTextCommand([]grammar.Match{
-			grammar.MatchString{Str: "mv", Description: "Movement", CaseSensitive: false},
-			grammar.MatchString{Str: "teleport", Description: "Destination", CaseSensitive: false},
+			grammar.MatchStringList{Strings: []string{"mv"}, Description: "Movement"},
+			grammar.MatchStringList{Strings: []string{"teleport"}, Description: "Destination"},
 		}, nil),
 	}
 	input := &TextInput{ //nolint:exhaustruct // Focused syntax-color fixture.

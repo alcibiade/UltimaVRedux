@@ -116,11 +116,6 @@ func (w *WindDisplay) ensureLayout() {
 	w.lastText = ""
 }
 
-//nolint:unused // Wind-layout regression tests use this direction adapter without drawing a screen.
-func (w *WindDisplay) ensureText(windDirection environment.WindDirection) {
-	w.ensureLabel(windDirection.GetUIString())
-}
-
 func (w *WindDisplay) ensureLabel(label string) {
 	if label == w.lastText && w.background != nil {
 		return

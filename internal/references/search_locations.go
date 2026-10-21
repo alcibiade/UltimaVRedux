@@ -219,13 +219,6 @@ func scrollSearchName(scroll Scroll) string {
 	return newScrollItemReferences()[scroll].FullDisplayName()
 }
 
-// SearchLocationState tracks whether each original hidden-object record has been found.
-type SearchLocationState struct {
-	Index             int
-	Found             bool
-	SkullKeysFoundDay int
-}
-
 // GetAllSearchLocations returns the 113 fixed-search records in original order; ref:QUEST-0002.
 func GetAllSearchLocations() []SearchLocationReference {
 	return append([]SearchLocationReference(nil), allSearchLocations...)
