@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
@@ -38,7 +37,7 @@ func ValidateInstallation(ctx context.Context, directory string) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("cancelling installation validation: %w", err)
 	}
-	dataPath := filepath.Join(directory, files.DATA_OVL)
+	dataPath := files.Resolve(directory, files.DATA_OVL)
 	info, err := os.Stat(dataPath)
 	if err != nil {
 		return fmt.Errorf("required %s is unavailable: %w", files.DATA_OVL, err)
@@ -135,7 +134,7 @@ func validateRequiredGraphics(ctx context.Context, directory string) error {
 }
 
 func validateBoundedFile(ctx context.Context, directory, name string, maximumSize int64) (err error) {
-	path := filepath.Join(directory, name)
+	path := files.Resolve(directory, name)
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("required %s is unavailable: %w", name, err)
@@ -162,7 +161,7 @@ func validateBoundedFile(ctx context.Context, directory, name string, maximumSiz
 }
 
 func validateExactFile(ctx context.Context, directory, name string, expectedSize int) (err error) {
-	path := filepath.Join(directory, name)
+	path := files.Resolve(directory, name)
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("required %s is unavailable: %w", name, err)

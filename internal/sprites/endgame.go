@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
 )
 
@@ -54,12 +54,12 @@ func LoadEndgameAssets(dataDir string) (*EndgameAssets, error) {
 	if err != nil {
 		return nil, err
 	}
-	endData, err := os.ReadFile(filepath.Join(dataDir, "END.DAT")) //nolint:gosec // Configured original-data directory.
+	endData, err := os.ReadFile(files.Resolve(dataDir, "END.DAT"))
 	if err != nil {
 		return nil, fmt.Errorf("reading endgame narrative: %w", err)
 	}
 	//nolint:gosec // Configured original-data directory.
-	messageData, err := os.ReadFile(filepath.Join(dataDir, "ENDMSG.DAT"))
+	messageData, err := os.ReadFile(files.Resolve(dataDir, "ENDMSG.DAT"))
 	if err != nil {
 		return nil, fmt.Errorf("reading endgame dialogue: %w", err)
 	}

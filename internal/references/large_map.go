@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/files"
@@ -73,10 +72,10 @@ func initialLargeMapSprite(sprite indexes.SpriteIndex) indexes.SpriteIndex {
 
 //nolint:nonamedreturns // The deferred overlay close preserves read failures and rejects a failed close.
 func loadLargeMapFromFile(world World, gameConfig *config.UltimaVConfiguration) (result *LargeMapReference, err error) {
-	mapFileAndPath, dataOvlFileAndPath := path.Join(gameConfig.SavedConfigData.DataFilePath, files.BRIT_DAT),
-		path.Join(gameConfig.SavedConfigData.DataFilePath, files.DATA_OVL)
+	mapFileAndPath, dataOvlFileAndPath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.BRIT_DAT),
+		files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.DATA_OVL)
 	if world == UNDERWORLD {
-		mapFileAndPath = path.Join(gameConfig.SavedConfigData.DataFilePath, files.UNDER_DAT)
+		mapFileAndPath = files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.UNDER_DAT)
 		dataOvlFileAndPath = ""
 	}
 

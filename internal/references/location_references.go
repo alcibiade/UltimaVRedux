@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
@@ -67,7 +67,7 @@ func newSingleMapReferences(config *config.UltimaVConfiguration, dataOvl *DataOv
 func (s *LocationReferences) addLocation(location Location, bHasBasement bool, nFloors, nOffset int) (int, error) {
 	maps := make(map[int]*SmallLocationReference)
 	// get the file
-	mapFileAndPath := path.Join(s.config.SavedConfigData.DataFilePath, GetSmallMapFile(GetMapMasterFromLocation(location)))
+	mapFileAndPath := files.Resolve(s.config.SavedConfigData.DataFilePath, GetSmallMapFile(GetMapMasterFromLocation(location)))
 
 	// a bit wasteful since it's open a few times, but... fast computers...
 	theChunksSerial, err := os.ReadFile(mapFileAndPath)

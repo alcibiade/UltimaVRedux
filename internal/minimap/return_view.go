@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
@@ -40,7 +40,7 @@ type ReturnViewData struct {
 
 // LoadReturnViewData loads and decodes the original attract sequence.
 func LoadReturnViewData(dataDir string) (*ReturnViewData, error) {
-	path := filepath.Join(dataDir, returnViewFileName)
+	path := files.Resolve(dataDir, returnViewFileName)
 	data, err := os.ReadFile(path) //nolint:gosec // Configured original-data directory is user-selected.
 	if err != nil {
 		return nil, fmt.Errorf("reading Return to the View data %s: %w", path, err)

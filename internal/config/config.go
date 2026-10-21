@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -366,7 +365,7 @@ func (uc *UltimaVConfiguration) loadConfigurationSource(explicitDataPath string,
 			return ErrDataFilePathUnset
 		}
 		var err error
-		uc.RawDataOvl, err = os.ReadFile(path.Join(uc.SavedConfigData.DataFilePath, files.DATA_OVL))
+		uc.RawDataOvl, err = os.ReadFile(files.Resolve(uc.SavedConfigData.DataFilePath, files.DATA_OVL))
 		if err != nil {
 			return fmt.Errorf("reading DATA.OVL from %s: %w", uc.SavedConfigData.DataFilePath, err)
 		}
@@ -499,12 +498,12 @@ func (uc *UltimaVConfiguration) loadDebugConfiguration() {
 
 // GetLookDataFilePath returns the look-description file in the active data folder.
 func (uc *UltimaVConfiguration) GetLookDataFilePath() string {
-	return path.Join(uc.SavedConfigData.DataFilePath, files.LOOK2_DAT)
+	return files.Resolve(uc.SavedConfigData.DataFilePath, files.LOOK2_DAT)
 }
 
 // GetSignsDataFilePath returns the signs file in the active data folder.
 func (uc *UltimaVConfiguration) GetSignsDataFilePath() string {
-	return path.Join(uc.SavedConfigData.DataFilePath, files.SIGNS_DAT)
+	return files.Resolve(uc.SavedConfigData.DataFilePath, files.SIGNS_DAT)
 }
 
 func (uc *UltimaVConfiguration) windowResolutions() []ScreenResolution {
@@ -831,7 +830,7 @@ func (uc *UltimaVConfiguration) configuredBoolean(value *bool, key string) {
 
 // GetFileWithFullPath joins a filename to the active original-data folder.
 func (uc *UltimaVConfiguration) GetFileWithFullPath(fileName string) string {
-	return path.Join(uc.SavedConfigData.DataFilePath, fileName)
+	return files.Resolve(uc.SavedConfigData.DataFilePath, fileName)
 }
 
 // GetAllNpcFilePaths returns the four small-map NPC data file paths.

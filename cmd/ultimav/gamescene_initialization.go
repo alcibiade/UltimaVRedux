@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"path"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
+	"github.com/bradhannah/UltimaVRedux/internal/files"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
@@ -34,7 +34,7 @@ var (
 
 // NewGameScene creates a new GameScene with all necessary systems initialized
 func NewGameScene(gameConfig *config.UltimaVConfiguration) (*GameScene, error) {
-	saveFilePath := path.Join(gameConfig.SavedConfigData.DataFilePath, "SAVED.GAM")
+	saveFilePath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, "SAVED.GAM")
 
 	return NewGameSceneFromLegacySaveFile(gameConfig, saveFilePath)
 }

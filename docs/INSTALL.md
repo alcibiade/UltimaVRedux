@@ -7,8 +7,9 @@
 ## What you need
 
 - Your own copy of the original **MS-DOS PC** release of Ultima V, such as the GOG
-  edition. Copy the whole game folder: setup checks every required file, and the
-  Amiga, Atari ST, Commodore 64 and Apple II versions use different files.
+  edition. Copy the whole game folder: setup checks every required file, in
+  upper or lower case, and the Amiga, Atari ST, Commodore 64 and Apple II
+  versions use different files.
 - A supported desktop platform with a working graphics and audio environment.
 - Go 1.27 or newer, using the latest patch. The module declares `go 1.27.0` and selects
   `toolchain go1.27.1`; allow Go to obtain that toolchain or provision it yourself.
