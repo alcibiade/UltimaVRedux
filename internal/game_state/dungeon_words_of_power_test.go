@@ -110,10 +110,52 @@ func TestProcessWordOfPowerRequiresMatchingCardinalEntranceTileAndPlane(t *testi
 	assert.False(t, state.ProcessWordOfPower(""))
 	assert.Contains(t, callbacks.Messages, "Nothing happens.")
 
+}
+
+func TestProcessWordOfPowerTogglesNonDoomEntrancesFromTheUnderworld(t *testing.T) {
+	state, callbacks := NewIntegrationTestBuilder(t).
+		WithLocation(references.BritanniaUnderworld).
+		WithFloor(references.FloorNumber(references.UNDERWORLD)).
+		WithSystemCallbacks().
+		Build()
+	for dungeon, entrance := range state.GetDungeonEntranceCoordinates() {
+		if dungeon == references.Doom {
+			continue
+		}
+		t.Run(dungeon.String(), func(t *testing.T) {
+			raw := state.GetLayeredMapByCurrentLocation().GetTileTopMapOnlyTile(&entrance).Index
+			require.True(t, raw == dungeonOpenEntranceSprite(dungeon) || raw == indexes.BlockEntrance,
+				"the Underworld entrance must share the surface coordinate, got tile %d", raw)
+
+			state.SetDungeonState(dungeon, false)
+			state.MapState.PlayerLocation.Position = entrance.Right()
+			require.Equal(t, indexes.SpriteIndex(indexes.BlockEntrance), state.GetEffectiveTile(&entrance))
+			require.True(t, state.ProcessWordOfPower(GetWordForDungeon(dungeon)))
+			assert.True(t, state.IsDungeonOpen(dungeon))
+			assert.Empty(t, callbacks.Messages)
+
+			state.MapState.PlayerLocation.Position = entrance
+			assert.True(t, state.canEnterDungeonAtCurrentLocation(dungeon, state.GetEffectiveTile(&entrance)))
+		})
+	}
+}
+
+func TestProcessWordOfPowerRefusesDoomOnTheSurface(t *testing.T) {
+	state, callbacks := NewIntegrationTestBuilder(t).
+		WithLocation(references.BritanniaUnderworld).
+		WithFloor(references.FloorNumber(references.OVERWORLD)).
+		WithSystemCallbacks().
+		Build()
+	entrance := state.GetDungeonEntranceCoordinates()[references.Doom]
 	state.MapState.PlayerLocation.Position = entrance.Right()
-	state.MapState.PlayerLocation.Floor = references.FloorNumber(references.UNDERWORLD)
-	assert.False(t, state.ProcessWordOfPower("FALLAX"))
-	assert.False(t, state.IsDungeonOpen(references.Deceit))
+	state.GetLayeredMapByCurrentLocation().SetTileByLayer(
+		map_state.MapLayer,
+		&entrance,
+		dungeonOpenEntranceSprite(references.Doom),
+	)
+
+	assert.False(t, state.ProcessWordOfPower("VERAMOCOR"))
+	assert.Contains(t, callbacks.Messages, "Nothing happens.")
 }
 
 func TestProcessWordOfPowerRejectsWrongTileAndUsesWestSouthEastNorthPriority(t *testing.T) {

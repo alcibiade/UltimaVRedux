@@ -1356,7 +1356,6 @@ func validArmsBuyPriceAndGold(quote game_state.ArmsBuyQuote, gold uint16) bool {
 
 func validArmsBuyQuantity(quote game_state.ArmsBuyQuote) bool {
 	return quote.QuantityBefore <= party_state.ItemQuantitySmallMax &&
-		quote.ReadiedQuantity <= party_state.MaxActiveParty &&
 		quote.MaxQuantity <= party_state.ItemQuantitySmallMax &&
 		quote.AmmoRefill == quote.Equipment.IsAmmo() &&
 		(!quote.AmmoRefill || quote.MaxQuantity <= 1)
@@ -1378,7 +1377,6 @@ func validateArmsSellQuote(quote game_state.ArmsSellQuote, gold uint16) {
 func validArmsSellQuantityAndGold(quote game_state.ArmsSellQuote, gold uint16) bool {
 	return quote.Gold == gold && quote.QuantityBefore > 0 &&
 		quote.QuantityBefore <= party_state.ItemQuantitySmallMax &&
-		quote.ReadiedQuantity <= party_state.MaxActiveParty &&
 		quote.MaxQuantity <= quote.QuantityBefore
 }
 

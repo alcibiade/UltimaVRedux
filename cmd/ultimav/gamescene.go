@@ -344,6 +344,10 @@ type GameScene struct {
 	miniMapScene       *minimap.MiniMapScene
 	finalePresentation *lordBritishFinalePresentation
 
+	// windowCloseDepartureOpen marks save choices opened by the window's close
+	// button, so a second close request quits without asking again.
+	windowCloseDepartureOpen bool
+
 	active   bool
 	disposed bool
 }

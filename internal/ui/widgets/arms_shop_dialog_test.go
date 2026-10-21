@@ -469,6 +469,25 @@ func TestArmsShopDialogGeometryAndEmptySellAreBounded(t *testing.T) {
 	}
 }
 
+func TestArmsShopDialogAcceptsDualWieldedReadiedQuantities(t *testing.T) {
+	// Each active member can ready one copy in each hand.
+	const readied = 2 * party_state.MaxActiveParty
+	state := testArmsShopState()
+	state.BuyQuotes[0].ReadiedQuantity = readied
+	state.SellQuotes[0].ReadiedQuantity = readied
+	keyboard := newWidgetTestKeyboard(0)
+
+	var dialog *ArmsShopDialog
+	require.NotPanics(t, func() { dialog = newTestArmsShopDialog(keyboard, state) })
+	for _, mode := range []ebiten.Key{ebiten.KeyB, ebiten.KeyS} {
+		pressArmsShopKey(dialog, keyboard, mode)
+		for dialog.GetSelectedEquipment() != references.Dagger {
+			pressArmsShopKey(dialog, keyboard, ebiten.KeyDown)
+		}
+		require.Contains(t, strings.Join(strings.Fields(dialog.GetDetailText()), " "), "Ready 12")
+	}
+}
+
 func testArmsShopState() game_state.ArmsShopState {
 	const gold uint16 = 500
 	state := game_state.ArmsShopState{

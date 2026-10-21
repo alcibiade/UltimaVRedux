@@ -75,6 +75,12 @@ type Game struct {
 	mainMenuSceneBuilder              func(*config.UltimaVConfiguration) (Scene, error)
 	exitRequested                     bool
 	shutdown                          bool
+	windowCloseRequested              func() bool
+}
+
+// windowCloseHandler lets a scene keep the window open to offer saving first.
+type windowCloseHandler interface {
+	HandleWindowCloseRequest(game *Game) bool
 }
 
 type scenarioRunHistoryRepository interface {
@@ -201,7 +207,8 @@ func NewGame(initialScene Scene) *Game {
 		mainMenuSceneBuilder: func(configuration *config.UltimaVConfiguration) (Scene, error) {
 			return CreateMainMenuScene(configuration)
 		},
-		exitRequested: false,
+		exitRequested:        false,
+		windowCloseRequested: ebiten.IsWindowBeingClosed,
 	}
 	game.sceneGeneration.Store(1)
 	game.debugDefinitions = game.debugCatalog.Definitions()
@@ -373,6 +380,13 @@ func (g *Game) returnToMainMenu(configuration *config.UltimaVConfiguration) erro
 	})
 }
 
+func (g *Game) handleWindowCloseRequest() {
+	if handler, ok := g.currentScene.(windowCloseHandler); ok && handler.HandleWindowCloseRequest(g) {
+		return
+	}
+	g.requestExit()
+}
+
 func (g *Game) requestExit() {
 	g.exitRequested = true
 }
@@ -484,6 +498,9 @@ func (g *Game) Update() error {
 		}
 		g.updateScenarioRun()
 		g.debugBridge.Process(gameDebugExecutor{game: g}, maxDebugRequestsPerUpdate)
+		if g.windowCloseRequested() {
+			g.handleWindowCloseRequest()
+		}
 
 		if err := g.currentScene.Update(g); err != nil {
 			return err

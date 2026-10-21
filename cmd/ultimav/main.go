@@ -146,6 +146,8 @@ func runApplication() error {
 	// Set the window title and size
 	ebiten.SetWindowTitle("Ultima V Redux")
 	ebiten.SetRunnableOnUnfocused(true)
+	// Gameplay offers to save before a window close; Game.Update decides.
+	ebiten.SetWindowClosingHandled(true)
 
 	startup := config.LoadStartupConfiguration()
 	gameConfig := startup.Configuration

@@ -158,7 +158,9 @@ func (g *GameState) ProcessWordOfPower(word string) bool {
 		return false
 	}
 
-	if g.MapState.PlayerLocation.Floor != dungeonEntranceFloor(dungeon) {
+	// Non-Doom entrances share one sealed state across Britannia and the
+	// Underworld, so the word works beside either side. See ref:WORD-0001.
+	if !DungeonEntranceExistsOnFloor(dungeon, g.MapState.PlayerLocation.Floor) {
 		g.SystemCallbacks.UI.ShowActionFeedback("Nothing happens.", true)
 
 		return false

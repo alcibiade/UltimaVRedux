@@ -142,6 +142,28 @@ func TestArmsQuotesReportCurrentActivePartyReadiedQuantity(t *testing.T) {
 	assert.Equal(t, uint16(1), shop.SellQuotes[0].ReadiedQuantity)
 }
 
+func TestArmsQuotesCountBothHandsOfDualWieldedWeapons(t *testing.T) {
+	state, npc := newOpenMerchantTestState(t, references.MerchantArmsBritain)
+	state.PartyState.Inventory.Gold.Set(1000)
+	state.PartyState.Inventory.Equipment.Set(references.Dagger, 1)
+	for index := range 4 {
+		member := state.PartyState.GetCharacter(index)
+		member.PartyMap = party_state.PartyMapActive
+		member.SetStatus(party_state.Good)
+		member.SetEquippedItem(references.SlotWeapon, references.Dagger)
+		member.SetEquippedItem(references.SlotShield, references.Dagger)
+	}
+
+	session, err := state.BeginMerchantSession(npc)
+	require.NoError(t, err)
+	buyQuote, err := state.QuoteArmsBuy(session, references.Dagger)
+	require.NoError(t, err)
+	assert.Equal(t, uint16(8), buyQuote.ReadiedQuantity)
+	sellQuote, err := state.QuoteArmsSell(session, references.Dagger)
+	require.NoError(t, err)
+	assert.Equal(t, uint16(8), sellQuote.ReadiedQuantity)
+}
+
 func TestReviewArmsShopByMerchantIDMatchesProductionWithoutMutation(t *testing.T) {
 	state, npc := newOpenMerchantTestState(t, references.MerchantArmsBordermarch)
 	state.SetRandomSeed(8675309)

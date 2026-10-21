@@ -25,9 +25,12 @@ matching are not certified from dispatcher code alone.
 | 7 | Doom | VERAMOCOR | 128,128 | 80,80 |
 
 Entrance indexes are 32–39, not keep indexes 24–31. Redux uses this mapping.
-The original outdoor Yell handler does not explicitly gate plane/level; authored
-surface/Underworld portal data was not inspected here. A plane rule in modern
-entrance resolution is not independently established by the coordinate table.
+The original outdoor Yell handler has no plane or level gate, so it runs in
+Britannia and in the Underworld alike. Each of the seven non-Doom dungeons has
+an Underworld portal at the same coordinate as its surface entrance, and both
+share that dungeon's single open/sealed state. Its word therefore opens or seals
+the dungeon from either side. Doom's entrance exists only in the Underworld.
+Redux accepts the word on every plane where that dungeon has an entrance.
 
 **Implementation:** `internal/game_state/dungeon_words_of_power.go`
 
@@ -78,10 +81,11 @@ sails before text. Nonempty outdoor Yell retains consuming completion; ship/empt
 some town failures have valueless integer returns. No learned-word prerequisite
 exists.
 
-Redux retains blind correct Yell and cardinal priority, while semantic plane
-checks, normalized matching, safe shrine dispatch, modern failure feedback and
-Escape differ. Feedback/cancellation are existing presentation choices; original
-plane and undefined-return equivalence remain unverified.
+Redux retains blind correct Yell and cardinal priority, and accepts a dungeon's
+word on each plane holding its entrance ([WORD-0001](#word-0001)). Normalized
+matching, safe shrine dispatch, modern failure feedback and Escape differ.
+Feedback/cancellation are existing presentation choices; undefined-return
+equivalence remains unverified.
 
 Successful Keep summoning is the explicit no-normal-cycle result in
 [SHADOW-0004](SHADOWLORDS.md#shadow-0004). Its input workflow does not enqueue
