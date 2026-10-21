@@ -31,6 +31,8 @@ const (
 )
 
 // MapUnit is the view shared by NPCs, enemies and vehicles on a map.
+//
+//nolint:interfacebloat // NPCs, enemies and vehicles share this one map-unit contract.
 type MapUnit interface {
 	GetMapUnitType() MapUnitType
 

@@ -40,13 +40,25 @@ func (s FixedLinesSizing) GetConfig() (int, int, bool) {
 	return s.Lines, s.CharsPerLine, false
 }
 
-// Pre-defined sizing presets
+// Sizes of the pre-defined presets.
+const (
+	autoFitDefaultMaxWidthPercent = 0.8
+	autoFitDefaultMinCharsPerLine = 15
+	compactLines                  = 2
+	compactCharsPerLine           = 35
+)
+
+// Pre-defined sizing presets.
+//
+//nolint:gochecknoglobals // Sizing presets are immutable shared UI configuration.
 var (
 	// SizingAutoFitDefault auto-fits content with 80% max width and 15 char minimum
-	SizingAutoFitDefault = AutoFitSizing{MaxWidthPercent: 0.8, MinCharsPerLine: 15}
+	SizingAutoFitDefault = AutoFitSizing{
+		MaxWidthPercent: autoFitDefaultMaxWidthPercent, MinCharsPerLine: autoFitDefaultMinCharsPerLine,
+	}
 
 	// SizingCompact is a small fixed-size dialog (2 lines, 35 chars)
-	SizingCompact = FixedLinesSizing{Lines: 2, CharsPerLine: 35}
+	SizingCompact = FixedLinesSizing{Lines: compactLines, CharsPerLine: compactCharsPerLine}
 )
 
 // =====================================
@@ -158,7 +170,9 @@ func (e EffectsConfig) HasAnyEffect() bool {
 	return e.HasFadeIn() || e.HasFadeOut()
 }
 
-// Pre-defined effect presets
+// Pre-defined effect presets.
+//
+//nolint:gochecknoglobals // Effect presets are immutable shared UI configuration.
 var (
 	// EffectsNone disables all fade effects (instant show/hide)
 	EffectsNone = EffectsConfig{FadeInMs: 0, FadeOutMs: 0}

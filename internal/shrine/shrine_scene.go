@@ -25,7 +25,7 @@ type Scene struct {
 	OriginalPlayerLocation references.PlayerLocation
 
 	// Shrine map reference
-	ShrineMap *ShrineMap
+	ShrineMap *Map
 }
 
 // NewShrineSceneWithMap creates a shrine scene with a specific map reference

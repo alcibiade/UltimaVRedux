@@ -2,6 +2,7 @@
 package shrine
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
@@ -47,9 +48,9 @@ type MiniMapData struct {
 	MapType MiniMapType
 }
 
-// ShrineMap represents the shrine/codex interior layout
+// Map represents the shrine/codex interior layout
 // Used for both shrine meditation and codex reading scenes
-type ShrineMap struct {
+type Map struct {
 	// Center position (altar for shrine, codex stand for codex)
 	CenterPosition references.Position
 
@@ -61,8 +62,8 @@ type ShrineMap struct {
 }
 
 // NewShrineMapWithData creates a new shrine map with loaded data
-func NewShrineMapWithData(mapData *MiniMapData) *ShrineMap {
-	shrineMap := &ShrineMap{
+func NewShrineMapWithData(mapData *MiniMapData) *Map {
+	shrineMap := &Map{
 		CenterPosition:   references.Position{X: CenterPositionX, Y: CenterPositionY},
 		EntrancePosition: references.Position{X: EntrancePositionX, Y: EntrancePositionY},
 		MapData:          mapData,
@@ -73,7 +74,7 @@ func NewShrineMapWithData(mapData *MiniMapData) *ShrineMap {
 
 // GetTile returns the tile index at the given position
 // Returns 0 (grass/default) if position is invalid or no map data loaded
-func (sm *ShrineMap) GetTile(tileX, tileY int) byte {
+func (sm *Map) GetTile(tileX, tileY int) byte {
 	if !sm.IsValidPosition(tileX, tileY) {
 		return 0
 	}
@@ -96,7 +97,7 @@ const (
 
 // getDefaultTile returns a default tile for positions when no map data is loaded
 // This creates a simple layout for testing
-func (sm *ShrineMap) getDefaultTile(tileX, tileY int) byte {
+func (sm *Map) getDefaultTile(tileX, tileY int) byte {
 	// Center (altar/codex)
 	if tileX == CenterPositionX && tileY == CenterPositionY {
 		return defaultAltarTile
@@ -124,13 +125,13 @@ func (sm *ShrineMap) getDefaultTile(tileX, tileY int) byte {
 }
 
 // IsValidPosition checks if the given position is within the mini-map bounds
-func (sm *ShrineMap) IsValidPosition(x, y int) bool {
+func (sm *Map) IsValidPosition(x, y int) bool {
 	return x >= 0 && x < MiniMapSize && y >= 0 && y < MiniMapSize
 }
 
 // miniMapIndex maps MiniMapType to its MISCMAPS.DAT index.
 // Indices 0 and 3 are Blackthorn's prison and the endgame rescue map;
-// neither is a ShrineMap gameplay type.
+// neither is a shrine Map gameplay type.
 func miniMapIndex(mapType MiniMapType) (int, bool) {
 	switch mapType {
 	case MiniMapShrine:
@@ -142,11 +143,14 @@ func miniMapIndex(mapType MiniMapType) (int, bool) {
 	}
 }
 
+// errUnknownMiniMapType reports a MiniMapType with no MISCMAPS.DAT scene.
+var errUnknownMiniMapType = errors.New("unknown mini-map type")
+
 // LoadMiniMapFromMiscmaps loads a mini-map (shrine, codex, etc.) from MISCMAPS.DAT
 func LoadMiniMapFromMiscmaps(gameConfig *config.UltimaVConfiguration, mapType MiniMapType) (*MiniMapData, error) {
 	mapIndex, ok := miniMapIndex(mapType)
 	if !ok {
-		return nil, fmt.Errorf("unknown mini-map type: %d", mapType)
+		return nil, fmt.Errorf("%w: %d", errUnknownMiniMapType, mapType)
 	}
 	decoded, err := minimap.LoadMiscMap(gameConfig.SavedConfigData.DataFilePath, mapIndex)
 	if err != nil {

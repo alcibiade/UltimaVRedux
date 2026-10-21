@@ -23,6 +23,8 @@ const (
 //	    WithBounds(6, 1, 12, 4).
 //	    AddVerticalRise(FilterRedOnly).
 //	    Build(),
+//
+//nolint:gochecknoglobals // Read-only effect table looked up per tile while drawing.
 var TileEffectRegistry = map[indexes.SpriteIndex]TileEffectPipeline{
 
 	// ========================================================================

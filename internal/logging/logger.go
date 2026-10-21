@@ -52,6 +52,8 @@ func newLoggerWithCapacity(capacity int) *Logger {
 }
 
 // Global logger instance
+//
+//nolint:gochecknoglobals // The single process-wide sink behind the package logging functions.
 var globalLogger = NewLogger()
 
 // GetGlobalLogger returns the global logger instance

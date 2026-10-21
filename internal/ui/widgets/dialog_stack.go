@@ -49,6 +49,8 @@ func (d *DialogStack) PushNonBlockingDialog(dialog Widget) {
 
 // PeekTopModalDialog returns the highest input-blocking dialog without removing it.
 // Non-blocking dialogs may be physically above it in the stack.
+//
+//nolint:ireturn // The stack holds many dialog types; callers check which is on top.
 func (d *DialogStack) PeekTopModalDialog() Widget {
 	for i := len(d.entries) - 1; i >= 0; i-- {
 		if d.entries[i].isModal {
