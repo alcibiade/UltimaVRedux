@@ -89,9 +89,6 @@ func (n *TavernAdviceNotice) Dismiss() {
 // IsDismissed reports whether the workflow may remove this notice.
 func (n *TavernAdviceNotice) IsDismissed() bool { return n.dismissed }
 
-// GetContentText returns the merchant response without dismissal guidance.
-func (n *TavernAdviceNotice) GetContentText() string { return n.message }
-
 // GetBounds returns the current pane-centered measured bounds.
 func (n *TavernAdviceNotice) GetBounds() image.Rectangle {
 	n.ensureLayout()

@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 
+	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
+
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/visual"
-	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
 const (
@@ -160,20 +161,6 @@ func (g *GameScene) cleanupAvatarDissolveEffect() {
 func (g *GameScene) setMapFadeLevel(level float64) {
 	g.mapFadeLevel = level
 	logging.Debug(logging.CategoryGameState, "Map fade level set to %.2f", level)
-}
-
-// FadeToBlack initiates fade out effect for sleep
-func (g *GameScene) FadeToBlack() {
-	// Use existing mapFadeLevel for fade effect
-	// Start fade animation - implementation will be added to Update() method
-	g.mapFadeLevel = 0.0 // Start visible, will fade to 1.0 (black)
-}
-
-// FadeFromBlack initiates fade in effect when waking up
-func (g *GameScene) FadeFromBlack() {
-	// Use existing mapFadeLevel for fade effect
-	// Start fade in animation - implementation will be added to Update() method
-	g.mapFadeLevel = 1.0 // Start black, will fade to 0.0 (visible)
 }
 
 // =============================================================================

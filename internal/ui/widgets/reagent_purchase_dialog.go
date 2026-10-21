@@ -152,9 +152,6 @@ func (d *ReagentPurchaseDialog) handleQuantityInput() bool {
 	return owned
 }
 
-// HasPendingPurchaseRequest reports whether confirmation emitted an unconsumed request.
-func (d *ReagentPurchaseDialog) HasPendingPurchaseRequest() bool { return d.pending != nil }
-
 // ConsumePendingPurchaseRequest returns and clears the one confirmed request.
 func (d *ReagentPurchaseDialog) ConsumePendingPurchaseRequest() (game_state.ReagentPurchaseRequest, bool) {
 	if d.pending == nil {
@@ -166,31 +163,9 @@ func (d *ReagentPurchaseDialog) ConsumePendingPurchaseRequest() (game_state.Reag
 	return request, true
 }
 
-// GetBundleCount returns the currently selected number of bundles.
-func (d *ReagentPurchaseDialog) GetBundleCount() uint16 { return d.bundleCount }
-
 // GetApprovalView returns the supplied authority view selected by bundle count.
 func (d *ReagentPurchaseDialog) GetApprovalView() game_state.ReagentPurchaseApprovalView {
 	return d.quote.ApprovalViews[d.bundleCount-1]
-}
-
-// GetQuote returns a detached copy of the trusted quote displayed by the modal.
-func (d *ReagentPurchaseDialog) GetQuote() game_state.ReagentOfferQuote {
-	return cloneReagentOfferQuote(d.quote)
-}
-
-// GetBodyText returns the selected supplied approval presentation.
-func (d *ReagentPurchaseDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
-// GetFooterGuidance returns the exact keyboard guidance displayed by the modal.
-func (d *ReagentPurchaseDialog) GetFooterGuidance() string {
-	return "[Left/Right] Quantity   [M] Max\n[Enter] Confirm   [Esc] Back"
 }
 
 // GetBounds returns the centered opaque modal bounds.
@@ -200,20 +175,11 @@ func (d *ReagentPurchaseDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetFontSize returns the standard merchant font size.
-func (d *ReagentPurchaseDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether the modal stops before purchase authority.
-func (d *ReagentPurchaseDialog) IsPreview() bool { return d.preview }
-
 // IsCancelled reports whether Escape closed the modal without confirmation.
 func (d *ReagentPurchaseDialog) IsCancelled() bool { return d.cancelled }
 
 // IsDismissed reports whether the modal may be removed.
 func (d *ReagentPurchaseDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns presentation and input.
-func (d *ReagentPurchaseDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
 func (d *ReagentPurchaseDialog) Dismiss() {

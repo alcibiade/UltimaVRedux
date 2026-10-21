@@ -116,17 +116,6 @@ func (enemy *NPCEnemy) SetFacing(direction references.Direction, tile *reference
 	enemy.keyFrameTile = tile
 }
 
-// SetKeyFrameTile updates instance-owned visual state without mutating static references.
-func (enemy *NPCEnemy) SetKeyFrameTile(tile *references.Tile) {
-	if tile == nil {
-		panic("enemy key frame tile cannot be nil")
-	}
-	enemy.keyFrameTile = tile
-	if facing := facingForEnemyTile(tile); facing != references.NoneDirection {
-		enemy.facing = facing
-	}
-}
-
 // SetShadowlordIdentity binds the exact Shadowlord represented by this instance.
 func (enemy *NPCEnemy) SetShadowlordIdentity(lord references.Shadowlord) {
 	if enemy.variant != EnemyVariantShadowlord || lord < references.Faulinei || lord > references.Nosfentor {

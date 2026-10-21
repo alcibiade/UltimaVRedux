@@ -28,14 +28,6 @@ func (md *MessageDialog) AppendLineWithColor(line string, c color.Color) {
 	md.contentDirty = true
 }
 
-// AppendToCurrentLine appends text to the current line without adding a new line.
-// Used for progressive text effects like "sneaking" → "sneaking." → "sneaking.." → "sneaking..."
-// Wraps text.Output.AppendText() which operates on the current row.
-func (md *MessageDialog) AppendToCurrentLine(text string) {
-	md.output.AppendText(text)
-	md.contentDirty = true
-}
-
 // Clear removes all text from the dialog content area.
 func (md *MessageDialog) Clear() {
 	md.output.Clear()
@@ -137,11 +129,6 @@ func (md *MessageDialog) PresentationBounds() image.Rectangle {
 	return image.Rectangle{Min: topLeft, Max: topLeft.Add(md.bakedBounds.Size())}
 }
 
-// DissolveLevel reports the current visual dissolve amount for lifecycle tests.
-func (md *MessageDialog) DissolveLevel() float64 {
-	return md.dissolveLevel
-}
-
 // GetFadeInDuration returns the configured fade-in animation duration in milliseconds.
 func (md *MessageDialog) GetFadeInDuration() int {
 	return md.fadeDurationInMs
@@ -166,20 +153,4 @@ func (md *MessageDialog) Dismiss() {
 // Static content dialogs display their initial message and ignore addRowStr() calls.
 func (md *MessageDialog) IsStaticContent() bool {
 	return md.staticContent
-}
-
-// IsFinished returns true if the dialog has completed its lifecycle and should be removed from stack.
-func (md *MessageDialog) IsFinished() bool {
-	return md.dismissed
-}
-
-// GetResult returns the dialog's dismissal state.
-func (md *MessageDialog) GetResult() interface{} {
-	return md.dismissed
-}
-
-// Refresh updates visual elements on resolution change
-func (md *MessageDialog) Refresh() {
-	md.initializeVisualElements()
-	md.contentDirty = true
 }

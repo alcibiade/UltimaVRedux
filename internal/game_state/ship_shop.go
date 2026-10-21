@@ -199,28 +199,6 @@ func (g *GameState) ReviewShipShopByMerchantID(id references.MerchantID) (ShipSh
 	return ShipShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
 }
 
-// QuoteShipPurchase returns one current canonical vessel quote.
-func (g *GameState) QuoteShipPurchase(
-	session MerchantSession,
-	vehicleType references.VehicleType,
-) (ShipPurchaseQuote, error) {
-	state, err := g.GetShipShopState(session)
-	if err != nil {
-		return ShipPurchaseQuote{}, err
-	}
-
-	switch vehicleType {
-	case references.FrigateVehicle:
-		return state.FrigateQuote, nil
-	case references.SkiffVehicle:
-		return state.SkiffQuote, nil
-	case references.NoPartyVehicle, references.CarpetVehicle, references.HorseVehicle, references.NPC:
-		return ShipPurchaseQuote{}, fmt.Errorf("%w: unsupported vehicle type %d", ErrInvalidShipPurchase, vehicleType)
-	default:
-		return ShipPurchaseQuote{}, fmt.Errorf("%w: unsupported vehicle type %d", ErrInvalidShipPurchase, vehicleType)
-	}
-}
-
 // PurchaseShip revalidates and commits one canonical vessel purchase.
 func (g *GameState) PurchaseShip(
 	session MerchantSession,

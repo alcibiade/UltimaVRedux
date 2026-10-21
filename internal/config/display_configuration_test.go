@@ -128,21 +128,6 @@ func TestLoadDisplayConfigurationFallsBackForInvalidPersistedValues(t *testing.T
 	}
 }
 
-func TestDisplayConfigurationCloneIncludesModeAndDimensions(t *testing.T) {
-	original := &DisplayConfiguration{
-		Mode:              ModeFullscreen,
-		WindowWidth:       1700,
-		WindowHeight:      950,
-		TargetFPS:         60,
-		EnableFpsLimiting: true,
-	}
-
-	clone := original.Clone()
-
-	assert.NotSame(t, original, clone)
-	assert.Equal(t, original, clone)
-}
-
 func TestSaveConfigurationSettingsPreservesDisplayWhenLegacyCallerOmitsIt(t *testing.T) {
 	configuration, configFile := configurationFixture(t, "existing: true\n")
 	displayConfiguration := &DisplayConfiguration{

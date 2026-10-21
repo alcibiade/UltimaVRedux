@@ -66,13 +66,6 @@ func (t *Tile) IsChair() bool {
 		t.Is(indexes.ChairBackLeft)
 }
 
-// IsChairFacingSouth returns true if this tile is a south-facing chair (ChairBackBack).
-// Used for BANJO_PLAYER sprite switching: bards only play music when seated on this chair type.
-// The south-facing chair is raw tile 0x92 (146); ref:TILE-0007.
-func (t *Tile) IsChairFacingSouth() bool {
-	return t.Is(indexes.ChairBackBack)
-}
-
 func (t *Tile) IsCannon() bool {
 	return t.Is(indexes.CannonLeft) ||
 		t.Is(indexes.CannonRight) ||
@@ -100,17 +93,6 @@ func (t *Tile) GetCannonDirection() Direction {
 
 func (t *Tile) IsPath() bool {
 	return t.Index >= indexes.Path1 && t.Index <= indexes.Path7
-}
-
-func (t *Tile) GetStairsFloorDirection() LadderOrStairType {
-	switch t.Index {
-	case indexes.StairsNorth, indexes.StairsSouth:
-		return LadderOrStairUp
-	case indexes.StairsEast, indexes.StairsWest:
-		return LadderOrStairDown
-	default:
-		return NotLadderOrStair
-	}
 }
 
 func (t *Tile) isNPCNoPenaltyWalkable() bool {
@@ -141,15 +123,6 @@ func (t *Tile) GetWalkableWeight() int {
 	return weightDefault
 }
 
-func (t *Tile) IsWalkableDuringWander() bool {
-	// Actual NPC steps allow beach and block chairs outside scheduled travel; ref:NPC-0004.
-	if t.Index >= indexes.OutsidePath1 && t.Index <= indexes.OutsidePath4 {
-		return true
-	}
-
-	return t.IsNPCTerrainPassable() && !t.IsChair()
-}
-
 func (t *Tile) GetExtraMovementString() string {
 	switch t.SpeedFactor {
 	case 4:
@@ -161,14 +134,6 @@ func (t *Tile) GetExtraMovementString() string {
 	default:
 		return "Untrodden Combat Tile"
 	}
-}
-
-func (t *Tile) IsWall() bool {
-	return t.Is(indexes.LargeRockWall) || t.Is(indexes.StoneBrickWall) || t.Is(indexes.StoneBrickWallSecret)
-}
-
-func (t *Tile) IsRoad() bool {
-	return t.IsPath() // Roads are paths in this context
 }
 
 func (t *Tile) IsSwamp() bool {
@@ -190,20 +155,6 @@ func (t *Tile) IsMountain() bool {
 func (t *Tile) IsWaterfall() bool {
 	return t.Is(indexes.Waterfall1) || t.Is(indexes.Waterfall2) ||
 		t.Is(indexes.Waterfall3) || t.Is(indexes.Waterfall4)
-}
-
-func (t *Tile) IsForest() bool {
-	if t == nil {
-		return false
-	}
-	// Forest tiles are identified as passable land tiles that are not other terrain types
-	// This logic may need refinement based on actual forest tile indexes
-	return t.IsLandEnemyPassable() &&
-		!t.Is(indexes.Grass) &&
-		!t.Is(indexes.Desert1) &&
-		!t.Is(indexes.Swamp) &&
-		!t.IsPath() &&
-		!t.IsMountain()
 }
 
 // IsPushable checks if this tile can be pushed/moved by the player.
@@ -282,14 +233,6 @@ func (t *Tile) IsHorsePassable() bool {
 	return t.IsWalkingPassable() && !t.Is(indexes.Swamp) && !t.Is(indexes.Lava) && !t.IsChair()
 }
 
-// IsKlimable returns true if this tile can be climbed by players
-func (t *Tile) IsKlimable() bool {
-	// Based on typical Ultima V mechanics: mountains, ladders, and some structures
-	return t.IsMountain() ||
-		t.Is(indexes.LadderUp) ||
-		t.Is(indexes.LadderDown)
-}
-
 // IsNPCTerrainPassable checks only the original NPC terrain bitmap, without
 // destination, activity, or occupancy overrides. Tile IDs are unsigned bytes.
 func (t *Tile) IsNPCTerrainPassable() bool {
@@ -320,32 +263,10 @@ func (t *Tile) IsWaterEnemyPassable() bool {
 	return t.IsWater()
 }
 
-// IsOpenable returns true if this tile can be opened (doors, chests, etc.)
-func (t *Tile) IsOpenable() bool {
-	// Doors and chests can be opened
-	return t.Index.IsDoor() || t.Is(indexes.Chest)
-}
-
 // IsWalkingPassable returns true if this tile can be walked through by players on foot
 func (t *Tile) IsWalkingPassable() bool {
 	// Use authoritative tile data from original Ultima V
 	return walkingPassableTiles[t.Index]
-}
-
-// IsRangeWeaponPassable returns true if ranged weapons (arrows, etc.) can pass through this tile
-func (t *Tile) IsRangeWeaponPassable() bool {
-	// Range weapons can pass through most open spaces but not walls, mountains, etc.
-	return !t.IsWall() && !t.IsMountain() && !t.Index.IsDoor()
-}
-
-// GetSpeedFactor returns the speed factor for this tile
-func (t *Tile) GetSpeedFactor() int {
-	return t.SpeedFactor
-}
-
-// IsFence returns true if this tile is a fence
-func (t *Tile) IsFence() bool {
-	return t.Is(indexes.FenceHoriz) || t.Is(indexes.FenceVert)
 }
 
 // GetLightEmission returns the light emission value for this tile
@@ -367,13 +288,6 @@ func (t *Tile) GetNPCWalkableWeight() int {
 	}
 
 	return weight
-}
-
-// IsTable returns true if this tile is a table
-func (t *Tile) IsTable() bool {
-	return t.Is(indexes.TableLeft) || t.Is(indexes.TableMiddle) || t.Is(indexes.TableRight) ||
-		t.Is(indexes.TableFoodTop) || t.Is(indexes.TableFoodBottom) || t.Is(indexes.TableFoodBoth) ||
-		t.Is(indexes.CandleOnTable)
 }
 
 // IsTalkOverable identifies terrain that Talk can skip before inspecting exactly
@@ -420,13 +334,6 @@ func (t *Tile) IsBridge() bool {
 // the original bridge-toll gate; ref:ENV-0004.
 func (t *Tile) IsTrollBridge() bool {
 	return t.Is(indexes.TrollBridgeHoriz) || t.Is(indexes.TrollBridgeVert)
-}
-
-// IsStocksOrManacles returns true if this tile is stocks or manacles.
-// Used for prisoner freeing via Jimmy command.
-// Jimmy can release stocks and manacles; ref:CRIME-0005.
-func (t *Tile) IsStocksOrManacles() bool {
-	return t.Is(indexes.Stocks) || t.Is(indexes.Manacles)
 }
 
 // IsValidForMoonstoneBurial returns true if this tile is valid terrain for burying a moonstone.

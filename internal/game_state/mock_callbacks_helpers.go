@@ -733,30 +733,6 @@ func (m *MockSystemCallbacks) AssertMessageContains(expected string) {
 	m.t.Errorf("Expected message containing '%s', but not found in: %v", expected, m.Messages)
 }
 
-// AssertLastMessage checks the most recently recorded message.
-func (m *MockSystemCallbacks) AssertLastMessage(expected string) {
-	m.t.Helper()
-	if len(m.Messages) == 0 {
-		m.t.Errorf("Expected last message '%s', but no messages recorded", expected)
-
-		return
-	}
-	if m.Messages[len(m.Messages)-1] != expected {
-		m.t.Errorf("Expected last message '%s', got '%s'", expected, m.Messages[len(m.Messages)-1])
-	}
-}
-
-// AssertSoundEffectPlayed checks whether the requested cue was dispatched.
-func (m *MockSystemCallbacks) AssertSoundEffectPlayed(expected SoundEffect) {
-	m.t.Helper()
-	for _, effect := range m.SoundEffectsPlayed {
-		if effect == expected {
-			return
-		}
-	}
-	m.t.Errorf("Expected sound effect %v, but not found in: %v", expected, m.SoundEffectsPlayed)
-}
-
 // AssertTimeAdvanced checks authoritative elapsed calendar minutes.
 func (m *MockSystemCallbacks) AssertTimeAdvanced(expectedMinutes int) {
 	m.t.Helper()
@@ -804,22 +780,6 @@ func ultimaDateAbsoluteMinute(date datetime.UltimaDate) int64 {
 
 	return days*datetime.HoursPerDay*datetime.MinutesPerHour +
 		int64(date.Hour)*datetime.MinutesPerHour + int64(date.Minute)
-}
-
-// AssertNoMessages checks that no message was recorded.
-func (m *MockSystemCallbacks) AssertNoMessages() {
-	m.t.Helper()
-	if len(m.Messages) > 0 {
-		m.t.Errorf("Expected no messages, but got: %v", m.Messages)
-	}
-}
-
-// AssertNoSoundEffects checks that no playback request was recorded.
-func (m *MockSystemCallbacks) AssertNoSoundEffects() {
-	m.t.Helper()
-	if len(m.SoundEffectsPlayed) > 0 {
-		m.t.Errorf("Expected no sound effects, but got: %v", m.SoundEffectsPlayed)
-	}
 }
 
 // Reset clears all recorded calls for test reuse

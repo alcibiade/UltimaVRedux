@@ -1,7 +1,6 @@
 package party_state
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -132,10 +131,6 @@ func (p *PlayerCharacter) SetMaxHp(amount uint16) {
 	}
 }
 
-func (p *PlayerCharacter) IsFullyHealed() bool {
-	return p.currentHp >= p.maxHp
-}
-
 // MP management methods with Intelligence-based capping
 func (p *PlayerCharacter) GetMaxMp() byte {
 	return p.Intelligence // MP cap is always INT
@@ -144,14 +139,6 @@ func (p *PlayerCharacter) GetMaxMp() byte {
 // CanCastSpells reports whether the character's class can ever use magic.
 func (p *PlayerCharacter) CanCastSpells() bool {
 	return p.Class == Avatar || p.Class == Wizard || p.Class == Bard
-}
-
-func (p *PlayerCharacter) AddMp(amount byte) {
-	maxMp := p.GetMaxMp()
-	p.currentMp += amount
-	if p.currentMp > maxMp {
-		p.currentMp = maxMp
-	}
 }
 
 func (p *PlayerCharacter) SetMp(amount byte) {
@@ -232,88 +219,9 @@ func (p *PlayerCharacter) SetEquippedItem(slot references.EquipmentSlot, item re
 	}
 }
 
-// UnequipSlot removes equipment from the specified slot.
-// Returns the previously equipped item (or NoEquipment if slot was empty).
-func (p *PlayerCharacter) UnequipSlot(slot references.EquipmentSlot) references.Equipment {
-	prev := p.GetEquippedItem(slot)
-	p.SetEquippedItem(slot, references.NoEquipment)
-
-	return prev
-}
-
 // IsSlotEmpty returns true if the specified slot has no equipment.
 func (p *PlayerCharacter) IsSlotEmpty(slot references.EquipmentSlot) bool {
 	return p.GetEquippedItem(slot) == references.NoEquipment
-}
-
-// HasTwoHandedWeaponEquipped returns true if the character has a two-handed weapon equipped.
-func (p *PlayerCharacter) HasTwoHandedWeaponEquipped() bool {
-	weapon := p.GetEquippedItem(references.SlotWeapon)
-	if weapon == references.NoEquipment {
-		return false
-	}
-
-	return weapon.IsTwoHanded()
-}
-
-// HasShieldEquipped returns true if the character has a shield equipped.
-func (p *PlayerCharacter) HasShieldEquipped() bool {
-	return !p.IsSlotEmpty(references.SlotShield)
-}
-
-// CanEquipItem checks if a character can equip an item.
-// Returns (canEquip bool, reason string).
-// Validates:
-//   - Strength requirement met
-//   - Two-handed weapon conflicts (shield must be free)
-//   - Shield conflicts with two-handed weapons
-//
-// Note: This method allows REPLACING items in the same slot.
-// The caller is responsible for unequipping the old item before equipping the new one.
-// The only conflicts checked are cross-slot conflicts (2H weapon vs shield).
-func (p *PlayerCharacter) CanEquipItem(item references.Equipment) (bool, string) {
-	if item == references.NoEquipment {
-		return false, "Nothing to equip"
-	}
-
-	slot := item.GetSlotType()
-	strRequired := item.GetStrengthRequired()
-	twoHanded := item.IsTwoHanded()
-
-	// Check cumulative equipment strength requirement; ref:EQUIP-0011.
-	// The original game sums ALL equipped items' STR requirements, then checks if adding
-	// the new item would exceed the character's STR.
-	currentStrLoad := p.GetTotalEquippedStrRequirement()
-
-	// If replacing an item in the same slot, subtract the old item's STR (not double-counted)
-	existingItem := p.GetEquippedItem(slot)
-	if existingItem != references.NoEquipment {
-		currentStrLoad -= existingItem.GetStrengthRequired()
-	}
-
-	totalRequired := currentStrLoad + strRequired
-	if totalRequired > int(p.Strength) {
-		return false, fmt.Sprintf("Thou art not strong enough! (Need %d, have %d STR)", totalRequired, p.Strength)
-	}
-
-	// Check two-handed weapon conflicts
-	if twoHanded {
-		// Two-handed weapon: shield slot must be free (weapon slot will be replaced)
-		// Original Ultima V message: "Both hands must be free before thou canst wield that!"
-		if !p.IsSlotEmpty(references.SlotShield) {
-			return false, "Both hands must be free!"
-		}
-	} else if slot == references.SlotShield {
-		// Shield: cannot equip if two-handed weapon is equipped
-		if p.HasTwoHandedWeaponEquipped() {
-			return false, "Cannot use shield with two-handed weapon!"
-		}
-	}
-
-	// Other slot conflicts (same slot replacement) are handled by caller
-	// which unequips the old item before calling SetEquippedItem
-
-	return true, ""
 }
 
 // GetTotalAttack returns the sum of attack values from all equipped items.
@@ -376,19 +284,4 @@ func (p *PlayerCharacter) GetTotalEquippedStrRequirement() int {
 	}
 
 	return sum
-}
-
-// GetWeaponRange returns the attack range of the equipped weapon.
-// Returns 1 for melee (range 0 or no weapon).
-func (p *PlayerCharacter) GetWeaponRange() int {
-	weapon := p.GetEquippedItem(references.SlotWeapon)
-	if weapon == references.NoEquipment {
-		return 1 // Unarmed melee
-	}
-	r := weapon.GetAttackRange()
-	if r == 0 {
-		return 1 // Melee weapon
-	}
-
-	return r
 }

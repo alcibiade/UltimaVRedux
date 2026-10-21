@@ -648,24 +648,6 @@ func (g *GameState) executeScrollView(complete func()) bool {
 	return true
 }
 
-// ConsumeDungeonViewScroll commits one In Quas Wis scroll and returns the detached symbolic view.
-func (g *GameState) ConsumeDungeonViewScroll() (DungeonViewModel, bool) {
-	g.requireActiveDungeon()
-	if !g.PartyState.Inventory.Scrolls.HasSome(references.ScrollInQuasWis) {
-		g.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
-
-		return DungeonViewModel{}, false
-	}
-	model, err := g.CurrentDungeonViewModel()
-	if err != nil {
-		panic(err)
-	}
-	g.PartyState.Inventory.Scrolls.DecrementByOne(references.ScrollInQuasWis)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-
-	return model, true
-}
-
 // useQuestItem handles quest items (Amulet, Crown, Sceptre) and tool items (formerly SpecialItems)
 func (g *GameState) useQuestItem(item references.QuestItem, complete func()) bool {
 	automaticToggle := item == references.Amulet || item == references.Crown || item == references.BlackBadge
@@ -909,13 +891,6 @@ func (g *GameState) ActionUseLargeMap(_ references.Direction) bool {
 // ActionUseCombatMap is a legacy direction handler, unused by the combat item picker.
 func (g *GameState) ActionUseCombatMap(_ references.Direction) bool {
 	g.SystemCallbacks.Message.AddRowStr("Not now!")
-
-	return false
-}
-
-// ActionUseDungeonMap is a legacy direction handler, unused by the dungeon item picker.
-func (g *GameState) ActionUseDungeonMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
 
 	return false
 }

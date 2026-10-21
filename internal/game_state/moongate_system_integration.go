@@ -82,18 +82,6 @@ type MoongateTravelResult struct {
 	FailedButActivated bool
 }
 
-// PrepareMoongateTravel checks moongate status and prepares for travel.
-// Returns a captured travel route. Does NOT start any event queues.
-// The caller is responsible for orchestrating the visual sequence.
-func (g *GameState) PrepareMoongateTravel() MoongateTravelResult {
-	result := g.ReviewMoongateTravel()
-	if result.Success || result.FailedButActivated {
-		g.ApplyMoongateTravelEffects(result.Success)
-	}
-
-	return result
-}
-
 // ReviewMoongateTravel resolves current travel readiness without callbacks or state mutation.
 func (g *GameState) ReviewMoongateTravel() MoongateTravelResult {
 	// Check if player is on an active moongate

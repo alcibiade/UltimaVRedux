@@ -42,22 +42,11 @@ func (c EGAColor) RGBA() (uint32, uint32, uint32, uint32) {
 		uint32(c.B) * colorChannelExpansion, uint32(c.A) * colorChannelExpansion
 }
 
-// Matches returns true if the given RGB values exactly match this EGA color.
-func (c EGAColor) Matches(r, g, b uint8) bool {
-	return c.R == r && c.G == g && c.B == b
-}
-
 // MatchesWithTolerance returns true if RGB values match within the given tolerance.
 func (c EGAColor) MatchesWithTolerance(r, g, b uint8, tolerance int) bool {
 	return intAbs(int(c.R)-int(r)) <= tolerance &&
 		intAbs(int(c.G)-int(g)) <= tolerance &&
 		intAbs(int(c.B)-int(b)) <= tolerance
-}
-
-// MatchesRGBA returns true if the given color.RGBA exactly matches this EGA color.
-// Ignores alpha channel - only compares RGB components.
-func (c EGAColor) MatchesRGBA(other color.RGBA) bool {
-	return c.R == other.R && c.G == other.G && c.B == other.B
 }
 
 // ToRGBA returns this color as a standard color.RGBA for explicit conversion.

@@ -262,9 +262,6 @@ func (d *ShipShopDialog) ConsumePendingPurchaseIntent() (ShipPurchaseIntent, boo
 	return intent, true
 }
 
-// HasPendingPurchaseIntent reports whether a purchase modal must be opened.
-func (d *ShipShopDialog) HasPendingPurchaseIntent() bool { return d.pendingBuy != nil }
-
 // CancelPurchaseApproval returns to Browse without changing detached authority state.
 func (d *ShipShopDialog) CancelPurchaseApproval() {
 	if d.phase != ShipShopAwaitingPurchaseApproval {
@@ -298,9 +295,6 @@ func (d *ShipShopDialog) ConsumePendingTravelIntent() (ShipTravelIntent, bool) {
 
 	return intent, true
 }
-
-// HasPendingTravelIntent reports whether a harbour approval modal must be opened.
-func (d *ShipShopDialog) HasPendingTravelIntent() bool { return d.pendingTravel != nil }
 
 // CancelTravelApproval returns to Browse without performing travel.
 func (d *ShipShopDialog) CancelTravelApproval() {
@@ -457,15 +451,6 @@ func (d *ShipShopDialog) ApplySessionError(message string) {
 	d.syncPresentation()
 }
 
-// RefreshBrowse replaces detached state while preserving stable vehicle selection.
-func (d *ShipShopDialog) RefreshBrowse(refreshed game_state.ShipShopState) {
-	if d.phase != ShipShopBrowse {
-		panic("ShipShopDialog.RefreshBrowse: dialog is not browsing")
-	}
-	d.applyRefresh(refreshed, d.GetSelectedVehicle())
-	d.syncPresentation()
-}
-
 // ContinueShoppingAfterSuccess returns the refreshed parent to Browse.
 func (d *ShipShopDialog) ContinueShoppingAfterSuccess() {
 	if d.phase != ShipShopSuccessReceipt {
@@ -475,15 +460,6 @@ func (d *ShipShopDialog) ContinueShoppingAfterSuccess() {
 	d.transitionTo(ShipShopBrowse)
 	d.syncPresentation()
 }
-
-// GetState returns the current detached ship-shop snapshot.
-func (d *ShipShopDialog) GetState() game_state.ShipShopState { return d.state }
-
-// GetPhase returns the workflow-owned parent phase.
-func (d *ShipShopDialog) GetPhase() ShipShopDialogPhase { return d.phase }
-
-// GetSelectedIndex returns zero for Frigate and one for Skiff.
-func (d *ShipShopDialog) GetSelectedIndex() int { return d.selected }
 
 // GetSelectedVehicle returns the stable selected vessel identity.
 func (d *ShipShopDialog) GetSelectedVehicle() references.VehicleType {
@@ -503,76 +479,11 @@ func (d *ShipShopDialog) GetSelectedQuote() game_state.ShipPurchaseQuote {
 	return d.state.SkiffQuote
 }
 
-// GetOfferCardText returns the visible text for one vessel card.
-func (d *ShipShopDialog) GetOfferCardText(index int) string {
-	if index < 0 || index >= shipShopOfferCount {
-		panic("ShipShopDialog.GetOfferCardText: index out of range")
-	}
-	if d.cardOutputs[index] == nil {
-		return ""
-	}
-
-	return d.cardOutputs[index].GetOutputStr(false)
-}
-
-// GetManifestText returns the player-facing harbour and selected-offer summary.
-func (d *ShipShopDialog) GetManifestText() string {
-	if d.manifestOutput == nil {
-		return ""
-	}
-
-	return d.manifestOutput.GetOutputStr(false)
-}
-
-// GetLatestExchange returns the current finalized merchant exchange.
-func (d *ShipShopDialog) GetLatestExchange() string { return d.latestExchange }
-
-// GetReceiptText returns the current receipt, refusal, or Preview status.
-func (d *ShipShopDialog) GetReceiptText() string { return d.receiptText }
-
 // GetShell returns the shared 27/73 merchant shell.
 func (d *ShipShopDialog) GetShell() *MerchantDialogShell { return d.shell }
 
-// GetShowroomBounds returns the dual-card region.
-func (d *ShipShopDialog) GetShowroomBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.showroomBounds
-}
-
-// GetOfferCardBounds returns one Frigate or Skiff card region.
-func (d *ShipShopDialog) GetOfferCardBounds(index int) image.Rectangle {
-	if index < 0 || index >= shipShopOfferCount {
-		panic("ShipShopDialog.GetOfferCardBounds: index out of range")
-	}
-	d.ensureLayout()
-
-	return d.cardBounds[index]
-}
-
-// GetManifestBounds returns the remaining-space manifest region.
-func (d *ShipShopDialog) GetManifestBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.manifestBounds
-}
-
-// GetFontSize returns the standard merchant presentation font size.
-func (d *ShipShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether actions stop before workflow authority.
-func (d *ShipShopDialog) IsPreview() bool { return d.preview }
-
-// IsAwaitingResult reports whether purchase or travel authority currently owns the action.
-func (d *ShipShopDialog) IsAwaitingResult() bool {
-	return d.phase == ShipShopAwaitingPurchaseResult || d.phase == ShipShopAwaitingTravelResult
-}
-
 // IsDismissed reports whether the parent can be removed exactly once.
 func (d *ShipShopDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the parent still owns presentation.
-func (d *ShipShopDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the parent without emitting another intent.
 func (d *ShipShopDialog) Dismiss() { d.dismissed = true }

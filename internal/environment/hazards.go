@@ -75,15 +75,6 @@ type ScreenFlashConfig struct {
 	DurationMs                  int
 }
 
-// SkillBasedDamageResult provides detailed results for skill-based damage (e.g., climbing falls)
-type SkillBasedDamageResult struct {
-	HazardResult          // Embed basic result
-	TotalDamage     int   // Total damage dealt across all characters
-	MaxSingleDamage int   // Highest single damage dealt to any character
-	InjuredMembers  []int // Indices of characters who took damage
-	AllSuccessful   bool  // True if no characters took damage
-}
-
 // NewEnvironmentalHazards constructs the deterministic environmental hazard system.
 func NewEnvironmentalHazards(rng randomIntn, callbacks SystemCallbacks) *EnvironmentalHazards {
 	return &EnvironmentalHazards{
@@ -95,13 +86,6 @@ func NewEnvironmentalHazards(rng randomIntn, callbacks SystemCallbacks) *Environ
 // SetCallbacks binds external effects without replacing the deterministic system.
 func (h *EnvironmentalHazards) SetCallbacks(callbacks SystemCallbacks) {
 	h.callbacks = callbacks
-}
-
-func (h *EnvironmentalHazards) CheckTileHazards(tile *references.Tile, party *party_state.PartyState, location references.GeneralMapType) HazardResult {
-	result := h.ResolveTileHazards(tile, party, location)
-	h.emitHazardResult(&result, party)
-
-	return result
 }
 
 // damageUpToCurrentHP keeps large configured damage from wrapping through the
@@ -133,37 +117,6 @@ func (h *EnvironmentalHazards) ResolveTileHazards(
 		return h.checkBurningHazard(party, hazardType)
 	default:
 		return HazardResult{Type: NoHazard}
-	}
-}
-
-func (h *EnvironmentalHazards) emitHazardResult(result *HazardResult, party *party_state.PartyState) {
-	if len(result.Affected) == 0 {
-		return
-	}
-	names := make([]string, 0, len(result.Affected))
-	for _, memberIndex := range result.Affected {
-		name := extractCharacterName(party.GetCharacter(memberIndex).Name[:])
-		if name != "" {
-			names = append(names, name)
-		}
-	}
-
-	switch result.Type {
-	case PoisonSwamp:
-		message := "Poisoned!"
-		if len(names) > 0 {
-			message = "Poisoned: " + joinNames(names)
-		}
-		h.callbacks.AddRowStr(message)
-		result.MessageShown = true
-	case LavaBurn, FireplaceBurn:
-		message := "Burning!"
-		if len(names) > 0 {
-			message = "Burning: " + joinNames(names)
-		}
-		h.callbacks.AddRowStr(message)
-		result.MessageShown = true
-	case NoHazard:
 	}
 }
 
@@ -354,69 +307,6 @@ func (h *EnvironmentalHazards) ApplyDamageToParty(party *party_state.PartyState,
 			result.MessageShown = true
 		}
 	}
-
-	return result
-}
-
-// ApplySkillBasedDamage applies damage to specific party members with enhanced tracking
-// This method is designed for skill-based actions like mountain climbing where individual
-// performance determines damage outcome and sophisticated audio-visual effects are needed
-func (h *EnvironmentalHazards) ApplySkillBasedDamage(party *party_state.PartyState, targetIndices []int, config DamageConfig) SkillBasedDamageResult {
-	result := SkillBasedDamageResult{
-		HazardResult:  HazardResult{Type: NoHazard}, // Generic damage uses NoHazard type
-		AllSuccessful: true,
-	}
-
-	totalDamage := 0
-	maxSingleDamage := 0
-	injuredMembers := make([]int, 0)
-
-	for _, index := range targetIndices {
-		if index < 0 || index >= party.GetCharacterCount() {
-			continue // Skip invalid indices
-		}
-
-		member := party.GetCharacter(index)
-		if member.IsDead() || member.PartyMap != party_state.PartyMapActive {
-			continue // Skip dead or inactive characters
-		}
-
-		// Calculate damage based on config
-		var damage int
-		if config.FixedDamage > 0 {
-			damage = config.FixedDamage
-		} else {
-			// Random damage in range [MinDamage, MaxDamage]
-			damage = h.rng.Intn(config.MaxDamage-config.MinDamage+1) + config.MinDamage
-		}
-
-		// Apply damage with proper clamping
-		member.SubtractHp(damageUpToCurrentHP(damage, member.GetCurrentHp()))
-
-		// Track damage statistics
-		totalDamage += damage
-		if damage > maxSingleDamage {
-			maxSingleDamage = damage
-		}
-		injuredMembers = append(injuredMembers, index)
-		result.Affected = append(result.Affected, index)
-		result.AllSuccessful = false
-
-		// Update status if character dies
-		if member.GetCurrentHp() == 0 {
-			member.MarkAsDead()
-		}
-	}
-
-	// Set result statistics
-	result.TotalDamage = totalDamage
-	result.MaxSingleDamage = maxSingleDamage
-	result.InjuredMembers = injuredMembers
-	result.DamageDealt = totalDamage
-
-	// Note: Audio and visual effects are NOT applied here
-	// The calling code (ActionKlimbLargeMap) handles sophisticated graduated effects
-	// based on the returned damage statistics
 
 	return result
 }

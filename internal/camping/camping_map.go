@@ -4,9 +4,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// CampingMapSize is the size of the camping map (11x11 like original Ultima V)
-const CampingMapSize = 11
-
 // Party position constants
 const (
 	MaxPartyMembers       = 8  // Maximum 8 party members
@@ -183,11 +180,6 @@ func (cm *CampingMap) setupMonsterEntryPoints() {
 	}
 }
 
-// IsValidPosition checks if the given position is within the camping map bounds
-func (cm *CampingMap) IsValidPosition(pos references.Position) bool {
-	return pos.X >= 0 && pos.X < CampingMapSize && pos.Y >= 0 && pos.Y < CampingMapSize
-}
-
 // HasGeneratedDungeonChestAt reports whether the source map still displays its
 // generated center-chest marker during dungeon camping.
 func (cm *CampingMap) HasGeneratedDungeonChestAt(position references.Position) bool {
@@ -214,15 +206,4 @@ func (cm *CampingMap) GetPartyMemberPosition(memberIndex int) references.Positio
 
 	// Otherwise return the fixed party position
 	return cm.PartyPositions[memberIndex]
-}
-
-// GetRandomMonsterEntryPoint returns a random entry point for monster encounters
-func (cm *CampingMap) GetRandomMonsterEntryPoint() references.Position {
-	// TODO: Use GameState RNG instead of random selection
-	// For now, return first entry point
-	if len(cm.MonsterEntryPoints) > 0 {
-		return cm.MonsterEntryPoints[0]
-	}
-
-	return references.Position{X: 0, Y: 0}
 }

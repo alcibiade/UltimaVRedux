@@ -141,14 +141,6 @@ func (manager *GameAudioManager) ensureAssetsLoaded() error {
 	return nil // Encoded library already frozen; each module lane prepares lazily.
 }
 
-// GetConfiguration returns detached game preference state.
-func (manager *GameAudioManager) GetConfiguration() *AudioConfiguration {
-	manager.mutex.RLock()
-	defer manager.mutex.RUnlock()
-
-	return manager.config.Clone()
-}
-
 // SetEnabled clears effects/ambience/previews and pauses score when disabled.
 func (manager *GameAudioManager) SetEnabled(enabled bool) {
 	manager.mutex.Lock()

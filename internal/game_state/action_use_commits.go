@@ -712,11 +712,6 @@ func (g *GameState) ReviewSkullKeyUnlock(
 	return review
 }
 
-// CommitSkullKeyUnlock atomically revalidates and unlocks the reviewed door.
-func (g *GameState) CommitSkullKeyUnlock(review SkullKeyUnlockReview) SkullKeyUnlockResult {
-	return g.commitSkullKeyUnlock(review, true)
-}
-
 // CommitSkullKeyUnlockForSurfaceUse leaves ordinary cycle completion to the owning Use workflow.
 func (g *GameState) CommitSkullKeyUnlockForSurfaceUse(review SkullKeyUnlockReview) SkullKeyUnlockResult {
 	return g.commitSkullKeyUnlock(review, false)

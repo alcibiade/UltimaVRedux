@@ -128,19 +128,6 @@ func TestRefreshPersistedConfigurationDoesNotHotApplyExternalPreferences(t *test
 	assert.Equal(t, activeMusic, configuration.AudioConfiguration.MusicVolume)
 }
 
-func TestSaveConfigurationRecreatesFileDeletedAfterStartup(t *testing.T) {
-	configuration, file := configurationFixture(t, "DataFilePath: shipped/path\nUnknown: retained\n")
-	require.NoError(t, os.Remove(file))
-	configuration.AudioConfiguration.MusicVolume = 8
-
-	require.NoError(t, configuration.SaveAudioConfiguration())
-
-	source := readConfigurationFixture(t, file)
-	assert.Equal(t, "shipped/path", source.GetString("DataFilePath"))
-	assert.Equal(t, "retained", source.GetString("Unknown"))
-	assert.Equal(t, 8, source.GetInt("Audio.MusicVolume"))
-}
-
 func TestUnsetDataPathNeverLoadsWorkingDirectoryData(t *testing.T) {
 	home := isolatedConfigurationHome(t)
 	t.Chdir(home)

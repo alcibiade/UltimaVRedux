@@ -118,16 +118,6 @@ func (p *ProvisionSummary) MarkInventoryChanged() {
 	p.needsInventoryRefresh = true
 }
 
-// UpdateInventoryDisplay forces immediate refresh of inventory display.
-func (p *ProvisionSummary) UpdateInventoryDisplay() {
-	p.needsInventoryRefresh = true
-}
-
-// IsInventoryRefreshNeeded returns whether inventory display needs refresh.
-func (p *ProvisionSummary) IsInventoryRefreshNeeded() bool {
-	return p.needsInventoryRefresh
-}
-
 // Draw renders the four-row summary without changing gameplay state.
 func (p *ProvisionSummary) Draw(gameState *game_state.GameState, screen *ebiten.Image) {
 	if gameState == nil {

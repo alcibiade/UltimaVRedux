@@ -3,11 +3,12 @@ package game_state
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGetDungeonForWord(t *testing.T) {
@@ -237,21 +238,6 @@ func TestGameState_IsDungeonOpen(t *testing.T) {
 	assert.False(t, gs.IsDungeonOpen(references.Despise))
 }
 
-func TestGameState_SetDungeonState(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
-
-	// Set dungeon states
-	gs.SetDungeonState(references.Deceit, true)
-	gs.SetDungeonState(references.Doom, false)
-
-	assert.True(t, gs.DungeonStates[DeceitIndex])
-	assert.False(t, gs.DungeonStates[DoomIndex])
-
-	// Try invalid dungeon (should not panic)
-	gs.SetDungeonState(references.Britain, true)
-	// No assertion needed - just verify it doesn't crash
-}
-
 func TestGameState_ToggleDungeon(t *testing.T) {
 	gs := &GameState{} //nolint:exhaustruct
 
@@ -315,33 +301,6 @@ func TestGameState_InitializeDungeonStatesFromSave(t *testing.T) {
 		for i := 0; i < 8; i++ {
 			assert.False(t, gs.DungeonStates[i], "Dungeon %d should be closed with partial save data", i)
 		}
-	})
-}
-
-func TestGameState_IsPlayerNearDungeonEntrance(t *testing.T) {
-	gs := &GameState{} //nolint:exhaustruct
-
-	// Set player position near Deceit entrance (240, 73)
-	gs.MapState.PlayerLocation.Position = references.Position{X: 242, Y: 75}
-	gs.MapState.PlayerLocation.Floor = references.FloorNumber(references.OVERWORLD)
-
-	t.Run("Player within range", func(t *testing.T) {
-		dungeon, isNear := gs.IsPlayerNearDungeonEntrance(3)
-		assert.True(t, isNear)
-		assert.Equal(t, references.Deceit, dungeon)
-	})
-
-	t.Run("Player outside range", func(t *testing.T) {
-		dungeon, isNear := gs.IsPlayerNearDungeonEntrance(1)
-		assert.False(t, isNear)
-		assert.Equal(t, references.Location(0), dungeon)
-	})
-
-	t.Run("Player far from any entrance", func(t *testing.T) {
-		gs.MapState.PlayerLocation.Position = references.Position{X: 0, Y: 0}
-		dungeon, isNear := gs.IsPlayerNearDungeonEntrance(10)
-		assert.False(t, isNear)
-		assert.Equal(t, references.Location(0), dungeon)
 	})
 }
 

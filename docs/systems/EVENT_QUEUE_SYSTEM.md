@@ -69,9 +69,9 @@ That high-priority workflow preempts normal-priority travel and drains one damag
 sequence per request. Hits are not coalesced as cosmetic feedback. Its finalizer
 clears pending state, flash and shake without applying abandoned damage.
 
-A workflow that must await rough seas uses
-`ThenSequence(gs.SkiffDeepWaterDamageSequence(position))` and owns
-`ClearSkiffDeepWaterEffects` in its own `Finally`. Starting an independent child
+No production workflow awaits rough seas. One that must would compose the damage
+sequence with `ThenSequence` and own `ClearSkiffDeepWaterEffects` in its own
+`Finally`. Starting an independent child
 and waiting for its name can deadlock when the child has equal or lower priority;
 composition avoids that dependency even for critical-priority parents. This is
 an ownership contract, not an expansion of the current successful-movement-only
@@ -397,10 +397,9 @@ Workflow-triggered feedback can begin during the same frame without reentrant ca
 
 ## Legacy Background Queues
 
-`RegisterBackgroundQueue` is a retained legacy compatibility API. `GameScene`
-still updates the background lane, but current production code registers no
-background queues. New visual/audio presentation should use `TriggerFeedback`
-because feedback provides name coalescing, priority serialization,
+`GameScene` still updates the background lane, but no production code registers
+a background queue; `RegisterBackgroundQueue` lives in test support. New
+visual/audio presentation should use `TriggerFeedback` because feedback provides name coalescing, priority serialization,
 callback-safe starts, and protection against effects competing over global
 flash or shake state.
 

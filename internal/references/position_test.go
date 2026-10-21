@@ -41,3 +41,10 @@ func TestPositionAnimationHashWidensCoordinatesBeforePacking(t *testing.T) {
 		assert.Equal(t, test.want, test.position.AnimationHash())
 	}
 }
+
+func TestHeuristicTileDistanceIsManhattanDistance(t *testing.T) {
+	origin := Position{X: 3, Y: 4}
+	assert.Equal(t, 0, origin.HeuristicTileDistance(origin))
+	assert.Equal(t, 7, origin.HeuristicTileDistance(Position{X: 0, Y: 0}))
+	assert.Equal(t, 5, origin.HeuristicTileDistance(Position{X: 5, Y: 7}))
+}

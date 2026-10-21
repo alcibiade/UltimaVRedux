@@ -1031,30 +1031,9 @@ func (d *ItemSelectionDialog) IsDismissed() bool { return d.dismissed }
 // Dismiss closes the picker without invoking either result callback.
 func (d *ItemSelectionDialog) Dismiss() { d.dismissed = true }
 
-// GetSelectedCategory returns the active non-empty tab index.
-func (d *ItemSelectionDialog) GetSelectedCategory() int { return d.activeCategory }
-
-// GetSelectedItemIndex returns the selected index within the active category.
-func (d *ItemSelectionDialog) GetSelectedItemIndex() int {
-	if len(d.categories) == 0 {
-		return -1
-	}
-
-	return d.selections[d.currentCategory()]
-}
-
-// GetDetailPage returns the zero-based detail page.
-func (d *ItemSelectionDialog) GetDetailPage() int { return d.detailPage }
-
 // GetDetailPageCount reports measured action and lore pages for the selected item.
 func (d *ItemSelectionDialog) GetDetailPageCount() int {
 	d.ensureLayout()
 
 	return len(d.detailPages())
 }
-
-// GetFontSize returns the semantic font size used by every picker output.
-func (d *ItemSelectionDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// HasItems reports whether the detached projection contains any item identities.
-func (d *ItemSelectionDialog) HasItems() bool { return len(d.allItems) > 0 }

@@ -329,10 +329,6 @@ func (p *PartyState) PickUpCharacterFromInn(guestIndex int) int {
 	return partySize
 }
 
-func (p *PartyState) HasMet() bool {
-	return false
-}
-
 func (p *PartyState) HasMetNPC(location references.Location, npcID int) bool {
 	if locationNPCs, ok := p.metNpcs[location]; ok {
 		if npcID >= 0 && npcID < len(locationNPCs) {
@@ -505,16 +501,6 @@ func (p *PartyState) MartyrNames() []string {
 	return names
 }
 
-// MetNpcs returns the metNpcs map for testing purposes.
-func (p *PartyState) MetNpcs() map[references.Location][]bool {
-	return p.metNpcs
-}
-
-// DeadNpcs returns the deadNpcs map for testing purposes.
-func (p *PartyState) DeadNpcs() map[references.Location][]bool {
-	return p.deadNpcs
-}
-
 // HasDeadMembers returns true if any active party member is dead.
 // Used by resurrection scroll to check if there are valid targets.
 func (p *PartyState) HasDeadMembers() bool {
@@ -526,20 +512,6 @@ func (p *PartyState) HasDeadMembers() bool {
 	}
 
 	return false
-}
-
-// GetFirstLivingMemberIndex returns the index of the first non-dead party member.
-// Returns -1 if all party members are dead.
-// Selects an eligible living party member; ref:RECOVERY-0002.
-func (p *PartyState) GetFirstLivingMemberIndex() int {
-	for i := range MaxActiveParty {
-		char := p.characters[i]
-		if char != nil && char.PartyMap == PartyMapActive && !char.IsDead() {
-			return i
-		}
-	}
-
-	return -1
 }
 
 // IsAllPartyDead returns true if ALL active party members are dead.

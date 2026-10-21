@@ -39,21 +39,6 @@ const (
 	combatChestJimmyDifficultyDivisor = 2
 )
 
-// ActionJimmySmallMap attempts a town unlock with the eligible selected character.
-func (g *GameState) ActionJimmySmallMap(direction references.Direction) bool {
-	if !g.PartyState.Inventory.Provisions.Keys.HasSome() {
-		return g.actionJimmySurface(direction, nil)
-	}
-	selectedCharacter := g.SelectCharacterForJimmy()
-	if selectedCharacter == nil {
-		g.SystemCallbacks.Message.AddRowStr("No characters available!")
-
-		return false
-	}
-
-	return g.ActionJimmySmallMapWithCharacter(direction, selectedCharacter)
-}
-
 // ActionJimmySmallMapWithCharacter resolves Jimmy with the character selected by the UI.
 func (g *GameState) ActionJimmySmallMapWithCharacter(
 	direction references.Direction,
@@ -128,34 +113,12 @@ func (g *GameState) actionJimmySurface(
 	}
 }
 
-// ActionJimmyLargeMap attempts an outdoor unlock with the eligible selected character.
-func (g *GameState) ActionJimmyLargeMap(direction references.Direction) bool {
-	if !g.PartyState.Inventory.Provisions.Keys.HasSome() {
-		return g.actionJimmySurface(direction, nil)
-	}
-	selectedCharacter := g.SelectCharacterForJimmy()
-	if selectedCharacter == nil {
-		g.SystemCallbacks.Message.AddRowStr("No characters available!")
-
-		return false
-	}
-
-	return g.actionJimmySurface(direction, selectedCharacter)
-}
-
 // ActionJimmyLargeMapWithCharacter resolves Jimmy with the character selected by the UI.
 func (g *GameState) ActionJimmyLargeMapWithCharacter(
 	direction references.Direction,
 	selectedCharacter *party_state.PlayerCharacter,
 ) bool {
 	return g.actionJimmySurface(direction, selectedCharacter)
-}
-
-// ActionJimmyCombatMap reports whether the target was handled, including failed attempts.
-func (g *GameState) ActionJimmyCombatMap(direction references.Direction) bool {
-	handled, _ := g.ActionJimmyCombatMapWithDisarm(direction)
-
-	return handled
 }
 
 // ActionJimmyCombatMapWithDisarm retains handled-command semantics and returns

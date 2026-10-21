@@ -56,57 +56,6 @@ func TestZStatsDossierDialogMandatoryConfigPanics(t *testing.T) {
 	}
 }
 
-func TestZStatsDossierDialogInitialCharacterMatchesRosterIndexWithFallback(t *testing.T) {
-	dossier := testZStatsDossier()
-	dossier.InitialCharacterIndex = 4
-	dialog := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
-	require.Equal(t, 2, dialog.GetSelectedCharacterPosition())
-
-	dossier.InitialCharacterIndex = 99
-	fallback := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
-	require.Equal(t, 0, fallback.GetSelectedCharacterPosition())
-
-	dossier.Characters = nil
-	empty := newTestZStatsDossierDialog(dossier, newWidgetTestKeyboard(0))
-	require.Equal(t, -1, empty.GetSelectedCharacterPosition())
-}
-
-func TestZStatsDossierDialogCyclesEightTabsWithTabAndIgnoresFunctionKeys(t *testing.T) {
-	keyboard := newWidgetTestKeyboard(0)
-	dialog := newTestZStatsDossierDialog(testZStatsDossier(), keyboard)
-
-	pressZStatsDossierKey(dialog, keyboard, ebiten.KeyF3)
-	require.Equal(t, ZStatsDossierCharacterTab, dialog.GetActiveTab())
-	for _, expected := range []ZStatsDossierTab{
-		ZStatsDossierProvisionsTab,
-		ZStatsDossierArmoryTab,
-		ZStatsDossierSpellsTab,
-		ZStatsDossierReagentsTab,
-		ZStatsDossierPotionsTab,
-		ZStatsDossierScrollsTab,
-		ZStatsDossierItemsTab,
-		ZStatsDossierCharacterTab,
-	} {
-		pressZStatsDossierKey(dialog, keyboard, ebiten.KeyTab)
-		require.Equal(t, expected, dialog.GetActiveTab())
-	}
-}
-
-func TestZStatsShiftTabWrapsBackWithEitherShiftKey(t *testing.T) {
-	for _, shift := range []ebiten.Key{ebiten.KeyShiftLeft, ebiten.KeyShiftRight} {
-		held := map[ebiten.Key]bool{shift: true}
-		keyboard := input.NewKeyboardWithKeyStateSource(-1, func(key ebiten.Key) bool { return held[key] })
-		dialog := newTestZStatsDossierDialog(testZStatsDossier(), keyboard)
-		for _, expected := range []ZStatsDossierTab{
-			ZStatsDossierItemsTab, ZStatsDossierScrollsTab, ZStatsDossierPotionsTab, ZStatsDossierReagentsTab,
-			ZStatsDossierSpellsTab, ZStatsDossierArmoryTab, ZStatsDossierProvisionsTab, ZStatsDossierCharacterTab,
-		} {
-			pressZStatsDossierKey(dialog, keyboard, ebiten.KeyTab)
-			require.Equal(t, expected, dialog.GetActiveTab())
-		}
-	}
-}
-
 func TestZStatsDossierDialogNumberKeysSelectDisplayedMembersRegardlessOfStatus(t *testing.T) {
 	keyboard := newWidgetTestKeyboard(0)
 	dossier := testZStatsDossier()

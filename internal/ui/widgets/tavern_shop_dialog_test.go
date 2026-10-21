@@ -124,23 +124,6 @@ func TestTavernShopDialogLockedConversationHidesTopicsAndUnlockedInputIsVisible(
 	require.NotContains(t, strings.ToLower(dialog.GetWorkspaceText()), "honesty")
 }
 
-func TestTavernShopDialogBlankInformationReturnsToOrder(t *testing.T) {
-	queue := newTavernRuneQueue()
-	state := testTavernState(references.TavernMenuMuttonAleRations)
-	state.CustomerEligible = true
-	keyboard := newWidgetTestKeyboard(0)
-	dialog := newTestTavernShopDialog(keyboard, state, queue.Append)
-
-	pressTavernShopKey(dialog, keyboard, ebiten.KeyC)
-	pressTavernShopKey(dialog, keyboard, ebiten.KeyEnter)
-
-	require.Equal(t, TavernShopOrder, dialog.GetMode())
-	require.Equal(t, TavernShopBrowse, dialog.GetPhase())
-	require.False(t, dialog.HasPendingTopicIntent())
-	require.Empty(t, dialog.GetInlineFeedback())
-	require.Equal(t, `"Anything else for thee?"`, dialog.GetLatestExchange())
-}
-
 func TestTavernShopDialogSpacesSubmitAsUnknownTopic(t *testing.T) {
 	queue := newTavernRuneQueue()
 	state := testTavernState(references.TavernMenuMuttonAleRations)

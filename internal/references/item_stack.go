@@ -41,7 +41,3 @@ func (i *ItemStack) PeekTopItem() *ItemAndQuantity {
 
 	return &i.Items[len(i.Items)-1]
 }
-
-func (i *ItemAndQuantity) GetAsProvision() Provision {
-	return Provision(i.Item.ID())
-}

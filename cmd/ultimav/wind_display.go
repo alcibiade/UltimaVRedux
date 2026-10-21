@@ -9,7 +9,6 @@ import (
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
-	"github.com/bradhannah/UltimaVRedux/internal/environment"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	ultimatext "github.com/bradhannah/UltimaVRedux/internal/text"
@@ -48,21 +47,6 @@ func NewWindDisplay() *WindDisplay {
 	display.ensureLayout()
 
 	return display
-}
-
-// SetVisible controls whether the wind display is shown
-func (w *WindDisplay) SetVisible(visible bool) {
-	w.visible = visible
-}
-
-// IsVisible returns whether the wind display is currently visible
-func (w *WindDisplay) IsVisible() bool {
-	return w.visible
-}
-
-// Draw renders the wind display on screen at bottom center of map area
-func (w *WindDisplay) Draw(screen *ebiten.Image, windDirection environment.WindDirection) {
-	w.DrawLabel(screen, windDirection.GetUIString())
 }
 
 // DrawLabel shares the wind chrome with ordinary small-map location names.
@@ -158,12 +142,6 @@ func windBorderStyle(outer, aperture image.Rectangle) (int, color.RGBA) {
 // Update is called each frame for resolution-dependent resource updates.
 func (w *WindDisplay) Update() {
 	w.ensureLayout()
-}
-
-// ShouldDisplay selects the map types using the shared border label. Scene-level
-// context checks additionally exclude temporary combat and scripted views.
-func (w *WindDisplay) ShouldDisplay(mapType references.GeneralMapType) bool {
-	return mapType == references.LargeMapType || mapType == references.SmallMapType
 }
 
 func (g *GameScene) mapBorderLabel() string {

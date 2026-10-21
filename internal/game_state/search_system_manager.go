@@ -88,12 +88,6 @@ func (ssm *SearchSystemManager) GetAuthenticLocationManager() *AuthenticSearchLo
 	return ssm.authenticLocationManager
 }
 
-// ExecuteSearch performs a search operation with clear priority ordering
-// The ORDER of method calls defines the search priority
-func (ssm *SearchSystemManager) ExecuteSearch(direction references.Direction) SearchResponse {
-	return ssm.ExecuteSearchWithCharacter(direction, ssm.gameState.defaultSurfaceSearchCharacterIndex())
-}
-
 // ExecuteSearchWithCharacter performs a source-ordered surface search for the selected actor.
 func (ssm *SearchSystemManager) ExecuteSearchWithCharacter(direction references.Direction, characterIndex int) SearchResponse {
 	if !ssm.gameState.isSurfaceSearchCharacterEligible(characterIndex) {

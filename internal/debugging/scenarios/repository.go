@@ -173,16 +173,6 @@ func (repository *Repository) List() ([]Summary, error) {
 	return summaries, nil
 }
 
-// Load reads and validates one source-qualified scenario definition.
-func (repository *Repository) Load(qualifiedReference string) (Definition, error) {
-	record, err := repository.LoadRecord(qualifiedReference)
-	if err != nil {
-		return Definition{}, err
-	}
-
-	return record.Definition, nil
-}
-
 // LoadRecord reads a validated definition and returns its canonical content revision.
 func (repository *Repository) LoadRecord(qualifiedReference string) (Record, error) {
 	reference, err := ParseReference(qualifiedReference)
@@ -314,11 +304,6 @@ func (repository *Repository) delete(qualifiedReference, expectedRevision string
 	}
 
 	return nil
-}
-
-// Duplicate copies a current source definition to an absent destination.
-func (repository *Repository) Duplicate(sourceReference, sourceRevision, destinationReference string) (Record, error) {
-	return repository.DuplicateAs(sourceReference, sourceRevision, destinationReference, "")
 }
 
 // DuplicateAs copies a current source definition to an absent destination and

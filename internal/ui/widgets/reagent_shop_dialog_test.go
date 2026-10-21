@@ -47,49 +47,6 @@ func TestReagentShopDialogUsesFullWorkspaceAndProjectionFreeCatalog(t *testing.T
 	requireReagentStatusConsumesRemainingSpace(t, dialog)
 }
 
-func TestReagentShopDialogCatalogUsesActualOfferCount(t *testing.T) {
-	setMerchantShellTestResolution(t, 1280, 720)
-	full := newTestReagentShopDialog(newWidgetTestKeyboard(0), testReagentShopState())
-	threeState := testReagentShopState()
-	threeState.Offers = threeState.Offers[:3]
-	three := newTestReagentShopDialog(newWidgetTestKeyboard(0), threeState)
-
-	require.Len(t, full.catalogRows, 5)
-	require.Len(t, three.catalogRows, 3)
-	require.Equal(t, full.catalogRows[0].Dy(), three.catalogRows[0].Dy())
-	require.Less(t, three.GetCatalogBounds().Dy(), full.GetCatalogBounds().Dy())
-	require.Greater(t, three.GetDetailBounds().Dy(), full.GetDetailBounds().Dy())
-	requireReagentStatusConsumesRemainingSpace(t, full)
-	requireReagentStatusConsumesRemainingSpace(t, three)
-}
-
-func TestReagentShopDialogLowResolutionAndResizePreserveSelectionAndDetail(t *testing.T) {
-	setMerchantShellTestResolution(t, 1280, 720)
-	keyboard := newWidgetTestKeyboard(0)
-	dialog := newTestReagentShopDialog(keyboard, testReagentShopState())
-	for range 3 {
-		pressReagentShopKey(dialog, keyboard, ebiten.KeyDown)
-	}
-	selected := dialog.GetSelectedReagent()
-	fullRowHeight := dialog.catalogRows[0].Dy()
-
-	setMerchantShellTestResolution(t, 320, 180)
-	dialog.GetDetailBounds()
-
-	require.Equal(t, selected, dialog.GetSelectedReagent())
-	require.Less(t, dialog.catalogRows[0].Dy(), fullRowHeight)
-	require.Contains(t, dialog.GetDetailText(), "Per bundle")
-	requireReagentStatusConsumesRemainingSpace(t, dialog)
-
-	setMerchantShellTestResolution(t, 1280, 720)
-	dialog.GetDetailBounds()
-
-	require.Equal(t, selected, dialog.GetSelectedReagent())
-	require.Equal(t, fullRowHeight, dialog.catalogRows[0].Dy())
-	require.Contains(t, dialog.GetDetailText(), "Per bundle")
-	requireReagentStatusConsumesRemainingSpace(t, dialog)
-}
-
 func TestReagentShopDialogWrapsSelectionAndClearsReceipt(t *testing.T) {
 	keyboard := newWidgetTestKeyboard(0)
 	dialog := newTestReagentShopDialog(keyboard, testReagentShopState())

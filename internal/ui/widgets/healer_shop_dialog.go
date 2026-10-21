@@ -420,65 +420,11 @@ func (d *HealerShopDialog) GetSelectedRecipient() game_state.HealerRecipientStat
 	return d.state.Recipients[d.selectedRecipient]
 }
 
-// GetFocus returns the active keyboard pane.
-func (d *HealerShopDialog) GetFocus() HealerShopFocus { return d.focus }
-
-// GetPhase returns the inline healer phase.
-func (d *HealerShopDialog) GetPhase() HealerShopDialogPhase { return d.phase }
-
 // GetShell returns the shared merchant presentation shell.
 func (d *HealerShopDialog) GetShell() *MerchantDialogShell { return d.shell }
 
-// GetLatestExchange returns the currently displayed merchant speech.
-func (d *HealerShopDialog) GetLatestExchange() string { return d.latestExchange }
-
-// GetReceiptText returns the current detached result or refusal text.
-func (d *HealerShopDialog) GetReceiptText() string { return d.receiptText }
-
-// GetDetailText returns the current four-line action projection.
-func (d *HealerShopDialog) GetDetailText() string {
-	if d.detailOutput == nil {
-		return ""
-	}
-
-	return d.detailOutput.GetOutputStr(false)
-}
-
-// GetServicePaneBounds returns the rendered service pane.
-func (d *HealerShopDialog) GetServicePaneBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.serviceBounds
-}
-
-// GetRecipientPaneBounds returns the rendered recipient pane.
-func (d *HealerShopDialog) GetRecipientPaneBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.recipientBounds
-}
-
-// GetDetailBounds returns the remaining-space status panel.
-func (d *HealerShopDialog) GetDetailBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.detailBounds
-}
-
-// GetFontSize returns the semantic font size used throughout healer presentation.
-func (d *HealerShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether this dialog stops before treatment authority.
-func (d *HealerShopDialog) IsPreview() bool { return d.preview }
-
-// IsAwaitingResult reports whether duplicate workflow completion is blocked.
-func (d *HealerShopDialog) IsAwaitingResult() bool { return d.phase == HealerShopAwaitingResult }
-
 // IsDismissed reports whether the dialog may be removed.
 func (d *HealerShopDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the dialog still owns presentation and input.
-func (d *HealerShopDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the healer without producing a treatment request.
 func (d *HealerShopDialog) Dismiss() { d.dismissed = true }

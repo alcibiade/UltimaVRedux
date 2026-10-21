@@ -77,14 +77,6 @@ func (d *DialogStack) HasModalDialog() bool {
 	return false
 }
 
-func (d *DialogStack) HasWidgetTypeOnTop(iface interface{}) bool {
-	if !d.HasOpenDialog() {
-		return false
-	}
-
-	return helpers.IsOfTypeInterface(d.entries[len(d.entries)-1].widget, iface)
-}
-
 func (d *DialogStack) GetIndexOfDialogType(iface interface{}) int {
 	for i, entry := range d.entries {
 		if helpers.IsOfTypeInterface(entry.widget, iface) {
@@ -110,19 +102,6 @@ func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
 	}
 
 	return ib
-}
-
-func (d *DialogStack) RemoveWidget(iface interface{}) {
-	nIndex := d.GetIndexOfDialogType(iface)
-	if nIndex == -1 {
-		logging.Warn(logging.CategoryUI, "Attempted to remove dialog that wasn't found in stack, ignoring")
-
-		return // Graceful degradation - silently ignore missing widget
-	}
-
-	previousModal := d.PeekTopModalDialog()
-	d.entries = append(d.entries[:nIndex], d.entries[nIndex+1:]...)
-	d.updateModalFocus(previousModal, d.PeekTopModalDialog())
 }
 
 // RemoveWidgetInstance removes a specific widget instance from the stack by pointer equality.
@@ -213,9 +192,4 @@ func (d *DialogStack) Dialogs() []Widget {
 	}
 
 	return widgets
-}
-
-// Count returns the number of dialogs currently on the stack.
-func (d *DialogStack) Count() int {
-	return len(d.entries)
 }

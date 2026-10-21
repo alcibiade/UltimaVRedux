@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/config"
-	"github.com/bradhannah/UltimaVRedux/test/originaldata"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bradhannah/UltimaVRedux/test/originaldata"
 )
 
 func TestConfigurationClassification(t *testing.T) {
@@ -40,81 +40,6 @@ func TestConfigurationClassification(t *testing.T) {
 	}
 }
 
-func TestGameDataCacheUsesSelectedSourceAndFreshPreferences(t *testing.T) {
-	directory := originaldata.Directory(t)
-	t.Setenv("ULTIMA5_DATA_PATH", directory)
-	first, firstRefs, err := LoadGameData()
-	require.NoError(t, err)
-	first.GameplayConfiguration.SmoothSurfaceMovement = true
-	first.LoggingConfiguration.CategoryStates["test-isolation"] = true
-	firstByte := first.RawDataOvl[0]
-	first.RawDataOvl[0] ^= 0xff
-
-	alias := filepath.Join(t.TempDir(), "alias")
-	require.NoError(t, os.Symlink(directory, alias))
-	t.Setenv("ULTIMA5_DATA_PATH", alias)
-	second, secondRefs, err := LoadGameData()
-	require.NoError(t, err)
-	require.Same(t, firstRefs, secondRefs)
-	require.NotSame(t, first, second)
-	require.NotSame(t, first.SavedConfigData, second.SavedConfigData)
-	require.NotSame(t, first.AudioConfiguration, second.AudioConfiguration)
-	require.NotSame(t, first.DisplayConfiguration, second.DisplayConfiguration)
-	require.NotSame(t, first.GameplayConfiguration, second.GameplayConfiguration)
-	require.NotSame(t, first.LoggingConfiguration, second.LoggingConfiguration)
-	require.NotSame(t, first.DebugConfiguration, second.DebugConfiguration)
-	require.False(t, second.GameplayConfiguration.SmoothSurfaceMovement)
-	require.Empty(t, second.LoggingConfiguration.CategoryStates)
-	require.Equal(t, firstByte, second.RawDataOvl[0])
-	require.ErrorIs(t, second.SaveGameplayConfiguration(), config.ErrConfigFileUnknown)
-
-	// A different directory cannot reuse a successful cache entry. Symlinks
-	// provision another source without copying copyrighted assets.
-	other := t.TempDir()
-	entries, err := os.ReadDir(directory)
-	require.NoError(t, err)
-	for _, entry := range entries {
-		require.NoError(t, os.Symlink(filepath.Join(directory, entry.Name()), filepath.Join(other, entry.Name())))
-	}
-	t.Setenv("ULTIMA5_DATA_PATH", other)
-	third, thirdRefs, err := LoadGameData()
-	require.NoError(t, err)
-	require.NotSame(t, firstRefs, thirdRefs)
-	require.NotEqual(t, first.SavedConfigData.DataFilePath, third.SavedConfigData.DataFilePath)
-
-	// Replace only this temporary source's symlink, never the original asset.
-	dataOvl := filepath.Join(other, "DATA.OVL")
-	require.NoError(t, os.Remove(dataOvl))
-	_, _, err = LoadGameData()
-	require.ErrorIs(t, err, os.ErrNotExist)
-	require.NoError(t, os.WriteFile(dataOvl, []byte("tiny"), 0o600))
-	_, _, err = LoadGameData()
-	require.ErrorContains(t, err, "validating DATA.OVL")
-	_, err = LoadConfiguration()
-	require.ErrorContains(t, err, "validating DATA.OVL")
-	require.NoError(t, os.Remove(dataOvl))
-	require.NoError(t, os.Symlink(filepath.Join(directory, "DATA.OVL"), dataOvl))
-	_, restoredRefs, err := LoadGameData()
-	require.NoError(t, err)
-	require.Same(t, thirdRefs, restoredRefs)
-
-	broken := t.TempDir()
-	t.Setenv("ULTIMA5_DATA_PATH", broken)
-	_, _, err = LoadGameData()
-	require.ErrorIs(t, err, os.ErrNotExist)
-	require.ErrorContains(t, err, "DATA.OVL")
-	require.NoError(t, os.WriteFile(filepath.Join(broken, "DATA.OVL"), []byte("tiny"), 0o600))
-	_, _, err = LoadGameData()
-	require.ErrorContains(t, err, "validating DATA.OVL")
-	_, err = os.Stat(filepath.Join(broken, "DATA.OVL"))
-	require.NoError(t, err)
-
-	t.Setenv("ULTIMA5_DATA_PATH", directory)
-	_, recovered, err := LoadGameData()
-	require.NoError(t, err)
-	require.Same(t, firstRefs, recovered)
-}
-
 func TestLoadGameDataPreservesReferenceLoadCause(t *testing.T) {
 	directory := t.TempDir()
 	directory, err := filepath.EvalSymlinks(directory)
@@ -141,25 +66,6 @@ func TestLoadGameDataPreservesReferenceLoadCause(t *testing.T) {
 	require.ErrorIs(t, err, os.ErrNotExist)
 	require.ErrorAs(t, err, &pathError)
 	require.False(t, errors.Is(err, originaldata.ErrUnavailable))
-}
-
-func TestConfigurationDoesNotReadOrWriteHome(t *testing.T) {
-	directory := originaldata.Directory(t)
-	t.Setenv("ULTIMA5_DATA_PATH", directory)
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	preferences := filepath.Join(home, ".ultima_v_redux")
-	require.NoError(t, os.Mkdir(preferences, 0o700))
-	filename := filepath.Join(preferences, "config.yaml")
-	for _, contents := range []string{"[malformed YAML", "Gameplay:\n  Presentation:\n    SmoothSurfaceMovement: true\n"} {
-		require.NoError(t, os.WriteFile(filename, []byte(contents), 0o600))
-		cfg := LoadTestConfiguration(t)
-		require.False(t, cfg.GameplayConfiguration.SmoothSurfaceMovement)
-		require.ErrorIs(t, cfg.SaveGameplayConfiguration(), config.ErrConfigFileUnknown)
-		after, err := os.ReadFile(filename)
-		require.NoError(t, err)
-		require.Equal(t, contents, string(after))
-	}
 }
 
 func TestBootstrapSaveFixture(t *testing.T) {

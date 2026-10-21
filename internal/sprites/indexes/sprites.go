@@ -586,24 +586,12 @@ func (s SpriteIndex) IsWindowedDoor() bool {
 	return s == RegularDoorView || s == LockedDoorView || s == MagicLockDoorWithView
 }
 
-func (s SpriteIndex) IsPushableFloor() bool {
-	return s == BrickFloor || s == MetalFloor
-}
-
 func (s SpriteIndex) IsBed() bool {
 	return s == LeftBed || s == SleepingInBed || s == RightBed
 }
 
-func (s SpriteIndex) IsSleepingInBed() bool {
-	return s == SleepingInBed
-}
-
 func (s SpriteIndex) IsStairs() bool {
 	return s == StairsSouth || s == StairsWest || s == StairsNorth || s == StairsEast
-}
-
-func (s SpriteIndex) IsFrigateUnfurled() bool {
-	return s == ShipSailsRight || s == ShipSailsDown || s == ShipSailsLeft || s == ShipSailsUp
 }
 
 func (s SpriteIndex) IsFrigateFurled() bool {

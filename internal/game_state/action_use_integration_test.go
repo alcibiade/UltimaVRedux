@@ -170,49 +170,6 @@ func TestUseCommand_CombatMap_Integration(t *testing.T) {
 	})
 }
 
-// TestUseCommand_DungeonMap_Integration tests use command in dungeons
-func TestUseCommand_DungeonMap_Integration(t *testing.T) {
-	// Test use command in dungeon context
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.LordBritishsCastle). // Use castle as proxy for dungeon testing
-		WithSystemCallbacks().
-		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
-	mockCallbacks.Reset()
-
-	// Test dungeon map use
-	result := gs.ActionUseDungeonMap(references.Up)
-
-	// Dungeon special items not implemented yet
-	assert.False(t, result, "Dungeon map use returns false (special items not implemented)")
-
-	// Validate SystemCallbacks integration (tracked in Messages since alsoAddToOutput=true)
-	assert.Equal(t, 1, len(mockCallbacks.Messages), "Should have one message")
-	assert.Equal(t, "Nothing to use!", mockCallbacks.Messages[0], "Should show 'Nothing to use!' feedback for dungeon map")
-
-	t.Run("DungeonUseConsistency", func(t *testing.T) {
-		mockCallbacks.Reset()
-
-		directions := []references.Direction{references.Up, references.Down, references.Left, references.Right}
-
-		for _, direction := range directions {
-			result := gs.ActionUseDungeonMap(direction)
-			assert.False(t, result, "Dungeon use should return false for direction %v", direction)
-		}
-
-		// Validate dungeon-specific behavior (tracked in Messages since alsoAddToOutput=true)
-		assert.Equal(t, 4, len(mockCallbacks.Messages), "Should have message for each dungeon use")
-
-		for _, message := range mockCallbacks.Messages {
-			assert.Equal(t, "Nothing to use!", message, "All dungeon use messages should be consistent")
-		}
-	})
-}
-
 // TestUseCommand_SystemCallbacks_Integration tests comprehensive callback behavior
 func TestUseCommand_SystemCallbacks_Integration(t *testing.T) {
 	// Test SystemCallbacks consistency across different map types

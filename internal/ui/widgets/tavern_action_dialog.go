@@ -206,33 +206,6 @@ func (d *TavernActionDialog) ConsumePendingRequest() (TavernActionRequest, bool)
 	return request, true
 }
 
-// HasPendingRequest reports whether an approval emitted an unconsumed request.
-func (d *TavernActionDialog) HasPendingRequest() bool { return d.pending != nil }
-
-// GetIntent returns a detached copy of the immutable approval union.
-func (d *TavernActionDialog) GetIntent() TavernActionIntent { return cloneTavernActionIntent(d.intent) }
-
-// GetProvisionPackCount returns the selected provision quantity.
-func (d *TavernActionDialog) GetProvisionPackCount() int { return d.provisionPacks }
-
-// GetTitleText returns the visible action title, including PREVIEW when applicable.
-func (d *TavernActionDialog) GetTitleText() string {
-	if d.headerOutput == nil {
-		return ""
-	}
-
-	return d.headerOutput.GetOutputStr(false)
-}
-
-// GetBodyText returns exact mode-specific approval presentation.
-func (d *TavernActionDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
 // GetFooterGuidance returns normal confirmation or explicit warning controls.
 func (d *TavernActionDialog) GetFooterGuidance() string {
 	if d.intent.Drink.Warning {
@@ -251,29 +224,6 @@ func (d *TavernActionDialog) GetBounds() image.Rectangle {
 
 	return d.frame.bounds()
 }
-
-// GetBodyBounds returns the semantically backed modal body.
-func (d *TavernActionDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard main-screen merchant font size.
-func (d *TavernActionDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether workflow will stop before Tavern authority.
-func (d *TavernActionDialog) IsPreview() bool { return d.intent.Preview }
-
-// ShowWithoutAnimation makes a non-complete approval immediately visible.
-func (d *TavernActionDialog) ShowWithoutAnimation() {
-	if !d.dismissed {
-		d.visible = true
-	}
-}
-
-// IsComplete reports whether approval confirmed, cancelled, or was dismissed.
-func (d *TavernActionDialog) IsComplete() bool { return d.dismissed }
 
 // IsCancelled reports whether Escape returned to the parent without a request.
 func (d *TavernActionDialog) IsCancelled() bool { return d.cancelled }

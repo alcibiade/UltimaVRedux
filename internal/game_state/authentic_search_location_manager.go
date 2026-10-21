@@ -155,16 +155,6 @@ func (aslm *AuthenticSearchLocationManager) writeSearchStateBits(start, count, v
 	}
 }
 
-// ResetAllFoundStatus clears all found flags (useful for new games)
-func (aslm *AuthenticSearchLocationManager) ResetAllFoundStatus() {
-	aslm.objFound = [24]byte{}
-}
-
-// GetTotalSearchLocations returns the total number of search locations in the system
-func (aslm *AuthenticSearchLocationManager) GetTotalSearchLocations() int {
-	return len(references.GetAllSearchLocations())
-}
-
 // GetFoundCount returns the number of locations currently marked as found
 func (aslm *AuthenticSearchLocationManager) GetFoundCount() int {
 	count := 0
@@ -204,21 +194,6 @@ func (aslm *AuthenticSearchLocationManager) resetOneTimeFoundStatus() (int, int)
 	}
 
 	return before, aslm.getOneTimeFoundCount()
-}
-
-// GetFoundLocationsByMap returns a map of found locations grouped by map location
-func (aslm *AuthenticSearchLocationManager) GetFoundLocationsByMap() map[references.Location][]int {
-	result := make(map[references.Location][]int)
-	allLocations := references.GetAllSearchLocations()
-
-	for _, loc := range allLocations {
-		if aslm.isAlreadyFound(loc.Index) {
-			mapLoc := references.Location(loc.MapNumber)
-			result[mapLoc] = append(result[mapLoc], loc.Index)
-		}
-	}
-
-	return result
 }
 
 // AuthenticSearchLocationManager methods implementing original Search/Get/Open/Jimmy rules algorithm
@@ -275,17 +250,6 @@ func (aslm *AuthenticSearchLocationManager) FindAtPosition(x, y references.Coord
 
 	// Nothing found
 	return nil
-}
-
-// SearchAtPosition preserves the complete lookup-and-commit operation used by
-// direct callers. Production world placement uses FindAtPosition and CommitFound.
-func (aslm *AuthenticSearchLocationManager) SearchAtPosition(x, y references.Coordinate, level references.FloorNumber, onmap references.Location) *AuthenticSearchResult {
-	result := aslm.FindAtPosition(x, y, level, onmap)
-	if result != nil {
-		aslm.CommitFound(result)
-	}
-
-	return result
 }
 
 type AuthenticSearchResult struct {

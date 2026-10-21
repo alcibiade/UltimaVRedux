@@ -51,9 +51,6 @@ type DebugMerchantSessionReview struct {
 // Merchant returns the canonical merchant definition captured by this session.
 func (s MerchantSession) Merchant() references.MerchantDefinition { return s.merchant }
 
-// MerchantID returns the merchant's stable canonical identity.
-func (s MerchantSession) MerchantID() references.MerchantID { return s.merchant.ID }
-
 // Family returns the merchant's concrete service family.
 func (s MerchantSession) Family() references.MerchantFamily { return s.merchant.Family }
 
@@ -62,11 +59,6 @@ func (s MerchantSession) MerchantSpriteIndex() indexes.SpriteIndex { return s.sp
 
 // PricingCharacterIndex returns the captured zero-based active roster index.
 func (s MerchantSession) PricingCharacterIndex() int { return s.buyerIndex }
-
-// PricingCharacterName returns the captured pricing character's stable display identity.
-func (s MerchantSession) PricingCharacterName() string {
-	return s.buyerName
-}
 
 // BeginMerchantSession resolves and validates one loaded merchant NPC and
 // captures the pricing character once for the lifetime of the session.
@@ -219,17 +211,6 @@ func (g *GameState) resolveLoadedMerchantByID(
 		ErrInvalidMerchantSession,
 		id,
 	)
-}
-
-// BeginMerchantSessionByID resolves a stable merchant identity to the exact
-// loaded NPC, then delegates all production validation to BeginMerchantSession.
-func (g *GameState) BeginMerchantSessionByID(id references.MerchantID) (MerchantSession, error) {
-	_, npc, err := g.resolveLoadedMerchantByID(id)
-	if err != nil {
-		return MerchantSession{}, err
-	}
-
-	return g.BeginMerchantSession(npc)
 }
 
 // EndMerchantSession invalidates session when it is still the current token.

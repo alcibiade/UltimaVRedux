@@ -1,5 +1,7 @@
 package references
 
+import "github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+
 // Test support: fixtures and seams that tests in other packages use. The
 // dead-code check treats this file as test support (workshop deadcode config).
 
@@ -86,4 +88,109 @@ func IsSpellValidInContext(spell Spell, context SpellContext) bool {
 	}
 
 	return info.Context.HasContext(context)
+}
+
+// DungeonTriggerSlots returns a detached snapshot and whether this map has
+// DUNGEON.CBT trigger metadata. The bool, rather than coordinate sentinels,
+// distinguishes an active (0,0) trigger from a map with no trigger slots.
+func (c *CombatMapReference) DungeonTriggerSlots() (
+	[DungeonCombatTriggerSlotCount]DungeonCombatMapTrigger,
+	bool,
+) {
+	if c.dungeonTriggerSlots == nil {
+		return [DungeonCombatTriggerSlotCount]DungeonCombatMapTrigger{}, false
+	}
+
+	return *c.dungeonTriggerSlots, true
+}
+
+// GetStringName returns the missile type's display name.
+func (m MissileType) GetStringName() string {
+	switch m {
+	case MissileNone:
+		return "None"
+	case MissileArrow:
+		return "Arrow"
+	case MissileCannonBall:
+		return "Cannon Ball"
+	case MissileAxe:
+		return "Axe"
+	case MissileRed:
+		return "Red"
+	case MissileBlue:
+		return "Blue"
+	case MissileGreen:
+		return "Green"
+	case MissileViolet:
+		return "Violet"
+	case MissileRock:
+		return "Rock"
+	default:
+		return "Unknown"
+	}
+}
+
+// Reset restores all Shadowlords to alive and clears all presence states.
+func (s *ShadowlordState) Reset() {
+	s.Alive = [ShadowlordCount]bool{true, true, true}
+	s.TownAssignments = [ShadowlordCount]Location{}
+	s.LastCalled = NoShadowlord
+	s.Summoned = false
+	s.AutomaticPresence = NoShadowlord
+}
+
+// GetSignsAtLocation returns all signs at the specified location.
+func (sr *SignReferences) GetSignsAtLocation(location Location) []*SignRecord {
+	return sr.SignsByLocation[location]
+}
+
+// GetClosestLadder returns the closest authored directional connection, or
+// (-1,-1) when none exists. Runtime route selection must additionally check
+// persistent terrain overrides, occupancy and reachability.
+func (s *SmallLocationReference) GetClosestLadder(npcCurrentPosition Position, nCurrentFloor, nTargetFloor FloorNumber) Position {
+	ladderOrStairType := GetLadderOfStairsType(nCurrentFloor, nTargetFloor)
+	ls := s.getListOfAllLaddersAndStairs(nCurrentFloor, ladderOrStairType)
+
+	if len(ls) == 0 {
+		// Runtime routes must handle missing connections as pending travel.
+		return Position{X: -1, Y: -1}
+	}
+	bestPosition := ls[0]
+	for _, pos := range ls[1:] {
+		if npcCurrentPosition.HeuristicTileDistance(pos) < npcCurrentPosition.HeuristicTileDistance(bestPosition) {
+			bestPosition = pos
+		}
+	}
+
+	return bestPosition
+}
+
+func (s *SmallLocationReference) getListOfAllLaddersAndStairs(nFloor FloorNumber, ladderOrStairType LadderOrStairType) []Position {
+	positions := make([]Position, 0)
+	if s.rawData[int(nFloor)] == nil {
+		return positions
+	}
+
+	for x := Coordinate(0); x <= s.GetMaxX(); x++ {
+		for y := Coordinate(0); y <= s.GetMaxY(); y++ {
+			pos := Position{X: x, Y: y}
+			isLadderOrStair := IsSpecificLadderOrStairs(s.GetTileNumber(pos, nFloor), ladderOrStairType)
+			if isLadderOrStair {
+				positions = append(positions, pos)
+			}
+		}
+	}
+
+	return positions
+}
+
+// IsWall reports whether the tile is a rock or stone-brick wall, including a
+// secret one.
+func (t *Tile) IsWall() bool {
+	return t.Is(indexes.LargeRockWall) || t.Is(indexes.StoneBrickWall) || t.Is(indexes.StoneBrickWallSecret)
+}
+
+// GetSpeedFactor returns the speed factor for this tile
+func (t *Tile) GetSpeedFactor() int {
+	return t.SpeedFactor
 }

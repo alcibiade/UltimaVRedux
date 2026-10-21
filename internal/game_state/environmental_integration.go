@@ -455,16 +455,6 @@ func joinNames(names []string) string {
 
 // Wind System Methods
 
-// ProcessWindOnTurnAdvancement should be called during turn processing for automatic wind changes
-func (g *GameState) ProcessWindOnTurnAdvancement() {
-	if g.windSystem == nil {
-		// System corruption: wind system should be initialized in GameState constructor
-		panic("ProcessWindOnTurnAdvancement: windSystem is nil")
-	}
-
-	g.windSystem.UpdateWindTick()
-}
-
 // ProcessWindThroughElapsed advances the deterministic wind clock through elapsedMs.
 func (g *GameState) ProcessWindThroughElapsed(elapsedMs int64) {
 	if g.windSystem == nil {

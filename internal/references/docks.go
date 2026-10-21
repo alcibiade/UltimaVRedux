@@ -3,7 +3,6 @@ package references
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 )
@@ -51,12 +50,6 @@ func NewDocks(gameConfig *config.UltimaVConfiguration) (*DockReferences, error) 
 	return dockRefs, nil
 }
 
-func (d *DockReferences) GetDockPosition(dockLocation Location) Position {
-	position, _ := d.GetDockPositionChecked(dockLocation)
-
-	return position
-}
-
 // GetDockPositionChecked returns a dock position and reports whether the
 // location is present, avoiding ambiguity with the valid zero position.
 func (d *DockReferences) GetDockPositionChecked(dockLocation Location) (Position, bool) {
@@ -71,14 +64,4 @@ func (d *DockReferences) GetDockPositionChecked(dockLocation Location) (Position
 	}
 
 	return Position{}, false
-}
-
-func (d *DockReferences) GetDockPositionByString(dockLocation string) Position {
-	for _, l := range d.Docks {
-		if strings.EqualFold(l.Location.String(), dockLocation) {
-			return l.Position
-		}
-	}
-
-	return Position{}
 }

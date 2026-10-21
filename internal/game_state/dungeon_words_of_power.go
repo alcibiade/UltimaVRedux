@@ -123,15 +123,6 @@ func (gs *GameState) IsDungeonOpen(dungeon references.Location) bool {
 	return gs.DungeonStates[index]
 }
 
-// SetDungeonState sets the open/closed state of a specific dungeon
-func (gs *GameState) SetDungeonState(dungeon references.Location, isOpen bool) {
-	index, exists := DungeonToIndexMap[dungeon]
-	if !exists {
-		return // Not a valid dungeon
-	}
-	gs.DungeonStates[index] = isOpen
-}
-
 // ToggleDungeon switches a dungeon between open and sealed states
 func (gs *GameState) ToggleDungeon(dungeon references.Location) bool {
 	index, exists := DungeonToIndexMap[dungeon]
@@ -176,31 +167,6 @@ func GetWordForDungeon(dungeon references.Location) string {
 	}
 
 	return ""
-}
-
-// IsPlayerNearDungeonEntrance checks if the player is within proximity of a dungeon entrance
-// Returns the dungeon location and true if near, or zero location and false if not
-func (gs *GameState) IsPlayerNearDungeonEntrance(proximityRange int) (references.Location, bool) {
-	playerPos := gs.MapState.PlayerLocation.Position
-
-	// Get current dungeon entrance coordinates from authoritative source
-	dungeonCoords := gs.GetDungeonEntranceCoordinates()
-
-	for dungeon, entrancePos := range dungeonCoords {
-		if !DungeonEntranceExistsOnFloor(dungeon, gs.MapState.PlayerLocation.Floor) {
-			continue
-		}
-
-		// Calculate distance using Manhattan distance
-		dx := absInt(int(playerPos.X) - int(entrancePos.X))
-		dy := absInt(int(playerPos.Y) - int(entrancePos.Y))
-
-		if dx <= proximityRange && dy <= proximityRange {
-			return dungeon, true
-		}
-	}
-
-	return references.Location(0), false
 }
 
 // InitializeDungeonStatesFromSave initializes dungeon states from save file data

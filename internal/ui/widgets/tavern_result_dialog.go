@@ -151,47 +151,12 @@ func (d *TavernResultDialog) Update() {
 	}
 }
 
-// GetView returns the immutable finalized presentation.
-func (d *TavernResultDialog) GetView() TavernResultView { return d.view }
-
-// GetBodyText returns the rich result body for focused tests.
-func (d *TavernResultDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
-// GetFooterGuidance returns the acknowledgement controls.
-func (d *TavernResultDialog) GetFooterGuidance() string { return tavernResultFooter }
-
 // GetBounds returns the responsive modal bounds.
 func (d *TavernResultDialog) GetBounds() image.Rectangle {
 	d.ensureLayout()
 
 	return d.frame.bounds()
 }
-
-// GetBodyBounds returns the semantically backed body region.
-func (d *TavernResultDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard merchant font size.
-func (d *TavernResultDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// ShowWithoutAnimation makes an incomplete result visible.
-func (d *TavernResultDialog) ShowWithoutAnimation() {
-	if !d.dismissed {
-		d.visible = true
-	}
-}
-
-// IsComplete reports whether the result was acknowledged or dismissed.
-func (d *TavernResultDialog) IsComplete() bool { return d.dismissed }
 
 // IsDismissed reports whether workflow may remove the modal.
 func (d *TavernResultDialog) IsDismissed() bool { return d.dismissed }

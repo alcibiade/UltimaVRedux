@@ -205,34 +205,10 @@ func (m *CombatMonster) SetCorpserExposed(exposed bool) {
 
 // --- Turn Tracking Getters and Setters ---
 
-// TurnDelay returns the turn delay (36 - DEX for initiative order).
-func (m *CombatMonster) TurnDelay() int { return m.turnDelay }
-
-// SetTurnDelay sets the turn delay.
-func (m *CombatMonster) SetTurnDelay(delay int) {
-	if delay < 0 {
-		delay = 0
-	}
-	m.turnDelay = delay
-}
-
-// HasActed returns whether the monster has acted this round.
-func (m *CombatMonster) HasActed() bool { return m.hasActed }
-
-// SetHasActed marks whether the monster has acted this round.
-func (m *CombatMonster) SetHasActed(acted bool) {
-	m.hasActed = acted
-}
-
 // --- Condition Getters and Setters ---
 
 // IsPoisoned returns whether the monster is poisoned.
 func (m *CombatMonster) IsPoisoned() bool { return m.conditions.isPoisoned }
-
-// SetPoisoned sets the monster's poisoned state.
-func (m *CombatMonster) SetPoisoned(poisoned bool) {
-	m.conditions.isPoisoned = poisoned
-}
 
 // IsAsleep returns whether the monster is asleep.
 func (m *CombatMonster) IsAsleep() bool { return m.conditions.isAsleep }
@@ -248,15 +224,6 @@ func (m *CombatMonster) IsFleeing() bool { return m.conditions.isFleeing }
 // SetFleeing changes the monster's encounter-local fleeing condition.
 func (m *CombatMonster) SetFleeing(fleeing bool) {
 	m.conditions.isFleeing = fleeing
-}
-
-// ClearAllConditions removes all status effects.
-func (m *CombatMonster) ClearAllConditions() {
-	m.conditions = CombatConditions{
-		isPoisoned: false,
-		isAsleep:   false,
-		isFleeing:  false,
-	}
 }
 
 // --- CombatantProvider Interface ---

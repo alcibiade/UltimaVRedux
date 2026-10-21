@@ -82,11 +82,6 @@ var lordBritishFinalePartyDestinations = [...]references.Position{ //nolint:goch
 	{X: 3, Y: 7}, {X: 5, Y: 7}, {X: 7, Y: 7},
 }
 
-// HasPendingLordBritishFinale reports whether verified combat has handed off exactly once.
-func (g *GameState) HasPendingLordBritishFinale() bool {
-	return g.finaleHandoffPending
-}
-
 // BeginLordBritishFinale consumes only the verified Doom mirror handoff and installs
 // original mini-map definition's fourth shared mini-map record as authoritative terrain.
 // See ref:DNG-0015.
@@ -199,15 +194,6 @@ func (g *GameState) SubmitLordBritishFinaleAnswer(answer byte) LordBritishFinale
 		Accepted: true, Prompt: state.prompt, Outcome: state.outcome,
 		MissingBox: answer == 'Y' && !hasBox,
 	}
-}
-
-// LordBritishFinaleOutcome returns the current authoritative outcome.
-func (g *GameState) LordBritishFinaleOutcome() LordBritishFinaleOutcome {
-	if g.lordBritishFinale == nil {
-		return LordBritishFinaleInProgress
-	}
-
-	return g.lordBritishFinale.outcome
 }
 
 // LordBritishFinaleCompletionDate returns the recorded success date, if any.

@@ -64,11 +64,6 @@ type BedRestProvisionResult struct {
 	DeadIndexes []int
 }
 
-// ProcessBedRestProvisionHour consumes a meal or applies one starvation consequence.
-func (g *GameState) ProcessBedRestProvisionHour(hour int) BedRestProvisionResult {
-	return g.processBedRestProvisionHour(hour, g.cachePlayerUpdateStatuses().Diners)
-}
-
 func (g *GameState) processBedRestProvisionHour(hour, diners int) BedRestProvisionResult {
 	g.lastProcessedHour = hour
 	if g.PartyState.Inventory.Provisions.Food.Get() == 0 {

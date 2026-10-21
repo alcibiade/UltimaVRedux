@@ -249,23 +249,6 @@ func (m *MapUnits) GetEnemies() []NPCEnemy {
 	return enemies
 }
 
-// ContainsEnemyWithKeyFrame returns true if any enemy has the specified KeyFrameTile
-func (m *MapUnits) ContainsEnemyWithKeyFrame(keyFrame *references.Tile) bool {
-	if keyFrame == nil {
-		return false
-	}
-
-	for _, mu := range *m {
-		if enemy, ok := mu.(*NPCEnemy); ok {
-			if enemy.GetKeySpriteIndex() == keyFrame.Index {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 // EnemyMatchFunc is a predicate function for filtering enemies
 type EnemyMatchFunc func(*NPCEnemy) bool
 
@@ -319,24 +302,6 @@ func (m *MapUnits) GetFriendliesMatching(match FriendlyMatchFunc) []*NPCFriendly
 	return result
 }
 
-// GetFirstFriendlyMatching returns the first friendly NPC matching the predicate, or nil if none found
-func (m *MapUnits) GetFirstFriendlyMatching(match FriendlyMatchFunc) *NPCFriendly {
-	for _, mu := range *m {
-		if friendly, ok := mu.(*NPCFriendly); ok {
-			if match(friendly) {
-				return friendly
-			}
-		}
-	}
-
-	return nil
-}
-
-// HasFriendlyMatching returns true if any friendly NPC matches the predicate function
-func (m *MapUnits) HasFriendlyMatching(match FriendlyMatchFunc) bool {
-	return m.GetFirstFriendlyMatching(match) != nil
-}
-
 // RemoveEnemy removes an enemy NPC from the map units collection
 func (m *MapUnits) RemoveEnemy(enemy *NPCEnemy) bool {
 	for i, mu := range *m {
@@ -367,14 +332,6 @@ func (m *MapUnits) RemoveAllEnemies() int {
 	*m = kept
 
 	return removed
-}
-
-// HideAllMapUnits sets all map units to invisible.
-// Used for Stonegate volcano trap to clear NPCs when lava floods.
-func (m *MapUnits) HideAllMapUnits() {
-	for _, mu := range *m {
-		mu.SetVisible(false)
-	}
 }
 
 // ClearAllMapUnits removes all map units from the collection.

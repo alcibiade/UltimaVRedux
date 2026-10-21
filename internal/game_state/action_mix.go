@@ -43,13 +43,6 @@ func (g *GameState) ActionMixLargeMap() bool {
 	return true
 }
 
-func (g *GameState) ActionMixCombatMap() bool {
-	// Mixing reagents during combat is typically not allowed
-	g.SystemCallbacks.UI.ShowActionFeedback("Not here!", true)
-
-	return false
-}
-
 func (g *GameState) ActionMixDungeonMap() bool {
 	if !g.HasAnyReagents() {
 		g.SystemCallbacks.UI.ShowActionFeedback("No reagents owned!", true)

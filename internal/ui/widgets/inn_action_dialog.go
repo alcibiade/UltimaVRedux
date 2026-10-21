@@ -147,30 +147,6 @@ func (d *InnActionDialog) ConsumePendingRequest() (InnActionRequest, bool) {
 	return request, true
 }
 
-// HasPendingRequest reports whether Enter approved an unconsumed request.
-func (d *InnActionDialog) HasPendingRequest() bool { return d.pending != nil }
-
-// GetIntent returns a defensive copy of the exact detached approval data.
-func (d *InnActionDialog) GetIntent() InnActionIntent { return cloneInnActionIntent(d.intent) }
-
-// GetTitleText returns the visible action title, including PREVIEW when applicable.
-func (d *InnActionDialog) GetTitleText() string {
-	if d.headerOutput == nil {
-		return ""
-	}
-
-	return d.headerOutput.GetOutputStr(false)
-}
-
-// GetBodyText returns the exact mode-specific approval consequences.
-func (d *InnActionDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
 // GetFooterGuidance returns the keyboard-only approval controls.
 func (d *InnActionDialog) GetFooterGuidance() string { return innActionFooterGuidance }
 
@@ -180,29 +156,6 @@ func (d *InnActionDialog) GetBounds() image.Rectangle {
 
 	return d.frame.bounds()
 }
-
-// GetBodyBounds returns the semantically backed modal body.
-func (d *InnActionDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard main-screen merchant font size.
-func (d *InnActionDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether confirmation stops before Inn authority.
-func (d *InnActionDialog) IsPreview() bool { return d.intent.Preview }
-
-// ShowWithoutAnimation makes a non-complete approval immediately visible.
-func (d *InnActionDialog) ShowWithoutAnimation() {
-	if !d.dismissed {
-		d.visible = true
-	}
-}
-
-// IsComplete reports whether the approval has confirmed, cancelled, or been dismissed.
-func (d *InnActionDialog) IsComplete() bool { return d.dismissed }
 
 // IsCancelled reports whether Escape returned to the parent without a request.
 func (d *InnActionDialog) IsCancelled() bool { return d.cancelled }

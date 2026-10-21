@@ -273,13 +273,3 @@ func (t *TextInput) getFontHeight() int {
 	// Fallback to a reasonable default if face is not available
 	return defaultCursorHeight
 }
-
-// GetAllCommandEntries returns all available command entries for display
-// Returns nil if no text commands are configured
-func (t *TextInput) GetAllCommandEntries() []grammar.CommandEntry {
-	if t.textCommands == nil {
-		return nil
-	}
-
-	return t.textCommands.GetAllCommandEntries()
-}

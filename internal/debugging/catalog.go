@@ -72,13 +72,6 @@ func (c *Catalog) Get(commandID string) (CommandDefinition, bool) {
 	return cloneDefinition(definition), true
 }
 
-// ValidateRequest validates request identity and arguments against the command schema.
-func (c *Catalog) ValidateRequest(request Request) error {
-	_, err := c.NormalizeRequest(request)
-
-	return err
-}
-
 // NormalizeRequest validates a request, deep-copies it, and applies parameter defaults.
 func (c *Catalog) NormalizeRequest(request Request) (Request, error) {
 	request = cloneRequest(request)

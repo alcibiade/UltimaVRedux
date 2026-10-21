@@ -18,11 +18,6 @@ const (
 	NoHourMessageYet = -1 // Initial value for LastHourMessage
 )
 
-// Minutes per hour for time calculations
-const (
-	MinutesPerHour = 60
-)
-
 // CampingScene manages the camping visual experience and state
 //
 //nolint:revive // Preserve the established domain name used by gameplay and presentation callers.
@@ -146,32 +141,6 @@ func (cs *CampingScene) StartCamping() {
 	cs.TimeElapsed = 0
 
 	logging.Debug(logging.CategoryGameState, "Starting camping scene for %d cycles", cs.TotalCycles)
-}
-
-// AdvanceCycle advances the camping by one cycle
-func (cs *CampingScene) AdvanceCycle() bool {
-	if !cs.IsActive || cs.CurrentCycle >= cs.TotalCycles {
-		return false // Camping complete or not active
-	}
-
-	cs.CurrentCycle++
-	cs.TimeElapsed += cs.CycleMinutes
-
-	// Check if we should show an hour message
-	currentHour := cs.TimeElapsed / MinutesPerHour
-	if currentHour > cs.LastHourMessage {
-		cs.LastHourMessage = currentHour
-		logging.Debug(logging.CategoryGameState, "Camping: %d hour(s) completed", currentHour)
-	}
-
-	// Check if camping is complete
-	if cs.CurrentCycle >= cs.TotalCycles {
-		cs.CompleteCamping()
-
-		return false
-	}
-
-	return true // Continue camping
 }
 
 // AdvanceExactCycle advances and processes the final configured cycle.

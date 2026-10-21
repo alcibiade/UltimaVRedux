@@ -31,21 +31,6 @@ func TestEGAColor_RGBA(t *testing.T) {
 	assert.Equal(t, uint32(65535), a)
 }
 
-func TestEGAColor_Matches_ExactMatch(t *testing.T) {
-	assert.True(t, EGARed.Matches(170, 0, 0))
-	assert.True(t, EGABlue.Matches(0, 0, 170))
-	assert.True(t, EGAYellow.Matches(255, 255, 85))
-	assert.True(t, EGALightBlue.Matches(85, 85, 255))
-}
-
-func TestEGAColor_Matches_NoMatch(t *testing.T) {
-	assert.False(t, EGARed.Matches(171, 0, 0))  // Off by 1
-	assert.False(t, EGARed.Matches(170, 1, 0))  // Off by 1
-	assert.False(t, EGARed.Matches(170, 0, 1))  // Off by 1
-	assert.False(t, EGARed.Matches(0, 0, 170))  // Blue, not red
-	assert.False(t, EGABlue.Matches(170, 0, 0)) // Red, not blue
-}
-
 func TestEGAColor_MatchesWithTolerance(t *testing.T) {
 	const tolerance = 10
 
@@ -62,18 +47,6 @@ func TestEGAColor_MatchesWithTolerance(t *testing.T) {
 	assert.False(t, EGARed.MatchesWithTolerance(158, 0, 0, tolerance))  // R too low
 	assert.False(t, EGARed.MatchesWithTolerance(170, 11, 0, tolerance)) // G too high
 	assert.False(t, EGARed.MatchesWithTolerance(170, 0, 11, tolerance)) // B too high
-}
-
-func TestEGAColor_MatchesRGBA(t *testing.T) {
-	redRGBA := color.RGBA{R: 170, G: 0, B: 0, A: 255}
-	blueRGBA := color.RGBA{R: 0, G: 0, B: 170, A: 255}
-
-	assert.True(t, EGARed.MatchesRGBA(redRGBA))
-	assert.False(t, EGARed.MatchesRGBA(blueRGBA))
-
-	// Alpha is ignored
-	redDiffAlpha := color.RGBA{R: 170, G: 0, B: 0, A: 128}
-	assert.True(t, EGARed.MatchesRGBA(redDiffAlpha))
 }
 
 func TestEGAColor_ToRGBA(t *testing.T) {

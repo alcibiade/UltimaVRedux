@@ -159,32 +159,9 @@ func (d *ShipPurchaseDialog) ConsumePendingPurchaseRequest() (game_state.ShipPur
 	return request, true
 }
 
-// HasPendingPurchaseRequest reports whether Enter confirmed this approval.
-func (d *ShipPurchaseDialog) HasPendingPurchaseRequest() bool { return d.pending != nil }
-
-// GetIntent returns the trusted detached purchase presentation.
-func (d *ShipPurchaseDialog) GetIntent() ShipPurchaseIntent { return d.intent }
-
-// GetQuantity returns the selected vessel or skiff quantity.
-func (d *ShipPurchaseDialog) GetQuantity() int { return d.quantity }
-
 // GetApprovalView returns the authority-supplied projection for the selected quantity.
 func (d *ShipPurchaseDialog) GetApprovalView() game_state.ShipPurchaseApprovalView {
 	return d.intent.Quote.ApprovalViews[d.quantity-1]
-}
-
-// GetTitleText returns the modal title.
-func (d *ShipPurchaseDialog) GetTitleText() string {
-	d.ensureLayout()
-
-	return d.headerOutput.GetOutputStr(false)
-}
-
-// GetBodyText returns the vessel, berth, skiff, and payment presentation.
-func (d *ShipPurchaseDialog) GetBodyText() string {
-	d.ensureLayout()
-
-	return d.bodyOutput.GetOutputStr(false)
 }
 
 // GetFooterGuidance returns the keyboard-only approval controls.
@@ -203,27 +180,11 @@ func (d *ShipPurchaseDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetBodyBounds returns the semantically backed modal body.
-func (d *ShipPurchaseDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard merchant font size.
-func (d *ShipPurchaseDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether confirmation stops before purchase authority.
-func (d *ShipPurchaseDialog) IsPreview() bool { return d.intent.Preview }
-
 // IsCancelled reports whether Escape closed the approval.
 func (d *ShipPurchaseDialog) IsCancelled() bool { return d.cancelled }
 
 // IsDismissed reports whether the modal can be removed.
 func (d *ShipPurchaseDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns input.
-func (d *ShipPurchaseDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
 func (d *ShipPurchaseDialog) Dismiss() {

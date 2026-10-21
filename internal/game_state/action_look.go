@@ -363,14 +363,6 @@ func (g *GameState) dungeonEntranceAt(position references.Position, tile indexes
 	return 0, false
 }
 
-func (g *GameState) ActionLookCombatMap(direction references.Direction) bool {
-	// TODO: Implement combat map Look command - see Commands.md Look section
-	// Combat map variant of look command
-	g.SystemCallbacks.Message.AddRowStr("Not during combat!")
-
-	return false
-}
-
 // ActionLookDungeonMap describes one relative dungeon cell for the selected character.
 func (g *GameState) ActionLookDungeonMap(
 	direction references.Direction,

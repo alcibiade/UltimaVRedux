@@ -237,9 +237,6 @@ func (d *HorseShopDialog) Update() {
 	}
 }
 
-// HasPendingPurchaseIntent reports whether an unconsumed approval intent exists.
-func (d *HorseShopDialog) HasPendingPurchaseIntent() bool { return d.pendingIntent != nil }
-
 // ConsumePendingPurchaseIntent returns and clears one detached horse approval intent.
 func (d *HorseShopDialog) ConsumePendingPurchaseIntent() (HorsePurchaseIntent, bool) {
 	if d.pendingIntent == nil {
@@ -358,89 +355,11 @@ func (d *HorseShopDialog) ApplySessionError(message string) {
 	d.syncPresentation()
 }
 
-// GetPhase returns the current one-off workflow phase.
-func (d *HorseShopDialog) GetPhase() HorseShopDialogPhase { return d.phase }
-
-// GetQuote returns the detached trusted quote displayed by the showroom.
-func (d *HorseShopDialog) GetQuote() game_state.HorsePurchaseQuote { return d.state.Quote }
-
 // GetShell returns the shared merchant presentation shell.
 func (d *HorseShopDialog) GetShell() *MerchantDialogShell { return d.shell }
 
-// GetLatestExchange returns the currently displayed merchant exchange.
-func (d *HorseShopDialog) GetLatestExchange() string { return d.latestExchange }
-
-// GetReceiptText returns the current result or terminal status text.
-func (d *HorseShopDialog) GetReceiptText() string { return d.receiptText }
-
-// GetShowroomText returns the visible showroom title, item, and adjusted price.
-func (d *HorseShopDialog) GetShowroomText() string {
-	if !d.showroomVisible() || d.showroomTitleOutput == nil || d.showroomDetailsOutput == nil {
-		return ""
-	}
-
-	return strings.TrimSpace(
-		d.showroomTitleOutput.GetOutputStr(false) + " " + d.showroomDetailsOutput.GetOutputStr(false),
-	)
-}
-
-// GetStatusText returns the current player-facing status panel content.
-func (d *HorseShopDialog) GetStatusText() string {
-	if d.statusOutput == nil {
-		return ""
-	}
-
-	return d.statusOutput.GetOutputStr(false)
-}
-
-// GetShowroomBounds returns the natural-height card, or an empty rectangle when the stable is closed.
-func (d *HorseShopDialog) GetShowroomBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.showroomBounds
-}
-
-// GetStatusBounds returns the framed panel consuming the remaining inset workspace.
-func (d *HorseShopDialog) GetStatusBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.statusBounds
-}
-
-// GetHorseSpriteBounds returns the scaled horse drawing region inside the showroom.
-func (d *HorseShopDialog) GetHorseSpriteBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.horseSpriteBounds
-}
-
-// GetFontSize returns the standard merchant presentation font size.
-func (d *HorseShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether this dialog stops before purchase authority.
-func (d *HorseShopDialog) IsPreview() bool { return d.preview }
-
-// IsAwaitingResult reports whether duplicate workflow completion is blocked.
-func (d *HorseShopDialog) IsAwaitingResult() bool { return d.phase == HorseShopAwaitingResult }
-
-// IsTerminal reports whether the dialog is waiting only for final acknowledgement.
-func (d *HorseShopDialog) IsTerminal() bool {
-	switch d.phase {
-	case HorseShopFarewell, HorseShopSuccess, HorseShopFundsRefusal,
-		HorseShopStableClosed, HorseShopPreviewStopped, HorseShopSessionError:
-		return true
-	case HorseShopBrowse, HorseShopAwaitingApproval, HorseShopAwaitingResult:
-		return false
-	default:
-		panic("HorseShopDialog.IsTerminal: unknown phase")
-	}
-}
-
 // IsDismissed reports whether the dialog may be removed.
 func (d *HorseShopDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the dialog still owns presentation.
-func (d *HorseShopDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the horse shop without producing another intent.
 func (d *HorseShopDialog) Dismiss() { d.dismissed = true }

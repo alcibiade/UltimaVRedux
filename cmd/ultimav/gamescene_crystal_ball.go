@@ -195,11 +195,6 @@ func (g *GameScene) ShowGemViewInteraction(complete func()) {
 	g.startGemViewWorkflowWithCompletion(complete)
 }
 
-// StartGemViewWorkflow initiates the gem overhead view display.
-func (g *GameScene) StartGemViewWorkflow() {
-	g.startGemViewWorkflowWithCompletion(nil)
-}
-
 func (g *GameScene) startGemViewWorkflowWithCompletion(complete func()) {
 	var gemViewDialog *widgets.GemViewDialog
 

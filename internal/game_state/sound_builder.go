@@ -78,28 +78,9 @@ func (b *SoundBuilder) Loop() *SoundBuilder {
 	return b
 }
 
-// OneShot configures the sound to play once and stop (default behavior)
-func (b *SoundBuilder) OneShot() *SoundBuilder {
-	b.mode = SoundPlaybackOneShot
-
-	return b
-}
-
 // FadeIn configures the sound to fade in over the specified duration
 func (b *SoundBuilder) FadeIn(ms int64) *SoundBuilder {
 	b.fadeInMs = ms
-
-	return b
-}
-
-// Volume configures the playback volume (0.0 to 1.0)
-func (b *SoundBuilder) Volume(v float64) *SoundBuilder {
-	if v < 0.0 {
-		v = 0.0
-	} else if v > 1.0 {
-		v = 1.0
-	}
-	b.volume = v
 
 	return b
 }

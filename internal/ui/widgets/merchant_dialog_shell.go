@@ -151,11 +151,6 @@ func (s *MerchantDialogShell) Refresh(
 	s.populateOutputs()
 }
 
-// SetMerchantSprite replaces the presentation sprite drawn beside the merchant name.
-func (s *MerchantDialogShell) SetMerchantSprite(sprite *ebiten.Image) {
-	s.merchantSprite = sprite
-}
-
 // DrawBackground draws the opaque shell backing before family-owned workspace content.
 func (s *MerchantDialogShell) DrawBackground(screen *ebiten.Image) {
 	if screen == nil {
@@ -195,73 +190,11 @@ func (s *MerchantDialogShell) GetBounds() image.Rectangle {
 	return s.outerBorder.GetBounds()
 }
 
-// GetHeaderBounds returns the full-width common header region.
-func (s *MerchantDialogShell) GetHeaderBounds() image.Rectangle {
-	s.ensureLayout()
-
-	return s.layout.header
-}
-
-// GetBodyBounds returns the complete two-column body region.
-func (s *MerchantDialogShell) GetBodyBounds() image.Rectangle {
-	s.ensureLayout()
-
-	return s.layout.body
-}
-
-// GetMerchantPaneBounds returns the common portrait and latest-exchange column.
-func (s *MerchantDialogShell) GetMerchantPaneBounds() image.Rectangle {
-	s.ensureLayout()
-
-	return s.layout.merchantPane
-}
-
 // GetWorkspaceBounds returns the family-owned body workspace.
 func (s *MerchantDialogShell) GetWorkspaceBounds() image.Rectangle {
 	s.ensureLayout()
 
 	return s.layout.workspace
-}
-
-// GetPortraitBounds returns the common merchant portrait and name region.
-func (s *MerchantDialogShell) GetPortraitBounds() image.Rectangle {
-	s.ensureLayout()
-
-	return s.layout.portrait
-}
-
-// GetExchangeBounds returns the bounded latest-exchange region.
-func (s *MerchantDialogShell) GetExchangeBounds() image.Rectangle {
-	s.ensureLayout()
-
-	return s.layout.exchange
-}
-
-// GetFooterBounds returns the full-width keyboard-guidance footer.
-func (s *MerchantDialogShell) GetFooterBounds() image.Rectangle {
-	s.ensureLayout()
-
-	return s.layout.footer
-}
-
-// GetHeaderView returns the shell's current detached header value.
-func (s *MerchantDialogShell) GetHeaderView() MerchantDialogHeaderView {
-	return s.header
-}
-
-// GetExchangeView returns the shell's current latest exchange.
-func (s *MerchantDialogShell) GetExchangeView() MerchantDialogExchangeView {
-	return s.exchange
-}
-
-// GetFooterView returns the shell's current detached footer value.
-func (s *MerchantDialogShell) GetFooterView() MerchantDialogFooterView {
-	return s.footer
-}
-
-// GetFontSize returns the semantic font size used throughout the shell.
-func (s *MerchantDialogShell) GetFontSize() StandardFontSize {
-	return FontSizeMainScreen
 }
 
 func (s *MerchantDialogShell) ensureLayout() {

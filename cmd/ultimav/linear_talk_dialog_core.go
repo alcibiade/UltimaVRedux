@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
+
 	"github.com/bradhannah/UltimaVRedux/internal/conversation"
 	"github.com/bradhannah/UltimaVRedux/internal/conversation/semantic"
 	"github.com/bradhannah/UltimaVRedux/internal/display"
@@ -17,7 +19,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	ultimacolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
-	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
 var _ widgets.Widget = (*LinearTalkDialog)(nil)
@@ -206,10 +207,6 @@ func semanticSourceForMapType(mapType references.SmallMapMasterTypes) (semantic.
 	}
 
 	return "", false
-}
-
-func (d *LinearTalkDialog) Refresh() {
-	d.initializeResizeableVisualElements()
 }
 
 // initializeResizeableVisualElements rebuilds resolution-dependent text resources.

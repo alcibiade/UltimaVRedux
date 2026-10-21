@@ -162,20 +162,6 @@ func (c *CombatMapReference) SetTileNumber(xy Position, tile indexes.SpriteIndex
 	c.rawData[xy.X][xy.Y] = byte(tile)
 }
 
-// DungeonTriggerSlots returns a detached snapshot and whether this map has
-// DUNGEON.CBT trigger metadata. The bool, rather than coordinate sentinels,
-// distinguishes an active (0,0) trigger from a map with no trigger slots.
-func (c *CombatMapReference) DungeonTriggerSlots() (
-	[DungeonCombatTriggerSlotCount]DungeonCombatMapTrigger,
-	bool,
-) {
-	if c.dungeonTriggerSlots == nil {
-		return [DungeonCombatTriggerSlotCount]DungeonCombatMapTrigger{}, false
-	}
-
-	return *c.dungeonTriggerSlots, true
-}
-
 // ResolveDungeonTrigger consumes every slot matching triggerPosition and
 // applies independently valid destinations in source order. Later slots win
 // when destinations overlap.
@@ -204,16 +190,6 @@ func (c *CombatMapReference) ResolveDungeonTrigger(triggerPosition Position) boo
 	}
 
 	return handled
-}
-
-// GetMaxX returns the maximum X coordinate for combat maps
-func (c *CombatMapReference) GetMaxX() Coordinate {
-	return XCombatMapTiles - 1
-}
-
-// GetMaxY returns the maximum Y coordinate for combat maps
-func (c *CombatMapReference) GetMaxY() Coordinate {
-	return YCombatMapTiles - 1
 }
 
 // GetCampfirePosition returns the center position where campfire is placed

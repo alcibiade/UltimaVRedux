@@ -5,20 +5,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 )
 
-// StartCarpetBoardingWorkflow initiates the magic carpet boarding workflow with event queue.
-// Handles using the magic carpet from inventory to board it at the player's current location.
-// Carpet boarding admission and ownership follow ref:VEH-0004.
-//
-// Flow:
-//  1. Remove carpet from inventory (QuestItems)
-//  2. Play stub sound
-//  3. Spawn carpet at player position and board it
-//  4. Show "Board carpet!" confirmation message
-//  5. Advance game time
-func (g *GameScene) StartCarpetBoardingWorkflow(commit *game_state.CarpetBoardingCommit) {
-	g.startCarpetBoardingWorkflow(commit, nil)
-}
-
 func (g *GameScene) startCarpetBoardingWorkflow(commit *game_state.CarpetBoardingCommit, complete func()) {
 	g.gameState.EventQueueManager.Workflow("carpet_boarding").
 		Priority(event_queue.PriorityNormal).

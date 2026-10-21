@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
-	"github.com/bradhannah/UltimaVRedux/internal/references"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
@@ -72,29 +71,6 @@ func TestWindDisplayGraphicEndCaps(t *testing.T) {
 		cached := w.background
 		w.ensureText(direction)
 		assert.Same(t, cached, w.background)
-	}
-}
-
-func TestWindDisplayShouldDisplay(t *testing.T) {
-	windDisplay := &WindDisplay{}
-
-	tests := []struct {
-		mapType  references.GeneralMapType
-		level    int
-		expected bool
-		name     string
-	}{
-		{references.LargeMapType, 0, true, "Large map should show wind"},
-		{references.SmallMapType, 0, true, "Small map uses the location label"},
-		{references.DungeonMapType, 0, false, "Dungeon map should not show wind"},
-		{references.CombatMapType, 0, false, "Combat map should not show wind"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := windDisplay.ShouldDisplay(tt.mapType)
-			assert.Equal(t, tt.expected, result)
-		})
 	}
 }
 

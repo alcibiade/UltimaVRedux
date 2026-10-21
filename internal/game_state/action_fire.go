@@ -490,17 +490,3 @@ func (g *GameState) StartShipCannonFireWorkflow(result ShipCannonResult) {
 		}).
 		Start()
 }
-
-// ActionFireCombatMap rejects Fire during combat, as required by the command context.
-func (g *GameState) ActionFireCombatMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("What?")
-
-	return false
-}
-
-// ActionFireDungeonMap rejects Fire in dungeon corridors.
-func (g *GameState) ActionFireDungeonMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("What?")
-
-	return false
-}

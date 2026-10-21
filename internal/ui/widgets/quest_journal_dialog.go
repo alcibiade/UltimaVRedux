@@ -343,28 +343,6 @@ func (d *QuestJournalDialog) onDialogFocusChanged(focused bool) {
 // The scene acknowledges these only through its captured opening revision.
 func (d *QuestJournalDialog) VisitedTabs() [3]bool { return d.visitedTabs }
 
-// GetActiveTab returns the current journal tab.
-func (d *QuestJournalDialog) GetActiveTab() QuestJournalTab { return d.activeTab }
-
-// GetSelectedIndex returns the current tab's selection, or -1 for an empty tab.
-func (d *QuestJournalDialog) GetSelectedIndex() int {
-	if d.searching {
-		if len(d.searchResults) == 0 {
-			return -1
-		}
-
-		return d.searchSelection
-	}
-	if d.currentItemCount() == 0 {
-		return -1
-	}
-
-	return d.selections[d.activeTab]
-}
-
-// GetDetailPage returns the zero-based detail page.
-func (d *QuestJournalDialog) GetDetailPage() int { return d.detailPage }
-
 // GetDetailPageCount returns the page count calculated from current panel capacity.
 func (d *QuestJournalDialog) GetDetailPageCount() int {
 	d.ensureLayout()
@@ -376,9 +354,6 @@ func (d *QuestJournalDialog) GetDetailPageCount() int {
 
 	return len(d.detailPages())
 }
-
-// GetFontSize returns the semantic body font size (the title uses DialogTitle).
-func (d *QuestJournalDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
 
 func (d *QuestJournalDialog) switchTabBy(delta int) {
 	d.Reset()

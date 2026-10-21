@@ -231,9 +231,6 @@ func (d *ReagentShopDialog) updateBrowse() {
 	}
 }
 
-// HasPendingPurchaseIntent reports whether the workflow has an unconsumed modal intent.
-func (d *ReagentShopDialog) HasPendingPurchaseIntent() bool { return d.pendingIntent != nil }
-
 // ConsumePendingPurchaseIntent returns and clears one trusted quantity-selection intent.
 func (d *ReagentShopDialog) ConsumePendingPurchaseIntent() (ReagentPurchaseIntent, bool) {
 	if d.pendingIntent == nil {
@@ -340,24 +337,6 @@ func (d *ReagentShopDialog) ApplySessionError(message string) {
 // GetSelectedIndex returns the selected catalog index.
 func (d *ReagentShopDialog) GetSelectedIndex() int { return d.listState.GetCurrentIndex() }
 
-// GetSelectedQuote returns a detached copy of the selected trusted quote.
-func (d *ReagentShopDialog) GetSelectedQuote() game_state.ReagentOfferQuote {
-	return cloneReagentOfferQuote(d.selectedQuote())
-}
-
-// GetSelectedReagent returns the stable identity of the selected row.
-func (d *ReagentShopDialog) GetSelectedReagent() references.Reagent { return d.selectedQuote().Reagent }
-
-// GetCatalogQuotes returns detached copies of all current catalog rows.
-func (d *ReagentShopDialog) GetCatalogQuotes() []game_state.ReagentOfferQuote {
-	offers := make([]game_state.ReagentOfferQuote, len(d.state.Offers))
-	for index, quote := range d.state.Offers {
-		offers[index] = cloneReagentOfferQuote(quote)
-	}
-
-	return offers
-}
-
 // GetCatalogHeadings returns the exact four reagent catalog headings.
 func (d *ReagentShopDialog) GetCatalogHeadings() [reagentShopCatalogColumns]string {
 	return [reagentShopCatalogColumns]string{"Reagent", "Bundle", "Owned", "Price"}
@@ -383,65 +362,11 @@ func (d *ReagentShopDialog) GetCatalogRowText(index int) [reagentShopCatalogColu
 	}
 }
 
-// GetPhase returns the current workflow phase.
-func (d *ReagentShopDialog) GetPhase() ReagentShopDialogPhase { return d.phase }
-
 // GetShell returns the shared merchant presentation shell.
 func (d *ReagentShopDialog) GetShell() *MerchantDialogShell { return d.shell }
 
-// GetLatestExchange returns the currently displayed merchant speech.
-func (d *ReagentShopDialog) GetLatestExchange() string { return d.latestExchange }
-
-// GetReceiptText returns the current authoritative receipt or preview status.
-func (d *ReagentShopDialog) GetReceiptText() string { return d.receiptText }
-
-// GetDetailText returns the currently displayed selection detail or receipt.
-func (d *ReagentShopDialog) GetDetailText() string {
-	if d.detailOutput == nil {
-		return ""
-	}
-
-	return d.detailOutput.GetOutputStr(false)
-}
-
-// GetCatalogBounds returns the catalog region spanning the family workspace width.
-func (d *ReagentShopDialog) GetCatalogBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.catalogBounds
-}
-
-// GetCatalogRowBounds returns one rendered catalog row.
-func (d *ReagentShopDialog) GetCatalogRowBounds(index int) image.Rectangle {
-	if index < 0 || index >= len(d.catalogRows) {
-		panic("ReagentShopDialog.GetCatalogRowBounds: index out of range")
-	}
-	d.ensureLayout()
-
-	return d.catalogRows[index]
-}
-
-// GetDetailBounds returns the detail region beneath the dynamic catalog.
-func (d *ReagentShopDialog) GetDetailBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.detailBounds
-}
-
-// GetFontSize returns the standard merchant font size.
-func (d *ReagentShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether the dialog stops before purchase authority.
-func (d *ReagentShopDialog) IsPreview() bool { return d.preview }
-
-// IsAwaitingResult reports whether authority owns the accepted request.
-func (d *ReagentShopDialog) IsAwaitingResult() bool { return d.phase == ReagentShopAwaitingResult }
-
 // IsDismissed reports whether the dialog may be removed.
 func (d *ReagentShopDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the dialog still owns presentation and input.
-func (d *ReagentShopDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the shop without producing a purchase request.
 func (d *ReagentShopDialog) Dismiss() { d.dismissed = true }

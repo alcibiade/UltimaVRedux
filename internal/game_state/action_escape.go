@@ -1,19 +1,5 @@
 package game_state
 
-func (g *GameState) ActionEscapeSmallMap() bool {
-	// Escape is only valid from combat screens
-	g.SystemCallbacks.Message.AddRowStr("Not here!")
-
-	return false
-}
-
-func (g *GameState) ActionEscapeLargeMap() bool {
-	// Escape is only valid from combat screens
-	g.SystemCallbacks.Message.AddRowStr("Not here!")
-
-	return false
-}
-
 func (g *GameState) ActionEscapeCombatMap() bool {
 	if !g.CanEscapeCombatMap() {
 		return false
@@ -64,11 +50,4 @@ func (g *GameState) CanEscapeCombatMap() bool {
 	}
 
 	return true
-}
-
-func (g *GameState) ActionEscapeDungeonMap() bool {
-	// Escape is only valid from combat screens
-	g.SystemCallbacks.Message.AddRowStr("Not here!")
-
-	return false
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bradhannah/UltimaVRedux/internal/ai"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
@@ -175,51 +174,6 @@ func TestTalkTradeSequence_Workflow_Integration(t *testing.T) {
 
 		// Trading would happen here when implemented
 		// For now, we validate the workflow structure is in place
-	})
-}
-
-// TestCombatPreparationSequence_Workflow_Integration tests: ready weapon -> attack -> retreat pattern
-func TestCombatPreparationSequence_Workflow_Integration(t *testing.T) {
-	gameState, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(10, 10).
-		WithSystemCallbacks().
-		Build()
-
-	if gameState == nil {
-		return
-	}
-
-	t.Run("CombatPreparationWorkflow", func(t *testing.T) {
-		// Step 1: Ready a weapon (if available)
-		mockCallbacks.Reset()
-
-		// Check if player has any weapons in inventory
-		// For now, simulate having a weapon (simplified)
-		t.Log("Simulating weapon readiness for combat preparation")
-
-		// Step 2: Look for potential combat target (guard behavior test)
-		// Simulate guard becoming hostile
-		if npcController, ok := gameState.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap); ok {
-			npcController.SetAttackAvatar() // Make guards hostile
-			t.Log("Guards set to hostile mode")
-		}
-
-		// Step 3: Movement pattern to avoid combat
-		movements := []references.Direction{references.Left, references.Up, references.Right, references.Down}
-		startPos := gameState.MapState.PlayerLocation.Position
-
-		for i, dir := range movements {
-			mockCallbacks.Reset()
-			// Test movement pattern (simplified)
-			t.Logf("Movement %d: testing direction %v", i+1, dir)
-
-			// Check if we completed a circuit
-			if i == len(movements)-1 {
-				currentPos := gameState.MapState.PlayerLocation.Position
-				t.Logf("Completed movement pattern. Start: %v, End: %v", startPos, currentPos)
-			}
-		}
 	})
 }
 

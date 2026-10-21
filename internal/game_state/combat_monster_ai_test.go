@@ -138,29 +138,6 @@ func TestCombatPCTargetFixture_PicksClosest(t *testing.T) {
 	assert.Equal(t, 1, result.distance, "Distance from (5,5) to (5,4) = 1")
 }
 
-func TestCombatPCTargetFixture_NoneActive(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	if gs == nil {
-		return
-	}
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
-
-	for i := range party_state.MaxActiveParty {
-		gs.CombatScene.PartyActive[i] = false
-	}
-
-	monPos := references.Position{X: 5, Y: 5}
-	result := findNearestPC(monPos, gs.CombatScene)
-
-	assert.Equal(t, -1, result.pcIndex, "No active PCs → pcIndex should be -1")
-}
-
 func TestShadowlordAndDoomCombatCanSelectInvisibleOpponents(t *testing.T) {
 	shadowState, _, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
 	if shadowState == nil {

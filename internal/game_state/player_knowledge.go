@@ -377,19 +377,6 @@ func (g *GameState) JournalKnowledge(id string) (KnowledgeEntry, bool) {
 	return KnowledgeEntry{}, false
 }
 
-// MarkKnowledgeRead authoritatively clears unread state for an existing key.
-func (g *GameState) MarkKnowledgeRead(key KnowledgeKey) bool {
-	g.requirePlayerKnowledge()
-	entry, found := g.playerKnowledge.entries[key]
-	if !found || !entry.Unread {
-		return false
-	}
-	entry.Unread = false
-	g.playerKnowledge.entries[key] = entry
-
-	return true
-}
-
 // KnowledgeSnapshot returns stable-sorted detached copies of all knowledge.
 func (g *GameState) KnowledgeSnapshot() []KnowledgeEntry {
 	g.requirePlayerKnowledge()

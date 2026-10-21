@@ -33,18 +33,6 @@ const (
 	ambientTintTransitionMinutes = 30
 )
 
-// TimeOfDay identifies a convenient calendar preset.
-type TimeOfDay int
-
-// Calendar presets used by setup and debug controls.
-const (
-	Morning TimeOfDay = iota
-	Noon
-	Evening
-	Midnight
-	Dusk
-)
-
 // MoonPhase represents the 8 moon phases for moongate transportation
 // Based on original Ultima V moon phase system (0-7)
 type MoonPhase int
@@ -179,24 +167,6 @@ func (d *UltimaDate) Advance(nMinutes int) {
 	}
 }
 
-// SetTimeOfDay selects a preset hour.
-func (d *UltimaDate) SetTimeOfDay(timeOfDay TimeOfDay) {
-	d.Minute = 0
-
-	switch timeOfDay {
-	case Morning:
-		d.Hour = 5
-	case Noon:
-		d.Hour = 12
-	case Evening:
-		d.Hour = 17
-	case Midnight:
-		d.Hour = 0
-	case Dusk:
-		d.Hour = 20
-	}
-}
-
 // IsDayLight reports the broad daytime window, including twilight.
 func (d *UltimaDate) IsDayLight() bool {
 	return d.Hour >= hourOfSunrise && d.Hour < hourOfSunset
@@ -293,11 +263,4 @@ func (d *UltimaDate) GetMoongateMoonPhase() MoonPhase {
 // Ultima V uses Year 1, Month 1, Day 1 as the epoch.
 func (d *UltimaDate) GetTotalDays() int {
 	return int(d.Day-1) + int(d.Month-1)*DaysInMonth + int(d.Year-1)*DaysInMonth*MonthsPerYear
-}
-
-// IsWithinFirstMonth returns true if the game is within the first in-game month.
-// Used for "easy mode" where monster counts are reduced.
-// Opening-campaign state reduces eligible encounter counts; ref:TIME-0007.
-func (d *UltimaDate) IsWithinFirstMonth() bool {
-	return d.GetTotalDays() < DaysInMonth
 }

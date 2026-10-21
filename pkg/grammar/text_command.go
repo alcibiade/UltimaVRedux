@@ -1,11 +1,8 @@
 package grammar
 
 import (
-	"strconv"
 	"strings"
 )
-
-const textCommandSeparator = " "
 
 type ExecuteFunc func(string, *TextCommand)
 
@@ -24,44 +21,6 @@ func NewTextCommand(matches Matches, executeFunc ExecuteFunc) *TextCommand {
 
 func (t *TextCommand) GetNumberOfParameters() int {
 	return len(t.Matches)
-}
-
-func (t *TextCommand) GetIndexAsInt(nIndex int, command string) int {
-	splitStr := strings.Split(command, textCommandSeparator)
-
-	n, err := strconv.Atoi(splitStr[nIndex])
-	if err != nil {
-		return 0
-	}
-
-	return n
-}
-
-func (t *TextCommand) GetIndexAsString(nIndex int, command string) string {
-	splitStr := strings.Split(strings.TrimSpace(command), textCommandSeparator)
-
-	return splitStr[nIndex]
-}
-
-func (t *TextCommand) GetAutoComplete(command string) []string {
-	splitStr := strings.Split(command, " ")
-
-	highIndex := len(splitStr) - 1
-	if highIndex >= len(t.Matches) {
-		return nil
-	}
-	matches, err := t.Matches[highIndex].GetPartialMatches(splitStr[highIndex])
-	if err != nil {
-		return nil
-	}
-	if len(matches) == 0 {
-		return []string{}
-	}
-	if len(matches) == 1 {
-		return []string{t.Matches[highIndex].GetSuffixHint(splitStr[highIndex])}
-	}
-
-	return matches
 }
 
 func (t *TextCommand) GetTextCommandIfAtLeastPartialMatch(command string) *TextCommand {

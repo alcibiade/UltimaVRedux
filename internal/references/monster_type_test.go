@@ -75,27 +75,6 @@ func TestMonsterType_IsUndead(t *testing.T) {
 	assert.False(t, MonsterDragon.IsUndead())
 }
 
-func TestMonsterType_IsFixedGroup(t *testing.T) {
-	// Guards appear in groups of 8
-	assert.True(t, MonsterGuard.IsFixedGroup())
-	assert.True(t, MonsterGuard.IsGuard())
-
-	// Swarms appear in groups of 16
-	assert.True(t, MonsterBat.IsSwarm())
-	assert.True(t, MonsterSlime.IsSwarm())
-	assert.True(t, MonsterMongbat.IsSwarm())
-
-	// Solo monsters appear alone
-	assert.True(t, MonsterAvatar.IsSolo())
-	assert.True(t, MonsterDragon.IsSolo())
-	assert.True(t, MonsterShadowlord.IsSolo())
-	assert.True(t, MonsterMimic.IsSolo())
-
-	// Regular monsters have random group sizes
-	assert.False(t, MonsterOrc.IsFixedGroup())
-	assert.False(t, MonsterTroll.IsFixedGroup())
-}
-
 func TestMonsterType_Name(t *testing.T) {
 	assert.Equal(t, "Orc", MonsterOrc.Name())
 	assert.Equal(t, "Dragon", MonsterDragon.Name())

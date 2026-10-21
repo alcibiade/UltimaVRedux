@@ -30,44 +30,6 @@ func isWhirlpoolAtPosPredicate(pos references.Position) map_units.EnemyMatchFunc
 	}
 }
 
-// TrySpawnWhirlpool is the probabilistic single-whirlpool integration fixture
-// helper. Ordinary world generation is owned by the large-map AI controller;
-// its source terrain/region gates and multiple-whirlpool support are independent.
-func (g *GameState) TrySpawnWhirlpool(pos references.Position) bool {
-	// Only spawn on large maps
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return false
-	}
-
-	// Only allow one whirlpool at a time on the map
-	if g.HasAnyWhirlpool() {
-		return false
-	}
-
-	// Check if position already has a whirlpool (redundant with above but kept for safety)
-	if g.hasWhirlpoolAt(pos) {
-		return false
-	}
-
-	// Get tile at position
-	layeredMap := g.GetCurrentLayeredMap()
-	tile := layeredMap.GetTopTile(&pos)
-
-	// Whirlpool generation requires deep-water terrain (raw tile 1) and
-	// the upper-boundary result of the 0..7 spawn draw. ref:SHIP-0006
-	if !tile.Is(indexes.Water1) {
-		return false
-	}
-
-	// 1 in 8 spawn probability using GameState RNG for determinism
-	if !g.OneInXOdds(WhirlpoolSpawnProbability) {
-		return false
-	}
-
-	// Create whirlpool enemy at position
-	return g.spawnWhirlpoolAt(pos)
-}
-
 // findValidDeepWaterSpawnLocation searches for a valid deep water spawn location
 // matching original Ultima V behavior (original world-creature rules validloc/pickmon):
 //   - Random position within 32x32 area around player
@@ -110,16 +72,6 @@ func (g *GameState) findValidDeepWaterSpawnLocation() (references.Position, bool
 
 	// Never found a valid location after maxSpawnAttempts
 	return references.Position{}, false
-}
-
-// ForceSpawnWhirlpoolAtRandomLocation spawns a whirlpool at a random off-screen
-// deep water location, bypassing probability checks. Used for debug commands.
-//
-// Returns true if whirlpool was spawned, false if no valid location found
-func (g *GameState) ForceSpawnWhirlpoolAtRandomLocation() bool {
-	_, spawned := g.ForceSpawnWhirlpoolAtRandomLocationWithPosition()
-
-	return spawned
 }
 
 // ForceSpawnWhirlpoolAtRandomLocationWithPosition returns the inserted position on success.
@@ -189,11 +141,6 @@ func (g *GameState) HasAnyWhirlpool() bool {
 	return g.CurrentNPCAIController.GetNpcs().HasEnemyMatching(isWhirlpoolPredicate())
 }
 
-// hasWhirlpoolAt checks if a whirlpool already exists at the given position
-func (g *GameState) hasWhirlpoolAt(pos references.Position) bool {
-	return g.CurrentNPCAIController.GetNpcs().HasEnemyMatching(isWhirlpoolAtPosPredicate(pos))
-}
-
 // GetWhirlpoolAt returns the whirlpool at the given position, or nil if none exists
 func (g *GameState) GetWhirlpoolAt(pos references.Position) *map_units.NPCEnemy {
 	return g.CurrentNPCAIController.GetNpcs().GetFirstEnemyMatching(isWhirlpoolAtPosPredicate(pos))
@@ -205,67 +152,6 @@ func (g *GameState) RemoveWhirlpoolAt(pos references.Position) bool {
 
 	// Remove by position since GetWhirlpoolAt returns a copy
 	return npcs.RemoveNPCAtPosition(pos)
-}
-
-// GetFirstWhirlpool returns the first whirlpool in controller order, or nil.
-func (g *GameState) GetFirstWhirlpool() *map_units.NPCEnemy {
-	return g.CurrentNPCAIController.GetNpcs().GetFirstEnemyMatching(isWhirlpoolPredicate())
-}
-
-// CheckWhirlpoolAdjacency checks if whirlpool is adjacent to player and triggers collision
-// Called before monster movement in turn.go.
-//
-// Original Ultima V : outdoor contact and ranged attack checks adjacency BEFORE world creature movement
-// outdoor contact and ranged attack at original world-creature rules check: (dis_x == 1 && dis_y == 0) || (dis_x == 0 && dis_y == 1)
-// If adjacent, outdoor contact resolution is called which triggers whirlpool transportation
-//
-// Returns true if the whirlpool collision workflow was triggered.
-// See ref:SHIP-0003.
-func (g *GameState) CheckWhirlpoolAdjacency() bool {
-	// Only check on large maps where whirlpools exist
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return false
-	}
-
-	if g.EventQueueManager.HasWorkflow("whirlpool_collision") {
-		return true
-	}
-	playerPos := g.MapState.PlayerLocation.Position
-	playerFloor := g.MapState.PlayerLocation.Floor
-	// Canonical monster generation can create multiple whirlpools. Scan in
-	// stable controller order rather than letting a distant first one mask contact.
-	whirlpool := g.CurrentNPCAIController.GetNpcs().GetFirstEnemyMatching(func(enemy *map_units.NPCEnemy) bool {
-		return enemy.Variant() == map_units.EnemyVariantWhirlpool && enemy.IsVisible() &&
-			playerPos.IsNextTo(enemy.Pos(), playerFloor, enemy.Floor())
-	})
-	if whirlpool == nil {
-		return false
-	}
-
-	return g.checkWhirlpoolActorContact(whirlpool)
-}
-
-func (g *GameState) checkWhirlpoolActorContact(whirlpool *map_units.NPCEnemy) bool {
-	if g.EventQueueManager.HasWorkflow("whirlpool_collision") {
-		return true
-	}
-	whirlpoolPos := whirlpool.Pos()
-
-	// Original outdoor contact resolution leaves an adjacent whirlpool in place when it
-	// hits a party on foot. Every vehicle path consumes it before transport.
-	// See ref:SHIP-0003.
-	if g.PartyVehicle.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
-		g.RemoveWhirlpoolAt(whirlpoolPos)
-	}
-
-	// Build and start transportation queue
-	q := g.EventQueueManager.Workflow("whirlpool_collision").
-		Priority(event_queue.PriorityHigh).
-		Sequential()
-	g.BuildWhirlpoolTransportationQueue(q)
-	q.Start()
-
-	return true
 }
 
 // IsPlayerOnWhirlpool tests a co-located whirlpool and a vessel capable

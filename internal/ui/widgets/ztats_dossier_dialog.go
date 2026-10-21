@@ -407,21 +407,6 @@ func (d *ZStatsDossierDialog) Dismiss() {
 // IsDismissed reports whether the dossier has been closed.
 func (d *ZStatsDossierDialog) IsDismissed() bool { return d.dismissed }
 
-// GetActiveTab returns the selected top tab.
-func (d *ZStatsDossierDialog) GetActiveTab() ZStatsDossierTab { return d.activeTab }
-
-// GetSelectedCharacterPosition returns the selected displayed party position, or -1.
-func (d *ZStatsDossierDialog) GetSelectedCharacterPosition() int { return d.selectedCharacter }
-
-// GetSelectedListIndex returns the current tab's selection.
-func (d *ZStatsDossierDialog) GetSelectedListIndex() int {
-	if d.currentItemCount() == 0 {
-		return -1
-	}
-
-	return d.currentSelection()
-}
-
 func (d *ZStatsDossierDialog) cycleCharacter(delta int) {
 	count := len(d.dossier.Characters)
 	if count == 0 {

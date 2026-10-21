@@ -105,26 +105,6 @@ func (d *ShipTravelDialog) ConsumePendingTravelReview() (game_state.HarbourTrave
 	return review, true
 }
 
-// HasPendingTravelReview reports whether Enter confirmed this approval.
-func (d *ShipTravelDialog) HasPendingTravelReview() bool { return d.pending != nil }
-
-// GetIntent returns the detached travel intent displayed by the modal.
-func (d *ShipTravelDialog) GetIntent() ShipTravelIntent { return d.intent }
-
-// GetTitleText returns the harbour approval title.
-func (d *ShipTravelDialog) GetTitleText() string {
-	d.ensureLayout()
-
-	return d.headerOutput.GetOutputStr(false)
-}
-
-// GetBodyText returns the player-facing harbour, berth, vessel, and time summary.
-func (d *ShipTravelDialog) GetBodyText() string {
-	d.ensureLayout()
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
 // GetFooterGuidance returns the keyboard-only travel controls.
 func (d *ShipTravelDialog) GetFooterGuidance() string { return "[Enter] Travel   [Esc] Back" }
 
@@ -135,27 +115,11 @@ func (d *ShipTravelDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetBodyBounds returns the semantically backed travel body.
-func (d *ShipTravelDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard merchant font size.
-func (d *ShipTravelDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether confirmation stops before transition authority.
-func (d *ShipTravelDialog) IsPreview() bool { return d.intent.Preview }
-
 // IsCancelled reports whether Escape closed the approval.
 func (d *ShipTravelDialog) IsCancelled() bool { return d.cancelled }
 
 // IsDismissed reports whether the workflow can remove the modal.
 func (d *ShipTravelDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns input.
-func (d *ShipTravelDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the travel modal without emitting a review.
 func (d *ShipTravelDialog) Dismiss() { d.dismissed = true }

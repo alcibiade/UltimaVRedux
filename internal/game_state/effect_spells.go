@@ -172,30 +172,6 @@ func (gs *GameState) CreateFood() uint16 {
 	return food.Get() - before
 }
 
-// HealCharacter heals a party member by a uniform random amount within the given range.
-// Verified original transformed d30 callers use RollOriginalD30 directly instead.
-// Returns the original healing roll (0 only when the target is invalid or dead).
-// See ref:RNG-0001.
-func (gs *GameState) HealCharacter(characterIndex int, minHP, maxHP int) int {
-	pc := gs.PartyState.GetCharacter(characterIndex)
-	if pc == nil {
-		return 0
-	}
-
-	// Can't heal dead characters
-	if pc.IsDead() {
-		return 0
-	}
-
-	// Roll for heal amount within range
-	healRange := maxHP - minHP + 1
-	healAmount := minHP + gs.RollDice(healRange) - 1
-
-	pc.AddHp(uint16(healAmount))
-
-	return healAmount
-}
-
 // CastMani applies the prepared spell's original 1d30 healing mutation.
 func (gs *GameState) CastMani(characterIndex int) PartySpellEffectResult {
 	pc := gs.PartyState.GetCharacter(characterIndex)
@@ -243,13 +219,4 @@ func (gs *GameState) CastAnNox(characterIndex int) PartySpellEffectResult {
 	gs.publishTransientStatusChanges(changes)
 
 	return PartySpellEffectResult{Applied: true}
-}
-
-// GetPartyCoordinates returns the party's current world coordinates.
-// Called by: In Wis spell, Sextant item.
-// Returns x, y coordinates on the current map.
-func (gs *GameState) GetPartyCoordinates() (int, int) {
-	pos := gs.MapState.PlayerLocation.Position
-
-	return int(pos.X), int(pos.Y)
 }

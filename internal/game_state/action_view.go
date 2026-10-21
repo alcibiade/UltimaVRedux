@@ -1,27 +1,5 @@
 package game_state
 
-func (g *GameState) ActionViewSmallMap() bool {
-	if !g.ActionViewSurface() {
-		return false
-	}
-
-	// Trigger the presentation-only gem view workflow.
-	g.SystemCallbacks.Flow.Observation.ShowGemViewInteraction(nil)
-
-	return true
-}
-
-func (g *GameState) ActionViewLargeMap() bool {
-	if !g.ActionViewSurface() {
-		return false
-	}
-
-	// Trigger the presentation-only gem view workflow.
-	g.SystemCallbacks.Flow.Observation.ShowGemViewInteraction(nil)
-
-	return true
-}
-
 // ActionViewSurface consumes the gem while leaving presentation ownership to the caller.
 func (g *GameState) ActionViewSurface() bool {
 	if !g.PartyState.Inventory.Provisions.Gems.HasSome() {

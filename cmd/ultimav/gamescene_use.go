@@ -9,19 +9,6 @@ import (
 
 const staleUseSelectionMessage = "You cannot use that now."
 
-// StartUseWorkflow initiates the Use command workflow, showing the item selection dialog.
-// Shows "No usable items!" if the inventory is empty.
-//
-// Flow:
-//  1. Query usable items from GameState
-//  2. Show message if no items available
-//  3. Display ItemSelectionDialog for selection
-//  4. Execute item use on selection
-//  5. Close dialog on cancel (ESC)
-func (g *GameScene) StartUseWorkflow() {
-	g.startUseWorkflow(game_state.UsageField, false)
-}
-
 func (g *GameScene) startSurfaceUseWorkflow() {
 	g.startUseWorkflow(game_state.UsageField, true)
 }

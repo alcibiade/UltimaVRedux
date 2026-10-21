@@ -207,16 +207,6 @@ func (sr *SignReferences) GetSignAt(location Location, floor, x, y int) *SignRec
 	return nil
 }
 
-// GetSignsAtLocation returns all signs at the specified location.
-func (sr *SignReferences) GetSignsAtLocation(location Location) []*SignRecord {
-	return sr.SignsByLocation[location]
-}
-
-// HasSignAt returns true if there is a sign at the specified location and coordinates.
-func (sr *SignReferences) HasSignAt(location Location, floor, x, y int) bool {
-	return sr.GetSignAt(location, floor, x, y) != nil
-}
-
 // GetBorderMacro returns the border string for a macro byte (0x29-0x31).
 // Returns empty string if the byte is not a valid border macro.
 func GetBorderMacro(b byte) string {

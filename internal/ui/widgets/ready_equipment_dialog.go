@@ -1105,13 +1105,3 @@ func (d *ReadyEquipmentDialog) Dismiss() {
 func (d *ReadyEquipmentDialog) IsDismissed() bool {
 	return d.isDismissed
 }
-
-// IsVisible returns true if the dialog is visible
-func (d *ReadyEquipmentDialog) IsVisible() bool {
-	return d.isVisible
-}
-
-// GetSelectedCharacterIndex returns the currently selected character index
-func (d *ReadyEquipmentDialog) GetSelectedCharacterIndex() int {
-	return d.selectedCharIdx
-}

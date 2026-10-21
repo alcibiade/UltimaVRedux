@@ -28,17 +28,6 @@ func (k *Keyboard) CaptureKeySample() KeySample {
 	return sample
 }
 
-// SetElapsedMillisecondsSource injects the adapter's elapsed clock. Configure it
-// before accepting input; switching clocks resets timing, but not release gates.
-func (k *Keyboard) SetElapsedMillisecondsSource(source func() int64) {
-	if source == nil {
-		panic("Keyboard.SetElapsedMillisecondsSource: clock is required")
-	}
-	k.elapsedMilliseconds = source
-	k.cadence.ResetClock()
-	k.SetAllowKeyPressImmediately()
-}
-
 // SuppressUntilRelease rejects this physical press even in repeatable movement.
 // It deliberately survives ResetReleaseDebouncing and command cancellation.
 func (k *Keyboard) SuppressUntilRelease(key ebiten.Key) {

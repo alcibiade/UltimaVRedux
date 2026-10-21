@@ -126,9 +126,6 @@ func (d *HorsePurchaseDialog) Update() {
 	}
 }
 
-// HasPendingPurchaseRequest reports whether confirmation emitted an unconsumed request.
-func (d *HorsePurchaseDialog) HasPendingPurchaseRequest() bool { return d.pending != nil }
-
 // ConsumePendingPurchaseRequest returns and clears the one confirmed authority request.
 func (d *HorsePurchaseDialog) ConsumePendingPurchaseRequest() (game_state.HorsePurchaseRequest, bool) {
 	if d.pending == nil {
@@ -140,32 +137,6 @@ func (d *HorsePurchaseDialog) ConsumePendingPurchaseRequest() (game_state.HorseP
 	return request, true
 }
 
-// GetIntent returns the detached approval data displayed by the modal.
-func (d *HorsePurchaseDialog) GetIntent() HorsePurchaseIntent { return d.intent }
-
-// GetTitleText returns the exact purchase title.
-func (d *HorsePurchaseDialog) GetTitleText() string {
-	if d.headerOutput == nil {
-		return ""
-	}
-
-	return d.headerOutput.GetOutputStr(false)
-}
-
-// GetBodyText returns the horse, price, and party-gold consequence presentation.
-func (d *HorsePurchaseDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
-// GetFooterGuidance returns the exact keyboard-only approval controls.
-func (d *HorsePurchaseDialog) GetFooterGuidance() string {
-	return "[Enter] Confirm   [Esc] Back"
-}
-
 // GetBounds returns the centered modal bounds.
 func (d *HorsePurchaseDialog) GetBounds() image.Rectangle {
 	d.ensureLayout()
@@ -173,27 +144,11 @@ func (d *HorsePurchaseDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetBodyBounds returns the framed approval body used for semantic-background checks.
-func (d *HorsePurchaseDialog) GetBodyBounds() image.Rectangle {
-	d.ensureLayout()
-
-	return d.frame.bodyBounds
-}
-
-// GetFontSize returns the standard merchant font size.
-func (d *HorsePurchaseDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
-// IsPreview reports whether this approval stops before purchase authority.
-func (d *HorsePurchaseDialog) IsPreview() bool { return d.intent.Preview }
-
 // IsCancelled reports whether Escape closed the modal without confirmation.
 func (d *HorsePurchaseDialog) IsCancelled() bool { return d.cancelled }
 
 // IsDismissed reports whether the modal may be removed.
 func (d *HorsePurchaseDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns presentation and input.
-func (d *HorsePurchaseDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without emitting a request.
 func (d *HorsePurchaseDialog) Dismiss() { d.dismissed = true }

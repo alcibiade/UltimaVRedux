@@ -61,24 +61,6 @@ type EquipmentLoadoutBatchAlterationResult struct {
 	Changes []EquipmentLoadoutStateChange
 }
 
-// AlterEquipmentLoadout validates and atomically applies a partial character loadout.
-func (g *GameState) AlterEquipmentLoadout(
-	input EquipmentLoadoutAlteration,
-) (EquipmentLoadoutAlterationResult, error) {
-	result := EquipmentLoadoutAlterationResult{
-		CharacterSlot: input.CharacterSlot,
-		CharacterName: "",
-		Changes:       nil,
-	}
-	batch, err := g.AlterEquipmentLoadouts(EquipmentLoadoutBatchAlteration{Targets: []EquipmentLoadoutAlteration{input}})
-	if err != nil {
-		return result, err
-	}
-	batch.Targets[0].Changes = batch.Changes
-
-	return batch.Targets[0], nil
-}
-
 type equipmentLoadoutPlan struct {
 	input         EquipmentLoadoutAlteration
 	character     *party_state.PlayerCharacter

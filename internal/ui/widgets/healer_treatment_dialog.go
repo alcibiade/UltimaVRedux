@@ -137,21 +137,6 @@ func (d *HealerTreatmentDialog) ConsumePendingRequest() (game_state.HealerServic
 	return request, true
 }
 
-// GetIntent returns the detached treatment shown by the modal.
-func (d *HealerTreatmentDialog) GetIntent() HealerTreatmentIntent { return d.intent }
-
-// GetBodyText returns the target, effect, and charge presentation.
-func (d *HealerTreatmentDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
-}
-
-// GetFooterGuidance returns the approval controls.
-func (d *HealerTreatmentDialog) GetFooterGuidance() string { return "Enter: Confirm  Esc: Back" }
-
 // GetBounds returns the centered modal bounds.
 func (d *HealerTreatmentDialog) GetBounds() image.Rectangle {
 	d.ensureLayout()
@@ -159,17 +144,11 @@ func (d *HealerTreatmentDialog) GetBounds() image.Rectangle {
 	return d.frame.bounds()
 }
 
-// GetFontSize returns the standard merchant font size.
-func (d *HealerTreatmentDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
-
 // IsCancelled reports whether Escape closed the modal.
 func (d *HealerTreatmentDialog) IsCancelled() bool { return d.cancelled }
 
 // IsDismissed reports whether the modal can be removed.
 func (d *HealerTreatmentDialog) IsDismissed() bool { return d.dismissed }
-
-// IsVisible reports whether the modal still owns presentation and input.
-func (d *HealerTreatmentDialog) IsVisible() bool { return !d.dismissed }
 
 // Dismiss closes the modal without approving treatment.
 func (d *HealerTreatmentDialog) Dismiss() { d.dismissed = true }

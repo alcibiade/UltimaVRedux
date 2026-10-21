@@ -12,11 +12,3 @@ func (g *GameState) ActionTalkLargeMap(direction references.Direction) bool {
 
 	return true
 }
-
-// ActionTalkCombatMap handles Talk command during combat.
-// Talk is disabled during combat.
-func (g *GameState) ActionTalkCombatMap(direction references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("Not during combat!")
-
-	return false
-}

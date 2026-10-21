@@ -241,13 +241,6 @@ func (b *SaveSlotBrowser) Update() {
 	}
 }
 
-// SetNotice replaces the browser-level status message without changing selection.
-func (b *SaveSlotBrowser) SetNotice(notice string) {
-	b.notice = strings.TrimSpace(notice)
-	b.populateDetailOutput()
-	b.populateFooterOutput()
-}
-
 func (b *SaveSlotBrowser) moveDetailPage(direction int) {
 	b.detailPage = max(0, min(b.detailPage+direction, b.detailPageCount()-1))
 	b.populateFooterOutput()
@@ -275,18 +268,6 @@ func (b *SaveSlotBrowser) GetSelectedIndex() int {
 	}
 
 	return b.listState.GetCurrentIndex()
-}
-
-// GetSelectedView returns a detached copy of the selected view.
-func (b *SaveSlotBrowser) GetSelectedView() (SaveSlotView, bool) {
-	view := b.selectedView()
-	if view == nil {
-		var emptyView SaveSlotView
-
-		return emptyView, false
-	}
-
-	return cloneSaveSlotView(*view), true
 }
 
 func (b *SaveSlotBrowser) ensureLayout() {

@@ -403,30 +403,4 @@ func (d *ConfigurationDialog) restorePausedAudio() {
 	}
 }
 
-// IsVisible returns whether the dialog is currently visible.
-func (d *ConfigurationDialog) IsVisible() bool {
-	return d.isVisible
-}
-
-// HasFocus returns whether the dialog currently has input focus.
-func (d *ConfigurationDialog) HasFocus() bool {
-	return d.hasFocus
-}
-
-// SetFocus sets the dialog's input focus state.
-func (d *ConfigurationDialog) SetFocus(focus bool) {
-	d.navigation.BlockUntilRelease(d.keyboard.IsKeyHeld)
-	d.hasFocus = focus
-}
-
 // Tab management methods for testing
-
-// GetActiveTab returns the currently active tab index.
-func (d *ConfigurationDialog) GetActiveTab() int {
-	return d.currentTab
-}
-
-// GetTabCount returns the total number of tabs.
-func (d *ConfigurationDialog) GetTabCount() int {
-	return len(d.tabNames)
-}

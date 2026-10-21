@@ -321,21 +321,6 @@ func (q *CombatTurnQueue) getRetainedEntryAtSourceSlot(sourceSlot int) *TurnQueu
 	return nil
 }
 
-// ReplaceCombatant updates a live queue entry without changing its queue slot.
-func (q *CombatTurnQueue) ReplaceCombatant(identity CombatTurnIdentity, replacement CombatTurnIdentity, combatant CombatantProvider) {
-	entry := q.GetEntryByIdentity(identity)
-	if entry == nil {
-		panic("CombatTurnQueue.ReplaceCombatant: missing queue entry")
-	}
-	q.nextEntryLifetimeID++
-	entry.lifetimeID = q.nextEntryLifetimeID
-	entry.Combatant = combatant
-	entry.EntityIndex = replacement.EntityIndex
-	entry.Slot = replacement.Slot
-	entry.turnCountdown = resetTurnCountdown(combatant.GetDexterity())
-	entry.status = turnQueueActive
-}
-
 // AdvanceToNextActor scans active queue slots in persistent order,
 // decrements each countdown, and selects the first reaching zero. Reset that
 // actor to 36 minus Dexterity before handing off its action. Empty/dead slots
@@ -671,13 +656,6 @@ func (q *CombatTurnQueue) CountRemaining() (int, int) {
 	return pcCount, monsterCount
 }
 
-// GetEntry returns the queue entry for a specific combatant.
-// Returns nil if not found.
-// GetEntry returns the normal-slot entry retained for existing PC/monster callers.
-func (q *CombatTurnQueue) GetEntry(entityIndex int, isPC bool) *TurnQueueEntry {
-	return q.GetEntryByIdentity(CombatTurnIdentity{IsPartyMember: isPC, EntityIndex: entityIndex})
-}
-
 // GetEntryByIdentity returns the entry for an exact combat identity, including clones.
 func (q *CombatTurnQueue) GetEntryByIdentity(identity CombatTurnIdentity) *TurnQueueEntry {
 	for _, entry := range q.entries {
@@ -687,21 +665,4 @@ func (q *CombatTurnQueue) GetEntryByIdentity(identity CombatTurnIdentity) *TurnQ
 	}
 
 	return nil
-}
-
-// ActiveEntryCount returns the number of entries that are still active.
-func (q *CombatTurnQueue) ActiveEntryCount() int {
-	count := 0
-	for _, entry := range q.entries {
-		if entry.status == turnQueueActive {
-			count++
-		}
-	}
-
-	return count
-}
-
-// TotalEntryCount returns the total number of entries (including dead/fled).
-func (q *CombatTurnQueue) TotalEntryCount() int {
-	return len(q.entries)
 }
