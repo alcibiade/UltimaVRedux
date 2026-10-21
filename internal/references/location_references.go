@@ -18,7 +18,7 @@ type LocationReferences struct {
 	mapsByStr      map[string]*SmallLocationReference
 	config         *config.UltimaVConfiguration
 	dataOvl        *DataOvl
-	WorldLocations *WorldLocations `json:"world_locations" yaml:"world_locations"`
+	WorldLocations *WorldLocations `json:"worldLocations" yaml:"worldLocations"`
 
 	npcRefs *NPCReferences
 }
@@ -35,10 +35,14 @@ func isDungeonLocation(location Location) bool {
 	return location >= Deceit && location <= Doom
 }
 
+// GetLocationReference returns the small map loaded for location, or nil when
+// none was loaded.
 func (s *LocationReferences) GetLocationReference(location Location) *SmallLocationReference {
 	return s.maps[location]
 }
 
+// GetSmallLocationReference returns the small map whose location name matches name
+// case-insensitively, or nil when there is none.
 func (s *LocationReferences) GetSmallLocationReference(name string) *SmallLocationReference {
 	return s.mapsByStr[strings.ToLower(name)]
 }

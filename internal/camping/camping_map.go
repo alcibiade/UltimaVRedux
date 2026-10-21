@@ -1,3 +1,5 @@
+// Package camping lays out the camping scene: party positions around the
+// campfire, the wandering guard, and monster entry points from BRIT.CBT.
 package camping
 
 import (
@@ -16,12 +18,14 @@ const (
 	CampfirePositionY = 5 // Center Y of 11x11 map
 )
 
-// CampingType defines the type of camping environment
-type CampingType int
+// Environment defines the type of camping environment
+type Environment int
 
+// Camping environments: outdoors on the surface, or inside a dungeon.
+//
 //goland:noinspection GoUnusedConst
 const (
-	OutdoorCamping CampingType = iota
+	OutdoorCamping Environment = iota
 	DungeonCamping
 )
 
@@ -33,8 +37,8 @@ const (
 	CampingDirectionIndex = 2
 )
 
-// CampingMap represents the camping scene layout
-type CampingMap struct {
+// Map represents the camping scene layout
+type Map struct {
 	// Party member positions around the campfire
 	PartyPositions [MaxPartyMembers]references.Position
 
@@ -50,7 +54,7 @@ type CampingMap struct {
 	CampfirePosition references.Position
 
 	// Camping type (outdoor vs dungeon)
-	CampingType CampingType
+	CampingType Environment
 
 	// Combat map reference (contains authentic positions from BRIT.CBT)
 	combatMapRef *references.CombatMapReference
@@ -58,16 +62,21 @@ type CampingMap struct {
 
 // NewCampingMapWithCombatRef creates a new camping map using positions from combat map reference
 // This provides authentic positions loaded from BRIT.CBT for outdoor camping
-func NewCampingMapWithCombatRef(guardIndex int, campingType CampingType, combatMapRef *references.CombatMapReference) *CampingMap {
+func NewCampingMapWithCombatRef(
+	guardIndex int, campingType Environment, combatMapRef *references.CombatMapReference,
+) *Map {
 	if combatMapRef == nil {
 		panic("camping.NewCampingMapWithCombatRef: combat map reference is required")
 	}
-	campingMap := &CampingMap{
-		GuardIndex:       guardIndex,
-		HasGuard:         guardIndex >= 0,
-		CampfirePosition: references.Position{X: CampfirePositionX, Y: CampfirePositionY},
-		CampingType:      campingType,
-		combatMapRef:     combatMapRef,
+	campingMap := &Map{
+		PartyPositions:     [MaxPartyMembers]references.Position{}, // Set by setupPartyPositions
+		GuardPosition:      references.Position{X: 0, Y: 0},        // Set when a guard is posted
+		HasGuard:           guardIndex >= 0,
+		GuardIndex:         guardIndex,
+		MonsterEntryPoints: [MaxMonsterEntryPoints]references.Position{}, // Set by setupMonsterEntryPoints
+		CampfirePosition:   references.Position{X: CampfirePositionX, Y: CampfirePositionY},
+		CampingType:        campingType,
+		combatMapRef:       combatMapRef,
 	}
 
 	// Set up party positions (will use combatMapRef if available)
@@ -80,7 +89,7 @@ func NewCampingMapWithCombatRef(guardIndex int, campingType CampingType, combatM
 }
 
 // setupPartyPositions arranges party members around the campfire
-func (cm *CampingMap) setupPartyPositions() {
+func (cm *Map) setupPartyPositions() {
 	// Party positions come from BRIT.CBT; CampingDirectionIndex maps to row 3. ref:CBT-0002.
 	cm.PartyPositions = cm.combatMapRef.PlayerPositions[CampingDirectionIndex]
 	if cm.HasGuard && cm.GuardIndex >= 0 && cm.GuardIndex < len(cm.PartyPositions) {
@@ -89,13 +98,13 @@ func (cm *CampingMap) setupPartyPositions() {
 }
 
 // setupMonsterEntryPoints defines where monsters can enter during encounters
-func (cm *CampingMap) setupMonsterEntryPoints() {
+func (cm *Map) setupMonsterEntryPoints() {
 	cm.MonsterEntryPoints = cm.combatMapRef.MonsterPositions
 }
 
 // HasGeneratedDungeonChestAt reports whether the source map still displays its
 // generated center-chest marker during dungeon camping.
-func (cm *CampingMap) HasGeneratedDungeonChestAt(position references.Position) bool {
+func (cm *Map) HasGeneratedDungeonChestAt(position references.Position) bool {
 	if cm.combatMapRef == nil {
 		return false
 	}
@@ -107,7 +116,7 @@ func (cm *CampingMap) HasGeneratedDungeonChestAt(position references.Position) b
 // GetPartyMemberPosition returns the position for a specific party member
 // If the member is the guard, returns the dynamic GuardPosition (updated during wandering)
 // Otherwise returns the static PartyPositions array position
-func (cm *CampingMap) GetPartyMemberPosition(memberIndex int) references.Position {
+func (cm *Map) GetPartyMemberPosition(memberIndex int) references.Position {
 	if memberIndex < 0 || memberIndex >= len(cm.PartyPositions) {
 		return references.Position{X: CampfirePositionX, Y: CampfirePositionY} // Default to campfire
 	}

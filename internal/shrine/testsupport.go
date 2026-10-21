@@ -18,8 +18,8 @@ func NewShrineMap() *ShrineMap {
 }
 
 // NewShrineScene creates a new shrine scene for meditation
-func NewShrineScene(shrineIndex int, originalPlayerLocation references.PlayerLocation) *ShrineScene {
-	scene := &ShrineScene{
+func NewShrineScene(shrineIndex int, originalPlayerLocation references.PlayerLocation) *Scene {
+	scene := &Scene{
 		ShrineIndex:            shrineIndex,
 		IsActive:               true,
 		OriginalPlayerLocation: originalPlayerLocation,

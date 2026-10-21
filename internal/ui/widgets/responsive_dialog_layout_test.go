@@ -41,7 +41,7 @@ func TestNewOrderDialogResizePreservesSecondSelectionStage(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
 	dialog := createNewOrderTestDialog(createMockPartyState(), 1, func(int, int) {}, func() {})
 	dialog.HandleEnter()
-	require.Equal(t, Stage2_SelectSecond, dialog.GetStage())
+	require.Equal(t, Stage2SelectSecond, dialog.GetStage())
 	firstSelection := dialog.GetFirstSelectedIndex()
 	currentSelection := dialog.GetCurrentSelectionIndex()
 	currentTitle := dialog.GetTitle()
@@ -50,7 +50,7 @@ func TestNewOrderDialogResizePreservesSecondSelectionStage(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1920, 1080)
 	dialog.shell.ensureLayout(1920, 1080, len(dialog.GetOptions()))
 
-	assert.Equal(t, Stage2_SelectSecond, dialog.GetStage())
+	assert.Equal(t, Stage2SelectSecond, dialog.GetStage())
 	assert.Equal(t, firstSelection, dialog.GetFirstSelectedIndex())
 	assert.Equal(t, currentSelection, dialog.GetCurrentSelectionIndex())
 	assert.Equal(t, currentTitle, dialog.GetTitle())

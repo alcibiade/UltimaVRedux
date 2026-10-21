@@ -1,3 +1,5 @@
+// Package map_units models the NPCs, enemies and vehicles that occupy a map,
+// with their AI override, pending path and schedule state.
 package map_units
 
 import (
@@ -5,8 +7,10 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
+// MapUnitType identifies the kind of a map unit: NPC, enemy or vehicle.
 type MapUnitType int
 
+// NonPlayerCharacter, Enemy and Vehicle are the MapUnitType values; each MapUnit reports one.
 const (
 	NonPlayerCharacter MapUnitType = 0
 	Enemy              MapUnitType = 1
@@ -26,6 +30,7 @@ const (
 	PendingNPCInteractionHostileCombat
 )
 
+// MapUnit is the view shared by NPCs, enemies and vehicles on a map.
 type MapUnit interface {
 	GetMapUnitType() MapUnitType
 
@@ -44,6 +49,8 @@ type MapUnit interface {
 	GetKeySpriteIndex() indexes.SpriteIndex
 }
 
+// MapUnitDetails is the state every map unit carries: position, floor, visibility,
+// AI override and the pending path.
 type MapUnitDetails struct {
 	Position references.Position
 	Floor    references.FloorNumber
@@ -103,6 +110,8 @@ func (mu *MapUnitDetails) recordConsumedTalk3ScheduleSlot(slot references.NPCSch
 	mu.consumedTalk3ScheduleSlot = &slot
 }
 
+// SetOverriddenAiType sets the AI override, recording guard-hostility or generic-flee
+// provenance for the AI types that have one.
 func (mu *MapUnitDetails) SetOverriddenAiType(oAiType references.AiType) {
 	if oAiType == references.Unset {
 		mu.SetAIOverride(oAiType, references.AIOverrideProvenanceNone)
@@ -159,6 +168,7 @@ func (mu *MapUnitDetails) SetAIOverride(
 	mu.aiOverrideProvenance = provenance
 }
 
+// GetOverriddenAiType returns the AI override, or references.Unset when none is active.
 func (mu *MapUnitDetails) GetOverriddenAiType() references.AiType {
 	return mu.overriddenAiType
 }
@@ -168,6 +178,7 @@ func (mu *MapUnitDetails) AIOverrideProvenance() references.AIOverrideProvenance
 	return mu.aiOverrideProvenance
 }
 
+// DequeueNextPosition removes and returns the next step of the pending path; it panics when no path is pending.
 func (mu *MapUnitDetails) DequeueNextPosition() references.Position {
 	if !mu.HasAPathAlreadyCalculated() {
 		panic("NPC has no path calculated")
@@ -178,6 +189,7 @@ func (mu *MapUnitDetails) DequeueNextPosition() references.Position {
 	return pos
 }
 
+// HasAPathAlreadyCalculated reports whether the pending path still has steps.
 func (mu *MapUnitDetails) HasAPathAlreadyCalculated() bool {
 	if mu.CurrentPath == nil {
 		return false
@@ -186,6 +198,7 @@ func (mu *MapUnitDetails) HasAPathAlreadyCalculated() bool {
 	return len(mu.CurrentPath) > 0
 }
 
+// SetCurrentPath replaces the pending path; a nil path clears it.
 func (mu *MapUnitDetails) SetCurrentPath(path []references.Position) {
 	mu.CurrentPath = path
 }

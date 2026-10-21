@@ -76,13 +76,16 @@ func (d *DialogStack) HasModalDialog() bool {
 	return false
 }
 
+// GetOrAssertTopInputBox returns the top modal dialog as an InputBox. It returns
+// nil when no modal is open, and logs a warning and returns nil when the top
+// modal is another widget type.
 func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
-	w := d.PeekTopModalDialog()
-	if w == nil {
+	top := d.PeekTopModalDialog()
+	if top == nil {
 		return nil
 	}
 
-	ib, ok := w.(*InputBox)
+	inputBox, ok := top.(*InputBox)
 
 	if !ok {
 		logging.Warn(logging.CategoryUI, "Expected InputBox on dialog stack but found different type, returning nil")
@@ -90,7 +93,7 @@ func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
 		return nil // Graceful degradation instead of crash
 	}
 
-	return ib
+	return inputBox
 }
 
 // RemoveWidgetInstance removes a specific widget instance from the stack by pointer equality.
@@ -98,13 +101,13 @@ func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
 // This is safer than RemoveWidget when multiple dialogs of the same type may exist,
 // as it matches by instance rather than by type.
 func (d *DialogStack) RemoveWidgetInstance(widget Widget) bool {
-	for i, entry := range d.entries {
+	for index, entry := range d.entries {
 		if entry.widget == widget {
 			previousModal := d.PeekTopModalDialog()
-			d.entries = append(d.entries[:i], d.entries[i+1:]...)
+			d.entries = append(d.entries[:index], d.entries[index+1:]...)
 			d.updateModalFocus(previousModal, d.PeekTopModalDialog())
 			logging.Debug(logging.CategoryUI,
-				"RemoveWidgetInstance: Removed widget at index %d, stack size now: %d", i, len(d.entries))
+				"RemoveWidgetInstance: Removed widget at index %d, stack size now: %d", index, len(d.entries))
 
 			return true
 		}

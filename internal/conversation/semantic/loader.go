@@ -506,7 +506,7 @@ func (parser *documentParser) parseAction(node *yaml.Node, path string) (Action,
 	}
 }
 
-//nolint:cyclop,ireturn // Action is a closed sum type and this switch enumerates every bare variant.
+//nolint:ireturn // Action is a closed sum type and this switch enumerates every bare variant.
 func (parser *documentParser) parseBareAction(node *yaml.Node, path string) (Action, error) {
 	name, err := parser.stringValue(node, path)
 	if err != nil {

@@ -2,6 +2,7 @@ package grammar
 
 import "strings"
 
+// MatchStringList matches typed input against a fixed list of accepted strings.
 type MatchStringList struct {
 	Strings              []string
 	Description          string
@@ -9,14 +10,18 @@ type MatchStringList struct {
 	SingleCharacterInput bool
 }
 
+// ShouldAutofillWithFirstCharacter reports whether typing one character should autofill this slot.
 func (m MatchStringList) ShouldAutofillWithFirstCharacter() bool {
 	return m.SingleCharacterInput
 }
 
+// GetDescription returns the text that describes this slot in command listings.
 func (m MatchStringList) GetDescription() string {
 	return m.Description
 }
 
+// GetPartialMatches returns the accepted strings that start with inputString.
+// Matching ignores case unless CaseSensitive is set.
 func (m MatchStringList) GetPartialMatches(inputString string) ([]string, error) {
 	matches := make([]string, 0)
 	if !m.CaseSensitive {
@@ -31,6 +36,7 @@ func (m MatchStringList) GetPartialMatches(inputString string) ([]string, error)
 	return matches, nil
 }
 
+// PartiallyMatches reports whether any accepted string starts with inputString.
 func (m MatchStringList) PartiallyMatches(inputString string) (bool, error) {
 	var matchErr error
 	matches, matchErr := m.GetPartialMatches(inputString)
@@ -39,6 +45,8 @@ func (m MatchStringList) PartiallyMatches(inputString string) (bool, error) {
 	return len(matches) > 0, nil
 }
 
+// GetSuffixHint returns the rest of the only accepted string that starts with currentStr.
+// It returns empty when zero or several strings match.
 func (m MatchStringList) GetSuffixHint(currentStr string) string {
 	strs := m.getListOfMatches(currentStr)
 	if len(*strs) != 1 {
@@ -52,6 +60,7 @@ func (m MatchStringList) GetSuffixHint(currentStr string) string {
 	return strings.TrimPrefix(strings.ToUpper(str), strings.ToUpper(currentStr))
 }
 
+// GetString returns no fixed word, because a string list accepts several.
 func (m MatchStringList) GetString() string {
 	return ""
 }

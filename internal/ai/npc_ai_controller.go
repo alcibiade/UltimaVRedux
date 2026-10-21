@@ -4,6 +4,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 )
 
+// NPCAIController is the map-specific NPC behaviour the game state drives each turn.
 type NPCAIController interface {
 	PopulateMapFirstLoad()
 	AdvanceNextTurnCalcAndMoveNPCs()
@@ -15,4 +16,5 @@ type NPCAIController interface {
 	HardResetNPCs(preserveOverriddenAI bool)
 }
 
-const MaxTileDistanceBeforeCleanup = 22
+// maxTileDistanceBeforeCleanup is the wrapped tile distance beyond which hostile units are despawned.
+const maxTileDistanceBeforeCleanup = 22

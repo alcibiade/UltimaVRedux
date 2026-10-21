@@ -23,7 +23,7 @@ const (
 //nolint:revive // Preserve the established domain name used by gameplay and presentation callers.
 type CampingScene struct {
 	// Current camping map
-	CampingMap *CampingMap
+	CampingMap *Map
 
 	// Camping state
 	Hours        int

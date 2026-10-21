@@ -743,7 +743,7 @@ func (m *SaveDescriptionEntryModal) ensureRendering(width, height int) {
 	m.border = newDialogBorder(sprites.PercentBasedPlacement{
 		StartPercentX: saveDescriptionModalStartX, EndPercentX: saveDescriptionModalEndX,
 		StartPercentY: 0, EndPercentY: 1,
-	}, DialogBackgroundBlack)
+	})
 	m.font, m.fieldOutput = GetScaledFontWithOutput(FontConfig{
 		Size:                  FontSizeMainScreen,
 		LineSpacing:           0,

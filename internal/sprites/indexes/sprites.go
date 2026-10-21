@@ -1,9 +1,15 @@
 package indexes
 
+// StandardNumberOfAnimationFrames is the frame count of a standard animation
+// sequence, counted from its key index.
 const StandardNumberOfAnimationFrames = 4
 
+// SpriteIndex identifies one sprite in the shared atlas; NoSprites marks none.
 type SpriteIndex int
 
+// Sprite identities indexing the shared sprite atlas, each named for the
+// original Ultima V tile it shows.
+//
 //goland:noinspection GoSnakeCaseUsage,GoUnusedConst
 const (
 	NoSprites                       SpriteIndex = -1
@@ -539,9 +545,11 @@ const (
 	GrazedBang                                  = 528
 )
 
+// Animation key indices mark the first frame of each animation sequence; the
+// following frames are the next StandardNumberOfAnimationFrames sprites.
+//
 //goland:noinspection GoSnakeCaseUsage,GoUnusedConst
 const (
-	// Animation key indices - these mark the start of 4-frame animation sequences
 	MageKeyIndex           SpriteIndex = 320 // Same as Wizard1
 	WizardKeyIndex         SpriteIndex = 320 // Same as Wizard1
 	BardKeyIndex           SpriteIndex = 324 // Bard1
@@ -574,53 +582,63 @@ const (
 	Manacles_Prisoner      SpriteIndex = 356 // WallPrisoner1
 )
 
+// IsDoor reports whether s is any door tile: plain, windowed or magic-locked.
 func (s SpriteIndex) IsDoor() bool {
-	return s == RegularDoor || s == LockedDoor || s == RegularDoorView || s == LockedDoorView || s == MagicLockDoorWithView || s == MagicLockDoor
+	return s == RegularDoor || s == LockedDoor || s == RegularDoorView ||
+		s == LockedDoorView || s == MagicLockDoorWithView || s == MagicLockDoor
 }
 
+// IsUnlockedDoor reports whether s is a regular door, with or without a view
+// window, rather than a locked one.
 func (s SpriteIndex) IsUnlockedDoor() bool {
 	return s == RegularDoor || s == RegularDoorView
 }
 
+// IsWindowedDoor reports whether s is a door with a view window.
 func (s SpriteIndex) IsWindowedDoor() bool {
 	return s == RegularDoorView || s == LockedDoorView || s == MagicLockDoorWithView
 }
 
+// IsBed reports whether s is a bed tile, including the occupied bed.
 func (s SpriteIndex) IsBed() bool {
 	return s == LeftBed || s == SleepingInBed || s == RightBed
 }
 
+// IsStairs reports whether s is a staircase tile facing any direction.
 func (s SpriteIndex) IsStairs() bool {
 	return s == StairsSouth || s == StairsWest || s == StairsNorth || s == StairsEast
 }
 
+// IsFrigateFurled reports whether s is a frigate with its sails furled.
 func (s SpriteIndex) IsFrigateFurled() bool {
 	return s == ShipNoSailsLeft || s == ShipNoSailsRight || s == ShipNoSailsDown || s == ShipNoSailsUp
 }
 
+// IsHorseUnBoarded reports whether s is a horse with no rider.
 func (s SpriteIndex) IsHorseUnBoarded() bool {
 	return s == HorseLeft || s == HorseRight
 }
 
+// IsSkiff reports whether s is a skiff facing any direction.
 func (s SpriteIndex) IsSkiff() bool {
 	return s == SkiffDown || s == SkiffLeft || s == SkiffRight || s == SkiffUp
 }
 
+// IsMagicCarpetUnboarded reports whether s is the magic carpet with no rider.
 func (s SpriteIndex) IsMagicCarpetUnboarded() bool {
 	return s == Carpet2
 }
 
+// IsPartOfAnimation reports whether s belongs to the animation that starts at
+// keyFrameIndex: that sprite and the next StandardNumberOfAnimationFrames-1.
+// Sprites below 304 are not animated and match only keyFrameIndex itself.
 func (s SpriteIndex) IsPartOfAnimation(keyFrameIndex SpriteIndex) bool {
 	const lowestPossibleAnimationIndex = 304
 	if s < lowestPossibleAnimationIndex {
 		return s == keyFrameIndex
 	}
 
-	if s >= keyFrameIndex && s <= keyFrameIndex+StandardNumberOfAnimationFrames {
-		return true
-	}
-
-	return false
+	return s >= keyFrameIndex && s < keyFrameIndex+StandardNumberOfAnimationFrames
 }
 
 // IsBeggar returns true if the sprite is part of the beggar animation sequence.

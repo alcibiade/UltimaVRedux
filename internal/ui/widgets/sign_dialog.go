@@ -76,14 +76,26 @@ func NewSignDialog(config SignDialogConfig) *SignDialog {
 		rawText = []byte("(empty sign)")
 	}
 
-	d := &SignDialog{
-		keyboard:          config.Keyboard,
+	dialog := &SignDialog{
+		buffer:            nil, // ensureLayout allocates the buffer and border
+		drawOptions:       &ebiten.DrawImageOptions{},
+		border:            nil,
+		bounds:            image.Rect(0, 0, 0, 0),
+		pixelUnit:         0,
+		hint:              staticViewerHint{output: nil, width: 0},
 		dismissed:         false,
 		waitingForRelease: true,
-		drawOptions:       &ebiten.DrawImageOptions{},
+		keyboard:          config.Keyboard,
+		signOffsetX:       0,
+		signOffsetY:       0,
+		signBounds:        image.Rect(0, 0, 0, 0),
 		rawText:           append([]byte(nil), rawText...),
+		translated:        false,
+		translationRows:   nil,
 		placement:         config.Placement,
 		scale:             config.Scale,
+		lastScreenWidth:   0,
+		lastScreenHeight:  0,
 	}
 
 	// Initialize keyboard debouncing
@@ -91,9 +103,9 @@ func NewSignDialog(config SignDialogConfig) *SignDialog {
 		config.Keyboard.PrepareForTransition(KeyboardTransitionDelayMs)
 	}
 
-	d.ensureLayout()
+	dialog.ensureLayout()
 
-	return d
+	return dialog
 }
 
 func (d *SignDialog) ensureLayout() {
@@ -102,7 +114,7 @@ func (d *SignDialog) ensureLayout() {
 		return
 	}
 	d.lastScreenWidth, d.lastScreenHeight = screenWidth, screenHeight
-	d.border = newDialogBorder(d.placement, DialogBackgroundBlack)
+	d.border = newDialogBorder(d.placement)
 	d.bounds = d.border.GetBounds()
 	d.pixelUnit = getClassicUIPixelUnit(screenWidth, screenHeight)
 

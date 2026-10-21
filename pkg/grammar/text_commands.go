@@ -5,24 +5,24 @@ import (
 	"strings"
 )
 
+// TextCommands is the registered command set that typed input is matched against.
 type TextCommands []TextCommand
 
-// OneOrMoreCommandsMatch
-// Indicates if the string provide at least partially match the command
+// OneOrMoreCommandsMatch reports whether the input at least partially matches one command.
 func (t *TextCommands) OneOrMoreCommandsMatch(command string) bool {
 	return t.HowManyCommandsMatch(command) > 0
 }
 
-// HowManyCommandsMatch
-// Returns the number of commands that currently match the text entered
+// HowManyCommandsMatch returns how many commands currently match the input.
 func (t *TextCommands) HowManyCommandsMatch(command string) int {
 	return len(*t.GetAllMatchingTextCommands(command))
 }
 
+// GetAllMatchingTextCommands returns the commands the input could still complete.
 func (t *TextCommands) GetAllMatchingTextCommands(command string) *TextCommands {
 	allMatches := make(TextCommands, 0)
 	for _, checkCommand := range *t {
-		m := checkCommand.GetTextCommandIfAtLeastPartialMatch(command)
+		m := checkCommand.getTextCommandIfAtLeastPartialMatch(command)
 		if m == nil {
 			continue
 		}
@@ -32,10 +32,11 @@ func (t *TextCommands) GetAllMatchingTextCommands(command string) *TextCommands 
 	return &allMatches
 }
 
+// GetAllPerfectMatches returns the commands the input matches exactly.
 func (t *TextCommands) GetAllPerfectMatches(command string) *TextCommands {
 	allMatches := make(TextCommands, 0)
 	for _, checkCommand := range *t {
-		m := checkCommand.GetTextCommandIfPerfectMatch(command)
+		m := checkCommand.getTextCommandIfPerfectMatch(command)
 		if m == nil {
 			continue
 		}
@@ -45,6 +46,7 @@ func (t *TextCommands) GetAllPerfectMatches(command string) *TextCommands {
 	return &allMatches
 }
 
+// GetFriendlyListOfAllCommands lists each distinct root command with its description, comma-separated.
 func (t *TextCommands) GetFriendlyListOfAllCommands() string {
 	// Use map to deduplicate command outputs (prevents duplicate root commands)
 	seenCommands := make(map[string]bool)

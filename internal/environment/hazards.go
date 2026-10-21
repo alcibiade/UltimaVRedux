@@ -1,3 +1,4 @@
+// Package environment implements world hazards (swamp, lava, fire damage) and sailing wind.
 package environment
 
 import (
@@ -11,12 +12,17 @@ type SystemCallbacks interface {
 	AddRowStr(message string)
 }
 
+// HazardType classifies the damaging tile a party is standing on.
 type HazardType int
 
 const (
+	// NoHazard means the tile is harmless (also used for generic damage results).
 	NoHazard HazardType = iota
+	// PoisonSwamp poisons on a Dexterity-based roll.
 	PoisonSwamp
+	// LavaBurn burns every active member.
 	LavaBurn
+	// FireplaceBurn burns every active member, indoors only.
 	FireplaceBurn
 )
 
@@ -24,33 +30,46 @@ const (
 type DamageType int
 
 const (
+	// TrapFallDamage is damage from a dungeon trap fall.
 	TrapFallDamage DamageType = iota
+	// ClimbingFallDamage is damage from falling while climbing.
 	ClimbingFallDamage
 	// Future: CombatDamage, SpellDamage, etc.
 )
 
-// Hazard game mechanics constants
+// namesInPair is the list length that joins with a bare "and" instead of commas.
+const namesInPair = 2
+
+// Hazard game mechanics constants.
+
 const (
-	// Poison mechanics use 30 source values; the minimum depends on map context.
+	// PoisonRollMax is the number of poison roll values (30); the minimum depends on map context.
 	PoisonRollMax = 30
 
-	// Burning damage gives each living member a separate inclusive 1..8 draw; ref:ENV-0001.
+	// BurnDamageMin and BurnDamageMax bound the separate inclusive 1..8 draw each living member takes; ref:ENV-0001.
 	BurnDamageMin = 1
+	// BurnDamageMax is the highest burn damage a member takes in one draw.
 	BurnDamageMax = 8
 
-	// Screen flash parameters for fire damage
-	FlashColorRed   = 1.0
+	// FlashColorRed is the red channel (0..1) of the fire-damage screen flash.
+	FlashColorRed = 1.0
+	// FlashColorGreen is the green channel of the fire flash.
 	FlashColorGreen = 0.2
-	FlashColorBlue  = 0.1
-	FlashIntensity  = 0.7
+	// FlashColorBlue is the blue channel of the fire flash.
+	FlashColorBlue = 0.1
+	// FlashIntensity is the fire flash opacity (0..1).
+	FlashIntensity = 0.7
+	// FlashDurationMs is how long the fire flash lasts.
 	FlashDurationMs = 300
 )
 
+// EnvironmentalHazards resolves swamp poison, lava and fireplace burns with the shared RNG.
 type EnvironmentalHazards struct {
 	rng       randomIntn
 	callbacks SystemCallbacks
 }
 
+// HazardResult reports the hazard hit, the affected party slots and the total damage.
 type HazardResult struct {
 	Type         HazardType
 	Affected     []int // Party member indices affected
@@ -115,8 +134,10 @@ func (h *EnvironmentalHazards) ResolveTileHazards(
 		return h.checkSwampPoison(party, location)
 	case LavaBurn, FireplaceBurn:
 		return h.checkBurningHazard(party, hazardType)
+	case NoHazard:
+		fallthrough
 	default:
-		return HazardResult{Type: NoHazard}
+		return HazardResult{Type: NoHazard, Affected: nil, MessageShown: false, DamageDealt: 0}
 	}
 }
 
@@ -130,15 +151,14 @@ func (h *EnvironmentalHazards) detectHazardType(tile *references.Tile, location 
 		return NoHazard
 	}
 
-	switch tile.Index {
-	case indexes.Swamp:
+	// Tagless: SpriteIndex has hundreds of values and only these three are hazards.
+	switch {
+	case tile.Index == indexes.Swamp:
 		return PoisonSwamp
-	case indexes.Lava:
+	case tile.Index == indexes.Lava:
 		return LavaBurn
-	case indexes.Fireplace:
-		if location == references.SmallMapType {
-			return FireplaceBurn // Only dangerous indoors
-		}
+	case tile.Index == indexes.Fireplace && location == references.SmallMapType:
+		return FireplaceBurn // Only dangerous indoors
 	}
 
 	return NoHazard
@@ -148,7 +168,7 @@ func (h *EnvironmentalHazards) checkSwampPoison(
 	party *party_state.PartyState,
 	location references.GeneralMapType,
 ) HazardResult {
-	result := HazardResult{Type: PoisonSwamp}
+	result := HazardResult{Type: PoisonSwamp, Affected: nil, MessageShown: false, DamageDealt: 0}
 	if location != references.SmallMapType && location != references.LargeMapType {
 		return result
 	}
@@ -173,7 +193,7 @@ func (h *EnvironmentalHazards) checkSwampPoison(
 }
 
 func (h *EnvironmentalHazards) checkBurningHazard(party *party_state.PartyState, hazardType HazardType) HazardResult {
-	result := HazardResult{Type: hazardType}
+	result := HazardResult{Type: hazardType, Affected: nil, MessageShown: false, DamageDealt: 0}
 
 	// Each living member takes an independent inclusive 1..8 damage draw; ref:ENV-0001.
 	totalDamage := 0
@@ -217,17 +237,18 @@ func joinNames(names []string) string {
 		return ""
 	case 1:
 		return names[0]
-	case 2:
+	case namesInPair:
 		return names[0] + " and " + names[1]
 	default:
 		// For 3+ names: "Alice, Bob, and Charlie"
 		result := ""
 		for i, name := range names {
-			if i == 0 {
+			switch {
+			case i == 0:
 				result = name
-			} else if i == len(names)-1 {
+			case i == len(names)-1:
 				result += ", and " + name
-			} else {
+			default:
 				result += ", " + name
 			}
 		}
@@ -239,7 +260,8 @@ func joinNames(names []string) string {
 // ApplyDamageToParty applies damage to party members according to DamageConfig
 // This provides a consistent damage application pattern for all damage sources
 func (h *EnvironmentalHazards) ApplyDamageToParty(party *party_state.PartyState, config DamageConfig) HazardResult {
-	result := HazardResult{Type: NoHazard} // Generic damage uses NoHazard type
+	// Generic damage uses NoHazard type
+	result := HazardResult{Type: NoHazard, Affected: nil, MessageShown: false, DamageDealt: 0}
 	totalDamage := 0
 
 	// Determine which characters to affect
@@ -247,7 +269,7 @@ func (h *EnvironmentalHazards) ApplyDamageToParty(party *party_state.PartyState,
 	if targetIndices == nil {
 		// Default: affect all party members
 		targetIndices = make([]int, party.GetCharacterCount())
-		for i := 0; i < party.GetCharacterCount(); i++ {
+		for i := range party.GetCharacterCount() {
 			targetIndices[i] = i
 		}
 	}

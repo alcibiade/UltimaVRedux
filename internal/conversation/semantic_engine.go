@@ -367,7 +367,7 @@ func (engine *SemanticConversationEngine) startBody(
 	engine.frames = append(engine.frames, semanticFrame{body: body, index: 0})
 }
 
-//nolint:cyclop,funlen,gocognit // This switch is the closed semantic action interpreter.
+//nolint:cyclop,funlen // This switch is the closed semantic action interpreter.
 func (engine *SemanticConversationEngine) execute() *ConversationResponse {
 	for range maxSemanticExecutionSteps {
 		if len(engine.frames) == 0 {
@@ -402,49 +402,19 @@ func (engine *SemanticConversationEngine) execute() *ConversationResponse {
 			}
 		case *semantic.TakeGoldAction:
 			engine.output.markControl()
-			if err := engine.callbacks.DeductGoldSimple(value.Amount, engine.ExtractNPCName()); err != nil {
-				if errors.Is(err, ErrInsufficientPayment) {
-					// Payment refusal abandons the entire paid continuation; ref:TALK-0003.
-					engine.frames = nil
-					engine.currentQuestion = ""
-					engine.waitingForName = false
-					engine.waitingForKey = false
-					engine.waitContinuesOutput = false
-					engine.completion = semanticCompletionTopics
-
-					return engine.topicResponse()
-				}
-
-				return engine.errorResponse(err)
+			if response := engine.takeGold(value.Amount); response != nil {
+				return response
 			}
 		case *semantic.GiveItemAction:
 			engine.output.markControl()
-			itemID, exists := semantic.OriginalItemID(value.Item)
-			if !exists {
-				return engine.errorResponse(fmt.Errorf("%w: %q", errSemanticItemMissing, value.Item))
-			}
-			for range value.Quantity {
-				engine.callbacks.GiveItem(itemID)
+			if err := engine.giveItem(value); err != nil {
+				return engine.errorResponse(err)
 			}
 		case *semantic.AdjustKarmaAction:
 			engine.output.markControl()
-			for range abs(value.Delta) {
-				if value.Delta > 0 {
-					engine.callbacks.IncreaseKarma()
-				} else {
-					engine.callbacks.DecreaseKarma()
-				}
-			}
+			engine.adjustKarma(value.Delta)
 		case *semantic.DiscoverKnowledgeAction:
-			offset := 0
-			for _, segment := range engine.output.segments {
-				offset += len(segment.Text)
-			}
-			// REDUX DEVIATION: Original conversations reveal spell lore without
-			// persisting knowledge. Redux records it for dossier and journal use.
-			// See ref:TALK-0003.
-			boundary := DiscoveryBoundary{Response: engine.responseSerial, SourceOffset: offset}
-			if err := engine.discoverKnowledge(value.Knowledge, boundary); err != nil {
+			if err := engine.discoverKnowledgeAtOutputEnd(value); err != nil {
 				return engine.errorResponse(err)
 			}
 		case *semantic.PauseAction:
@@ -470,29 +440,8 @@ func (engine *SemanticConversationEngine) execute() *ConversationResponse {
 			return engine.inputResponse(promptRespond, true)
 		case *semantic.JoinPartyAction:
 			engine.output.markControl()
-			outcome, err := engine.callbacks.JoinParty()
-			if err != nil {
-				return engine.errorResponse(err)
-			}
-			switch outcome {
-			case JoinPartySuccess:
-				engine.active = false
-				engine.frames = nil
 
-				return engine.dismissalResponse()
-			case JoinPartyCapacityRefused:
-				engine.output.closeQuote()
-				engine.frames = []semanticFrame{{body: nil, index: 0}}
-				engine.currentQuestion = ""
-				engine.completion = semanticCompletionTopics
-				engine.waitingForKey = true
-
-				return engine.waitResponse()
-			case JoinPartyUnexpectedError:
-				return engine.errorResponse(errJoinPartyFailed)
-			default:
-				return engine.errorResponse(fmt.Errorf("%w: %d", errJoinPartyOutcomeUnknown, outcome))
-			}
+			return engine.joinParty()
 		case *semantic.CallGuardsAction:
 			engine.output.markControl()
 			engine.callbacks.CallGuards()
@@ -517,6 +466,97 @@ func (engine *SemanticConversationEngine) execute() *ConversationResponse {
 	}
 
 	return engine.errorResponse(fmt.Errorf("%w: %d", errSemanticStepLimit, maxSemanticExecutionSteps))
+}
+
+// takeGold deducts amount for the speaking NPC. Refused payment abandons the
+// entire paid continuation and returns to topics; ref:TALK-0003. A nil response
+// means the conversation continues.
+func (engine *SemanticConversationEngine) takeGold(amount int) *ConversationResponse {
+	err := engine.callbacks.DeductGoldSimple(amount, engine.ExtractNPCName())
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, ErrInsufficientPayment) {
+		return engine.errorResponse(err)
+	}
+	engine.frames = nil
+	engine.currentQuestion = ""
+	engine.waitingForName = false
+	engine.waitingForKey = false
+	engine.waitContinuesOutput = false
+	engine.completion = semanticCompletionTopics
+
+	return engine.topicResponse()
+}
+
+// giveItem gives the party Quantity copies of an item known to the original game.
+func (engine *SemanticConversationEngine) giveItem(action *semantic.GiveItemAction) error {
+	itemID, exists := semantic.OriginalItemID(action.Item)
+	if !exists {
+		return fmt.Errorf("%w: %q", errSemanticItemMissing, action.Item)
+	}
+	for range action.Quantity {
+		engine.callbacks.GiveItem(itemID)
+	}
+
+	return nil
+}
+
+// adjustKarma raises or lowers karma one step per unit of delta.
+func (engine *SemanticConversationEngine) adjustKarma(delta int) {
+	for range abs(delta) {
+		if delta > 0 {
+			engine.callbacks.IncreaseKarma()
+		} else {
+			engine.callbacks.DecreaseKarma()
+		}
+	}
+}
+
+// discoverKnowledgeAtOutputEnd records knowledge at the current end of this
+// response's output.
+//
+// REDUX DEVIATION: Original conversations reveal spell lore without
+// persisting knowledge. Redux records it for dossier and journal use.
+// See ref:TALK-0003.
+func (engine *SemanticConversationEngine) discoverKnowledgeAtOutputEnd(
+	action *semantic.DiscoverKnowledgeAction,
+) error {
+	offset := 0
+	for _, segment := range engine.output.segments {
+		offset += len(segment.Text)
+	}
+	boundary := DiscoveryBoundary{Response: engine.responseSerial, SourceOffset: offset}
+
+	return engine.discoverKnowledge(action.Knowledge, boundary)
+}
+
+// joinParty asks the NPC to join. Success ends the conversation; a full party
+// waits for a key and then returns to topics.
+func (engine *SemanticConversationEngine) joinParty() *ConversationResponse {
+	outcome, err := engine.callbacks.JoinParty()
+	if err != nil {
+		return engine.errorResponse(err)
+	}
+	switch outcome {
+	case JoinPartySuccess:
+		engine.active = false
+		engine.frames = nil
+
+		return engine.dismissalResponse()
+	case JoinPartyCapacityRefused:
+		engine.output.closeQuote()
+		engine.frames = []semanticFrame{{body: nil, index: 0}}
+		engine.currentQuestion = ""
+		engine.completion = semanticCompletionTopics
+		engine.waitingForKey = true
+
+		return engine.waitResponse()
+	case JoinPartyUnexpectedError:
+		return engine.errorResponse(errJoinPartyFailed)
+	default:
+		return engine.errorResponse(fmt.Errorf("%w: %d", errJoinPartyOutcomeUnknown, outcome))
+	}
 }
 
 func (engine *SemanticConversationEngine) completeBody() *ConversationResponse {
@@ -689,7 +729,7 @@ func newSemanticOutput() semanticOutput {
 
 func newConversationResponse() *ConversationResponse {
 	return &ConversationResponse{
-		Serial: 0, Output: "", Segments: nil, NeedsInput: false, InputPrompt: "", IsComplete: false,
+		RevealedName: "", Serial: 0, Output: "", Segments: nil, NeedsInput: false, InputPrompt: "", IsComplete: false,
 		IsCompleteAwaitingDismissal: false, Error: nil, WaitingForKeypress: false, IsLabelQuestion: false,
 		ContinuesPreviousOutput: false,
 	}

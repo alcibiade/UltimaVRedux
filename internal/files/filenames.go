@@ -1,5 +1,10 @@
+// Package files names the original Ultima V data files and locates them on
+// disk, matching letter case loosely.
 package files
 
+// File names of the original Ultima V data set, as shipped (uppercase DOS
+// names), and of Redux's own save files.
+//
 //goland:noinspection GoSnakeCaseUsage,GoUnusedConst
 const (
 	BRIT_CBT              = "BRIT.CBT"

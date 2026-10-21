@@ -149,24 +149,11 @@ func NewSaveSlotBrowser(views []SaveSlotView, config SaveSlotBrowserConfig) *Sav
 		panic("SaveSlotBrowser: placement must have positive width and height")
 	}
 
-	title := config.Title
-	if title == "" {
-		title = "Save Slots"
-	}
-	primaryActionLabel := config.PrimaryActionLabel
-	if primaryActionLabel == "" {
-		primaryActionLabel = "Select"
-	}
-	cancelActionLabel := strings.TrimSpace(config.CancelActionLabel)
-	if cancelActionLabel == "" {
-		cancelActionLabel = defaultCancelActionLabel
-	}
-
 	browser := new(SaveSlotBrowser)
 	browser.slots = cloneSaveSlotViews(views)
-	browser.title = title
-	browser.primaryActionLabel = primaryActionLabel
-	browser.cancelActionLabel = cancelActionLabel
+	browser.title = saveSlotBrowserLabel(config.Title, "Save Slots")
+	browser.primaryActionLabel = saveSlotBrowserLabel(config.PrimaryActionLabel, "Select")
+	browser.cancelActionLabel = saveSlotBrowserLabel(strings.TrimSpace(config.CancelActionLabel), defaultCancelActionLabel)
 	browser.fontSize = config.FontSize
 	if browser.fontSize <= 0 {
 		browser.fontSize = FontSizeMainScreen
@@ -195,6 +182,15 @@ func NewSaveSlotBrowser(views []SaveSlotView, config SaveSlotBrowserConfig) *Sav
 	browser.ensureLayout()
 
 	return browser
+}
+
+// saveSlotBrowserLabel returns label, or fallback when label is empty.
+func saveSlotBrowserLabel(label, fallback string) string {
+	if label == "" {
+		return fallback
+	}
+
+	return label
 }
 
 // Draw renders the opaque modal panel, slot rows, selected details, and keyboard guidance.
@@ -321,26 +317,11 @@ func (b *SaveSlotBrowser) calculateLayout() {
 		saveSlotBrowserMinimumPaddingPixels,
 		min(bounds.Dx(), bounds.Dy())/saveSlotBrowserPaddingDivisor,
 	)
-	titleHeight := int(math.Ceil(b.titleOutput.GetFontHeight())) + padding
 	footerLines := saveSlotBrowserFooterLineCount
 	if b.newestLegend != "" {
 		footerLines++
 	}
-	footerHeight := int(math.Ceil(b.rowOutput.GetTotalHeightForLines(footerLines))) +
-		padding*saveSlotBrowserCenterDivisor
-
-	b.titleRect = image.Rect(
-		bounds.Min.X+padding,
-		bounds.Min.Y+padding,
-		bounds.Max.X-padding,
-		bounds.Min.Y+padding+titleHeight,
-	)
-	b.footerRect = image.Rect(
-		bounds.Min.X+padding,
-		bounds.Max.Y-padding-footerHeight,
-		bounds.Max.X-padding,
-		bounds.Max.Y-padding,
-	)
+	b.layoutTitleAndFooter(bounds, padding, footerLines)
 	contentTop := min(b.titleRect.Max.Y+padding, b.footerRect.Min.Y)
 	contentBottom := max(contentTop, b.footerRect.Min.Y-padding)
 	contentRect := image.Rect(bounds.Min.X+padding, contentTop, bounds.Max.X-padding, contentBottom)
@@ -363,20 +344,7 @@ func (b *SaveSlotBrowser) calculateLayout() {
 	b.footerTextRect = b.footerRect.Inset(inset)
 	b.detailHeadingRect = b.detailRect
 	if b.reviewLabel != "" {
-		reviewHeight := int(math.Ceil(
-			b.titleOutput.GetFontHeight()+b.rowOutput.GetTotalHeightForLines(saveSlotBrowserReviewLineCount),
-		)) +
-			inset*saveSlotBrowserCenterDivisor + b.pixelUnit()*saveSlotBrowserCenterDivisor
-		reviewHeight = min(reviewHeight, b.detailRect.Dy()/saveSlotBrowserCenterDivisor)
-		b.reviewFrameRect = image.Rect(
-			b.detailRect.Min.X, b.detailRect.Min.Y, b.detailRect.Max.X, b.detailRect.Min.Y+reviewHeight,
-		)
-		b.reviewTextRect = b.reviewFrameRect.Inset(inset)
-		b.reviewHeadingRect = b.reviewTextRect
-		b.reviewHeadingRect.Max.Y = b.reviewHeadingRect.Min.Y + int(math.Ceil(b.titleOutput.GetFontHeight()))
-		b.reviewTextY = b.reviewHeadingRect.Max.Y + b.pixelUnit()
-		b.detailHeadingRect.Min.Y = min(b.detailRect.Max.Y, b.reviewFrameRect.Max.Y+padding)
-		b.frameRects = append(b.frameRects, b.reviewFrameRect)
+		b.layoutReviewFrame(inset, padding)
 	}
 	b.detailHeadingRect.Max.Y = b.detailHeadingRect.Min.Y + int(math.Ceil(b.titleOutput.GetFontHeight()))
 	b.detailTextRect = b.detailRect
@@ -397,6 +365,51 @@ func (b *SaveSlotBrowser) calculateLayout() {
 	b.showDescriptions = float64(b.rowRects[0].Dy()) >= b.rowOutput.GetFontHeight()+
 		b.descriptionOutput.GetFontHeight()+float64(b.pixelUnit()*saveSlotBrowserCenterDivisor)
 
+	b.sizeOutputsToLayout(footerLines)
+}
+
+// layoutTitleAndFooter places the title pane at the top of bounds and a footer
+// pane tall enough for footerLines of guidance at the bottom.
+func (b *SaveSlotBrowser) layoutTitleAndFooter(bounds image.Rectangle, padding, footerLines int) {
+	titleHeight := int(math.Ceil(b.titleOutput.GetFontHeight())) + padding
+	footerHeight := int(math.Ceil(b.rowOutput.GetTotalHeightForLines(footerLines))) +
+		padding*saveSlotBrowserCenterDivisor
+
+	b.titleRect = image.Rect(
+		bounds.Min.X+padding,
+		bounds.Min.Y+padding,
+		bounds.Max.X-padding,
+		bounds.Min.Y+padding+titleHeight,
+	)
+	b.footerRect = image.Rect(
+		bounds.Min.X+padding,
+		bounds.Max.Y-padding-footerHeight,
+		bounds.Max.X-padding,
+		bounds.Max.Y-padding,
+	)
+}
+
+// layoutReviewFrame splits a review frame with its heading from the top of the
+// details pane; the details heading moves below it.
+func (b *SaveSlotBrowser) layoutReviewFrame(inset, padding int) {
+	reviewHeight := int(math.Ceil(
+		b.titleOutput.GetFontHeight()+b.rowOutput.GetTotalHeightForLines(saveSlotBrowserReviewLineCount),
+	)) +
+		inset*saveSlotBrowserCenterDivisor + b.pixelUnit()*saveSlotBrowserCenterDivisor
+	reviewHeight = min(reviewHeight, b.detailRect.Dy()/saveSlotBrowserCenterDivisor)
+	b.reviewFrameRect = image.Rect(
+		b.detailRect.Min.X, b.detailRect.Min.Y, b.detailRect.Max.X, b.detailRect.Min.Y+reviewHeight,
+	)
+	b.reviewTextRect = b.reviewFrameRect.Inset(inset)
+	b.reviewHeadingRect = b.reviewTextRect
+	b.reviewHeadingRect.Max.Y = b.reviewHeadingRect.Min.Y + int(math.Ceil(b.titleOutput.GetFontHeight()))
+	b.reviewTextY = b.reviewHeadingRect.Max.Y + b.pixelUnit()
+	b.detailHeadingRect.Min.Y = min(b.detailRect.Max.Y, b.reviewFrameRect.Max.Y+padding)
+	b.frameRects = append(b.frameRects, b.reviewFrameRect)
+}
+
+// sizeOutputsToLayout fits row, title, detail and footer outputs to the laid-out panes.
+func (b *SaveSlotBrowser) sizeOutputsToLayout(footerLines int) {
 	rowTextWidth := max(1, b.listRect.Dx()-saveSlotBrowserRowHorizontalPadding*saveSlotBrowserCenterDivisor)
 	b.rowOutput.SetMaxCharsPerLine(b.bodyFont.CharsForWidth(rowTextWidth))
 	b.descriptionOutput.SetMaxCharsPerLine(b.descriptionOutput.Font.CharsForWidth(rowTextWidth))

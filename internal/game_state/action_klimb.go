@@ -555,6 +555,9 @@ func (g *GameState) performClimbingDexterityChecks() []int {
 	return injuredMembers
 }
 
+// StartClimbingFallWorkflow reports a climbing fall, damages and flashes the
+// injured party members with a screen shake, and advances one minute unless
+// the surrounding route owns the turn cycle. A fall already in progress is kept.
 func (g *GameState) StartClimbingFallWorkflow(injuredMembers []int) {
 	routeOwnsCycle := g.surfaceCycleOwned
 	if g.EventQueueManager == nil {

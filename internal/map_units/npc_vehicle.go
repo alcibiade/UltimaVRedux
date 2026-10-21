@@ -11,6 +11,8 @@ import (
 // MaxHullHP is the original maximum hull strength for a player frigate.
 const MaxHullHP = 99
 
+// VehicleDetails is the state of one vehicle: its type and facing, the skiffs it
+// carries, and a frigate's hull and sails.
 type VehicleDetails struct {
 	// VesselID is assigned only by committed post-sextant party use. Zero is unregistered.
 	VesselID        uint64
@@ -57,6 +59,7 @@ func (v *VehicleDetails) IsPendingDelivery() bool {
 	return v.pendingDelivery
 }
 
+// NewVehicleDetails returns a vehicle of vehicleType facing right; a new frigate carries two skiffs.
 func NewVehicleDetails(vehicleType references.VehicleType) VehicleDetails {
 	// New frigates come with 2 skiffs; ref:MERCH-0008.
 	initialSkiffs := 0
@@ -68,6 +71,7 @@ func NewVehicleDetails(vehicleType references.VehicleType) VehicleDetails {
 		VesselID:          0,
 		VehicleType:       vehicleType,
 		skiffQuantity:     initialSkiffs,
+		pendingDelivery:   false,
 		currentDirection:  references.Right,
 		previousDirection: references.Right,
 		IsOwnedByNPC:      false, // Default to unowned (wishing well/shop horses)
@@ -78,6 +82,7 @@ func NewVehicleDetails(vehicleType references.VehicleType) VehicleDetails {
 	}
 }
 
+// SetPartyVehicleDirection turns the vehicle to direction. Horses and carpets ignore vertical turns.
 func (v *VehicleDetails) SetPartyVehicleDirection(direction references.Direction) {
 	switch v.VehicleType { //nolint:exhaustive
 	case references.HorseVehicle, references.CarpetVehicle:
@@ -87,13 +92,18 @@ func (v *VehicleDetails) SetPartyVehicleDirection(direction references.Direction
 	case references.FrigateVehicle, references.SkiffVehicle, references.NoPartyVehicle:
 	default:
 		// Unsupported vehicle type for direction setting - log and continue
-		logging.Warn(logging.CategoryGameState, "SetPartyVehicleDirection called with unsupported vehicle type: %v", v.VehicleType)
+		logging.Warn(
+			logging.CategoryGameState,
+			"SetPartyVehicleDirection called with unsupported vehicle type: %v",
+			v.VehicleType,
+		)
 	}
 
 	v.previousDirection = v.currentDirection
 	v.currentDirection = direction
 }
 
+// GetBoardedSpriteIndex returns the sprite for the vehicle with the party aboard; a raised frigate shows its sails.
 func (v *VehicleDetails) GetBoardedSpriteIndex() indexes.SpriteIndex {
 	// For frigates, sprite depends on sail state
 	if v.VehicleType == references.FrigateVehicle {
@@ -136,7 +146,7 @@ func (v *VehicleDetails) GetBoardedSpriteIndex() indexes.SpriteIndex {
 	return v.VehicleType.GetBoardedSpriteByDirection(v.previousDirection, v.currentDirection)
 }
 
-func (v *VehicleDetails) GetUnBoardedSpriteIndex() indexes.SpriteIndex {
+func (v *VehicleDetails) getUnBoardedSpriteIndex() indexes.SpriteIndex {
 	return v.VehicleType.GetUnBoardedSpriteByDirection(v.currentDirection)
 }
 
@@ -145,6 +155,8 @@ func (v *VehicleDetails) CurrentDirection() references.Direction {
 	return v.currentDirection
 }
 
+// DoesMoveResultInMovement reports whether a move toward newDirection moves the vehicle.
+// A frigate only moves when it already faces newDirection.
 func (v *VehicleDetails) DoesMoveResultInMovement(newDirection references.Direction) bool {
 	if v.VehicleType != references.FrigateVehicle {
 		return true
@@ -176,10 +188,12 @@ func (v *VehicleDetails) HasAtLeastOneSkiff() bool {
 	return v.skiffQuantity > 0
 }
 
+// IncrementSkiffQuantity adds one skiff to the vehicle's cargo.
 func (v *VehicleDetails) IncrementSkiffQuantity() {
 	v.skiffQuantity++
 }
 
+// GetSkiffQuantity returns the number of skiffs carried.
 func (v *VehicleDetails) GetSkiffQuantity() int {
 	return v.skiffQuantity
 }

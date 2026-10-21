@@ -1,7 +1,12 @@
 package party_state
 
-import "github.com/bradhannah/UltimaVRedux/internal/references"
+import (
+	"encoding/binary"
 
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+)
+
+// NMaxPlayerNameSize is the byte length of the fixed name field in a character record.
 const NMaxPlayerNameSize = 9
 
 // PartyMap preserves the original pmap byte. Zero identifies the packed active
@@ -30,6 +35,7 @@ func PartyMapAtInn(location references.Location) PartyMap {
 // IsMartyr reports whether Blackthorn executed the character.
 func (p PartyMap) IsMartyr() bool { return p == PartyMapMartyr }
 
+// PlayerCharacter mirrors one 32-byte character record of the original SAVED.GAM roster.
 type PlayerCharacter struct {
 	Name         [NMaxPlayerNameSize]byte
 	Gender       CharacterGender
@@ -52,4 +58,59 @@ type PlayerCharacter struct {
 	Ring         byte
 	Amulet       byte
 	PartyMap     PartyMap
+}
+
+// characterRecordSize is the byte length of one packed original character record.
+const characterRecordSize = 32
+
+// uint16Size is the byte width of a packed 16-bit record field.
+const uint16Size = 2
+
+// recordReader consumes consecutive fields of a packed little-endian record.
+type recordReader struct {
+	data []byte
+}
+
+func (r *recordReader) bytes(count int) []byte {
+	field := r.data[:count]
+	r.data = r.data[count:]
+
+	return field
+}
+
+func (r *recordReader) byte() byte {
+	return r.bytes(1)[0]
+}
+
+func (r *recordReader) uint16() uint16 {
+	return binary.LittleEndian.Uint16(r.bytes(uint16Size))
+}
+
+// decodeCharacter reads one packed original character record in field order.
+func decodeCharacter(record []byte) PlayerCharacter {
+	var character PlayerCharacter
+	reader := recordReader{data: record}
+	copy(character.Name[:], reader.bytes(NMaxPlayerNameSize))
+	character.Gender = CharacterGender(reader.byte())
+	character.Class = CharacterClass(reader.byte())
+	character.status = CharacterStatus(reader.byte())
+	character.Strength = reader.byte()
+	character.Dexterity = reader.byte()
+	character.Intelligence = reader.byte()
+	character.currentMp = reader.byte()
+	character.currentHp = reader.uint16()
+	character.maxHp = reader.uint16()
+	character.Exp = reader.uint16()
+	character.Level = reader.byte()
+	character.MonthsAtInn = reader.byte()
+	character.ArmorClass = reader.byte()
+	character.Helmet = reader.byte()
+	character.Armor = reader.byte()
+	character.Weapon = reader.byte()
+	character.Shield = reader.byte()
+	character.Ring = reader.byte()
+	character.Amulet = reader.byte()
+	character.PartyMap = PartyMap(reader.byte())
+
+	return character
 }

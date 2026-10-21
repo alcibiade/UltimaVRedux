@@ -62,7 +62,7 @@ class WorldLocations(TypedDict, total=False):
 class LocationReferences(TypedDict, total=False):
     """Root location snapshot."""
 
-    world_locations: WorldLocations
+    worldLocations: WorldLocations
 
 
 # Reverse lookup
@@ -514,7 +514,7 @@ def cmd_location(args: argparse.Namespace) -> None:
     # Try to get overworld coordinates
     try:
         loc_refs = load_location_refs()
-        positions = loc_refs.get("world_locations", {}).get(
+        positions = loc_refs.get("worldLocations", {}).get(
             "large_map_location_positions", {}
         )
         for value in positions.values():

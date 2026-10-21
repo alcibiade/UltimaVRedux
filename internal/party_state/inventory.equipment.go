@@ -6,24 +6,26 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-type InventoryItemType interface {
+// inventoryItemType is the set of item identities that carry a stored quantity.
+type inventoryItemType interface {
 	references.Equipment | references.Spell | references.Scroll |
 		references.QuestItem | references.Potion | references.Reagent |
 		references.Moonstone
 }
 
-type InventoryQuantities[TK InventoryItemType, TV ItemQuantity] struct {
+// inventoryQuantities maps one item identity family to lazily created capped stacks.
+type inventoryQuantities[TK inventoryItemType, TV ItemQuantity] struct {
 	quantities map[TK]*TV
 }
 
-func NewInventoryQuantities[TK InventoryItemType, TV ItemQuantity]() InventoryQuantities[TK, TV] {
-	ei := InventoryQuantities[TK, TV]{}
+func newInventoryQuantities[TK inventoryItemType, TV ItemQuantity]() inventoryQuantities[TK, TV] {
+	var ei inventoryQuantities[TK, TV]
 	ei.quantities = make(map[TK]*TV)
 
 	return ei
 }
 
-func (iq *InventoryQuantities[TK, TV]) ensureQuantity(itemType TK) *TV {
+func (iq *inventoryQuantities[TK, TV]) ensureQuantity(itemType TK) *TV {
 	if iq.quantities == nil {
 		iq.quantities = make(map[TK]*TV)
 	}
@@ -32,9 +34,9 @@ func (iq *InventoryQuantities[TK, TV]) ensureQuantity(itemType TK) *TV {
 	if !ok {
 		newItemQuantity := new(TV)
 		// Try ItemQuantitySmall first (most common), then ItemQuantityLarge
-		if converted, ok := any(&ItemQuantitySmall{}).(TV); ok {
+		if converted, ok := any(new(ItemQuantitySmall)).(TV); ok {
 			*newItemQuantity = converted
-		} else if converted, ok := any(&ItemQuantityLarge{}).(TV); ok {
+		} else if converted, ok := any(new(ItemQuantityLarge)).(TV); ok {
 			*newItemQuantity = converted
 		} else {
 			panic(fmt.Sprintf("failed to convert to type %T - programming error in inventory system", newItemQuantity))
@@ -49,31 +51,31 @@ func (iq *InventoryQuantities[TK, TV]) ensureQuantity(itemType TK) *TV {
 
 // GetQuantity returns the mutable quantity storage for legacy mutation call sites.
 // New read-only code must use Get or HasSome, neither of which inserts map entries.
-func (iq *InventoryQuantities[TK, TV]) GetQuantity(itemType TK) *TV {
+func (iq *inventoryQuantities[TK, TV]) GetQuantity(itemType TK) *TV {
 	return iq.ensureQuantity(itemType)
 }
 
-func (iq *InventoryQuantities[TK, TV]) IncrementByOne(itemType TK) {
+func (iq *inventoryQuantities[TK, TV]) IncrementByOne(itemType TK) {
 	(*iq.ensureQuantity(itemType)).IncrementByOne()
 }
 
-func (iq *InventoryQuantities[TK, TV]) DecrementByOne(itemType TK) bool {
+func (iq *inventoryQuantities[TK, TV]) DecrementByOne(itemType TK) bool {
 	return (*iq.ensureQuantity(itemType)).DecrementByOne()
 }
 
-func (iq *InventoryQuantities[TK, TV]) IncrementBy(itemType TK, incBy uint16) {
+func (iq *inventoryQuantities[TK, TV]) IncrementBy(itemType TK, incBy uint16) {
 	(*iq.ensureQuantity(itemType)).IncrementBy(incBy)
 }
 
-func (iq *InventoryQuantities[TK, TV]) DecrementBy(itemType TK, decBy uint16) bool {
+func (iq *inventoryQuantities[TK, TV]) DecrementBy(itemType TK, decBy uint16) bool {
 	return (*iq.ensureQuantity(itemType)).DecrementBy(decBy)
 }
 
-func (iq *InventoryQuantities[TK, TV]) Set(itemType TK, quantity uint16) {
+func (iq *inventoryQuantities[TK, TV]) Set(itemType TK, quantity uint16) {
 	(*iq.ensureQuantity(itemType)).Set(quantity)
 }
 
-func (iq *InventoryQuantities[TK, TV]) Get(itemType TK) uint16 {
+func (iq *inventoryQuantities[TK, TV]) Get(itemType TK) uint16 {
 	if iq.quantities == nil {
 		return 0
 	}
@@ -85,10 +87,10 @@ func (iq *InventoryQuantities[TK, TV]) Get(itemType TK) uint16 {
 	return (*itemQuantity).Get()
 }
 
-func (iq *InventoryQuantities[TK, TV]) HasSome(itemType TK) bool {
+func (iq *inventoryQuantities[TK, TV]) HasSome(itemType TK) bool {
 	return iq.Get(itemType) > 0
 }
 
-func (iq *InventoryQuantities[TK, TV]) SetHasOne(itemType TK) {
+func (iq *inventoryQuantities[TK, TV]) SetHasOne(itemType TK) {
 	(*iq.ensureQuantity(itemType)).SetHasOne()
 }

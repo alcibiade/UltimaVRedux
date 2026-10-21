@@ -20,41 +20,59 @@ func NewMiniMapScript(name string) *MiniMapScriptBuilder {
 	}
 }
 
+// newStep returns an otherwise empty step of the given type; callers set only the fields that type uses.
+func newStep(stepType StepType) ScriptStep {
+	return ScriptStep{
+		Type:              stepType,
+		ActorIDs:          nil,
+		Target:            nil,
+		Direction:         references.NoneDirection,
+		DelayMs:           0,
+		Duration:          0,
+		Visible:           false,
+		Sprite:            indexes.NoSprites,
+		PlayWalkingSounds: false,
+		Frame:             "",
+		TileCommand:       nil,
+	}
+}
+
 // WalkTo adds a walk step for a single actor to reach the target position
 func (b *MiniMapScriptBuilder) WalkTo(actor ActorID, target references.Position, delayMs int) *MiniMapScriptBuilder {
 	return b.WalkActors([]ActorID{actor}, target, delayMs)
 }
 
 // WalkActors adds a walk step for multiple actors to reach the target position
-func (b *MiniMapScriptBuilder) WalkActors(actors []ActorID, target references.Position, delayMs int) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{
-		Type:     StepWalk,
-		ActorIDs: actors,
-		Target:   &target,
-		DelayMs:  delayMs,
-	})
+func (b *MiniMapScriptBuilder) WalkActors(
+	actors []ActorID,
+	target references.Position,
+	delayMs int,
+) *MiniMapScriptBuilder {
+	step := newStep(StepWalk)
+	step.ActorIDs = actors
+	step.Target = &target
+	step.DelayMs = delayMs
+	b.script.Steps = append(b.script.Steps, step)
 
 	return b
 }
 
 // SetVisible adds a visibility step for a single actor
 func (b *MiniMapScriptBuilder) SetVisible(actor ActorID, visible bool) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{
-		Type:     StepSetVisible,
-		ActorIDs: []ActorID{actor},
-		Visible:  visible,
-	})
+	step := newStep(StepSetVisible)
+	step.ActorIDs = []ActorID{actor}
+	step.Visible = visible
+	b.script.Steps = append(b.script.Steps, step)
 
 	return b
 }
 
 // SetSprite adds a sprite change step for a single actor
 func (b *MiniMapScriptBuilder) SetSprite(actor ActorID, sprite indexes.SpriteIndex) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{
-		Type:     StepSetSprite,
-		ActorIDs: []ActorID{actor},
-		Sprite:   sprite,
-	})
+	step := newStep(StepSetSprite)
+	step.ActorIDs = []ActorID{actor}
+	step.Sprite = sprite
+	b.script.Steps = append(b.script.Steps, step)
 
 	return b
 }
@@ -62,29 +80,25 @@ func (b *MiniMapScriptBuilder) SetSprite(actor ActorID, sprite indexes.SpriteInd
 // SetFrame selects scene-owned presentation content. The script controls when
 // content changes while the rendering scene controls how that frame is drawn.
 func (b *MiniMapScriptBuilder) SetFrame(frame FrameID) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{ //nolint:exhaustruct // Step payload uses only frame fields.
-		Type:  StepSetFrame,
-		Frame: frame,
-	})
+	step := newStep(StepSetFrame)
+	step.Frame = frame
+	b.script.Steps = append(b.script.Steps, step)
 
 	return b
 }
 
 // AwaitAdvance pauses script progression until ScriptExecutor.Advance is called.
 func (b *MiniMapScriptBuilder) AwaitAdvance() *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{ //nolint:exhaustruct // Input gate has no payload.
-		Type: StepAwaitAdvance,
-	})
+	b.script.Steps = append(b.script.Steps, newStep(StepAwaitAdvance))
 
 	return b
 }
 
 // TileCommand appends a typed operation for a script-owned tile scene.
 func (b *MiniMapScriptBuilder) TileCommand(command TileCommand) *MiniMapScriptBuilder {
-	b.script.Steps = append(b.script.Steps, ScriptStep{ //nolint:exhaustruct // Step payload is the tile command.
-		Type:        StepTileCommand,
-		TileCommand: &command,
-	})
+	step := newStep(StepTileCommand)
+	step.TileCommand = &command
+	b.script.Steps = append(b.script.Steps, step)
 
 	return b
 }

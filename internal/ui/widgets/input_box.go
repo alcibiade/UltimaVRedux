@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"image"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -13,7 +14,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
-var _ Widget = &InputBox{}
+var _ Widget = (*InputBox)(nil)
 
 // NewYesNoCommand creates a yes/no grammar command with callbacks.
 // This helper extracts the common pattern for yes/no dialogs.
@@ -48,15 +49,15 @@ func NewYesNoCommand(onYes func(), onNo func(), dialogStack *DialogStack) *gramm
 			},
 		},
 		func(_ string, _ *grammar.TextCommand) {
-			ib := dialogStack.GetOrAssertTopInputBox()
-			if ib == nil {
+			inputBox := dialogStack.GetOrAssertTopInputBox()
+			if inputBox == nil {
 				return
 			}
-			response := strings.ToLower(ib.GetText())
+			response := strings.ToLower(inputBox.GetText())
 
 			// Invoke onDismiss callback if available (handles auto-pop via AutoCloseAndPop)
 			// This must happen BEFORE user callbacks to allow them to safely push new dialogs
-			ib.InvokeOnDismiss()
+			inputBox.InvokeOnDismiss()
 
 			switch response {
 			case "yes":
@@ -134,6 +135,8 @@ const (
 	// Line spacing uses 1:1 ratio (same as font size) - default in GetScaledFontWithOutput
 )
 
+// InputBox is a modal prompt card that asks a question and accepts typed input,
+// validated either by grammar commands or by a regex pattern.
 type InputBox struct {
 	textInput    *TextInput
 	textQuestion *text.Output
@@ -189,10 +192,19 @@ type InputBox struct {
 //	    Build()
 func NewInputBox(question string, textCommand *grammar.TextCommand, keyboard *input.Keyboard) *InputBoxBuilder {
 	return &InputBoxBuilder{
-		question:    question,
-		textCommand: textCommand,
-		keyboard:    keyboard,
-		autoReplace: false,
+		question:         question,
+		textCommand:      textCommand,
+		keyboard:         keyboard,
+		centerX:          nil, // Map-centred
+		centerY:          nil, // Standard bottom position
+		textLines:        nil,
+		charsPerLine:     nil,
+		autoReplace:      false,
+		regexPattern:     nil, // Grammar mode
+		resultCallback:   nil,
+		escapeClearsText: false,
+		spaceCancels:     false,
+		autoCloseStack:   nil,
 	}
 }
 
@@ -384,7 +396,9 @@ func (b *InputBoxBuilder) Build() *InputBox {
 }
 
 // calculateAutoSizeDimensions computes dialog dimensions from content requirements using shared function.
-func (b *InputBoxBuilder) calculateAutoSizeDimensions(centerX, centerY float64, textLines, charsPerLine int) InputBoxConfig {
+func (b *InputBoxBuilder) calculateAutoSizeDimensions(
+	centerX, centerY float64, textLines, charsPerLine int,
+) InputBoxConfig {
 	// Use shared auto-sizing function (InputBox has no prompt lines)
 	// FontSizeLarge (20pt) with 1:1 line spacing
 	placement := CalculateDialogAutoSizeDimensions(NewDialogAutoSizingParams(
@@ -417,29 +431,55 @@ func (b *InputBoxBuilder) calculateAutoSizeDimensions(centerX, centerY float64, 
 func createInputBoxFromConfig(
 	question string, textCommand *grammar.TextCommand, keyboard *input.Keyboard, config InputBoxConfig,
 ) *InputBox {
-	inputBox := &InputBox{}
-	inputBox.font = GetScaledFont(inputBoxFontSize)
+	isRegexMode := config.RegexPattern != ""
+	inputBox := &InputBox{
+		font:         GetScaledFont(inputBoxFontSize),
+		textInput:    newInputBoxTextInput(textCommand, keyboard, config, isRegexMode),
+		textQuestion: nil, // Built by ensureLayout
+		footerOutput: nil,
+		Question:     question,
+		config:       config,
+		layout: inputBoxLayout{ // Computed by ensureLayout
+			panelRect:        image.Rect(0, 0, 0, 0),
+			questionTextRect: image.Rect(0, 0, 0, 0),
+			inputTextRect:    image.Rect(0, 0, 0, 0),
+			footerTextRect:   image.Rect(0, 0, 0, 0),
+			pixelUnit:        0,
+			padding:          0,
+			lineGap:          0,
+		},
+		isRegexMode:      isRegexMode,
+		regexPattern:     config.RegexPattern,
+		resultCallback:   config.ResultCallback,
+		escapeClearsText: config.EscapeClearsText,
+		spaceCancels:     config.SpaceCancels,
+		keyboard:         keyboard,
+		onDismiss:        nil, // Set by AutoCloseAndPop
+		dismissInvoked:   false,
+		lastWidth:        0, // Forces the first ensureLayout
+		lastHeight:       0,
+	}
 
-	inputBox.Question = question
-	inputBox.keyboard = keyboard
-	inputBox.config = config
+	screenWidth, screenHeight := display.GetManager().GetCurrentSize()
+	inputBox.ensureLayout(screenWidth, screenHeight)
 
-	// Determine operating mode
-	inputBox.isRegexMode = config.RegexPattern != ""
-	inputBox.regexPattern = config.RegexPattern
-	inputBox.resultCallback = config.ResultCallback
-	inputBox.escapeClearsText = config.EscapeClearsText
-	inputBox.spaceCancels = config.SpaceCancels
+	return inputBox
+}
 
+// newInputBoxTextInput creates the light-green entry line, validated by the
+// grammar command or, in regex mode, by the configured pattern.
+func newInputBoxTextInput(
+	textCommand *grammar.TextCommand, keyboard *input.Keyboard, config InputBoxConfig, isRegexMode bool,
+) *TextInput {
 	// Create text commands for grammar mode (nil for regex mode)
 	var textCommands *grammar.TextCommands
-	if !inputBox.isRegexMode {
+	if !isRegexMode {
 		textCommands = &grammar.TextCommands{
 			*textCommand,
 		}
 	}
 
-	inputBox.textInput = NewTextInput(
+	textInput := NewTextInput(
 		sprites.PercentBasedPlacement{
 			StartPercentX: 0,
 			EndPercentX:   0,
@@ -449,42 +489,33 @@ func createInputBoxFromConfig(
 		GetScaledLineHeight(inputBoxFontSize), config.CharsPerLine,
 		textCommands,
 		TextInputCallbacks{
-			AmbiguousAutoComplete: func(message string) {
-			},
+			AmbiguousAutoComplete: func(_ string) {},
+			OnEnter:               nil,
+			OnCommandExecuted:     nil,
+			ShowCommandList:       nil,
 		},
 		keyboard)
 	// Set all input colors to light green for dialog input
-	inputBox.textInput.SetInputColors(TextInputColors{
+	textInput.SetInputColors(TextInputColors{
 		DefaultColor:          color.DialogInputTextColor,
 		NoMatchesColor:        color.DialogInputTextColor,
 		OneMatchColor:         color.DialogInputTextColor,
 		MoreThanOneMatchColor: color.DialogInputTextColor,
 	})
 
-	// Configure TextInput based on mode
-	if inputBox.isRegexMode {
-		// Regex mode: Use SetInputValidationRegex
-		if err := inputBox.textInput.SetInputValidationRegex(config.RegexPattern); err != nil {
+	// Regex validation provides the primary input filtering; maxCharsPerLine in
+	// NewTextInput enforces the length.
+	if isRegexMode {
+		if err := textInput.SetInputValidationRegex(config.RegexPattern); err != nil {
 			panic("Invalid regex pattern: " + err.Error())
 		}
-
-		// Note: MaxCharacters is enforced by maxCharsPerLine parameter in NewTextInput constructor
-		// Regex validation provides the primary input filtering
-
-		inputBox.textInput.SetAutoReplaceMode(config.AutoReplace)
-	} else {
-		// Grammar mode: Existing logic
-		if config.AutoReplace {
-			inputBox.textInput.SetAutoReplaceMode(true)
-		}
 	}
+	textInput.SetAutoReplaceMode(config.AutoReplace)
 
-	screenWidth, screenHeight := display.GetManager().GetCurrentSize()
-	inputBox.ensureLayout(screenWidth, screenHeight)
-
-	return inputBox
+	return textInput
 }
 
+// Draw renders the prompt card at the current screen size.
 func (i *InputBox) Draw(screen *ebiten.Image) {
 	if screen == nil {
 		return
@@ -493,47 +524,47 @@ func (i *InputBox) Draw(screen *ebiten.Image) {
 	i.drawPromptCard(screen)
 }
 
+// Update handles input. Grammar mode lets TextInput handle every key; regex mode
+// resolves Enter, Space and Escape here and reports the result.
 func (i *InputBox) Update() {
 	screenWidth, screenHeight := display.GetManager().GetCurrentSize()
 	i.ensureLayout(screenWidth, screenHeight)
-	if i.isRegexMode {
-		// Regex mode: Handle Enter/Escape at InputBox level (like TextInputDialog)
-		var text string
-		var submitted bool
+	if !i.isRegexMode {
+		i.textInput.Update()
 
-		if i.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) ||
-			i.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter) {
-			text = i.textInput.GetText()
-			submitted = true
-		} else if i.spaceCancels && i.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace) {
-			text = ""
-			submitted = false
-		} else if i.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {
-			if i.escapeClearsText {
-				i.textInput.Clear()
+		return
+	}
+	i.updateRegexMode()
+}
 
-				return
-			}
-			text = ""
-			submitted = false
-		} else {
-			// Let TextInput handle character input
-			i.textInput.Update()
+// updateRegexMode handles Enter/Escape at InputBox level (like TextInputDialog),
+// then invokes the result callback followed by the dismiss callback.
+func (i *InputBox) updateRegexMode() {
+	result := ""
+	submitted := false
+
+	switch {
+	case i.keyboard.IsKeyPressedAndRegister(ebiten.KeyEnter) ||
+		i.keyboard.IsKeyPressedAndRegister(ebiten.KeyNumpadEnter):
+		result = i.textInput.GetText()
+		submitted = true
+	case i.spaceCancels && i.keyboard.IsKeyPressedAndRegister(ebiten.KeySpace):
+		// Cancelled without text
+	case i.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape):
+		if i.escapeClearsText {
+			i.textInput.Clear()
 
 			return
 		}
-
-		// Key was pressed - invoke callbacks
-		i.resultCallback(text, submitted)
-
-		// Invoke dismiss callback AFTER result callback
-		i.InvokeOnDismiss()
+	default:
+		// Let TextInput handle character input
+		i.textInput.Update()
 
 		return
-	} else {
-		// Grammar mode: Existing logic - TextInput handles everything
-		i.textInput.Update()
 	}
+
+	i.resultCallback(result, submitted)
+	i.InvokeOnDismiss()
 }
 
 // AcceptsText reports that letter keys type into this box.
@@ -541,6 +572,7 @@ func (i *InputBox) AcceptsText() bool {
 	return true
 }
 
+// GetText returns the text currently typed into the box.
 func (i *InputBox) GetText() string {
 	return i.textInput.GetText()
 }

@@ -271,7 +271,7 @@ type GameState struct {
 	lordBritishFinale     *LordBritishFinaleState
 
 	// Shrine visual scene system (for 11x11 shrine map with walk animation)
-	ShrineScene       *shrine.ShrineScene // Active shrine scene state (nil when not in shrine)
+	ShrineScene       *shrine.Scene       // Active shrine scene state (nil when not in shrine)
 	PreShrineLocation references.Location // Location before entering shrine (for restoration)
 }
 

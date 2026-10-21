@@ -6,7 +6,9 @@ import (
 )
 
 type (
-	MapUnits      []MapUnit
+	// MapUnits is the set of NPCs, enemies and vehicles placed on one map.
+	MapUnits []MapUnit
+	// XyOccupiedMap marks occupied tiles as [x][y]; see CreateFreshXyOccupiedMap.
 	XyOccupiedMap map[int]map[int]bool
 )
 
@@ -15,6 +17,7 @@ func (m *MapUnits) ReplaceWith(units []MapUnit) {
 	*m = append((*m)[:0], units...)
 }
 
+// MaximumNpcsPerMap is the original game's fixed limit on NPC slots per map.
 const MaximumNpcsPerMap = 32
 
 func (m *MapUnits) getNextAvailableNPCIndexNumber() int {
@@ -44,6 +47,7 @@ func (m *MapUnits) HasCapacity() bool {
 	return m.getNextAvailableNPCIndexNumber() != -1
 }
 
+// RemoveNPCAtPosition hides and removes the first unit at position, reporting whether one was found.
 func (m *MapUnits) RemoveNPCAtPosition(position references.Position) bool {
 	// NOTE: the deletion could cause indexing issues - but shouldn't
 	for i, mu := range *m {
@@ -340,6 +344,7 @@ func (m *MapUnits) ClearAllMapUnits() {
 	*m = (*m)[:0]
 }
 
+// CreateFreshXyOccupiedMap builds the occupancy map of visible, non-empty units, keyed by X then Y.
 func (m *MapUnits) CreateFreshXyOccupiedMap() *XyOccupiedMap {
 	occupiedMap := make(XyOccupiedMap)
 	for _, mapUnit := range *m {

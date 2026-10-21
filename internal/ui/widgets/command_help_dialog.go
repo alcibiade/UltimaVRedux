@@ -102,7 +102,7 @@ func (d *CommandHelpDialog) ensureLayout() {
 	d.border = newDialogBorder(sprites.PercentBasedPlacement{
 		StartPercentX: commandHelpMargin, EndPercentX: 1 - commandHelpMargin,
 		StartPercentY: commandHelpMargin, EndPercentY: 1 - commandHelpMargin,
-	}, DialogBackgroundBlack)
+	})
 	font, output := GetScaledFontWithOutput(FontConfig{
 		Size: FontSizeMainScreen, MaxLines: 1, MaxChars: commandHelpInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: commandHelpSpacing,

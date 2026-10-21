@@ -88,10 +88,9 @@ func (gs *GameState) buildTeleportationSequence(
 				}
 				gs.SystemCallbacks.Visual.StabilizeTeleportationDestinationRenderer(destination)
 				gs.SystemCallbacks.Screen.UpdateDisplay()
-				switch {
-				case destination.Location == references.SkaraBrae:
+				if destination.Location == references.SkaraBrae {
 					gs.SystemCallbacks.Message.AddRowStr("The moongate whisks you to the ruins of Skara Brae!")
-				default:
+				} else {
 					gs.SystemCallbacks.Message.AddRowStr("The moongate whisks you away!")
 				}
 

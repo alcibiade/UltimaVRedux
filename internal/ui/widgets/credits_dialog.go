@@ -84,7 +84,7 @@ func (d *CreditsDialog) ensureLayout() {
 	d.border = newDialogBorder(sprites.PercentBasedPlacement{
 		StartPercentX: creditsMargin, EndPercentX: 1 - creditsMargin,
 		StartPercentY: creditsMargin, EndPercentY: 1 - creditsMargin,
-	}, DialogBackgroundBlack)
+	})
 	font, metrics := GetScaledFontWithOutput(FontConfig{
 		Size: FontSizeMainScreen, MaxLines: 1, MaxChars: 1, LineSpacing: 0, LineSpacingMultiplier: creditsLineSpacing,
 	})

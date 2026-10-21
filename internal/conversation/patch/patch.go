@@ -106,7 +106,7 @@ func ParseMetadata(data []byte) (Metadata, error) {
 
 // Apply validates all metadata and hunks, then applies the patch without fuzzy matching.
 //
-//nolint:cyclop,err113 // Exact metadata checks are the security boundary for patch application.
+//nolint:err113 // Exact metadata checks are the security boundary for patch application.
 func Apply(base, patchData []byte, expectation Expectation) ([]byte, error) {
 	if err := validateIdentity(expectation.Target, expectation.SchemaVersion, expectation.ExtractorVersion); err != nil {
 		return nil, fmt.Errorf("validating patch expectation: %w", err)
@@ -264,7 +264,7 @@ func parse(data []byte) (*document, error) {
 	}, nil
 }
 
-//nolint:cyclop,err113 // Exact old/new cursor checks are the core no-fuzz application contract.
+//nolint:err113 // Exact old/new cursor checks are the core no-fuzz application contract.
 func applyHunks(base []string, hunks []hunk) ([]string, error) {
 	result := make([]string, 0, len(base))
 	basePosition := 0
@@ -388,7 +388,7 @@ func metadataValue(line, name string) (string, error) {
 	return value, nil
 }
 
-//nolint:cyclop,err113 // Closed path/version validation is intentionally explicit.
+//nolint:err113 // Closed path/version validation is intentionally explicit.
 func validateIdentity(target, schemaVersion, extractorVersion string) error {
 	if target == "" || filepath.IsAbs(target) || filepath.ToSlash(filepath.Clean(target)) != target ||
 		target == ".." || strings.HasPrefix(target, "../") || strings.ContainsRune(target, '\\') ||

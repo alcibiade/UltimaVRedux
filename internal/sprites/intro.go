@@ -18,6 +18,8 @@ var (
 	reduxLogo []byte
 )
 
+// IntroSprites holds the decoded original title-sequence graphics and the
+// embedded Redux logo used by the intro scene.
 type IntroSprites struct {
 	OriginFrames     []*ebiten.Image
 	Presents         *ebiten.Image

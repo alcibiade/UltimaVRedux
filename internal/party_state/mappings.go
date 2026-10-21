@@ -20,10 +20,13 @@ CharacterClass
 enum <ubyte> Class { Avatar = 'A', Fighter = 'F', Bard = 'B', Wizard = 'M' };
 */
 
+// MaxCharactersInParty is the original limit of simultaneous party members.
 const MaxCharactersInParty = 6
 
+// CharacterClass is the original class byte, an ASCII letter.
 type CharacterClass byte
 
+// Avatar, Fighter, Bard and Wizard are the class letters stored in a character record.
 const (
 	Avatar  CharacterClass = 'A'
 	Fighter CharacterClass = 'F'
@@ -31,25 +34,26 @@ const (
 	Wizard  CharacterClass = 'M'
 )
 
-var CharacterClasses = util.OrderedMapping[CharacterClass]{
-	{Id: Avatar, FriendlyName: "Avatar"},
-	{Id: Fighter, FriendlyName: "Fighter"},
-	{Id: Bard, FriendlyName: "Bard"},
-	{Id: Wizard, FriendlyName: "Wizard"},
-}
-
 // String returns the friendly name for a character class
 func (c CharacterClass) String() string {
-	entry := CharacterClasses.GetById(c)
-	if entry == nil {
-		return "Unknown"
+	switch c {
+	case Avatar:
+		return "Avatar"
+	case Fighter:
+		return "Fighter"
+	case Bard:
+		return "Bard"
+	case Wizard:
+		return "Wizard"
 	}
 
-	return entry.FriendlyName
+	return "Unknown"
 }
 
+// CharacterStatus is the original status byte, an ASCII letter.
 type CharacterStatus byte
 
+// Good, Poisoned, Charmed, Sleep and Dead are the status letters stored in a character record.
 const (
 	Good     CharacterStatus = 'G'
 	Poisoned CharacterStatus = 'P'
@@ -58,6 +62,7 @@ const (
 	Dead     CharacterStatus = 'D'
 )
 
+// CharacterStatuses lists every status with its display name, in save order.
 var CharacterStatuses = util.OrderedMapping[CharacterStatus]{
 	{Id: Good, FriendlyName: "Good"},
 	{Id: Poisoned, FriendlyName: "Poisoned"},
@@ -69,13 +74,16 @@ var CharacterStatuses = util.OrderedMapping[CharacterStatus]{
 // Gender
 // enum <ubyte> Gender { Male = 0x0B, Female = 0x0C };
 
+// CharacterGender is the original gender byte, a code of 0x0B or 0x0C.
 type CharacterGender byte
 
+// Male and Female are the gender codes stored in a character record.
 const (
 	Male   CharacterGender = 0x0B
 	Female CharacterGender = 0x0C
 )
 
+// CharacterGenders lists every gender with its display name, in save order.
 var CharacterGenders = util.OrderedMapping[CharacterGender]{
 	{Id: Male, FriendlyName: "Male"},
 	{Id: Female, FriendlyName: "Female"},

@@ -83,7 +83,7 @@ func (d *DungeonViewDialog) rebuildLayout(screenWidth, screenHeight int) {
 		return
 	}
 	d.screenWidth, d.screenHeight = screenWidth, screenHeight
-	d.border = newDialogBorder(d.placement, DialogBackgroundBlack)
+	d.border = newDialogBorder(d.placement)
 	d.bounds = d.border.GetBounds()
 	bounds := localDungeonViewBounds(d.border)
 	d.prepareOutputs(screenWidth, bounds.Dx())

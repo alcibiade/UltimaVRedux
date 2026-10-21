@@ -40,8 +40,12 @@ func (g *GameScene) drawMoongates(screen *ebiten.Image) {
 	// Initialize moongate sprite if needed
 	g.initMoongateSprite()
 
-	// Get elapsed time for animations
-	elapsedMs := uint64(g.getElapsedMs())
+	// Get elapsed time for animations; the presentation clock never runs backwards.
+	elapsed := g.getElapsedMs()
+	if elapsed < 0 {
+		elapsed = 0
+	}
+	elapsedMs := uint64(elapsed)
 
 	// Get active moongate renderers from the visual system
 	activeRenderers := g.moongateVisualSystem.GetActiveRenderers()

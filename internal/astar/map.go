@@ -27,6 +27,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
+// Map is a walkability grid for A* pathfinding of one map unit.
 type Map struct {
 	walkableMap map[references.Position]int
 	bWrap       bool
@@ -38,9 +39,14 @@ type Map struct {
 // NewAStarMap creates a new A* pathfinding map instance.
 // The map must be initialized with InitializeByLayeredMap before pathfinding.
 func NewAStarMap() *Map {
-	a := &Map{}
-
-	return a
+	return &Map{
+		walkableMap: nil,
+		bWrap:       false,
+		maxX:        0,
+		maxY:        0,
+		mapUnit:     nil,
+		start:       references.Position{X: 0, Y: 0},
+	}
 }
 
 // AStar performs A* pathfinding from the map unit's current position to the goal.
@@ -65,6 +71,7 @@ func (m *Map) AStar(goal references.Position) []references.Position {
 		Position: start,
 		GScore:   0,
 		FScore:   start.HeuristicTileDistance(goal),
+		Parent:   nil,
 	}
 	heap.Push(openSet, startNode)
 
@@ -160,6 +167,8 @@ func (m *Map) InitializeByMovementCost(
 	}
 }
 
+// InitializeByLayeredMapWithLimit builds the walkable grid only within nMaxRadius tiles of centerPos,
+// which keeps per-enemy pathfinding cheap. It panics if the radius does not fit the map size.
 func (m *Map) InitializeByLayeredMapWithLimit(
 	mapUnit map_units.MapUnit,
 	lMap *map_state.LayeredMap,

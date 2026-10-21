@@ -155,6 +155,7 @@ func NewLighthouseState() *LighthouseState {
 		currentAngle: UninitializedAngle,
 		litTilesMap:  make(map[references.Position]bool),
 		lastUpdateMs: 0,
+		isLargeMap:   false,
 	}
 }
 
@@ -279,7 +280,7 @@ func (ls *LighthouseState) rotate() {
 // lightShape adds all tiles from the given shape index to litTilesMap.
 func (ls *LighthouseState) lightShape(shapeIndex int) {
 	// Wrap shape index to valid range
-	shapeIndex = shapeIndex % (MaxLighthouseAngle + 1)
+	shapeIndex %= MaxLighthouseAngle + 1
 
 	shape := &lighthouseConeShapes[shapeIndex]
 
@@ -304,7 +305,7 @@ func (ls *LighthouseState) lightShape(shapeIndex int) {
 // unlightShape removes all tiles from the given shape index from litTilesMap.
 func (ls *LighthouseState) unlightShape(shapeIndex int) {
 	// Wrap shape index to valid range
-	shapeIndex = shapeIndex % (MaxLighthouseAngle + 1)
+	shapeIndex %= MaxLighthouseAngle + 1
 
 	shape := &lighthouseConeShapes[shapeIndex]
 

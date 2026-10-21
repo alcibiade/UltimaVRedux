@@ -38,31 +38,8 @@ func configurePlayerSaveRepository(game *Game, options playerSaveStartupOptions)
 		options.root = filepath.Join(home, ".ultima_v_redux", "saves")
 	}
 
-	configuration := game.currentScene.GetUltimaConfiguration()
 	game.notebookRoot = filepath.Join(options.root, "excerpts")
-	var (
-		once           sync.Once
-		gameReferences *references.GameReferences
-		referencesErr  error
-	)
-	validateCompatibility := func(snapshot save_snapshot.SaveSnapshot) error {
-		once.Do(func() {
-			if configuration == nil {
-				referencesErr = fmt.Errorf(
-					"%w: game configuration is required for compatibility validation",
-					ErrPlayerSaveUnavailable,
-				)
-
-				return
-			}
-			gameReferences, referencesErr = references.NewGameReferences(configuration)
-		})
-		if referencesErr != nil {
-			return fmt.Errorf("loading runtime references for player saves: %w", referencesErr)
-		}
-
-		return game_state.ValidateSaveSnapshotCompatibility(snapshot, gameReferences)
-	}
+	validateCompatibility := newSaveCompatibilityValidator(game.currentScene.GetUltimaConfiguration())
 	repository, err := player_save.NewRepository(options.root, validateCompatibility)
 	if err != nil {
 		return fmt.Errorf("configuring player save repository: %w", err)
@@ -85,4 +62,35 @@ func configurePlayerSaveRepository(game *Game, options playerSaveStartupOptions)
 	)
 
 	return nil
+}
+
+// newSaveCompatibilityValidator checks snapshots against runtime references,
+// which are loaded from configuration on first use and then reused.
+func newSaveCompatibilityValidator(
+	configuration *config.UltimaVConfiguration,
+) func(save_snapshot.SaveSnapshot) error {
+	var (
+		once           sync.Once
+		gameReferences *references.GameReferences
+		referencesErr  error
+	)
+
+	return func(snapshot save_snapshot.SaveSnapshot) error {
+		once.Do(func() {
+			if configuration == nil {
+				referencesErr = fmt.Errorf(
+					"%w: game configuration is required for compatibility validation",
+					ErrPlayerSaveUnavailable,
+				)
+
+				return
+			}
+			gameReferences, referencesErr = references.NewGameReferences(configuration)
+		})
+		if referencesErr != nil {
+			return fmt.Errorf("loading runtime references for player saves: %w", referencesErr)
+		}
+
+		return game_state.ValidateSaveSnapshotCompatibility(snapshot, gameReferences)
+	}
 }

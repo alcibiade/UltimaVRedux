@@ -149,3 +149,15 @@ func TestSpriteIndex_MerchantKeyIndex(t *testing.T) {
 		}
 	}
 }
+
+// TestSpriteIndex_IsPartOfAnimationStopsBeforeTheNextSequence keeps the sprite
+// after a four-frame sequence (Guard → Apparition) out of the sequence.
+func TestSpriteIndex_IsPartOfAnimationStopsBeforeTheNextSequence(t *testing.T) {
+	last := Guard_KeyIndex + StandardNumberOfAnimationFrames - 1
+	if !last.IsPartOfAnimation(Guard_KeyIndex) {
+		t.Errorf("sprite %d should be the last guard frame", last)
+	}
+	if next := last + 1; next.IsPartOfAnimation(Guard_KeyIndex) {
+		t.Errorf("sprite %d starts the next sequence, not a guard frame", next)
+	}
+}

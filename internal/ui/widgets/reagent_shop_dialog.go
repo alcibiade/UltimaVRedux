@@ -28,7 +28,6 @@ const (
 	reagentShopMinimumInset     = 4
 	reagentShopInsetDivisor     = 64
 	reagentShopCellInsetUnits   = 2
-	reagentShopCenterDivisor    = 2
 	reagentShopDoubleInset      = 2
 	reagentShopLineSpacing      = 1.08
 	reagentShopMinimumTextChars = 8
@@ -480,12 +479,7 @@ func (d *ReagentShopDialog) drawCatalogCell(
 	alignment etext.Align,
 ) {
 	inset := max(1, d.pixelUnit()*reagentShopCellInsetUnits)
-	cell := image.Rect(column.Min.X+inset, row.Min.Y, max(column.Min.X+inset+1, column.Max.X-inset), row.Max.Y)
-	d.catalogOutput.SetMaxCharsPerLine(max(1, len(value)+1))
-	d.catalogOutput.Reset()
-	d.catalogOutput.AppendLine().Text(value, color).Done()
-	y := cell.Min.Y + max(0, (cell.Dy()-int(math.Ceil(d.catalogOutput.GetFontHeight())))/reagentShopCenterDivisor)
-	d.catalogOutput.DrawPanelContent(screen, image.Pt(cell.Min.X, y), max(1, cell.Dx()), alignment)
+	drawMerchantTableCell(screen, d.catalogOutput, row, column, inset, value, color, alignment)
 }
 
 func (d *ReagentShopDialog) drawHorizontalRule(screen *ebiten.Image, bounds image.Rectangle, color stdcolor.Color) {

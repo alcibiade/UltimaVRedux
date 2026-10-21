@@ -15,7 +15,7 @@ func (g *GameState) GetShadowlordPlanetIndices() []int {
 		lord := g.GetShadowlordForLocation(references.Location(loc))
 		if lord != references.NoShadowlord {
 			// Planet index = town location - 1
-			planetIndex := int(loc) - ShadowlordTownMinLocation
+			planetIndex := loc - ShadowlordTownMinLocation
 			indices = append(indices, planetIndex)
 		}
 	}

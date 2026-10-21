@@ -43,14 +43,18 @@ const (
 	UNDERWORLD World = -1
 )
 
+// NewLargeMapReference loads the overworld map for OVERWORLD and the underworld
+// map for any other world.
 func NewLargeMapReference(gameConfig *config.UltimaVConfiguration, world World) (*LargeMapReference, error) {
 	if world == OVERWORLD {
 		return loadLargeMapFromFile(OVERWORLD, gameConfig)
-	} else {
-		return loadLargeMapFromFile(UNDERWORLD, gameConfig)
 	}
+
+	return loadLargeMapFromFile(UNDERWORLD, gameConfig)
 }
 
+// GetSpriteIndex returns the stored tile at the wrapped position, with animated
+// waterfall and clock tiles reduced to their first frame.
 func (m *LargeMapReference) GetSpriteIndex(x, y Coordinate) indexes.SpriteIndex {
 	pos := Position{X: x, Y: y}
 	wrappedPos := pos.GetWrapped(XLargeMapTiles, YLargeMapTiles)

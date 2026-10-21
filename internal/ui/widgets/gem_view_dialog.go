@@ -125,8 +125,27 @@ var gemTile = [256]int{
 // NewGemViewDialog creates a new gem view display dialog.
 // The dialog renders once on creation (static), then simply blits the buffer on each Draw().
 func NewGemViewDialog(config GemViewDialogConfig) *GemViewDialog {
-	g := &GemViewDialog{
+	// Initialize keyboard debouncing - wait for current keys to be released
+	if config.Keyboard != nil {
+		config.Keyboard.PrepareForTransition(KeyboardTransitionDelayMs)
+	}
+
+	// Create border with opaque black interior
+	border := newDialogBorder(config.Placement)
+	bounds := border.GetBounds()
+	screenWidth, screenHeight := display.GetManager().GetCurrentSize()
+
+	dialog := &GemViewDialog{
+		buffer:            ebiten.NewImage(bounds.Dx(), bounds.Dy()), // Static render target
+		flashBuffer:       nil,                                       // Rendered after buffer
+		drawOptions:       &ebiten.DrawImageOptions{},
+		border:            border,
 		placement:         config.Placement,
+		bounds:            bounds,
+		pixelUnit:         getClassicUIPixelUnit(screenWidth, screenHeight),
+		hint:              staticViewerHint{output: nil, width: 0},
+		dismissed:         false,
+		waitingForRelease: true, // Start waiting for trigger keys to be released
 		keyboard:          config.Keyboard,
 		playerWorldX:      config.PlayerWorldX,
 		playerWorldY:      config.PlayerWorldY,
@@ -134,33 +153,17 @@ func NewGemViewDialog(config GemViewDialogConfig) *GemViewDialog {
 		viewOriginY:       gemViewOrigin(config.PlayerWorldY, config.WrapMap),
 		getTileAt:         config.GetTileAt,
 		wrapMap:           config.WrapMap,
-		dismissed:         false,
-		waitingForRelease: true, // Start waiting for trigger keys to be released
-		drawOptions:       &ebiten.DrawImageOptions{},
+		flashVisible:      false,
 	}
-
-	// Initialize keyboard debouncing - wait for current keys to be released
-	if config.Keyboard != nil {
-		config.Keyboard.PrepareForTransition(KeyboardTransitionDelayMs)
-	}
-
-	// Create border with opaque black interior
-	g.border = newDialogBorder(config.Placement, DialogBackgroundBlack)
-	g.bounds = g.border.GetBounds()
-	screenWidth, screenHeight := display.GetManager().GetCurrentSize()
-	g.pixelUnit = getClassicUIPixelUnit(screenWidth, screenHeight)
-
-	// Create buffer for static rendering
-	g.buffer = ebiten.NewImage(g.bounds.Dx(), g.bounds.Dy())
 
 	// Position draw options for the buffer
-	g.drawOptions.GeoM.Translate(float64(g.bounds.Min.X), float64(g.bounds.Min.Y))
+	dialog.drawOptions.GeoM.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
 
 	// Render everything to buffer once
-	g.renderToBuffer()
-	g.renderFlashBuffer()
+	dialog.renderToBuffer()
+	dialog.renderFlashBuffer()
 
-	return g
+	return dialog
 }
 
 // renderToBuffer draws the gem view map to the internal buffer.
@@ -180,9 +183,10 @@ func (g *GemViewDialog) renderToBuffer() {
 	tileHeight := float32(g.bounds.Dy()) / float32(gemViewGridSize)
 
 	// Render each tile in the 32x32 grid
-	for ty := range gemViewGridSize {
-		for tx := range gemViewGridSize {
-			worldX, worldY := g.worldPosition(tx, ty)
+	layers := gemPlotLayerTable()
+	for tileY := range gemViewGridSize {
+		for tileX := range gemViewGridSize {
+			worldX, worldY := g.worldPosition(tileX, tileY)
 
 			// Get tile sprite index at this world position
 			tileIndex := 0
@@ -191,19 +195,21 @@ func (g *GemViewDialog) renderToBuffer() {
 			}
 
 			// Clamp to valid range
-			if tileIndex < 0 || tileIndex >= 256 {
+			if tileIndex < 0 || tileIndex >= len(gemTile) {
 				tileIndex = 0
 			}
 
 			// Map the terrain byte to its compact plot type; ref:VIEW-0002.
 			plotType := gemTile[tileIndex]
 
-			// Calculate screen position for this tile
-			screenX := float32(tx) * tileWidth
-			screenY := float32(ty) * tileHeight
-
-			// Render the plot type (pass tileIndex for directional roads)
-			g.renderPlotType(screenX, screenY, tileWidth, tileHeight, plotType, tileIndex)
+			// Render the plot type (pass tileIndex for directional rivers and roads)
+			tile := gemPlotTile{
+				originX: float32(tileX) * tileWidth,
+				originY: float32(tileY) * tileHeight,
+				width:   tileWidth,
+				height:  tileHeight,
+			}
+			g.renderPlotType(tile, layers[plotType], plotType, tileIndex)
 		}
 	}
 	applyClassicPixelRoundedMask(g.buffer, g.pixelUnit)
@@ -216,150 +222,111 @@ func (g *GemViewDialog) renderFlashBuffer() {
 	applyClassicPixelRoundedMask(g.flashBuffer, g.pixelUnit)
 }
 
-// renderPlotType draws a single plot type at the given position.
-// Original plot types 0-16 with scaled tile dimensions; ref:VIEW-0002.
-// Original uses 4x4 pixel tiles; we scale proportionally.
-// tileIndex is needed for directional tiles like roads (plotv16).
-func (g *GemViewDialog) renderPlotType(x, y, width, height float32, plotType, tileIndex int) {
-	switch plotType {
-	case 0:
-		// Nothing (black background already filled)
-		return
+// Plot types with tile-dependent artwork; every other type draws its fixed
+// gemPlotLayerTable pattern. Original plot numbering; ref:VIEW-0002.
+const (
+	gemPlotRiver     = 10
+	gemPlotRoad      = 16
+	gemPlotTypeCount = 17
+)
 
-	case 1:
-		// plotv1: Light green 4 scattered pixels (forest/trees)
-		// Place four dots at (1,0), (1,2), (3,1), and (3,3); ref:VIEW-0002.
-		g.drawPixel(x, y, width, height, 1, 0, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 1, 2, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 3, 1, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 3, 3, gemColorLGreen)
+// gemPlotRect is a filled rectangle measured in cells of the original 4x4 plot.
+type gemPlotRect struct {
+	column, row, columns, rows int
+}
 
-	case 2:
-		// plotv2: Light green solid fill (dense forest)
-		g.drawFilledBox(x, y, width, height, gemColorLGreen)
+// gemPlotLayer fills a set of plot rectangles with one EGA colour.
+type gemPlotLayer struct {
+	color stdcolor.Color
+	rects []gemPlotRect
+}
 
-	case 3:
-		// RED solid fill (mountains/rocks)
-		g.drawFilledBox(x, y, width, height, gemColorRed)
+// gemPlotLayerTable returns the fixed artwork of plot types 0-16 in original
+// 4x4 cells; ref:VIEW-0002. Plot 0 is the black background. River plots use
+// gemViewRiverWaterMask instead, and roads add gemViewRoadConnectionMask.
+func gemPlotLayerTable() [gemPlotTypeCount][]gemPlotLayer {
+	forestDots := []gemPlotRect{{1, 0, 1, 1}, {1, 2, 1, 1}, {3, 1, 1, 1}, {3, 3, 1, 1}}
+	solid := []gemPlotRect{{0, 0, 4, 4}}
+	centerBlock := []gemPlotRect{{1, 1, 2, 1}, {1, 2, 2, 1}}
 
-	case 4:
-		// plotv4: WHITE 2 horizontal lines (bridges/structures)
-		// Draw full top and bottom rows; ref:VIEW-0002.
-		g.drawHLine(x, y, width, height, 0, gemColorWhite) // y=0
-		g.drawHLine(x, y, width, height, 3, gemColorWhite) // y=3
-
-	case 5:
-		// plotv5: WHITE 2x2 center block (buildings/towns)
-		// Fill the central 2x2 block; ref:VIEW-0002.
-		g.drawHLineSegment(x, y, width, height, 1, 2, 1, gemColorWhite) // y=1, x=1-2
-		g.drawHLineSegment(x, y, width, height, 1, 2, 2, gemColorWhite) // y=2, x=1-2
-
-	case 6:
-		// plotv6: WHITE hollow rectangle (walls/castles)
-		// Original: top line, bottom line, left segment, right segment
-		g.drawHLine(x, y, width, height, 0, gemColorWhite)                               // top
-		g.drawHLine(x, y, width, height, gemViewOriginalGridSize-1, gemColorWhite)       // bottom
-		g.drawMiddleVLine(x, y, width, height, 0, gemColorWhite)                         // left, y=1-2
-		g.drawMiddleVLine(x, y, width, height, gemViewOriginalGridSize-1, gemColorWhite) // right, y=1-2
-
-	case 7:
-		// WHITE solid fill (towns/structures)
-		g.drawFilledBox(x, y, width, height, gemColorWhite)
-
-	case 8:
-		// plotv8: YELLOW checkerboard pattern (swamp)
-		// Original: 2x2 block at top-left, 2x2 block at bottom-right
-		g.drawHLineSegment(x, y, width, height, 0, 1, 0, gemColorYellow) // y=0, x=0-1
-		g.drawHLineSegment(x, y, width, height, 0, 1, 1, gemColorYellow) // y=1, x=0-1
-		g.drawHLineSegment(x, y, width, height, 2, 3, 2, gemColorYellow) // y=2, x=2-3
-		g.drawHLineSegment(x, y, width, height, 2, 3, 3, gemColorYellow) // y=3, x=2-3
-
-	case 9:
-		// plotv9: Light green pattern (brush/scrub)
-		// Original: 2 horizontal lines + 2 pixels
-		g.drawHLine(x, y, width, height, 0, gemColorLGreen)    // y=0
-		g.drawHLine(x, y, width, height, 2, gemColorLGreen)    // y=2
-		g.drawPixel(x, y, width, height, 2, 1, gemColorLGreen) // pixel at (2,1)
-		g.drawPixel(x, y, width, height, 0, 3, gemColorLGreen) // pixel at (0,3)
-
-	case 10:
-		// plotv10: River direction masks retain green banks around blue water.
-		waterMask := gemViewRiverWaterMask(tileIndex)
-		points := [4][2]int{{1, 0}, {3, 1}, {1, 2}, {3, 3}}
-		for i, point := range points {
-			c := gemColorLGreen
-			if waterMask&(gemViewNorthMask>>i) != 0 {
-				c = gemColorLBlue
-			}
-			g.drawPixel(x, y, width, height, point[0], point[1], c)
-		}
-
-	case 11:
-		// plotv11: Light blue 2 diagonal pixels (shallow water)
-		// Place dots at (0,0) and (2,2); ref:VIEW-0002.
-		g.drawPixel(x, y, width, height, 0, 0, gemColorLBlue)
-		g.drawPixel(x, y, width, height, 2, 2, gemColorLBlue)
-
-	case 12:
-		// Light blue single pixel (water feature)
-		// Place a dot at (2,2); ref:VIEW-0002.
-		g.drawPixel(x, y, width, height, 2, 2, gemColorLBlue)
-
-	case 13:
-		// plotv13: Mixed light green + light blue pattern (coast/shore)
-		// Original: green at (1,0), (3,1); blue at (0,2), (2,3)
-		g.drawPixel(x, y, width, height, 1, 0, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 3, 1, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 0, 2, gemColorLBlue)
-		g.drawPixel(x, y, width, height, 2, 3, gemColorLBlue)
-
-	case 14:
-		// WHITE 2 vertical lines (ladder/passage)
-		// Fill the middle two columns; ref:VIEW-0002.
-		g.drawVLine(x, y, width, height, 1, gemColorWhite) // x=1
-		g.drawVLine(x, y, width, height, 2, gemColorWhite) // x=2
-
-	case 15:
-		// Light blue solid fill (ocean/deep water)
-		g.drawFilledBox(x, y, width, height, gemColorLBlue)
-
-	case 16:
-		// plotv16: Road pattern with directional connections
-		// plotv1 background (light green scattered pixels)
-		g.drawPixel(x, y, width, height, 1, 0, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 1, 2, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 3, 1, gemColorLGreen)
-		g.drawPixel(x, y, width, height, 3, 3, gemColorLGreen)
-
-		// Red center 2x2 block
-		g.drawHLineSegment(x, y, width, height, 1, 2, 1, gemColorRed)
-		g.drawHLineSegment(x, y, width, height, 1, 2, 2, gemColorRed)
-
-		// Read road-connection bits relative to base tile 0x20; ref:VIEW-0002.
-		g.drawRoadConnections(x, y, width, height, tileIndex)
+	return [gemPlotTypeCount][]gemPlotLayer{
+		1: {{gemColorLGreen, forestDots}},                               // plotv1: forest/trees
+		2: {{gemColorLGreen, solid}},                                    // plotv2: dense forest
+		3: {{gemColorRed, solid}},                                       // mountains/rocks
+		4: {{gemColorWhite, []gemPlotRect{{0, 0, 4, 1}, {0, 3, 4, 1}}}}, // plotv4: bridges
+		5: {{gemColorWhite, centerBlock}},                               // plotv5: buildings/towns
+		6: {{gemColorWhite, []gemPlotRect{ // plotv6: hollow walls/castles
+			{0, 0, 4, 1}, {0, 3, 4, 1}, {0, 1, 1, 2}, {3, 1, 1, 2}}}},
+		7: {{gemColorWhite, solid}}, // towns/structures
+		8: {{gemColorYellow, []gemPlotRect{ // plotv8: swamp checkerboard
+			{0, 0, 2, 1}, {0, 1, 2, 1}, {2, 2, 2, 1}, {2, 3, 2, 1}}}},
+		9: {{gemColorLGreen, []gemPlotRect{ // plotv9: brush/scrub
+			{0, 0, 4, 1}, {0, 2, 4, 1}, {2, 1, 1, 1}, {0, 3, 1, 1}}}},
+		11: {{gemColorLBlue, []gemPlotRect{{0, 0, 1, 1}, {2, 2, 1, 1}}}}, // plotv11: shallow water
+		12: {{gemColorLBlue, []gemPlotRect{{2, 2, 1, 1}}}},               // water feature
+		13: { // plotv13: coast/shore
+			{gemColorLGreen, []gemPlotRect{{1, 0, 1, 1}, {3, 1, 1, 1}}},
+			{gemColorLBlue, []gemPlotRect{{0, 2, 1, 1}, {2, 3, 1, 1}}},
+		},
+		14: {{gemColorWhite, []gemPlotRect{{1, 0, 1, 4}, {2, 0, 1, 4}}}}, // ladder/passage
+		15: {{gemColorLBlue, solid}},                                     // ocean/deep water
+		16: {{gemColorLGreen, forestDots}, {gemColorRed, centerBlock}},   // plotv16: road centre
 	}
 }
 
-//nolint:mnd,varnamelen // Original 4x4 plot coordinates and x/y drawing origins are idiomatic here; ref:VIEW-0002.
-func (g *GemViewDialog) drawRoadConnections(x, y, width, height float32, tileIndex int) {
+// renderPlotType draws one plot type, scaled from the original 4x4 cells to the
+// tile size; ref:VIEW-0002. tileIndex selects river and road directions.
+func (g *GemViewDialog) renderPlotType(tile gemPlotTile, layers []gemPlotLayer, plotType, tileIndex int) {
+	if plotType == gemPlotRiver {
+		g.drawRiverPlot(tile, tileIndex)
+
+		return
+	}
+	for _, layer := range layers {
+		for _, rect := range layer.rects {
+			g.drawPlotRect(tile, rect, layer.color)
+		}
+	}
+	if plotType == gemPlotRoad {
+		g.drawRoadConnections(tile, tileIndex)
+	}
+}
+
+// drawRiverPlot keeps green banks around the blue water quadrants of plotv10.
+func (g *GemViewDialog) drawRiverPlot(tile gemPlotTile, tileIndex int) {
+	waterMask := gemViewRiverWaterMask(tileIndex)
+	quadrants := [4]gemPlotRect{{1, 0, 1, 1}, {3, 1, 1, 1}, {1, 2, 1, 1}, {3, 3, 1, 1}}
+	for quadrant, rect := range quadrants {
+		quadrantColor := gemColorLGreen
+		if waterMask&(gemViewNorthMask>>quadrant) != 0 {
+			quadrantColor = gemColorLBlue
+		}
+		g.drawPlotRect(tile, rect, quadrantColor)
+	}
+}
+
+// drawRoadConnections reads road-connection bits relative to base tile 0x20; ref:VIEW-0002.
+func (g *GemViewDialog) drawRoadConnections(tile gemPlotTile, tileIndex int) {
 	directionMask, ok := gemViewRoadConnectionMask(tileIndex)
 	if !ok {
 		return
 	}
-	if directionMask&gemViewNorthMask != 0 {
-		g.drawHLineSegment(x, y, width, height, 1, 2, 0, gemColorRed)
+	connections := [4]struct {
+		mask uint8
+		rect gemPlotRect
+	}{
+		{gemViewNorthMask, gemPlotRect{1, 0, 2, 1}},
+		{gemViewEastMask, gemPlotRect{3, 1, 1, 2}},
+		{gemViewSouthMask, gemPlotRect{1, 3, 2, 1}},
+		{gemViewWestMask, gemPlotRect{0, 1, 1, 2}},
 	}
-	if directionMask&gemViewEastMask != 0 {
-		g.drawMiddleVLine(x, y, width, height, gemViewOriginalGridSize-1, gemColorRed)
-	}
-	if directionMask&gemViewSouthMask != 0 {
-		g.drawHLineSegment(x, y, width, height, 1, 2, 3, gemColorRed)
-	}
-	if directionMask&gemViewWestMask != 0 {
-		g.drawMiddleVLine(x, y, width, height, 0, gemColorRed)
+	for _, connection := range connections {
+		if directionMask&connection.mask != 0 {
+			g.drawPlotRect(tile, connection.rect, gemColorRed)
+		}
 	}
 	if cutoutX, cutoutY, hasCutout := gemViewRoadCutout(tileIndex); hasCutout {
-		g.drawPixel(x, y, width, height, cutoutX, cutoutY, gemColorBlack)
+		g.drawPlotRect(tile, gemPlotRect{cutoutX, cutoutY, 1, 1}, gemColorBlack)
 	}
 }
 
@@ -430,67 +397,18 @@ func gemViewRoadCutout(tile int) (int, int, bool) {
 	}
 }
 
-// Drawing helpers that scale 4x4 original pixel coordinates to our tile size.
-// Original surface View uses 4x4 pixel tiles; we scale proportionally; ref:VIEW-0002.
-
-// drawFilledBox fills a tile with a solid color.
-func (g *GemViewDialog) drawFilledBox(x, y, width, height float32, c stdcolor.Color) {
-	vector.FillRect(g.buffer, x, y, width, height, c, false)
+// gemPlotTile is the screen rectangle of one 4x4 original plot.
+type gemPlotTile struct {
+	originX, originY, width, height float32
 }
 
-// drawPixel draws a single pixel at the given 4x4 grid position, scaled to tile size.
-// px, py are coordinates in the original 4x4 tile (0-3).
-func (g *GemViewDialog) drawPixel(x, y, width, height float32, px, py int, c stdcolor.Color) {
-	// Scale the pixel position and size
-	pixelW := width / gemViewOriginalGridSize
-	pixelH := height / gemViewOriginalGridSize
-
-	screenX := x + float32(px)*pixelW
-	screenY := y + float32(py)*pixelH
-
-	vector.FillRect(g.buffer, screenX, screenY, pixelW, pixelH, c, false)
-}
-
-// drawHLine draws a full-width horizontal line at the given y position (0-3).
-func (g *GemViewDialog) drawHLine(x, y, width, height float32, py int, c stdcolor.Color) {
-	lineH := height / gemViewOriginalGridSize
-	screenY := y + float32(py)*lineH
-
-	vector.FillRect(g.buffer, x, screenY, width, lineH, c, false)
-}
-
-// drawVLine draws a full-height vertical line at the given x position (0-3).
-func (g *GemViewDialog) drawVLine(x, y, width, height float32, px int, c stdcolor.Color) {
-	lineW := width / gemViewOriginalGridSize
-	screenX := x + float32(px)*lineW
-
-	vector.FillRect(g.buffer, screenX, y, lineW, height, c, false)
-}
-
-// drawHLineSegment draws a horizontal line segment from x1 to x2 (inclusive) at y position py.
-// x1, x2, py are coordinates in the original 4x4 tile (0-3).
-func (g *GemViewDialog) drawHLineSegment(x, y, width, height float32, x1, x2, py int, c stdcolor.Color) {
-	pixelW := width / gemViewOriginalGridSize
-	pixelH := height / gemViewOriginalGridSize
-
-	screenX := x + float32(x1)*pixelW
-	screenY := y + float32(py)*pixelH
-	segmentW := float32(x2-x1+1) * pixelW
-
-	vector.FillRect(g.buffer, screenX, screenY, segmentW, pixelH, c, false)
-}
-
-// drawMiddleVLine draws the middle two vertical pixels of the original 4x4 tile at the given column.
-func (g *GemViewDialog) drawMiddleVLine(originX, originY, width, height float32, column int, lineColor stdcolor.Color) {
-	const segmentPixelCount = 2
-	pixelW := width / gemViewOriginalGridSize
-	pixelH := height / gemViewOriginalGridSize
-
-	screenX := originX + float32(column)*pixelW
-	screenY := originY + pixelH
-	segmentH := segmentPixelCount * pixelH
-
-	vector.FillRect(g.buffer, screenX, screenY, pixelW, segmentH, lineColor, false)
+// drawPlotRect fills rect, given in original 4x4 cells, scaled to the tile size.
+func (g *GemViewDialog) drawPlotRect(tile gemPlotTile, rect gemPlotRect, fill stdcolor.Color) {
+	cellW := tile.width / gemViewOriginalGridSize
+	cellH := tile.height / gemViewOriginalGridSize
+	vector.FillRect(g.buffer,
+		tile.originX+float32(rect.column)*cellW, tile.originY+float32(rect.row)*cellH,
+		float32(rect.columns)*cellW, float32(rect.rows)*cellH, fill, false)
 }
 
 // Draw implements Widget interface.

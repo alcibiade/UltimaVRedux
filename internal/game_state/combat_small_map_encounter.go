@@ -252,14 +252,17 @@ func (g *GameState) buildSmallMapEncounterOrigin(
 		// Original town rules call killnpc before combat, regardless of initiator or outcome.
 		// See ref:CRIME-0004.
 		origin.Consequences.PersistentSourceDead = ordinary && monsterType != references.MonsterGuard
-		if cause == SmallMapEncounterAttack {
+		switch cause {
+		case SmallMapEncounterAttack:
 			if ordinary {
 				origin.Consequences.KarmaPenalty = 5
 			}
 			origin.Consequences.ActivateGuards = ordinary || monsterType == references.MonsterDevil
 			origin.Consequences.CompleteSourceTurn = true
-		} else if cause == SmallMapEncounterArrestRefusal {
+		case SmallMapEncounterArrestRefusal:
 			origin.Consequences.ActivateGuards = true
+		case SmallMapEncounterShadowlordAdjacency, SmallMapEncounterHostileNPCAdjacency:
+			// Adjacency encounters add no Attack or arrest-refusal consequences.
 		}
 	case *map_units.NPCEnemy:
 		if typedSource == nil || cause == SmallMapEncounterArrestRefusal {

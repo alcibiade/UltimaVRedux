@@ -238,6 +238,7 @@ func (dm *DisplayManager) Update() bool {
 	} else {
 		dm.pending = false
 	}
+
 	return changed
 }
 

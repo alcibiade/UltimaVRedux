@@ -4,6 +4,9 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
+// viewportHalves splits a viewport into two sides around its centre tile.
+const viewportHalves = 2
+
 // GridToScreenTile converts an actor's grid position to a screen tile position
 // relative to the camera center.
 //
@@ -18,7 +21,7 @@ import (
 // The camera center will appear at the center of the viewport.
 // For an 11x11 viewport, the center is at screen tile (5,5).
 func GridToScreenTile(actorPos, cameraCenter references.Position, viewportSize int) (int, int) {
-	center := viewportSize / 2
+	center := viewportSize / viewportHalves
 
 	// Calculate offset from camera center
 	offsetX := int(actorPos.X) - int(cameraCenter.X)

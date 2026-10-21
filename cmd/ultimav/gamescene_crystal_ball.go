@@ -2,6 +2,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -226,6 +228,11 @@ func (g *GameScene) getSurfaceViewTileIndex(worldX, worldY int) int {
 	// Get the current layered map
 	layeredMap := g.gameState.GetLayeredMapByCurrentLocation()
 	if layeredMap == nil {
+		return 0
+	}
+
+	// No map extends beyond the Coordinate range.
+	if worldX < math.MinInt16 || worldX > math.MaxInt16 || worldY < math.MinInt16 || worldY > math.MaxInt16 {
 		return 0
 	}
 

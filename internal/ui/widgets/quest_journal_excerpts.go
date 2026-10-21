@@ -16,6 +16,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+// questJournalExcerptStorageUnavailable is shown when an excerpt action has no storage callback.
+const questJournalExcerptStorageUnavailable = "Excerpt storage unavailable."
+
 func cloneJournalExchanges(exchanges []journal.Exchange) []journal.Exchange {
 	result := make([]journal.Exchange, len(exchanges))
 	for i, exchange := range exchanges {
@@ -136,7 +139,7 @@ func (d *QuestJournalDialog) handleExcerptInput() bool {
 	}
 	if d.activeTab == QuestJournalConversationTab && d.keyboard.IsKeyPressedAndRegister(ebiten.KeyK) {
 		if d.keepExcerpt == nil {
-			d.excerptStatus = "Excerpt storage unavailable."
+			d.excerptStatus = questJournalExcerptStorageUnavailable
 
 			return true
 		}
@@ -155,7 +158,7 @@ func (d *QuestJournalDialog) handleExcerptInput() bool {
 func (d *QuestJournalDialog) handleExcerptManagementInput() bool {
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyA) {
 		if d.archiveExcerpt == nil {
-			d.excerptStatus = "Excerpt storage unavailable."
+			d.excerptStatus = questJournalExcerptStorageUnavailable
 
 			return true
 		}
@@ -171,7 +174,7 @@ func (d *QuestJournalDialog) handleExcerptManagementInput() bool {
 	}
 	if d.keyboard.IsKeyPressedAndRegister(ebiten.KeyDelete) || d.keyboard.IsKeyPressedAndRegister(ebiten.KeyD) {
 		if d.deleteExcerpt == nil {
-			d.excerptStatus = "Excerpt storage unavailable."
+			d.excerptStatus = questJournalExcerptStorageUnavailable
 		} else {
 			d.deletePending = true
 		}

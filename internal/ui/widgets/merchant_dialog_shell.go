@@ -3,6 +3,7 @@ package widgets
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"math"
 	"strings"
 	"unicode/utf8"
@@ -599,6 +600,25 @@ func verticallyCenteredOutputY(bounds image.Rectangle, output *text.Output) int 
 	textHeight := int(math.Ceil(output.GetTotalHeightForLines(lineCount)))
 
 	return bounds.Min.Y + max(0, (bounds.Dy()-textHeight)/merchantShellCenterDivisor)
+}
+
+// drawMerchantTableCell draws one value in a merchant table cell: column on row,
+// inset from the column edges, vertically centred, reusing output.
+func drawMerchantTableCell(
+	screen *ebiten.Image,
+	output *text.Output,
+	row, column image.Rectangle,
+	inset int,
+	value string,
+	valueColor color.Color,
+	alignment etext.Align,
+) {
+	cell := image.Rect(column.Min.X+inset, row.Min.Y, max(column.Min.X+inset+1, column.Max.X-inset), row.Max.Y)
+	output.SetMaxCharsPerLine(max(1, len(value)+1))
+	output.Reset()
+	output.AppendLine().Text(value, valueColor).Done()
+	y := cell.Min.Y + max(0, (cell.Dy()-int(math.Ceil(output.GetFontHeight())))/merchantShellCenterDivisor)
+	output.DrawPanelContent(screen, image.Pt(cell.Min.X, y), max(1, cell.Dx()), alignment)
 }
 
 func insetRectangle(bounds image.Rectangle, inset int) image.Rectangle {

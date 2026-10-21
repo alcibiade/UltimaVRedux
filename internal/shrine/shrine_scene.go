@@ -13,8 +13,8 @@ const (
 	CenterX     = 5                              // X position (always centered)
 )
 
-// ShrineScene manages the shrine visual experience and state
-type ShrineScene struct {
+// Scene manages the shrine visual experience and state
+type Scene struct {
 	// Shrine identification
 	ShrineIndex int
 
@@ -29,15 +29,15 @@ type ShrineScene struct {
 }
 
 // NewShrineSceneWithMap creates a shrine scene with a specific map reference
-func NewShrineSceneWithMap(shrineIndex int, originalPlayerLocation references.PlayerLocation, mapData *MiniMapData) *ShrineScene {
-	scene := &ShrineScene{
+func NewShrineSceneWithMap(
+	shrineIndex int, originalPlayerLocation references.PlayerLocation, mapData *MiniMapData,
+) *Scene {
+	scene := &Scene{
 		ShrineIndex:            shrineIndex,
 		IsActive:               true,
 		OriginalPlayerLocation: originalPlayerLocation,
+		ShrineMap:              NewShrineMapWithData(mapData), // Shrine map with loaded data
 	}
-
-	// Create the shrine map with loaded data
-	scene.ShrineMap = NewShrineMapWithData(mapData)
 
 	logging.Debug(logging.CategoryGameState, "Created shrine scene for shrine %d with loaded map data", shrineIndex)
 
@@ -45,6 +45,6 @@ func NewShrineSceneWithMap(shrineIndex int, originalPlayerLocation references.Pl
 }
 
 // GetOriginalPlayerLocation returns the player location to return to after shrine
-func (ss *ShrineScene) GetOriginalPlayerLocation() references.PlayerLocation {
+func (ss *Scene) GetOriginalPlayerLocation() references.PlayerLocation {
 	return ss.OriginalPlayerLocation
 }

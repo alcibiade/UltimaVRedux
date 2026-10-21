@@ -760,34 +760,9 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 	cursorPos := d.itemListNav.GetCursorScreenPosition()
 
 	for i := startIdx; i < endIdx; i++ {
-		item := d.availableItems[i]
 		screenRow := i - startIdx
 		rowTop := contentStartY + screenRow*lineHeight
-
-		isSelected := screenRow == cursorPos
-
-		// Draw selection highlight
-		if isSelected {
-			highlightPadding := float32(fontSize * readyHighlightPaddingRatio)
-			vector.FillRect(screen,
-				float32(bounds.Min.X),
-				float32(rowTop)-highlightPadding,
-				float32(bounds.Dx()),
-				float32(fontSize)+highlightPadding*readyCenterDivisor,
-				color.EGAWhite,
-				false)
-		}
-
-		row := d.itemTextRect(bounds, rowTop)
-		d.populateItemRow(item, isSelected, row.Dx())
-		clipBounds := row.Intersect(screen.Bounds())
-		if !clipBounds.Empty() {
-			clipped, ok := screen.SubImage(clipBounds).(*ebiten.Image)
-			if !ok {
-				panic("Ready item row clip is not an image")
-			}
-			d.itemsOutput.DrawPanelContent(clipped, row.Min, row.Dx(), etext.AlignStart)
-		}
+		d.drawItemRow(screen, bounds, rowTop, d.availableItems[i], screenRow == cursorPos)
 	}
 
 	// Centre the shared cues on the highlighted text rows inside the item gutter.
@@ -795,6 +770,36 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 		bounds.Max.X-itemDialogTextPadding-readyDetailInset, bounds.Max.Y)
 	drawMasterDetailScrollIndicators(screen, list, startIdx, endIdx, len(d.availableItems), lineHeight,
 		d.itemScrollGutter(), d.font, d.itemsOutput)
+}
+
+// drawItemRow draws one available item at rowTop, highlighted when selected and
+// clipped to its text row.
+func (d *ReadyEquipmentDialog) drawItemRow(
+	screen *ebiten.Image, bounds image.Rectangle, rowTop int, item availableEquipment, isSelected bool,
+) {
+	// Draw selection highlight
+	if isSelected {
+		fontSize := d.font.TextFace.Size
+		highlightPadding := float32(fontSize * readyHighlightPaddingRatio)
+		vector.FillRect(screen,
+			float32(bounds.Min.X),
+			float32(rowTop)-highlightPadding,
+			float32(bounds.Dx()),
+			float32(fontSize)+highlightPadding*readyCenterDivisor,
+			color.EGAWhite,
+			false)
+	}
+
+	row := d.itemTextRect(bounds, rowTop)
+	d.populateItemRow(item, isSelected, row.Dx())
+	clipBounds := row.Intersect(screen.Bounds())
+	if !clipBounds.Empty() {
+		clipped, ok := screen.SubImage(clipBounds).(*ebiten.Image)
+		if !ok {
+			panic("Ready item row clip is not an image")
+		}
+		d.itemsOutput.DrawPanelContent(clipped, row.Min, row.Dx(), etext.AlignStart)
+	}
 }
 
 // drawDetailPanel draws the item details panel (Pane 4 - right)

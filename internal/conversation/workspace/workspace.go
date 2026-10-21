@@ -244,7 +244,7 @@ func Diff(options Options, writer io.Writer) (*DiffResult, error) {
 
 // Patches atomically regenerates the complete cumulative project patch tree.
 //
-//nolint:cyclop,err113,funlen // Manifest-order generation keeps accounting adjacent to each validated patch.
+//nolint:err113,funlen // Manifest-order generation keeps accounting adjacent to each validated patch.
 func Patches(options Options) (*PatchResult, error) {
 	if err := validateOptions(options, false, true); err != nil {
 		return nil, err
@@ -394,7 +394,7 @@ func loadCatalog(options Options) (*catalog, error) {
 	return catalog, nil
 }
 
-//nolint:cyclop,err113,funlen // Manifest, audit, schema, content hash, tree, and semantics form one integrity check.
+//nolint:err113,funlen // Manifest, audit, schema, content hash, tree, and semantics form one integrity check.
 func loadBase(options Options) (*catalog, error) {
 	baseRoot := filepath.Join(options.Workspace, baseDirectory)
 	manifest, err := extractor.LoadManifest(filepath.Join(baseRoot, manifestFilename))
@@ -464,7 +464,7 @@ func loadBase(options Options) (*catalog, error) {
 	return &catalog{options: options, manifest: manifest, base: base, edited: nil, parsed: parsed}, nil
 }
 
-//nolint:cyclop,err113 // Workspace ownership validation is a closed root-directory contract.
+//nolint:err113 // Workspace ownership validation is a closed root-directory contract.
 func validateWorkspaceRoot(root string) error {
 	info, err := os.Lstat(root)
 	if err != nil {
