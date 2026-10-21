@@ -3,9 +3,6 @@
 # Git pre-commit hook to run validation checks
 # Install with: git config core.hooksPath .githooks
 
-# Keep every normal local commit formatted and at zero lint findings before
-# running the project-specific regression checks.
+# The script owns the complete check-only route, including Python index parity.
 set -e
-make format-check
-make lint
 exec ./scripts/pre-commit-checks.sh

@@ -22,51 +22,48 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import TypedDict, cast
 
-# Location ID to name mapping (from internal/references/locations.go)
-LOCATIONS = {
-    0: "BritanniaUnderworld",
-    1: "Moonglow",
-    2: "Britain",
-    3: "Jhelom",
-    4: "Yew",
-    5: "Minoc",
-    6: "Trinsic",
-    7: "SkaraBrae",
-    8: "NewMagincia",
-    9: "Fogsbane",
-    10: "Stormcrow",
-    11: "Greyhaven",
-    12: "Waveguide",
-    13: "IolosHut",
-    14: "SuteksHut",
-    15: "SinVraalsHut",
-    16: "GrendelsHut",
-    17: "LordBritishsCastle",
-    18: "PalaceOfBlackthorn",
-    19: "WestBritanny",
-    20: "NorthBritanny",
-    21: "EastBritanny",
-    22: "Paws",
-    23: "Cove",
-    24: "BuccaneersDen",
-    25: "Ararat",
-    26: "Bordermarch",
-    27: "Farthing",
-    28: "Windemere",
-    29: "Stonegate",
-    30: "Lycaeum",
-    31: "EmpathAbbey",
-    32: "SerpentsHold",
-    33: "Deceit",
-    34: "Despise",
-    35: "Destard",
-    36: "Wrong",
-    37: "Covetous",
-    38: "Shame",
-    39: "Hythloth",
-    40: "Doom",
-}
+from lookup_locations import LOCATIONS
+
+type JSONValue = None | bool | int | float | str | list[JSONValue] | dict[
+    str, JSONValue
+]
+type Tiles = list[list[int]]
+
+
+class TileReference(TypedDict, total=False):
+    """Named fields used for rendering; exported tiles also carry scalar properties."""
+
+    Name: str
+    Description: str
+
+
+class Position(TypedDict, total=False):
+    """Optional overworld coordinates in reference snapshots."""
+
+    x: int
+    y: int
+
+
+class LocationPosition(TypedDict, total=False):
+    """A location identity and its overworld position."""
+
+    location: int
+    position: Position
+
+
+class WorldLocations(TypedDict, total=False):
+    """World location lookup exported by ref_dump."""
+
+    large_map_location_positions: dict[str, LocationPosition]
+
+
+class LocationReferences(TypedDict, total=False):
+    """Root location snapshot."""
+
+    world_locations: WorldLocations
+
 
 # Reverse lookup
 LOCATION_BY_NAME = {v.lower(): k for k, v in LOCATIONS.items()}
@@ -219,13 +216,13 @@ TILE_SYMBOLS = {
 }
 
 
-def find_script_dir():
+def find_script_dir() -> Path:
     """Find the project root directory."""
     script_path = Path(__file__).resolve()
     return script_path.parent.parent
 
 
-def find_data_path():
+def find_data_path() -> Path | None:
     """Use explicit ULTIMA5_DATA_PATH/DIR, otherwise repository OLD/."""
     explicit = os.environ.get("ULTIMA5_DATA_PATH") or os.environ.get("ULTIMA5_DATA_DIR")
     path = Path(explicit).expanduser() if explicit else find_script_dir() / "OLD"
@@ -234,27 +231,27 @@ def find_data_path():
     return None
 
 
-def load_json(filename):
+def load_json(filename: str) -> JSONValue:
     """Load a JSON file from u5dump/json/."""
     json_path = find_script_dir() / "u5dump" / "json" / filename
     if not json_path.exists():
         print(f"Error: {json_path} not found", file=sys.stderr)
         sys.exit(1)
-    with open(json_path, "r") as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_tile_refs():
+def load_tile_refs() -> dict[str, TileReference]:
     """Load tile references."""
-    return load_json("TileReferences.json")
+    return cast(dict[str, TileReference], load_json("TileReferences.json"))
 
 
-def load_location_refs():
+def load_location_refs() -> LocationReferences:
     """Load location references."""
-    return load_json("LocationReferences.json")
+    return cast(LocationReferences, load_json("LocationReferences.json"))
 
 
-def get_map_type(location_name):
+def get_map_type(location_name: str) -> str | None:
     """Get the SmallMapMasterType for a location."""
     for map_type, locations in MAP_TYPES.items():
         if location_name in locations:
@@ -262,7 +259,7 @@ def get_map_type(location_name):
     return None
 
 
-def get_location_offset(location_name):
+def get_location_offset(location_name: str) -> int:
     """Get the byte offset for a location within its .DAT file."""
     map_type = get_map_type(location_name)
     if not map_type:
@@ -274,18 +271,19 @@ def get_location_offset(location_name):
     if map_type == "Dungeon":
         # Dungeons are 8x8 per floor, 8 floors
         return index * 8 * 8 * 8
-    else:
-        # Small maps are 32x32 per floor
-        offset = 0
-        for i in range(index):
-            loc = locations_in_type[i]
-            floors = FLOOR_COUNTS.get(loc, 1)
-            offset += floors * 32 * 32
-        return offset
+    # Small maps are 32x32 per floor
+    offset = 0
+    for i in range(index):
+        loc = locations_in_type[i]
+        floors = FLOOR_COUNTS.get(loc, 1)
+        offset += floors * 32 * 32
+    return offset
 
 
-def load_small_map(location_name, data_path):
+def load_small_map(location_name: str, data_path: Path) -> dict[int, Tiles] | None:
     """Load a small map (32x32 tiles per floor)."""
+    # Named offsets and coordinates make the legacy tile layout auditable.
+    # pylint: disable=too-many-locals
     map_type = get_map_type(location_name)
     if not map_type or map_type == "Dungeon":
         return None
@@ -319,7 +317,7 @@ def load_small_map(location_name, data_path):
     return result
 
 
-def load_dungeon_map(location_name, data_path):
+def load_dungeon_map(location_name: str, data_path: Path) -> dict[int, Tiles] | None:
     """Load a dungeon map (8x8 tiles per floor, 8 floors)."""
     if location_name not in MAP_TYPES["Dungeon"]:
         return None
@@ -348,8 +346,10 @@ def load_dungeon_map(location_name, data_path):
     return result
 
 
-def load_large_map(world, data_path):
+def load_large_map(world: str, data_path: Path) -> Tiles | None:
     """Load the large overworld or underworld map (256x256)."""
+    # Keep chunk, overlay and tile coordinates explicit in the binary decoder.
+    # pylint: disable=too-many-locals
     if world == "overworld":
         map_file = "BRIT.DAT"
         ovl_file = "DATA.OVL"
@@ -402,7 +402,7 @@ def load_large_map(world, data_path):
     return tiles
 
 
-def get_tile_symbol(tile_index, tile_refs):
+def get_tile_symbol(tile_index: int, tile_refs: dict[str, TileReference]) -> str:
     """Get ASCII symbol for a tile."""
     tile_key = str(tile_index)
     if tile_key not in tile_refs:
@@ -418,30 +418,35 @@ def get_tile_symbol(tile_index, tile_refs):
             return symbol
 
     # Special cases by index
-    if tile_index in [1, 2, 3]:  # Water tiles
-        return "~"
-    if tile_index == 4:  # Swamp
-        return "%"
-    if tile_index == 5:  # Grass
-        return "."
-    if tile_index in range(6, 11):  # Forest
-        return "T"
-    if tile_index in range(11, 16):  # Hills/Mountains
-        return "^"
-    if tile_index in range(32, 39):  # Paths
-        return "="
-    if tile_index in range(64, 74):  # Floors
-        return "."
-    if tile_index in range(74, 88):  # Walls
-        return "#"
-    if 166 <= tile_index <= 171:  # Doors
-        return "+"
+    ranges = (
+        (1, 3, "~"),  # Water
+        (4, 4, "%"),  # Swamp
+        (5, 5, "."),  # Grass
+        (6, 10, "T"),  # Forest
+        (11, 15, "^"),  # Hills/mountains
+        (32, 38, "="),  # Paths
+        (64, 73, "."),  # Floors
+        (74, 87, "#"),  # Walls
+        (166, 171, "+"),  # Doors
+    )
+    for first, last, symbol in ranges:
+        if first <= tile_index <= last:
+            return symbol
 
     return TILE_SYMBOLS["default"]
 
 
-def render_ascii_map(tiles, width, height, tile_refs, start_x=0, start_y=0):
+def render_ascii_map(
+    tiles: Tiles,
+    width: int,
+    height: int,
+    tile_refs: dict[str, TileReference],
+    start_x: int = 0,
+    start_y: int = 0,
+) -> str:
     """Render tiles as ASCII art."""
+    # Preserve the existing renderer API with explicit viewport size and origin.
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     lines = []
 
     # Header with column numbers
@@ -468,7 +473,7 @@ def render_ascii_map(tiles, width, height, tile_refs, start_x=0, start_y=0):
 # ============= Commands =============
 
 
-def cmd_location(args):
+def cmd_location(args: argparse.Namespace) -> None:
     """Get details about a location."""
     name = args.name
 
@@ -498,9 +503,9 @@ def cmd_location(args):
     print(f"  Floors: {floors}" + (" (has basement)" if has_basement else ""))
 
     if map_type == "Dungeon":
-        print(f"  Map Size: 8x8 tiles per floor")
+        print("  Map Size: 8x8 tiles per floor")
     elif map_type:
-        print(f"  Map Size: 32x32 tiles per floor")
+        print("  Map Size: 32x32 tiles per floor")
 
     # Try to get overworld coordinates
     try:
@@ -508,18 +513,20 @@ def cmd_location(args):
         positions = loc_refs.get("world_locations", {}).get(
             "large_map_location_positions", {}
         )
-        for key, value in positions.items():
+        for value in positions.values():
             if value.get("location") == location_id:
                 pos = value.get("position", {})
                 print(f"  Overworld: ({pos.get('x', '?')}, {pos.get('y', '?')})")
                 break
-    except:
+    # Coordinates are optional: preserve historical best-effort output even when
+    # the snapshot loader exits or a malformed export raises an exception.
+    except BaseException:  # pylint: disable=broad-exception-caught
         pass
 
     print()
 
 
-def cmd_locations(args):
+def cmd_locations(args: argparse.Namespace) -> None:
     """List locations of a specific type."""
     map_type = args.type
 
@@ -539,7 +546,7 @@ def cmd_locations(args):
     print()
 
 
-def cmd_tile(args):
+def cmd_tile(args: argparse.Namespace) -> None:
     """Get tile information by index or name."""
     tile_refs = load_tile_refs()
 
@@ -577,7 +584,7 @@ def cmd_tile(args):
         print()
 
 
-def cmd_tiles(args):
+def cmd_tiles(args: argparse.Namespace) -> None:
     """List tiles with a specific property."""
     tile_refs = load_tile_refs()
     prop = args.property
@@ -601,11 +608,16 @@ def cmd_tiles(args):
     print()
 
 
-def cmd_find_tile(args):
+def cmd_find_tile(args: argparse.Namespace) -> None:
     """Find all positions of a tile in a map."""
+    # The command validates input, selects a map family and prints each matching floor.
+    # pylint: disable=too-many-branches
     data_path = find_data_path()
     if not data_path:
-        print("Error: Game data not found. Set ULTIMA5_DATA_PATH/ULTIMA5_DATA_DIR or provide repository OLD/.")
+        print(
+            "Error: Game data not found. Set ULTIMA5_DATA_PATH/ULTIMA5_DATA_DIR "
+            "or provide repository OLD/."
+        )
         return
 
     location_name = None
@@ -634,7 +646,7 @@ def cmd_find_tile(args):
         map_data = load_small_map(location_name, data_path)
         map_size = 32
     else:
-        print(f"Cannot search large maps yet")
+        print("Cannot search large maps yet")
         return
 
     if not map_data:
@@ -667,13 +679,18 @@ def cmd_find_tile(args):
     print()
 
 
-def cmd_render(args):
+def cmd_render(args: argparse.Namespace) -> None:
     """Render ASCII map."""
+    # World and local render modes keep their historical independent error messages.
+    # pylint: disable=too-many-branches
     tile_refs = load_tile_refs()
     data_path = find_data_path()
 
     if not data_path:
-        print("Error: Game data not found. Set ULTIMA5_DATA_PATH/ULTIMA5_DATA_DIR or provide repository OLD/.")
+        print(
+            "Error: Game data not found. Set ULTIMA5_DATA_PATH/ULTIMA5_DATA_DIR "
+            "or provide repository OLD/."
+        )
         return
 
     if args.overworld:
@@ -716,7 +733,7 @@ def cmd_render(args):
             map_data = load_small_map(location_name, data_path)
             map_size = 32
         else:
-            print(f"Use --overworld for large maps")
+            print("Use --overworld for large maps")
             return
 
         if not map_data:
@@ -732,14 +749,15 @@ def cmd_render(args):
         print_legend()
 
 
-def print_legend():
+def print_legend() -> None:
     """Print ASCII rendering legend."""
     print("\nLegend: ~=Water .=Floor/Grass #=Wall +=Door T=Tree/Forest")
     print("        ^=Hills M=Mountain %=Swamp :=Desert ==Path H=Ladder")
     print()
 
 
-def main():
+def main() -> None:
+    """Parse the established lookup commands and dispatch their presentation."""
     parser = argparse.ArgumentParser(
         description="Map Lookup Helper for Ultima V Redux",
         formatter_class=argparse.RawDescriptionHelpFormatter,

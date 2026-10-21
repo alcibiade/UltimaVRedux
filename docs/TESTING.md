@@ -326,6 +326,9 @@ The `Makefile` is the command authority:
 | Command | Purpose |
 | --- | --- |
 | `make tools` | Networked provisioning: download modules and install pinned Go tools into `bin/tools`. |
+| `make python-tools PYTHON_BOOTSTRAP=python3.12` | Separately provision the hashed Black/Pylint environment using an installed Python 3.12+ interpreter. |
+| `make python-format` / `make python-format-check` | Apply stable Black formatting or check the full Python inventory without mutation. |
+| `make python-lint` / `make python-check` | Require zero enabled Pylint diagnostics, or run both Python format and lint checks. |
 | `make test` | Run uncached logic JSON tests without a display, with the complete package inventory and other required scope assignments. |
 | `make test-render` | Run required native/Ebitengine-linked tests; use Xvfb on headless Linux and a native backend on macOS/Windows. |
 | `make test-all` | Run the aggregate logic and render gate sequentially. |
@@ -343,8 +346,8 @@ The `Makefile` is the command authority:
 | `make pre-commit` | Run `scripts/pre-commit-checks.sh`. |
 | `make policy-check` | Run the script's architecture/input/logging policy checks without repeating Go formatting, vet, build, or tests. |
 | `make docs-check` | Validate retained Markdown links and anchors, catalog coverage and ownership, and documentation authority boundaries. |
-| `make gamefacts-check` | Validate the public Game Facts catalog, canonical rule IDs, relationships, and public references with Python 3.9+. |
-| `make tooling-test` | Run pure Python developer-tool regressions. |
+| `make gamefacts-check` | Validate the public Game Facts catalog, canonical rule IDs, relationships, and public references with provisioned Python 3.12+. |
+| `make tooling-test` | Run developer-tool regressions, including real failing Black/Pylint fixtures and isolated Git/hook checks. |
 | `make validate` | Run `check`, `policy-check`, `build-check`, documentation, public Game Facts, and developer-tool validation locally with `GOPROXY=off`, `GOSUMDB=off`, and `GOTOOLCHAIN=local`. Missing prerequisites fail, not download. |
 | `make quality-gate` | Run validation, render tests, frontend build/browser tests, and serial debug race tests once each, with named stage timings. |
 
@@ -364,15 +367,40 @@ xvfb-run -a go test ./cmd/ultimav
 ```
 
 Provision separately before offline validation: `make tools` installs
-`goimports@v0.37.0` and `golangci-lint@v2.12.2`. Python 3.9+ is required for public
-Game Facts checks. Node/npm is needed for frontend builds and frontend-specific
-validation; it is not a player prerequisite. Provision the module's selected Go
+`goimports@v0.37.0` and `golangci-lint@v2.12.2`. Python 3.12+ is required for scripts
+and tests; `make python-tools` installs Black 26.10.1 and Pylint 4.0.4 from the
+hashed lock into `.cache/python-quality`. Set `PYTHON_BOOTSTRAP` explicitly when
+ambient Python is older. All Make Python checks use that environment and never
+install tools during validation.
+The Go-driven audio-module bridge test also selects the platform-specific
+`.cache/python-quality` interpreter and checks its readiness before execution;
+it never selects ambient `python3`.
+
+Node/npm is needed for frontend builds and frontend-specific validation; it is not
+a player prerequisite. Provision the module's selected Go
 toolchain (`go 1.27.0`, `toolchain go1.27.1`) before offline validation.
 Race-instrumented tests require a native C toolchain, separate from the
 C-compiler-free player installation. Browser provisioning is separate from testing
 (`npx playwright install --with-deps --only-shell chromium` from the frontend directory after
 dependency installation). `make validate` does not install frontend dependencies
 or browsers.
+
+Python checks include every tracked and nonignored new source/test file, with no
+debt baseline. `make python-check tooling-test gamefacts-check` is the focused
+Python lane. Regression fixtures invoke the actual pinned tools and require
+formatting errors and lint errors to fail without source mutation. Isolated Git
+fixtures cover new/ignored/tracked files, deletions, symlinks, partial staging,
+executable modes and the native hook's single check route. No hook is installed
+by these tests. Existing graph, lookup, packaging and Go-lint-routing assertions
+remain in the same unittest discovery suite.
+
+Aggregate formatting/lint reaches the Python checks once through Make's shared
+prerequisites; the quality gate retains its single `make validate` invocation.
+The native hook's full route additionally checks Python/config/runner index
+parity before and after checks, and fails without formatting or staging anything.
+The policy-only aggregate path omits those repeated checks. See
+[Python quality workflow](DEVELOPMENT_GUIDE.md#python-quality-workflow) for the
+effective Pylint exit policy, provisioning and tool-identity contract.
 
 Frontend DOM tests run one worker without parallel test files; Chromium tests
 also use one worker. This bounds concurrent fixture/browser lifetimes in the

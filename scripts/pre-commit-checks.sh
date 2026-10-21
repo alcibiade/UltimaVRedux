@@ -15,6 +15,13 @@ if [ "${1:-}" = "--policy-only" ]; then
     POLICY_ONLY=true
 fi
 
+# Check the exact candidate before running tools. Nothing formats or stages files.
+# The native hook delegates here, so formatting/lint run once on either entry path.
+if [ "$POLICY_ONLY" = false ]; then
+    make python-staged-check
+    make format-check lint
+fi
+
 echo "🔍 Running pre-commit validation checks..."
 
 # Colors for output
@@ -118,20 +125,8 @@ fi
 #############################################
 echo -e "\n📦 Checking import organization..."
 
-# Check if goimports would make changes
+# Full entry already checked Go/Python formatting and lint together above.
 IMPORT_VIOLATIONS=0
-if [ "$POLICY_ONLY" = false ]; then
-    if ! import_output=$(make format-check 2>&1); then
-        echo -e "${RED}❌ goimports check failed:${NC}"
-        echo "$import_output"
-        IMPORT_VIOLATIONS=1
-        OVERALL_SUCCESS=false
-    fi
-
-    if [ $IMPORT_VIOLATIONS -eq 0 ]; then
-        echo -e "${GREEN}✅ Import organization correct${NC}"
-    fi
-fi
 
 #############################################
 # Check 4: Package boundary violations
@@ -325,6 +320,9 @@ echo "Duration: ${DURATION}s"
 echo ""
 
 if [ "$OVERALL_SUCCESS" = true ]; then
+    if [ "$POLICY_ONLY" = false ]; then
+        make python-staged-check
+    fi
     echo -e "${GREEN}🎉 All checks passed! Ready to commit.${NC}"
     exit 0
 else

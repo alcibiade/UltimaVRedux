@@ -17,46 +17,96 @@ Usage:
 """
 
 import argparse
+from collections.abc import Iterator
 import json
 import sys
 from pathlib import Path
+from typing import NotRequired, TypedDict, cast
 
-# Location ID to name mapping (from internal/references/locations.go)
-LOCATIONS = {
-    0: "BritanniaUnderworld",
-    1: "Moonglow",
-    2: "Britain",
-    3: "Jhelom",
-    4: "Yew",
-    5: "Minoc",
-    6: "Trinsic",
-    7: "SkaraBrae",
-    8: "NewMagincia",
-    9: "Fogsbane",
-    10: "Stormcrow",
-    11: "Greyhaven",
-    12: "Waveguide",
-    13: "IolosHut",
-    14: "SuteksHut",
-    15: "SinVraalsHut",
-    16: "GrendelsHut",
-    17: "LordBritishsCastle",
-    18: "PalaceOfBlackthorn",
-    19: "WestBritanny",
-    20: "NorthBritanny",
-    21: "EastBritanny",
-    22: "Paws",
-    23: "Cove",
-    24: "BuccaneersDen",
-    25: "Ararat",
-    26: "Bordermarch",
-    27: "Farthing",
-    28: "Windemere",
-    29: "Stonegate",
-    30: "Lycaeum",
-    31: "EmpathAbbey",
-    32: "SerpentsHold",
-}
+from lookup_locations import NPC_LOCATIONS as LOCATIONS
+
+type JSONValue = None | bool | int | float | str | list[JSONValue] | dict[
+    str, JSONValue
+]
+type Schedule = dict[str, list[int]]
+
+
+class NPCReference(TypedDict):
+    """Fields consumed from a ref_dump NPC record."""
+
+    location: int
+    dialog_number: int
+    npc_type: int
+    schedule: Schedule
+
+
+class NPCReferences(TypedDict):
+    """The exported NPC snapshot container."""
+
+    npcs: list[NPCReference]
+
+
+class Origin(TypedDict):
+    """Conversation family and one-based dialog identity."""
+
+    source: str
+    dialog: int
+    kind: NotRequired[str]
+
+
+class Conversation(TypedDict):
+    """Named semantic program, including recursive authored/control content."""
+
+    id: str
+    origin: Origin
+    name: JSONValue
+    topics: NotRequired[JSONValue]
+    questions: NotRequired[JSONValue]
+
+
+class KeywordGroup(TypedDict):
+    """An authored topic or question answer with keyword aliases."""
+
+    keywords: list[str]
+    response: JSONValue
+
+
+class NameMatch(TypedDict):
+    """A semantic name matched to a real NPC slot."""
+
+    semantic_id: str
+    dialog_number: int
+    npc_index: int
+    location_name: str
+    matched_text: str
+
+
+class NPCSummary(TypedDict):
+    """Fields displayed in the location NPC listing."""
+
+    npc_index: int
+    dialog_number: int
+    npc_type: int
+    schedule: Schedule
+
+
+class NPCDetails(NPCSummary):
+    """Full slot lookup with the display location and conversation file."""
+
+    location: int
+    location_name: str
+    tlk_file: str
+
+
+class DialogMatch(TypedDict):
+    """Keyword search hit and its readable response preview."""
+
+    semantic_id: str
+    dialog_number: int
+    keyword: str
+    all_keywords: list[str]
+    response_preview: str
+
 
 # Location to SmallMapMasterType mapping
 LOCATION_TO_MAP_TYPE = {
@@ -107,35 +157,41 @@ MAP_TYPE_TO_TLK = {
 }
 
 
-def get_project_root():
+def get_project_root() -> Path:
     """Find the project root directory."""
     script_dir = Path(__file__).parent
     return script_dir.parent
 
 
-def load_npc_references():
+def load_npc_references() -> NPCReferences:
     """Load NPCReferences.json."""
     path = get_project_root() / "u5dump" / "json" / "NPCReferences.json"
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_conversations():
+def load_conversations() -> list[Conversation]:
     """Load the post-patch semantic documents exported by ref_dump."""
     path = get_project_root() / "u5dump" / "json" / "ConversationCatalog.json"
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def display_text(value):
+def display_text(value: JSONValue) -> str:
     """Project authored speech/narration without keywords or control identities."""
     if isinstance(value, str):
         return value
     if isinstance(value, list):
         # Scalar list members are control actions or explicit line breaks, not
         # authored prose. Shorthand prose is a scalar body/content, handled above.
-        return "".join("\n" if part == "line_break" else display_text(part)
-                       if isinstance(part, dict) else "" for part in value)
+        return "".join(
+            (
+                "\n"
+                if part == "line_break"
+                else display_text(part) if isinstance(part, dict) else ""
+            )
+            for part in value
+        )
     if isinstance(value, dict):
         return "".join(
             display_text(part)
@@ -145,11 +201,11 @@ def display_text(value):
     return ""
 
 
-def keyword_groups(value):
+def keyword_groups(value: JSONValue) -> Iterator[KeywordGroup]:
     """Yield semantic topic/answer groups, including named questions."""
     if isinstance(value, dict):
         if "keywords" in value and "response" in value:
-            yield value
+            yield cast(KeywordGroup, value)
         for part in value.values():
             yield from keyword_groups(part)
     elif isinstance(value, list):
@@ -157,12 +213,12 @@ def keyword_groups(value):
             yield from keyword_groups(part)
 
 
-def get_location_name(location_id):
+def get_location_name(location_id: int) -> str:
     """Get location name from ID."""
     return LOCATIONS.get(location_id, f"Unknown({location_id})")
 
 
-def get_tlk_file(location_id):
+def get_tlk_file(location_id: int) -> str:
     """Get TLK file for a location."""
     map_type = LOCATION_TO_MAP_TYPE.get(location_id)
     if map_type:
@@ -170,7 +226,7 @@ def get_tlk_file(location_id):
     return "Unknown"
 
 
-def format_schedule(schedule):
+def format_schedule(schedule: Schedule) -> str:
     """Format NPC schedule for display."""
     times = schedule.get("time", [0, 0, 0, 0])
     xs = schedule.get("x", [0, 0, 0])
@@ -192,12 +248,12 @@ def format_schedule(schedule):
     return "\n".join(result)
 
 
-def find_npc_by_name(name, location_id=None):
+def find_npc_by_name(name: str, location_id: int | None = None) -> list[NameMatch]:
     """Find named semantic programs and their real NPC reference slots."""
     conversations = load_conversations()
     npc_refs = load_npc_references()
 
-    results = []
+    results: list[NameMatch] = []
     name_lower = name.lower()
 
     for conversation in conversations:
@@ -212,22 +268,26 @@ def find_npc_by_name(name, location_id=None):
                 continue
             if location_id is not None and location != location_id:
                 continue
-            results.append({
-                "semantic_id": conversation["id"],
-                "dialog_number": origin["dialog"],
-                "npc_index": npc_index,
-                "location_name": get_location_name(location),
-                "matched_text": text,
-            })
+            results.append(
+                {
+                    "semantic_id": conversation["id"],
+                    "dialog_number": origin["dialog"],
+                    "npc_index": npc_index,
+                    "location_name": get_location_name(location),
+                    "matched_text": text,
+                }
+            )
 
     return results
 
 
-def find_npc_by_dialog(dialog_num, location_id=None):
+def find_npc_by_dialog(
+    dialog_num: int, location_id: int | None = None
+) -> list[NPCDetails]:
     """Find NPCs by dialog number."""
     npc_refs = load_npc_references()
 
-    results = []
+    results: list[NPCDetails] = []
     for i, npc in enumerate(npc_refs["npcs"]):
         if npc.get("dialog_number") == dialog_num:
             if location_id is None or npc.get("location") == location_id:
@@ -246,7 +306,7 @@ def find_npc_by_dialog(dialog_num, location_id=None):
     return results
 
 
-def list_npcs_in_location(location_name):
+def list_npcs_in_location(location_name: str) -> list[NPCSummary]:
     """List all NPCs in a location."""
     npc_refs = load_npc_references()
 
@@ -262,12 +322,12 @@ def list_npcs_in_location(location_name):
         print(f"Available locations: {', '.join(LOCATIONS.values())}")
         return []
 
-    results = []
+    results: list[NPCSummary] = []
     for i, npc in enumerate(npc_refs["npcs"]):
         if npc.get("location") == location_id:
             dn = npc.get("dialog_number", 0)
             # Skip empty/guard NPCs for cleaner output
-            if dn > 0 and dn < 128:
+            if 0 < dn < 128:
                 results.append(
                     {
                         "npc_index": i,
@@ -280,30 +340,34 @@ def list_npcs_in_location(location_name):
     return sorted(results, key=lambda x: x["dialog_number"])
 
 
-def find_dialog_by_keyword(keyword):
+def find_dialog_by_keyword(keyword: str) -> list[DialogMatch]:
     """Find topic/answer keywords in the patched semantic documents."""
     conversations = load_conversations()
 
-    results = []
+    results: list[DialogMatch] = []
     keyword_lower = keyword.lower()[:4]  # Keywords are 4-char prefixes
 
     for conversation in conversations:
-        for group in keyword_groups(conversation):
+        for group in keyword_groups(cast(JSONValue, conversation)):
             options = group["keywords"]
             for opt in options:
                 if keyword_lower in opt.lower():
-                    results.append({
-                        "semantic_id": conversation["id"],
-                        "dialog_number": conversation["origin"]["dialog"],
-                        "keyword": opt,
-                        "all_keywords": options,
-                        "response_preview": display_text(group["response"])[:150].strip(),
-                    })
+                    results.append(
+                        {
+                            "semantic_id": conversation["id"],
+                            "dialog_number": conversation["origin"]["dialog"],
+                            "keyword": opt,
+                            "all_keywords": options,
+                            "response_preview": display_text(group["response"])[
+                                :150
+                            ].strip(),
+                        }
+                    )
 
     return results
 
 
-def show_npc_schedule(npc_index):
+def show_npc_schedule(npc_index: int) -> NPCDetails | None:
     """Show detailed schedule for an NPC."""
     npc_refs = load_npc_references()
 
@@ -323,7 +387,10 @@ def show_npc_schedule(npc_index):
     }
 
 
-def main():
+def main() -> None:
+    """Dispatch the public NPC lookup commands and retain their output formats."""
+    # The CLI is one dispatch table with independent legacy text layouts per command.
+    # pylint: disable=too-many-branches,too-many-statements
     parser = argparse.ArgumentParser(description="NPC Lookup Helper for Ultima V Redux")
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
@@ -354,8 +421,14 @@ def main():
     if args.command == "find-npc":
         location_id = None
         if args.location:
-            location_id = next((loc_id for loc_id, loc_name in LOCATIONS.items()
-                                if loc_name.lower() == args.location.lower()), None)
+            location_id = next(
+                (
+                    loc_id
+                    for loc_id, loc_name in LOCATIONS.items()
+                    if loc_name.lower() == args.location.lower()
+                ),
+                None,
+            )
             if location_id is None:
                 parser.error(f"Unknown location: {args.location}")
         if args.name:
@@ -374,7 +447,7 @@ def main():
                 print(f"  Location: {r['location_name']} (ID: {r['location']})")
                 print(f"  TLK File: {r['tlk_file']}")
                 print(f"  NPC Type: {r['npc_type']}")
-                print(f"  Schedule:")
+                print("  Schedule:")
                 print(format_schedule(r["schedule"]))
                 print()
         else:
@@ -385,7 +458,8 @@ def main():
         print(f"\nNPCs in {args.location}:\n")
         for r in results:
             print(
-                f"  Index: {r['npc_index']}, Dialog: {r['dialog_number']}, Type: {r['npc_type']}"
+                f"  Index: {r['npc_index']}, Dialog: {r['dialog_number']}, "
+                f"Type: {r['npc_type']}"
             )
 
     elif args.command == "show-schedule":
@@ -394,11 +468,12 @@ def main():
             print(f"\nNPC {result['npc_index']}:")
             print(f"  Location: {result['location_name']}")
             print(
-                f"  Dialog: {result['dialog_number']} (TLK index: {result['dialog_number'] - 1})"
+                f"  Dialog: {result['dialog_number']} "
+                f"(TLK index: {result['dialog_number'] - 1})"
             )
             print(f"  TLK File: {result['tlk_file']}")
             print(f"  NPC Type: {result['npc_type']}")
-            print(f"  Schedule:")
+            print("  Schedule:")
             print(format_schedule(result["schedule"]))
 
     elif args.command == "find-dialog":
@@ -418,6 +493,9 @@ if __name__ == "__main__":
     try:
         main()
     except (OSError, json.JSONDecodeError) as error:
-        print(f"NPC lookup failed: {error}. Regenerate snapshots with "
-              "go run ./cmd/ref_dump --output u5dump/json", file=sys.stderr)
+        print(
+            f"NPC lookup failed: {error}. Regenerate snapshots with "
+            "go run ./cmd/ref_dump --output u5dump/json",
+            file=sys.stderr,
+        )
         sys.exit(1)
