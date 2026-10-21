@@ -17,7 +17,6 @@ func newReagentItemReferences() map[Reagent]InventoryItem {
 	}
 	items := make(map[Reagent]InventoryItem, len(definitions))
 	for reagent, definition := range definitions {
-		//nolint:exhaustruct // Reagents expose only name, sprite and lore in inventory.
 		items[reagent] = InventoryItem{ItemName: definition.name, ItemSprite: indexes.Water1,
 			ItemDescription: definition.description} // Retain the current placeholder sprite.
 	}

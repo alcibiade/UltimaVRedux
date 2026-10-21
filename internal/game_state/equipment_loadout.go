@@ -113,7 +113,7 @@ func (g *GameState) AlterEquipmentLoadouts(
 		if after > int(party_state.ItemQuantitySmallMax) {
 			return result, fmt.Errorf("%w: carried %s cannot exceed %d", ErrInvalidEquipmentLoadout, equipment, party_state.ItemQuantitySmallMax)
 		}
-		resultingInventory[equipment] = uint16(after) //nolint:gosec // Validated to the 0..99 inventory range.
+		resultingInventory[equipment] = uint16(after)
 	}
 
 	result.Targets = make([]EquipmentLoadoutAlterationResult, 0, len(plans))

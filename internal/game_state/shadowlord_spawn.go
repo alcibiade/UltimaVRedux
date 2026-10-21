@@ -428,8 +428,6 @@ func (g *GameState) ApplyFaulineiConversationTheft() FaulineiConversationTheftRe
 // Returns (destroyed count, total affected tiles found).
 //
 // See ref:SHADOW-0002.
-//
-//nolint:unused // Will be called by moon-based presence system when implemented
 func (g *GameState) ApplyShadowlordMapEffects(lord references.Shadowlord) (int, int) {
 	// Only apply on small maps during automatic presence
 	if g.MapState.PlayerLocation.Location.GetMapType() != references.SmallMapType {

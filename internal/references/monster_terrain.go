@@ -141,7 +141,6 @@ func PickMonsterByTerrain(
 
 	// Desert: 25% chance of Sandtrap; ref:ENEMY-0004.
 	if tile.Is(indexes.Desert1) {
-		//nolint:mnd // Authentic 1/4 probability from original
 		if rng.Intn(4) == 0 {
 			return MonsterSandtrap
 		}
@@ -173,8 +172,6 @@ func PickMonsterByTerrain(
 
 // pickWaterMonster handles water-based monster selection.
 // Water candidates have an extra rarity gate and deep-water whirlpool choice; ref:ENEMY-0004.
-//
-//nolint:mnd // Original candidate-gate bounds; ref:ENEMY-0004.
 func pickWaterMonster(tile *Tile, isUnderworld bool, rng RandomProvider) MonsterType {
 	// Sea monsters pass only the low-result portion of the rarity draw; ref:ENEMY-0004.
 	if rng.Intn(65) >= 16 {
@@ -201,8 +198,6 @@ func pickWaterMonster(tile *Tile, isUnderworld bool, rng RandomProvider) Monster
 //  1. Generate random number 0-255
 //  2. Subtract frequencies until random number goes negative
 //  3. Return the monster at that index
-//
-//nolint:mnd // Original frequency range is 0..255 inclusive; ref:ENEMY-0004.
 func PickByFrequency(monsters []MonsterType, frequencies []int, rng RandomProvider) MonsterType {
 	if len(monsters) == 0 || len(frequencies) == 0 {
 		return MonsterNone
@@ -273,8 +268,6 @@ func isImpassableMountain(tile *Tile) bool {
 
 // isLandTerrain checks if the tile is valid land for monster spawning.
 // Only low land tiles and beach families enter a land pool; ref:ENEMY-0004.
-//
-//nolint:mnd // Original candidate terrain ranges; ref:ENEMY-0004.
 func isLandTerrain(tile *Tile) bool {
 	if tile == nil {
 		return false
@@ -296,8 +289,6 @@ func isLandTerrain(tile *Tile) bool {
 //   - Standard terrain: 1 (medium)
 //   - Swamp and tiles 0x09-0x0f: 2 (high)
 //   - Nighttime adds +3 to any terrain
-//
-//nolint:mnd // Original attempt thresholds; ref:ENEMY-0004.
 func CalculateEncounterProbability(tile *Tile, isNighttime bool, isUnderworld bool) int {
 	if isUnderworld {
 		return 3 // Underworld has fixed probability

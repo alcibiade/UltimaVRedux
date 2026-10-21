@@ -161,7 +161,6 @@ type vehicleForceBoardResult struct {
 	MapUnitCount    int                 `json:"mapUnitCount"`
 }
 
-//nolint:cyclop // Stable command dispatch is clearer as one exhaustive switch.
 func executeSecondBatchStateDebugCommand(request debugging.Request, state *game_state.GameState) debugging.Result {
 	switch request.CommandID {
 	case debugging.CommandCombatEncounterOptions:
@@ -290,7 +289,6 @@ func executeCombatEncounterStart(request debugging.Request, state *game_state.Ga
 	return debugResult
 }
 
-//nolint:cyclop,funlen // Conditional parameter validation mirrors the command's typed modes.
 func combatEncounterRequestFromDebug(request debugging.Request) (game_state.CombatEncounterRequest, error) {
 	input := game_state.CombatEncounterRequest{
 		Map: game_state.CombatEncounterMap{

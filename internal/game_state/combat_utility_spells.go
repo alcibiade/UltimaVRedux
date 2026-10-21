@@ -149,7 +149,7 @@ func (g *GameState) publishCombatUtilitySpell(
 	from, to references.Position,
 	result CombatUtilityResult,
 ) {
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Utility spells have no target combatant or damage.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:          CombatEventUtilitySpell,
 		Attacker:      combatFeedbackIdentity(caster, g.CombatScene.GetCombatantPosition(caster)),
 		From:          from,

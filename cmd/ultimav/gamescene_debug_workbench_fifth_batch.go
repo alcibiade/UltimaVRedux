@@ -42,7 +42,7 @@ func (g *GameScene) executeFifthBatchDebugCommand(request debugging.Request) (de
 	case debugging.CommandTestCrystalBall:
 		return g.executeDebugCrystalBall(request), true
 	default:
-		return debugging.Result{}, false //nolint:exhaustruct // Zero result marks an unhandled command.
+		return debugging.Result{}, false
 	}
 }
 

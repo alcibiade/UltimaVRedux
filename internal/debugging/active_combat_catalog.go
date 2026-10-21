@@ -1,4 +1,3 @@
-//nolint:lll // The migration schemas retain compact declarations for direct comparison with the typed workbench contract.
 package debugging
 
 import "encoding/json"
@@ -35,7 +34,6 @@ const (
 	CommandCombatMonsterClear = "combat.monster.clear"
 )
 
-//nolint:funlen,exhaustruct,goconst // The cohesive catalog keeps related schemas adjacent; optional wire fields are zero-valued.
 func activeCombatCommands() []CommandDefinition {
 	minimumCount, maximumCount := 1, 16
 	minimumMonsterType, maximumMonsterType := 0, 47

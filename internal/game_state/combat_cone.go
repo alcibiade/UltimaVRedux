@@ -293,8 +293,8 @@ func (ray *combatConeRay) plot(buffer combatConeTileBuffer, blockedByTile bool) 
 	}
 	if ray.y&1 != 0 {
 		ray.tile = references.Position{
-			X: references.Coordinate((ray.x - originalCombatWindowInset) / originalCombatTilePixels), //nolint:gosec // Pixel bounds map to combat coordinates.
-			Y: references.Coordinate((ray.y - originalCombatWindowInset) / originalCombatTilePixels), //nolint:gosec // Pixel bounds map to combat coordinates.
+			X: references.Coordinate((ray.x - originalCombatWindowInset) / originalCombatTilePixels),
+			Y: references.Coordinate((ray.y - originalCombatWindowInset) / originalCombatTilePixels),
 		}
 		if blockedByTile && !isCombatMissilePassable(buffer[ray.tile.X][ray.tile.Y]) {
 			ray.stopped = true

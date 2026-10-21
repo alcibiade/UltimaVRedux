@@ -368,7 +368,7 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 // - Any other key: stops sailing AND processes key normally
 // Returns true if sailing started, false if requirements not met
 //
-//nolint:cyclop,maintidx // Sailing cadence and caller-owned outcomes form one production workflow.
+//nolint:maintidx // Sailing cadence and caller-owned outcomes form one production workflow.
 func (g *GameScene) startAutomaticSailing(direction references.Direction) bool {
 	// The sailing flag is cleared in Finally before the queue name is released.
 	// Consume movement input while that workflow is still finalizing instead of

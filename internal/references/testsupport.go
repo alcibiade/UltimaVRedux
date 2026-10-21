@@ -20,7 +20,7 @@ func GetListOfAllSmallMaps() []string {
 // Original encounter-placement coordinates; ref:COMBAT-0001.
 // Encounter generation uses these positions independently of creature identities.
 //
-//nolint:gochecknoglobals, mnd // Immutable encounter-placement coordinates; ref:COMBAT-0001.
+//nolint:gochecknoglobals // Immutable encounter-placement coordinates; ref:COMBAT-0001.
 var MonsterSpawnPositions = [16]Position{
 	{X: 2, Y: 0},
 	{X: 5, Y: 0},

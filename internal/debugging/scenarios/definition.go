@@ -150,8 +150,6 @@ func DecodeDefinition(data []byte) (Definition, error) {
 }
 
 // Validate checks the complete static scenario schema.
-//
-//nolint:cyclop // Schema validation is intentionally ordered and fail-fast.
 func (definition Definition) Validate() error {
 	if definition.SchemaVersion != CurrentSchemaVersion {
 		return fmt.Errorf("%w: unsupported schema version %d", ErrInvalidDefinition, definition.SchemaVersion)
@@ -268,7 +266,6 @@ func (definition Definition) BindWithValues(values map[string]json.RawMessage) (
 	return steps, boundValues, nil
 }
 
-//nolint:cyclop // Discriminated schema validation requires each step variant.
 func validateStep(step Step, parameters map[string]debugging.ParameterDefinition) error {
 	switch step.Type {
 	case StepCommand:
@@ -301,7 +298,6 @@ func validateStep(step Step, parameters map[string]debugging.ParameterDefinition
 	return nil
 }
 
-//nolint:cyclop // Parameter validation covers all supported catalog constraints.
 func validateParameterDefinition(parameter debugging.ParameterDefinition) error {
 	if !slugPattern.MatchString(parameter.ID) || strings.TrimSpace(parameter.Name) == "" {
 		return fmt.Errorf("%w: parameter requires a slug ID and name", ErrInvalidDefinition)
@@ -347,7 +343,6 @@ func supportedParameterKind(kind debugging.ParameterKind) bool {
 	}
 }
 
-//nolint:err113 // Validation messages are deliberately specific to the parameter value.
 func validateParameterValue(parameter debugging.ParameterDefinition, raw json.RawMessage) error {
 	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return errors.New("null is not allowed")

@@ -311,7 +311,7 @@ func (g *GameState) getMoonstoneFromItemStack(pos *references.Position, moonston
 	site := g.localMoonstoneSite(*pos)
 	moonstoneLocation := g.moonstoneSystem.GetMoonstoneByIndex(moonstoneIndex)
 	if moonstoneLocation == nil || !moonstoneLocation.CanCreateMoongate() ||
-		moonstoneLocation.Map != uint8(site.Map) || moonstoneLocation.Level != uint8(site.Floor) || //nolint:gosec // Legacy signed floor encoding.
+		moonstoneLocation.Map != uint8(site.Map) || moonstoneLocation.Level != uint8(site.Floor) ||
 		int(moonstoneLocation.X) != site.X || int(moonstoneLocation.Y) != site.Y ||
 		item.Quantity != 1 || g.PartyState.Inventory.Moonstones.HasSome(moonstone) {
 		g.SystemCallbacks.UI.ShowActionFeedback("Nothing to get!", true)
@@ -352,7 +352,7 @@ func (g *GameState) getMoonstoneFromPosition(pos *references.Position) bool {
 	location := g.MapState.PlayerLocation
 	for index, stone := range g.moonstoneSystem.Moonstones {
 		if stone.IsFoundNotCollected() && stone.Map == uint8(location.Location) &&
-			stone.Level == uint8(location.Floor) && int(stone.X) == int(pos.X) && int(stone.Y) == int(pos.Y) { //nolint:gosec // Legacy signed floor encoding.
+			stone.Level == uint8(location.Floor) && int(stone.X) == int(pos.X) && int(stone.Y) == int(pos.Y) {
 			moonstoneIndex = index
 
 			break
@@ -434,8 +434,6 @@ func (g *GameState) getQuestItem(getThingPos *references.Position, getThingTile 
 
 // getShardOfEvil handles getting Shards of Evil (all use CannonUp sprite 0xb4)
 // Uses placement logic to determine which shard type and handles collection tracking
-//
-//nolint:unparam // mapLayers parameter maintained for API consistency with other item handlers
 func (g *GameState) getShardOfEvil(getThingPos *references.Position, _ *map_state.LayeredMap) bool {
 	// Check if there should be a shard at this position
 	hasShardHere, questItem := g.IsShardAtPosition(*getThingPos)

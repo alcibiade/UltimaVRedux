@@ -1,4 +1,3 @@
-//nolint:mnd,varnamelen // Existing Stonegate timing and local sequence name are domain-specific.
 package main
 
 import (

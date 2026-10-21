@@ -24,7 +24,6 @@ const (
 	checkTimeout  = 10 * time.Minute
 	fixtureMode   = 0o600
 	settingCount  = 2
-	commitLength  = 40
 )
 
 //go:embed testdata/fixture.go.txt
@@ -75,8 +74,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("reading repository config: %w", err)
 	}
-	config, err = diagnosticConfig(config)
-	if err != nil {
+	if err := requireWholeTreeLint(config); err != nil {
 		return err
 	}
 	directory, err := os.MkdirTemp("", "lint-config-")
@@ -92,27 +90,24 @@ func run() error {
 	return checkErr
 }
 
-func diagnosticConfig(source []byte) ([]byte, error) {
+// requireWholeTreeLint keeps the gate enforcing every file: a revision cutoff
+// would let inherited findings return unnoticed.
+func requireWholeTreeLint(source []byte) error {
 	var config map[string]any
 	if err := yaml.Unmarshal(source, &config); err != nil {
-		return nil, fmt.Errorf("parsing repository config: %w", err)
+		return fmt.Errorf("parsing repository config: %w", err)
 	}
 	issues, ok := config["issues"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("%w: expected issues mapping", errRegression)
+		return fmt.Errorf("%w: expected issues mapping", errRegression)
 	}
-	revision, ok := issues["new-from-rev"].(string)
-	if !ok || len(revision) != commitLength || strings.Trim(revision, "0123456789abcdef") != "" {
-		return nil, fmt.Errorf("%w: issues.new-from-rev must pin a full immutable commit", errRegression)
-	}
-	// Only the diagnostic copy is unfiltered; all linter settings and exclusions stay intact.
-	delete(issues, "new-from-rev")
-	result, err := yaml.Marshal(config)
-	if err != nil {
-		return nil, fmt.Errorf("encoding diagnostic config: %w", err)
+	for _, key := range []string{"new", "new-from-rev", "new-from-patch", "new-from-merge-base"} {
+		if _, exists := issues[key]; exists {
+			return fmt.Errorf("%w: issues.%s would stop linting the whole tree", errRegression, key)
+		}
 	}
 
-	return result, nil
+	return nil
 }
 
 func checkFixture(ctx context.Context, binary, directory string, config []byte) error {

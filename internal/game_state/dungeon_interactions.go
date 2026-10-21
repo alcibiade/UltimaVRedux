@@ -194,7 +194,7 @@ func (g *GameState) generateDungeonChestLoot() {
 		switch category {
 		case 0:
 			quantity := g.RandomIntInRange(1, 31)
-			g.PartyState.Inventory.Provisions.Food.IncrementBy(uint16(quantity)) //nolint:gosec // Bounded source roll.
+			g.PartyState.Inventory.Provisions.Food.IncrementBy(uint16(quantity))
 			g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("%d food!", quantity))
 		case 1:
 			// REDUX DEVIATION: Original Search/Get/Open/Jimmy rules call random(1,0) for eligible
@@ -204,20 +204,20 @@ func (g *GameState) generateDungeonChestLoot() {
 			quantity := 0
 			if floor > 0 {
 				quantity = g.RandomIntInRange(1, floor*8)
-				g.PartyState.Inventory.Gold.IncrementBy(uint16(quantity)) //nolint:gosec // Bounded source roll.
+				g.PartyState.Inventory.Gold.IncrementBy(uint16(quantity))
 			}
 			g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("%d gold!", quantity))
 		case 2:
 			quantity := g.RandomIntInRange(1, 3)
-			g.PartyState.Inventory.Provisions.Keys.IncrementBy(uint16(quantity)) //nolint:gosec // Bounded source roll.
+			g.PartyState.Inventory.Provisions.Keys.IncrementBy(uint16(quantity))
 			g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("%d keys!", quantity))
 		case 3:
 			quantity := g.RandomIntInRange(1, 3)
-			g.PartyState.Inventory.Provisions.Gems.IncrementBy(uint16(quantity)) //nolint:gosec // Bounded source roll.
+			g.PartyState.Inventory.Provisions.Gems.IncrementBy(uint16(quantity))
 			g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("%d gems!", quantity))
 		case 4:
 			quantity := g.RandomIntInRange(1, 3)
-			g.PartyState.Inventory.Provisions.Torches.IncrementBy(uint16(quantity)) //nolint:gosec // Bounded source roll.
+			g.PartyState.Inventory.Provisions.Torches.IncrementBy(uint16(quantity))
 			g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("%d torches!", quantity))
 		case 5:
 			potion := references.Potion(g.RandomIntInRange(0, references.NumberOfPotions-1))
@@ -250,7 +250,7 @@ func (g *GameState) applyChestTrap(characterIndex int) {
 	case TrapAcid:
 		damage := g.RollOriginalD30() // Failed-experiment trap selection calls transformed d30 for acid damage.
 		// See ref:RNG-0001.
-		g.PartyState.GetCharacter(characterIndex).SubtractHp(uint16(damage)) //nolint:gosec // Source damage is bounded.
+		g.PartyState.GetCharacter(characterIndex).SubtractHp(uint16(damage))
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 	case TrapPoison:
 		character := g.PartyState.GetCharacter(characterIndex)
@@ -261,7 +261,7 @@ func (g *GameState) applyChestTrap(characterIndex int) {
 	case TrapBomb:
 		for _, index := range trap.TargetIndices {
 			damage := g.RandomIntInRange(trap.DamageMin, trap.DamageMax)
-			g.PartyState.GetCharacter(index).SubtractHp(uint16(damage)) //nolint:gosec // Source damage is bounded.
+			g.PartyState.GetCharacter(index).SubtractHp(uint16(damage))
 			g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 		}
 	case TrapGas:
@@ -297,7 +297,7 @@ func (g *GameState) processDungeonCurrentCellBomb() {
 	g.SystemCallbacks.Audio.PlaySoundEffect(SoundTrapTrigger)
 	for _, index := range g.getAllLivingPartyIndices() {
 		damage := g.RollDice(8)
-		g.PartyState.GetCharacter(index).SubtractHp(uint16(damage)) //nolint:gosec // Source damage is 1d8.
+		g.PartyState.GetCharacter(index).SubtractHp(uint16(damage))
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 	}
 	g.SystemCallbacks.Screen.UpdateDisplay()
@@ -395,7 +395,7 @@ func (g *GameState) ApplyDungeonFountainChoice(
 	default:
 		result.Outcome = "Bad taste."
 		damage := g.RandomIntInRange(0, 7)
-		character.SubtractHp(uint16(damage)) //nolint:gosec // Source damage is bounded to 0..7.
+		character.SubtractHp(uint16(damage))
 		if damage > 0 {
 			g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 		}

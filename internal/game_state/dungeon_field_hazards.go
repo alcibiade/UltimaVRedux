@@ -86,7 +86,7 @@ func (g *GameState) damageDungeonParty(kind DungeonInjuryKind) dungeonInjuryResu
 		damage := g.RollDice(8)
 		character := g.PartyState.GetCharacter(index)
 		before := character.GetCurrentHp()
-		character.SubtractHp(uint16(damage)) //nolint:gosec // Source damage is 1d8.
+		character.SubtractHp(uint16(damage))
 		result.observe(before, character.GetCurrentHp())
 	}
 

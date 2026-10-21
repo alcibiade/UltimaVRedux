@@ -1,4 +1,3 @@
-//nolint:mnd,varnamelen // Existing fall timing and local sequence name are domain-specific.
 package game_state
 
 import (

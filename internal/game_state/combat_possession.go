@@ -143,7 +143,7 @@ func (g *GameState) releaseCombatPossession(identity CombatTurnIdentity, reason 
 }
 
 func (g *GameState) publishCombatPossessionEvent(identity CombatTurnIdentity, episode combatPossessionEpisode, kind CombatEventKind, reason CombatPossessionReleaseReason) {
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Condition events intentionally disclose no controller identity.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: kind, Target: combatFeedbackIdentity(identity, g.CombatScene.GetCombatantPosition(identity)),
 		PossessionEpisodeID: episode.id, PossessionTurns: episode.turns, PossessionReleaseReason: reason,
 	})

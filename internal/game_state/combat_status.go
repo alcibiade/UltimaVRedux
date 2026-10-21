@@ -114,7 +114,7 @@ func (g *GameState) processUndergroundPCTurnStart(identity CombatTurnIdentity) c
 }
 
 func (g *GameState) publishCombatPCConditionEvent(identity CombatTurnIdentity, condition CombatConditionResult) {
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Condition events have no attack diagnostics.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventCondition,
 		Target: CombatFeedbackEntity{
 			IsPartyMember: true,
@@ -160,7 +160,7 @@ func (g *GameState) publishCombatConditionEvent(
 		position = g.CombatScene.MonsterManager.GetMonster(entityIndex).Position()
 	}
 
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Condition events have no attack diagnostics.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventCondition,
 		Target: CombatFeedbackEntity{
 			IsPartyMember: isPartyMember,

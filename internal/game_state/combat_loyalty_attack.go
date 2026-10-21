@@ -41,7 +41,7 @@ func (g *GameState) resolveControlledMonsterAttackAgainstPC(
 		false,
 		rng,
 	)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage follows only after a hit.
+	diagnostics := CombatDiagnostics{
 		Hit:           hit,
 		TargetBaseDex: defense.BaseDex,
 		Missile:       attacker.EnemyRef().LargeMapMissile,
@@ -86,7 +86,7 @@ func (g *GameState) resolveCombatPCAttackSourceAgainstPC(
 			source.Equipment.HasAbility(references.AbilityCharmsWielder),
 		rng,
 	)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage follows only after a hit.
+	diagnostics := CombatDiagnostics{
 		Hit: hit, Source: source.Equipment, TargetBaseDex: defense.BaseDex,
 		UsedStrength: source.Equipment.IsBludgeoning(),
 	}
@@ -155,7 +155,7 @@ func (g *GameState) applyPlayerWeaponHitToPC(
 		target.SetHp(0)
 		target.MarkAsDead()
 	} else {
-		target.SubtractHp(uint16(damage.Damage)) //nolint:gosec // Weapon damage is bounded by equipment data.
+		target.SubtractHp(uint16(damage.Damage))
 	}
 	if target.IsDead() {
 		g.markCombatPCDead(targetIndex)
@@ -178,7 +178,7 @@ func (g *GameState) applyControlledMonsterHitToPC(
 	if resolution.replacedDamage {
 		hpBefore := target.GetCurrentHp()
 		if resolution.damageSelected {
-			target.SubtractHp(uint16(resolution.damage)) //nolint:gosec // Poison fallback is bounded to 0..20.
+			target.SubtractHp(uint16(resolution.damage))
 		}
 		if target.IsDead() {
 			g.markCombatPCDead(targetIndex)

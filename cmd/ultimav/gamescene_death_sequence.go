@@ -1,4 +1,3 @@
-//nolint:mnd,varnamelen // Existing cinematic timing and local builder names are domain-specific.
 package main
 
 import (

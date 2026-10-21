@@ -294,7 +294,7 @@ func validateIntegerArgument(parameter ParameterDefinition, raw json.RawMessage)
 		return fmt.Errorf("%w: must be at most %d", ErrInvalidArgument, *parameter.Maximum)
 	}
 	// Unsigned subtraction preserves distances spanning the signed integer range.
-	if parameter.Step != nil && (uint(value)-uint(*parameter.Minimum))%uint(*parameter.Step) != 0 { //nolint:gosec // Lower bound and positive step are validated first.
+	if parameter.Step != nil && (uint(value)-uint(*parameter.Minimum))%uint(*parameter.Step) != 0 {
 		return fmt.Errorf("%w: must advance from %d in steps of %d", ErrInvalidArgument, *parameter.Minimum, *parameter.Step)
 	}
 

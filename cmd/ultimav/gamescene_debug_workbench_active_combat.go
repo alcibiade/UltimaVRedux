@@ -134,7 +134,6 @@ type activeCombatForecastResult struct {
 	Status         string `json:"status"`
 }
 
-//nolint:cyclop // Command dispatch is intentionally centralized for active-combat operations.
 func executeActiveCombatDebugCommand(
 	request debugging.Request,
 	state *game_state.GameState,
@@ -161,7 +160,7 @@ func executeActiveCombatDebugCommand(
 	case debugging.CommandCombatMonsterClear:
 		return executeActiveCombatMonsterBatch(request, state, true), true
 	default:
-		return debugging.Result{}, false //nolint:exhaustruct // Zero result marks an unhandled command.
+		return debugging.Result{}, false
 	}
 }
 
@@ -472,7 +471,6 @@ func executeActiveCombatMonsterSpawn(request debugging.Request, state *game_stat
 	return result
 }
 
-//nolint:cyclop // Optional spawn fields have interdependent catalog validation rules.
 func activeCombatSpawnRequestFromDebug(request debugging.Request) (game_state.DebugCombatSpawnRequest, error) {
 	input := game_state.DebugCombatSpawnRequest{
 		EncounterID: 0, MonsterType: references.MonsterNone, CountMode: game_state.CombatEncounterCountAutomatic,
@@ -817,7 +815,6 @@ func activeCombatAbilityNames(monster *game_state.CombatMonster) []string {
 	return names
 }
 
-//nolint:cyclop // The complete ability enum maps to deliberate user-facing labels.
 func activeCombatAbilityName(ability references.EnemyAbility) string {
 	switch ability {
 	case references.Bludgeons:

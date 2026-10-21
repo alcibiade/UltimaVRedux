@@ -3,8 +3,6 @@ package references
 // newProvisionItemReferences owns player-facing provisions metadata.
 // Torch and gem commitment: ref:PROV-0003 and ref:PROV-0005.
 // Keys, food, and gold: ref:PROV-0004, ref:PROV-0001, and ref:INV-0004.
-//
-//nolint:exhaustruct // Only Skull Keys expose attribution in the Use dialog.
 func newProvisionItemReferences() map[Provision]InventoryItem {
 	items := map[Provision]InventoryItem{
 		Torches:   {ItemName: "Torches", ItemDescription: "Ignite a torch to light dark areas. One torch is consumed; light lasts 240 game minutes outside dungeons, while dungeon light gains 112-127 minutes up to a 255-minute cap."},

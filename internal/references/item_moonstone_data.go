@@ -17,7 +17,6 @@ func newMoonstoneItemReferences() map[Moonstone]InventoryItem {
 		if phase == GibbousWaning {
 			attribution = "" // Preserve the existing player-facing source line.
 		}
-		//nolint:exhaustruct // Moonstones have shared lore and no duration or pickup override.
 		items[phase] = InventoryItem{ItemName: name.internal, ItemDisplayName: name.display + " Moonstone", ItemSprite: indexes.Moon,
 			ItemDescription: description, ItemDescriptionAttribution: attribution}
 	}

@@ -1,4 +1,3 @@
-//nolint:mnd // Original shard cinematic counts and effect timing are domain-specific.
 package main
 
 import (
@@ -22,7 +21,7 @@ func (g *GameScene) StartShardWorkflow(shard references.QuestItem) {
 
 func (g *GameScene) startShardWorkflow(shard references.QuestItem, complete func()) {
 	commitSequence := g.gameState.CastUseCommitSequence()
-	review := game_state.ShardRitualReview{Result: game_state.ShardUsageNotAttempted} //nolint:exhaustruct
+	review := game_state.ShardRitualReview{Result: game_state.ShardUsageNotAttempted}
 	var commit *game_state.ShardRitualCommit
 	earthquakeStarted := false
 

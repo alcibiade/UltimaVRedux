@@ -36,7 +36,6 @@ func (g *GameState) generateCombatMiscellaneous(position references.Position, ma
 	return revealLines
 }
 
-//nolint:mnd // Switch indexes and gold multiplier are original chkmisc/additem data.
 func (g *GameState) generateCombatMiscellaneousItem(
 	position references.Position,
 	maximumValue, index, number int,
@@ -176,7 +175,7 @@ func (g *GameState) triggerCombatChestTrap(pcIndex int) CombatChestTrapResult {
 		g.SystemCallbacks.Message.AddRowStr("ACID!")
 		damage := g.RollOriginalD30() // Failed-experiment trap selection calls transformed d30 for acid damage.
 		// See ref:RNG-0001.
-		character.SubtractHp(uint16(damage)) //nolint:gosec // Original acid damage is bounded to 1-30.
+		character.SubtractHp(uint16(damage))
 		if character.IsDead() {
 			g.markCombatPCDead(pcIndex)
 		}

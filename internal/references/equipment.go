@@ -351,7 +351,6 @@ func newEquipmentItemReferences() map[Equipment]InventoryItem {
 		if equipment == NoEquipment {
 			continue
 		}
-		//nolint:exhaustruct // Equipment has no Use-dialog lore or duration effect.
 		items[equipment] = InventoryItem{ItemName: definition.Name, ItemSprite: equipment.inventorySprite()}
 	}
 

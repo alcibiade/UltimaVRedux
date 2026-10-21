@@ -323,7 +323,6 @@ func (g *GameState) reviewDebugCombatMonster(
 	return monster, monsterIndex, nil
 }
 
-//nolint:cyclop // Exact snapshot comparisons deliberately report one stale result without mutation.
 func (g *GameState) reviewDebugCombatBatch(request DebugCombatBatchRequest) ([]reviewedDebugCombatMonster, error) {
 	if err := g.validateDebugCombatBoundary(request.EncounterID); err != nil {
 		return nil, err
@@ -472,8 +471,6 @@ func (g *GameState) ExitDebugCombat(encounterID CombatEncounterID) (DebugCombatE
 }
 
 // SpawnDebugCombatMonsters validates and commits one atomic reinforcement batch.
-//
-//nolint:cyclop,funlen // Atomic spawn validates all capacity and reference invariants before committing monsters.
 func (g *GameState) SpawnDebugCombatMonsters(request DebugCombatSpawnRequest) (*DebugCombatSpawnResult, error) {
 	if err := g.validateDebugCombatBoundary(request.EncounterID); err != nil {
 		return nil, err
@@ -614,7 +611,6 @@ func (g *GameState) validateDebugCombatBoundary(encounterID CombatEncounterID) e
 	return nil
 }
 
-//nolint:cyclop // Occupancy includes every combat participant and map object before spawn positions are accepted.
 func availableActiveCombatSpawnPositions(combat *CombatState) ([]references.Position, error) {
 	occupied := make(map[references.Position]struct{}, sourceCombatQueueSlots)
 	for _, entry := range combat.TurnQueue.entries {

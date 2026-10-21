@@ -12,7 +12,7 @@ func applyCombatMonsterCondition(monster *CombatMonster, rng references.RandomPr
 		monster.SetFleeing(true)
 	case monster.CurrentHP() < quarterHP*2:
 		// The original documents this branch as one chance in 64.
-		monster.SetFleeing(rng.Intn(256) > 251) //nolint:mnd // Original D256 boundary.
+		monster.SetFleeing(rng.Intn(256) > 251)
 	default:
 		monster.SetFleeing(false)
 	}

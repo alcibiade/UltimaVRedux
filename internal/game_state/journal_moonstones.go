@@ -35,7 +35,6 @@ func (g *GameState) CommitMoonstoneBurial(moonstone references.Moonstone) bool {
 		return false
 	}
 	g.PartyState.Inventory.Moonstones.DecrementByOne(moonstone)
-	//nolint:gosec // Coordinates are map-bounded; signed floors use legacy bytes.
 	g.GetMoonstoneSystem().BuryMoonstone(phase, uint8(location.Position.X), uint8(location.Position.Y), uint8(location.Location), uint8(location.Floor))
 	g.observeMoonstone(phase, moonstoneJournalSite(location), journal.MoonstoneSourceBurial)
 
@@ -91,7 +90,7 @@ func (g *GameState) moonstoneSourceAt(position references.Position) (int, bool) 
 	matched := -1
 	for phase, stone := range g.moonstoneSystem.Moonstones {
 		if !stone.CanCreateMoongate() || stone.Map != uint8(site.Map) ||
-			stone.Level != uint8(site.Floor) || int(stone.X) != site.X || int(stone.Y) != site.Y { //nolint:gosec // Signed floors encode as legacy bytes.
+			stone.Level != uint8(site.Floor) || int(stone.X) != site.X || int(stone.Y) != site.Y {
 			continue
 		}
 		if matched >= 0 {

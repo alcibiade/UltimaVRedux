@@ -1,4 +1,3 @@
-//nolint:lll // The migration schemas retain compact declarations for direct comparison with the typed workbench contract.
 package debugging
 
 import "encoding/json"
@@ -13,7 +12,6 @@ const (
 	CommandMoongateTravel = "moongate.travel"
 )
 
-//nolint:exhaustruct // Catalog entries intentionally omit zero-value optional wire fields.
 func thirdBatchCommands() []CommandDefinition {
 	minimumHours, maximumHours := 1, 24
 	minimumRosterIndex, maximumRosterIndex := 0, 15

@@ -1,4 +1,3 @@
-//nolint:lll // The migration schemas retain compact declarations for direct comparison with the typed workbench contract.
 package debugging
 
 const (
@@ -8,7 +7,6 @@ const (
 	CommandQuestInventoryPresetUsable = "quest.inventory.preset-usable"
 )
 
-//nolint:exhaustruct // Catalog entries intentionally omit zero-value optional wire fields.
 func fourthBatchCommands() []CommandDefinition {
 	minimumQuantity, maximumQuantity := 0, 99
 	minimumLocation, maximumLocation := 0, 255

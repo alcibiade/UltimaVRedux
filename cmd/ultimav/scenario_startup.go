@@ -22,7 +22,6 @@ func (values scenarioParameterFlags) String() string {
 	return ""
 }
 
-//nolint:err113 // CLI validation errors identify the invalid parameter.
 func (values scenarioParameterFlags) Set(value string) error {
 	key, rawValue, found := strings.Cut(value, "=")
 	if !found || strings.TrimSpace(key) == "" || rawValue == "" {
@@ -90,7 +89,6 @@ func configureScenarioRunner(game *Game, options scenarioStartupOptions) error {
 	return nil
 }
 
-//nolint:err113 // Startup errors identify unavailable injected repositories.
 func submitStartupScenario(game *Game, options scenarioStartupOptions) error {
 	if options.reference == "" {
 		return nil

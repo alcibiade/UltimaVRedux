@@ -589,7 +589,7 @@ func (g *GameState) buildInnShopState(
 	if monthlyRate <= 0 || monthlyRate > math.MaxUint16/maximumInnMonths {
 		return InnShopState{}, fmt.Errorf("%w: calculated monthly rate %d is invalid", ErrInvalidInnRequest, monthlyRate)
 	}
-	state.MonthlyRate = uint16(monthlyRate) //nolint:gosec // Original Inn monthly rates are bounded.
+	state.MonthlyRate = uint16(monthlyRate)
 	for index := partySize; index < party_state.NRosterSlots; index++ {
 		if !g.PartyState.HasCharacter(index) {
 			continue
@@ -614,7 +614,7 @@ func (g *GameState) buildInnRestQuote(
 		return InnRestQuote{}, fmt.Errorf("%w: calculated nightly price %d is invalid", ErrInvalidInnRequest, price)
 	}
 	quote := InnRestQuote{
-		Charge:            uint16(price), //nolint:gosec // Six-member Inn prices are bounded far below uint16.
+		Charge:            uint16(price),
 		Affordable:        int(state.Gold) >= price,
 		GoldBefore:        state.Gold,
 		GoldAfterPayment:  state.Gold,
@@ -709,8 +709,8 @@ func (g *GameState) buildInnGuestRow(
 		Status:             character.Status,
 		MonthsAtInn:        character.MonthsAtInn,
 		BilledMonths:       billedMonths,
-		MonthlyRate:        uint16(monthlyRate), //nolint:gosec // Original Inn monthly rate is bounded.
-		Charge:             uint16(charge),      //nolint:gosec // Maximum original bill is bounded below uint16.
+		MonthlyRate:        uint16(monthlyRate),
+		Charge:             uint16(charge),
 		Affordable:         int(state.Gold) >= charge,
 		Confirmable:        true,
 		Projection:         projection,

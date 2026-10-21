@@ -25,16 +25,16 @@ func RollChestLoot(value int, rng RandomProvider) []ChestLoot {
 		entry := ChestLoot{}
 		switch index {
 		case 0:
-			entry.ChestValue = byte(randomIntInRange(rng, 1, value)) //nolint:gosec // Validated seven-bit value.
+			entry.ChestValue = byte(randomIntInRange(rng, 1, value))
 		case 1:
-			entry.Item = ItemAndQuantity{Item: Gold, Quantity: uint16(randomIntInRange(rng, 1, value*3))} //nolint:gosec // At most 381.
+			entry.Item = ItemAndQuantity{Item: Gold, Quantity: uint16(randomIntInRange(rng, 1, value*3))}
 		case 2:
 			entry.Item = ItemAndQuantity{Item: Potion(number - 1), Quantity: 1}
 		case 3:
 			entry.Item = ItemAndQuantity{Item: Scroll(number - 1), Quantity: 1}
 		default:
 			items := [...]Provision{Key, Gem, Torches, Food}
-			entry.Item = ItemAndQuantity{Item: items[index-4], Quantity: uint16(number)} //nolint:gosec // Source quantity is 1..2.
+			entry.Item = ItemAndQuantity{Item: items[index-4], Quantity: uint16(number)}
 		}
 		loot = append(loot, entry)
 	}

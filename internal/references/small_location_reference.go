@@ -111,8 +111,6 @@ func (s *SmallLocationReference) CopyDungeonCells() (DungeonCells, bool) {
 
 // GetExitingText returns the text to display when leaving a location
 // Mirrors getEnteringText() pattern with "Leaving" instead of "Enter"
-//
-//nolint:cyclop // Many location cases require high complexity
 func (s *SmallLocationReference) GetExitingText() string {
 	switch s.Location {
 	case LordBritishsCastle:

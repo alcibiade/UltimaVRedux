@@ -42,7 +42,7 @@ func (g *GameState) tryDivideCombatMonster(monster *CombatMonster, monsterIdx in
 		}
 		childIdx := g.CombatScene.AddMonsterToQueue(child)
 		g.SystemCallbacks.Message.AddRowStr(monster.EnemyRef().Name + " divides!")
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Division has no attack result or diagnostics.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventDivision,
 			Attacker: CombatFeedbackEntity{
 				IsPartyMember: false,

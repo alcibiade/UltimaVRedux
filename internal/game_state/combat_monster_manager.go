@@ -147,8 +147,6 @@ func (m *CombatMonsterManager) IsPositionOccupied(pos references.Position) bool 
 // --- Statistics ---
 
 // GetTotalExperience sums each killed monster’s maximum-HP-derived award. ref:PROGRESS-0002
-//
-//nolint:mnd // The kill-award divisor is part of the gameplay formula.
 func (m *CombatMonsterManager) GetTotalExperience() int {
 	total := 0
 	for _, monster := range m.monsters {

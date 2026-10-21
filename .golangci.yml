@@ -117,9 +117,7 @@ linters:
       max-complexity: 15   # tweak as you see fit
   exclusions:
     paths:
-      - OLD/
       - bin/
-      - temp_dump/
       - testdata/
       - ".*_test\\.go$"  # Exclude all test files from strict linting
     rules:
@@ -132,7 +130,7 @@ linters:
           - exhaustive
         text: "missing cases in switch of type indexes\\.SpriteIndex"
         path: "internal/sprites/water_tile_generator\\.go"
-      # Snapshot, scenario, and Codex code contains intentionally partial wire
+      # Snapshot and scenario code contains intentionally partial wire
       # DTO literals, data-driven records, and compatibility validation branches.
       - linters:
           - cyclop
@@ -145,21 +143,21 @@ linters:
           - nestif
           - nolintlint
           - varnamelen
-        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|gamescene_debug_workbench|gamescene_initialization|gamescene_snapshot|scenario_definition_commands|scenario_runner|scenario_startup|snapshot_commands|snapshot_startup|scene|gamescene|debugging/|game_state/|references/|repositoryfs/|save_snapshot/)"
+        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench|gamescene_initialization|gamescene_snapshot|scenario_definition_commands|scenario_runner|scenario_startup|snapshot_commands|snapshot_startup|scene|gamescene|debugging/|game_state/|references/|repositoryfs/|save_snapshot/)"
       # These conversions are guarded by snapshot validation or preserve
       # original binary save-game values.
       - linters:
           - gosec
-        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|scenario_runner|snapshot_commands|game_state/|references/|save_snapshot/)"
+        path: "^(cmd/ultimav/|internal/)(scenario_runner|snapshot_commands|game_state/|references/|save_snapshot/)"
       # Validation errors deliberately include field-specific context.
       - linters:
           - err113
           - wrapcheck
         path: "^(cmd/ultimav/|internal/)(gamescene_initialization|scenario_definition_commands|scenario_runner|scenario_startup|scene|snapshot_commands|debugging/|game_state/|repositoryfs/|save_snapshot/)"
-      # Repeated labels and names are intentional in immutable Codex tables.
+      # Repeated labels and names are intentional in immutable reference tables.
       - linters:
           - goconst
-        path: "^(cmd/ultimav/|internal/)(gamescene_debug_workbench_codex|debugging/snapshot_catalog|game_state/|references/)"
+        path: "^(cmd/ultimav/|internal/)(debugging/snapshot_catalog|game_state/|references/)"
       # Original graphics parsing and export code is validation-heavy and uses
       # source-format constants directly for auditable binary compatibility.
       - linters:
@@ -177,5 +175,3 @@ linters:
 issues:
   max-issues-per-linter: 100
   max-same-issues: 10
-  # Fixed standalone source checkpoint; retain inherited debt without moving the cutoff.
-  new-from-rev: f31ba69759594face92838f0ce33855f46aca4e3

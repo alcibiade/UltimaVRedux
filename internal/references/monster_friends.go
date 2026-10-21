@@ -9,8 +9,6 @@ package references
 //   - An inclusive 0..8 draw of zero selects the companion (1/9 under uniform draws)
 //
 // Returns true if a friend type should be used instead of primary.
-//
-//nolint:mnd // Original companion threshold and inclusive 0..8 range; ref:ENEMY-0003.
 func ShouldUseFriend(monsterIndex int, totalMonsters int, rng RandomProvider) bool {
 	// Only first quarter of monsters can have friends
 	threshold := totalMonsters/4 + 1

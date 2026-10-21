@@ -94,30 +94,30 @@ func (g *GameState) AlterActiveCharacter(input ActiveCharacterAlteration) (Activ
 		OrderAfter:      nil,
 	}
 	if input.Strength != nil {
-		target.Strength = byte(*input.Strength) //nolint:gosec // Validated stat range is 1..30.
+		target.Strength = byte(*input.Strength)
 	}
 	if input.Dexterity != nil {
-		target.Dexterity = byte(*input.Dexterity) //nolint:gosec // Validated stat range is 1..30.
+		target.Dexterity = byte(*input.Dexterity)
 	}
 	if input.Intelligence != nil {
-		target.Intelligence = byte(*input.Intelligence) //nolint:gosec // Validated stat range is 1..30.
+		target.Intelligence = byte(*input.Intelligence)
 		if input.CurrentMP == nil {
 			target.SetMp(target.GetCurrentMp())
 		}
 	}
 	if input.CurrentMP != nil {
-		target.SetMp(byte(*input.CurrentMP)) //nolint:gosec // Validated MP range is 0..30.
+		target.SetMp(byte(*input.CurrentMP))
 	}
 	if input.Level != nil {
-		target.Level = byte(*input.Level) //nolint:gosec // Validated level range is 1..8.
+		target.Level = byte(*input.Level)
 		target.Exp = uint16(minimumExperienceForLevel(*input.Level))
-		target.SetMaxHp(uint16(*input.Level * maximumHPPerLevel)) //nolint:gosec // Validated level range is 1..8.
+		target.SetMaxHp(uint16(*input.Level * maximumHPPerLevel))
 	}
 	if input.CurrentHP != nil {
-		target.SetHp(uint16(*input.CurrentHP)) //nolint:gosec // Validated against the stored maximum HP.
+		target.SetHp(uint16(*input.CurrentHP))
 	}
 	if input.Experience != nil {
-		target.Exp = uint16(*input.Experience) //nolint:gosec // Validated experience range is 0..9999.
+		target.Exp = uint16(*input.Experience)
 	}
 	if input.Status != nil {
 		target.SetStatus(*input.Status)

@@ -845,7 +845,6 @@ func executeSearchStatus(request debugging.Request, state *game_state.GameState)
 	return debugSuccessResult(request, fmt.Sprintf("Search status loaded for %d nearby cells.", len(status.Cells)), status)
 }
 
-//nolint:cyclop,funlen,gocognit,nestif // The five-cell snapshot is clearer as one cohesive detached traversal.
 func newSearchStatusResult(state *game_state.GameState) searchStatusResult {
 	location := state.MapState.PlayerLocation
 	progress := searchProgressResult{
@@ -1435,7 +1434,6 @@ func debugMoonstoneState(state game_state.MoonstoneState) string {
 	}
 }
 
-//nolint:cyclop,funlen // Application-level command dispatch is intentionally centralized.
 func executeApplicationDebugCommand(
 	request debugging.Request,
 	configuration *config.UltimaVConfiguration,

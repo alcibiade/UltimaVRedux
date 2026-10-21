@@ -193,7 +193,7 @@ func (g *GameState) PurchaseHorse(
 		Position:              state.Quote.Placement.Position,
 		Floor:                 state.Quote.Placement.Floor,
 	}
-	price := uint16(state.Quote.Price) //nolint:gosec // The quote validates the price against uint16 gold.
+	price := uint16(state.Quote.Price)
 	if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 		panic("validated horse purchase could not deduct gold")
 	}
@@ -242,7 +242,7 @@ func (g *GameState) buildHorseShopState(
 	affordable := int(gold) >= price
 	goldAfterPayment := gold
 	if affordable {
-		goldAfterPayment = gold - uint16(price) //nolint:gosec // Affordability and range checks make conversion safe.
+		goldAfterPayment = gold - uint16(price)
 	}
 
 	return HorseShopState{

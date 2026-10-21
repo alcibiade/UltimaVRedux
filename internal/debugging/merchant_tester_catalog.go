@@ -20,7 +20,6 @@ const (
 	parameterExpectedY     = "expectedY"
 )
 
-//nolint:funlen,exhaustruct // The reviewed live contract is clearest as one complete declaration.
 func merchantTesterCommands() []CommandDefinition {
 	minimumLocation, maximumLocation := 0, 40
 	minimumFloor, maximumFloor := -1, 7

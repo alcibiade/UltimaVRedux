@@ -201,35 +201,22 @@ or an assertion that checks passed.
 
 ## Go lint policy
 
-The source import retains inherited lint debt rather than broadening this work
-into unrelated legacy cleanup. All 94 configured linters, thresholds, and existing
-exclusions remain enabled as defined in `.golangci.yml`. The new-code cutoff is
-the fixed sanitized application-source checkpoint rather than a moving branch.
-Migration-specific changed-line findings were checked before that checkpoint.
-The fixed baseline is `f31ba69759594face92838f0ce33855f46aca4e3`; retain this
-commit in checkout history. The config verifier rejects moving refs and abbreviated
-hashes. Advancing the cutoff requires an explicit reviewed policy change.
+All configured linters, thresholds, and exclusions are defined in `.golangci.yml`.
+`make lint` requires zero findings across every linted file; there is no revision
+cutoff, and the config verifier rejects one. `make lint-all` runs the same analysis
+without output caps, so every finding is listed at once.
 
-`make lint` requires zero findings on new code relative to the recorded source
-baseline. `make lint-all` disables revision filtering and output caps so inherited
-debt remains inspectable. A passing new-code gate is not a zero-debt assertion;
-changed-line filters also have declaration and transitive-change limitations.
-
-When manually modifying a source file, resolve all configured findings in that
-file using an unfiltered lint report, not only findings on the edited lines.
-Leave manual cleanup in otherwise untouched files alone. Repository-wide autofix
+Resolve all configured findings in each file you change. Repository-wide autofix
 is a separate, reviewed pass; files changed only by autofix are exempt from further
 manual cleanup. Reject automatic rewrites that change domain identities, callback
 ordering, or dynamically growing loop semantics. Formatting and tests remain
-required after reviewing the automatic diff. This policy does not move the fixed
-lint baseline or relax enabled checks.
+required after reviewing the automatic diff. This policy does not relax enabled checks.
 
 Canonical lint checks enumerate the requested packages with `go list` and run
 serial batches of four through the same pinned linter/configuration. Each package
 receives the complete configured analysis once; an earlier failure does not omit later batches. This
-bounds retained analyzer graphs without changing the configured rules or revision
-filter. Duplicate-code detection additionally runs over the full inventory so
-cross-batch duplication remains visible. `lint-all` retains uncapped, unfiltered
+bounds retained analyzer graphs without changing the configured rules. Duplicate-code detection additionally runs over the full inventory so
+cross-batch duplication remains visible. `lint-all` retains uncapped
 output in every batch and the whole-inventory duplicate pass.
 
 ## Starting The Debug Workbench

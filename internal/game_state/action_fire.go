@@ -1,4 +1,3 @@
-//nolint:mnd // Existing projectile effect timing and interpolation values are domain-specific.
 package game_state
 
 import (

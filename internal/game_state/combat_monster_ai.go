@@ -310,7 +310,7 @@ func (g *GameState) monsterMeleeAttack(
 	// Hit check (replicates hit check from original combat damage rules)
 	// See ref:COMBAT-0008.
 	hitResult := CombatHitCheck(attackerStat, defense.EffectiveDex, false, rng)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage fields are populated only after a hit.
+	diagnostics := CombatDiagnostics{
 		Hit:           hitResult,
 		TargetBaseDex: defense.BaseDex,
 		UsedStrength:  monster.HasAbility(references.Bludgeons),
@@ -628,7 +628,7 @@ func (g *GameState) tryMonsterTeleportWithRNG(
 	}
 
 	monster.SetPosition(to)
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Teleport has no target or roll diagnostics.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:     CombatEventTeleport,
 		Attacker: combatMonsterFeedbackEntity(monsterIdx, to),
 		From:     from,
@@ -844,7 +844,7 @@ func (g *GameState) executeMonsterTurn(entry *TurnQueueEntry, _ ...MonsterTurnPl
 	if movement.moved {
 		toPosition := monster.Position()
 		if !movement.teleported {
-			g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Movement has no target or roll result.
+			g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 				Kind: CombatEventMove,
 				Attacker: CombatFeedbackEntity{
 					IsPartyMember: false,
@@ -892,7 +892,7 @@ func (g *GameState) executeFleeingMonsterTurnWithRNG(
 		to.Y < 0 || to.Y >= references.YCombatMapTiles {
 		monster.SetActive(false)
 		g.CombatScene.TurnQueue.MarkFled(monsterIdx, false)
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Escape is not damage or death.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventFled,
 			Attacker: CombatFeedbackEntity{
 				Index:    monsterIdx,
@@ -905,7 +905,7 @@ func (g *GameState) executeFleeingMonsterTurnWithRNG(
 
 		return true, false
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Movement has no target or roll result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventMove,
 		Attacker: CombatFeedbackEntity{
 			Index:    monsterIdx,
@@ -921,7 +921,7 @@ func (g *GameState) executeFleeingMonsterTurnWithRNG(
 func recoverFleeingMonsterHP(monster *CombatMonster, rng references.RandomProvider) {
 	// Original combat scheduler uses random(0,3)==3: exactly the upper boundary heals.
 	// See ref:COMBAT-0008.
-	if rng.Intn(4) == 3 { //nolint:mnd // Authentic one-in-four boundary.
+	if rng.Intn(4) == 3 {
 		monster.Heal(1)
 	}
 }

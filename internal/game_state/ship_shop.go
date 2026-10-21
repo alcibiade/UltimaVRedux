@@ -277,7 +277,7 @@ func (g *GameState) PurchaseShip(
 	result.Price = 0
 	var delivered *map_units.NPCFriendly
 	for result.Quantity < approval.Quantity {
-		price := uint16(quote.Price * units) //nolint:gosec // Initial affordability bounds every payment.
+		price := uint16(quote.Price * units)
 		if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 			break
 		}
@@ -363,7 +363,7 @@ func (g *GameState) buildShipQuote(
 	goldAfterPayment := state.Gold
 	affordable := int(state.Gold) >= price
 	if affordable {
-		goldAfterPayment -= uint16(price) //nolint:gosec // Affordability and range validation make this safe.
+		goldAfterPayment -= uint16(price)
 	}
 	quote := ShipPurchaseQuote{
 		VehicleType:      vehicleType,
@@ -406,7 +406,7 @@ func buildShipPurchaseApprovals(quote ShipPurchaseQuote) []ShipPurchaseApprovalV
 		affordable := totalPrice <= int(quote.GoldBefore)
 		goldAfter := quote.GoldBefore
 		if affordable {
-			goldAfter -= uint16(totalPrice) //nolint:gosec // Affordability bounds the total by uint16 gold.
+			goldAfter -= uint16(totalPrice)
 		}
 		skiffsAfter := quote.Berth.SkiffCount
 		switch quote.Action {

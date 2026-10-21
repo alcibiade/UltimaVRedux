@@ -1,4 +1,3 @@
-//nolint:lll // The cohesive preset builder retains a fully qualified signature beside its scoped lint rationale.
 package game_state
 
 import (
@@ -81,8 +80,7 @@ func (g *GameState) ApplyUsableInventoryPreset(expectedFingerprint string) (Usab
 	}, nil
 }
 
-//nolint:cyclop // Each independent catalog has distinct validation and inventory mutation semantics.
-func (g *GameState) usableInventoryPresetMutations() ([]debugInventoryMutation, string, error) { //nolint:funlen // The four catalog loops form one atomic preset preview.
+func (g *GameState) usableInventoryPresetMutations() ([]debugInventoryMutation, string, error) {
 	collector := debugInventoryMutations{
 		game:     g,
 		snapshot: g.GetDebugInventorySnapshot(),

@@ -71,7 +71,7 @@ func (gs *GameState) ReviewGuardTribute() GuardTributeReview {
 		Kind:       GuardTributeGeneric,
 		Location:   gs.MapState.PlayerLocation.Location,
 		GoldBefore: gs.PartyState.Inventory.Gold.Get(),
-		Amount:     uint16(CalculateGuardExtortion(&gs.PartyState)), //nolint:gosec // Active party is bounded to six.
+		Amount:     uint16(CalculateGuardExtortion(&gs.PartyState)),
 	}
 	if review.Location == references.Minoc {
 		review.Kind = GuardTributeMinocCharity

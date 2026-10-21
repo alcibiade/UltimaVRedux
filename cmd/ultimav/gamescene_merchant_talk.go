@@ -1401,7 +1401,6 @@ func (g *GameScene) thenRunInnPreview(
 	return g.thenRunInnShopAuthority(game_state.MerchantSession{}, review, true, workflowState)
 }
 
-//nolint:funlen // The parent loop owns three concrete Inn actions and their distinct terminal boundaries.
 func (g *GameScene) thenRunInnShopAuthority(
 	session game_state.MerchantSession,
 	review game_state.InnShopReview,

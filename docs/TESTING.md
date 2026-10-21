@@ -334,7 +334,7 @@ The `Makefile` is the command authority:
 | `make test-race` | Run all Go tests with the race detector. |
 | `make test-provisioned` / `make test-race-provisioned` | Require explicit original data and zero test/subtest skips, without/with the race detector. |
 | `make lint-config-check` | Verify pinned v2 schema and detect both intentional errcheck fixture violations. |
-| `make lint-all` | Run the pinned configured linters across all packages without revision filtering, per-linter caps, same-message caps, or line deduplication. Existing path exclusions and production-only test handling still apply. |
+| `make lint-all` | Run the pinned configured linters across all packages without per-linter caps, same-message caps, or line deduplication. Existing path exclusions and production-only test handling still apply. |
 | `make core-dependencies-check` | Check transitive production and internal/external-test dependency closures for all six core roots. |
 | `make web-build` | Install locked frontend dependencies, run frontend tests, and build Debug Workbench assets. |
 | `make web-test-browser` | Build current source UI, then run four real Chromium smoke tests with mock transport; headless shell must already be installed. |
@@ -437,11 +437,10 @@ review revocation. The synthetic transport never performs live game mutations or
 certifies the interface's live usability. These execution settings still require
 aggregate process-tree supervision on constrained hosts.
 
-`lint-config-check` verifies the actual configuration, then runs a diagnostic
-copy with only the immutable `issues.new-from-rev` cutoff removed. It requires two errcheck
+`lint-config-check` verifies the actual configuration, rejects any revision
+cutoff (`issues.new*`), then runs it against a fixture. It requires two errcheck
 findings (unchecked type assertion and blank-assigned error) and clean checked
-controls. Normal lint retains that revision filter; it is not an unfiltered
-whole-codebase count. `core-dependencies-check` uses `go list -deps -test`
+controls. `core-dependencies-check` uses `go list -deps -test`
 including import remapping for GameState, party/map state, AI, references, and
 config; missing/incomplete metadata fails closed.
 
@@ -614,8 +613,7 @@ same full invocation. Constrained and throughput lint retain serial four-package
 batches with `--concurrency=1`; those batches defer duplicate detection to one
 full-inventory `dupl` pass so cross-batch duplicates cannot disappear. Ordinary
 findings do not stop later batches; cancellation does. These scheduling choices
-do not change configured linters, package selection, exclusions, the immutable
-new-code cutoff, or the unfiltered `lint-all` policy. The lint planner's
+do not change configured linters, package selection, or exclusions, or the uncapped `lint-all` policy. The lint planner's
 `--profile=host|constrained|throughput` defaults to `TEST_PROFILE`, then `host`;
 Make passes its selected profile explicitly.
 

@@ -270,7 +270,7 @@ func NewCombatState(
 			EntityIndex:   0,
 		},
 		currentTurnIdentitySet: true,
-		PreCombatPlayerLocation: references.PlayerLocation{ //nolint:exhaustruct
+		PreCombatPlayerLocation: references.PlayerLocation{
 			Location: 0,
 		},
 		preCombatActivePlayerIndex: -1,
@@ -1202,7 +1202,7 @@ func (g *GameState) MoveCombatCharacter(direction references.Direction) CombatMo
 
 	// Move the character
 	g.CombatScene.setCombatantPosition(turnIdentity, *newPos)
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Movement has no target or roll result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventMove,
 		Attacker: CombatFeedbackEntity{
 			IsPartyMember: true,
@@ -1291,7 +1291,7 @@ func (g *GameState) departPCFromCombat(identity CombatTurnIdentity) {
 		g.SystemCallbacks.Message.AddRowStr(pcName + " - Escape!")
 	}
 
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Flee has no target or roll data.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventFled,
 		Attacker: CombatFeedbackEntity{
 			IsPartyMember: true,
@@ -1403,7 +1403,7 @@ func (g *GameState) checkCombatEndConditions() CombatEndReason {
 		g.CombatScene.Victory = true
 		logging.Infof(logging.CategoryGameState,
 			"Combat victory: all monsters defeated, %d PCs remain", pcCount)
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Outcome has no actor or target.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventVictory,
 		})
 
@@ -1415,7 +1415,7 @@ func (g *GameState) checkCombatEndConditions() CombatEndReason {
 		g.SystemCallbacks.Message.AddRowStr("BATTLE IS LOST!")
 		logging.Infof(logging.CategoryGameState,
 			"Combat defeat: no PCs remain, %d monsters left", monsterCount)
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Outcome has no actor or target.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventDefeat,
 		})
 		g.EndCombat(CombatDefeat)

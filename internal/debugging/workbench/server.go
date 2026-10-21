@@ -180,7 +180,7 @@ func (s *Server) Start() error {
 		return ErrAlreadyStarted
 	}
 
-	listenConfig := net.ListenConfig{} //nolint:exhaustruct // Optional listener controls retain platform defaults.
+	listenConfig := net.ListenConfig{}
 	listener, err := listenConfig.Listen(context.Background(), "tcp", s.config.Address)
 	if err != nil {
 		return fmt.Errorf("binding debug workbench to %s: %w", s.config.Address, err)
@@ -194,7 +194,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("GET /healthz", s.serveHealth)
 	mux.HandleFunc("GET /ws", s.serveWebSocket)
 	s.listener = listener
-	s.httpServer = &http.Server{ //nolint:exhaustruct // Optional HTTP server settings intentionally retain defaults.
+	s.httpServer = &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: defaultReadHeaderTimeout,
 	}

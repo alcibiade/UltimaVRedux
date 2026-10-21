@@ -277,7 +277,7 @@ type GameState struct {
 
 func initBlankGameState(gameReferences *references.GameReferences, gameConfig *config.UltimaVConfiguration, xTilesVisibleOnGameScreen,
 	yTilesVisibleOnGameScreen int) *GameState {
-	gameState := &GameState{} //nolint:exhaustruct
+	gameState := &GameState{}
 
 	gameState.GameReferences = gameReferences
 	gameState.GameConfig = gameConfig

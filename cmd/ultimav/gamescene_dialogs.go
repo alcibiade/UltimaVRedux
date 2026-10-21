@@ -1,4 +1,3 @@
-//nolint:dupl,mnd,varnamelen // Existing dialog sequences retain domain timing and local builder names.
 package main
 
 import (
@@ -712,8 +711,6 @@ func parseMoonPhaseInput(text string, submitted bool) (datetime.MoonPhase, bool)
 }
 
 // buildReagentInventory creates the reagent inventory list from party state.
-//
-//nolint:goconst // Canonical reagent labels stay together with their ordered identities.
 func (g *GameScene) buildReagentInventory() []widgets.ReagentInfo {
 	// Define reagent display info
 	type reagentDef struct {

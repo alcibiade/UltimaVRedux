@@ -15,8 +15,6 @@ func IsPirateShipSprite(sprite indexes.SpriteIndex) bool {
 
 // NewPirateShipEnemyReference creates the special overworld pirate representation.
 // MonsterStocks is the original monster-table slot reused for pirate ships.
-//
-//nolint:mnd // Values are the original U5 pirate ship stat table, not calculations.
 func NewPirateShipEnemyReference(tile *Tile) EnemyReference {
 	if tile == nil || !IsPirateShipSprite(tile.Index) {
 		panic("pirate ship requires a pirate ship tile")

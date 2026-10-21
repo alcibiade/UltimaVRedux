@@ -1,4 +1,3 @@
-//nolint:mnd // Existing scroll animation color and interpolation values are domain-specific.
 package main
 
 import (

@@ -390,8 +390,6 @@ func (q *CombatTurnQueue) AdvanceToNextActor() *TurnQueueEntry {
 // FillForecast predicts subsequent actors into dst and returns the number filled.
 // It snapshots combatant scalars and simulates on copied countdown state, leaving
 // the authoritative queue and combatants unchanged.
-//
-//nolint:cyclop,funlen // Mirrors the authoritative queue scan; extraction would risk forecast drift.
 func (q *CombatTurnQueue) FillForecast(dst []CombatTurnForecastEntry) int {
 	if len(dst) == 0 || len(q.entries) == 0 {
 		return 0

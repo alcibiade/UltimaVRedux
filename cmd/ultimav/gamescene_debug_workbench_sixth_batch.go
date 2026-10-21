@@ -40,7 +40,7 @@ func (g *GameScene) executeSixthBatchDebugCommand(request debugging.Request) (de
 	case debugging.CommandDeathTestSequence:
 		return g.executeDebugActivePartyWipe(request, true), true
 	default:
-		return debugging.Result{}, false //nolint:exhaustruct // Zero result marks an unhandled command.
+		return debugging.Result{}, false
 	}
 }
 
@@ -85,7 +85,6 @@ func (g *GameScene) executeDebugActivePartyWipe(request debugging.Request, queue
 	return result
 }
 
-//nolint:cyclop // The optional resurrection workflow has several independent ownership preconditions.
 func (g *GameScene) deathWipeBlocked(request debugging.Request, queueResurrection bool) *debugging.Result {
 	if g.gameState.IsInCombat() {
 		result := debugging.FailureResult(request, "combat_active", "party wipe is unavailable during combat")

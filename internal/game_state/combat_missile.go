@@ -79,8 +79,8 @@ func combatMissileImpactPosition(
 			break
 		}
 		position := references.Position{
-			X: references.Coordinate((pixel.x - originalCombatWindowInset) / originalCombatTilePixels), //nolint:gosec // Combat pixels map to 0..10.
-			Y: references.Coordinate((pixel.y - originalCombatWindowInset) / originalCombatTilePixels), //nolint:gosec // Combat pixels map to 0..10.
+			X: references.Coordinate((pixel.x - originalCombatWindowInset) / originalCombatTilePixels),
+			Y: references.Coordinate((pixel.y - originalCombatWindowInset) / originalCombatTilePixels),
 		}
 		if position != from && !isCombatMissilePassable(terrainAt(position)) {
 			return position, false

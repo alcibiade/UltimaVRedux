@@ -3,7 +3,7 @@ package references
 // newTileDefinitions returns independent runtime tile metadata. Tile behavior methods
 // and passability tables remain the authority for interactions and traversal.
 //
-//nolint:exhaustruct,maintidx // Declarative tile catalog; omitted properties intentionally have their zero value.
+//nolint:maintidx // Declarative tile catalog; omitted properties intentionally have their zero value.
 func newTileDefinitions() Tiles {
 	return Tiles{
 		-1:  {Name: "NoSprite", SpeedFactor: 1},

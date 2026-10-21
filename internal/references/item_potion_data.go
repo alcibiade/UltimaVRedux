@@ -1,8 +1,6 @@
 package references
 
 // newPotionItemReferences owns player-facing potion metadata.
-//
-//nolint:exhaustruct // Only metadata meaningful to this item family is populated.
 func newPotionItemReferences() map[Potion]InventoryItem {
 	items := map[Potion]InventoryItem{
 		Blue:   {ItemName: "Blue", ItemSprite: 259, ItemDescription: "Usually awakens one sleeping party member. Potion labels are unreliable; it may instead cause sleep or another color's effect.", ItemDescriptionAttribution: "Ultima V (verified DOS behavior)"},

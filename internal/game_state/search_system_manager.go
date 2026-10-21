@@ -259,11 +259,11 @@ func (ssm *SearchSystemManager) checkMoonstones(searchPos *references.Position) 
 
 	// Get current map and level from player location
 	currentMap := uint8(ssm.gameState.MapState.PlayerLocation.Location)
-	currentLevel := uint8(ssm.gameState.MapState.PlayerLocation.Floor) //nolint:gosec // G115: Safe - Floor is small int
+	currentLevel := uint8(ssm.gameState.MapState.PlayerLocation.Floor)
 
 	// Search for moonstone at position with proper map/level matching
 	moonstoneIndex := ssm.gameState.moonstoneSystem.GetMoonstoneAtPositionOnMap(
-		uint8(searchPos.X), uint8(searchPos.Y), currentLevel, currentMap) //nolint:gosec // G115: Safe - map coords 0-255
+		uint8(searchPos.X), uint8(searchPos.Y), currentLevel, currentMap)
 
 	if moonstoneIndex >= 0 {
 		if err := ssm.addMoonSpriteToWorld(searchPos, moonstoneIndex); err != nil {
