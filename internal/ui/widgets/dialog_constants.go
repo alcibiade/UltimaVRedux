@@ -10,9 +10,6 @@ const (
 	// LayoutSpacingSmall is minimal padding for tight layouts (1%)
 	LayoutSpacingSmall = 0.01
 
-	// LayoutSpacingStandard is the default padding for most widgets (2%)
-	LayoutSpacingStandard = 0.02
-
 	// LayoutSpacingMedium is increased padding for border insets (3%)
 	LayoutSpacingMedium = 0.03
 )
@@ -38,16 +35,12 @@ func ClassicUIPixelUnit(width, height int) int {
 const (
 	// BorderWidthStandard is the default for dialogs (601)
 	BorderWidthStandard = 601
-
-	// BorderWidthThick is for buttons (1202)
-	BorderWidthThick = 1202
 )
 
 // Modal dialog layout constants (shared by ButtonListModal, CharacterSelectionDialog, NewOrderDialog)
 const (
 	// Typography - use FontSizeXLarge (22pt) via typography.go for scaled fonts
 	// NOTE: modalDialogFontSize kept for compatibility; prefer GetScaledFontWithOutput(FontSizeXLarge)
-	modalDialogFontSize      = 22 // Maps to FontSizeXLarge in typography.go
 	modalDialogTitleMaxChars = 30 // Maximum characters in title
 )
 
@@ -118,7 +111,6 @@ const (
 	itemDialogVerticalRegionDivisor = 3
 
 	// Shared by the older Ready, Mix, and Cast panel layouts.
-	itemDialogTabWidth    = 0.25
 	itemDialogBorderWidth = BorderWidthStandard
 	itemDialogTextPadding = 8
 )

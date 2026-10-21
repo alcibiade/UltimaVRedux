@@ -9,11 +9,9 @@ import (
 
 // Location floor counts for different building types
 const (
-	SingleFloorBuilding = 1 // Huts and single-story buildings
-	TownFloorCount      = 2 // Most towns and keeps
-	SpecialFloorCount   = 3 // Special buildings (Lycaeum, EmpathAbbey, etc.)
-	CastleFloorCount    = 5 // Major castles
-	DungeonFloorCount   = 8 // Dungeons
+	TownFloorCount    = 2 // Most towns and keeps
+	CastleFloorCount  = 5 // Major castles
+	DungeonFloorCount = 8 // Dungeons
 )
 
 // Small map dimensions: 32 by 32 tiles per floor.

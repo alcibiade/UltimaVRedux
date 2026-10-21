@@ -254,9 +254,8 @@ func (g *GameScene) startTimeStopScrollWorkflow(complete func()) {
 
 // Resurrection scroll visual effect constants
 const (
-	resurrectionFlashIntensity     = 0.7  // Screen flash intensity (0.0-1.0)
-	resurrectionFlashDurationMs    = 400  // White/gold flash duration in milliseconds
-	resurrectionNoTargetDurationMs = 2000 // Timed popup for no dead targets
+	resurrectionFlashIntensity  = 0.7 // Screen flash intensity (0.0-1.0)
+	resurrectionFlashDurationMs = 400 // White/gold flash duration in milliseconds
 )
 
 func (g *GameScene) startResurrectionScrollWorkflow(complete func()) {

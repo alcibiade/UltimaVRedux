@@ -60,7 +60,6 @@ type GemViewDialogConfig struct {
 }
 
 const (
-	gemViewTileSize = 12 // Pixels per tile in gem view (12x12)
 	gemViewGridSize = 32 // 32x32 tiles visible
 	gemViewMapSize  = 256
 	gemViewRiver    = 0x60

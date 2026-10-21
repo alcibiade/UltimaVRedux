@@ -11,7 +11,6 @@ const (
 	AlphaSubtle          = 40
 	AlphaHeavy           = 200
 	AlphaLight           = 100
-	AlphaMedium          = 180
 )
 
 // Color conversion constants

@@ -195,7 +195,6 @@ const (
 	messageFontPoint                   = float64(FontSizeLarge) // 20pt - maps to typography.FontSizeLarge
 	messageFontLineSpacing             = messageFontPoint + 6   // 26pt (1.3x multiplier for readability)
 	messageMaxTextLines                = 10                     // Default total line capacity, including any prompt
-	messageMaxPromptLines              = 1                      // Internal constant for prompt split calculation
 	messageMaxCharsPerLine             = 45
 	messagePercentTextIndentFromBorder = 0.02
 

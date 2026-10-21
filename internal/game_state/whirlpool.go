@@ -10,10 +10,9 @@ import (
 // Whirlpool spawning constants based on original Ultima V
 // See ref:SHIP-0003.
 const (
-	WhirlpoolSpawnProbability = 8   // 1 in 8 chance on deep water
-	minDistanceFromPlayer     = 7   // Must be >6 tiles from player (validloc check)
-	maxSpawnAttempts          = 128 // Max attempts to find valid location (0x80 in original)
-	spawnAreaSize             = 32  // Random position range (32x32 area around offset)
+	minDistanceFromPlayer = 7   // Must be >6 tiles from player (validloc check)
+	maxSpawnAttempts      = 128 // Max attempts to find valid location (0x80 in original)
+	spawnAreaSize         = 32  // Random position range (32x32 area around offset)
 )
 
 // isWhirlpoolPredicate returns a predicate function that matches whirlpool enemies

@@ -29,8 +29,6 @@ const (
 	signHeaderSize    = 66 // 33 locations * 2 bytes per offset
 	signHeaderEntries = 33 // Number of location entries in header
 	signRecordMinSize = 5  // onmap(1) + floor(1) + x(1) + y(1) + null terminator(1)
-	signFirstLocation = 1  // First valid location (Moonglow)
-	signLastLocation  = 32 // Last valid location (Serpent's Hold)
 )
 
 // Sign text encoding constants

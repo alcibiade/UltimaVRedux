@@ -34,7 +34,6 @@ var (
 
 const (
 	maximumVolumeSlider       = 10
-	maximumTargetFPS          = 144
 	millisecondsPerSecond     = 1000
 	defaultAmbientLightRadius = 2
 )
@@ -143,9 +142,8 @@ type DebugConfiguration struct {
 
 // Combat movement speed factors define the supported persisted debug range and default.
 const (
-	DefaultCombatMovementSpeedFactor = 1.0
-	MinCombatMovementSpeedFactor     = 0.25
-	MaxCombatMovementSpeedFactor     = 4.0
+	MinCombatMovementSpeedFactor = 0.25
+	MaxCombatMovementSpeedFactor = 4.0
 )
 
 func validCombatMovementSpeedFactor(factor float64) bool {
