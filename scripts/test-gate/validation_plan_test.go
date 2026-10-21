@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidationPlanRunsGoChecksOnce(t *testing.T) {
+func TestValidationPlanRunsGoAndPythonChecksOnce(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	require.NoError(t, err)
-	command := exec.Command("make", "--no-print-directory", "-n", "validate", "GO=go", "PYTHON=python3")
+	command := exec.Command("make", "--no-print-directory", "-n", "validate", "GO=go")
 	command.Dir = root
 	command.Env = cleanMakeEnvironment()
 	output, err := command.CombinedOutput()
@@ -24,8 +24,10 @@ func TestValidationPlanRunsGoChecksOnce(t *testing.T) {
 	for _, step := range []string{
 		"go run ./scripts/test-gate -profile=host", "go vet ./...", "go build ./...",
 		"go run ./scripts/check-lint-config", "go run ./scripts/check-documentation",
-		"./scripts/pre-commit-checks.sh --policy-only", "python3 scripts/check-gamefacts.py",
-		"python3 -m unittest discover -s scripts",
+		"./scripts/pre-commit-checks.sh --policy-only", "-B scripts/check-gamefacts.py",
+		"-I -B -m unittest discover -s scripts",
+		"scripts/python_quality.py format-check", "scripts/python_quality.py lint",
+		"scripts/python_quality.py ready",
 	} {
 		require.Equal(t, 1, strings.Count(plan, step), "validation must schedule %q exactly once", step)
 	}
@@ -33,6 +35,9 @@ func TestValidationPlanRunsGoChecksOnce(t *testing.T) {
 	require.NotContains(t, plan, "opencode")
 	require.NotContains(t, plan, "go generate")
 	require.NotContains(t, plan, "npm ")
+	require.Contains(t, plan, ".cache/python-quality/")
+	require.NotContains(t, plan, "scripts/python_quality.py provision")
+	require.NotContains(t, plan, "scripts/python_quality.py staged-check")
 	require.Contains(t, plan, "-suite=logic")
 	require.NotContains(t, plan, "-suite=render")
 	require.NotContains(t, plan, "-suite=all")
@@ -148,7 +153,12 @@ if [ "$1" = "$FAIL_TARGET" ]; then exit 37; fi
 func TestFormatCheckPreservesToolFailure(t *testing.T) {
 	root, err := filepath.Abs("../..")
 	require.NoError(t, err)
-	command := exec.CommandContext(t.Context(), "make", "--no-print-directory", "format-check", "GOIMPORTS=false")
+	probe := filepath.Join(t.TempDir(), "python-probe.mk")
+	// Python tool failures have real-tool unittest fixtures. This regression checks
+	// the Go formatter exit without repeating Python validation inside logic tests.
+	require.NoError(t, os.WriteFile(probe, []byte("python-env-check python-format-check:\n\t@:\n"), 0o600))
+	command := exec.CommandContext(t.Context(), "make", "--no-print-directory", "-f", "Makefile", "-f", probe,
+		"format-check", "GOIMPORTS=false")
 	command.Dir = root
 	command.Env = cleanMakeEnvironment()
 	output, err := command.CombinedOutput()

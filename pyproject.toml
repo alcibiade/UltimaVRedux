@@ -1,0 +1,33 @@
+[tool.black]
+required-version = "26.10.1"
+target-version = ["py312"]
+line-length = 88
+preview = false
+
+[tool.pylint.main]
+py-version = "3.12"
+load-plugins = ["pylint.extensions.typing"]
+persistent = false
+# Explicit files, including tracked dotfiles, are the runner's complete inventory.
+ignore = []
+ignore-patterns = []
+ignore-paths = []
+# Effective exit-zero=false: omit this store_true option. Pylint 4.0.4 treats
+# even a configured false value as presence of --exit-zero. Real failing-tool
+# regressions guard this contract. Informational enabled diagnostics fail too.
+fail-on = ["I"]
+
+[tool.pylint.reports]
+score = false
+reports = false
+
+[tool.pylint.messages_control]
+# No debt baseline or category-wide exemptions. Local exceptions explain why.
+enable = ["useless-suppression"]
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pylint.basic]
+# The existing executable filenames are public CLI names, not import modules.
+module-rgx = "[a-z_][a-z0-9_-]*"

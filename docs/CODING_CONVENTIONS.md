@@ -14,6 +14,32 @@ Goals:
 - Linting: golangci-lint configuration makes final determinations on style not otherwise stated in this document.
 - Build tags: use sparingly (e.g., debug vs release).
 
+### Python tooling
+
+Maintained Python, including tests, requires **Python 3.12+**. Annotate function
+parameters and returns completely, including nested callbacks. Model structured
+records with `TypedDict` or dataclasses and callable contracts with `Protocol`;
+use concrete container element types and narrow unions. Inferred local types are
+fine. Avoid blanket `Any`, casts that conceal unvalidated assumptions, or empty
+annotations added only to satisfy a checker. JSON boundary casts describe known
+export schemas; validation still owns runtime error handling.
+
+Use **Black 26.10.1**, stable mode and its default **88-column** layout, and
+**Pylint 4.0.4**, including `pylint.extensions.typing`. All enabled diagnostics
+must be zero across the full Python inventory, with no changed-line filter or
+debt baseline. Scoring is disabled and failures retain nonzero exits. Suppress
+only a specific diagnostic at the narrowest useful scope with a reason next to
+it; stale suppressions fail. Test names may serve as method documentation, and
+explicit binary-layout variables or established CLI signatures can justify local
+complexity exceptions after review. Do not disable whole diagnostic categories.
+
+These are the only Python format/lint tools; Mypy and Pyright are not part of the
+toolchain. Preserve standard-library-only operational scripts and their CLI
+behavior. Keep development dependencies in the hashed quality lock and dedicated
+environment, separate from game/runtime dependencies. See
+[Python quality workflow](DEVELOPMENT_GUIDE.md#python-quality-workflow) for setup,
+inventory rules and check-only hooks.
+
 ## Package Structure and Boundaries
 
 - Core logic should be independent of the rendering/input backend. Adapter layers (e.g., Ebiten) call into core, not vice versa.

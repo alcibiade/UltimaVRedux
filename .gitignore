@@ -23,6 +23,9 @@ go.work.sum
 /temp_dump/
 /test_output/
 /.ruff_cache/
+/.cache/
+__pycache__/
+*.py[cod]
 /ultimav
 /cmd/ref_dump/ref_dump
 /cmd/ultimav/bin/

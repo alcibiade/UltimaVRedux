@@ -4,7 +4,13 @@ BINARY := $(BIN_DIR)/ultimav
 MAIN_PACKAGE := ./cmd/ultimav
 
 GO ?= go
-PYTHON ?= python3
+PYTHON_BOOTSTRAP ?= python3
+ifeq ($(OS),Windows_NT)
+PYTHON := $(CURDIR)/.cache/python-quality/Scripts/python.exe
+else
+PYTHON := $(CURDIR)/.cache/python-quality/bin/python
+endif
+PYTHON_QUALITY := "$(PYTHON)" -I -B scripts/python_quality.py
 TOOLS_BIN := $(CURDIR)/$(BIN_DIR)/tools
 GOIMPORTS ?= $(TOOLS_BIN)/goimports
 GOLANGCI_LINT ?= $(TOOLS_BIN)/golangci-lint
@@ -80,10 +86,32 @@ tools: ## Provision pinned Go validation tools and module dependencies (networke
 	@GOBIN="$(TOOLS_BIN)" $(GO) install golang.org/x/tools/cmd/goimports@v0.37.0
 	@GOBIN="$(TOOLS_BIN)" $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
-format: ## Format Go source and organize imports
+.PHONY: python-tools python-env-check python-format python-format-check python-lint python-check python-staged-check
+python-tools: ## Provision the hashed Python quality environment (networked setup, Python 3.12+)
+	@"$(PYTHON_BOOTSTRAP)" -I -B scripts/python_quality.py provision
+
+python-env-check:
+	@test -x "$(PYTHON)" || { printf '%s\n' 'Missing Python tools: run make python-tools PYTHON_BOOTSTRAP=python3.12 (or another Python 3.12+ interpreter)' >&2; exit 1; }
+	@$(PYTHON_QUALITY) ready
+
+python-format: python-env-check ## Apply stable Black formatting to the full Python inventory
+	@$(PYTHON_QUALITY) format
+
+python-format-check: python-env-check ## Check stable Black formatting without changing files
+	@$(PYTHON_QUALITY) format-check
+
+python-lint: python-env-check ## Require zero enabled Pylint diagnostics across all Python
+	@$(PYTHON_QUALITY) lint
+
+python-check: python-format-check python-lint ## Check Python formatting and lint once
+
+python-staged-check: python-env-check ## Require staged/worktree equality for Python quality inputs
+	@$(PYTHON_QUALITY) staged-check
+
+format: python-format ## Format Go and Python source and organize Go imports
 	@$(GOIMPORTS) -w .
 
-format-check: ## Report Go files requiring formatting
+format-check: python-format-check ## Report Go and Python files requiring formatting
 	@files="$$($(GOIMPORTS) -l .)" || exit $$?; \
 	test -z "$$files" || { \
 		printf "Files require formatting; run 'make format':\n"; \
@@ -94,13 +122,13 @@ format-check: ## Report Go files requiring formatting
 lint-config-check: ## Verify the pinned linter schema and executable errcheck settings
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-lint-config "$(GOLANGCI_LINT)"
 
-lint: lint-config-check ## Run golangci-lint using the repository configuration
-	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
-	@$(PYTHON) scripts/audio_module_gate.py --lint
+lint: python-lint lint-config-check ## Run pinned Go and Python linters
+	@"$(PYTHON)" -B scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" $(LINT_PACKAGES)
+	@"$(PYTHON)" -B scripts/audio_module_gate.py --lint
 
-lint-all: lint-config-check ## Report all configured lint findings without revision filtering or output caps
-	@$(PYTHON) scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
-	@$(PYTHON) scripts/audio_module_gate.py --lint
+lint-all: python-lint lint-config-check ## Report all configured lint findings without revision filtering or output caps
+	@"$(PYTHON)" -B scripts/lint_gate.py --profile "$(TEST_PROFILE)" --linter "$(GOLANGCI_LINT)" --go "$(GO)" --all $(LINT_PACKAGES)
+	@"$(PYTHON)" -B scripts/audio_module_gate.py --lint
 
 core-dependencies-check: ## Reject transitive graphics/input dependencies in core code and tests
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-core-dependencies
@@ -173,9 +201,9 @@ clean-audio-reports: ## Remove derived audio reports only, preserving authored a
 	@rm -f $(BIN_DIR)/audio-catalog.json $(BIN_DIR)/audio-generation-guide.md
 
 .PHONY: audio-module-check
-audio-module-check: ## Check the game-owned Berad Audio bridge against the pinned SDK revision
+audio-module-check: python-env-check ## Check the game-owned Berad Audio bridge against the pinned SDK revision
 	@$(GO) test $(TEST_GO_BUILD_FLAGS) -count=1 -run '^TestBeradAudioModule$$' ./scripts/check-audio-module
-	@$(PYTHON) scripts/audio_module_gate.py --lint
+	@"$(PYTHON)" -B scripts/audio_module_gate.py --lint
 
 .PHONY: vm-settings-proof
 vm-settings-proof: ## Run the opt-in Ebitengine VM keyboard/settings rollback proof (requires original data and graphics)
@@ -198,15 +226,15 @@ build-check: ## Compile every package without generating application assets
 docs-check: ## Validate retained documentation links, catalog, ownership, and authority
 	@$(GO) run $(TEST_GO_BUILD_FLAGS) ./scripts/check-documentation
 
-gamefacts-check: ## Validate public stable references, graph, catalog, and code locators
-	@$(PYTHON) scripts/check-gamefacts.py
+gamefacts-check: python-env-check ## Validate public stable references, graph, catalog, and code locators
+	@"$(PYTHON)" -B scripts/check-gamefacts.py
 
-tooling-test: ## Run pure Python developer-tool regressions
-	@$(PYTHON) -m unittest discover -s scripts -p 'test_*.py'
+tooling-test: python-env-check ## Run Python developer-tool and real quality-tool regressions
+	@"$(PYTHON)" -I -B -m unittest discover -s scripts -p 'test_*.py'
 
 validate: check policy-check build-check docs-check gamefacts-check tooling-test ## Run logic tests and canonical static checks once
 
-# Provision with make tools first. Validation must not download missing tools/modules.
+# Provision with make tools and make python-tools first; validation never installs.
 validate: export GOPROXY = off
 validate: export GOSUMDB = off
 validate: export GOTOOLCHAIN = local

@@ -50,6 +50,11 @@ jobs:
           cache: true
       - name: Provision dependencies
         run: go mod download
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Provision Python quality tools for bridge checks
+        run: python -I -B scripts/python_quality.py provision
       - name: Enforce production and test dependency boundaries
         run: go run -p=1 ./scripts/check-core-dependencies
       - name: Execute logic assertions without a display
@@ -193,13 +198,14 @@ jobs:
             xvfb
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Provision pinned validation tools
         run: |
           make tools
+          make python-tools
           make web-install
       - name: Require Go and TypeScript scenario wire parity
         env:

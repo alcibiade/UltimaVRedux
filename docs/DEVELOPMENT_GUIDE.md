@@ -16,7 +16,7 @@ development, provision:
   `toolchain go1.27.1`. Provision the selected toolchain before offline validation.
   Ebitengine is pinned to v2.10.4.
 - Git and Make for the contributor workflows below.
-- Python **3.9+** for standalone public Game Facts validation.
+- Python **3.12+** for developer scripts and their quality tools.
 - Repository-pinned Go tools, installed by `make tools` into `bin/tools`.
 - Optional Node/npm when changing or validating the Debug Workbench frontend;
   provision its dependencies separately before offline checks.
@@ -31,13 +31,15 @@ contracts and native input acceptance. Cross-builds do not prove native acceptan
 
 ```sh
 make tools
+make python-tools PYTHON_BOOTSTRAP=python3.12
 make validate
 ```
 
 `make tools` is networked provisioning: it downloads Go modules and installs
-pinned goimports and golangci-lint. Install Python and optional browser tools
-separately. `make validate` is local/offline and fails rather than downloading a
-missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
+pinned goimports and golangci-lint. Select an installed Python 3.12+ interpreter
+for `PYTHON_BOOTSTRAP` (a command name or absolute path); install Python and
+optional browser tools separately. `make validate` is local/offline and fails
+rather than downloading a missing prerequisite. See [Testing](TESTING.md) for the public asset-independent
 lane, frontend checks, and explicitly provisioned original-data tests.
 
 The experimental [Berad Audio module](https://github.com/bradhannah/berad-sdk/tree/564225ae5d47/modules/berad-audio)
@@ -111,7 +113,95 @@ test fixtures with their notices. Tests needing original files should receive an
 explicit data path; public asset-independent validation must not silently rely
 on a developer's local files.
 
-## Lint Policy
+## Python quality workflow
+
+`make python-tools PYTHON_BOOTSTRAP=python3.12` creates the ignored
+`.cache/python-quality` virtual environment and installs `requirements-quality.lock`
+using pip's required hashes and binary wheels. This is the only networked Python
+setup step; it changes neither global Python nor Git configuration. If `python3`
+is older (for example the Apple system interpreter), select a modern bootstrap
+explicitly. An old bootstrap reports the required version and command. To refresh
+an existing environment, deliberately remove that environment and reprovision;
+setup refuses to mutate an existing environment in place.
+
+`requirements-quality.in` pins Black **26.10.1** and Pylint **4.0.4**. The lock
+pins and hashes their transitive dependencies for Python 3.12+ across platforms.
+`mypy-extensions` is a Black dependency, not the Mypy checker. To deliberately
+refresh the lock with separately installed `uv`:
+
+```sh
+uv pip compile --python-version 3.12 --universal --generate-hashes --output-file requirements-quality.lock requirements-quality.in
+```
+
+Review the lock and re-create the environment before checking. Normal Make checks
+use its interpreter directly (`bin/python`, or `Scripts/python.exe` on Windows),
+so an old ambient `python3` cannot select the validation runtime. Missing tools
+or mismatched installed versions fail with setup guidance. Operational scripts
+can also run directly with any supported Python and the standard library; they
+do not import Black or Pylint.
+
+| Command | Effect |
+| --- | --- |
+| `make python-tools` | Provision the separate environment; defaults to `PYTHON_BOOTSTRAP=python3`. |
+| `make python-format` | Apply stable Black formatting, 88 columns. |
+| `make python-format-check` | Check formatting and display differences without changing files. |
+| `make python-lint` | Run Pylint with its bundled typing plugin and zero enabled diagnostics. |
+| `make python-check` | Run the format check and lint once each. |
+| `make tooling-test` | Run existing script tests and the real-tool/inventory/hook regressions. |
+
+The repo-owned `scripts/python_quality.py` inventories all tracked and nonignored
+new `.py` files, including tests and tracked files that later match an ignore rule.
+Deleted files are absent from the working inventory. Symlinked Python/config
+inputs and directory symlinks that could hide source are rejected. There is no
+fixed file allowlist or new-code cutoff. Black caches and bytecode are disabled
+during checks; Pylint persistence is disabled. Configuration lives in
+`pyproject.toml`. Pylint scoring is off and effective `exit-zero` is false. In
+Pylint 4.0.4, writing even `exit-zero=false` activates its flag-style option, so
+the key is intentionally omitted; a real undefined-name fixture verifies failure.
+Enabled informational diagnostics (including stale suppressions) also fail.
+The runner also requires an empty JSON diagnostic list and a zero exit status:
+Pylint configuration errors can emit diagnostics while returning zero. Missing or
+malformed diagnostic output fails validation.
+
+`make format` includes Python formatting. `make format-check` and `make lint`
+include their Python checks, so `check`, `validate`, and the existing quality-gate
+graph execute each check once. The optional native `.githooks/pre-commit` delegates
+to `scripts/pre-commit-checks.sh`, which owns the full check-only route. Before and
+after checking, it requires exact staged/worktree bytes and executable modes for
+Python, quality configuration/locks, Makefile, ignore/attribute rules, hooks,
+workflow files and shell runners. Partially staged or nonignored new relevant
+files fail with staging guidance. Hooks never format, stage, provision or repair
+the candidate. `--policy-only` retains the aggregate's nonduplicating policy route.
+
+### Python tool identity
+
+For an external validation receipt owner, run:
+
+```sh
+.cache/python-quality/bin/python -I -B scripts/python_quality.py identity
+```
+
+Success emits one JSON object to stdout; failure emits diagnostics to stderr with
+a nonzero exit. `schema_version: 1` contains `python_version`, `interpreter`,
+`environment`, `stdlib`, `dependencies`, `distributions`, `configuration`, `lock`,
+`helper`, and `sha256`.
+The implementation components have `path` and `sha256` fields. The
+`helper` component hashes the actual `scripts/python_quality.py` implementation.
+The distribution map provides names/versions for interpretation, not proof by itself.
+The environment component binds `pyvenv.cfg`; installed distributions outside the
+dedicated environment are rejected. The interpreter component hashes its
+executable, available shared Python library and importable stdlib zip. Stdlib and
+installed-package trees hash names, modes,
+symlink targets and actual file bytes, including dependency metadata/configuration;
+bytecode and cache directories are excluded. Directory symlinks and unreadable
+implementation files fail. `configuration` binds the complete relevant repository
+inventory's names, modes and bytes, and `lock` separately identifies the hashed
+lock. Top-level `sha256` hashes the canonical JSON object without that field (sorted keys, compact
+separators, UTF-8). Paths are local diagnostics; do not publish identity output
+without reviewing them. The command supplies identity, not a validation receipt
+or an assertion that checks passed.
+
+## Go lint policy
 
 The source import retains inherited lint debt rather than broadening this work
 into unrelated legacy cleanup. All 94 configured linters, thresholds, and existing
@@ -176,7 +266,7 @@ for review, revision, scenario, and rollback contracts, and
 | `make test-provisioned` / `make test-race-provisioned` | Run every package with explicit original data and zero skips. |
 | `make vm-settings-proof` | Run the opt-in keyboard/settings rollback proof with original data and a native graphics context; see [Testing](TESTING.md#vm-keyboardsettings-proof). |
 | `make format` | Apply repository formatting. |
-| `make lint` | Run the repository-pinned linter. |
+| `make lint` | Run the repository-pinned Go and Python linters. |
 | `make web-build` | Rebuild Debug Workbench browser assets after frontend changes. |
 | `make validate` | Run standard local validation after final edits. |
 | `make quality-gate` | Run the final pre-PR validation gate when required. |
@@ -188,7 +278,7 @@ commitment, and save behavior as well as happy paths. Humans review and merge PR
 ## Local release packaging
 
 Release archives are built locally; no GitHub Actions runner or credit is needed.
-Use Python 3.9+, Git, and the exact toolchain selected by `go.mod`. Provision that
+Use Python 3.12+, Git, and the exact toolchain selected by `go.mod`. Provision that
 toolchain and `go mod download` separately while network access is available.
 The packaging command is offline and fails if a toolchain, module, or dependency
 notice is missing. It uses shipped assets without a frontend rebuild.

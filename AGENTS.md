@@ -64,6 +64,14 @@ See [architecture](docs/ARCHITECTURE_GUIDELINES.md),
   [Development Guide](docs/DEVELOPMENT_GUIDE.md) and [Testing](docs/TESTING.md).
 - Maintain zero findings with the repository-pinned linter and meaningful
   regression coverage. Do not describe skipped data-dependent tests as acceptance.
+- Python scripts and tests require Python 3.12+ and complete, meaningful annotations.
+  Use stable Black 26.10.1 (88 columns) and Pylint 4.0.4 with its bundled typing
+  plugin, with zero enabled diagnostics across all maintained Python and no debt
+  baseline. Keep suppressions narrow and explained; do not add Mypy or Pyright.
+  Provision separately with `make python-tools PYTHON_BOOTSTRAP=python3.12`
+  (or another modern interpreter); checks use `.cache/python-quality` and never
+  install dependencies. Run `make python-check` and `make tooling-test` for Python
+  changes. Operational scripts remain standard-library-only.
 - When manually changing a source file, address all configured lint findings in
   that file, including inherited findings hidden by the new-code cutoff. Run and
   review repository-wide autofixes as a separate pass. Files touched only by
