@@ -161,13 +161,6 @@ func createMockPartyState() *party_state.PartyState {
 	return state
 }
 
-func createMockPartyStateWithDeadCharacter() *party_state.PartyState {
-	state := createMockPartyState()
-	state.GetCharacter(1).SetStatus(party_state.Dead)
-
-	return state
-}
-
 func createMockPlacement() *sprites.PercentBasedPlacement {
 	return &sprites.PercentBasedPlacement{
 		StartPercentX: 0,

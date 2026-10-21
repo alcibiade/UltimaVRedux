@@ -6,17 +6,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-// SurfaceType names a game-authored footstep surface.
-type SurfaceType string
-
-// Built-in names coexist with additional surfaces in Redux's JSON routing.
-const (
-	SurfaceGrass SurfaceType = "grass"
-	SurfaceStone SurfaceType = "stone"
-	SurfaceWood  SurfaceType = "wood"
-	SurfaceMetal SurfaceType = "metal"
-)
-
 // PlayWalkingSound retains Redux's shared surface-step sequence and committed-step timing.
 func (manager *GameAudioManager) PlayWalkingSound(tile *references.Tile) error {
 	manager.mutex.Lock()

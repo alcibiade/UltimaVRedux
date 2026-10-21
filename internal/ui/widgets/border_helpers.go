@@ -33,9 +33,3 @@ func newDialogBorder(placement sprites.PercentBasedPlacement, style DialogBackgr
 
 	return NewBorder(placement, BorderWidthStandard, bgColor)
 }
-
-// newButtonBorder creates a border for buttons.
-// Uses BorderWidthThick for visual prominence.
-func newButtonBorder(placement sprites.PercentBasedPlacement, interiorColor color.Color) *Border {
-	return NewBorder(placement, BorderWidthThick, interiorColor)
-}

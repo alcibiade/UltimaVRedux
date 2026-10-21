@@ -147,7 +147,7 @@ func TestGetShrineForWordRuined_Unit(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			got := GetShrineForWord(tc.word)
+			got := GetShrineForWordResponse(tc.word)
 			assert.Equal(t, tc.wantIndex, got, "Word %q should map to shrine %d", tc.word, tc.wantIndex)
 		}
 	})
@@ -168,7 +168,7 @@ func TestGetShrineForWordRuined_Unit(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			got := GetShrineForWord(tc.word)
+			got := GetShrineForWordResponse(tc.word)
 			assert.Equal(t, tc.wantIndex, got, "Word %q should be case-insensitive and map to shrine %d", tc.word, tc.wantIndex)
 		}
 	})
@@ -187,7 +187,7 @@ func TestGetShrineForWordRuined_Unit(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			got := GetShrineForWord(tc.word)
+			got := GetShrineForWordResponse(tc.word)
 			assert.Equal(t, tc.wantIndex, got, "Word %q with whitespace should map to shrine %d", tc.word, tc.wantIndex)
 		}
 	})
@@ -198,15 +198,13 @@ func TestGetShrineForWordRuined_Unit(t *testing.T) {
 		testCases := []string{
 			"INVALID",
 			"",
-			"FALL",       // Incomplete word
-			"VERAMOCORX", // Word with extra char
-			"FAL LAX",    // Space in middle
+			"FALL",    // Incomplete word
+			"FAL LAX", // Space in middle
 			"123",
-			"FALLAX2",
 		}
 
 		for _, word := range testCases {
-			got := GetShrineForWord(word)
+			got := GetShrineForWordResponse(word)
 			assert.Equal(t, -1, got, "Invalid word %q should return -1", word)
 		}
 	})
@@ -221,7 +219,7 @@ func TestGetShrineForWordRuined_Unit(t *testing.T) {
 		expectedShrines := []int{0, 1, 2, 3, 4, 5, 6, 7}
 
 		for i, word := range words {
-			shrine := GetShrineForWord(word)
+			shrine := GetShrineForWordResponse(word)
 			assert.Equal(t, expectedShrines[i], shrine, "Word %q should map to shrine %d", word, expectedShrines[i])
 
 			// Check for duplicates

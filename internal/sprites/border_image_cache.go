@@ -43,17 +43,6 @@ func newBorderImageCache(maxBytes int64, maxEntries int) *borderImageCache {
 	}
 }
 
-// ClearBorderCache retires shared frame references between independent native
-// scene fixtures. Production scenes share the application-lifetime cache.
-// Live borrowers remain valid; no shared image is deallocated by this operation.
-func ClearBorderCache() {
-	globalBorderCache.mu.Lock()
-	defer globalBorderCache.mu.Unlock()
-	clear(globalBorderCache.entries)
-	globalBorderCache.recent.Init()
-	globalBorderCache.bytes = 0
-}
-
 func (c *borderImageCache) get(key string) *ebiten.Image {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -22,14 +22,11 @@ type debugWorkbenchStateStub struct {
 	setWind        func(environment.WindDirection, bool)
 	shrineProgress func(int) game_state.ShrineProgressSnapshot
 	alterShrine    func(game_state.ShrineProgressAlteration) (game_state.ShrineProgressAlterationResult, error)
-	shrineReview   func() game_state.AllShrineQuestStateReview
 	characters     []game_state.ActiveCharacterSnapshot
 	alter          func(game_state.ActiveCharacterAlteration) (game_state.ActiveCharacterAlterationResult, error)
 	roster         game_state.PartyRosterSnapshot
 	maximize       func(string) (game_state.PartyRosterMutationResult, error)
 	setStatuses    func(game_state.PartyStatusMutationRequest) (game_state.PartyRosterMutationResult, error)
-	fillParty      func(string) (game_state.PartyRosterMutationResult, error)
-	addMember      func(game_state.AddInactiveRosterMemberRequest) (game_state.PartyRosterMutationResult, error)
 	setKarma       func(int) (game_state.PartyKarmaAlteration, error)
 }
 
@@ -63,9 +60,6 @@ func (s debugWorkbenchStateStub) AlterShrineProgress(
 }
 
 func (s debugWorkbenchStateStub) ReviewAllShrineQuestState() game_state.AllShrineQuestStateReview {
-	if s.shrineReview != nil {
-		return s.shrineReview()
-	}
 	shrines := make([]game_state.ShrineProgressSnapshot, 0, game_state.TotalShrines)
 	for index := range game_state.TotalShrines {
 		shrines = append(shrines, s.ShrineProgress(index))
@@ -98,12 +92,12 @@ func (s debugWorkbenchStateStub) SetPartyRosterStatuses(request game_state.Party
 	return s.setStatuses(request)
 }
 
-func (s debugWorkbenchStateStub) FillActiveParty(fingerprint string) (game_state.PartyRosterMutationResult, error) {
-	return s.fillParty(fingerprint)
+func (debugWorkbenchStateStub) FillActiveParty(string) (game_state.PartyRosterMutationResult, error) {
+	panic("debug workbench stub: no test fills the active party")
 }
 
-func (s debugWorkbenchStateStub) AddInactiveRosterMember(request game_state.AddInactiveRosterMemberRequest) (game_state.PartyRosterMutationResult, error) {
-	return s.addMember(request)
+func (debugWorkbenchStateStub) AddInactiveRosterMember(game_state.AddInactiveRosterMemberRequest) (game_state.PartyRosterMutationResult, error) {
+	panic("debug workbench stub: no test adds an inactive roster member")
 }
 
 func (s debugWorkbenchStateStub) SetPartyKarma(value int) (game_state.PartyKarmaAlteration, error) {

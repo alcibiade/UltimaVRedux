@@ -24,10 +24,14 @@ type PartyState struct {
 	deadNpcs   map[references.Location][]bool
 }
 
-const NRosterSlots = 16      // Total character roster slots (all companions)
-const MaxActiveParty = 6     // Maximum active party members at once
-const NPcsPerLocation = 32   // NPCs tracked per location
-const MinPartyForReorder = 2 // Minimum party members needed to reorder (Avatar + 1)
+const (
+	// NRosterSlots is the total number of character roster slots (all companions).
+	NRosterSlots = 16
+	// MaxActiveParty is the maximum number of active party members at once.
+	MaxActiveParty = 6
+	// NPcsPerLocation is the number of NPCs tracked per location.
+	NPcsPerLocation = 32
+)
 
 // Character position constants
 const (

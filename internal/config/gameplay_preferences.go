@@ -77,24 +77,6 @@ func (s NumericSettingSpec) Advance(value float64, steps int) float64 {
 	return s.Min + float64(index+steps)*s.Step
 }
 
-// DefaultGameplayConfiguration returns a complete valid model, including numeric
-// defaults. Use this constructor for detached settings and lightweight fixtures.
-func DefaultGameplayConfiguration() *GameplayConfiguration {
-	return &GameplayConfiguration{
-		BatchMerchantTheft:              true,
-		AllowRepeatedMonsterDivision:    false,
-		ShowConcealedTurnOrderSlots:     true,
-		PersistHiddenDungeonDiscoveries: true,
-		ShowSubduedUnlitDungeons:        true,
-		SmoothSurfaceMovement:           false,
-		FlexibleSextantUse:              false,
-		CombatSpeedFactor:               CombatSpeedSpec().Default,
-		ConfirmQuickSave:                true,
-		ShowCombatHPBars:                true,
-		MaxVisibleActionPopups:          int(ActionPopupsSpec().Default),
-	}
-}
-
 // ValidateGameplayConfiguration rejects invalid explicit numeric settings.
 func ValidateGameplayConfiguration(settings GameplayConfiguration) error {
 	if err := CombatSpeedSpec().Validate(settings.CombatSpeedFactor); err != nil {

@@ -26,10 +26,6 @@ func GetListOfAllLocationsWithDocks() []Location {
 	return []Location{Jhelom, Minoc, EastBritanny, BuccaneersDen}
 }
 
-func GetListOfAllLocationsWithDocksAsString() []string {
-	return []string{Jhelom.String(), Minoc.String(), EastBritanny.String(), BuccaneersDen.String()}
-}
-
 // NewDocks loads dock coordinates from the configured DATA.OVL bytes.
 func NewDocks(gameConfig *config.UltimaVConfiguration) (*DockReferences, error) {
 	requiredLength := startDockYOffset + len(GetListOfAllLocationsWithDocks())

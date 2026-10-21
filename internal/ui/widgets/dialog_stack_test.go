@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// stackTestWidget's field gives it a size, so each instance has a distinct address
+// for the stack's duplicate-instance check.
 type stackTestWidget struct {
 	id int
 }
@@ -30,24 +32,6 @@ func TestDialogStackRejectsDuplicateInstance(t *testing.T) {
 	stack.PushModalDialog(dialog)
 
 	assert.Panics(t, func() { stack.PushNonBlockingDialog(dialog) })
-}
-
-func TestMessageDialogAutoCloseRemovesExactInstance(t *testing.T) {
-	initializeDialogTestDisplay(t)
-	var stack DialogStack
-	dialog := NewMessageDialog("owned").
-		WithInputDismissal(newWidgetTestKeyboard(100)).
-		WithEffects(false).
-		AutoCloseAndPop(&stack).
-		Build()
-	above := &stackTestWidget{}
-	stack.PushModalDialog(dialog)
-	stack.PushModalDialog(above)
-
-	dialog.dismiss()
-
-	assert.Equal(t, 1, stack.Count())
-	assert.Same(t, above, stack.PeekTopModalDialog())
 }
 
 func TestInputBoxAutoCloseRemovesExactInstance(t *testing.T) {

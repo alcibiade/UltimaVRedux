@@ -1,10 +1,5 @@
 package references
 
-import (
-	"sort"
-	"strings"
-)
-
 // MonsterType represents the index into the enemies array (0-47).
 // This is the authoritative identity for each monster type,
 // matching the creature catalog order in ref:ENEMY-0001.
@@ -217,44 +212,4 @@ var monsterTypeNames = map[MonsterType]string{
 	MonsterCorpser:     "Corpser",
 	MonsterRotWorm:     "Rot Worm",
 	MonsterShadowlord:  "Shadowlord",
-}
-
-// ParseMonsterType converts a string to MonsterType.
-// Accepts both spaces and hyphens (e.g., "sea horse" or "sea-horse").
-// Returns MonsterNone if not found.
-func ParseMonsterType(s string) MonsterType {
-	s = strings.ToLower(strings.TrimSpace(s))
-	for mt, name := range monsterTypeNames {
-		lowerName := strings.ToLower(name)
-		// Try exact match first
-		if lowerName == s {
-			return mt
-		}
-		// Try hyphenated form (sea-horse matches "Sea Horse")
-		if strings.ReplaceAll(lowerName, " ", "-") == s {
-			return mt
-		}
-	}
-
-	return MonsterNone
-}
-
-// GetMonsterNames returns a slice of all monster names in hyphenated form.
-// Used for debug command autocomplete.
-func GetMonsterNames() []string {
-	names := make([]string, 0, len(monsterTypeNames))
-	seen := make(map[string]bool, len(monsterTypeNames))
-
-	for _, name := range monsterTypeNames {
-		// Convert to hyphenated form for autocomplete
-		hyphenated := strings.ReplaceAll(strings.ToLower(name), " ", "-")
-		if !seen[hyphenated] {
-			seen[hyphenated] = true
-			names = append(names, hyphenated)
-		}
-	}
-
-	sort.Strings(names)
-
-	return names
 }

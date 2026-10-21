@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -345,4 +346,24 @@ func TestShardIdentification(t *testing.T) {
 	assert.False(t, IsShard(references.Crown), "Crown should not be identified as shard")
 	assert.False(t, IsShard(references.Sceptre), "Sceptre should not be identified as shard")
 	assert.False(t, IsShard(references.Amulet), "Amulet should not be identified as shard")
+}
+
+// GetShardPlacementData returns the placement information for shards only (backwards compatibility)
+func GetShardPlacementData() []QuestItemPlacementData {
+	allItems := GetAllQuestItemPlacements()
+	var shards []QuestItemPlacementData
+	for _, item := range allItems {
+		if item.QuestItemType == references.ShardOfFalsehood ||
+			item.QuestItemType == references.ShardOfHatred ||
+			item.QuestItemType == references.ShardOfCowardice {
+			shards = append(shards, item)
+		}
+	}
+
+	return shards
+}
+
+// GetShardSpriteIndex returns the sprite index used for shards (backwards compatibility)
+func GetShardSpriteIndex() indexes.SpriteIndex {
+	return indexes.Shard // All shards use the dedicated Shard sprite (436 = 180+256)
 }

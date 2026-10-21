@@ -395,3 +395,13 @@ func TestSearchSystem_SaveDataIntegration_DeepDive(t *testing.T) {
 		}
 	})
 }
+
+// GetFoundStatus returns a copy of the objFound bitmask array for save file integration
+func (aslm *AuthenticSearchLocationManager) getFoundStatus() [24]byte {
+	return aslm.objFound
+}
+
+// SetFoundStatus sets the objFound bitmask array from save file data
+func (aslm *AuthenticSearchLocationManager) setFoundStatus(foundStatus [24]byte) {
+	aslm.objFound = foundStatus
+}

@@ -558,20 +558,6 @@ func prepareSpellCatalogRow(rowOutput, countOutput *text.Output,
 		spell.Name, effect, strconv.Itoa(int(spell.Prepared)), selected, available)
 }
 
-func drawSpellTextRow(screen *ebiten.Image, rowOutput, countOutput *text.Output,
-	rect image.Rectangle, name, effect, count string, selected, available bool,
-) {
-	if selected {
-		vector.FillRect(screen, float32(rect.Min.X), float32(rect.Min.Y), float32(rect.Dx()), float32(rect.Dy()),
-			DialogSelectedBackground, false)
-	}
-	nameRect, countRect := prepareSpellTextRow(rowOutput, countOutput, rect, name, effect, count, selected, available)
-	drawSpellOutput(screen, rowOutput, nameRect, 0, spellBrowserRowLines)
-	if count != "" {
-		drawSpellOutput(screen, countOutput, countRect, 0, 1)
-	}
-}
-
 func prepareSpellTextRow(rowOutput, countOutput *text.Output,
 	rect image.Rectangle, name, effect, count string, selected, available bool,
 ) (image.Rectangle, image.Rectangle) {

@@ -11,16 +11,6 @@ type IdToString[T comparable] struct {
 
 type OrderedMapping[T comparable] []IdToString[T]
 
-func (o *OrderedMapping[T]) GetIndex(thing T) int {
-	for i, val := range *o {
-		if val.Id == thing {
-			return i
-		}
-	}
-
-	return -1
-}
-
 func (o *OrderedMapping[T]) GetById(thing T) *IdToString[T] {
 	for _, val := range *o {
 		if val.Id == thing {

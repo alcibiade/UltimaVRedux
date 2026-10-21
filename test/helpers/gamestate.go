@@ -72,12 +72,6 @@ func LoadGameData() (*config.UltimaVConfiguration, *references.GameReferences, e
 	return cfg, refs, nil
 }
 
-func PathExists(path string) bool {
-	_, err := os.Stat(path)
-
-	return err == nil
-}
-
 func LoadTestGameReferences(t *testing.T, config *config.UltimaVConfiguration) *references.GameReferences {
 	t.Helper()
 

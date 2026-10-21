@@ -25,15 +25,6 @@ func newTextRenderer() *beradtext.Renderer {
 	return renderer
 }
 
-// ClearTextCache drops shared raster reuse without invalidating retained geometry.
-// Cross-package native fixtures use this seam to retire independent application
-// lifetimes and verify widget-owned compositions survive shared-cache eviction.
-// Production scenes share the application renderer until CloseRenderer.
-func ClearTextCache() {
-	textRenderer.ClearCaches()
-	publishTextAccounting()
-}
-
 // CloseRenderer retires the application-owned SDK raster cache on final shutdown.
 // The application must not draw afterward.
 func CloseRenderer() {

@@ -31,19 +31,18 @@ func (session *creationNativeSession) rawCharacters() []rune {
 }
 
 type creationNativeField struct {
-	session      *creationNativeSession
-	value        string
-	start        int
-	end          int
-	preedit      string
-	preeditStart int
-	preeditEnd   int
-	handle       func(*creationNativeField) (bool, error)
-	lateCommit   string
-	setCalls     int
-	handleCalls  int
-	blurCalls    int
-	lastBounds   image.Rectangle
+	session     *creationNativeSession
+	value       string
+	start       int
+	end         int
+	preedit     string
+	preeditEnd  int
+	handle      func(*creationNativeField) (bool, error)
+	lateCommit  string
+	setCalls    int
+	handleCalls int
+	blurCalls   int
+	lastBounds  image.Rectangle
 }
 
 func (field *creationNativeField) Focus() {
@@ -102,7 +101,7 @@ func (field *creationNativeField) TextForRendering() string {
 func (field *creationNativeField) Selection() (int, int) { return field.start, field.end }
 
 func (field *creationNativeField) CompositionSelection() (int, int, bool) {
-	return field.preeditStart, field.preeditEnd, field.preedit != ""
+	return 0, field.preeditEnd, field.preedit != ""
 }
 
 func (field *creationNativeField) SetTextAndSelection(value string, start, end int) {

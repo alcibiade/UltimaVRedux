@@ -29,15 +29,13 @@ Levels are ordered `DEBUG`, `INFO`, `WARN`, `ERROR`, and `FATAL`.
 
 ## Fatal Level
 
-`logging.Fatal` records a `FATAL`-level diagnostic; it does not terminate the process. If logging is disabled or filtered, it records nothing.
+`FATAL` remains a level name for configuration and filtering, but no logging call records it or terminates the process.
 
 Use the project's normal error strategy for control flow:
 
 - Return an error for recoverable failures.
 - Use `panic` for programming or contract violations.
 - Use the standard library's `log.Fatal` only for unrecoverable application startup failures.
-
-Do not rely on `logging.Fatal` to stop execution.
 
 ## Runtime Control
 
@@ -61,9 +59,6 @@ Package-level helpers cover common runtime operations:
 logging.SetGlobalEnabled(true)
 logging.SetStdoutEnabled(true)
 logging.SetCategoryEnabled(logging.CategoryGameState, true)
-
-enabled := logging.IsGlobalEnabled()
-categoryEnabled := logging.IsCategoryEnabled(logging.CategoryGameState)
 ```
 
 Minimum-level and complete category-state operations are methods on the global logger:
@@ -75,7 +70,7 @@ states := logger.GetCategoryStates()
 logger.SetCategoryStates(states)
 ```
 
-`IsCategoryEnabled` accounts for the global switch, but it does not test a proposed message level. Avoid expensive argument construction in hot paths; guard it with the available logger state when profiling shows a need.
+`GetCategoryStates` reports category switches only; each logging call also applies the global switch and minimum level. Avoid expensive argument construction in hot paths; guard it with the available logger state when profiling shows a need.
 
 ## Structured History
 

@@ -22,12 +22,6 @@ type Widget interface {
     Update()
 }
 
-type ModalDialog interface {
-    Widget
-    IsFinished() bool
-    GetResult() interface{}
-}
-
 type DismissibleDialog interface {
     Widget
     Show()
@@ -39,13 +33,13 @@ type DismissibleDialog interface {
 }
 ```
 
-`Widget` is the stack contract. `ModalDialog` is an optional result-bearing contract; `DialogStack` does not poll it automatically. `DismissibleDialog` is implemented by `MessageDialog` and `OverlayDialog` for shared visibility control.
+`Widget` is the stack contract. There is no shared result-bearing dialog contract; each dialog reports its result through its own callback or polling API, and `DialogStack` never polls one. `DismissibleDialog` is implemented by `MessageDialog` and `OverlayDialog` for shared visibility control.
 
-Not every utility in the package is a `Widget`. `FocusIndicator`, `FocusManager`, and `ScrollableListState` have purpose-specific update or state APIs.
+Not every utility in the package is a `Widget`. `ScrollableListState` has a purpose-specific state API.
 
 ## Layout And Display
 
-Most widgets use `sprites.PercentBasedPlacement` or `sprites.PercentBasedCenterPoint`. The canonical display manager provides the current logical render dimensions through `GetCurrentSize`; widgets must not use its window, monitor, or container dimensions for layout. The game loop, presentation widgets, and resolution callbacks share the `display.GetManager()` identity. Configuration contains plain values and an instance-owned preference source, not the display manager; scene adapters apply display requests. Fonts use the shared scaling helpers in `internal/text` and `internal/ui/widgets/typography.go`; production spacing constants live in `dialog_constants.go`.
+Most widgets use `sprites.PercentBasedPlacement`. The canonical display manager provides the current logical render dimensions through `GetCurrentSize`; widgets must not use its window, monitor, or container dimensions for layout. The game loop, presentation widgets, and resolution callbacks share the `display.GetManager()` identity. Configuration contains plain values and an instance-owned preference source, not the display manager; scene adapters apply display requests. Fonts use the shared scaling helpers in `internal/text` and `internal/ui/widgets/typography.go`; production spacing constants live in `dialog_constants.go`.
 
 Percent placement is the dominant convention, but cached pixel geometry and scaled text resources still require invalidation. There is no shared flex/grid layout or resolution-scaler API. Active responsive dialogs use dimension-remembering layout at construction and update/draw boundaries. A size change rebuilds only derived borders, fonts, outputs, and viewport capacity while preserving selection, workflow, input, pending-result, visibility, and dismissal state. `MessageDialog` refreshes those resources automatically during draw; `Refresh` remains available for explicit reinitialization.
 
@@ -111,7 +105,6 @@ Common composition patterns are:
 
 - a border plus one or more `text.Output` regions for static panels
 - a `TextInput` inside `InputBox` for validated user entry
-- reusable `Button` instances inside menus and tabbed interfaces
 - `ScrollableListState` for list selection and viewport offsets
 - specialized dialogs for party, inventory, spells, reagents, equipment, astronomy, signs, and map views
 - `OverlayDialog` over `MessageDialog` for explicitly configured popup messages
@@ -124,10 +117,8 @@ Dialogs communicate results through callbacks or polled result fields. Authorita
 Widget timing is not uniform:
 
 - `MessageDialog` dissolve transitions use wall-clock milliseconds by default; transient action feedback injects a scene-owned clock before `Show`.
-- Self-timed `OverlayDialog` dismissal increments by 16 ms per `Update` call.
-- `OverlayDialog.WithExternallyManagedDuration` disables widget timing so an owner such as `GameScene` can use one authoritative elapsed-time deadline and exact stack removal.
+- `OverlayDialog` has no timer of its own: `WithExternallyManagedDuration` leaves expiry to an owner such as `GameScene`, which uses one authoritative elapsed-time deadline and exact stack removal.
 - `GameScene` transient action feedback uses `GameState.ElapsedMs` for movement, protected reveal/hold/hide progression, and exact expiration.
-- focus and loading helpers advance only when their owners call their update APIs.
 
 Do not infer deterministic timing from the common `Widget.Update` interface.
 

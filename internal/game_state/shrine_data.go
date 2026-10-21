@@ -111,31 +111,6 @@ func GetShrineByName(name string) *ShrineData {
 	return nil
 }
 
-// GetAllShrineNames returns a list of all shrine virtue names (lowercase) for command matching
-// Includes "codex" for the Shrine of the Codex
-func GetAllShrineNames() []string {
-	names := make([]string, 0, TotalShrines+1)
-	for i := range allShrines {
-		names = append(names, strings.ToLower(allShrines[i].VirtueName))
-	}
-	names = append(names, "codex")
-
-	return names
-}
-
-// GetShrineForWord returns the shrine index for a Word of Power, or -1 if not found
-// Word matching is case-insensitive
-func GetShrineForWord(word string) int {
-	upperWord := strings.ToUpper(strings.TrimSpace(word))
-	for i := range allShrines {
-		if allShrines[i].WordOfPower == upperWord {
-			return i
-		}
-	}
-
-	return -1
-}
-
 // GetShrineForWordResponse returns the first shrine whose complete canonical
 // Word is contained in a normalized response.
 // REDUX DEVIATION: WORD-0002: original matching can skip overlapping starts.

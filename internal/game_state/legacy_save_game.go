@@ -18,13 +18,6 @@ const savedGamFileSize = 4192
 // ErrInvalidSaveGameSize indicates that a legacy save does not contain exactly 4192 bytes.
 var ErrInvalidSaveGameSize = errors.New("invalid save game file size, expected 4192 bytes")
 
-type (
-	// StartingMemoryAddressUb identifies the offset of a legacy unsigned-byte value.
-	StartingMemoryAddressUb uint16
-	// StartingMemoryAddressU16 identifies the offset of a legacy unsigned 16-bit value.
-	StartingMemoryAddressU16 uint16
-)
-
 // ReadLegacySaveFile reads and validates an original 4192-byte SAVED.GAM file.
 //
 //nolint:nonamedreturns // Deferred close preserves validation failures and rejects an unsuccessful close.

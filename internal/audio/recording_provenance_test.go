@@ -5,6 +5,8 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
+	sdkcatalog "github.com/bradhannah/berad-sdk/tools/berad-audio/catalog"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +24,7 @@ func TestAuthoredProvenanceSurvivesCatalogAndRenamedPaths(t *testing.T) {
 			require.Equal(t, unknownRecordingProvenance(), asset.Provenance)
 		}
 	}
-	index := slices.IndexFunc(catalog.Assets, func(asset CatalogAsset) bool { return asset.ID == "britannic_lands" })
+	index := slices.IndexFunc(catalog.Assets, func(asset sdkcatalog.CatalogAsset) bool { return asset.ID == "britannic_lands" })
 	require.NotEqual(t, -1, index)
 	require.Equal(t, "assets/music/britannic_lands.mp3", catalog.Assets[index].Path)
 	require.Equal(t, "Britannic Lands.mp3", catalog.Assets[index].Provenance.OriginalFilename)
@@ -75,7 +77,7 @@ func TestProvenanceValidationRequiresExplicitUnknownRatherThanBlank(t *testing.T
 		"blank source":       func(p *RecordingProvenance) { p.SourceURL = " " },
 		"blank license":      func(p *RecordingProvenance) { p.License = "" },
 		"null processing":    func(p *RecordingProvenance) { p.Processing = nil },
-		"partial processing": func(p *RecordingProvenance) { p.Processing = []ProcessingStep{{Tool: "Audacity"}} },
+		"partial processing": func(p *RecordingProvenance) { p.Processing = []authoring.ProcessingStep{{Tool: "Audacity"}} },
 	}
 	for name, mutate := range mutations {
 		t.Run(name, func(t *testing.T) {

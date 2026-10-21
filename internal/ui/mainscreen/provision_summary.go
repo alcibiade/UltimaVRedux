@@ -10,7 +10,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
@@ -68,13 +67,6 @@ type provisionCell struct {
 	label  image.Rectangle
 	value  image.Rectangle
 	status image.Rectangle
-}
-
-// NewProvisionSummary creates a summary scaled to the current display width.
-func NewProvisionSummary() *ProvisionSummary {
-	width, _ := display.GetManager().GetCurrentSize()
-
-	return NewProvisionSummaryForWidth(width)
 }
 
 // NewProvisionSummaryForWidth creates a summary scaled to the logical render width.

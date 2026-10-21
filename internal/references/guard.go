@@ -44,11 +44,3 @@ const (
 	// First 4 letters are checked, case-insensitive
 	BlackthornPassword = "impe"
 )
-
-// Charity Guard Constants
-// Yew's special tribute is half the party's gold; ref:CRIME-0001.
-const (
-	// CharityGoldPercentage is the percentage of gold demanded by charity guards
-	// Map 5 only: demands 50% of player's total gold
-	CharityGoldPercentage = 50
-)

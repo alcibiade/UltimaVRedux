@@ -190,19 +190,3 @@ var (
 	// Visual role: Lighter separation, less prominent than main rules
 	DialogRuleLightColor stdcolor.Color = color.EGALightGray
 )
-
-// =============================================================================
-// SPELL/RECIPE STATUS COLORS
-// Used in reagent mixing and spell casting dialogs for recipe status
-// =============================================================================
-var (
-	// DialogRecipeKnownColor - Indicates a known/learned recipe
-	// Examples: "(Recipe Known)" text in reagent mixing
-	// Visual role: Positive confirmation that recipe is available
-	DialogRecipeKnownColor stdcolor.Color = color.EGALightGreen
-
-	// DialogRecipeUnknownColor - Indicates unknown or untested recipe
-	// Examples: "(Unknown)", "(Untested)" text in reagent mixing
-	// Visual role: Cautionary, recipe not yet discovered
-	DialogRecipeUnknownColor stdcolor.Color = color.EGAYellow
-)

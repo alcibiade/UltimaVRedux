@@ -7,6 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
 )
 
 // conformanceDevice is only a controlled transport for the live SDK-backed
@@ -58,7 +60,7 @@ const decodedPCMBytesPerFrame = 4
 
 func unknownRecordingProvenance() RecordingProvenance {
 	return RecordingProvenance{OriginalFilename: "unknown", SourceType: "unknown", SourceURL: "unknown",
-		SourceCreator: "unknown", License: "unknown", ImportedFrom: "unknown", Processing: []ProcessingStep{}}
+		SourceCreator: "unknown", License: "unknown", ImportedFrom: "unknown", Processing: []authoring.ProcessingStep{}}
 }
 
 // Measure production footfall bursts rather than just repeating window metadata.

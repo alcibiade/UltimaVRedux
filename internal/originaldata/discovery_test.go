@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -190,4 +191,15 @@ func TestCommonSeedsUseGOGRootsAndProgramFilesFallback(t *testing.T) {
 	assert.Contains(t, paths, gogRoot)
 	assert.Contains(t, boundedLayouts(gogRoot, "windows"),
 		filepath.Join(gogRoot, "Ultima 4-5-6", "Ultima 5"))
+}
+
+// StableCandidatePaths returns sorted paths for diagnostics and tests.
+func StableCandidatePaths(report Report) []string {
+	paths := make([]string, len(report.Candidates))
+	for index, candidate := range report.Candidates {
+		paths[index] = candidate.Path
+	}
+	sort.Strings(paths)
+
+	return paths
 }

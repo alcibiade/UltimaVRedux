@@ -119,15 +119,6 @@ func MonsterArchiveName(monster int) string {
 	return fmt.Sprintf("MON%d.16", monster)
 }
 
-// PanelSizes returns the verified dimensions used by dungeon rendering.
-func PanelSizes() [PanelCount]image.Point { return panelSizes }
-
-// ItemSizes returns the verified dimensions used by dungeon rendering.
-func ItemSizes() [ItemCount]image.Point { return itemSizes }
-
-// MonsterHalfSizes returns the verified dimensions used by dungeon rendering.
-func MonsterHalfSizes() [MonsterHalfCount]image.Point { return monsterHalfSizes }
-
 func validatePanels(archive legacy.Archive, name string) error {
 	if archive.Spec.Name != name {
 		return fmt.Errorf("%w: name is %q, want %q", errInvalid, archive.Spec.Name, name)

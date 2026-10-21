@@ -5,12 +5,6 @@ import (
 	"slices"
 )
 
-// Recording is Redux's schema-3 recording metadata.
-type Recording = libraryRecording
-
-// Cue is Redux's schema-3 cue metadata.
-type Cue = libraryCue
-
 func sortedKeys[T any](values map[string]T) []string {
 	keys := make([]string, 0, len(values))
 	for key := range values {

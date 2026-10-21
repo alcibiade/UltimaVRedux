@@ -135,44 +135,6 @@ func (m *Map) reconstructPath(node *Node) []references.Position {
 	return path
 }
 
-// InitializeByLayeredMap prepares the A* map with walkability data from a game map.
-// This must be called before performing pathfinding operations.
-//
-// Parameters:
-//   - mapUnit: The unit that will be pathfinding (determines movement capabilities)
-//   - lMap: The layered map containing terrain and obstacle data
-//   - extraBlockTiles: Additional positions to treat as blocked (e.g., other units)
-//
-// The method builds a walkability map based on the unit's movement type and terrain.
-func (m *Map) InitializeByLayeredMap(
-	mapUnit map_units.MapUnit,
-	lMap *map_state.LayeredMap,
-	extraBlockTiles []references.Position,
-) {
-	m.mapUnit = mapUnit
-	m.start = mapUnit.Pos()
-	m.bWrap = false
-	m.walkableMap = make(map[references.Position]int)
-	for x := references.Coordinate(0); x < lMap.XMaxTilesPerMap; x++ {
-		for y := references.Coordinate(0); y < lMap.YMaxTilesPerMap; y++ {
-			pos := references.Position{
-				X: x,
-				Y: y,
-			}
-			topTile := lMap.GetTopTile(&pos)
-			// Use NPC-specific pathfinding weight for NPCs (they can't walk on fireplaces, etc.)
-			if _, ok := m.mapUnit.(*map_units.NPCFriendly); ok {
-				m.walkableMap[pos] = topTile.GetNPCWalkableWeight()
-			} else {
-				m.walkableMap[pos] = topTile.GetWalkableWeight()
-			}
-		}
-	}
-	for i := range extraBlockTiles {
-		m.walkableMap[extraBlockTiles[i]] = -1
-	}
-}
-
 // InitializeByMovementCost prepares an unwrapped pathfinding map using rules
 // supplied by the caller. Negative costs mark positions as impassable.
 func (m *Map) InitializeByMovementCost(

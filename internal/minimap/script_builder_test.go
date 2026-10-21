@@ -135,3 +135,29 @@ func TestScriptBuilder_ComplexSequence(t *testing.T) {
 	assert.Equal(t, "endgame_intro", script.Name)
 	assert.Len(t, script.Steps, 6)
 }
+
+// Face adds a face step for a single actor to change direction
+func (b *MiniMapScriptBuilder) Face(actor ActorID, direction references.Direction) *MiniMapScriptBuilder {
+	return b.FaceActors([]ActorID{actor}, direction)
+}
+
+// FaceActors adds a face step for multiple actors to change direction
+func (b *MiniMapScriptBuilder) FaceActors(actors []ActorID, direction references.Direction) *MiniMapScriptBuilder {
+	b.script.Steps = append(b.script.Steps, ScriptStep{
+		Type:      StepFace,
+		ActorIDs:  actors,
+		Direction: direction,
+	})
+
+	return b
+}
+
+// Wait adds a wait step for the specified duration
+func (b *MiniMapScriptBuilder) Wait(durationMs int) *MiniMapScriptBuilder {
+	b.script.Steps = append(b.script.Steps, ScriptStep{
+		Type:     StepWait,
+		Duration: durationMs,
+	})
+
+	return b
+}

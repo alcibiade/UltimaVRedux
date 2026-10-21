@@ -84,16 +84,6 @@ func (md *MessageDialog) renderContent() {
 		// Single output mode: use configured content alignment
 		contentStartY := float64(borderBounds.Min.Y) + topMargin
 		totalHeight := borderBounds.Max.Y - borderBounds.Min.Y - int(topMargin+bottomMargin)
-		if md.headerIcon != nil {
-			size := scaledLineSpacing * itemReceiptIconRows
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Scale(size/float64(md.headerIcon.Bounds().Dx()), size/float64(md.headerIcon.Bounds().Dy()))
-			op.GeoM.Translate(float64(textRectX)+(float64(textRectWidth)-size)/messagePopupCenterDivisor, contentStartY)
-			md.contentBuffer.DrawImage(md.headerIcon, op)
-			contentStartY += size
-			totalHeight -= int(size)
-		}
-
 		// Use configured vertical alignment (not hardcoded)
 		contentVertAlign := md.getContentVerticalAlignment()
 		md.renderOutput.DrawScrollingBufferWithHeight(md.contentBuffer, image.Point{

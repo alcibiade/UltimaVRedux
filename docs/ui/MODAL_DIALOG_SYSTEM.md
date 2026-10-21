@@ -29,11 +29,10 @@ components and their source entry points are in [Widget Components](WIDGET_COMPO
 `NewOverlayDialog(...).Build()` requires sizing, position, effects, vertical
 content alignment, horizontal text alignment, and exactly one dismissal mode.
 `AsConfirmation` and `AsOverlayFeedback` supply appearance only.
-`AsBriefFeedback` also supplies a 2000 ms duration.
 
-- `WithDuration(ms)` advances by 16 ms per widget Update, not wall time.
-- `WithExternallyManagedDuration(ms)` disables the widget timer; its owner must
-  expire and remove the instance. GameScene's timed-overlay installer uses it.
+- `WithExternallyManagedDuration(ms)` makes a timed dialog; the widget never
+  expires it, so its owner must expire and remove the instance. GameScene's
+  timed-overlay installer uses it.
 - `WithUserDismissed(keyboard)` accepts Enter/Escape and supplies the shared
   acknowledgement footer, regardless of appearance template.
 
@@ -90,8 +89,7 @@ consuming input, advancing duration, or invoking callbacks.
 
 `InputBox` supports grammar commands or regex validation, not both. Its builder
 validates required callbacks. `WithResultCallback` communicates a choice to the
-owner; `NewYesNoInputBox`, `NewYellDialog`, and `NewSleepDurationDialog` provide
-established configurations. For example:
+owner; `NewYesNoInputBox` provides an established configuration. For example:
 
 ```go
 dialog := widgets.NewInputBox("Name thy wish:", nil, keyboard).
@@ -111,8 +109,7 @@ text and match the keys actually accepted.
 
 Map-relative MessageDialog/OverlayDialog popups use active combat battlefield
 bounds, excluding Turn Order. Explicit screen/numeric anchors bypass this.
-`WithHorizontalCenter` overrides the horizontal anchor; a later `WithPosition`
-resets the override. Viewport changes rewrap a copy of original styled content,
+Viewport changes rewrap a copy of original styled content,
 preserving Runic/color segments without changing focus, timing, or ownership.
 InputBox and large selection/workspace dialogs do not use this policy.
 
@@ -194,9 +191,9 @@ Use `MustRemoveWidgetInstance` when loss of stack ownership is a programming err
 
 `MessageDialog.Hide` may begin a fade while the dialog remains visible and must continue receiving updates. Remove it only after the fade interval or in guaranteed cleanup.
 
-Self-timed `OverlayDialog` dismissal hides the wrapped message dialog but does not remove the stack entry. User-dismissed overlays can use `AutoPopFromStack`; workflow-owned overlays should be removed by the workflow's `Finally` callback.
+User-dismissed overlays can use `AutoPopFromStack`; workflow-owned overlays should be removed by the workflow's `Finally` callback.
 
-GameScene timed overlays instead use `WithExternallyManagedDuration`. `OverlayDialog.Update` does not advance those dialogs: GameScene installs one exact instance, tracks its deadline with `GameState.ElapsedMs`, and removes it even when another modal covers it. Replacement, expiry, and scene teardown share the same exact-instance cleanup.
+Timed overlays use `WithExternallyManagedDuration`; an `OverlayDialog` never times itself out. `OverlayDialog.Update` does not advance those dialogs: GameScene installs one exact instance, tracks its deadline with `GameState.ElapsedMs`, and removes it even when another modal covers it. Replacement, expiry, and scene teardown share the same exact-instance cleanup.
 
 Non-blocking action feedback has separate GameScene ownership. The owner retains stable exact instances, reconciles protected lifecycle and movement before the stack's one non-blocking update, and promptly retires an instance removed elsewhere. Capacity eviction, expiry, scene replacement, and disposal remove only owned feedback and tolerate idempotent cleanup.
 

@@ -53,7 +53,7 @@ func TestRepositoryCreateLoadAndDeterministicList(t *testing.T) {
 		}
 	}
 	for _, root := range roots {
-		if _, err = os.Stat(filepath.Join(root, repositoryLockName)); err != nil {
+		if _, err = os.Stat(filepath.Join(root, repositoryfs.ReferenceLockName)); err != nil {
 			t.Fatalf("persistent lock file missing from %q: %v", root, err)
 		}
 	}
@@ -76,7 +76,7 @@ func TestRepositoryCapturesAreImmutableAndDeleteIsRevisionSafe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 || entries[0].Name() != repositoryLockName || entries[1].Name() != "named.json" {
+	if len(entries) != 2 || entries[0].Name() != repositoryfs.ReferenceLockName || entries[1].Name() != "named.json" {
 		t.Fatalf("create collision left files behind: %v", entries)
 	}
 	if err = repository.Delete("project:named", "stale"); !errors.Is(err, ErrSnapshotStale) {

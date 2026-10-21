@@ -1,6 +1,6 @@
 # ADR-006: UI Widget System Enhancements
 
-**Status**: Accepted
+**Status**: Accepted. Partly retired on 2026-10-20: `LoadingIndicator`, `FocusIndicator`, `FocusManager`, `Button` and `TabbedInterface` were removed because no game code used them.
 
 **Date**: 2025-08-26
 

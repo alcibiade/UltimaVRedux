@@ -91,14 +91,6 @@ func NewLayeredMaps(tileRefs *references.Tiles,
 	return maps
 }
 
-func GetMapTypeByLocation(location references.Location) references.GeneralMapType {
-	if location == references.BritanniaUnderworld {
-		return references.LargeMapType
-	}
-
-	return references.SmallMapType
-}
-
 func (l *LayeredMaps) GetLayeredMap(generalMapType references.GeneralMapType, floorNumber references.FloorNumber) *LayeredMap {
 	return l.layeredMaps[generalMapType][floorNumber]
 }

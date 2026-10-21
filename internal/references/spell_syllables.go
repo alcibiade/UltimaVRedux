@@ -22,11 +22,3 @@ func IsValidSyllable(r rune) bool {
 
 	return exists
 }
-
-// GetSyllableWord returns the full word for a syllable abbreviation.
-// Returns the word and true if found, empty string and false otherwise.
-func GetSyllableWord(r rune) (string, bool) {
-	word, exists := GetSyllableMap()[r]
-
-	return word, exists
-}

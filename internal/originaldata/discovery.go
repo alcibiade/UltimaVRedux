@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
-	"sort"
 	"strings"
 )
 
@@ -471,15 +470,4 @@ func environmentMap() map[string]string {
 	}
 
 	return result
-}
-
-// StableCandidatePaths returns sorted paths for diagnostics and tests.
-func StableCandidatePaths(report Report) []string {
-	paths := make([]string, len(report.Candidates))
-	for index, candidate := range report.Candidates {
-		paths[index] = candidate.Path
-	}
-	sort.Strings(paths)
-
-	return paths
 }

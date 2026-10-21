@@ -14,10 +14,6 @@ const provenanceUnknown = "unknown"
 // are distinct facts; none establishes authorship or licensing of the others.
 type RecordingProvenance = authoring.RecordingProvenance
 
-// ProcessingStep records a known edit or conversion without attributing
-// the underlying composition or recording to the person who processed it.
-type ProcessingStep = authoring.ProcessingStep
-
 func validateRecordingProvenance(recordingID string, provenance RecordingProvenance) error {
 	fields := []struct{ name, value string }{
 		{"originalFilename", provenance.OriginalFilename}, {"sourceType", provenance.SourceType},

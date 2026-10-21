@@ -97,13 +97,3 @@ func (l Location) GetMapType() GeneralMapType {
 
 	return SmallMapType
 }
-
-func GetListOfAllSmallMaps() []string {
-	names := make([]string, 0)
-
-	for loc := Moonglow; loc <= SerpentsHold; loc++ {
-		names = append(names, loc.String())
-	}
-
-	return names
-}

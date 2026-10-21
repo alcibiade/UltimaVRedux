@@ -36,22 +36,6 @@ func NewKeyboard(millisecondDelayBetweenKeyPresses int) *Keyboard {
 	return &keyboard
 }
 
-// NewKeyboardWithKeyStateSource constructs a keyboard backed by a caller-owned
-// key-state source. It supports deterministic input adapters and tests without
-// changing the keyboard's release-debouncing behavior.
-func NewKeyboardWithKeyStateSource(
-	millisecondDelayBetweenKeyPresses int,
-	keyPressed func(ebiten.Key) bool,
-) *Keyboard {
-	if keyPressed == nil {
-		panic("NewKeyboardWithKeyStateSource: key-state source is required")
-	}
-	keyboard := NewKeyboard(millisecondDelayBetweenKeyPresses)
-	keyboard.keyPressed = keyPressed
-
-	return keyboard
-}
-
 // TryToRegisterKeyPress registers a keypress if it is allowed according to the time passed since
 // the previous key press AND if the key hasn't been consumed already while held
 func (k *Keyboard) TryToRegisterKeyPress(key ebiten.Key) bool {

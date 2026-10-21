@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	sdkcatalog "github.com/bradhannah/berad-sdk/tools/berad-audio/catalog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -158,7 +159,7 @@ func TestCatalogIsDeterministicAndPreservesIndependentGaps(t *testing.T) {
 	}
 	metal := findCatalogMoment(t, first, "sfx/SoundWalkMetal1")
 	require.Equal(t, productionLibrary().Recordings[metal.AssetID].PlaybackWindow, metal.Window)
-	index := slices.IndexFunc(first.Assets, func(asset CatalogAsset) bool { return asset.ID == metal.AssetID })
+	index := slices.IndexFunc(first.Assets, func(asset sdkcatalog.CatalogAsset) bool { return asset.ID == metal.AssetID })
 	require.NotEqual(t, -1, index)
 	if metal.Window != nil {
 		require.GreaterOrEqual(t, first.Assets[index].DurationMs, metal.Window.EndMs, "excerpt must fit its recording")

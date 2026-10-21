@@ -41,10 +41,7 @@ const (
 	saveDescriptionInputErrorMessage = "Text input failed."
 )
 
-var (
-	_ ModalDialog        = (*SaveDescriptionEntryModal)(nil)
-	_ modalFocusListener = (*SaveDescriptionEntryModal)(nil)
-)
+var _ modalFocusListener = (*SaveDescriptionEntryModal)(nil)
 
 // SaveDescriptionEntryCallback receives the description and whether Enter submitted it.
 // A false submitted value means the modal was cancelled.
@@ -63,7 +60,7 @@ type SaveDescriptionEntryModalConfig struct {
 	IsKeyPressed func(ebiten.Key) bool
 }
 
-// SaveDescriptionEntryResult is the typed value returned through ModalDialog.GetResult.
+// SaveDescriptionEntryResult is the typed value returned through GetResult.
 type SaveDescriptionEntryResult struct {
 	Text      string
 	Submitted bool
@@ -635,7 +632,7 @@ func (m *SaveDescriptionEntryModal) IsFinished() bool {
 	return m.finished
 }
 
-// GetResult returns a SaveDescriptionEntryResult for the ModalDialog contract.
+// GetResult returns the modal's SaveDescriptionEntryResult.
 func (m *SaveDescriptionEntryModal) GetResult() interface{} {
 	return m.result
 }

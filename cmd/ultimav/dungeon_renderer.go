@@ -168,27 +168,6 @@ func dungeonWallSetForLocation(location references.Location) (int, bool) {
 	}
 }
 
-//nolint:unused // Fixed-epoch entry point is used by rendering regression tests; production retains actor clocks.
-func buildDungeonRenderPlan(
-	snapshot *game_state.DungeonStateSnapshot,
-	player references.PlayerLocation,
-	lit bool,
-	showSubduedUnlit bool,
-	timeStopped bool,
-	presentationTimeMs int64,
-) dungeonRenderPlan {
-	// Compatibility entry point for detached, fixed-epoch callers. Production
-	// supplies the persistent actor clock to the extended builder below.
-	var clock actorAnimationClock
-	clock.update(0, timeStopped)
-	clock.update(presentationTimeMs, timeStopped)
-
-	return buildDungeonRenderPlanWithPresentation(snapshot, player, lit, showSubduedUnlit, dungeonRenderPresentation{
-		environmentTimeMs: presentationTimeMs, creatureTimeMs: clock.phaseMs,
-		state: nil, fieldDispels: nil,
-	})
-}
-
 type dungeonRenderPresentation struct {
 	environmentTimeMs int64
 	creatureTimeMs    int64

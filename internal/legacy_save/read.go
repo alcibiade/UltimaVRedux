@@ -17,13 +17,6 @@ const (
 	saveDirectoryLimit   = 1_024
 )
 
-// ResolveSavedGamePath accepts either an exact save directory or a SAVED.GAM
-// filename, expands a leading home shorthand, and resolves both save filenames
-// case-insensitively without searching nested directories.
-func ResolveSavedGamePath(selectedPath, homeDirectory string) (string, error) {
-	return ResolveSavedGamePathContext(context.Background(), selectedPath, homeDirectory)
-}
-
 // ResolveSavedGamePathContext resolves a save pair with bounded directory work.
 func ResolveSavedGamePathContext(ctx context.Context, selectedPath, homeDirectory string) (string, error) {
 	if err := ctx.Err(); err != nil {

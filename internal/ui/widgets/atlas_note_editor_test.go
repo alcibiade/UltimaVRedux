@@ -180,3 +180,7 @@ func TestAtlasNoteReaderRetainsEveryDescriptionParagraphForPaging(t *testing.T) 
 	dialog.prepareDetails()
 	require.Greater(t, dialog.detailPage, 0)
 }
+
+func (e *AtlasNoteEditor) prepareFieldScroll(field int, layout atlasEditorFieldLayout) ([]atlasEditorLine, int) {
+	return e.scrollForContent(field, layout, e.fields[field], e.cursors[field])
+}

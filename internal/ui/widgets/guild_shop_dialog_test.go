@@ -473,10 +473,6 @@ func successfulGuildResult(
 	}
 }
 
-func imagePoint(x, y int) image.Point {
-	return image.Pt(x, y)
-}
-
 func requireColorRGBA(t *testing.T, expected, actual color.Color) {
 	t.Helper()
 	expectedR, expectedG, expectedB, expectedA := expected.RGBA()
@@ -510,22 +506,6 @@ func requireImageRegionContainsColor(
 		}
 	}
 	t.Fatalf("region %v does not contain color %v", region, expected)
-}
-
-func requireImageRegionLacksColor(
-	t *testing.T,
-	image *ebiten.Image,
-	region image.Rectangle,
-	unexpected color.Color,
-) {
-	t.Helper()
-	for y := region.Min.Y; y < region.Max.Y; y++ {
-		for x := region.Min.X; x < region.Max.X; x++ {
-			if colorsEqual(unexpected, image.At(x, y)) {
-				t.Fatalf("region %v unexpectedly contains color %v at (%d, %d)", region, unexpected, x, y)
-			}
-		}
-	}
 }
 
 func colorsEqual(first, second color.Color) bool {

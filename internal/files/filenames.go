@@ -34,12 +34,3 @@ const (
 	UNDER_OOL             = "UNDER.OOL"
 	MISCMAPS_DAT          = "MISCMAPS.DAT"
 )
-
-// Slices for grouped files
-//
-//goland:noinspection GoUnusedGlobalVariable
-var (
-	TalkFiles     = []string{CASTLE_TLK, TOWNE_TLK, DWELLING_TLK, KEEP_TLK}
-	NpcFiles      = []string{CASTLE_NPC, TOWNE_NPC, DWELLING_NPC, KEEP_NPC}
-	SmallMapFiles = []string{CASTLE_DAT, TOWNE_DAT, DWELLING_DAT, KEEP_DAT}
-)

@@ -63,29 +63,6 @@ const (
 	NoTargetPC = -1
 )
 
-// DirectionToCombatEntry converts a movement Direction to a CombatEntryDirection.
-// Maps movement directions to CBT file row indices:
-//   - Up (North) → Row 3 (CombatEntryNorth)
-//   - Down (South) → Row 4 (CombatEntrySouth)
-//   - Right (East) → Row 2 (CombatEntryEast)
-//   - Left (West) → Row 1 (CombatEntryWest)
-func DirectionToCombatEntry(dir references.Direction) CombatEntryDirection {
-	switch dir {
-	case references.Up:
-		return CombatEntryNorth // Row 3
-	case references.Down:
-		return CombatEntrySouth // Row 4
-	case references.Right:
-		return CombatEntryEast // Row 2
-	case references.Left:
-		return CombatEntryWest // Row 1
-	case references.NoneDirection:
-		return CombatEntryNorth // Default
-	}
-
-	return CombatEntryNorth
-}
-
 // CombatMoveResult describes the outcome of a combat movement attempt.
 type CombatMoveResult int
 

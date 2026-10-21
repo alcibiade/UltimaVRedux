@@ -54,20 +54,6 @@ func NewAuthenticSearchLocationManager(gameState *GameState) *AuthenticSearchLoc
 	return aslm
 }
 
-// GetFoundStatus returns a copy of the objFound bitmask array for save file integration
-//
-//nolint:unused // Reserved for future save/load system implementation
-func (aslm *AuthenticSearchLocationManager) getFoundStatus() [24]byte {
-	return aslm.objFound
-}
-
-// SetFoundStatus sets the objFound bitmask array from save file data
-//
-//nolint:unused // Reserved for future save/load system implementation
-func (aslm *AuthenticSearchLocationManager) setFoundStatus(foundStatus [24]byte) {
-	aslm.objFound = foundStatus
-}
-
 func (aslm *AuthenticSearchLocationManager) snapshotState() ([24]byte, byte) {
 	return aslm.objFound, aslm.skullKeysFoundDay
 }

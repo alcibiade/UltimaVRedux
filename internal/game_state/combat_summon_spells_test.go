@@ -87,7 +87,7 @@ func TestKalXenMonsterTypeUsesOriginalWeights(t *testing.T) {
 
 func TestCombatSummonsAreImplementedNoTargetSpells(t *testing.T) {
 	for _, spell := range []references.Spell{references.KalXen, references.InBetXen, references.KalXenCorp} {
-		assert.True(t, IsImplementedCombatSpell(spell))
+		assert.True(t, IsImplementedSpellInContext(spell, references.ContextCombat))
 		assert.Equal(t, references.TargetAutomatic, references.GetSpellInfo(spell).Targeting)
 	}
 }

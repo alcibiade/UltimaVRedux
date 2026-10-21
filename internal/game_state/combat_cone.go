@@ -56,29 +56,6 @@ type combatConeRay struct {
 	stopped   bool
 }
 
-// TraceCombatCone returns the pure possible footprint of the original 21 pixel
-// rays. It does not consume gameplay RNG or expose committed candidate order.
-func TraceCombatCone(
-	combatMap *references.CombatMapReference,
-	origin references.Position,
-	direction references.Direction,
-	spec CombatConeSpec,
-) []references.Position {
-	if combatMap == nil {
-		return nil
-	}
-	projection := combatConeProjection{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			position := references.Position{X: x, Y: y}
-			projection.terrain[x][y] = combatMap.GetTileNumber(position)
-			projection.display[x][y] = projection.terrain[x][y]
-		}
-	}
-
-	return tracePossibleCombatCone(projection.display, origin, direction, spec)
-}
-
 func (g *GameState) tracePossibleCombatCone(
 	origin references.Position,
 	direction references.Direction,

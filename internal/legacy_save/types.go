@@ -276,8 +276,3 @@ type Bundle struct {
 
 	sourceDigest [32]byte
 }
-
-// IsDungeon reports whether SAVED.GAM was captured on map 33 through 40.
-func (bundle Bundle) IsDungeon() bool {
-	return bundle.Game.Dungeon.Active
-}

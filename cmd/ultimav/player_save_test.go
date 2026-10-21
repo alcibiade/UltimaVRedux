@@ -273,9 +273,9 @@ func (scene *playerSaveTestScene) setPlayerSaveProvenance(slot player_save.SlotI
 func (scene *playerSaveTestScene) playerSaveProvenance() (player_save.SlotID, string, bool) {
 	return scene.slot, scene.revision, scene.slot.Valid() && scene.revision != ""
 }
-func (scene *playerSaveTestScene) clearPlayerSaveProvenance() {
-	scene.slot, scene.revision = "", ""
-}
+
+// The fake implements doomRunAssociationOwner, which player saves detect with a
+// type assertion; dropping any of these methods silently skips that path.
 func (scene *playerSaveTestScene) setDoomRunAssociation(runID string) {
 	scene.doomRunID = runID
 }
@@ -308,12 +308,11 @@ func (scene *playerSaveTestScene) PrepareInputForSceneActivation() {
 }
 
 type playerSaveNoCaptureScene struct {
-	playthrough   playthroughMetadata
-	configuration *config.UltimaVConfiguration
-	preflights    int
-	disposals     int
-	slot          player_save.SlotID
-	revision      string
+	playthrough playthroughMetadata
+	preflights  int
+	disposals   int
+	slot        player_save.SlotID
+	revision    string
 }
 
 func (scene *playerSaveNoCaptureScene) setPlaythroughMetadata(metadata playthroughMetadata) {
@@ -326,7 +325,7 @@ func (scene *playerSaveNoCaptureScene) playthroughMetadata() playthroughMetadata
 func (scene *playerSaveNoCaptureScene) Update(_ *Game) error { return nil }
 func (scene *playerSaveNoCaptureScene) Draw(_ *ebiten.Image) {}
 func (scene *playerSaveNoCaptureScene) GetUltimaConfiguration() *config.UltimaVConfiguration {
-	return scene.configuration
+	return nil
 }
 func (scene *playerSaveNoCaptureScene) InvalidateResolution() {}
 func (scene *playerSaveNoCaptureScene) setPlayerSaveProvenance(slot player_save.SlotID, revision string) {

@@ -28,17 +28,6 @@ type Widget interface {
 	Update()
 }
 
-// ModalDialog represents a dialog that can be dismissed or has a result
-type ModalDialog interface {
-	Widget
-
-	// IsFinished returns true when the dialog should be closed
-	IsFinished() bool
-
-	// GetResult returns the dialog result as an interface{} for flexibility
-	GetResult() interface{}
-}
-
 // DismissibleDialog provides a unified interface for dialogs with visibility control.
 // Both OverlayDialog and MessageDialog implement this interface, allowing them to be
 // pushed to DialogStack and managed uniformly.

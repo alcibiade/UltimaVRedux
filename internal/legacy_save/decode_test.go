@@ -446,3 +446,8 @@ func writeObject(destination []byte, index int, object ObjectRecord) {
 	destination[offset+6] = object.Animation
 	destination[offset+7] = object.Misc
 }
+
+// IsDungeon reports whether SAVED.GAM was captured on map 33 through 40.
+func (bundle Bundle) IsDungeon() bool {
+	return bundle.Game.Dungeon.Active
+}

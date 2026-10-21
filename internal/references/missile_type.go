@@ -24,28 +24,3 @@ func (m MissileType) GetStringName() string {
 		return "Unknown"
 	}
 }
-
-func GetMissileTypeFromString(missileTypeStr string) MissileType {
-	switch missileTypeStr {
-	case "None":
-		return MissileNone
-	case "Arrow":
-		return MissileArrow
-	case "Cannon Ball":
-		return MissileCannonBall
-	case "Axe":
-		return MissileAxe
-	case "Red":
-		return MissileRed
-	case "Blue":
-		return MissileBlue
-	case "Green":
-		return MissileGreen
-	case "Violet":
-		return MissileViolet
-	case "Rock":
-		return MissileRock
-	default:
-		return -1 // Invalid type
-	}
-}

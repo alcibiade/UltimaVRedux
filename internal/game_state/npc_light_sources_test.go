@@ -300,3 +300,31 @@ func TestSeahorseLightEmissionLogicChain(t *testing.T) {
 	t.Logf("  BreathingPeriodMs: %d", props.BreathingPeriodMs)
 	t.Logf("  TintColor: R=%.2f G=%.2f B=%.2f", props.TintColor.R, props.TintColor.G, props.TintColor.B)
 }
+
+// IsLightEmittingNPC and GetNPCLightMarkerIndex classify sprites with the live
+// predicates; the marker mapping repeats getNPCLightInfoIfEmitsLight's.
+// IsLightEmittingNPC returns true if the sprite index represents a creature that emits light.
+// This is useful for external systems that need to check NPC light emission.
+func IsLightEmittingNPC(spriteIndex indexes.SpriteIndex) bool {
+	return isWispSprite(spriteIndex) ||
+		isSeahorseSprite(spriteIndex) ||
+		isDaemonSprite(spriteIndex) ||
+		isGhostSprite(spriteIndex)
+}
+
+// GetNPCLightMarkerIndex returns the marker index for a light-emitting NPC sprite.
+// Returns 0 if the sprite does not emit light.
+func GetNPCLightMarkerIndex(spriteIndex indexes.SpriteIndex) indexes.SpriteIndex {
+	switch {
+	case isWispSprite(spriteIndex):
+		return map_state.WispMarkerIndex
+	case isSeahorseSprite(spriteIndex):
+		return map_state.SeahorseMarkerIndex
+	case isDaemonSprite(spriteIndex):
+		return map_state.DaemonMarkerIndex
+	case isGhostSprite(spriteIndex):
+		return map_state.GhostMarkerIndex
+	default:
+		return 0
+	}
+}

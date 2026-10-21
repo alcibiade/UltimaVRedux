@@ -18,7 +18,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
-	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -82,21 +81,6 @@ var statusColors = map[party_state.CharacterStatus]color.Color{
 	party_state.Charmed:  ucolor.From(ucolor.EGABlue).RGBA(),    // Blue for charm
 	party_state.Dead:     ucolor.From(ucolor.EGARed).RGBA(),     // Red for death
 	// party_state.Good has no entry (nil) - uses default coloring
-}
-
-// NewCharacterSummary creates a character summary display for the main game screen.
-//
-// The summary displays party member portraits, names, HP/MP, and status information
-// with automatic scaling and SystemCallbacks refresh integration.
-//
-// Parameters:
-//   - spriteSheet: Sprite sheet containing character portrait images (required)
-//
-// Returns a configured CharacterSummary with pre-allocated character images and fonts.
-func NewCharacterSummary(spriteSheet *sprites.SpriteSheet) *CharacterSummary {
-	width, _ := display.GetManager().GetCurrentSize()
-
-	return NewCharacterSummaryForWidth(spriteSheet, width)
 }
 
 // NewCharacterSummaryForWidth creates a summary scaled to the logical render width.

@@ -210,12 +210,3 @@ func TestCharacterClassification(t *testing.T) {
 		}
 	}
 }
-
-func TestSignPause(t *testing.T) {
-	if !IsSignPause(0x0D) {
-		t.Error("IsSignPause(0x0D) = false, expected true")
-	}
-	if IsSignPause(0x0A) {
-		t.Error("IsSignPause(0x0A) = true, expected false")
-	}
-}

@@ -23,9 +23,7 @@ type snapshotCommandTestRepository struct {
 	records   map[string]save_snapshot.Record
 	events    *[]string
 	listErr   error
-	loadErr   error
 	createErr error
-	deleteErr error
 }
 
 func (r *snapshotCommandTestRepository) List() ([]save_snapshot.Summary, error) {
@@ -40,9 +38,6 @@ func (r *snapshotCommandTestRepository) List() ([]save_snapshot.Summary, error) 
 }
 
 func (r *snapshotCommandTestRepository) Load(reference string) (save_snapshot.Record, error) {
-	if r.loadErr != nil {
-		return save_snapshot.Record{}, r.loadErr
-	}
 	record, ok := r.records[reference]
 	if !ok {
 		return save_snapshot.Record{}, save_snapshot.ErrSnapshotNotFound
@@ -73,9 +68,6 @@ func (r *snapshotCommandTestRepository) Delete(reference, expectedRevision strin
 	return r.DeleteIfUnreferenced(reference, expectedRevision, nil)
 }
 func (r *snapshotCommandTestRepository) DeleteIfUnreferenced(reference, expectedRevision string, check func() error) error {
-	if r.deleteErr != nil {
-		return r.deleteErr
-	}
 	record, ok := r.records[reference]
 	if !ok {
 		return save_snapshot.ErrSnapshotNotFound
@@ -97,7 +89,6 @@ type snapshotCommandTestScene struct {
 	name          string
 	events        *[]string
 	snapshot      save_snapshot.SaveSnapshot
-	eligibility   error
 	compatibility error
 	captures      int
 	updates       int
@@ -115,15 +106,12 @@ func (s *snapshotCommandTestScene) GetUltimaConfiguration() *config.UltimaVConfi
 }
 func (s *snapshotCommandTestScene) InvalidateResolution() {}
 func (s *snapshotCommandTestScene) ValidateSaveSnapshotEligibility() error {
-	return s.eligibility
+	return nil
 }
 func (s *snapshotCommandTestScene) ValidateSaveSnapshotCompatibility(_ save_snapshot.SaveSnapshot) error {
 	return s.compatibility
 }
 func (s *snapshotCommandTestScene) CaptureSaveSnapshot() (save_snapshot.SaveSnapshot, error) {
-	if s.eligibility != nil {
-		return save_snapshot.SaveSnapshot{}, s.eligibility
-	}
 	s.captures++
 	return s.snapshot, nil
 }

@@ -14,77 +14,6 @@ import (
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
-func TestMessageDialogPopupLayoutBuildAndVisibleChanges(t *testing.T) {
-	const message = "Thou dost find nothing of note."
-	tests := []struct {
-		name  string
-		build func() *MessageDialog
-	}{
-		{"direct", func() *MessageDialog {
-			return NewMessageDialog(message).WithEffects(false).
-				WithTextLines(2).WithCharsPerLine(45).WithVerticalPosition(0.5).Build()
-		}},
-		{"action", func() *MessageDialog {
-			return NewActionFeedbackDialog(message, PositionMapCenterBottom)
-		}},
-		{"search", func() *MessageDialog {
-			return NewSearchFeedbackDialog(message, PositionMapCenterLower)
-		}},
-		{"confirmation", func() *MessageDialog {
-			return NewOverlayDialog(message).AsConfirmation().WithUserDismissed(newWidgetTestKeyboard(0)).Build().dialog
-		}},
-		{"brief feedback", func() *MessageDialog {
-			return NewOverlayDialog(message).AsBriefFeedback().Build().dialog
-		}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			setResponsiveDialogTestResolution(t, 1280, 720)
-			viewport := image.Rect(320, 20, 640, 420)
-			setMessageDialogTestPopupViewport(t, func(image.Rectangle) image.Rectangle { return viewport })
-			dialog := tt.build()
-
-			require.False(t, dialog.IsVisible(), "Build must resolve layout before show or stack push")
-			requireMessageDialogPopupBounds(t, dialog, viewport, 1280)
-			require.NotNil(t, dialog.renderOutput)
-			assert.Equal(t, strings.Fields(message), strings.Fields(dialog.renderOutput.GetOutputStr(false)))
-			if dialog.hasPromptOutput() {
-				require.NotNil(t, dialog.renderPrompt)
-				assert.Equal(t, strings.Fields(dialog.promptOutput.GetOutputStr(false)),
-					strings.Fields(dialog.renderPrompt.GetOutputStr(false)), "Build must also resolve the confirmation prompt")
-			}
-			source := dialog.output.GetOutputStr(false)
-			base := dialog.baseConfig
-			dialog.ShowWithoutAnimation()
-			dialog.resolvePopupLayout(image.Rect(0, 0, 1280, 720))
-			oldBounds := dialog.frameBounds
-
-			// A map/view-mode change must invalidate layout even at the same resolution.
-			viewport = image.Rect(480, 40, 760, 400)
-			dialog.resolvePopupLayout(image.Rect(0, 0, 1280, 720))
-			requireMessageDialogPopupBounds(t, dialog, viewport, 1280)
-			assert.NotEqual(t, oldBounds, dialog.frameBounds)
-
-			setResponsiveDialogTestResolution(t, 1920, 1080)
-			viewport = image.Rect(180, 60, 780, 600)
-			dialog.resolvePopupLayout(image.Rect(0, 0, 1920, 1080))
-			requireMessageDialogPopupBounds(t, dialog, viewport, 1920)
-			assert.Equal(t, 1920, dialog.lastScreenWidth)
-			assert.Equal(t, 1080, dialog.lastScreenHeight)
-			assert.True(t, dialog.IsVisible(), "resize must retain the visible instance")
-			assert.False(t, dialog.IsDismissed())
-			assert.Equal(t, base, dialog.baseConfig)
-			assert.Equal(t, source, dialog.output.GetOutputStr(false))
-			assert.Equal(t, strings.Fields(message), strings.Fields(dialog.renderOutput.GetOutputStr(false)))
-
-			viewport = image.Rectangle{}
-			dialog.resolvePopupLayout(image.Rect(0, 0, 1920, 1080))
-			assert.Equal(t, base, dialog.config, "empty provider must restore legacy placement")
-			assert.Same(t, dialog.output, dialog.renderOutput)
-		})
-	}
-}
-
 func TestActionFeedbackRetainsCompleteSourceThroughReflow(t *testing.T) {
 	for _, message := range []string{
 		"Thou dost see the collapsed entrance to the dungeon Deceit",
@@ -112,41 +41,6 @@ func TestActionFeedbackRetainsCompleteSourceThroughReflow(t *testing.T) {
 				require.Equal(t, strings.Fields(message), strings.Fields(dialog.renderOutput.GetOutputStr(false)))
 				require.Equal(t, blankLines, strings.Count(strings.ReplaceAll(dialog.renderOutput.GetOutputStr(true), " \n", "\n"), "\n\n"))
 			}
-		})
-	}
-}
-
-func TestMessageDialogPopupLayoutScreenAnchorsBypassViewport(t *testing.T) {
-	setResponsiveDialogTestResolution(t, 1280, 720)
-	viewport := image.Rect(40, 20, 240, 400)
-	setMessageDialogTestPopupViewport(t, func(image.Rectangle) image.Rectangle { return viewport })
-	tests := []struct {
-		name   string
-		center float64
-		build  func() *MessageDialog
-	}{
-		{"direct screen", 0.5, func() *MessageDialog {
-			return NewMessageDialog("Screen message").WithEffects(false).
-				WithHorizontalPosition(DialogHorizontalWholeScreen).WithVerticalPosition(0.5).Build()
-		}},
-		{"overlay screen", 0.5, func() *MessageDialog {
-			return NewOverlayDialog("Screen message").AsBriefFeedback().WithPosition(PositionScreenCenter).Build().dialog
-		}},
-		{"numeric override", 0.62, func() *MessageDialog {
-			return NewOverlayDialog("Screen message").AsBriefFeedback().WithHorizontalCenter(0.62).Build().dialog
-		}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dialog := tt.build()
-			assert.Equal(t, dialog.baseConfig, dialog.config)
-			assert.InDelta(t, tt.center, (dialog.config.StartPercentX+dialog.config.EndPercentX)/2, 0.000001)
-			dialog.ShowWithoutAnimation()
-			viewport = viewport.Add(image.Pt(100, 0))
-			dialog.resolvePopupLayout(image.Rect(0, 0, 1280, 720))
-			assert.Equal(t, dialog.baseConfig, dialog.config)
-			assert.Empty(t, dialog.popupViewport)
-			assert.Same(t, dialog.output, dialog.renderOutput)
 		})
 	}
 }
@@ -287,4 +181,108 @@ func requireMessageDialogPopupBounds(t *testing.T, dialog *MessageDialog, viewpo
 	assert.InDelta(t, (dialog.baseConfig.StartPercentY+dialog.baseConfig.EndPercentY)/2,
 		(dialog.config.StartPercentY+dialog.config.EndPercentY)/2, 0.000001,
 		"map viewport must not change the vertical anchor")
+}
+
+func TestMessageDialogPopupLayoutBuildAndVisibleChanges(t *testing.T) {
+	const message = "Thou dost find nothing of note."
+	tests := []struct {
+		name  string
+		build func() *MessageDialog
+	}{
+		{"direct", func() *MessageDialog {
+			return NewMessageDialog(message).WithEffects(false).
+				WithTextLines(2).WithCharsPerLine(45).WithVerticalPosition(0.5).Build()
+		}},
+		{"action", func() *MessageDialog {
+			return NewActionFeedbackDialog(message, PositionMapCenterBottom)
+		}},
+		{"search", func() *MessageDialog {
+			return NewSearchFeedbackDialog(message, PositionMapCenterLower)
+		}},
+		{"confirmation", func() *MessageDialog {
+			return NewOverlayDialog(message).AsConfirmation().WithUserDismissed(newWidgetTestKeyboard(0)).Build().dialog
+		}},
+		{"timed feedback", func() *MessageDialog {
+			return NewOverlayDialog(message).AsOverlayFeedback().WithExternallyManagedDuration(2000).Build().dialog
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setResponsiveDialogTestResolution(t, 1280, 720)
+			viewport := image.Rect(320, 20, 640, 420)
+			setMessageDialogTestPopupViewport(t, func(image.Rectangle) image.Rectangle { return viewport })
+			dialog := tt.build()
+
+			require.False(t, dialog.IsVisible(), "Build must resolve layout before show or stack push")
+			requireMessageDialogPopupBounds(t, dialog, viewport, 1280)
+			require.NotNil(t, dialog.renderOutput)
+			assert.Equal(t, strings.Fields(message), strings.Fields(dialog.renderOutput.GetOutputStr(false)))
+			if dialog.hasPromptOutput() {
+				require.NotNil(t, dialog.renderPrompt)
+				assert.Equal(t, strings.Fields(dialog.promptOutput.GetOutputStr(false)),
+					strings.Fields(dialog.renderPrompt.GetOutputStr(false)), "Build must also resolve the confirmation prompt")
+			}
+			source := dialog.output.GetOutputStr(false)
+			base := dialog.baseConfig
+			dialog.ShowWithoutAnimation()
+			dialog.resolvePopupLayout(image.Rect(0, 0, 1280, 720))
+			oldBounds := dialog.frameBounds
+
+			// A map/view-mode change must invalidate layout even at the same resolution.
+			viewport = image.Rect(480, 40, 760, 400)
+			dialog.resolvePopupLayout(image.Rect(0, 0, 1280, 720))
+			requireMessageDialogPopupBounds(t, dialog, viewport, 1280)
+			assert.NotEqual(t, oldBounds, dialog.frameBounds)
+
+			setResponsiveDialogTestResolution(t, 1920, 1080)
+			viewport = image.Rect(180, 60, 780, 600)
+			dialog.resolvePopupLayout(image.Rect(0, 0, 1920, 1080))
+			requireMessageDialogPopupBounds(t, dialog, viewport, 1920)
+			assert.Equal(t, 1920, dialog.lastScreenWidth)
+			assert.Equal(t, 1080, dialog.lastScreenHeight)
+			assert.True(t, dialog.IsVisible(), "resize must retain the visible instance")
+			assert.False(t, dialog.IsDismissed())
+			assert.Equal(t, base, dialog.baseConfig)
+			assert.Equal(t, source, dialog.output.GetOutputStr(false))
+			assert.Equal(t, strings.Fields(message), strings.Fields(dialog.renderOutput.GetOutputStr(false)))
+
+			viewport = image.Rectangle{}
+			dialog.resolvePopupLayout(image.Rect(0, 0, 1920, 1080))
+			assert.Equal(t, base, dialog.config, "empty provider must restore legacy placement")
+			assert.Same(t, dialog.output, dialog.renderOutput)
+		})
+	}
+}
+
+func TestMessageDialogPopupLayoutScreenAnchorsBypassViewport(t *testing.T) {
+	setResponsiveDialogTestResolution(t, 1280, 720)
+	viewport := image.Rect(40, 20, 240, 400)
+	setMessageDialogTestPopupViewport(t, func(image.Rectangle) image.Rectangle { return viewport })
+	tests := []struct {
+		name   string
+		center float64
+		build  func() *MessageDialog
+	}{
+		{"direct screen", 0.5, func() *MessageDialog {
+			return NewMessageDialog("Screen message").WithEffects(false).
+				WithHorizontalPosition(DialogHorizontalWholeScreen).WithVerticalPosition(0.5).Build()
+		}},
+		{"overlay screen", 0.5, func() *MessageDialog {
+			return NewOverlayDialog("Screen message").AsOverlayFeedback().WithExternallyManagedDuration(2000).
+				WithPosition(PositionScreenCenter).Build().dialog
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dialog := tt.build()
+			assert.Equal(t, dialog.baseConfig, dialog.config)
+			assert.InDelta(t, tt.center, (dialog.config.StartPercentX+dialog.config.EndPercentX)/2, 0.000001)
+			dialog.ShowWithoutAnimation()
+			viewport = viewport.Add(image.Pt(100, 0))
+			dialog.resolvePopupLayout(image.Rect(0, 0, 1280, 720))
+			assert.Equal(t, dialog.baseConfig, dialog.config)
+			assert.Empty(t, dialog.popupViewport)
+			assert.Same(t, dialog.output, dialog.renderOutput)
+		})
+	}
 }

@@ -52,15 +52,6 @@ type ShrineMap struct {
 	MapData *MiniMapData
 }
 
-// NewShrineMap creates a new shrine map with default positions
-func NewShrineMap() *ShrineMap {
-	return &ShrineMap{
-		CenterPosition:   references.Position{X: CenterPositionX, Y: CenterPositionY},
-		EntrancePosition: references.Position{X: EntrancePositionX, Y: EntrancePositionY},
-		MapData:          nil, // No loaded data, use fallback rendering
-	}
-}
-
 // NewShrineMapWithData creates a new shrine map with loaded data
 func NewShrineMapWithData(mapData *MiniMapData) *ShrineMap {
 	shrineMap := &ShrineMap{

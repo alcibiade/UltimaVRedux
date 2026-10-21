@@ -5,12 +5,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/stretchr/testify/require"
+
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAcknowledgmentsRetainOriginalAndSuppliedAudioCredits(t *testing.T) {
@@ -92,7 +94,7 @@ func TestAcknowledgmentsGroupOnlyIdenticalSourceAndProcessingCredits(t *testing.
 	base := audio.RecordingProvenance{SourceCreator: "Composer", SourceURL: "https://example.org/source", License: "Credit one"}
 	otherLicense, processed := base, base
 	otherLicense.License = "Credit two"
-	processed.Processing = []audio.ProcessingStep{{Description: "Edited", Tool: "Editor", PerformedBy: "Adapter"}}
+	processed.Processing = []authoring.ProcessingStep{{Description: "Edited", Tool: "Editor", PerformedBy: "Adapter"}}
 	recordings := []audio.RecordingCredit{
 		{Name: "B", Provenance: base}, {Name: "A", Provenance: base},
 		{Name: "C", Provenance: otherLicense}, {Name: "D", Provenance: processed},
