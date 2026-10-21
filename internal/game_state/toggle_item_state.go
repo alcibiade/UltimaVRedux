@@ -122,10 +122,7 @@ func (gs *GameState) processOneToggleItem(state *ToggleItemState, itemType Toggl
 	state.TurnsRemaining--
 	if state.TurnsRemaining <= 0 {
 		state.IsActive = false
-		// Show expiration popup via callback
-		if gs.SystemCallbacks.UI.ShowSpellExpiredPopup != nil {
-			gs.SystemCallbacks.UI.ShowSpellExpiredPopup(itemType.FriendlyName())
-		}
+		gs.SystemCallbacks.UI.ShowSpellExpiredPopup(itemType.FriendlyName())
 	}
 }
 

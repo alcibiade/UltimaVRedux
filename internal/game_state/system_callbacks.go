@@ -24,6 +24,7 @@ var (
 	errAtlasUpdatedCallbackRequired   = errors.New("UICallbacks.AtlasUpdated is required")
 	errTransientIconCallbackRequired  = errors.New("UICallbacks.ShowTransientIcon is required")
 	errSignDialogCallbackRequired     = errors.New("UICallbacks.ShowSignDialog is required")
+	errSpellExpiredCallbackRequired   = errors.New("UICallbacks.ShowSpellExpiredPopup is required")
 )
 
 // SoundEffect represents different types of sound effects
@@ -857,7 +858,6 @@ type UICallbacks struct {
 
 	// ShowSpellExpiredPopup displays a dismissible popup when a duration effect expires.
 	// Shows message like "Light wore off!" with any-key dismissal.
-	// Optional - if nil, expiration is silent (like original U5).
 	ShowSpellExpiredPopup func(spellName string)
 
 	// ShowTransientIcon displays bounded semantic feedback without exposing presentation details to gameplay.
@@ -1016,6 +1016,9 @@ func NewSystemCallbacks(
 	}
 	if uiCallbacks.ShowSignDialog == nil {
 		return nil, errSignDialogCallbackRequired
+	}
+	if uiCallbacks.ShowSpellExpiredPopup == nil {
+		return nil, errSpellExpiredCallbackRequired
 	}
 	if combat.PublishEvent == nil {
 		return nil, errCombatEventCallbackRequired

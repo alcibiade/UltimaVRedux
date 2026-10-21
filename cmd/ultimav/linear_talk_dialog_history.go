@@ -93,7 +93,12 @@ func (d *LinearTalkDialog) openHistoryFromKeyboard() bool {
 
 func (d *LinearTalkDialog) showJournalHistoryExchange() {
 	exchange := d.gameScene.lastConversation.Exchanges[d.historyExchange]
-	d.historyPanel = text.NewOutput(d.font, d.Output.GetLineSpacing(), talkHistoryMaxBytes, talkMaxCharsInput)
+	// Wrapping never yields more rows than bytes, so size the panel from this exchange.
+	rows := len(exchange.Title()) + 1
+	for _, passage := range exchange.Passages {
+		rows += len(passage.Text) + 1
+	}
+	d.historyPanel = text.NewOutput(d.font, d.Output.GetLineSpacing(), rows, talkMaxCharsInput)
 	d.historyPanel.AddText(exchange.Title())
 	segments := make([]text.ColorSegment, 0, len(exchange.Passages))
 	for _, passage := range exchange.Passages {

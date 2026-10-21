@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"image"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/bradhannah/UltimaVRedux/internal/conversation"
@@ -37,6 +39,26 @@ func TestTalkResizeKeepsDisplayedExchangeAndExcerptIdentity(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, excerpts, 1)
 	require.Equal(t, "first", excerpts[0].ID)
+}
+
+func TestTalkHistoryExchangeSizesPanelFromContent(t *testing.T) {
+	setTalkHistoryTestResolution(t, 1920, 1080)
+	passage := strings.Repeat("a\n", 200) + strings.Repeat("x", 300) + " last words"
+	scene := &GameScene{gameState: &game_state.GameState{}, keyboard: newPresentationTestKeyboard(),
+		lastConversation: journal.Conversation{Exchanges: []journal.Exchange{
+			{ID: "long", Speaker: "Iolo", Location: "Britain", Passages: []journal.Passage{{Text: passage}}},
+		}}}
+	dialog := &LinearTalkDialog{gameScene: scene}
+	dialog.initializeResizeableVisualElements()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	dialog.showJournalHistoryExchange()
+	runtime.ReadMemStats(&after)
+	// A panel sized by the 256 KiB transcript budget allocated about 17 MB per page turn.
+	require.Less(t, after.TotalAlloc-before.TotalAlloc, uint64(1<<20))
+	shown := dialog.historyPanel.GetOutputStr(true)
+	require.Contains(t, shown, "Iolo")
+	require.Contains(t, shown, "last words")
 }
 
 func TestTalkHistoryResizePreservesLiveInputPauseAndKeyWait(t *testing.T) {
