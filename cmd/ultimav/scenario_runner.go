@@ -611,7 +611,7 @@ func (g *Game) persistScenarioRunHistory() {
 	runs, err := g.scenarioRunHistory.Append(run.status)
 	if err != nil {
 		g.scenarioHistoryError = err.Error()
-		logging.Error(logging.CategorySystem, "Persisting scenario run history failed: %v", err)
+		logging.Errorf(logging.CategorySystem, "Persisting scenario run history failed: %v", err)
 
 		return
 	}

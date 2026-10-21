@@ -24,7 +24,7 @@ func TestCombatPartySpriteIndexUsesOriginalInvisiblePlayerTile(t *testing.T) {
 	character := &party_state.PlayerCharacter{} //nolint:exhaustruct // Sprite-selection fixture.
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.InvisiblePlayer), combatPartySpriteIndex(character, true, false))
-	assert.Equal(t, indexes.Rat_KeyIndex, combatPartySpriteIndex(character, false, true))
+	assert.Equal(t, indexes.RatKeyIndex, combatPartySpriteIndex(character, false, true))
 }
 
 func TestCombatConditionPlainTextExplainsQuicknessSuppression(t *testing.T) {

@@ -133,7 +133,7 @@ func (uc *UltimaVConfiguration) loadGameplayPreferences() {
 		if legacy != settings.CombatSpeedFactor {
 			message := fmt.Sprintf("At load, normalized legacy combat speed %g to %g.", legacy, settings.CombatSpeedFactor)
 			uc.configurationDiagnostics = append(uc.configurationDiagnostics, message)
-			logging.Warn(logging.CategoryConfig, "%s", message)
+			logging.Warnf(logging.CategoryConfig, "%s", message)
 		}
 	}
 	if uc.source.IsSet(gameplayMaxActionPopupsKey) {

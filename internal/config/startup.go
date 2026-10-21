@@ -52,7 +52,7 @@ func validateStartupDataFile(directory string) error {
 	if strings.TrimSpace(directory) == "" {
 		return ErrDataFilePathUnset
 	}
-	path := files.Resolve(directory, files.DATA_OVL)
+	path := files.Resolve(directory, files.DataOvl)
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("checking configured DATA.OVL: %w", err)

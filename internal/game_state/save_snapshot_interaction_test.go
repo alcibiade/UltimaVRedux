@@ -21,18 +21,18 @@ func TestSaveSnapshotPendingInteractionHydration(t *testing.T) {
 		sprite indexes.SpriteIndex
 		want   map_units.PendingNPCInteraction
 	}{
-		{name: "rat", sprite: indexes.Rat_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "gargoyle", sprite: indexes.StoneGargoyle_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "daemon", sprite: indexes.Daemon_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "rat", sprite: indexes.RatKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "gargoyle", sprite: indexes.StoneGargoyleKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "daemon", sprite: indexes.DaemonKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
 		{name: "civilian", sprite: indexes.BardKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "guard", sprite: indexes.Guard_KeyIndex, want: map_units.PendingNPCInteractionGuardArrest},
-		{name: "guard frame1", sprite: indexes.Guard_KeyIndex + 1, want: map_units.PendingNPCInteractionGuardArrest},
-		{name: "guard frame2", sprite: indexes.Guard_KeyIndex + 2, want: map_units.PendingNPCInteractionGuardArrest},
-		{name: "guard frame3", sprite: indexes.Guard_KeyIndex + 3, want: map_units.PendingNPCInteractionGuardArrest},
-		{name: "shadowlord frame0", sprite: indexes.ShadowLord_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "shadowlord frame1", sprite: indexes.ShadowLord_KeyIndex + 1, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "shadowlord frame2", sprite: indexes.ShadowLord_KeyIndex + 2, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "shadowlord frame3", sprite: indexes.ShadowLord_KeyIndex + 3, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "guard", sprite: indexes.GuardKeyIndex, want: map_units.PendingNPCInteractionGuardArrest},
+		{name: "guard frame1", sprite: indexes.GuardKeyIndex + 1, want: map_units.PendingNPCInteractionGuardArrest},
+		{name: "guard frame2", sprite: indexes.GuardKeyIndex + 2, want: map_units.PendingNPCInteractionGuardArrest},
+		{name: "guard frame3", sprite: indexes.GuardKeyIndex + 3, want: map_units.PendingNPCInteractionGuardArrest},
+		{name: "shadowlord frame0", sprite: indexes.ShadowLordKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "shadowlord frame1", sprite: indexes.ShadowLordKeyIndex + 1, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "shadowlord frame2", sprite: indexes.ShadowLordKeyIndex + 2, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "shadowlord frame3", sprite: indexes.ShadowLordKeyIndex + 3, want: map_units.PendingNPCInteractionHostileCombat},
 		{name: "noncombat shape", sprite: indexes.ItemAnkh, want: map_units.PendingNPCInteractionTalk},
 	} {
 		for _, action := range []references.AiType{references.ExtortOrAttackOrFollow, references.DrudgeWorthThing} {
@@ -87,7 +87,7 @@ func TestSaveSnapshotPendingInteractionNonAttackOverride(t *testing.T) {
 	for _, action := range []references.AiType{references.Fixed, references.Talk3} {
 		t.Run(fmt.Sprintf("action%d", action), func(t *testing.T) {
 			reference := references.NPCReference{Schedule: references.NPCSchedule{Ai: [3]byte{byte(references.DrudgeWorthThing)}}}
-			reference.SetKeyIndex(indexes.Daemon_KeyIndex)
+			reference.SetKeyIndex(indexes.DaemonKeyIndex)
 			generated := map_units.MapUnits{map_units.NewNPCFriendly(reference, 1)}
 			state := &GameState{}
 			restored, err := state.hydrateUnits([]save_snapshot.MapUnitSnapshot{{
@@ -118,7 +118,7 @@ func TestSaveSnapshotRoundTripPendingAuthoredRatInteraction(t *testing.T) {
 		}
 	}
 	require.NotNil(t, source)
-	require.Equal(t, indexes.Rat_KeyIndex, source.NPCReference.GetSpriteIndex())
+	require.Equal(t, indexes.RatKeyIndex, source.NPCReference.GetSpriteIndex())
 	require.Equal(t, references.Unset, source.MapUnitDetails().GetOverriddenAiType())
 	require.Contains(t, []references.AiType{references.ExtortOrAttackOrFollow, references.DrudgeWorthThing}, source.GetIndividualBehaviourByUltimaData(state.DateTime).Ai)
 	source.MapUnitDetails().PendingInteraction = map_units.PendingNPCInteractionHostileCombat

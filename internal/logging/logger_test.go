@@ -108,10 +108,10 @@ func TestGlobalLoggerFunctions(t *testing.T) {
 	}
 
 	// Test logging functions don't panic (basic smoke test)
-	Debug(CategoryMoongate, "Test debug message")
-	Info(CategoryMoongate, "Test info message")
-	Warn(CategoryMoongate, "Test warn message")
-	Error(CategoryMoongate, "Test error message")
+	Debugf(CategoryMoongate, "Test debug message")
+	Infof(CategoryMoongate, "Test info message")
+	Warnf(CategoryMoongate, "Test warn message")
+	Errorf(CategoryMoongate, "Test error message")
 }
 
 func TestWarningsAreRecordedWhileLoggingIsOff(t *testing.T) {
@@ -119,8 +119,8 @@ func TestWarningsAreRecordedWhileLoggingIsOff(t *testing.T) {
 	var diagnostics strings.Builder
 	logger.SetDiagnosticsWriter(&diagnostics)
 
-	logger.Debug(CategorySystem, "hidden")
-	logger.Warn(CategorySystem, "audio failed: %d", 7)
+	logger.Debugf(CategorySystem, "hidden")
+	logger.Warnf(CategorySystem, "audio failed: %d", 7)
 
 	written := diagnostics.String()
 	if !strings.Contains(written, "WARN [SYSTEM] audio failed: 7") || strings.Contains(written, "hidden") {

@@ -38,7 +38,7 @@ func (g *GameScene) moveToNewPositionByDirection(direction references.Direction)
 		g.gameState.PartyVehicle.SetDirection(direction)
 	}
 	if before != after {
-		logging.Debug(logging.CategoryMovement,
+		logging.Debugf(logging.CategoryMovement,
 			"Avatar moved: location=%s floor=%d direction=%s from=(%d,%d) to=(%d,%d) vehicle=%s",
 			g.gameState.MapState.PlayerLocation.Location,
 			g.gameState.MapState.PlayerLocation.Floor,
@@ -165,7 +165,7 @@ func (g *GameScene) handleMovementWithBlockedFeedback(
 		}).
 			Start()
 
-		logging.Debug(logging.CategoryMovement,
+		logging.Debugf(logging.CategoryMovement,
 			"Small-map boundary exit requested: location=%s position=(%d,%d) target=(%d,%d)",
 			g.gameState.MapState.PlayerLocation.Location,
 			g.gameState.MapState.PlayerLocation.Position.X,

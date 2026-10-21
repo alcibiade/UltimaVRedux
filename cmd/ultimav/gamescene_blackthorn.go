@@ -91,8 +91,8 @@ func (g *GameScene) startBlackthornInterrogationWorkflowWithReview(
 			}
 			g.miniMapScene.
 				AddActor("blackthorn", references.Position{X: 5, Y: 5}, indexes.Blackthorn1).
-				AddActor("guard-left", references.Position{X: 1, Y: 5}, indexes.Guard_KeyIndex).
-				AddActor("guard-right", references.Position{X: 9, Y: 9}, indexes.Guard_KeyIndex).
+				AddActor("guard-left", references.Position{X: 1, Y: 5}, indexes.GuardKeyIndex).
+				AddActor("guard-right", references.Position{X: 9, Y: 9}, indexes.GuardKeyIndex).
 				AddActor("hourglass", references.Position{X: 5, Y: 9}, indexes.Hourglass1)
 			dialog.AppendLine(game_state.BlackthornDraggedMessage)
 			dialog.AppendLine(game_state.BlackthornChainedMessage)

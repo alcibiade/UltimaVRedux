@@ -37,13 +37,13 @@ func ValidateInstallation(ctx context.Context, directory string) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("cancelling installation validation: %w", err)
 	}
-	dataPath := files.Resolve(directory, files.DATA_OVL)
+	dataPath := files.Resolve(directory, files.DataOvl)
 	info, err := os.Stat(dataPath)
 	if err != nil {
-		return fmt.Errorf("required %s is unavailable: %w", files.DATA_OVL, err)
+		return fmt.Errorf("required %s is unavailable: %w", files.DataOvl, err)
 	}
 	if info.Size() != originalDataOvlSize {
-		return fmt.Errorf("%w: %s has size %d, expected %d", errDataOvlSize, files.DATA_OVL, info.Size(), originalDataOvlSize)
+		return fmt.Errorf("%w: %s has size %d, expected %d", errDataOvlSize, files.DataOvl, info.Size(), originalDataOvlSize)
 	}
 	if err := validateRequiredCatalogue(ctx, directory); err != nil {
 		return err
@@ -74,22 +74,22 @@ func validateRequiredCatalogue(ctx context.Context, directory string) error {
 		name string
 		size int
 	}{
-		{name: files.INIT_GAM, size: originalInitGamSize},
-		{name: files.INIT_OOL, size: originalInitObjectsSize},
-		{name: files.BRIT_DAT, size: 52_480},
-		{name: files.UNDER_DAT, size: 65_536},
-		{name: files.CASTLE_DAT, size: 16_384},
-		{name: files.TOWNE_DAT, size: 16_384},
-		{name: files.DWELLING_DAT, size: 16_384},
-		{name: files.KEEP_DAT, size: 16_384},
-		{name: files.DUNGEON_DAT, size: 4_096},
-		{name: files.CASTLE_NPC, size: 4_608},
-		{name: files.TOWNE_NPC, size: 4_608},
-		{name: files.DWELLING_NPC, size: 4_608},
-		{name: files.KEEP_NPC, size: 4_608},
-		{name: files.BRIT_CBT, size: 5_632},
-		{name: files.DUNGEON_CBT, size: 39_424},
-		{name: files.MISCMAPS_DAT, size: 1_871},
+		{name: files.InitGam, size: originalInitGamSize},
+		{name: files.InitOol, size: originalInitObjectsSize},
+		{name: files.BritDat, size: 52_480},
+		{name: files.UnderDat, size: 65_536},
+		{name: files.CastleDat, size: 16_384},
+		{name: files.TowneDat, size: 16_384},
+		{name: files.DwellingDat, size: 16_384},
+		{name: files.KeepDat, size: 16_384},
+		{name: files.DungeonDat, size: 4_096},
+		{name: files.CastleNpc, size: 4_608},
+		{name: files.TowneNpc, size: 4_608},
+		{name: files.DwellingNpc, size: 4_608},
+		{name: files.KeepNpc, size: 4_608},
+		{name: files.BritCbt, size: 5_632},
+		{name: files.DungeonCbt, size: 39_424},
+		{name: files.MiscmapsDat, size: 1_871},
 		{name: "QUESTION.DAT", size: 7_746},
 		{name: "STORY.DAT", size: 11_679},
 	}
@@ -99,8 +99,8 @@ func validateRequiredCatalogue(ctx context.Context, directory string) error {
 		}
 	}
 	boundedFiles := []string{
-		files.CASTLE_TLK, files.TOWNE_TLK, files.DWELLING_TLK, files.KEEP_TLK,
-		files.LOOK2_DAT, files.SIGNS_DAT, files.SHOPPE_DAT, files.KarmaDAT,
+		files.CastleTlk, files.TowneTlk, files.DwellingTlk, files.KeepTlk,
+		files.Look2Dat, files.SignsDat, files.ShoppeDat, files.KarmaDAT,
 		"END.DAT", "ENDMSG.DAT",
 	}
 	for _, name := range boundedFiles {

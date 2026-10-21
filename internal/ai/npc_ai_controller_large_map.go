@@ -655,7 +655,7 @@ func (m *NPCAIControllerLargeMap) rotatePirateShip(mapUnit map_units.MapUnit, ne
 	newTile := m.tileRefs.GetTile(newSprite)
 	enemy.SetFacing(newDirection, newTile)
 
-	logging.Debug(logging.CategoryAI, "Pirate ship at %v rotated to face %s",
+	logging.Debugf(logging.CategoryAI, "Pirate ship at %v rotated to face %s",
 		enemy.Pos(), newDirection.GetDirectionCompassName())
 }
 
@@ -752,7 +752,7 @@ func (m *NPCAIControllerLargeMap) movePirateShipInDirection(
 
 	terrain := m.mapState.GetLayeredMapByCurrentLocation().GetTileTopMapOnlyTile(&wrappedPos)
 	if !pirateShipCanMoveToTile(terrain) || !m.canEnemyMoveTo(mapUnit, wrappedPos) {
-		logging.Debug(logging.CategoryAI, "Pirate ship at %v blocked moving %s (tile not passable)",
+		logging.Debugf(logging.CategoryAI, "Pirate ship at %v blocked moving %s (tile not passable)",
 			currentPos, direction.GetDirectionCompassName())
 
 		return false
@@ -760,7 +760,7 @@ func (m *NPCAIControllerLargeMap) movePirateShipInDirection(
 
 	m.rotatePirateShip(mapUnit, direction)
 	mapUnit.SetPos(wrappedPos)
-	logging.Debug(logging.CategoryAI, "Pirate ship moved from %v to %v (direction: %s)",
+	logging.Debugf(logging.CategoryAI, "Pirate ship moved from %v to %v (direction: %s)",
 		currentPos, wrappedPos, direction.GetDirectionCompassName())
 
 	return true
@@ -793,7 +793,7 @@ func (m *NPCAIControllerLargeMap) handleWhirlpoolMovement(mapUnit map_units.MapU
 
 	// Use the toggled state to determine if whirlpool should move (50% chance per turn)
 	if details.SkipNextTurn {
-		logging.Debug(logging.CategoryAI, "Whirlpool at %v skipping turn (XOR toggle=skip)", pos)
+		logging.Debugf(logging.CategoryAI, "Whirlpool at %v skipping turn (XOR toggle=skip)", pos)
 
 		return true // Whirlpool doesn't move this turn
 	}
@@ -801,17 +801,17 @@ func (m *NPCAIControllerLargeMap) handleWhirlpoolMovement(mapUnit map_units.MapU
 	oldPos := pos
 	// When whirlpool moves, 50% chance for random movement, 50% for seek behavior
 	if m.oneInXOdds(coinFlipOdds) {
-		logging.Debug(logging.CategoryAI, "Whirlpool at %v attempting random movement", oldPos)
+		logging.Debugf(logging.CategoryAI, "Whirlpool at %v attempting random movement", oldPos)
 		// Attempt bounded random cardinal movement.
 		m.moveRandomDirection(mapUnit)
 	} else {
-		logging.Debug(logging.CategoryAI, "Whirlpool at %v attempting seek movement", oldPos)
+		logging.Debugf(logging.CategoryAI, "Whirlpool at %v attempting seek movement", oldPos)
 		// Seek toward player
 		m.setBestNextPositionToMoveTowardsWalkablePoint(mapUnit)
 	}
 
 	newPos := enemy.Pos()
-	logging.Debug(logging.CategoryAI, "Whirlpool moved from %v to %v (moved=%v)", oldPos, newPos, oldPos != newPos)
+	logging.Debugf(logging.CategoryAI, "Whirlpool moved from %v to %v (moved=%v)", oldPos, newPos, oldPos != newPos)
 
 	return true // Handled whirlpool movement
 }

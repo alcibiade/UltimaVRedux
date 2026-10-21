@@ -300,7 +300,7 @@ func (n *NPCAIControllerSmallMap) calculateNextEnemyPosition(enemy *map_units.NP
 
 	// Original action 6 engages below Manhattan distance four; ref:NPC-0003.
 	if distance >= shadowlordPursuitRange {
-		logging.Debug(logging.CategoryAI,
+		logging.Debugf(logging.CategoryAI,
 			"Shadowlord at (%d, %d) not pursuing - player too far (distance %d >= %d)",
 			enemyPos.X, enemyPos.Y, distance, shadowlordPursuitRange)
 
@@ -309,7 +309,7 @@ func (n *NPCAIControllerSmallMap) calculateNextEnemyPosition(enemy *map_units.NP
 
 	// Check if Shadowlord is adjacent to Avatar
 	if enemyPos.IsNextTo(avatarPos, enemy.Floor(), n.mapState.PlayerLocation.Floor) {
-		logging.Debug(logging.CategoryAI,
+		logging.Debugf(logging.CategoryAI,
 			"Shadowlord adjacent to player at (%d, %d) - awaiting encounter handoff",
 			enemyPos.X, enemyPos.Y)
 

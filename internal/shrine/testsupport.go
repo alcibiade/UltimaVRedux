@@ -26,7 +26,7 @@ func NewShrineScene(shrineIndex int, originalPlayerLocation references.PlayerLoc
 		ShrineMap:              NewShrineMap(),
 	}
 
-	logging.Debug(logging.CategoryGameState, "Created shrine scene for shrine %d", shrineIndex)
+	logging.Debugf(logging.CategoryGameState, "Created shrine scene for shrine %d", shrineIndex)
 
 	return scene
 }

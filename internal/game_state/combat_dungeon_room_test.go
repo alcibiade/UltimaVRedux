@@ -44,7 +44,7 @@ func TestResolvePendingDungeonRoomEncounterPopulatesOriginalSlots(t *testing.T) 
 	data[references.MonsterXCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset+1] = 6
 	data[references.MonsterYCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset+1] = 7
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	useDungeonCombatTestDataPath(state, dataPath)
 	var cells references.DungeonCells
 	cells.SetCell(0, references.Position{X: 1, Y: 1}, references.DungeonCell(0xf0))
@@ -81,7 +81,7 @@ func TestResolvePendingDungeonRoomEncounterHydratesSeededFieldsInSlotOrder(t *te
 		data[references.MonsterYCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset+slot] = byte(positions[slot].Y)
 	}
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	useDungeonCombatTestDataPath(state, dataPath)
 	var cells references.DungeonCells
 	require.True(t, cells.SetCell(0, references.Position{X: 1, Y: 1}, references.DungeonCell(0xf0)))
@@ -269,7 +269,7 @@ func TestFixedDungeonRoomCollectedLootPersistsThroughDefeatAndRespawns(t *testin
 		data[rowOffset+references.PlayerYCoordOffset] = 5
 	}
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	useDungeonCombatTestDataPath(state, dataPath)
 	var cells references.DungeonCells
 	require.True(t, cells.SetCell(0, references.Position{X: 1, Y: 1}, references.DungeonCell(0xf0)))
@@ -302,7 +302,7 @@ func TestSeededDungeonRoomFieldExpiresAndReloadsFromPristineRecord(t *testing.T)
 	data[references.MonsterXCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset] = 4
 	data[references.MonsterYCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset] = 5
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	useDungeonCombatTestDataPath(state, dataPath)
 	var cells references.DungeonCells
 	require.True(t, cells.SetCell(0, references.Position{X: 1, Y: 1}, references.DungeonCell(0xf0)))
@@ -347,7 +347,7 @@ func TestImmortalDungeonRoomFieldAndLootReloadOnFreshVisit(t *testing.T) {
 	data[recordOffset+references.MonsterXCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset+1] = 0
 	data[recordOffset+references.MonsterYCoordRow*references.CombatMapBytesPerRow+references.MonsterCoordOffset+1] = 1
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	useDungeonCombatTestDataPath(state, dataPath)
 	position := references.Position{X: 2, Y: 3}
 	floor := references.FloorNumber(4)
@@ -403,7 +403,7 @@ func TestResolveClearedDungeonRoomStartsVictoriousEmptyTraversal(t *testing.T) {
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, 8*references.CombatMapDataSize),
 		0o600,
 	))
@@ -428,7 +428,7 @@ func TestPitLandingRoomRegeneratesWandererOnlyAfterCombatReturns(t *testing.T) {
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, 8*references.CombatMapDataSize),
 		0o600,
 	))
@@ -470,7 +470,7 @@ func TestDungeonRoomChainDefersEndPlayerEffectsUntilFinalExit(t *testing.T) {
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, references.MaxDungeonRooms*references.CombatMapDataSize),
 		0o600,
 	))
@@ -532,7 +532,7 @@ func TestPitRoomReturnDoesNotChainAdjacentRoom(t *testing.T) {
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, references.MaxDungeonRooms*references.CombatMapDataSize),
 		0o600,
 	))
@@ -565,7 +565,7 @@ func TestDungeonRoomDefeatWithDeadPartyStopsChainAndFinishesEndPlayer(t *testing
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, references.MaxDungeonRooms*references.CombatMapDataSize),
 		0o600,
 	))
@@ -604,7 +604,7 @@ func TestDungeonRoomPopulationFailureConsumesNoRNGAndRemainsPending(t *testing.T
 	data := make([]byte, references.CombatMapDataSize)
 	data[references.DungeonEntityRow*references.CombatMapBytesPerRow+references.DungeonEntityOffset] = 0x90
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	useDungeonCombatTestDataPath(state, dataPath)
 	var cells references.DungeonCells
 	require.True(t, cells.SetCell(0, references.Position{X: 1, Y: 1}, references.DungeonCell(0xf0)))
@@ -631,7 +631,7 @@ func TestFreshStartupRoomDefersWandererGenerationUntilReturn(t *testing.T) {
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, references.MaxDungeonRooms*references.CombatMapDataSize),
 		0o600,
 	))
@@ -662,7 +662,7 @@ func TestResumedStartupRoomPreservesSavedWandererAndDoesNotChain(t *testing.T) {
 		Build()
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		make([]byte, references.MaxDungeonRooms*references.CombatMapDataSize),
 		0o600,
 	))

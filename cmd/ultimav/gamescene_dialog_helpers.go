@@ -317,17 +317,17 @@ func (g *GameScene) thenShowInputBoxConfigured(
 		var inputDialog *widgets.InputBox
 
 		return q.Then(func() {
-			logging.Debug(logging.CategoryUI, "thenShowInputBox: Creating InputBox with prompt=%q", prompt)
+			logging.Debugf(logging.CategoryUI, "thenShowInputBox: Creating InputBox with prompt=%q", prompt)
 			// Create InputBox with result callback that sets flags
 			builder := widgets.NewInputBox(prompt, nil, g.keyboard).
 				WithRegexValidation(validation).
 				WithResultCallback(func(text string, wasSubmitted bool) {
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: resultCallback invoked, text=%q, submitted=%v, inputComplete was %v",
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: resultCallback invoked, text=%q, submitted=%v, inputComplete was %v",
 						text, wasSubmitted, inputComplete)
 					inputComplete = true
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: inputComplete set to true, calling onResult")
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: inputComplete set to true, calling onResult")
 					onResult(text, wasSubmitted)
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: onResult completed")
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: onResult completed")
 				}).
 				WithAutoReplace(false).
 				WithTextLines(2).
@@ -343,12 +343,12 @@ func (g *GameScene) thenShowInputBoxConfigured(
 			}
 
 			g.dialogStack.PushModalDialog(inputDialog)
-			logging.Debug(logging.CategoryUI, "thenShowInputBox: InputBox pushed to dialog stack")
+			logging.Debugf(logging.CategoryUI, "thenShowInputBox: InputBox pushed to dialog stack")
 		}).
 			While(
 				func() bool {
 					result := !inputComplete
-					logging.Debug(logging.CategoryUI, "thenShowInputBox: While condition check, inputComplete=%v, continuing=%v",
+					logging.Debugf(logging.CategoryUI, "thenShowInputBox: While condition check, inputComplete=%v, continuing=%v",
 						inputComplete, result)
 
 					return result
@@ -357,7 +357,7 @@ func (g *GameScene) thenShowInputBoxConfigured(
 				DialogPollingRateMs,
 			).
 			Then(func() {
-				logging.Debug(logging.CategoryUI, "thenShowInputBox: While loop exited, removing dialog")
+				logging.Debugf(logging.CategoryUI, "thenShowInputBox: While loop exited, removing dialog")
 				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
 				// where other dialogs might be pushed on top before we pop
@@ -366,7 +366,7 @@ func (g *GameScene) thenShowInputBoxConfigured(
 					*instance[0] = nil
 				}
 				g.keyboard.SetForceWaitAnyKey(KeyboardDebounceMs)
-				logging.Debug(logging.CategoryUI, "thenShowInputBox: Dialog removed, keyboard debounce set")
+				logging.Debugf(logging.CategoryUI, "thenShowInputBox: Dialog removed, keyboard debounce set")
 			}).
 			Wait(KeyboardDebounceMs)
 	}
@@ -1064,7 +1064,7 @@ func (g *GameScene) thenShowNewOrderDialog(
 
 					err := g.gameState.SwapPartyMembers(first, second)
 					if err != nil {
-						logging.Warn(logging.CategoryUI, "SwapMembers failed: %v", err)
+						logging.Warnf(logging.CategoryUI, "SwapMembers failed: %v", err)
 						swapExecuted = false
 
 						return

@@ -21,14 +21,14 @@ func TestStepType_Constants(t *testing.T) {
 func TestMiniMapScriptValidateRejectsMalformedSteps(t *testing.T) {
 	tests := []struct {
 		name   string
-		script *MiniMapScript
+		script *Script
 	}{
 		{name: "nil", script: nil},
-		{name: "walk", script: &MiniMapScript{Steps: []ScriptStep{{Type: StepWalk}}}},
-		{name: "wait", script: &MiniMapScript{Steps: []ScriptStep{{Type: StepWait, Duration: -1}}}},
-		{name: "actor", script: &MiniMapScript{Steps: []ScriptStep{{Type: StepFace}}}},
-		{name: "frame", script: &MiniMapScript{Steps: []ScriptStep{{Type: StepSetFrame}}}},
-		{name: "unknown", script: &MiniMapScript{Steps: []ScriptStep{{Type: StepType(99)}}}},
+		{name: "walk", script: &Script{Steps: []ScriptStep{{Type: StepWalk}}}},
+		{name: "wait", script: &Script{Steps: []ScriptStep{{Type: StepWait, Duration: -1}}}},
+		{name: "actor", script: &Script{Steps: []ScriptStep{{Type: StepFace}}}},
+		{name: "frame", script: &Script{Steps: []ScriptStep{{Type: StepSetFrame}}}},
+		{name: "unknown", script: &Script{Steps: []ScriptStep{{Type: StepType(99)}}}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -75,7 +75,7 @@ func TestScriptStep_FaceStep(t *testing.T) {
 
 func TestMiniMapScript_HasSteps(t *testing.T) {
 	target := references.Position{X: 5, Y: 5}
-	script := &MiniMapScript{
+	script := &Script{
 		Name: "test",
 		Steps: []ScriptStep{
 			{Type: StepWalk, ActorIDs: []ActorID{ActorAvatar}, Target: &target},
@@ -88,7 +88,7 @@ func TestMiniMapScript_HasSteps(t *testing.T) {
 
 func TestMiniMapScript_MultipleSteps(t *testing.T) {
 	target := references.Position{X: 5, Y: 5}
-	script := &MiniMapScript{
+	script := &Script{
 		Name: "multi_step",
 		Steps: []ScriptStep{
 			{Type: StepWalk, ActorIDs: []ActorID{ActorAvatar}, Target: &target, DelayMs: 300},

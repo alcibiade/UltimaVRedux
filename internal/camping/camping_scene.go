@@ -75,7 +75,7 @@ func NewCampingSceneWithCombatRef(
 	// Create the camping map with combat map reference for authentic positions
 	scene.CampingMap = NewCampingMapWithCombatRef(guardIndex, OutdoorCamping, combatMapRef)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Created camping scene with authentic BRIT.CBT positions for %d hours with guard %d", hours, guardIndex)
 
 	return scene
@@ -113,7 +113,7 @@ func (cs *CampingScene) StartCamping() {
 	cs.CurrentCycle = 0
 	cs.TimeElapsed = 0
 
-	logging.Debug(logging.CategoryGameState, "Starting camping scene for %d cycles", cs.TotalCycles)
+	logging.Debugf(logging.CategoryGameState, "Starting camping scene for %d cycles", cs.TotalCycles)
 }
 
 // AdvanceExactCycle advances and processes the final configured cycle.
@@ -134,14 +134,14 @@ func (cs *CampingScene) AdvanceExactCycle() bool {
 func (cs *CampingScene) CompleteCamping() {
 	cs.IsActive = false
 	cs.EndSleeping()
-	logging.Debug(logging.CategoryGameState, "Camping scene completed after %d cycles", cs.CurrentCycle)
+	logging.Debugf(logging.CategoryGameState, "Camping scene completed after %d cycles", cs.CurrentCycle)
 }
 
 // InterruptCamping stops camping early (due to encounters or death)
 func (cs *CampingScene) InterruptCamping() {
 	cs.IsActive = false
 	cs.EndSleeping()
-	logging.Debug(logging.CategoryGameState, "Camping scene interrupted at cycle %d/%d", cs.CurrentCycle, cs.TotalCycles)
+	logging.Debugf(logging.CategoryGameState, "Camping scene interrupted at cycle %d/%d", cs.CurrentCycle, cs.TotalCycles)
 }
 
 // BeginSleeping opens the transient pacing window after setup and Bard music.
@@ -185,13 +185,13 @@ func (cs *CampingScene) GetOriginalPlayerLocation() references.PlayerLocation {
 // SetWandererPresent sets whether the wanderer should be visible
 func (cs *CampingScene) SetWandererPresent(present bool) {
 	cs.WandererPresent = present
-	logging.Debug(logging.CategoryGameState, "Wanderer presence set to: %t", present)
+	logging.Debugf(logging.CategoryGameState, "Wanderer presence set to: %t", present)
 }
 
 // SetWandererDissolveLevel sets the wanderer's dissolve level for animation
 func (cs *CampingScene) SetWandererDissolveLevel(level float64) {
 	cs.WandererDissolveLevel = level
-	logging.Debug(logging.CategoryGameState, "Wanderer dissolve level set to: %.2f", level)
+	logging.Debugf(logging.CategoryGameState, "Wanderer dissolve level set to: %.2f", level)
 }
 
 // GetWandererPosition returns the wanderer's position on the camping map
@@ -211,7 +211,7 @@ func (cs *CampingScene) UpdateGuardPosition(newPosition references.Position) {
 	// This tells the visual system where to draw the guard sprite
 	if cs.CampingMap != nil {
 		cs.CampingMap.GuardPosition = newPosition
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Updated guard position to (%d,%d) in camping scene",
 			newPosition.X, newPosition.Y)
 	}

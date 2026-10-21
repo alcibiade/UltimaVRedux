@@ -59,7 +59,7 @@ func (d *ConfigurationDialog) previewSoundEffectVolume() {
 	if err := d.audioManager.PlaySoundEffect(effect); err != nil {
 		// Fallback to push object sound
 		if err := d.audioManager.PlaySoundEffect(game_state.SoundPushObject); err != nil {
-			logging.Warn(logging.CategoryAudio, "Playing sound settings preview: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Playing sound settings preview: %v", err)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func (d *ConfigurationDialog) adjustAmbientPreviewVolume() {
 	// Update the AudioManager's ambient volume configuration
 	ambientVolume := audio.ConvertSliderToVolume(d.stagedAudio.AmbientVolume)
 	if err := d.audioManager.SetAmbientVolume(ambientVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to set ambient volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to set ambient volume: %v", err)
 	}
 
 	// The ambient preview player volume needs to be updated directly
@@ -102,11 +102,11 @@ func (d *ConfigurationDialog) adjustAmbientPreviewVolume() {
 	if d.previewAmbientPlaying {
 		// Stop current preview
 		if err := d.audioManager.StopAmbientSoundPreview(); err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to stop ambient preview: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to stop ambient preview: %v", err)
 		}
 		// Start new preview with updated volume
 		if err := d.audioManager.PlayAmbientSoundPreview(); err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to restart ambient preview: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to restart ambient preview: %v", err)
 			d.previewAmbientPlaying = false
 		}
 	} else {
@@ -123,12 +123,12 @@ func (d *ConfigurationDialog) stopPreviewAudio() {
 
 	// Stop background music preview
 	if err := d.audioManager.StopBackgroundMusic(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop preview music: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop preview music: %v", err)
 	}
 
 	// Stop ambient sound preview
 	if err := d.audioManager.StopAmbientSoundPreview(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop ambient preview: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop ambient preview: %v", err)
 	}
 
 	// Reset preview flags
@@ -188,7 +188,7 @@ func (d *ConfigurationDialog) stopMusicPreviewOnFocusChange(oldFocus, newFocus i
 		return
 	}
 	if err := d.audioManager.StopBackgroundMusic(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop preview music: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop preview music: %v", err)
 	}
 	d.previewMusicPlaying = false
 }
@@ -198,7 +198,7 @@ func (d *ConfigurationDialog) stopAmbientPreviewOnFocusChange(oldFocus, newFocus
 		return
 	}
 	if err := d.audioManager.StopAmbientSoundPreview(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop ambient preview: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop ambient preview: %v", err)
 	}
 	d.previewAmbientPlaying = false
 }

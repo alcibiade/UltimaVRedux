@@ -51,7 +51,7 @@ func (m *CombatMonsterManager) RemoveMonster(index int) *CombatMonster {
 	removed := m.monsters[index]
 	m.monsters = append(m.monsters[:index], m.monsters[index+1:]...)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Removed combat monster: type=%s index=%d",
 		removed.MonsterType().Name(), index)
 
@@ -146,7 +146,7 @@ func (g *GameState) transitionToCombatMapReference(
 	g.initializeCombatPartyRings(combatState)
 	g.commitCombatTransition(combatState, territory)
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Transitioned to combat map: %s (index=%d, territory=%d, entry=%d)",
 		combatMap.MapName, combatMap.MapIndex, territory, entryDir)
 }

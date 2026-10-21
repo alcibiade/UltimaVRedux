@@ -91,9 +91,9 @@ const (
 func GetCombatMapFile(territory CombatMapTerritory) string {
 	switch territory {
 	case BritanniaCombatTerritory:
-		return files.BRIT_CBT
+		return files.BritCbt
 	case DungeonCombatTerritory:
-		return files.DUNGEON_CBT
+		return files.DungeonCbt
 	default:
 		panic("unhandled combat map territory")
 	}

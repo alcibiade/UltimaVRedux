@@ -102,7 +102,7 @@ func (g *GameState) ForceSpawnWhirlpoolAtRandomLocationWithPosition() (reference
 // spawnWhirlpoolAt creates a whirlpool enemy at the specified position
 func (g *GameState) spawnWhirlpoolAt(pos references.Position) bool {
 	// Create whirlpool enemy reference
-	whirlpoolTile := g.GameReferences.TileReferences.GetTile(indexes.Whirlpool_KeyIndex)
+	whirlpoolTile := g.GameReferences.TileReferences.GetTile(indexes.WhirlpoolKeyIndex)
 	whirlpoolEnemy := references.EnemyReference{
 		MonsterType:  references.MonsterWhirlpool,
 		Name:         references.MonsterWhirlpool.Name(),

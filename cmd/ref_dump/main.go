@@ -156,11 +156,11 @@ func main() {
 
 	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "", "Directory to dump the files into (required)")
 	if err := rootCmd.MarkFlagRequired("output"); err != nil {
-		logging.Error(logging.CategorySystem, "Error marking flag as required: %v", err)
+		logging.Errorf(logging.CategorySystem, "Error marking flag as required: %v", err)
 	}
 
 	if err := rootCmd.Execute(); err != nil {
-		logging.Error(logging.CategorySystem, "Command execution failed: %v", err)
+		logging.Errorf(logging.CategorySystem, "Command execution failed: %v", err)
 		os.Exit(1)
 	}
 }

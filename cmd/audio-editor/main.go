@@ -24,7 +24,7 @@ func main() {
 	logging.SetCategoryEnabled(logging.CategoryAudio, true)
 	logging.SetStdoutEnabled(true)
 	if err := run(os.Args[1:]); err != nil {
-		logging.Error(logging.CategoryAudio, "Audio editor: %v", err)
+		logging.Errorf(logging.CategoryAudio, "Audio editor: %v", err)
 		os.Exit(1)
 	}
 }
@@ -63,7 +63,7 @@ func run(arguments []string) error {
 		if err := document.Validate(); err != nil {
 			return fmt.Errorf("validate editor library: %w", err)
 		}
-		logging.Info(logging.CategoryAudio, "Valid library: %d recordings, %d cues",
+		logging.Infof(logging.CategoryAudio, "Valid library: %d recordings, %d cues",
 			len(document.RecordingIDs()), len(document.CueIDs()))
 
 		return nil
@@ -99,7 +99,7 @@ func probeRecording(editor *authoring.LibraryEditor, recordingID string) error {
 	voice := audition.NewVoice()
 	defer func() {
 		if err := voice.Close(); err != nil {
-			logging.Warn(logging.CategoryAudio, "Close probe recording: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Close probe recording: %v", err)
 		}
 	}()
 	const probeGain = 0.2
@@ -111,7 +111,7 @@ func probeRecording(editor *authoring.LibraryEditor, recordingID string) error {
 	if voice.PositionMs() <= 0 {
 		return fmt.Errorf("%w: audio device did not advance playback", audio.ErrAudioLibrary)
 	}
-	logging.Info(logging.CategoryAudio, "Standalone playback advanced to %d ms (%s)", voice.PositionMs(), recordingID)
+	logging.Infof(logging.CategoryAudio, "Standalone playback advanced to %d ms (%s)", voice.PositionMs(), recordingID)
 
 	return nil
 }

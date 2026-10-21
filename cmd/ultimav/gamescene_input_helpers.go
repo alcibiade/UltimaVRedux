@@ -95,7 +95,7 @@ func (g *GameScene) processNPCAutoTalk() bool {
 			continue
 		}
 
-		logging.Debug(logging.CategoryConversation,
+		logging.Debugf(logging.CategoryConversation,
 			"Pending interaction %d triggered for NPC %d (DialogNumber: %d) at position (%d,%d)",
 			pendingInteraction,
 			npc.MapUnitDetails().NPCNum, npc.NPCReference.DialogNumber,
@@ -115,7 +115,7 @@ func (g *GameScene) processNPCAutoTalk() bool {
 				npc,
 				game_state.SmallMapEncounterHostileNPCAdjacency,
 			); err != nil {
-				logging.Error(logging.CategoryGameState, "Unable to queue hostile small-map NPC combat: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to queue hostile small-map NPC combat: %v", err)
 				g.gameState.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 			}
 		default:

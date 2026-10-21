@@ -18,7 +18,7 @@ func TestPortcullisTerrainBoundariesAndOverrides(t *testing.T) {
 		arch, gate := references.Position{X: 2, Y: 2}, references.Position{X: 2, Y: 3}
 		layer.SetTileByLayer(MapLayer, &arch, indexes.BrickWallArchway)
 		layer.SetTileByLayer(MapLayer, &gate, base)
-		layer.SetTileByLayer(MapUnitLayer, &gate, indexes.TownsPerson_KeyIndex)
+		layer.SetTileByLayer(MapUnitLayer, &gate, indexes.TownsPersonKeyIndex)
 		for _, hour := range []byte{4, 5, 19, 20, 23, 0, 5, 20, 5} {
 			want := indexes.SpriteIndex(indexes.Portcullis)
 			if hour >= 5 && hour < 20 {
@@ -29,7 +29,7 @@ func TestPortcullisTerrainBoundariesAndOverrides(t *testing.T) {
 				assert.Equal(t, indexes.SpriteIndex(indexes.BrickWallArchway), layer.GetSmallMapTerrainTile(&arch, hour).Index)
 			}
 			assert.Equal(t, base, layer.SpriteIndexByLayer(MapLayer, gate), "queries never mutate/save gate state")
-			assert.Equal(t, indexes.SpriteIndex(indexes.TownsPerson_KeyIndex), layer.SpriteIndexByLayer(MapUnitLayer, gate), "no crushing or displacement")
+			assert.Equal(t, indexes.SpriteIndex(indexes.TownsPersonKeyIndex), layer.SpriteIndexByLayer(MapUnitLayer, gate), "no crushing or displacement")
 		}
 		for _, override := range []indexes.SpriteIndex{indexes.BrickFloor, indexes.Portcullis, indexes.MagicLockDoor, indexes.Chest} {
 			layer.SetTileByLayer(MapOverrideLayer, &gate, override)
@@ -68,7 +68,7 @@ func TestPortcullisTerrainIgnoresStandaloneMalformedAndEdgePairs(t *testing.T) {
 }
 
 func TestPortcullisOriginalGateLayouts(t *testing.T) {
-	directory := originaldata.Directory(t, files.DATA_OVL, files.CASTLE_DAT, files.TOWNE_DAT, files.KEEP_DAT, files.DWELLING_DAT)
+	directory := originaldata.Directory(t, files.DataOvl, files.CastleDat, files.TowneDat, files.KeepDat, files.DwellingDat)
 	configuration, err := config.LoadUltimaVConfiguration("", directory)
 	require.NoError(t, err)
 	data, err := references.NewDataOvl(configuration)

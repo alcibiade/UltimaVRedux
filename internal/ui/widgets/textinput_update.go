@@ -92,7 +92,7 @@ func (t *TextInput) Update() {
 		if len(*matches) > 1 {
 			// Defense-in-depth: registration-time ValidateNoAmbiguousCommands
 			// should prevent this. If we get here, something is wrong.
-			logging.Error(logging.CategorySystem,
+			logging.Errorf(logging.CategorySystem,
 				"Ambiguous debug command: %d perfect matches for %q (should never happen — check ValidateNoAmbiguousCommands)",
 				len(*matches), command)
 		} else if len(*matches) == 1 {

@@ -180,7 +180,7 @@ func (g *GameActionCallbacks) CallGuards() {
 	state := g.gameScene.gameState
 	state.SetCriminalStatus(true)
 	if _, err := state.ActivateGuards(); err != nil {
-		logging.Warn(logging.CategoryGameState, "Unable to activate guards: %v", err)
+		logging.Warnf(logging.CategoryGameState, "Unable to activate guards: %v", err)
 	}
 }
 
@@ -237,7 +237,7 @@ func (g *GameActionCallbacks) GoToJail() {
 func (g *GameActionCallbacks) GiveItem(itemID int) {
 	name, quantity, grant, known := g.conversationGift(itemID)
 	if !known {
-		logging.Warn(logging.CategoryConversation, "GiveItem: Unknown itemID %d", itemID)
+		logging.Warnf(logging.CategoryConversation, "GiveItem: Unknown itemID %d", itemID)
 		g.dialogOutput.AddTextWithColor(fmt.Sprintf("Received: Item #%d", itemID), ucolor.EGAYellow)
 
 		return
@@ -249,7 +249,7 @@ func (g *GameActionCallbacks) GiveItem(itemID int) {
 
 		return
 	}
-	logging.Info(logging.CategoryConversation, "GiveItem: %s (itemID %d)", name, itemID)
+	logging.Infof(logging.CategoryConversation, "GiveItem: %s (itemID %d)", name, itemID)
 	g.dialogOutput.AddTextWithColor("Received: "+name, ucolor.EGAYellow)
 }
 
@@ -471,12 +471,12 @@ func (g *GameActionCallbacks) DeductGoldSimple(amount int, npcName string) error
 			g.dialogOutput.AddTextWithColor("Generous donation! Karma improved!", ucolor.EGAYellow)
 		}
 
-		logging.Info(logging.CategoryConversation,
+		logging.Infof(logging.CategoryConversation,
 			"DeductGoldSimple: Beggar karma bonus applied - gave %d gp, remaining=%d, karma+%d",
 			amount, remainingGold, karmaBonus)
 	}
 
-	logging.Info(logging.CategoryConversation, "DeductGoldSimple: Gave %d gp to %s, remaining=%d",
+	logging.Infof(logging.CategoryConversation, "DeductGoldSimple: Gave %d gp to %s, remaining=%d",
 		amount, npcName, g.gameScene.gameState.PartyState.Inventory.Gold.Get())
 
 	return nil
@@ -498,7 +498,7 @@ func (g *GameActionCallbacks) TimedPause() {
 	// Callback for logging/tracking pause events
 	// Note: The engine writes the pause marker directly to its output buffer
 	// so it's interspersed correctly with conversation text
-	logging.Debug(logging.CategoryConversation, "TimedPause: callback invoked (marker written by engine)")
+	logging.Debugf(logging.CategoryConversation, "TimedPause: callback invoked (marker written by engine)")
 }
 
 // === Game State Query Callbacks ===

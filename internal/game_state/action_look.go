@@ -61,9 +61,9 @@ func (g *GameState) ActionLookSmallMap(direction references.Direction) bool {
 	}
 
 	// Check for sign tile - show sign dialog with runic text
-	logging.Debug(logging.CategoryUI, "Look: topTile.Index=%d, IsSign=%v", lookTileIndex, lookTileIndex.IsSign())
+	logging.Debugf(logging.CategoryUI, "Look: topTile.Index=%d, IsSign=%v", lookTileIndex, lookTileIndex.IsSign())
 	if !hasMapUnit && !redirectedSignPiece && lookTileIndex.IsSign() {
-		logging.Debug(logging.CategoryUI, "Look: Detected sign, calling handleLookAtSign")
+		logging.Debugf(logging.CategoryUI, "Look: Detected sign, calling handleLookAtSign")
 
 		return g.handleLookAtSign(newPosition, topTile)
 	}
@@ -120,7 +120,7 @@ func (g *GameState) resolveLookSignPiece(position *references.Position, tileInde
 	currentMap := g.GetLayeredMapByCurrentLocation()
 	for tileIndex >= indexes.LargeSignBottom && tileIndex <= indexes.LargeSignRight {
 		if _, exists := visited[currentPosition]; exists {
-			logging.Warn(logging.CategoryGameState, "Look: directional sign cycle at (%d,%d)", currentPosition.X, currentPosition.Y)
+			logging.Warnf(logging.CategoryGameState, "Look: directional sign cycle at (%d,%d)", currentPosition.X, currentPosition.Y)
 
 			return tileIndex, true
 		}
@@ -151,13 +151,13 @@ func (g *GameState) resolveLookSignPiece(position *references.Position, tileInde
 
 // handleLookAtSign handles looking at a sign tile - shows sign dialog with runic text.
 func (g *GameState) handleLookAtSign(position *references.Position, tile *references.Tile) bool {
-	logging.Debug(logging.CategoryUI, "handleLookAtSign: position=(%d,%d), tile.Index=%d", position.X, position.Y, tile.Index)
+	logging.Debugf(logging.CategoryUI, "handleLookAtSign: position=(%d,%d), tile.Index=%d", position.X, position.Y, tile.Index)
 
 	// The Yew wanted poster is generated from the active party before SIGNS.DAT lookup.
 	sign := g.wantedPosterSign(position)
 	switch {
 	case sign != nil:
-		logging.Debug(logging.CategoryUI, "handleLookAtSign: Generated Yew wanted poster")
+		logging.Debugf(logging.CategoryUI, "handleLookAtSign: Generated Yew wanted poster")
 	case g.GameReferences.SignReferences != nil:
 		sign = g.GameReferences.SignReferences.GetSignAt(
 			g.MapState.PlayerLocation.Location,
@@ -166,16 +166,16 @@ func (g *GameState) handleLookAtSign(position *references.Position, tile *refere
 			int(position.Y),
 		)
 		if sign != nil {
-			logging.Debug(logging.CategoryUI, "handleLookAtSign: Found sign record with %d bytes of text", len(sign.RawText))
+			logging.Debugf(logging.CategoryUI, "handleLookAtSign: Found sign record with %d bytes of text", len(sign.RawText))
 		} else {
-			logging.Debug(logging.CategoryUI, "handleLookAtSign: No sign record found, will use default text")
+			logging.Debugf(logging.CategoryUI, "handleLookAtSign: No sign record found, will use default text")
 		}
 	default:
-		logging.Debug(logging.CategoryUI, "handleLookAtSign: SignReferences is nil")
+		logging.Debugf(logging.CategoryUI, "handleLookAtSign: SignReferences is nil")
 	}
 
 	// Show sign dialog (nil sign will display default message)
-	logging.Debug(logging.CategoryUI, "handleLookAtSign: Calling ShowSignDialog callback")
+	logging.Debugf(logging.CategoryUI, "handleLookAtSign: Calling ShowSignDialog callback")
 	g.SystemCallbacks.UI.ShowSignDialog(sign)
 
 	// Also output normal look description
@@ -304,7 +304,7 @@ func (g *GameState) ActionLookLargeMap(direction references.Direction) bool {
 	}
 
 	// Check for sign tile - show sign dialog with runic text
-	logging.Debug(logging.CategoryUI, "LargeMap Look: topTile.Index=%d, IsSign=%v", lookTileIndex, lookTileIndex.IsSign())
+	logging.Debugf(logging.CategoryUI, "LargeMap Look: topTile.Index=%d, IsSign=%v", lookTileIndex, lookTileIndex.IsSign())
 	if !hasMapUnit && !redirectedSignPiece && lookTileIndex.IsSign() {
 		return g.handleLookAtSign(&terrainPosition, topTile)
 	}
@@ -325,7 +325,7 @@ func (g *GameState) ActionLookLargeMap(direction references.Direction) bool {
 		}
 	}
 	fullMessage := "Thou dost see " + lookDescription
-	logging.Debug(logging.CategoryUI, "LargeMap Look: NOT a sign, showing feedback: %s", fullMessage)
+	logging.Debugf(logging.CategoryUI, "LargeMap Look: NOT a sign, showing feedback: %s", fullMessage)
 
 	// Special cases for interactive tiles - append time to message
 	//nolint:exhaustive // Only clock tiles add contextual text.

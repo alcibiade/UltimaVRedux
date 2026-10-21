@@ -85,7 +85,7 @@ func TestEnemyInstanceOwnsDurabilityFacingVariantAndShadowlordIdentity(t *testin
 
 	shadowlord := NewEnemyNPC(references.EnemyReference{
 		MonsterType:  references.MonsterShadowlord,
-		KeyFrameTile: &references.Tile{Index: indexes.ShadowLord_KeyIndex}, //nolint:exhaustruct
+		KeyFrameTile: &references.Tile{Index: indexes.ShadowLordKeyIndex}, //nolint:exhaustruct
 	}, 2) //nolint:exhaustruct
 	shadowlord.SetShadowlordIdentity(references.Nosfentor)
 	lord, ok := shadowlord.ShadowlordIdentity()

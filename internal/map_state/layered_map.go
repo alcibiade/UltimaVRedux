@@ -561,7 +561,7 @@ func (l *LayeredMap) FindLighthousePositions() []references.Position {
 			spriteIndex := l.getSpriteIndexByLayer(MapLayer, &pos)
 
 			if spriteIndex == indexes.LighthouseLight {
-				logging.Debug(logging.CategoryLighthouse,
+				logging.Debugf(logging.CategoryLighthouse,
 					"FindLighthousePositions: Found beacon at (%d, %d), tile index %d",
 					x, y, spriteIndex)
 				positions = append(positions, pos)
@@ -572,7 +572,7 @@ func (l *LayeredMap) FindLighthousePositions() []references.Position {
 		}
 	}
 
-	logging.Debug(logging.CategoryLighthouse,
+	logging.Debugf(logging.CategoryLighthouse,
 		"FindLighthousePositions: Scanned %dx%d map, found %d lighthouse(s)",
 		l.XMaxTilesPerMap, l.YMaxTilesPerMap, len(positions))
 

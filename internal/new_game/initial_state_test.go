@@ -99,11 +99,11 @@ func TestPrepareInitialSnapshotPreservesTemplateAndAppliesResult(t *testing.T) {
 		t.Fatalf("initial continuation = %#v, want no active player and ready beggar counter", snapshot.Continuation)
 	}
 
-	gotGAM, err := os.ReadFile(filepath.Join(directory, files.INIT_GAM))
+	gotGAM, err := os.ReadFile(filepath.Join(directory, files.InitGam))
 	if err != nil {
 		t.Fatal(err)
 	}
-	gotObjects, err := os.ReadFile(filepath.Join(directory, files.INIT_OOL))
+	gotObjects, err := os.ReadFile(filepath.Join(directory, files.InitOol))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,10 +239,10 @@ func TestPrepareInitialSnapshotRejectsTemplateFailures(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			directory := t.TempDir()
 			if test.writeGAM {
-				writeTestFile(t, filepath.Join(directory, files.INIT_GAM), test.gam)
+				writeTestFile(t, filepath.Join(directory, files.InitGam), test.gam)
 			}
 			if test.writeOOL {
-				writeTestFile(t, filepath.Join(directory, files.INIT_OOL), test.ool)
+				writeTestFile(t, filepath.Join(directory, files.InitOol), test.ool)
 			}
 
 			got, err := PrepareInitialSnapshot(directory, result)
@@ -323,8 +323,8 @@ func testCreationResult(gender party_state.CharacterGender) character_creation.R
 
 func writeInitialTemplates(t *testing.T, directory string, gam, ool []byte) {
 	t.Helper()
-	writeTestFile(t, filepath.Join(directory, files.INIT_GAM), gam)
-	writeTestFile(t, filepath.Join(directory, files.INIT_OOL), ool)
+	writeTestFile(t, filepath.Join(directory, files.InitGam), gam)
+	writeTestFile(t, filepath.Join(directory, files.InitOol), ool)
 }
 
 func writeTestFile(t *testing.T, path string, data []byte) {

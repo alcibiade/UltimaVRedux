@@ -106,7 +106,7 @@ func TestOpenDoorSnapshotZeroUnoccupiedAfterNPCActorPhase(t *testing.T) {
 		require.False(t, state.MapState.SmallMapProcessTurnDoors(state.isSmallMapDoorOccupied))
 	}
 	reference := references.NPCReference{Schedule: references.CreateNPCScheduledFixedOneLocation(door, 0)}
-	reference.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	reference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, 1)
 	npc.PlaceAtScheduleSlot(0)
 	npc.NPCReference.Schedule.X[1], npc.NPCReference.Schedule.Y[1] = byte(outside.X), byte(outside.Y)

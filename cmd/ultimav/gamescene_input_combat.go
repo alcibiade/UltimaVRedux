@@ -376,7 +376,7 @@ func (g *GameScene) handleCombatHUDInput(key ebiten.Key) bool {
 		g.gameConfig.DebugConfiguration.CombatDetailShown = g.combatHUD.detail
 		g.gameConfig.DebugConfiguration.CombatDetailSet = true
 		if err := g.gameConfig.SaveDebugConfiguration(); err != nil {
-			logging.Warn(logging.CategoryUI, "Unable to save combat detail setting: %v", err)
+			logging.Warnf(logging.CategoryUI, "Unable to save combat detail setting: %v", err)
 		}
 	case ebiten.KeyF3:
 		g.combatHUD.reviewNextResult()

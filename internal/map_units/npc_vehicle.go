@@ -92,7 +92,7 @@ func (v *VehicleDetails) SetPartyVehicleDirection(direction references.Direction
 	case references.FrigateVehicle, references.SkiffVehicle, references.NoPartyVehicle:
 	default:
 		// Unsupported vehicle type for direction setting - log and continue
-		logging.Warn(
+		logging.Warnf(
 			logging.CategoryGameState,
 			"SetPartyVehicleDirection called with unsupported vehicle type: %v",
 			v.VehicleType,
@@ -234,7 +234,7 @@ func (v *VehicleDetails) IsSailFurled() bool {
 // Logs state changes to help track unexpected sail state resets
 func (v *VehicleDetails) SetSailState(state SailState) {
 	if v.SailState != state {
-		logging.Debug(logging.CategoryGameState, "SAIL STATE CHANGE: %v -> %v", v.SailState, state)
+		logging.Debugf(logging.CategoryGameState, "SAIL STATE CHANGE: %v -> %v", v.SailState, state)
 	}
 	v.SailState = state
 }

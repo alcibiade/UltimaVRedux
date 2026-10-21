@@ -9,8 +9,6 @@ type SpriteIndex int
 
 // Sprite identities indexing the shared sprite atlas, each named for the
 // original Ultima V tile it shows.
-//
-//goland:noinspection GoSnakeCaseUsage,GoUnusedConst
 const (
 	NoSprites                       SpriteIndex = -1
 	Explosion                                   = 0
@@ -547,39 +545,37 @@ const (
 
 // Animation key indices mark the first frame of each animation sequence; the
 // following frames are the next StandardNumberOfAnimationFrames sprites.
-//
-//goland:noinspection GoSnakeCaseUsage,GoUnusedConst
 const (
-	MageKeyIndex           SpriteIndex = 320 // Same as Wizard1
-	WizardKeyIndex         SpriteIndex = 320 // Same as Wizard1
-	BardKeyIndex           SpriteIndex = 324 // Bard1
-	FighterKeyIndex        SpriteIndex = 328 // Fighter1
-	AvatarKeyIndex         SpriteIndex = 332 // Avatar1
-	TownsPerson_KeyIndex   SpriteIndex = 336 // TownsPerson1
-	MerchantKeyIndex       SpriteIndex = 340 // Merchant1
-	BardPlaying_KeyIndex   SpriteIndex = 348 // BardPlaying1
-	Beggar_KeyIndex        SpriteIndex = 365 // Begger2 (note: CSV has typo)
-	Guard_KeyIndex         SpriteIndex = 368 // Guard1
-	Rat_KeyIndex           SpriteIndex = 400 // Rat1
-	Bat_KeyIndex           SpriteIndex = 404 // Bat1
-	Spider_KeyIndex        SpriteIndex = 408 // Spider1
-	Ghost_KeyIndex         SpriteIndex = 412 // Ghost1
-	Slime_KeyIndex         SpriteIndex = 416 // Slime1
-	Reaper_KeyIndex        SpriteIndex = 420 // Gremlin1
-	Gazer_KeyIndex         SpriteIndex = 424 // Mimic1
-	Orc_KeyIndex           SpriteIndex = 432 // Gazer1
-	Skeleton_KeyIndex      SpriteIndex = 452 // Skeleton1
-	StoneGargoyle_KeyIndex SpriteIndex = 440 // StoneGargoyle1
-	Snake_KeyIndex         SpriteIndex = 456 // Snake1
-	Dragon_KeyIndex        SpriteIndex = 476 // Dragon1
-	Daemon_KeyIndex        SpriteIndex = 472 // Daemon1
-	Troll_KeyIndex         SpriteIndex = 484 // Troll1
-	Whirlpool_KeyIndex     SpriteIndex = 492 // Whirpool1
-	Sandtrap_KeyIndex      SpriteIndex = 480 // SandTrap1
-	ShadowLord_KeyIndex    SpriteIndex = 508 // ShadowLord1
-	Waterfall_KeyIndex     SpriteIndex = 212 // Waterfall1
-	Fountain_KeyIndex      SpriteIndex = 216 // Fountain1
-	Manacles_Prisoner      SpriteIndex = 356 // WallPrisoner1
+	MageKeyIndex          SpriteIndex = 320 // Same as Wizard1
+	WizardKeyIndex        SpriteIndex = 320 // Same as Wizard1
+	BardKeyIndex          SpriteIndex = 324 // Bard1
+	FighterKeyIndex       SpriteIndex = 328 // Fighter1
+	AvatarKeyIndex        SpriteIndex = 332 // Avatar1
+	TownsPersonKeyIndex   SpriteIndex = 336 // TownsPerson1
+	MerchantKeyIndex      SpriteIndex = 340 // Merchant1
+	BardPlayingKeyIndex   SpriteIndex = 348 // BardPlaying1
+	BeggarKeyIndex        SpriteIndex = 365 // Begger2 (note: CSV has typo)
+	GuardKeyIndex         SpriteIndex = 368 // Guard1
+	RatKeyIndex           SpriteIndex = 400 // Rat1
+	BatKeyIndex           SpriteIndex = 404 // Bat1
+	SpiderKeyIndex        SpriteIndex = 408 // Spider1
+	GhostKeyIndex         SpriteIndex = 412 // Ghost1
+	SlimeKeyIndex         SpriteIndex = 416 // Slime1
+	ReaperKeyIndex        SpriteIndex = 420 // Gremlin1
+	GazerKeyIndex         SpriteIndex = 424 // Mimic1
+	OrcKeyIndex           SpriteIndex = 432 // Gazer1
+	SkeletonKeyIndex      SpriteIndex = 452 // Skeleton1
+	StoneGargoyleKeyIndex SpriteIndex = 440 // StoneGargoyle1
+	SnakeKeyIndex         SpriteIndex = 456 // Snake1
+	DragonKeyIndex        SpriteIndex = 476 // Dragon1
+	DaemonKeyIndex        SpriteIndex = 472 // Daemon1
+	TrollKeyIndex         SpriteIndex = 484 // Troll1
+	WhirlpoolKeyIndex     SpriteIndex = 492 // Whirpool1
+	SandtrapKeyIndex      SpriteIndex = 480 // SandTrap1
+	ShadowLordKeyIndex    SpriteIndex = 508 // ShadowLord1
+	WaterfallKeyIndex     SpriteIndex = 212 // Waterfall1
+	FountainKeyIndex      SpriteIndex = 216 // Fountain1
+	ManaclesPrisoner      SpriteIndex = 356 // WallPrisoner1
 )
 
 // IsDoor reports whether s is any door tile: plain, windowed or magic-locked.
@@ -651,12 +647,7 @@ func (s SpriteIndex) IsBeggar() bool {
 
 // IsSign reports whether this terrain selects sign inspection; ref:SIGN-0003.
 func (s SpriteIndex) IsSign() bool {
-	switch s {
-	case SimpleCross, StoneHeadstone, Sign, SmallSign, SignWarning:
-		return true
-	}
-
-	return false
+	return s == SimpleCross || s == StoneHeadstone || s == Sign || s == SmallSign || s == SignWarning
 }
 
 // IsBardPlaying returns true if the sprite is part of the BANJO_PLAYER animation sequence.

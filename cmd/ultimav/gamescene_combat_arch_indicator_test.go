@@ -151,7 +151,7 @@ func TestCombatActiveArchFrameVariantsAndSettledTimeStopClock(t *testing.T) {
 				index = indexes.DeadBody
 			case "rat":
 				require.True(t, state.TransformActivePartyMemberIntoRat(actor.EntityIndex))
-				index = indexes.Rat_KeyIndex
+				index = indexes.RatKeyIndex
 			case "shimmer":
 				combat.PartyInvisible[actor.EntityIndex] = true
 				index = indexes.InvisiblePlayer
@@ -267,7 +267,7 @@ func TestCombatActiveArchCloneConditionsAndHiddenIntervalsAreEntryLocal(t *testi
 				combat.PartySleeping[source.EntityIndex] = true
 			case "rat":
 				require.True(t, state.TransformActivePartyMemberIntoRat(source.EntityIndex))
-				index = indexes.Rat_KeyIndex
+				index = indexes.RatKeyIndex
 			case "shimmer":
 				combat.PartyInvisible[source.EntityIndex] = true
 				index = indexes.InvisiblePlayer

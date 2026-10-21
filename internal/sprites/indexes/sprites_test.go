@@ -19,12 +19,12 @@ func TestSpriteIndex_IsBeggar(t *testing.T) {
 
 		// Boundary tests - sprites just outside beggar range
 		{"Sprite 363 is not beggar", SpriteIndex(363), false},
-		{"Sprite 368 (Guard) is not beggar", Guard_KeyIndex, false},
+		{"Sprite 368 (Guard) is not beggar", GuardKeyIndex, false},
 
 		// Other NPC types should return false
 		{"Avatar is not beggar", AvatarKeyIndex, false},
-		{"TownsPerson is not beggar", TownsPerson_KeyIndex, false},
-		{"Guard is not beggar", Guard_KeyIndex, false},
+		{"TownsPerson is not beggar", TownsPersonKeyIndex, false},
+		{"Guard is not beggar", GuardKeyIndex, false},
 		{"Wizard is not beggar", WizardKeyIndex, false},
 		{"Bard is not beggar", BardKeyIndex, false},
 		{"Fighter is not beggar", FighterKeyIndex, false},
@@ -46,17 +46,17 @@ func TestSpriteIndex_IsBeggar(t *testing.T) {
 	}
 }
 
-// TestSpriteIndex_IsBeggar_BeggarKeyIndex verifies that Beggar_KeyIndex is correctly defined.
-// Note: The CSV has a typo "Begger" but Beggar_KeyIndex points to Begger2 (365).
+// TestSpriteIndex_IsBeggar_BeggarKeyIndex verifies that BeggarKeyIndex is correctly defined.
+// Note: The CSV has a typo "Begger" but BeggarKeyIndex points to Begger2 (365).
 func TestSpriteIndex_IsBeggar_BeggarKeyIndex(t *testing.T) {
-	// Beggar_KeyIndex should be a valid beggar sprite
-	if !Beggar_KeyIndex.IsBeggar() {
-		t.Errorf("Beggar_KeyIndex (%d) should be detected as beggar", Beggar_KeyIndex)
+	// BeggarKeyIndex should be a valid beggar sprite
+	if !BeggarKeyIndex.IsBeggar() {
+		t.Errorf("BeggarKeyIndex (%d) should be detected as beggar", BeggarKeyIndex)
 	}
 
 	// Verify it's the expected value (365 = Begger2)
-	if Beggar_KeyIndex != Begger2 {
-		t.Errorf("Beggar_KeyIndex = %d, expected %d (Begger2)", Beggar_KeyIndex, Begger2)
+	if BeggarKeyIndex != Begger2 {
+		t.Errorf("BeggarKeyIndex = %d, expected %d (Begger2)", BeggarKeyIndex, Begger2)
 	}
 }
 
@@ -93,10 +93,10 @@ func TestSpriteIndex_IsBardPlaying(t *testing.T) {
 
 		// Other NPC types should return false
 		{"Avatar is not bard playing", AvatarKeyIndex, false},
-		{"TownsPerson is not bard playing", TownsPerson_KeyIndex, false},
-		{"Guard is not bard playing", Guard_KeyIndex, false},
+		{"TownsPerson is not bard playing", TownsPersonKeyIndex, false},
+		{"Guard is not bard playing", GuardKeyIndex, false},
 		{"Wizard is not bard playing", WizardKeyIndex, false},
-		{"Beggar is not bard playing", Beggar_KeyIndex, false},
+		{"Beggar is not bard playing", BeggarKeyIndex, false},
 
 		// Non-NPC sprites should return false
 		{"Grass is not bard playing", Grass, false},
@@ -114,16 +114,16 @@ func TestSpriteIndex_IsBardPlaying(t *testing.T) {
 	}
 }
 
-// TestSpriteIndex_IsBardPlaying_KeyIndex verifies that BardPlaying_KeyIndex is correctly defined.
+// TestSpriteIndex_IsBardPlaying_KeyIndex verifies that BardPlayingKeyIndex is correctly defined.
 func TestSpriteIndex_IsBardPlaying_KeyIndex(t *testing.T) {
-	// BardPlaying_KeyIndex should be a valid bard playing sprite
-	if !BardPlaying_KeyIndex.IsBardPlaying() {
-		t.Errorf("BardPlaying_KeyIndex (%d) should be detected as bard playing", BardPlaying_KeyIndex)
+	// BardPlayingKeyIndex should be a valid bard playing sprite
+	if !BardPlayingKeyIndex.IsBardPlaying() {
+		t.Errorf("BardPlayingKeyIndex (%d) should be detected as bard playing", BardPlayingKeyIndex)
 	}
 
 	// Verify it's the expected value (348 = BardPlaying1)
-	if BardPlaying_KeyIndex != BardPlaying1 {
-		t.Errorf("BardPlaying_KeyIndex = %d, expected %d (BardPlaying1)", BardPlaying_KeyIndex, BardPlaying1)
+	if BardPlayingKeyIndex != BardPlaying1 {
+		t.Errorf("BardPlayingKeyIndex = %d, expected %d (BardPlaying1)", BardPlayingKeyIndex, BardPlaying1)
 	}
 }
 
@@ -137,10 +137,10 @@ func TestSpriteIndex_MerchantKeyIndex(t *testing.T) {
 	// Verify frame offset calculation works as expected for BANJO_PLAYER sprite switching
 	// BardPlaying1 -> Merchant1, BardPlaying2 -> Merchant2, etc.
 	for i := SpriteIndex(0); i < StandardNumberOfAnimationFrames; i++ {
-		bardPlayingSprite := BardPlaying_KeyIndex + i
+		bardPlayingSprite := BardPlayingKeyIndex + i
 		expectedMerchant := MerchantKeyIndex + i
 
-		frameOffset := bardPlayingSprite - BardPlaying_KeyIndex
+		frameOffset := bardPlayingSprite - BardPlayingKeyIndex
 		actualMerchant := MerchantKeyIndex + frameOffset
 
 		if actualMerchant != expectedMerchant {
@@ -153,11 +153,11 @@ func TestSpriteIndex_MerchantKeyIndex(t *testing.T) {
 // TestSpriteIndex_IsPartOfAnimationStopsBeforeTheNextSequence keeps the sprite
 // after a four-frame sequence (Guard → Apparition) out of the sequence.
 func TestSpriteIndex_IsPartOfAnimationStopsBeforeTheNextSequence(t *testing.T) {
-	last := Guard_KeyIndex + StandardNumberOfAnimationFrames - 1
-	if !last.IsPartOfAnimation(Guard_KeyIndex) {
+	last := GuardKeyIndex + StandardNumberOfAnimationFrames - 1
+	if !last.IsPartOfAnimation(GuardKeyIndex) {
 		t.Errorf("sprite %d should be the last guard frame", last)
 	}
-	if next := last + 1; next.IsPartOfAnimation(Guard_KeyIndex) {
+	if next := last + 1; next.IsPartOfAnimation(GuardKeyIndex) {
 		t.Errorf("sprite %d starts the next sequence, not a guard frame", next)
 	}
 }

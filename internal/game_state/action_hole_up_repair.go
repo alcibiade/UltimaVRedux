@@ -95,7 +95,7 @@ func (g *GameState) startShipRepairWorkflow(state *shipRepairState, firstSequenc
 	pausedForCombat := false
 
 	start := func() {
-		logging.Debug(logging.CategoryGameState, "Ship repair: Starting repair sequence, hull=%d",
+		logging.Debugf(logging.CategoryGameState, "Ship repair: Starting repair sequence, hull=%d",
 			g.PartyVehicle.GetVehicleDetails().GetHullHP())
 		if firstSequence {
 			g.SystemCallbacks.Message.AddRowStr("Repairing...")
@@ -132,7 +132,7 @@ func (g *GameState) startShipRepairWorkflow(state *shipRepairState, firstSequenc
 					state.completedCycles++
 					g.SystemCallbacks.Message.AddRowStr("*hammering*")
 
-					logging.Debug(logging.CategoryGameState, "Ship repair: Cycle %d/%d complete",
+					logging.Debugf(logging.CategoryGameState, "Ship repair: Cycle %d/%d complete",
 						state.completedCycles, ShipRepairCycles)
 				})
 		})
@@ -152,7 +152,7 @@ func (g *GameState) startShipRepairWorkflow(state *shipRepairState, firstSequenc
 		}
 		g.finishShipRepair(state, true)
 	}).Finally(func() {
-		logging.Debug(logging.CategoryGameState, "Ship repair: Workflow completed")
+		logging.Debugf(logging.CategoryGameState, "Ship repair: Workflow completed")
 	}).
 		Start()
 }
@@ -244,7 +244,7 @@ func (g *GameState) applyShipRepair() {
 	// Report the resulting hull value after repair. ref:SHIP-0004
 	g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("Hull now %d!", hull))
 
-	logging.Debug(logging.CategoryGameState, "Ship repair: Hull repaired from %d to %d",
+	logging.Debugf(logging.CategoryGameState, "Ship repair: Hull repaired from %d to %d",
 		initialHull, hull)
 }
 

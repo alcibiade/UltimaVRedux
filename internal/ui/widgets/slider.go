@@ -93,24 +93,25 @@ const (
 func NewSlider(config SliderConfig) *Slider {
 	// Error handling: validate required inputs
 	if config.Keyboard == nil {
-		logging.Warn(logging.CategoryUI, "NewSlider called with nil keyboard, slider may not respond to input")
+		logging.Warnf(logging.CategoryUI, "NewSlider called with nil keyboard, slider may not respond to input")
 	}
 
 	if config.Label == "" {
-		logging.Warn(logging.CategoryUI, "NewSlider called with empty label, using 'Slider'")
+		logging.Warnf(logging.CategoryUI, "NewSlider called with empty label, using 'Slider'")
 		config.Label = "Slider"
 	}
 
 	// Validate value range
 	if config.MinValue >= config.MaxValue {
-		logging.Warn(logging.CategoryUI, "NewSlider MinValue %d >= MaxValue %d, using 1-10 range", config.MinValue, config.MaxValue)
+		logging.Warnf(logging.CategoryUI, "NewSlider MinValue %d >= MaxValue %d, using 1-10 range",
+			config.MinValue, config.MaxValue)
 		config.MinValue = 1
 		config.MaxValue = 10
 	}
 
 	// Validate initial value
 	if config.InitialValue < config.MinValue || config.InitialValue > config.MaxValue {
-		logging.Warn(logging.CategoryUI, "NewSlider InitialValue %d out of range [%d, %d], clamping",
+		logging.Warnf(logging.CategoryUI, "NewSlider InitialValue %d out of range [%d, %d], clamping",
 			config.InitialValue, config.MinValue, config.MaxValue)
 		if config.InitialValue < config.MinValue {
 			config.InitialValue = config.MinValue
@@ -185,7 +186,7 @@ func (s *Slider) Update() {
 func (s *Slider) Draw(screen *ebiten.Image) {
 	// Error handling: validate screen parameter
 	if screen == nil {
-		logging.Warn(logging.CategoryUI, "Slider.Draw called with nil screen, skipping draw")
+		logging.Warnf(logging.CategoryUI, "Slider.Draw called with nil screen, skipping draw")
 
 		return
 	}

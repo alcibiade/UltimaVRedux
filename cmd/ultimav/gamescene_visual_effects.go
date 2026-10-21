@@ -38,14 +38,14 @@ func (g *GameScene) setScreenFlashColor(r, green, b float64) {
 	g.screenFlashG = green
 	g.screenFlashB = b
 
-	logging.Debug(logging.CategoryGameState, "Screen flash color set: RGB(%.2f,%.2f,%.2f)", r, green, b)
+	logging.Debugf(logging.CategoryGameState, "Screen flash color set: RGB(%.2f,%.2f,%.2f)", r, green, b)
 }
 
 func (g *GameScene) setScreenFlashIntensity(intensity float64) {
 	// Set flash intensity only - event queue controls fade via Animate()
 	g.screenFlashIntensity = intensity
 
-	logging.Debug(logging.CategoryGameState, "Screen flash intensity set: %.2f", intensity)
+	logging.Debugf(logging.CategoryGameState, "Screen flash intensity set: %.2f", intensity)
 }
 
 func (g *GameScene) setScreenShakeOffset(x, y float64) {
@@ -53,7 +53,7 @@ func (g *GameScene) setScreenShakeOffset(x, y float64) {
 	g.screenShakeOffsetX = x
 	g.screenShakeOffsetY = y
 
-	logging.Debug(logging.CategoryGameState, "Screen shake offset set: (%.2f, %.2f)", x, y)
+	logging.Debugf(logging.CategoryGameState, "Screen shake offset set: (%.2f, %.2f)", x, y)
 }
 
 func (g *GameScene) setScreenInvert(intensity float64, durationMs int) {
@@ -62,7 +62,7 @@ func (g *GameScene) setScreenInvert(intensity float64, durationMs int) {
 	g.screenInvertStartTime = g.getElapsedMs()
 	g.screenInvertDuration = int64(durationMs)
 
-	logging.Debug(logging.CategoryGameState, "Screen invert triggered: intensity=%.2f duration=%dms", intensity, durationMs)
+	logging.Debugf(logging.CategoryGameState, "Screen invert triggered: intensity=%.2f duration=%dms", intensity, durationMs)
 }
 
 // Utility methods and moongate system management are in gamescene.go and other specialized files

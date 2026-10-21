@@ -206,7 +206,7 @@ func (manager *GameAudioManager) Close() error {
 
 func (*GameAudioManager) report(err error) {
 	if err != nil {
-		logging.Warn(logging.CategoryAudio, "Game audio: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Game audio: %v", err)
 	}
 }
 

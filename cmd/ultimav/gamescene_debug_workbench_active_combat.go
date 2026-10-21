@@ -744,7 +744,7 @@ func newActiveCombatPartyResults(state *game_state.GameState) []activeCombatPart
 }
 
 func activeCombatPartyStatus(status party_state.CharacterStatus) string {
-	reference := party_state.CharacterStatuses.GetById(status)
+	reference := party_state.CharacterStatuses.GetByID(status)
 	if reference == nil {
 		return fmt.Sprintf("status_%d", status)
 	}

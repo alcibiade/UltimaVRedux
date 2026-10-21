@@ -95,7 +95,7 @@ func (g *GameState) processDungeonCampingCycle(
 	if g.DateTime.Hour != state.AmbushCheckHour {
 		if g.CheckForAmbushDuringHour(false) {
 			if err := g.QueueDungeonCampingAmbush(scene, plan, state, state.ActivePlayerIndex); err != nil {
-				logging.Error(logging.CategoryGameState, "Unable to prepare dungeon camping combat: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to prepare dungeon camping combat: %v", err)
 				g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 			} else {
 				state.AmbushedAt = scene.CurrentCycle

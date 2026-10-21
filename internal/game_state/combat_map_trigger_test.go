@@ -455,7 +455,7 @@ func TestFreshLiveAndClearedFixedRoomLoadsRestoreSourceTriggers(t *testing.T) {
 		},
 	})
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	var cells references.DungeonCells
 	position := references.Position{X: 1, Y: 1}
 	cells.SetCell(0, position, references.DungeonCell(0xf0))
@@ -517,7 +517,7 @@ func newSyntheticDungeonTriggerCombatState(
 
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.DUNGEON_CBT),
+		filepath.Join(dataPath, files.DungeonCbt),
 		syntheticDungeonTriggerData(triggers...),
 		0o600,
 	))

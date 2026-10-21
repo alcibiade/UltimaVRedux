@@ -8,9 +8,9 @@ import (
 // Default camera center for 11x11 mini-maps
 const defaultCameraCenter = 5
 
-// MiniMapScene represents a mini-map scene (shrine, codex, endgame, etc.)
+// Scene represents a mini-map scene (shrine, codex, endgame, etc.)
 // It holds the current state of all actors and the camera position.
-type MiniMapScene struct {
+type Scene struct {
 	actors        map[ActorID]*Actor
 	actorOrder    []ActorID
 	cameraCenter  references.Position
@@ -28,18 +28,18 @@ type MiniMapScene struct {
 }
 
 // GetCurrentFrame returns the scene-owned presentation frame selected by the script.
-func (s *MiniMapScene) GetCurrentFrame() FrameID {
+func (s *Scene) GetCurrentFrame() FrameID {
 	return s.currentFrame
 }
 
 // SetCurrentFrame selects scene-owned presentation content.
-func (s *MiniMapScene) SetCurrentFrame(frame FrameID) {
+func (s *Scene) SetCurrentFrame(frame FrameID) {
 	s.currentFrame = frame
 }
 
 // NewMiniMapScene creates a new mini-map scene with default camera at (5,5)
-func NewMiniMapScene() *MiniMapScene {
-	return &MiniMapScene{
+func NewMiniMapScene() *Scene {
+	return &Scene{
 		actors:     make(map[ActorID]*Actor),
 		actorOrder: make([]ActorID, 0),
 		cameraCenter: references.Position{
@@ -54,7 +54,7 @@ func NewMiniMapScene() *MiniMapScene {
 
 // AddActor adds an actor to the scene at the given position with the given sprite.
 // Returns the scene for method chaining.
-func (s *MiniMapScene) AddActor(id ActorID, pos references.Position, sprite indexes.SpriteIndex) *MiniMapScene {
+func (s *Scene) AddActor(id ActorID, pos references.Position, sprite indexes.SpriteIndex) *Scene {
 	if _, exists := s.actors[id]; !exists {
 		s.actorOrder = append(s.actorOrder, id)
 	}
@@ -64,13 +64,13 @@ func (s *MiniMapScene) AddActor(id ActorID, pos references.Position, sprite inde
 }
 
 // GetActor returns the actor with the given ID, or nil if not found
-func (s *MiniMapScene) GetActor(id ActorID) *Actor {
+func (s *Scene) GetActor(id ActorID) *Actor {
 	return s.actors[id]
 }
 
 // SetActorPosition updates the position of the actor with the given ID.
 // Does nothing if actor not found.
-func (s *MiniMapScene) SetActorPosition(id ActorID, pos references.Position) {
+func (s *Scene) SetActorPosition(id ActorID, pos references.Position) {
 	actor := s.actors[id]
 	if actor == nil {
 		return
@@ -81,7 +81,7 @@ func (s *MiniMapScene) SetActorPosition(id ActorID, pos references.Position) {
 
 // SetActorSprite updates the sprite of the actor with the given ID.
 // Does nothing if actor not found.
-func (s *MiniMapScene) SetActorSprite(id ActorID, sprite indexes.SpriteIndex) {
+func (s *Scene) SetActorSprite(id ActorID, sprite indexes.SpriteIndex) {
 	actor := s.actors[id]
 	if actor == nil {
 		return
@@ -92,7 +92,7 @@ func (s *MiniMapScene) SetActorSprite(id ActorID, sprite indexes.SpriteIndex) {
 
 // SetActorVisible updates the visibility of the actor with the given ID.
 // Does nothing if actor not found.
-func (s *MiniMapScene) SetActorVisible(id ActorID, visible bool) {
+func (s *Scene) SetActorVisible(id ActorID, visible bool) {
 	actor := s.actors[id]
 	if actor == nil {
 		return
@@ -103,7 +103,7 @@ func (s *MiniMapScene) SetActorVisible(id ActorID, visible bool) {
 
 // SetActorFacing updates the facing direction of the actor with the given ID.
 // Does nothing if actor not found.
-func (s *MiniMapScene) SetActorFacing(id ActorID, facing references.Direction) {
+func (s *Scene) SetActorFacing(id ActorID, facing references.Direction) {
 	actor := s.actors[id]
 	if actor == nil {
 		return
@@ -113,12 +113,12 @@ func (s *MiniMapScene) SetActorFacing(id ActorID, facing references.Direction) {
 }
 
 // GetCameraCenter returns the camera center position
-func (s *MiniMapScene) GetCameraCenter() references.Position {
+func (s *Scene) GetCameraCenter() references.Position {
 	return s.cameraCenter
 }
 
 // GetVisibleActors returns a slice of all visible actors in the scene
-func (s *MiniMapScene) GetVisibleActors() []*Actor {
+func (s *Scene) GetVisibleActors() []*Actor {
 	actors := make([]*Actor, 0, len(s.actorOrder))
 	for _, id := range s.actorOrder {
 		if actor := s.actors[id]; actor != nil && actor.Visible {

@@ -373,7 +373,7 @@ func newGuardTributeFixture(
 		Location:     location,
 		Schedule:     references.CreateNPCScheduledFixedOneLocation(guardPosition, floor),
 	}
-	guardReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	guardReference.SetKeyIndex(indexes.GuardKeyIndex)
 	guard := map_units.NewNPCFriendly(guardReference, 0)
 	guard.PlaceAtScheduleSlot(0)
 	state.CurrentNPCAIController.GetNpcs().ReplaceWith([]map_units.MapUnit{guard})

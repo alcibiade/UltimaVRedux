@@ -146,14 +146,14 @@ func (g *GameState) loadLegacyShadowlords(rawSaveData []byte) {
 			g.ShadowlordState.Alive[index] = false
 		case marker >= ShadowlordTownMinLocation && marker <= ShadowlordTownMaxLocation:
 			if _, duplicate := assignedTowns[marker]; duplicate {
-				logging.Warn(logging.CategoryGameState, "legacy Shadowlord %d duplicates town marker %d; treating as unassigned", index, marker)
+				logging.Warnf(logging.CategoryGameState, "legacy Shadowlord %d duplicates town marker %d; treating as unassigned", index, marker)
 
 				continue
 			}
 			assignedTowns[marker] = struct{}{}
 			g.ShadowlordState.TownAssignments[index] = references.Location(marker)
 		case marker != 0:
-			logging.Warn(logging.CategoryGameState, "legacy Shadowlord %d has unsupported town marker %d; treating as unassigned", index, marker)
+			logging.Warnf(logging.CategoryGameState, "legacy Shadowlord %d has unsupported town marker %d; treating as unassigned", index, marker)
 		}
 	}
 	lastCalled := rawSaveData[lastCalledOffset]
@@ -278,7 +278,7 @@ func (g *GameState) loadLegacyActivePlayer(rawSaveData []byte) {
 		legacyActivePlayer = -1
 	}
 	if !g.SetActivePlayer(legacyActivePlayer) {
-		logging.Warn(logging.CategoryGameState, "legacy active player %d is unavailable; clearing selection", legacyActivePlayer)
+		logging.Warnf(logging.CategoryGameState, "legacy active player %d is unavailable; clearing selection", legacyActivePlayer)
 		g.activePlayerIndex = -1
 	}
 }

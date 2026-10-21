@@ -12,8 +12,8 @@ type WalkingSoundPlayer interface {
 
 // ScriptExecutor animates a script on a scene, frame by frame
 type ScriptExecutor struct {
-	scene              *MiniMapScene
-	script             *MiniMapScript
+	scene              *Scene
+	script             *Script
 	currentStepIndex   int
 	elapsedMs          int // Time elapsed for current step
 	walkProgress       map[ActorID]*walkState
@@ -33,7 +33,7 @@ type walkState struct {
 }
 
 // NewScriptExecutor creates a new executor for the given scene and script
-func NewScriptExecutor(scene *MiniMapScene, script *MiniMapScript) *ScriptExecutor {
+func NewScriptExecutor(scene *Scene, script *Script) *ScriptExecutor {
 	return NewScriptExecutorWithSounds(scene, script, nil)
 }
 
@@ -41,8 +41,8 @@ func NewScriptExecutor(scene *MiniMapScene, script *MiniMapScript) *ScriptExecut
 // If walkingSoundPlayer is provided and a walk step has PlayWalkingSounds=true,
 // the player will be called on each step to play appropriate walking sounds.
 func NewScriptExecutorWithSounds(
-	scene *MiniMapScene,
-	script *MiniMapScript,
+	scene *Scene,
+	script *Script,
 	player WalkingSoundPlayer,
 ) *ScriptExecutor {
 	if scene == nil {

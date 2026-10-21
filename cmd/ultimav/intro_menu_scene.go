@@ -157,7 +157,7 @@ func createIntroMenuScene(gameConfig *config.UltimaVConfiguration, startAtMenu b
 	if !gameConfig.SoundDisabled {
 		intro.audioManager, err = audio.NewGameAudioManagerWithConfig(gameConfig.AudioConfiguration)
 		if err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to initialize audio system in intro: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to initialize audio system in intro: %v", err)
 			intro.audioManager = nil
 		}
 	}
@@ -237,7 +237,7 @@ func (m *IntroMenuScene) Activate() {
 	m.active = true
 	if m.audioManager != nil {
 		if err := m.audioManager.PlayMusicForContext("title"); err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to start title music: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to start title music: %v", err)
 		}
 	}
 }
@@ -248,7 +248,7 @@ func (m *IntroMenuScene) PrepareForSceneReplacement() {
 		return
 	}
 	if err := m.audioManager.StopBackgroundMusic(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to stop intro music: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to stop intro music: %v", err)
 	}
 }
 
@@ -263,7 +263,7 @@ func (m *IntroMenuScene) Dispose() {
 		return
 	}
 	if err := m.audioManager.Close(); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to close intro audio: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to close intro audio: %v", err)
 	}
 	m.audioManager = nil
 }
@@ -468,7 +468,7 @@ func (m *IntroMenuScene) startDataDirectorySetup(game *Game) {
 	host, err := originaldata.CurrentHostProfile()
 	if err != nil {
 		m.notice = "Data-directory setup could not inspect this computer."
-		logging.Warn(logging.CategoryUI, "Data-directory host setup failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Data-directory host setup failed: %v", err)
 
 		return
 	}
@@ -489,14 +489,14 @@ func (m *IntroMenuScene) startDataDirectorySetup(game *Game) {
 	)
 	if err := game.ReplaceScene(func() (Scene, error) { return setup, nil }); err != nil {
 		m.notice = "Data-directory setup could not be started."
-		logging.Warn(logging.CategoryUI, "Data-directory scene replacement failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Data-directory scene replacement failed: %v", err)
 	}
 }
 
 func (m *IntroMenuScene) startCharacterCreation(game *Game) {
 	if err := game.startCharacterCreation(); err != nil {
 		m.notice = "Character creation could not be started."
-		logging.Warn(logging.CategoryUI, "Character creation startup failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Character creation startup failed: %v", err)
 	}
 }
 
@@ -554,7 +554,7 @@ func (m *IntroMenuScene) startReturnToView() {
 		if err != nil {
 			m.showMenu()
 			m.notice = "Return to the View could not be loaded."
-			logging.Warn(logging.CategoryUI, "Return to the View loading failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Return to the View loading failed: %v", err)
 
 			return
 		}
@@ -564,7 +564,7 @@ func (m *IntroMenuScene) startReturnToView() {
 	if err != nil {
 		m.showMenu()
 		m.notice = "Return to the View could not be started."
-		logging.Warn(logging.CategoryUI, "Return to the View setup failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Return to the View setup failed: %v", err)
 
 		return
 	}
@@ -599,7 +599,7 @@ func (m *IntroMenuScene) resumeTitleMusic(context string) {
 	}
 	m.audioManager.GetMusicManager().SetSuppressed(audio.MusicCinematic, false)
 	if err := m.audioManager.PlayMusicForContext("title"); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to resume title music after %s: %v", context, err)
+		logging.Warnf(logging.CategoryAudio, "Failed to resume title music after %s: %v", context, err)
 	}
 }
 
@@ -608,7 +608,7 @@ func (m *IntroMenuScene) startNarrativeIntroduction() {
 		assets, err := sprites.LoadNarrativeIntroAssets(m.config.SavedConfigData.DataFilePath)
 		if err != nil {
 			m.notice = "Introduction could not be loaded."
-			logging.Warn(logging.CategoryUI, "Narrative Introduction loading failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Narrative Introduction loading failed: %v", err)
 
 			return
 		}
@@ -1002,7 +1002,8 @@ func (m *IntroMenuScene) importLegacySave(
 		return
 	}
 	if len(legacySave.warnings) > 0 {
-		logging.Warn(logging.CategoryUI, "Legacy save import completed with %d conversion warnings", len(legacySave.warnings))
+		logging.Warnf(logging.CategoryUI,
+			"Legacy save import completed with %d conversion warnings", len(legacySave.warnings))
 	}
 }
 

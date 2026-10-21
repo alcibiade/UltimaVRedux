@@ -91,10 +91,10 @@ failures. Return wrapped errors for user input and recoverable conditions.
 // ✅ CORRECT: Use logging system
 import "github.com/bradhannah/UltimaVRedux/internal/logging"
 
-logging.Debug(logging.CategoryConversation, "Processing command: %s", cmd)
-logging.Info(logging.CategoryUI, "Dialog opened: %s", title)
-logging.Warn(logging.CategoryAudio, "Failed to load sound: %v", err)
-logging.Error(logging.CategorySystem, "Configuration error: %v", err)
+logging.Debugf(logging.CategoryConversation, "Processing command: %s", cmd)
+logging.Infof(logging.CategoryUI, "Dialog opened: %s", title)
+logging.Warnf(logging.CategoryAudio, "Failed to load sound: %v", err)
+logging.Errorf(logging.CategorySystem, "Configuration error: %v", err)
 
 // ❌ WRONG: Direct console output
 fmt.Printf("DEBUG: Processing command: %s\n", cmd)

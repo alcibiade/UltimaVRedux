@@ -99,7 +99,7 @@ func (gs *GameState) CommitGuardTribute(review GuardTributeReview) GuardTributeP
 		panic("unsupported guard tribute policy")
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Guard tribute paid: kind=%d amount=%d remaining=%d",
 		review.Kind, review.Amount, gs.PartyState.Inventory.Gold.Get())
 

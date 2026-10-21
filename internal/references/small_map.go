@@ -38,15 +38,15 @@ const (
 func GetSmallMapFile(smallMap SmallMapMasterTypes) string {
 	switch smallMap {
 	case Castle:
-		return files.CASTLE_DAT
+		return files.CastleDat
 	case Towne:
-		return files.TOWNE_DAT
+		return files.TowneDat
 	case Dwelling:
-		return files.DWELLING_DAT
+		return files.DwellingDat
 	case Keep:
-		return files.KEEP_DAT
+		return files.KeepDat
 	case Dungeon:
-		return files.DUNGEON_DAT
+		return files.DungeonDat
 	default:
 		panic("unhandled default case")
 	}

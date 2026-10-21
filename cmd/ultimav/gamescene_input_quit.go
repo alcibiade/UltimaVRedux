@@ -89,7 +89,7 @@ func (g *GameScene) saveCurrentPlayerWithConfirmation(game *Game, context string
 	}
 	record, err := game.quickSavePlayerSave()
 	if err != nil {
-		logging.Warn(logging.CategoryGameState, "%s save failed: %v", context, err)
+		logging.Warnf(logging.CategoryGameState, "%s save failed: %v", context, err)
 		g.showQuitSaveResult("Save failed: " + playerSaveErrorDetail(err))
 
 		return

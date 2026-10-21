@@ -81,7 +81,7 @@ func (g *GameState) GetNPCSpriteReplacement(
 		}
 		// Not seated on south-facing chair - convert to Merchant sprite, preserving animation frame
 		// Then fall through to tile-based replacements (beds, ladders, manacles, etc.)
-		frameOffset := npcSpriteIndex - indexes.BardPlaying_KeyIndex
+		frameOffset := npcSpriteIndex - indexes.BardPlayingKeyIndex
 		npcSpriteIndex = indexes.MerchantKeyIndex + frameOffset
 		// Continue to switch below - don't return early
 	}
@@ -124,7 +124,7 @@ func (g *GameState) GetNPCSpriteReplacement(
 	case indexes.LadderDown:
 		return SpritePresentation{Sprite: indexes.KlimbLadderDown, BackgroundIntegrated: true}
 	case indexes.Manacles:
-		return SpritePresentation{Sprite: indexes.Manacles_Prisoner, BackgroundIntegrated: true}
+		return SpritePresentation{Sprite: indexes.ManaclesPrisoner, BackgroundIntegrated: true}
 	case indexes.Stocks:
 		return SpritePresentation{Sprite: indexes.PersonStocks1, BackgroundIntegrated: true}
 	}
@@ -198,15 +198,15 @@ func (g *GameState) isQuestItemNPCHidden(mapUnit map_units.MapUnit) bool {
 	// Quest item NPCs are ALWAYS hidden now - they're rendered as overlays instead
 	switch npcSpriteIndex {
 	case indexes.Crown:
-		logging.Debug(logging.CategoryGameState, "Hiding Crown NPC at position - using overlay rendering instead")
+		logging.Debugf(logging.CategoryGameState, "Hiding Crown NPC at position - using overlay rendering instead")
 
 		return true
 	case indexes.Sceptre:
-		logging.Debug(logging.CategoryGameState, "Hiding Sceptre NPC at position - using overlay rendering instead")
+		logging.Debugf(logging.CategoryGameState, "Hiding Sceptre NPC at position - using overlay rendering instead")
 
 		return true
 	case indexes.Amulet:
-		logging.Debug(logging.CategoryGameState, "Hiding Amulet NPC at position - using overlay rendering instead")
+		logging.Debugf(logging.CategoryGameState, "Hiding Amulet NPC at position - using overlay rendering instead")
 
 		return true
 	}

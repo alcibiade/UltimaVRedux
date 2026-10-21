@@ -34,7 +34,7 @@ func TestNPCAutoTalkOrdinaryGuardPreservesLinearConversationRouting(t *testing.T
 	state := new(game_state.GameState)
 	scene := &GameScene{gameState: state}
 	ordinaryReference := references.NPCReference{DialogNumber: 1}
-	ordinaryReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	ordinaryReference.SetKeyIndex(indexes.GuardKeyIndex)
 	ordinaryGuard := map_units.NewNPCFriendly(ordinaryReference, 0)
 
 	require.Equal(t, TalkTypeNormal, scene.determineTalkType(ordinaryGuard, true))
@@ -47,7 +47,7 @@ func TestNPCAutoTalkOrdinaryGuardPreservesLinearConversationRouting(t *testing.T
 
 	state.SetCriminalStatus(false)
 	extortingReference := references.NPCReference{DialogNumber: byte(references.DialogGuard)}
-	extortingReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	extortingReference.SetKeyIndex(indexes.GuardKeyIndex)
 	extortingGuard := map_units.NewNPCFriendly(extortingReference, 0)
 	require.Equal(t, TalkTypeGuard, scene.determineTalkType(extortingGuard, true),
 		"DialogGuard auto-talk must still extort")

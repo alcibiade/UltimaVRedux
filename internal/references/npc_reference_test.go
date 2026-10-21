@@ -45,12 +45,12 @@ func TestNPCReference_IsBeggar(t *testing.T) {
 		{"Begger2 NPC is beggar", indexes.Begger2, true},
 		{"Begger3 NPC is beggar", indexes.Begger3, true},
 		{"Begger4 NPC is beggar", indexes.Begger4, true},
-		{"Beggar_KeyIndex NPC is beggar", indexes.Beggar_KeyIndex, true},
+		{"BeggarKeyIndex NPC is beggar", indexes.BeggarKeyIndex, true},
 
 		// Other NPC types should return false
-		{"Guard NPC is not beggar", indexes.Guard_KeyIndex, false},
+		{"Guard NPC is not beggar", indexes.GuardKeyIndex, false},
 		{"Avatar NPC is not beggar", indexes.AvatarKeyIndex, false},
-		{"TownsPerson NPC is not beggar", indexes.TownsPerson_KeyIndex, false},
+		{"TownsPerson NPC is not beggar", indexes.TownsPersonKeyIndex, false},
 		{"Wizard NPC is not beggar", indexes.WizardKeyIndex, false},
 	}
 
@@ -92,7 +92,7 @@ func TestNPCReference_IsBeggar_VsGetSpriteIndex(t *testing.T) {
 
 func TestNPCReferenceDaemonShapeTakesPrecedenceOverGuardDialog(t *testing.T) {
 	reference := NPCReference{Location: Windemere, DialogNumber: byte(Guard)}
-	reference.SetKeyIndex(indexes.Daemon_KeyIndex)
+	reference.SetKeyIndex(indexes.DaemonKeyIndex)
 	if reference.GetNPCType() != NoStatedNpc {
 		t.Fatal("daemon shape must take precedence over a Guard-like dialog value")
 	}

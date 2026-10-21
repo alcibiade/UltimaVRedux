@@ -175,12 +175,12 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 ) {
 	// Error handling: validate inputs
 	if partyState == nil {
-		logging.Error(logging.CategoryUI, "CharacterSummary.Draw called with nil partyState, skipping draw")
+		logging.Errorf(logging.CategoryUI, "CharacterSummary.Draw called with nil partyState, skipping draw")
 
 		return
 	}
 	if screen == nil {
-		logging.Error(logging.CategoryUI, "CharacterSummary.Draw called with nil screen, skipping draw")
+		logging.Errorf(logging.CategoryUI, "CharacterSummary.Draw called with nil screen, skipping draw")
 
 		return
 	}
@@ -197,7 +197,7 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 		// Error handling: validate character data
 		if index >= partyState.GetCharacterCount() {
 			c.portraits[index].dispose()
-			logging.Warn(logging.CategoryUI, "CharacterSummary character index %d out of bounds, skipping", index)
+			logging.Warnf(logging.CategoryUI, "CharacterSummary character index %d out of bounds, skipping", index)
 
 			continue
 		}
@@ -260,11 +260,11 @@ func characterStatusName(status party_state.CharacterStatus) string {
 		return "Pois."
 	}
 
-	if statusRef := party_state.CharacterStatuses.GetById(status); statusRef != nil {
+	if statusRef := party_state.CharacterStatuses.GetByID(status); statusRef != nil {
 		return statusRef.FriendlyName
 	}
 
-	logging.Warn(logging.CategoryUI, "Invalid character status %d", status)
+	logging.Warnf(logging.CategoryUI, "Invalid character status %d", status)
 
 	return "Unknown"
 }

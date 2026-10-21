@@ -62,7 +62,7 @@ func (g *GameState) TrySummonShadowlord(word string) bool {
 		return false
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"TrySummonShadowlord: lord=%s, playerY=%d, floor=%d, summoned=%v, alive=%v",
 		lord.String(), playerY, floor, state.Summoned, state.IsAlive(lord))
 
@@ -70,7 +70,7 @@ func (g *GameState) TrySummonShadowlord(word string) bool {
 	// This prevents summoning too close to the top of the map (Shadowlord spawns at Y-2)
 	// See ref:WORD-0003.
 	if playerY < 2 {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"TrySummonShadowlord: FAILED - playerY=%d < 2 (Shadowlord would spawn off map at Y=%d)",
 			playerY, playerY-2)
 		g.SystemCallbacks.UI.ShowActionFeedback("Nothing happens.", true)
@@ -95,7 +95,7 @@ func (g *GameState) TrySummonShadowlord(word string) bool {
 	// Insert the physical Shadowlord before committing progression state.
 	enemy := g.insertShadowlordNPC(lord)
 	if enemy == nil {
-		logging.Error(logging.CategoryGameState,
+		logging.Errorf(logging.CategoryGameState,
 			"TrySummonShadowlord: failed to spawn Shadowlord NPC")
 		g.SystemCallbacks.UI.ShowActionFeedback("Nothing happens.", true)
 

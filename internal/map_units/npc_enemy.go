@@ -56,7 +56,7 @@ func enemyVariant(enemyRef references.EnemyReference) EnemyVariant {
 	case enemyRef.MonsterType == references.MonsterWhirlpool:
 		return EnemyVariantWhirlpool
 	case enemyRef.MonsterType == references.MonsterShadowlord ||
-		(enemyRef.KeyFrameTile != nil && enemyRef.KeyFrameTile.Index == indexes.ShadowLord_KeyIndex):
+		(enemyRef.KeyFrameTile != nil && enemyRef.KeyFrameTile.Index == indexes.ShadowLordKeyIndex):
 		return EnemyVariantShadowlord
 	default:
 		return EnemyVariantStandard

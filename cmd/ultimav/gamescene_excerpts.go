@@ -15,7 +15,7 @@ func (g *GameScene) loadExcerpts() ([]journal.Exchange, error) {
 
 func (g *GameScene) keepExcerpt(exchange journal.Exchange) ([]journal.Exchange, error) {
 	if err := g.excerpts.Keep(exchange); err != nil {
-		logging.Error(logging.CategoryConversation, "Unable to keep conversation excerpt: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Unable to keep conversation excerpt: %v", err)
 
 		return nil, fmt.Errorf("keep excerpt: %w", err)
 	}
@@ -25,7 +25,7 @@ func (g *GameScene) keepExcerpt(exchange journal.Exchange) ([]journal.Exchange, 
 
 func (g *GameScene) attributeKeptConversation(conversationID, speaker string) error {
 	if err := g.excerpts.AttributeConversation(conversationID, speaker); err != nil {
-		logging.Error(logging.CategoryConversation, "Unable to attribute kept conversation excerpts: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Unable to attribute kept conversation excerpts: %v", err)
 
 		return fmt.Errorf("attribute excerpts: %w", err)
 	}

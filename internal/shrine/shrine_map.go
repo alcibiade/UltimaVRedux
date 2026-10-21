@@ -135,7 +135,7 @@ func LoadMiniMapFromMiscmaps(gameConfig *config.UltimaVConfiguration, mapType Mi
 		MapType: mapType,
 		Tiles:   decoded.Tiles,
 	}
-	logging.Debug(logging.CategorySystem, "Loaded mini-map type %d from MISCMAPS.DAT index %d", mapType, mapIndex)
+	logging.Debugf(logging.CategorySystem, "Loaded mini-map type %d from MISCMAPS.DAT index %d", mapType, mapIndex)
 
 	return mapData, nil
 }

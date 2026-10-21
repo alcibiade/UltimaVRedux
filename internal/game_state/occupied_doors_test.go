@@ -45,7 +45,7 @@ func TestOccupiedDoorsUseAuthoritativeFinalActors(t *testing.T) {
 					npc.visible, npc.floor = true, 0
 					controller.mapUnits = map_units.MapUnits{npc}
 					// Deliberately leave a stale sprite: removal paths need not refresh it.
-					layer.SetTileByLayer(map_state.MapUnitLayer, &door, indexes.TownsPerson_KeyIndex)
+					layer.SetTileByLayer(map_state.MapUnitLayer, &door, indexes.TownsPersonKeyIndex)
 					switch excluded {
 					case "hidden":
 						npc.visible = false
@@ -166,7 +166,7 @@ func TestOccupiedDoorsRebindOnBothFloorRoutes(t *testing.T) {
 				WithPlayerAt(10, 14).WithSystemCallbacks().Build()
 			door := references.Position{X: 11, Y: 14}
 			ref := references.NPCReference{Schedule: references.CreateNPCScheduledFixedOneLocation(door, 0)}
-			ref.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+			ref.SetKeyIndex(indexes.TownsPersonKeyIndex)
 			npc := map_units.NewNPCFriendly(ref, 1)
 			npc.PlaceAtScheduleSlot(0)
 			state.CurrentNPCAIController.GetNpcs().ReplaceWith(map_units.MapUnits{npc})

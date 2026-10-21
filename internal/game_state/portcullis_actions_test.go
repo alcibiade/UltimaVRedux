@@ -167,7 +167,7 @@ func TestPortcullisLookActionDescribesTerrainWithoutHidingOccupants(t *testing.T
 	}{
 		{5, indexes.NoSprites, indexes.BrickFloor},
 		{20, indexes.NoSprites, indexes.Portcullis},
-		{20, indexes.TownsPerson_KeyIndex, indexes.TownsPerson_KeyIndex},
+		{20, indexes.TownsPersonKeyIndex, indexes.TownsPersonKeyIndex},
 	} {
 		state.DateTime.Hour, state.DateTime.Minute = test.hour, 0
 		state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapUnitLayer, &gate, test.unit)
@@ -180,7 +180,7 @@ func TestPortcullisLookActionDescribesTerrainWithoutHidingOccupants(t *testing.T
 
 func portcullisActionNPC(position references.Position) *map_units.NPCFriendly {
 	reference := references.NPCReference{Location: references.SerpentsHold, Schedule: references.CreateNPCScheduledFixedOneLocation(position, 0)}
-	reference.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	reference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, 0)
 	npc.SetPos(position)
 	npc.SetVisible(true)

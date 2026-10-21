@@ -27,7 +27,7 @@ func TestWoolfeAuthoredAppearance(t *testing.T) {
 }
 
 func TestDialogue31DoesNotOverrideAuthoredNPCShape(t *testing.T) {
-	for _, sprite := range []indexes.SpriteIndex{indexes.FighterKeyIndex, indexes.MageKeyIndex, indexes.TownsPerson_KeyIndex} {
+	for _, sprite := range []indexes.SpriteIndex{indexes.FighterKeyIndex, indexes.MageKeyIndex, indexes.TownsPersonKeyIndex} {
 		npc := NPCReference{DialogNumber: 31}
 		npc.SetKeyIndex(sprite)
 		require.Equal(t, NoStatedNpc, npc.GetNPCType())

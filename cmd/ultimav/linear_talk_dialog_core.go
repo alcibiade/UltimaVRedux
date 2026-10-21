@@ -390,7 +390,7 @@ func (d *LinearTalkDialog) displayResponseOutput() {
 
 			d.beginPauseAnimation()
 
-			logging.Debug(logging.CategoryUI,
+			logging.Debugf(logging.CategoryUI,
 				"Started segment-based pause animation, pending: %d segments", len(d.pendingSegments))
 		} else {
 			// No pause marker - render all segments
@@ -407,7 +407,7 @@ func (d *LinearTalkDialog) displayResponseOutput() {
 		d.pendingSegments = nil
 		d.pendingContinues = outputContinuesAfterText(beforePause, d.currentResponse.ContinuesPreviousOutput)
 		d.beginPauseAnimation()
-		logging.Debug(logging.CategoryUI, "Started pause animation, pending: %d chars", len(d.pendingOutput))
+		logging.Debugf(logging.CategoryUI, "Started pause animation, pending: %d chars", len(d.pendingOutput))
 	} else {
 		d.outputTextToDialog(d.currentResponse.Output, d.currentResponse.ContinuesPreviousOutput)
 	}

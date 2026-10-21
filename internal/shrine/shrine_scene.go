@@ -39,7 +39,7 @@ func NewShrineSceneWithMap(
 		ShrineMap:              NewShrineMapWithData(mapData), // Shrine map with loaded data
 	}
 
-	logging.Debug(logging.CategoryGameState, "Created shrine scene for shrine %d with loaded map data", shrineIndex)
+	logging.Debugf(logging.CategoryGameState, "Created shrine scene for shrine %d with loaded map data", shrineIndex)
 
 	return scene
 }

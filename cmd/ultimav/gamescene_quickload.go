@@ -88,7 +88,7 @@ func (g *GameScene) handleQuickLoad(game *Game) {
 	}
 	slot, err := game.quickLoadPlayerSave()
 	if err != nil {
-		logging.Warn(logging.CategoryGameState, "Quick load failed: %v", err)
+		logging.Warnf(logging.CategoryGameState, "Quick load failed: %v", err)
 		g.gameState.SystemCallbacks.Message.AddRowStr("Load failed: " + playerQuickLoadErrorDetail(err))
 
 		return

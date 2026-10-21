@@ -33,11 +33,11 @@ func (g *GameScene) PlayWalkingSoundAt(pos references.Position) {
 
 	// Play walking sound based on tile surface
 	if err := g.audioManager.PlayWalkingSound(tile); err != nil {
-		logging.Warn(logging.CategoryAudio, "Playing mini-map walking sound: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Playing mini-map walking sound: %v", err)
 	}
 }
 
-// thenRunMiniMapScript runs a MiniMapScript on the current miniMapScene.
+// thenRunMiniMapScript runs a minimap.Script on the current miniMapScene.
 // The helper encapsulates executor creation and the animation loop.
 // Walking sounds are played automatically if script steps have PlayWalkingSounds=true.
 //
@@ -50,7 +50,7 @@ func (g *GameScene) PlayWalkingSoundAt(pos references.Position) {
 // Usage:
 //
 //	ThenSequence(g.thenRunMiniMapScript(walkInScript)).
-func (g *GameScene) thenRunMiniMapScript(script *minimap.MiniMapScript) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
+func (g *GameScene) thenRunMiniMapScript(script *minimap.Script) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 	const frameIntervalMs = 16
 
 	var executor *minimap.ScriptExecutor

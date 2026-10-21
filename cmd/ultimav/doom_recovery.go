@@ -119,7 +119,7 @@ func (g *Game) acceptDoomEntry(
 }
 
 func (g *GameScene) reportDoomRecoveryPreparationFailure(err error) {
-	logging.Warn(logging.CategoryGameState, "Unable to prepare pre-Doom recovery checkpoint: %v", err)
+	logging.Warnf(logging.CategoryGameState, "Unable to prepare pre-Doom recovery checkpoint: %v", err)
 	g.gameState.SystemCallbacks.Message.AddRowStr("Pre-Doom recovery is unavailable.")
 }
 

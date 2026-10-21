@@ -72,10 +72,10 @@ func (o *Output) DrawPanelContentRange(
 			float32(textRectWidth), float32(debugHeight),
 			strokeWidth, ultimacolor.EGARed, false)
 
-		logging.Debug(logging.CategoryUI, "=== PANEL CONTENT DEBUG ===")
-		logging.Debug(logging.CategoryUI, "BoundingBox: point=(%d,%d), width=%d, height=%d",
+		logging.Debugf(logging.CategoryUI, "=== PANEL CONTENT DEBUG ===")
+		logging.Debugf(logging.CategoryUI, "BoundingBox: point=(%d,%d), width=%d, height=%d",
 			point.X, point.Y, textRectWidth, debugHeight)
-		logging.Debug(logging.CategoryUI, "Buffer: lastNonEmptyIndex=%d (physical)", lastNonEmptyIndex)
+		logging.Debugf(logging.CategoryUI, "Buffer: lastNonEmptyIndex=%d (physical)", lastNonEmptyIndex)
 	}
 
 	// Render lines from the requested physical range.
@@ -165,9 +165,9 @@ func (o *Output) drawScrollingDebug(screen *ebiten.Image, point image.Point, wid
 	}
 	vector.StrokeRect(screen, float32(point.X), float32(point.Y), float32(width), float32(height),
 		1, ultimacolor.EGARed, false)
-	logging.Debug(logging.CategoryUI, "=== DIALOG BOX DEBUG ===")
-	logging.Debug(logging.CategoryUI, "BoundingBox: point=(%d,%d), width=%d, height=%d", point.X, point.Y, width, height)
-	logging.Debug(logging.CategoryUI, "Buffer: nextLineToIndex=%d, firstNonEmpty=%d, lastNonEmpty=%d, contentCount=%d",
+	logging.Debugf(logging.CategoryUI, "=== DIALOG BOX DEBUG ===")
+	logging.Debugf(logging.CategoryUI, "BoundingBox: point=(%d,%d), width=%d, height=%d", point.X, point.Y, width, height)
+	logging.Debugf(logging.CategoryUI, "Buffer: nextLineToIndex=%d, firstNonEmpty=%d, lastNonEmpty=%d, contentCount=%d",
 		o.nextLineToIndex, first, last, count)
 	const debugRowLimit = 5
 	for rowIndex := 0; rowIndex <= last && rowIndex < debugRowLimit; rowIndex++ {
@@ -184,7 +184,7 @@ func (o *Output) drawScrollingDebug(screen *ebiten.Image, point image.Point, wid
 		if value == "" {
 			value = "[empty]"
 		}
-		logging.Debug(logging.CategoryUI, "  Line[%d]: %s", rowIndex, value)
+		logging.Debugf(logging.CategoryUI, "  Line[%d]: %s", rowIndex, value)
 	}
 }
 

@@ -244,12 +244,12 @@ func (g *GameState) MoveAvatarOutOfBed() {
 	if !g.IsOutOfBounds(*eastPos) &&
 		g.IsPassable(eastPos) {
 		g.MapState.PlayerLocation.Position = *eastPos
-		logging.Debug(logging.CategoryGameState, "Avatar moved out of bed: (%d,%d) -> (%d,%d)",
+		logging.Debugf(logging.CategoryGameState, "Avatar moved out of bed: (%d,%d) -> (%d,%d)",
 			currentPos.X, currentPos.Y, eastPos.X, eastPos.Y)
 
 		// Trigger display update to show the movement
 		g.SystemCallbacks.Screen.UpdateDisplay()
 	} else {
-		logging.Debug(logging.CategoryGameState, "Could not move avatar out of bed - destination blocked or invalid")
+		logging.Debugf(logging.CategoryGameState, "Could not move avatar out of bed - destination blocked or invalid")
 	}
 }

@@ -113,12 +113,12 @@ func (p *ProvisionSummary) SetBounds(bounds image.Rectangle) {
 // Draw renders the four-row summary without changing gameplay state.
 func (p *ProvisionSummary) Draw(gameState *game_state.GameState, screen *ebiten.Image) {
 	if gameState == nil {
-		logging.Warn(logging.CategoryUI, "ProvisionSummary.Draw called with nil gameState, skipping draw")
+		logging.Warnf(logging.CategoryUI, "ProvisionSummary.Draw called with nil gameState, skipping draw")
 
 		return
 	}
 	if screen == nil {
-		logging.Warn(logging.CategoryUI, "ProvisionSummary.Draw called with nil screen, skipping draw")
+		logging.Warnf(logging.CategoryUI, "ProvisionSummary.Draw called with nil screen, skipping draw")
 
 		return
 	}

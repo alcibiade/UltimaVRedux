@@ -340,7 +340,7 @@ type GameScene struct {
 	timedOverlayDismissMs int64                     // When to auto-dismiss (game elapsed ms)
 
 	// MiniMap scene system for scripted cutscenes (shrine, codex, endgame)
-	miniMapScene       *minimap.MiniMapScene
+	miniMapScene       *minimap.Scene
 	finalePresentation *lordBritishFinalePresentation
 
 	// windowCloseDepartureOpen marks save choices opened by the window's close
@@ -552,7 +552,7 @@ func (g *GameScene) ShowHorseRefusalDialog() {
 //	)
 func (g *GameScene) thenExecuteCampingSequence(hours int, guardIndex int, complete func()) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		logging.Debug(logging.CategoryGameState, "Adding camping sequence to event queue for %d hours with guard %d", hours, guardIndex)
+		logging.Debugf(logging.CategoryGameState, "Adding camping sequence to event queue for %d hours with guard %d", hours, guardIndex)
 
 		// Use If() to perform setup and add camping events at RUNTIME
 		// This ensures fresh data (location, config) when camping actually starts

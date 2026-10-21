@@ -193,7 +193,7 @@ func (g *GameScene) Update(game *Game) error {
 	switch g.updateLordBritishFinaleInput() {
 	case finaleInputReturnBeforeDoom:
 		if err := game.returnBeforeDoom(g); err != nil {
-			logging.Warn(logging.CategoryGameState, "Unable to restore pre-Doom recovery checkpoint: %v", err)
+			logging.Warnf(logging.CategoryGameState, "Unable to restore pre-Doom recovery checkpoint: %v", err)
 			g.showDoomRecoveryFailure(err)
 		}
 
@@ -261,7 +261,7 @@ func (g *GameScene) Update(game *Game) error {
 			return nil
 		}
 		if err := g.gameState.ResolvePendingOverworldContact(); err != nil {
-			logging.Error(logging.CategoryGameState, "Unable to resolve overworld contact: %v", err)
+			logging.Errorf(logging.CategoryGameState, "Unable to resolve overworld contact: %v", err)
 			g.gameState.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 		}
 
@@ -270,7 +270,7 @@ func (g *GameScene) Update(game *Game) error {
 
 	if g.gameState.HasPendingDungeonRoomEncounter() {
 		if err := g.gameState.ResolvePendingDungeonRoomEncounter(); err != nil {
-			logging.Error(logging.CategoryGameState, "Unable to enter fixed dungeon room: %v", err)
+			logging.Errorf(logging.CategoryGameState, "Unable to enter fixed dungeon room: %v", err)
 			g.gameState.SystemCallbacks.Message.AddRowStr("Room combat could not begin.")
 		}
 

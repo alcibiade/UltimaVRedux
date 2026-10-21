@@ -193,30 +193,30 @@ func TestSmallMapAttackActionsDispatchByCombatCapability(t *testing.T) {
 			name:     "Iolo hut rat",
 			location: references.IolosHut,
 			npcSlot:  1,
-			sprite:   indexes.Rat_KeyIndex,
+			sprite:   indexes.RatKeyIndex,
 			want:     map_units.PendingNPCInteractionHostileCombat,
 		},
 		{
 			name:     "Skara Brae bat",
 			location: references.SkaraBrae,
 			npcSlot:  8,
-			sprite:   indexes.Bat_KeyIndex,
+			sprite:   indexes.BatKeyIndex,
 			want:     map_units.PendingNPCInteractionHostileCombat,
 		},
 		{
 			name:     "rat outside visit activation locations",
 			location: references.Yew,
 			npcSlot:  1,
-			sprite:   indexes.Rat_KeyIndex,
+			sprite:   indexes.RatKeyIndex,
 			want:     map_units.PendingNPCInteractionHostileCombat,
 		},
-		{name: "Stonegate bat", location: references.Stonegate, npcSlot: 9, sprite: indexes.Bat_KeyIndex + 1, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "Windemere rat", location: references.Windemere, npcSlot: 10, sprite: indexes.Rat_KeyIndex + 2, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "ordinary human", location: references.Britain, npcSlot: 2, sprite: indexes.TownsPerson_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "Yew gargoyle", location: references.Yew, npcSlot: 3, sprite: indexes.StoneGargoyle_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "Palace gargoyle", location: references.PalaceOfBlackthorn, npcSlot: 4, sprite: indexes.StoneGargoyle_KeyIndex + 3, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "activated Balinor", location: references.Windemere, npcSlot: 5, sprite: indexes.Daemon_KeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
-		{name: "guard", location: references.Britain, npcSlot: 6, sprite: indexes.Guard_KeyIndex + 1, want: map_units.PendingNPCInteractionGuardArrest},
+		{name: "Stonegate bat", location: references.Stonegate, npcSlot: 9, sprite: indexes.BatKeyIndex + 1, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "Windemere rat", location: references.Windemere, npcSlot: 10, sprite: indexes.RatKeyIndex + 2, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "ordinary human", location: references.Britain, npcSlot: 2, sprite: indexes.TownsPersonKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "Yew gargoyle", location: references.Yew, npcSlot: 3, sprite: indexes.StoneGargoyleKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "Palace gargoyle", location: references.PalaceOfBlackthorn, npcSlot: 4, sprite: indexes.StoneGargoyleKeyIndex + 3, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "activated Balinor", location: references.Windemere, npcSlot: 5, sprite: indexes.DaemonKeyIndex, want: map_units.PendingNPCInteractionHostileCombat},
+		{name: "guard", location: references.Britain, npcSlot: 6, sprite: indexes.GuardKeyIndex + 1, want: map_units.PendingNPCInteractionGuardArrest},
 		{name: "quest object", location: references.Britain, npcSlot: 7, sprite: indexes.Chest, want: map_units.PendingNPCInteractionNone},
 	}
 
@@ -278,7 +278,7 @@ func newOriginalScheduleTestController(
 	schedule := references.CreateNPCScheduledFixedOneLocation(position, 0)
 	schedule.Ai[0] = byte(action)
 	reference := references.NPCReference{Schedule: schedule}
-	reference.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	reference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, 0)
 	npc.PlaceAtScheduleSlot(0)
 	controller := &NPCAIControllerSmallMap{ //nolint:exhaustruct // Focused source-action fixture.

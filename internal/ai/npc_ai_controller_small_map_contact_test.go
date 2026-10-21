@@ -13,7 +13,7 @@ import (
 )
 
 func TestSmallMapContactClassifiesAllShadowlordAndGuardFrames(t *testing.T) {
-	for _, key := range []indexes.SpriteIndex{indexes.ShadowLord_KeyIndex, indexes.Guard_KeyIndex} {
+	for _, key := range []indexes.SpriteIndex{indexes.ShadowLordKeyIndex, indexes.GuardKeyIndex} {
 		for frame := range indexes.StandardNumberOfAnimationFrames {
 			t.Run(fmt.Sprintf("shape%d/frame%d", key, frame), func(t *testing.T) {
 				rng := &scriptedOriginalScheduleRNG{t: t}
@@ -25,7 +25,7 @@ func TestSmallMapContactClassifiesAllShadowlordAndGuardFrames(t *testing.T) {
 				controller.AdvanceNextTurnCalcAndMoveNPCs()
 
 				want := map_units.PendingNPCInteractionHostileCombat
-				if key == indexes.Guard_KeyIndex {
+				if key == indexes.GuardKeyIndex {
 					want = map_units.PendingNPCInteractionGuardArrest
 				}
 				assert.Equal(t, want, npc.MapUnitDetails().PendingInteraction)
@@ -81,7 +81,7 @@ func TestSmallMapAttackActionsRequireEligibleContact(t *testing.T) {
 }
 
 func TestSmallMapSetAttackAvatarUsesUnlimitedPursuit(t *testing.T) {
-	for _, sprite := range []indexes.SpriteIndex{indexes.Guard_KeyIndex, indexes.Daemon_KeyIndex} {
+	for _, sprite := range []indexes.SpriteIndex{indexes.GuardKeyIndex, indexes.DaemonKeyIndex} {
 		t.Run(fmt.Sprint(sprite), func(t *testing.T) {
 			rng := &scriptedOriginalScheduleRNG{t: t, values: []int{63}}
 			controller, npc, _ := newOriginalScheduleTestController(t, rng, references.Fixed, references.Position{X: 10, Y: 10})
@@ -157,7 +157,7 @@ func TestSmallMapAttackContactWaitsForFollowingSourcePhase(t *testing.T) {
 }
 
 func TestSmallMapCombatShapeDoesNotSupplyHostileIntent(t *testing.T) {
-	for _, sprite := range []indexes.SpriteIndex{indexes.Troll_KeyIndex, indexes.Daemon_KeyIndex} {
+	for _, sprite := range []indexes.SpriteIndex{indexes.TrollKeyIndex, indexes.DaemonKeyIndex} {
 		for _, action := range []references.AiType{references.Fixed, references.Talk3} {
 			t.Run(fmt.Sprintf("shape%d/action%d", sprite, action), func(t *testing.T) {
 				rng := &scriptedOriginalScheduleRNG{t: t}
@@ -189,10 +189,10 @@ func TestSmallMapAttackContactLastAuthoredSlotWins(t *testing.T) {
 	rng := &scriptedOriginalScheduleRNG{t: t}
 	controller, guard, _ := newOriginalScheduleTestController(t, rng, references.ExtortOrAttackOrFollow, references.Position{X: 10, Y: 10})
 	controller.mapState.PlayerLocation.Position = references.Position{X: 11, Y: 10}
-	guard.NPCReference.SetKeyIndex(indexes.Guard_KeyIndex)
+	guard.NPCReference.SetKeyIndex(indexes.GuardKeyIndex)
 	guard.MapUnitDetails().NPCNum = 5
 	attacker := map_units.NewNPCFriendly(guard.NPCReference, 2)
-	attacker.NPCReference.SetKeyIndex(indexes.StoneGargoyle_KeyIndex)
+	attacker.NPCReference.SetKeyIndex(indexes.StoneGargoyleKeyIndex)
 	attacker.PlaceAtScheduleSlot(0)
 	attacker.SetPos(references.Position{X: 12, Y: 10})
 	attacker.MapUnitDetails().SetOverriddenAiType(references.DrudgeWorthThing)

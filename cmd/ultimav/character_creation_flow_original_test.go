@@ -21,7 +21,7 @@ import (
 func TestCharacterCreationFlowBuildsOriginalNewGameAtIolosHut(t *testing.T) {
 	directory := originaldata.Directory(t)
 	templateBytes := make(map[string][]byte, 2)
-	for _, filename := range []string{files.INIT_GAM, files.INIT_OOL} {
+	for _, filename := range []string{files.InitGam, files.InitOol} {
 		path := filepath.Join(directory, filename)
 		data, err := os.ReadFile(path) //nolint:gosec // Explicit optional original-data test input.
 		if err != nil {

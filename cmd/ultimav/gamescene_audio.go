@@ -18,7 +18,7 @@ func (g *GameScene) playSoundVoice(request game_state.SoundPlaybackRequest) game
 	}
 	voice, err := g.audioManager.PlayVoice(request)
 	if err != nil {
-		logging.Warn(logging.CategoryAudio, "Start owned sound %s: %v", audio.GetSoundEffectName(request.Effect), err)
+		logging.Warnf(logging.CategoryAudio, "Start owned sound %s: %v", audio.GetSoundEffectName(request.Effect), err)
 	}
 
 	return voice
@@ -30,7 +30,7 @@ func (g *GameScene) playSound(request game_state.SoundPlaybackRequest) {
 		err := g.audioManager.PlaySound(request)
 		if err != nil {
 			// Log error but don't crash the game - audio failures are not critical
-			logging.Warn(logging.CategoryAudio, "Failed to play sound effect %s: %v", audio.GetSoundEffectName(request.Effect), err)
+			logging.Warnf(logging.CategoryAudio, "Failed to play sound effect %s: %v", audio.GetSoundEffectName(request.Effect), err)
 		}
 	}
 	// If audioManager is nil, silently continue (audio system not available)
@@ -40,7 +40,7 @@ func (g *GameScene) stopSound(request game_state.SoundStopRequest) {
 	// Stop the specified sound effect using the comprehensive audio system
 	if g.audioManager != nil {
 		g.audioManager.StopSound(request)
-		logging.Debug(logging.CategoryAudio, "Stopped sound effect %s", audio.GetSoundEffectName(request.Effect))
+		logging.Debugf(logging.CategoryAudio, "Stopped sound effect %s", audio.GetSoundEffectName(request.Effect))
 	}
 	// If audioManager is nil, silently continue (audio system not available)
 }
@@ -52,7 +52,7 @@ func (g *GameScene) updateMusicForCurrentLocation() {
 		err := g.audioManager.GetMusicManager().PlayMusicForScene(currentLocation)
 		if err != nil {
 			// Log but don't break gameplay - audio failures are not critical
-			logging.Warn(logging.CategoryAudio, "Failed to update music for location %v: %v", currentLocation, err)
+			logging.Warnf(logging.CategoryAudio, "Failed to update music for location %v: %v", currentLocation, err)
 		}
 	}
 }

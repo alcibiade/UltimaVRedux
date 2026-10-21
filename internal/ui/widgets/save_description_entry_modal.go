@@ -354,7 +354,7 @@ func (m *SaveDescriptionEntryModal) handleNativeInput(previous string, start, en
 		// The native Field retains input errors; keep the text and explanation
 		// visible until Escape rather than silently returning to the browser.
 		if m.validationMessage != saveDescriptionInputErrorMessage {
-			logging.Warn(logging.CategoryUI, "Text entry input failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Text entry input failed: %v", err)
 		}
 		m.validationMessage = saveDescriptionInputErrorMessage
 		if m.keyboard.IsKeyPressedAndRegister(ebiten.KeyEscape) {

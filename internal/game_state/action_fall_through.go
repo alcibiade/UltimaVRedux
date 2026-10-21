@@ -47,7 +47,7 @@ func (g *GameState) processTrapFallThrough() {
 	}
 
 	currentPos := &g.MapState.PlayerLocation.Position
-	logging.Debug(logging.CategoryGameState, "TRAP tile detected at position (%d,%d), floor %d",
+	logging.Debugf(logging.CategoryGameState, "TRAP tile detected at position (%d,%d), floor %d",
 		currentPos.X, currentPos.Y, g.MapState.PlayerLocation.Floor)
 
 	// Start the normal fall timer workflow
@@ -67,12 +67,12 @@ func (g *GameState) StartTrapFallWorkflow() {
 
 	// Check if fall sequence is already running
 	if g.EventQueueManager.HasWorkflow("trap_fall_sequence") {
-		logging.Debug(logging.CategoryGameState, "TRAP fall sequence already running")
+		logging.Debugf(logging.CategoryGameState, "TRAP fall sequence already running")
 
 		return
 	}
 
-	logging.Debug(logging.CategoryGameState, "Starting TRAP fall sequence at floor %d", g.MapState.PlayerLocation.Floor)
+	logging.Debugf(logging.CategoryGameState, "Starting TRAP fall sequence at floor %d", g.MapState.PlayerLocation.Floor)
 
 	// Block input immediately to prevent movement during fall (before event queue starts)
 	g.SystemCallbacks.Visual.BlockAllInput(true)
@@ -102,7 +102,7 @@ func (g *GameState) StartTrapFallWorkflow() {
 			}
 			g.environmentalHazards.ApplyDamageToParty(&g.PartyState, config)
 
-			logging.Debug(logging.CategoryGameState, "TRAP fall: initial message displayed, first fall executed")
+			logging.Debugf(logging.CategoryGameState, "TRAP fall: initial message displayed, first fall executed")
 		}).
 		While(
 			func() bool { return g.canContinueFalling() },
@@ -146,7 +146,7 @@ func (g *GameState) StartTrapFallWorkflow() {
 		}).
 		Start()
 
-	logging.Debug(logging.CategoryGameState, "TRAP fall sequence started")
+	logging.Debugf(logging.CategoryGameState, "TRAP fall sequence started")
 }
 
 // canContinueFalling checks if the fall sequence should continue
@@ -154,7 +154,7 @@ func (g *GameState) StartTrapFallWorkflow() {
 func (g *GameState) canContinueFalling() bool {
 	// Check if we can fall down to next floor
 	if !g.CanGoDownOneFloor() {
-		logging.Debug(logging.CategoryGameState, "Cannot fall further - no lower floor available")
+		logging.Debugf(logging.CategoryGameState, "Cannot fall further - no lower floor available")
 
 		return false
 	}
@@ -167,7 +167,7 @@ func (g *GameState) canContinueFalling() bool {
 		return true
 	}
 
-	logging.Debug(logging.CategoryGameState, "Cascade stopped - no TRAP tile on floor %d",
+	logging.Debugf(logging.CategoryGameState, "Cascade stopped - no TRAP tile on floor %d",
 		g.MapState.PlayerLocation.Floor)
 
 	return false
@@ -176,7 +176,7 @@ func (g *GameState) canContinueFalling() bool {
 // cleanupFallSequence completes the fall sequence and resets state
 // Called by Finally() to ensure cleanup even if sequence fails
 func (g *GameState) cleanupFallSequence() {
-	logging.Debug(logging.CategoryGameState, "Fall sequence completed at floor %d", g.MapState.PlayerLocation.Floor)
+	logging.Debugf(logging.CategoryGameState, "Fall sequence completed at floor %d", g.MapState.PlayerLocation.Floor)
 
 	// Input automatically unblocked by BlockInput()
 }
@@ -226,7 +226,7 @@ func (g *GameState) FloodFloorWithLava() {
 		}
 	}
 
-	logging.Debug(logging.CategoryGameState, "Floor %d flooded with lava", g.MapState.PlayerLocation.Floor)
+	logging.Debugf(logging.CategoryGameState, "Floor %d flooded with lava", g.MapState.PlayerLocation.Floor)
 }
 
 // ClearAllObjectsInCurrentLocation removes objects across every floor
@@ -242,5 +242,5 @@ func (g *GameState) ClearAllObjectsInCurrentLocation() {
 
 	g.ItemStacksMap = *references.NewItemStacksMap()
 	g.clearSurfaceCorpsesInCurrentMap()
-	logging.Debug(logging.CategoryGameState, "All objects cleared from location %d", g.MapState.PlayerLocation.Location)
+	logging.Debugf(logging.CategoryGameState, "All objects cleared from location %d", g.MapState.PlayerLocation.Location)
 }

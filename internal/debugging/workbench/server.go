@@ -313,7 +313,7 @@ func (s *Server) serveIndex(response http.ResponseWriter, request *http.Request)
 	response.Header().Set("Referrer-Policy", "no-referrer")
 	response.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := response.Write([]byte(page)); err != nil {
-		logging.Debug(logging.CategorySystem, "Workbench page response closed: %v", err)
+		logging.Debugf(logging.CategorySystem, "Workbench page response closed: %v", err)
 	}
 }
 
@@ -348,7 +348,7 @@ func (s *Server) serveHealth(response http.ResponseWriter, request *http.Request
 	response.Header().Set("Cache-Control", "no-store")
 	response.Header().Set("Content-Type", "application/json")
 	if _, err := response.Write([]byte(`{"status":"ok"}`)); err != nil {
-		logging.Debug(logging.CategorySystem, "Workbench health response closed: %v", err)
+		logging.Debugf(logging.CategorySystem, "Workbench health response closed: %v", err)
 	}
 }
 
@@ -363,7 +363,7 @@ func (s *Server) serveTileAtlas(response http.ResponseWriter, request *http.Requ
 	response.Header().Set("Referrer-Policy", "no-referrer")
 	response.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := response.Write(sprites.TileAtlasPNG()); err != nil {
-		logging.Debug(logging.CategorySystem, "Workbench tile atlas response closed: %v", err)
+		logging.Debugf(logging.CategorySystem, "Workbench tile atlas response closed: %v", err)
 	}
 }
 
@@ -487,7 +487,7 @@ func (s *Server) serveWebSocket(response http.ResponseWriter, request *http.Requ
 	client.readLoop(clientCtx)
 	clientCancel()
 	if err := conn.CloseNow(); err != nil {
-		logging.Debug(logging.CategorySystem, "Closing Workbench connection: %v", err)
+		logging.Debugf(logging.CategorySystem, "Closing Workbench connection: %v", err)
 	}
 	<-writerDone
 	s.releaseController(client)
@@ -586,7 +586,7 @@ func (c *clientConnection) enqueue(message envelope) error {
 // Command results remain retained by session and can be replayed on reconnect.
 func (c *clientConnection) send(message envelope) {
 	if err := c.enqueue(message); err != nil {
-		logging.Debug(logging.CategorySystem, "Workbench client disconnected before outbound delivery: %v", err)
+		logging.Debugf(logging.CategorySystem, "Workbench client disconnected before outbound delivery: %v", err)
 	}
 }
 

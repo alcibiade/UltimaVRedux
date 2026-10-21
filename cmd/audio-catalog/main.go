@@ -15,7 +15,7 @@ import (
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
-		logging.Error(logging.CategoryAudio, "Audio catalog export: %v", err)
+		logging.Errorf(logging.CategoryAudio, "Audio catalog export: %v", err)
 		os.Exit(1)
 	}
 }
@@ -57,7 +57,7 @@ func run(arguments []string) error {
 	if err := os.WriteFile(*guide, []byte(catalog.GenerationGuide()), outputMode); err != nil {
 		return fmt.Errorf("write recording guide: %w", err)
 	}
-	logging.Info(logging.CategoryAudio, "Exported %d recordings and %d moments to %s and %s",
+	logging.Infof(logging.CategoryAudio, "Exported %d recordings and %d moments to %s and %s",
 		len(catalog.Assets), len(catalog.Moments), *output, *guide)
 
 	return nil

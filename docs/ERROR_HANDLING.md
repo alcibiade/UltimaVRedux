@@ -71,7 +71,7 @@ When recovery is an explicit part of the contract, use the centralized logger:
 
 ```go
 if index < 0 || index >= len(entries) {
-    logging.Warn(logging.CategoryUI, "Ignoring stale selection index %d", index)
+    logging.Warnf(logging.CategoryUI, "Ignoring stale selection index %d", index)
     return
 }
 ```

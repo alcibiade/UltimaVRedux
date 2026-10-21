@@ -93,7 +93,7 @@ func NewGameReferences(gameConfig *config.UltimaVConfiguration) (*GameReferences
 	gameRefs.EnemyReferences = NewAllEnemyReferences(gameRefs.TileReferences)
 
 	gameRefs.MerchantReferences, err = NewMerchantReferences(
-		gameConfig.GetFileWithFullPath(files.SHOPPE_DAT),
+		gameConfig.GetFileWithFullPath(files.ShoppeDat),
 		NewWordDict(gameRefs.DataOvl.CompressedWords),
 	)
 	if err != nil {

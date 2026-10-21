@@ -130,7 +130,7 @@ func TestCombatAttackBracketsDenseComposition(t *testing.T) {
 							options[index].GeoM.Scale(scale.x, scale.y)
 							options[index].GeoM.Translate(origin.x+float64(x*16)*scale.x, origin.y+float64(y*16)*scale.y)
 							marked[index] = layout == "all marked" || layout == "center only" && index == 4 || layout == "checkerboard" && (x+y)%2 == 0
-							monster := sheet.GetTileEffectProcessor().ApplyDynamicSimple(sheet.GetSprite(indexes.Orc_KeyIndex+indexes.SpriteIndex(index%4)), sprites.BlackOutline)
+							monster := sheet.GetTileEffectProcessor().ApplyDynamicSimple(sheet.GetSprite(indexes.OrcKeyIndex+indexes.SpriteIndex(index%4)), sprites.BlackOutline)
 							screen.DrawImage(monster, options[index])
 							// Include real status and HP renderers for marked AND unmarked
 							// neighbors. Their complete raster footprint is protected.

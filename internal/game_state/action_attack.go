@@ -51,7 +51,7 @@ func (g *GameState) ActionAttackSmallMap(direction references.Direction) bool {
 				return g.handleDefenselessAttack(*newPosition, source)
 			}
 			if _, err := g.StartSmallMapCombatEncounter(source, SmallMapEncounterAttack); err != nil {
-				logging.Error(logging.CategoryGameState, "Unable to attack small-map NPC: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to attack small-map NPC: %v", err)
 				g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 				return false
@@ -63,7 +63,7 @@ func (g *GameState) ActionAttackSmallMap(direction references.Direction) bool {
 				return false
 			}
 			if _, err := g.StartSmallMapCombatEncounter(source, SmallMapEncounterAttack); err != nil {
-				logging.Error(logging.CategoryGameState, "Unable to attack small-map Shadowlord: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to attack small-map Shadowlord: %v", err)
 				g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 				return false
@@ -177,7 +177,7 @@ func murderedNPCDeathPersists(victim *map_units.NPCFriendly) bool {
 	sprite := victim.GetKeySpriteIndex()
 	crawlerSprite := indexes.MageKeyIndex + indexes.SpriteIndex(references.MonsterCrawler)*4
 
-	return (sprite != indexes.Guard_KeyIndex && sprite < indexes.Seahorse1) || sprite == crawlerSprite
+	return (sprite != indexes.GuardKeyIndex && sprite < indexes.Seahorse1) || sprite == crawlerSprite
 }
 
 // ActionAttackLargeMap starts combat with a visible eligible enemy in the
@@ -206,7 +206,7 @@ func (g *GameState) ActionAttackLargeMap(direction references.Direction) bool {
 	}
 
 	if err := g.StartOverworldCombatEncounter(enemy); err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to attack overworld enemy: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to attack overworld enemy: %v", err)
 		g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 		return false
@@ -513,7 +513,7 @@ func (g *GameState) applyCombatDamageToMonsterWithPresentation(
 	if hpBefore > 0 && monster.IsDead() {
 		g.finalizeCombatMonsterDeath(monster, monsterIdx, attacker, pcIdx)
 	} else if !monster.IsDead() {
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"Monster hit: type=%s damage=%d remainingHP=%d",
 			monster.MonsterType().Name(), damage, monster.CurrentHP())
 		g.resolveSurvivingCombatMonsterHit(monster, monsterIdx, !diagnostics.MagicDamage)
@@ -582,7 +582,7 @@ func (g *GameState) finalizeCombatMonsterDeathWithPolicy(
 		attacker.Exp += uint16(experienceAwarded) //nolint:gosec // Credited XP is bounded by MaxExperienceValue.
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Monster killed: type=%s monsterIdx=%d xp=%d awarded to PC %d treasureObjects=%d",
 		monster.MonsterType().Name(), monsterIdx, experienceAwarded, pcIdx, g.CombatScene.ObjectCount())
 }
@@ -726,7 +726,7 @@ func (g *GameState) ActionAttackDungeonMap(_ references.Direction) bool {
 		return false
 	}
 	if err := g.startDirectDungeonWandererCombat(wanderer.Monster); err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to attack dungeon wanderer: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to attack dungeon wanderer: %v", err)
 		g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 		return false

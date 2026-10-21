@@ -251,7 +251,7 @@ func prisonerTestNPC(
 		Location:     references.Britain,
 		Schedule:     references.CreateNPCScheduledFixedOneLocation(position, floor),
 	}
-	reference.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	reference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	npc := map_units.NewNPCFriendly(reference, slot)
 	npc.PlaceAtScheduleSlot(0)
 	npc.SetVisible(true)

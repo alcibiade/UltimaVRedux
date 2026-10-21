@@ -23,7 +23,7 @@ func (e *ScriptExecutor) GetCurrentStepIndex() int {
 
 // GetActorPosition returns the current position of the actor with the given ID.
 // Returns zero position if actor not found.
-func (s *MiniMapScene) GetActorPosition(id ActorID) references.Position {
+func (s *Scene) GetActorPosition(id ActorID) references.Position {
 	actor := s.actors[id]
 	if actor == nil {
 		return references.Position{}
@@ -33,12 +33,12 @@ func (s *MiniMapScene) GetActorPosition(id ActorID) references.Position {
 }
 
 // SetCameraCenter sets the camera center position
-func (s *MiniMapScene) SetCameraCenter(pos references.Position) {
+func (s *Scene) SetCameraCenter(pos references.Position) {
 	s.cameraCenter = pos
 }
 
 // GetAllActors returns a slice of all actors in the scene
-func (s *MiniMapScene) GetAllActors() []*Actor {
+func (s *Scene) GetAllActors() []*Actor {
 	actors := make([]*Actor, 0, len(s.actorOrder))
 	for _, id := range s.actorOrder {
 		if actor := s.actors[id]; actor != nil {

@@ -65,7 +65,7 @@ func TestActorAnimationClockLongIntervalAndNewEpoch(t *testing.T) {
 func TestActorAnimationSurfaceLifecycleOffscreenAndReplacement(t *testing.T) {
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.Britain).WithSystemCallbacks().Build()
 	var reference references.NPCReference
-	reference.SetKeyIndex(indexes.Rat_KeyIndex)
+	reference.SetKeyIndex(indexes.RatKeyIndex)
 	actor := map_units.NewNPCFriendly(reference, 7)
 	actor.SetFloor(state.MapState.PlayerLocation.Floor)
 	units := state.CurrentNPCAIController.GetNpcs()

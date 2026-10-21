@@ -32,10 +32,10 @@ const (
 
 var errReturnViewDataInvalid = errors.New("return to the View data is invalid")
 
-// ReturnViewData contains validated original maps and a typed MiniMapScript.
+// ReturnViewData contains validated original maps and a typed Script.
 type ReturnViewData struct {
 	Maps   map[FrameID]TileMap
-	Script *MiniMapScript
+	Script *Script
 }
 
 // LoadReturnViewData loads and decodes the original attract sequence.
@@ -85,7 +85,7 @@ func decodeReturnViewMaps(data []byte) map[FrameID]TileMap {
 }
 
 //nolint:cyclop,gocognit // Direct, bounds-checked translation of the original 16-opcode RTTV stream.
-func decodeReturnViewScript(data []byte) (*MiniMapScript, error) {
+func decodeReturnViewScript(data []byte) (*Script, error) {
 	builder := NewMiniMapScript("return_to_the_view")
 	commands := make([]TileCommand, 0, len(data)/2)
 	position := 0

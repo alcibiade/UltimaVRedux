@@ -98,7 +98,7 @@ func (g *GameScene) thenHandleMerchantSession(
 		}).If(
 			func() bool { return sessionErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Warn(logging.CategoryConversation, "merchant session unavailable: %v", sessionErr)
+				logging.Warnf(logging.CategoryConversation, "merchant session unavailable: %v", sessionErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog(merchantSessionFeedback(sessionErr)))
 			},
 		).If(
@@ -230,7 +230,7 @@ func (g *GameScene) thenRunArmsShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "Arms shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "Arms shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Arms service is unavailable."))
 			},
 		).While(
@@ -286,7 +286,7 @@ func (g *GameScene) thenRunArmsShopAuthority(
 				}
 				prose, err := g.resolveArmsTradeProse(state, intent)
 				if err != nil {
-					logging.Error(logging.CategoryConversation, "Arms trade prose failed: %v", err)
+					logging.Errorf(logging.CategoryConversation, "Arms trade prose failed: %v", err)
 					dialog.ApplySessionError("The Arms transaction could not be prepared.")
 
 					return
@@ -324,7 +324,7 @@ func (g *GameScene) applyArmsBuyRequest(
 	}
 	result, err := g.gameState.BuyArmsEquipment(session, request)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Arms purchase failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Arms purchase failed: %v", err)
 		switch {
 		case errors.Is(err, game_state.ErrArmsCapacity):
 			g.refreshArmsAfterRefusal(
@@ -344,7 +344,7 @@ func (g *GameScene) applyArmsBuyRequest(
 	g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMerchantTransaction)
 	refreshed, err := g.gameState.GetArmsShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Arms purchase refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Arms purchase refresh failed: %v", err)
 		dialog.ApplySessionError("The Arms ledger could not be refreshed.")
 
 		return
@@ -361,7 +361,7 @@ func (g *GameScene) applyArmsSellRequest(
 ) {
 	result, err := g.gameState.SellArmsEquipment(session, request)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Arms sale failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Arms sale failed: %v", err)
 		switch {
 		case errors.Is(err, game_state.ErrArmsUnsellableAmmunition):
 			dialog.ApplyTerminalRefusal(
@@ -383,7 +383,7 @@ func (g *GameScene) applyArmsSellRequest(
 	g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMerchantTransaction)
 	refreshed, err := g.gameState.GetArmsShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Arms sale refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Arms sale refresh failed: %v", err)
 		dialog.ApplySessionError("The Arms ledger could not be refreshed.")
 
 		return
@@ -400,7 +400,7 @@ func (g *GameScene) refreshArmsAfterRefusal(
 ) {
 	refreshed, err := g.gameState.GetArmsShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Arms refusal refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Arms refusal refresh failed: %v", err)
 		dialog.ApplySessionError("The Arms ledger could not be refreshed.")
 
 		return
@@ -476,7 +476,7 @@ func (g *GameScene) thenRunReagentShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "reagent shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "reagent shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Reagent service is unavailable."))
 			},
 		).While(
@@ -511,7 +511,7 @@ func (g *GameScene) thenRunReagentShopAuthority(
 					}
 					result, err := g.gameState.PurchaseReagentOffer(session, request)
 					if err != nil {
-						logging.Error(logging.CategoryConversation, "reagent purchase failed: %v", err)
+						logging.Errorf(logging.CategoryConversation, "reagent purchase failed: %v", err)
 						dialog.ApplySessionError("The reagent transaction could not be completed.")
 
 						return
@@ -519,7 +519,7 @@ func (g *GameScene) thenRunReagentShopAuthority(
 					g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMerchantTransaction)
 					refreshed, err := g.gameState.GetReagentShopState(session)
 					if err != nil {
-						logging.Error(logging.CategoryConversation, "reagent refresh failed: %v", err)
+						logging.Errorf(logging.CategoryConversation, "reagent refresh failed: %v", err)
 						dialog.ApplySessionError("The reagent ledger could not be refreshed.")
 
 						return
@@ -618,7 +618,7 @@ func (g *GameScene) thenRunHorseShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "horse shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "horse shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Horse service is unavailable."))
 			},
 		).While(
@@ -647,7 +647,7 @@ func (g *GameScene) thenRunHorseShopAuthority(
 					}
 					result, err := g.gameState.PurchaseHorse(session, request)
 					if err != nil {
-						logging.Warn(logging.CategoryConversation, "horse purchase failed: %v", err)
+						logging.Warnf(logging.CategoryConversation, "horse purchase failed: %v", err)
 						switch {
 						case errors.Is(err, game_state.ErrHorseInsufficientFunds):
 							dialog.ApplyFundsRefusal()
@@ -759,7 +759,7 @@ func (g *GameScene) thenRunShipShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "ship shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "ship shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Ship service is unavailable."))
 			},
 		).While(
@@ -832,7 +832,7 @@ func (g *GameScene) handleShipPurchaseDialog(
 	g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMerchantTransaction)
 	refreshed, err := g.gameState.GetShipShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "ship purchase refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "ship purchase refresh failed: %v", err)
 		dialog.ApplySessionError("The shipwright's manifest could not be refreshed.")
 
 		return true
@@ -959,7 +959,7 @@ func (g *GameScene) applyShipPurchaseRefusal(
 	state *game_state.ShipShopState,
 	purchaseErr error,
 ) {
-	logging.Warn(logging.CategoryConversation, "ship purchase refused: %v", purchaseErr)
+	logging.Warnf(logging.CategoryConversation, "ship purchase refused: %v", purchaseErr)
 	if errors.Is(purchaseErr, game_state.ErrShipInsufficientFunds) {
 		dialog.ApplyFundsRefusal(resolveShipFundsRefusalDisplay(prose, *state, request))
 
@@ -967,7 +967,7 @@ func (g *GameScene) applyShipPurchaseRefusal(
 	}
 	refreshed, err := g.gameState.GetShipShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "ship refusal refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "ship refusal refresh failed: %v", err)
 		dialog.ApplySessionError("The shipwright's manifest could not be refreshed.")
 
 		return
@@ -984,10 +984,10 @@ func (g *GameScene) authorizeShipTravel(
 	workflowState *merchantTalkWorkflowState,
 ) bool {
 	if err := g.gameState.RevalidateHarbourTravel(session, review); err != nil {
-		logging.Warn(logging.CategoryConversation, "harbour travel refused: %v", err)
+		logging.Warnf(logging.CategoryConversation, "harbour travel refused: %v", err)
 		refreshed, refreshErr := g.gameState.GetShipShopState(session)
 		if refreshErr != nil {
-			logging.Error(logging.CategoryConversation, "harbour refusal refresh failed: %v", refreshErr)
+			logging.Errorf(logging.CategoryConversation, "harbour refusal refresh failed: %v", refreshErr)
 			dialog.ApplySessionError("The harbour manifest could not be refreshed.")
 
 			return false
@@ -1076,7 +1076,7 @@ func (g *GameScene) thenRunGuildShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "guild shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "guild shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Guild service is unavailable."))
 			},
 		).While(
@@ -1111,7 +1111,7 @@ func (g *GameScene) thenRunGuildShopAuthority(
 					}
 					result, err := g.gameState.PurchaseGuildOffer(session, request)
 					if err != nil {
-						logging.Error(logging.CategoryConversation, "guild purchase failed: %v", err)
+						logging.Errorf(logging.CategoryConversation, "guild purchase failed: %v", err)
 						dialog.ApplySessionError("The guild transaction could not be completed.")
 
 						return
@@ -1119,7 +1119,7 @@ func (g *GameScene) thenRunGuildShopAuthority(
 					g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMerchantTransaction)
 					refreshed, err := g.gameState.GetGuildShopState(session)
 					if err != nil {
-						logging.Error(logging.CategoryConversation, "guild refresh failed: %v", err)
+						logging.Errorf(logging.CategoryConversation, "guild refresh failed: %v", err)
 						dialog.ApplySessionError("The guild ledger could not be refreshed.")
 
 						return
@@ -1217,7 +1217,7 @@ func (g *GameScene) thenRunHealerShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "healer shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "healer shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Healer service is unavailable."))
 			},
 		).While(
@@ -1291,7 +1291,7 @@ func (g *GameScene) commitHealerTreatment(
 	}
 	refreshed, err := g.gameState.GetHealerShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "healer refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "healer refresh failed: %v", err)
 		dialog.ApplySessionError("The healer's records could not be refreshed.")
 
 		return
@@ -1316,7 +1316,7 @@ func (g *GameScene) applyHealerAllService(
 	}
 	refreshed, err := g.gameState.GetHealerShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "aggregate healer refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "aggregate healer refresh failed: %v", err)
 		dialog.ApplySessionError("The healer's records could not be refreshed.")
 
 		return
@@ -1334,7 +1334,7 @@ func (g *GameScene) applyHealerRefusal(
 	state *game_state.HealerShopState,
 	serviceErr error,
 ) {
-	logging.Warn(logging.CategoryConversation, "healer service refused: %v", serviceErr)
+	logging.Warnf(logging.CategoryConversation, "healer service refused: %v", serviceErr)
 	if !errors.Is(serviceErr, game_state.ErrHealerServiceUnneeded) &&
 		!errors.Is(serviceErr, game_state.ErrHealerInsufficientFunds) {
 		dialog.ApplySessionError("The healer service could not be completed.")
@@ -1343,7 +1343,7 @@ func (g *GameScene) applyHealerRefusal(
 	}
 	refreshed, err := g.gameState.GetHealerShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "healer refusal refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "healer refusal refresh failed: %v", err)
 		dialog.ApplySessionError("The healer's records could not be refreshed.")
 
 		return
@@ -1462,7 +1462,7 @@ func (g *GameScene) thenRunInnShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "Inn shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "Inn shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Inn service is unavailable."))
 			},
 		).While(
@@ -1550,7 +1550,7 @@ func (g *GameScene) commitInnRest(
 ) (string, bool) {
 	result, err := g.gameState.RestAtInn(session, request.Rest)
 	if err != nil {
-		logging.Warn(logging.CategoryConversation, "Inn Rest refused: %v", err)
+		logging.Warnf(logging.CategoryConversation, "Inn Rest refused: %v", err)
 		if errors.Is(err, game_state.ErrInnRestUnavailable) {
 			dialog.ApplySessionError(prose.restFundsRefusal)
 			dialog.Dismiss()
@@ -1590,7 +1590,7 @@ func (g *GameScene) commitInnRest(
 	}
 	refreshedReview, err := g.gameState.ReviewInnShopByMerchantID(state.Merchant.ID)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Inn Rest refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Inn Rest refresh failed: %v", err)
 		g.gameState.SystemCallbacks.Visual.SetMapFadeLevel(0)
 		dialog.ApplySessionError("The Inn register could not be refreshed.")
 
@@ -1638,7 +1638,7 @@ func (g *GameScene) commitInnLeave(
 ) {
 	result, err := g.gameState.LeaveCompanionAtInn(session, request.Leave)
 	if err != nil {
-		logging.Warn(logging.CategoryConversation, "Inn Leave failed: %v", err)
+		logging.Warnf(logging.CategoryConversation, "Inn Leave failed: %v", err)
 		dialog.ApplySessionError("The companion could not be left at this Inn.")
 
 		return
@@ -1667,7 +1667,7 @@ func (g *GameScene) commitInnPickup(
 ) string {
 	result, err := g.gameState.PickUpInnGuest(session, request.Pickup)
 	if err != nil {
-		logging.Warn(logging.CategoryConversation, "Inn Pick Up failed: %v", err)
+		logging.Warnf(logging.CategoryConversation, "Inn Pick Up failed: %v", err)
 		dialog.ApplySessionError("The guest could not be picked up from this Inn.")
 
 		return ""

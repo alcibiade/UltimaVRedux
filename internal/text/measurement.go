@@ -6,8 +6,8 @@ import (
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
-// TextMeasurement holds the measured dimensions of text content
-type TextMeasurement struct {
+// Measurement holds the measured dimensions of text content
+type Measurement struct {
 	Lines        int     // Number of lines (after wrapping/newlines)
 	MaxLineWidth float64 // Width of longest line in pixels
 	MaxLineChars int     // Character count of longest line
@@ -17,7 +17,7 @@ type TextMeasurement struct {
 // MeasureText analyzes text content and returns dimension requirements.
 // If maxCharsPerLine > 0, text will be wrapped at word boundaries.
 // If maxCharsPerLine == 0, no wrapping is applied (only explicit newlines).
-func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPerLine int) TextMeasurement {
+func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPerLine int) Measurement {
 	// Split by explicit newlines first
 	explicitLines := strings.Split(text, "\n")
 	if len(explicitLines) > 0 && explicitLines[len(explicitLines)-1] == "" {
@@ -52,7 +52,7 @@ func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPer
 		}
 	}
 
-	return TextMeasurement{
+	return Measurement{
 		Lines:        len(allLines),
 		MaxLineWidth: maxWidth,
 		MaxLineChars: maxChars,
@@ -62,7 +62,7 @@ func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPer
 
 // MeasureTextUnwrapped measures text without any wrapping.
 // Only explicit newlines create new lines.
-func MeasureTextUnwrapped(text string, font *UltimaFont, lineSpacing float64) TextMeasurement {
+func MeasureTextUnwrapped(text string, font *UltimaFont, lineSpacing float64) Measurement {
 	return MeasureText(text, font, lineSpacing, 0)
 }
 

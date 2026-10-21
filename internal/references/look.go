@@ -25,7 +25,7 @@ func NewLookReferences(gameConfig *config.UltimaVConfiguration) (*LookReferences
 	lookRefs.GameConfig = gameConfig
 
 	lookDataPath := gameConfig.GetLookDataFilePath()
-	logging.Info(logging.CategorySystem, "Look data file path: %s", lookDataPath)
+	logging.Infof(logging.CategorySystem, "Look data file path: %s", lookDataPath)
 	var err error
 	lookRefs.LookData, err = lookRefs.getLookFileAsBytes()
 	if err != nil {

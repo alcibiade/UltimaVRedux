@@ -387,7 +387,7 @@ func zStatsEquipmentAbilities(equipment references.Equipment) []string {
 }
 
 func zStatsGenderName(gender party_state.CharacterGender) string {
-	if entry := party_state.CharacterGenders.GetById(gender); entry != nil {
+	if entry := party_state.CharacterGenders.GetByID(gender); entry != nil {
 		return entry.FriendlyName
 	}
 
@@ -395,7 +395,7 @@ func zStatsGenderName(gender party_state.CharacterGender) string {
 }
 
 func zStatsStatusName(status party_state.CharacterStatus) string {
-	if entry := party_state.CharacterStatuses.GetById(status); entry != nil {
+	if entry := party_state.CharacterStatuses.GetByID(status); entry != nil {
 		return entry.FriendlyName
 	}
 

@@ -11,11 +11,11 @@ import (
 // - Must be outdoor camping (not dungeon)
 // - 25% chance (or forced)
 func (g *GameState) CheckForWandererAppearance(forceWanderer bool) bool {
-	logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: Starting check - forceWanderer=%t", forceWanderer)
+	logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: Starting check - forceWanderer=%t", forceWanderer)
 
 	// Force wanderer for debug/testing
 	if forceWanderer {
-		logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: Force wanderer enabled - returning true")
+		logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: Force wanderer enabled - returning true")
 
 		return true
 	}
@@ -23,9 +23,9 @@ func (g *GameState) CheckForWandererAppearance(forceWanderer bool) bool {
 	// Check if outdoor camping (not dungeon)
 	currentLocation := g.MapState.PlayerLocation.Location
 	mapType := currentLocation.GetMapType()
-	logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: Location=%v, MapType=%v", currentLocation, mapType)
+	logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: Location=%v, MapType=%v", currentLocation, mapType)
 	if mapType == references.DungeonMapType {
-		logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: In dungeon - wanderer will not appear")
+		logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: In dungeon - wanderer will not appear")
 
 		return false
 	}
@@ -33,12 +33,12 @@ func (g *GameState) CheckForWandererAppearance(forceWanderer bool) bool {
 	// Camp restoration uses random(0,99) < 25 after ordinary camp restoration.
 	// See ref:PROGRESS-0003.
 	randomResult := g.RandomIntInRange(0, 99) < 25
-	logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: Random d100 check result=%t", randomResult)
+	logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: Random d100 check result=%t", randomResult)
 
 	if randomResult {
-		logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: All conditions met - wanderer will appear!")
+		logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: All conditions met - wanderer will appear!")
 	} else {
-		logging.Debug(logging.CategoryGameState, "CheckForWandererAppearance: Random chance failed - wanderer will not appear")
+		logging.Debugf(logging.CategoryGameState, "CheckForWandererAppearance: Random chance failed - wanderer will not appear")
 	}
 
 	return randomResult

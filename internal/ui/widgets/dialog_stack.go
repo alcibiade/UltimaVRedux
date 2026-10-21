@@ -31,10 +31,10 @@ type DialogStack struct {
 func (d *DialogStack) PushModalDialog(dialog Widget) {
 	d.mustNotContain(dialog)
 	previousModal := d.PeekTopModalDialog()
-	logging.Info(logging.CategoryUI, "PushModalDialog called, stack size before: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushModalDialog called, stack size before: %d", len(d.entries))
 	d.entries = append(d.entries, dialogEntry{widget: dialog, isModal: true})
 	d.updateModalFocus(previousModal, dialog)
-	logging.Info(logging.CategoryUI, "PushModalDialog completed, stack size after: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushModalDialog completed, stack size after: %d", len(d.entries))
 }
 
 // PushNonBlockingDialog adds a non-blocking dialog to the stack.
@@ -42,9 +42,9 @@ func (d *DialogStack) PushModalDialog(dialog Widget) {
 // Use this for action feedback popups and other informational displays that shouldn't interrupt gameplay.
 func (d *DialogStack) PushNonBlockingDialog(dialog Widget) {
 	d.mustNotContain(dialog)
-	logging.Info(logging.CategoryUI, "PushNonBlockingDialog called, stack size before: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushNonBlockingDialog called, stack size before: %d", len(d.entries))
 	d.entries = append(d.entries, dialogEntry{widget: dialog, isModal: false})
-	logging.Info(logging.CategoryUI, "PushNonBlockingDialog completed, stack size after: %d", len(d.entries))
+	logging.Infof(logging.CategoryUI, "PushNonBlockingDialog completed, stack size after: %d", len(d.entries))
 }
 
 // PeekTopModalDialog returns the highest input-blocking dialog without removing it.
@@ -88,7 +88,7 @@ func (d *DialogStack) GetOrAssertTopInputBox() *InputBox {
 	inputBox, ok := top.(*InputBox)
 
 	if !ok {
-		logging.Warn(logging.CategoryUI, "Expected InputBox on dialog stack but found different type, returning nil")
+		logging.Warnf(logging.CategoryUI, "Expected InputBox on dialog stack but found different type, returning nil")
 
 		return nil // Graceful degradation instead of crash
 	}
@@ -106,14 +106,14 @@ func (d *DialogStack) RemoveWidgetInstance(widget Widget) bool {
 			previousModal := d.PeekTopModalDialog()
 			d.entries = append(d.entries[:index], d.entries[index+1:]...)
 			d.updateModalFocus(previousModal, d.PeekTopModalDialog())
-			logging.Debug(logging.CategoryUI,
+			logging.Debugf(logging.CategoryUI,
 				"RemoveWidgetInstance: Removed widget at index %d, stack size now: %d", index, len(d.entries))
 
 			return true
 		}
 	}
 
-	logging.Debug(logging.CategoryUI, "RemoveWidgetInstance: Widget not found in stack (already removed or never added)")
+	logging.Debugf(logging.CategoryUI, "RemoveWidgetInstance: Widget not found in stack (already removed or never added)")
 
 	return false
 }

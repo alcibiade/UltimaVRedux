@@ -72,7 +72,7 @@ func (gs *GameState) StartMoongateTransitionWorkflow() {
 	}
 
 	growing := gs.desiredMoongateStage() > gs.moongateStage
-	logging.Debug(logging.CategoryMoongate, "Starting moongate stage transition - stage=%d growing=%v", gs.moongateStage, growing)
+	logging.Debugf(logging.CategoryMoongate, "Starting moongate stage transition - stage=%d growing=%v", gs.moongateStage, growing)
 	gs.EventQueueManager.Workflow(moongateTransitionWorkflow).
 		Priority(event_queue.PriorityHigh).
 		Sequential().
@@ -98,7 +98,7 @@ func (gs *GameState) StartMoongateTransitionWorkflow() {
 			moongateStageStepMs,
 		).
 		Finally(func() {
-			logging.Debug(logging.CategoryMoongate, "Moongate stage transition complete - stage=%d", gs.moongateStage)
+			logging.Debugf(logging.CategoryMoongate, "Moongate stage transition complete - stage=%d", gs.moongateStage)
 		}).
 		Start()
 }

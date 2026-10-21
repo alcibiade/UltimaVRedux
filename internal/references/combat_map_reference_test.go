@@ -41,7 +41,7 @@ func TestLoadCombatMapParsesOriginalMonsterPositionLayout(t *testing.T) {
 	data[3*CombatMapBytesPerRow+2] = 0x7f
 
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.BRIT_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.BritCbt), data, 0o600))
 
 	combatMap, err := LoadCombatMap(0, BritanniaCombatTerritory, combatMapTestConfig(dataPath))
 	require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestLoadCombatMapParsesFixedDungeonRoomEntityDescriptors(t *testing.T) {
 		data[DungeonEntityRow*CombatMapBytesPerRow+DungeonEntityOffset+slot] = byte(slot + 1)
 	}
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 
 	combatMap, err := LoadCombatMap(0, DungeonCombatTerritory, combatMapTestConfig(dataPath))
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestLoadCombatMapParsesAllDungeonTriggerSlotsFromExactOffsets(t *testing.T)
 		setDungeonTriggerSlot(data, slotIndex, want[slotIndex])
 	}
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 
 	combatMap, err := LoadCombatMap(0, DungeonCombatTerritory, combatMapTestConfig(dataPath))
 	require.NoError(t, err)
@@ -115,7 +115,7 @@ func TestCombatMapTriggerSlotsAreAbsentWithoutDungeonCBTParsing(t *testing.T) {
 
 	dataPath := t.TempDir()
 	require.NoError(t, os.WriteFile(
-		filepath.Join(dataPath, files.BRIT_CBT),
+		filepath.Join(dataPath, files.BritCbt),
 		make([]byte, CombatMapDataSize),
 		0o600,
 	))
@@ -165,7 +165,7 @@ func TestResolveDungeonTriggerConsumesDuplicatesAndAppliesDestinationsInSlotOrde
 		},
 	})
 	dataPath := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DUNGEON_CBT), data, 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dataPath, files.DungeonCbt), data, 0o600))
 	combatMap, err := LoadCombatMap(0, DungeonCombatTerritory, combatMapTestConfig(dataPath))
 	require.NoError(t, err)
 
@@ -212,7 +212,7 @@ func TestLoadCombatMapMonsterPositionsMatchOriginalData(t *testing.T) {
 	t.Parallel()
 
 	dataPath := combatTestDataPath(t)
-	data, err := os.ReadFile(filepath.Join(dataPath, files.BRIT_CBT))
+	data, err := os.ReadFile(filepath.Join(dataPath, files.BritCbt))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(data), TotalCombatMaps*CombatMapDataSize)
 
@@ -236,7 +236,7 @@ func TestLoadDungeonCombatMapEntitiesMatchOriginalData(t *testing.T) {
 	t.Parallel()
 
 	dataPath := dungeonCombatTestDataPath(t)
-	data, err := os.ReadFile(filepath.Join(dataPath, files.DUNGEON_CBT))
+	data, err := os.ReadFile(filepath.Join(dataPath, files.DungeonCbt))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(data), (MaxDungeonLinearIndex+1)*CombatMapDataSize)
 
@@ -255,7 +255,7 @@ func TestLoadDungeonCombatMapTriggersMatchOriginalData(t *testing.T) {
 	t.Parallel()
 
 	dataPath := dungeonCombatTestDataPath(t)
-	data, err := os.ReadFile(filepath.Join(dataPath, files.DUNGEON_CBT))
+	data, err := os.ReadFile(filepath.Join(dataPath, files.DungeonCbt))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(data), (MaxDungeonLinearIndex+1)*CombatMapDataSize)
 
@@ -300,11 +300,11 @@ func combatMapTestConfig(dataPath string) *config.UltimaVConfiguration {
 }
 
 func combatTestDataPath(t *testing.T) string {
-	return combatDataFilePath(t, files.BRIT_CBT)
+	return combatDataFilePath(t, files.BritCbt)
 }
 
 func dungeonCombatTestDataPath(t *testing.T) string {
-	return combatDataFilePath(t, files.DUNGEON_CBT)
+	return combatDataFilePath(t, files.DungeonCbt)
 }
 
 func combatDataFilePath(t *testing.T, filename string) string {

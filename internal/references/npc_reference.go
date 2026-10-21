@@ -131,7 +131,7 @@ func (n *NPCReference) IsEmptyNPC() bool {
 func (n *NPCReference) GetNPCType() NPCType {
 	tileIndex := n.GetSpriteIndex()
 
-	if tileIndex.IsPartOfAnimation(indexes.Guard_KeyIndex) {
+	if tileIndex.IsPartOfAnimation(indexes.GuardKeyIndex) {
 		return Guard
 	}
 	if isDaemonSprite(tileIndex) {
@@ -161,16 +161,16 @@ func (n *NPCReference) GetNPCType() NPCType {
 }
 
 func isDaemonSprite(sprite indexes.SpriteIndex) bool {
-	return sprite >= indexes.Daemon_KeyIndex &&
-		sprite < indexes.Daemon_KeyIndex+indexes.StandardNumberOfAnimationFrames
+	return sprite >= indexes.DaemonKeyIndex &&
+		sprite < indexes.DaemonKeyIndex+indexes.StandardNumberOfAnimationFrames
 }
 
 func (n *NPCReference) WantsToAttackAvatarWhenBadStuffGoesDown() bool {
 	spriteIndex := n.GetSpriteIndex()
 
-	return spriteIndex.IsPartOfAnimation(indexes.Guard_KeyIndex) ||
-		spriteIndex.IsPartOfAnimation(indexes.Daemon_KeyIndex) ||
-		spriteIndex.IsPartOfAnimation(indexes.ShadowLord_KeyIndex)
+	return spriteIndex.IsPartOfAnimation(indexes.GuardKeyIndex) ||
+		spriteIndex.IsPartOfAnimation(indexes.DaemonKeyIndex) ||
+		spriteIndex.IsPartOfAnimation(indexes.ShadowLordKeyIndex)
 }
 
 // IsBeggar returns true if this NPC is a beggar based on their sprite.

@@ -44,7 +44,7 @@ func (g *GameScene) startDungeonHoleUpWorkflow(token game_state.DungeonCommandCy
 				var err error
 				scene, plan, err = g.gameState.PrepareDungeonCampingPlan(hours, guardIndex, token)
 				if err != nil {
-					logging.Error(logging.CategoryGameState, "Unable to prepare dungeon camping: %v", err)
+					logging.Errorf(logging.CategoryGameState, "Unable to prepare dungeon camping: %v", err)
 					g.gameState.SystemCallbacks.UI.ShowActionFeedback("Camping could not begin.", true)
 
 					return

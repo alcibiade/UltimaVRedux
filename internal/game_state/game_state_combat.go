@@ -325,7 +325,7 @@ func NewCombatState(
 		EntityIndex:   combatState.CurrentTurnIndex,
 	}
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Created CombatState: map=%q entry=%d activeMembers=%v firstTurn=%d",
 		combatMapRef.MapName, entryDir, combatState.PartyActive, combatState.CurrentTurnIndex)
 
@@ -744,7 +744,7 @@ func (combatState *CombatState) AdvanceTurn() int {
 	nextIndex := combatState.findNextActiveIndex(combatState.CurrentTurnIndex + 1)
 	combatState.CurrentTurnIndex = nextIndex
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat turn advanced to party member %d", combatState.CurrentTurnIndex)
 
 	return combatState.CurrentTurnIndex
@@ -986,7 +986,7 @@ const combatVictoryExitFadeMs int64 = 750
 // TransitionFromCombatMap clears combat mode and returns to the pre-combat map
 func (g *GameState) TransitionFromCombatMap() {
 	if g.CombatScene == nil {
-		logging.Warn(logging.CategoryGameState,
+		logging.Warnf(logging.CategoryGameState,
 			"TransitionFromCombatMap called with no active combat")
 
 		return
@@ -1020,14 +1020,14 @@ func (g *GameState) TransitionFromCombatMap() {
 	g.restorePreCombatActivePlayer(activePlayerIndex)
 	g.SystemCallbacks.Screen.UpdateDisplay()
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Transitioned from combat map %q back to normal view", combatMapName)
 }
 
 // EndCombat restores the pre-combat map and resolves normal-play encounter origin state.
 func (g *GameState) EndCombat(reason CombatEndReason) {
 	if g.CombatScene == nil {
-		logging.Warn(logging.CategoryGameState, "EndCombat called with no active combat")
+		logging.Warnf(logging.CategoryGameState, "EndCombat called with no active combat")
 
 		return
 	}
@@ -1228,7 +1228,7 @@ func (g *GameState) MoveCombatCharacter(direction references.Direction) CombatMo
 
 	// NOTE: Camera stays fixed at center (5,5) - do NOT update PlayerLocation.Position
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat character %d moved %s to (%d,%d)",
 		turnIdx, direction.GetDirectionCompassName(), newPos.X, newPos.Y)
 
@@ -1301,7 +1301,7 @@ func (g *GameState) departPCFromCombat(identity CombatTurnIdentity) {
 		},
 	})
 
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"PC %d/%d (%s) departed combat, route=%d monstersRemaining=%d",
 		pcIndex, identity.Slot, pcName, g.CombatScene.ExitRoute, monsterCount)
 }
@@ -1401,7 +1401,7 @@ func (g *GameState) checkCombatEndConditions() CombatEndReason {
 	if monsterCount == 0 && pcCount > 0 {
 		// All hostile monsters dead — victory
 		g.CombatScene.Victory = true
-		logging.Info(logging.CategoryGameState,
+		logging.Infof(logging.CategoryGameState,
 			"Combat victory: all monsters defeated, %d PCs remain", pcCount)
 		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Outcome has no actor or target.
 			Kind: CombatEventVictory,
@@ -1413,7 +1413,7 @@ func (g *GameState) checkCombatEndConditions() CombatEndReason {
 	if pcCount == 0 && monsterCount > 0 {
 		// All PCs dead or fled with monsters remaining — defeat
 		g.SystemCallbacks.Message.AddRowStr("BATTLE IS LOST!")
-		logging.Info(logging.CategoryGameState,
+		logging.Infof(logging.CategoryGameState,
 			"Combat defeat: no PCs remain, %d monsters left", monsterCount)
 		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Outcome has no actor or target.
 			Kind: CombatEventDefeat,
@@ -1425,14 +1425,14 @@ func (g *GameState) checkCombatEndConditions() CombatEndReason {
 
 	if pcCount == 0 && monsterCount == 0 {
 		if g.CombatScene.ExitRoute == CombatExitDoomMirror && g.CombatScene.isVerifiedDoomFinalRoom() {
-			logging.Info(logging.CategoryGameState,
+			logging.Infof(logging.CategoryGameState,
 				"Combat victory: final Doom mirror absorption completed")
 			g.EndCombat(CombatVictory)
 
 			return CombatVictory
 		}
 		// Everyone gone (all PCs fled, no monsters)
-		logging.Info(logging.CategoryGameState,
+		logging.Infof(logging.CategoryGameState,
 			"Combat evacuated: no combatants remain on either side")
 		g.EndCombat(CombatEvacuated)
 
@@ -1627,7 +1627,7 @@ func (g *GameState) AdvanceCombatTurn() {
 			}
 			g.resolveCombatControlledEndAction(identity)
 			g.resolveCombatActorStandingEffects(identity)
-			logging.Debug(logging.CategoryGameState,
+			logging.Debugf(logging.CategoryGameState,
 				"AdvanceCombatTurn: solo mode auto-pass actor %+v (active=%d)",
 				identity, g.CombatScene.GetSoloMoveCharacter())
 			// Player action immediately ends non-selected friendly turns.
@@ -1709,7 +1709,7 @@ func (g *GameState) AdvanceCombatTurn() {
 		g.SystemCallbacks.Message.AddRowStr(prompt)
 		g.SystemCallbacks.Message.ShowCommandPrompt("")
 
-		logging.Debug(logging.CategoryGameState,
+		logging.Debugf(logging.CategoryGameState,
 			"AdvanceCombatTurn: PC %d's turn at (%d,%d)",
 			entry.EntityIndex,
 			g.CombatScene.GetPartyMemberPosition(entry.EntityIndex).X,
@@ -1918,7 +1918,7 @@ func (g *GameState) advanceCombatQueueTime() {
 	}
 
 	elapsed := g.AdvanceGameplayMinutes(CombatTimeAdvanceMinutes)
-	logging.Debug(logging.CategoryGameState,
+	logging.Debugf(logging.CategoryGameState,
 		"Combat time advanced by %d minute(s) after %d scheduled actions",
 		elapsed, actionsPerTimeAdvance)
 }

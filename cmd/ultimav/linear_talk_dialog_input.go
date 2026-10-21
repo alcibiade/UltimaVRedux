@@ -36,12 +36,12 @@ func (d *LinearTalkDialog) Update() {
 			if d.gameScene.keyboard.IsWaitingForRelease() {
 				return // Still waiting for keys to release
 			}
-			logging.Debug(logging.CategoryUI, "All keys released, ready for KeyWait keypress")
+			logging.Debugf(logging.CategoryUI, "All keys released, ready for KeyWait keypress")
 		}
 
 		// Phase 2: Detect NEW keypress (after all initial keys released)
 		if d.gameScene.keyboard.IsAnyKeyPressed() {
-			logging.Debug(logging.CategoryUI, "New keypress detected in KeyWait state, continuing conversation")
+			logging.Debugf(logging.CategoryUI, "New keypress detected in KeyWait state, continuing conversation")
 
 			// Mark all currently pressed keys as consumed to prevent bleeding to underlying systems
 			d.consumeCurrentlyPressedKeys()
@@ -70,12 +70,12 @@ func (d *LinearTalkDialog) Update() {
 			if d.gameScene.keyboard.IsWaitingForRelease() {
 				return // Still waiting for keys to release
 			}
-			logging.Debug(logging.CategoryUI, "All keys released, ready for new keypress")
+			logging.Debugf(logging.CategoryUI, "All keys released, ready for new keypress")
 		}
 
 		// Phase 2: Detect NEW keypress (after all initial keys released)
 		if d.gameScene.keyboard.IsAnyKeyPressed() {
-			logging.Debug(logging.CategoryUI, "New keypress detected in dismissal state, closing dialog")
+			logging.Debugf(logging.CategoryUI, "New keypress detected in dismissal state, closing dialog")
 
 			// Mark all currently pressed keys as consumed to prevent bleeding to underlying input handlers.
 			d.consumeCurrentlyPressedKeys()

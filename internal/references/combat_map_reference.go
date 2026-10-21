@@ -283,7 +283,7 @@ func LoadCombatMap(mapIndex int, territory CombatMapTerritory, gameConfig *confi
 		cmr.dungeonTriggerSlots = triggerSlots
 	}
 
-	logging.Debug(logging.CategorySystem, "Loaded combat map %d from %s", mapIndex, cbtFile)
+	logging.Debugf(logging.CategorySystem, "Loaded combat map %d from %s", mapIndex, cbtFile)
 
 	return cmr, nil
 }

@@ -194,9 +194,9 @@ func (ls *LighthouseState) SetPositions(positions []references.Position) {
 	}
 
 	// Debug logging to verify lighthouse detection
-	logging.Debug(logging.CategoryLighthouse, "SetPositions: %d lighthouse(s) set", len(ls.positions))
+	logging.Debugf(logging.CategoryLighthouse, "SetPositions: %d lighthouse(s) set", len(ls.positions))
 	for i, pos := range ls.positions {
-		logging.Debug(logging.CategoryLighthouse, "  Lighthouse %d at (%d, %d)", i+1, pos.X, pos.Y)
+		logging.Debugf(logging.CategoryLighthouse, "  Lighthouse %d at (%d, %d)", i+1, pos.X, pos.Y)
 	}
 }
 

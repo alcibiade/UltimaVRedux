@@ -280,15 +280,15 @@ func (d *ConfigurationDialog) previewAudioChanges() {
 
 	// Apply volume changes to the audio system in real-time
 	if err := d.audioManager.SetMusicVolume(musicVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to set music volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to set music volume: %v", err)
 	}
 
 	if err := d.audioManager.SetSoundEffectVolume(sfxVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to set sound effect volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to set sound effect volume: %v", err)
 	}
 
 	if err := d.audioManager.SetAmbientVolume(ambientVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to set ambient volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to set ambient volume: %v", err)
 	}
 }
 
@@ -305,15 +305,15 @@ func (d *ConfigurationDialog) revertAudioSettings() {
 
 	// Apply original settings
 	if err := d.audioManager.SetMusicVolume(musicVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to revert music volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to revert music volume: %v", err)
 	}
 
 	if err := d.audioManager.SetSoundEffectVolume(sfxVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to revert sound effect volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to revert sound effect volume: %v", err)
 	}
 
 	if err := d.audioManager.SetAmbientVolume(ambientVolume); err != nil {
-		logging.Warn(logging.CategoryAudio, "Failed to revert ambient volume: %v", err)
+		logging.Warnf(logging.CategoryAudio, "Failed to revert ambient volume: %v", err)
 	}
 }
 
@@ -351,7 +351,7 @@ func (d *ConfigurationDialog) persistConfiguration() bool {
 		Gameplay: d.stagedGameplay,
 	}); err != nil {
 		d.saveError = "Could not save configuration."
-		logging.Warn(logging.CategoryConfig, "Failed to save player configuration: %v", err)
+		logging.Warnf(logging.CategoryConfig, "Failed to save player configuration: %v", err)
 
 		return false
 	}

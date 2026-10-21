@@ -1916,7 +1916,7 @@ func newActiveCharacterResult(character game_state.ActiveCharacterSnapshot) acti
 }
 
 func characterStatusName(status party_state.CharacterStatus) string {
-	entry := party_state.CharacterStatuses.GetById(status)
+	entry := party_state.CharacterStatuses.GetByID(status)
 	if entry == nil {
 		return "Unrecognized status"
 	}

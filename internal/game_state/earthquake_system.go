@@ -49,7 +49,7 @@ func (e *EarthquakeSystem) CheckForRandomEarthquake(
 		return EarthquakeResult{}, false
 	}
 
-	logging.Debug(logging.CategoryGameState, "Underworld earthquake triggered!")
+	logging.Debugf(logging.CategoryGameState, "Underworld earthquake triggered!")
 
 	return e.triggerEarthquake(partyState), true
 }

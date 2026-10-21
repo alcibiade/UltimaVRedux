@@ -25,7 +25,7 @@ type TileEffectState struct {
 }
 
 // RegisterTileMap adds immutable source terrain to the scene.
-func (s *MiniMapScene) RegisterTileMap(mapID FrameID, tileMap TileMap) error {
+func (s *Scene) RegisterTileMap(mapID FrameID, tileMap TileMap) error {
 	if mapID == "" || tileMap.Width <= 0 || tileMap.Height <= 0 || len(tileMap.Tiles) != tileMap.Width*tileMap.Height {
 		return fmt.Errorf("%w: map %q has invalid dimensions or tile count", errTileMapInvalid, mapID)
 	}
@@ -37,19 +37,19 @@ func (s *MiniMapScene) RegisterTileMap(mapID FrameID, tileMap TileMap) error {
 }
 
 // CurrentTileMap returns the active map ID and its source metadata.
-func (s *MiniMapScene) CurrentTileMap() (FrameID, TileMap, bool) {
+func (s *Scene) CurrentTileMap() (FrameID, TileMap, bool) {
 	tileMap, ok := s.tileMaps[s.currentMap]
 
 	return s.currentMap, tileMap, ok
 }
 
 // TileDimensions returns the active presentation map dimensions.
-func (s *MiniMapScene) TileDimensions() (int, int) {
+func (s *Scene) TileDimensions() (int, int) {
 	return s.mapWidth, s.mapHeight
 }
 
 // TileAt returns current mutable terrain.
-func (s *MiniMapScene) TileAt(position references.Position) indexes.SpriteIndex {
+func (s *Scene) TileAt(position references.Position) indexes.SpriteIndex {
 	if !s.validTilePosition(position) {
 		return 0
 	}
@@ -58,16 +58,16 @@ func (s *MiniMapScene) TileAt(position references.Position) indexes.SpriteIndex 
 }
 
 // IsColumnRevealed reports whether the current center-out map transition has exposed a column.
-func (s *MiniMapScene) IsColumnRevealed(x int) bool {
+func (s *Scene) IsColumnRevealed(x int) bool {
 	return x >= s.revealMinX && x <= s.revealMaxX
 }
 
 // ActiveTileEffect returns the current effect, if any.
-func (s *MiniMapScene) ActiveTileEffect() *TileEffectState {
+func (s *Scene) ActiveTileEffect() *TileEffectState {
 	return s.tileEffect
 }
 
-func (s *MiniMapScene) applyTileCommand(command *TileCommand) {
+func (s *Scene) applyTileCommand(command *TileCommand) {
 	switch command.Type {
 	case TileCommandSetMap:
 		s.setTileMap(command.MapID)
@@ -91,7 +91,7 @@ func (s *MiniMapScene) applyTileCommand(command *TileCommand) {
 	}
 }
 
-func (s *MiniMapScene) startTileEffect(command *TileCommand) {
+func (s *Scene) startTileEffect(command *TileCommand) {
 	if command.Type == TileCommandDropGate {
 		s.setTile(command.Position, indexes.Grass)
 	}
@@ -99,7 +99,7 @@ func (s *MiniMapScene) startTileEffect(command *TileCommand) {
 	s.tileEffect = &TileEffectState{Command: *command, Progress: 0}
 }
 
-func (s *MiniMapScene) updateTileCommand(command *TileCommand, elapsedMs int) {
+func (s *Scene) updateTileCommand(command *TileCommand, elapsedMs int) {
 	if command.Cycles > 0 && command.CycleMs > 0 {
 		targetCycles := min(elapsedMs/command.CycleMs, command.Cycles)
 		for s.commandCycles < targetCycles {
@@ -115,7 +115,7 @@ func (s *MiniMapScene) updateTileCommand(command *TileCommand, elapsedMs int) {
 	}
 }
 
-func (s *MiniMapScene) finishTileCommand(command *TileCommand) {
+func (s *Scene) finishTileCommand(command *TileCommand) {
 	switch command.Type {
 	case TileCommandRaiseGate:
 		s.setTile(command.Position, indexes.Moongate)
@@ -130,10 +130,10 @@ func (s *MiniMapScene) finishTileCommand(command *TileCommand) {
 	s.tileEffect = nil
 }
 
-func (s *MiniMapScene) setTileMap(id FrameID) {
+func (s *Scene) setTileMap(id FrameID) {
 	tileMap, ok := s.tileMaps[id]
 	if !ok {
-		panic(fmt.Sprintf("MiniMapScene: unknown tile map %q", id))
+		panic(fmt.Sprintf("minimap.Scene: unknown tile map %q", id))
 	}
 	s.currentMap = id
 	s.mapWidth, s.mapHeight = tileMap.Width, tileMap.Height
@@ -145,18 +145,18 @@ func (s *MiniMapScene) setTileMap(id FrameID) {
 	s.commandCycles = 0
 }
 
-func (s *MiniMapScene) setTile(position references.Position, sprite indexes.SpriteIndex) {
+func (s *Scene) setTile(position references.Position, sprite indexes.SpriteIndex) {
 	if s.validTilePosition(position) {
 		s.tiles[int(position.Y)*s.mapWidth+int(position.X)] = sprite
 	}
 }
 
-func (s *MiniMapScene) validTilePosition(position references.Position) bool {
+func (s *Scene) validTilePosition(position references.Position) bool {
 	return int(position.X) >= 0 && int(position.X) < s.mapWidth &&
 		int(position.Y) >= 0 && int(position.Y) < s.mapHeight
 }
 
-func (s *MiniMapScene) moveActor(id ActorID, direction references.Direction) {
+func (s *Scene) moveActor(id ActorID, direction references.Direction) {
 	actor := s.actors[id]
 	if actor == nil {
 		return
@@ -174,7 +174,7 @@ func (s *MiniMapScene) moveActor(id ActorID, direction references.Direction) {
 	}
 }
 
-func (s *MiniMapScene) removeActor(actorID ActorID) {
+func (s *Scene) removeActor(actorID ActorID) {
 	delete(s.actors, actorID)
 	for index, orderedID := range s.actorOrder {
 		if orderedID == actorID {
@@ -185,12 +185,12 @@ func (s *MiniMapScene) removeActor(actorID ActorID) {
 	}
 }
 
-func (s *MiniMapScene) clearActors() {
+func (s *Scene) clearActors() {
 	s.actors = make(map[ActorID]*Actor)
 	s.actorOrder = s.actorOrder[:0]
 }
 
-func (s *MiniMapScene) advanceReveal() {
+func (s *Scene) advanceReveal() {
 	if s.revealMinX == 0 && s.revealMaxX == s.mapWidth-1 {
 		return
 	}

@@ -25,13 +25,13 @@ func TestAnimationDeterminism(t *testing.T) {
 	}{
 		{
 			name:        "Waterfall animation",
-			spriteIndex: indexes.Waterfall_KeyIndex,
+			spriteIndex: indexes.WaterfallKeyIndex,
 			posHash:     123,
 			elapsedMs:   1000,
 		},
 		{
 			name:        "Fountain animation",
-			spriteIndex: indexes.Fountain_KeyIndex,
+			spriteIndex: indexes.FountainKeyIndex,
 			posHash:     456,
 			elapsedMs:   2000,
 		},
@@ -80,13 +80,13 @@ func TestAnimationProgression(t *testing.T) {
 	}{
 		{
 			name:        "Waterfall progression",
-			spriteIndex: indexes.Waterfall_KeyIndex,
+			spriteIndex: indexes.WaterfallKeyIndex,
 			posHash:     0,
 			frameMs:     msPerFrameForObjects, // 125ms
 		},
 		{
 			name:        "Fountain progression",
-			spriteIndex: indexes.Fountain_KeyIndex,
+			spriteIndex: indexes.FountainKeyIndex,
 			posHash:     0,
 			frameMs:     msPerFrameForObjects, // 125ms
 		},
@@ -127,7 +127,7 @@ func TestAnimationFrameBounds(t *testing.T) {
 	// Test that animation frames stay within expected bounds
 
 	t.Run("Waterfall animation bounds", func(t *testing.T) {
-		var baseIndex indexes.SpriteIndex = indexes.Waterfall_KeyIndex
+		var baseIndex indexes.SpriteIndex = indexes.WaterfallKeyIndex
 
 		// Test various time points
 		for elapsedMs := int64(0); elapsedMs < 1000; elapsedMs += 50 {
@@ -173,8 +173,8 @@ func TestAnimationPositionHashVariation(t *testing.T) {
 		hash  int32
 		frame indexes.SpriteIndex
 	}{{0, 0}, {1, 1}, {2, 2}, {3, 3}, {4, 0}, {-1, 3}} {
-		want := indexes.Waterfall_KeyIndex + tc.frame
-		if got := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.Waterfall_KeyIndex, tc.hash, 1000); got != want {
+		want := indexes.WaterfallKeyIndex + tc.frame
+		if got := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.WaterfallKeyIndex, tc.hash, 1000); got != want {
 			t.Errorf("hash %d: got %d, want %d", tc.hash, got, want)
 		}
 	}
@@ -265,16 +265,16 @@ func TestWaterTileIntegration(t *testing.T) {
 		posHash := int32(42)
 
 		// Test that non-water animations still work correctly
-		waterfallResult := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.Waterfall_KeyIndex, posHash, elapsedMs)
-		fountainResult := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.Fountain_KeyIndex, posHash, elapsedMs)
+		waterfallResult := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.WaterfallKeyIndex, posHash, elapsedMs)
+		fountainResult := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.FountainKeyIndex, posHash, elapsedMs)
 		clockResult := GetSpriteIndexWithAnimationBySpriteIndexTick(indexes.Clock1, posHash, elapsedMs)
 
 		// Verify animations are within expected ranges
-		if waterfallResult < indexes.Waterfall_KeyIndex || waterfallResult >= indexes.Waterfall_KeyIndex+indexes.StandardNumberOfAnimationFrames {
+		if waterfallResult < indexes.WaterfallKeyIndex || waterfallResult >= indexes.WaterfallKeyIndex+indexes.StandardNumberOfAnimationFrames {
 			t.Errorf("Waterfall animation out of range: %d", waterfallResult)
 		}
 
-		if fountainResult < indexes.Fountain_KeyIndex || fountainResult >= indexes.Fountain_KeyIndex+indexes.StandardNumberOfAnimationFrames {
+		if fountainResult < indexes.FountainKeyIndex || fountainResult >= indexes.FountainKeyIndex+indexes.StandardNumberOfAnimationFrames {
 			t.Errorf("Fountain animation out of range: %d", fountainResult)
 		}
 

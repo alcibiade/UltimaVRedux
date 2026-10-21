@@ -52,7 +52,7 @@ func TestPortcullisCollisionWithObjects_Integration(t *testing.T) {
 	gate := references.Position{X: 14, Y: 22}
 	units := state.CurrentNPCAIController.GetNpcs()
 	npcReference := references.NPCReference{Location: references.SerpentsHold, Schedule: references.CreateNPCScheduledFixedOneLocation(gate, 0)}
-	npcReference.SetKeyIndex(indexes.TownsPerson_KeyIndex)
+	npcReference.SetKeyIndex(indexes.TownsPersonKeyIndex)
 	occupant := map_units.NewNPCFriendly(npcReference, 0)
 	units.ReplaceWith(nil)
 	state.DateTime.Hour = 19

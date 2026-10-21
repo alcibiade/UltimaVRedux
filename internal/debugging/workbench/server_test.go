@@ -146,7 +146,7 @@ func TestServerServesIndependentReadOnlyLogWindow(t *testing.T) {
 	t.Cleanup(func() { logger.SetEnabled(beforeEnabled); logger.SetCategoryStates(beforeCategories) })
 	logger.SetEnabled(true)
 	logger.SetCategoryEnabled(logging.CategorySystem, true)
-	logger.Info(logging.CategorySystem, "browser log test")
+	logger.Infof(logging.CategorySystem, "browser log test")
 
 	request, err := http.NewRequest(http.MethodGet, server.URL()+"/api/logs?after=0&limit=10", nil)
 	require.NoError(t, err)

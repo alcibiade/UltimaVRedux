@@ -35,7 +35,7 @@ func (g *GameScene) StartStonegateTrapWorkflow(outcome game_state.StonegateTrapO
 		panic("Stonegate presentation requires a committed party-wipe outcome")
 	}
 
-	logging.Debug(logging.CategoryGameState, "Starting Stonegate volcano trap workflow")
+	logging.Debugf(logging.CategoryGameState, "Starting Stonegate volcano trap workflow")
 
 	hideMapUnits, hideQuestItems, hideItemStacks := g.hideMapUnits, g.hideQuestItems, g.hideItemStacks
 	var overlay *widgets.OverlayDialog
@@ -60,7 +60,7 @@ func (g *GameScene) StartStonegateTrapWorkflow(outcome game_state.StonegateTrapO
 		Wait(stonegateFadeMs).
 		Then(func() {
 			g.HideNonAvatarEntities()
-			logging.Debug(
+			logging.Debugf(
 				logging.CategoryGameState,
 				"Stonegate: Floor flooded with lava, killing %d characters",
 				len(outcome.KilledMembers),
@@ -76,7 +76,7 @@ func (g *GameScene) StartStonegateTrapWorkflow(outcome game_state.StonegateTrapO
 			for _, member := range outcome.KilledMembers {
 				deathQ.Then(func() {
 					g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundDeath)
-					logging.Debug(logging.CategoryGameState, "Stonegate: Character %d killed", member.After.Slot)
+					logging.Debugf(logging.CategoryGameState, "Stonegate: Character %d killed", member.After.Slot)
 				}).ThenSequence(g.thenVolcanoDeathFlash()).Wait(stonegateDeathDelayMs)
 			}
 
@@ -85,7 +85,7 @@ func (g *GameScene) StartStonegateTrapWorkflow(outcome game_state.StonegateTrapO
 		Wait(300).
 		Then(func() {
 			g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(0)
-			logging.Debug(logging.CategoryGameState, "Stonegate: Chaining to death resurrection workflow")
+			logging.Debugf(logging.CategoryGameState, "Stonegate: Chaining to death resurrection workflow")
 		}).If(
 		func() bool {
 			return !g.gameState.EventQueueManager.HasWorkflow(deathResurrectionWorkflowName)

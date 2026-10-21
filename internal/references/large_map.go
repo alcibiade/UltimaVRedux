@@ -63,9 +63,9 @@ func (m *LargeMapReference) GetSpriteIndex(x, y Coordinate) indexes.SpriteIndex 
 }
 
 func initialLargeMapSprite(sprite indexes.SpriteIndex) indexes.SpriteIndex {
-	if sprite >= indexes.Waterfall_KeyIndex &&
-		sprite < indexes.Waterfall_KeyIndex+indexes.StandardNumberOfAnimationFrames {
-		return indexes.Waterfall_KeyIndex
+	if sprite >= indexes.WaterfallKeyIndex &&
+		sprite < indexes.WaterfallKeyIndex+indexes.StandardNumberOfAnimationFrames {
+		return indexes.WaterfallKeyIndex
 	}
 	if sprite == indexes.Clock2 {
 		return indexes.Clock1
@@ -76,10 +76,10 @@ func initialLargeMapSprite(sprite indexes.SpriteIndex) indexes.SpriteIndex {
 
 //nolint:nonamedreturns // The deferred overlay close preserves read failures and rejects a failed close.
 func loadLargeMapFromFile(world World, gameConfig *config.UltimaVConfiguration) (result *LargeMapReference, err error) {
-	mapFileAndPath, dataOvlFileAndPath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.BRIT_DAT),
-		files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.DATA_OVL)
+	mapFileAndPath, dataOvlFileAndPath := files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.BritDat),
+		files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.DataOvl)
 	if world == UNDERWORLD {
-		mapFileAndPath = files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.UNDER_DAT)
+		mapFileAndPath = files.Resolve(gameConfig.SavedConfigData.DataFilePath, files.UnderDat)
 		dataOvlFileAndPath = ""
 	}
 

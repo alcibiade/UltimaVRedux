@@ -13,9 +13,9 @@ func TestLoggerRetainsOnlyAcceptedStructuredEntries(t *testing.T) {
 	logger.SetEnabled(true)
 	logger.SetCategoryEnabled(CategoryCombat, true)
 	logger.SetMinLevel(INFO)
-	logger.Debug(CategoryCombat, "filtered")
-	logger.Info(CategoryCombat, "hit %d", 7)
-	logger.Info(CategoryAI, "disabled category")
+	logger.Debugf(CategoryCombat, "filtered")
+	logger.Infof(CategoryCombat, "hit %d", 7)
+	logger.Infof(CategoryAI, "disabled category")
 
 	batch := logger.EntriesAfter(0, 10)
 	require.Len(t, batch.Entries, 1)
@@ -30,7 +30,7 @@ func TestLoggerEntryCursorReportsOverwriteAndPagination(t *testing.T) {
 	logger.SetEnabled(true)
 	logger.SetCategoryEnabled(CategorySystem, true)
 	for index := range 5 {
-		logger.Info(CategorySystem, "entry %d", index+1)
+		logger.Infof(CategorySystem, "entry %d", index+1)
 	}
 
 	first := logger.EntriesAfter(0, 2)
@@ -48,7 +48,7 @@ func TestLoggerBoundsRetainedMessage(t *testing.T) {
 	logger := newLoggerWithCapacity(1)
 	logger.SetEnabled(true)
 	logger.SetCategoryEnabled(CategorySystem, true)
-	logger.Info(CategorySystem, "%s", strings.Repeat("x", maxEntryMessageBytes+100))
+	logger.Infof(CategorySystem, "%s", strings.Repeat("x", maxEntryMessageBytes+100))
 
 	batch := logger.EntriesAfter(0, 1)
 	require.Len(t, batch.Entries, 1)

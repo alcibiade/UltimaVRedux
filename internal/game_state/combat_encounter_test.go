@@ -34,7 +34,7 @@ func TestClassifyOverworldEnemyContact(t *testing.T) {
 		},
 		{
 			name:         "land monster",
-			enemy:        newContactTestEnemy(references.MonsterOrc, indexes.Orc_KeyIndex, true, false, false),
+			enemy:        newContactTestEnemy(references.MonsterOrc, indexes.OrcKeyIndex, true, false, false),
 			expectedType: OverworldContactLandMonster,
 		},
 		{
@@ -49,12 +49,12 @@ func TestClassifyOverworldEnemyContact(t *testing.T) {
 		},
 		{
 			name:         "whirlpool",
-			enemy:        newContactTestEnemy(references.MonsterWhirlpool, indexes.Whirlpool_KeyIndex, true, true, false),
+			enemy:        newContactTestEnemy(references.MonsterWhirlpool, indexes.WhirlpoolKeyIndex, true, true, false),
 			expectedType: OverworldContactWhirlpool,
 		},
 		{
 			name:         "sandtrap",
-			enemy:        newContactTestEnemy(references.MonsterSandtrap, indexes.Sandtrap_KeyIndex, true, false, true),
+			enemy:        newContactTestEnemy(references.MonsterSandtrap, indexes.SandtrapKeyIndex, true, false, true),
 			expectedType: OverworldContactSandtrap,
 		},
 		{

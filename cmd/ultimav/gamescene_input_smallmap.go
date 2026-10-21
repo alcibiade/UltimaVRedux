@@ -331,7 +331,7 @@ func (g *GameScene) smallMapHandleSecondaryInput() {
 	// See ActionFireSmallMap() in action_fire.go
 	default:
 		// UI state recovery: unexpected input state, reset to primary for graceful degradation
-		logging.Warn(logging.CategoryUI, "unexpected input state %v, resetting to primary", g.secondaryKeyState)
+		logging.Warnf(logging.CategoryUI, "unexpected input state %v, resetting to primary", g.secondaryKeyState)
 		g.secondaryKeyState = PrimaryInput
 	}
 

@@ -117,7 +117,7 @@ func (g *GameScene) thenRunTavernShopAuthority(
 		}).If(
 			func() bool { return setupErr != nil },
 			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "Tavern shop setup failed: %v", setupErr)
+				logging.Errorf(logging.CategoryConversation, "Tavern shop setup failed: %v", setupErr)
 				errorQ.ThenSequence(g.thenShowConfirmationDialog("Tavern service is unavailable."))
 			},
 		).While(
@@ -149,14 +149,14 @@ func (g *GameScene) thenRunTavernShopAuthority(
 						return
 					}
 					if err != nil {
-						logging.Error(logging.CategoryConversation, "Tavern information quote failed: %v", err)
+						logging.Errorf(logging.CategoryConversation, "Tavern information quote failed: %v", err)
 						dialog.ApplySessionError("The Tavern information could not be quoted.")
 
 						return
 					}
 					informationProse, err := g.resolveTavernInformationProse(state, quote.Topic)
 					if err != nil {
-						logging.Error(logging.CategoryConversation, "Tavern information prose failed: %v", err)
+						logging.Errorf(logging.CategoryConversation, "Tavern information prose failed: %v", err)
 						dialog.ApplySessionError("The Tavern information could not be presented.")
 
 						return
@@ -173,7 +173,7 @@ func (g *GameScene) thenRunTavernShopAuthority(
 				if intent.Action == widgets.TavernActionProvision {
 					pitch, pitchErr := g.resolveTavernProvisionPitch(state)
 					if pitchErr != nil {
-						logging.Error(logging.CategoryConversation, "Tavern provision pitch failed: %v", pitchErr)
+						logging.Errorf(logging.CategoryConversation, "Tavern provision pitch failed: %v", pitchErr)
 						dialog.ApplySessionError("The Tavern provisions could not be presented.")
 
 						return
@@ -306,14 +306,14 @@ func (g *GameScene) commitTavernAction(
 		panic("Tavern workflow received an unknown action")
 	}
 	if commitErr != nil {
-		logging.Error(logging.CategoryConversation, "Tavern action failed: %v", commitErr)
+		logging.Errorf(logging.CategoryConversation, "Tavern action failed: %v", commitErr)
 		dialog.ApplySessionError("The Tavern transaction could not be completed.")
 
 		return nil, false
 	}
 	refreshed, err := g.gameState.GetTavernShopState(session)
 	if err != nil {
-		logging.Error(logging.CategoryConversation, "Tavern refresh failed: %v", err)
+		logging.Errorf(logging.CategoryConversation, "Tavern refresh failed: %v", err)
 		dialog.ApplySessionError("The Tavern account could not be refreshed.")
 
 		return nil, false
@@ -337,7 +337,7 @@ func (g *GameScene) commitTavernAction(
 		panic("Tavern workflow refreshed an unknown action")
 	}
 	if commitErr != nil {
-		logging.Error(logging.CategoryConversation, "Tavern result prose failed: %v", commitErr)
+		logging.Errorf(logging.CategoryConversation, "Tavern result prose failed: %v", commitErr)
 		dialog.ApplySessionError("The Tavern result could not be displayed.")
 
 		return nil, false

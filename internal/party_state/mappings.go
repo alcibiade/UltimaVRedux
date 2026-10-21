@@ -64,11 +64,11 @@ const (
 
 // CharacterStatuses lists every status with its display name, in save order.
 var CharacterStatuses = util.OrderedMapping[CharacterStatus]{
-	{Id: Good, FriendlyName: "Good"},
-	{Id: Poisoned, FriendlyName: "Poisoned"},
-	{Id: Charmed, FriendlyName: "Charmed"},
-	{Id: Sleep, FriendlyName: "Sleep"},
-	{Id: Dead, FriendlyName: "Dead"},
+	{ID: Good, FriendlyName: "Good"},
+	{ID: Poisoned, FriendlyName: "Poisoned"},
+	{ID: Charmed, FriendlyName: "Charmed"},
+	{ID: Sleep, FriendlyName: "Sleep"},
+	{ID: Dead, FriendlyName: "Dead"},
 }
 
 // Gender
@@ -85,8 +85,8 @@ const (
 
 // CharacterGenders lists every gender with its display name, in save order.
 var CharacterGenders = util.OrderedMapping[CharacterGender]{
-	{Id: Male, FriendlyName: "Male"},
-	{Id: Female, FriendlyName: "Female"},
+	{ID: Male, FriendlyName: "Male"},
+	{ID: Female, FriendlyName: "Female"},
 }
 
 /*

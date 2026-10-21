@@ -26,28 +26,28 @@ const (
 // ShowSignDialog displays a sign using runic/normal bitmap fonts.
 // This is the SystemCallbacks.UI.ShowSignDialog implementation.
 func (g *GameScene) ShowSignDialog(sign *references.SignRecord) {
-	logging.Debug(logging.CategoryUI, "ShowSignDialog: called")
+	logging.Debugf(logging.CategoryUI, "ShowSignDialog: called")
 	g.startSignDialogWorkflow(sign)
 }
 
 // startSignDialogWorkflow initiates the sign display workflow using event queue.
 func (g *GameScene) startSignDialogWorkflow(sign *references.SignRecord) {
-	logging.Debug(logging.CategoryUI, "startSignDialogWorkflow: starting event queue")
+	logging.Debugf(logging.CategoryUI, "startSignDialogWorkflow: starting event queue")
 	var signDialog *widgets.SignDialog
 
 	g.gameState.EventQueueManager.Workflow("sign_dialog_workflow").
 		Priority(event_queue.PriorityNormal).
 		Sequential().BlockInput().
 		First(func() {
-			logging.Debug(logging.CategoryUI, "sign_dialog_workflow.First: creating dialog")
+			logging.Debugf(logging.CategoryUI, "sign_dialog_workflow.First: creating dialog")
 
 			var rawText []byte
 			if sign != nil && len(sign.RawText) > 0 {
 				rawText = sign.RawText
-				logging.Debug(logging.CategoryUI, "sign_dialog_workflow.First: using sign text (%d bytes)", len(rawText))
+				logging.Debugf(logging.CategoryUI, "sign_dialog_workflow.First: using sign text (%d bytes)", len(rawText))
 			} else {
 				rawText = []byte(defaultSignText)
-				logging.Debug(logging.CategoryUI, "sign_dialog_workflow.First: using default text")
+				logging.Debugf(logging.CategoryUI, "sign_dialog_workflow.First: using default text")
 			}
 
 			signDialog = widgets.NewSignDialog(widgets.SignDialogConfig{
@@ -61,7 +61,7 @@ func (g *GameScene) startSignDialogWorkflow(sign *references.SignRecord) {
 				RawText:  rawText,
 			})
 
-			logging.Debug(logging.CategoryUI, "sign_dialog_workflow.First: pushing dialog to stack")
+			logging.Debugf(logging.CategoryUI, "sign_dialog_workflow.First: pushing dialog to stack")
 			g.dialogStack.PushModalDialog(signDialog)
 		}).
 		While(
@@ -73,7 +73,7 @@ func (g *GameScene) startSignDialogWorkflow(sign *references.SignRecord) {
 		).Finally(
 
 		func() {
-			logging.Debug(logging.CategoryUI, "sign_dialog_workflow.Last: cleanup")
+			logging.Debugf(logging.CategoryUI, "sign_dialog_workflow.Last: cleanup")
 
 			if signDialog != nil {
 				signDialog.SetTranslated(false)
@@ -86,5 +86,5 @@ func (g *GameScene) startSignDialogWorkflow(sign *references.SignRecord) {
 		}).
 		Start()
 
-	logging.Debug(logging.CategoryUI, "startSignDialogWorkflow: event queue started")
+	logging.Debugf(logging.CategoryUI, "startSignDialogWorkflow: event queue started")
 }

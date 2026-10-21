@@ -78,7 +78,7 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 		if frameInterval > 0 && currentTime-g.lastDrawTime < frameInterval {
 			// Debug logging for low FPS testing (only for very slow frame rates)
 			if frameInterval > 100 { // Only for very low FPS (like 2 FPS = 500ms interval)
-				logging.Debug(logging.CategorySystem, "FPS limiting: SKIPPING frame - interval=%dms, timeSince=%dms",
+				logging.Debugf(logging.CategorySystem, "FPS limiting: SKIPPING frame - interval=%dms, timeSince=%dms",
 					frameInterval, currentTime-g.lastDrawTime)
 			}
 
@@ -87,7 +87,7 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 
 		// Debug logging for frames that are drawn (only for very slow frame rates)
 		if frameInterval > 100 {
-			logging.Debug(logging.CategorySystem, "FPS limiting: DRAWING frame - interval=%dms, timeSince=%dms",
+			logging.Debugf(logging.CategorySystem, "FPS limiting: DRAWING frame - interval=%dms, timeSince=%dms",
 				frameInterval, currentTime-g.lastDrawTime)
 		}
 

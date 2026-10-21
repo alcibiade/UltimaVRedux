@@ -22,7 +22,7 @@ func TestLargeMapDistanceCleanupPreservesFriendlyVehicles(t *testing.T) {
 		references.MainFloor,
 	)
 	enemyReference := references.EnemyReference{ //nolint:exhaustruct // Cleanup needs only nonempty hostile identity.
-		KeyFrameTile: &references.Tile{Index: indexes.Rat_KeyIndex}, //nolint:exhaustruct
+		KeyFrameTile: &references.Tile{Index: indexes.RatKeyIndex}, //nolint:exhaustruct
 	}
 	farEnemy := map_units.NewEnemyNPC(enemyReference, 1)
 	farEnemy.SetPos(farPosition)

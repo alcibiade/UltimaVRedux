@@ -113,7 +113,7 @@ func TestGetAvatarSpriteAtPosition(t *testing.T) {
 		{
 			name:           "Manacles",
 			baseTileIndex:  indexes.Manacles,
-			expectedSprite: indexes.Manacles_Prisoner,
+			expectedSprite: indexes.ManaclesPrisoner,
 			description:    "Avatar on manacles should show prisoner sprite",
 		},
 		{
@@ -326,7 +326,7 @@ func TestSpriteLogic_Regression(t *testing.T) {
 		// Should not get avatar replacement sprites for non-replacement tiles
 		nonReplacementSprites := []indexes.SpriteIndex{
 			indexes.KlimbLadderUp, indexes.KlimbLadderDown,
-			indexes.SleepingInBed, indexes.Manacles_Prisoner,
+			indexes.SleepingInBed, indexes.ManaclesPrisoner,
 			indexes.SitChairRight, indexes.SitChairLeft,
 		}
 
@@ -394,7 +394,7 @@ func TestBardSpriteReplacement(t *testing.T) {
 			result := gameState.GetNPCSpriteReplacement(indexes.Grass, tc.bardSprite, pos).Sprite
 			if result != tc.expectedMerch {
 				t.Errorf("BardPlaying frame %d: expected Merchant %d, got %d",
-					tc.bardSprite-indexes.BardPlaying_KeyIndex, tc.expectedMerch, result)
+					tc.bardSprite-indexes.BardPlayingKeyIndex, tc.expectedMerch, result)
 			}
 		}
 		t.Logf("✅ Animation frame offset preserved when converting bard to merchant")
@@ -443,9 +443,9 @@ func TestBardSpriteReplacement(t *testing.T) {
 	t.Run("BardInManacles_ShowsPrisoner", func(t *testing.T) {
 		// Bard in manacles should show prisoner sprite
 		result := gameState.GetNPCSpriteReplacement(indexes.Manacles, indexes.BardPlaying1, pos).Sprite
-		if result != indexes.Manacles_Prisoner {
-			t.Errorf("Expected Manacles_Prisoner (%d) when bard in manacles, got %d",
-				indexes.Manacles_Prisoner, result)
+		if result != indexes.ManaclesPrisoner {
+			t.Errorf("Expected ManaclesPrisoner (%d) when bard in manacles, got %d",
+				indexes.ManaclesPrisoner, result)
 		}
 		t.Logf("✅ Bard in manacles shows prisoner sprite")
 	})

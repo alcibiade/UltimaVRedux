@@ -53,7 +53,7 @@ func NewGameSceneFromLegacySaveFile(
 		return nil, fmt.Errorf("converting original save bundle: %w", err)
 	}
 	if len(conversion.Warnings) > 0 {
-		logging.Warn(logging.CategoryGameState, "Original save conversion completed with %d warnings", len(conversion.Warnings))
+		logging.Warnf(logging.CategoryGameState, "Original save conversion completed with %d warnings", len(conversion.Warnings))
 	}
 
 	return NewGameSceneFromSaveSnapshot(gameConfig, conversion.Snapshot)
@@ -194,7 +194,7 @@ func newGameScene(
 	if !gameConfig.SoundDisabled {
 		gameScene.audioManager, err = audio.NewGameAudioManagerWithConfig(gameConfig.AudioConfiguration)
 		if err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to initialize audio system: %v", err)
+			logging.Warnf(logging.CategoryAudio, "Failed to initialize audio system: %v", err)
 			gameScene.audioManager = nil
 		}
 	}
@@ -227,7 +227,7 @@ func (g *GameScene) Activate() {
 	if g.audioManager != nil {
 		currentLocation := g.gameState.MapState.PlayerLocation.Location
 		if err := g.audioManager.PlayMusicForLocation(currentLocation); err != nil {
-			logging.Warn(logging.CategoryAudio, "Failed to start background music for location %v: %v", currentLocation, err)
+			logging.Warnf(logging.CategoryAudio, "Failed to start background music for location %v: %v", currentLocation, err)
 		}
 	}
 }

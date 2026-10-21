@@ -79,7 +79,7 @@ func (g *GameState) startContactDungeonWandererCombat(
 		g.AsRandomProvider(),
 	)
 	if err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to prepare dungeon wanderer contact: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to prepare dungeon wanderer contact: %v", err)
 		g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 		return false

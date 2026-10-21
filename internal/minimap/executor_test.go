@@ -237,7 +237,7 @@ func TestScriptExecutor_PresentationFramesWaitForAdvance(t *testing.T) {
 
 func TestScriptExecutor_RejectsInvalidScript(t *testing.T) {
 	scene := NewMiniMapScene()
-	script := &MiniMapScript{Steps: []ScriptStep{{Type: StepWalk}}}
+	script := &Script{Steps: []ScriptStep{{Type: StepWalk}}}
 
 	assert.Panics(t, func() {
 		NewScriptExecutor(scene, script)

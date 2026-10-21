@@ -20,10 +20,10 @@ Stdout output follows the same switches for every level.
 ```go
 import "github.com/bradhannah/UltimaVRedux/internal/logging"
 
-logging.Debug(logging.CategoryConversation, "Processing command: %s", command)
-logging.Info(logging.CategoryUI, "Dialog opened: %s", title)
-logging.Warn(logging.CategoryAudio, "Optional sound unavailable: %v", err)
-logging.Error(logging.CategorySystem, "Configuration operation failed: %v", err)
+logging.Debugf(logging.CategoryConversation, "Processing command: %s", command)
+logging.Infof(logging.CategoryUI, "Dialog opened: %s", title)
+logging.Warnf(logging.CategoryAudio, "Optional sound unavailable: %v", err)
+logging.Errorf(logging.CategorySystem, "Configuration operation failed: %v", err)
 ```
 
 Use the most specific existing category. `internal/logging/categories.go` is the

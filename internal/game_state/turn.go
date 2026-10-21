@@ -96,7 +96,7 @@ func (g *GameState) FinishTurn() {
 		return
 	}
 	if err := g.ResolvePendingOverworldContact(); err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to start overworld combat: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to start overworld combat: %v", err)
 		g.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 	}
 }
@@ -141,7 +141,7 @@ func (g *GameState) CompleteSurfaceMovementCycle(originMapType references.Genera
 				extraMinutes:         extraMinutes,
 			}
 			if err := g.resumeSlowMovement(); err != nil {
-				logging.Error(logging.CategoryGameState, "Unable to resolve slow movement contact: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to resolve slow movement contact: %v", err)
 				g.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 			}
 
@@ -253,7 +253,7 @@ func (g *GameState) completeSurfaceActorPhase(processActorPhase, pass bool) {
 		return
 	}
 	if err := g.ResolvePendingOverworldContact(); err != nil {
-		logging.Error(logging.CategoryGameState, "Unable to start overworld combat: %v", err)
+		logging.Errorf(logging.CategoryGameState, "Unable to start overworld combat: %v", err)
 		g.SystemCallbacks.Message.AddRowStr("Combat could not begin.")
 	}
 }
@@ -472,10 +472,10 @@ func (g *GameState) processNonCombatWorldActorPhaseForCommand(pass bool) {
 		// Combat turn effects handled by the combat system (CombatTurnQueue)
 		// Future: process combat-specific per-turn effects (field damage, spell durations)
 	case references.DungeonMapType, references.CampingMapType:
-		logging.Warn(logging.CategoryGameState, "ProcessTurnEffects called with unsupported map type: %v",
+		logging.Warnf(logging.CategoryGameState, "ProcessTurnEffects called with unsupported map type: %v",
 			g.MapState.PlayerLocation.Location.GetMapType())
 	default:
-		logging.Warn(logging.CategoryGameState, "ProcessTurnEffects called with unsupported map type: %v",
+		logging.Warnf(logging.CategoryGameState, "ProcessTurnEffects called with unsupported map type: %v",
 			g.MapState.PlayerLocation.Location.GetMapType())
 	}
 
@@ -797,7 +797,7 @@ func (g *GameState) GenerateAndCleanupEnemies() {
 	case references.CampingMapType:
 	default:
 		// Unsupported map type for enemy generation - log warning and continue
-		logging.Warn(logging.CategoryGameState, "GenerateAndCleanupEnemies called with unsupported map type: %v", g.MapState.PlayerLocation.Location.GetMapType())
+		logging.Warnf(logging.CategoryGameState, "GenerateAndCleanupEnemies called with unsupported map type: %v", g.MapState.PlayerLocation.Location.GetMapType())
 	}
 }
 

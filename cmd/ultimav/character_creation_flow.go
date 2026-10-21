@@ -65,7 +65,7 @@ func prepareCharacterCreationSnapshot(
 		return save_snapshot.SaveSnapshot{}, fmt.Errorf("preparing initial native snapshot: %w", err)
 	}
 	if len(conversion.Warnings) > 0 {
-		logging.Warn(
+		logging.Warnf(
 			logging.CategoryUI,
 			"New-game template conversion completed with %d warnings",
 			len(conversion.Warnings),
@@ -130,7 +130,7 @@ func (g *Game) cancelCharacterCreation(configuration *config.UltimaVConfiguratio
 	var retry func()
 	retry = func() {
 		if err := g.returnToMainMenu(configuration); err != nil {
-			logging.Warn(logging.CategoryUI, "Returning from character creation failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Returning from character creation failed: %v", err)
 			scene.configureTerminalAction(retry, "The main menu could not be restored.", "[Enter] Retry")
 		}
 	}
@@ -154,7 +154,7 @@ func (g *Game) completeCharacterCreation(result character_creation.Result) {
 			result,
 		)
 		if err != nil {
-			logging.Warn(logging.CategoryUI, "Preparing completed character creation failed: %v", err)
+			logging.Warnf(logging.CategoryUI, "Preparing completed character creation failed: %v", err)
 			scene.configureTerminalAction(retry, "New game could not be prepared.", "[Enter] Retry")
 
 			return
@@ -171,7 +171,7 @@ func (g *Game) configureCharacterCreationSaveSelection(
 ) {
 	metadata, err := freshPlaythroughMetadata(g.playthroughIDProvider)
 	if err != nil {
-		logging.Warn(logging.CategoryUI, "Preparing new playthrough identity failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Preparing new playthrough identity failed: %v", err)
 		scene.configureTerminalAction(func() { g.configureCharacterCreationSaveSelection(scene, snapshot) },
 			"New game could not be prepared.", "[Enter] Retry")
 
@@ -203,7 +203,7 @@ func (g *Game) openCharacterCreationSaveBrowser(
 	}
 	summaries, err := g.listPlayerSaveSlots()
 	if err != nil {
-		logging.Warn(logging.CategoryUI, "Listing character creation save slots failed: %v", err)
+		logging.Warnf(logging.CategoryUI, "Listing character creation save slots failed: %v", err)
 		scene.setTerminalNotice("Save slots could not be listed.", "[Enter] Retry")
 
 		return
@@ -285,7 +285,7 @@ func (g *Game) commitCharacterCreationSave(
 	if err == nil {
 		return
 	}
-	logging.Warn(logging.CategoryUI, "Creating new game in %s failed: %v", summary.Slot, err)
+	logging.Warnf(logging.CategoryUI, "Creating new game in %s failed: %v", summary.Slot, err)
 	g.openCharacterCreationSaveBrowser(
 		scene,
 		prepared,

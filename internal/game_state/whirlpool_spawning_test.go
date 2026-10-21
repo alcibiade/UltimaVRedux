@@ -59,7 +59,7 @@ func TestWhirlpool_TrySpawnWhirlpool_DeepWater(t *testing.T) {
 		assert.NotNil(t, whirlpool, "Whirlpool should exist at spawned position")
 		assert.True(t, whirlpool.IsVisible(), "Whirlpool should be visible")
 		assert.Equal(t, deepWaterPos, whirlpool.Pos(), "Whirlpool position should match")
-		assert.True(t, whirlpool.EnemyReference.KeyFrameTile.Is(indexes.Whirlpool_KeyIndex),
+		assert.True(t, whirlpool.EnemyReference.KeyFrameTile.Is(indexes.WhirlpoolKeyIndex),
 			"Whirlpool should have correct sprite")
 
 		// Verify cannot spawn another whirlpool at same position
