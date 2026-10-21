@@ -6,7 +6,6 @@ const (
 	CommandCodexQuestStateSetAll = "codex.quest-state.set-all"
 )
 
-//nolint:exhaustruct // Catalog entries intentionally omit zero-value optional wire fields.
 func seventhBatchCommands() []CommandDefinition {
 	return []CommandDefinition{{
 		ID:          CommandCodexQuestStateSetAll,

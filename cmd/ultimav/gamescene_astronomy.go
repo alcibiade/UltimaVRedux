@@ -1,4 +1,3 @@
-//nolint:mnd,varnamelen // Existing astronomy effect values and builder name are domain-specific.
 package main
 
 import (

@@ -1,4 +1,3 @@
-//nolint:mnd,varnamelen // Existing crystal-ball roll and local builder name are domain-specific.
 package main
 
 import (

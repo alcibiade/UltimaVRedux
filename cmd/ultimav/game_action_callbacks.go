@@ -22,7 +22,6 @@ var errUnsupportedConversationKnowledge = errors.New("unsupported conversation k
 const (
 	conversationEquipmentLimit = 0x40
 	conversationProvisionFirst = 0x41
-	conversationProvisionLast  = 0x4b
 	selflessDonationKarma      = 3
 )
 

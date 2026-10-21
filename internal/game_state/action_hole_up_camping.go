@@ -1,4 +1,3 @@
-//nolint:mnd,varnamelen // Existing camping cadence and local sequence names are domain-specific.
 package game_state
 
 import (

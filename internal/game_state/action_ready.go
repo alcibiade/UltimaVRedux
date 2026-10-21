@@ -103,7 +103,7 @@ type readyEquipmentPlan struct {
 
 // BeginReadyEquipment validates action ownership and avoids opening an empty dialog.
 func (g *GameState) BeginReadyEquipment(combatMode bool) (ReadyEquipmentRequest, ReadyBeginOutcome) {
-	request := ReadyEquipmentRequest{ //nolint:exhaustruct // Exploration has no combat identity.
+	request := ReadyEquipmentRequest{
 		CombatMode: combatMode, CharacterIndex: 0, LockCharacter: combatMode,
 	}
 	if combatMode {

@@ -30,10 +30,4 @@ const (
 
 	// WishMaxLength is the maximum character limit for wishing well wishes (original Ultima V)
 	WishMaxLength = 12
-
-	// WishInputLines is the number of text lines for wish input dialog
-	WishInputLines = 2
-
-	// WishInputColumns is the character width for wish input dialog
-	WishInputColumns = 45
 )

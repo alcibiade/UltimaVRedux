@@ -20,10 +20,6 @@ func TestInvalidCommandSequences_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	t.Run("JimmyWithoutKeys", func(t *testing.T) {
 		mockCallbacks.Reset()
 		beforeTurn := gs.DateTime
@@ -106,10 +102,6 @@ func TestBoundaryConditions_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	t.Run("MovementAtMapEdge", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -153,10 +145,6 @@ func TestResourceExhaustion_Integration(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	t.Run("ExhaustAllKeys", func(t *testing.T) {
 		// Test resource exhaustion workflow
@@ -202,10 +190,6 @@ func TestInvalidStateTransitions_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	t.Run("BoardNonexistentVehicle", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -242,10 +226,6 @@ func TestConcurrentSystemInteractions_Integration(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	t.Run("NPCMovementDuringPlayerActions", func(t *testing.T) {
 		// Get initial NPC positions

@@ -16,8 +16,6 @@ import (
 // PublishTemporaryFile writes, flushes, and closes a temporary file before
 // passing it to publish. The temporary path is removed on every return path.
 // Callers remain responsible for syncing directory metadata after publication.
-//
-//nolint:nonamedreturns // Deferred cleanup augments an existing failure without misreporting a committed publication.
 func PublishTemporaryFile(root, pattern string, data []byte, mode os.FileMode, publish func(string) error) (err error) {
 	temporary, err := os.CreateTemp(root, pattern)
 	if err != nil {

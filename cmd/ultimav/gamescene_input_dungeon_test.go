@@ -141,9 +141,6 @@ func TestDungeonPrimaryCommandsCompleteAtCommandBoundary(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 
 			scene.dungeonMapInputHandler(test.key)
 
@@ -165,9 +162,6 @@ func TestDungeonPrimaryCommandsCompleteAtCommandBoundary(t *testing.T) {
 func TestDungeonCommandPrechargeHonorsQuicknessAndTimeStop(t *testing.T) {
 	t.Run("Quickness alternates exact precharge", func(t *testing.T) {
 		scene, state, _ := newDungeonInputTestScene(t)
-		if state == nil {
-			return
-		}
 		state.ActiveDurationEffect = game_state.DurationEffect{
 			EffectType:     game_state.DurationEffectQuickness,
 			TurnsRemaining: 10,
@@ -185,9 +179,6 @@ func TestDungeonCommandPrechargeHonorsQuicknessAndTimeStop(t *testing.T) {
 
 	t.Run("Time Stop suppresses precharge", func(t *testing.T) {
 		scene, state, _ := newDungeonInputTestScene(t)
-		if state == nil {
-			return
-		}
 		state.ActiveDurationEffect = game_state.DurationEffect{
 			EffectType:     game_state.DurationEffectTimeStop,
 			TurnsRemaining: 5,
@@ -203,9 +194,6 @@ func TestDungeonCommandPrechargeHonorsQuicknessAndTimeStop(t *testing.T) {
 
 func TestDungeonBlockedAdvanceReceivesFullCompletion(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	setDungeonInputTestCell(t, state, references.Position{X: 2, Y: 1}, 0xb0)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType:     game_state.DurationEffectProtection,
@@ -225,9 +213,6 @@ func TestDungeonBlockedAdvanceReceivesFullCompletion(t *testing.T) {
 
 func TestDungeonDoorwayRefusalReceivesCommandOnlyCompletion(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	setDungeonInputTestCell(t, state, references.Position{X: 1, Y: 1}, 0xe8)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType:     game_state.DurationEffectProtection,
@@ -253,9 +238,6 @@ func TestDungeonIgniteSuccessAndFailureReceiveFullCompletion(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			state.PartyState.Inventory.Provisions.Torches.Set(torches)
 			state.MapState.Lighting.RestoreTorchMinutes(10)
 			state.ActiveDurationEffect = game_state.DurationEffect{
@@ -285,9 +267,6 @@ func TestDungeonIgniteSuccessAndFailureReceiveFullCompletion(t *testing.T) {
 
 func TestDungeonSearchPromptsForCharacterBeforeDarknessAndDirection(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.Lighting.RestoreTorchMinutes(0)
 	state.MagicLightMinutesRemaining = 0
 	state.MapState.Lighting.SetMagicLight(false)
@@ -313,9 +292,6 @@ func TestDungeonSearchPromptsForCharacterBeforeDarknessAndDirection(t *testing.T
 
 func TestDungeonAttackInputStartsCombatAgainstAdjacentWanderer(t *testing.T) {
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	target := references.Position{X: 2, Y: 1}
 	setDungeonInputTestCell(t, state, target, 0x00)
 	scene, state, callbacks := hydrateDungeonInputSceneWithWanderer(t, scene, state, references.MonsterRat, target)
@@ -341,9 +317,6 @@ func TestDungeonAttackInputStartsCombatAgainstAdjacentWanderer(t *testing.T) {
 
 func TestDungeonAdvanceInputMovesWanderer(t *testing.T) {
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	wandererPosition := references.Position{X: 4, Y: 4}
 	for _, position := range []references.Position{
 		{X: 4, Y: 3}, {X: 5, Y: 4}, {X: 4, Y: 5}, {X: 3, Y: 4},
@@ -366,9 +339,6 @@ func TestDungeonAdvanceInputMovesWanderer(t *testing.T) {
 
 func TestDungeonUpdateRoutesElectricFieldBounceAndDamage(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	target := references.Position{X: 2, Y: 1}
 	setDungeonInputTestCell(t, state, target, 0x83)
@@ -402,9 +372,6 @@ func TestDungeonUpdateRoutesElectricFieldBounceAndDamage(t *testing.T) {
 func TestDungeonFullCommandInputStartsCombatWhenWandererMakesContact(t *testing.T) {
 	const seed = uint64(3265)
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	attackOrigin := references.Position{X: 3, Y: 3}
 	party := dungeonInputContactPartyPosition(seed, attackOrigin)
 	_, err := state.DebugSetDungeonPosition(0, party)
@@ -499,9 +466,6 @@ func dungeonInputContactPartyPosition(seed uint64, origin references.Position) r
 
 func TestDungeonSearchUsesActiveCharacterWithoutSelector(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	require.True(t, state.SetActivePlayer(1))
 	state.MapState.Lighting.RestoreTorchMinutes(10)
 	callbacks.Reset()
@@ -528,9 +492,6 @@ func TestDungeonSearchRetainsCycleUntilDirectionOrPass(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			state.MapState.Lighting.RestoreTorchMinutes(10)
 			target := references.Position{X: 2, Y: 1}
 			setDungeonInputTestCell(t, state, target, 0xd0)
@@ -565,9 +526,6 @@ func TestDungeonSearchRetainsCycleUntilDirectionOrPass(t *testing.T) {
 func TestDungeonChestCommandsRouteFromRealInput(t *testing.T) {
 	t.Run("Open retains cycle through character selection", func(t *testing.T) {
 		scene, state, _ := newDungeonInputTestScene(t)
-		if state == nil {
-			return
-		}
 		initializeDungeonUpdateTestScene(scene, state)
 		setDungeonInputTestCell(t, state, state.MapState.PlayerLocation.Position, 0x40)
 
@@ -587,9 +545,6 @@ func TestDungeonChestCommandsRouteFromRealInput(t *testing.T) {
 
 	t.Run("Jimmy retains key after successful disarm", func(t *testing.T) {
 		scene, state, _ := newDungeonInputTestScene(t)
-		if state == nil {
-			return
-		}
 		setDungeonInputTestCell(t, state, state.MapState.PlayerLocation.Position, 0x47)
 		state.PartyState.GetCharacter(0).Dexterity = 255
 		state.PartyState.Inventory.Provisions.Keys.Set(1)
@@ -606,9 +561,6 @@ func TestDungeonChestCommandsRouteFromRealInput(t *testing.T) {
 
 	t.Run("Get immediately consumes open chest", func(t *testing.T) {
 		scene, state, _ := newDungeonInputTestScene(t)
-		if state == nil {
-			return
-		}
 		setDungeonInputTestCell(t, state, state.MapState.PlayerLocation.Position, 0x70)
 
 		scene.dungeonMapInputHandler(ebiten.KeyG)
@@ -621,9 +573,6 @@ func TestDungeonChestCommandsRouteFromRealInput(t *testing.T) {
 
 func TestDungeonLookRetainsCycleThroughFountainChoice(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.Lighting.RestoreTorchMinutes(10)
 	state.PartyState.GetCharacter(0).SetStatus(party_state.Poisoned)
 	target := references.Position{X: 2, Y: 1}
@@ -694,9 +643,6 @@ func TestDungeonLookRetainsCycleThroughFountainChoice(t *testing.T) {
 
 func TestDungeonLookFountainRefusalCompletesWithoutDrinking(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.Lighting.RestoreTorchMinutes(10)
 	state.PartyState.GetCharacter(0).SetStatus(party_state.Poisoned)
 	target := references.Position{X: 2, Y: 1}
@@ -758,9 +704,6 @@ func TestDungeonLookFountainRefusalCompletesWithoutDrinking(t *testing.T) {
 
 func TestDungeonCharacterSelectionExcludesCharmedMembers(t *testing.T) {
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	require.GreaterOrEqual(t, state.PartyState.GetCharacterCount(), 2)
 	state.MapState.Lighting.RestoreTorchMinutes(10)
 	state.PartyState.GetCharacter(0).SetStatus(party_state.Charmed)
@@ -782,9 +725,6 @@ func TestDungeonCharacterSelectionExcludesCharmedMembers(t *testing.T) {
 
 func TestDungeonCharacterSelectionCancellationCompletesCommand(t *testing.T) {
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 
 	scene.dungeonMapInputHandler(ebiten.KeyJ)
 	dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.CharacterSelectionDialog)
@@ -820,9 +760,6 @@ func TestDungeonContextualImmediateCommandsRouteFromUpdate(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			state.ActiveDurationEffect = game_state.DurationEffect{
 				EffectType:     game_state.DurationEffectProtection,
@@ -857,9 +794,6 @@ func TestDungeonContextualImmediateCommandsRouteFromUpdate(t *testing.T) {
 
 func TestDungeonQuitRetainsCommandUntilYesOrNo(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType:     game_state.DurationEffectProtection,
@@ -896,9 +830,6 @@ func TestDungeonQuitRetainsCommandUntilYesOrNo(t *testing.T) {
 
 func TestDungeonQuitSavesPrechargedBoundaryBeforeReturning(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType:     game_state.DurationEffectProtection,
@@ -937,9 +868,6 @@ func TestDungeonQuitSavesPrechargedBoundaryBeforeReturning(t *testing.T) {
 
 func TestDungeonQuitSaveFailureRestoresCommandBoundary(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	game := &Game{currentScene: scene}
 	callbacks.Reset()
@@ -959,9 +887,6 @@ func TestDungeonQuitSaveFailureRestoresCommandBoundary(t *testing.T) {
 
 func TestDungeonQuitPersistenceFailureRestoresCommandBoundary(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	repository := &playerSaveTestRepository{
 		records: map[player_save.SlotID]player_save.Record{
@@ -1016,9 +941,6 @@ func TestDungeonYellRetainsCommandThroughEditableInput(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			state.ActiveDurationEffect = game_state.DurationEffect{
 				EffectType:     game_state.DurationEffectProtection,
@@ -1057,9 +979,6 @@ func TestDungeonYellRetainsCommandThroughEditableInput(t *testing.T) {
 
 func TestDungeonYellEscapeClearsTextAndRetainsCommand(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	callbacks.Reset()
 
@@ -1113,9 +1032,6 @@ func TestDungeonUnsupportedBoundCommandsDoNotStartCycle(t *testing.T) {
 		}
 		t.Run(key.String(), func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			state.ActiveDurationEffect = game_state.DurationEffect{
 				EffectType:     game_state.DurationEffectProtection,
 				TurnsRemaining: 5,
@@ -1143,9 +1059,6 @@ func TestDungeonHoleUpZeroAndSpaceCancelRetainedCommand(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			state.ActiveDurationEffect = game_state.DurationEffect{
 				EffectType: game_state.DurationEffectProtection, TurnsRemaining: 5,
@@ -1175,9 +1088,6 @@ func TestDungeonHoleUpZeroAndSpaceCancelRetainedCommand(t *testing.T) {
 
 func TestDungeonHoleUpOneHourCompletesProductionWorkflow(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	for index := 1; index < party_state.MaxActiveParty; index++ {
 		state.PartyState.GetCharacter(index).PartyMap = party_state.PartyMapUnrecruited
@@ -1237,9 +1147,6 @@ func TestDungeonModalCommandCancellationCompletesFullCycle(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			test.setup(state)
 			state.ActiveDurationEffect = game_state.DurationEffect{
@@ -1301,9 +1208,6 @@ func TestDungeonModalCommandRejectionCompletesFullCycle(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			test.setup(state)
 			state.ActiveDurationEffect = game_state.DurationEffect{
@@ -1335,9 +1239,6 @@ func TestNewOrderWorkflowShutdownRemovesOpenDialog(t *testing.T) {
 
 func TestDungeonMixSuccessRetainsCycleUntilMixerCloses(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	for reagent := references.SulfurAsh; reagent <= references.MandrakeRoot; reagent++ {
 		state.PartyState.Inventory.Reagent.Set(reagent, 10)
@@ -1384,9 +1285,6 @@ func TestDungeonMixSuccessRetainsCycleUntilMixerCloses(t *testing.T) {
 
 func TestDungeonFailedMixCompletesAfterTrapEffects(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	totalBefore := uint16(0)
 	for reagent := references.SulfurAsh; reagent <= references.MandrakeRoot; reagent++ {
@@ -1428,9 +1326,6 @@ func TestDungeonFailedMixCompletesAfterTrapEffects(t *testing.T) {
 
 func TestDungeonNewOrderSuccessRetainsCycleThroughSwap(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType: game_state.DurationEffectProtection, TurnsRemaining: 5,
@@ -1451,9 +1346,6 @@ func TestDungeonNewOrderSuccessRetainsCycleThroughSwap(t *testing.T) {
 
 func TestDungeonReadySuccessAllowsBodyArmourAndCompletesOnce(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType: game_state.DurationEffectProtection, TurnsRemaining: 5,
@@ -1480,9 +1372,6 @@ func TestDungeonReadySuccessAllowsBodyArmourAndCompletesOnce(t *testing.T) {
 
 func TestDungeonModalCompletionCanHandOffToFixedRoom(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 	setDungeonInputTestCell(t, state, state.MapState.PlayerLocation.Position, 0xf1)
 	state.ActiveDurationEffect = game_state.DurationEffect{
@@ -1537,9 +1426,6 @@ func dungeonModalWorkflowName(key ebiten.Key) string {
 
 func TestDungeonUpdateRoutesPrimaryInput(t *testing.T) {
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	initializeDungeonUpdateTestScene(scene, state)
 
 	scene.keyboard.SimulateKeyPress(ebiten.KeyPeriod)
@@ -1581,9 +1467,6 @@ func TestDungeonUpdateClearsStaleSecondaryInputAtBoundary(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			token, _ := state.BeginDungeonCommandCycle()
 			test.set(scene, token)
@@ -1632,9 +1515,6 @@ func TestDungeonMovementHiddenPitRetainsCommandUntilWorkflowCleanup(t *testing.T
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			setDungeonInputTestCellAtFloor(t, state, 0, test.target, test.pitCell)
 			setDungeonInputTestCellAtFloor(t, state, 1, test.target, 0xfa)
 			state.ActiveDurationEffect = game_state.DurationEffect{
@@ -1682,9 +1562,6 @@ func TestDungeonKlimbNoRouteAndMissingGrappleUseCommandOnlyCompletion(t *testing
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			setDungeonInputTestCell(t, state, state.MapState.PlayerLocation.Position, test.cell)
 			state.ActiveDurationEffect = game_state.DurationEffect{
 				EffectType:     game_state.DurationEffectProtection,
@@ -1719,9 +1596,6 @@ func TestDungeonKlimbSingleRouteUsesWorkflowAndFullCompletion(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scene, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			state.MapState.PlayerLocation.Floor = 3
 			position := state.MapState.PlayerLocation.Position
 			setDungeonInputTestCellAtFloor(t, state, 3, position, test.cell)
@@ -1754,9 +1628,6 @@ func TestDungeonKlimbSingleRouteUsesWorkflowAndFullCompletion(t *testing.T) {
 
 func TestDungeonKlimbDualRouteRetainsTokenUntilValidChoice(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.PlayerLocation.Floor = 3
 	position := state.MapState.PlayerLocation.Position
 	setDungeonInputTestCellAtFloor(t, state, 3, position, 0x30)
@@ -1802,9 +1673,6 @@ func TestDungeonKlimbDualRouteRetainsTokenUntilValidChoice(t *testing.T) {
 
 func TestDungeonKlimbDualRoutePassUsesFullCompletion(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.PlayerLocation.Floor = 3
 	position := state.MapState.PlayerLocation.Position
 	setDungeonInputTestCellAtFloor(t, state, 3, position, 0x30)
@@ -1827,9 +1695,6 @@ func TestDungeonKlimbDualRoutePassUsesFullCompletion(t *testing.T) {
 
 func TestDungeonKlimbDualRouteAcceptsLetterDForDown(t *testing.T) {
 	scene, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.PlayerLocation.Floor = 3
 	position := state.MapState.PlayerLocation.Position
 	setDungeonInputTestCellAtFloor(t, state, 3, position, 0x30)
@@ -1848,9 +1713,6 @@ func TestDungeonKlimbDualRouteAcceptsLetterDForDown(t *testing.T) {
 
 func TestDungeonKlimbBlockedSelectedRouteUsesFullCompletion(t *testing.T) {
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	state.MapState.PlayerLocation.Floor = 3
 	position := state.MapState.PlayerLocation.Position
 	setDungeonInputTestCellAtFloor(t, state, 3, position, 0x30)

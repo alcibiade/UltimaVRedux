@@ -49,10 +49,6 @@ func TestFireCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("FireWithoutAdjacentCannon", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -100,10 +96,6 @@ func TestFireCommand_LargeMap_Integration(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("FireWithoutVehicle", func(t *testing.T) {
 		mockCallbacks.Reset()
@@ -192,10 +184,6 @@ func TestFireCommand_VehicleIntegration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("VehicleStateTransitions", func(t *testing.T) {
 		// Test fire behavior with vehicle state changes
 		originalVehicleType := gameState.PartyVehicle.GetVehicleDetails().VehicleType
@@ -251,10 +239,6 @@ func TestFireCommand_ErrorHandling_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("FireAtMapEdges", func(t *testing.T) {
 		// Test fire near map edges
 		edgePositions := []references.Position{
@@ -289,10 +273,6 @@ func TestFireCommand_Regression_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("CurrentImplementationBaseline", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -313,18 +293,6 @@ func TestFireCommand_Regression_Integration(t *testing.T) {
 		assert.False(t, largeMapResult, "Large map fire should fail without vehicle")
 		assert.Equal(t, 1, len(mockCallbacks.Messages), "Should have 'What?' message")
 		assert.Equal(t, "What?", mockCallbacks.Messages[0], "Large map fire should require vehicle")
-
-		// Test combat map fire (stub with feedback)
-		mockCallbacks.Reset()
-		combatResult := gameState.ActionFireCombatMap(references.Up)
-		assert.False(t, combatResult, "Combat map fire returns false (stub)")
-		assert.Equal(t, 1, len(mockCallbacks.Messages), "Combat fire stub should show feedback")
-
-		// Test dungeon map fire (stub with feedback)
-		mockCallbacks.Reset()
-		dungeonResult := gameState.ActionFireDungeonMap(references.Up)
-		assert.False(t, dungeonResult, "Dungeon map fire returns false (stub)")
-		assert.Equal(t, 1, len(mockCallbacks.Messages), "Dungeon fire stub should show feedback")
 
 		t.Logf("ℹ️ Fire command baseline tested - small map cannon auto-detection implemented")
 	})

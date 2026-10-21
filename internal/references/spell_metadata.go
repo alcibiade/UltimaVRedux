@@ -197,7 +197,7 @@ func GetSpellCircle(spell Spell) int {
 
 // spellMetadata contains metadata for all 48 spells
 // Indexed by Spell constant for O(1) lookup
-var spellMetadata = [TotalSpellCount]SpellInfo{ //nolint:gochecknoglobals,lll // Immutable catalog with compact readable rows.
+var spellMetadata = [TotalSpellCount]SpellInfo{ //nolint:gochecknoglobals // Immutable catalog with compact readable rows.
 	// Circle 1 (Spells 0-5)
 	{InLor, "In Lor", 1, TargetAutomatic, ScopeParty, ContextNonCombat, "Creates magical light"},
 	{GravPor, "Grav Por", 1, TargetTileCrosshair, ScopeSingleCombatant, ContextCombat, "Energy missile attack"},

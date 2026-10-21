@@ -200,9 +200,6 @@ func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *
 
 func TestDisappearingDeathUsesAbilityRatherThanMonsterType(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	daemonRef := *daemon.EnemyRef()
 	daemonRef.EnemyAbilities = map[references.EnemyAbility]bool{
 		references.DisappearsOnDeath: true,
@@ -224,9 +221,6 @@ func TestDisappearingDeathUsesAbilityRatherThanMonsterType(t *testing.T) {
 
 func TestOrdinaryNoCorpseDeathDoesNotUseDisappearancePath(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	require.True(t, daemon.HasAbility(references.NoCorpse))
 	require.False(t, daemon.HasAbility(references.DisappearsOnDeath))
 	daemon.SetCurrentHP(0)

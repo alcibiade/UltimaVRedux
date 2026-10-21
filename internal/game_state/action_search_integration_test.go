@@ -20,10 +20,6 @@ func TestSearchCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("BasicSearchBehavior", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -74,10 +70,6 @@ func TestSearchCommand_LargeMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	mockCallbacks.Reset()
 
 	// Test search on large map
@@ -103,10 +95,6 @@ func TestSearchCommand_CombatMap_Integration(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	mockCallbacks.Reset()
 
@@ -172,10 +160,6 @@ func TestSearchCommand_SystemCallbacks_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	testCases := []struct {
 		name         string
 		searchFunc   func(references.Direction) bool
@@ -233,10 +217,6 @@ func TestSearchCommand_Regression_Integration(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("CurrentImplementationBaseline", func(t *testing.T) {
 		mockCallbacks.Reset()

@@ -8,7 +8,6 @@ const (
 	CommandDeathTestSequence = "death.test-sequence"
 )
 
-//nolint:exhaustruct // Catalog parameter omits zero-value optional wire fields.
 func sixthBatchCommands() []CommandDefinition {
 	fingerprint := func() []ParameterDefinition {
 		return []ParameterDefinition{{

@@ -59,9 +59,6 @@ func TestProductionDungeonPackedSpellWorkflowMatrix(t *testing.T) {
 	for _, test := range tests {
 		t.Run(references.GetSpellName(test.spell), func(t *testing.T) {
 			_, state, callbacks := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			require.True(t, state.SetActivePlayer(0))
 			caster := state.PartyState.GetCharacter(0)
 			caster.Class = party_state.Wizard
@@ -106,9 +103,6 @@ func TestProductionDungeonPackedSpellWorkflowMatrix(t *testing.T) {
 
 func TestProductionDungeonPackedSpellRejectionPreservesResourcesAndCompletesCommand(t *testing.T) {
 	_, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	require.True(t, state.SetActivePlayer(0))
 	caster := state.PartyState.GetCharacter(0)
 	caster.Class = party_state.Wizard
@@ -146,9 +140,6 @@ func TestProductionDungeonPackedSpellRejectionPreservesResourcesAndCompletesComm
 
 func TestProductionDungeonPackedSpellCancellationCompletesCommand(t *testing.T) {
 	_, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	require.True(t, state.SetActivePlayer(0))
 	caster := state.PartyState.GetCharacter(0)
 	caster.Class = party_state.Wizard
@@ -207,9 +198,6 @@ func TestProductionDungeonFloorSpellWorkflowHandlesInternalAndBoundaryTravel(t *
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			_, state, _ := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			require.True(t, state.SetActivePlayer(0))
 			caster := state.PartyState.GetCharacter(0)
 			caster.Class = party_state.Wizard
@@ -259,9 +247,6 @@ func TestProductionDungeonFloorSpellWorkflowHandlesInternalAndBoundaryTravel(t *
 
 func TestProductionDungeonFloorSpellRejectionPreservesResources(t *testing.T) {
 	_, state, _ := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	require.True(t, state.SetActivePlayer(0))
 	caster := state.PartyState.GetCharacter(0)
 	caster.Class = party_state.Wizard

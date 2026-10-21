@@ -114,7 +114,9 @@ func TestHiddenCorpserDirectTargetingAndRawConeLookup(t *testing.T) {
 	assert.False(t, missileFound)
 	_, spellFound := gs.combatSpellTargetAt(position, monsterAtPosition, monsterIndex)
 	assert.False(t, spellFound)
-	assert.False(t, gs.ActionAttackCombatPosition(position))
+	hiddenHP := corpser.CurrentHP()
+	attackCombatSquare(t, gs, position)
+	assert.Equal(t, hiddenHP, corpser.CurrentHP(), "Attack cannot find a hidden Corpser")
 	assert.True(t, gs.CombatScene.MonsterManager.IsPositionOccupied(position),
 		"the hidden base shape still blocks movement")
 

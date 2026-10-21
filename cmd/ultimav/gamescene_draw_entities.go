@@ -615,12 +615,12 @@ func (g *GameScene) combatEntityDrawOptions(
 	entityIndex, slot int,
 ) *ebiten.DrawImageOptions {
 	screenX, screenY := combatPositionToSourcePixels(position)
-	drawOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct
+	drawOptions := &ebiten.DrawImageOptions{}
 	drawOptions.GeoM.Translate(screenX, screenY)
 	impactX, impactY := g.combatEntityOffset(isPartyMember, entityIndex, slot)
 	drawOptions.GeoM.Translate(impactX, impactY)
 
-	tempOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct
+	tempOptions := &ebiten.DrawImageOptions{}
 	sprites.ApplyDrawOptionsFromPercentsForWholeScreen(tempOptions, g.mapImage, g.mapScreenPlacement())
 	if g.screenShakeOffsetX != 0.0 || g.screenShakeOffsetY != 0.0 {
 		tempOptions.GeoM.Translate(g.screenShakeOffsetX, g.screenShakeOffsetY)

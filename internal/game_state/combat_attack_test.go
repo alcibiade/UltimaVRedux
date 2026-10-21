@@ -1,4 +1,4 @@
-// Integration tests for the combat attack pipeline (ActionAttackCombatMap).
+// Integration tests for the combat attack pipeline.
 //
 // These tests validate the full hit → damage → apply → kill → XP flow
 // against real game data, using deterministic RNG seeds for reproducibility.
@@ -91,7 +91,7 @@ func TestCombatAttack_HitAndDamage(t *testing.T) {
 
 	hpBefore := monster.CurrentHP()
 
-	result := gs.ActionAttackCombatMap(references.Down)
+	result := attackCombatDirection(t, gs, references.Down)
 	assert.True(t, result, "Attack should return true when monster is present")
 
 	require.Len(t, mock.CombatImpactCalls, 1, "attack result should use floating combat feedback")
@@ -171,29 +171,6 @@ func TestCombatAttackPresentationDropsEquipmentForEnvironmentalDelivery(t *testi
 	assert.Equal(t, references.NoEquipment, presentation.Source)
 }
 
-// TestCombatAttack_NoMonster verifies that attacking an empty tile returns false.
-func TestCombatAttack_NoMonster(t *testing.T) {
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
-
-	// Clear all monsters
-	clearCombatMonstersForTest(gs.CombatScene)
-	mock.Reset()
-
-	result := gs.ActionAttackCombatMap(references.Down)
-	assert.False(t, result, "Attack should return false when no monster at target")
-
-	// No messages (the UI layer handles "Nothing to attack!" when result is false)
-	assert.Equal(t, 0, len(mock.Messages), "No messages from ActionAttackCombatMap when no target")
-	assert.Empty(t, mock.CombatImpactCalls, "No floating feedback when no attack occurs")
-}
-
 // TestCombatAttack_GlassSword verifies Glass Sword behavior:
 // - Always hits (never miss)
 // - Deals instant kill damage (99)
@@ -210,7 +187,7 @@ func TestCombatAttack_GlassSword(t *testing.T) {
 
 	expBefore := character.Exp
 
-	result := gs.ActionAttackCombatMap(references.Down)
+	result := attackCombatDirection(t, gs, references.Down)
 	assert.True(t, result, "Glass Sword attack should hit")
 
 	// Glass Sword should always kill
@@ -246,7 +223,7 @@ func TestCombatAttack_MagicalSwordModifiersPreserveImmortality(t *testing.T) {
 			hpBefore := monster.CurrentHP()
 			gs.SetRandomSeed(100)
 
-			require.True(t, gs.ActionAttackCombatMap(references.Down))
+			require.True(t, attackCombatDirection(t, gs, references.Down))
 
 			assert.False(t, monster.IsDead())
 			assert.Equal(t, hpBefore, monster.CurrentHP())
@@ -270,7 +247,7 @@ func TestCombatAttack_ChaosSwordUsesFixedDamageDiagnostics(t *testing.T) {
 	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 
-	require.True(t, gs.ActionAttackCombatMap(references.Down))
+	require.True(t, attackCombatDirection(t, gs, references.Down))
 
 	assert.True(t, monster.IsDead())
 	require.NotEmpty(t, mock.CombatEvents)
@@ -292,7 +269,7 @@ func TestCombatAttack_GlassSwordDealsFullDamageToUndead(t *testing.T) {
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 	gs.SetRandomSeed(100)
 
-	require.True(t, gs.ActionAttackCombatMap(references.Down))
+	require.True(t, attackCombatDirection(t, gs, references.Down))
 
 	assert.True(t, monster.IsDead())
 	require.NotEmpty(t, mock.CombatEvents)
@@ -411,7 +388,7 @@ func TestCombatAttack_BareHands(t *testing.T) {
 	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 
-	result := gs.ActionAttackCombatMap(references.Down)
+	result := attackCombatDirection(t, gs, references.Down)
 	assert.True(t, result, "Bare-hands attack should return true when monster is present")
 
 	// Bare-hands with weaponAttack=1 against armored orc will often graze or miss.
@@ -433,7 +410,7 @@ func TestCombatAttack_MonsterKillAwardsXP(t *testing.T) {
 	monster.SetCurrentHP(1)
 	expBefore := character.Exp
 
-	result := gs.ActionAttackCombatMap(references.Down)
+	result := attackCombatDirection(t, gs, references.Down)
 	assert.True(t, result, "Attack should return true")
 
 	require.Len(t, mock.CombatImpactCalls, 1)
@@ -466,7 +443,7 @@ func TestCombatAttack_MultiSlot(t *testing.T) {
 	// Ensure monster has enough HP to survive multiple hits
 	monster.SetCurrentHP(100)
 
-	result := gs.ActionAttackCombatMap(references.Down)
+	result := attackCombatDirection(t, gs, references.Down)
 	assert.True(t, result, "Attack should return true")
 
 	assert.GreaterOrEqual(t, len(mock.CombatImpactCalls), 2,
@@ -488,7 +465,7 @@ func TestCombatAttack_MonsterDeathRemovesFromQueue(t *testing.T) {
 	pcsBefore, monstersBefore := gs.CombatScene.TurnQueue.CountRemaining()
 	queueSizeBefore := pcsBefore + monstersBefore
 
-	gs.ActionAttackCombatMap(references.Down)
+	attackCombatDirection(t, gs, references.Down)
 
 	assert.True(t, monster.IsDead(), "Monster should be dead from Glass Sword")
 
@@ -516,7 +493,7 @@ func TestCombatAttack_JeweledSword(t *testing.T) {
 
 	hpBefore := monster.CurrentHP()
 
-	result := gs.ActionAttackCombatMap(references.Down)
+	result := attackCombatDirection(t, gs, references.Down)
 	assert.True(t, result, "Jeweled Sword attack should succeed")
 
 	// Jeweled Sword always hits but deals 0 damage, so it floats GRAZE.

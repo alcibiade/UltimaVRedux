@@ -30,7 +30,7 @@ func Validate(snapshot SaveSnapshot) []Issue {
 	return validateSnapshot(snapshot, CurrentVersion)
 }
 
-//nolint:gocognit,maintidx // Snapshot validation intentionally aggregates all independent sections.
+//nolint:maintidx // Snapshot validation intentionally aggregates all independent sections.
 func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 	issues := make([]Issue, 0)
 	add := func(path, code, message string) {
@@ -726,7 +726,6 @@ func validateDungeonSnapshot(snapshot SaveSnapshot, add func(string, string, str
 	}
 }
 
-//nolint:cyclop // Fixed legacy roster and NPC flag constraints are explicit.
 func validateParty(party PartySnapshot, add func(string, string, string)) {
 	activeCount := 0
 	seenInactive := false
@@ -829,7 +828,6 @@ func validCharacterStatus(status int) bool {
 	}
 }
 
-//nolint:cyclop // Inventory limits mirror the fixed original catalog capacities.
 func validateInventory(inventory InventorySnapshot, add func(string, string, string)) {
 	if inventory.Food > 9999 || inventory.Gold > 9999 || inventory.Gems > 99 || inventory.Torches > 99 || inventory.Keys > 99 || inventory.SkullKeys > 99 {
 		add("inventory", "out_of_range", "provision quantity exceeds runtime capacity")

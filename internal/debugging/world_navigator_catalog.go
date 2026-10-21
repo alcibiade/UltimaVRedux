@@ -36,7 +36,6 @@ const (
 	WorldRouteUnderworld = "underworld"
 )
 
-//nolint:funlen,exhaustruct // Complete schemas are kept together for direct Go/TypeScript review.
 func worldNavigatorCommands() []CommandDefinition {
 	minimumWorldLocation, maximumWorldLocation := 0, int(references.Doom)
 	minimumWorldFloor, maximumWorldFloor := -1, references.DungeonFloorCount-1

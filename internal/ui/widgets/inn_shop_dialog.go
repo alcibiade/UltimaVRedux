@@ -35,7 +35,6 @@ const (
 	innShopDetailProjectionLines = 9
 	innShopModeHeaderMaxLines    = 2
 	innShopPickupNumericColumn   = 2
-	innShopCenterDivisor         = 2
 	innShopColumnName            = "NAME"
 	innShopColumnStatus          = "STATUS"
 	innStatusDead                = "Dead"

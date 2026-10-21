@@ -54,7 +54,7 @@ func (g *GameState) CastCombatAnXenCorp(casterIdx int) CombatAnXenCorpResult {
 
 	casterIdentity := g.combatPartyAttackerIdentity(casterIdx)
 	casterEntity := combatFeedbackIdentity(casterIdentity, g.CombatScene.GetCombatantPosition(casterIdentity))
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Aggregate spell has no single target or damage result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:      CombatEventRepelUndead,
 		Attacker:  casterEntity,
 		From:      casterEntity.Position,
@@ -104,7 +104,7 @@ func (g *GameState) CastCombatInQuasCorp(casterIdx int) CombatAnXenCorpResult {
 	}
 	casterIdentity := g.combatPartyAttackerIdentity(casterIdx)
 	casterEntity := combatFeedbackIdentity(casterIdentity, g.CombatScene.GetCombatantPosition(casterIdentity))
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Aggregate fear has no single target or damage result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventRepelUndead, Attacker: casterEntity, From: casterEntity.Position,
 		AnXenCorp: CombatAnXenCorpEvent{Caster: casterEntity, Result: result}, Diagnostics: CombatDiagnostics{Spell: references.InQuasCorp},
 	})

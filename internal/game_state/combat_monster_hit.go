@@ -34,7 +34,7 @@ func (g *GameState) resolveSuccessfulMonsterHit(
 		diagnostics.TheftRoll = rng.Intn(monsterSpecialEffectRollRange)
 		if diagnostics.TheftRoll != 0 {
 			stolen := min(gremlinFoodTheftAmount, int(food.Get()))
-			food.DecrementBy(uint16(stolen)) //nolint:gosec // Stolen is bounded by the current uint16 quantity.
+			food.DecrementBy(uint16(stolen))
 			diagnostics.FoodStolen = stolen
 
 			return monsterSuccessfulHitResult{feedback: CombatFeedbackTheft, replacedDamage: true}

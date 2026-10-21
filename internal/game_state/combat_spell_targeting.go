@@ -102,8 +102,8 @@ func (g *GameState) MoveCombatSpellCursor(deltaX, deltaY int) bool {
 
 	targeting := g.CombatScene.SpellTargeting
 	candidate := references.Position{
-		X: targeting.Cursor.X + references.Coordinate(deltaX), //nolint:gosec // Delta is validated within -1..1.
-		Y: targeting.Cursor.Y + references.Coordinate(deltaY), //nolint:gosec // Delta is validated within -1..1.
+		X: targeting.Cursor.X + references.Coordinate(deltaX),
+		Y: targeting.Cursor.Y + references.Coordinate(deltaY),
 	}
 	if candidate.X < 0 || candidate.X >= references.XCombatMapTiles ||
 		candidate.Y < 0 || candidate.Y >= references.YCombatMapTiles ||
@@ -306,14 +306,14 @@ func (g *GameState) publishBlockedCombatSpell(pending pendingCombatSpell) {
 	if pending.targetSet {
 		target = combatFeedbackIdentity(pending.target, pending.targetPosition)
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // A blocked missile has no damage result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:     CombatEventSpell,
 		Attacker: combatFeedbackIdentity(pending.caster, pending.launch.From),
 		Target:   target,
 		Result:   CombatFeedbackMiss,
 		From:     pending.launch.From,
 		To:       pending.launch.Impact,
-		Diagnostics: CombatDiagnostics{ //nolint:exhaustruct // Only spell trajectory fields apply.
+		Diagnostics: CombatDiagnostics{
 			Hit:               pending.hit,
 			Spell:             pending.spell,
 			MagicDamage:       true,
@@ -395,7 +395,6 @@ func (g *GameState) isCombatSpellTargetValid(
 	if target.IsPartyMember && g.CombatScene.isCombatPCUnderground(target) {
 		return false
 	}
-	//nolint:exhaustive // This switch owns only the crosshair spell family.
 	if isCombatDamageProjectileSpell(spell) {
 		if target.IsPartyMember {
 			return g.CombatScene.isCombatPCActive(target) &&
@@ -446,7 +445,7 @@ func (g *GameState) resolveCombatProjectileSpell(
 		panic("ResolvePendingCombatSpell: confirmed target is no longer active")
 	}
 	if pending.spell == references.XenCorp {
-		damage := CombatDamageResult{ //nolint:exhaustruct // Xen Corp bypasses armor and has no random damage roll.
+		damage := CombatDamageResult{
 			Damage:          combatInstantKillDamage,
 			InstantKill:     true,
 			AttackMax:       combatInstantKillDamage,
@@ -508,7 +507,7 @@ func (g *GameState) resolveCombatProjectileSpellAgainstPC(pending pendingCombatS
 		panic("ResolvePendingCombatSpell: confirmed PC target is no longer active")
 	}
 	character := g.PartyState.GetCharacter(pending.target.EntityIndex)
-	damage := CombatDamageResult{ //nolint:exhaustruct // Xen Corp has no damage or armor draw.
+	damage := CombatDamageResult{
 		Damage:          combatInstantKillDamage,
 		InstantKill:     true,
 		AttackMax:       combatInstantKillDamage,
@@ -528,7 +527,7 @@ func (g *GameState) resolveCombatProjectileSpellAgainstPC(pending pendingCombatS
 		character.SetHp(0)
 		character.MarkAsDead()
 	} else {
-		character.SubtractHp(uint16(damage.Damage)) //nolint:gosec // Spell damage is bounded by its source rating.
+		character.SubtractHp(uint16(damage.Damage))
 	}
 	hpLost := int(hpBefore - character.GetCurrentHp())
 	fatal := character.IsDead()
@@ -583,7 +582,7 @@ func (g *GameState) publishCombatProjectileSpellResult(
 		MonsterInjury: injury,
 		From:          feedback.Attacker.Position,
 		To:            feedback.Target.Position,
-		Diagnostics: CombatDiagnostics{ //nolint:exhaustruct // Physical attack fields do not apply to spells.
+		Diagnostics: CombatDiagnostics{
 			Hit:            hit,
 			Damage:         damage,
 			FinalDamage:    finalDamage,

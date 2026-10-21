@@ -645,7 +645,6 @@ func partyKarmaCommands() []CommandDefinition {
 	}}
 }
 
-//nolint:funlen,exhaustruct,lll // Catalog declarations are clearer when each command stays self-contained.
 func secondBatchToolCommands() []CommandDefinition {
 	minimumCoordinate, maximumCoordinate := 0, 255
 	minimumMap, maximumMap := 0, references.TotalCombatMaps-1
@@ -778,7 +777,6 @@ func monsterChoices() []Choice {
 	return choices
 }
 
-//nolint:funlen,exhaustruct,lll // Catalog declarations are clearer when each command stays self-contained.
 func approvedToolCommands() []CommandDefinition {
 	minimumCoordinate := 0
 	maximumCoordinate := 255

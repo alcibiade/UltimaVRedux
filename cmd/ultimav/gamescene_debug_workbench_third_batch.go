@@ -1,4 +1,3 @@
-//nolint:lll // This migration adapter preserves long, explicit callback contracts and result schema literals.
 package main
 
 import (
@@ -53,7 +52,7 @@ func (g *GameScene) executeThirdBatchDebugCommand(request debugging.Request) (de
 	case debugging.CommandMoongateTravel:
 		return g.executeDebugMoongateTravel(request), true
 	default:
-		return debugging.Result{}, false //nolint:exhaustruct // Zero result marks an unhandled command.
+		return debugging.Result{}, false
 	}
 }
 
@@ -221,7 +220,6 @@ func dispatchDebugSearch(state *game_state.GameState, mapType references.General
 	}
 }
 
-//nolint:cyclop // Callback availability is a complete precondition list for each search context.
 func validateSearchCallbacks(state *game_state.GameState, mapType references.GeneralMapType) error {
 	if state.SystemCallbacks == nil || state.SystemCallbacks.UI.ShowActionFeedback == nil ||
 		state.SystemCallbacks.Message.AddRowStr == nil {
@@ -242,7 +240,6 @@ func validateSearchCallbacks(state *game_state.GameState, mapType references.Gen
 	return nil
 }
 
-//nolint:cyclop // Moongate travel requires every callback used by the production workflow.
 func validateMoongateCallbacks(state *game_state.GameState) error {
 	if state.SystemCallbacks == nil || state.SystemCallbacks.Audio.Play == nil ||
 		state.SystemCallbacks.Audio.PlaySoundEffect == nil || state.SystemCallbacks.Message.AddRowStr == nil ||
@@ -257,7 +254,6 @@ func validateMoongateCallbacks(state *game_state.GameState) error {
 	return nil
 }
 
-//nolint:cyclop // Camping must verify the full production workflow callback contract.
 func validateCampingCallbacks(state *game_state.GameState) error {
 	if state.SystemCallbacks == nil {
 		return errCampingCallbacks

@@ -332,7 +332,6 @@ func scenarioAllowedExecutionModes() map[debugging.ExecutionMode]struct{} {
 	return allowed
 }
 
-//nolint:cyclop,nestif // This is the serialized scenario workflow state machine.
 func (g *Game) updateScenarioRun() {
 	run := g.scenarioRun
 	if run == nil || (run.status.State != scenarioRunQueued && run.status.State != scenarioRunRunning) {

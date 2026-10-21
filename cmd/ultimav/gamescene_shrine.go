@@ -1,4 +1,3 @@
-//nolint:dupl,mnd,varnamelen // Existing shrine sequences retain authentic timing and local builder names.
 package main
 
 import (

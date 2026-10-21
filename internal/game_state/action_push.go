@@ -393,7 +393,7 @@ func (g *GameState) moveCombatPushActor(
 		}
 		monster.SetPosition(toPosition)
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Movement has no target or roll result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventMove,
 		Attacker: CombatFeedbackEntity{
 			IsPartyMember: identity.IsPartyMember,

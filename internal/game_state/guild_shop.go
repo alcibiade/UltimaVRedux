@@ -188,7 +188,7 @@ func (g *GameState) PurchaseGuildOffer(
 	result.BundleCount = 0
 	result.TotalCost = 0
 	for result.BundleCount < request.BundleCount {
-		price := uint16(quote.PricePerBundle * int(bundles)) //nolint:gosec // Initial affordability bounds every payment.
+		price := uint16(quote.PricePerBundle * int(bundles))
 		if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 			break
 		}
@@ -265,7 +265,7 @@ func (g *GameState) quoteGuildOffer(
 		PricePerBundle: chargedPrice,
 		Gold:           gold,
 		QuantityBefore: quantityBefore,
-		MaxBundles:     uint16(min(usefulBundles, affordableBundles)), //nolint:gosec // Both bounds fit in uint16.
+		MaxBundles:     uint16(min(usefulBundles, affordableBundles)),
 	}, nil
 }
 

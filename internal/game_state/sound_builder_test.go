@@ -14,31 +14,25 @@ func TestSoundBuilderDispatchesOneCompletePlaybackRequest(t *testing.T) {
 		func(SoundStopRequest) {},
 	)
 
-	callbacks.Play(SoundEarthquake).Loop().FadeIn(200).Volume(0.5).Start()
+	callbacks.Play(SoundEarthquake).Loop().FadeIn(200).Start()
 
 	require.Equal(t, []SoundPlaybackRequest{{
-		Effect: SoundEarthquake, Mode: SoundPlaybackLoop, Volume: 0.5, FadeInMs: 200,
+		Effect: SoundEarthquake, Mode: SoundPlaybackLoop, Volume: 1.0, FadeInMs: 200,
 	}}, requests)
 }
 
-func TestSoundBuilderDefaultsToOneShotAndClampsVolume(t *testing.T) {
-	requests := make([]SoundPlaybackRequest, 0, 3)
+func TestSoundBuilderDefaultsToFullVolumeOneShot(t *testing.T) {
+	requests := make([]SoundPlaybackRequest, 0, 1)
 	callbacks := newSoundBuilderTestCallbacks(
 		func(request SoundPlaybackRequest) { requests = append(requests, request) },
 		func(SoundStopRequest) {},
 	)
 
 	callbacks.PlaySoundEffect(SoundUnlock)
-	callbacks.Play(SoundEarthquake).Loop().OneShot().Volume(-0.5).Start()
-	callbacks.Play(SoundEarthquake).Volume(1.5).Start()
 
-	require.Len(t, requests, 3)
-	assert.Equal(t, SoundPlaybackRequest{
+	assert.Equal(t, []SoundPlaybackRequest{{
 		Effect: SoundUnlock, Mode: SoundPlaybackOneShot, Volume: 1.0,
-	}, requests[0])
-	assert.Equal(t, SoundPlaybackOneShot, requests[1].Mode)
-	assert.Zero(t, requests[1].Volume)
-	assert.Equal(t, 1.0, requests[2].Volume)
+	}}, requests)
 }
 
 func TestStopBuilderDispatchesOneCompleteStopRequest(t *testing.T) {

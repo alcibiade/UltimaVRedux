@@ -197,9 +197,6 @@ func TestCombatMonsterDivisionRejectsNothingCandidates(t *testing.T) {
 
 func TestCombatDaemonGatingRejectsNothingWithoutConsumingCreationDEX(t *testing.T) {
 	state, callbacks, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if state == nil {
-		return
-	}
 	position := firstLegalDaemonGatePosition(t, state)
 	state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &position, indexes.BlackSquare)
 	state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapOverrideLayer, &position, indexes.NoSprites)

@@ -270,7 +270,7 @@ func (g *GameState) BuyArmsEquipment(
 	result.Quantity = 0
 	result.TotalCost = 0
 	for result.Quantity < request.Quantity {
-		price := uint16(quote.UnitPrice * int(units)) //nolint:gosec // Initial affordability bounds every payment.
+		price := uint16(quote.UnitPrice * int(units))
 		if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 			break // Earlier theft can make the next original item unaffordable.
 		}
@@ -341,7 +341,7 @@ func (g *GameState) SellArmsEquipment(
 
 	// REDUX DEVIATION: original shop rules sells one item per confirmation and saturates gold before removing it, even when the gain is partial or zero; Redux batches only through the exact gold-safe cap so one aggregate credit and removal are atomic and never discard value.
 	// See ref:MERCH-0004.
-	g.PartyState.Inventory.Gold.IncrementBy(uint16(totalOffer)) //nolint:gosec // The gold-safe quote bounds proceeds to the remaining uint16 capacity.
+	g.PartyState.Inventory.Gold.IncrementBy(uint16(totalOffer))
 	if !g.PartyState.Inventory.Equipment.DecrementBy(quote.Equipment, request.Quantity) {
 		panic("validated Arms sale could not remove equipment")
 	}
@@ -386,7 +386,7 @@ func (g *GameState) quoteArmsBuy(
 	gold := g.PartyState.Inventory.Gold.Get()
 	capacity := int(party_state.ItemQuantitySmallMax - quantityBefore)
 	affordable := int(gold) / unitPrice
-	maxQuantity := uint16(min(capacity, affordable)) //nolint:gosec // Both bounds are at most the small inventory maximum.
+	maxQuantity := uint16(min(capacity, affordable))
 	if equipment.IsAmmo() && maxQuantity > 0 {
 		maxQuantity = 1
 	}
@@ -430,7 +430,7 @@ func (g *GameState) quoteArmsSell(
 
 	quote.UnitOffer = CalculateArmsSellPrice(basePrice, int(buyer.Intelligence))
 	goldRoom := int(party_state.ItemQuantityLargeMax - gold)
-	quote.MaxQuantity = uint16(min(int(quantityBefore), goldRoom/quote.UnitOffer)) //nolint:gosec // Quantity is bounded by the small carried stack.
+	quote.MaxQuantity = uint16(min(int(quantityBefore), goldRoom/quote.UnitOffer))
 	quote.Sellable = true
 
 	return quote, nil

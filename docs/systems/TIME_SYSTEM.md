@@ -148,7 +148,7 @@ type UltimaDate struct {
 }
 ```
 
-The Britannian calendar uses 13 months, 28 days per month (364 days per year), 24 hours, and 60 minutes. Month 12 advances to month 13; month 13 advances to month 1 of the next year. `Advance(minutes)` increments `Turn` once per invocation, applies the calendar rollover logic, and clamps a single request to nine hours. Tests can move to a named anchor with the test-support `SetTimeOfDay`: Morning 05:00, Noon 12:00, Evening 17:00, Midnight 00:00, or Dusk 20:00.
+The Britannian calendar uses 13 months, 28 days per month (364 days per year), 24 hours, and 60 minutes. Month 12 advances to month 13; month 13 advances to month 1 of the next year. `Advance(minutes)` increments `Turn` once per invocation, applies the calendar rollover logic, and clamps a single request to nine hours.
 
 Calendar consumers include NPC schedules, food checks, visibility, lighthouse behavior, moon phases, moongates, and date/time display.
 

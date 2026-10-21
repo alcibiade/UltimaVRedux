@@ -504,9 +504,6 @@ func TestGazerHitSleepsBeforeDamageInMeleeAndRange(t *testing.T) {
 
 	t.Run("ranged sleeps at impact without resolution RNG", func(t *testing.T) {
 		gs, mock, gazer, gazerIndex, nearest := setupMonsterMissileTest(t, references.MonsterGazer, 3)
-		if gs == nil {
-			return
-		}
 		identity := nearest.identity
 		character := gs.PartyState.GetCharacter(identity.EntityIndex)
 		hpBefore := character.GetCurrentHp()

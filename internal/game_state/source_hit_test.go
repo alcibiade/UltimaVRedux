@@ -270,7 +270,7 @@ func TestAdjacentWhirlpoolDamagesFootPartyWithoutTransportOrRemoval(t *testing.T
 	state.SetRandomSeed(seed)
 	wantDamage := beradrng.New(seed).Intn(8) + 1
 
-	require.True(t, state.CheckWhirlpoolAdjacency())
+	require.True(t, checkOutdoorActorAttacks(state))
 	drainSourceHitWorkflows(t, state)
 
 	assert.Equal(t, origin, state.MapState.PlayerLocation)

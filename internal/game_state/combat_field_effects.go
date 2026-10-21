@@ -29,7 +29,7 @@ func (g *GameState) resolveCombatFieldSpell(pending pendingCombatSpell) {
 	if !installed {
 		g.SystemCallbacks.Message.AddRowStr("No room for field!")
 	} else {
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Field creation has no attack result.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind:        CombatEventFieldCreated,
 			Attacker:    combatFeedbackIdentity(pending.caster, pending.launch.From),
 			To:          pending.launch.Impact,
@@ -253,7 +253,7 @@ func (g *GameState) publishCombatFieldTrigger(
 		injury.HPLost, injury.Fatal = hpLost, fatal
 		fireInjury = &injury
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Direct fire retains magic diagnostics; standing/status fields have none.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventFieldTriggered,
 		Target: CombatFeedbackEntity{
 			IsPartyMember: partyMember, Index: index, Slot: slot, Position: position,
@@ -270,7 +270,7 @@ func (g *GameState) publishCombatFieldTrigger(
 
 func (g *GameState) resolveCombatFieldExpiration() {
 	for _, field := range g.CombatScene.expireFields(g.GetRNG().Intn) {
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Field expiration has no actor or roll diagnostics.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind:         CombatEventFieldExpired,
 			To:           field.Position(),
 			FieldKind:    field.Kind(),
@@ -355,7 +355,7 @@ func (g *GameState) CastCombatAnGrav(casterIdx int, direction references.Directi
 	if !removed {
 		return false
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Dispel has no damage diagnostics.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:        CombatEventFieldDispelled,
 		Attacker:    combatFeedbackIdentity(identity, origin),
 		To:          target,
@@ -383,7 +383,7 @@ func (g *GameState) UseCombatSceptre(direction references.Direction) bool {
 
 		return false
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Dispel has no damage diagnostics.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:      CombatEventFieldDispelled,
 		Attacker:  combatFeedbackIdentity(identity, origin),
 		To:        target,

@@ -81,7 +81,7 @@ func (g *GameState) preparePendingCombatAttack(
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundCombatRangedLaunch)
 	}
 
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage is intentionally deferred until impact.
+	diagnostics := CombatDiagnostics{
 		Source:  source.Equipment,
 		Missile: source.Missile,
 	}
@@ -408,7 +408,7 @@ func (g *GameState) resolveCommittedControlledAttackAgainstPC(
 func (g *GameState) publishBlockedPhysicalAttack(pending pendingCombatAttack) {
 	diagnostics := pending.diagnostics
 	diagnostics.ProjectileBlocked = true
-	event := CombatEvent{ //nolint:exhaustruct // A blocked launch has no impact target mutation.
+	event := CombatEvent{
 		Kind:     CombatEventRangedAttack,
 		Attacker: combatFeedbackIdentity(pending.attacker, pending.launch.From),
 		Result:   CombatFeedbackMiss, From: pending.launch.From, To: pending.launch.Impact,
@@ -431,7 +431,7 @@ func (g *GameState) publishPendingPhysicalMiss(pending pendingCombatAttack) {
 			pending.attacker.IsPartyMember,
 		),
 	})
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Misses have no damage result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventRangedAttack, Attacker: attacker, Target: target,
 		Result: CombatFeedbackMiss, From: pending.launch.From, To: pending.launch.Impact,
 		Diagnostics: pending.diagnostics,
@@ -439,7 +439,7 @@ func (g *GameState) publishPendingPhysicalMiss(pending pendingCombatAttack) {
 }
 
 func (g *GameState) publishEmptyPhysicalAttack(pending pendingCombatAttack) {
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Empty launches have no target or damage.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:        CombatEventRangedAttack,
 		Attacker:    combatFeedbackIdentity(pending.attacker, pending.launch.From),
 		Result:      CombatFeedbackMiss,
@@ -457,7 +457,7 @@ func (g *GameState) createFlamingOilField(pending pendingCombatAttack) {
 
 		return
 	}
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Field creation has no attack result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:     CombatEventFieldCreated,
 		Attacker: combatFeedbackIdentity(pending.attacker, pending.launch.From),
 		To:       pending.launch.Impact, FieldKind: CombatFieldFire,

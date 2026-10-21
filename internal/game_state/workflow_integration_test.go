@@ -20,10 +20,6 @@ func TestPushThenGet_Workflow_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("PushObjectThenAttemptGet", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -90,10 +86,6 @@ func TestJimmyThenOpen_Workflow_Integration(t *testing.T) {
 		WithPlayerAt(12, 12).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("JimmyThenOpenDoorSequence", func(t *testing.T) {
 		// Give player some lock picks for testing
@@ -163,10 +155,6 @@ func TestKlimbThenSearch_Workflow_Integration(t *testing.T) {
 		WithPlayerAt(10, 10).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("KlimbThenSearchNewFloor", func(t *testing.T) {
 		originalFloor := gs.MapState.PlayerLocation.Floor
@@ -242,10 +230,6 @@ func TestTalkThenGet_Workflow_Integration(t *testing.T) {
 		WithPlayerAt(12, 12).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("TalkToNPCThenSearchForItems", func(t *testing.T) {
 		originalPosition := gs.MapState.PlayerLocation.Position

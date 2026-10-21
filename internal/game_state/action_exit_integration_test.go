@@ -15,10 +15,6 @@ func TestActionExit_IntegrationWithRealData(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	// Test exit actions in different contexts
 	testScenarios := []struct {
 		name     string
@@ -64,10 +60,6 @@ func TestActionExit_VehicleExitIntegration(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	// Test different vehicle states
 	// Note: This tests the exit logic regardless of actual vehicle presence

@@ -508,7 +508,7 @@ func (g *GameScene) drawCombatDamageIndicator(
 
 	screenX, screenY := g.combatImpactLabelPosition(*effect)
 
-	mapOptions := &ebiten.DrawImageOptions{} //nolint:exhaustruct
+	mapOptions := &ebiten.DrawImageOptions{}
 	sprites.ApplyDrawOptionsFromPercentsForWholeScreen(mapOptions, g.mapImage, g.mapScreenPlacement())
 	mapOptions.GeoM.Translate(g.screenShakeOffsetX, g.screenShakeOffsetY)
 	textX, textY := mapOptions.GeoM.Apply(screenX+combatTileCenterPixels, screenY-rise)

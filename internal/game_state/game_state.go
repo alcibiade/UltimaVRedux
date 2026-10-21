@@ -59,8 +59,6 @@ const (
 	// Mirror reflection position offset
 	mirrorReflectionYOffset = 1 // Avatar must be 1 tile south of mirror to see reflection
 
-	// FallDelayMs is the delay between trap-induced floor transitions.
-	FallDelayMs = 1500 // 1.5 second delay between floor transitions
 )
 
 // GameState owns authoritative gameplay state, clocks, RNG and action mutations.
@@ -277,7 +275,7 @@ type GameState struct {
 
 func initBlankGameState(gameReferences *references.GameReferences, gameConfig *config.UltimaVConfiguration, xTilesVisibleOnGameScreen,
 	yTilesVisibleOnGameScreen int) *GameState {
-	gameState := &GameState{} //nolint:exhaustruct
+	gameState := &GameState{}
 
 	gameState.GameReferences = gameReferences
 	gameState.GameConfig = gameConfig

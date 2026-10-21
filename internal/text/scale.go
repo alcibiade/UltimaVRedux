@@ -5,9 +5,7 @@ import (
 )
 
 const (
-	unscaledWindowWidth       = 1920
-	unscaledWindowHeight      = 1080
-	unscaledDefaultPointScale = 20
+	unscaledWindowWidth = 1920
 )
 
 func getScaleFactorByWindowSize(dm *display.DisplayManager) float64 {

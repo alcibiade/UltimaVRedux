@@ -68,8 +68,6 @@ type SearchLocationDecodedItem struct {
 }
 
 // DecodeSearchLocationItem decodes objh according to the record's objt class.
-//
-//nolint:cyclop,funlen // The original fixed object-class encoding is clearest as explicit cases.
 func DecodeSearchLocationItem(location SearchLocationReference) SearchLocationDecodedItem {
 	decoded := SearchLocationDecodedItem{
 		RawObjectType:  byte(location.ObjectClass),
@@ -342,7 +340,7 @@ func buildSearchLocations() []SearchLocationReference {
 		}
 		decoded := DecodeSearchLocationItem(locations[index])
 		locations[index].ItemType = decoded.Item
-		locations[index].Quantity = uint16(decoded.PickupQuantity) //nolint:gosec // Original payloads are byte-sized.
+		locations[index].Quantity = uint16(decoded.PickupQuantity)
 	}
 
 	return locations

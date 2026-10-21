@@ -1,4 +1,3 @@
-//nolint:mnd,funlen,gocyclo // ref:DNG-0015: finale timings, placements, and ordered presentation records.
 package main
 
 import (

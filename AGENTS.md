@@ -71,11 +71,8 @@ See [architecture](docs/ARCHITECTURE_GUIDELINES.md),
   (or another modern interpreter); checks use `.cache/python-quality` and never
   install dependencies. Run `make python-check` and `make tooling-test` for Python
   changes. Operational scripts remain standard-library-only.
-- When manually changing a source file, address all configured lint findings in
-  that file, including inherited findings hidden by the new-code cutoff. Run and
-  review repository-wide autofixes as a separate pass. Files touched only by
-  autofix are exempt from additional manual debt cleanup; do not expand manual
-  cleanup into otherwise untouched files. Preserve domain names and behavior when
+- Lint covers every file with no revision cutoff; keep it at zero findings. Run and
+  review repository-wide autofixes as a separate pass. Preserve domain names and behavior when
   reviewing automatic edits.
 - Keep docs self-contained and preserve durable contracts, explicit uncertainty,
   and stable rule references. Catalog every retained `docs/**/*.md` exactly once

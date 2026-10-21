@@ -95,8 +95,8 @@ func (g *GameState) TeleportPlayerOnCurrentMap(xCoordinate, yCoordinate int) (Pl
 
 	// The map-bound checks above constrain both values to 0..255, within Coordinate's int16 range.
 	change.After = references.Position{
-		X: references.Coordinate(xCoordinate), //nolint:gosec // G115: bounded by the active map dimensions.
-		Y: references.Coordinate(yCoordinate), //nolint:gosec // G115: bounded by the active map dimensions.
+		X: references.Coordinate(xCoordinate),
+		Y: references.Coordinate(yCoordinate),
 	}
 	g.SetPlayerPosition(change.After)
 	g.InitializeOutdoorWindow()

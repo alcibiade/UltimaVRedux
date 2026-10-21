@@ -6,33 +6,13 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Simple mock message functions for testing
 func mockAddRowStr(message string)             {}
 func mockAppendToCurrentRowStr(message string) {}
 func mockShowCommandPrompt(command string)     {}
-
-// testSearchForMoonstone is a test helper that checks if there's a buried moonstone at given position
-// (moved from moonstone_system.go to keep test-only code in test files)
-func testSearchForMoonstone(gs *GameState, x, y uint8) bool {
-	if gs.moonstoneSystem == nil {
-		gs.moonstoneSystem = NewMoonstoneSystem()
-	}
-
-	moonstoneIndex := gs.moonstoneSystem.GetMoonstoneAtPosition(x, y)
-	if moonstoneIndex >= 0 {
-		// Mark moonstone as found
-		gs.moonstoneSystem.MarkMoonstoneFoundAtPosition(moonstoneIndex)
-
-		// Trigger moonstone discovery message via SystemCallbacks
-		gs.SystemCallbacks.Message.AddRowStr("a strange rock!")
-
-		return true
-	}
-
-	return false
-}
 
 func TestMoonstoneSystemInitialization(t *testing.T) {
 	// Create a game state and verify moonstone system is initialized
@@ -86,9 +66,11 @@ func TestMoonstoneSearchAndMoongateVisibility(t *testing.T) {
 	positions := gs.GetActiveMoongatePositions()
 	assert.Equal(t, 0, len(positions), "No moongates should be active initially")
 
-	// Search for moonstone at its location
-	found := testSearchForMoonstone(gs, firstMoonstone.X, firstMoonstone.Y)
-	assert.True(t, found, "Should find moonstone at its location")
+	// Search finds the buried moonstone at its location.
+	index := gs.moonstoneSystem.GetMoonstoneAtPositionOnMap(
+		firstMoonstone.X, firstMoonstone.Y, firstMoonstone.Level, firstMoonstone.Map)
+	require.Equal(t, 0, index, "Should find moonstone at its location")
+	gs.moonstoneSystem.MarkMoonstoneFoundAtPosition(index)
 
 	// After finding, moonstone should be marked as found and revealed in the world.
 	updatedMoonstones := gs.GetMoonstones()

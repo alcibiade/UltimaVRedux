@@ -130,7 +130,7 @@ func CombatCalcDamage(
 	armorValue int,
 	rng references.RandomProvider,
 ) CombatDamageResult {
-	result := CombatDamageResult{ //nolint:exhaustruct // Calculation branches populate result metadata.
+	result := CombatDamageResult{
 		AttackMax:  weapon.GetAttackValue(),
 		ArmorValue: armorValue,
 	}
@@ -204,7 +204,7 @@ func combatCalcDamageRaw(
 	rng references.RandomProvider,
 	randomizeAttack bool,
 ) CombatDamageResult {
-	result := CombatDamageResult{ //nolint:exhaustruct // Calculation branches populate result metadata.
+	result := CombatDamageResult{
 		AttackMax:  attackValue,
 		ArmorValue: armorValue,
 	}
@@ -276,8 +276,6 @@ func CombatCalcMagicDamage(
 //   - Immortal: damage = 0
 //
 // See ref:EQUIP-0013.
-//
-//nolint:mnd // Authentic formula from original combat damage rules
 func CombatApplyDamageModifiers(damage int, isUndead, isImmortal, isMagicWeapon bool) int {
 	if isUndead && !isMagicWeapon {
 		damage /= 2

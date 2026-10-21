@@ -158,7 +158,6 @@ func (g *Game) captureSnapshot(request debugging.Request) debugging.Result {
 	return result
 }
 
-//nolint:cyclop // Loading coordinates validation, rollback, construction, and commit.
 func (g *Game) loadSnapshot(request debugging.Request) debugging.Result {
 	if request.ExpectedSceneGeneration == 0 {
 		return debugging.FailureResult(request, "stale_scene", "an expected scene generation is required for gameplay load")

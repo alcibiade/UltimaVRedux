@@ -24,7 +24,7 @@ type allShrineQuestStateDebugResult struct {
 
 func (g *GameScene) executeSeventhBatchDebugCommand(request debugging.Request) (debugging.Result, bool) {
 	if request.CommandID != debugging.CommandCodexQuestStateSetAll {
-		return debugging.Result{}, false //nolint:exhaustruct // Zero result marks an unhandled command.
+		return debugging.Result{}, false
 	}
 
 	target := game_state.AllShrineQuestState(mustDebugStringArgument(request, "targetState"))

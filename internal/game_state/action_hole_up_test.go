@@ -20,10 +20,6 @@ func TestHoleUpSmallMap_NotOnBed(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test skipped due to missing game data
-	}
-
 	result := gs.ActionHoleUpSmallMap()
 
 	assert.False(t, result, "Should return false when not on bed")
@@ -80,10 +76,6 @@ func TestBedRest_PoisonDeath(t *testing.T) {
 		WithRandomSeed(12345). // Deterministic for testing
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Set up character with poison and low HP
 	gs.PartyState.GetCharacter(0).SetStatus(party_state.Poisoned)
 	gs.PartyState.GetCharacter(0).SetHp(2)
@@ -109,10 +101,6 @@ func TestBedRest_HealingRates(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Set up character with reduced HP and MP
 	char := gs.PartyState.GetCharacter(0)
@@ -140,10 +128,6 @@ func TestBedRest_MaxHealthLimits(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Set up character at near-max health
 	char := gs.PartyState.GetCharacter(0)
 	char.SetStatus(party_state.Sleep)
@@ -167,10 +151,6 @@ func TestBedRest_DeadCharactersDontHeal(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Set up dead character
 	char := gs.PartyState.GetCharacter(0)
 	char.SetStatus(party_state.Dead)
@@ -192,10 +172,6 @@ func TestBedRest_SleepStatusManagement(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Set up party with various statuses
 	gs.PartyState.GetCharacter(0).SetStatus(party_state.Good)
@@ -223,10 +199,6 @@ func TestBedRest_FoodConsumption(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Set up party with food
 	gs.PartyState.Inventory.Provisions.Food.Set(10)
@@ -278,10 +250,6 @@ func TestBedRest_StarvationDamage(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Set up character with low HP for starvation death test
 	char := gs.PartyState.GetCharacter(0)
 	char.SetHp(3) // Low enough that 5 starvation damage kills
@@ -313,10 +281,6 @@ func TestBedRest_ActiveMemberCount(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Set up party with mixed statuses
 	gs.PartyState.GetCharacter(0).SetStatus(party_state.Good) // Active
 	gs.PartyState.GetCharacter(0).PartyMap = party_state.PartyMapActive
@@ -336,31 +300,6 @@ func TestBedRest_ActiveMemberCount(t *testing.T) {
 	assert.Equal(t, 3, count, "Should count 3 active members (Good + Poisoned)")
 }
 
-// TestBedRest_InputBlocking tests that Event Queue blocks input during rest
-func TestBedRest_InputBlocking(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-
-	if gs == nil {
-		return
-	}
-
-	// This test verifies the Event Queue auto-blocking behavior
-	// The actual ExecuteBedRestEventQueue implementation will use:
-	// g.EventQueueManager.Workflow("bed-rest").
-	//     Sequential().
-	//     BlockInput()
-
-	// For now, we'll test the concept by checking that the Event Queue
-	// framework supports auto input blocking (this is already implemented)
-
-	t.Log("Input blocking test - Event Queue auto-blocking will be verified in integration")
-	// The BlockInput() functionality is already implemented
-	// in the Event Queue system, so this test documents the requirement
-}
-
 // TestActionHoleUpSmallMap_Integration tests the complete workflow
 func TestActionHoleUpSmallMap_Integration(t *testing.T) {
 	gs, mockCallbacks := NewIntegrationTestBuilder(t).
@@ -368,10 +307,6 @@ func TestActionHoleUpSmallMap_Integration(t *testing.T) {
 		WithPlayerAt(15, 15). // Will need to find actual bed location
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	t.Log("🛏️ Hole Up Small Map Integration Test")
 
@@ -395,10 +330,6 @@ func TestBedRest_StarvationOncePerHour(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(12345). // Deterministic for testing
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Set up ALL party members with high HP to prevent deaths
 	// (DamageFromStarvation affects entire party, not just one character)
@@ -468,10 +399,6 @@ func TestBedRest_StarvationDuringNonMealHours(t *testing.T) {
 		WithRandomSeed(12345).
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Set up ONE character with low HP, others with high HP
 	// (Only character[0] should die, others survive)
 	for i := 0; i < 6; i++ {
@@ -517,10 +444,6 @@ func TestBedRest_AvatarMovement(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Record initial position
 	initialPos := gs.MapState.PlayerLocation.Position

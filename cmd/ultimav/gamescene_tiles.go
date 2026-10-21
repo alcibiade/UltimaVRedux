@@ -46,7 +46,7 @@ const (
 // refreshStaticMapTiles renders terrain with layer priority: Equipment > Override > Base
 // Excludes MapUnitLayer (handled by separate NPC rendering)
 // OPTIMIZED: Uses static tile cache to avoid recalculating unchanged tiles
-func (g *GameScene) refreshStaticMapTiles(pos *references.Position, mapLayer *map_state.LayeredMap, drawOptions *ebiten.DrawImageOptions) { //nolint:lll
+func (g *GameScene) refreshStaticMapTiles(pos *references.Position, mapLayer *map_state.LayeredMap, drawOptions *ebiten.DrawImageOptions) {
 	var spriteIndex indexes.SpriteIndex
 
 	// Performance optimization: skip invisible positions entirely

@@ -50,7 +50,7 @@ type GameReferences struct {
 
 // NewGameReferences loads all reference tables from the configured original game files.
 func NewGameReferences(gameConfig *config.UltimaVConfiguration) (*GameReferences, error) {
-	gameRefs := &GameReferences{} //nolint:exhaustruct
+	gameRefs := &GameReferences{}
 
 	var err error
 	gameRefs.OverworldLargeMapReference, err = NewLargeMapReference(gameConfig, OVERWORLD)

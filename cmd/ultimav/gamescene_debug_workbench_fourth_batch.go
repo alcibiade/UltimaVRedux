@@ -37,11 +37,10 @@ func (g *GameScene) executeFourthBatchDebugCommand(request debugging.Request) (d
 	case debugging.CommandQuestInventoryPresetUsable:
 		return g.executeDebugUsableInventoryPreset(request), true
 	default:
-		return debugging.Result{}, false //nolint:exhaustruct // Zero result marks an unhandled command.
+		return debugging.Result{}, false
 	}
 }
 
-//nolint:cyclop // Shard use validates independent reviewed quest preconditions before queuing production flow.
 func (g *GameScene) executeDebugShardUse(request debugging.Request) debugging.Result {
 	if blocked := g.thirdBatchWorkflowBlocked(request); blocked != nil {
 		return *blocked

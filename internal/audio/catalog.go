@@ -11,18 +11,17 @@ import (
 
 // Catalog schema and review states retain the SDK inventory contract.
 const (
-	CatalogSchemaVersion = sdkcatalog.CatalogSchemaVersion
-	CatalogUnreviewed    = sdkcatalog.CatalogUnreviewed
-	CatalogPresent       = sdkcatalog.CatalogPresent
-	CatalogMissing       = sdkcatalog.CatalogMissing
-	CatalogIncorrect     = sdkcatalog.CatalogIncorrect
-	CatalogPlaceholder   = sdkcatalog.CatalogPlaceholder
-	catalogNotScanned    = "not_scanned"
-	catalogDeclaredOnly  = "declared_only"
-	catalogNoReference   = "no_static_reference_found"
-	catalogSFX           = "sfx"
-	catalogMusic         = "music"
-	catalogAmbience      = "ambience"
+	CatalogUnreviewed   = sdkcatalog.CatalogUnreviewed
+	CatalogPresent      = sdkcatalog.CatalogPresent
+	CatalogMissing      = sdkcatalog.CatalogMissing
+	CatalogIncorrect    = sdkcatalog.CatalogIncorrect
+	CatalogPlaceholder  = sdkcatalog.CatalogPlaceholder
+	catalogNotScanned   = "not_scanned"
+	catalogDeclaredOnly = "declared_only"
+	catalogNoReference  = "no_static_reference_found"
+	catalogSFX          = "sfx"
+	catalogMusic        = "music"
+	catalogAmbience     = "ambience"
 )
 
 // ErrAudioCatalog identifies invalid inventory or game enrichment.

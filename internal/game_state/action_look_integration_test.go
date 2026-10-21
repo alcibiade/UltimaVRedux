@@ -20,10 +20,6 @@ func TestLookCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("LookAtBasicTile", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -74,10 +70,6 @@ func TestLookCommand_LargeMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	mockCallbacks.Reset()
 
 	// Look in a direction
@@ -103,10 +95,6 @@ func TestLookCommand_SpecialCases_Integration(t *testing.T) {
 		WithPlayerAt(5, 5). // Try different position for potential clock tiles
 		WithSystemCallbacks().
 		Build()
-
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	// Set a specific game time to test clock display
 	gameState.DateTime.Hour = 14   // 2 PM
@@ -150,10 +138,6 @@ func TestLookCommand_ErrorHandling_Integration(t *testing.T) {
 		WithPlayerAt(1, 1). // Near edge to test boundary conditions
 		WithSystemCallbacks().
 		Build()
-
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("LookAtEdgePositions", func(t *testing.T) {
 		mockCallbacks.Reset()

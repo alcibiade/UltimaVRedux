@@ -474,7 +474,7 @@ func encodeOriginalObjectSlot(slot int) uint8 {
 		panic("original object slot is out of range")
 	}
 
-	return uint8(slot + 1) //nolint:gosec // Bounded to 1..32.
+	return uint8(slot + 1)
 }
 
 func decodeOriginalObjectSlot(slot uint8) int {

@@ -3,8 +3,6 @@ package references
 import "strings"
 
 // newScrollItemReferences owns player-facing scroll metadata.
-//
-//nolint:exhaustruct // Only metadata meaningful to this item family is populated.
 func newScrollItemReferences() map[Scroll]InventoryItem {
 	items := map[Scroll]InventoryItem{
 		ScrollVasLor:     {ItemName: "Vas_Lor", ItemSprite: 260, ItemDescription: "Creates powerful magical light for 240 in-game minutes.", ItemDescriptionAttribution: "Ultima V (verified DOS behavior)", EffectDuration: 240},

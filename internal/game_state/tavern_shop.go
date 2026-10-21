@@ -442,7 +442,7 @@ func (g *GameState) PurchaseTavernMeal(
 	result.GoldAfterPayment = g.PartyState.Inventory.Gold.Get()
 	result.Theft = g.ApplyFaulineiShopTheft()
 	result.GoldAfterTheft = g.PartyState.Inventory.Gold.Get()
-	g.PartyState.Inventory.Provisions.Food.IncrementBy(uint16(quote.DinerCount)) //nolint:gosec // Diners are capped at six.
+	g.PartyState.Inventory.Provisions.Food.IncrementBy(uint16(quote.DinerCount))
 	result.FoodAfter = g.PartyState.Inventory.Provisions.Food.Get()
 	result.ActualFood = result.FoodAfter - result.FoodBefore
 	// REDUX DEVIATION: meal payment and plating permanently replaces an adjacent TABLE
@@ -631,7 +631,7 @@ func (g *GameState) PurchaseTavernProvisions(
 		CustomerBefore:     state.CustomerEligible,
 		CustomerAfter:      state.CustomerEligible,
 	}
-	price := uint16(quote.PricePerPack) //nolint:gosec // Quote construction bounds price by uint16.
+	price := uint16(quote.PricePerPack)
 	for range request.PackCount {
 		if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 			if result.PurchasedPacks > 0 {
@@ -643,7 +643,7 @@ func (g *GameState) PurchaseTavernProvisions(
 				return result, nil
 			}
 			if g.PartyState.Inventory.Provisions.Food.Get() < 3 {
-				charity := uint16(g.RandomIntInRange(0, 1) + 1) //nolint:gosec // Fixed range is 1-2.
+				charity := uint16(g.RandomIntInRange(0, 1) + 1)
 				g.PartyState.Inventory.Provisions.Food.IncrementBy(charity)
 				result.FoodAfter = g.PartyState.Inventory.Provisions.Food.Get()
 				result.ActualFood = result.FoodAfter - result.FoodBefore
@@ -728,7 +728,7 @@ func (g *GameState) quoteTavernInformation(
 		GoldAfterPayment: state.Gold,
 	}
 	if quote.Affordable {
-		quote.GoldAfterPayment -= uint16(topic.Price) //nolint:gosec // Canonical topic prices are positive and bounded.
+		quote.GoldAfterPayment -= uint16(topic.Price)
 	}
 
 	return quote, nil
@@ -770,7 +770,7 @@ func (g *GameState) PurchaseTavernInformation(
 	if int(state.Gold) < canonicalTopic.Price {
 		return result, nil
 	}
-	price := uint16(canonicalTopic.Price) //nolint:gosec // Canonical topic prices are positive and bounded.
+	price := uint16(canonicalTopic.Price)
 	if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 		panic("validated Tavern information purchase could not deduct gold")
 	}
@@ -818,7 +818,7 @@ func (g *GameState) buildTavernShopState(
 	state.Meal = TavernMealQuote{
 		Meal:             menu.Meal,
 		DinerCount:       state.DinerCount,
-		Charge:           uint16(charge), //nolint:gosec // Six diners and canonical meal prices are bounded.
+		Charge:           uint16(charge),
 		Affordable:       int(state.Gold) >= charge,
 		GoldBefore:       state.Gold,
 		GoldAfterPayment: state.Gold,
@@ -890,9 +890,9 @@ func projectTavernProvisionPurchase(quote TavernProvisionQuote, packCount int) T
 
 	approval.PurchasedPacks = min(packCount, affordablePacks, maximumUsefulTavernProvisionPacks(quote))
 	approval.TotalCost = approval.PurchasedPacks * quote.PricePerPack
-	approval.GoldAfterPurchases -= uint16(approval.TotalCost) //nolint:gosec // Bounded by current gold.
+	approval.GoldAfterPurchases -= uint16(approval.TotalCost)
 	offeredFood := approval.PurchasedPacks * int(quote.Provision.PackQuantity)
-	approval.FoodAfter = uint16(min( //nolint:gosec // Saturated to the uint16 provision maximum.
+	approval.FoodAfter = uint16(min(
 		int(party_state.ItemQuantityLargeMax),
 		int(quote.FoodBefore)+offeredFood,
 	))
@@ -923,7 +923,7 @@ func (g *GameState) buildTavernDrinkQuote(
 		WineIndex:        wineIndex,
 		Wine:             wine,
 		DinerCount:       state.DinerCount,
-		Charge:           uint16(charge), //nolint:gosec // Canonical drinks and six diners are bounded.
+		Charge:           uint16(charge),
 		Affordable:       int(state.Gold) >= charge,
 		Warning:          state.Drunk == 3,
 		StopAvailable:    state.Drunk == 3,

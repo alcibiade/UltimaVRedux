@@ -1,4 +1,3 @@
-//nolint:varnamelen // Local q consistently denotes the workflow builder in this cohesive function.
 package game_state
 
 // Action_hole_up_repair.go - Ship hull repair via Hole Up command

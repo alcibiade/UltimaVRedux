@@ -27,10 +27,6 @@ func TestJimmyChestGetItems_Workflow_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return
-	}
-
 	gameState.SetRandomSeed(99999) // High seed for better jimmy success
 
 	t.Run("JimmyChestGetItemsSequence", func(t *testing.T) {
@@ -107,10 +103,6 @@ func TestTalkTradeSequence_Workflow_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return
-	}
-
 	t.Run("TalkToMerchantWorkflow", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -184,10 +176,6 @@ func TestTimeBasedWorkflow_Integration(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gameState == nil {
-		return
-	}
 
 	t.Run("TimeProgressionWorkflow", func(t *testing.T) {
 		initialTime := gameState.DateTime.Hour

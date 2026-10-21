@@ -310,7 +310,6 @@ func validateSnapshotEnemyIdentity(index int, unit save_snapshot.MapUnitSnapshot
 	return nil
 }
 
-//nolint:cyclop // Position compatibility is intentionally explicit by map type.
 func validateSnapshotPosition(gameReferences *references.GameReferences, path string, position save_snapshot.PositionSnapshot) error {
 	location := references.Location(position.Location)
 	switch location.GetMapType() {
@@ -487,8 +486,6 @@ func (g *GameState) captureRedux(snapshot *save_snapshot.SaveSnapshot) {
 
 // ValidateSaveSnapshotEligibility reports whether authoritative state is at a
 // stable boundary that the native snapshot format can represent.
-//
-//nolint:cyclop // Eligibility aggregates independent runtime subsystem checks.
 func (g *GameState) ValidateSaveSnapshotEligibility() error {
 	switch {
 	case g.GameReferences == nil || g.GameConfig == nil:
@@ -815,7 +812,6 @@ func (g *GameState) captureItemStacks() ([]save_snapshot.ItemStackSnapshot, erro
 	return result, nil
 }
 
-//nolint:cyclop // Mutation capture traverses each persistent map layer explicitly.
 func (g *GameState) captureMapMutations() []save_snapshot.MapMutationSnapshot {
 	mutations := make([]save_snapshot.MapMutationSnapshot, 0)
 	for _, loaded := range g.MapState.LayeredMaps.Loaded() {
@@ -1032,7 +1028,6 @@ func (g *GameState) restoreDungeonDiscoveries(saved []save_snapshot.DungeonDisco
 	}
 }
 
-//nolint:cyclop // Party hydration preserves the fixed legacy roster layout.
 func (g *GameState) restoreParty(snapshot save_snapshot.SaveSnapshot) error {
 	var roster [party_state.NRosterSlots]*party_state.PlayerCharacter
 	for index, saved := range snapshot.Party.Roster {
@@ -1465,7 +1460,6 @@ func isLegacySemanticSurfaceObject(unit map_units.MapUnit) bool {
 	}
 }
 
-//nolint:cyclop // Unit hydration handles each persistent unit kind.
 func (g *GameState) hydrateUnits(saved []save_snapshot.MapUnitSnapshot, generated *map_units.MapUnits) ([]map_units.MapUnit, error) {
 	sort.Slice(saved, func(i, j int) bool { return saved[i].ControllerOrder < saved[j].ControllerOrder })
 	generatedByID := make(map[int]*map_units.NPCFriendly)

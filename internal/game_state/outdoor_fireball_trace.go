@@ -114,7 +114,7 @@ func (g *GameState) outdoorMissileBuffer(center references.Position) outdoorMiss
 				continue
 			}
 			// Screen coordinates are bounded to the original 11x11 view.
-			pos := outdoorScreenPosition(center, references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}) //nolint:gosec
+			pos := outdoorScreenPosition(center, references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)})
 			if g.outdoorMissileObjectClearsTerrain(pos, tile) {
 				buffer[y][x] = 0
 			}

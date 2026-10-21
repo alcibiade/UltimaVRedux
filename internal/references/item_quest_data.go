@@ -1,8 +1,6 @@
 package references
 
 // newQuestItemReferences owns player-facing quest metadata.
-//
-//nolint:exhaustruct // Only metadata meaningful to this item family is populated.
 func newQuestItemReferences() map[QuestItem]InventoryItem {
 	return map[QuestItem]InventoryItem{
 		Amulet:           {ItemName: "Amulet", ItemDisplayName: "Amulet of Lord British", ItemPickupMessage: "The Amulet of Lord British!", ItemSprite: 439, ItemDescription: "The magical amulet consists of a silver, serpentine medallion suspended from a gold chain, its likeness variously attributed to Britannia's rarely-observed silver serpents, and even the Great Earth Serpent itself. It emanates a blue aura and is notably warm to the touch, imbued with enchantments that have allowed it both to facilitate interplanetary moongate travel and pierce supernatural forms of darkness.", ItemDescriptionAttribution: "UltimaCodex.com"},

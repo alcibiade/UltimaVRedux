@@ -104,7 +104,7 @@ func (hud *CombatHUD) sync(combat *game_state.CombatState) {
 	hud.presentingIdentities = nil
 	hud.attentionAt = 0
 	if combat != nil {
-		hud.addEvent(game_state.CombatEvent{ //nolint:exhaustruct // Lifecycle event has no actors or diagnostics.
+		hud.addEvent(game_state.CombatEvent{
 			Kind: game_state.CombatEventBattleBegun,
 		})
 	}
@@ -579,7 +579,7 @@ func (g *GameScene) drawCombatHUDSprite(
 	}
 	width, height := g.combatHUDSpriteSize(screen, sprite)
 	scaleX, scaleY := g.combatHUDSpriteScale(screen)
-	options := &ebiten.DrawImageOptions{} //nolint:exhaustruct // Optional draw configuration.
+	options := &ebiten.DrawImageOptions{}
 	options.GeoM.Scale(scaleX, scaleY)
 	options.GeoM.Translate(float64(left), float64(top))
 	options.ColorScale.ScaleAlpha(opacity)
@@ -1446,7 +1446,6 @@ func combatMoveDirection(event game_state.CombatEvent) string {
 	}
 }
 
-//nolint:cyclop // Compact diagnostic grammar intentionally covers independent optional rolls.
 func formatCombatDiagnostics(diagnostics game_state.CombatDiagnostics) string {
 	parts := make([]string, 0, combatHUDDiagnosticParts)
 	if diagnostics.Hit.AutomaticHit {

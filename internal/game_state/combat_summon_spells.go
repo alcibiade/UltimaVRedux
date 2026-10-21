@@ -165,7 +165,7 @@ func (g *GameState) findCombatSummonPosition(
 	placementType references.MonsterType,
 	rng references.RandomProvider,
 ) (references.Position, int, bool) {
-	candidateMonster := &CombatMonster{monsterType: placementType} //nolint:exhaustruct // Legality probe only; never registered.
+	candidateMonster := &CombatMonster{monsterType: placementType}
 	for attempt := 1; attempt <= combatSummonPlacementAttempts; attempt++ {
 		position := references.Position{
 			X: references.Coordinate(rng.Intn(combatSummonRandomCoordinate)),
@@ -180,7 +180,7 @@ func (g *GameState) findCombatSummonPosition(
 }
 
 func (g *GameState) publishCombatSummon(result CombatSummonResult) {
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Summons have no attack or damage fields.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventSummon,
 		Summon: CombatSummonEvent{
 			Spell: result.Spell, Created: result.Created, Count: result.Count, Binding: result.Binding,

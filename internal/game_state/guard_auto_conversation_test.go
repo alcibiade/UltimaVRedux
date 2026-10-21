@@ -22,10 +22,6 @@ func TestGuardAutoConversation_MinocGuard(t *testing.T) {
 		WithRandomSeed(12345). // Deterministic RNG
 		Build()
 
-	if gs == nil {
-		return // Test skipped due to missing game data
-	}
-
 	// Set time to 2:49pm (14:49 in 24-hour time)
 	gs.DateTime = datetime.UltimaDate{
 		Year:   100,
@@ -164,10 +160,6 @@ func TestGuardFloorSeparation_NoInteraction(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(12345). // Deterministic RNG
 		Build()
-
-	if gs == nil {
-		return // Test skipped due to missing game data
-	}
 
 	// Set Avatar to floor 1
 	gs.MapState.PlayerLocation.Floor = 1

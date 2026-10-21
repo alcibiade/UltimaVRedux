@@ -253,7 +253,7 @@ func (g *GameState) ReviewShrineOffering(shrineIndex, digit int) (ShrineOffering
 		return ShrineOfferingReview{}, fmt.Errorf("%w: shrine is not accepting offerings", ErrShrineServiceInvalid)
 	}
 
-	cost := uint16(digit * 100) //nolint:gosec // A single validated decimal digit costs at most 900 gold.
+	cost := uint16(digit * 100)
 	review := ShrineOfferingReview{
 		Fingerprint: meditation.Fingerprint,
 		ShrineIndex: shrineIndex,

@@ -24,7 +24,7 @@ func (g *GameState) moveControlledCombatMonster(
 		g.CombatScene.TurnQueue.MarkFled(monsterIndex, false)
 		g.releaseCombatController(monster.CombatantID(), CombatPossessionReleaseControllerEscaped)
 		g.SystemCallbacks.Message.AddRowStr(monster.MonsterType().Name() + " - Escape!")
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Flee has no target or roll data.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventFled,
 			Attacker: CombatFeedbackEntity{
 				IsPartyMember: false,
@@ -41,7 +41,7 @@ func (g *GameState) moveControlledCombatMonster(
 	}
 
 	monster.SetPosition(*to)
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Movement has no target or roll result.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventMove,
 		Attacker: CombatFeedbackEntity{
 			IsPartyMember: false,
@@ -97,7 +97,7 @@ func (g *GameState) resolveControlledMonsterAttack(
 	attackerStat := g.combatPhysicalAttackAttribute(CombatTurnIdentity{EntityIndex: attackerIndex}, references.NoEquipment)
 	defense := g.combatTargetDefense(CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex})
 	hitResult := CombatHitCheck(attackerStat, defense.EffectiveDex, false, g.AsRandomProvider())
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage is populated only after a hit.
+	diagnostics := CombatDiagnostics{
 		Hit:           hitResult,
 		TargetBaseDex: defense.BaseDex,
 		UsedStrength:  attacker.HasAbility(references.Bludgeons),

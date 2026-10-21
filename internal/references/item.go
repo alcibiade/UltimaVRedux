@@ -25,7 +25,7 @@ const (
 
 // ItemFromIdentity reconstructs a runtime item from its stable type and ID.
 //
-//nolint:cyclop,ireturn // The original item catalog is partitioned by fixed item type and uses Item polymorphism.
+//nolint:ireturn // The original item catalog is partitioned by fixed item type and uses Item polymorphism.
 func ItemFromIdentity(itemType ItemType, id int) (Item, bool) {
 	switch itemType {
 	case ItemTypeReagent:

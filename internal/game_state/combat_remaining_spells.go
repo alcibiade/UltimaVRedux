@@ -204,7 +204,7 @@ func (g *GameState) publishCombatSpellMutationAt(
 	casterIdentity := g.combatPartyAttackerIdentity(casterIdx)
 	caster := combatFeedbackIdentity(casterIdentity, g.CombatScene.GetCombatantPosition(casterIdentity))
 	targetEntity := combatFeedbackIdentity(target, targetPosition)
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Mutation spells have no damage calculation.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind: CombatEventSpell, Attacker: caster, Target: targetEntity, Result: result,
 		From: caster.Position, To: targetEntity.Position, Diagnostics: CombatDiagnostics{Spell: spell},
 	})

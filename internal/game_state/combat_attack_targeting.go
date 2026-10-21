@@ -180,8 +180,8 @@ func (g *GameState) MoveCombatAttackCursor(deltaX, deltaY int) bool {
 
 	targeting := g.CombatScene.AttackTargeting
 	candidate := references.Position{
-		X: targeting.Cursor.X + references.Coordinate(deltaX), //nolint:gosec // Delta is validated within -1..1.
-		Y: targeting.Cursor.Y + references.Coordinate(deltaY), //nolint:gosec // Delta is validated within -1..1.
+		X: targeting.Cursor.X + references.Coordinate(deltaX),
+		Y: targeting.Cursor.Y + references.Coordinate(deltaY),
 	}
 	if !isCombatAttackCursorPositionValid(targeting, candidate) {
 		return false

@@ -372,7 +372,7 @@ func (aslm *AuthenticSearchLocationManager) createFoundResult(location reference
 
 	return &AuthenticSearchResult{
 		ItemType:      decoded.Item,
-		Quantity:      uint16(decoded.PickupQuantity), //nolint:gosec // Original payloads are byte-sized.
+		Quantity:      uint16(decoded.PickupQuantity),
 		Index:         location.Index,
 		Position:      references.Position{X: references.Coordinate(location.X), Y: references.Coordinate(location.Y)},
 		ObjectClass:   location.ObjectClass,

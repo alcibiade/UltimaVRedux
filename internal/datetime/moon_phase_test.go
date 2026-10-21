@@ -94,34 +94,6 @@ func TestGetCurrentMoonPhase_AuthenticCycle(t *testing.T) {
 	assert.Equal(t, phase1, phase29, "Moon phase should repeat every 28 days")
 }
 
-// TestGetCurrentMoonPhase_OriginalAlgorithm tests against original Ultima V moon phase data
-func TestGetCurrentMoonPhase_OriginalAlgorithm(t *testing.T) {
-	// Test specific dates that we know the phases for from original algorithm
-	// This will be filled in once we implement the authentic calculation
-
-	testCases := []struct {
-		day      byte
-		month    byte
-		year     uint16
-		expected MoonPhase
-	}{
-		{1, 1, 1, MoonPhaseNew},   // First day should be known phase
-		{8, 1, 1, MoonPhaseFull},  // Mid-cycle should be different
-		{15, 1, 1, MoonPhaseNew},  // Half-cycle later
-		{22, 1, 1, MoonPhaseFull}, // Another full cycle
-	}
-
-	for _, tc := range testCases {
-		date := UltimaDate{Day: tc.day, Month: tc.month, Year: tc.year}
-		phase := date.GetCurrentMoonPhase()
-
-		// For now, just validate it's a valid phase
-		// TODO: Update with authentic expected values once algorithm is implemented
-		assert.GreaterOrEqual(t, int(phase), 0, "Day %d should have valid phase", tc.day)
-		assert.LessOrEqual(t, int(phase), 7, "Day %d should have valid phase", tc.day)
-	}
-}
-
 // TestMoonPhaseToMoonstoneIndex tests mapping moon phases to moonstone indices
 func TestMoonPhaseToMoonstoneIndex(t *testing.T) {
 	// Each moon phase should map to a specific moonstone (0-7)

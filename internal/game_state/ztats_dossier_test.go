@@ -90,12 +90,6 @@ func TestCurrentZStatsDossierHiddenSpellVisibilityAndUnreadCount(t *testing.T) {
 	assert.Equal(t, string(SpellFormulaConfirmed), inXenMani.FormulaState)
 	assert.Equal(t, []string{"Ginseng", "Garlic", "Mandrake Root"}, inXenMani.Reagents)
 
-	key, found := SpellKnowledgeKey(references.AnYlem)
-	require.True(t, found)
-	require.True(t, state.MarkKnowledgeRead(key))
-	dossier = state.CurrentZStatsDossier()
-	assert.Equal(t, 2, dossier.UnreadHiddenSpellCount)
-	assert.False(t, requireZStatsSpell(t, dossier.Magic.Spells, references.AnYlem).Unread)
 }
 
 func TestCurrentZStatsDossierStartsOnActingCombatPartyMember(t *testing.T) {

@@ -319,7 +319,7 @@ func (g *GameState) ActionKlimbCombatMap(direction references.Direction) bool {
 		}
 
 		g.CombatScene.setCombatantPosition(identity, *target)
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Klimb relocation has no target.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventMove,
 			Attacker: CombatFeedbackEntity{
 				IsPartyMember: true,

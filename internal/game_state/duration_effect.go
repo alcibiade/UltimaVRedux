@@ -265,9 +265,6 @@ func (gs *GameState) processDurationEffects() {
 
 		gs.ClearDurationEffect()
 
-		// Show expiration popup via callback
-		if gs.SystemCallbacks.UI.ShowSpellExpiredPopup != nil {
-			gs.SystemCallbacks.UI.ShowSpellExpiredPopup(name)
-		}
+		gs.SystemCallbacks.UI.ShowSpellExpiredPopup(name)
 	}
 }

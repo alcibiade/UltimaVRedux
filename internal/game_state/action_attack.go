@@ -312,7 +312,7 @@ func (g *GameState) performSingleAttack(
 	// Hit check (replicates hit check from original combat damage rules)
 	// See ref:COMBAT-0004.
 	hitResult := CombatHitCheck(attackerStat, defense.EffectiveDex, neverMiss, rng)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage fields are populated only after a hit.
+	diagnostics := CombatDiagnostics{
 		Hit:           hitResult,
 		Source:        equipment,
 		TargetBaseDex: defense.BaseDex,
@@ -356,7 +356,7 @@ func (g *GameState) resolvePlayerWeaponHitAgainstMonster(
 	diagnostics.TargetImmortal = monster.HasAbility(references.Immortal)
 	diagnostics.MagicWeapon = IsMagicWeapon(equipment)
 	if damageResult.WeaponShattered {
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Shatter has no attack result.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind: CombatEventEquipmentShattered,
 			Attacker: CombatFeedbackEntity{
 				IsPartyMember: true,
@@ -409,7 +409,7 @@ func (g *GameState) performBareHandsAttack(
 	defense := g.combatTargetDefense(CombatTurnIdentity{IsPartyMember: false, EntityIndex: monsterIdx})
 
 	hitResult := CombatHitCheck(attackerStat, defense.EffectiveDex, false, rng)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage fields are populated only after a hit.
+	diagnostics := CombatDiagnostics{
 		Hit:           hitResult,
 		Source:        references.NoEquipment,
 		TargetBaseDex: defense.BaseDex,
@@ -552,7 +552,7 @@ func (g *GameState) finalizeCombatMonsterDeathWithPolicy(
 			MonsterType: monster.MonsterType(),
 			Position:    position,
 		}
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Vanishing has no attack diagnostics.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind:     CombatEventVanished,
 			Attacker: combatMonsterFeedbackEntity(monsterIdx, position),
 			From:     position,
@@ -579,7 +579,7 @@ func (g *GameState) finalizeCombatMonsterDeathWithPolicy(
 		// Return the snapshotted kill award only after deletion and post-death
 		// consequences have completed. ref:PROGRESS-0002
 		experienceAwarded = min(nominalExperience, max(0, MaxExperienceValue-int(attacker.Exp)))
-		attacker.Exp += uint16(experienceAwarded) //nolint:gosec // Credited XP is bounded by MaxExperienceValue.
+		attacker.Exp += uint16(experienceAwarded)
 	}
 
 	logging.Debugf(logging.CategoryGameState,

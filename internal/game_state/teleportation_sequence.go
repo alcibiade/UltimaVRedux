@@ -71,7 +71,7 @@ func (gs *GameState) buildTeleportationSequence(
 				}
 				gs.TransitionToLocation(
 					destination.Location,
-					references.FloorNumber(destination.Level), //nolint:gosec // Legacy level bytes intentionally reinterpret 0xff as basement -1.
+					references.FloorNumber(destination.Level),
 					references.Position{X: references.Coordinate(destination.X), Y: references.Coordinate(destination.Y)},
 					TransitionFullLocation,
 					false,

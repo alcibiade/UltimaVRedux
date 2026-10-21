@@ -93,7 +93,7 @@ var boundKeysGame = []ebiten.Key{
 
 // Update method for the GameScene
 //
-//nolint:cyclop,gocyclo,funlen,maintidx // Ordered input-owner precedence stays together so early returns are auditable.
+//nolint:maintidx // Ordered input-owner precedence stays together so early returns are auditable.
 func (g *GameScene) Update(game *Game) error {
 	inputAllowed := g.beginTransientCommandInputFrame()
 	// Sample before readers, queues or buffered commands can change ownership.

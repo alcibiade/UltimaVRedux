@@ -20,7 +20,7 @@ func TileAtlasAnnotation(index indexes.SpriteIndex) TileAnnotation {
 	return tileAtlasAnnotations[index]
 }
 
-//nolint:gochecknoglobals,exhaustruct,goconst // Immutable atlas labels intentionally repeat; omitted properties are empty.
+//nolint:gochecknoglobals,goconst // Immutable atlas labels intentionally repeat; omitted properties are empty.
 var tileAtlasAnnotations = map[indexes.SpriteIndex]TileAnnotation{
 	-1:  {Description: "Do Not Draw"},                                      // NoSprite
 	1:   {IsPartOfAnimation: true, TotalAnimationFrames: 2},                // Water1

@@ -55,8 +55,6 @@ func (g *GameState) GetAvatarSpriteAtPosition(pos references.Position) SpritePre
 // Per original world-state rules: Bard→Merchant conversion happens first, then tile-context sprite projection applies tile-based transformations.
 //
 // See ref:TILE-0008.
-//
-//nolint:cyclop // Tile-based switch naturally has many cases - matches original tile-context sprite projection function structure
 func (g *GameState) GetNPCSpriteReplacement(
 	baseTileIndex, npcSpriteIndex indexes.SpriteIndex,
 	pos references.Position,

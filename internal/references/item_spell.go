@@ -5,7 +5,6 @@ import "github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 func newSpellItemReferences() map[Spell]InventoryItem {
 	items := make(map[Spell]InventoryItem, TotalSpellCount)
 	for spell := Spell(0); spell < Spell(TotalSpellCount); spell++ {
-		//nolint:exhaustruct // Spell prose and names are owned by GetSpellInfo.
 		items[spell] = InventoryItem{ItemSprite: indexes.ItemScroll}
 	}
 

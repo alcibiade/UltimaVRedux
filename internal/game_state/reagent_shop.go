@@ -229,7 +229,7 @@ func (g *GameState) PurchaseReagentOffer(
 	result.BundleCount = 0
 	result.TotalPrice = 0
 	for result.BundleCount < request.BundleCount {
-		price := uint16(quote.PricePerBundle * int(bundles)) //nolint:gosec // Initial affordability bounds every payment.
+		price := uint16(quote.PricePerBundle * int(bundles))
 		if !g.PartyState.Inventory.Gold.DecrementBy(price) {
 			break
 		}
@@ -327,15 +327,15 @@ func (g *GameState) quoteReagentOffer(
 		PricePerBundle:    pricePerBundle,
 		Gold:              gold,
 		QuantityBefore:    quantityBefore,
-		UsefulBundles:     uint16(usefulBundles),     //nolint:gosec // Capacity to 99 limits useful bundles to 99.
-		AffordableBundles: uint16(affordableBundles), //nolint:gosec // Gold and positive source prices bound this below uint16.
-		MaxBundles:        uint16(maxBundles),        //nolint:gosec // The useful bound limits the final maximum to 99.
+		UsefulBundles:     uint16(usefulBundles),
+		AffordableBundles: uint16(affordableBundles),
+		MaxBundles:        uint16(maxBundles),
 		Full:              quantityBefore == party_state.ItemQuantitySmallMax,
 		BlockReason:       blockReason,
 		ApprovalViews:     make([]ReagentPurchaseApprovalView, maxBundles),
 	}
 	for index := range maxBundles {
-		bundleCount := uint16(index + 1) //nolint:gosec // MaxBundles is at most 99.
+		bundleCount := uint16(index + 1)
 		requestedQuantity := offer.BundleQuantity * bundleCount
 		quantityAfter := min(
 			party_state.ItemQuantitySmallMax,
@@ -356,7 +356,7 @@ func (g *GameState) quoteReagentOffer(
 			PricePerBundle:    pricePerBundle,
 			TotalPrice:        totalPrice,
 			GoldBefore:        gold,
-			GoldAfterPayment:  gold - uint16(totalPrice), //nolint:gosec // Bundle count is bounded by affordability.
+			GoldAfterPayment:  gold - uint16(totalPrice),
 			PaidOverflow:      actualReceipt < requestedQuantity,
 			OverflowQuantity:  requestedQuantity - actualReceipt,
 		}

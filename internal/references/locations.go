@@ -70,13 +70,6 @@ const (
 	CombatRestingShrine Location = 41
 )
 
-// Guard encounter map IDs; ref:CRIME-0001.
-const (
-	JailLocationID             = Britain            // Map for jail (Britain)
-	CharityGuardLocationID     = Minoc              // Map 5: Charity guards (50% gold demand)
-	BlackthornCastleLocationID = PalaceOfBlackthorn // Map 0x12: Password guards
-)
-
 // Map coordinate system constants for large map wraparound calculations
 // The large map is 256x256 tiles with wraparound at edges
 const (

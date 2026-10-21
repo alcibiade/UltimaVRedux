@@ -31,8 +31,6 @@ const (
 	// The rasterized bottom frame starts above 0.985. Keep the content inside
 	// its inner edge; otherwise the bottom row paints into the white/blue chrome.
 	provisionContentEnd = 0.975
-	gameAspectWidth     = 16
-	gameAspectHeight    = 9
 	referenceGameWidth  = 1920
 )
 

@@ -120,8 +120,6 @@ func (g *GameState) SpawnDebugVehicle(request DebugVehicleSpawnRequest) (DebugVe
 // ForceBoardDebugVehicle replaces the party vehicle without checking terrain.
 // This test/debug contract intentionally permits otherwise invalid terrain, but only on stable
 // large or small maps; combat, camping, dungeon, and stale combat-scene states are rejected.
-//
-//nolint:cyclop // Boarding validates the complete vehicle and map-unit replacement transaction.
 func (g *GameState) ForceBoardDebugVehicle(request DebugForceBoardRequest) (DebugForceBoardResult, error) {
 	var result DebugForceBoardResult
 	if !isBoardableDebugVehicle(request.VehicleType) {
@@ -165,8 +163,8 @@ func (g *GameState) ForceBoardDebugVehicle(request DebugForceBoardRequest) (Debu
 		released.SetFloor(floor)
 		// The validated world positions are within the original byte-addressable map range.
 		released.NPCReference.Schedule.OverrideAllPositions(
-			byte(position.X), //nolint:gosec // Validated against the 256-tile world width.
-			byte(position.Y), //nolint:gosec // Validated against the 256-tile world height.
+			byte(position.X),
+			byte(position.Y),
 		)
 		if !units.AddVehicle(released) {
 			return result, ErrDebugVehicleMapFull
@@ -181,7 +179,7 @@ func (g *GameState) ForceBoardDebugVehicle(request DebugForceBoardRequest) (Debu
 	return result, nil
 }
 
-//nolint:cyclop,ireturn // Each placement branch has distinct authoritative controller validation.
+//nolint:ireturn // Each placement branch has distinct authoritative controller validation.
 func (g *GameState) debugVehicleSpawnTarget(
 	request DebugVehicleSpawnRequest,
 ) (ai.NPCAIController, references.Location, references.Position, references.FloorNumber, error) {
@@ -215,7 +213,6 @@ func (g *GameState) debugVehicleSpawnTarget(
 	}
 }
 
-//nolint:cyclop // Each map type validates its own coordinate, floor, and controller invariants.
 func (g *GameState) validateDebugVehicleAvatarContext() error {
 	if g.CombatScene != nil || g.EventQueueManager.HasActiveWorkflows() || g.CurrentNPCAIController == nil {
 		return ErrDebugVehicleUnsupportedContext

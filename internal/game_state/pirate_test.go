@@ -157,7 +157,7 @@ func TestPirateAttackPhaseWarnsAndFiresAllAlignedInSourceOrder(t *testing.T) {
 	wantHP := 100 - (wantRNG.Intn(sourceHitPartyDamageSides) + 1) -
 		(wantRNG.Intn(sourceHitPartyDamageSides) + 1)
 
-	require.True(t, gs.CheckPirateAttack())
+	require.True(t, checkOutdoorActorAttacks(gs))
 
 	require.Len(t, gs.pirateAttackQueue, 3)
 	assert.Equal(t, last.Pos(), gs.pirateAttackQueue[0].result.Source)
@@ -179,7 +179,7 @@ func TestMisalignedPirateWarnsOnePhaseThenFires(t *testing.T) {
 	pirate := addPirateTestEnemy(t, gs, references.Position{X: 98, Y: 100}, indexes.PirateShipLeft)
 	setPirateTestWaterLine(gs, pirate.Pos(), gs.MapState.PlayerLocation.Position)
 
-	require.True(t, gs.CheckPirateAttack())
+	require.True(t, checkOutdoorActorAttacks(gs))
 	require.Len(t, gs.pirateAttackQueue, 1)
 	assert.Equal(t, PirateAttackWarning, gs.pirateAttackQueue[0].result.Outcome)
 	assert.Equal(t, uint64(0), gs.GetRNG().Calls())
@@ -187,7 +187,7 @@ func TestMisalignedPirateWarnsOnePhaseThenFires(t *testing.T) {
 	assert.Equal(t, []string{"* Pirate ship turns *"}, mock.Messages)
 
 	mock.Reset()
-	require.True(t, gs.CheckPirateAttack())
+	require.True(t, checkOutdoorActorAttacks(gs))
 	require.Len(t, gs.pirateAttackQueue, 1)
 	assert.Equal(t, PirateAttackHit, gs.pirateAttackQueue[0].result.Outcome)
 	assert.Equal(t, uint64(1), gs.GetRNG().Calls())
@@ -212,7 +212,7 @@ func TestPirateAttackUsesSourceHitForFrigateAndBlockedLOSUsesNoRNG(t *testing.T)
 		gs.SetRandomSeed(seed)
 		wantDamage := beradrng.New(seed).Intn(sourceHitHullDamageSides) + 1
 
-		require.True(t, gs.CheckPirateAttack())
+		require.True(t, checkOutdoorActorAttacks(gs))
 
 		require.Len(t, gs.pirateAttackQueue, 1)
 		result := gs.pirateAttackQueue[0].result
@@ -229,7 +229,7 @@ func TestPirateAttackUsesSourceHitForFrigateAndBlockedLOSUsesNoRNG(t *testing.T)
 		blocker := references.Position{X: 100, Y: 99}
 		gs.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &blocker, indexes.StoneBrickWall)
 
-		require.True(t, gs.CheckPirateAttack())
+		require.True(t, checkOutdoorActorAttacks(gs))
 
 		require.Len(t, gs.pirateAttackQueue, 1)
 		result := gs.pirateAttackQueue[0].result

@@ -176,7 +176,6 @@ func (repository *RunHistoryRepository) Append(record RunRecord) ([]RunRecord, e
 	return cloneRuns(next)
 }
 
-//nolint:cyclop // Load validates the complete persisted envelope before returning it.
 func (repository *RunHistoryRepository) load() ([]RunRecord, error) {
 	data, err := repositoryfs.ReadRegularFile(filepath.Join(repository.root.Path, runHistoryFileName))
 	if err != nil {
@@ -249,7 +248,6 @@ func (repository *RunHistoryRepository) write(runs []RunRecord) error {
 	return nil
 }
 
-//nolint:cyclop // Terminal-record validation covers the durable invariants.
 func validateTerminalRun(run RunRecord) error {
 	if strings.TrimSpace(run.RunID) == "" || strings.TrimSpace(run.Reference) == "" || strings.TrimSpace(run.DefinitionRevision) == "" {
 		return errors.New("run ID, reference, and definition revision are required")

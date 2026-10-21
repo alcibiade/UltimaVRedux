@@ -25,10 +25,6 @@ func TestGuardArrest_BritainGuard_AutoConversation(t *testing.T) {
 		WithRandomSeed(12345). // Deterministic RNG
 		Build()
 
-	if gs == nil {
-		return // Test skipped due to missing game data
-	}
-
 	// Set time to 2:30pm when guard is at position (14,27) next to player at (14,28)
 	gs.DateTime = datetime.UltimaDate{
 		Year:   100,

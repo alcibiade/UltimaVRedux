@@ -33,9 +33,6 @@ const (
 
 	// FontSizeDialogTitle is used for prominent titles above main-screen dialog content.
 	FontSizeDialogTitle StandardFontSize = 26
-
-	// FontSizeHuge is used for large, prominent buttons.
-	FontSizeHuge StandardFontSize = 30
 )
 
 // Line spacing multipliers for specific use cases

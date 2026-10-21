@@ -1,4 +1,3 @@
-//nolint:mnd // Existing original-game damage die size is domain-specific.
 package game_state
 
 import (

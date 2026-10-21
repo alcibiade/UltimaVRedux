@@ -72,7 +72,7 @@ func (g *GameState) executeHostileMonsterSpecialMoveWithRNG(
 		} else {
 			monster.SetInvisible(true)
 		}
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Visibility has no target or roll diagnostics.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind:       CombatEventVisibility,
 			Attacker:   combatMonsterFeedbackEntity(monsterIndex, monster.Position()),
 			From:       monster.Position(),
@@ -96,7 +96,7 @@ func (g *GameState) executeHostileMonsterSpecialMoveWithRNG(
 			}
 			// Validate the candidate using Devil terrain permissions rather than
 			// the summoner’s appearance. ref:COMBAT-0008
-			probe := &CombatMonster{monsterType: references.MonsterDevil, enemyRef: daemonRef} //nolint:exhaustruct // Placement probe only.
+			probe := &CombatMonster{monsterType: references.MonsterDevil, enemyRef: daemonRef}
 			if isCombatPositionValidForMonster(g, position, probe, -1) {
 				created := NewCombatMonster(references.MonsterDevil, daemonRef, position, rng)
 				created.summoned = true
@@ -108,7 +108,7 @@ func (g *GameState) executeHostileMonsterSpecialMoveWithRNG(
 					return false
 				}
 				createdIndex := g.CombatScene.AddMonsterToQueue(created)
-				g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Gate has no attack result.
+				g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 					Kind:     CombatEventGating,
 					Attacker: combatMonsterFeedbackEntity(monsterIndex, monster.Position()),
 					Created: CombatSummonedMonster{
@@ -162,13 +162,13 @@ func (g *GameState) resolveMonsterPossession(
 	}
 	g.clearInactiveCombatPCSelection(victimIdentity.EntityIndex)
 	victimPosition := g.CombatScene.GetCombatantPosition(victimIdentity)
-	event := CombatEvent{ //nolint:exhaustruct // Possession has no damage calculation.
+	event := CombatEvent{
 		Kind:     CombatEventPossession,
 		Attacker: combatMonsterFeedbackEntity(daemonIndex, daemon.Position()),
 		Target:   combatFeedbackIdentity(victimIdentity, victimPosition),
 		Result:   CombatFeedbackDamage,
 		From:     daemon.Position(), To: victimPosition,
-		Diagnostics:         CombatDiagnostics{Hit: failedSave}, //nolint:exhaustruct // Save only.
+		Diagnostics:         CombatDiagnostics{Hit: failedSave},
 		PossessionEpisodeID: g.CombatScene.possessions[victimIdentity].id,
 	}
 	g.SystemCallbacks.Combat.PublishEvent(event)
@@ -180,7 +180,7 @@ func (g *GameState) resolveMonsterPossession(
 func (g *GameState) retirePossessingDaemon(daemon *CombatMonster, daemonIndex int) {
 	daemon.SetActive(false)
 	g.CombatScene.TurnQueue.MarkFled(daemonIndex, false)
-	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Retirement is not damage or death.
+	g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 		Kind:     CombatEventRetired,
 		Attacker: combatMonsterFeedbackEntity(daemonIndex, daemon.Position()),
 		From:     daemon.Position(), To: daemon.Position(),
@@ -244,7 +244,7 @@ func (g *GameState) prepareMonsterAttackWithRNG(
 
 	from := monster.Position()
 	to := g.combatTurnPosition(nearest.identity)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Populated as resolution proceeds.
+	diagnostics := CombatDiagnostics{
 		Missile:      monster.EnemyRef().LargeMapMissile,
 		ForcedMiss:   forcedMiss,
 		UsedStrength: monster.HasAbility(references.Bludgeons),
@@ -369,7 +369,7 @@ func (g *GameState) ResolvePendingMonsterMissile() bool {
 		})
 	}
 
-	event := CombatEvent{ //nolint:exhaustruct // Empty and blocked impacts have no target entity.
+	event := CombatEvent{
 		Kind:     CombatEventRangedAttack,
 		Attacker: combatMonsterFeedbackEntity(pending.attackerIndex, pending.launch.From),
 		Result:   result, HPLost: hpLost, Fatal: fatal,
@@ -400,7 +400,7 @@ func (g *GameState) resolveMonsterMeleeAgainstMonster(
 	targetIdentity := CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex}
 	defense := g.combatTargetDefense(targetIdentity)
 	hit := CombatHitCheck(g.combatPhysicalAttackAttribute(CombatTurnIdentity{EntityIndex: attackerIndex}, references.NoEquipment), defense.EffectiveDex, false, rng)
-	diagnostics := CombatDiagnostics{Hit: hit, TargetBaseDex: defense.BaseDex, UsedStrength: attacker.HasAbility(references.Bludgeons)} //nolint:exhaustruct
+	diagnostics := CombatDiagnostics{Hit: hit, TargetBaseDex: defense.BaseDex, UsedStrength: attacker.HasAbility(references.Bludgeons)}
 	if hit.Outcome == CombatHitMiss {
 		g.publishMonsterAttackEvent(CombatEventAttack, attackerIndex,
 			CombatTurnIdentity{IsPartyMember: false, EntityIndex: targetIndex},
@@ -636,7 +636,7 @@ func (g *GameState) possessedPCMeleeAttack(attackerIdentity, target CombatTurnId
 	defense := g.combatTargetDefense(target)
 	rng := g.AsRandomProvider()
 	hit := CombatHitCheck(g.combatPhysicalAttackAttribute(attackerIdentity, references.TwoHSword), defense.EffectiveDex, false, rng)
-	diagnostics := CombatDiagnostics{ //nolint:exhaustruct // Damage follows only on hit.
+	diagnostics := CombatDiagnostics{
 		Hit: hit, Source: references.TwoHSword, TargetBaseDex: defense.BaseDex,
 	}
 	result := CombatFeedbackMiss
@@ -654,7 +654,7 @@ func (g *GameState) possessedPCMeleeAttack(attackerIdentity, target CombatTurnId
 			if target.IsPartyMember {
 				victim := g.PartyState.GetCharacter(target.EntityIndex)
 				hpBefore := victim.GetCurrentHp()
-				victim.SubtractHp(uint16(damage.Damage)) //nolint:gosec // Damage is bounded by weapon attack.
+				victim.SubtractHp(uint16(damage.Damage))
 				hpLost = int(hpBefore - victim.GetCurrentHp())
 				fatal = victim.IsDead()
 				if fatal {
@@ -723,7 +723,7 @@ func (g *GameState) possessedPCSeek(
 		}
 		to := references.Position{X: from.X + references.Coordinate(dx), Y: from.Y + references.Coordinate(dy)}
 		g.CombatScene.setCombatantPosition(identity, to)
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Movement has no target result.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind:     CombatEventMove,
 			Attacker: combatFeedbackIdentity(identity, to),
 			From:     from, To: to,
@@ -767,7 +767,7 @@ func (g *GameState) recoverOnePossessedPC() bool {
 			g.setCombatPCSleeping(identity, true)
 		}
 		g.clearInactiveCombatPCSelection(identity.EntityIndex)
-		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Recovery is a condition transition.
+		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{
 			Kind:   CombatEventRecovery,
 			Target: combatFeedbackIdentity(identity, g.CombatScene.GetCombatantPosition(identity)),
 		})

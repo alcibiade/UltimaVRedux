@@ -204,7 +204,7 @@ func TestCombatVictory_AllMonstersKilled(t *testing.T) {
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 
 	// Kill the monster
-	gs.ActionAttackCombatMap(references.Down)
+	attackCombatDirection(t, gs, references.Down)
 	require.True(t, monster.IsDead(), "Monster should be dead from Glass Sword")
 
 	// Check end conditions — should detect victory
@@ -247,7 +247,7 @@ func TestCombatVictory_SecondCheckReturnsNotEnded(t *testing.T) {
 	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 
-	gs.ActionAttackCombatMap(references.Down)
+	attackCombatDirection(t, gs, references.Down)
 	require.True(t, monster.IsDead())
 
 	// First check sets Victory
@@ -271,7 +271,7 @@ func TestCombatVictory_EscapeKeyExitsCombat(t *testing.T) {
 	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
 	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
 
-	gs.ActionAttackCombatMap(references.Down)
+	attackCombatDirection(t, gs, references.Down)
 	require.True(t, monster.IsDead())
 
 	// Set Victory flag (normally done by AdvanceCombatTurn calling checkCombatEndConditions)

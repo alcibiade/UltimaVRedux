@@ -22,10 +22,6 @@ func TestAttackCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("BasicAttackBehavior", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -94,10 +90,6 @@ func TestAttackCommand_LargeMap_Integration(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	mockCallbacks.Reset()
 
@@ -185,29 +177,12 @@ func TestAttackCommand_CombatMap_NoCombatScene(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	mockCallbacks.Reset()
 
-	// With no CombatScene, attack should return false immediately (nil guard)
-	result := gs.ActionAttackCombatMap(references.Up)
-	assert.False(t, result, "Combat attack returns false when no CombatScene active")
-
-	// No messages produced — the nil guard exits before any feedback
+	// With no CombatScene, Attack cannot begin.
+	assert.False(t, gs.BeginCombatAttack(), "Combat attack returns false when no CombatScene active")
 	assert.Equal(t, 0, len(mockCallbacks.Messages), "No messages when CombatScene is nil")
 	assert.Equal(t, 0, len(mockCallbacks.TimeAdvanced()), "No time advancement when CombatScene is nil")
-
-	t.Run("AllDirections", func(t *testing.T) {
-		mockCallbacks.Reset()
-		directions := []references.Direction{references.Up, references.Down, references.Left, references.Right}
-		for _, dir := range directions {
-			result := gs.ActionAttackCombatMap(dir)
-			assert.False(t, result, "Combat attack should return false for direction %v", dir)
-		}
-		assert.Equal(t, 0, len(mockCallbacks.Messages), "No messages for any direction when CombatScene is nil")
-	})
 }
 
 // TestAttackCommand_DungeonMap_Integration tests an empty direct dungeon Attack.
@@ -237,10 +212,6 @@ func TestAttackCommand_SystemCallbacks_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	testCases := []struct {
 		name         string
 		attackFunc   func(references.Direction) bool
@@ -267,7 +238,7 @@ func TestAttackCommand_SystemCallbacks_Integration(t *testing.T) {
 		},
 		{
 			name:         "CombatMapAttack_NoCombatScene",
-			attackFunc:   gs.ActionAttackCombatMap,
+			attackFunc:   func(references.Direction) bool { return gs.BeginCombatAttack() },
 			expectMsg:    "",
 			expectMsgCnt: 0, // No message when CombatScene is nil
 			expectTime:   0,
@@ -303,10 +274,6 @@ func TestAttackCommand_ErrorHandling_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("AttackAtMapEdges", func(t *testing.T) {
 		// Test attack near map edges
 		edgePositions := []references.Position{
@@ -339,10 +306,6 @@ func TestAttackCommand_Regression_Integration(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("EmptyTargetBaseline", func(t *testing.T) {
 		mockCallbacks.Reset()

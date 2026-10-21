@@ -130,8 +130,6 @@ func (g *GameState) MaximizeActiveParty(expectedFingerprint string) (PartyRoster
 }
 
 // SetPartyRosterStatuses atomically updates status and HP for reviewed active roster slots.
-//
-//nolint:cyclop // Each validation preserves an explicit roster invariant and failure reason.
 func (g *GameState) SetPartyRosterStatuses(request PartyStatusMutationRequest) (PartyRosterMutationResult, error) {
 	before, err := g.validatePartyMutation(request.ExpectedFingerprint)
 	if err != nil {

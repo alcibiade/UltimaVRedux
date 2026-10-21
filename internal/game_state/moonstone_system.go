@@ -76,8 +76,6 @@ func (ms *MoonstoneSystem) TakeMoonstoneToInventory(index int) {
 // Based on original item-use rules moonstone burial logic
 //
 // See ref:MOON-0004.
-//
-//nolint:varnamelen // x,y are standard coordinate parameter names
 func (ms *MoonstoneSystem) BuryMoonstone(index int, x, y uint8, mapNum uint8, floor uint8) {
 	if index < 0 || index >= len(ms.Moonstones) {
 		return

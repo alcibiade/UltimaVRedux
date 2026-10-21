@@ -529,7 +529,7 @@ func (g *GameState) quoteHealerAllService(
 		paidCount := min(recipientCount, int(g.PartyState.Inventory.Gold.Get()/offer.Price))
 		if paidCount > 0 {
 			quote.RecipientCount = paidCount
-			quote.Charge = uint16(paidCount) * offer.Price //nolint:gosec // Active roster is bounded by six.
+			quote.Charge = uint16(paidCount) * offer.Price
 		} else {
 			quote.Charge = 0
 			quote.ChargeKind = HealerChargeCharitable
