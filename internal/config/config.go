@@ -325,22 +325,6 @@ func newUltimaVConfiguration(
 	configuration.loadAudioConfiguration()
 	configuration.loadDisplayConfiguration()
 
-	configuration.GameplayConfiguration = &GameplayConfiguration{
-		BatchMerchantTheft:           configuration.gameplayBooleanDefaultTrue(gameplayBatchMerchantTheftKey),
-		SmoothSurfaceMovement:        source.GetBool(gameplaySmoothSurfaceMovementKey),
-		FlexibleSextantUse:           source.GetBool(gameplayFlexibleSextantUseKey),
-		AllowRepeatedMonsterDivision: source.GetBool("Gameplay.Combat.AllowRepeatedMonsterDivision"),
-		ShowConcealedTurnOrderSlots: configuration.gameplayBooleanDefaultTrue(
-			gameplayShowConcealedTurnOrderSlotsKey,
-		),
-		PersistHiddenDungeonDiscoveries: configuration.gameplayBooleanDefaultTrue(
-			gameplayPersistHiddenDungeonDiscoveriesKey,
-		),
-		ShowSubduedUnlitDungeons: configuration.gameplayBooleanDefaultTrue(
-			gameplayShowSubduedUnlitDungeonsKey,
-		),
-		CombatSpeedFactor: 0, ConfirmQuickSave: false, ShowCombatHPBars: false, MaxVisibleActionPopups: 0,
-	}
 	configuration.loadGameplayPreferences()
 
 	configuration.loadLoggingConfiguration()
@@ -838,12 +822,11 @@ func (uc *UltimaVConfiguration) SetFlexibleSextantUse(enabled bool) error {
 	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) { settings.FlexibleSextantUse = enabled })
 }
 
-func (uc *UltimaVConfiguration) gameplayBooleanDefaultTrue(key string) bool {
-	if !uc.source.IsSet(key) {
-		return true
+// configuredBoolean replaces value with the configured setting, if one is set.
+func (uc *UltimaVConfiguration) configuredBoolean(value *bool, key string) {
+	if uc.source.IsSet(key) {
+		*value = uc.source.GetBool(key)
 	}
-
-	return uc.source.GetBool(key)
 }
 
 // GetFileWithFullPath joins a filename to the active original-data folder.

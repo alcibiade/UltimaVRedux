@@ -326,7 +326,9 @@ descriptions to numeric reports and retains fleeing indicators.
 persistence. Runtime fields remain typed, including an integer popup count.
 Defaults apply only to absent source keys: explicit false and zero are retained.
 Invalid explicit speed/count values fail loading and saving before mutation.
-Tests constructing detached models should use `config.DefaultGameplayConfiguration`.
+`config.DefaultGameplayConfiguration` holds the only gameplay defaults: loading
+starts from it and replaces each value the configuration sets, so tests that
+construct detached models from it get the defaults players get.
 Nil configuration or a missing Gameplay section gives consumers legacy defaults.
 
 The new combat-speed key takes precedence over the legacy Debug movement key.
