@@ -36,7 +36,7 @@ Redux furling stops automatic sailing before its feedback, preserving facing.
 Each automatic wait/movement boundary revalidates outdoor exploration and a
 raised-sail frigate; invalidation clears the sailing state without another wait,
 movement, actor phase, or random draw. Command presses between cadence phases
-also stop sailing. Space stops with sails raised and no extra sailing phase;
+also stop sailing, as do menu and reader keys and the game window losing focus. Space stops with sails raised and no extra sailing phase;
 other commands retain their own ordinary completion costs. Finalization clears
 the sailing camera projection and releases the workflow name. A held movement
 key across interruption must be released before it can resume movement.

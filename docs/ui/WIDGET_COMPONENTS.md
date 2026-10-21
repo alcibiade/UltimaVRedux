@@ -86,9 +86,8 @@ remain the invoking workflow's responsibility.
   independently scaled and measured; north/south tags are centered within their
   own column, with separation even when all eight columns have known seams.
 
-The only close control is a fresh `Enter` or keypad `Enter`, after invoking keys
-have been released. Arrow keys do not move the party or inspect cells; Escape
-does not add a new cancellation path. Resizing rebuilds presentation resources
+Any fresh key closes the view, after invoking keys have been released, matching
+the surface Gem view. Arrow keys do not move the party or inspect cells. Resizing rebuilds presentation resources
 while preserving dismissal and input-release state.
 
 Focused coverage separates classification/reveal boundaries, small exact-RGBA
