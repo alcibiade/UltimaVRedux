@@ -121,6 +121,7 @@ func (sr *SignRenderer) drawTranslatedSignSpan(
 	// blank padding. Dense spans compress horizontally (at worst 2:1), never
 	// vertically, reflowing into other rows or omitting letters. Unexpanded
 	// spans retain exact source-cell positions and the full bitmap scale.
+	// See ref:SIGN-0008.
 	scaleX := min(sr.scale, spanWidth/float64(len(inscription)*BitmapCharWidth))
 	width := float64(len(inscription)*BitmapCharWidth) * scaleX
 	const halves = 2

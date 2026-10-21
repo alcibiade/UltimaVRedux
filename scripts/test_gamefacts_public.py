@@ -161,6 +161,21 @@ class PublicFactsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, expected):
                     facts.validate_repository(self.root)
 
+    def test_deviation_comments_must_name_a_known_rule(self) -> None:
+        for block, valid in (
+            ("// REDUX DEVIATION: differs.\n// See ref:RULE-0001.", True),
+            ("// REDUX DEVIATION: RULE-0001: differs.", True),
+            ("// REDUX DEVIATION: differs for players.", False),
+            ("// REDUX DEVIATION: RULE-9999: differs.", False),
+        ):
+            with self.subTest(block=block):
+                self.write("internal/sample.go", f"package sample\n{block}\n")
+                if valid:
+                    facts.validate_repository(self.root)
+                    continue
+                with self.assertRaisesRegex(ValueError, "names no Game Facts ID"):
+                    facts.validate_repository(self.root)
+
     def test_duplicate_catalog_keys_are_rejected(self) -> None:
         self.write(
             "docs/gamefacts/catalog.json", '{"schema_version": 1, "schema_version": 1}'

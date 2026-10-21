@@ -70,7 +70,7 @@ func (g *GameState) ClearNearbySceptreBarriers() []references.Position {
 
 // UseExplorationSceptre applies the safe surface/town Sceptre effect.
 func (g *GameState) UseExplorationSceptre() []references.Position {
-	// REDUX DEVIATION: Original surface/town map buffers are not stored in
+	// Original surface/town map buffers are not stored in
 	// SAVED.GAM. Native snapshots preserve this authoritative in-map mutation.
 	cleared := g.ClearNearbySceptreBarriers()
 	if len(cleared) == 0 {

@@ -8,9 +8,7 @@ particular editor or assistant.
 
 ## Setup
 
-The application source is public, with a development preview installable from
-`main`. No version tag or packaged release has been published. For local
-development, provision:
+The application source is public. For local development, provision:
 
 - Go: use Go 1.27's latest patch or newer; `go.mod` declares `go 1.27.0` and
   `toolchain go1.27.1`. Provision the selected toolchain before offline validation.
@@ -22,8 +20,8 @@ development, provision:
   provision its dependencies separately before offline checks.
 
 Player installation needs neither Node, Make, an AI tool, nor a C compiler;
-see [installation acceptance](INSTALL.md#installation-acceptance) for the verified
-macOS scope and deferred native Linux/Windows testing.
+see [platform status](INSTALL.md#platform-status) for what has been verified on
+each target.
 Race-instrumented developer tests have separate native compiler requirements.
 The text editor adapter uses the supported, deprecated `exp/textinput.Field`
 for IME composition and selection; replacing it requires preserving those
@@ -52,7 +50,7 @@ changing the game pin. No application workspace or local replacement is required
 the throwaway bridge substitutes only the candidate game, never the SDK.
 
 Reusable audio development guidance and the optional OpenCode domain skill are
-[SDK-owned](https://github.com/bradhannah/berad-sdk/blob/feat/berad-audio/README.md#converting-an-existing-subsystem).
+[SDK-owned](https://github.com/bradhannah/berad-sdk/blob/main/README.md#converting-an-existing-subsystem).
 The [Redux audio guide](systems/AUDIO_SYSTEM.md) owns this application's callbacks,
 world/music policy, assets and listening acceptance; generic editor/authoring
 contracts are linked upstream rather than maintained twice. No assistant or

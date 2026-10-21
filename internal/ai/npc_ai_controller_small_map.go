@@ -262,6 +262,7 @@ func (n *NPCAIControllerSmallMap) isAffectedByShadowlord(npc *map_units.NPCFrien
 	// the schedule loop has advanced its index to 4, rather than testing the current actor's shape.
 	// Redux applies the routine's stated per-candidate ordinary-NPC rule so an
 	// unrelated array element cannot decide every candidate's eligibility.
+	// See ref:SHADOW-0003.
 	shape := npc.GetKeySpriteIndex()
 	if shape < indexes.Wizard1 || shape >= indexes.Apparation1 {
 		return false

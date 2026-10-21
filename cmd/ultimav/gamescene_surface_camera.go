@@ -16,7 +16,7 @@ const (
 	surfaceCameraMountedSpeedFactor = 1.25
 )
 
-// REDUX DEVIATION: Original town movement commits a whole-tile step and requests
+// Original town movement commits a whole-tile step and requests
 // a LOS refresh. This opt-in prototype adds a camera tween after authoritative
 // movement and contact finish, without retaining a gameplay completion token.
 // The frame offset is sampled once so every world layer uses exactly the same projection.

@@ -345,7 +345,7 @@ func combatStrikeVisualFor(presentation game_state.CombatAttackPresentation) (co
 		return combatStrikeVisual{}, false
 	}
 
-	// REDUX DEVIATION: Original U5 had no traveling melee strike. Redux adds a
+	// Original U5 had no traveling melee strike. Redux adds a
 	// short presentation-only streak to make the occupied target spatially clear.
 	// Source remains part of the selection contract so weapon-family presets can
 	// be introduced here without changing authoritative combat callbacks.

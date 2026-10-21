@@ -379,7 +379,7 @@ func (ssm *SearchSystemManager) buildNothingFoundMessage(location string) string
 		return MessageNothingOfNote
 	}
 
-	// REDUX DEVIATION: Original object-specific results contain authored line breaks;
+	// Original object-specific results contain authored line breaks;
 	// Redux supplies prose and lets each output surface wrap to its measured width.
 	return prelude + ", thou dost find nothing of note."
 }

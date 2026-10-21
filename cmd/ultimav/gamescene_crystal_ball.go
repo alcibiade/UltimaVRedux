@@ -70,6 +70,7 @@ func (g *GameScene) StartCrystalBallWorkflow() {
 			}
 			// REDUX DEVIATION: whowill auto-selects a sole eligible fallback; retain
 			// explicit confirmation of crystal-ball risk when no active viewer exists.
+			// See ref:VIEW-0004.
 			characterSelectionDialog = widgets.NewCharacterSelectionDialog(widgets.CharacterSelectionConfig{
 				Title:   "Crystal Ball: Choose Viewer",
 				Options: g.characterSelectionOptions(characterSelectionContext{Profile: characterSelectionCrystalBall}),

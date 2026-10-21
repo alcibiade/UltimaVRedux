@@ -442,6 +442,7 @@ func (engine *SemanticConversationEngine) execute() *ConversationResponse {
 			}
 			// REDUX DEVIATION: Original conversations reveal spell lore without
 			// persisting knowledge. Redux records it for dossier and journal use.
+			// See ref:TALK-0003.
 			boundary := DiscoveryBoundary{Response: engine.responseSerial, SourceOffset: offset}
 			if err := engine.discoverKnowledge(value.Knowledge, boundary); err != nil {
 				return engine.errorResponse(err)

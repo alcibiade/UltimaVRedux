@@ -47,6 +47,7 @@ type characterCreationSnapshotPreparer func(
 func newCharacterCreationSeed() (uint64, error) {
 	// REDUX DEVIATION: The original seeds one process-wide stream from randtime.
 	// Redux uses fresh OS entropy per attempt and persists exact stream provenance.
+	// See ref:CREATE-0002.
 	var seedBytes [8]byte
 	if _, err := rand.Read(seedBytes[:]); err != nil {
 		return 0, fmt.Errorf("generating character creation seed: %w", err)
@@ -183,6 +184,7 @@ func (g *Game) configureCharacterCreationSaveSelection(
 	// REDUX DEVIATION: The original overwrites SAVED.GAM without warning and
 	// returns to the menu. Redux reviews a native slot, confirms overwrites, and
 	// enters gameplay only after a compensating persistence/activation transaction.
+	// See ref:CREATE-0001.
 	reopen := func() {
 		g.openCharacterCreationSaveBrowser(scene, prepared, "", "")
 	}

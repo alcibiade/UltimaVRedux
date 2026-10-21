@@ -14,6 +14,7 @@ and include:
 - What you expected and what actually happened.
 - Steps to reproduce, including relevant game conditions.
 - Useful error text or public documentation/reference identifiers.
+- After a crash, the `crash.log` described in [files and folders](docs/INSTALL.md#files-and-folders).
 
 Gameplay observations, public manuals, and other public references are welcome.
 Explain the scenario that supports a claim; a correction need not arrive as code.
@@ -43,7 +44,6 @@ describes tools and local validation. Humans review and merge PRs.
 
 ## Current availability
 
-The application source is public, with a development preview installable from
-`main`. No version tag or packaged release has been published. The
-[installation guide](docs/INSTALL.md) explains installation and updates, local
-source builds, and verified platform acceptance and its limits.
+Prerelease builds are on the [releases page](https://github.com/bradhannah/UltimaVRedux/releases), and `main` installs the
+moving development line. The [installation guide](docs/INSTALL.md) explains
+installation, updates, local builds and [platform status](docs/INSTALL.md#platform-status).

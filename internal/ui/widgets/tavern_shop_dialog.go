@@ -877,7 +877,7 @@ func (d *TavernShopDialog) setMode(mode TavernShopMode) {
 		d.latestExchange = d.prose.OrderPrompt
 		d.setTopicInput("")
 	case !d.state.CustomerEligible:
-		// REDUX DEVIATION: Original tavern information silently ignores Chat before the
+		// Original tavern information silently ignores Chat before the
 		// customer gate. Redux keeps the tab selectable as a read-only explanation.
 		d.latestExchange = d.prose.OrderPrompt
 	default:

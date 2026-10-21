@@ -1,12 +1,14 @@
 # Installing and starting Ultima V Redux
 
-> **Public development preview.** The source is public and installation from
-> `@main` is available. The game is unfinished and has known limitations.
-> No version tag or packaged release has been published.
+> **Public preview.** Prerelease builds are on the [releases page](https://github.com/bradhannah/UltimaVRedux/releases),
+> and `@main` installs the moving development line. See
+> [platform status](#platform-status) for what has been verified.
 
 ## What you need
 
-- Your own original Ultima V game data files.
+- Your own copy of the original **MS-DOS PC** release of Ultima V, such as the GOG
+  edition. Copy the whole game folder: setup checks every required file, and the
+  Amiga, Atari ST, Commodore 64 and Apple II versions use different files.
 - A supported desktop platform with a working graphics and audio environment.
 - Go 1.27 or newer, using the latest patch. The module declares `go 1.27.0` and selects
   `toolchain go1.27.1`; allow Go to obtain that toolchain or provision it yourself.
@@ -15,19 +17,9 @@
 Go is needed only for building or installing from source. Prebuilt release
 downloads do not require Go; see [downloaded binaries](#downloaded-binaries).
 
-The four preview targets are macOS arm64 (Apple Silicon), Linux arm64, Linux
-amd64, and Windows amd64. Production compilation has passed for all four.
-Anonymous installation and bounded startup have been verified on Apple Silicon
-macOS. Native Linux and Windows testing is deferred with the maintainer's approval;
-their runtime behavior remains unverified. Intel macOS and other architectures
-need separate acceptance. See [installation acceptance](#installation-acceptance)
-for the scope of the macOS checks.
-
-The public module installation requires neither Make, Node, an AI tool, a C
-compiler, nor a source checkout. Native runtime acceptance remains platform-specific.
-Linux still needs the applicable desktop graphics/audio runtime; exact
-distribution prerequisites will be documented from native validation. Cross-build
-success alone does not establish native graphics, audio, or input acceptance.
+Supported targets, and what has been verified on each, are listed under
+[platform status](#platform-status). The public module installation requires
+neither Make, Node, an AI tool, a C compiler, nor a source checkout.
 
 ## Install Go
 
@@ -84,9 +76,8 @@ operating systems if the compiler is not found after installation.
 
 ## Downloaded binaries
 
-No packaged release has been published yet. When preview archives are offered on
-the [releases page](https://github.com/bradhannah/UltimaVRedux/releases), choose the
-archive matching your OS and architecture. Extract the whole archive; Go, Node,
+Prerelease archives are on the [releases page](https://github.com/bradhannah/UltimaVRedux/releases).
+Choose the archive matching your OS and architecture. Extract the whole archive; Go, Node,
 Make, and a source checkout are not required. You still need your original game
 files and a desktop graphics/audio runtime.
 
@@ -114,8 +105,7 @@ portable archives are unsigned: macOS Gatekeeper or Windows security checks may
 require you to review the download before allowing it to open. Use the operating
 system's per-app review controls only for the intended trusted download; do not
 disable system-wide protection. These archives are command-line-launched binaries,
-not signed installers or macOS app bundles. Refer to each release's platform
-acceptance notes; compilation alone does not establish native runtime support.
+not signed installers or macOS app bundles. See [platform status](#platform-status).
 
 ## Build the local source
 
@@ -146,8 +136,8 @@ go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
 
 The command downloads and builds the game and places the executable in Go's
 executable directory. It does not install or download original Ultima V data.
-`main` is a moving development preview, not a versioned release. Version tags may
-be offered later through the [releases page](https://github.com/bradhannah/UltimaVRedux/releases).
+`main` is the moving development line; tagged builds are on the
+[releases page](https://github.com/bradhannah/UltimaVRedux/releases).
 
 ## Start the game
 
@@ -288,6 +278,21 @@ explicitly confirm any overwrite. The original pair is preserved. To select a
 pair stored elsewhere or create a standalone native snapshot, follow the
 [save converter procedure](details/SAVE_CONVERTER.md).
 
+## Files and folders
+
+The game keeps its settings and saves in a `.ultima_v_redux` folder in your home
+directory: `~/.ultima_v_redux` on macOS and Linux, `%USERPROFILE%\.ultima_v_redux`
+on Windows.
+
+| Path | Contents |
+| --- | --- |
+| `config.yaml` | Settings, including the original-data location. |
+| `saves/` | Save slots (`slot-01.json` to `slot-08.json`) and their `excerpts/` notebooks. Start the game with `--player-save-dir <folder>` to use another folder. |
+| `crash.log` | Details of the most recent crash; attach it to a bug report. |
+
+Back up `saves/` to keep your playthroughs. Saves made by `v0.1.0-preview.1` or
+later load in current builds; saves from earlier development builds do not.
+
 ## Troubleshooting
 
 ### Window size and desktop scaling
@@ -310,7 +315,7 @@ Press Enter to apply, then Keep or Revert; unconfirmed display changes revert
 after 12 seconds. Review the window size again after moving between differently
 scaled displays. Report OS scaling, selected mode/size, and observed behavior for
 display problems. Automated scale/layout checks do not establish native Windows
-or mixed-display macOS acceptance; see [installation acceptance](#installation-acceptance).
+or mixed-display macOS acceptance; see [platform status](#platform-status).
 
 ### Common problems
 
@@ -336,27 +341,24 @@ Repeat the same command to update to the current preview:
 go install github.com/bradhannah/UltimaVRedux/cmd/ultimav@main
 ```
 
-Review current save-compatibility guidance before updating a playthrough. This
-does not select a stable version tag; tagged releases are a future option.
+Saves keep loading across updates, as described in [files and folders](#files-and-folders).
+To stay on a tagged build instead, download it from the releases page.
 
-## Installation acceptance
+## Platform status
 
-The initial public preview has the following verified scope:
+| Target | Status |
+| --- | --- |
+| macOS Apple Silicon (arm64) | Built and tested on macOS. |
+| macOS Intel (amd64) | Built; not tested natively. |
+| Windows x64 (amd64) | Built; not tested natively. |
+| Linux x64 and ARM64 | Built; community-tested. |
 
-- Anonymous network installation of both `ultimav@main` and `save-convert@main`
-  passed on macOS arm64 with Go 1.27.1, fresh HOME and Go caches, no GitHub
-  credentials, and a working directory outside the checkout. The checks used
-  `CGO_ENABLED=0` and invalid `CC`/`CXX` paths to verify compiler-free installation.
-- The installed executables' help commands and an eight-second `ultimav --no-sound`
-  startup check passed outside the checkout. This is bounded startup evidence,
-  not a full interactive setup, gameplay, or audio acceptance test.
-- The maintainer separately tested the game on macOS and reported that it looks
-  good. This report does not establish an itemized manual acceptance matrix.
-- Production compilation passed for macOS arm64, Linux arm64, Linux amd64, and
-  Windows amd64. Native Linux and Windows tests are deferred; cross-builds do not
-  establish native graphics, audio, keyboard/IME, setup, or save/load behavior.
+On macOS arm64, anonymous installation of `ultimav@main` and `save-convert@main`
+and a bounded startup were verified from a clean environment without a C
+compiler. Compiling for a target does not establish its native graphics, audio,
+input, setup or save/load behavior.
 
-Required embedded/generated assets ship in the module; Go installation does not
-run frontend or asset-generation commands. Players still supply the complete
-original game installation. Broader native acceptance should exercise original-data
-setup and recovery, input, audio, and save/load on each target.
+Linux needs X11 (or XWayland), OpenGL and ALSA runtime libraries, which desktop
+installations normally include. On Debian and Ubuntu they come from `libgl1
+libx11-6 libxcursor1 libxext6 libxi6 libxinerama1 libxrandr2 libxrender1
+libasound2`.

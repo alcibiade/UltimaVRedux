@@ -21,7 +21,7 @@ import (
 // Lighthouse timing and rotation constants from original Ultima V.
 const (
 	// LighthouseUpdateIntervalMs controls rotation speed.
-	// REDUX DEVIATION: Original display timing was approximately 18Hz (55ms);
+	// Original display timing was approximately 18Hz (55ms);
 	// Redux uses 110ms for smoother visuals.
 	LighthouseUpdateIntervalMs = 110
 

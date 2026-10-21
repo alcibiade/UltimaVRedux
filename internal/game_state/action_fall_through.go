@@ -87,7 +87,7 @@ func (g *GameState) StartTrapFallWorkflow() {
 			if !g.GoDownOneFloor() {
 				return
 			}
-			// REDUX DEVIATION: Original trap falls use generic damage noise through
+			// Original trap falls use generic damage noise through
 			// damageparty(). Redux distinguishes the severe fall event semantically.
 			g.SystemCallbacks.Audio.PlaySoundEffect(SoundFallingSevere)
 

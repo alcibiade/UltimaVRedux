@@ -6,15 +6,16 @@
 
 A modern Go recreation of **Ultima V: Warriors of Destiny**, with enhanced
 presentation, quality-of-life improvements, and a developer Debug Workbench.
-Playing requires files from your own copy of the original game.
+Playing requires files from your own copy of the original MS-DOS PC game, such as
+the GOG edition.
 
-**[Download the preview](https://github.com/bradhannah/UltimaVRedux/releases/tag/v0.1.0-preview.2)**
+**[Download the preview](https://github.com/bradhannah/UltimaVRedux/releases)**
 · [Installation & setup](docs/INSTALL.md)
 · [Report a bug](https://github.com/bradhannah/UltimaVRedux/issues/new/choose)
 
-> **Public development preview:** downloadable builds are available for macOS
-> Apple Silicon, Windows x64, Linux x64, and Linux ARM64. The application is
-> unfinished and has known limitations; platform verification is described below.
+> **Public preview:** downloadable builds are available for macOS, Windows and
+> Linux; see [platform status](docs/INSTALL.md#platform-status) for what has been
+> verified on each.
 
 This is a free, non-commercial fan project. Project-authored source code remains
 MIT-licensed; bundled media has separate terms described in [Asset credits](ASSET_CREDITS.md).
@@ -36,7 +37,7 @@ current preview.
 ### Download and play
 
 Get the archive for your platform from the
-[preview release](https://github.com/bradhannah/UltimaVRedux/releases/tag/v0.1.0-preview.2),
+[releases page](https://github.com/bradhannah/UltimaVRedux/releases),
 verify it against `SHA256SUMS`, and extract the whole archive. **Go is not required
 for downloaded builds.** From the extracted folder, run `./ultimav` on macOS/Linux
 or `.\ultimav.exe` in Windows PowerShell. These are unsigned preview binaries;
@@ -62,19 +63,14 @@ See [starting the game](docs/INSTALL.md#start-the-game) for copyable commands.
 Repeat the installation command to update. The [installation guide](docs/INSTALL.md)
 also covers local builds, original-game setup, and configuration recovery.
 
-The preview targets macOS arm64 (Apple Silicon), Linux arm64, Linux amd64, and
-Windows amd64. All four targets compile. Anonymous installation and bounded startup
-were verified on Apple Silicon macOS. The maintainer also tested the game on macOS
-and reported that it looks good. Native Linux and Windows testing is deferred and
-their runtime behavior remains unverified; see
-[installation acceptance](docs/INSTALL.md#installation-acceptance).
-Players need their original game files and a desktop graphics/audio runtime.
-Source installation also needs Go, but does not require a source checkout, Node,
-Make, or a C compiler.
+Source installation needs Go, but not a source checkout, Node, Make, or a C
+compiler.
 
 ## Original game files
 
-First-run setup offers three practical routes:
+Ultima V Redux needs the complete original **MS-DOS PC** game folder; the Amiga,
+Atari ST, Commodore 64 and Apple II versions use different files. First-run setup
+offers three practical routes:
 
 1. Confirm a verified existing installation found through supported GOG/Heroic
    discovery or known local locations.
@@ -93,6 +89,14 @@ original assets for you.
 To import a playthrough, the title menu reads `SAVED.GAM` and `SAVED.OOL` only
 from the active game-data directory. For a save pair elsewhere, use the
 [command-line save converter](docs/details/SAVE_CONVERTER.md).
+
+## Controls
+
+The game is played with the keyboard. Commands use the original's letter keys
+(for example **A**ttack, **T**alk, **L**ook); press `/` in game for the full list.
+Esc opens the menu for saving, loading, settings and quitting, and closing the
+window during play offers to save first. Settings, saves and the crash log live
+in your home folder; see [files and folders](docs/INSTALL.md#files-and-folders).
 
 ## Reports and suggestions
 
