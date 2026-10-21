@@ -191,23 +191,10 @@ func TestAttackCommand_CombatMap_NoCombatScene(t *testing.T) {
 
 	mockCallbacks.Reset()
 
-	// With no CombatScene, attack should return false immediately (nil guard)
-	result := gs.ActionAttackCombatMap(references.Up)
-	assert.False(t, result, "Combat attack returns false when no CombatScene active")
-
-	// No messages produced — the nil guard exits before any feedback
+	// With no CombatScene, Attack cannot begin.
+	assert.False(t, gs.BeginCombatAttack(), "Combat attack returns false when no CombatScene active")
 	assert.Equal(t, 0, len(mockCallbacks.Messages), "No messages when CombatScene is nil")
 	assert.Equal(t, 0, len(mockCallbacks.TimeAdvanced()), "No time advancement when CombatScene is nil")
-
-	t.Run("AllDirections", func(t *testing.T) {
-		mockCallbacks.Reset()
-		directions := []references.Direction{references.Up, references.Down, references.Left, references.Right}
-		for _, dir := range directions {
-			result := gs.ActionAttackCombatMap(dir)
-			assert.False(t, result, "Combat attack should return false for direction %v", dir)
-		}
-		assert.Equal(t, 0, len(mockCallbacks.Messages), "No messages for any direction when CombatScene is nil")
-	})
 }
 
 // TestAttackCommand_DungeonMap_Integration tests an empty direct dungeon Attack.
@@ -267,7 +254,7 @@ func TestAttackCommand_SystemCallbacks_Integration(t *testing.T) {
 		},
 		{
 			name:         "CombatMapAttack_NoCombatScene",
-			attackFunc:   gs.ActionAttackCombatMap,
+			attackFunc:   func(references.Direction) bool { return gs.BeginCombatAttack() },
 			expectMsg:    "",
 			expectMsgCnt: 0, // No message when CombatScene is nil
 			expectTime:   0,

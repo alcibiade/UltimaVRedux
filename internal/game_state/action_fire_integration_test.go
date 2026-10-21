@@ -314,18 +314,6 @@ func TestFireCommand_Regression_Integration(t *testing.T) {
 		assert.Equal(t, 1, len(mockCallbacks.Messages), "Should have 'What?' message")
 		assert.Equal(t, "What?", mockCallbacks.Messages[0], "Large map fire should require vehicle")
 
-		// Test combat map fire (stub with feedback)
-		mockCallbacks.Reset()
-		combatResult := gameState.ActionFireCombatMap(references.Up)
-		assert.False(t, combatResult, "Combat map fire returns false (stub)")
-		assert.Equal(t, 1, len(mockCallbacks.Messages), "Combat fire stub should show feedback")
-
-		// Test dungeon map fire (stub with feedback)
-		mockCallbacks.Reset()
-		dungeonResult := gameState.ActionFireDungeonMap(references.Up)
-		assert.False(t, dungeonResult, "Dungeon map fire returns false (stub)")
-		assert.Equal(t, 1, len(mockCallbacks.Messages), "Dungeon fire stub should show feedback")
-
 		t.Logf("ℹ️ Fire command baseline tested - small map cannon auto-detection implemented")
 	})
 }

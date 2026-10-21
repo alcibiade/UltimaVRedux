@@ -7,12 +7,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/bradhannah/UltimaVRedux/internal/ai"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
-	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/test/helpers"
 )
 
@@ -25,20 +24,6 @@ func (g *GameState) ValidateAndConsumePartyTargetSpellResources(request CastRequ
 	}
 
 	return g.ValidateAndConsumeSpellResources(request)
-}
-
-// ActionFireCombatMap rejects Fire during combat, as required by the command context.
-func (g *GameState) ActionFireCombatMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("What?")
-
-	return false
-}
-
-// ActionFireDungeonMap rejects Fire in dungeon corridors.
-func (g *GameState) ActionFireDungeonMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("What?")
-
-	return false
 }
 
 // ActionGetCombatMap delegates collection and reports whether combat handled the request.
@@ -96,23 +81,6 @@ func (g *GameState) ActionReadySmallMap() bool {
 	}
 
 	return outcome != ReadyBeginRejected
-}
-
-// ConsumeDungeonViewScroll commits one In Quas Wis scroll and returns the detached symbolic view.
-func (g *GameState) ConsumeDungeonViewScroll() (DungeonViewModel, bool) {
-	g.requireActiveDungeon()
-	if !g.PartyState.Inventory.Scrolls.HasSome(references.ScrollInQuasWis) {
-		g.SystemCallbacks.UI.ShowActionFeedback("You have none!", true)
-
-		return DungeonViewModel{}, false
-	}
-	model, err := g.CurrentDungeonViewModel()
-	if err != nil {
-		panic(err)
-	}
-	g.PartyState.Inventory.Scrolls.DecrementByOne(references.ScrollInQuasWis)
-
-	return model, true
 }
 
 // CommitSkullKeyUnlock atomically revalidates and unlocks the reviewed door.
@@ -286,31 +254,6 @@ func (q *CombatTurnQueue) ActiveEntryCount() int {
 	return count
 }
 
-// IsPlayerNearDungeonEntrance checks if the player is within proximity of a dungeon entrance
-// Returns the dungeon location and true if near, or zero location and false if not
-func (gs *GameState) IsPlayerNearDungeonEntrance(proximityRange int) (references.Location, bool) {
-	playerPos := gs.MapState.PlayerLocation.Position
-
-	// Get current dungeon entrance coordinates from authoritative source
-	dungeonCoords := gs.GetDungeonEntranceCoordinates()
-
-	for dungeon, entrancePos := range dungeonCoords {
-		if !DungeonEntranceExistsOnFloor(dungeon, gs.MapState.PlayerLocation.Floor) {
-			continue
-		}
-
-		// Calculate distance using Manhattan distance
-		dx := absInt(int(playerPos.X) - int(entrancePos.X))
-		dy := absInt(int(playerPos.Y) - int(entrancePos.Y))
-
-		if dx <= proximityRange && dy <= proximityRange {
-			return dungeon, true
-		}
-	}
-
-	return references.Location(0), false
-}
-
 // TriggerEarthquakeManually commits earthquake damage without the random eligibility roll.
 func (e *EarthquakeSystem) TriggerEarthquakeManually(partyState *party_state.PartyState) EarthquakeResult {
 	return e.triggerEarthquake(partyState)
@@ -411,32 +354,6 @@ func (g *GameState) PrepareMoongateTravel() MoongateTravelResult {
 	return result
 }
 
-// GetMoonstoneAtPosition finds moonstone buried at specific coordinates
-// Returns moonstone index if found, -1 if no moonstone at position
-// Only returns unfound moonstones (for search discovery)
-// NOTE: This does NOT check map - use GetMoonstoneAtPositionOnMap for proper search
-func (ms *MoonstoneSystem) GetMoonstoneAtPosition(x, y uint8) int {
-	for i, moonstone := range ms.Moonstones {
-		if moonstone.X == x && moonstone.Y == y && !moonstone.IsFound && moonstone.IsBuried() {
-			return i
-		}
-	}
-
-	return -1
-}
-
-// GetFoundMoonstoneAtPosition finds a moonstone in FoundNotCollected state at specific coordinates
-// Returns moonstone index if found, -1 if no found moonstone at position
-func (ms *MoonstoneSystem) GetFoundMoonstoneAtPosition(x, y uint8) int {
-	for i, moonstone := range ms.Moonstones {
-		if moonstone.X == x && moonstone.Y == y && moonstone.IsFoundNotCollected() {
-			return i
-		}
-	}
-
-	return -1
-}
-
 // GetMoonstoneIndexForMoonPhase returns the moonstone index for current moon phase - delegation to MoonstoneSystem
 func (g *GameState) GetMoonstoneIndexForMoonPhase(phase int) int {
 	if g.moonstoneSystem == nil {
@@ -463,35 +380,6 @@ func (g *GameState) HasActiveMoongateAtPosition(pos *references.Position) bool {
 		g.moonstoneSystem.CanCreateMoongateAt(location.Location, location.Floor, *pos)
 }
 
-// CheckPirateAttack handles aligned pirate fire at a distance below
-// four tiles. A misaligned pirate retains one warning/rotation phase.
-// Already aligned pirates fire in descending object-slot order within
-// the phase; cardinal contact has its separate earlier route. ref:SHIP-0005
-func (g *GameState) CheckPirateAttack() bool {
-	// Only check on large maps
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return false
-	}
-
-	// Get all pirate ships using generic lookup
-	npcs := g.CurrentNPCAIController.GetNpcs()
-	pirates := npcs.GetEnemiesMatching(isPiratePredicate())
-	playerPos := g.MapState.PlayerLocation.Position
-	floor := g.MapState.PlayerLocation.Floor
-	slices.SortFunc(pirates, func(left, right *map_units.NPCEnemy) int {
-		return right.MapUnitDetails().NPCNum - left.MapUnitDetails().NPCNum
-	})
-
-	acted := false
-	for _, pirate := range pirates {
-		if pirate.IsVisible() && pirate.Floor() == floor && g.checkPirateActorAttack(pirate, playerPos) {
-			acted = true
-		}
-	}
-
-	return acted
-}
-
 // FirePirateCannon fires a cannon from pirate ship to player position
 // See ref:SHIP-0005.
 func (g *GameState) FirePirateCannon(pirate *map_units.NPCEnemy, targetPos references.Position) {
@@ -500,42 +388,6 @@ func (g *GameState) FirePirateCannon(pirate *map_units.NPCEnemy, targetPos refer
 		result: result,
 	})
 	g.startPirateAttackWorkflow()
-}
-
-// MarkKnowledgeRead authoritatively clears unread state for an existing key.
-func (g *GameState) MarkKnowledgeRead(key KnowledgeKey) bool {
-	g.requirePlayerKnowledge()
-	entry, found := g.playerKnowledge.entries[key]
-	if !found || !entry.Unread {
-		return false
-	}
-	entry.Unread = false
-	g.playerKnowledge.entries[key] = entry
-
-	return true
-}
-
-// GetQuestItemLightRadius returns the light emission radius for a quest item at a given position
-// Returns 0 if no quest item is at the position or if the item is in inventory (not visible)
-func (gs *GameState) GetQuestItemLightRadius(position references.Position) int {
-	hasQuestItem, questItem := gs.IsQuestItemAtPosition(position)
-	if !hasQuestItem {
-		return 0
-	}
-
-	// Check if quest item is visible (not in inventory)
-	if !gs.IsQuestItemVisible(position, questItem) {
-		return 0
-	}
-
-	// Return appropriate light radius based on item type
-	if IsLordBritishArtifact(questItem) {
-		return map_state.ArtifactLightDistance // Artifacts emit stronger light
-	} else if IsShard(questItem) {
-		return map_state.ShardLightDistance // Shards emit moderate light
-	}
-
-	return 0 // Default: no light
 }
 
 // ExecuteSearch performs a search operation with clear priority ordering
@@ -578,25 +430,6 @@ func (g *GameState) SkiffDeepWaterDamageSequence(position references.Position) e
 
 		return queue.ThenSequence(g.skiffDeepWaterDamageSequence(func() {}))
 	}
-}
-
-// OneShot configures the sound to play once and stop (default behavior)
-func (b *SoundBuilder) OneShot() *SoundBuilder {
-	b.mode = SoundPlaybackOneShot
-
-	return b
-}
-
-// Volume configures the playback volume (0.0 to 1.0)
-func (b *SoundBuilder) Volume(v float64) *SoundBuilder {
-	if v < 0.0 {
-		v = 0.0
-	} else if v > 1.0 {
-		v = 1.0
-	}
-	b.volume = v
-
-	return b
 }
 
 // QuoteTavernMeal returns the current trusted meal charge.
@@ -648,155 +481,72 @@ func (g *GameState) QuoteTavernProvisions(session MerchantSession) (TavernProvis
 	return state.Provision, nil
 }
 
-// TrySpawnWhirlpool is the probabilistic single-whirlpool integration fixture
-// helper. Ordinary world generation is owned by the large-map AI controller;
-// its source terrain/region gates and multiple-whirlpool support are independent.
-func (g *GameState) TrySpawnWhirlpool(pos references.Position) bool {
-	// Only spawn on large maps
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return false
-	}
-
-	// Only allow one whirlpool at a time on the map
-	if g.HasAnyWhirlpool() {
-		return false
-	}
-
-	// Check if position already has a whirlpool (redundant with above but kept for safety)
-	if g.hasWhirlpoolAt(pos) {
-		return false
-	}
-
-	// Get tile at position
-	layeredMap := g.GetCurrentLayeredMap()
-	tile := layeredMap.GetTopTile(&pos)
-
-	// Whirlpool generation requires deep-water terrain (raw tile 1) and
-	// the upper-boundary result of the 0..7 spawn draw. ref:SHIP-0006
-	if !tile.Is(indexes.Water1) {
-		return false
-	}
-
-	// 1 in 8 spawn probability using GameState RNG for determinism
-	if !g.OneInXOdds(WhirlpoolSpawnProbability) {
-		return false
-	}
-
-	// Create whirlpool enemy at position
-	return g.spawnWhirlpoolAt(pos)
-}
-
-// CheckWhirlpoolAdjacency checks if whirlpool is adjacent to player and triggers collision
-// Called before monster movement in turn.go.
-//
-// Original Ultima V : outdoor contact and ranged attack checks adjacency BEFORE world creature movement
-// outdoor contact and ranged attack at original world-creature rules check: (dis_x == 1 && dis_y == 0) || (dis_x == 0 && dis_y == 1)
-// If adjacent, outdoor contact resolution is called which triggers whirlpool transportation
-//
-// Returns true if the whirlpool collision workflow was triggered.
-// See ref:SHIP-0003.
-func (g *GameState) CheckWhirlpoolAdjacency() bool {
-	// Only check on large maps where whirlpools exist
-	if g.MapState.PlayerLocation.Location.GetMapType() != references.LargeMapType {
-		return false
-	}
-
-	if g.EventQueueManager.HasWorkflow("whirlpool_collision") {
-		return true
-	}
-	playerPos := g.MapState.PlayerLocation.Position
-	playerFloor := g.MapState.PlayerLocation.Floor
-	// Canonical monster generation can create multiple whirlpools. Scan in
-	// stable controller order rather than letting a distant first one mask contact.
-	whirlpool := g.CurrentNPCAIController.GetNpcs().GetFirstEnemyMatching(func(enemy *map_units.NPCEnemy) bool {
-		return enemy.Variant() == map_units.EnemyVariantWhirlpool && enemy.IsVisible() &&
-			playerPos.IsNextTo(enemy.Pos(), playerFloor, enemy.Floor())
+// checkOutdoorActorAttacks runs the production per-actor attack check for each
+// visible enemy on the player's floor in the controller's descending slot order,
+// without the movement and monster generation a full outdoor turn adds.
+func checkOutdoorActorAttacks(g *GameState) bool {
+	enemies := g.CurrentNPCAIController.GetNpcs().GetEnemiesMatching(func(*map_units.NPCEnemy) bool { return true })
+	slices.SortFunc(enemies, func(left, right *map_units.NPCEnemy) int {
+		return right.MapUnitDetails().NPCNum - left.MapUnitDetails().NPCNum
 	})
-	if whirlpool == nil {
-		return false
-	}
-
-	return g.checkWhirlpoolActorContact(whirlpool)
-}
-
-// hasWhirlpoolAt checks if a whirlpool already exists at the given position
-func (g *GameState) hasWhirlpoolAt(pos references.Position) bool {
-	return g.CurrentNPCAIController.GetNpcs().HasEnemyMatching(isWhirlpoolAtPosPredicate(pos))
-}
-
-func (g *GameState) checkWhirlpoolActorContact(whirlpool *map_units.NPCEnemy) bool {
-	if g.EventQueueManager.HasWorkflow("whirlpool_collision") {
-		return true
-	}
-	whirlpoolPos := whirlpool.Pos()
-
-	// Original outdoor contact resolution leaves an adjacent whirlpool in place when it
-	// hits a party on foot. Every vehicle path consumes it before transport.
-	// See ref:SHIP-0003.
-	if g.PartyVehicle.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
-		g.RemoveWhirlpoolAt(whirlpoolPos)
-	}
-
-	// Build and start transportation queue
-	q := g.EventQueueManager.Workflow("whirlpool_collision").
-		Priority(event_queue.PriorityHigh).
-		Sequential()
-	g.BuildWhirlpoolTransportationQueue(q)
-	q.Start()
-
-	return true
-}
-
-// ActionAttackCombatMap resolves the active PC's attack at the adjacent square
-// in the requested direction.
-func (g *GameState) ActionAttackCombatMap(direction references.Direction) bool {
-	// Get active combatant's position and compute target position
-	activeIdentity, active := g.activeCombatPCIdentity()
-	if !active {
-		return false
-	}
-	currentPos := g.CombatScene.GetCombatantPosition(activeIdentity)
-
-	targetPos := direction.GetNewPositionInDirection(&currentPos)
-	if targetPos == nil {
-		return false
-	}
-
-	return g.ActionAttackCombatPosition(*targetPos)
-}
-
-// ActionAttackCombatPosition resolves all attack sources against an adjacent
-// combat-map position. It supports diagonal targets used by the aiming cursor.
-func (g *GameState) ActionAttackCombatPosition(targetPos references.Position) bool {
-	activeIdentity, active := g.activeCombatPCIdentity()
-	if !active {
-		return false
-	}
-	activeIdx := activeIdentity.EntityIndex
-	currentPos := g.CombatScene.GetCombatantPosition(activeIdentity)
-	if integerDistance(currentPos, targetPos) != monsterAdjacentDistance {
-		return false
-	}
-
-	// Check for monster at target position
-	monster, _ := g.CombatScene.MonsterManager.GetMonsterIndexAtPosition(targetPos)
-	if monster == nil || !monster.IsHostile() || monster.IsCorpserHidden() {
-		// No monster at target — UI layer will show "Nothing to attack!"
-		return false
-	}
-
-	character := g.PartyState.GetCharacter(activeIdx)
-	sources := collectCombatAttackSources(character)
-	for _, source := range sources {
-		if source.Equipment != references.NoEquipment && source.Equipment.GetAttackRange() > 0 {
+	acted := false
+	for _, enemy := range enemies {
+		if !enemy.IsVisible() || enemy.Floor() != g.MapState.PlayerLocation.Floor {
 			continue
 		}
-		g.resolveCombatAttackSourceAtPosition(activeIdx, source, targetPos)
-
-		// If monster died from this attack, stop processing further slots
-		if monster.IsDead() {
-			break
+		switch g.checkOutdoorActorAttack(enemy) {
+		case ai.OutdoorActorNoAttack:
+		case ai.OutdoorActorAttacked:
+			acted = true
+		case ai.OutdoorActorDeferred:
+			return true
 		}
+	}
+
+	return acted
+}
+
+// attackCombatDirection drives the production Attack command at the square
+// next to the active PC; see attackCombatSquare.
+func attackCombatDirection(t *testing.T, g *GameState, direction references.Direction) bool {
+	t.Helper()
+	identity, active := g.activeCombatPCIdentity()
+	require.True(t, active, "attack needs an active PC")
+	origin := g.CombatScene.GetCombatantPosition(identity)
+	target := direction.GetNewPositionInDirection(&origin)
+	require.NotNil(t, target)
+
+	return attackCombatSquare(t, g, *target)
+}
+
+// attackCombatSquare drives the production Attack command as a player would:
+// it aims each melee source at target and confirms it. Ranged sources, and
+// sources left after the target is gone, are skipped like an Escape press.
+// It reports whether the Attack command began.
+func attackCombatSquare(t *testing.T, g *GameState, target references.Position) bool {
+	t.Helper()
+	if !g.BeginCombatAttack() {
+		return false
+	}
+	confirmed := false
+	for g.CombatScene.AttackTargeting != nil {
+		targeting := g.CombatScene.AttackTargeting
+		source := targeting.CurrentSource()
+		occupied := g.CombatScene.MonsterManager.GetMonstersAtPosition(target)
+		if source.Equipment.GetAttackRange() > 0 || (confirmed && len(occupied) == 0) {
+			g.CancelCombatAttackSource()
+
+			continue
+		}
+		for targeting.Cursor != target {
+			step := func(from, to references.Coordinate) int {
+				return min(max(int(to)-int(from), -1), 1)
+			}
+			require.True(t, g.MoveCombatAttackCursor(step(targeting.Cursor.X, target.X), step(targeting.Cursor.Y, target.Y)),
+				"attack cursor cannot reach %v", target)
+		}
+		g.ConfirmCombatAttackTarget()
+		confirmed = true
 	}
 
 	return true

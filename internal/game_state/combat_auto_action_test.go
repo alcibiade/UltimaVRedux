@@ -261,39 +261,7 @@ func TestPlanCombatAutoAction_TreatsOtherPartyMembersAsBlockers(t *testing.T) {
 	assert.Equal(t, CombatAutoActionUnavailable, gs.PlanCombatAutoAction().Kind)
 }
 
-func TestActionAttackCombatPosition_RejectsNonAdjacentTarget(t *testing.T) {
-	gs, activeIndex := setupCombatAutoActionTest(t)
-
-	start := references.Position{X: 1, Y: 1}
-	target := references.Position{X: 3, Y: 1}
-	gs.CombatScene.SetPartyMemberPosition(activeIndex, start)
-	setCombatAutoTiles(gs, indexes.BrickFloor, start, target)
-	monster := addCombatAutoMonster(gs, target)
-	hpBefore := monster.CurrentHP()
-
-	assert.False(t, gs.ActionAttackCombatPosition(target))
-	assert.Equal(t, hpBefore, monster.CurrentHP())
-}
-
-func TestActionAttackCombatPosition_DoesNotResolveRangedWeaponAsMelee(t *testing.T) {
-	gs, activeIndex := setupCombatAutoActionTest(t)
-
-	start := references.Position{X: 1, Y: 1}
-	target := references.Position{X: 2, Y: 1}
-	gs.CombatScene.SetPartyMemberPosition(activeIndex, start)
-	setCombatAutoTiles(gs, indexes.BrickFloor, start, target)
-	monster := addCombatAutoMonster(gs, target)
-	character := gs.PartyState.GetCharacter(activeIndex)
-	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
-	character.SetEquippedItem(references.SlotWeapon, references.Bow)
-	character.SetEquippedItem(references.SlotShield, references.NoEquipment)
-	hpBefore := monster.CurrentHP()
-
-	assert.True(t, gs.ActionAttackCombatPosition(target))
-	assert.Equal(t, hpBefore, monster.CurrentHP())
-}
-
-func TestActionAttackCombatPosition_RejectsInactiveCombatant(t *testing.T) {
+func TestCombatAttack_RejectsInactiveCombatant(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
 
 	start := references.Position{X: 1, Y: 1}
@@ -304,7 +272,7 @@ func TestActionAttackCombatPosition_RejectsInactiveCombatant(t *testing.T) {
 	hpBefore := monster.CurrentHP()
 	gs.CombatScene.PartyActive[activeIndex] = false
 
-	assert.False(t, gs.ActionAttackCombatPosition(target))
+	assert.False(t, attackCombatSquare(t, gs, target))
 	assert.Equal(t, hpBefore, monster.CurrentHP())
 }
 

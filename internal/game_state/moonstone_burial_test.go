@@ -139,12 +139,5 @@ func TestMoonstoneMapMatching(t *testing.T) {
 		t.Error("Should find moonstone when searching on correct map!")
 	}
 
-	// Old method GetMoonstoneAtPosition still doesn't check map (for moongate rendering)
-	foundOldMethod := moonstoneSystem.GetMoonstoneAtPosition(50, 50)
-	t.Logf("GetMoonstoneAtPosition(50,50) - old method without map check: returned %d", foundOldMethod)
-	if foundOldMethod < 0 {
-		t.Log("Note: Old method doesn't check map - this is expected for moongate rendering")
-	}
-
 	t.Log("Map matching test passed - search now correctly requires map match")
 }

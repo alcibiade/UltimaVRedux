@@ -45,16 +45,7 @@ func TestWhirlpoolTransportation_FrigateManualMovement(t *testing.T) {
 	require.True(t, found, "Should find deep water")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Setup frigate ADJACENT to whirlpool (not on it yet)
 	adjacentPos := references.Position{X: whirlpoolPos.X - 1, Y: whirlpoolPos.Y}
@@ -144,16 +135,7 @@ func TestWhirlpoolTransportation_SkiffManualMovement(t *testing.T) {
 	require.True(t, found, "Should find deep water")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Setup SKIFF ADJACENT to whirlpool
 	adjacentPos := references.Position{X: whirlpoolPos.X - 1, Y: whirlpoolPos.Y}
@@ -235,16 +217,7 @@ func TestWhirlpoolTransportation_OnFootNoTransport(t *testing.T) {
 	require.True(t, found, "Should find deep water")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Setup player ON FOOT (no vehicle) adjacent to whirlpool
 	adjacentPos := references.Position{X: whirlpoolPos.X - 1, Y: whirlpoolPos.Y}
@@ -310,16 +283,7 @@ func TestWhirlpoolTransportation_FrigateSailsDown(t *testing.T) {
 	require.True(t, found, "Should find deep water")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Setup frigate with SAILS DOWN (anchored, not sailing)
 	adjacentPos := references.Position{X: whirlpoolPos.X - 1, Y: whirlpoolPos.Y}

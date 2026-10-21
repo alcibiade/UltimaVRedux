@@ -39,15 +39,7 @@ func TestWhirlpoolTransportation_TeleportToUnderworld(t *testing.T) {
 	require.True(t, found, "Should find deep water tile")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Board frigate and move to whirlpool
 	frigate := map_units.NewNPCFriendlyVehiceNewRef(
@@ -119,15 +111,7 @@ func TestWhirlpoolTransportation_HullDamage(t *testing.T) {
 
 	require.True(t, found, "Should find deep water")
 
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool")
 
 	// Board frigate with known hull strength
 	frigate := map_units.NewNPCFriendlyVehiceNewRef(
@@ -191,15 +175,7 @@ func TestWhirlpoolTransportation_MessageSequence(t *testing.T) {
 
 	require.True(t, found, "Should find deep water")
 
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool")
 
 	frigate := map_units.NewNPCFriendlyVehiceNewRef(
 		references.FrigateVehicle,

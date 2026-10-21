@@ -37,15 +37,7 @@ func TestWhirlpoolDetection_ShipOnWhirlpool(t *testing.T) {
 	require.True(t, found, "Should find deep water tile")
 
 	// Force spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Board a frigate and move to whirlpool position
 	frigate := map_units.NewNPCFriendlyVehiceNewRef(
@@ -128,15 +120,7 @@ func TestWhirlpoolDetection_SkiffOnWhirlpool(t *testing.T) {
 	require.True(t, found, "Should find deep water tile")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Board SKIFF (not frigate) and move to whirlpool
 	skiff := map_units.NewNPCFriendlyVehiceNewRef(
@@ -180,15 +164,7 @@ func TestWhirlpoolDetection_OnFootOnWhirlpool(t *testing.T) {
 	require.True(t, found, "Should find water tile")
 
 	// Spawn whirlpool
-	spawned := false
-	for i := 0; i < 100; i++ {
-		gs.SetRandomSeed(12345 + uint64(i))
-		if gs.TrySpawnWhirlpool(whirlpoolPos) {
-			spawned = true
-			break
-		}
-	}
-	require.True(t, spawned, "Should spawn whirlpool for test")
+	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
 
 	// Player on foot (no vehicle)
 	gs.PartyVehicle = map_units.NewNPCFriendlyVehiceNoVehicle()

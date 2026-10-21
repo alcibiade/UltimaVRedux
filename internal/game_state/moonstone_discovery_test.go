@@ -126,28 +126,3 @@ func TestMoonstoneStateTransitions(t *testing.T) {
 	assert.False(t, moonstone.IsFoundNotCollected())
 	assert.False(t, moonstone.CanCreateMoongate()) // Pickup removes gate eligibility
 }
-
-// TestGetFoundMoonstoneAtPosition tests finding moonstones in FoundNotCollected state
-func TestGetFoundMoonstoneAtPosition(t *testing.T) {
-	ms := NewMoonstoneSystem()
-
-	// Moonstone 0 is at position (224, 133) according to InitialMoonstoneLocations
-	moonstoneX := uint8(224)
-	moonstoneY := uint8(133)
-
-	// Initially no found moonstone
-	assert.Equal(t, -1, ms.GetFoundMoonstoneAtPosition(moonstoneX, moonstoneY))
-
-	// Mark moonstone as found
-	ms.MarkMoonstoneFoundAtPosition(0)
-
-	// Now should find the moonstone
-	moonstoneIndex := ms.GetFoundMoonstoneAtPosition(moonstoneX, moonstoneY)
-	assert.Equal(t, 0, moonstoneIndex)
-
-	// Take to inventory
-	ms.TakeMoonstoneToInventory(0)
-
-	// Should no longer find it in FoundNotCollected state
-	assert.Equal(t, -1, ms.GetFoundMoonstoneAtPosition(moonstoneX, moonstoneY))
-}
