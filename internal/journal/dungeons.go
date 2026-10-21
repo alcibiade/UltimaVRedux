@@ -62,14 +62,18 @@ type DungeonObservation struct {
 }
 
 // DungeonEntry is a spoiler-safe reader projection, not a hidden dungeon index.
+// A Gate entry is a learned clue rather than an observed dungeon: it has no
+// sites, entrance or location, and Description holds only disclosed clue text.
 type DungeonEntry struct {
-	Sites      [DungeonExteriorSiteCount]DungeonSiteEntry
-	Name       string
-	Entrance   string
-	Location   string
-	Word       string
-	Source     string
-	WordIsClue bool
+	Sites       [DungeonExteriorSiteCount]DungeonSiteEntry
+	Name        string
+	Entrance    string
+	Location    string
+	Word        string
+	Source      string
+	Description string
+	WordIsClue  bool
+	Gate        bool
 }
 
 // DungeonSiteEntry contains only disclosed facts. An uninspected slot is zero;

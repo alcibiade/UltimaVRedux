@@ -26,7 +26,13 @@ func TestWordOfPowerSurveyRequiresKnownIdentityAndSuccessfulTarget(t *testing.T)
 			if dungeon == references.Shame || dungeon == references.Doom {
 				require.True(t, state.DiscoverWordOfPowerKnowledge(strings.ToLower(dungeon.String()), DialogueKnowledgeSource("Speaker")))
 				require.True(t, state.ProcessWordOfPower(word))
-				require.Empty(t, state.journalDungeons(), "unassociated word still cannot identify Shame or Doom")
+				entries := state.journalDungeons()
+				if dungeon == references.Doom {
+					require.Len(t, entries, 1, "the Codex word is only a gate clue")
+					require.True(t, entries[0].Gate)
+				} else {
+					require.Empty(t, entries, "unassociated word still cannot identify Shame")
+				}
 			}
 			state.PartyState.Inventory.QuestItems.Set(references.Sextant, 0)
 			require.True(t, state.ActionLookLargeMap(references.Left))
@@ -35,6 +41,7 @@ func TestWordOfPowerSurveyRequiresKnownIdentityAndSuccessfulTarget(t *testing.T)
 				siteIndex = journal.DungeonUnderworldSite
 			}
 			require.False(t, state.journalDungeons()[0].Sites[siteIndex].Survey.Measured)
+			require.Empty(t, state.journalDungeons()[0].Word, "observation never attaches a hidden word")
 			state.PartyState.Inventory.QuestItems.Set(references.Sextant, 1)
 			state.MapState.PlayerLocation.Position = entrance.Right().Right()
 			require.False(t, state.ProcessWordOfPower(word))

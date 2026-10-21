@@ -149,6 +149,26 @@ func (g *GameState) journalDungeons() []journal.DungeonEntry {
 		}
 		entries = append(entries, entry)
 	}
+	if gate, learned := g.journalFinalGate(); learned {
+		entries = append(entries, gate)
+	}
 
 	return entries
+}
+
+// journalFinalGate presents the Codex word as a gate clue. The word alone names
+// no dungeon and grants no entrance, seal or location knowledge, so the observed
+// Doom row above still earns its word only through successful use.
+func (g *GameState) journalFinalGate() (journal.DungeonEntry, bool) {
+	knowledge, learned := g.WordOfPowerKnowledge("doom")
+	if !learned {
+		return journal.DungeonEntry{}, false
+	}
+	entry := journal.DungeonEntry{Name: "Final Gate", Word: WordVeramocor, Source: knowledge.Source.DisplayName,
+		Description: codexWordSummary, Gate: true}
+	if g.CodexRevelationComplete {
+		entry.Description = codexRevelationText
+	}
+
+	return entry, true
 }
