@@ -329,12 +329,25 @@ func convertWorld(game SavedGame, snapshot *save_snapshot.SaveSnapshot, warnings
 }
 
 func convertProgression(game SavedGame, snapshot *save_snapshot.SaveSnapshot, warnings *[]ConversionWarning) {
+	convertSearchProgress(game, snapshot)
+	convertMoonstones(game, snapshot)
+	convertShrinesAndDungeons(game, snapshot)
+	convertShadowlords(game, snapshot, warnings)
+	snapshot.Progression.HMSCapeActivated = game.Inventory.SpecialItems.HMSCapePlans&originalHMSCapeRiggedMask != 0
+}
+
+// convertSearchProgress copies search flags and cache days, clearing flag bits beyond the known search locations.
+func convertSearchProgress(game SavedGame, snapshot *save_snapshot.SaveSnapshot) {
 	copy(snapshot.Progression.SearchFound[:], game.SearchFlags[:])
 	for bit := references.SearchLocationCount; bit < len(snapshot.Progression.SearchFound)*8; bit++ {
 		snapshot.Progression.SearchFound[bit/bitsPerByte] &^= 1 << (bit & (bitsPerByte - 1))
 	}
 	snapshot.Progression.SkullKeysFoundDay = game.SkullKeysFoundDay
 	copy(snapshot.Progression.ReagentCachesFoundDay[:], game.ReagentCacheDays[:])
+}
+
+// convertMoonstones converts moonstone placements and marks buried-nowhere stones as held.
+func convertMoonstones(game SavedGame, snapshot *save_snapshot.SaveSnapshot) {
 	for index, source := range game.Moonstones {
 		state := byte(0)
 		if source.Map == originalNothing {
@@ -350,6 +363,10 @@ func convertProgression(game SavedGame, snapshot *save_snapshot.SaveSnapshot, wa
 			IsFound: false,
 		}
 	}
+}
+
+// convertShrinesAndDungeons converts shrine bits, open dungeons, and visited dungeon rooms.
+func convertShrinesAndDungeons(game SavedGame, snapshot *save_snapshot.SaveSnapshot) {
 	for index := range snapshot.Progression.Shrines {
 		mask := byte(1 << index)
 		snapshot.Progression.Shrines[index] = save_snapshot.ShrineSnapshot{
@@ -360,6 +377,10 @@ func convertProgression(game SavedGame, snapshot *save_snapshot.SaveSnapshot, wa
 		snapshot.Progression.Dungeons[index] = game.OpenDungeons[index]&originalOpenMarker != 0
 	}
 	copy(snapshot.Progression.DungeonRooms[:], game.DungeonRooms[:])
+}
+
+// convertShadowlords converts Shadowlord life, town assignments, and the last-called lord.
+func convertShadowlords(game SavedGame, snapshot *save_snapshot.SaveSnapshot, warnings *[]ConversionWarning) {
 	assignedShadowlordTowns := make(map[byte]struct{}, save_snapshot.ShadowlordCount)
 	for index, marker := range game.ShadowlordLords {
 		switch {
@@ -404,7 +425,6 @@ func convertProgression(game SavedGame, snapshot *save_snapshot.SaveSnapshot, wa
 	}
 	snapshot.Progression.Shadowlords.Summoned = false
 	snapshot.Progression.Shadowlords.AutomaticPresence = -1
-	snapshot.Progression.HMSCapeActivated = game.Inventory.SpecialItems.HMSCapePlans&originalHMSCapeRiggedMask != 0
 }
 
 func convertEffects(game SavedGame, snapshot *save_snapshot.SaveSnapshot, warnings *[]ConversionWarning) {

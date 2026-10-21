@@ -942,6 +942,7 @@ func (g *GameState) UpdateLightSourceTinting(layer *map_state.LayeredMap) {
 		// Surface dusk starts cosmetic ambient light before night visibility.
 		playerLightType = map_state.PlayerLightAmbient
 	}
+	g.LightSourceTintingState.SetAmbientLightRadius(g.MapState.Lighting.AmbientLightRadius())
 	g.LightSourceTintingState.UpdatePlayerLight(
 		g.MapState.PlayerLocation.Position,
 		playerLightType,

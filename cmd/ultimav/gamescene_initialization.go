@@ -15,7 +15,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
-	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -211,7 +210,7 @@ func (g *GameScene) Activate() {
 		return
 	}
 
-	map_state.SetAmbientLightRadius(g.gameConfig.GetAmbientLightRadius())
+	g.gameState.MapState.Lighting.SetAmbientLightRadius(g.gameConfig.GetAmbientLightRadius())
 	const desiredTPS = 60
 	ebiten.SetTPS(desiredTPS)
 	ebiten.SetScreenClearedEveryFrame(false)

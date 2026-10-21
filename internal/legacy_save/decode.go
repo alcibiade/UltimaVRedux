@@ -157,6 +157,12 @@ func decodeInventory(gam []byte) Inventory {
 }
 
 func decodeGameRegions(game *SavedGame, gam []byte) {
+	decodeGameStatus(game, gam)
+	decodeGameProgress(game, gam)
+}
+
+// decodeGameStatus reads the moonstones, calendar, party state, and position.
+func decodeGameStatus(game *SavedGame, gam []byte) {
 	for index := range game.Moonstones {
 		game.Moonstones[index] = Moonstone{
 			X:     gam[moonstoneXOffset+index],
@@ -197,6 +203,10 @@ func decodeGameRegions(game *SavedGame, gam []byte) {
 		X:        gam[partyXOffset],
 		Y:        gam[partyYOffset],
 	}
+}
+
+// decodeGameProgress reads light, shrines, dungeons, Shadowlords, ship, NPC flags, objects, and dungeon state.
+func decodeGameProgress(game *SavedGame, gam []byte) {
 	game.MagicLight = gam[magicLightOffset]
 	game.TorchTurns = gam[torchTurnsOffset]
 	game.Shrines = ShrineProgress{

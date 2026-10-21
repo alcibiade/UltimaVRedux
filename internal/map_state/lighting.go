@@ -58,6 +58,9 @@ type Lighting struct {
 
 	// Magical light is enabled while GameState has remaining magic_light minutes.
 	hasMagicLight bool
+
+	// ambientLightRadius is the configured night-vision radius, at least 1.
+	ambientLightRadius int
 }
 
 // LightSource represents a tile that emits light in the game world
@@ -80,7 +83,19 @@ func NewLighting(gameDimensions GameDimensions) Lighting {
 		baselineFactor:        baselineVisibilityFactor,
 		baselineRadius:        1,
 		hasMagicLight:         false,
+		ambientLightRadius:    defaultAmbientLightRadius,
 	}
+}
+
+// SetAmbientLightRadius sets the night-vision radius of the ambient player light.
+// Radii below 1 fall back to the default of 2.
+func (l *Lighting) SetAmbientLightRadius(radius int) {
+	l.ambientLightRadius = resolveAmbientLightRadius(radius)
+}
+
+// AmbientLightRadius returns the effective night-vision radius, at least 1.
+func (l *Lighting) AmbientLightRadius() int {
+	return resolveAmbientLightRadius(l.ambientLightRadius)
 }
 
 // HasTorchLit returns true while the carried torch has fuel left.
@@ -167,7 +182,7 @@ func (l *Lighting) BuildLightSourceDistanceMap(
 	// Apply player-carried light based on light type (torch, magic light, ambient)
 	// This uses the same PlayerLightProperties() as the tinting system for consistency
 	if playerLightType != PlayerLightNone {
-		props := PlayerLightProperties(playerLightType)
+		props := PlayerLightProperties(playerLightType, l.ambientLightRadius)
 		if props.Radius > 0 {
 			l.applyLightSource(distanceMaskMap, centerPos, props.Radius, 1)
 		}

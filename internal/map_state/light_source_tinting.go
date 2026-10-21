@@ -95,22 +95,17 @@ const (
 // Ambient Light Configuration
 // ============================================================================
 
-// ambientLightRadius is the configurable radius for PlayerLightAmbient.
-// Set via SetAmbientLightRadius() during game initialization.
-// Default: 2 tiles. Range: 1-5.
-//
-// To change: Call map_state.SetAmbientLightRadius() from gamescene_initialization.go
-// or modify config.AmbientLightRadius in the config file.
-var ambientLightRadius = 2
+// defaultAmbientLightRadius is the night-vision radius, in tiles, used when none
+// (or one below 1) is configured. Configured range: 1-5.
+const defaultAmbientLightRadius = 2
 
-// SetAmbientLightRadius configures the ambient light radius for night vision.
-// Called during game initialization with value from config.
-// Falls back to 2 if radius < 1.
-func SetAmbientLightRadius(radius int) {
+// resolveAmbientLightRadius applies the fallback to the default for radii below 1.
+func resolveAmbientLightRadius(radius int) int {
 	if radius < 1 {
-		radius = 2
+		return defaultAmbientLightRadius
 	}
-	ambientLightRadius = radius
+
+	return radius
 }
 
 // ============================================================================
@@ -392,6 +387,8 @@ func pulsingLight(tint LightTintColor, mode TintMode, periodMs int, amplitude fl
 }
 
 // LightSourcePropertiesMap maps sprite indexes to their light properties.
+//
+//nolint:gochecknoglobals // Read-only light table looked up per tile while drawing.
 var LightSourcePropertiesMap = map[indexes.SpriteIndex]LightSourceProperties{
 	indexes.RightSconce:   fireLight(torchWarm(), sconceBreathingAmplitude),
 	indexes.LeftSconce:    fireLight(torchWarm(), sconceBreathingAmplitude),
@@ -431,10 +428,11 @@ var LightSourcePropertiesMap = map[indexes.SpriteIndex]LightSourceProperties{
 }
 
 // PlayerLightProperties returns light properties for player-carried light sources.
-func PlayerLightProperties(lightType PlayerLightType) LightSourceProperties {
+// ambientRadius is the configured night-vision radius used for PlayerLightAmbient.
+func PlayerLightProperties(lightType PlayerLightType, ambientRadius int) LightSourceProperties {
 	switch lightType {
 	case PlayerLightAmbient:
-		return playerLight(ambientSightDim(), false, ambientLightRadius) // Configurable via SetAmbientLightRadius()
+		return playerLight(ambientSightDim(), false, resolveAmbientLightRadius(ambientRadius))
 	case PlayerLightTorch:
 		return playerLight(torchWarm(), true, TorchTileDistance)
 	case PlayerLightInLor:
@@ -500,6 +498,15 @@ type LightSourceTintingState struct {
 
 	// playerPos tracks the player's current position
 	playerPos references.Position
+
+	// ambientLightRadius is the configured night-vision radius, at least 1.
+	ambientLightRadius int
+}
+
+// SetAmbientLightRadius sets the night-vision radius used for the ambient player light.
+// Radii below 1 fall back to the default of 2.
+func (ls *LightSourceTintingState) SetAmbientLightRadius(radius int) {
+	ls.ambientLightRadius = resolveAmbientLightRadius(radius)
 }
 
 // NewLightSourceTintingState creates a new light source tinting state.
@@ -509,6 +516,8 @@ func NewLightSourceTintingState() *LightSourceTintingState {
 		isLargeMap:      false,
 		playerLightType: PlayerLightNone,
 		playerPos:       references.Position{X: 0, Y: 0},
+
+		ambientLightRadius: defaultAmbientLightRadius,
 	}
 }
 
@@ -626,7 +635,7 @@ func (ls *LightSourceTintingState) UpdatePlayerLight(
 		return
 	}
 
-	props := PlayerLightProperties(lightType)
+	props := PlayerLightProperties(lightType, ls.ambientLightRadius)
 	if props.Radius <= 0 {
 		return
 	}
@@ -646,7 +655,7 @@ func (ls *LightSourceTintingState) clearPlayerLight() {
 		return
 	}
 
-	props := PlayerLightProperties(ls.playerLightType)
+	props := PlayerLightProperties(ls.playerLightType, ls.ambientLightRadius)
 	radius := props.Radius
 
 	for deltaY := -radius; deltaY <= radius; deltaY++ {

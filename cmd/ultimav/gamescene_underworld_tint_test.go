@@ -99,14 +99,12 @@ func TestUnderworldTintMatchesMidnightAcrossSurfaceClock(t *testing.T) {
 }
 
 func TestUnderworldVisibleTilesIndependentOfSurfaceClock(t *testing.T) {
-	originalRadius := map_state.GetAmbientLightRadius()
-	t.Cleanup(func() { map_state.SetAmbientLightRadius(originalRadius) })
 	pos := references.Position{X: 16, Y: 16}
 	for radius := 1; radius <= 5; radius++ {
 		t.Run(fmt.Sprintf("radius_%d", radius), func(t *testing.T) {
-			map_state.SetAmbientLightRadius(radius)
 			scene := newTerrainDitherTestScene(t, references.BritanniaUnderworld, -1, pos)
 			state := scene.gameState
+			state.MapState.Lighting.SetAmbientLightRadius(radius)
 			layer := state.GetLayeredMapByCurrentLocation()
 			var baseline []references.Position
 			for _, clock := range []struct{ hour, minute byte }{{0, 0}, {5, 59}, {6, 0}, {12, 0}, {19, 59}, {20, 0}} {
@@ -134,12 +132,10 @@ func TestUnderworldVisibleTilesIndependentOfSurfaceClock(t *testing.T) {
 }
 
 func TestUnderworldFullMapRefreshPreservesAdmissionAndRestoresSurfacePolicy(t *testing.T) {
-	originalRadius := map_state.GetAmbientLightRadius()
-	t.Cleanup(func() { map_state.SetAmbientLightRadius(originalRadius) })
-	map_state.SetAmbientLightRadius(2)
 	position := references.Position{X: 16, Y: 16}
 	scene := newTerrainDitherTestScene(t, references.BritanniaUnderworld, 0, position)
 	state := scene.gameState
+	state.MapState.Lighting.SetAmbientLightRadius(2)
 	scene.spriteSheet = sharedPresentationTestSpriteSheet()
 	scene.moongateVisualSystem = NewMoongateVisualSystem(state)
 	source := references.Position{X: 20, Y: 16}

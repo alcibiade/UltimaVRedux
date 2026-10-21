@@ -133,7 +133,7 @@ func TestLightTintColors(t *testing.T) {
 // TestPlayerLightProperties verifies player light source configurations
 func TestPlayerLightProperties(t *testing.T) {
 	t.Run("AmbientProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightAmbient)
+		props := PlayerLightProperties(PlayerLightAmbient, defaultAmbientLightRadius)
 
 		assert.Equal(t, ambientSightDim(), props.TintColor, "Ambient should have dim gray tint")
 		assert.Equal(t, 2, props.Radius, "Ambient should have 2 tile radius")
@@ -144,7 +144,7 @@ func TestPlayerLightProperties(t *testing.T) {
 	})
 
 	t.Run("TorchProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightTorch)
+		props := PlayerLightProperties(PlayerLightTorch, defaultAmbientLightRadius)
 
 		assert.Equal(t, torchWarm(), props.TintColor, "Torch should have warm tint")
 		assert.Equal(t, TorchTileDistance, props.Radius, "Torch should have TorchTileDistance radius")
@@ -152,7 +152,7 @@ func TestPlayerLightProperties(t *testing.T) {
 	})
 
 	t.Run("InLorProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightInLor)
+		props := PlayerLightProperties(PlayerLightInLor, defaultAmbientLightRadius)
 
 		assert.Equal(t, magicWhite(), props.TintColor, "In Lor should have white tint")
 		assert.Equal(t, InLorTileDistance, props.Radius, "In Lor should have InLorTileDistance radius")
@@ -160,7 +160,7 @@ func TestPlayerLightProperties(t *testing.T) {
 	})
 
 	t.Run("VasLorProperties", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightVasLor)
+		props := PlayerLightProperties(PlayerLightVasLor, defaultAmbientLightRadius)
 
 		assert.Equal(t, magicWhite(), props.TintColor, "Vas Lor should have white tint")
 		assert.Equal(t, VasLorTileDistance, props.Radius, "Vas Lor should have VasLorTileDistance radius")
@@ -168,15 +168,15 @@ func TestPlayerLightProperties(t *testing.T) {
 	})
 
 	t.Run("NonePropertiesAreDefault", func(t *testing.T) {
-		props := PlayerLightProperties(PlayerLightNone)
+		props := PlayerLightProperties(PlayerLightNone, defaultAmbientLightRadius)
 		assert.Equal(t, 0, props.Radius, "None light type should have zero radius")
 	})
 
 	t.Run("LightRadiusHierarchy", func(t *testing.T) {
-		ambientProps := PlayerLightProperties(PlayerLightAmbient)
-		torchProps := PlayerLightProperties(PlayerLightTorch)
-		inLorProps := PlayerLightProperties(PlayerLightInLor)
-		vasLorProps := PlayerLightProperties(PlayerLightVasLor)
+		ambientProps := PlayerLightProperties(PlayerLightAmbient, defaultAmbientLightRadius)
+		torchProps := PlayerLightProperties(PlayerLightTorch, defaultAmbientLightRadius)
+		inLorProps := PlayerLightProperties(PlayerLightInLor, defaultAmbientLightRadius)
+		vasLorProps := PlayerLightProperties(PlayerLightVasLor, defaultAmbientLightRadius)
 
 		assert.Equal(t, vasLorProps.Radius, inLorProps.Radius,
 			"In Lor and Vas Lor should share one magical-light radius")
