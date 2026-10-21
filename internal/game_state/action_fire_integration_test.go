@@ -49,10 +49,6 @@ func TestFireCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("FireWithoutAdjacentCannon", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -100,10 +96,6 @@ func TestFireCommand_LargeMap_Integration(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("FireWithoutVehicle", func(t *testing.T) {
 		mockCallbacks.Reset()
@@ -192,10 +184,6 @@ func TestFireCommand_VehicleIntegration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("VehicleStateTransitions", func(t *testing.T) {
 		// Test fire behavior with vehicle state changes
 		originalVehicleType := gameState.PartyVehicle.GetVehicleDetails().VehicleType
@@ -251,10 +239,6 @@ func TestFireCommand_ErrorHandling_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("FireAtMapEdges", func(t *testing.T) {
 		// Test fire near map edges
 		edgePositions := []references.Position{
@@ -288,10 +272,6 @@ func TestFireCommand_Regression_Integration(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-
-	if gameState == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("CurrentImplementationBaseline", func(t *testing.T) {
 		mockCallbacks.Reset()

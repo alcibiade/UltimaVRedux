@@ -76,34 +76,3 @@ func TestKlimbFenceExpectedBehavior(t *testing.T) {
 		}
 	})
 }
-
-// TestKlimbFenceDetection tests the fence detection logic specifically.
-func TestKlimbFenceDetection(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.NorthBritanny).
-		WithPlayerAt(15, 15).
-		WithSystemCallbacks().
-		Build()
-	// Search for fences in the map to understand their distribution
-	mapInstance := gs.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, gs.MapState.PlayerLocation.Floor)
-	fenceCount := 0
-
-	for x := 0; x < 32; x++ {
-		for y := 0; y < 32; y++ {
-			pos := &references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}
-			tile := mapInstance.GetTileTopMapOnlyTile(pos)
-			if tile != nil && (tile.Is(indexes.FenceHoriz) || tile.Is(indexes.FenceVert)) {
-				fenceCount++
-				if fenceCount <= 5 { // Log first few fences found
-					t.Logf("Fence found at (%d, %d): %s (index=%d)", x, y, tile.Name, tile.Index)
-				}
-			}
-		}
-	}
-
-	t.Logf("Total fences found in NorthBritanny: %d", fenceCount)
-
-	if fenceCount == 0 {
-		t.Log("No fences found - this might explain why climbing isn't working")
-	}
-}

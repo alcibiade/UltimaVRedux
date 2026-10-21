@@ -21,10 +21,6 @@ func TestKlimbCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("KlimbWithoutLadder", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -148,10 +144,6 @@ func TestKlimbCommand_LargeMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("KlimbWithoutGrapple", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -219,10 +211,6 @@ func TestKlimbCommand_ErrorHandling_Integration(t *testing.T) {
 		WithPlayerAt(5, 5).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("KlimbAtMapEdges", func(t *testing.T) {
 		// Test klimb near map edges

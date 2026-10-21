@@ -16,9 +16,6 @@ import (
 func TestDungeonSearchHiddenPitStartsRevealWithoutBlockingInput(t *testing.T) {
 	dataDir := originaldata.Directory(t)
 	scene, state, callbacks := newDungeonInputTestScene(t)
-	if state == nil {
-		return
-	}
 	var err error
 	scene.dungeonSprites, err = sprites.LoadDungeonSprites(dataDir)
 	require.NoError(t, err)

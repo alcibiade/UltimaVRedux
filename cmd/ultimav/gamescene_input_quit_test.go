@@ -94,9 +94,6 @@ func TestQuitSaveResultWaitsForReleaseAndDismissalCannotFallThrough(t *testing.T
 	for _, dismissKey := range []ebiten.Key{ebiten.KeyEnter, ebiten.KeyEscape} {
 		t.Run(dismissKey.String(), func(t *testing.T) {
 			scene, state, _ := newDungeonInputTestScene(t)
-			if state == nil {
-				return
-			}
 			initializeDungeonUpdateTestScene(scene, state)
 			held := make(map[ebiten.Key]bool)
 			scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return held[key] })

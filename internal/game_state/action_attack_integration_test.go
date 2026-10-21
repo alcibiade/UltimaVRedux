@@ -22,10 +22,6 @@ func TestAttackCommand_SmallMap_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("BasicAttackBehavior", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -94,10 +90,6 @@ func TestAttackCommand_LargeMap_Integration(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	mockCallbacks.Reset()
 
@@ -185,10 +177,6 @@ func TestAttackCommand_CombatMap_NoCombatScene(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	mockCallbacks.Reset()
 
 	// With no CombatScene, Attack cannot begin.
@@ -223,10 +211,6 @@ func TestAttackCommand_SystemCallbacks_Integration(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	testCases := []struct {
 		name         string
@@ -290,10 +274,6 @@ func TestAttackCommand_ErrorHandling_Integration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("AttackAtMapEdges", func(t *testing.T) {
 		// Test attack near map edges
 		edgePositions := []references.Position{
@@ -326,10 +306,6 @@ func TestAttackCommand_Regression_Integration(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("EmptyTargetBaseline", func(t *testing.T) {
 		mockCallbacks.Reset()

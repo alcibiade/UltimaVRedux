@@ -23,10 +23,6 @@ func TestScrollRelHur_WindChange(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			return // Test was skipped due to missing game data
-		}
-
 		mockCallbacks.Reset()
 		gs.SetRandomSeed(12345) // Deterministic wind direction
 
@@ -73,10 +69,6 @@ func TestScrollRelHur_WindChange(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			return // Test was skipped due to missing game data
-		}
-
 		mockCallbacks.Reset()
 
 		// Give party scroll
@@ -109,10 +101,6 @@ func TestScrollInQuasWis_View(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			return // Test was skipped due to missing game data
-		}
-
 		mockCallbacks.Reset()
 
 		// Give party scroll
@@ -142,10 +130,6 @@ func TestScrollInQuasWis_View(t *testing.T) {
 			WithPlayerAt(12, 12).
 			WithSystemCallbacks().
 			Build()
-
-		if gs == nil {
-			return // Test was skipped due to missing game data
-		}
 
 		mockCallbacks.Reset()
 
@@ -193,10 +177,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			return
-		}
-
 		// Light scroll should be valid on small map
 		assert.True(t, gs.isScrollLocationValid(references.ScrollVasLor),
 			"Light scroll should be allowed on small map")
@@ -210,10 +190,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs1 == nil {
-			return
-		}
-
 		assert.True(t, gs1.isScrollLocationValid(references.ScrollRelHur),
 			"Wind scroll should be allowed on small map")
 
@@ -223,10 +199,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-
-		if gs2 == nil {
-			return
-		}
 
 		assert.True(t, gs2.isScrollLocationValid(references.ScrollRelHur),
 			"Wind scroll should be allowed on large map")
@@ -239,10 +211,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs1 == nil {
-			return
-		}
-
 		assert.True(t, gs1.isScrollLocationValid(references.ScrollInQuasWis),
 			"View scroll should be allowed on town maps")
 
@@ -252,10 +220,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-
-		if gs2 == nil {
-			return
-		}
 
 		assert.True(t, gs2.isScrollLocationValid(references.ScrollInQuasWis),
 			"View scroll should be allowed on large map")
@@ -277,10 +241,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs1 == nil {
-			return
-		}
-
 		assert.True(t, gs1.isScrollLocationValid(references.ScrollInManiCorp),
 			"Resurrection scroll should be allowed in non-combat")
 
@@ -290,10 +250,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-
-		if gs2 == nil {
-			return
-		}
 
 		assert.True(t, gs2.isScrollLocationValid(references.ScrollInManiCorp),
 			"Resurrection scroll should be allowed on large map")
@@ -307,10 +263,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs1 == nil {
-			return
-		}
-
 		assert.False(t, gs1.isScrollLocationValid(references.ScrollKalXenCorp),
 			"Summon scroll should NOT be allowed outside combat")
 
@@ -320,10 +272,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-
-		if gs2 == nil {
-			return
-		}
 
 		assert.False(t, gs2.isScrollLocationValid(references.ScrollKalXenCorp),
 			"Summon scroll should NOT be allowed outside combat")
@@ -339,10 +287,6 @@ func TestScrollConsumption(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-
-		if gs == nil {
-			return
-		}
 
 		mockCallbacks.Reset()
 		gs.SetRandomSeed(12345)
@@ -369,10 +313,6 @@ func TestScrollConsumption(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			return
-		}
-
 		mockCallbacks.Reset()
 		gs.SetRandomSeed(12345)
 
@@ -394,10 +334,6 @@ func TestScrollConsumption(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-
-		if gs == nil {
-			return
-		}
 
 		mockCallbacks.Reset()
 
@@ -500,10 +436,6 @@ func TestScrollDurationEffects(t *testing.T) {
 				WithSystemCallbacks().
 				Build()
 
-			if gs == nil {
-				return
-			}
-
 			mockCallbacks.Reset()
 
 			// Give party scroll
@@ -543,10 +475,6 @@ func TestScrollDurationEffectRefresh(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Get expected duration from JSON
 	expectedDuration := gs.GameReferences.InventoryItemReferences.GetScrollEffectDuration(references.ScrollInSanct)
 
@@ -584,10 +512,6 @@ func TestVasLorScrollTriggersWorkflow(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Give party a Light scroll
 	gs.PartyState.Inventory.Scrolls.Set(references.ScrollVasLor, 1)
 
@@ -609,10 +533,6 @@ func TestAnTymScrollTriggersWorkflow(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Give party a Time Stop scroll
 	gs.PartyState.Inventory.Scrolls.Set(references.ScrollAnTym, 1)
@@ -636,10 +556,6 @@ func TestInManiCorpScrollTriggersWorkflow(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Kill a party member so resurrection can be used
 	if char := gs.PartyState.GetCharacter(1); char != nil {
@@ -670,10 +586,6 @@ func TestInManiCorpScrollNoDeadMembersStillOffersTargetSelection(t *testing.T) {
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Give party a resurrection scroll (no one is dead)
 	gs.PartyState.Inventory.Scrolls.Set(references.ScrollInManiCorp, 1)
@@ -714,10 +626,6 @@ func TestScrollDurationEffectExpiration(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return
-	}
-
 	// Use a short duration for testing - directly activate with 3 turns
 	gs.ActivateNegateMagicEffect(3)
 	assert.True(t, gs.HasActiveDurationEffect(DurationEffectNegateMagic))
@@ -752,10 +660,6 @@ func TestTimeStopFreezesBehavior(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return
-	}
 
 	// Record initial time
 	initialMinute := gs.DateTime.Minute

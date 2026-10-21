@@ -20,10 +20,6 @@ func TestViewCommand_SmallMap_WithGems(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("ViewConsumesGem", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -119,10 +115,6 @@ func TestViewCommand_SmallMap_NoGems(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("ViewFailsWithoutGems", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -153,10 +145,6 @@ func TestViewCommand_LargeMap_WithGems(t *testing.T) {
 		WithPlayerAt(100, 100).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("ViewConsumesGemOnLargeMap", func(t *testing.T) {
 		mockCallbacks.Reset()
@@ -189,10 +177,6 @@ func TestViewCommand_LargeMap_NoGems(t *testing.T) {
 		WithSystemCallbacks().
 		Build()
 
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
-
 	t.Run("ViewFailsWithoutGemsOnLargeMap", func(t *testing.T) {
 		mockCallbacks.Reset()
 
@@ -223,10 +207,6 @@ func TestViewCommand_MultipleUses(t *testing.T) {
 		WithPlayerAt(12, 12).
 		WithSystemCallbacks().
 		Build()
-
-	if gs == nil {
-		return // Test was skipped due to missing game data
-	}
 
 	t.Run("SequentialViewUses", func(t *testing.T) {
 		// Give party 3 gems

@@ -17,9 +17,6 @@ func setupMonsterMissileTest(
 ) (*GameState, *MockSystemCallbacks, *CombatMonster, int, nearestPCResult) {
 	t.Helper()
 	gs, mock, _, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return nil, mock, nil, NoActiveMonster, nearestPCResult{}
-	}
 	setOpenCombatMissileMap(gs)
 	clearCombatMonstersForTest(gs.CombatScene)
 	ref := (*gs.GameReferences.EnemyReferences)[monsterType]
@@ -56,9 +53,6 @@ func setupMonsterMissileTest(
 func TestMonsterMissileDecisionBoundaryAndMimicGuarantee(t *testing.T) {
 	t.Run("127 fires and defers impact", func(t *testing.T) {
 		gs, mock, monster, monsterIndex, nearest := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-		if gs == nil {
-			return
-		}
 		hpBefore := gs.PartyState.GetCharacter(0).GetCurrentHp()
 
 		launch, attacked := gs.prepareMonsterAttackWithRNG(monster, monsterIndex, nearest, newSequenceRNG(127, 29))
@@ -74,9 +68,6 @@ func TestMonsterMissileDecisionBoundaryAndMimicGuarantee(t *testing.T) {
 
 	t.Run("128 seeks", func(t *testing.T) {
 		gs, mock, monster, monsterIndex, nearest := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-		if gs == nil {
-			return
-		}
 
 		launch, attacked := gs.prepareMonsterAttackWithRNG(monster, monsterIndex, nearest, newSequenceRNG(128))
 
@@ -88,9 +79,6 @@ func TestMonsterMissileDecisionBoundaryAndMimicGuarantee(t *testing.T) {
 
 	t.Run("mimic always fires", func(t *testing.T) {
 		gs, _, mimic, mimicIndex, nearest := setupMonsterMissileTest(t, references.MonsterMimic, 2)
-		if gs == nil {
-			return
-		}
 
 		launch, attacked := gs.prepareMonsterAttackWithRNG(mimic, mimicIndex, nearest, newSequenceRNG(128, 0, 1))
 
@@ -113,9 +101,6 @@ func TestProductionPhysicalRangedEnemiesLaunchConfiguredMissiles(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.monster.Name(), func(t *testing.T) {
 			gs, mock, _, _ := setupHostileDaemonTest(t)
-			if gs == nil {
-				return
-			}
 			setOpenCombatMissileMap(gs)
 			clearCombatMonstersForTest(gs.CombatScene)
 			reference := (*gs.GameReferences.EnemyReferences)[test.monster]
@@ -153,9 +138,6 @@ func TestProductionPhysicalRangedEnemiesLaunchConfiguredMissiles(t *testing.T) {
 
 func TestOrdinaryMonsterMissileUsesFixedDamageWithoutImpactRNG(t *testing.T) {
 	gs, mock, monster, monsterIndex, nearest := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-	if gs == nil {
-		return
-	}
 	character := gs.PartyState.GetCharacter(0)
 	hpBefore := character.GetCurrentHp()
 	launch, attacked := gs.prepareMonsterAttackWithRNG(
@@ -178,9 +160,6 @@ func TestOrdinaryMonsterMissileUsesFixedDamageWithoutImpactRNG(t *testing.T) {
 func TestExecuteMonsterTurnUsesMissileBoundaryThenReportsActualAction(t *testing.T) {
 	t.Run("127 projectile", func(t *testing.T) {
 		gs, mock, monster, monsterIndex, _ := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-		if gs == nil {
-			return
-		}
 		entry := &TurnQueueEntry{Combatant: monster, EntityIndex: monsterIndex}
 		plan := gs.planMonsterTurn(entry)
 		seed := seedForFirstIntnValue(t, gs, monsterSpecialRollRange, 127)
@@ -199,9 +178,6 @@ func TestExecuteMonsterTurnUsesMissileBoundaryThenReportsActualAction(t *testing
 
 	t.Run("128 movement", func(t *testing.T) {
 		gs, mock, monster, monsterIndex, _ := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-		if gs == nil {
-			return
-		}
 		entry := &TurnQueueEntry{Combatant: monster, EntityIndex: monsterIndex}
 		plan := gs.planMonsterTurn(entry)
 		seed := seedForFirstIntnValue(t, gs, monsterSpecialRollRange, 128)
@@ -220,9 +196,6 @@ func TestExecuteMonsterTurnUsesMissileBoundaryThenReportsActualAction(t *testing
 
 func TestMonsterMissileBlockedEndpointHasNoImpactOrDamage(t *testing.T) {
 	gs, mock, monster, monsterIndex, nearest := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-	if gs == nil {
-		return
-	}
 	blocked := references.Position{X: 4, Y: 5}
 	setBlockedCombatMissileMap(gs, blocked)
 	hpBefore := gs.PartyState.GetCharacter(0).GetCurrentHp()
@@ -243,9 +216,6 @@ func TestMonsterMissileBlockedEndpointHasNoImpactOrDamage(t *testing.T) {
 
 func TestMonsterMissileRedirectHitsEitherLoyaltyCollateral(t *testing.T) {
 	gs, mock, monster, monsterIndex, nearest := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-	if gs == nil {
-		return
-	}
 	monster.currentDex = 1
 	primary := gs.CombatScene.PartyPositions[0]
 	gs.PartyState.GetCharacter(0).Dexterity = 99
@@ -284,9 +254,6 @@ func TestMonsterRangedPoisonReplacesDamageAtImpact(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, snake, snakeIndex, nearest := setupMonsterMissileTest(t, references.MonsterSnake, 3)
-			if gs == nil {
-				return
-			}
 			hpBefore := gs.PartyState.GetCharacter(0).GetCurrentHp()
 			launch, attacked := gs.prepareMonsterAttackWithRNG(snake, snakeIndex, nearest, newSequenceRNG(0, 29))
 			require.True(t, attacked)
@@ -314,9 +281,6 @@ func TestMonsterRangedPoisonReplacesDamageAtImpact(t *testing.T) {
 
 func TestMonsterMissileAmuletOrderingNegationAndExactOnce(t *testing.T) {
 	gs, mock, daemon, daemonIndex, nearest := setupMonsterMissileTest(t, references.MonsterDevil, 4)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.GetCharacter(0).SetEquippedItem(references.SlotAmulet, references.AmuletOfTurning)
 	rng := newSequenceRNG(127, 0, 1, 2)
 	hpBefore := gs.PartyState.GetCharacter(0).GetCurrentHp()
@@ -335,9 +299,6 @@ func TestMonsterMissileAmuletOrderingNegationAndExactOnce(t *testing.T) {
 	assert.Equal(t, launch.Impact, mock.CombatEvents[0].To)
 
 	gs2, mock2, daemon2, daemonIndex2, nearest2 := setupMonsterMissileTest(t, references.MonsterDevil, 4)
-	if gs2 == nil {
-		return
-	}
 	gs2.ActivateNegateMagicEffect(3)
 	launch, attacked = gs2.prepareMonsterAttackWithRNG(daemon2, daemonIndex2, nearest2, newSequenceRNG(0))
 	assert.False(t, attacked)
@@ -348,9 +309,6 @@ func TestMonsterMissileAmuletOrderingNegationAndExactOnce(t *testing.T) {
 func TestMonsterMissilePoisonDoesNotPassBlockOrForcedMiss(t *testing.T) {
 	t.Run("blocked", func(t *testing.T) {
 		gs, mock, snake, snakeIndex, nearest := setupMonsterMissileTest(t, references.MonsterSnake, 3)
-		if gs == nil {
-			return
-		}
 		setBlockedCombatMissileMap(gs, references.Position{X: 4, Y: 5})
 		launch, attacked := gs.prepareMonsterAttackWithRNG(snake, snakeIndex, nearest, newSequenceRNG(0, 29))
 		require.True(t, attacked)
@@ -365,9 +323,6 @@ func TestMonsterMissilePoisonDoesNotPassBlockOrForcedMiss(t *testing.T) {
 
 	t.Run("forced miss to empty square", func(t *testing.T) {
 		gs, mock, snake, snakeIndex, nearest := setupMonsterMissileTest(t, references.MonsterSnake, 3)
-		if gs == nil {
-			return
-		}
 		snake.enemyRef.EnemyAbilities[references.RangedMagic] = true
 		gs.PartyState.GetCharacter(0).SetEquippedItem(references.SlotAmulet, references.AmuletOfTurning)
 		launch, attacked := gs.prepareMonsterAttackWithRNG(
@@ -388,9 +343,6 @@ func TestMonsterMissilePoisonDoesNotPassBlockOrForcedMiss(t *testing.T) {
 
 func TestMonsterAmuletRollOccursBeforeRangeAndDoesNotChangeAdjacentMelee(t *testing.T) {
 	gs, mock, daemon, daemonIndex, nearest := setupMonsterMissileTest(t, references.MonsterDevil, 1)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.GetCharacter(0).SetEquippedItem(references.SlotAmulet, references.AmuletOfTurning)
 	rng := newSequenceRNG(127)
 
@@ -403,9 +355,6 @@ func TestMonsterAmuletRollOccursBeforeRangeAndDoesNotChangeAdjacentMelee(t *test
 	assert.Equal(t, CombatEventAttack, mock.CombatEvents[0].Kind)
 
 	gs2, mock2, daemon2, daemonIndex2, nearest2 := setupMonsterMissileTest(t, references.MonsterDevil, 5)
-	if gs2 == nil {
-		return
-	}
 	daemon2.enemyRef.AttackRange = 2
 	gs2.PartyState.GetCharacter(0).SetEquippedItem(references.SlotAmulet, references.AmuletOfTurning)
 	rng = newSequenceRNG(127)
@@ -418,9 +367,6 @@ func TestMonsterAmuletRollOccursBeforeRangeAndDoesNotChangeAdjacentMelee(t *test
 
 func TestPlanMonsterTurnDoesNotGuaranteeRangedOpportunity(t *testing.T) {
 	gs, mock, monster, monsterIndex, _ := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-	if gs == nil {
-		return
-	}
 	entry := &TurnQueueEntry{Combatant: monster, EntityIndex: monsterIndex}
 	positionBefore := monster.Position()
 	hpBefore := gs.PartyState.GetCharacter(0).GetCurrentHp()
@@ -437,9 +383,6 @@ func TestPlanMonsterTurnDoesNotGuaranteeRangedOpportunity(t *testing.T) {
 
 func TestMonsterMissileResolvesBeforeAttackerStandingField(t *testing.T) {
 	gs, mock, monster, monsterIndex, _ := setupMonsterMissileTest(t, references.MonsterOrc, 4)
-	if gs == nil {
-		return
-	}
 	require.True(t, gs.CombatScene.AddField(NewCombatField(CombatFieldFire, monster.Position())))
 	entry := &TurnQueueEntry{Combatant: monster, EntityIndex: monsterIndex}
 	plan := gs.planMonsterTurn(entry)

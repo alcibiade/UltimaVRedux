@@ -47,9 +47,6 @@ func setupHostileSpecialMonsterTest(
 
 func TestHostileDaemonPossessionRawSlotEligibilityAndSave(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 
 	assert.False(t, gs.executeHostileMonsterSpecialMoveWithRNG(daemon, daemonIndex,
 		newSequenceRNG(6, 255)), "raw slot 6 is not a PC and must continue past possession")
@@ -96,9 +93,6 @@ func TestShadowlordPossessionTargetsExactCloneSourceSlot(t *testing.T) {
 
 func TestLoneDaemonPossessionRemainsHostileWhilePartyLoyalPCRemains(t *testing.T) {
 	gs, _, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	second := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 1}
 	secondEntry := gs.CombatScene.TurnQueue.GetEntryByIdentity(second)
 	require.NotNil(t, secondEntry)
@@ -121,9 +115,6 @@ func TestLoneDaemonPossessionRemainsHostileWhilePartyLoyalPCRemains(t *testing.T
 
 func TestPossessedPCConfusionRerollsForAttackAndSeekSelection(t *testing.T) {
 	gs, _, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	attacker := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	ally := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 1}
 	allyEntry := gs.CombatScene.TurnQueue.GetEntryByIdentity(ally)
@@ -151,9 +142,6 @@ func TestPossessedPCConfusionRerollsForAttackAndSeekSelection(t *testing.T) {
 
 func TestPartyBoundDaemonRoutesToPlayerControlWithoutPossession(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	daemon.SetLoyalty(CombatMonsterLoyaltyParty)
 	forceNextMonsterTurnForTest(t, gs, daemonIndex)
 
@@ -184,9 +172,6 @@ func TestDaemonPossessionRejectsInactiveInvisibleDeadSleepingAndCharmedPCs(t *te
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-			if gs == nil {
-				return
-			}
 			test.setup(gs)
 			assert.False(t, gs.executeHostileMonsterSpecialMoveWithRNG(
 				daemon, daemonIndex, newSequenceRNG(0, 255),
@@ -199,9 +184,6 @@ func TestDaemonPossessionRejectsInactiveInvisibleDeadSleepingAndCharmedPCs(t *te
 
 func TestHostileDaemonSuccessfulPossessionConsumesTurnAndRetiresWithoutCorpse(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.GetCharacter(0).Intelligence = 1
 
 	assert.True(t, gs.executeHostileMonsterSpecialMoveWithRNG(daemon, daemonIndex,
@@ -305,9 +287,6 @@ func TestOrdinaryMonsterDoesNotConsumeSpecialRNG(t *testing.T) {
 
 func TestPossessedPCAIUsesOnlyAdjacentTwoHandedSwordOrMovement(t *testing.T) {
 	gs, mock, _, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.setCombatPCPossessed(CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}, true)
 	gs.CombatScene.PartyPositions[0] = references.Position{X: 5, Y: 5}
 	gs.CombatScene.PartyActive[1] = true
@@ -333,9 +312,6 @@ func TestChaosSwordInterceptsEitherHandBeforePlayerInput(t *testing.T) {
 	for _, slot := range []references.EquipmentSlot{references.SlotWeapon, references.SlotShield} {
 		t.Run(slot.String(), func(t *testing.T) {
 			gs, mock, _, _ := setupHostileDaemonTest(t)
-			if gs == nil {
-				return
-			}
 			identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 			gs.PartyState.GetCharacter(0).SetEquippedItem(slot, references.ChaosSword)
 			forceNextCombatActor(gs.CombatScene.TurnQueue, 0, true)
@@ -357,9 +333,6 @@ func TestChaosSwordInterceptsEitherHandBeforePlayerInput(t *testing.T) {
 
 func TestChaosSwordDoesNotInterceptSoloModeAutoPass(t *testing.T) {
 	gs, mock, _, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	second := gs.CombatScene.TurnQueue.GetEntry(1, true)
 	require.NotNil(t, second)
@@ -386,9 +359,6 @@ func TestChaosSwordDoesNotInterceptSoloModeAutoPass(t *testing.T) {
 
 func TestPossessedPCMonsterSeekRejectsLooseItemSquare(t *testing.T) {
 	gs, _, _, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	from := references.Position{X: 5, Y: 5}
 	to := references.Position{X: 5, Y: 6}
@@ -408,9 +378,6 @@ func TestCrownAndNegateMagicSuppressDaemonSpecialsAndRangedMagic(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-			if gs == nil {
-				return
-			}
 			test.activate(gs)
 			from, to := clearRangeNinePositions(t, gs.CombatScene.CombatMapRef)
 			daemon.SetPosition(from)
@@ -433,9 +400,6 @@ func TestCrownAndNegateMagicSuppressDaemonSpecialsAndRangedMagic(t *testing.T) {
 
 func TestDaemonGateOneEighthBoundaryAndCapacity(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	position := firstLegalDaemonGatePosition(t, gs)
 
 	assert.True(t, gs.executeHostileMonsterSpecialMoveWithRNG(daemon, daemonIndex,
@@ -447,9 +411,6 @@ func TestDaemonGateOneEighthBoundaryAndCapacity(t *testing.T) {
 	assert.True(t, gs.CombatScene.MonsterManager.GetMonster(mock.CombatEvents[0].Created.Index).IsHostile())
 
 	gs2, mock2, daemon2, daemonIndex2 := setupHostileDaemonTest(t)
-	if gs2 == nil {
-		return
-	}
 	assert.False(t, gs2.executeHostileMonsterSpecialMoveWithRNG(daemon2, daemonIndex2,
 		newSequenceRNG(31, 32)))
 	assert.Empty(t, mock2.CombatEvents)
@@ -530,9 +491,6 @@ func TestDaemonGateTestHelperUsesDevilRatherThanDefaultMage(t *testing.T) {
 
 func TestDaemonGateCanExceedInitialSixteenMonsterGroup(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	position := firstLegalDaemonGatePosition(t, gs)
 	for gs.CombatScene.MonsterManager.Count() < references.MaxMonstersInCombat {
 		ref := &(*gs.GameReferences.EnemyReferences)[references.MonsterOrc]
@@ -552,9 +510,6 @@ func TestDaemonGateCanExceedInitialSixteenMonsterGroup(t *testing.T) {
 
 func TestDaemonGateRequiresFreeOriginalObjectSlot(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	position := firstLegalDaemonGatePosition(t, gs)
 	for gs.CombatScene.hasFreeOriginalObjectSlot() {
 		gs.CombatScene.AddObject(NewCombatLooseItem(position, references.Food, 1, indexes.ItemFood))
@@ -568,9 +523,6 @@ func TestDaemonGateRequiresFreeOriginalObjectSlot(t *testing.T) {
 
 func TestDaemonRangeNineRedMissileChoiceObstructionTurningAndAlliedMonsterTarget(t *testing.T) {
 	gs, mock, daemon, daemonIndex := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	from, to := clearRangeNinePositions(t, gs.CombatScene.CombatMapRef)
 	daemon.SetPosition(from)
 	gs.CombatScene.PartyPositions[0] = to
@@ -625,9 +577,6 @@ func TestDaemonRangeNineRedMissileChoiceObstructionTurningAndAlliedMonsterTarget
 
 func TestDaemonBadtripRecoversOneAtATimeAndCharmNeverPersists(t *testing.T) {
 	gs, mock, daemon, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	daemon.SetActive(false)
 	for index := 0; index < 2; index++ {
 		gs.CombatScene.PartyActive[index] = true
@@ -652,9 +601,6 @@ func TestDaemonBadtripRecoversOneAtATimeAndCharmNeverPersists(t *testing.T) {
 
 func TestDaemonBadtripConsumesEarlierDeadPossessedEntry(t *testing.T) {
 	gs, mock, _, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	dead := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 	living := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 1}
 	gs.CombatScene.setCombatPCPossessed(dead, true)
@@ -695,9 +641,6 @@ func TestBadtripConsumesOneChaosSwordInOriginalHandOrder(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, _, _ := setupHostileDaemonTest(t)
-			if gs == nil {
-				return
-			}
 			identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 0}
 			character := gs.PartyState.GetCharacter(0)
 			character.SetEquippedItem(references.SlotWeapon, test.mainHand)
@@ -789,9 +732,6 @@ func combatEventKinds(events []CombatEvent) []CombatEventKind {
 
 func TestDaemonNoCorpseAndNoPoisonAbility(t *testing.T) {
 	gs, _, daemon, _ := setupHostileDaemonTest(t)
-	if gs == nil {
-		return
-	}
 	position := daemon.Position()
 	terrain := gs.GetCurrentLayeredMap().GetTopTile(&position)
 	assert.True(t, daemon.HasAbility(references.NoCorpse))

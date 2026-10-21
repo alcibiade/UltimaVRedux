@@ -23,10 +23,6 @@ func TestLookAtSign_Detection(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			t.Skip("Integration test requires game data")
-		}
-
 		// Search for a sign tile in Britain to position the player next to it
 		layeredMap := gs.GetLayeredMapByCurrentLocation()
 		if layeredMap == nil {
@@ -96,10 +92,6 @@ func TestLookAtSign_SignLookup(t *testing.T) {
 			WithPlayerAt(15, 15).
 			WithSystemCallbacks().
 			Build()
-
-		if gs == nil {
-			t.Skip("Integration test requires game data")
-		}
 
 		// Check if SignReferences is loaded
 		if gs.GameReferences.SignReferences == nil {
@@ -254,10 +246,6 @@ func TestLookAtSign_NonSignTiles(t *testing.T) {
 			WithSystemCallbacks().
 			Build()
 
-		if gs == nil {
-			t.Skip("Integration test requires game data")
-		}
-
 		layeredMap := gs.GetLayeredMapByCurrentLocation()
 		if layeredMap == nil {
 			t.Skip("Map not loaded")
@@ -337,10 +325,6 @@ func TestLookAtSign_MultipleLocations(t *testing.T) {
 				WithPlayerAt(15, 15).
 				WithSystemCallbacks().
 				Build()
-
-			if gs == nil {
-				t.Skip("Integration test requires game data")
-			}
 
 			layeredMap := gs.GetLayeredMapByCurrentLocation()
 			if layeredMap == nil {
