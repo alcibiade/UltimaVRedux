@@ -9,12 +9,12 @@ unsolicited code pull requests.
 Use the [issue forms](https://github.com/bradhannah/UltimaVRedux/issues/new/choose)
 and include:
 
-- Game version or commit, when known.
 - Operating system, architecture, and Go version for build/install problems.
 - What you expected and what actually happened.
 - Steps to reproduce, including relevant game conditions.
 - Useful error text or public documentation/reference identifiers.
-- After a crash, the `crash.log` described in [files and folders](docs/INSTALL.md#files-and-folders).
+- The version from `ultimav --version` or the title screen, and the `crash.log` and
+  `redux.log` described in [files and folders](docs/INSTALL.md#files-and-folders).
 
 Gameplay observations, public manuals, and other public references are welcome.
 Explain the scenario that supports a claim; a correction need not arrive as code.

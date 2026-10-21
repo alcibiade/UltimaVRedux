@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -111,4 +112,21 @@ func TestGlobalLoggerFunctions(t *testing.T) {
 	Info(CategoryMoongate, "Test info message")
 	Warn(CategoryMoongate, "Test warn message")
 	Error(CategoryMoongate, "Test error message")
+}
+
+func TestWarningsAreRecordedWhileLoggingIsOff(t *testing.T) {
+	logger := NewLogger()
+	var diagnostics strings.Builder
+	logger.SetDiagnosticsWriter(&diagnostics)
+
+	logger.Debug(CategorySystem, "hidden")
+	logger.Warn(CategorySystem, "audio failed: %d", 7)
+
+	written := diagnostics.String()
+	if !strings.Contains(written, "WARN [SYSTEM] audio failed: 7") || strings.Contains(written, "hidden") {
+		t.Fatalf("diagnostics must hold only the warning, got %q", written)
+	}
+	if entries := logger.EntriesAfter(0, 10).Entries; len(entries) != 1 || entries[0].Message != "audio failed: 7" {
+		t.Fatalf("ring buffer must hold only the warning, got %+v", entries)
+	}
 }

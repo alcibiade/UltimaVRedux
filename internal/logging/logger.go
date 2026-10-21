@@ -2,7 +2,7 @@ package logging
 
 import (
 	"fmt"
-	"log"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +15,13 @@ type Logger struct {
 	categoryStates map[string]bool // Per-category enabled/disabled state
 	minLevel       LogLevel        // Minimum level to log
 	outputToStdout bool            // Whether to output to stdout (controlled by debug command)
-	outputToFile   bool            // Whether to output to file (future feature)
-	entries        []Entry
-	entryStart     int
-	entryCount     int
-	nextSequence   uint64
+	// diagnostics receives every WARN and ERROR line, whatever the switches say,
+	// so a player's bug report can include them.
+	diagnostics  io.Writer
+	entries      []Entry
+	entryStart   int
+	entryCount   int
+	nextSequence uint64
 }
 
 // NewLogger creates a new logger instance with default settings
@@ -37,7 +39,7 @@ func newLoggerWithCapacity(capacity int) *Logger {
 		categoryStates: make(map[string]bool),
 		minLevel:       DEBUG, // Allow all levels by default
 		outputToStdout: false, // Controlled by debug command
-		outputToFile:   false, // Future feature
+		diagnostics:    nil,
 		entries:        make([]Entry, capacity),
 		entryStart:     0,
 		entryCount:     0,
@@ -105,29 +107,38 @@ func (l *Logger) GetMinLevel() LogLevel {
 	return l.minLevel
 }
 
-// Log logs a message with the specified level and category
+// SetDiagnosticsWriter selects where WARN and ERROR lines are always written.
+func (l *Logger) SetDiagnosticsWriter(writer io.Writer) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.diagnostics = writer
+}
+
+// Log logs a message with the specified level and category. WARN and ERROR
+// are always recorded; the switches only filter DEBUG and INFO and stdout.
 func (l *Logger) Log(level LogLevel, category string, format string, args ...interface{}) {
 	timestamp := time.Now()
 	l.mu.Lock()
-	if !l.enabled || level < l.minLevel || !l.categoryStates[category] {
+	selected := l.enabled && level >= l.minLevel && l.categoryStates[category]
+	if !selected && level < WARN {
 		l.mu.Unlock()
 
 		return
 	}
 	message := fmt.Sprintf(format, args...)
 	l.appendEntryLocked(timestamp, level, category, message)
-	outputToStdout := l.outputToStdout
-	l.mu.Unlock()
 	logLine := fmt.Sprintf("[%s] %s [%s] %s", timestamp.Format("2006-01-02 15:04:05.000"), level.String(), strings.ToUpper(category), message)
+	if level >= WARN && l.diagnostics != nil {
+		if _, err := fmt.Fprintln(l.diagnostics, logLine); err != nil {
+			// Stop writing to a failed log rather than disturbing every caller.
+			l.diagnostics = nil
+		}
+	}
+	outputToStdout := selected && l.outputToStdout
+	l.mu.Unlock()
 
-	// Output to stdout if enabled
 	if outputToStdout {
 		fmt.Println(logLine)
-	}
-
-	// For FATAL level, also use the standard log package for immediate visibility
-	if level == FATAL {
-		log.Printf("FATAL [%s] %s", strings.ToUpper(category), message)
 	}
 }
 
@@ -189,6 +200,11 @@ func SetGlobalEnabled(enabled bool) {
 // SetCategoryEnabled sets a category's enabled state
 func SetCategoryEnabled(category string, enabled bool) {
 	globalLogger.SetCategoryEnabled(category, enabled)
+}
+
+// SetDiagnosticsWriter selects where the global logger always writes WARN and ERROR.
+func SetDiagnosticsWriter(writer io.Writer) {
+	globalLogger.SetDiagnosticsWriter(writer)
 }
 
 // SetStdoutEnabled sets stdout logging state

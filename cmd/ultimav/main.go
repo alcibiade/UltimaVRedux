@@ -97,12 +97,20 @@ func runApplication() error {
 	var webprofile = flag.Bool("webprofile", false, "enable web-based profiling on :6060")
 	var noSound = flag.Bool("no-sound", false, "disable music, sound effects, and ambient audio for this session")
 	var debugWorkbench = flag.Bool("debug-workbench", false, "enable browser debug workbench")
+	var showVersion = flag.Bool("version", false, "print the game version and exit")
 	var debugWorkbenchPort = flag.Int(
 		"debug-workbench-port",
 		workbench.DefaultPort,
 		"browser debug workbench loopback port",
 	)
 	flag.Parse()
+	if *showVersion {
+		if _, err := fmt.Fprintln(os.Stdout, "Ultima V Redux "+runtimeGameVersion()); err != nil {
+			return fmt.Errorf("printing version: %w", err)
+		}
+
+		return nil
+	}
 	defer text.CloseRenderer()
 
 	// Start CPU profiling if requested

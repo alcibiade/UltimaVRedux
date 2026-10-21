@@ -4,11 +4,16 @@
 
 `internal/logging` provides categorized, leveled diagnostics with runtime filtering, optional stdout output, and a bounded structured history for the browser Debug Workbench.
 
-Logging is disabled by default. A record is retained only when all of these conditions are true:
+WARN and ERROR records are always retained and appended to
+`~/.ultima_v_redux/redux.log`, so a player's bug report can include them.
+DEBUG and INFO are disabled by default; such a record is retained only when all
+of these conditions are true:
 
 - Global logging is enabled.
 - The record's category is enabled.
 - The record's level meets the configured minimum.
+
+Stdout output follows the same switches for every level.
 
 ## Basic Usage
 
@@ -86,7 +91,7 @@ Runtime crash output is separate from categorized logging. `cmd/ultimav/crash_ou
 ~/.ultima_v_redux/crash.log
 ```
 
-Crash reporting remains active when categorized logging is disabled. On launch, an existing report at the configured size threshold rotates to `crash.log.old` while normal stderr crash behavior remains intact.
+Crash reporting remains active when categorized logging is disabled. On launch, an existing report at the configured size threshold rotates to `crash.log.old` while normal stderr crash behavior remains intact. `redux.log` rotates the same way to `redux.log.old` at 1 MiB, and both files begin each launch with the same version header.
 
 ## Contributor Checks
 

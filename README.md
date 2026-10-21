@@ -107,7 +107,8 @@ IDs, algorithms, compatibility formats, and explicit Redux comparisons. See the
 
 Please [open an issue](https://github.com/bradhannah/UltimaVRedux/issues/new/choose)
 for bugs, installation difficulties, behavioral corrections, or suggestions.
-Include the game version, operating system, and steps to reproduce the problem.
+Include the game version (shown on the title screen and by `ultimav --version`),
+your operating system, and steps to reproduce the problem.
 
 The maintainer currently owns implementation. Please read
 [CONTRIBUTING.md](CONTRIBUTING.md) and open an issue before preparing a code PR.

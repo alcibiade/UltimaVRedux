@@ -288,7 +288,7 @@ on Windows.
 | --- | --- |
 | `config.yaml` | Settings, including the original-data location. |
 | `saves/` | Save slots (`slot-01.json` to `slot-08.json`) and their `excerpts/` notebooks. Start the game with `--player-save-dir <folder>` to use another folder. |
-| `crash.log` | Details of the most recent crash; attach it to a bug report. |
+| `crash.log`, `redux.log` | Crash details and recent warnings; attach both to a bug report. |
 
 Back up `saves/` to keep your playthroughs. Saves made by `v0.1.0-preview.1` or
 later load in current builds; saves from earlier development builds do not.

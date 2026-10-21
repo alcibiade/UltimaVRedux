@@ -64,6 +64,7 @@ type IntroMenuScene struct {
 	borderSprites       *sprites.BorderSprites
 	ultimaFont          *text.UltimaFont
 	noticeOutput        *text.Output
+	versionOutput       *text.Output
 	keyboard            *input.Keyboard
 	config              *config.UltimaVConfiguration
 	audioManager        *audio.GameAudioManager
@@ -177,6 +178,7 @@ func newIntroMenuState(
 		borderSprites:           sprites.NewBorderSprites(),
 		ultimaFont:              font,
 		noticeOutput:            text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, introNoticeLineCount, 80),
+		versionOutput:           newIntroVersionOutput(font),
 		keyboard:                input.NewKeyboard(250),
 		config:                  gameConfig,
 		audioManager:            nil,
@@ -269,6 +271,7 @@ func (m *IntroMenuScene) Dispose() {
 func (m *IntroMenuScene) InvalidateResolution() {
 	m.ultimaFont = text.NewUltimaFont(text.GetIntroFontSize())
 	m.noticeOutput.SetFont(m.ultimaFont, m.ultimaFont.TextFace.Metrics().HAscent*1.2)
+	m.versionOutput.SetFont(m.ultimaFont, m.ultimaFont.TextFace.Metrics().HAscent*1.2)
 }
 
 func (m *IntroMenuScene) GetUltimaConfiguration() *config.UltimaVConfiguration {
@@ -1253,6 +1256,22 @@ func (m *IntroMenuScene) drawMenu(screen *ebiten.Image) {
 	}
 	m.ultimaFont.DrawIntroChoices(screen, m.nCurrentSelection, enabledChoices)
 	m.drawNotice(screen)
+	bounds := screen.Bounds()
+	m.versionOutput.DrawPanelContent(
+		screen,
+		image.Pt(bounds.Dx()/2, bounds.Dy()*19/20),
+		bounds.Dx()/2-bounds.Dx()/40,
+		textv2.AlignEnd,
+	)
+}
+
+// newIntroVersionOutput holds the title screen's version line, so bug reports
+// can quote it; the content never changes after construction.
+func newIntroVersionOutput(font *text.UltimaFont) *text.Output {
+	output := text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, 1, 80)
+	output.AppendLine().LightGray(runtimeGameVersion()).WithAlignment(textv2.AlignEnd).Done()
+
+	return output
 }
 
 func (m *IntroMenuScene) drawNotice(screen *ebiten.Image) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"sync"
 
 	"github.com/bradhannah/UltimaVRedux/internal/config"
@@ -86,12 +85,4 @@ func configurePlayerSaveRepository(game *Game, options playerSaveStartupOptions)
 	)
 
 	return nil
-}
-
-func runtimeGameVersion() string {
-	if buildInfo, ok := debug.ReadBuildInfo(); ok && buildInfo.Main.Version != "" && buildInfo.Main.Version != "(devel)" {
-		return buildInfo.Main.Version
-	}
-
-	return developmentGameVersion
 }

@@ -81,6 +81,7 @@ class PackagingTests(unittest.TestCase):
             self.assertEqual(env["CGO_ENABLED"], "0")
             self.assertEqual(env["GOPROXY"], "off")
             self.assertIn("-trimpath", command)
+            self.assertIn("-ldflags=-X main.version=v0.1.0-preview.1", command)
             binary = Path(command[command.index("-o") + 1])
             binary.write_bytes(f"binary {env['GOOS']}/{env['GOARCH']}".encode())
             return ""
@@ -98,7 +99,7 @@ class PackagingTests(unittest.TestCase):
         self,
     ) -> None:
         self.execute()
-        self.assertEqual(len(list(self.output.iterdir())), 5)
+        self.assertEqual(len(list(self.output.iterdir())), len(release.TARGETS) + 1)
         for line in (
             (self.output / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
         ):
