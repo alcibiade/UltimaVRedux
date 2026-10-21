@@ -20,19 +20,31 @@ func Resolve(directory, name string) string {
 	if err != nil {
 		return exact
 	}
-	match := ""
+	names := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		if !strings.EqualFold(entry.Name(), name) {
-			continue
-		}
-		if match != "" {
-			return exact
-		}
-		match = entry.Name()
+		names = append(names, entry.Name())
 	}
-	if match == "" {
+	match, ok := uniqueFoldMatch(names, name)
+	if !ok {
 		return exact
 	}
 
 	return filepath.Join(directory, match)
+}
+
+// uniqueFoldMatch returns the one entry equal to name ignoring case; with none
+// or several it reports false.
+func uniqueFoldMatch(entries []string, name string) (string, bool) {
+	match := ""
+	for _, entry := range entries {
+		if !strings.EqualFold(entry, name) {
+			continue
+		}
+		if match != "" {
+			return "", false
+		}
+		match = entry
+	}
+
+	return match, match != ""
 }

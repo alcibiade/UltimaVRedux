@@ -20,18 +20,11 @@ func TestResolveMatchesOriginalFilenamesInAnyCase(t *testing.T) {
 	}
 }
 
-func TestResolveRefusesAmbiguousCaseVariants(t *testing.T) {
-	directory := t.TempDir()
-	for _, name := range []string{"Brit.dat", "brit.DAT"} {
-		if err := os.WriteFile(filepath.Join(directory, name), nil, 0o600); err != nil {
-			t.Fatal(err)
-		}
+func TestUniqueFoldMatchRefusesAmbiguousCaseVariants(t *testing.T) {
+	if got, ok := uniqueFoldMatch([]string{"Brit.dat", "brit.DAT", "TOWNE.DAT"}, BritDat); ok {
+		t.Fatalf("ambiguous variants matched %q, want no match", got)
 	}
-	if entries, _ := os.ReadDir(directory); len(entries) < 2 {
-		t.Skip("case-insensitive filesystem holds only one variant")
-	}
-
-	if got, want := Resolve(directory, BritDat), filepath.Join(directory, BritDat); got != want {
-		t.Fatalf("ambiguous variants resolved to %q, want the exact (missing) path %q", got, want)
+	if got, ok := uniqueFoldMatch([]string{"brit.dat", "TOWNE.DAT"}, BritDat); !ok || got != "brit.dat" {
+		t.Fatalf("single variant matched %q (%t), want brit.dat", got, ok)
 	}
 }
