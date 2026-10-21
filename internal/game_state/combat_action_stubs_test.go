@@ -31,9 +31,6 @@ func TestGetActiveCombatantIndex_NormalMode(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -52,9 +49,6 @@ func TestGetActiveCombatantIndex_SoloMode(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -84,9 +78,6 @@ func TestGetActiveCombatantPosition_ReturnsCorrectPosition(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -107,9 +98,6 @@ func TestGetActiveCombatantPosition_SoloMode(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -136,9 +124,6 @@ func setupCombatDoorActionTest(t *testing.T) (*GameState, *MockSystemCallbacks, 
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return nil, nil, -1
-	}
 	mock := NewMockSystemCallbacks(t)
 	gs.SystemCallbacks = mock.ToSystemCallbacks()
 
@@ -150,9 +135,6 @@ func setupCombatDoorActionTest(t *testing.T) (*GameState, *MockSystemCallbacks, 
 
 func TestActionOpenCombatMap_UsesActiveCombatantPosition(t *testing.T) {
 	gs, _, activeIndex := setupCombatDoorActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	activePos := references.Position{X: 2, Y: 2}
 	activeTarget := references.Position{X: 3, Y: 2}
@@ -187,9 +169,6 @@ func TestActionOpenCombatMap_DoorVariants(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, activeIndex := setupCombatDoorActionTest(t)
-			if gs == nil {
-				return
-			}
 
 			origin := references.Position{X: 5, Y: 5}
 			target := references.Position{X: 5, Y: 4}
@@ -226,9 +205,6 @@ func TestActionJimmyCombatMap_DoorOutcomes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, activeIndex := setupCombatDoorActionTest(t)
-			if gs == nil {
-				return
-			}
 
 			origin := references.Position{X: 5, Y: 5}
 			target := references.Position{X: 6, Y: 5}
@@ -268,9 +244,6 @@ func TestCombatDoorActions_AdvanceAfterHandledOutcome(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 
 			activeIndex := gs.CombatScene.GetActiveCombatantIndex()
 			origin := gs.CombatScene.GetPartyMemberPosition(activeIndex)
@@ -308,9 +281,6 @@ func TestActionKlimbCombatMap_UsesActiveCombatantPosition(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)

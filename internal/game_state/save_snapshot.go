@@ -501,7 +501,7 @@ func (g *GameState) ValidateSaveSnapshotEligibility() error {
 		return fmt.Errorf("%w: active combat", ErrSaveSnapshotNotRepresentable)
 	case g.CampingScene != nil || g.ShrineScene != nil:
 		return fmt.Errorf("%w: active camping or shrine scene", ErrSaveSnapshotNotRepresentable)
-	case g.EventQueueManager.HasActiveWorkflows() || g.EventQueueManager.HasActiveBackgroundQueues():
+	case g.EventQueueManager.HasActiveWorkflows():
 		return fmt.Errorf("%w: active event queue work", ErrSaveSnapshotNotRepresentable)
 	case g.surfaceCycleOwned || g.completingSurfaceCycle:
 		return fmt.Errorf("%w: active surface command cycle", ErrSaveSnapshotNotRepresentable)

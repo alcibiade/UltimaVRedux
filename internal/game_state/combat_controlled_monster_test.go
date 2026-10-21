@@ -143,9 +143,6 @@ func setupControlledMonsterTest(t *testing.T) (*GameState, *MockSystemCallbacks)
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return nil, nil
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -191,9 +188,6 @@ func authorizeControlledMonster(gs *GameState, monsterIndex int) {
 
 func TestAdvanceCombatTurnRoutesPartyLoyalMonsterToPlayerInput(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 
 	loyal, loyalIndex := addControlledTestMonster(
 		gs, references.MonsterOrc, references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyParty,
@@ -223,9 +217,6 @@ func TestAdvanceCombatTurnRoutesPartyLoyalMonsterToPlayerInput(t *testing.T) {
 
 func TestSoloModeAutoPassesPartyLoyalMonster(t *testing.T) {
 	gs, _ := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	pcProvider := NewCombatPCProvider(gs.PartyState.GetCharacter(0))
 	pcProvider.sleeping = &gs.CombatScene.PartySleeping[0]
 	pcProvider.underground = &gs.CombatScene.PartyUnderground[0]
@@ -253,9 +244,6 @@ func TestSoloModeAutoPassesPartyLoyalMonster(t *testing.T) {
 
 func TestAdvanceCombatTurnAnonymizesConcealedPartyLoyalMonster(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	position := references.Position{X: 5, Y: 5}
 	loyal, loyalIndex := addControlledTestMonster(
 		gs, references.MonsterOrc, position, CombatMonsterLoyaltyParty,
@@ -275,9 +263,6 @@ func TestAdvanceCombatTurnAnonymizesConcealedPartyLoyalMonster(t *testing.T) {
 
 func TestControlledMonsterMovementAndPassUseItsStableQueueIdentity(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 
 	origin := references.Position{X: 5, Y: 5}
 	first, _ := addControlledTestMonster(gs, references.MonsterInsect, origin, CombatMonsterLoyaltyParty)
@@ -308,9 +293,6 @@ func TestControlledMonsterMovementAndPassUseItsStableQueueIdentity(t *testing.T)
 
 func TestPCAttackRejectsPartyLoyalMonsterAsFriendly(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 
 	pcIndex := gs.CombatScene.GetActiveCombatantIndex()
 	gs.CombatScene.CurrentTurnIdentity = CombatTurnIdentity{IsPartyMember: true, EntityIndex: pcIndex}
@@ -335,9 +317,6 @@ func TestPCAttackRejectsPartyLoyalMonsterAsFriendly(t *testing.T) {
 
 func TestControlledMonsterMeleePublishesMonsterIdentitiesAndAwardsNoXP(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 
 	attackerRef := &references.EnemyReference{ //nolint:exhaustruct // Focused deterministic combat fixture.
 		MonsterType: references.MonsterOrc,
@@ -386,9 +365,6 @@ func TestControlledMonsterMeleePublishesMonsterIdentitiesAndAwardsNoXP(t *testin
 
 func TestControlledRedDaemonUsesRangeNineRedMissile(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 
 	var from, to references.Position
 	foundClearRangeNine := false
@@ -438,9 +414,6 @@ func TestControlledRedDaemonUsesRangeNineRedMissile(t *testing.T) {
 
 func TestControlledSummonCanAttackPossessedPC(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	attacker, attackerIndex := addControlledTestMonster(
 		gs, references.MonsterDevil, references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyParty,
 	)

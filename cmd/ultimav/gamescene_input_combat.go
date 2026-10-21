@@ -493,17 +493,6 @@ func (g *GameScene) combatMapHandleSecondaryInput() {
 		g.gameState.FinishCombatAction()
 
 		return
-	case AttackDirectionInput:
-		g.combatMapAttackSecondary(direction)
-		g.secondaryKeyState = PrimaryInput
-
-		return
-	case UseDirectionInput:
-		success := g.combatMapUseSecondary(direction)
-		g.secondaryKeyState = PrimaryInput
-		if !success {
-			return
-		}
 	}
 
 	// only process end of turn if the turn is actually done.
@@ -1099,28 +1088,6 @@ func (g *GameScene) combatMapGetSecondary(direction references.Direction) {
 func (g *GameScene) combatMapSearchSecondary(direction references.Direction) {
 	// Search system handles all user feedback via SystemCallbacks
 	g.gameState.ActionSearchCombatMap(direction)
-}
-
-func (g *GameScene) combatMapAttackSecondary(direction references.Direction) {
-	defer g.combatTimingScope(g.captureCombatTiming())()
-	success := g.gameState.ActionAttackCombatMap(direction)
-	if !success {
-		g.addRowStr("Nothing to attack!")
-	}
-
-	// Original tactical input ends the action after Attack (ref:COMBAT-0003), even when
-	// the chosen direction contains no target.
-	g.gameState.FinishCombatAction()
-}
-
-func (g *GameScene) combatMapUseSecondary(direction references.Direction) bool {
-	defer g.combatTimingScope(g.captureCombatTiming())()
-	success := g.gameState.ActionUseCombatMap(direction)
-	if !success {
-		g.addRowStr("Can't use that!")
-	}
-
-	return success
 }
 
 // handleCombatMovement moves the active combat character in the given direction.

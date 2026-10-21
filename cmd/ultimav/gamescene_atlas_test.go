@@ -58,7 +58,6 @@ func TestAtlasFullUpdateFreezesQueuesAndReleaseFrame(t *testing.T) {
 	state.EventQueueManager.Workflow("atlas-ready-workflow").Priority(event_queue.PriorityNormal).Sequential().First(func() { fired++ }).Start()
 	state.EventQueueManager.TriggerFeedback("atlas-ready-feedback", event_queue.PriorityNormal,
 		func(q *event_queue.SequentialEventBuilder) { q.First(func() { fired++ }) })
-	state.EventQueueManager.RegisterBackgroundQueue("atlas-ready-background").Sequential().First(func() { fired++ }).Start()
 	now = now.Add(time.Hour)
 	require.NoError(t, scene.Update(nil))
 	require.NotNil(t, scene.atlasSession, "held opener must not close")

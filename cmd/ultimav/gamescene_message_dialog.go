@@ -206,17 +206,3 @@ func (g *GameScene) getMessageDialogFadeOutDuration() int {
 
 	return 200
 }
-
-// Screen callback implementations for SystemCallbacks integration
-
-func (g *GameScene) updateStatsDisplay() {
-	if g.characterSummary != nil {
-		g.characterSummary.UpdateStatsDisplay()
-	}
-}
-
-func (g *GameScene) refreshInventoryDisplay() {
-	if g.provisionSummary != nil {
-		g.provisionSummary.MarkInventoryChanged()
-	}
-}

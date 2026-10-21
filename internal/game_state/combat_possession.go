@@ -140,7 +140,6 @@ func (g *GameState) releaseCombatPossession(identity CombatTurnIdentity, reason 
 	g.CombatScene.setCombatPCPossessed(identity, false)
 	// Preserve equipment, intrinsic allegiance, HP and unrelated conditions.
 	g.publishCombatPossessionEvent(identity, episode, CombatEventPossessionRelease, reason)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 }
 
 func (g *GameState) publishCombatPossessionEvent(identity CombatTurnIdentity, episode combatPossessionEpisode, kind CombatEventKind, reason CombatPossessionReleaseReason) {

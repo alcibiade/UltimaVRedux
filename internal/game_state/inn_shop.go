@@ -310,7 +310,7 @@ func (g *GameState) GetInnShopState(session MerchantSession) (InnShopState, erro
 // ReviewInnShopByMerchantID builds production projections without issuing a
 // session, invoking callbacks, consuming RNG, advancing time, or mutating state.
 func (g *GameState) ReviewInnShopByMerchantID(id references.MerchantID) (InnShopReview, error) {
-	merchant, npcReference, err := g.canonicalInnMerchant(id)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyInn, ErrInvalidInnRequest, "an Inn")
 	if err != nil {
 		return InnShopReview{}, err
 	}
@@ -404,8 +404,6 @@ func (g *GameState) RestAtInn(session MerchantSession, request InnRestRequest) (
 	result.FoodAfter = g.PartyState.Inventory.Provisions.Food.Get()
 	result.RosterAfter = g.CurrentPartyRosterSnapshot()
 	result.Members = innProjectionResults(result.Members, result.RosterAfter)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result, nil
 }
@@ -453,7 +451,6 @@ func (g *GameState) LeaveCompanionAtInn(
 	}
 	g.PartyState.LeaveCharacterAtInn(row.RosterIndex, state.Merchant.Location)
 	result.RosterAfter = g.CurrentPartyRosterSnapshot()
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	result.State, err = g.GetInnShopState(session)
 	if err != nil {
 		panic("Inn session became invalid after its own leave transfer: " + err.Error())
@@ -533,8 +530,6 @@ func (g *GameState) PickUpInnGuest(
 	result.FinalGold = g.PartyState.Inventory.Gold.Get()
 	result.RosterAfter = g.CurrentPartyRosterSnapshot()
 	result.Projection = innProjectionResult(result.Projection, result.RosterAfter.Characters[inserted])
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	result.State, err = g.GetInnShopState(session)
 	if err != nil {
 		panic("Inn session became invalid after its own pickup transfer: " + err.Error())
@@ -747,39 +742,6 @@ func (g *GameState) buildInnGuestRow(
 	}
 
 	return row
-}
-
-func (g *GameState) canonicalInnMerchant(
-	id references.MerchantID,
-) (references.MerchantDefinition, references.NPCReference, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf("%w: Inn references are unavailable", ErrInvalidMerchantSession)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf("%w: unknown merchant ID %q", ErrInvalidMerchantSession, id)
-	}
-	if merchant.Family != references.MerchantFamilyInn {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf("%w: merchant %q is not an Inn", ErrInvalidInnRequest, id)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf("%w: merchant %q has no canonical small-map location", ErrInvalidMerchantSession, id)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf("%w: merchant %q has no canonical NPC reference", ErrInvalidMerchantSession, id)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber), npcReference.Location, merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf("%w: canonical NPC reference does not match merchant %q", ErrInvalidMerchantSession, id)
-	}
-
-	return merchant, npcReference, nil
 }
 
 func projectInnRestTime(start datetime.UltimaDate) ([]int, datetime.UltimaDate) {

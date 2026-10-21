@@ -33,9 +33,6 @@ func setupCombatWithMonster(
 		WithSystemCallbacks().
 		WithRandomSeed(seed).
 		Build()
-	if gs == nil {
-		return nil, nil, nil
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -83,9 +80,6 @@ func TestCombatMonsterFixturesDoNotMutateCachedReferences(t *testing.T) {
 // produces a hit and deals damage. Uses a seed that produces a hit roll.
 func TestCombatAttack_HitAndDamage(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	// Equip the active PC with a Long Sword (Attack=15)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
@@ -184,9 +178,6 @@ func TestCombatAttack_NoMonster(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -210,9 +201,6 @@ func TestCombatAttack_NoMonster(t *testing.T) {
 // - Awards XP for the kill
 func TestCombatAttack_GlassSword(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 100)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -249,9 +237,6 @@ func TestCombatAttack_MagicalSwordModifiersPreserveImmortality(t *testing.T) {
 	for _, weapon := range []references.Equipment{references.GlassSword, references.ChaosSword} {
 		t.Run(weapon.String(), func(t *testing.T) {
 			gs, mock, monster := setupCombatWithMonster(t, references.MonsterBlackthorn, references.Down, 100)
-			if gs == nil {
-				return
-			}
 			require.True(t, monster.HasAbility(references.Immortal))
 			activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 			character := gs.PartyState.GetCharacter(activeIdx)
@@ -279,9 +264,6 @@ func TestCombatAttack_MagicalSwordModifiersPreserveImmortality(t *testing.T) {
 
 func TestCombatAttack_ChaosSwordUsesFixedDamageDiagnostics(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 100)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
 	character.SetEquippedItem(references.SlotWeapon, references.ChaosSword)
@@ -303,9 +285,6 @@ func TestCombatAttack_ChaosSwordUsesFixedDamageDiagnostics(t *testing.T) {
 
 func TestCombatAttack_GlassSwordDealsFullDamageToUndead(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterSkeleton, references.Down, 100)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
 	character.SetEquippedItem(references.SlotWeapon, references.GlassSword)
@@ -330,9 +309,6 @@ func TestCombatAttack_GlassSwordDealsFullDamageToUndead(t *testing.T) {
 // callbacks from duplicating either a generated chest or the killing-blow XP.
 func TestCombatMonsterDeathFinalizesTreasureAndXPOnce(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 169)
-	if gs == nil {
-		return
-	}
 
 	enemyReference := *monster.EnemyRef()
 	enemyReference.TreasureNumber = combatTreasureDiceSides
@@ -363,9 +339,6 @@ func TestCombatMonsterDeathFinalizesTreasureAndXPOnce(t *testing.T) {
 
 func TestCombatMonsterDeathLeavesCorpseWhenTreasureRollFails(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 169)
-	if gs == nil {
-		return
-	}
 
 	enemyReference := *monster.EnemyRef()
 	enemyReference.TreasureNumber = 0
@@ -390,9 +363,6 @@ func TestCombatMonsterDeathLeavesCorpseWhenTreasureRollFails(t *testing.T) {
 // the humanoid DEAD_PC body. Headlesses use normal treasure/corpse behavior.
 func TestHeadlessDeathUsesMonsterSplat(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterHeadless, references.Down, 169)
-	if gs == nil {
-		return
-	}
 
 	enemyReference := *monster.EnemyRef()
 	enemyReference.TreasureNumber = 0
@@ -433,9 +403,6 @@ func moveMonsterToCombatDeathObjectTerrain(t *testing.T, gs *GameState, monster 
 // TestCombatAttack_BareHands verifies bare-hands fallback when no weapon is equipped.
 func TestCombatAttack_BareHands(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -455,9 +422,6 @@ func TestCombatAttack_BareHands(t *testing.T) {
 // Uses a very weak monster setup (low HP) to guarantee a kill.
 func TestCombatAttack_MonsterKillAwardsXP(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -492,9 +456,6 @@ func TestCombatAttack_MonsterKillAwardsXP(t *testing.T) {
 // produces multiple attack rolls (one per slot with attack value > 0).
 func TestCombatAttack_MultiSlot(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 55)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -516,9 +477,6 @@ func TestCombatAttack_MultiSlot(t *testing.T) {
 // removes it from the turn queue.
 func TestCombatAttack_MonsterDeathRemovesFromQueue(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -547,9 +505,6 @@ func TestCombatAttack_MonsterDeathRemovesFromQueue(t *testing.T) {
 // - Does NOT shatter
 func TestCombatAttack_JeweledSword(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)

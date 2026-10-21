@@ -112,7 +112,6 @@ func (g *GameState) SetDebugInventoryProvision(
 
 	g.setDebugProvisionValue(provision, after)
 	changes := []DebugInventoryChange{{Path: "provisions." + string(provision), Before: before, After: after}}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return changes, nil
 }
@@ -133,7 +132,6 @@ func (g *GameState) SetDebugInventoryReagent(
 
 	g.PartyState.Inventory.Reagent.Set(reagent, after)
 	changes := []DebugInventoryChange{{Path: fmt.Sprintf("reagents.%d", reagent), Before: before, After: after}}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return changes, nil
 }
@@ -154,7 +152,6 @@ func (g *GameState) SetDebugInventoryEquipment(
 
 	g.PartyState.Inventory.Equipment.Set(equipment, after)
 	changes := []DebugInventoryChange{{Path: fmt.Sprintf("equipment.%d", equipment), Before: before, After: after}}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return changes, nil
 }
@@ -189,10 +186,6 @@ func (g *GameState) ClearDebugEquipmentState() []DebugEquipmentStateChange {
 			character.SetEquippedItem(slot, references.NoEquipment)
 		}
 	})
-
-	if len(changes) > 0 {
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-	}
 
 	return changes
 }
@@ -447,7 +440,6 @@ func (g *GameState) applyDebugInventoryMutations(mutations []debugInventoryMutat
 		mutation.apply()
 		changes = append(changes, mutation.change)
 	}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return changes
 }
@@ -473,7 +465,6 @@ func (g *GameState) AddDebugInventoryScroll(scroll references.Scroll, amount uin
 	}
 	g.PartyState.Inventory.Scrolls.Set(scroll, after)
 	changes := []DebugInventoryChange{{Path: fmt.Sprintf("scrolls.%d", scroll), Before: before, After: after}}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return changes, nil
 }
@@ -486,7 +477,6 @@ func (g *GameState) addDebugInventoryPotion(potion references.Potion, amount uin
 	}
 	g.PartyState.Inventory.Potions.Set(potion, after)
 	changes := []DebugInventoryChange{{Path: fmt.Sprintf("potions.%d", potion), Before: before, After: after}}
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return changes, nil
 }

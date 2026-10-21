@@ -14,9 +14,6 @@ import (
 
 func TestCombatRingInitializationUsesLivingPartyOrderAndSleepGate(t *testing.T) {
 	state, callbacks := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	dead := activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Dead)
 	sleeping := activateCombatRingTestCharacter(state, 1, references.RingInvisibility, party_state.Sleep)
 	awake := activateCombatRingTestCharacter(state, 2, references.RingInvisibility, party_state.Good)
@@ -42,9 +39,6 @@ func TestCombatRingInitializationUsesLivingPartyOrderAndSleepGate(t *testing.T) 
 
 func TestCombatRingInitializationRunsNestedRegenerationSweeps(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	first := activateCombatRingTestCharacter(state, 0, references.RingRegeneration, party_state.Good)
 	sleeping := activateCombatRingTestCharacter(state, 1, references.RingRegeneration, party_state.Sleep)
 	capped := activateCombatRingTestCharacter(state, 2, references.RingRegeneration, party_state.Good)
@@ -89,9 +83,6 @@ func TestCombatRingInitializationRunsNestedRegenerationSweeps(t *testing.T) {
 
 func TestCombatRingInitializationPrecedesMonsterDexterity(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
 	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(16) != combatRingDisappearanceRollResult
@@ -117,9 +108,6 @@ func TestCombatRingInitializationPrecedesMonsterDexterity(t *testing.T) {
 
 func TestOverworldCombatValidationPrecedesRingDisappearance(t *testing.T) {
 	state, callbacks := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	character := activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
 	source := addOverworldTestEnemy(t, state, references.MonsterOrc, references.Position{X: 51, Y: 50})
 	enemyReferences := append(references.EnemyReferences(nil), (*state.GameReferences.EnemyReferences)...)
@@ -144,9 +132,6 @@ func TestOverworldCombatValidationPrecedesRingDisappearance(t *testing.T) {
 
 func TestCombatActionEndRunsOneRegenerationSweepBeforeFields(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	activateCombatRingTestCharacter(state, 0, references.NoEquipment, party_state.Good)
 	activateCombatRingTestCharacter(state, 1, references.NoEquipment, party_state.Good)
 	require.NoError(t, state.TransitionToCombatMap(
@@ -178,9 +163,6 @@ func TestCombatActionEndRunsOneRegenerationSweepBeforeFields(t *testing.T) {
 
 func TestCombatInvisibilityRingPersistsForEncounterAndClearsOnExit(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	activateCombatRingTestCharacter(state, 0, references.NoEquipment, party_state.Good)
 	require.NoError(t, state.TransitionToCombatMap(
 		0, references.BritanniaCombatTerritory, CombatEntryNorth,
@@ -202,9 +184,6 @@ func TestCombatInvisibilityRingPersistsForEncounterAndClearsOnExit(t *testing.T)
 
 func TestCampingRingInitializationPrecedesAmbushRNGAndTransfersVisibility(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
-	if state == nil {
-		return
-	}
 	activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
 	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(16) != combatRingDisappearanceRollResult
@@ -213,7 +192,7 @@ func TestCampingRingInitializationPrecedesAmbushRNGAndTransfersVisibility(t *tes
 	_ = expected.Intn(16)
 	expectedAmbushRoll := expected.Intn(64)
 	state.SetRandomSeed(seed)
-	scene := camping.NewCampingScene(1, NoGuardAssigned, state.MapState.PlayerLocation)
+	scene := camping.NewCampingSceneWithCombatRef(1, NoGuardAssigned, state.MapState.PlayerLocation, testCampingMap(t))
 	camp := state.newCampingState(scene, false, false)
 
 	state.initializeCampingPartyRings(camp)
@@ -229,9 +208,6 @@ func TestCampingRingInitializationPrecedesAmbushRNGAndTransfersVisibility(t *tes
 func newCombatRingTestState(t *testing.T) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 	state, callbacks := NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
-	if state == nil {
-		return nil, callbacks
-	}
 	for index := range party_state.MaxActiveParty {
 		character := state.PartyState.GetCharacter(index)
 		character.PartyMap = party_state.PartyMapUnrecruited

@@ -1089,11 +1089,6 @@ func (g *GameState) SetActivePlayer(index int) bool {
 
 	g.activePlayerIndex = index
 
-	// Notify UI via SystemCallbacks if available - trigger stats display refresh for active player highlighting
-	if g.SystemCallbacks != nil {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
-
 	return true
 }
 
@@ -1118,9 +1113,6 @@ func (g *GameState) clearUnavailableActivePlayer() {
 	}
 
 	g.activePlayerIndex = -1
-	if g.SystemCallbacks != nil {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
 }
 
 // GetActivePlayer returns the currently active player or nil if none/all selected

@@ -71,9 +71,6 @@ func (g *GameState) ResolveSourceHit() SourceHitResult {
 		result.Outcome = SourceHitPartyDamaged
 		result.MemberDamage = g.applySourcePartyDamageOnce()
 		result.PartyWiped = livingBefore > 0 && g.sourceLivingPartyCount() == 0
-		if len(result.MemberDamage) > 0 {
-			g.SystemCallbacks.Screen.UpdateStatsDisplay()
-		}
 
 		return result
 	}
@@ -133,9 +130,6 @@ func (g *GameState) ResolveSourceHit() SourceHitResult {
 	result.VehicleAfter = after.VehicleType
 	result.DirectionAfter = after.CurrentDirection()
 	result.HullAfter = 0
-	if len(result.MemberDamage) > 0 {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
 
 	return result
 }

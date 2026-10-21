@@ -61,9 +61,6 @@ func TestCorpserMeleeExposureAndDragGates(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			corpserRef := *corpser.enemyRef
 			corpser.enemyRef = &corpserRef
 			target := findNearestPC(corpser.Position(), gs.CombatScene)
@@ -105,9 +102,6 @@ func TestCorpserMeleeExposureAndDragGates(t *testing.T) {
 
 func TestHiddenCorpserDirectTargetingAndRawConeLookup(t *testing.T) {
 	gs, _, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	position := corpser.Position()
 	monsterAtPosition, monsterIndex := gs.CombatScene.MonsterManager.GetMonsterIndexAtPosition(position)
 	require.Same(t, corpser, monsterAtPosition)
@@ -140,9 +134,6 @@ func TestHiddenCorpserDirectTargetingAndRawConeLookup(t *testing.T) {
 
 func TestUndergroundPCRemainsScheduledButIsUntargetableAndNonblocking(t *testing.T) {
 	gs, _, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := gs.CombatScene.GetCurrentTurnIdentity()
 	require.True(t, identity.IsPartyMember)
 	position := gs.CombatScene.GetCombatantPosition(identity)
@@ -224,9 +215,6 @@ func TestUndergroundEscapeUsesStrictDexterityRollAndAlwaysSkipsTurn(t *testing.T
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			identity := findNearestPC(corpser.Position(), gs.CombatScene).identity
 			character := gs.PartyState.GetCharacter(identity.EntityIndex)
 			character.Dexterity = 10
@@ -262,9 +250,6 @@ func TestUndergroundEscapeUsesStrictDexterityRollAndAlwaysSkipsTurn(t *testing.T
 
 func TestUndergroundEscapeTurnStillResolvesStandingField(t *testing.T) {
 	gs, mock, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := findNearestPC(corpser.Position(), gs.CombatScene).identity
 	character := gs.PartyState.GetCharacter(identity.EntityIndex)
 	character.Dexterity = 255
@@ -294,9 +279,6 @@ func TestUndergroundEscapeTurnStillResolvesStandingField(t *testing.T) {
 
 func TestUndergroundChaosSwordControlPrecedesEscape(t *testing.T) {
 	gs, mock, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := findNearestPC(corpser.Position(), gs.CombatScene).identity
 	gs.CombatScene.setCombatPCUnderground(identity, true)
 	gs.PartyState.GetCharacter(identity.EntityIndex).SetEquippedItem(references.SlotShield, references.ChaosSword)
@@ -320,9 +302,6 @@ func TestUndergroundChaosSwordControlPrecedesEscape(t *testing.T) {
 
 func TestCorpserResetAndUndergroundCloneIdentity(t *testing.T) {
 	gs, mock, corpser := setupCombatWithMonster(t, references.MonsterCorpser, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	entry := gs.CombatScene.TurnQueue.GetEntry(0, false)
 	require.NotNil(t, entry)
 	corpser.SetCorpserExposed(true)
@@ -355,9 +334,6 @@ func TestCorpserResetAndUndergroundCloneIdentity(t *testing.T) {
 
 func TestUndergroundRememberedMeleeEngagerCannotInterfere(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	attacker := findNearestPC(monster.Position(), gs.CombatScene).identity
 	target := CombatTurnIdentity{IsPartyMember: false, EntityIndex: 0}
 	gs.rememberMeleeEngager(target, attacker)

@@ -215,61 +215,6 @@ func (g *GameState) ActionAttackLargeMap(direction references.Direction) bool {
 	return true
 }
 
-// ActionAttackCombatMap resolves the active PC's attack at the adjacent square
-// in the requested direction.
-func (g *GameState) ActionAttackCombatMap(direction references.Direction) bool {
-	// Get active combatant's position and compute target position
-	activeIdentity, active := g.activeCombatPCIdentity()
-	if !active {
-		return false
-	}
-	currentPos := g.CombatScene.GetCombatantPosition(activeIdentity)
-
-	targetPos := direction.GetNewPositionInDirection(&currentPos)
-	if targetPos == nil {
-		return false
-	}
-
-	return g.ActionAttackCombatPosition(*targetPos)
-}
-
-// ActionAttackCombatPosition resolves all attack sources against an adjacent
-// combat-map position. It supports diagonal targets used by the aiming cursor.
-func (g *GameState) ActionAttackCombatPosition(targetPos references.Position) bool {
-	activeIdentity, active := g.activeCombatPCIdentity()
-	if !active {
-		return false
-	}
-	activeIdx := activeIdentity.EntityIndex
-	currentPos := g.CombatScene.GetCombatantPosition(activeIdentity)
-	if integerDistance(currentPos, targetPos) != monsterAdjacentDistance {
-		return false
-	}
-
-	// Check for monster at target position
-	monster, _ := g.CombatScene.MonsterManager.GetMonsterIndexAtPosition(targetPos)
-	if monster == nil || !monster.IsHostile() || monster.IsCorpserHidden() {
-		// No monster at target — UI layer will show "Nothing to attack!"
-		return false
-	}
-
-	character := g.PartyState.GetCharacter(activeIdx)
-	sources := collectCombatAttackSources(character)
-	for _, source := range sources {
-		if source.Equipment != references.NoEquipment && source.Equipment.GetAttackRange() > 0 {
-			continue
-		}
-		g.resolveCombatAttackSourceAtPosition(activeIdx, source, targetPos)
-
-		// If monster died from this attack, stop processing further slots
-		if monster.IsDead() {
-			break
-		}
-	}
-
-	return true
-}
-
 func (g *GameState) activeCombatPartyMemberIndex() (int, bool) {
 	if g.CombatScene == nil {
 		return -1, false

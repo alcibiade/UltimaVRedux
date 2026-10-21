@@ -29,7 +29,6 @@ func (g *GameState) ActionViewDungeonMap(token DungeonCommandCycle) (DungeonView
 		panic(err)
 	}
 	g.PartyState.Inventory.Provisions.Gems.DecrementByOne()
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return model, true
 }

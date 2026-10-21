@@ -89,13 +89,13 @@ func TestTilePaletteModeFollowsDisplayedDungeonContext(t *testing.T) {
 
 	state.CombatScene = nil
 	state.MapState.PlayerLocation.Location = references.CampingLocation
-	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, nil)
+	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	assert.Equal(t, tilePaletteDungeon, scene.tilePaletteMode())
 
-	state.CampingScene = camping.NewCampingScene(1, -1, references.PlayerLocation{})
+	state.CampingScene = camping.NewCampingSceneWithCombatRef(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	assert.Equal(t, tilePaletteNormal, scene.tilePaletteMode())
 
-	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, nil)
+	state.CampingScene = camping.NewDungeonCampingScene(1, -1, references.PlayerLocation{}, &references.CombatMapReference{})
 	state.MapState.PlayerLocation.Location = references.Shame
 	assert.Equal(t, tilePaletteNormal, scene.tilePaletteMode(), "stale dungeon camping state must not recolor exploration")
 

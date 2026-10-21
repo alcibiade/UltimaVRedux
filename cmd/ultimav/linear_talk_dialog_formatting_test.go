@@ -123,36 +123,13 @@ func TestLinearTalkDialogResponseCanContinuePreviousOutput(t *testing.T) {
 	assert.Equal(t, "\"Before after.\"", output.GetOutputStr(false))
 }
 
-func TestLinearTalkDialogPromptPresentationStylesRemainSelectable(t *testing.T) {
-	testCases := []struct {
-		name     string
-		style    linearTalkPresentationStyle
-		prompt   string
-		expected []string
-	}{
-		{
-			name: "joined", style: linearTalkPresentationJoined, prompt: "Your interest?",
-			expected: []string{"Your interest?"},
-		},
-		{
-			name: "continuous colon", style: linearTalkPresentationContinuousColon, prompt: "You respond:",
-			expected: []string{"You respond-", ":"},
-		},
-		{
-			name: "continuous marker", style: linearTalkPresentationContinuousMarker, prompt: "Your interest?",
-			expected: []string{"Your interest?", ">"},
-		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			output := text.NewOutput(nil, 1, 4, 45)
-			dialog := &LinearTalkDialog{Output: output} //nolint:exhaustruct // Focused prompt presentation fixture.
+func TestLinearTalkDialogPromptAddsResponseMarkerRow(t *testing.T) {
+	output := text.NewOutput(nil, 1, 4, 45)
+	dialog := &LinearTalkDialog{Output: output} //nolint:exhaustruct // Focused prompt presentation fixture.
 
-			dialog.addInputPromptForStyle(testCase.prompt, testCase.style)
+	dialog.addInputPrompt("Your interest?")
 
-			assert.Equal(t, testCase.expected, rowsFromFirstContent(output))
-		})
-	}
+	assert.Equal(t, []string{"Your interest?", ">"}, rowsFromFirstContent(output))
 }
 
 func TestLinearTalkDialogNormalResponseSpacing(t *testing.T) {

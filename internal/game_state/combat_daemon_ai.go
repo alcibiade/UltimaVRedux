@@ -27,7 +27,6 @@ func (g *GameState) activateChaosSwordControl(identity CombatTurnIdentity) bool 
 
 	g.CombatScene.setCombatPCPossessed(identity, true)
 	g.clearInactiveCombatPCSelection(identity.EntityIndex)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return true
 }
@@ -768,7 +767,6 @@ func (g *GameState) recoverOnePossessedPC() bool {
 			g.setCombatPCSleeping(identity, true)
 		}
 		g.clearInactiveCombatPCSelection(identity.EntityIndex)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 		g.SystemCallbacks.Combat.PublishEvent(CombatEvent{ //nolint:exhaustruct // Recovery is a condition transition.
 			Kind:   CombatEventRecovery,
 			Target: combatFeedbackIdentity(identity, g.CombatScene.GetCombatantPosition(identity)),

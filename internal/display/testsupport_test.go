@@ -14,8 +14,3 @@ func (dm *DisplayManager) SetWindowSize(width, height int) {
 		logging.Warn(logging.CategoryUI, "Window size request rejected: %v", err)
 	}
 }
-
-// RegisterResolutionChangeCallback adds a callback for observed display changes.
-func (dm *DisplayManager) RegisterResolutionChangeCallback(callback func(width, height int)) {
-	dm.onResolutionChange = append(dm.onResolutionChange, callback)
-}

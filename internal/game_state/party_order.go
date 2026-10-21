@@ -6,7 +6,6 @@ func (g *GameState) SwapPartyMembers(first, second int) error {
 	if err := g.PartyState.SwapMembers(first, second); err != nil {
 		return err
 	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return nil
 }

@@ -417,8 +417,6 @@ func TestPurchaseHorseRejectsStaleAndInvalidReviewsWithoutEffects(t *testing.T) 
 			state.ShadowlordState.AutomaticPresence = references.Faulinei
 			state.PartyState.Inventory.Gold.Set(1000)
 			setHorseCandidateTiles(t, state, [4]indexes.SpriteIndex{indexes.Grass, indexes.MetalFloor})
-			refreshes := 0
-			state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 			shop, err := state.GetHorseShopState(session)
@@ -438,7 +436,6 @@ func TestPurchaseHorseRejectsStaleAndInvalidReviewsWithoutEffects(t *testing.T) 
 			assert.Equal(t, goldBefore, state.PartyState.Inventory.Gold.Get())
 			assert.Equal(t, unitsBefore, *state.CurrentNPCAIController.GetNpcs())
 			assert.Equal(t, rngBefore, state.GetRNG().Calls())
-			assert.Zero(t, refreshes)
 		})
 	}
 }
@@ -476,7 +473,7 @@ func TestPurchaseHorseRejectsAffordableGoldChangeAfterApprovalWithoutEffects(t *
 	assert.Zero(t, callbacks.TalkCallCount)
 }
 
-func TestPurchaseHorseCommitsPaymentTheftInsertionAndRefreshInOrder(t *testing.T) {
+func TestPurchaseHorseCommitsPaymentTheftAndInsertion(t *testing.T) {
 	const seed = 240214
 
 	state, npc := newOpenHorseShopTestState(t, references.MerchantHorseTrinsic)
@@ -499,18 +496,6 @@ func TestPurchaseHorseCommitsPaymentTheftInsertionAndRefreshInOrder(t *testing.T
 	expectedTheft := uint16(expectedRNG.Intn(64) + 1)
 	expectedGoldAfterPayment := uint16(1000 - shop.Quote.Price)
 	expectedGoldAfterTheft := expectedGoldAfterPayment - expectedTheft
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, expectedGoldAfterTheft, state.PartyState.Inventory.Gold.Get())
-		assert.Len(t, *units, unitsBefore+1)
-		horse := units.GetVehicleAtPositionAndFloorOrNil(
-			shop.Quote.Placement.Position,
-			shop.Quote.Placement.Floor,
-		)
-		require.NotNil(t, horse)
-		assert.Equal(t, references.HorseVehicle, horse.GetVehicleDetails().VehicleType)
-	}
 
 	result, err := state.PurchaseHorse(session, request)
 
@@ -532,7 +517,6 @@ func TestPurchaseHorseCommitsPaymentTheftInsertionAndRefreshInOrder(t *testing.T
 	}, result)
 	assert.Equal(t, expectedGoldAfterTheft, state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 	assert.Len(t, *units, unitsBefore+1)
 	assert.Equal(t, 1, countHorseShopVehicles(units))
 
@@ -551,8 +535,6 @@ func TestPurchaseHorseWithoutFaulineiDoesNotConsumeGameplayRNG(t *testing.T) {
 	state.ShadowlordState.AutomaticPresence = references.NoShadowlord
 	state.PartyState.Inventory.Gold.Set(1000)
 	setHorseCandidateTiles(t, state, [4]indexes.SpriteIndex{indexes.Grass})
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	shop, err := state.GetHorseShopState(session)
@@ -564,7 +546,6 @@ func TestPurchaseHorseWithoutFaulineiDoesNotConsumeGameplayRNG(t *testing.T) {
 	assert.Zero(t, result.Theft)
 	assert.Zero(t, state.GetRNG().Calls())
 	assert.Equal(t, uint16(830), state.PartyState.Inventory.Gold.Get())
-	assert.Equal(t, 1, refreshes)
 	assert.Equal(t, 1, countHorseShopVehicles(state.CurrentNPCAIController.GetNpcs()))
 }
 

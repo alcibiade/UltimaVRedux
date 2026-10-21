@@ -29,9 +29,6 @@ func TestCombatFieldsStackExpireAndDispelInCreationOrder(t *testing.T) {
 
 func TestCombatProtectionFieldBlocksOnlyMovement(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	position := gs.CombatScene.GetPartyMemberPosition(activeIdx)
 	position.Y++
@@ -42,9 +39,6 @@ func TestCombatProtectionFieldBlocksOnlyMovement(t *testing.T) {
 
 func TestCombatSleepFieldUsesExactCloneEntry(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	clonePosition := references.Position{X: 1, Y: 1}
 	clone := gs.CombatScene.addPCCloneFromSource(
@@ -67,9 +61,6 @@ func TestCombatSleepFieldUsesExactCloneEntry(t *testing.T) {
 
 func TestCombatFieldSpellCreatesPoisonFieldAndAffectsGoodPC(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	position := gs.CombatScene.GetPartyMemberPosition(activeIdx)
 	gs.resolveCombatFieldSpell(pendingCombatSpell{
@@ -86,9 +77,6 @@ func TestCombatFieldSpellCreatesPoisonFieldAndAffectsGoodPC(t *testing.T) {
 
 func TestCombatMovementOntoPoisonFieldPoisonsPC(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.SetRandomSeed(1)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	target := gs.CombatScene.GetPartyMemberPosition(activeIdx)
@@ -101,9 +89,6 @@ func TestCombatMovementOntoPoisonFieldPoisonsPC(t *testing.T) {
 
 func TestCombatSwampAutomaticallyPoisonsOnlyActingEligiblePCWithoutRNG(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := gs.CombatScene.GetCurrentTurnIdentity()
 	character := gs.PartyState.GetCharacter(identity.EntityIndex)
 	character.SetStatus(party_state.Good)
@@ -126,9 +111,6 @@ func TestCombatSwampAutomaticallyPoisonsOnlyActingEligiblePCWithoutRNG(t *testin
 
 func TestCombatSwampSkipsDeadActingPCWithoutRNG(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := gs.CombatScene.GetCurrentTurnIdentity()
 	character := gs.PartyState.GetCharacter(identity.EntityIndex)
 	character.SetStatus(party_state.Dead)
@@ -147,9 +129,6 @@ func TestCombatSwampSkipsDeadActingPCWithoutRNG(t *testing.T) {
 
 func TestCombatStandingLavaTargetsActingPCBeforeColocatedField(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := gs.CombatScene.GetCurrentTurnIdentity()
 	character := gs.PartyState.GetCharacter(identity.EntityIndex)
 	position := monster.Position()
@@ -175,9 +154,6 @@ func TestCombatStandingLavaTargetsActingPCBeforeColocatedField(t *testing.T) {
 
 func TestCombatStandingSwampDamagesNonGoodPCThroughInclusiveRange(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	identity := gs.CombatScene.GetCurrentTurnIdentity()
 	character := gs.PartyState.GetCharacter(identity.EntityIndex)
 	character.SetStatus(party_state.Poisoned)
@@ -207,9 +183,6 @@ func TestCombatStandingPoisonUsesOriginalMonsterShapeGate(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gs, mock, monster := setupCombatWithMonster(t, test.monsterType, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			_, monsterIndex := gs.CombatScene.MonsterManager.GetMonsterIndexAtPosition(monster.Position())
 			require.NotEqual(t, NoActiveMonster, monsterIndex)
 			require.True(t, gs.CombatScene.AddField(NewCombatField(CombatFieldPoison, monster.Position())))
@@ -237,9 +210,6 @@ func TestCombatStandingPoisonUsesOriginalMonsterShapeGate(t *testing.T) {
 
 func TestCombatStandingLavaAppliesMonsterDamageModifiers(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterSkeleton, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	_, monsterIndex := gs.CombatScene.MonsterManager.GetMonsterIndexAtPosition(monster.Position())
 	require.NotEqual(t, NoActiveMonster, monsterIndex)
 	gs.CombatScene.CombatMapRef.SetTileNumber(monster.Position(), indexes.Lava)
@@ -259,9 +229,6 @@ func TestSkippedMonsterTurnStillResolvesStandingField(t *testing.T) {
 	for _, presented := range []bool{false, true} {
 		t.Run(map[bool]string{false: "immediate", true: "presented"}[presented], func(t *testing.T) {
 			gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			_, monsterIndex := gs.CombatScene.MonsterManager.GetMonsterIndexAtPosition(monster.Position())
 			require.NotEqual(t, NoActiveMonster, monsterIndex)
 			monster.SetAsleep(true)
@@ -293,9 +260,6 @@ func TestSkippedMonsterTurnStillResolvesStandingField(t *testing.T) {
 
 func TestCombatNumericSelectionSkipsFieldExpiration(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	actor := gs.CombatScene.GetCurrentTurnIdentity()
 	fieldPosition := references.Position{X: 1, Y: 1}
 	require.NotEqual(t, fieldPosition, gs.CombatScene.GetCombatantPosition(actor))
@@ -317,9 +281,6 @@ func TestCombatNumericSelectionSkipsFieldExpiration(t *testing.T) {
 
 func TestControlledMonsterActionExpiresFieldsBeforeStandingEffect(t *testing.T) {
 	gs, mock := setupControlledMonsterTest(t)
-	if gs == nil {
-		return
-	}
 	monster, monsterIndex := addControlledTestMonster(
 		gs, references.MonsterOrc, references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyParty,
 	)
@@ -345,9 +306,6 @@ func TestControlledMonsterActionExpiresFieldsBeforeStandingEffect(t *testing.T) 
 func TestSuccessfulCombatFleeStillExpiresFields(t *testing.T) {
 	t.Run("PC", func(t *testing.T) {
 		gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-		if gs == nil {
-			return
-		}
 		identity := gs.CombatScene.GetCurrentTurnIdentity()
 		gs.CombatScene.SetPartyMemberPosition(identity.EntityIndex, references.Position{X: 0, Y: 5})
 		require.True(t, gs.CombatScene.AddField(NewCombatField(
@@ -365,9 +323,6 @@ func TestSuccessfulCombatFleeStillExpiresFields(t *testing.T) {
 
 	t.Run("controlled monster", func(t *testing.T) {
 		gs, mock := setupControlledMonsterTest(t)
-		if gs == nil {
-			return
-		}
 		_, monsterIndex := addControlledTestMonster(
 			gs, references.MonsterOrc, references.Position{X: 0, Y: 5}, CombatMonsterLoyaltyParty,
 		)
@@ -388,9 +343,6 @@ func TestSuccessfulCombatFleeStillExpiresFields(t *testing.T) {
 
 func TestCombatMovementOntoSleepFieldSleepsPC(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.SetRandomSeed(1)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	target := gs.CombatScene.GetPartyMemberPosition(activeIdx)
@@ -403,9 +355,6 @@ func TestCombatMovementOntoSleepFieldSleepsPC(t *testing.T) {
 
 func TestCombatMovementOntoFireFieldDamagesPC(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.SetRandomSeed(1)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -426,9 +375,6 @@ func TestCombatMovementOntoFireFieldDamagesPC(t *testing.T) {
 
 func TestStandingPoisonFieldIgnoresMonster(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	hpBefore := monster.CurrentHP()
 	field := NewCombatField(CombatFieldPoison, monster.Position())
 	gs.resolveCombatFieldAtPosition(field, monster.Position(), NoTargetPC, false)
@@ -438,9 +384,6 @@ func TestStandingPoisonFieldIgnoresMonster(t *testing.T) {
 
 func TestCombatAnGravRemovesFirstFieldOnly(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	origin := gs.CombatScene.GetPartyMemberPosition(activeIdx)
 	position := references.Position{X: origin.X, Y: origin.Y + 1}
@@ -454,9 +397,6 @@ func TestCombatAnGravRemovesFirstFieldOnly(t *testing.T) {
 
 func TestCombatAnGravUsesExactCloneOriginAndFeedback(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	clonePosition := references.Position{X: 2, Y: 2}
 	target := references.Position{X: 2, Y: 3}
@@ -479,9 +419,6 @@ func TestCombatAnGravUsesExactCloneOriginAndFeedback(t *testing.T) {
 
 func TestCombatSceptreRemovesFirstFieldOnlyWithoutConsumption(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.Inventory.QuestItems.Set(references.Sceptre, 1)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	origin := gs.CombatScene.GetPartyMemberPosition(activeIdx)
@@ -502,9 +439,6 @@ func TestCombatSceptreRemovesFirstFieldOnlyWithoutConsumption(t *testing.T) {
 
 func TestCombatSceptreReportsNoEffectWithoutMutatingInventory(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.PartyState.Inventory.QuestItems.Set(references.Sceptre, 1)
 	mock.Reset()
 
@@ -517,9 +451,6 @@ func TestCombatSceptreReportsNoEffectWithoutMutatingInventory(t *testing.T) {
 
 func TestCombatInZuSleepsTargetInDirection(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	fillCombatMapForDivisionTest(gs)
 	gs.SetRandomSeed(1)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()

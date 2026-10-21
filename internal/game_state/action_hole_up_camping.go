@@ -3,8 +3,6 @@ package game_state
 
 import (
 	"fmt"
-	"os"
-	"runtime/pprof"
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/camping"
@@ -14,14 +12,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-)
-
-// EnableCampingProfiling Performance profiling control (set to true to enable profiling during camping)
-const EnableCampingProfiling = false
-
-// Global profiling state
-var (
-	campingCPUProfileFile *os.File //nolint:gochecknoglobals // Owns the optional process-wide pprof session.
 )
 
 // Camping timing constants
@@ -142,13 +132,11 @@ func (g *GameState) actionHoleUpLargeMap(hours int, guardIndex int, forceWandere
 
 		// Load the camping combat map reference for authentic positions
 		campingMapRef, err := references.LoadCampingMap(g.GameConfig)
-		var campingScene *camping.CampingScene
 		if err != nil {
-			logging.Warn(logging.CategoryGameState, "Failed to load camping map reference in debug mode: %v - using fallback", err)
-			campingScene = camping.NewCampingScene(hours, guardIndex, originalPlayerLocation)
-		} else {
-			campingScene = camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
+			// Startup validated the original data, so the camp map must load.
+			panic(fmt.Sprintf("GameState camping: loading camping map: %v", err))
 		}
+		campingScene := camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
 
 		// Create a temporary event queue for debug camping and add sequence to it
 		q := g.EventQueueManager.Workflow("camping_debug_workflow").
@@ -243,7 +231,6 @@ func (g *GameState) commitOutdoorCampingVehicle(expected references.PlayerLocati
 		}
 		inventory.IncrementByOne(references.Carpet)
 		g.PartyVehicle = map_units.NewNPCFriendlyVehiceNoVehicle()
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 	}
 
 	return true
@@ -271,7 +258,6 @@ func (g *GameState) addCampingSequenceToBuilder(
 	q.
 		Then(func() {
 			campingScene.StartCamping()
-			g.startCampingProfiling()
 			if err := g.TransitionToCampingMap(); err != nil {
 				panic("Failed to transition to camping map - critical system error")
 			}
@@ -575,29 +561,6 @@ func (g *GameState) newCampingState(
 		partyInvisible:          [party_state.MaxActiveParty]bool{},
 		specialRingsInitialized: false,
 	}
-}
-
-func (g *GameState) startCampingProfiling() {
-	if !EnableCampingProfiling {
-		return
-	}
-	var err error
-	campingCPUProfileFile, err = os.Create("camping_cpu.prof")
-	if err != nil {
-		logging.Warn(logging.CategoryGameState, "Failed to create CPU profile: %v", err)
-
-		return
-	}
-	if err = pprof.StartCPUProfile(campingCPUProfileFile); err != nil {
-		logging.Warn(logging.CategoryGameState, "Failed to start CPU profiling: %v", err)
-		if closeErr := campingCPUProfileFile.Close(); closeErr != nil {
-			logging.Warn(logging.CategoryGameState, "Failed to close CPU profile file: %v", closeErr)
-		}
-		campingCPUProfileFile = nil
-
-		return
-	}
-	logging.Info(logging.CategoryGameState, "CPU profiling started - will write to camping_cpu.prof")
 }
 
 func (g *GameState) finalizeCampingSequence(
@@ -1023,33 +986,6 @@ func (g *GameState) cleanupCampingScene(campingScene *camping.CampingScene, camp
 
 	// Complete the camping scene
 	campingScene.CompleteCamping()
-
-	// PROFILING: Stop CPU profiling and capture memory profile if enabled
-	if EnableCampingProfiling {
-		if campingCPUProfileFile != nil {
-			pprof.StopCPUProfile()
-			if err := campingCPUProfileFile.Close(); err != nil {
-				logging.Warn(logging.CategoryGameState, "Failed to close CPU profile file: %v", err)
-			}
-			logging.Info(logging.CategoryGameState, "CPU profiling stopped - written to camping_cpu.prof")
-			campingCPUProfileFile = nil
-		}
-
-		// Capture memory profile
-		memProfileFile, err := os.Create("camping_mem.prof")
-		if err != nil {
-			logging.Warn(logging.CategoryGameState, "Failed to create memory profile: %v", err)
-		} else {
-			if err := pprof.WriteHeapProfile(memProfileFile); err != nil {
-				logging.Warn(logging.CategoryGameState, "Failed to write memory profile: %v", err)
-			} else {
-				logging.Info(logging.CategoryGameState, "Memory profile written to camping_mem.prof")
-			}
-			if err := memProfileFile.Close(); err != nil {
-				logging.Warn(logging.CategoryGameState, "Failed to close memory profile file: %v", err)
-			}
-		}
-	}
 }
 
 func (g *GameState) isValidCampingGuard(guardIndex int) bool {

@@ -77,9 +77,6 @@ func TestCombatTerrainObjectDisplayUsesLiveMapOnlyUnderlay(t *testing.T) {
 
 func TestCombatTerrainNothingRejectsDestinationsButArchDoesNot(t *testing.T) {
 	state, activeIndex := setupCombatAutoActionTest(t)
-	if state == nil {
-		return
-	}
 	identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: activeIndex}
 	position := references.Position{X: 4, Y: 4}
 	layer := state.GetCurrentLayeredMap()
@@ -95,9 +92,6 @@ func TestCombatTerrainNothingRejectsDestinationsButArchDoesNot(t *testing.T) {
 
 func TestCombatActorMayLeaveNothingForOrdinaryFloor(t *testing.T) {
 	state, activeIndex := setupCombatAutoActionTest(t)
-	if state == nil {
-		return
-	}
 	from := references.Position{X: 3, Y: 3}
 	to := references.Position{X: 4, Y: 3}
 	state.CombatScene.SetPartyMemberPosition(activeIndex, from)
@@ -110,9 +104,6 @@ func TestCombatActorMayLeaveNothingForOrdinaryFloor(t *testing.T) {
 
 func TestCombatMonsterCannotEnterNothing(t *testing.T) {
 	state, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 169)
-	if state == nil {
-		return
-	}
 	// The loaded camp formation can occupy (4, 4); select an empty square.
 	position := references.Position{X: 0, Y: 0}
 	for position.X < references.XCombatMapTiles &&
@@ -158,9 +149,6 @@ func TestCombatClonePlacementRejectsNothingForPCAndMonster(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			state, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if state == nil {
-				return
-			}
 			target := state.CombatScene.GetCurrentTurnIdentity()
 			if targetMonster {
 				_, monsterIndex := state.CombatScene.MonsterManager.GetMonsterIndexAtPosition(monster.Position())
@@ -184,9 +172,6 @@ func TestCombatClonePlacementRejectsNothingForPCAndMonster(t *testing.T) {
 
 func TestCombatMonsterDivisionRejectsNothingCandidates(t *testing.T) {
 	state, _, parent := setupCombatWithMonster(t, references.MonsterSlime, references.Down, 42)
-	if state == nil {
-		return
-	}
 	parent.SetPosition(references.Position{X: 5, Y: 5})
 	for y := references.Coordinate(4); y <= 6; y++ {
 		for x := references.Coordinate(4); x <= 6; x++ {
@@ -234,9 +219,6 @@ func TestCombatDaemonGatingRejectsNothingWithoutConsumingCreationDEX(t *testing.
 
 func TestCombatInPorRejectsNothingCandidates(t *testing.T) {
 	state, activeIndex := setupCombatAutoActionTest(t)
-	if state == nil {
-		return
-	}
 	setAllCombatTerrainForTest(state, indexes.BlackSquare)
 	state.SetRandomSeed(42)
 
@@ -278,9 +260,6 @@ func TestOriginalCovetousRoomZeroUsesTriggerAuthoredConcealment(t *testing.T) {
 		WithLocation(references.Covetous).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return
-	}
 
 	cell, ok := state.GetCurrentSmallLocationReference().GetDungeonCell(
 		0,

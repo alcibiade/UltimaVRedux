@@ -13,9 +13,6 @@ import (
 
 func TestGazerDeathLeavesCorpseAndCreatesSameSquareInsect(t *testing.T) {
 	gs, mock, gazer := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 169)
-	if gs == nil {
-		return
-	}
 	position := gazer.Position()
 	gazerID := gazer.CombatantID()
 	gazer.enemyRef.TreasureNumber = combatTreasureDiceSides
@@ -92,9 +89,6 @@ func TestGazerDeathPastHistoricalCapacityCreatesInsect(t *testing.T) {
 
 func TestGazerDeathAtCombatCapacityLeavesOnlyCorpse(t *testing.T) {
 	gs, _, gazer := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 169)
-	if gs == nil {
-		return
-	}
 	for gs.CombatScene.TurnQueue.hasFreeSourceSlot(sourceMonsterSlotStart) {
 		monster := NewCombatMonster(
 			references.MonsterOrc,
@@ -119,9 +113,6 @@ func TestGazerDeathAtCombatCapacityLeavesOnlyCorpse(t *testing.T) {
 
 func TestGargoyleDeathReplacesUnderlyingCombatTerrain(t *testing.T) {
 	gs, _, gargoyle := setupCombatWithMonster(t, references.MonsterGargoyle, references.Down, 169)
-	if gs == nil {
-		return
-	}
 	position := gargoyle.Position()
 	gargoyle.enemyRef.TreasureNumber = combatTreasureDiceSides
 	gargoyle.SetCurrentHP(1)
@@ -149,9 +140,6 @@ func TestGargoyleDeathReplacesUnderlyingCombatTerrain(t *testing.T) {
 
 func TestDisappearingDeathRemovesBeforeRecoveryAndCreditsExperienceAfterward(t *testing.T) {
 	gs, mock, shadowlord, shadowlordIndex := setupHostileSpecialMonsterTest(t, references.MonsterShadowlord)
-	if gs == nil {
-		return
-	}
 	addHostileOrcForShadowlordRecoveryTest(gs)
 	shadowlordRef := *shadowlord.EnemyRef()
 	shadowlordRef.TreasureNumber = combatTreasureDiceSides
@@ -257,9 +245,6 @@ func TestOrdinaryNoCorpseDeathDoesNotUseDisappearancePath(t *testing.T) {
 
 func TestImmortalDisappearingMonsterDoesNotReachDeathHandling(t *testing.T) {
 	gs, mock, blackthorn := setupCombatWithMonster(t, references.MonsterBlackthorn, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	require.True(t, blackthorn.HasAbility(references.Immortal))
 	require.True(t, blackthorn.HasAbility(references.DisappearsOnDeath))
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
@@ -294,9 +279,6 @@ func TestDebugDeathPolicyDoesNotResolveSpecialDeaths(t *testing.T) {
 	for _, monsterType := range tests {
 		t.Run(monsterType.Name(), func(t *testing.T) {
 			gs, _, monster := setupCombatWithMonster(t, monsterType, references.Down, 169)
-			if gs == nil {
-				return
-			}
 			position := monster.Position()
 			originalTerrain := gs.CombatScene.CombatMapRef.GetTileNumber(position)
 			monster.SetCurrentHP(0)

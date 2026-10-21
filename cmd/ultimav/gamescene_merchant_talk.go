@@ -49,7 +49,6 @@ type merchantTalkWorkflowState struct {
 	shipPurchase             *widgets.ShipPurchaseDialog
 	shipDispatch             *widgets.ShipDispatchDialog
 	shipTravel               *widgets.ShipTravelDialog
-	unavailableDialog        *widgets.MerchantUnavailableDialog
 	interactionTranscript    *widgets.InteractionTranscript
 }
 
@@ -157,20 +156,6 @@ func (g *GameScene) thenHandleMerchantSession(
 			},
 			func(innQ *event_queue.SequentialEventBuilder) {
 				innQ.ThenSequence(g.thenRunInnShop(session, workflowState))
-			},
-		).If(
-			func() bool {
-				return sessionErr == nil && session.Family() != references.MerchantFamilyArms &&
-					session.Family() != references.MerchantFamilyReagent &&
-					session.Family() != references.MerchantFamilyGuild &&
-					session.Family() != references.MerchantFamilyHealer &&
-					session.Family() != references.MerchantFamilyTavern &&
-					session.Family() != references.MerchantFamilyHorse &&
-					session.Family() != references.MerchantFamilyInn &&
-					session.Family() != references.MerchantFamilyShip
-			},
-			func(unimplementedQ *event_queue.SequentialEventBuilder) {
-				unimplementedQ.ThenSequence(g.thenRunMerchantUnavailable(session, workflowState))
 			},
 		)
 	}
@@ -1888,50 +1873,6 @@ func (g *GameScene) finishMerchantWorkflow(workflowState *merchantTalkWorkflowSt
 	g.gameState.ProcessPendingProvisionHours()
 }
 
-func (g *GameScene) thenRunMerchantUnavailable(
-	session game_state.MerchantSession,
-	workflowState *merchantTalkWorkflowState,
-) func(*event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		var dialog *widgets.MerchantUnavailableDialog
-		var setupErr error
-
-		return q.Then(func() {
-			merchantSprite := g.spriteSheet.GetSprite(session.MerchantSpriteIndex())
-			if merchantSprite == nil {
-				setupErr = fmt.Errorf(
-					"loaded merchant sprite is unavailable: %w",
-					game_state.ErrInvalidMerchantSession,
-				)
-
-				return
-			}
-			merchant := session.Merchant()
-			dialog = widgets.NewMerchantUnavailableDialog(widgets.MerchantUnavailableDialogConfig{
-				Keyboard:       g.keyboard,
-				MerchantSprite: merchantSprite,
-				ShopName:       merchant.ShopName,
-				OwnerName:      merchant.OwnerName,
-				PartyGold:      g.gameState.PartyState.Inventory.Gold.Get(),
-				Message:        merchantFamilyName(session.Family()) + " service is not yet implemented.",
-			})
-			workflowState.unavailableDialog = dialog
-			g.keyboard.PrepareForTransition(0)
-			workflowState.pushOwnedDialog(&g.dialogStack, dialog)
-		}).If(
-			func() bool { return setupErr != nil },
-			func(errorQ *event_queue.SequentialEventBuilder) {
-				logging.Error(logging.CategoryConversation, "merchant dialog setup failed: %v", setupErr)
-				errorQ.ThenSequence(g.thenShowConfirmationDialog("Merchant service is unavailable."))
-			},
-		).While(
-			func() bool { return dialog != nil && !dialog.IsDismissed() },
-			func() {},
-			merchantDialogPollingRateMs,
-		)
-	}
-}
-
 func (g *GameScene) resolveArmsShopProse(
 	state game_state.ArmsShopState,
 ) (widgets.ArmsShopDialogProse, error) {
@@ -2848,29 +2789,6 @@ func merchantSessionFeedback(err error) string {
 		return "No-one in thy party can trade."
 	default:
 		return "Merchant service is unavailable."
-	}
-}
-
-func merchantFamilyName(family references.MerchantFamily) string {
-	switch family {
-	case references.MerchantFamilyArms:
-		return "Arms dealer"
-	case references.MerchantFamilyTavern:
-		return "Tavern"
-	case references.MerchantFamilyHorse:
-		return "Horse dealer"
-	case references.MerchantFamilyShip:
-		return "Ship dealer"
-	case references.MerchantFamilyReagent:
-		return "Reagent vendor"
-	case references.MerchantFamilyGuild:
-		return "Guild"
-	case references.MerchantFamilyHealer:
-		return "Healer"
-	case references.MerchantFamilyInn:
-		return "Inn"
-	default:
-		panic("unknown production merchant family")
 	}
 }
 

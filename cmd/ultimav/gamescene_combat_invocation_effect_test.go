@@ -103,9 +103,6 @@ func TestCombatSummonSequenceMutatesOnceAndCleansPresentation(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused workflow fixture.
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()

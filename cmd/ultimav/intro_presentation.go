@@ -3,7 +3,7 @@ package main
 
 import (
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 type introPresentationPhase uint8

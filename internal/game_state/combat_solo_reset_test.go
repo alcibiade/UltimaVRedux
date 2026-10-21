@@ -12,9 +12,6 @@ import (
 func newCombatSoloResetTestState(t *testing.T, condition string) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 	state, callbacks := newCombatPlayerSelectionTestState(t)
-	if state == nil {
-		return nil, nil
-	}
 	combat := state.CombatScene
 	selected := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 1}
 	combat.SetSoloMoveCharacter(selected.EntityIndex)
@@ -44,9 +41,6 @@ func TestCombatSoloResetPreservesScheduledActionAndCostsNothing(t *testing.T) {
 	for _, condition := range []string{"enemy", "sleep", "captive", "possessed"} {
 		t.Run(condition, func(t *testing.T) {
 			state, callbacks := newCombatSoloResetTestState(t, condition)
-			if state == nil {
-				return
-			}
 			combat := state.CombatScene
 			before := *combat
 			pending := *combat.pendingPresentationStep
@@ -101,9 +95,6 @@ func TestCombatSoloResetRejectsOtherBoundaries(t *testing.T) {
 	for _, context := range []string{"outside", "unstarted", "immediate", "ready", "player completion", "targeting", "replaced encounter"} {
 		t.Run(context, func(t *testing.T) {
 			state, callbacks := newCombatSoloResetTestState(t, "enemy")
-			if state == nil {
-				return
-			}
 			combat := state.CombatScene
 			switch context {
 			case "outside":
@@ -137,9 +128,6 @@ func TestCombatSoloResetRejectsOtherBoundaries(t *testing.T) {
 
 func TestCombatSoloResetKeepsSpentSkipsAndNextDEXActor(t *testing.T) {
 	state, _ := newCombatSoloResetTestState(t, "enemy")
-	if state == nil {
-		return
-	}
 	combat := state.CombatScene
 	spent := combat.TurnQueue.actionCount
 	step, claimed := state.ReviewScheduledCombatStep()
@@ -162,9 +150,6 @@ func TestCombatSoloResetKeepsSpentSkipsAndNextDEXActor(t *testing.T) {
 
 func TestCombatSoloResetDoesNotJumpPastAnotherDueHostile(t *testing.T) {
 	state, _ := newCombatSoloResetTestState(t, "enemy")
-	if state == nil {
-		return
-	}
 	combat := state.CombatScene
 	step, claimed := state.ReviewScheduledCombatStep()
 	require.True(t, claimed)
@@ -190,9 +175,6 @@ func TestCombatSoloResetDoesNotJumpPastAnotherDueHostile(t *testing.T) {
 
 func TestCombatSoloResetReadySelectionRemainsFreeAndIdempotent(t *testing.T) {
 	state, callbacks := newCombatPlayerSelectionTestState(t)
-	if state == nil {
-		return
-	}
 	require.True(t, state.SelectCombatPlayer(0))
 	callbacks.Reset()
 	combat := state.CombatScene

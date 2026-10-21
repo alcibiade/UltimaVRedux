@@ -20,9 +20,6 @@ func TestActionGetCombatMapCollectsStackedLooseItems(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
@@ -47,9 +44,6 @@ func TestActionGetCombatMapRequiresOpeningChest(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
@@ -68,9 +62,6 @@ func TestActionGetCombatMapUsesOriginalStackOrder(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
@@ -106,9 +97,6 @@ func TestActionGetCombatMapCollectsUniqueFixedRoomQuestItems(t *testing.T) {
 				WithLocation(references.Britain).
 				WithSystemCallbacks().
 				Build()
-			if gs == nil {
-				return
-			}
 			require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 			activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
 			targetPosition := references.Down.GetNewPositionInDirection(&activePosition)
@@ -136,9 +124,6 @@ func TestActionGetCombatMapDiscardsRespawnedUniqueItemAlreadyOwned(t *testing.T)
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
 	targetPosition := references.Down.GetNewPositionInDirection(&activePosition)

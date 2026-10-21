@@ -15,9 +15,6 @@ func TestCommandOutputConvention_AppendsResultsToOriginalPrompt(t *testing.T) {
 			WithPlayerAt(15, 15).
 			WithSystemCallbacks().
 			Build()
-		if gameState == nil {
-			return
-		}
 
 		assert.False(t, gameState.ActionBoard())
 		assert.Equal(t, []string{"Board "}, callbacks.CommandPrompts)
@@ -29,9 +26,6 @@ func TestCommandOutputConvention_AppendsResultsToOriginalPrompt(t *testing.T) {
 			WithLocation(references.Britain).
 			WithSystemCallbacks().
 			Build()
-		if gameState == nil {
-			return
-		}
 
 		assert.False(t, gameState.ActionExit())
 		assert.Equal(t, []string{"X-it "}, callbacks.CommandPrompts)
@@ -43,9 +37,6 @@ func TestCommandOutputConvention_AppendsResultsToOriginalPrompt(t *testing.T) {
 			WithLocation(references.Britain).
 			WithSystemCallbacks().
 			Build()
-		if gameState == nil {
-			return
-		}
 		gameState.PartyState.Inventory.Provisions.Torches.Set(0)
 
 		assert.False(t, gameState.ActionIgnite())
@@ -59,9 +50,6 @@ func TestCommandOutputConvention_AppendsResultsToOriginalPrompt(t *testing.T) {
 			WithPlayerAt(100, 100).
 			WithSystemCallbacks().
 			Build()
-		if gameState == nil {
-			return
-		}
 
 		assert.False(t, gameState.ActionEnterLargeMap())
 		assert.Equal(t, []string{"Enter "}, callbacks.CommandPrompts)

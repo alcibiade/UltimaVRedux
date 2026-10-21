@@ -458,7 +458,7 @@ func (seb *SequentialEventBuilder) RunScript(driver AnimationDriver) *Sequential
 }
 
 // WhileAwaitingInput runs the action repeatedly, checking for key input after each iteration
-// This is similar to UntilKeyPressed but provides the specific key to the callback for decision-making
+// It provides the pressed key to the callback for decision-making.
 //
 // Parameters:
 //   - action: Called every iteration before key check (use func() {} for polling without side effects)
@@ -796,13 +796,6 @@ func (seb *SequentialEventBuilder) Start() {
 		panic("EventQueue.Start() called twice for queue '" + seb.queue.name + "'")
 	}
 
-	// Background queues have different validation and routing
-	if seb.queue.lane == queueLaneBackground {
-		seb.startBackground()
-
-		return
-	}
-
 	// Safety check: Ensure Priority() was called before Start()
 	if seb.priority == 0 {
 		logging.Error(logging.CategoryGameState,
@@ -832,33 +825,4 @@ func (seb *SequentialEventBuilder) rejectFeedbackOperation(operation string) {
 	if seb.queue.lane == queueLaneFeedback {
 		panic("EventQueue: feedback cannot use " + operation)
 	}
-}
-
-// startBackground handles Start() for background queues
-// Background queues have different behavior:
-// - No priority validation (they don't interrupt)
-// - No input blocking
-// - Run concurrently - all active background queues process in parallel
-func (seb *SequentialEventBuilder) startBackground() {
-	manager := seb.queue.manager
-	if manager.shutdown {
-		seb.queue.lifecycle = queueFinalized
-
-		return
-	}
-	seb.queue.lifecycle = queueStarted
-	// Safety check: Ensure First() was called before Start()
-	if len(seb.queue.events) == 0 {
-		logging.Error(logging.CategoryGameState,
-			"EventQueue.Start() called without First() - background queue '%s' has no events", seb.queue.name)
-		panic("EventQueue.Start() called without First() - you must call First() before Then() or other operations")
-	}
-
-	// Background queues run concurrently - add directly to active list
-	manager.activeBackgroundQueues = append(manager.activeBackgroundQueues, seb.queue)
-	logging.Info(logging.CategoryGameState,
-		"EventQueue: Background queue '%s' started (total active=%d, events=%d)",
-		seb.queue.name, len(manager.activeBackgroundQueues), len(seb.queue.events))
-
-	// NOTE: Background queues NEVER block input
 }

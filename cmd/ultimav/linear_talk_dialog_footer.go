@@ -28,11 +28,8 @@ func (d *LinearTalkDialog) layoutWithFooter(bounds image.Rectangle) linearTalkDi
 		layout.continuousTranscriptRect.Max.X, layout.frameRect.Max.Y-padding-layout.pixelUnit)
 	shift := image.Pt(0, min(0, bounds.Max.Y-layout.pixelUnit-layout.frameRect.Max.Y))
 	layout.frameRect = layout.frameRect.Add(shift)
-	layout.joinedTranscriptRect = layout.joinedTranscriptRect.Add(shift)
 	layout.continuousTranscriptRect = layout.continuousTranscriptRect.Add(shift)
-	layout.inputPaneRect = layout.inputPaneRect.Add(shift)
 	layout.footerRect = layout.footerRect.Add(shift)
-	layout.dividerY += shift.Y
 	layout.footerDividerY += shift.Y
 
 	return layout

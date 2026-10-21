@@ -182,48 +182,10 @@ func (g *GameState) GetHealerShopState(session MerchantSession) (HealerShopState
 
 // ReviewHealerShopByMerchantID builds production treatment projections without
 // issuing a session, invoking callbacks, consuming RNG, or consulting loaded NPC state.
-//
-//nolint:dupl // Concrete merchant families deliberately keep review contracts independent.
 func (g *GameState) ReviewHealerShopByMerchantID(id references.MerchantID) (HealerShopReview, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil {
-		return HealerShopReview{}, fmt.Errorf("%w: merchant references are unavailable", ErrInvalidMerchantSession)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return HealerShopReview{}, fmt.Errorf("%w: unknown merchant ID %q", ErrInvalidMerchantSession, id)
-	}
-	if merchant.Family != references.MerchantFamilyHealer {
-		return HealerShopReview{}, fmt.Errorf("%w: merchant %q is not a healer", ErrInvalidHealerRequest, id)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return HealerShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return HealerShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return HealerShopReview{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyHealer, ErrInvalidHealerRequest, "a healer")
+	if err != nil {
+		return HealerShopReview{}, err
 	}
 	buyer, buyerIndex := g.merchantPricingCharacter()
 	if buyer == nil {
@@ -328,10 +290,6 @@ func (g *GameState) ProvideHealerService(
 	result.MPAfter = character.GetCurrentMp()
 	result.ExpAfter = character.Exp
 	result.LevelAfter = character.Level
-	if quote.Service.ChargeKind == HealerChargePaid {
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result, nil
 }
@@ -411,10 +369,6 @@ func (g *GameState) ProvideHealerServiceToAll(
 		}
 	}
 	g.publishTransientStatusChanges(changes)
-	if quote.Service.ChargeKind == HealerChargePaid {
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result, nil
 }

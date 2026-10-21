@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"image/png"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
-	"github.com/bradhannah/UltimaVRedux/internal/originaldata/introarchive"
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/bradhannah/UltimaVRedux/internal/originaldata/introarchive"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 var (

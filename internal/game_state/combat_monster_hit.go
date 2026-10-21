@@ -36,7 +36,6 @@ func (g *GameState) resolveSuccessfulMonsterHit(
 			stolen := min(gremlinFoodTheftAmount, int(food.Get()))
 			food.DecrementBy(uint16(stolen)) //nolint:gosec // Stolen is bounded by the current uint16 quantity.
 			diagnostics.FoodStolen = stolen
-			g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 			return monsterSuccessfulHitResult{feedback: CombatFeedbackTheft, replacedDamage: true}
 		}
@@ -57,7 +56,6 @@ func (g *GameState) resolveSuccessfulMonsterHit(
 					changes := transientStatusChanges{}
 					changes.observePoison(statusBefore, character)
 					g.publishTransientStatusChanges(changes)
-					g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 					return monsterSuccessfulHitResult{feedback: CombatFeedbackPoison, replacedDamage: true}
 				}
@@ -112,7 +110,6 @@ func (g *GameState) combatTargetSleeping(target CombatTurnIdentity) bool {
 func (g *GameState) setCombatTargetSleeping(target CombatTurnIdentity) {
 	if target.IsPartyMember {
 		g.setCombatPCSleeping(target, true)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 		return
 	}

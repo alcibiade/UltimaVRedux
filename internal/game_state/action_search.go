@@ -19,6 +19,7 @@ type DungeonSearchResult struct {
 	Target               references.Position
 }
 
+// ActionSearchSmallMap resolves small-map Search for the default surface searcher.
 func (g *GameState) ActionSearchSmallMap(direction references.Direction) bool {
 	return g.ActionSearchSmallMapWithCharacter(direction, g.defaultSurfaceSearchCharacter())
 }
@@ -42,6 +43,7 @@ func (g *GameState) actionSearchSurfaceWithCharacter(direction references.Direct
 	return searchResponse.Result != SearchResultNotFound
 }
 
+// ActionSearchLargeMap resolves large-map Search for the default surface searcher.
 func (g *GameState) ActionSearchLargeMap(direction references.Direction) bool {
 	return g.ActionSearchLargeMapWithCharacter(direction, g.defaultSurfaceSearchCharacter())
 }
@@ -97,6 +99,7 @@ func (g *GameState) isSurfaceSearchCharacterEligible(index int) bool {
 	return character != nil && character.IsInParty() && (character.IsGood() || character.IsPoisoned())
 }
 
+// ActionSearchCombatMap searches the chest or corpse beside the active combatant.
 func (g *GameState) ActionSearchCombatMap(direction references.Direction) bool {
 	if !g.IsInCombat() || g.CombatScene == nil {
 		g.SystemCallbacks.UI.ShowActionFeedback("Not now!", true)
@@ -131,7 +134,6 @@ func (g *GameState) ActionSearchCombatMap(direction references.Direction) bool {
 		changes.observePoison(statusBefore, character)
 		g.publishTransientStatusChanges(changes)
 		g.SystemCallbacks.Audio.PlaySoundEffect(SoundPoison)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	}
 	if outcome.hasItem {
 		itemReference := g.GameReferences.InventoryItemReferences.GetReferenceByItem(outcome.item)
@@ -162,6 +164,7 @@ func (g *GameState) searchCombatChest(chest CombatObject) bool {
 	return true
 }
 
+// ActionSearchDungeonMap searches with the active player, or the first able member.
 func (g *GameState) ActionSearchDungeonMap(direction references.Direction) bool {
 	activeIndex := g.GetActivePlayerIndex()
 	if g.IsDungeonInteractionCharacterEligible(activeIndex) {

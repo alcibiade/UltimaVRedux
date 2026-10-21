@@ -110,7 +110,7 @@ func TestSkyContextAndInheritedLifecycle(t *testing.T) {
 				assert.NotEqual(t, initial, g.sky.strip, "approved unconditional outdoor/town return refresh")
 			}
 			// Camping consults the original floor, not its tactical floor zero.
-			g.gameState.CampingScene = camping.NewCampingScene(2, -1, origin)
+			g.gameState.CampingScene = camping.NewCampingSceneWithCombatRef(2, -1, origin, &references.CombatMapReference{})
 			g.gameState.MapState.PlayerLocation = references.PlayerLocation{Location: references.CampingLocation}
 			for range 24 {
 				g.gameState.DateTime.Advance(5)
@@ -279,7 +279,7 @@ func TestSkySuppressedPixelsAndInheritedDungeonHeader(t *testing.T) {
 	}
 	origin := references.PlayerLocation{Location: references.Deceit, Floor: 3}
 	for _, combat := range []bool{false, true} {
-		g.gameState.CampingScene = camping.NewDungeonCampingScene(2, -1, origin, nil)
+		g.gameState.CampingScene = camping.NewDungeonCampingScene(2, -1, origin, &references.CombatMapReference{})
 		g.gameState.MapState.PlayerLocation.Location = references.CampingLocation
 		if combat {
 			g.gameState.CampingScene = nil
@@ -335,7 +335,7 @@ func TestInheritedDungeonHeaderMatchesAfterResizeAndLevelChanges(t *testing.T) {
 			want := dissolveMaskPixels(ordinary)
 			for _, combat := range []bool{false, true} {
 				g.gameState.CombatScene = nil
-				g.gameState.CampingScene = camping.NewDungeonCampingScene(2, -1, origin, nil)
+				g.gameState.CampingScene = camping.NewDungeonCampingScene(2, -1, origin, &references.CombatMapReference{})
 				g.gameState.MapState.PlayerLocation.Location = references.CampingLocation
 				if combat {
 					g.gameState.CampingScene = nil

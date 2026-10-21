@@ -9,8 +9,7 @@ func (g *GameScene) hasUncommittedSurfaceDirection(mapType references.GeneralMap
 	if mapType != references.SmallMapType && mapType != references.LargeMapType {
 		return false
 	}
-	// UseDirectionInput has no primary route; current Use owns its item workflow.
-	// Keep legacy/item and spell direction readers on their own commitment rules.
+	// Keep item and spell direction readers on their own commitment rules.
 	//nolint:exhaustive // Only reachable ordinary, precommit surface prompts belong here.
 	switch g.secondaryKeyState {
 	case GetDirectionInput, PushDirectionInput, OpenDirectionInput, JimmyDoorDirectionInput,

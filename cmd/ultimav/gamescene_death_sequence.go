@@ -45,12 +45,12 @@ const (
 )
 
 // Death sequence messages accompanying full-party recovery (ref:RECOVERY-0002).
-var deathMessages = []string{
-	"An unending darkness\nengulfs thee...",
-	"Thou hast found refuge.",
-	"No evil lives here,\nonly peace and darkness.",
-	"But thy slumber\nis disturbed!",
-}
+const (
+	deathDarknessMsg  = "An unending darkness\nengulfs thee..."
+	deathRefugeMsg    = "Thou hast found refuge."
+	deathPeaceMsg     = "No evil lives here,\nonly peace and darkness."
+	deathDisturbedMsg = "But thy slumber\nis disturbed!"
+)
 
 // Final messages
 const (
@@ -207,22 +207,22 @@ func (g *GameScene) buildDeathResurrectionWorkflow(q *event_queue.SequentialEven
 		}).
 		Wait(300).
 		Then(func() {
-			g.showDeathDialog(deathMessages[0])
+			g.showDeathDialog(deathDarknessMsg)
 		}).
 		Wait(deathMessageDurationMs+deathMessageDelayMs).
 		Then(func() {
-			g.showDeathDialog(deathMessages[1])
+			g.showDeathDialog(deathRefugeMsg)
 		}).
 		Wait(deathMessageDurationMs+deathLongDelayMs).
 		Then(func() {
-			g.showDeathDialog(deathMessages[2])
+			g.showDeathDialog(deathPeaceMsg)
 		}).
 		Wait(deathMessageDurationMs+deathLongDelayMs).
 		Then(func() {
-			g.showDeathDialog(deathMessages[3])
+			g.showDeathDialog(deathDisturbedMsg)
 		}).
 		Wait(deathMessageDurationMs).
-		RepeatWithDelay(deathPulseCount, deathPulseSoundDelayMs, func(i int) bool {
+		RepeatWithDelay(deathPulseCount, deathPulseSoundDelayMs, func(_ int) bool {
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
 
 			return true
@@ -326,9 +326,7 @@ func (g *GameScene) buildCommittedDeathResurrectionPresentation(
 				if i > 0 {
 					pulseQ.Wait(resurrectionPulseDelayMs - resurrectionPulseFlashMs)
 				}
-				pulseQ.Then(func() {
-					g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
-				}).ThenSequence(g.thenResurrectionPulseFlash())
+				pulseQ.ThenSequence(g.thenResurrectionPulseFlash())
 			}
 
 			return pulseQ

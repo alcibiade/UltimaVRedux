@@ -15,7 +15,7 @@ import (
 func newTalkFooterTestDialog() *LinearTalkDialog {
 	dialog := &LinearTalkDialog{gameScene: &GameScene{gameState: &game_state.GameState{}, keyboard: newPresentationTestKeyboard()}, waitingForInput: true}
 	dialog.initializeResizeableVisualElements()
-	dialog.addInputPromptForStyle("Your interest?", linearTalkPresentationContinuousMarker)
+	dialog.addInputPrompt("Your interest?")
 	dialog.TextInput.SetText("FLAM")
 
 	return dialog
@@ -31,7 +31,7 @@ func TestTalkFooterIsConnectedBelowUnchangedInlineInput(t *testing.T) {
 	before := dialog.Output.GetOutputStr(true)
 	dialog.Draw(screen)
 	require.Equal(t, base.continuousTranscriptRect.Size(), layout.continuousTranscriptRect.Size(), "footer must not consume transcript space")
-	inputRect := dialog.continuousInputRect(layout, activeLinearTalkPresentation)
+	inputRect := dialog.continuousInputRect(layout)
 	require.Equal(t, layout.continuousTranscriptRect.Max.Y, inputRect.Max.Y)
 	require.Less(t, inputRect.Max.Y, layout.footerDividerY)
 	require.Greater(t, layout.footerRect.Min.Y, layout.footerDividerY)

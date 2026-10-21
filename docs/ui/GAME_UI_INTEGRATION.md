@@ -496,8 +496,8 @@ enables playback through the existing routing after a rebuild.
 ### Finite Mutation Coverage Matrix
 
 All rows reach the same quantity-stack observation seam, including aliases to
-the quantities and paths that do not call `RefreshInventoryDisplay`. Production
-entry points below are in `internal/game_state/` unless otherwise qualified.
+the quantities. Production entry points below are in `internal/game_state/`
+unless otherwise qualified.
 
 | Resource | Gain paths | Loss paths |
 |---|---|---|
@@ -556,7 +556,7 @@ Current UI-facing callback groups include:
 
 - `MessageCallbacks` for persistent text output and prompts
 - `UICallbacks` for timed overlays, action feedback, signs, and transient icons
-- `ScreenCallbacks` for summaries, display refresh, overlay visibility, and the camping MessageDialog bridge
+- `ScreenCallbacks` for display refresh, overlay visibility, and the camping MessageDialog bridge
 - `FlowCallbacks` for presentation workflows grouped by consequence, rest, world interaction, observation, Shadowlord, item, and sacred-site concerns
 - `TalkCallbacks` for creating and pushing the concrete linear conversation dialog
 - `CombatCallbacks.PublishEvent` for presentation-neutral combat history

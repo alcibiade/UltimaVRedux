@@ -170,7 +170,6 @@ func TestGetSandalwoodBoxUsesCastleNPC31AndPersists(t *testing.T) {
 	assert.Nil(t, state.CurrentNPCAIController.GetNpcs().GetMapUnitAtPositionAndFloorOrNil(boxPosition, lordBritishHarpsichordFloor))
 	assert.Equal(t, []string{"A sandalwood box!"}, callbacks.Messages)
 	assert.Equal(t, []int{1}, callbacks.TimeAdvanced())
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 
 	state.UpdateSmallMap(state.GameReferences.TileReferences, state.GameReferences.LocationReferences)
 	assert.Nil(t, state.CurrentNPCAIController.GetNpcs().GetMapUnitAtPositionAndFloorOrNil(boxPosition, lordBritishHarpsichordFloor))

@@ -36,7 +36,6 @@ func (g *GameState) processDungeonSleepField() {
 
 		return references.DungeonCell(before.Raw() & 0x08)
 	})
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	g.SystemCallbacks.Screen.UpdateDisplay()
 }
 
@@ -52,7 +51,6 @@ func (g *GameState) processDungeonPoisonField() {
 		changes.observePoison(statusBefore, character)
 	})
 	g.publishTransientStatusChanges(changes)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 }
 
 func (g *GameState) forEachDungeonPartyFieldRoll(
@@ -91,18 +89,10 @@ func (g *GameState) damageDungeonParty(kind DungeonInjuryKind) dungeonInjuryResu
 		character.SubtractHp(uint16(damage)) //nolint:gosec // Source damage is 1d8.
 		result.observe(before, character.GetCurrentHp())
 	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result
 }
 
 func (g *GameState) processDungeonPoisonDamage(cache playerUpdateStatusCache) {
-	poisoned := false
-	for index := range party_state.MaxActiveParty {
-		poisoned = poisoned || cache.Active[index] && cache.Statuses[index] == party_state.Poisoned
-	}
 	g.applyCachedPlayerUpdatePoison(cache, true)
-	if poisoned {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
 }

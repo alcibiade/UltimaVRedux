@@ -324,10 +324,6 @@ func (g *GameScene) smallMapHandleSecondaryInput() {
 		if g.gameState.IsInCombat() {
 			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
 		}
-	case UseDirectionInput:
-		g.smallMapUseSecondary(direction)
-		g.secondaryKeyState = PrimaryInput
-		result = newSurfaceCommandResult(surfaceCommandCompleted, originMapType)
 	// CastDirectionInput removed - now handled by spell casting event queue
 	// WindChangeScrollDirectionInput removed - now handled by DirectionPrompt dialog
 	// YellDirectionInput removed - now handled by YellDialog
@@ -397,14 +393,6 @@ func (g *GameScene) smallMapTalkSecondary(direction references.Direction) {
 func (g *GameScene) smallMapAttackSecondary(direction references.Direction) bool {
 	// The ActionAttackSmallMap already handles all messages via SystemCallbacks
 	return g.gameState.ActionAttackSmallMap(direction)
-}
-
-func (g *GameScene) smallMapUseSecondary(direction references.Direction) {
-	// Legacy direction-state recovery; the primary Use command owns the item-picker workflow.
-	success := g.gameState.ActionUseSmallMap(direction)
-	if !success {
-		g.addRowStr("Cannot use!")
-	}
 }
 
 // smallMapYellSecondary removed - now handled by YellDialog

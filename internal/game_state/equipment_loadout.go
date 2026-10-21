@@ -154,10 +154,6 @@ func (g *GameState) AlterEquipmentLoadouts(
 			After:  int(after),
 		})
 	}
-	if len(result.Changes) > 0 {
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
 
 	return result, nil
 }

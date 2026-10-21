@@ -168,9 +168,6 @@ func TestSinkingStopsBeforeFallbackOrDrowningCallbacks(t *testing.T) {
 				state.PartyState.Inventory.QuestItems.Set(references.Carpet, 1)
 			}
 			require.True(t, state.StartAutomaticSailing(references.Down))
-			state.SystemCallbacks.Screen.UpdateStatsDisplay = func() {
-				assert.False(t, state.IsSailing(), "drowning feedback cannot see stale sailing")
-			}
 			hit := state.ResolveSourceHit()
 			assert.False(t, state.IsSailing())
 			assert.Equal(t, fallback, hit.VehicleAfter)

@@ -2,8 +2,7 @@
 //
 // This package contains widgets specifically designed for the main game interface,
 // including character stats, provisions, and status displays. Components integrate
-// with the game state to show real-time information and respond to SystemCallbacks
-// for display refresh.
+// with the game state and redraw current values every frame.
 //
 // Key components:
 //   - CharacterSummary: Party member stats and portraits
@@ -28,28 +27,20 @@ import (
 
 // CharacterSummary renders party portraits, resources and detached combat status text.
 type CharacterSummary struct {
-	characterSummaryImage [party_state.MaxCharactersInParty]*ebiten.Image
-	spriteSheet           *sprites.SpriteSheet
-	ultimaFont            *text.UltimaFont
-	output                *text.Output
-	bounds                image.Rectangle
+	spriteSheet *sprites.SpriteSheet
+	ultimaFont  *text.UltimaFont
+	output      *text.Output
+	bounds      image.Rectangle
 
 	// Reusable draw options to reduce per-frame allocations (safety-first optimization)
 	portraitDop *ebiten.DrawImageOptions
 
-	// Refresh flag for SystemCallbacks integration
-	needsStatsRefresh bool
-
-	// Status change detection for automatic UI refresh
-	previousStatuses [party_state.MaxCharactersInParty]party_state.CharacterStatus
-	textRows         [party_state.MaxCharactersInParty]characterTextRow
-	portraits        [party_state.MaxCharactersInParty]characterPortrait
-	combatText       [party_state.MaxCharactersInParty]CharacterCombatText
+	textRows   [party_state.MaxCharactersInParty]characterTextRow
+	portraits  [party_state.MaxCharactersInParty]characterPortrait
+	combatText [party_state.MaxCharactersInParty]CharacterCombatText
 }
 
 const (
-	perCharacterSummaryWidth  = 16 * 6
-	perCharacterSummaryHeight = 9 * 6
 	// Status effect outline intensity (moderate visibility without overwhelming portrait)
 	statusOutlineIntensity = 0.7
 	// Character summary positioning constants
@@ -103,17 +94,8 @@ func NewCharacterSummaryForWidth(spriteSheet *sprites.SpriteSheet, screenWidth i
 		int(float64(logicalHeight)*defaultSummaryEndY),
 	)
 
-	for i := 0; i < len(characterSummary.characterSummaryImage); i++ {
-		characterSummary.characterSummaryImage[i] = ebiten.NewImage(perCharacterSummaryWidth, perCharacterSummaryHeight)
-	}
-
 	// Initialize reusable draw options for safety-first performance optimization
 	characterSummary.portraitDop = &ebiten.DrawImageOptions{}
-
-	// Initialize previous statuses array to detect changes
-	for i := range characterSummary.previousStatuses {
-		characterSummary.previousStatuses[i] = party_state.Good // Default to Good status
-	}
 
 	return characterSummary
 }
@@ -121,17 +103,6 @@ func NewCharacterSummaryForWidth(spriteSheet *sprites.SpriteSheet, screenWidth i
 // SetBounds assigns the content area reserved by the main-screen layout.
 func (c *CharacterSummary) SetBounds(bounds image.Rectangle) {
 	c.bounds = bounds
-}
-
-// UpdateStatsDisplay forces immediate refresh of character stats display.
-// Clears cached character images and sets refresh flag to force complete redraw.
-// Use this when character data has changed significantly.
-func (c *CharacterSummary) UpdateStatsDisplay() {
-	// Clear character images to force complete redraw
-	for i := range c.characterSummaryImage {
-		c.characterSummaryImage[i].Clear()
-	}
-	c.needsStatsRefresh = true
 }
 
 // getStatusColor returns the color to use for a character's status effect.
@@ -187,33 +158,6 @@ func (c *CharacterSummary) shouldApplyStatusOutline(status party_state.Character
 	return status != party_state.Good
 }
 
-// detectStatusChanges checks for character status changes and triggers refresh if needed.
-// Returns true if any status changes were detected.
-func (c *CharacterSummary) detectStatusChanges(partyState *party_state.PartyState) bool {
-	statusChanged := false
-
-	for index := range c.previousStatuses {
-		if index >= partyState.GetCharacterCount() {
-			break // Safety check
-		}
-
-		currentStatus := partyState.GetCharacter(index).GetStatus()
-		if c.previousStatuses[index] != currentStatus {
-			logging.Debug(logging.CategoryUI, "Character %d status changed: %v -> %v",
-				index, c.previousStatuses[index], currentStatus)
-			c.previousStatuses[index] = currentStatus
-			statusChanged = true
-		}
-	}
-
-	if statusChanged {
-		logging.Debug(logging.CategoryUI, "Status changes detected, triggering character summary refresh")
-		c.needsStatsRefresh = true
-	}
-
-	return statusChanged
-}
-
 // Draw renders the character summary display to the screen.
 //
 // Displays party member portraits, names, HP/MP values, and status information
@@ -241,7 +185,6 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 		return
 	}
 
-	c.refreshCharacterImages(partyState)
 	if c.bounds.Empty() {
 		return
 	}
@@ -250,7 +193,7 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 	rightTextLeft := rightTextBounds.Min.X
 	rightTextWidth := rightTextBounds.Dx()
 
-	for index := range c.characterSummaryImage {
+	for index := range party_state.MaxCharactersInParty {
 		// Error handling: validate character data
 		if index >= partyState.GetCharacterCount() {
 			c.portraits[index].dispose()
@@ -292,16 +235,6 @@ func (c *CharacterSummary) Draw(partyState *party_state.PartyState, screen *ebit
 		row.left.DrawPanelContent(screen, image.Pt(leftTextX, textTop), leftTextWidth, etext.AlignStart)
 		row.right.DrawPanelContent(screen, image.Pt(rightTextLeft, textTop), rightTextWidth, etext.AlignEnd)
 	}
-}
-
-func (c *CharacterSummary) refreshCharacterImages(partyState *party_state.PartyState) {
-	statusChanged := c.detectStatusChanges(partyState)
-	if c.needsStatsRefresh || statusChanged {
-		for _, rowImage := range c.characterSummaryImage {
-			rowImage.Clear()
-		}
-	}
-	c.needsStatsRefresh = false
 }
 
 func (c *CharacterSummary) drawCharacterPortrait(

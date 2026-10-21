@@ -173,9 +173,6 @@ func TestScrollInQuasWis_View(t *testing.T) {
 			WithPlayerAt(3, 3).
 			WithSystemCallbacks().
 			Build()
-		if gs == nil {
-			return
-		}
 		mockCallbacks.Reset()
 		gs.PartyState.Inventory.Scrolls.Set(references.ScrollInQuasWis, 1)
 
@@ -268,9 +265,6 @@ func TestScrollLocationRestrictions(t *testing.T) {
 			WithPlayerAt(3, 3).
 			WithSystemCallbacks().
 			Build()
-		if gs3 == nil {
-			return
-		}
 		assert.False(t, gs3.isScrollLocationValid(references.ScrollInQuasWis),
 			"Generic scroll execution must defer dungeon View to its command workflow")
 	})

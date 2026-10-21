@@ -31,9 +31,6 @@ func TestCombatTransitionRecordsDungeonExitContext(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
@@ -76,9 +73,6 @@ func TestVictoryFanfareFadesWhenLeavingCombatMap(t *testing.T) {
 
 func TestCombatExitProcessesCrossedProvisionHours(t *testing.T) {
 	state, _ := newCombatExitTestState(t)
-	if state == nil {
-		return
-	}
 	state.DateTime.Hour, state.DateTime.Minute = 5, 59
 	state.lastProcessedHour = 5
 	state.PartyState.Inventory.Provisions.Food.Set(100)
@@ -94,9 +88,6 @@ func TestCombatExitProcessesCrossedProvisionHours(t *testing.T) {
 
 func TestCombatEdgeExitRejectsDifferentDungeonRoomDirection(t *testing.T) {
 	gs, mock := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.ExitContext = CombatExitDungeonRoom
 	firstPC := gs.CombatScene.GetActiveCombatantIndex()
 	gs.CombatScene.SetPartyMemberPosition(firstPC, references.Position{X: 0, Y: 5})
@@ -117,9 +108,6 @@ func TestCombatEdgeExitRejectsDifferentDungeonRoomDirection(t *testing.T) {
 
 func TestCombatEdgeExitRejectsIndividualDepartureFromFrigate(t *testing.T) {
 	gs, mock := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	activePC := gs.CombatScene.GetActiveCombatantIndex()
 	gs.CombatScene.SetPartyMemberPosition(activePC, references.Position{X: 0, Y: 5})
 	npcRef := references.NPCReference{}
@@ -135,9 +123,6 @@ func TestCombatEdgeExitRejectsIndividualDepartureFromFrigate(t *testing.T) {
 
 func TestCombatKlimbEstablishesRouteWithoutAutomaticPartyExit(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.ExitContext = CombatExitDungeonRoom
 	activePC := gs.CombatScene.GetActiveCombatantIndex()
 	activePosition := gs.CombatScene.GetPartyMemberPosition(activePC)
@@ -158,9 +143,6 @@ func TestCombatKlimbEstablishesRouteWithoutAutomaticPartyExit(t *testing.T) {
 
 func TestDungeonRoomGrateCombatKlimbEstablishesDownRoute(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.ExitContext = CombatExitDungeonRoom
 	activePC := gs.CombatScene.GetActiveCombatantIndex()
 	activePosition := gs.CombatScene.GetPartyMemberPosition(activePC)
@@ -183,9 +165,6 @@ func TestGeneratedDungeonDualLadderCombatKlimbChoosesVerticalRoute(t *testing.T)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _ := newCombatExitTestState(t)
-			if gs == nil {
-				return
-			}
 			var cells references.DungeonCells
 			source := references.Position{X: 4, Y: 4}
 			require.True(t, cells.SetCell(0, source, references.DungeonCell(0x30)))
@@ -208,9 +187,6 @@ func TestGeneratedDungeonDualLadderCombatKlimbChoosesVerticalRoute(t *testing.T)
 
 func TestVictoryEscapeDungeonRoomRequiresEstablishedRoute(t *testing.T) {
 	gs, mock := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.ExitContext = CombatExitDungeonRoom
 	gs.CombatScene.Victory = true
 	mock.Reset()
@@ -222,9 +198,6 @@ func TestVictoryEscapeDungeonRoomRequiresEstablishedRoute(t *testing.T) {
 
 func TestVictoryEscapeAppliesEstablishedDungeonLadderRoute(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.ExitContext = CombatExitDungeonRoom
 	gs.CombatScene.ExitRoute = CombatExitUp
 	gs.CombatScene.Victory = true
@@ -248,9 +221,6 @@ func TestVictoryEscapeAppliesEstablishedDungeonLadderRoute(t *testing.T) {
 
 func TestCombatExitAppliesCardinalRouteOnlyToDungeonRooms(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	originalPosition := references.Position{X: 3, Y: 4}
 	gs.MapState.PlayerLocation = references.PlayerLocation{
 		Location: references.Deceit,
@@ -272,9 +242,6 @@ func TestCombatExitAppliesCardinalRouteOnlyToDungeonRooms(t *testing.T) {
 
 func TestCombatLadderBoundaryExitReturnsToDungeonEntrance(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	expectedPosition := gs.GetDungeonEntranceCoordinates()[references.Deceit]
 	attachCombatExitDungeonAuthority(t, gs, references.Deceit)
 	gs.MapState.PlayerLocation = references.PlayerLocation{
@@ -303,9 +270,6 @@ func TestCombatLadderBoundaryExitReturnsToDungeonEntrance(t *testing.T) {
 
 func TestVictoryEndsWhenLastPCLeavesEstablishedRoute(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.Victory = true
 	activePC := gs.CombatScene.GetActiveCombatantIndex()
 	for index := range gs.CombatScene.PartyActive {
@@ -327,9 +291,6 @@ func TestVictoryEndsWhenLastPCLeavesEstablishedRoute(t *testing.T) {
 // looping forever while looking for a solo-selected PC that already fled.
 func TestSelectedPCDepartureClearsSoloSelection(t *testing.T) {
 	gs, _ := newCombatExitTestState(t)
-	if gs == nil {
-		return
-	}
 	departingPC := gs.CombatScene.GetActiveCombatantIndex()
 	remainingPC := firstActiveCombatPCExcept(gs.CombatScene, departingPC)
 	require.NotEqual(t, -1, remainingPC)
@@ -359,9 +320,6 @@ func newCombatExitTestState(t *testing.T) (*GameState, *MockSystemCallbacks) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return nil, mock
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,

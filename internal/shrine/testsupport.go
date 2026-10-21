@@ -21,8 +21,6 @@ func NewShrineMap() *ShrineMap {
 func NewShrineScene(shrineIndex int, originalPlayerLocation references.PlayerLocation) *ShrineScene {
 	scene := &ShrineScene{
 		ShrineIndex:            shrineIndex,
-		Phase:                  PhaseEntering,
-		WalkStep:               0,
 		IsActive:               true,
 		OriginalPlayerLocation: originalPlayerLocation,
 		ShrineMap:              NewShrineMap(),

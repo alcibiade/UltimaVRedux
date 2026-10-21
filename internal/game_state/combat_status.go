@@ -33,7 +33,6 @@ func (g *GameState) finishDirectedCombatAttack(target CombatTurnIdentity, wasSle
 		return
 	}
 	g.setCombatPCSleeping(target, false)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	g.publishCombatPCConditionEvent(target, CombatConditionWoke)
 }
 
@@ -66,7 +65,6 @@ func (g *GameState) processPossessedPCTurnStart(identity CombatTurnIdentity) com
 	condition := CombatConditionSleeping
 	if g.RandomIntInRange(0, combatMonsterWakeRollMaximum) == combatMonsterWakeRollMaximum {
 		g.setCombatPCSleeping(identity, false)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 		condition = CombatConditionWoke
 	}
 	g.SystemCallbacks.Message.AddRowStr("Zzzzz...")
@@ -86,7 +84,6 @@ func (g *GameState) processCombatPCTurnStart(identity CombatTurnIdentity) combat
 	condition := CombatConditionSleeping
 	if g.RandomIntInRange(0, combatPCWakeRollMaximum) < combatPCWakeThreshold {
 		g.setCombatPCSleeping(identity, false)
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 		condition = CombatConditionWoke
 	}
 

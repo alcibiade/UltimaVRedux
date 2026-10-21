@@ -16,9 +16,6 @@ func setupCombatAutoActionTest(t *testing.T) (*GameState, int) {
 	t.Helper()
 
 	gs, _, activeIndex := setupCombatDoorActionTest(t)
-	if gs == nil {
-		return nil, -1
-	}
 
 	clearCombatMonstersForTest(gs.CombatScene)
 	character := gs.PartyState.GetCharacter(activeIndex)
@@ -61,9 +58,6 @@ func addCombatAutoMonster(gs *GameState, position references.Position) *CombatMo
 
 func TestPlanCombatAutoAction_AttacksAdjacentEnemy(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 2, Y: 2}
 	target := references.Position{X: 3, Y: 3}
@@ -79,9 +73,6 @@ func TestPlanCombatAutoAction_AttacksAdjacentEnemy(t *testing.T) {
 
 func TestPlanCombatAutoAction_RangedAttackSelectsClosestEnemy(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	farTarget := references.Position{X: 10, Y: 1}
@@ -100,9 +91,6 @@ func TestPlanCombatAutoAction_RangedAttackSelectsClosestEnemy(t *testing.T) {
 
 func TestPlanCombatAutoAction_RangedAttackBreaksDistanceTieByLowestHP(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 4, Y: 4}
 	healthyTarget := references.Position{X: 1, Y: 4}
@@ -122,9 +110,6 @@ func TestPlanCombatAutoAction_RangedAttackBreaksDistanceTieByLowestHP(t *testing
 
 func TestPlanCombatAutoActionUsesActiveClonePosition(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: activeIndex}
 	clonePosition := references.Position{X: 2, Y: 2}
 	target := references.Position{X: 3, Y: 3}
@@ -149,9 +134,6 @@ func TestPlanCombatAutoActionUsesActiveClonePosition(t *testing.T) {
 
 func TestPlanCombatAutoAction_RoutesAroundLockedDoor(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 5, Y: 1}
@@ -176,9 +158,6 @@ func TestPlanCombatAutoAction_RoutesAroundLockedDoor(t *testing.T) {
 
 func TestPlanCombatAutoAction_MovementBreaksDistanceTieByLowestHP(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 4, Y: 4}
 	healthyTarget := references.Position{X: 1, Y: 4}
@@ -206,9 +185,6 @@ func TestPlanCombatAutoAction_MovementBreaksDistanceTieByLowestHP(t *testing.T) 
 
 func TestPlanCombatAutoAction_RequiresClosedDoorToBeOpenedManually(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	door := references.Position{X: 2, Y: 1}
@@ -229,9 +205,6 @@ func TestPlanCombatAutoAction_RequiresClosedDoorToBeOpenedManually(t *testing.T)
 
 func TestPlanCombatAutoAction_SelectsReachableEnemyOverCloserBlockedEnemy(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	blockedTarget := references.Position{X: 3, Y: 1}
@@ -258,9 +231,6 @@ func TestPlanCombatAutoAction_SelectsReachableEnemyOverCloserBlockedEnemy(t *tes
 
 func TestPlanCombatAutoAction_DoesNotMoveWithoutCompleteRoute(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 4, Y: 1}
@@ -276,9 +246,6 @@ func TestPlanCombatAutoAction_DoesNotMoveWithoutCompleteRoute(t *testing.T) {
 
 func TestPlanCombatAutoAction_TreatsOtherPartyMembersAsBlockers(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	blocker := references.Position{X: 2, Y: 1}
@@ -296,9 +263,6 @@ func TestPlanCombatAutoAction_TreatsOtherPartyMembersAsBlockers(t *testing.T) {
 
 func TestActionAttackCombatPosition_RejectsNonAdjacentTarget(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 3, Y: 1}
@@ -313,9 +277,6 @@ func TestActionAttackCombatPosition_RejectsNonAdjacentTarget(t *testing.T) {
 
 func TestActionAttackCombatPosition_DoesNotResolveRangedWeaponAsMelee(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 2, Y: 1}
@@ -334,9 +295,6 @@ func TestActionAttackCombatPosition_DoesNotResolveRangedWeaponAsMelee(t *testing
 
 func TestActionAttackCombatPosition_RejectsInactiveCombatant(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 2, Y: 1}
@@ -352,9 +310,6 @@ func TestActionAttackCombatPosition_RejectsInactiveCombatant(t *testing.T) {
 
 func TestPlanCombatAutoAction_IgnoresInvisibleEnemy(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 2, Y: 1}
@@ -372,9 +327,6 @@ func TestPlanCombatAutoAction_IgnoresInvisibleEnemy(t *testing.T) {
 
 func TestPlanCombatAutoAction_IsNonMutating(t *testing.T) {
 	gs, activeIndex := setupCombatAutoActionTest(t)
-	if gs == nil {
-		return
-	}
 
 	start := references.Position{X: 1, Y: 1}
 	target := references.Position{X: 4, Y: 1}

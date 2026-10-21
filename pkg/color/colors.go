@@ -98,15 +98,14 @@ var (
 //
 //nolint:gochecknoglobals,mnd // Read-only compatibility palette; literal channel values preserve its exact colors.
 var (
-	Black                  = EGABlack
-	White                  = EGAWhite
-	Green                  = color.RGBA{R: 0, G: 255, B: 0, A: 255}   // Non-EGA green kept for compatibility
-	Red                    = color.RGBA{R: 255, G: 0, B: 0, A: 255}   // Non-EGA red kept for compatibility
-	Yellow                 = color.RGBA{R: 0, G: 255, B: 255, A: 255} // This appears to be cyan, kept for compatibility
-	DisabledTextBackground = color.RGBA{R: 16, G: 16, B: 16, A: 0x77}
-	TextInputColor         = EGALightGray
-	TextPlaceHolderColor   = EGALightGray
-	DialogInputTextColor   = EGALightGreen // Light green for InputBox dialog text
+	Black                = EGABlack
+	White                = EGAWhite
+	Green                = color.RGBA{R: 0, G: 255, B: 0, A: 255}   // Non-EGA green kept for compatibility
+	Red                  = color.RGBA{R: 255, G: 0, B: 0, A: 255}   // Non-EGA red kept for compatibility
+	Yellow               = color.RGBA{R: 0, G: 255, B: 255, A: 255} // This appears to be cyan, kept for compatibility
+	TextInputColor       = EGALightGray
+	TextPlaceHolderColor = EGALightGray
+	DialogInputTextColor = EGALightGreen // Light green for InputBox dialog text
 )
 
 // ExtractRGBA safely extracts RGBA components from any color.Color

@@ -10,7 +10,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/files"
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 const introductionStoryBlockCount = 20

@@ -54,7 +54,6 @@ func (g *GameState) resolveDoomMirrorAbsorption() bool {
 	g.SystemCallbacks.Message.AddRowStr(
 		g.PartyState.GetCharacter(identity.EntityIndex).GetNameAsString() + " is absorbed!",
 	)
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return true
 }

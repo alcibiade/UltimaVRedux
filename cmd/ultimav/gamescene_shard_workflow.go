@@ -81,8 +81,6 @@ func (g *GameScene) startShardWorkflow(shard references.QuestItem, complete func
 						})(innerQ)
 					}).Then(func() {
 						g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundShadowlordVictory)
-						g.gameState.SystemCallbacks.Screen.RefreshInventoryDisplay()
-						g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
 					})
 				},
 			)

@@ -256,7 +256,6 @@ func (g *GameScene) addShrineQuestStateBranching(
 			}
 			completeQ.Then(func() {
 				removeTranscript()
-				g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
 			}).ThenSequence(g.thenShowShrineQuestCompletionEffects(completionMessage))
 		})
 
@@ -333,7 +332,6 @@ func (g *GameScene) thenShrineOfferingAttempt(
 				}).If(func() bool { return committed }, func(successQ *event_queue.SequentialEventBuilder) {
 					successQ.Then(func() {
 						g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundShrineOffering)
-						g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
 						g.gameState.SystemCallbacks.Visual.SetScreenFlashColor(1.0, 1.0, 1.0)
 						g.gameState.SystemCallbacks.Visual.SetScreenFlashIntensity(0.8)
 					}).Animate(200, func(progress float32) {

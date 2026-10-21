@@ -12,9 +12,6 @@ import (
 
 func TestCombatAnSanctUnlocksDoorAndDisarmsChest(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	origin := references.Position{X: 5, Y: 5}
 	door := references.Position{X: 6, Y: 5}
@@ -37,9 +34,6 @@ func TestCombatAnSanctUnlocksDoorAndDisarmsChest(t *testing.T) {
 
 func TestCombatMagicLockSpellsAreOriginalSemanticInverses(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	target := references.Position{X: 6, Y: 5}
 	gs.CombatScene.CombatMapRef.SetTileNumber(target, indexes.RegularDoor)
@@ -66,9 +60,6 @@ func TestCombatUtilityAdjacentTargetingDefersResources(t *testing.T) {
 	for _, test := range tests {
 		t.Run(references.GetSpellName(test.spell), func(t *testing.T) {
 			gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 			casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 			caster := gs.PartyState.GetCharacter(casterIdx)
 			caster.Level = 8
@@ -94,9 +85,6 @@ func TestCombatUtilityAdjacentTargetingDefersResources(t *testing.T) {
 
 func TestPlanAndApplyCombatInPorUsesValidRandomDestination(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	gs.SetRandomSeed(1)
@@ -115,9 +103,6 @@ func TestPlanAndApplyCombatInPorUsesValidRandomDestination(t *testing.T) {
 
 func TestPlanAndApplyCombatInPorMovesExactCloneCaster(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.CombatMapRef = newOpenCombatConeMap()
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	basePosition := references.Position{X: 1, Y: 1}
@@ -148,9 +133,6 @@ func TestPlanAndApplyCombatInPorMovesExactCloneCaster(t *testing.T) {
 
 func TestCombatInPorRejectsDungeonBeforeConsumption(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.CombatScene.ExitContext = CombatExitDungeonEncounter
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(casterIdx)
@@ -169,9 +151,6 @@ func TestCombatInPorRejectsDungeonBeforeConsumption(t *testing.T) {
 
 func TestCombatInPorFailsAfterSevenBlockedAttempts(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	for x := range references.XCombatMapTiles {
 		for y := range references.YCombatMapTiles {
 			gs.setCombatTerrain(references.Position{

@@ -134,7 +134,6 @@ func (g *GameState) AlterActiveCharacter(input ActiveCharacterAlteration) (Activ
 	}
 	result.CharacterAfter = snapshotActiveCharacter(finalSlot, target)
 	result.OrderAfter = g.snapshotActivePartyOrder()
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return result, nil
 }

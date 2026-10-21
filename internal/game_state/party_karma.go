@@ -91,7 +91,6 @@ func (g *GameState) SetPartyKarma(value int) (PartyKarmaAlteration, error) {
 
 	g.PartyState.Karma.Value = value
 	result.After = value
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }

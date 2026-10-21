@@ -215,12 +215,6 @@ func TestBuyArmsEquipmentCommitsOrdinaryAggregateBatchOnce(t *testing.T) {
 	state, npc := newOpenMerchantTestState(t, references.MerchantArmsBritain)
 	state.PartyState.Inventory.Gold.Set(1000)
 	state.PartyState.Inventory.Equipment.Set(references.Bow, 2)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, uint16(619), state.PartyState.Inventory.Gold.Get())
-		assert.Equal(t, uint16(5), state.PartyState.Inventory.Equipment.Get(references.Bow))
-	}
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	beforeRNGCalls := state.GetRNG().Calls()
@@ -244,16 +238,15 @@ func TestBuyArmsEquipmentCommitsOrdinaryAggregateBatchOnce(t *testing.T) {
 		QuantityAfter:    5,
 		ActualReceipt:    3,
 	}, result)
+	assert.Equal(t, uint16(619), state.PartyState.Inventory.Gold.Get())
+	assert.Equal(t, uint16(5), state.PartyState.Inventory.Equipment.Get(references.Bow))
 	assert.Equal(t, beforeRNGCalls, state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestBuyArmsEquipmentRefillsAmmunitionAndRefusesFullStack(t *testing.T) {
 	state, npc := newOpenMerchantTestState(t, references.MerchantArmsBritain)
 	state.PartyState.Inventory.Gold.Set(1000)
 	state.PartyState.Inventory.Equipment.Set(references.Arrows, 5)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -270,7 +263,6 @@ func TestBuyArmsEquipmentRefillsAmmunitionAndRefusesFullStack(t *testing.T) {
 	assert.Equal(t, uint16(99), result.QuantityAfter)
 	assert.Equal(t, uint16(94), result.ActualReceipt)
 	assert.Equal(t, uint16(983), result.GoldAfterTheft)
-	assert.Equal(t, 1, refreshes)
 
 	beforeRNGCalls := state.GetRNG().Calls()
 	_, err = state.BuyArmsEquipment(session, ArmsBuyRequest{
@@ -281,7 +273,6 @@ func TestBuyArmsEquipmentRefillsAmmunitionAndRefusesFullStack(t *testing.T) {
 	assert.Equal(t, uint16(983), state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, uint16(99), state.PartyState.Inventory.Equipment.Get(references.Arrows))
 	assert.Equal(t, beforeRNGCalls, state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestBuyArmsEquipmentAppliesOneFaulineiCheckAfterAggregatePayment(t *testing.T) {
@@ -292,11 +283,6 @@ func TestBuyArmsEquipmentAppliesOneFaulineiCheckAfterAggregatePayment(t *testing
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.PartyState.Inventory.Gold.Set(1000)
 	state.PartyState.Inventory.Equipment.Set(references.Dagger, 4)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, uint16(9), state.PartyState.Inventory.Equipment.Get(references.Dagger))
-	}
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 	expectedRNG := beradrng.New(seed)
@@ -312,8 +298,8 @@ func TestBuyArmsEquipmentAppliesOneFaulineiCheckAfterAggregatePayment(t *testing
 	assert.Equal(t, uint16(995), result.GoldAfterPayment)
 	assert.Equal(t, expectedTheft, result.Theft)
 	assert.Equal(t, uint16(995)-expectedTheft, result.GoldAfterTheft)
+	assert.Equal(t, uint16(9), state.PartyState.Inventory.Equipment.Get(references.Dagger))
 	assert.Equal(t, uint64(1), state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestBuyArmsEquipmentRejectsInvalidCapacityAndFundsWithoutEffects(t *testing.T) {
@@ -340,8 +326,6 @@ func TestBuyArmsEquipmentRejectsInvalidCapacityAndFundsWithoutEffects(t *testing
 			state.ShadowlordState.AutomaticPresence = references.Faulinei
 			state.PartyState.Inventory.Gold.Set(test.gold)
 			state.PartyState.Inventory.Equipment.Set(test.equipment, test.owned)
-			refreshes := 0
-			state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 
@@ -354,7 +338,6 @@ func TestBuyArmsEquipmentRejectsInvalidCapacityAndFundsWithoutEffects(t *testing
 			assert.Equal(t, test.gold, state.PartyState.Inventory.Gold.Get())
 			assert.Equal(t, test.owned, state.PartyState.Inventory.Equipment.Get(test.equipment))
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Zero(t, refreshes)
 		})
 	}
 }
@@ -465,8 +448,6 @@ func TestSellArmsEquipmentRejectsAmmunitionAndEveryZeroPriceSpecial(t *testing.T
 			state.ShadowlordState.AutomaticPresence = references.Faulinei
 			state.PartyState.Inventory.Gold.Set(500)
 			state.PartyState.Inventory.Equipment.Set(test.equipment, 1)
-			refreshes := 0
-			state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 
@@ -480,7 +461,6 @@ func TestSellArmsEquipmentRejectsAmmunitionAndEveryZeroPriceSpecial(t *testing.T
 			assert.Equal(t, uint16(500), state.PartyState.Inventory.Gold.Get())
 			assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(test.equipment))
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Zero(t, refreshes)
 		})
 	}
 }
@@ -491,12 +471,6 @@ func TestSellArmsEquipmentCommitsAggregateWithoutFaulinei(t *testing.T) {
 	state.ShadowlordState.AutomaticPresence = references.Faulinei
 	state.PartyState.Inventory.Gold.Set(100)
 	state.PartyState.Inventory.Equipment.Set(references.LongSword, 4)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() {
-		refreshes++
-		assert.Equal(t, uint16(166), state.PartyState.Inventory.Gold.Get())
-		assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.LongSword))
-	}
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -517,16 +491,15 @@ func TestSellArmsEquipmentCommitsAggregateWithoutFaulinei(t *testing.T) {
 		QuantityBefore: 4,
 		QuantityAfter:  1,
 	}, result)
+	assert.Equal(t, uint16(166), state.PartyState.Inventory.Gold.Get())
+	assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.LongSword))
 	assert.Zero(t, state.GetRNG().Calls())
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestSellArmsEquipmentEnforcesGoldSafeQuantityCap(t *testing.T) {
 	state, npc := newOpenMerchantTestState(t, references.MerchantArmsBritain)
 	state.PartyState.Inventory.Gold.Set(9950)
 	state.PartyState.Inventory.Equipment.Set(references.LongSword, 5)
-	refreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 	session, err := state.BeginMerchantSession(npc)
 	require.NoError(t, err)
 
@@ -537,14 +510,12 @@ func TestSellArmsEquipmentEnforcesGoldSafeQuantityCap(t *testing.T) {
 	require.ErrorIs(t, err, ErrArmsGoldCapacity)
 	assert.Equal(t, uint16(9950), state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, uint16(5), state.PartyState.Inventory.Equipment.Get(references.LongSword))
-	assert.Zero(t, refreshes)
 
 	result, err := state.SellArmsEquipment(session, ArmsSellRequest{Equipment: references.LongSword, Quantity: 2})
 	require.NoError(t, err)
 	assert.Equal(t, 44, result.TotalOffer)
 	assert.Equal(t, uint16(9994), result.GoldAfter)
 	assert.Equal(t, uint16(3), result.QuantityAfter)
-	assert.Equal(t, 1, refreshes)
 }
 
 func TestSellArmsEquipmentRefusesZeroGoldCapacityAndStaleQuantityWithoutEffects(t *testing.T) {
@@ -567,8 +538,6 @@ func TestSellArmsEquipmentRefusesZeroGoldCapacityAndStaleQuantityWithoutEffects(
 			state.ShadowlordState.AutomaticPresence = references.Faulinei
 			state.PartyState.Inventory.Gold.Set(test.gold)
 			state.PartyState.Inventory.Equipment.Set(references.LongSword, test.carried)
-			refreshes := 0
-			state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 			session, err := state.BeginMerchantSession(npc)
 			require.NoError(t, err)
 
@@ -581,7 +550,6 @@ func TestSellArmsEquipmentRefusesZeroGoldCapacityAndStaleQuantityWithoutEffects(
 			assert.Equal(t, test.gold, state.PartyState.Inventory.Gold.Get())
 			assert.Equal(t, test.carried, state.PartyState.Inventory.Equipment.Get(references.LongSword))
 			assert.Zero(t, state.GetRNG().Calls())
-			assert.Zero(t, refreshes)
 		})
 	}
 }

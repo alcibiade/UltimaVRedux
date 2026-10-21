@@ -50,10 +50,6 @@ func (c *CharacterSummary) prepareCharacterPortrait(
 func (c *CharacterSummary) Dispose() {
 	for index := range c.portraits {
 		c.portraits[index].dispose()
-		if c.characterSummaryImage[index] != nil {
-			c.characterSummaryImage[index].Deallocate()
-			c.characterSummaryImage[index] = nil
-		}
 	}
 	c.textRows = [party_state.MaxCharactersInParty]characterTextRow{}
 }

@@ -60,9 +60,6 @@ func TestCombatMonsterConditionHandlesSmallMaximumHP(t *testing.T) {
 
 func TestSurvivingMonsterHitAppliesConditionOnlyForNormalDamage(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	monster.SetCurrentHP(4)
 
 	gs.resolveSurvivingCombatMonsterHit(monster, 0, false)

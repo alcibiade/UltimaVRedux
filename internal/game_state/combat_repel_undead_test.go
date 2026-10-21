@@ -17,9 +17,6 @@ func TestAnXenCorpIsImplementedNoTargetCombatSpell(t *testing.T) {
 
 func TestCastCombatAnXenCorpFiltersTargetsAndAppliesFailedSaves(t *testing.T) {
 	gs, mock, affected := setupCombatWithMonster(t, references.MonsterSkeleton, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(casterIdx)
 	caster.Intelligence = 255
@@ -73,10 +70,7 @@ func TestCastCombatAnXenCorpFiltersTargetsAndAppliesFailedSaves(t *testing.T) {
 }
 
 func TestFleeingMonsterRecoveryUsesOriginalUpperBoundary(t *testing.T) {
-	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
+	_, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
 	monster.SetCurrentHP(monster.MaxHP() - 2)
 
 	recoverFleeingMonsterHP(monster, newSequenceRNG(2))
@@ -87,9 +81,6 @@ func TestFleeingMonsterRecoveryUsesOriginalUpperBoundary(t *testing.T) {
 
 func TestAnXenCorpRepelsPartyLoyalUndeadSummonLikeOriginalQueueScan(t *testing.T) {
 	gs, _, hostile := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	hostile.SetActive(false)
 	casterIndex := gs.CombatScene.GetActiveCombatantIndex()
 	gs.PartyState.GetCharacter(casterIndex).Intelligence = 255
@@ -112,9 +103,6 @@ func TestAnXenCorpRepelsPartyLoyalUndeadSummonLikeOriginalQueueScan(t *testing.T
 
 func TestFleeingMonsterMovesAwayFromNearestOpponent(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := isolateCombatPC(gs)
 	from, away, opponent := findStraightFleeTestPositions(t, gs, monster, 0)
 	gs.CombatScene.SetPartyMemberPosition(activeIdx, opponent)
@@ -136,9 +124,6 @@ func TestFleeingMonsterMovesAwayFromNearestOpponent(t *testing.T) {
 
 func TestFleeingMonsterEscapesAcrossEdgeWithoutDeathOrXP(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := isolateCombatPC(gs)
 	gs.CombatScene.SetPartyMemberPosition(activeIdx, references.Position{X: 5, Y: 5})
 	monster.SetPosition(references.Position{X: 0, Y: 5})
@@ -162,9 +147,6 @@ func TestFleeingMonsterEscapesAcrossEdgeWithoutDeathOrXP(t *testing.T) {
 
 func TestCorneredFleeingMonsterAttacksNearestOpponent(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := isolateCombatPC(gs)
 	center := references.Position{X: 5, Y: 5}
 	gs.CombatScene.SetPartyMemberPosition(activeIdx, references.Position{X: 5, Y: 4})
@@ -186,9 +168,6 @@ func TestCorneredFleeingMonsterAttacksNearestOpponent(t *testing.T) {
 
 func TestHostileFleeingMonsterBlocksVictoryUntilEscape(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	activeIdx := isolateCombatPC(gs)
 	gs.CombatScene.SetPartyMemberPosition(activeIdx, references.Position{X: 5, Y: 5})
 	monster.SetPosition(references.Position{X: 0, Y: 5})
@@ -204,9 +183,6 @@ func TestHostileFleeingMonsterBlocksVictoryUntilEscape(t *testing.T) {
 
 func TestOrdinaryMonsterCannotLeaveCombatMap(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	monster.SetPosition(references.Position{X: 0, Y: 5})
 	assert.False(t, isCombatPositionValidForMonster(gs, references.Position{X: -1, Y: 5}, monster, 0))
 	monster.SetFleeing(true)
@@ -215,9 +191,6 @@ func TestOrdinaryMonsterCannotLeaveCombatMap(t *testing.T) {
 
 func TestFleeingMonsterReevaluatesConditionAfterRecovery(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterGazer, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	monster.SetCurrentHP(9)
 	monster.SetFleeing(true)
 	activeIdx := isolateCombatPC(gs)

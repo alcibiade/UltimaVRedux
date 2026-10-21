@@ -358,9 +358,9 @@ func (g *GameScene) thenShowInputBoxConfigured(
 			).
 			Then(func() {
 				logging.Debug(logging.CategoryUI, "thenShowInputBox: While loop exited, removing dialog")
-				// Remove specific dialog instance from stack (safe with concurrent background queues)
+				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				g.dialogStack.RemoveWidgetInstance(inputDialog)
 				if len(instance) > 0 {
 					*instance[0] = nil
@@ -457,9 +457,9 @@ func (g *GameScene) thenShowCampDurationInput(
 				DialogPollingRateMs,
 			).
 			Then(func() {
-				// Remove specific dialog instance from stack (safe with concurrent background queues)
+				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				g.dialogStack.RemoveWidgetInstance(inputDialog)
 				g.keyboard.SetForceWaitAnyKey(KeyboardDebounceMs)
 			}).
@@ -545,9 +545,9 @@ func (g *GameScene) thenShowGuardSelection(
 				DialogPollingRateMs,
 			).
 			Then(func() {
-				// Remove specific dialog instance from stack (safe with concurrent background queues)
+				// Remove specific dialog instance from stack
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				if *dialog != nil {
 					g.dialogStack.RemoveWidgetInstance(*dialog)
 				}
@@ -620,7 +620,7 @@ func (g *GameScene) thenShowDungeonEarthquake() func(*event_queue.SequentialEven
 			Then(func() {
 				// Stage 4: Remove dialog from stack after fade completes
 				// Using RemoveWidgetInstance instead of PopModalDialog to avoid race condition
-				// where background queues might push dialogs on top before we pop
+				// where other dialogs might be pushed on top before we pop
 				g.dialogStack.RemoveWidgetInstance(dialog)
 			})
 	}
@@ -997,9 +997,6 @@ func (g *GameScene) thenHandleGuardTalk(
 					func(yesQ *event_queue.SequentialEventBuilder) {
 						yesQ.Then(func() {
 							paymentResult = g.gameState.CommitGuardTribute(review)
-							if paymentResult == game_state.GuardTributePaid {
-								g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
-							}
 						}).If(
 							func() bool { return paymentResult == game_state.GuardTributeInsufficientGold },
 							func(arrestQ *event_queue.SequentialEventBuilder) {

@@ -153,7 +153,7 @@ func TestOnCompleteIsSuppressedByShutdown(t *testing.T) {
 }
 
 func TestOnCompleteRejectsInvalidRegistration(t *testing.T) {
-	for _, kind := range []string{"nil_callback", "feedback", "background"} {
+	for _, kind := range []string{"nil_callback", "feedback"} {
 		t.Run(kind, func(t *testing.T) {
 			manager := NewEventQueueManager(func() int64 { return 0 }, nil)
 			queue := manager.Workflow("invalid")
@@ -163,8 +163,6 @@ func TestOnCompleteRejectsInvalidRegistration(t *testing.T) {
 				action = nil
 			case "feedback":
 				queue = manager.feedback("invalid")
-			case "background":
-				queue = manager.RegisterBackgroundQueue("invalid")
 			}
 			require.PanicsWithValue(t, "OnComplete requires a workflow and completion callback", func() {
 				queue.Sequential().OnComplete(action)

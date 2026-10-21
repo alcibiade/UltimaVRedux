@@ -36,7 +36,6 @@ func TestActiveDungeonSaveSnapshotRoundTrip(t *testing.T) {
 			require.NoError(t, err)
 			assert.Nil(t, hydrated.CurrentNPCAIController)
 			assert.False(t, hydrated.EventQueueManager.HasActiveWorkflows())
-			assert.False(t, hydrated.EventQueueManager.HasActiveBackgroundQueues())
 			assert.Equal(t, uint64(0), hydrated.activeDungeon.revision)
 			assert.Equal(t, uint64(0), hydrated.dungeonCommandSequence)
 			assert.Equal(t, state.MapState.Lighting.TorchMinutesRemaining(), hydrated.MapState.Lighting.TorchMinutesRemaining())

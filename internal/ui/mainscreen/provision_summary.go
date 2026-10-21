@@ -31,9 +31,6 @@ type ProvisionSummary struct {
 	frameInset          int
 	resourceLabelWidths [provisionColumnCount]int
 	resourceValueWidths [provisionColumnCount]int
-
-	// Refresh flag for SystemCallbacks integration
-	needsInventoryRefresh bool
 }
 
 const (
@@ -113,11 +110,6 @@ func (p *ProvisionSummary) SetBounds(bounds image.Rectangle) {
 	p.bounds = bounds
 }
 
-// MarkInventoryChanged flags that the inventory display needs refresh.
-func (p *ProvisionSummary) MarkInventoryChanged() {
-	p.needsInventoryRefresh = true
-}
-
 // Draw renders the four-row summary without changing gameplay state.
 func (p *ProvisionSummary) Draw(gameState *game_state.GameState, screen *ebiten.Image) {
 	if gameState == nil {
@@ -130,7 +122,6 @@ func (p *ProvisionSummary) Draw(gameState *game_state.GameState, screen *ebiten.
 
 		return
 	}
-	p.needsInventoryRefresh = false
 	if p.bounds.Empty() {
 		return
 	}

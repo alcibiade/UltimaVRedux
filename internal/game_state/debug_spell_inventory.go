@@ -27,7 +27,6 @@ func (g *GameState) SetDebugSpellQuantity(spell references.Spell, quantity uint1
 	}
 
 	g.PartyState.Inventory.Spells.Set(spell, after)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return []DebugInventoryChange{{Path: fmt.Sprintf("spells.%d", spell), Before: before, After: after}}, nil
 }
@@ -45,9 +44,6 @@ func (g *GameState) SetAllDebugSpellQuantitiesToMaximum() []DebugInventoryChange
 		changes = append(changes, DebugInventoryChange{
 			Path: fmt.Sprintf("spells.%d", spell), Before: before, After: party_state.ItemQuantitySmallMax,
 		})
-	}
-	if len(changes) > 0 {
-		g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 	}
 
 	return changes

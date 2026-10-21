@@ -11,21 +11,9 @@ import (
 )
 
 const (
-	maxSnapshotFrigateSkiffs   = references.MaxFrigateSkiffs
-	maxSnapshotSmashed         = 255
-	shadowlordTownMax          = 8
-	vehicleRulesVersion        = 5
-	playerKnowledgeVersion     = 7
-	loreKnowledgeVersion       = 12
-	shadowlordTownsVersion     = 8
-	questJournalVersion        = 9
-	aiOverrideOriginVersion    = 9
-	surfaceChestVersion        = 11
-	identityRulesVersion       = 11
-	continuationVersion        = 13
-	legacyTimingVersion        = 14
-	semanticChestUnitVersion   = 14
-	journalPresentationVersion = 16
+	maxSnapshotFrigateSkiffs = references.MaxFrigateSkiffs
+	maxSnapshotSmashed       = 255
+	shadowlordTownMax        = 8
 
 	experimentationKnowledgeDisplayName = "Experimentation"
 )
@@ -51,84 +39,42 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 	if snapshot.Version != expectedVersion {
 		add("version", "unsupported_version", fmt.Sprintf("version must be %d", expectedVersion))
 	}
-	if expectedVersion >= 17 {
-		if err := snapshot.LastConversation.Validate(); err != nil {
-			add("lastConversation", "invalid", err.Error())
-		}
+	if err := snapshot.LastConversation.Validate(); err != nil {
+		add("lastConversation", "invalid", err.Error())
 	}
 	if expectedVersion >= 25 {
 		if err := snapshot.Excerpts.Validate(); err != nil {
 			add("excerpts", "invalid", err.Error())
 		}
 	}
-	if expectedVersion >= 20 {
-		validateWorldJournal(snapshot, add)
-		validateChestAssessments(snapshot, add)
-	}
+	validateWorldJournal(snapshot, add)
+	validateChestAssessments(snapshot, add)
 	validateOpenDoor(snapshot, add)
-	if expectedVersion >= 24 {
-		validatePersonalStateV24(snapshot, add)
+	validatePersonalStateV24(snapshot, add)
+	if err := journal.ValidatePresentation(snapshot.Presentation); err != nil {
+		add("presentation", "invalid", err.Error())
 	}
-	if expectedVersion >= journalPresentationVersion {
-		if err := journal.ValidatePresentation(snapshot.Presentation); err != nil {
-			add("presentation", "invalid", err.Error())
-		}
-		limit := chronicleLimit(expectedVersion)
-		if len(snapshot.Presentation.Visits.Changes) > limit+11 {
-			add("presentation", "out_of_range", "change count exceeds the version's finite catalog")
-		}
-		for _, change := range snapshot.Presentation.Visits.Changes {
-			if change.Tab == journal.ChronicleTab && change.Entry > limit {
-				add("presentation", "out_of_range", "Chronicle key exceeds the version's finite catalog")
-			}
-		}
-		if expectedVersion == 16 {
-			for _, change := range snapshot.Presentation.Visits.Changes {
-				if change.Tab == journal.ChronicleTab && change.Entry > 40 {
-					add("presentation", "invalid", "version 16 Chronicle key exceeds 40")
-				}
-			}
-		}
-		if expectedVersion == 17 {
-			for _, change := range snapshot.Presentation.Visits.Changes {
-				if change.Tab == journal.ChronicleTab && change.Entry > 48 {
-					add("presentation", "invalid", "version 17 Chronicle key exceeds 48")
-				}
-			}
-		}
-		if expectedVersion == 18 {
-			for _, change := range snapshot.Presentation.Visits.Changes {
-				if change.Tab == journal.ChronicleTab && change.Entry > 49 {
-					add("presentation", "invalid", "version 18 Chronicle key exceeds 49")
-				}
-			}
+	if len(snapshot.Presentation.Visits.Changes) > journal.MaxChronicleEntries+11 {
+		add("presentation", "out_of_range", "change count exceeds the version's finite catalog")
+	}
+	for _, change := range snapshot.Presentation.Visits.Changes {
+		if change.Tab == journal.ChronicleTab && change.Entry > journal.MaxChronicleEntries {
+			add("presentation", "out_of_range", "Chronicle key exceeds the version's finite catalog")
 		}
 	}
-	if expectedVersion >= continuationVersion {
-		if snapshot.Continuation.ActivePlayerIndex < -1 || snapshot.Continuation.ActivePlayerIndex > 5 {
-			add("continuation.activePlayerIndex", "out_of_range", "active player index must be -1 or a party index from 0 through 5")
-		}
-		if snapshot.Continuation.BeggarKarmaCounter < 0 || snapshot.Continuation.BeggarKarmaCounter > 0xff {
-			add("continuation.beggarKarmaCounter", "out_of_range", "beggar karma counter must fit one byte")
-		}
+	if snapshot.Continuation.ActivePlayerIndex < -1 || snapshot.Continuation.ActivePlayerIndex > 5 {
+		add("continuation.activePlayerIndex", "out_of_range", "active player index must be -1 or a party index from 0 through 5")
 	}
-	if expectedVersion >= legacyTimingVersion &&
-		(snapshot.Continuation.CombatActionTimeCounter < 0 || snapshot.Continuation.CombatActionTimeCounter >= 10) {
+	if snapshot.Continuation.BeggarKarmaCounter < 0 || snapshot.Continuation.BeggarKarmaCounter > 0xff {
+		add("continuation.beggarKarmaCounter", "out_of_range", "beggar karma counter must fit one byte")
+	}
+	if snapshot.Continuation.CombatActionTimeCounter < 0 || snapshot.Continuation.CombatActionTimeCounter >= 10 {
 		add("continuation.combatActionTimeCounter", "out_of_range", "combat action time counter must be from 0 through 9")
 	}
 	validateDungeonDiscoveries(snapshot.Redux.DungeonDiscoveries, add)
-	if expectedVersion >= playerKnowledgeVersion {
-		validatePlayerKnowledge(snapshot.Redux.PlayerKnowledge, expectedVersion, add)
-	}
-	if expectedVersion >= questJournalVersion {
-		validateQuestJournal(
-			snapshot.Redux.QuestJournal,
-			snapshot.Progression.Shadowlords.Alive,
-			expectedVersion,
-			add,
-		)
-	}
-	validateParty(snapshot.Party, expectedVersion, add)
+	validatePlayerKnowledge(snapshot.Redux.PlayerKnowledge, add)
+	validateQuestJournal(snapshot.Redux.QuestJournal, snapshot.Progression.Shadowlords.Alive, add)
+	validateParty(snapshot.Party, add)
 	validatePosition("world.position", snapshot.World.Position, add)
 	validatePosition("world.lastLargeMapPosition", snapshot.World.LastLargeMapPosition, add)
 	validateDungeonSnapshot(snapshot, add)
@@ -162,33 +108,31 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 	if shadowlords.LastCalled < -1 || shadowlords.LastCalled >= ShadowlordCount || shadowlords.AutomaticPresence < -1 || shadowlords.AutomaticPresence >= ShadowlordCount {
 		add("progression.shadowlords", "out_of_range", "shadowlord identities are outside runtime ranges")
 	}
-	if expectedVersion >= shadowlordTownsVersion {
-		assignedTowns := make(map[int]struct{}, ShadowlordCount)
-		for index, town := range shadowlords.TownAssignments {
-			path := fmt.Sprintf("progression.shadowlords.townAssignments[%d]", index)
-			if town < 0 || town > shadowlordTownMax {
-				add(path, "out_of_range", "Shadowlord town assignment must be unassigned or town 1 through 8")
+	assignedTowns := make(map[int]struct{}, ShadowlordCount)
+	for index, town := range shadowlords.TownAssignments {
+		path := fmt.Sprintf("progression.shadowlords.townAssignments[%d]", index)
+		if town < 0 || town > shadowlordTownMax {
+			add(path, "out_of_range", "Shadowlord town assignment must be unassigned or town 1 through 8")
 
-				continue
-			}
-			if !shadowlords.Alive[index] && town != 0 {
-				add(path, "inconsistent", "defeated Shadowlords cannot retain a town assignment")
-			}
-			if town == 0 {
-				continue
-			}
-			if _, exists := assignedTowns[town]; exists {
-				add(path, "duplicate", "living Shadowlords must have unique town assignments")
-			}
-			assignedTowns[town] = struct{}{}
+			continue
 		}
+		if !shadowlords.Alive[index] && town != 0 {
+			add(path, "inconsistent", "defeated Shadowlords cannot retain a town assignment")
+		}
+		if town == 0 {
+			continue
+		}
+		if _, exists := assignedTowns[town]; exists {
+			add(path, "duplicate", "living Shadowlords must have unique town assignments")
+		}
+		assignedTowns[town] = struct{}{}
 	}
 	validateInventory(snapshot.Inventory, add)
 	validateEffects(snapshot.Effects, add)
 	if snapshot.Wind.Direction < 0 || snapshot.Wind.Direction > 4 || snapshot.Wind.UpdateCounter < 0 || snapshot.Wind.NextTickMs < 0 {
 		add("wind", "out_of_range", "wind state is outside runtime ranges")
 	}
-	validateVehicle("partyVehicle", snapshot.PartyVehicle, expectedVersion, add)
+	validateVehicle("partyVehicle", snapshot.PartyVehicle, add)
 	pendingDeliveryCount := 0
 	if snapshot.PartyVehicle != nil && snapshot.PartyVehicle.PendingDelivery {
 		pendingDeliveryCount++
@@ -196,14 +140,10 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 	}
 	unitKeys := make(map[[3]int]struct{}, len(snapshot.MapUnits))
 	controllerOrders := make(map[[2]int]map[int]struct{})
-	if expectedVersion == 12 && snapshot.NeedsMapUnitReconstruction() && len(snapshot.MapUnits) != 0 {
-		add("mapUnits", "inconsistent", "version 12 reconstruction requires an empty map-unit collection")
-	}
 	for index, unit := range snapshot.MapUnits {
 		path := fmt.Sprintf("mapUnits[%d]", index)
 		if unit.Kind != MapUnitKindEnemy && unit.Kind != MapUnitKindNPC &&
-			unit.Kind != MapUnitKindVehicle &&
-			(unit.Kind != MapUnitKindChest || expectedVersion < semanticChestUnitVersion) {
+			unit.Kind != MapUnitKindVehicle && unit.Kind != MapUnitKindChest {
 			add(path+".kind", "unsupported", "map unit kind is unsupported")
 		}
 		if unit.World < -1 || unit.World > 0 || unit.ControllerOrder < 0 || unit.NPCNum < 0 || unit.NPCNum >= 32 || unit.ReferenceID < 0 {
@@ -220,7 +160,7 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 				add(path+".consumedTalk3ScheduleSlot", "out_of_range", "consumed TALK3 schedule slot must identify one of the three NPC destinations")
 			}
 		}
-		if expectedVersion >= surfaceChestVersion && unit.SurfaceChestNumber != nil {
+		if unit.SurfaceChestNumber != nil {
 			if *unit.SurfaceChestNumber < 0 || *unit.SurfaceChestNumber > 0xff {
 				add(path+".surfaceChestNumber", "out_of_range", "surface chest number must fit one byte")
 			}
@@ -228,17 +168,10 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 				add(path+".surfaceChestNumber", "inconsistent", "surface chest authority is valid only for NPC or chest units")
 			}
 		}
-		if expectedVersion >= surfaceChestVersion && unit.Kind == MapUnitKindChest && unit.SurfaceChestNumber == nil {
+		if unit.Kind == MapUnitKindChest && unit.SurfaceChestNumber == nil {
 			add(path+".surfaceChestNumber", "required", "chest units require surface chest state")
 		}
-		if expectedVersion >= aiOverrideOriginVersion {
-			validateAIOverrideProvenance(
-				path,
-				unit,
-				snapshot.World.Position.Location,
-				add,
-			)
-		}
+		validateAIOverrideProvenance(path, unit, snapshot.World.Position.Location, add)
 		validatePosition(path+".position", unit.Position, add)
 		key := [3]int{unit.Position.Location, unit.World, unit.NPCNum}
 		if _, exists := unitKeys[key]; exists {
@@ -256,7 +189,7 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 		for pathIndex, position := range unit.CurrentPath {
 			validatePosition(fmt.Sprintf("%s.currentPath[%d]", path, pathIndex), position, add)
 		}
-		validateVehicle(path+".vehicle", unit.Vehicle, expectedVersion, add)
+		validateVehicle(path+".vehicle", unit.Vehicle, add)
 		if unit.Kind == MapUnitKindVehicle && unit.Vehicle == nil {
 			add(path+".vehicle", "required", "vehicle details are required")
 		}
@@ -375,7 +308,6 @@ func validateAIOverrideProvenance(
 func validateQuestJournal(
 	events []QuestJournalEventSnapshot,
 	shadowlordsAlive [ShadowlordCount]bool,
-	expectedVersion int,
 	add func(string, string, string),
 ) {
 	if events == nil {
@@ -384,32 +316,12 @@ func validateQuestJournal(
 		return
 	}
 	seen := make(map[[2]string]struct{}, len(events))
-	if expectedVersion >= 16 && len(events) > chronicleLimit(expectedVersion) {
+	if len(events) > journal.MaxChronicleEntries {
 		add("redux.questJournal", "out_of_range", "Chronicle exceeds the version's finite catalog")
-	}
-	if expectedVersion == 16 && len(events) > 40 {
-		add("redux.questJournal", "out_of_range", "version 16 Chronicle contains at most 40 entries")
-	}
-	if expectedVersion == 17 && len(events) > 48 {
-		add("redux.questJournal", "out_of_range", "version 17 Chronicle contains at most 48 entries")
-	}
-	if expectedVersion == 18 && len(events) > 49 {
-		add("redux.questJournal", "out_of_range", "version 18 Chronicle contains at most 49 entries")
-	}
-	if expectedVersion >= journalPresentationVersion && len(events) > journal.MaxChronicleEntries {
 		add("redux.questJournal", "out_of_range", fmt.Sprintf("quest journal contains at most %d first discoveries", journal.MaxChronicleEntries))
 	}
 	for index, event := range events {
 		path := fmt.Sprintf("redux.questJournal[%d]", index)
-		if expectedVersion < 20 && event.Subject == "journal.oppression.password" {
-			add(path+".subject", "unsupported", "Oppression password knowledge requires version 20")
-		}
-		if expectedVersion < 19 && event.Kind == QuestJournalEventKnowledgeLearned && event.Subject == "journal.stones.melody" {
-			add(path+".subject", "unsupported", "Stones melody knowledge requires version 19")
-		}
-		if expectedVersion < 18 && event.Kind == QuestJournalEventKnowledgeLearned && event.Subject == "journal.resistance.password" {
-			add(path+".subject", "unsupported", "Resistance password knowledge requires version 18")
-		}
 		if event.Sequence != uint64(index+1) {
 			add(path+".sequence", "not_contiguous", "quest journal sequence must match one-based insertion order")
 		}
@@ -418,7 +330,7 @@ func validateQuestJournal(
 			add(path, "duplicate", "quest journal kind and subject must be unique")
 		}
 		seen[key] = struct{}{}
-		if expectedVersion >= 17 && event.Kind == "item-acquired" {
+		if event.Kind == "item-acquired" {
 			if journal.ItemMilestoneTitle(event.Subject) == "" || event.Source != QuestJournalSourceGameplay ||
 				strings.TrimSpace(event.SourceName) == "" || event.OccurredOn == nil {
 				add(path, "invalid", "invalid acquisition milestone")
@@ -431,8 +343,7 @@ func validateQuestJournal(
 
 			continue
 		}
-		if expectedVersion >= journalPresentationVersion &&
-			(event.Kind == QuestJournalEventKnowledgeLearned || event.Kind == QuestJournalEventCodexAnswerLearned) {
+		if event.Kind == QuestJournalEventKnowledgeLearned || event.Kind == QuestJournalEventCodexAnswerLearned {
 			validateDiscoveryEvent(path, event, add)
 
 			continue
@@ -476,7 +387,7 @@ func validateQuestJournal(
 	}
 }
 
-func validatePlayerKnowledge(entries []PlayerKnowledgeSnapshot, expectedVersion int, add func(string, string, string)) {
+func validatePlayerKnowledge(entries []PlayerKnowledgeSnapshot, add func(string, string, string)) {
 	if entries == nil {
 		add("redux.playerKnowledge", "required", "player knowledge must be a non-null array")
 
@@ -496,20 +407,8 @@ func validatePlayerKnowledge(entries []PlayerKnowledgeSnapshot, expectedVersion 
 		switch entry.Category {
 		case KnowledgeCategorySpell:
 			validateSpellKnowledge(path, entry, add)
-		case KnowledgeCategoryShadowlord, KnowledgeCategoryShrine:
-			if expectedVersion < loreKnowledgeVersion {
-				add(path+".category", "unsupported", "player knowledge category is unsupported")
-
-				continue
-			}
-			validateLoreKnowledge(path, entry, expectedVersion, add)
-		case KnowledgeCategoryJournal, KnowledgeCategoryDungeon:
-			if expectedVersion < journalPresentationVersion {
-				add(path+".category", "unsupported", "player knowledge category is unsupported")
-
-				continue
-			}
-			validateLoreKnowledge(path, entry, expectedVersion, add)
+		case KnowledgeCategoryShadowlord, KnowledgeCategoryShrine, KnowledgeCategoryJournal, KnowledgeCategoryDungeon:
+			validateLoreKnowledge(path, entry, add)
 		default:
 			add(path+".category", "unsupported", "player knowledge category is unsupported")
 		}
@@ -528,21 +427,11 @@ func validateSpellKnowledge(path string, entry PlayerKnowledgeSnapshot, add func
 	}
 }
 
-func validateLoreKnowledge(path string, entry PlayerKnowledgeSnapshot, expectedVersion int, add func(string, string, string)) {
-	if expectedVersion < 20 && entry.Category == KnowledgeCategoryJournal && entry.Key == JournalKnowledgeOppressionPassword {
-		add(path+".key", "unsupported", "Oppression password knowledge requires version 20")
-	}
-	if expectedVersion < 19 && entry.Category == KnowledgeCategoryJournal && entry.Key == JournalKnowledgeStonesMelody {
-		add(path+".key", "unsupported", "Stones melody knowledge requires version 19")
-	}
-	if expectedVersion < 18 && entry.Category == KnowledgeCategoryJournal && entry.Key == JournalKnowledgeResistancePassword {
-		add(path+".key", "unsupported", "Resistance password knowledge requires version 18")
-	}
+func validateLoreKnowledge(path string, entry PlayerKnowledgeSnapshot, add func(string, string, string)) {
 	if !supportedLoreKnowledgeKey(entry.Category, entry.Key) {
 		add(path+".key", "unsupported", "lore knowledge key is unsupported for its category")
 	}
-	if expectedVersion >= journalPresentationVersion &&
-		(entry.Source.Kind == KnowledgeSourceObservation || entry.Source.Kind == KnowledgeSourceRevelation) {
+	if entry.Source.Kind == KnowledgeSourceObservation || entry.Source.Kind == KnowledgeSourceRevelation {
 		if strings.TrimSpace(entry.Source.DisplayName) == "" {
 			add(path+".source.displayName", "required", "lore source requires a display name")
 		}
@@ -838,10 +727,10 @@ func validateDungeonSnapshot(snapshot SaveSnapshot, add func(string, string, str
 }
 
 //nolint:cyclop // Fixed legacy roster and NPC flag constraints are explicit.
-func validateParty(party PartySnapshot, version int, add func(string, string, string)) {
+func validateParty(party PartySnapshot, add func(string, string, string)) {
 	activeCount := 0
 	seenInactive := false
-	if version >= identityRulesVersion && !party.Roster[0].Occupied {
+	if !party.Roster[0].Occupied {
 		add("party.roster[0].occupied", "required", "roster slot zero must contain the Avatar")
 	}
 	for index, character := range party.Roster {
@@ -858,19 +747,16 @@ func validateParty(party PartySnapshot, version int, add func(string, string, st
 			character.Strength < 0 || character.Strength > 255 || character.Dexterity < 0 || character.Dexterity > 255 || character.Intelligence < 0 || character.Intelligence > 255 ||
 			character.CurrentHP < 0 || character.MaximumHP < character.CurrentHP || character.MaximumHP > 65535 || character.CurrentMP < 0 || character.CurrentMP > character.Intelligence ||
 			character.MonthsAtInn < 0 || character.MonthsAtInn > 255 || character.ArmorClass < 0 || character.ArmorClass > 255 ||
-			character.Helmet < 0 || character.Helmet > 255 || character.Armor < 0 || character.Armor > 255 || character.Weapon < 0 || character.Weapon > 255 || character.Shield < 0 || character.Shield > 255 || character.Ring < 0 || character.Ring > 255 || character.Amulet < 0 || character.Amulet > 255 ||
-			(version < identityRulesVersion && !validPartyMap(character.PartyMap)) {
+			character.Helmet < 0 || character.Helmet > 255 || character.Armor < 0 || character.Armor > 255 || character.Weapon < 0 || character.Weapon > 255 || character.Shield < 0 || character.Shield > 255 || character.Ring < 0 || character.Ring > 255 || character.Amulet < 0 || character.Amulet > 255 {
 			add(path, "out_of_range", "occupied character has invalid identity, level, or vitals")
 		}
-		if version >= identityRulesVersion {
-			validateCharacterIdentity(path, character, add)
-			if index == 0 {
-				if validCharacterClass(character.Class) && character.Class != int(party_state.Avatar) {
-					add(path+".class", "inconsistent", "roster slot zero must contain the Avatar class")
-				}
-				if validPartyMap(character.PartyMap) && character.PartyMap != int(party_state.PartyMapActive) {
-					add(path+".partyMap", "inconsistent", "the Avatar in roster slot zero must be active")
-				}
+		validateCharacterIdentity(path, character, add)
+		if index == 0 {
+			if validCharacterClass(character.Class) && character.Class != int(party_state.Avatar) {
+				add(path+".class", "inconsistent", "roster slot zero must contain the Avatar class")
+			}
+			if validPartyMap(character.PartyMap) && character.PartyMap != int(party_state.PartyMapActive) {
+				add(path+".partyMap", "inconsistent", "the Avatar in roster slot zero must be active")
 			}
 		}
 		active := character.PartyMap == int(party_state.PartyMapActive)
@@ -1049,17 +935,17 @@ func validateMapUnitEnemyState(path string, unit MapUnitSnapshot, add func(strin
 	}
 }
 
-func validateVehicle(path string, vehicle *VehicleSnapshot, version int, add func(string, string, string)) {
+func validateVehicle(path string, vehicle *VehicleSnapshot, add func(string, string, string)) {
 	if vehicle == nil {
 		return
 	}
-	if vehicle.Type < 1 || vehicle.Type > 4 || vehicle.CurrentDirection < 0 || vehicle.CurrentDirection > 4 || vehicle.PreviousDirection < 0 || vehicle.PreviousDirection > 4 || vehicle.Skiffs < 0 || (version >= vehicleRulesVersion && vehicle.Skiffs > maxSnapshotFrigateSkiffs) || vehicle.Hull < 0 || vehicle.Hull > 99 || vehicle.SailState < 0 || vehicle.SailState > 1 {
+	if vehicle.Type < 1 || vehicle.Type > 4 || vehicle.CurrentDirection < 0 || vehicle.CurrentDirection > 4 || vehicle.PreviousDirection < 0 || vehicle.PreviousDirection > 4 || vehicle.Skiffs < 0 || vehicle.Skiffs > maxSnapshotFrigateSkiffs || vehicle.Hull < 0 || vehicle.Hull > 99 || vehicle.SailState < 0 || vehicle.SailState > 1 {
 		add(path, "out_of_range", "vehicle fields are outside runtime ranges")
 	}
-	if version >= vehicleRulesVersion && vehicle.Type != int(references.FrigateVehicle) && vehicle.Skiffs != 0 {
+	if vehicle.Type != int(references.FrigateVehicle) && vehicle.Skiffs != 0 {
 		add(path+".skiffs", "inconsistent", "only frigates can carry skiffs")
 	}
-	if version >= vehicleRulesVersion && vehicle.Type == int(references.FrigateVehicle) && vehicle.Hull == 0 {
+	if vehicle.Type == int(references.FrigateVehicle) && vehicle.Hull == 0 {
 		add(path+".hull", "inconsistent", "an active frigate must have positive hull")
 	}
 }

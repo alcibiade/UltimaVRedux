@@ -11,7 +11,7 @@ import (
 )
 
 func TestActivePlayerSelection_Integration(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
+	gs, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		WithPlayerAt(15, 15).
 		WithSystemCallbacks().
@@ -33,8 +33,6 @@ func TestActivePlayerSelection_Integration(t *testing.T) {
 
 	// Test setting active player to first character
 	t.Run("SetActivePlayer_FirstCharacter", func(t *testing.T) {
-		mockCallbacks.Reset()
-
 		success := gs.SetActivePlayer(0)
 		assert.True(t, success)
 		assert.True(t, gs.HasActivePlayer())
@@ -43,15 +41,10 @@ func TestActivePlayerSelection_Integration(t *testing.T) {
 		activePlayer := gs.GetActivePlayer()
 		assert.NotNil(t, activePlayer)
 		assert.Equal(t, "Alice", string(activePlayer.Name[:5]))
-
-		// Verify UpdateStatsDisplay callback was called
-		assert.True(t, mockCallbacks.StatsDisplayUpdated > 0)
 	})
 
 	// Test setting active player to second character
 	t.Run("SetActivePlayer_SecondCharacter", func(t *testing.T) {
-		mockCallbacks.Reset()
-
 		success := gs.SetActivePlayer(1)
 		assert.True(t, success)
 		assert.True(t, gs.HasActivePlayer())
@@ -60,28 +53,18 @@ func TestActivePlayerSelection_Integration(t *testing.T) {
 		activePlayer := gs.GetActivePlayer()
 		assert.NotNil(t, activePlayer)
 		assert.Equal(t, "Bob", string(activePlayer.Name[:3]))
-
-		// Verify UpdateStatsDisplay callback was called
-		assert.True(t, mockCallbacks.StatsDisplayUpdated > 0)
 	})
 
 	// Test clearing active player
 	t.Run("ClearActivePlayer", func(t *testing.T) {
-		mockCallbacks.Reset()
-
 		gs.ClearActivePlayer()
 		assert.False(t, gs.HasActivePlayer())
 		assert.Equal(t, -1, gs.GetActivePlayerIndex())
 		assert.Nil(t, gs.GetActivePlayer())
-
-		// Verify UpdateStatsDisplay callback was called
-		assert.True(t, mockCallbacks.StatsDisplayUpdated > 0)
 	})
 
 	// Test invalid player indices
 	t.Run("SetActivePlayer_InvalidIndices", func(t *testing.T) {
-		mockCallbacks.Reset()
-
 		// Debug: Check what character 2 actually looks like
 		char2 := gs.PartyState.GetCharacter(2)
 		t.Logf("Character 2: PartyStatus=%v, Name=%q", char2.PartyMap, string(char2.Name[:]))
@@ -93,9 +76,6 @@ func TestActivePlayerSelection_Integration(t *testing.T) {
 		// Empty character slot - force it to be empty for this test
 		gs.PartyState.GetCharacter(2).PartyMap = party_state.PartyMapUnrecruited
 		assert.False(t, gs.SetActivePlayer(2)) // Character 2 not set up
-
-		// No callbacks should be triggered for failed attempts
-		assert.Equal(t, 0, mockCallbacks.StatsDisplayUpdated)
 	})
 }
 
@@ -265,51 +245,6 @@ func TestActivePlayerSelectionClearsWhenCharacterBecomesUnavailable(t *testing.T
 			assert.False(t, state.HasActivePlayer())
 			assert.Equal(t, -1, state.GetActivePlayerIndex())
 			assert.Nil(t, state.GetActivePlayer())
-			assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 		})
 	}
-}
-
-func TestActivePlayerCallbackIntegration_Integration(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(15, 15).
-		WithSystemCallbacks().
-		Build()
-
-	// Set up a character
-	gs.PartyState.GetCharacter(0).PartyMap = party_state.PartyMapActive
-	gs.PartyState.GetCharacter(0).SetStatus(party_state.Good)
-	copy(gs.PartyState.GetCharacter(0).Name[:], "Alice")
-
-	// Test that callbacks are triggered correctly
-	t.Run("CallbacksTriggered", func(t *testing.T) {
-		mockCallbacks.Reset()
-
-		// Setting active player should trigger UpdateStatsDisplay
-		gs.SetActivePlayer(0)
-		assert.Equal(t, 1, mockCallbacks.StatsDisplayUpdated)
-
-		// Clearing active player should also trigger UpdateStatsDisplay
-		gs.ClearActivePlayer()
-		assert.Equal(t, 2, mockCallbacks.StatsDisplayUpdated)
-
-		// Setting to same player should still trigger callback
-		gs.SetActivePlayer(0)
-		gs.SetActivePlayer(0)
-		assert.Equal(t, 4, mockCallbacks.StatsDisplayUpdated)
-	})
-
-	// Test with nil SystemCallbacks (should not crash)
-	t.Run("NilSystemCallbacks", func(t *testing.T) {
-		originalCallbacks := gs.SystemCallbacks
-		gs.SystemCallbacks = nil
-
-		// Should not crash
-		assert.True(t, gs.SetActivePlayer(0))
-		gs.ClearActivePlayer()
-
-		// Restore callbacks
-		gs.SystemCallbacks = originalCallbacks
-	})
 }

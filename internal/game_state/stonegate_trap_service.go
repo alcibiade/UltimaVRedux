@@ -115,7 +115,6 @@ func (g *GameState) CommitStonegateTrap(expectedFingerprint string) (StonegateTr
 		})
 	}
 	g.clearUnavailableActivePlayer()
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	outcome.AfterFingerprint = g.stonegateTrapFingerprint()
 
 	return outcome, nil

@@ -36,8 +36,8 @@ verify all stream transitions, full-dictionary cases, padding, or corruption
 acceptance against original binary samples. A functioning Redux decoder is not
 independent proof of every original decoder rule.
 
-**Implementation:** `internal/graphics/legacy/lzw.go`
-**Tests:** `internal/graphics/legacy/lzw_test.go`, `internal/graphics/legacy/integration_test.go`
+**Implementation:** `pkg/graphics/legacy/lzw.go`
+**Tests:** `pkg/graphics/legacy/lzw_test.go`, `pkg/graphics/legacy/integration_test.go`
 
 ### GFX-0002
 
@@ -70,8 +70,8 @@ the dungeon/item/monster builder uses input dimensions directly. Redux validates
 payload dimensions and offsets for its supported archives. Exact correspondence
 of every shipped file or nonzero high word is not claimed.
 
-**Implementation:** `internal/graphics/legacy/decode.go`, `internal/graphics/legacy/catalog.go`
-**Tests:** `internal/graphics/legacy/decode_test.go`
+**Implementation:** `pkg/graphics/legacy/decode.go`, `pkg/graphics/legacy/catalog.go`
+**Tests:** `pkg/graphics/legacy/decode_test.go`
 
 ### GFX-0003
 
@@ -94,8 +94,8 @@ of opaque black were not independently verified in the drawing implementation
 or authored masks in this pass. Redux's image/mask interpretation must not be
 promoted into a universal original corruption or compositing specification.
 
-**Implementation:** `internal/graphics/legacy/decode.go`
-**Tests:** `internal/graphics/legacy/decode_test.go`
+**Implementation:** `pkg/graphics/legacy/decode.go`
+**Tests:** `pkg/graphics/legacy/decode_test.go`
 
 ### GFX-0004
 
@@ -117,8 +117,8 @@ row bytes. First payload is `0xB8`, total expanded size `0x4FC` (1,276 bytes).
 Space has width zero but still owns a stored record. Glyph width differs from
 text advance: spacing and nine-pixel line advance are separate rendering rules.
 
-**Implementation:** `internal/graphics/legacy/decode.go`
-**Tests:** `internal/graphics/legacy/decode_test.go`
+**Implementation:** `pkg/graphics/legacy/decode.go`
+**Tests:** `pkg/graphics/legacy/decode_test.go`
 
 ### GFX-0005
 
@@ -138,8 +138,8 @@ Redux expects 128 consecutive 8x8 glyphs, one MSB-first byte per row, requiring
 font files. The proportional font's working format is not proof of every fixed
 font's layout.
 
-**Implementation:** `internal/graphics/legacy/decode.go`
-**Tests:** `internal/graphics/legacy/decode_test.go`
+**Implementation:** `pkg/graphics/legacy/decode.go`
+**Tests:** `pkg/graphics/legacy/decode_test.go`
 
 ### GFX-0006
 
@@ -182,5 +182,5 @@ uses END/ENDSC. `TILES.16` shares the compression wrapper but its physical archi
 layout is not specified by these non-tile records. Intermediate build inputs are
 not automatically shipped runtime formats.
 
-**Implementation:** `internal/graphics/legacy/decode.go`, `internal/graphics/legacy/catalog.go`
-**Tests:** `internal/graphics/legacy/decode_test.go`
+**Implementation:** `pkg/graphics/legacy/decode.go`, `pkg/graphics/legacy/catalog.go`
+**Tests:** `pkg/graphics/legacy/decode_test.go`

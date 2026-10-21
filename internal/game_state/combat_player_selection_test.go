@@ -19,9 +19,6 @@ func newCombatPlayerSelectionTestState(t *testing.T) (*GameState, *MockSystemCal
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if state == nil {
-		return nil, nil
-	}
 	for index := range party_state.MaxActiveParty {
 		character := state.PartyState.GetCharacter(index)
 		character.PartyMap = party_state.PartyMapActive
@@ -84,9 +81,6 @@ func TestCombatPlayerSelectionRejectsUnavailableEncounterEntries(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			state, _ := newCombatPlayerSelectionTestState(t)
-			if state == nil {
-				return
-			}
 			require.True(t, state.SelectCombatPlayer(0))
 			test.mutate(state, CombatTurnIdentity{IsPartyMember: true, EntityIndex: 4})
 			before := state.CombatScene.TurnQueue.actionCount
@@ -105,9 +99,6 @@ func TestCombatPlayerSelectionRejectsUnavailableEncounterEntries(t *testing.T) {
 
 func TestCombatPlayerSelectionRapidSwitchAndClear(t *testing.T) {
 	state, _ := newCombatPlayerSelectionTestState(t)
-	if state == nil {
-		return
-	}
 	// No elapsed-time advancement between selections: valid rapid input must
 	// retain DEX ordering and terminate without relying on keyboard debounce.
 	for range 10 {
@@ -132,9 +123,6 @@ func TestCombatPlayerSelectionRejectsOverlappingPresentation(t *testing.T) {
 	for _, blockingWorkflow := range []bool{false, true} {
 		t.Run(map[bool]string{false: "scheduled step", true: "workflow"}[blockingWorkflow], func(t *testing.T) {
 			state, _ := newCombatPlayerSelectionTestState(t)
-			if state == nil {
-				return
-			}
 			require.True(t, state.SelectCombatPlayer(0))
 			if blockingWorkflow {
 				state.EventQueueManager.Workflow("selection_test").Priority(event_queue.PriorityHigh).
@@ -157,9 +145,6 @@ func TestCombatAdvanceRecoversUnreachableSoloSelection(t *testing.T) {
 	for _, presented := range []bool{false, true} {
 		t.Run(map[bool]string{false: "immediate", true: "presented"}[presented], func(t *testing.T) {
 			state, _ := newCombatPlayerSelectionTestState(t)
-			if state == nil {
-				return
-			}
 			state.CombatScene.presentTurns = presented
 			state.departPCFromCombat(CombatTurnIdentity{IsPartyMember: true, EntityIndex: 4})
 			// Bypass command validation to exercise the turn-loop invariant itself.
@@ -179,9 +164,6 @@ func TestCombatAdvanceRecoversUnreachableSoloSelection(t *testing.T) {
 
 func TestCombatPlayerSelectionAllowsSurvivingClone(t *testing.T) {
 	state, _ := newCombatPlayerSelectionTestState(t)
-	if state == nil {
-		return
-	}
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: 4}
 	clone := state.CombatScene.addPCCloneFromSource(source, 4, references.Position{X: 5, Y: 5},
 		NewCombatPCProvider(state.PartyState.GetCharacter(4)))
@@ -195,9 +177,6 @@ func TestCombatPlayerSelectionAllowsSurvivingClone(t *testing.T) {
 
 func TestCombatPlayerSelectionAdvancesControlledMonsterWithMatchingRosterIndex(t *testing.T) {
 	state, _ := newCombatPlayerSelectionTestState(t)
-	if state == nil {
-		return
-	}
 	_, monsterIndex := addControlledTestMonster(state, references.MonsterOrc,
 		references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyParty)
 	authorizeControlledMonster(state, monsterIndex)
@@ -213,9 +192,6 @@ func TestCombatPlayerSelectionAdvancesControlledMonsterWithMatchingRosterIndex(t
 
 func TestCombatPlayerSelectionWaitsForInterveningHostileTurn(t *testing.T) {
 	state, _ := newCombatPlayerSelectionTestState(t)
-	if state == nil {
-		return
-	}
 	_, monsterIndex := addControlledTestMonster(state, references.MonsterOrc,
 		references.Position{X: 5, Y: 5}, CombatMonsterLoyaltyMonster)
 	for _, entry := range state.CombatScene.TurnQueue.entries {

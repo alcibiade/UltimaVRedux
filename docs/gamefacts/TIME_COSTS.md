@@ -223,10 +223,9 @@ Neither the requested bounds nor this reduction establish exact probabilities
 without the original generator.
 
 Redux retains a separate opening-campaign flag, imports its legacy byte, and
-persists `continuation.openingCampaignEncounterReduction`. Frozen native versions
-12/13 lacked the field and infer it from opening Year 139, Month 4; later versions
-carry it. Tests distinguish the live flag from calendar date. Full monster-count
+persists `continuation.openingCampaignEncounterReduction` in every supported
+native version. Tests distinguish the live flag from calendar date. Full monster-count
 distribution and special-category equivalence remain outside this review.
 
-**Implementation:** `internal/game_state/turn.go`, `internal/game_state/legacy_save_game.go`, `internal/save_snapshot/migration_v12.go`, `internal/save_snapshot/migration_v13.go`, `internal/save_snapshot/migration_v14.go`
+**Implementation:** `internal/game_state/turn.go`, `internal/game_state/legacy_save_game.go`
 **Tests:** `internal/game_state/combat_encounter_test.go`

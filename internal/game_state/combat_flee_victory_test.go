@@ -42,9 +42,6 @@ func setupCombatForFlee(
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return nil, nil, nil
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -81,9 +78,6 @@ func setupCombatNoMonsters(
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return nil, nil
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)
@@ -113,9 +107,6 @@ func TestCombatFlee_PCWalksOffEdge(t *testing.T) {
 		monsterPos,
 		references.MonsterOrc,
 	)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	require.True(t, gs.CombatScene.IsPartyMemberActive(activeIdx),
@@ -143,9 +134,6 @@ func TestCombatFlee_PublishesEventWithMonstersRemaining(t *testing.T) {
 		references.Position{X: 5, Y: 5},
 		references.MonsterOrc,
 	)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	gs.MoveCombatCharacter(references.Left)
@@ -161,9 +149,6 @@ func TestCombatFlee_PublishesEventWithMonstersRemaining(t *testing.T) {
 // path when leaving an already-cleared battlefield.
 func TestCombatFlee_PublishesEventWithoutMonsters(t *testing.T) {
 	gs, mock := setupCombatNoMonsters(t, references.Position{X: 0, Y: 5})
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	result := gs.MoveCombatCharacter(references.Left)
@@ -195,9 +180,6 @@ func TestCombatFlee_AllEdgeDirections(t *testing.T) {
 				references.Position{X: 5, Y: 5},
 				references.MonsterOrc,
 			)
-			if gs == nil {
-				return
-			}
 
 			result := gs.MoveCombatCharacter(tc.dir)
 			assert.Equal(t, CombatMoveFled, result,
@@ -213,9 +195,6 @@ func TestCombatFlee_AllEdgeDirections(t *testing.T) {
 // sets the Victory flag and checkCombatEndConditions returns CombatVictory.
 func TestCombatVictory_AllMonstersKilled(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	// Equip Glass Sword for guaranteed kill
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
@@ -238,9 +217,6 @@ func TestCombatVictory_AllMonstersKilled(t *testing.T) {
 // active hostile monsters determine whether combat has been won.
 func TestCombatVictory_FriendlySummonDoesNotBlockVictory(t *testing.T) {
 	gs, _, hostile := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	partyLoyal := NewCombatMonster(
 		references.MonsterOrc,
@@ -264,9 +240,6 @@ func TestCombatVictory_FriendlySummonDoesNotBlockVictory(t *testing.T) {
 // (idempotent — won't re-trigger victory).
 func TestCombatVictory_SecondCheckReturnsNotEnded(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -291,9 +264,6 @@ func TestCombatVictory_SecondCheckReturnsNotEnded(t *testing.T) {
 // victory returns true and transitions out of combat.
 func TestCombatVictory_EscapeKeyExitsCombat(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	character := gs.PartyState.GetCharacter(activeIdx)
@@ -326,9 +296,6 @@ func TestCombatDefeat_AllPCsFledWithMonsters(t *testing.T) {
 		references.Position{X: 5, Y: 5},
 		references.MonsterOrc,
 	)
-	if gs == nil {
-		return
-	}
 
 	// Deactivate all PCs except the first active one (already at edge)
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
@@ -362,9 +329,6 @@ func TestCombatDefeat_AllPCsFledWithMonsters(t *testing.T) {
 // and transitions out of combat (no defeat message).
 func TestCombatEvacuated_AllPCsFledNoMonsters(t *testing.T) {
 	gs, mock := setupCombatNoMonsters(t, references.Position{X: 0, Y: 5})
-	if gs == nil {
-		return
-	}
 
 	// Deactivate all PCs except the active one
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
@@ -403,9 +367,6 @@ func TestCombatEscape_NotYetWhenNoVictory(t *testing.T) {
 		references.Position{X: 3, Y: 3},
 		references.MonsterOrc,
 	)
-	if gs == nil {
-		return
-	}
 
 	// Victory is false (default)
 	require.False(t, gs.CombatScene.Victory, "Victory should be false initially")
@@ -429,9 +390,6 @@ func TestCombatMovement_BlockedNotFled(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
 	require.NoError(t, err)

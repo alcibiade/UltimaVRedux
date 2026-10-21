@@ -122,56 +122,18 @@ func TestRepositoryRevisionUsesCanonicalContent(t *testing.T) {
 	}
 }
 
-func TestRepositoryPromotesVersionTwelveReconstructionWithRawRevision(t *testing.T) {
-	t.Parallel()
-	repository, roots := newTestRepository(t)
-	snapshot := validSnapshot()
-	snapshot.MapUnits = nil
-	data := versionTwelveEnvelopeData(t, snapshot, func(snapshot map[string]any) {
-		snapshot["redux"].(map[string]any)["reconstructMapUnits"] = true
-	})
-	path := filepath.Join(roots[0], "promoted-v12.json")
-	if err := os.MkdirAll(roots[0], 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	record, err := repository.Load("project:promoted-v12")
-	if err != nil {
-		t.Fatalf("Load(version 12) error = %v", err)
-	}
-	if record.Envelope.Snapshot.Version != CurrentVersion ||
-		record.Envelope.Snapshot.Continuation != (ContinuationSnapshot{ActivePlayerIndex: -1, BeggarKarmaCounter: 100}) ||
-		!record.Envelope.Snapshot.NeedsMapUnitReconstruction() {
-		t.Fatalf("Load(version 12) snapshot = %#v", record.Envelope.Snapshot)
-	}
-	if _, err = EncodeCanonical(record.Envelope); !errors.Is(err, ErrInvalidEnvelope) {
-		t.Fatalf("EncodeCanonical(version 12 reconstruction) error = %v, want ErrInvalidEnvelope", err)
-	}
-	if record.Revision != repositoryfs.ContentRevision(data) {
-		t.Fatalf("Load(version 12 reconstruction) revision = %q, want raw historical %q", record.Revision, repositoryfs.ContentRevision(data))
-	}
-	retained, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(retained, data) {
-		t.Fatal("Load(version 12) rewrote the source record")
-	}
-}
-
-func TestRepositoryRejectsVersionElevenWithoutRewritingSource(t *testing.T) {
+func TestRepositoryPromotesMinimumVersionWithCanonicalRevision(t *testing.T) {
 	t.Parallel()
 	repository, roots := newTestRepository(t)
 	document := currentEnvelopeDocument(t, validSnapshot())
-	document["snapshot"].(map[string]any)["version"] = 11
+	body := document["snapshot"].(map[string]any)
+	body["version"] = MinimumVersion
+	delete(body, "excerpts")
 	data, err := json.Marshal(document)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(roots[0], "unsupported-v11.json")
+	path := filepath.Join(roots[0], "promoted-v24.json")
 	if err = os.MkdirAll(roots[0], 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -179,17 +141,57 @@ func TestRepositoryRejectsVersionElevenWithoutRewritingSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = repository.Load("project:unsupported-v11")
-	var unsupported *UnsupportedVersionError
-	if !errors.As(err, &unsupported) || unsupported.Version != 11 {
-		t.Fatalf("Load(version 11) error = %v, want typed UnsupportedVersionError", err)
+	record, err := repository.Load("project:promoted-v24")
+	if err != nil {
+		t.Fatalf("Load(version %d) error = %v", MinimumVersion, err)
+	}
+	if record.Envelope.Snapshot.Version != CurrentVersion || !record.Envelope.NeedsExcerptMigration() {
+		t.Fatalf("Load(version %d) snapshot = %#v", MinimumVersion, record.Envelope.Snapshot)
+	}
+	canonical, err := EncodeCanonical(record.Envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.Revision != repositoryfs.ContentRevision(canonical) {
+		t.Fatalf("Load(version %d) revision = %q, want canonical %q", MinimumVersion, record.Revision, repositoryfs.ContentRevision(canonical))
 	}
 	retained, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(retained, data) {
-		t.Fatal("Load(version 11) rewrote the source record")
+		t.Fatalf("Load(version %d) rewrote the source record", MinimumVersion)
+	}
+}
+
+func TestRepositoryRejectsUnsupportedVersionWithoutRewritingSource(t *testing.T) {
+	t.Parallel()
+	repository, roots := newTestRepository(t)
+	document := currentEnvelopeDocument(t, validSnapshot())
+	document["snapshot"].(map[string]any)["version"] = MinimumVersion - 1
+	data, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(roots[0], "unsupported-v23.json")
+	if err = os.MkdirAll(roots[0], 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = repository.Load("project:unsupported-v23")
+	var unsupported *UnsupportedVersionError
+	if !errors.As(err, &unsupported) || unsupported.Version != MinimumVersion-1 {
+		t.Fatalf("Load(unsupported version) error = %v, want typed UnsupportedVersionError", err)
+	}
+	retained, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(retained, data) {
+		t.Fatal("Load(unsupported version) rewrote the source record")
 	}
 }
 

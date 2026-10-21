@@ -213,8 +213,6 @@ func (g *GameState) FinishBedRest(state *BedRestState) {
 	}
 	if state.OldActivePlayer >= 0 {
 		g.SetActivePlayer(state.OldActivePlayer)
-	} else {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	}
 	state.Started = false
 	if state.PartyWipePending {

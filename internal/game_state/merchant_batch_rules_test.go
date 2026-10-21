@@ -58,8 +58,6 @@ func TestMerchantBatchEconomicUnits(t *testing.T) {
 					}
 					state.PartyState.Inventory.Gold.Set(gold)
 					assert.Zero(t, state.GetRNG().Calls(), "quotes must not draw theft")
-					refreshes := 0
-					state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
 					var count, receipt, theft uint16
 					var cost int
 					switch family {
@@ -105,7 +103,6 @@ func TestMerchantBatchEconomicUnits(t *testing.T) {
 					assert.Equal(t, expectedTheft, theft)
 					assert.Equal(t, remaining, int(state.PartyState.Inventory.Gold.Get()))
 					assert.Equal(t, rolls, state.GetRNG().Calls())
-					assert.Equal(t, 1, refreshes)
 				})
 			}
 		}

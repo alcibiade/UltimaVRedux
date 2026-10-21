@@ -99,8 +99,6 @@ func (eqm *EventQueueManager) reserveQueue(queue *NamedEventQueue) bool {
 			return false
 		}
 		eqm.feedbackQueues[queue.name] = queue
-	case queueLaneBackground:
-		panic("EventQueue: background queue reached normal start routing")
 	default:
 		panic("EventQueue: queue has unknown execution lane")
 	}
@@ -114,8 +112,6 @@ func (eqm *EventQueueManager) dispatchQueue(queue *NamedEventQueue) {
 		eqm.dispatchWorkflow(queue)
 	case queueLaneFeedback:
 		eqm.dispatchFeedback(queue)
-	case queueLaneBackground:
-		panic("EventQueue: background queue reached deferred dispatch")
 	default:
 		panic("EventQueue: queue has unknown execution lane")
 	}
@@ -416,7 +412,6 @@ func removeQueueAt(queues []*NamedEventQueue, index int) []*NamedEventQueue {
 
 // promoteNextPendingQueue promotes the highest priority pending queue to active
 // Called when the active queue completes
-// NOTE: Caller must hold eqm.mu lock
 func (eqm *EventQueueManager) promoteNextPendingQueue() {
 	// Clear active queue
 	eqm.activeQueue = nil
@@ -884,7 +879,6 @@ func (eqm *EventQueueManager) Shutdown() {
 	eqm.deferredStarts = nil
 	eqm.activeFeedbackQueue = nil
 	eqm.pendingFeedbackQueues = nil
-	eqm.activeBackgroundQueues = nil
 	if eqm.inputBlockCount != 0 {
 		panic(fmt.Sprintf("EventQueue: shutdown left %d input blocks owned", eqm.inputBlockCount))
 	}
@@ -919,123 +913,4 @@ func (eqm *EventQueueManager) cancelQueueForShutdown(queue *NamedEventQueue) {
 	queue.inputWaitCallback = nil
 	queue.onComplete = nil
 	queue.lifecycle = queueFinalized
-}
-
-// UpdateBackground processes all background queues concurrently with the main queue.
-// Called from gamescene_update.go after Update() to process visual effects.
-// Background queues never block input and run independently of main queue lifecycle.
-// All active background queues are processed in parallel - each fades independently.
-func (eqm *EventQueueManager) UpdateBackground() {
-	if eqm.shutdown {
-		return
-	}
-	eqm.updateBackground()
-	eqm.flushDeferredStarts()
-}
-
-func (eqm *EventQueueManager) updateBackground() {
-	if len(eqm.activeBackgroundQueues) == 0 {
-		return
-	}
-
-	currentTime := eqm.timeSource()
-
-	// Process ALL active background queues concurrently
-	// Collect queues that are still active after processing
-	remainingQueues := make([]*NamedEventQueue, 0, len(eqm.activeBackgroundQueues))
-
-	for _, queue := range eqm.activeBackgroundQueues {
-		previousContinuousCount := len(queue.continuousEvents)
-		logging.Debug(logging.CategoryGameState,
-			"EventQueue: UpdateBackground processing '%s' with %d events, currentTime=%d",
-			queue.name, len(queue.events), currentTime)
-
-		// Process delayed events (simplified - no input waiting for background queues)
-		// Track original length to preserve any events chained during execution
-		originalLen := len(queue.events)
-		remainingEvents := make([]*DelayedEvent, 0)
-
-		for i := range originalLen {
-			event := queue.events[i]
-			if event.ExecuteAt <= currentTime {
-				eqm.executeBackgroundEvent(queue, event, currentTime)
-				if eqm.shutdown {
-					return
-				}
-			} else {
-				remainingEvents = append(remainingEvents, event)
-			}
-		}
-
-		// Append any newly chained events (added during execution) to remaining events
-		if len(queue.events) > originalLen {
-			remainingEvents = append(remainingEvents, queue.events[originalLen:]...)
-		}
-
-		queue.events = remainingEvents
-
-		queue.continuousEvents = eqm.processContinuousEvents(queue, currentTime, previousContinuousCount)
-		if eqm.shutdown {
-			return
-		}
-
-		// Check if this queue is complete
-		if len(queue.events) == 0 && len(queue.continuousEvents) == 0 {
-			logging.Debug(logging.CategoryGameState,
-				"EventQueue: Background queue '%s' completed", queue.name)
-
-			// Remove from queues map
-			queueKey := "bg_" + queue.name
-			delete(eqm.queues, queueKey)
-			eqm.beginQueueFinalization(queue)
-			if eqm.shutdown {
-				return
-			}
-			eqm.completeQueueFinalization(queue)
-			// Don't add to remainingQueues - this queue is done
-		} else {
-			// Queue still has work - keep it active
-			remainingQueues = append(remainingQueues, queue)
-		}
-	}
-
-	// Update active queues to only those still running
-	eqm.activeBackgroundQueues = remainingQueues
-}
-
-// executeBackgroundEvent executes a single background event and handles chaining
-func (eqm *EventQueueManager) executeBackgroundEvent(
-	queue *NamedEventQueue,
-	event *DelayedEvent,
-	currentTime int64,
-) {
-	logging.Debug(logging.CategoryGameState,
-		"EventQueue: Executing background event in queue '%s'", queue.name)
-
-	// Execute callback
-	if err := eqm.runError(event.Action); err != nil {
-		logging.Debug(logging.CategoryGameState,
-			"EventQueue: Background event returned error: %v", err)
-	}
-	if eqm.shutdown {
-		return
-	}
-
-	// Handle chaining to next action
-	if event.NextAction != nil {
-		nextExecuteAt := currentTime + event.NextDelay
-		//nolint:exhaustruct
-		nextEvent := &DelayedEvent{
-			ExecuteAt: nextExecuteAt,
-			Action:    event.NextAction,
-		}
-		queue.events = append(queue.events, nextEvent)
-		logging.Debug(logging.CategoryGameState,
-			"EventQueue: Chained background action scheduled for %d", nextExecuteAt)
-	}
-}
-
-// HasActiveBackgroundQueues returns true if there are any active background queues
-func (eqm *EventQueueManager) HasActiveBackgroundQueues() bool {
-	return len(eqm.activeBackgroundQueues) > 0
 }

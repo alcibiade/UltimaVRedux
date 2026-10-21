@@ -18,7 +18,7 @@ func atlasEvidence() journal.AtlasLandmarkObservation {
 		SurveySource: journal.AtlasSourceLook}
 }
 
-func TestAtlasV20CodecSchemaAndHistoricalBoundaries(t *testing.T) {
+func TestAtlasV20CodecSchemaAndRequiredMembers(t *testing.T) {
 	schema, _ := compileCurrentNativeSaveSchema(t)
 	snapshot := validSnapshot()
 	snapshot.AtlasLandmarks = []journal.AtlasLandmarkObservation{atlasEvidence()}
@@ -28,19 +28,6 @@ func TestAtlasV20CodecSchemaAndHistoricalBoundaries(t *testing.T) {
 	decoded, err := Decode(data)
 	require.NoError(t, err)
 	require.Equal(t, snapshot, decoded.Snapshot)
-	for version := 12; version <= 19; version++ {
-		data = historicalV20TestData(t, version, snapshot)
-		decoded, err = Decode(data)
-		require.NoError(t, err)
-		require.Empty(t, decoded.Snapshot.AtlasLandmarks)
-		var document map[string]any
-		require.NoError(t, json.Unmarshal(data, &document))
-		document["snapshot"].(map[string]any)["atlasLandmarks"] = snapshot.AtlasLandmarks
-		data, err = json.Marshal(document)
-		require.NoError(t, err)
-		_, err = Decode(data)
-		require.Error(t, err, "historical v%d must reject atlas evidence", version)
-	}
 	for _, member := range []string{"atlasLandmarks", "site", "surveySource", "namedAt"} {
 		document := currentEnvelopeDocument(t, snapshot)
 		body := document["snapshot"].(map[string]any)

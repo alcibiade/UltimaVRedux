@@ -85,9 +85,6 @@ func TestCombatHUDFormatsMonsterVisibilityAndTeleportEvents(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth,
 	))

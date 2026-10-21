@@ -174,8 +174,6 @@ func TestCrystalBallClearsIneligibleActiveViewerBeforeFallback(t *testing.T) {
 
 			scene.StartCrystalBallWorkflow()
 			_, selector := waitForCrystalBallSelector(t, scene)
-			// Check the notification before a getter can itself clear a stale actor.
-			require.Equal(t, 1, callbacks.StatsDisplayUpdated)
 			require.Equal(t, -1, state.GetActivePlayerIndex())
 			require.NotEqual(t, 1, selector.GetCurrentOption().CharacterIndex)
 			selector.HandleEscape()

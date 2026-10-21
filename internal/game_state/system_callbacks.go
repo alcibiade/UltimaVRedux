@@ -18,7 +18,6 @@ var (
 	errCombatImpactCallbackRequired   = errors.New("VisualCallbacks.ShowCombatImpact is required")
 	errCombatEventCallbackRequired    = errors.New("CombatCallbacks.PublishEvent is required")
 	errCombatConclusionRequired       = errors.New("CombatCallbacks.PublishConclusion is required")
-	errStatsDisplayCallbackRequired   = errors.New("ScreenCallbacks.UpdateStatsDisplay is required")
 	errZStatsCallbackRequired         = errors.New("UICallbacks.ShowZStatsDossier is required")
 	errQuestJournalCallbackRequired   = errors.New("UICallbacks.ShowQuestJournalDossier is required")
 	errJournalChangedCallbackRequired = errors.New("UICallbacks.JournalChanged is required")
@@ -548,12 +547,6 @@ func (callbacks AudioCallbacks) validate() {
 
 // ScreenCallbacks handles screen management and UI updates
 type ScreenCallbacks struct {
-	// UpdateStatsDisplay immediately refreshes character stats
-	UpdateStatsDisplay func()
-
-	// RefreshInventoryDisplay immediately refreshes inventory/provisions display
-	RefreshInventoryDisplay func()
-
 	// UpdateDisplay refreshes presentation immediately after authoritative
 	// map changes, including newly revealed ground items.
 	UpdateDisplay func()
@@ -582,12 +575,6 @@ type ScreenCallbacks struct {
 
 // NewScreenCallbacks validates a complete named set of screen capabilities.
 func NewScreenCallbacks(callbacks ScreenCallbacks) ScreenCallbacks {
-	if callbacks.UpdateStatsDisplay == nil {
-		panic("ScreenCallbacks.UpdateStatsDisplay is required - cannot be nil")
-	}
-	if callbacks.RefreshInventoryDisplay == nil {
-		panic("ScreenCallbacks.RefreshInventoryDisplay is required - cannot be nil")
-	}
 	if callbacks.UpdateDisplay == nil {
 		panic("ScreenCallbacks.UpdateDisplay is required - cannot be nil")
 	}
@@ -999,9 +986,6 @@ func NewSystemCallbacks(
 	}
 	if visual.ShowCombatImpact == nil {
 		return nil, errCombatImpactCallbackRequired
-	}
-	if screen.UpdateStatsDisplay == nil {
-		return nil, errStatsDisplayCallbackRequired
 	}
 	if uiCallbacks.ShowYellDialogLargeMap == nil {
 		return nil, errors.New("UICallbacks.ShowYellDialogLargeMap is required")

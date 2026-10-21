@@ -57,8 +57,6 @@ func (g *GameScene) wireSystemCallbacks() error {
 	)
 
 	screenCallbacks := game_state.NewScreenCallbacks(game_state.ScreenCallbacks{
-		UpdateStatsDisplay:               g.updateStatsDisplay,
-		RefreshInventoryDisplay:          g.refreshInventoryDisplay,
 		UpdateDisplay:                    g.updateDisplay,
 		HideAllOverlays:                  g.HideAllOverlays,
 		ShowAllOverlays:                  g.ShowAllOverlays,

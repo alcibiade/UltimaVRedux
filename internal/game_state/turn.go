@@ -855,7 +855,6 @@ func (g *GameState) applyStarvationDamageWithFeedback() {
 			g.ShowDeathFeedback()
 		}
 	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 }
 
 func (g *GameState) applyStarvationDamage() []int {

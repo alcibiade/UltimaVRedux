@@ -90,10 +90,6 @@ func TestGetManagerHasCanonicalIdentity(t *testing.T) {
 	manager := GetManager()
 	secondLookup := GetManager()
 	assert.Same(t, manager, secondLookup)
-
-	callbackCount := len(manager.onResolutionChange)
-	secondLookup.RegisterResolutionChangeCallback(func(_, _ int) {})
-	assert.Len(t, manager.onResolutionChange, callbackCount+1)
 }
 
 func TestConfigureResizableSetsEnabledAndMinimumLimits(t *testing.T) {
@@ -163,8 +159,6 @@ func TestInitializeModeAvoidsRuntimeWindowPosition(t *testing.T) {
 func TestRequestModeWaitsForDelayedBackendObservation(t *testing.T) {
 	backend := newFakeBackend()
 	manager := newDisplayManager(backend)
-	var callbacks int
-	manager.RegisterResolutionChangeCallback(func(_, _ int) { callbacks++ })
 
 	require.NoError(t, manager.RequestMode(config.ModeFullscreen, 1280, 720))
 	assert.Equal(t, config.ModeWindowed, manager.Mode())
@@ -172,13 +166,11 @@ func TestRequestModeWaitsForDelayedBackendObservation(t *testing.T) {
 	assert.True(t, manager.IsTransitionPending())
 	assert.False(t, manager.Update())
 	assert.True(t, manager.IsTransitionPending())
-	assert.Zero(t, callbacks)
 
 	backend.fullscreen = true
 	assert.True(t, manager.Update())
 	assert.Equal(t, config.ModeFullscreen, manager.Mode())
 	assert.False(t, manager.IsTransitionPending())
-	assert.Equal(t, 1, callbacks)
 }
 
 func TestUnobservedRequestTimesOutAndCanBeRetried(t *testing.T) {

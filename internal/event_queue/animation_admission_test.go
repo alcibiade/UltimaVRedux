@@ -8,7 +8,7 @@ import (
 )
 
 func TestAnimationAdmissionExcludesPreLaunchDeltaInEveryLane(t *testing.T) {
-	for _, lane := range []string{"workflow", "feedback", "background"} {
+	for _, lane := range []string{"workflow", "feedback"} {
 		t.Run(lane, func(t *testing.T) {
 			var now int64
 			manager := NewEventQueueManager(func() int64 { return now }, nil)
@@ -20,8 +20,6 @@ func TestAnimationAdmissionExcludesPreLaunchDeltaInEveryLane(t *testing.T) {
 				Animate(200, func(progress float32) { frames = append(frames, progress) }).
 				Then(func() { completed++ }).Wait(80).Then(func() {}).
 				Finally(func() { finalized++ }).Start()
-			// The legacy background lane intentionally chains delayed callbacks
-			// across updates. Pump at one timestamp without altering that policy.
 			pump := func() {
 				for range 8 {
 					update()
@@ -55,7 +53,7 @@ func TestAnimationAdmissionExcludesPreLaunchDeltaInEveryLane(t *testing.T) {
 }
 
 func TestAnimationAdmissionPreservesExistingContinuousDelta(t *testing.T) {
-	for _, lane := range []string{"workflow", "feedback", "background"} {
+	for _, lane := range []string{"workflow", "feedback"} {
 		t.Run(lane, func(t *testing.T) {
 			var now int64
 			manager := NewEventQueueManager(func() int64 { return now }, nil)
@@ -86,15 +84,13 @@ func animationAdmissionLane(manager *EventQueueManager, lane string) (*NamedEven
 	switch lane {
 	case "feedback":
 		return manager.feedback("animation"), manager.UpdateFeedback
-	case "background":
-		return manager.RegisterBackgroundQueue("animation"), manager.UpdateBackground
 	default:
 		return manager.Workflow("animation"), manager.Update
 	}
 }
 
 func TestZeroDurationAnimationAdmissionCompletesOnceInEveryLane(t *testing.T) {
-	for _, lane := range []string{"workflow", "feedback", "background"} {
+	for _, lane := range []string{"workflow", "feedback"} {
 		t.Run(lane, func(t *testing.T) {
 			var now int64
 			manager := NewEventQueueManager(func() int64 { return now }, nil)

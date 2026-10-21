@@ -16,11 +16,12 @@ The executable Draft 2020-12 contract is
 frozen V16–V24 sibling resources loaded locally. Assert its version-aware
 `ultima5-world-journal` format as well as structural validation. Go DTOs and the
 strict codec in `internal/save_snapshot` own the current wire contract.
-Versions 12 through 24 remain frozen strict promotion sources, including
-[`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json). The
-envelope-2/snapshot-15 schema and archived envelope-1 validation shapes remain frozen.
-Snapshot-body promotion does not make an envelope-1 file loadable.
-Versions 4 through 11 remain archived schemas but are not runtime decode paths.
+Version 24 (first shipped in `v0.1.0-preview.1`) is the only frozen strict
+promotion source, described by
+[`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json).
+Frozen V16–V23 schemas remain solely because later schemas reuse their
+definitions; they are not decode paths. See
+[Snapshot Version Compatibility](#snapshot-version-compatibility).
 
 Schema `$id` values use this repository's canonical namespace; cross-file `$ref`
 values use sibling filenames and unchanged JSON pointers. Register those local
@@ -51,7 +52,7 @@ with the same playthrough ID are independent. Current-format loads and Journal
 browsing never access external notebooks, including when the saved list is empty.
 An unsaved game can keep excerpts; a portable save needs no companion notebook.
 
-**Temporary old-save compatibility:** strict V12–V24 decode records transient
+**Temporary old-save compatibility:** strict V24 decode records transient
 envelope provenance through `NeedsExcerptMigration()`. Pure schema migration
 does no I/O. Before constructing a replacement scene, the application imports
 the matching `<player-save-dir>/excerpts/<playthrough-id>.json` through the
@@ -75,8 +76,7 @@ for external-notebook saves is retired; embedded persistence remains independent
 These additions share **one snapshot version, 24**, within unchanged envelope 2.
 They are checkpoint state, distinct from transient readers; excerpts now also
 follow their checkpoint under V25. Root names below are defined in `snapshot.go`;
-`migration_v24.go` and `validation_v24.go` in `internal/save_snapshot` own promotion
-and cross-field validation.
+`validation_v24.go` in `internal/save_snapshot` owns cross-field validation.
 
 | Current wire field | Durable meaning |
 |---|---|
@@ -110,10 +110,8 @@ daytime eligibility still applies. An unmeasured record has zero survey and surv
 context; an ineligible revisit at the same placement retains an existing survey.
 Current-placement and sticky origin-retirement rules are unchanged.
 Capture/hydration preserves the evidence without deriving observations or surveys
-from live placement, renderer state or newly acquired tools. Frozen V20–V23
-continue to accept Look only after prior recognition and reject
-`firstSource: "look"` before promotion. Version-aware codec/schema coverage is in
-`internal/save_snapshot/moongate_look_test.go`; the shared validation is in
+from live placement, renderer state or newly acquired tools. Codec/schema coverage
+is in `internal/save_snapshot/moongate_look_test.go`; the shared validation is in
 `internal/save_snapshot/validation_v20.go`.
 
 Fleet validation checks parked and boarded vehicles together: nonzero IDs must
@@ -121,7 +119,7 @@ be unique, no greater than `atlasFleet.lastId`, and belong only to frigates or
 skiffs. A nonzero `mapUnits[].vehicle.vesselId` additionally requires the enclosing
 map unit to have `kind: vehicle`; vehicle details on another unit kind cannot
 grant registration. Pending deliveries cannot already be registered. Boat-use
-boundaries with sextant possession allocate identity; possession alone, readers, historical
+boundaries with sextant possession allocate identity; possession alone, readers,
 promotion and hydration do not register boats or backfill pre-sextant history.
 Atlas positions are derived from actual eligible parked surface units; boarded,
 removed, destroyed and pending-delivery boats do not leave stale map entries.
@@ -135,23 +133,12 @@ the original date/source/identity. It authorizes the complete four-paragraph clu
 not another event or disclosure of Doom's unspoken name. Shrine completion and
 word knowledge alone do not prove full revelation.
 
-V12–V23 promotion starts with empty notes and zero watermark, fleet watermark/IDs
-zero, and Codex completion false. Only exact obsolete Lord British chest-death
-flags for NPCs 23–25 become corresponding `lastOpened` dates, using the **saved
-calendar date**, and only those flags are removed. Off-floor absence, unrelated
-NPC flags and current player position do not prove an opening. Proven live
-authored chest identities are retained without rolling loot or inventing a child
-lifetime. V23's timer, surveys, naming/receipt provenance, assessments and other
-state are preserved; V12–V22 first retain their established historical promotion
-semantics. Frozen DTOs include nested map-unit and vehicle shapes, so V24-only
-fields do not become accepted members of old versions.
-
 Capture/hydration in `internal/game_state/save_snapshot_personal.go` copies the
 three optional dates, note records and fleet watermark, restores chest lifetime
 identity before physical state/assessment, and preserves Codex completion.
 `NewGameStateFromSaveSnapshot` installs daily history through
 `restoreBasementChestHistory` **before any controller population**, including
-historical off-floor reconstruction. Saved surviving objects are restored
+legacy-import off-floor reconstruction. Saved surviving objects are restored
 afterward; reconstruction cannot recreate a consumed daily definition first.
 Hydration is continuation, **not basement entry or boat use**: it must retain
 saved chest absence even after midnight, plus actual surviving chests and loot.
@@ -195,20 +182,12 @@ member and expands the finite atlas domain without changing survey member shapes
   create naming evidence, authorize an interior coordinate, or act as a general
   source of daylight survey authority.
 
-All supported historical versions 12–22 promote with `openDoor: null` and no
-inferred receipt or Guardians evidence. V22 has concrete frozen root and nested
-survey DTOs, preserving flexible measurements, retirement, dates, sources,
-metadata, and nil-versus-empty collections by value. It does not rerun older
-possession or retirement backfills. Its schema and accepted domain remain
-unchanged: at most 38 atlas landmarks, no Guardians or receipt sources, and no
-`openDoor` member even when null. V12–V21 likewise keep their frozen contracts.
-
 The V23 schema loads frozen V16–V22 siblings locally. Assert the version-aware
 `ultima5-world-journal` format as well as the structural schema: the registration
 uses `validateWorldJournal`, `validateChestAssessments`, and `validateOpenDoor`.
 Atlas source/site/name authority is checked by `journal.ValidateAtlasLandmarks`;
 native survey validation allows the daytime exception only for receipt survey
-provenance. Codec/schema and historical-boundary regressions are in
+provenance. Codec/schema regressions are in
 `internal/save_snapshot/migration_v23_test.go`. Installed-terrain compatibility
 and next-turn restoration are tested separately in
 `internal/game_state/save_snapshot_doors_test.go`.
@@ -243,22 +222,11 @@ current configuration or hour.
   map, but those sites remain unmeasured. `MoonstoneContext` is unchanged: survey
   context must still prove a held sextant and a valid observer on the same plane.
 
-V20 and V21 retain their accepted JSON shapes and unchanged schemas. Both decode
-through concrete frozen nested `surveyedLocationV21`, `dungeonObservationV21`,
-and `atlasLandmarkObservationV21` DTOs. V20 retains its retirement-free moonstone
-DTO; V21's frozen moonstone DTO retains required `originalSiteRetired`. Both
-reject an injected `flexible` member even when false or null. Their original
-nighttime gate is validated before promotion; old daytime surveys are not
-grandfathered. Promotion from all supported versions 12–21 sets every historical
-survey's policy to false, preserving dates, sites, source tags, metadata, and
-collection nilness. V21 retirement evidence is preserved, not recomputed; only
-pre-V21 promotion applies the established retirement/stale-placement migration.
-
 The V22 schema loads frozen V16–V21 sibling schemas locally and replaces all
 three nested survey families with the four-member survey shape. Fixed array
 sizes, atlas limits, finite domains, and all non-survey authorities are unchanged.
 Strict codec/schema tests reject missing, null, nonboolean, aliased, and unknown
-policy members, and verify all 24 hours and both historical survey shapes.
+policy members, and verify all 24 hours.
 
 ### Snapshot 21 Current Moonstone Placements
 
@@ -279,18 +247,6 @@ and never emits a historical survey. Atlas projects one stable neutral-key row p
 phase: carried or reburied-unmeasured stones have no plot; a newly measured site
 has only its current plot. Returning to original coordinates or reloading does
 not resurrect the original marker or note.
-
-V20 decodes through `saveSnapshotV20` with a frozen `moonstoneObservationV20`;
-the v20 schema is unchanged and rejects `originalSiteRetired`, even when false.
-Promotion validates the actual old values first, then proves retirement only from
-carried inventory, saved successful pickup/burial evidence, a private observed site
-different from the canonical origin, or a survey differing from the latest site.
-Old surveys are cleared unless they measure the latest placed site of an uncarried
-stone. Pickup surveys and surveys predating the latest recorded burial are stale
-even when their coordinates equal that placement. Inventory-only backfill retires the origin but invents no personal visit,
-site, observation time, or survey. Unknown records without evidence keep the
-printed origin. Promotion never consults the current Avatar position or hidden
-live-placement catalog to infer observations.
 
 The v21 schema loads frozen v20 and its v16-v19 dependencies locally, references
 their unchanged finite domains, and overrides only the moonstone observation
@@ -315,13 +271,12 @@ metadata, including playthrough and Doom-run identities:
   ordinary surface entrances; Doom and Underworld sites cannot be surveyed.
 - Required `moonstoneJournal` contains eight `journal.MoonstoneObservation`
   records: first successful evidence, private last site and action context,
-  placement status, dates, and optional survey with instrument context. A later
-  unmeasured move retained the older survey as historical evidence in the frozen
-  v20 contract; v21 promotion now retires that stale survey. Chart origins remain
-  immutable references, separate from the v21 handling/relocation retirement flag.
+  placement status, dates, and optional survey with instrument context. Chart
+  origins remain immutable references, separate from the v21 handling/relocation
+  retirement flag.
 - `oppression.password` and `journal.oppression.password` extend the knowledge
   and Chronicle catalogs. Current limits are 51 Chronicle entries and 62 visit
-  changes; frozen v19 retains 50/61 and rejects the new identity.
+  changes.
 - Required `atlasLandmarks` holds at most 38 unique
   `journal.AtlasLandmarkObservation` records. As with other optional record
   slices, `null` or `[]` means no earned observations; omission is invalid.
@@ -331,24 +286,14 @@ metadata, including playthrough and Doom-run identities:
   Native validation checks finite identities, duplicate keys, source/naming
   consistency, dates, survey eligibility, and shrine anchors. Runtime compatibility
   checks ordinary exterior anchors against installed immutable world references.
-  Capture and hydration clone this value-only slice. Historical v12–v19 and legacy
-  import start empty; no visits, inventory, chart facts, or hidden locations grant
+  Capture and hydration clone this value-only slice. Legacy import starts empty; no visits, inventory, chart facts, or hidden locations grant
   earned atlas history. The static 34-point supplied map, current Avatar fix, terrain
   cache, and reader preferences are not persisted in this field.
 
-All v12-v19 physical chests promote to **uninspected**, regardless of hidden trap
-bits. Historical dungeon coordinates promote to private evidence on their
-recorded plane, without inventing measurement or dates. Noncanonical in-bounds
-historical coordinates remain valid unmeasured evidence. Historical native and
-legacy import backfill only actually carried moonstones as `known` with
-`firstSource: "possession"` and `originalSiteRetired: true`; raw world placements never disclose private sites,
-dates, or surveys. Password knowledge is never backfilled.
-
-Historical v17-v19 decode through the concrete frozen `saveSnapshotV19`, including
-its old dungeon observation shape. V16 and earlier retain frozen physical dungeon
-and map-unit DTOs. Missing `sites` is valid only in the historical shapes; current
-snapshots reject missing, null, short, or unknown evidence members. This separation
-prevents evolving runtime journal fields from marking untouched old slots corrupt.
+Legacy import backfills only actually carried moonstones as `known` with
+`firstSource: "possession"` and `originalSiteRetired: true`; raw world placements
+never disclose private sites, dates, or surveys. Password knowledge is never
+backfilled.
 
 Load frozen sibling v16-v20 schemas locally. In addition to the existing Journal
 formats, assert `ultima5-world-journal` using `validateWorldJournal` and
@@ -374,20 +319,12 @@ existing optional knowledge-list entry is enough: absent means **not learned**,
 with no Stones Chronicle entry. Kenneth can teach it normally after loading.
 Neither met-Kenneth flags nor an open passage grants missing knowledge.
 
-Wire member shapes were unchanged between versions 17, 18 and 19. They share
-a frozen historical decoder and validate their own catalogs and bounds before
-promotion. Version 19 describes an additional allowed knowledge identity,
-rather than a new save structure. The v19 schema loads
-frozen sibling v16, v17 and v18 resources locally, with version-specific Journal
-format validators.
-
 ### Snapshot 18 Resistance discovery
 
 Version 18 adds the finite `journal` knowledge key `resistance.password` and
 its `knowledge-learned` Chronicle subject `journal.resistance.password`.
 Version 18 bounds are 49 Chronicle entries and 60 visit-change keys. All member
-wire shapes are unchanged. Version 17 validates its previous 48/59 bounds and
-knowledge catalog before promotion; migration never invents password knowledge.
+wire shapes are unchanged; loading never invents password knowledge.
 The v18 schema loads both frozen sibling v16 and v17 resources locally.
 
 ### Snapshot 17 Journal extensions
@@ -405,8 +342,7 @@ or map flags.
 
 The Chronicle adds first-acquisition events for Crown, Sceptre, Amulet, three
 Shards, Sandalwood Box, and Minoc odd keys. Version 17 bounds are 48 events and 59
-change keys. Frozen v16 retains 40 events/51 keys. Its promotion preserves
-History/visits and initializes conversation and entrance observations quietly.
+change keys.
 
 Load the v17 schema and its frozen sibling v16 resource locally. Assert the
 existing Journal formats plus `ultima5-journal-conversation`, implemented by
@@ -686,12 +622,10 @@ version; unknown fields remain invalid.
 
 `lordBritishPassageOpen` records the permanently solved Lord British castle
 harpsichord passage independently from box ownership and generic map mutations.
-Version 9 and older native saves promote with it false. Original-save import
-infers it from Wooden Box ownership or castle NPC-dead slot 31.
+Original-save import infers it from Wooden Box ownership or castle NPC-dead slot 31.
 
-Version 12's `reconstructMapUnits` promotes into private, non-JSON metadata.
-Legacy conversion may attach the same hint while also carrying supported
-semantic object overlays. Hydration retains authored small-map NPCs, applies
+Legacy conversion may attach a private, non-JSON map-unit reconstruction hint
+while also carrying supported semantic object overlays. Hydration retains authored small-map NPCs, applies
 the overlays, and consumes the hint. `EncodeCanonical` rejects snapshots that
 still carry it.
 
@@ -783,14 +717,14 @@ defeats. Word discoveries use kind `knowledge-learned` and subject
 `dungeon.<name>.word_of_power`, not another event family. Repeated observations
 preserve the first sequence/date/source. There is no retention eviction, authored
 prose, general payload, or gameplay replay. Current hydration does not fill in
-missing events; historical backfill occurs only during explicit promotion.
+missing events, and V24 promotion adds none.
 
 ### Presentation
 
 Version 16 requires a strict, renderer-independent root `presentation` value,
 defined in `internal/journal`. It belongs to the scene, not live `GameState`.
-The canonical quiet default for core capture, fresh games, legacy conversion,
-and historical promotion is:
+The canonical quiet default for core capture, fresh games, and legacy conversion
+is:
 
 ```json
 {"history":"","visits":{"revision":0,"changes":[],"seen":[0,0,0]}}
@@ -875,7 +809,7 @@ for the next command; it is not silently discarded just to permit a save.
 `GameState.ValidateSaveSnapshotEligibility` requires initialized game references/configuration, RNG source, wind system, and search manager, and rejects:
 
 - Active combat, camping, or shrine scenes.
-- Active event-queue workflows or background queues.
+- Active event-queue workflows.
 - A retained waterfall continuation (`activeWaterfall`), including actor/contact
   handoffs between physical waterfall workflows. Capture remains ineligible even
   when no waterfall workflow is currently live.
@@ -949,7 +883,7 @@ NPCs, objects, or progression. See [SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spe
 
 ### Implemented Invariants
 
-- Current snapshot version must equal 24; historical decode validates its frozen source version before promotion. Vacant roster slots must be zero-valued, occupied names are 1-9 bytes, and character numeric fields fit their runtime ranges. HP cannot exceed maximum HP and MP cannot exceed Intelligence. Occupied records accept only gender `0x0b`/`0x0c`, class `A`/`F`/`B`/`M`, status `G`/`P`/`C`/`S`/`D`, and `partyMap` `0`, `1..40`, `0x7f`, or `0xff`. Slot zero must be occupied, active, and Avatar class without requiring a literal Avatar name. Active characters form a packed prefix of at most six slots.
+- Current snapshot version must equal 25; V24 decode validates its frozen source version before promotion. Vacant roster slots must be zero-valued, occupied names are 1-9 bytes, and character numeric fields fit their runtime ranges. HP cannot exceed maximum HP and MP cannot exceed Intelligence. Occupied records accept only gender `0x0b`/`0x0c`, class `A`/`F`/`B`/`M`, status `G`/`P`/`C`/`S`/`D`, and `partyMap` `0`, `1..40`, `0x7f`, or `0xff`. Slot zero must be occupied, active, and Avatar class without requiring a literal Avatar name. Active characters form a packed prefix of at most six slots.
 - Karma is 0-99. NPC flag pairs must be in range and unique within each met/dead collection. Native snapshots retain the original zero-based town index (`0..31`); hydration translates it to canonical runtime location IDs (`1..32`) and capture translates it back. See [SAVE-0005](../gamefacts/SAVED_GAM_STRUCTURE.md#save-0005).
 - `continuation.activePlayerIndex` is `-1` or `0..5` and must identify an eligible active-party character when selected. `continuation.beggarKarmaCounter` is `0..255`; `continuation.combatActionTimeCounter` is `0..9`; all continuation booleans are required.
 - Food/gold are at most 9999; gems, torches, keys, skull keys, equipment, spells, potions, reagents, quest items, and moonstones use their runtime maxima; scrolls are at most 9999.
@@ -979,8 +913,7 @@ NPCs, objects, or progression. See [SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spe
   countdown, exact closed-variant, and mutation-consistency rules above. Actor
   occupancy is not a condition of validity, including at zero remaining turns.
 - Atlas observations have at most 39 unique finite site identities. Guardians and
-  Greyhaven receipt authority obey the source/site/name/date restrictions above;
-  historical V20–V22 retain their 38-record domain without either new authority.
+  Greyhaven receipt authority obey the source/site/name/date restrictions above.
 - `dungeon` is non-null exactly for dungeon world positions, its identity must match, and its cell array is exactly 512 bytes. Dungeon floor/X/Y, facing, last direction, optional wanderer monster/current/previous coordinates, party non-occupancy, and on-foot state are validated. Regular map units and map mutations cannot substitute for dungeon wanderer authority or derived projections.
 
 Pure schema validation intentionally does not claim complete semantic validation of equipment compatibility, quest coherence, or a game-data fingerprint. Workbench list/get/load additionally validate locations, floors, map bounds, enemies, NPCs, items, and loaded-map mutation constraints against the active runtime references. A record that cannot be verified is reported incompatible with a reason and cannot be loaded.
@@ -999,8 +932,7 @@ parity fixtures and registration example are in
 owns cross-authority consistency such as defeat versus current life state.
 `internal/save_snapshot/dungeon_knowledge_v16_test.go` covers all eight word keys,
 source/date preservation with or without existing Chronicle events, strict
-Go/schema rejection of malformed lore, and frozen v12-v15 rejection of the new
-category and events. `internal/journal/presentation_test.go` asserts the complete
+Go/schema rejection of malformed lore. `internal/journal/presentation_test.go` asserts the complete
 40-event/51-key bounds.
 
 ## Native Save Envelope
@@ -1059,53 +991,19 @@ Quick Save authority over a player slot.
 
 ### Snapshot Version Compatibility
 
-Within a valid envelope 2, strict decode accepts snapshot version 25 and promotes
-snapshot versions 12 through 24 through frozen historical contracts. V12–V24
-receive empty excerpt defaults plus application-level import eligibility described
-[above](#snapshot-25-save-owned-excerpts); V24 retains all other state. V12–V23 receive
-the conservative personal-state defaults and exact chest-flag migration described
-[above](#snapshot-24-personal-state-and-chest-lifetimes). V23 preserves its timed
-door and atlas evidence. V12–V22 default `openDoor` to null and infer no Guardians or receipt
-evidence. V22 preserves every existing survey's flexible provenance and nullable
-collection shape; V12–V21 retain their earlier original-policy promotion rules.
-Version 16 preserves History and visit metadata; the new conversation and
-dungeon observations start empty. Version 12 also
-supplies active player `-1`, criminal status `false`, HMS Cape wait skip
-`false`, and beggar cooldown `100`. Versions 12 and 13 default the combat
-counter to zero and derive the opening-campaign reduction from canonical Year
-139, Month 4 because neither wire shape stored the independent original flag.
-A true v12 reconstruction field becomes only the private hydration hint.
-Version 14 retains its explicit continuation fields and semantic chest state.
+Within a valid envelope 2, strict decode accepts snapshot version 25
+(`CurrentVersion`) and promotes version 24 (`MinimumVersion`, first shipped in
+`v0.1.0-preview.1`). V24 retains all state; it only receives empty excerpts plus
+the application-level notebook import described
+[above](#snapshot-25-save-owned-excerpts). Promotion consumes no time or RNG and
+never rewrites the source record. Named-record and slot revisions use the
+promoted canonical current-version bytes.
 
-Versions 12-14 default both mounted bits and the unknown
-inactive-context Quickness bit to `false`. If Quickness is active, the old shared
-`quicknessWorldActorSkip` was a **skip-next** flag: its inverse becomes the new
-Quickness phase for the currently active town or outdoor context. This preserves
-that next Quickness gate's known outcome. If Quickness is inactive, or the save
-is in a dungeon, both surface Quickness phases default to `false`; the separate
-dungeon phase remains unchanged. Migration cannot recover unrecorded mounted
-history or the other surface context's phase, and does not claim whole-turn
-equivalence with older actor-order rules. It consumes no time or RNG and never
-rewrites a source record while loading. Normal named-record revisions use the
-promoted canonical current-version bytes; the existing v12 reconstruction exception retains
-its raw historical revision until hydration/recapture.
-
-Version 15 preserves all four cadence bits without a second inversion. Promotions
-from versions 12-15 install quiet presentation defaults: pre-existing projected
-information starts seen and History is empty. Existing defeats and spell unread
-state are retained. Persisted non-spell learned facts append deterministic
-`knowledge-learned` Chronicle entries after existing events, retaining their
-actual date/source and setting `acknowledged: true`. Promotion invents no names,
-associations, standalone domain observations, Flame/method clues, Words of Power,
-or dated Codex events from met-NPC bits, progress, inventory, or engine-known
-pairings. Completing shrine quests or opening dungeons is not proof that a word
-was presented; an already-complete save can learn `VERAMOCOR` on a later actual
-Codex revelation. Current hydration never backfills missing word events.
-
-Versions 11 and older, plus future versions, return a typed
-`UnsupportedVersionError`. Their schemas remain archival references, not
-runtime migration contracts. New encoding always emits version 24 and rejects
-the private reconstruction hint.
+Versions 23 and older, plus future versions, return a typed
+`UnsupportedVersionError`. Player slots holding them list as incompatible with a
+reviewed revision, so they can be overwritten or deleted. Original `SAVED.GAM`
+import is unaffected and always produces the current version. New encoding
+always emits version 25 and rejects the private reconstruction hint.
 
 Metadata is not part of gameplay equality comparisons unless explicitly requested.
 

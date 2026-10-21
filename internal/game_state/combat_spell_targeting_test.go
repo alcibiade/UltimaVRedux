@@ -14,9 +14,6 @@ func setupVasFlamTargeting(t *testing.T) (*GameState, *MockSystemCallbacks, *Com
 	t.Helper()
 
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return nil, nil, nil
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
@@ -38,9 +35,6 @@ func setupVasFlamTargeting(t *testing.T) (*GameState, *MockSystemCallbacks, *Com
 
 func TestBeginCombatSpellTargeting_RequiresActiveCaster(t *testing.T) {
 	gs, _, _ := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	request := CastRequest{Spell: references.VasFlam, CasterIdx: activeIdx + 1}
@@ -66,9 +60,6 @@ func TestCombatActionTargetingBeginsRejectEveryExistingActionOwner(t *testing.T)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			gs, _, _ := setupVasFlamTargeting(t)
-			if gs == nil {
-				return
-			}
 			casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 			caster := gs.PartyState.GetCharacter(casterIdx)
 			caster.Level = 8
@@ -92,9 +83,6 @@ func TestCombatActionTargetingBeginsRejectEveryExistingActionOwner(t *testing.T)
 
 func TestDeferredCombatSpellPreservesCloneCasterIdentity(t *testing.T) {
 	gs, mock, monster := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	clonePosition := references.Position{X: 1, Y: 1}
 	clone := gs.CombatScene.addPCCloneFromSource(
@@ -121,9 +109,6 @@ func TestDeferredCombatSpellPreservesCloneCasterIdentity(t *testing.T) {
 
 func TestValidateSpellResources_RejectsNonActiveCombatCasterWithoutConsumption(t *testing.T) {
 	gs, _, _ := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	otherIdx := activeIdx + 1
@@ -150,9 +135,6 @@ func TestConfirmCombatSpellTarget_GravPorAndXenCorpUseProjectileResolution(t *te
 	for _, spell := range []references.Spell{references.GravPor, references.XenCorp} {
 		t.Run(references.GetSpellName(spell), func(t *testing.T) {
 			gs, mock, monster := setupVasFlamTargeting(t)
-			if gs == nil {
-				return
-			}
 			activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 			caster := gs.PartyState.GetCharacter(activeIdx)
 			caster.Level = 8
@@ -176,9 +158,6 @@ func TestConfirmCombatSpellTarget_GravPorAndXenCorpUseProjectileResolution(t *te
 
 func TestCombatSpellTargeting_MovesAcrossWholeCombatMap(t *testing.T) {
 	gs, _, _ := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	origin := references.Position{X: 5, Y: 5}
@@ -197,9 +176,6 @@ func TestCombatSpellTargeting_MovesAcrossWholeCombatMap(t *testing.T) {
 
 func TestConfirmCombatSpellTarget_SelfTargetKeepsAimingAndResources(t *testing.T) {
 	gs, _, _ := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
@@ -220,9 +196,6 @@ func TestConfirmCombatSpellTarget_SelfTargetKeepsAimingAndResources(t *testing.T
 
 func TestCancelCombatSpellTargeting_PreservesResources(t *testing.T) {
 	gs, _, _ := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
@@ -241,9 +214,6 @@ func TestCancelCombatSpellTargeting_PreservesResources(t *testing.T) {
 
 func TestConfirmCombatSpellTarget_VasFlamConsumesOnceAndPublishesMagicDamage(t *testing.T) {
 	gs, mock, monster := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	caster := gs.PartyState.GetCharacter(activeIdx)
@@ -294,9 +264,6 @@ func TestCombatFieldSpellCrosshairCreatesAllFourFieldsOnEmptyAndOccupiedTiles(t 
 			}
 			t.Run(references.GetSpellName(test.spell)+"/"+name, func(t *testing.T) {
 				gs, _, monster := setupVasFlamTargeting(t)
-				if gs == nil {
-					return
-				}
 				casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 				caster := gs.PartyState.GetCharacter(casterIdx)
 				caster.Level = 8
@@ -328,9 +295,6 @@ func TestBlockedCombatFieldTrajectoryCommitsButSuppressesAllFourFields(t *testin
 	} {
 		t.Run(references.GetSpellName(spell), func(t *testing.T) {
 			gs, mock, _ := setupVasFlamTargeting(t)
-			if gs == nil {
-				return
-			}
 			casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 			caster := gs.PartyState.GetCharacter(casterIdx)
 			caster.Level = 8
@@ -471,9 +435,6 @@ func TestCombatMissileImpactPosition_DoesNotCollisionTestFinalSample(t *testing.
 
 func TestConfirmCombatSpellTarget_BlockedVasFlamConsumesCastWithoutDamage(t *testing.T) {
 	gs, mock, _ := setupVasFlamTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()
 	origin := references.Position{X: 5, Y: 5}

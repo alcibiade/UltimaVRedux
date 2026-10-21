@@ -99,7 +99,6 @@ func (g *GameState) cachePlayerUpdateStatuses() playerUpdateStatusCache {
 	}
 	if active := g.activePlayerIndex; active >= 0 && result.Active[active] && result.Statuses[active] == party_state.Dead {
 		g.activePlayerIndex = -1
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
 	}
 
 	return result

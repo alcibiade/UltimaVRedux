@@ -12,9 +12,6 @@ import (
 
 func TestRemainingDurationSpellsUseOriginalDurations(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	assert.True(t, gs.CastInSanct())
 	assert.Equal(t, inSanctDurationTurns, gs.ActiveDurationEffect.TurnsRemaining)
@@ -28,9 +25,6 @@ func TestRemainingDurationSpellsUseOriginalDurations(t *testing.T) {
 
 func TestInAnActivatesOutsideCombat(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	gs.TransitionFromCombatMap()
 	require.NotEqual(t, references.ContextCombat, gs.GetCurrentSpellContext())
 	assert.True(t, gs.CastCombatInAn())
@@ -39,9 +33,6 @@ func TestInAnActivatesOutsideCombat(t *testing.T) {
 
 func TestCombatInSanctAddsThreeDefense(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	character := gs.PartyState.GetCharacter(0)
 	before := gs.combatPartyDefense(character)
 	require.True(t, gs.CastInSanct())
@@ -50,9 +41,6 @@ func TestCombatInSanctAddsThreeDefense(t *testing.T) {
 
 func TestCombatAnTymRejectsShadowlordAndLeavesDurationUnchanged(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterShadowlord, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	assert.False(t, gs.CastAnTym())
 	assert.False(t, gs.HasActiveDurationEffect(DurationEffectTimeStop))
@@ -60,9 +48,6 @@ func TestCombatAnTymRejectsShadowlordAndLeavesDurationUnchanged(t *testing.T) {
 
 func TestCombatAnXenExFreesPossessedPartyMember(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	target := 0
 	gs.CombatScene.PartyPossessed[target] = true
 	gs.PartyState.GetCharacter(target).SetStatus(party_state.Charmed)
@@ -74,9 +59,6 @@ func TestCombatAnXenExFreesPossessedPartyMember(t *testing.T) {
 
 func TestCombatInQuasCorpIncludesPartyLoyalMonster(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	monster.SetLoyalty(CombatMonsterLoyaltyParty)
 	gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex()).Intelligence = 255
 
@@ -89,9 +71,6 @@ func TestCombatInQuasCorpIncludesPartyLoyalMonster(t *testing.T) {
 
 func TestCombatPCCloneUsesIndependentQueueSlotAndSharedCharacterState(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	original := CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex}
 	clone := gs.CombatScene.addPCCloneFromSource(
@@ -113,9 +92,6 @@ func TestCombatPCCloneUsesIndependentQueueSlotAndSharedCharacterState(t *testing
 
 func TestCombatPCCloneCopiesThenOwnsEntryConditions(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex}
 	gs.CombatScene.setCombatPCPossessed(source, true)
@@ -141,9 +117,6 @@ func TestCombatPCCloneCopiesThenOwnsEntryConditions(t *testing.T) {
 
 func TestPCOnPCCombatUsesExactSleepingClonePosition(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	attacker := gs.CombatScene.GetCurrentTurnIdentity()
 	targetIndex := (attacker.EntityIndex + 1) % party_state.MaxActiveParty
 	targetSource := CombatTurnIdentity{IsPartyMember: true, EntityIndex: targetIndex}
@@ -172,9 +145,6 @@ func TestPCOnPCCombatUsesExactSleepingClonePosition(t *testing.T) {
 
 func TestCombatPCCloneFleeRemovesOnlyExactEntry(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	clone := gs.CombatScene.addPCCloneFromSource(
 		CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex},
@@ -196,9 +166,6 @@ func TestCombatPCCloneFleeRemovesOnlyExactEntry(t *testing.T) {
 
 func TestSharedPCDeathFinalizesSourceAndEveryClonePosition(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	source := CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex}
 	clone := gs.CombatScene.addPCCloneFromSource(
@@ -222,9 +189,6 @@ func TestSharedPCDeathFinalizesSourceAndEveryClonePosition(t *testing.T) {
 
 func TestCombatInQuasXenClonesPCIntoNewQueueSlot(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	entriesBefore := gs.CombatScene.TurnQueue.TotalEntryCount()
 	require.True(t, gs.CastCombatInQuasXen(partyIndex, CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex}))
@@ -235,9 +199,6 @@ func TestCombatInQuasXenClonesPCIntoNewQueueSlot(t *testing.T) {
 
 func TestCombatInQuasXenMonsterCloneCopiesSourceSlotState(t *testing.T) {
 	gs, _, source := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	sourceIdentity := CombatTurnIdentity{EntityIndex: 0}
 	sourceEntry := gs.CombatScene.TurnQueue.GetEntryByIdentity(sourceIdentity)
 	require.NotNil(t, sourceEntry)
@@ -261,9 +222,6 @@ func TestCombatInQuasXenMonsterCloneCopiesSourceSlotState(t *testing.T) {
 
 func TestRelXenBetDeletesPCEntryAndCreatesMonsterRegionEntry(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	target := CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex}
 	entriesBefore := gs.CombatScene.TurnQueue.TotalEntryCount()
@@ -284,9 +242,6 @@ func TestRelXenBetDeletesPCEntryAndCreatesMonsterRegionEntry(t *testing.T) {
 
 func TestPurplePotionTransformsActivePCWithoutSpellEvent(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	monstersBefore := gs.CombatScene.MonsterManager.Count()
 	mock.Reset()
@@ -301,9 +256,6 @@ func TestPurplePotionTransformsActivePCWithoutSpellEvent(t *testing.T) {
 
 func TestCombatPCCloneCapacityRejectsWithoutMutation(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	for gs.CombatScene.TurnQueue.TotalEntryCount() < 32 {
 		gs.CombatScene.addPCCloneFromSource(
@@ -336,9 +288,6 @@ func TestQuasAnWisPlanDoesNotConsumeRNG(t *testing.T) {
 
 func TestRelXenBetReplacesCloneAndCleansUpProxy(t *testing.T) {
 	gs, mock, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	partyIndex := gs.CombatScene.GetActiveCombatantIndex()
 	clone := gs.CombatScene.addPCCloneFromSource(
 		CombatTurnIdentity{IsPartyMember: true, EntityIndex: partyIndex},
@@ -360,9 +309,6 @@ func TestRelXenBetReplacesCloneAndCleansUpProxy(t *testing.T) {
 
 func TestRelXenBetUsesFreeSourceSlotBeyondInitialMonsterLimit(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	ref := &(*gs.GameReferences.EnemyReferences)[references.MonsterOrc]
 	for gs.CombatScene.MonsterManager.Count() < references.MaxMonstersInCombat {
 		monster := NewCombatMonster(
@@ -381,9 +327,6 @@ func TestRelXenBetUsesFreeSourceSlotBeyondInitialMonsterLimit(t *testing.T) {
 
 func TestCloneOnlyPartyCannotClaimVictoryWhileHostileRemains(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	source := gs.CombatScene.GetCurrentTurnIdentity()
 	clone := gs.CombatScene.addPCCloneFromSource(
 		source,

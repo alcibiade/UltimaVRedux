@@ -69,7 +69,7 @@ func (g *GameScene) appendOrdinaryDirectionHint(mapType references.GeneralMapTyp
 	switch g.secondaryKeyState {
 	case GetDirectionInput, PushDirectionInput, OpenDirectionInput, JimmyDoorDirectionInput,
 		KlimbDirectionInput, LookDirectionInput, TalkDirectionInput, SearchDirectionInput,
-		AttackDirectionInput, UseDirectionInput, FireDirectionInput:
+		AttackDirectionInput, FireDirectionInput:
 		g.output.AppendCommandHintOnce(ordinaryDirectionHint)
 	}
 }

@@ -170,7 +170,7 @@ func TestInnCommitRejectsCompleteRosterStalenessAndSupersededSession(t *testing.
 }
 
 func TestRestAtInnUsesExactPaymentTimeAndMorningOutcomes(t *testing.T) {
-	state, _, session, callbacks := newInnTestState(t, references.MerchantInnBritain, 5)
+	state, _, session, _ := newInnTestState(t, references.MerchantInnBritain, 5)
 	state.EndMerchantSession(session)
 	state.DateTime.Year, state.DateTime.Month, state.DateTime.Day = 1, 13, 28
 	state.DateTime.Hour, state.DateTime.Minute = 23, 30
@@ -260,7 +260,6 @@ func TestRestAtInnUsesExactPaymentTimeAndMorningOutcomes(t *testing.T) {
 			assert.Equal(t, byte(1), character.MonthsAtInn, "slot %d", index)
 		}
 	}
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 	foodAfterRest := state.PartyState.Inventory.Provisions.Food.Get()
 	state.AdvanceGameplayMinutes(1)
 	assert.Equal(t, foodAfterRest, state.PartyState.Inventory.Provisions.Food.Get(), "the final Talk minute must not consume deferred breakfast")
@@ -324,7 +323,7 @@ func TestLeaveCapturedInnBuyerSupportsVacantNativeRosterSlots(t *testing.T) {
 }
 
 func TestRestAtInnPreservesFoodAndSpellOnRefusal(t *testing.T) {
-	state, _, session, callbacks := newInnTestState(t, references.MerchantInnBritain, 2)
+	state, _, session, _ := newInnTestState(t, references.MerchantInnBritain, 2)
 	state.PartyState.Inventory.Gold.Set(0)
 	state.PartyState.Inventory.Provisions.Food.Set(9)
 	state.ActiveDurationEffect = DurationEffect{EffectType: DurationEffectQuickness, TurnsRemaining: 30}
@@ -343,7 +342,6 @@ func TestRestAtInnPreservesFoodAndSpellOnRefusal(t *testing.T) {
 	assert.Equal(t, DurationEffectQuickness, state.ActiveDurationEffect.EffectType)
 	assert.Equal(t, 30, state.ActiveDurationEffect.TurnsRemaining)
 	assert.Equal(t, uint16(9), state.PartyState.Inventory.Provisions.Food.Get())
-	assert.Zero(t, callbacks.StatsDisplayUpdated)
 }
 
 func TestRestAtInnConsumesOneRegenerationRollPerNineMinuteStep(t *testing.T) {
@@ -383,7 +381,7 @@ func TestRestAtInnConsumesOneRegenerationRollPerNineMinuteStep(t *testing.T) {
 }
 
 func TestLeaveCompanionAllowsLastLivingMemberAndPreservesStableRoster(t *testing.T) {
-	state, _, session, callbacks := newInnTestState(t, references.MerchantInnBritain, 3)
+	state, _, session, _ := newInnTestState(t, references.MerchantInnBritain, 3)
 	state.PartyState.GetCharacter(0).SetHp(0)
 	state.PartyState.GetCharacter(0).SetStatus(party_state.Dead)
 	state.PartyState.GetCharacter(1).SetHp(0)
@@ -412,7 +410,6 @@ func TestLeaveCompanionAllowsLastLivingMemberAndPreservesStableRoster(t *testing
 	assert.Equal(t, wantNames, currentInnRosterNames(state))
 	assert.Equal(t, 2, result.State.PartySize)
 	assert.Equal(t, 1, result.State.RoomOccupancy)
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 	_, err = state.GetInnShopState(session)
 	require.NoError(t, err, "Leave must keep the Inn session usable")
 }
@@ -437,7 +434,7 @@ func TestLeaveCompanionBlocksAvatarDeadAndNoVacancy(t *testing.T) {
 }
 
 func TestPickUpInnGuestDeductsThenStealsThenStableInsertsAndRestores(t *testing.T) {
-	state, _, session, callbacks := newInnTestState(t, references.MerchantInnBritain, 2)
+	state, _, session, _ := newInnTestState(t, references.MerchantInnBritain, 2)
 	guest := state.PartyState.GetCharacter(9)
 	guest.PartyMap = party_state.PartyMapAtInn(references.Britain)
 	guest.MonthsAtInn = 2
@@ -475,7 +472,6 @@ func TestPickUpInnGuestDeductsThenStealsThenStableInsertsAndRestores(t *testing.
 	wantNames = append(wantNames, beforeNames[10:]...)
 	assert.Equal(t, wantNames, currentInnRosterNames(state))
 	assert.Empty(t, result.State.GuestRows)
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 }
 
 func TestPickUpInnGuestAllowsPoisonButBlocksDeadAndFullParty(t *testing.T) {
@@ -530,7 +526,7 @@ func TestPickUpInnGuestAllowsPoisonButBlocksDeadAndFullParty(t *testing.T) {
 }
 
 func TestInsufficientPickupActivatesGuardsExactlyOnceAndMutatesNothingElse(t *testing.T) {
-	state, _, session, callbacks := newInnTestState(t, references.MerchantInnBritain, 2)
+	state, _, session, _ := newInnTestState(t, references.MerchantInnBritain, 2)
 	guest := state.PartyState.GetCharacter(8)
 	guest.PartyMap = party_state.PartyMapAtInn(references.Britain)
 	guest.MonthsAtInn = 3
@@ -566,7 +562,6 @@ func TestInsufficientPickupActivatesGuardsExactlyOnceAndMutatesNothingElse(t *te
 	assert.Equal(t, 1, result.GuardActivation.ActiveNPCCount)
 	assert.Equal(t, 1, result.GuardActivation.CivilianRollCount)
 	assert.Equal(t, beforeRNG+1, state.GetRNG().Calls(), "one direct guard activation must process the one loaded merchant once")
-	assert.Zero(t, callbacks.StatsDisplayUpdated)
 }
 
 func TestInnRosterTransferSurvivesNativeSnapshotRoundTrip(t *testing.T) {

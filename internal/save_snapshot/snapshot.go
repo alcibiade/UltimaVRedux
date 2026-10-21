@@ -7,10 +7,13 @@ import "github.com/bradhannah/UltimaVRedux/internal/journal"
 const (
 	// CurrentVersion is the native snapshot schema version.
 	CurrentVersion = 25
+	// MinimumVersion is the oldest native snapshot schema this build promotes.
+	// It shipped in v0.1.0-preview.1; older native saves are unsupported.
+	MinimumVersion = 24
 	// MaxElapsedMs bounds runtime-compatible saves to 100 years of play. This
 	// conservative finite domain leaves ample int64 headroom for activation
 	// epochs and gameplay deadlines without rebasing clock phase or RNG state.
-	// It is a compatibility restriction, not a change to the v12-v14 wire shape.
+	// It is a compatibility restriction, not a wire-shape change.
 	MaxElapsedMs int64 = 100 * 365 * 24 * 60 * 60 * 1000
 	// DungeonCellCount is the complete raw-cell count for one active dungeon.
 	DungeonCellCount = 512

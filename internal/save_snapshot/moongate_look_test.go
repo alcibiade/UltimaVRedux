@@ -1,7 +1,6 @@
 package save_snapshot
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
@@ -34,29 +33,6 @@ func TestMoongateLookFirstEvidenceUsesExistingWireRepresentation(t *testing.T) {
 			decoded, err := Decode(data)
 			require.NoError(t, err)
 			require.Equal(t, snapshot, decoded.Snapshot)
-		})
-	}
-}
-
-func TestHistoricalMoongateLookStillRequiresPriorRecognition(t *testing.T) {
-	for _, version := range []int{20, 21, 22, 23} {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			schema, _ := compileNativeSaveSchemaFile(t, fmt.Sprintf("native-save-e2-s%d.schema.json", version))
-			snapshot := v20EvidenceSnapshot()
-			observation := &snapshot.MoonstoneJournal[3]
-			observation.LastContext.Source = journal.MoonstoneSourceLook
-			observation.LastContext.Observer.X--
-			observation.SurveyContext = observation.LastContext
-			data := historicalV20TestData(t, version, snapshot)
-			require.NoError(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-			_, err := Decode(data)
-			require.NoError(t, err)
-
-			observation.FirstSource = journal.MoonstoneSourceLook
-			data = historicalV20TestData(t, version, snapshot)
-			require.Error(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-			_, err = Decode(data)
-			require.Error(t, err)
 		})
 	}
 }

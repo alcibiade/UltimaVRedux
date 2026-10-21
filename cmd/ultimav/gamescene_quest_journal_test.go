@@ -188,13 +188,11 @@ func TestJournalFullUpdatePausesReadyQueuesAndResumesWithoutCatchup(t *testing.T
 	before, err := state.CaptureSaveSnapshot()
 	require.NoError(t, err)
 	beforeDate := state.DateTime
-	var workflow, feedback, background int
+	var workflow, feedback int
 	state.EventQueueManager.Workflow("journal_ready_workflow").Priority(event_queue.PriorityNormal).Sequential().
 		First(func() { workflow++ }).Start()
 	state.EventQueueManager.TriggerFeedback("journal_ready_feedback", event_queue.PriorityNormal,
 		func(q *event_queue.SequentialEventBuilder) { q.First(func() { feedback++ }) })
-	state.EventQueueManager.RegisterBackgroundQueue("journal_ready_background").Sequential().
-		First(func() { background++ }).Start()
 	scene.ShowQuestJournalDossier(state.CurrentQuestJournalDossier())
 	require.ErrorIs(t, scene.ValidateSaveSnapshotEligibility(), ErrGameSceneSnapshotNotRepresentable)
 	for _, key := range []ebiten.Key{ebiten.KeyTab, ebiten.KeySlash, ebiten.KeyEscape, ebiten.KeyTab} {
@@ -215,7 +213,6 @@ func TestJournalFullUpdatePausesReadyQueuesAndResumesWithoutCatchup(t *testing.T
 	require.Nil(t, scene.journalSession)
 	require.Zero(t, workflow)
 	require.Zero(t, feedback)
-	require.Zero(t, background)
 	require.EqualValues(t, 321, state.ElapsedMs)
 	require.EqualValues(t, 321, scene.getElapsedMs())
 	require.Equal(t, beforeDate, state.DateTime)
@@ -227,7 +224,6 @@ func TestJournalFullUpdatePausesReadyQueuesAndResumesWithoutCatchup(t *testing.T
 	require.EqualValues(t, 326, state.ElapsedMs)
 	require.Equal(t, 1, workflow)
 	require.Equal(t, 1, feedback)
-	require.Equal(t, 1, background)
 	state.EventQueueManager.Shutdown()
 	after, err := state.CaptureSaveSnapshot()
 	require.NoError(t, err)

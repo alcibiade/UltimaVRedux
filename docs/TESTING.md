@@ -7,6 +7,9 @@ explains the rationale for real-data integration coverage.
 ## Principles
 
 - Use standard Go `*_test.go` tests close to the package under test.
+- **A test is not a test without at least one valuable assertion**: one that fails
+  when the behaviour it names regresses. Logging, "did not panic", restating a
+  constant or a test that cannot fail does not count; delete such tests.
 - Add a regression test for every bug fix and explain the behavior it protects.
 - Keep unit tests independent of copyrighted Ultima V assets.
 - Use real game data when parsing, map layout, save state, or cross-system behavior is part of the assertion.

@@ -114,7 +114,7 @@ only from a validated owned whirlpool return, not unrelated relocation.
 `ResumeWaterfallContinuation` runs after pending contacts, combat scheduling and
 auto-talk, before ordinary input. It waits for the old physical name and relevant
 interaction owners to clear, then reviews the current landing and starts another
-workflow instance if needed. It does not wait for all passive background work,
+workflow instance if needed. It does not wait for passive feedback work,
 resolve contact itself, or replay the initiating tail. Owned tactical combat keeps
 its ordinary input. Starting a workflow from `Finally`, or keeping the waterfall
 block while waiting on an independent equal/lower-priority child, would break this
@@ -149,7 +149,7 @@ manager.TriggerFeedback("poison", event_queue.PriorityNormal,
 ### Guarantees
 
 - Feedback never owns or blocks input.
-- Starting feedback inside a workflow, feedback, finalizer, or background callback is safe.
+- Starting feedback inside a workflow, feedback, or finalizer callback is safe.
 - Repeated live feedback with the same name coalesces; the first accepted instance wins.
 - Coalescing includes deferred, active, pending, and finalizing feedback.
 - Different feedback names execute one at a time.
@@ -228,7 +228,7 @@ An animation admitted by a delayed callback starts at the current queue update,
 not the previous update. Its first `Execute` receives zero elapsed milliseconds
 and presents progress zero. Already-running continuous events retain their own
 full queue delta; admitting another animation must not reset that delta. The
-same rule applies to workflows, feedback, and legacy background queues.
+same rule applies to workflows and feedback.
 
 For example, a projectile launched after a 250 ms anticipation must not inherit
 those 250 ms and reach its endpoint before it is drawn. Later updates advance
@@ -238,7 +238,7 @@ not guarantee a display frame between updates when the engine is catching up.
 Zero-duration animations emit progress one and complete immediately, including
 on a zero-delta admission. Post-animation waits retain their own deadlines.
 
-`internal/event_queue/animation_admission_test.go` covers all three lanes,
+`internal/event_queue/animation_admission_test.go` covers both lanes,
 coexisting continuous events, zero-duration completion, and post-flight waits.
 
 ## Conditional Sequences
@@ -297,7 +297,7 @@ Use `Finally` for cleanup and `OnComplete` for owed continuation after normal
 completion. `Shutdown` runs cleanup but discards completion callbacks, including
 when shutdown occurs inside `Finally` or while input release is pending.
 
-Nil callbacks, feedback/background queues, duplicate registration, and registration
+Nil callbacks, feedback queues, duplicate registration, and registration
 after finalization panic. Runtime sequence construction and `Finally` may register
 the callback before finalization completes. `HandoffTo` uses the same callback
 slot: if its event executes with an existing completion callback, it panics rather
@@ -388,20 +388,11 @@ Only workflows may call `BlockInput()`.
 `GameScene` updates lanes every frame:
 
 ```go
-manager.Update()           // workflow lane
-manager.UpdateBackground() // legacy concurrent background lane
-manager.UpdateFeedback()   // serialized feedback lane
+manager.Update()         // workflow lane
+manager.UpdateFeedback() // serialized feedback lane
 ```
 
 Workflow-triggered feedback can begin during the same frame without reentrant callback execution. A workflow awaiting feedback observes completion on a subsequent workflow update.
-
-## Legacy Background Queues
-
-`GameScene` still updates the background lane, but no production code registers
-a background queue; `RegisterBackgroundQueue` lives in test support. New
-visual/audio presentation should use `TriggerFeedback` because feedback provides name coalescing, priority serialization,
-callback-safe starts, and protection against effects competing over global
-flash or shake state.
 
 ## Testing Requirements
 

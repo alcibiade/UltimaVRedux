@@ -60,30 +60,24 @@ func TestCombatPCTurnStartSleepUsesOriginalRollAndSkipsTurn(t *testing.T) {
 		wake              bool
 		expectedStatus    party_state.CharacterStatus
 		expectedCondition CombatConditionResult
-		expectedStats     int
 	}{
 		{
 			name:              "remains asleep",
 			wake:              false,
 			expectedStatus:    party_state.Sleep,
 			expectedCondition: CombatConditionSleeping,
-			expectedStats:     0,
 		},
 		{
 			name:              "wakes but loses current turn",
 			wake:              true,
 			expectedStatus:    party_state.Good,
 			expectedCondition: CombatConditionWoke,
-			expectedStats:     1,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gs, mock := setupCombatStatusTest(t)
-			if gs == nil {
-				return
-			}
 
 			pcIndex := firstActiveCombatPC(gs)
 			character := gs.PartyState.GetCharacter(pcIndex)
@@ -107,7 +101,6 @@ func TestCombatPCTurnStartSleepUsesOriginalRollAndSkipsTurn(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, character.GetStatus())
 			assert.Equal(t, expectedNextRoll, actualNextRoll, "sleep turn must consume exactly one RNG roll")
 			assert.Equal(t, []string{"Zzzzz..."}, mock.Messages)
-			assert.Equal(t, tt.expectedStats, mock.StatsDisplayUpdated)
 			require.Len(t, mock.CombatEvents, 1)
 			assert.Equal(t, CombatEventCondition, mock.CombatEvents[0].Kind)
 			assert.Equal(t, tt.expectedCondition, mock.CombatEvents[0].Condition)
@@ -130,9 +123,6 @@ func TestCombatMonsterTurnStartSleepUsesOriginalRollAndSkipsTurn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-			if gs == nil {
-				return
-			}
 
 			monster.SetAsleep(true)
 			seed := findCombatWakeSeed(t, gs, combatMonsterWakeRollMaximum, func(roll int) bool {
@@ -164,9 +154,6 @@ func TestCombatMonsterTurnStartSleepUsesOriginalRollAndSkipsTurn(t *testing.T) {
 
 func TestPossessedPCSleepUsesMonsterTurnWakeRoll(t *testing.T) {
 	gs, mock := setupCombatStatusTest(t)
-	if gs == nil {
-		return
-	}
 	identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: firstActiveCombatPC(gs)}
 	gs.CombatScene.setCombatPCPossessed(identity, true)
 	gs.setCombatPCSleeping(identity, true)
@@ -188,9 +175,6 @@ func TestPossessedPCSleepUsesMonsterTurnWakeRoll(t *testing.T) {
 
 func TestSleepingChaosSwordWielderUsesMonsterWakeRule(t *testing.T) {
 	gs, mock := setupCombatStatusTest(t)
-	if gs == nil {
-		return
-	}
 	identity := CombatTurnIdentity{IsPartyMember: true, EntityIndex: firstActiveCombatPC(gs)}
 	gs.PartyState.GetCharacter(identity.EntityIndex).SetEquippedItem(references.SlotShield, references.ChaosSword)
 	gs.setCombatPCSleeping(identity, true)
@@ -213,9 +197,6 @@ func TestSleepingChaosSwordWielderUsesMonsterWakeRule(t *testing.T) {
 
 func TestAdvanceCombatTurnSleepingPCSchedulesNonActionableTurn(t *testing.T) {
 	gs, mock := setupCombatStatusTest(t)
-	if gs == nil {
-		return
-	}
 
 	pcIndex := firstActiveCombatPC(gs)
 	gs.setCombatPCSleeping(CombatTurnIdentity{IsPartyMember: true, EntityIndex: pcIndex}, true)
@@ -242,9 +223,6 @@ func TestAdvanceCombatTurnSleepingPCSchedulesNonActionableTurn(t *testing.T) {
 
 func TestAdvanceCombatTurnSleepingMonsterSchedulesIdleTurn(t *testing.T) {
 	gs, mock, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 
 	monster.SetAsleep(true)
 	forceNextCombatActor(gs.CombatScene.TurnQueue, 0, false)
@@ -271,9 +249,6 @@ func TestAdvanceCombatTurnSleepingMonsterSchedulesIdleTurn(t *testing.T) {
 
 func TestSleepingScheduledTurnAdvancesCombatTimeAtTenthAction(t *testing.T) {
 	gs, _ := setupCombatStatusTest(t)
-	if gs == nil {
-		return
-	}
 
 	pcIndex := firstActiveCombatPC(gs)
 	gs.setCombatPCSleeping(CombatTurnIdentity{IsPartyMember: true, EntityIndex: pcIndex}, true)
@@ -295,9 +270,6 @@ func TestSleepingScheduledTurnAdvancesCombatTimeAtTenthAction(t *testing.T) {
 
 func TestCombatPoisonedPCRemainsActionableWithoutTurnDamageOrRNG(t *testing.T) {
 	gs, mock := setupCombatStatusTest(t)
-	if gs == nil {
-		return
-	}
 
 	pcIndex := firstActiveCombatPC(gs)
 	character := gs.PartyState.GetCharacter(pcIndex)
@@ -322,9 +294,6 @@ func TestCombatPoisonedPCRemainsActionableWithoutTurnDamageOrRNG(t *testing.T) {
 
 func TestProcessTurnEffectsDoesNotRunTownAutoWakeDuringCombat(t *testing.T) {
 	gs, _ := setupCombatStatusTest(t)
-	if gs == nil {
-		return
-	}
 
 	pcIndex := firstActiveCombatPC(gs)
 	character := gs.PartyState.GetCharacter(pcIndex)
@@ -351,9 +320,6 @@ func setupCombatStatusTest(t *testing.T) (*GameState, *MockSystemCallbacks) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return nil, nil
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,

@@ -34,9 +34,6 @@ func newDungeonInputTestScene(
 		WithRandomSeed(253).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return nil, nil, nil
-	}
 	state.DateTime.Hour = 12
 	if state.MoongateStage() > game_state.MoongateStageHidden {
 		state.DateTime.Hour = 20

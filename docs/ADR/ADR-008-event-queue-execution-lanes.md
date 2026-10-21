@@ -59,7 +59,6 @@ Queue names are reserved atomically at `Start()`, not during construction.
 - Callers must distinguish authoritative workflow work from presentation-only feedback.
 - Feedback cannot contain gameplay mutation.
 - Starting an independent workflow from a callback does not make the parent wait; callers must use `ThenSequence` or `AwaitFeedback` when ordering is required.
-- The legacy concurrent background lane remains temporarily for existing behavior but is not recommended for new presentation effects.
 
 ## Alternatives Rejected
 

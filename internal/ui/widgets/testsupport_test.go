@@ -427,11 +427,6 @@ func (s *MerchantDialogShell) GetFontSize() StandardFontSize {
 	return FontSizeMainScreen
 }
 
-// IsVisible reports whether the dialog still owns presentation and input.
-func (d *MerchantUnavailableDialog) IsVisible() bool {
-	return !d.dismissed
-}
-
 // GetFirstSelectedIndex returns the locked character index.
 func (d *NewOrderDialog) GetFirstSelectedIndex() int { return d.firstSelectedIndex }
 

@@ -37,8 +37,8 @@ revision zero, a non-null empty change array, and three zero seen baselines
 reconstruction or a data-loss warning. No name/domain association, Flame/place,
 method, Word of Power, or dated discovery is invented from met-NPC bits, visits,
 inventories, or canonical engine pairings. Existing defeat migration and hidden-spell
-inference keep their source-backed rules. Historical native lore-note
-promotion is separate from original-save conversion; see the
+inference keep their source-backed rules. Native snapshot compatibility is
+separate from original-save conversion; see the
 [native compatibility contract](SAVE_SNAPSHOT_SCHEMA.md#snapshot-version-compatibility).
 
 Current conversion defaults every chest assessment to uninspected, including all 512 active
@@ -101,12 +101,8 @@ generated loot retain normal object conversion authority, without loot rerolls.
 Authored and generated-child lifetime identity remains separate from physical
 trap/value bytes and inspection knowledge.
 
-Historical **native** promotion has a narrower explicit evidence source: only
-obsolete Lord British chest-death flags for authored NPCs 23–25 become saved-date
-`lastOpened` records, and only those flags are removed. Other NPC/quest flags,
-surviving objects and loot remain intact. This native migration must not be
-generalized into guessing original object-list NPC identities. See
-[the V24 contract](SAVE_SNAPSHOT_SCHEMA.md#snapshot-24-personal-state-and-chest-lifetimes).
+See [the V24 contract](SAVE_SNAPSHOT_SCHEMA.md#snapshot-24-personal-state-and-chest-lifetimes)
+for the native daily-chest fields.
 
 ## Object Lists
 

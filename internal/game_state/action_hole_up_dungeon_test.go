@@ -57,7 +57,7 @@ func TestDungeonCampingDefersMealConsumptionUntilCommandCompletion(t *testing.T)
 	state.DateTime.Minute = 1
 	state.lastProcessedHour = 5
 	state.PartyState.Inventory.Provisions.Food.Set(100)
-	scene := camping.NewDungeonCampingScene(1, NoGuardAssigned, state.MapState.PlayerLocation, nil)
+	scene := camping.NewDungeonCampingScene(1, NoGuardAssigned, state.MapState.PlayerLocation, &references.CombatMapReference{})
 	plan := &DungeonCampingPlan{}
 	campState := state.newCampingState(scene, false, false)
 
@@ -96,7 +96,7 @@ func TestDungeonCommandPrechargeDefersHourlyFoodUntilFullCompletion(t *testing.T
 func TestDungeonCampingBardCompletionEnablesFirstGuardWanderRoll(t *testing.T) {
 	state, callbacks := newDungeonCampingTestStateWithCallbacks(t)
 	state.PartyState.GetCharacter(0).Class = party_state.Bard
-	scene := camping.NewDungeonCampingScene(1, 0, state.MapState.PlayerLocation, nil)
+	scene := camping.NewDungeonCampingScene(1, 0, state.MapState.PlayerLocation, &references.CombatMapReference{})
 	campState := state.newCampingState(scene, false, false)
 	state.setupBardGuard(scene, campState)
 	require.True(t, campState.BardMusicPlaying)

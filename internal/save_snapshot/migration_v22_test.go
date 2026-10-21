@@ -34,14 +34,6 @@ func surveyJSONMembers(body map[string]any) []map[string]any {
 	return surveys
 }
 
-func removeV22Fields(body map[string]any) {
-	removeV24Fields(body)
-	delete(body, "openDoor")
-	for _, survey := range surveyJSONMembers(body) {
-		delete(survey, "flexible")
-	}
-}
-
 func v22EvidenceSnapshot(hour int, flexible bool) SaveSnapshot {
 	snapshot := v20EvidenceSnapshot()
 	snapshot.AtlasLandmarks = []journal.AtlasLandmarkObservation{atlasEvidence()}
@@ -186,76 +178,5 @@ func TestV22FlexibleStillRequiresValidSurfaceEvidence(t *testing.T) {
 			require.ErrorIs(t, err, ErrInvalidSnapshot)
 			require.Error(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
 		})
-	}
-}
-
-func TestV22HistoricalV20V21SurveyShapesRemainFrozen(t *testing.T) {
-	for _, version := range []int{20, 21} {
-		t.Run(fmt.Sprint(version), func(t *testing.T) {
-			snapshot := v22EvidenceSnapshot(21, false)
-			data := historicalV20TestData(t, version, snapshot)
-			schema, _ := compileNativeSaveSchemaFile(t, fmt.Sprintf("native-save-e2-s%d.schema.json", version))
-			require.NoError(t, schema.Validate(decodeJSONSchemaInstance(t, data)))
-			decoded, err := Decode(data)
-			require.NoError(t, err)
-			require.Equal(t, snapshot, decoded.Snapshot)
-			var document map[string]any
-			require.NoError(t, json.Unmarshal(data, &document))
-			body := document["snapshot"].(map[string]any)
-			for index, survey := range surveyJSONMembers(body) {
-				for _, value := range []any{false, true, nil} {
-					survey["flexible"] = value
-					injected, err := json.Marshal(document)
-					require.NoError(t, err)
-					_, err = Decode(injected)
-					require.ErrorContains(t, err, "flexible", "v%d survey %d must reject even inactive provenance", version, index)
-					require.Error(t, schema.Validate(decodeJSONSchemaInstance(t, injected)))
-					delete(survey, "flexible")
-				}
-			}
-			for _, family := range []string{"dungeon", "moonstone", "atlas"} {
-				daylight := v22EvidenceSnapshot(21, false)
-				switch family {
-				case "dungeon":
-					daylight.DungeonJournal[0].Sites[0].Survey.RecordedAt.Time.Hour = 12
-				case "moonstone":
-					daylight.MoonstoneJournal[3].Survey.RecordedAt.Time.Hour = 12
-				case "atlas":
-					daylight.AtlasLandmarks[0].Survey.RecordedAt.Time.Hour = 12
-				}
-				invalid := historicalV20TestData(t, version, daylight)
-				_, err = Decode(invalid)
-				require.ErrorContains(t, err, "nighttime", "historical daylight cannot be grandfathered")
-				require.Error(t, schema.Validate(decodeJSONSchemaInstance(t, invalid)))
-			}
-		})
-	}
-}
-
-func TestV22PromotionPreservesV21RetirementAndNullableAtlas(t *testing.T) {
-	for _, empty := range [][]journal.AtlasLandmarkObservation{nil, {}} {
-		snapshot := v22EvidenceSnapshot(21, false)
-		snapshot.AtlasLandmarks = empty
-		snapshot.Inventory.Moonstones[2] = 1
-		require.Zero(t, snapshot.MoonstoneJournal[2], "v21 accepted unknown carried records; policy promotion must not backfill them")
-		original := references.ChartedMoonstoneOrigins()[3].Location
-		moonstone := &snapshot.MoonstoneJournal[3]
-		moonstone.Site = journal.SiteLocation{Map: original.Location, Floor: original.Floor, X: int(original.Position.X), Y: int(original.Position.Y)}
-		moonstone.LastContext.Observer, moonstone.Survey.Location, moonstone.SurveyContext.Observer = moonstone.Site, moonstone.Site, moonstone.Site
-		require.True(t, moonstone.OriginalSiteRetired, "sticky retirement is persisted evidence, not recomputed in v21 promotion")
-		decoded, err := Decode(historicalV20TestData(t, 21, snapshot))
-		require.NoError(t, err)
-		require.Equal(t, snapshot, decoded.Snapshot)
-	}
-	for version := 12; version <= 21; version++ {
-		decoded, err := Decode(historicalV20TestData(t, version, validSnapshot()))
-		require.NoError(t, err)
-		data, err := json.Marshal(decoded.Snapshot)
-		require.NoError(t, err)
-		var body map[string]any
-		require.NoError(t, json.Unmarshal(data, &body))
-		for _, survey := range surveyJSONMembers(body) {
-			require.Equal(t, false, survey["flexible"], "v%d cannot invent flexible acquisition policy", version)
-		}
 	}
 }

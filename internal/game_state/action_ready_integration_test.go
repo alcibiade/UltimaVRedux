@@ -16,9 +16,6 @@ func TestReadyExplorationRoutesRemainCharacterNavigable(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	state.PartyState.Inventory.Equipment.Set(references.Dagger, 1)
 	callbacks.Reset()
@@ -32,9 +29,6 @@ func TestReadyExplorationRoutesRemainCharacterNavigable(t *testing.T) {
 
 func TestReadyCombatBindsNonAvatarAndExactCloneIdentity(t *testing.T) {
 	state, callbacks := newReadyCombatTestState(t)
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	state.PartyState.Inventory.Equipment.Set(references.Dagger, 1)
 
@@ -72,9 +66,6 @@ func TestReadyCombatBindsNonAvatarAndExactCloneIdentity(t *testing.T) {
 
 func TestReadyCombatRejectsNonPCWithoutActionOrRNG(t *testing.T) {
 	state, callbacks := newReadyCombatTestState(t)
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	state.PartyState.Inventory.Equipment.Set(references.Dagger, 1)
 	state.CombatScene.CurrentTurnIdentity = CombatTurnIdentity{IsPartyMember: false, EntityIndex: 0}
@@ -94,9 +85,6 @@ func TestReadyCombatRejectsNonPCWithoutActionOrRNG(t *testing.T) {
 
 func TestApplyReadyEquipmentCombatSlotAndVictoryPolicy(t *testing.T) {
 	state, _ := newReadyCombatTestState(t)
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	request := readyCombatRequest(t, state)
 	character := state.PartyState.GetCharacter(request.CharacterIndex)
@@ -139,9 +127,6 @@ func TestApplyReadyEquipmentCombatSlotAndVictoryPolicy(t *testing.T) {
 
 func TestApplyReadyEquipmentAmmoPreflightDoesNotMutateOrConsume(t *testing.T) {
 	state, _ := newReadyCombatTestState(t)
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	request := readyCombatRequest(t, state)
 	character := state.PartyState.GetCharacter(request.CharacterIndex)
@@ -379,9 +364,6 @@ func TestApplyReadyEquipmentRingVanishUsesExactAuthoritativeRoll(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			state, callbacks := newReadyCombatTestState(t)
-			if state == nil {
-				return
-			}
 			clearReadyTestEquipment(state)
 			state.SetRandomSeed(readyRingSeed(t, test.vanishes))
 			request := readyCombatRequest(t, state)
@@ -411,9 +393,6 @@ func TestApplyReadyEquipmentRingVanishUsesExactAuthoritativeRoll(t *testing.T) {
 
 func TestApplyReadyEquipmentRollsOnlyForSuccessfulVanishableRingEquip(t *testing.T) {
 	state, _ := newReadyCombatTestState(t)
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	request := readyCombatRequest(t, state)
 	character := state.PartyState.GetCharacter(request.CharacterIndex)
@@ -441,9 +420,6 @@ func TestApplyReadyEquipmentRollsOnlyForSuccessfulVanishableRingEquip(t *testing
 
 func TestBeginReadyEquipmentEmptyConsumesWithoutDialog(t *testing.T) {
 	state, callbacks := newReadyCombatTestState(t)
-	if state == nil {
-		return
-	}
 	clearReadyTestEquipment(state)
 	callbacks.Reset()
 
@@ -457,9 +433,6 @@ func TestBeginReadyEquipmentEmptyConsumesWithoutDialog(t *testing.T) {
 func newReadyCombatTestState(t *testing.T) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 	state, callbacks := setupCombatAttackTargeting(t)
-	if state == nil {
-		return nil, nil
-	}
 	state.BeginCombatTurns(CombatTurnsImmediate)
 	state.CombatScene.Victory = false
 	callbacks.Reset()

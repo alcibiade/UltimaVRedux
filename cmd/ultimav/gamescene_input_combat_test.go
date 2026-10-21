@@ -258,9 +258,6 @@ func TestCombatNumberSelectionDoesNotTriggerDoomMirrorAbsorption(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -312,9 +309,6 @@ func TestRejectedAndModalCombatCommandsDoNotTriggerDoomMirrorImmediately(t *test
 				WithSystemCallbacks().
 				WithRandomSeed(1).
 				Build()
-			if gs == nil {
-				return
-			}
 			require.NoError(t, gs.TransitionToCombatMap(
 				0,
 				references.BritanniaCombatTerritory,
@@ -486,9 +480,6 @@ func setupControlledMonsterInputTest(
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return nil, nil, game_state.NoActiveMonster
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -517,9 +508,6 @@ func setupControlledMonsterInputTest(
 
 func TestControlledMonsterRejectsPCOnlyCommandWithoutConsumingTurn(t *testing.T) {
 	gs, mock, daemonIndex := setupControlledMonsterInputTest(t)
-	if gs == nil {
-		return
-	}
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused command-gating fixture.
 	identityBefore := gs.CombatScene.GetCurrentTurnIdentity()
 	timeBefore := gs.DateTime
@@ -534,9 +522,6 @@ func TestControlledMonsterRejectsPCOnlyCommandWithoutConsumingTurn(t *testing.T)
 
 func TestControlledMonsterUsesBlockedCombatCommandMatrix(t *testing.T) {
 	gs, callbacks, _ := setupControlledMonsterInputTest(t)
-	if gs == nil {
-		return
-	}
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Blocked routing needs no presentation state.
 	before := snapshotBlockedCombatState(t, gs)
 
@@ -804,9 +789,6 @@ func assertProductionCombatPushCompletion(
 
 func TestControlledMonsterProjectileUsesExistingVisualWorkflow(t *testing.T) {
 	gs, mock, daemonIndex := setupControlledMonsterInputTest(t)
-	if gs == nil {
-		return
-	}
 	enemyReferences := *gs.GameReferences.EnemyReferences
 	targetPosition := references.Position{X: 7, Y: 5}
 	target := game_state.NewCombatMonster(
@@ -847,54 +829,6 @@ func TestControlledMonsterProjectileUsesExistingVisualWorkflow(t *testing.T) {
 // TestCombatMapAttackSecondary_ConsumesTurn prevents attacks from leaving the
 // same PC active indefinitely. Original combat input completes the action (ref:COMBAT-0003)
 // after Attack, then the turn manager selects the next combatant.
-func TestCombatMapAttackSecondary_ConsumesTurn(t *testing.T) {
-	gs, mockCallbacks := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	if gs == nil {
-		return
-	}
-
-	err := gs.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		game_state.CombatEntryNorth,
-	)
-	require.NoError(t, err)
-
-	activePCIndex := gs.CombatScene.GetActiveCombatantIndex()
-	activePCPosition := gs.CombatScene.GetPartyMemberPosition(activePCIndex)
-	targetPosition := references.Down.GetNewPositionInDirection(&activePCPosition)
-	require.NotNil(t, targetPosition)
-
-	gs.CombatScene.MonsterManager.Clear()
-	enemyReferences := *gs.GameReferences.EnemyReferences
-	monster := game_state.NewCombatMonster(
-		references.MonsterOrc,
-		&enemyReferences[references.MonsterOrc],
-		*targetPosition,
-		gs.AsRandomProvider(),
-	)
-	gs.CombatScene.AddMonsterToQueue(monster)
-
-	mockCallbacks.Reset()
-
-	gameScene := &GameScene{gameState: gs}
-	gameScene.combatMapAttackSecondary(references.Down)
-
-	pcPromptShown := false
-	for _, message := range mockCallbacks.Messages {
-		if strings.Contains(message, ", armed with ") {
-			pcPromptShown = true
-			break
-		}
-	}
-	assert.True(t, gs.CombatScene.HasScheduledCombatStep() || pcPromptShown,
-		"attack should advance to either a monster turn or the next PC turn")
-}
-
 // TestFinishCombatAttackTargetAction_FinalizesTurn prevents completed targeted
 // attacks from advancing the queue without processing combat time and effects.
 func TestFinishCombatAttackTargetAction_FinalizesTurn(t *testing.T) {
@@ -903,9 +837,6 @@ func TestFinishCombatAttackTargetAction_FinalizesTurn(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
@@ -941,9 +872,6 @@ func TestCombatChestRevealWorkflowPacesRightPanelMessages(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -994,9 +922,6 @@ func TestCombatAutoPassSchedulerBlocksInputUntilNonActionablePCTurnIsShown(t *te
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -1037,9 +962,6 @@ func TestCombatProjectileSequencePreservesPhysicalProjectileIdentity(t *testing.
 				WithSystemCallbacks().
 				WithRandomSeed(42).
 				Build()
-			if gs == nil {
-				return
-			}
 			require.NoError(t, gs.TransitionToCombatMap(
 				0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth,
 			))
@@ -1092,9 +1014,6 @@ func TestPlayerCombatMovementCompletesExactScheduledTurn(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth,
 	))
@@ -1138,9 +1057,6 @@ func TestCancelInitialCombatAttack_PreservesTurn(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
@@ -1168,9 +1084,6 @@ func TestFinishCombatSpellTargetAction_CancelPreservesAction(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -1195,9 +1108,6 @@ func TestFinishCombatSpellTargetAction_InvalidKeepsTargetingInput(t *testing.T) 
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	scene := &GameScene{ //nolint:exhaustruct // Focused input-state fixture.
 		gameState:         gs,
 		secondaryKeyState: CombatSpellTargetInput,
@@ -1307,9 +1217,6 @@ func TestCombatProjectileAnimationSequenceOwnsOnlyProjectileLifecycle(t *testing
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -1392,9 +1299,6 @@ func TestCombatWisQuasEffectProvidesAudioAndVisualFeedback(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 	mock.Reset()
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused spell-effect fixture.
@@ -1424,9 +1328,6 @@ func TestCombatEarthquakeEffectShakesScreenAndPlaysSound(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 	mock.Reset()
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused spell-effect fixture.
@@ -1457,9 +1358,6 @@ func TestCombatSanctLorEffectUsesDoubleLightBluePulseAndLeavesShimmerState(t *te
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 	mock.Reset()
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused spell-effect fixture.
@@ -1499,9 +1397,6 @@ func TestCombatRelTymEffectUsesTwoLightBluePulsesAndCleansUp(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 	mock.Reset()
 	scene := &GameScene{gameState: gs} //nolint:exhaustruct // Focused spell-effect fixture.
@@ -1630,9 +1525,6 @@ func TestCombatInPorEffectConcealsMovesAndRevealsCaster(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(1).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	from := gs.CombatScene.GetPartyMemberPosition(casterIdx)
@@ -1675,9 +1567,6 @@ func TestFinishSpellCastingWorkflow_AdvancesCommittedCombatQueue(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -1708,9 +1597,6 @@ func TestCombatEscapeAfterVictoryLeavesInsteadOfOpeningMenu(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,
@@ -1751,9 +1637,6 @@ func TestCombatEscapeWithNoPCsAndSurvivingAllyPreservesDefeat(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		int(references.ShipSeaCombatMap),
 		references.BritanniaCombatTerritory,
@@ -1788,9 +1671,6 @@ func TestCombatEscapeBeforeVictoryReportsRefusalInsteadOfOpeningMenu(t *testing.
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		int(references.ShipSeaCombatMap),
 		references.BritanniaCombatTerritory,

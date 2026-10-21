@@ -79,9 +79,6 @@ func (g *GameState) WipeActiveParty(expectedFingerprint string) (ActivePartyWipe
 			After:  activePartyWipeMemberSnapshot(before.Slot, character),
 		})
 	}
-	if len(changes) > 0 {
-		g.SystemCallbacks.Screen.UpdateStatsDisplay()
-	}
 	after := g.ReviewActivePartyWipe()
 
 	return ActivePartyWipeResult{

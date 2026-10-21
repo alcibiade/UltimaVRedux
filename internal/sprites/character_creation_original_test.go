@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 	"github.com/bradhannah/UltimaVRedux/test/originaldata"
 )
 

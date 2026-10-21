@@ -166,8 +166,8 @@ with responsive wrapping. Page-turn announcement is not a clue. No unspoken Doom
 name, entrance association, or coordinate is added; search uses visible clue text,
 not hidden IDs. Word-only knowledge remains if interrupted before completion.
 First completion marks the existing event updated; repeats are silent. Native v24
-persists `codexRevelationComplete` independently of quest/word flags; older native/
-legacy imports start incomplete. Browsing never completes it. Original narrative
+persists `codexRevelationComplete` independently of quest/word flags; legacy
+imports start incomplete. Browsing never completes it. Original narrative
 payload and exclusive revelation claims remain unverified here.
 
 **Implementation:** `internal/game_state/codex_revelation.go`, `cmd/ultimav/gamescene_shrine.go`

@@ -18,9 +18,6 @@ func setupCombatAttackTargeting(t *testing.T) (*GameState, *MockSystemCallbacks)
 		WithSystemCallbacks().
 		WithRandomSeed(42).
 		Build()
-	if gs == nil {
-		return nil, nil
-	}
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	clearCombatMonstersForTest(gs.CombatScene)
 	mock.Reset()
@@ -30,9 +27,6 @@ func setupCombatAttackTargeting(t *testing.T) (*GameState, *MockSystemCallbacks)
 
 func TestCollectCombatAttackSources_OriginalOrderAndRanges(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotHelm, references.SpikedHelm)
@@ -54,9 +48,6 @@ func TestCollectCombatAttackSources_OriginalOrderAndRanges(t *testing.T) {
 
 func TestCollectCombatAttackSources_BareHandsFallback(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
@@ -72,9 +63,6 @@ func TestCollectCombatAttackSources_BareHandsFallback(t *testing.T) {
 
 func TestMoveCombatAttackCursor_EnforcesIntegerRangeAndBounds(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	origin := references.Position{X: 5, Y: 5}
@@ -99,9 +87,6 @@ func TestMoveCombatAttackCursor_EnforcesIntegerRangeAndBounds(t *testing.T) {
 
 func TestBeginCombatAttack_ReusesVisibleTargetWithinCurrentRange(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	origin := gs.CombatScene.GetPartyMemberPosition(attackerIndex)
@@ -122,9 +107,6 @@ func TestBeginCombatAttack_ReusesVisibleTargetWithinCurrentRange(t *testing.T) {
 
 func TestConfirmCombatAttackTarget_ProcessesEachSourceAndCompletes(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	origin := gs.CombatScene.GetPartyMemberPosition(attackerIndex)
@@ -152,9 +134,6 @@ func TestConfirmCombatAttackTarget_ProcessesEachSourceAndCompletes(t *testing.T)
 
 func TestCancelCombatAttackSource_ContinuesThenCompletes(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotHelm, references.SpikedHelm)
@@ -170,9 +149,6 @@ func TestCancelCombatAttackSource_ContinuesThenCompletes(t *testing.T) {
 
 func TestCancelInitialCombatAttack_ClearsTargetingWithoutAdvancingSource(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotHelm, references.SpikedHelm)
@@ -185,9 +161,6 @@ func TestCancelInitialCombatAttack_ClearsTargetingWithoutAdvancingSource(t *test
 
 func TestCancelInitialCombatAttack_IgnoresLaterSource(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotHelm, references.SpikedHelm)
@@ -201,9 +174,6 @@ func TestCancelInitialCombatAttack_IgnoresLaterSource(t *testing.T) {
 
 func TestConfirmCombatAttackTarget_EmptyMeleeSquareReportsNothing(t *testing.T) {
 	gs, mock := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	character := gs.PartyState.GetCharacter(gs.CombatScene.GetActiveCombatantIndex())
 	character.SetEquippedItem(references.SlotHelm, references.NoEquipment)
@@ -218,9 +188,6 @@ func TestConfirmCombatAttackTarget_EmptyMeleeSquareReportsNothing(t *testing.T) 
 
 func TestConfirmCombatAttackTarget_RangedSourceDoesNotApplyRemoteDamage(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	origin := gs.CombatScene.GetPartyMemberPosition(attackerIndex)
@@ -244,9 +211,6 @@ func TestConfirmCombatAttackTarget_RangedSourceDoesNotApplyRemoteDamage(t *testi
 
 func TestGetCombatAimDisposition_DoesNotRevealInvisibleMonsters(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	origin := gs.CombatScene.GetPartyMemberPosition(attackerIndex)
@@ -276,9 +240,6 @@ func TestGetCombatAimDisposition_DoesNotRevealInvisibleMonsters(t *testing.T) {
 
 func TestCombatAttackTargetingTreatsPossessedPCAsEnemy(t *testing.T) {
 	gs, mock := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	targetIndex := (attackerIndex + 1) % party_state.MaxActiveParty
 	require.True(t, gs.CombatScene.PartyActive[targetIndex])
@@ -307,9 +268,6 @@ func TestCombatAttackTargetingTreatsPossessedPCAsEnemy(t *testing.T) {
 
 func TestCombatAttackTargetingKeepsUnpossessedPCFriendly(t *testing.T) {
 	gs, _ := setupCombatAttackTargeting(t)
-	if gs == nil {
-		return
-	}
 	attackerIndex := gs.CombatScene.GetActiveCombatantIndex()
 	targetIndex := (attackerIndex + 1) % party_state.MaxActiveParty
 	require.True(t, gs.CombatScene.PartyActive[targetIndex])

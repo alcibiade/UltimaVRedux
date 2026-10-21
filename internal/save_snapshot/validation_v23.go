@@ -1,33 +1,14 @@
 package save_snapshot
 
 import (
-	"fmt"
-
-	"github.com/bradhannah/UltimaVRedux/internal/journal"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
-
-// Historical atlas domains remain frozen even as runtime journal validation grows.
-func validateHistoricalAtlasAuthority(records []journal.AtlasLandmarkObservation, add func(string, string, string)) {
-	if len(records) > 38 {
-		add("atlasLandmarks", "out_of_range", "historical atlas has at most 38 landmarks")
-	}
-	for index, record := range records {
-		if record.SiteKey == journal.AtlasGuardiansSiteKey || record.Kind == "guardians" ||
-			record.Source == journal.AtlasSourceSextantReceipt || record.SurveySource == journal.AtlasSourceSextantReceipt {
-			add(fmt.Sprintf("atlasLandmarks[%d]", index), "unsupported", "historical atlas cannot contain Guardians or sextant-receipt authority")
-		}
-	}
-}
 
 func validateOpenDoor(snapshot SaveSnapshot, add func(string, string, string)) {
 	door := snapshot.OpenDoor
 	if door == nil {
 		return
-	}
-	if snapshot.Version < 23 {
-		add("openDoor", "unsupported", "timed door continuation requires snapshot 23")
 	}
 	position := door.Position
 	validatePosition("openDoor.position", position, add)

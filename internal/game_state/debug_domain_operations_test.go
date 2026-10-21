@@ -107,8 +107,6 @@ func TestSetQuestItemPresentSupportsEveryQuestItem(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	refreshCount := 0
-	gameState.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshCount++ }
 
 	for item := references.Amulet; item < references.NumberOfQuestItems; item++ {
 		gameState.PartyState.Inventory.QuestItems.Set(item, 0)
@@ -127,9 +125,6 @@ func TestSetQuestItemPresentSupportsEveryQuestItem(t *testing.T) {
 		}
 	}
 
-	if refreshCount != references.NumberOfQuestItems*2 {
-		t.Fatalf("inventory refresh count = %d, want %d", refreshCount, references.NumberOfQuestItems*2)
-	}
 	if _, _, err := gameState.SetQuestItemPresent(references.QuestItem(99), true); err == nil {
 		t.Fatal("invalid quest item alteration succeeded")
 	}

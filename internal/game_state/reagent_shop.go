@@ -116,49 +116,10 @@ func (g *GameState) GetReagentShopState(session MerchantSession) (ReagentShopSta
 
 // ReviewReagentShopByMerchantID builds production quotes without issuing a
 // session, invoking callbacks, consuming RNG, or consulting loaded NPC state.
-//
-//nolint:dupl // Concrete merchant families deliberately keep their review and quote contracts independent.
 func (g *GameState) ReviewReagentShopByMerchantID(id references.MerchantID) (ReagentShopReview, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.InventoryItemReferences == nil || g.GameReferences.NPCReferences == nil ||
-		g.GameReferences.LocationReferences == nil {
-		return ReagentShopReview{}, fmt.Errorf("%w: merchant references are unavailable", ErrInvalidMerchantSession)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return ReagentShopReview{}, fmt.Errorf("%w: unknown merchant ID %q", ErrInvalidMerchantSession, id)
-	}
-	if merchant.Family != references.MerchantFamilyReagent {
-		return ReagentShopReview{}, fmt.Errorf("%w: merchant %q is not a reagent merchant", ErrInvalidReagentPurchase, id)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return ReagentShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return ReagentShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return ReagentShopReview{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyReagent, ErrInvalidReagentPurchase, "a reagent merchant")
+	if err != nil {
+		return ReagentShopReview{}, err
 	}
 	buyer, buyerIndex := g.merchantPricingCharacter()
 	if buyer == nil {
@@ -281,7 +242,6 @@ func (g *GameState) PurchaseReagentOffer(
 	result.GoldAfterTheft = g.PartyState.Inventory.Gold.Get()
 	result.QuantityAfter = g.PartyState.Inventory.Reagent.Get(quote.Reagent)
 	result.ActualReceipt = result.QuantityAfter - result.QuantityBefore
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }

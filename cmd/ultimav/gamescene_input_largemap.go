@@ -341,8 +341,6 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 	case AttackDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionAttackLargeMap(direction), originMapType)
 		g.secondaryKeyState = PrimaryInput
-	case UseDirectionInput:
-		result = surfaceResultFromSuccess(g.gameState.ActionUseLargeMap(direction), originMapType)
 		g.secondaryKeyState = PrimaryInput
 	// YellDirectionInput removed - now handled by YellDialog
 	// WindChangeScrollDirectionInput removed - now handled by DirectionPrompt dialog

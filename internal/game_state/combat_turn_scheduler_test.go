@@ -88,9 +88,6 @@ func TestChaosInterceptionImmediateAndPresentedResolveIdentically(t *testing.T) 
 
 func TestCombatPresentationStepRequiresExactResolutionAndCompletion(t *testing.T) {
 	gs, _, monster := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	forceNextMonsterTurnForTest(t, gs, 0)
 	positionBefore := monster.Position()
 
@@ -119,9 +116,6 @@ func TestCombatPresentationStepRequiresExactResolutionAndCompletion(t *testing.T
 
 func TestCombatPresentationCompletionRejectsStaleAndPostCombatTokens(t *testing.T) {
 	gs, _, _ := setupCombatWithMonster(t, references.MonsterOrc, references.Down, 42)
-	if gs == nil {
-		return
-	}
 	forceNextMonsterTurnForTest(t, gs, 0)
 
 	gs.BeginCombatTurns(CombatTurnsPresented)

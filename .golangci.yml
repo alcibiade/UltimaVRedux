@@ -173,7 +173,7 @@ linters:
           - nlreturn
           - varnamelen
           - wrapcheck
-        path: "^(cmd/graphics-export/|internal/graphics/)"
+        path: "^pkg/graphics/"
 issues:
   max-issues-per-linter: 100
   max-same-issues: 10

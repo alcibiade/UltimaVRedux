@@ -10,16 +10,12 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-func newEquipmentLoadoutTestState(t *testing.T) (*GameState, *int, *int) {
+func newEquipmentLoadoutTestState(t *testing.T) *GameState {
 	t.Helper()
 	state, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	inventoryRefreshes := 0
-	statsRefreshes := 0
-	state.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { inventoryRefreshes++ }
-	state.SystemCallbacks.Screen.UpdateStatsDisplay = func() { statsRefreshes++ }
 	character := state.PartyState.GetCharacter(0)
 	character.SetStatus(party_state.Good)
 	character.SetHp(max(character.GetCurrentHp(), 1))
@@ -28,11 +24,11 @@ func newEquipmentLoadoutTestState(t *testing.T) (*GameState, *int, *int) {
 		character.SetEquippedItem(slot, references.NoEquipment)
 	}
 
-	return state, &inventoryRefreshes, &statsRefreshes
+	return state
 }
 
 func TestAlterEquipmentLoadoutAppliesMixedMultiSlotSourcesAtomically(t *testing.T) {
-	state, inventoryRefreshes, statsRefreshes := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	avatar.SetEquippedItem(references.SlotWeapon, references.LongSword)
 	avatar.SetEquippedItem(references.SlotShield, references.SmallShield)
@@ -55,12 +51,10 @@ func TestAlterEquipmentLoadoutAppliesMixedMultiSlotSourcesAtomically(t *testing.
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.SmallShield))
 	assert.Equal(t, uint16(0), state.PartyState.Inventory.Equipment.Get(references.PlateMail))
 	assert.Len(t, result.Changes, 6)
-	assert.Equal(t, 1, *inventoryRefreshes)
-	assert.Equal(t, 1, *statsRefreshes)
 }
 
 func TestAlterEquipmentLoadoutRejectsInvalidFinalStateWithoutMutation(t *testing.T) {
-	state, inventoryRefreshes, statsRefreshes := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	state.PartyState.Inventory.Equipment.Set(references.Halberd, 1)
 	state.PartyState.Inventory.Equipment.Set(references.SmallShield, 1)
@@ -77,12 +71,10 @@ func TestAlterEquipmentLoadoutRejectsInvalidFinalStateWithoutMutation(t *testing
 	assert.Equal(t, references.NoEquipment, avatar.GetEquippedItem(references.SlotShield))
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.Halberd))
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.SmallShield))
-	assert.Zero(t, *inventoryRefreshes)
-	assert.Zero(t, *statsRefreshes)
 }
 
 func TestAlterEquipmentLoadoutAcceptsReadyGenericHandStates(t *testing.T) {
-	state, _, _ := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	state.PartyState.Inventory.Equipment.Set(references.SmallShield, 1)
 	state.PartyState.Inventory.Equipment.Set(references.Dagger, 1)
@@ -101,7 +93,7 @@ func TestAlterEquipmentLoadoutAcceptsReadyGenericHandStates(t *testing.T) {
 }
 
 func TestAlterEquipmentLoadoutRejectsUnavailableOrOverflowingInventoryAtomically(t *testing.T) {
-	state, _, _ := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	avatar.SetEquippedItem(references.SlotWeapon, references.LongSword)
 	state.PartyState.Inventory.Equipment.Set(references.LongSword, party_state.ItemQuantitySmallMax)
@@ -127,7 +119,7 @@ func TestAlterEquipmentLoadoutRejectsUnavailableOrOverflowingInventoryAtomically
 }
 
 func TestAlterEquipmentLoadoutAggregatesReturnAndConsumptionBeforeCapacityValidation(t *testing.T) {
-	state, _, _ := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	avatar.SetEquippedItem(references.SlotWeapon, references.LongSword)
 	state.PartyState.Inventory.Equipment.Set(references.LongSword, party_state.ItemQuantitySmallMax)
@@ -144,7 +136,7 @@ func TestAlterEquipmentLoadoutAggregatesReturnAndConsumptionBeforeCapacityValida
 }
 
 func TestAlterEquipmentLoadoutRejectsChangedDeadOrCombatRestrictedTargetWithoutMutation(t *testing.T) {
-	state, inventoryRefreshes, statsRefreshes := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	state.PartyState.Inventory.Equipment.Set(references.ChainMail, 1)
 	request := EquipmentLoadoutAlteration{
@@ -170,12 +162,10 @@ func TestAlterEquipmentLoadoutRejectsChangedDeadOrCombatRestrictedTargetWithoutM
 
 	assert.Equal(t, references.NoEquipment, avatar.GetEquippedItem(references.SlotArmour))
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.ChainMail))
-	assert.Zero(t, *inventoryRefreshes)
-	assert.Zero(t, *statsRefreshes)
 }
 
-func TestAlterEquipmentLoadoutsAppliesAggregateInventoryAtomicallyAndRefreshesOnce(t *testing.T) {
-	state, inventoryRefreshes, statsRefreshes := newEquipmentLoadoutTestState(t)
+func TestAlterEquipmentLoadoutsAppliesAggregateInventoryAtomically(t *testing.T) {
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	ally := state.PartyState.GetCharacter(1)
 	ally.PartyMap = party_state.PartyMapActive
@@ -201,12 +191,10 @@ func TestAlterEquipmentLoadoutsAppliesAggregateInventoryAtomicallyAndRefreshesOn
 	assert.Equal(t, uint16(2), state.PartyState.Inventory.Equipment.Get(references.Dagger))
 	assert.Len(t, result.Targets, 2)
 	assert.Len(t, result.Changes, 4)
-	assert.Equal(t, 1, *inventoryRefreshes)
-	assert.Equal(t, 1, *statsRefreshes)
 }
 
 func TestAlterEquipmentLoadoutsRejectsAnyInvalidTargetBeforeAggregateMutation(t *testing.T) {
-	state, inventoryRefreshes, statsRefreshes := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	ally := state.PartyState.GetCharacter(1)
 	ally.PartyMap = party_state.PartyMapActive
@@ -226,12 +214,10 @@ func TestAlterEquipmentLoadoutsRejectsAnyInvalidTargetBeforeAggregateMutation(t 
 	assert.Equal(t, references.NoEquipment, avatar.GetEquippedItem(references.SlotWeapon))
 	assert.Equal(t, references.NoEquipment, ally.GetEquippedItem(references.SlotWeapon))
 	assert.Equal(t, uint16(2), state.PartyState.Inventory.Equipment.Get(references.LongSword))
-	assert.Zero(t, *inventoryRefreshes)
-	assert.Zero(t, *statsRefreshes)
 }
 
 func TestAlterEquipmentLoadoutsRejectsInsufficientAggregateInventoryBeforeMutation(t *testing.T) {
-	state, inventoryRefreshes, statsRefreshes := newEquipmentLoadoutTestState(t)
+	state := newEquipmentLoadoutTestState(t)
 	avatar := state.PartyState.GetCharacter(0)
 	ally := state.PartyState.GetCharacter(1)
 	ally.PartyMap = party_state.PartyMapActive
@@ -253,6 +239,4 @@ func TestAlterEquipmentLoadoutsRejectsInsufficientAggregateInventoryBeforeMutati
 	assert.Equal(t, references.NoEquipment, avatar.GetEquippedItem(references.SlotWeapon))
 	assert.Equal(t, references.NoEquipment, ally.GetEquippedItem(references.SlotWeapon))
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.Equipment.Get(references.LongSword))
-	assert.Zero(t, *inventoryRefreshes)
-	assert.Zero(t, *statsRefreshes)
 }

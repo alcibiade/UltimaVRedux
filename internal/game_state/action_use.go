@@ -873,24 +873,3 @@ func (g *GameState) IsSpyglassLocationValid() bool {
 	return (mapType == references.LargeMapType || mapType == references.SmallMapType) &&
 		g.MapState.PlayerLocation.Floor >= 0
 }
-
-// ActionUseSmallMap is a legacy direction handler, unused by the item picker.
-func (g *GameState) ActionUseSmallMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
-
-	return false
-}
-
-// ActionUseLargeMap is a legacy direction handler, unused by the item picker.
-func (g *GameState) ActionUseLargeMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("Nothing to use!")
-
-	return false
-}
-
-// ActionUseCombatMap is a legacy direction handler, unused by the combat item picker.
-func (g *GameState) ActionUseCombatMap(_ references.Direction) bool {
-	g.SystemCallbacks.Message.AddRowStr("Not now!")
-
-	return false
-}

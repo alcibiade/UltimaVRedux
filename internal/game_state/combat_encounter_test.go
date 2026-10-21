@@ -688,9 +688,6 @@ func TestPirateDefeatDoesNotCreateSalvageFrigate(t *testing.T) {
 		WithRandomSeed(179).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	sourcePosition := references.Position{X: 51, Y: 50}
 	sourceEnemy := addPirateTestEnemy(t, gs, sourcePosition, indexes.PirateShipUp)
 	require.NoError(t, gs.StartOverworldCombatEncounter(sourceEnemy))

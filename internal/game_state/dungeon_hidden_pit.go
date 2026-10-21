@@ -222,5 +222,4 @@ func (g *GameState) damageDungeonPartyMember(index int) {
 	}
 	g.SystemCallbacks.Audio.PlaySoundEffect(SoundWhiteNoiseDamage)
 	g.PartyState.GetCharacter(index).SubtractHp(uint16(g.RollDice(8)))
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 }

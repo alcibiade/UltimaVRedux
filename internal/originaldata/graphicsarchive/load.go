@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/bradhannah/UltimaVRedux/internal/files"
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 const maximumArchiveBytes = 4 << 20

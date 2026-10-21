@@ -56,9 +56,6 @@ func TestActionSearchCombatMapConsumesCorpse(t *testing.T) {
 		WithSystemCallbacks().
 		WithRandomSeed(169).
 		Build()
-	if gs == nil {
-		return
-	}
 
 	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()

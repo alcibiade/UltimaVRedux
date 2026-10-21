@@ -19,9 +19,6 @@ func TestCombatVisibility_IgnoresExplorationLighting(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(6, references.DungeonCombatTerritory, game_state.CombatEntrySouth)
 	require.NoError(t, err)
@@ -39,9 +36,6 @@ func TestCombatVisibility_DisablesLightTinting(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	err := gs.TransitionToCombatMap(6, references.DungeonCombatTerritory, game_state.CombatEntrySouth)
 	require.NoError(t, err)
@@ -65,9 +59,6 @@ func TestDuskAmbientTintDoesNotChangeVisibilityLight(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 
 	gs.DateTime.Hour = 19
 	gs.DateTime.Minute = 45

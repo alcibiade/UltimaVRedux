@@ -20,19 +20,14 @@ func snapshotWithConversationForArchiveBoundary() SaveSnapshot {
 }
 
 func TestNativeConversationArchiveMemberCodecSchemaAgreement(t *testing.T) {
-	for _, version := range []int{17, 18, 19, 20, 21, CurrentVersion} {
+	for _, version := range []int{MinimumVersion, CurrentVersion} {
 		t.Run(fmt.Sprintf("v%d", version), func(t *testing.T) {
 			snapshot := snapshotWithConversationForArchiveBoundary()
 			document := currentEnvelopeDocument(t, snapshot)
 			body := document["snapshot"].(map[string]any)
 			body["version"] = version
-			if version <= 21 {
-				removeV22Fields(body)
-			}
-			if version < 20 {
-				removeV20Fields(body)
-			} else if version == 20 {
-				removeV21Fields(body)
+			if version < CurrentVersion {
+				delete(body, "excerpts")
 			}
 			schema, _ := compileNativeSaveSchemaFile(t, fmt.Sprintf("native-save-e2-s%d.schema.json", version))
 			data, err := json.Marshal(document)
@@ -40,7 +35,7 @@ func TestNativeConversationArchiveMemberCodecSchemaAgreement(t *testing.T) {
 			require.NoError(t, schema.Validate(decodeJSONSchemaInstance(t, data)), "baseline must satisfy the exact source schema")
 			decoded, err := Decode(data)
 			require.NoError(t, err)
-			require.Equal(t, snapshot, decoded.Snapshot, "valid v17 data promotes; v18 retains the same conversation")
+			require.Equal(t, snapshot, decoded.Snapshot, "valid v24 data promotes and retains the same conversation")
 			exchange := body["lastConversation"].(map[string]any)["exchanges"].([]any)[0].(map[string]any)
 			for _, test := range []struct {
 				name   string

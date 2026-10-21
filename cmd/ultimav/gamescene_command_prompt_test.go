@@ -20,9 +20,6 @@ func TestMapCommandHandlersUseOriginalPrompt(t *testing.T) {
 		WithLocation(references.LordBritishsCastle).
 		WithSystemCallbacks().
 		Build()
-	if gameState == nil {
-		return
-	}
 
 	testCases := []struct {
 		name   string

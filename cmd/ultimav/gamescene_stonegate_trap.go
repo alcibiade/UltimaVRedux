@@ -76,7 +76,6 @@ func (g *GameScene) StartStonegateTrapWorkflow(outcome game_state.StonegateTrapO
 			for _, member := range outcome.KilledMembers {
 				deathQ.Then(func() {
 					g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundDeath)
-					g.gameState.SystemCallbacks.Screen.UpdateStatsDisplay()
 					logging.Debug(logging.CategoryGameState, "Stonegate: Character %d killed", member.After.Slot)
 				}).ThenSequence(g.thenVolcanoDeathFlash()).Wait(stonegateDeathDelayMs)
 			}

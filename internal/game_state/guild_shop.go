@@ -76,49 +76,9 @@ func (g *GameState) GetGuildShopState(session MerchantSession) (GuildShopState, 
 // ReviewGuildShopByMerchantID builds the same production quotes without
 // issuing a session, touching callbacks, or consulting mutable loaded NPC state.
 func (g *GameState) ReviewGuildShopByMerchantID(id references.MerchantID) (GuildShopReview, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil {
-		return GuildShopReview{}, fmt.Errorf("%w: merchant references are unavailable", ErrInvalidMerchantSession)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return GuildShopReview{}, fmt.Errorf("%w: unknown merchant ID %q", ErrInvalidMerchantSession, id)
-	}
-	if merchant.Family != references.MerchantFamilyGuild {
-		return GuildShopReview{}, fmt.Errorf(
-			"%w: merchant %q is not a Guild merchant",
-			ErrInvalidGuildPurchase,
-			id,
-		)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return GuildShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return GuildShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return GuildShopReview{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyGuild, ErrInvalidGuildPurchase, "a Guild merchant")
+	if err != nil {
+		return GuildShopReview{}, err
 	}
 	buyer, buyerIndex := g.merchantPricingCharacter()
 	if buyer == nil {
@@ -241,7 +201,6 @@ func (g *GameState) PurchaseGuildOffer(
 	result.GoldAfter = g.PartyState.Inventory.Gold.Get()
 	result.QuantityAfter = quantity.Get()
 	result.ActualReceipt = result.QuantityAfter - result.QuantityBefore
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }

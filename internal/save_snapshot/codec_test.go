@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -72,114 +71,6 @@ func TestEnvelopeMetadataOptionallyRoundTripsDoomRunAssociation(t *testing.T) {
 	decoded, err = Decode(data)
 	if err != nil || decoded.Metadata.DoomRunID != associated.Metadata.DoomRunID {
 		t.Fatalf("Decode(associated) = %#v, %v", decoded.Metadata, err)
-	}
-}
-
-func TestVersionTwelvePromotionPreservesExactStateAndDefaultsContinuation(t *testing.T) {
-	t.Parallel()
-	source := validSnapshot()
-	source.Redux.PlayerKnowledge = append(validLoreKnowledge(), validPlayerKnowledge()...)
-	data := versionTwelveEnvelopeData(t, source, nil)
-
-	decoded, err := Decode(data)
-	if err != nil {
-		t.Fatalf("Decode(version 12) error = %v", err)
-	}
-	want := source
-	want.Version = CurrentVersion
-	want.promoteHistoricalJournal()
-	want.Continuation = ContinuationSnapshot{
-		ActivePlayerIndex:                 -1,
-		BeggarKarmaCounter:                100,
-		OpeningCampaignEncounterReduction: source.World.Calendar.Year == 139 && source.World.Calendar.Month == 4,
-	}
-	if !reflect.DeepEqual(decoded.Snapshot, want) {
-		t.Fatalf("Decode(version 12) snapshot differs after promotion\ngot:  %#v\nwant: %#v", decoded.Snapshot, want)
-	}
-	if !bytes.Contains(data, []byte(`"reconstructMapUnits":false`)) || bytes.Contains(data, []byte(`"continuation"`)) {
-		t.Fatalf("version 12 fixture has the wrong wire shape: %s", data)
-	}
-}
-
-func TestVersionThirteenPromotionPreservesContinuationAndPriorEncounterBehavior(t *testing.T) {
-	t.Parallel()
-	source := validSnapshot()
-	source.World.Calendar.Year, source.World.Calendar.Month = 139, 4
-	source.Continuation = ContinuationSnapshot{
-		ActivePlayerIndex:             5,
-		IsCriminal:                    true,
-		HMSCapeAutomaticWaitActorSkip: true,
-		BeggarKarmaCounter:            255,
-	}
-	data := versionThirteenEnvelopeData(t, source, nil)
-
-	decoded, err := Decode(data)
-	if err != nil {
-		t.Fatalf("Decode(version 13) error = %v", err)
-	}
-	want := source
-	want.Version = CurrentVersion
-	want.Continuation.OpeningCampaignEncounterReduction = true
-	if !reflect.DeepEqual(decoded.Snapshot, want) {
-		t.Fatalf("Decode(version 13) snapshot differs after promotion\ngot:  %#v\nwant: %#v", decoded.Snapshot, want)
-	}
-}
-
-func TestHistoricalVersionsRejectV14SemanticChestKind(t *testing.T) {
-	t.Parallel()
-	for _, version := range []int{12, 13} {
-		t.Run(strconv.Itoa(version), func(t *testing.T) {
-			mutate := func(snapshot map[string]any) {
-				unit := snapshot["mapUnits"].([]any)[0].(map[string]any)
-				unit["kind"] = MapUnitKindChest
-				unit["surfaceChestNumber"] = float64(30)
-			}
-			var data []byte
-			if version == 12 {
-				data = versionTwelveEnvelopeData(t, validSnapshot(), mutate)
-			} else {
-				data = versionThirteenEnvelopeData(t, validSnapshot(), mutate)
-			}
-			if _, err := Decode(data); !errors.Is(err, ErrInvalidSnapshot) {
-				t.Fatalf("Decode(version %d chest) error = %v, want ErrInvalidSnapshot", version, err)
-			}
-		})
-	}
-}
-
-func TestVersionTwelveRejectsReconstructionWithMapUnits(t *testing.T) {
-	t.Parallel()
-	data := versionTwelveEnvelopeData(t, validSnapshot(), func(snapshot map[string]any) {
-		snapshot["redux"].(map[string]any)["reconstructMapUnits"] = true
-	})
-	if _, err := Decode(data); !errors.Is(err, ErrInvalidSnapshot) {
-		t.Fatalf("Decode(version 12 reconstruction with map units) error = %v, want ErrInvalidSnapshot", err)
-	}
-}
-
-func TestVersionTwelvePromotionCarriesTransientReconstructionAndCollectionNilness(t *testing.T) {
-	t.Parallel()
-	source := validSnapshot()
-	source.MapUnits = nil
-	source.ItemStacks = nil
-	source.MapMutations = make([]MapMutationSnapshot, 0)
-	data := versionTwelveEnvelopeData(t, source, func(snapshot map[string]any) {
-		snapshot["redux"].(map[string]any)["reconstructMapUnits"] = true
-	})
-
-	decoded, err := Decode(data)
-	if err != nil {
-		t.Fatalf("Decode(version 12 reconstruction) error = %v", err)
-	}
-	if !decoded.Snapshot.NeedsMapUnitReconstruction() {
-		t.Fatal("version 12 reconstruction flag was not promoted to the transient hint")
-	}
-	if decoded.Snapshot.MapUnits != nil || decoded.Snapshot.ItemStacks != nil || decoded.Snapshot.MapMutations == nil {
-		t.Fatalf("promotion changed collection nilness: mapUnits=%#v itemStacks=%#v mapMutations=%#v", decoded.Snapshot.MapUnits, decoded.Snapshot.ItemStacks, decoded.Snapshot.MapMutations)
-	}
-
-	if _, err = EncodeCanonical(decoded); !errors.Is(err, ErrInvalidEnvelope) {
-		t.Fatalf("EncodeCanonical(promoted reconstruction) error = %v, want ErrInvalidEnvelope", err)
 	}
 }
 
@@ -286,17 +177,7 @@ func TestCurrentCodecRejectsHistoricalReconstructionJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = Decode(data); !errors.Is(err, ErrInvalidEnvelope) {
-		t.Fatalf("Decode(v13 reconstructMapUnits) error = %v, want ErrInvalidEnvelope", err)
-	}
-}
-
-func TestVersionTwelveCodecRequiresHistoricalReconstructionBoolean(t *testing.T) {
-	t.Parallel()
-	data := versionTwelveEnvelopeData(t, validSnapshot(), func(snapshot map[string]any) {
-		delete(snapshot["redux"].(map[string]any), "reconstructMapUnits")
-	})
-	if _, err := Decode(data); !errors.Is(err, ErrInvalidEnvelope) {
-		t.Fatalf("Decode(v12 without reconstructMapUnits) error = %v, want ErrInvalidEnvelope", err)
+		t.Fatalf("Decode(reconstructMapUnits) error = %v, want ErrInvalidEnvelope", err)
 	}
 }
 
@@ -329,10 +210,10 @@ func TestCodecRequiresCurrentReduxArrays(t *testing.T) {
 	}
 }
 
-func TestDecodeReturnsTypedUnsupportedVersionForV11OlderAndFuture(t *testing.T) {
+func TestDecodeReturnsTypedUnsupportedVersionForOlderAndFuture(t *testing.T) {
 	t.Parallel()
 	base := currentEnvelopeDocument(t, validSnapshot())
-	for _, version := range []int{11, 4, 1, 0, -1, CurrentVersion + 1, 99} {
+	for _, version := range []int{MinimumVersion - 1, 12, 11, 4, 1, 0, -1, CurrentVersion + 1, 99} {
 		t.Run(stringVersion(version), func(t *testing.T) {
 			document := cloneJSONDocument(t, base)
 			document["snapshot"].(map[string]any)["version"] = version
@@ -345,7 +226,7 @@ func TestDecodeReturnsTypedUnsupportedVersionForV11OlderAndFuture(t *testing.T) 
 			if !errors.As(err, &unsupported) || unsupported.Version != version || !errors.Is(err, ErrUnsupportedSnapshotVersion) {
 				t.Fatalf("Decode(version %d) error = %v, want typed UnsupportedVersionError", version, err)
 			}
-			if !strings.Contains(err.Error(), fmt.Sprintf("supported versions are 12 through %d", CurrentVersion)) {
+			if !strings.Contains(err.Error(), fmt.Sprintf("supported versions are %d through %d", MinimumVersion, CurrentVersion)) {
 				t.Fatalf("Decode(version %d) guidance = %q", version, err)
 			}
 		})
@@ -355,7 +236,7 @@ func TestDecodeReturnsTypedUnsupportedVersionForV11OlderAndFuture(t *testing.T) 
 func TestDecodeUnsupportedVersionRejectsEverySupportedVersion(t *testing.T) {
 	t.Parallel()
 	base := currentEnvelopeDocument(t, validSnapshot())
-	for version := 12; version <= CurrentVersion; version++ {
+	for version := MinimumVersion; version <= CurrentVersion; version++ {
 		t.Run(stringVersion(version), func(t *testing.T) {
 			document := cloneJSONDocument(t, base)
 			// Only the version is relevant to this guard; supported schemas must
@@ -371,7 +252,7 @@ func TestDecodeUnsupportedVersionRejectsEverySupportedVersion(t *testing.T) {
 		})
 	}
 
-	for _, version := range []int{11, 4, CurrentVersion + 1, 99} {
+	for _, version := range []int{MinimumVersion - 1, 12, 11, 4, CurrentVersion + 1, 99} {
 		document := cloneJSONDocument(t, base)
 		document["snapshot"].(map[string]any)["version"] = version
 		document["snapshot"].(map[string]any)["futureField"] = map[string]any{"opaque": true}
@@ -467,45 +348,6 @@ func TestDecodeRejectsWrongFixedArrayLength(t *testing.T) {
 	if _, err = Decode(data); !errors.Is(err, ErrInvalidEnvelope) {
 		t.Fatalf("Decode(short fixed array) error = %v, want ErrInvalidEnvelope", err)
 	}
-}
-
-func versionTwelveEnvelopeData(t *testing.T, snapshot SaveSnapshot, mutate func(map[string]any)) []byte {
-	t.Helper()
-	document := currentEnvelopeDocument(t, snapshot)
-	snapshotDocument := document["snapshot"].(map[string]any)
-	snapshotDocument["version"] = 12
-	removeCadenceV15Fields(snapshotDocument)
-	delete(snapshotDocument, "continuation")
-	snapshotDocument["redux"].(map[string]any)["reconstructMapUnits"] = false
-	if mutate != nil {
-		mutate(snapshotDocument)
-	}
-	data, err := json.Marshal(document)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return data
-}
-
-func versionThirteenEnvelopeData(t *testing.T, snapshot SaveSnapshot, mutate func(map[string]any)) []byte {
-	t.Helper()
-	document := currentEnvelopeDocument(t, snapshot)
-	snapshotDocument := document["snapshot"].(map[string]any)
-	snapshotDocument["version"] = 13
-	removeCadenceV15Fields(snapshotDocument)
-	continuation := snapshotDocument["continuation"].(map[string]any)
-	delete(continuation, "openingCampaignEncounterReduction")
-	delete(continuation, "combatActionTimeCounter")
-	if mutate != nil {
-		mutate(snapshotDocument)
-	}
-	data, err := json.Marshal(document)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return data
 }
 
 func currentEnvelopeDocument(t *testing.T, snapshot SaveSnapshot) map[string]any {

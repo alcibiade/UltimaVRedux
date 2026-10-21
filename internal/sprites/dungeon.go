@@ -7,9 +7,10 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
-	"github.com/bradhannah/UltimaVRedux/internal/originaldata/dungeonarchive"
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"github.com/bradhannah/UltimaVRedux/internal/originaldata/dungeonarchive"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 const (

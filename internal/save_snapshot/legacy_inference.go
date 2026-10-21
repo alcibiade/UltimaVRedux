@@ -1,6 +1,9 @@
 package save_snapshot
 
-import "github.com/bradhannah/UltimaVRedux/internal/references"
+import (
+	"github.com/bradhannah/UltimaVRedux/internal/journal"
+	"github.com/bradhannah/UltimaVRedux/internal/references"
+)
 
 const migratedKnowledgeDisplayName = "Previously learned; date unknown"
 
@@ -71,5 +74,20 @@ func hiddenSpellKnowledgeDefinitions() []hiddenSpellKnowledgeDefinition {
 		{key: SpellKnowledgeAnYlem, spell: references.AnYlem},
 		{key: SpellKnowledgeInXenMani, spell: references.InXenMani},
 		{key: SpellKnowledgeRelXenBet, spell: references.RelXenBet},
+	}
+}
+
+// BackfillMoonstonePossession adds only inventory-proven recognition for legacy
+// import. Hidden placement arrays are not lore.
+func (snapshot *SaveSnapshot) BackfillMoonstonePossession() {
+	for phase, quantity := range snapshot.Inventory.Moonstones {
+		if quantity > 0 {
+			if !snapshot.MoonstoneJournal[phase].Known {
+				snapshot.MoonstoneJournal[phase] = journal.MoonstoneObservation{Known: true, FirstSource: journal.MoonstoneSourcePossession}
+			}
+			snapshot.MoonstoneJournal[phase].OriginalSiteRetired = true
+			snapshot.MoonstoneJournal[phase].Survey = journal.SurveyedLocation{}
+			snapshot.MoonstoneJournal[phase].SurveyContext = journal.MoonstoneContext{}
+		}
 	}
 }

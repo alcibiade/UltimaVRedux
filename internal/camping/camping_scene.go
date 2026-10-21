@@ -48,33 +48,6 @@ type CampingScene struct {
 	WandererDissolveLevel float64 // 0.0 = fully visible, 1.0 = fully dissolved
 }
 
-// NewCampingScene creates a new camping scene
-func NewCampingScene(hours int, guardIndex int, originalPlayerLocation references.PlayerLocation) *CampingScene {
-	scene := &CampingScene{
-		CampingMap:             nil,
-		Hours:                  hours,
-		GuardIndex:             guardIndex,
-		TotalCycles:            hours * CyclesPerHour,
-		CycleMinutes:           MinutesPerCycle,
-		CurrentCycle:           0,
-		IsActive:               true,
-		TimeElapsed:            0,
-		LastHourMessage:        NoHourMessageYet,
-		OriginalPlayerLocation: originalPlayerLocation,
-		sleeping:               false,
-		accelerated:            false,
-		WandererPresent:        false,
-		WandererDissolveLevel:  0,
-	}
-
-	// Create the camping map with guard configuration
-	scene.CampingMap = NewCampingMap(guardIndex)
-
-	logging.Debug(logging.CategoryGameState, "Created camping scene for %d hours with guard %d", hours, guardIndex)
-
-	return scene
-}
-
 // NewCampingSceneWithCombatRef creates a new camping scene with authentic positions from combat map
 func NewCampingSceneWithCombatRef(
 	hours int,

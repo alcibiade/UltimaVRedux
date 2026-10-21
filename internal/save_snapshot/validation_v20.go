@@ -7,21 +7,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-func chronicleLimit(version int) int {
-	switch version {
-	case 16:
-		return 40
-	case 17:
-		return 48
-	case 18:
-		return 49
-	case 19:
-		return 50
-	default:
-		return 51
-	}
-}
-
 func validateChestAssessments(snapshot SaveSnapshot, add func(string, string, string)) {
 	for index, unit := range snapshot.MapUnits {
 		path := fmt.Sprintf("mapUnits[%d].surfaceChestAssessment", index)
@@ -68,7 +53,7 @@ func validateChestAssessments(snapshot SaveSnapshot, add func(string, string, st
 }
 
 func validateWorldJournal(snapshot SaveSnapshot, add func(string, string, string)) {
-	validateAtlasLandmarks(snapshot.AtlasLandmarks, snapshot.Version, add)
+	validateAtlasLandmarks(snapshot.AtlasLandmarks, add)
 	for index, observation := range snapshot.DungeonJournal {
 		path := fmt.Sprintf("dungeonJournal[%d]", index)
 		seen := false
@@ -115,14 +100,7 @@ func validateWorldJournal(snapshot SaveSnapshot, add func(string, string, string
 	for phase, observation := range snapshot.MoonstoneJournal {
 		path := fmt.Sprintf("moonstoneJournal[%d]", phase)
 		validateMoonstoneObservation(path, observation, add)
-		// Look already has a wire identity. Current live Look can identify a
-		// source gate; frozen pre-v24 saves required prior recognition instead.
-		if snapshot.Version < 24 && observation.FirstSource == journal.MoonstoneSourceLook {
-			add(path+".firstSource", "unsupported", "historical Look requires prior moonstone recognition")
-		}
-		if snapshot.Version >= 21 {
-			validateCurrentMoonstonePlacement(path, observation, snapshot.Inventory.Moonstones[phase] > 0, add)
-		}
+		validateCurrentMoonstonePlacement(path, observation, snapshot.Inventory.Moonstones[phase] > 0, add)
 	}
 }
 
@@ -139,10 +117,7 @@ func validateCurrentMoonstonePlacement(path string, observation journal.Moonston
 	}
 }
 
-func validateAtlasLandmarks(records []journal.AtlasLandmarkObservation, version int, add func(string, string, string)) {
-	if version < 23 {
-		validateHistoricalAtlasAuthority(records, add)
-	}
+func validateAtlasLandmarks(records []journal.AtlasLandmarkObservation, add func(string, string, string)) {
 	if err := journal.ValidateAtlasLandmarks(records); err != nil {
 		add("atlasLandmarks", "invalid", err.Error())
 	}
@@ -151,7 +126,7 @@ func validateAtlasLandmarks(records []journal.AtlasLandmarkObservation, version 
 		validateOptionalGameTime(path+".observedAt", record.ObservedAt, add)
 		validateOptionalGameTime(path+".namedAt", record.NamedAt, add)
 		validateTimeOrder(path+".namedAt", record.NamedAt, record.ObservedAt, add)
-		receipt := version >= 23 && record.SurveySource == journal.AtlasSourceSextantReceipt
+		receipt := record.SurveySource == journal.AtlasSourceSextantReceipt
 		validateSurveyPolicy(path+".survey", record.Survey, receipt, add)
 		validateTimeOrder(path+".survey.recordedAt", record.Survey.RecordedAt, record.ObservedAt, add)
 		if record.SiteKey >= 101 && record.SiteKey <= 107 {

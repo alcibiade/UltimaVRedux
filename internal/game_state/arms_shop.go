@@ -126,48 +126,10 @@ func (g *GameState) GetArmsShopState(session MerchantSession) (ArmsShopState, er
 
 // ReviewArmsShopByMerchantID builds production quotes without issuing a
 // session, invoking callbacks, consuming RNG, or consulting loaded NPC state.
-//
-//nolint:dupl // Concrete merchant families deliberately keep their review and quote contracts independent.
 func (g *GameState) ReviewArmsShopByMerchantID(id references.MerchantID) (ArmsShopReview, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil {
-		return ArmsShopReview{}, fmt.Errorf("%w: merchant references are unavailable", ErrInvalidMerchantSession)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return ArmsShopReview{}, fmt.Errorf("%w: unknown merchant ID %q", ErrInvalidMerchantSession, id)
-	}
-	if merchant.Family != references.MerchantFamilyArms {
-		return ArmsShopReview{}, fmt.Errorf("%w: merchant %q is not an Arms merchant", ErrInvalidArmsRequest, id)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return ArmsShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return ArmsShopReview{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return ArmsShopReview{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyArms, ErrInvalidArmsRequest, "an Arms merchant")
+	if err != nil {
+		return ArmsShopReview{}, err
 	}
 	buyer, buyerIndex := g.merchantPricingCharacter()
 	if buyer == nil {
@@ -325,7 +287,6 @@ func (g *GameState) BuyArmsEquipment(
 	result.GoldAfterTheft = g.PartyState.Inventory.Gold.Get()
 	result.QuantityAfter = g.PartyState.Inventory.Equipment.Get(quote.Equipment)
 	result.ActualReceipt = result.QuantityAfter - result.QuantityBefore
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }
@@ -386,7 +347,6 @@ func (g *GameState) SellArmsEquipment(
 	}
 	result.GoldAfter = g.PartyState.Inventory.Gold.Get()
 	result.QuantityAfter = g.PartyState.Inventory.Equipment.Get(quote.Equipment)
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }

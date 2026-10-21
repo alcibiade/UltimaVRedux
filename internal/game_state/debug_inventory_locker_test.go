@@ -7,31 +7,23 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-func newDebugInventoryLockerTestState(t *testing.T) (*GameState, *int) {
+func newDebugInventoryLockerTestState(t *testing.T) *GameState {
 	t.Helper()
 	gameState, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	refreshes := 0
-	gameState.SystemCallbacks.Screen.RefreshInventoryDisplay = func() { refreshes++ }
-	return gameState, &refreshes
+	return gameState
 }
 
 func TestDebugInventoryLockerProvisionAndAdditiveCaps(t *testing.T) {
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+	gameState := newDebugInventoryLockerTestState(t)
 	changes, err := gameState.SetDebugInventoryProvision(DebugInventoryProvisionGold, ^uint16(0))
 	if err != nil || len(changes) != 1 || changes[0].After != party_state.ItemQuantityLargeMax {
 		t.Fatalf("SetDebugInventoryProvision() = (%+v, %v)", changes, err)
 	}
-	if *refreshes != 1 {
-		t.Fatalf("refreshes = %d, want 1", *refreshes)
-	}
 	if _, err := gameState.SetDebugInventoryProvision(DebugInventoryProvision("bad"), 1); err == nil {
 		t.Fatal("invalid provision succeeded")
-	}
-	if *refreshes != 1 {
-		t.Fatal("invalid provision refreshed inventory")
 	}
 
 	gameState.PartyState.Inventory.Potions.Set(references.Blue, 98)
@@ -53,7 +45,7 @@ func TestDebugInventoryLockerProvisionAndAdditiveCaps(t *testing.T) {
 }
 
 func TestDebugInventoryLockerExactReagentAndEquipmentSetters(t *testing.T) {
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+	gameState := newDebugInventoryLockerTestState(t)
 	avatar := gameState.PartyState.GetAvatar()
 	avatar.SetEquippedItem(references.SlotWeapon, references.LongSword)
 
@@ -65,16 +57,13 @@ func TestDebugInventoryLockerExactReagentAndEquipmentSetters(t *testing.T) {
 	if err != nil || len(changes) != 1 || changes[0].Before != 0 || changes[0].After != 7 {
 		t.Fatalf("SetDebugInventoryEquipment() = (%+v, %v)", changes, err)
 	}
-	if *refreshes != 2 {
-		t.Fatalf("refreshes = %d, want 2", *refreshes)
-	}
 	if avatar.GetEquippedItem(references.SlotWeapon) != references.LongSword {
 		t.Fatal("equipment setter mutated the equipped loadout")
 	}
 
 	changes, err = gameState.SetDebugInventoryEquipment(references.LongSword, 7)
-	if err != nil || len(changes) != 0 || *refreshes != 2 {
-		t.Fatalf("no-op equipment set = (%+v, %v), refreshes %d", changes, err, *refreshes)
+	if err != nil || len(changes) != 0 {
+		t.Fatalf("no-op equipment set = (%+v, %v)", changes, err)
 	}
 	if _, err := gameState.SetDebugInventoryReagent(references.Reagent(8), 1); err == nil {
 		t.Fatal("invalid reagent succeeded")
@@ -82,13 +71,10 @@ func TestDebugInventoryLockerExactReagentAndEquipmentSetters(t *testing.T) {
 	if _, err := gameState.SetDebugInventoryEquipment(references.NoEquipment, 1); err == nil {
 		t.Fatal("invalid equipment succeeded")
 	}
-	if *refreshes != 2 {
-		t.Fatal("invalid setters refreshed inventory")
-	}
 }
 
 func TestClearDebugEquipmentStateClearsCarriedAndAllRosterLoadoutsOnce(t *testing.T) {
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+	gameState := newDebugInventoryLockerTestState(t)
 	gameState.PartyState.Inventory.Equipment.Set(references.LongSword, 3)
 	gameState.PartyState.Inventory.Equipment.Set(references.Arrows, 8)
 	gameState.PartyState.ForEachCharacter(func(_ int, character *party_state.PlayerCharacter) {
@@ -113,16 +99,13 @@ func TestClearDebugEquipmentStateClearsCarriedAndAllRosterLoadoutsOnce(t *testin
 		companion.GetEquippedItem(references.SlotRing) != references.NoEquipment {
 		t.Fatal("equipment clear retained a roster loadout item")
 	}
-	if *refreshes != 1 {
-		t.Fatalf("refreshes = %d, want 1", *refreshes)
-	}
-	if changes := gameState.ClearDebugEquipmentState(); len(changes) != 0 || *refreshes != 1 {
-		t.Fatalf("no-op clear = %+v, refreshes %d", changes, *refreshes)
+	if changes := gameState.ClearDebugEquipmentState(); len(changes) != 0 {
+		t.Fatalf("no-op clear = %+v", changes)
 	}
 }
 
-func TestDebugInventoryLockerPresetsAreExactAndRefreshOnce(t *testing.T) {
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+func TestDebugInventoryLockerPresetsAreExact(t *testing.T) {
+	gameState := newDebugInventoryLockerTestState(t)
 	gameState.PartyState.Inventory.Equipment.Set(references.Arrows, 7)
 	gameState.PartyState.Inventory.Equipment.Set(references.Quarrels, 8)
 	changes, err := gameState.ApplyDebugInventoryPreset(DebugInventoryPresetEquipmentBowsNoAmmo5)
@@ -138,12 +121,9 @@ func TestDebugInventoryLockerPresetsAreExactAndRefreshOnce(t *testing.T) {
 	if snapshot.Equipment[references.Arrows] != 0 || snapshot.Equipment[references.Quarrels] != 0 {
 		t.Fatal("bows preset retained ammunition")
 	}
-	if *refreshes != 1 {
-		t.Fatalf("refreshes = %d, want 1", *refreshes)
-	}
 	changes, err = gameState.ApplyDebugInventoryPreset(DebugInventoryPresetEquipmentBowsNoAmmo5)
-	if err != nil || len(changes) != 0 || *refreshes != 1 {
-		t.Fatalf("idempotent bows preset = (%+v, %v), refreshes %d", changes, err, *refreshes)
+	if err != nil || len(changes) != 0 {
+		t.Fatalf("idempotent bows preset = (%+v, %v)", changes, err)
 	}
 
 	if _, err := gameState.ApplyDebugInventoryPreset(DebugInventoryPresetReagentsAll20NoGarlic); err != nil {
@@ -174,7 +154,7 @@ func TestDebugInventoryLockerPresetsAreExactAndRefreshOnce(t *testing.T) {
 }
 
 func TestDebugInventoryLockerRemainingPresetScopes(t *testing.T) {
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+	gameState := newDebugInventoryLockerTestState(t)
 	if _, err := gameState.ApplyDebugInventoryPreset(DebugInventoryPresetProvisionsMax); err != nil {
 		t.Fatalf("provisions preset error = %v", err)
 	}
@@ -218,12 +198,9 @@ func TestDebugInventoryLockerRemainingPresetScopes(t *testing.T) {
 	if _, err := gameState.ApplyDebugInventoryPreset(DebugInventoryPresetEquipmentArmour5); err != nil {
 		t.Fatalf("armour error = %v", err)
 	}
-	if *refreshes != 4 {
-		t.Fatalf("refreshes = %d, want 4", *refreshes)
-	}
 }
 
-func TestDebugInventoryEquipmentGrantPresetsAreAdditiveAndRefreshOnce(t *testing.T) {
+func TestDebugInventoryEquipmentGrantPresetsAreAdditive(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		preset  DebugInventoryEquipmentGrantPreset
@@ -234,13 +211,10 @@ func TestDebugInventoryEquipmentGrantPresetsAreAdditiveAndRefreshOnce(t *testing
 		{"armour", DebugInventoryEquipmentGrantPresetArmour5, func(equipment references.Equipment) bool { return equipment.IsArmour() }},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			gameState, refreshes := newDebugInventoryLockerTestState(t)
+			gameState := newDebugInventoryLockerTestState(t)
 			changes, err := gameState.ApplyDebugInventoryEquipmentGrantPreset(test.preset)
 			if err != nil {
 				t.Fatalf("ApplyDebugInventoryEquipmentGrantPreset() error = %v", err)
-			}
-			if *refreshes != 1 {
-				t.Fatalf("refreshes = %d, want 1", *refreshes)
 			}
 			snapshot := gameState.GetDebugInventorySnapshot()
 			for equipment := references.LeatherHelm; equipment <= references.Ankh; equipment++ {
@@ -258,7 +232,7 @@ func TestDebugInventoryEquipmentGrantPresetsAreAdditiveAndRefreshOnce(t *testing
 		})
 	}
 
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+	gameState := newDebugInventoryLockerTestState(t)
 	gameState.PartyState.Inventory.Equipment.Set(references.Bow, 97)
 	gameState.PartyState.Inventory.Equipment.Set(references.Arrows, 7)
 	gameState.PartyState.Inventory.Equipment.Set(references.Quarrels, 8)
@@ -270,14 +244,14 @@ func TestDebugInventoryEquipmentGrantPresetsAreAdditiveAndRefreshOnce(t *testing
 	if snapshot.Equipment[references.Bow] != party_state.ItemQuantitySmallMax || snapshot.Equipment[references.MagicBow] != 5 || snapshot.Equipment[references.Crossbow] != 5 {
 		t.Fatalf("bow grant quantities = %+v", snapshot.Equipment)
 	}
-	if snapshot.Equipment[references.Arrows] != 0 || snapshot.Equipment[references.Quarrels] != 0 || *refreshes != 1 {
-		t.Fatalf("bow grant ammo or refreshes = arrows %d quarrels %d refreshes %d", snapshot.Equipment[references.Arrows], snapshot.Equipment[references.Quarrels], *refreshes)
+	if snapshot.Equipment[references.Arrows] != 0 || snapshot.Equipment[references.Quarrels] != 0 {
+		t.Fatalf("bow grant ammo = arrows %d quarrels %d", snapshot.Equipment[references.Arrows], snapshot.Equipment[references.Quarrels])
 	}
 	gameState.PartyState.Inventory.Equipment.Set(references.MagicBow, party_state.ItemQuantitySmallMax)
 	gameState.PartyState.Inventory.Equipment.Set(references.Crossbow, party_state.ItemQuantitySmallMax)
 	changes, err = gameState.ApplyDebugInventoryEquipmentGrantPreset(DebugInventoryEquipmentGrantPresetBowsNoAmmo5)
-	if err != nil || len(changes) != 0 || *refreshes != 1 {
-		t.Fatalf("saturated bows grant = (%+v, %v), refreshes %d", changes, err, *refreshes)
+	if err != nil || len(changes) != 0 {
+		t.Fatalf("saturated bows grant = (%+v, %v)", changes, err)
 	}
 	if _, err := gameState.ApplyDebugInventoryEquipmentGrantPreset(DebugInventoryEquipmentGrantPreset("bad")); err == nil {
 		t.Fatal("invalid equipment grant preset succeeded")

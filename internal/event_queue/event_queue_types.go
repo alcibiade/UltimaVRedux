@@ -43,7 +43,6 @@ type queueLane uint8
 const (
 	queueLaneWorkflow queueLane = iota
 	queueLaneFeedback
-	queueLaneBackground
 )
 
 // NamedEventQueue represents an isolated event sequence
@@ -96,8 +95,7 @@ type NamedEventQueue struct {
 // No goroutines access EventQueueManager (web profiling goroutine is isolated).
 // If multi-threaded access is ever needed, add sync.RWMutex protection.
 //
-// Workflow and feedback queues are serialized independently. Legacy background
-// queues remain concurrent and should not be used for new presentation effects.
+// Workflow and feedback queues are serialized independently.
 type EventQueueManager struct {
 	queues          map[string]*NamedEventQueue
 	timeSource      func() int64
@@ -115,9 +113,6 @@ type EventQueueManager struct {
 	activeFeedbackQueue   *NamedEventQueue
 	pendingFeedbackQueues []*NamedEventQueue
 
-	// Background queue support - runs concurrently with main queue for UI-only effects
-	// All background queues run in parallel - each processes independently
-	activeBackgroundQueues []*NamedEventQueue // All currently executing background queues (concurrent)
-	shutdown               bool               // Permanent scene-owned cancellation state
-	shutdownAction         func()
+	shutdown       bool // Permanent scene-owned cancellation state
+	shutdownAction func()
 }

@@ -61,7 +61,6 @@ const (
 	CombatSpellTargetInput
 	CombatConeTargetInput
 	CombatAdjacentSpellTargetInput
-	UseDirectionInput
 	FireDirectionInput
 	DungeonQuitInput
 	SurfaceQuitInput
@@ -563,15 +562,11 @@ func (g *GameScene) thenExecuteCampingSequence(hours int, guardIndex int, comple
 				originalPlayerLocation := g.gameState.MapState.SavePlayerLocation()
 
 				campingMapRef, err := references.LoadCampingMap(g.gameState.GameConfig)
-
-				var campingScene *camping.CampingScene
 				if err != nil {
-					logging.Warn(logging.CategoryGameState, "Failed to load camping map reference: %v - using fallback positions", err)
-
-					campingScene = camping.NewCampingScene(hours, guardIndex, originalPlayerLocation)
-				} else {
-					campingScene = camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
+					// Startup validated the original data, so the camp map must load.
+					panic(fmt.Sprintf("GameScene camping: loading camping map: %v", err))
 				}
+				campingScene := camping.NewCampingSceneWithCombatRef(hours, guardIndex, originalPlayerLocation, campingMapRef)
 
 				g.gameState.AddCampingSequenceToBuilder(
 					subQ,

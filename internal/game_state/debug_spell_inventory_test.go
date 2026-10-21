@@ -8,25 +8,25 @@ import (
 )
 
 func TestDebugSpellInventorySetAndMaximumPreset(t *testing.T) {
-	gameState, refreshes := newDebugInventoryLockerTestState(t)
+	gameState := newDebugInventoryLockerTestState(t)
 	gameState.PartyState.Inventory.Spells.Set(references.InLor, 0)
 	gameState.PartyState.Inventory.Spells.Set(references.Nox, 7)
 
 	changes, err := gameState.SetDebugSpellQuantity(references.InLor, 5)
-	if err != nil || len(changes) != 1 || changes[0].Before != 0 || changes[0].After != 5 || *refreshes != 1 {
-		t.Fatalf("SetDebugSpellQuantity() = (%+v, %v), refreshes %d", changes, err, *refreshes)
+	if err != nil || len(changes) != 1 || changes[0].Before != 0 || changes[0].After != 5 {
+		t.Fatalf("SetDebugSpellQuantity() = (%+v, %v)", changes, err)
 	}
 	changes, err = gameState.SetDebugSpellQuantity(references.InLor, 5)
-	if err != nil || len(changes) != 0 || *refreshes != 1 {
-		t.Fatalf("no-op spell set = (%+v, %v), refreshes %d", changes, err, *refreshes)
+	if err != nil || len(changes) != 0 {
+		t.Fatalf("no-op spell set = (%+v, %v)", changes, err)
 	}
 	if _, err := gameState.SetDebugSpellQuantity(references.Nox, 1); err == nil {
 		t.Fatal("Nox spell set succeeded")
 	}
 
 	changes = gameState.SetAllDebugSpellQuantitiesToMaximum()
-	if len(changes) != references.TotalSpellCount || *refreshes != 2 {
-		t.Fatalf("maximum preset = %d changes, refreshes %d", len(changes), *refreshes)
+	if len(changes) != references.TotalSpellCount {
+		t.Fatalf("maximum preset = %d changes", len(changes))
 	}
 	for index, change := range changes {
 		if change.Path != fmt.Sprintf("spells.%d", index) || change.After != 99 {
@@ -45,7 +45,7 @@ func TestDebugSpellInventorySetAndMaximumPreset(t *testing.T) {
 	if gameState.PartyState.Inventory.Spells.Get(references.Nox) != 7 {
 		t.Fatal("maximum preset changed Nox")
 	}
-	if changes := gameState.SetAllDebugSpellQuantitiesToMaximum(); len(changes) != 0 || *refreshes != 2 {
-		t.Fatalf("idempotent maximum preset = %d changes, refreshes %d", len(changes), *refreshes)
+	if changes := gameState.SetAllDebugSpellQuantitiesToMaximum(); len(changes) != 0 {
+		t.Fatalf("idempotent maximum preset = %d changes", len(changes))
 	}
 }

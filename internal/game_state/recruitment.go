@@ -51,7 +51,6 @@ func (g *GameState) RecruitNPC(npc *map_units.NPCFriendly, npcName string) error
 	if !units.RemoveNPCAtPositionAndFloor(npc.Pos(), npc.Floor()) {
 		panic("validated recruitment source could not be removed")
 	}
-	g.SystemCallbacks.Screen.UpdateStatsDisplay()
 
 	return nil
 }

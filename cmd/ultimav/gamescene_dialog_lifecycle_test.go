@@ -61,7 +61,7 @@ func TestFinishSpellCastingWorkflowRemovesOwnedPhaseInput(t *testing.T) {
 	assert.Equal(t, 0, scene.dialogStack.Count())
 }
 
-func TestActionFeedbackUsesNoBackgroundQueueAndRetainsProtectedSurvivor(t *testing.T) {
+func TestActionFeedbackRetainsProtectedSurvivor(t *testing.T) {
 	manager := display.GetManager()
 	saved := *manager
 	t.Cleanup(func() { *manager = saved })
@@ -75,7 +75,6 @@ func TestActionFeedbackUsesNoBackgroundQueueAndRetainsProtectedSurvivor(t *testi
 
 	require.Len(t, scene.transientActionFeedback, 2)
 	assert.Equal(t, 2, scene.dialogStack.Count())
-	assert.False(t, gs.EventQueueManager.HasActiveBackgroundQueues())
 
 	gs.ElapsedMs = widgets.ActionFeedbackDisplayMs + widgets.ActionFeedbackFadeOutMs
 	scene.updateTransientActionFeedback()
@@ -207,9 +206,6 @@ func TestCombatExitCompletesWhileActionFeedbackIsVisible(t *testing.T) {
 		WithLocation(references.Britain).
 		WithSystemCallbacks().
 		Build()
-	if gs == nil {
-		return
-	}
 	require.NoError(t, gs.TransitionToCombatMap(
 		0,
 		references.BritanniaCombatTerritory,

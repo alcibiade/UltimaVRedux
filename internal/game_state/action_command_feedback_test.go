@@ -79,7 +79,7 @@ func TestActionGetSmallMapFeedback(t *testing.T) {
 	}
 }
 
-func TestActionGetSmallMapCropSaturatesFoodAndRefreshesDisplays(t *testing.T) {
+func TestActionGetSmallMapCropSaturatesFood(t *testing.T) {
 	for _, test := range []struct {
 		name      string
 		food      uint16
@@ -104,8 +104,6 @@ func TestActionGetSmallMapCropSaturatesFoodAndRefreshesDisplays(t *testing.T) {
 			assert.Equal(t, test.wantFood, state.PartyState.Inventory.Provisions.Food.Get())
 			assert.Equal(t, test.wantKarma, state.PartyState.Karma.Value)
 			assert.Equal(t, indexes.SpriteIndex(indexes.PlowedField), state.GetCurrentLayeredMap().GetTileTopMapOnlyTile(target).Index)
-			assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
-			assert.Equal(t, 2, callbacks.ScreenCallCount)
 			assert.Equal(t, []int{1}, callbacks.TimeAdvanced())
 		})
 	}

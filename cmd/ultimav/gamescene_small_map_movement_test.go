@@ -77,9 +77,6 @@ func TestSmallMapBoundaryMovementPromptsToLeaveWithoutOutOfBoundsMessage(t *test
 				WithPlayerAt(int(test.position.X), int(test.position.Y)).
 				WithSystemCallbacks().
 				Build()
-			if gs == nil {
-				return
-			}
 			output := text.NewOutput(nil, 1, 10, 80)
 			scene := &GameScene{ //nolint:exhaustruct // Focused boundary-exit fixture.
 				gameState:            gs,

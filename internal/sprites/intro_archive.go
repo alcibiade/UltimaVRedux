@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/bradhannah/UltimaVRedux/internal/files"
-	"github.com/bradhannah/UltimaVRedux/internal/graphics/legacy"
+	"github.com/bradhannah/UltimaVRedux/pkg/graphics/legacy"
 )
 
 var errIntroArchiveInvalid = errors.New("intro archive is invalid")

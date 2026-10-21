@@ -43,11 +43,10 @@ func TestAlterActiveCharacterAppliesAtomicSafeChanges(t *testing.T) {
 	assert.Equal(t, 1, gameState.GetActivePlayerIndex())
 	assert.Equal(t, 1, result.CharacterBefore.Slot)
 	assert.Equal(t, 2, result.CharacterAfter.Slot)
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 }
 
 func TestAlterActiveCharacterRejectsInvalidRequestWithoutMutation(t *testing.T) {
-	gameState, callbacks := newCharacterAlterationTestState(t)
+	gameState, _ := newCharacterAlterationTestState(t)
 	target := gameState.PartyState.GetCharacter(1)
 	beforeStrength := target.Strength
 	beforeStatus := target.GetStatus()
@@ -64,7 +63,6 @@ func TestAlterActiveCharacterRejectsInvalidRequestWithoutMutation(t *testing.T) 
 	require.ErrorIs(t, err, ErrInvalidCharacterAlteration)
 	assert.Equal(t, beforeStrength, target.Strength)
 	assert.Equal(t, beforeStatus, target.GetStatus())
-	assert.Equal(t, 0, callbacks.StatsDisplayUpdated)
 }
 
 func TestAlterActiveCharacterRejectsStaleTargetCombatUnsafeChangesAndAvatarReorder(t *testing.T) {
@@ -112,7 +110,7 @@ func TestAlterActiveCharacterRejectsStaleTargetCombatUnsafeChangesAndAvatarReord
 }
 
 func TestAlterActiveCharacterAllowsCurrentResourcesDuringCombat(t *testing.T) {
-	gameState, callbacks := newCharacterAlterationTestState(t)
+	gameState, _ := newCharacterAlterationTestState(t)
 	target := gameState.PartyState.GetCharacter(1)
 	target.SetMaxHp(120)
 	target.SetHp(80)
@@ -133,7 +131,6 @@ func TestAlterActiveCharacterAllowsCurrentResourcesDuringCombat(t *testing.T) {
 	assert.Equal(t, uint16(90), result.CharacterAfter.CurrentHP)
 	assert.Equal(t, byte(10), result.CharacterBefore.CurrentMP)
 	assert.Equal(t, byte(15), result.CharacterAfter.CurrentMP)
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 }
 
 func TestAlterActiveCharacterRejectsUnsafeStatusAndEmptyChange(t *testing.T) {
@@ -156,7 +153,7 @@ func TestAlterActiveCharacterRejectsUnsafeStatusAndEmptyChange(t *testing.T) {
 }
 
 func TestAlterActiveCharacterSetsExactResourcesWithoutForcingProgression(t *testing.T) {
-	gameState, callbacks := newCharacterAlterationTestState(t)
+	gameState, _ := newCharacterAlterationTestState(t)
 	target := gameState.PartyState.GetCharacter(1)
 	target.SetMaxHp(120)
 	target.SetHp(80)
@@ -182,11 +179,10 @@ func TestAlterActiveCharacterSetsExactResourcesWithoutForcingProgression(t *test
 	assert.Equal(t, byte(3), target.Level, "exact XP setup must not run level progression")
 	assert.Equal(t, uint16(120), target.GetMaxHp())
 	assert.Equal(t, uint16(80), result.CharacterBefore.CurrentHP)
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 }
 
 func TestAlterActiveCharacterSetsAuthoritativeLevelProgressionWithoutHealing(t *testing.T) {
-	gameState, callbacks := newCharacterAlterationTestState(t)
+	gameState, _ := newCharacterAlterationTestState(t)
 	target := gameState.PartyState.GetCharacter(1)
 	target.Level = 3
 	target.Exp = 9000
@@ -206,7 +202,6 @@ func TestAlterActiveCharacterSetsAuthoritativeLevelProgressionWithoutHealing(t *
 	assert.Equal(t, uint16(180), target.GetMaxHp())
 	assert.Equal(t, uint16(70), target.GetCurrentHp(), "raising level must not heal")
 	assert.Equal(t, result.CharacterBefore.Strength, result.CharacterAfter.Strength, "debug progression must not grant random stats")
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 
 	level = 2
 	result, err = gameState.AlterActiveCharacter(ActiveCharacterAlteration{
@@ -224,7 +219,7 @@ func TestAlterActiveCharacterSetsAuthoritativeLevelProgressionWithoutHealing(t *
 }
 
 func TestAlterActiveCharacterRejectsInvalidOrAmbiguousLevelWithoutMutation(t *testing.T) {
-	gameState, callbacks := newCharacterAlterationTestState(t)
+	gameState, _ := newCharacterAlterationTestState(t)
 	target := gameState.PartyState.GetCharacter(1)
 	before := snapshotActiveCharacter(1, target)
 
@@ -245,11 +240,10 @@ func TestAlterActiveCharacterRejectsInvalidOrAmbiguousLevelWithoutMutation(t *te
 	})
 	require.ErrorIs(t, err, ErrInvalidCharacterAlteration)
 	assert.Equal(t, before, snapshotActiveCharacter(1, target))
-	assert.Equal(t, 0, callbacks.StatsDisplayUpdated)
 }
 
 func TestAlterActiveCharacterRejectsInvalidResourcesAtomically(t *testing.T) {
-	gameState, callbacks := newCharacterAlterationTestState(t)
+	gameState, _ := newCharacterAlterationTestState(t)
 	target := gameState.PartyState.GetCharacter(1)
 	target.SetMaxHp(120)
 	target.SetHp(80)
@@ -266,7 +260,6 @@ func TestAlterActiveCharacterRejectsInvalidResourcesAtomically(t *testing.T) {
 	require.ErrorIs(t, err, ErrInvalidCharacterAlteration)
 	assert.Equal(t, uint16(80), target.GetCurrentHp())
 	assert.Equal(t, beforeXP, target.Exp)
-	assert.Equal(t, 0, callbacks.StatsDisplayUpdated)
 
 	invalidExperience := MaxExperienceValue + 1
 	_, err = gameState.AlterActiveCharacter(ActiveCharacterAlteration{

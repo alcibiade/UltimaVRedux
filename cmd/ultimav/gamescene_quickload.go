@@ -39,7 +39,6 @@ func (g *GameScene) quickLoadInputEligible() bool {
 	if g.disposed || g.transientInputOwnedElsewhere() || g.inputBlocked ||
 		g.miniMapScene != nil || state.CampingScene != nil || state.ShrineScene != nil ||
 		state.EventQueueManager.HasActiveWorkflows() || state.EventQueueManager.HasInputBlockingWorkflows() ||
-		state.EventQueueManager.HasActiveBackgroundQueues() ||
 		state.EventQueueManager.IsShutdown() || state.IsSailing() ||
 		len(g.pendingBattleSummaries) != 0 || state.HasPendingOverworldContact() ||
 		state.HasPendingDungeonRoomEncounter() || g.activeProjectile != nil || g.combatMovement.Active {

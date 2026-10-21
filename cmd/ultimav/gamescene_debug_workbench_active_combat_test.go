@@ -407,9 +407,7 @@ func newActiveCombatWorkbenchTestState() (*game_state.GameState, *game_state.Com
 				func(game_state.CombatConclusion) {},
 			),
 			Screen: game_state.ScreenCallbacks{
-				UpdateStatsDisplay:      func() {},
-				RefreshInventoryDisplay: func() {},
-				UpdateDisplay:           func() {},
+				UpdateDisplay: func() {},
 			},
 		},
 	}

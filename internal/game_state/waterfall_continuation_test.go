@@ -278,7 +278,7 @@ func TestWaterfallContinuationPlaneIsPartOfVisitedKey(t *testing.T) {
 
 func TestWaterfallContinuationStopsSailingButRetainsOneActorTail(t *testing.T) {
 	start := references.Position{X: 50, Y: 50}
-	state, callbacks := newWaterfallContinuationFixture(t, start)
+	state, _ := newWaterfallContinuationFixture(t, start)
 	setWaterfallContinuationChain(state, references.MainFloor, start, 2)
 	state.isSailing = true
 	// The actor is adjacent only to the FIRST landing, proving the initiating
@@ -287,7 +287,6 @@ func TestWaterfallContinuationStopsSailingButRetainsOneActorTail(t *testing.T) {
 	state.CompleteSurfaceMovementCycle(references.LargeMapType, true)
 	assert.False(t, state.IsSailing())
 	assert.Equal(t, uint16(1000), state.PartyState.GetAvatar().GetCurrentHp())
-	assert.Zero(t, callbacks.StatsDisplayUpdated)
 	advanceWaterfallUntil(t, state, func() bool { return !state.IsWaterfallHazardActive() })
 	require.NoError(t, state.ResolvePendingOverworldContact())
 	expected := beradrng.New(123)
@@ -298,7 +297,6 @@ func TestWaterfallContinuationStopsSailingButRetainsOneActorTail(t *testing.T) {
 	expected.Intn(1)
 	assert.Equal(t, uint16(998-hit), state.PartyState.GetAvatar().GetCurrentHp())
 	assert.Equal(t, expected.Calls(), state.GetRNG().Calls())
-	assert.Equal(t, 1, callbacks.StatsDisplayUpdated)
 	assert.Equal(t, 1, state.beggarKarmaCounter)
 	require.NoError(t, state.ResolvePendingOverworldContact())
 	assert.Equal(t, expected.Calls(), state.GetRNG().Calls(), "the actor continuation cannot replay")

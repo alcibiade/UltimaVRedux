@@ -384,7 +384,7 @@ func (g *GameState) GetTavernShopState(session MerchantSession) (TavernShopState
 
 // ReviewTavernShopByMerchantID builds production quotes without a session, mutation, callbacks, or RNG.
 func (g *GameState) ReviewTavernShopByMerchantID(id references.MerchantID) (TavernShopReview, error) {
-	merchant, npcReference, err := g.canonicalTavernMerchant(id)
+	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyTavern, ErrInvalidTavernRequest, "a Tavern")
 	if err != nil {
 		return TavernShopReview{}, err
 	}
@@ -453,7 +453,6 @@ func (g *GameState) PurchaseTavernMeal(
 	g.tavernCustomerSessionSequence = session.sequence
 	result.CustomerAfter = true
 	result.Outcome = TavernMealCompleted
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }
@@ -538,7 +537,6 @@ func (g *GameState) PurchaseTavernDrink(
 	result.SmashedAfter = g.smashed
 	result.KarmaAfter = g.PartyState.Karma.Value
 	result.CustomerAfter = true
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }
@@ -641,7 +639,6 @@ func (g *GameState) PurchaseTavernProvisions(
 				result.GoldAfterTheft = result.GoldAfterPurchases
 				g.tavernCustomerSessionSequence = session.sequence
 				result.CustomerAfter = true
-				g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 				return result, nil
 			}
@@ -651,7 +648,6 @@ func (g *GameState) PurchaseTavernProvisions(
 				result.FoodAfter = g.PartyState.Inventory.Provisions.Food.Get()
 				result.ActualFood = result.FoodAfter - result.FoodBefore
 				result.Outcome = TavernProvisionCharityEjection
-				g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 				return result, nil
 			}
@@ -680,7 +676,6 @@ func (g *GameState) PurchaseTavernProvisions(
 	result.GoldAfterTheft = g.PartyState.Inventory.Gold.Get()
 	g.tavernCustomerSessionSequence = session.sequence
 	result.CustomerAfter = true
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }
@@ -783,7 +778,6 @@ func (g *GameState) PurchaseTavernInformation(
 	g.tavernCustomerSessionSequence = session.sequence
 	result.CustomerAfter = true
 	result.Outcome = TavernInformationCompleted
-	g.SystemCallbacks.Screen.RefreshInventoryDisplay()
 
 	return result, nil
 }
@@ -1000,63 +994,4 @@ func (g *GameState) tavernMealTableVisual() TavernMealTableVisual {
 	}
 
 	return TavernMealTableVisual{}
-}
-
-//nolint:dupl // Concrete merchant families deliberately retain independent canonical review gates.
-func (g *GameState) canonicalTavernMerchant(
-	id references.MerchantID,
-) (references.MerchantDefinition, references.NPCReference, error) {
-	if g == nil || g.GameReferences == nil || g.GameReferences.MerchantReferences == nil ||
-		g.GameReferences.NPCReferences == nil || g.GameReferences.LocationReferences == nil {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: Tavern references are unavailable",
-			ErrInvalidMerchantSession,
-		)
-	}
-	merchant, ok := g.GameReferences.MerchantReferences.Definition(id)
-	if !ok {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: unknown merchant ID %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	if merchant.Family != references.MerchantFamilyTavern {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q is not a Tavern",
-			ErrInvalidTavernRequest,
-			id,
-		)
-	}
-	if merchant.Location.GetMapType() != references.SmallMapType ||
-		g.GameReferences.LocationReferences.GetLocationReference(merchant.Location) == nil {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q has no canonical small-map location",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcs := g.GameReferences.NPCReferences.GetNPCReferencesByLocation(merchant.Location)
-	if npcs == nil || merchant.NPCIndex < 0 || merchant.NPCIndex >= len(*npcs) {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: merchant %q has no canonical NPC reference",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-	npcReference := (*npcs)[merchant.NPCIndex]
-	resolved, err := g.GameReferences.MerchantReferences.Resolve(
-		references.DialogNumber(npcReference.DialogNumber),
-		npcReference.Location,
-		merchant.NPCIndex,
-	)
-	if err != nil || resolved != merchant {
-		return references.MerchantDefinition{}, references.NPCReference{}, fmt.Errorf(
-			"%w: canonical NPC reference does not match merchant %q",
-			ErrInvalidMerchantSession,
-			id,
-		)
-	}
-
-	return merchant, npcReference, nil
 }
