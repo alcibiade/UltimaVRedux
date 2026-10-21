@@ -278,7 +278,7 @@ func TestOriginalCatalogKnowledgePatches(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			program, exists := catalog.Original(testCase.source, testCase.dialog)
 			require.True(t, exists)
-			assert.True(t, program.Patched())
+			assert.True(t, program.patched)
 			definition, definitionErr := program.Definition()
 			require.NoError(t, definitionErr)
 			body := testCase.body(t, definition)

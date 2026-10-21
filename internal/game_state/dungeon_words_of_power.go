@@ -158,17 +158,6 @@ func GetDungeonForResponse(response string) (references.Location, bool) {
 	return references.Location(0), false
 }
 
-// GetWordForDungeon returns the Word of Power for a given dungeon
-func GetWordForDungeon(dungeon references.Location) string {
-	for word, location := range WordToDungeonMap {
-		if location == dungeon {
-			return word
-		}
-	}
-
-	return ""
-}
-
 // InitializeDungeonStatesFromSave initializes dungeon states from save file data
 // Save file offset 0x032A contains 8 bytes, one for each dungeon
 // Bit 0x80 set means dungeon is open (matches original game logic)

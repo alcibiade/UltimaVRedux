@@ -55,13 +55,13 @@ parallel JSON catalogs. Put new properties beside their consuming domain:
 - `internal/game_state/duration_effect.go` owns effect identities and expiration
   names. Effect icons remain presentation-owned.
 - `internal/debugging/tile_annotations.go` and `effect_annotations.go` own
-  inspector-only prose and browsing labels. Atlas animation labels describe
+  inspector-only prose and browsing labels. Tile animation labels describe
   authored sprite groups, not generated visual-effect frame counts. They do not
   control rendering, collision, or enemy behavior.
 
-The Workbench reads runtime properties and calls actual passability methods,
-then adds its annotations. Core packages never import debugging to obtain game
-facts. Reference constructors return detached maps and tiles so modifications in
+Inspectors such as `cmd/ref_dump` and the Workbench Prepared Spell Inventory read
+runtime properties, then add these annotations. Core packages never import
+debugging to obtain game facts. Reference constructors return detached maps and tiles so modifications in
 one game state cannot mutate another state's definitions.
 
 `cmd/ref_dump` combines runtime tiles with developer annotations for lookup

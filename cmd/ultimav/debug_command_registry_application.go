@@ -47,24 +47,6 @@ func registerDisplayDebugCommands(registry *debugCommandRegistry) {
 	)
 }
 
-func registerCodexDebugCommands(registry *debugCommandRegistry) {
-	registry.registerGroup("codex references", debugCommandApplication, applicationHandledDebugCommand(
-		func(game *Game, request debugging.Request) (debugging.Result, bool) {
-			return game.executeCodexReferenceDebugCommand(request)
-		}),
-		debugging.CommandCodexEquipmentCatalog,
-		debugging.CommandCodexMonsterCatalog,
-		debugging.CommandCodexSpellCatalog,
-		debugging.CommandCodexTileCatalog,
-		debugging.CommandCodexLocationCatalog,
-		debugging.CommandCodexNPCCatalog,
-		debugging.CommandCodexQuestCatalog,
-		debugging.CommandCodexSaveFormat,
-		debugging.CommandCodexSearchLocations,
-		debugging.CommandCodexConsumables,
-	)
-}
-
 func registerReduxModificationsDebugCommands(registry *debugCommandRegistry) {
 	registry.registerGroup("redux modifications", debugCommandApplication, func(
 		context debugCommandContext,

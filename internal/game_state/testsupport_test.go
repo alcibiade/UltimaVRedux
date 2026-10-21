@@ -810,3 +810,15 @@ func testCampingMap(t *testing.T) *references.CombatMapReference {
 
 	return campingMap
 }
+
+// wordForDungeon returns the Word of Power that opens dungeon, or "" for a
+// location without one.
+func wordForDungeon(dungeon references.Location) string {
+	for word, location := range WordToDungeonMap {
+		if location == dungeon {
+			return word
+		}
+	}
+
+	return ""
+}

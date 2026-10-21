@@ -18,13 +18,13 @@ The responsive query/mutation shell and first intent-based workspaces are implem
 - Home, Game, Codex, System, Tools, Scenarios, and Saves navigation while preserving the authoritative command catalog underneath.
 - A visually dominant workspace tab rail with clear selected-state treatment.
 - Every browser launch opens Home. The selected instrument, collapsed Global History state, bottom/right history dock, and navigation recents remain browser-local across refreshes; stale instrument and recent-surface identities fall back through catalog validation.
-- Visible-only silent refresh for Logging, Wind, Calendar, World Navigator, Dungeon Explorer, Moongates, VFX, Monster Ecosystem, Active Combat, Vehicle, Inventory Locker, Prepared Spells, Search, Quest Inventory, and Shrine progression plus revisioned party-editor metadata refresh, without flooding global history.
+- Visible-only silent refresh for Logging, Wind, Calendar, World Navigator, Moongates, Monster Ecosystem, Active Combat, Vehicle, Inventory Locker, Prepared Spells, Search, Quest Inventory, and Shrine progression plus revisioned party-editor metadata refresh, without flooding global history.
 - Automatically loaded Combat Map reference tables in Codex and named virtue navigation instead of numeric Shrine entry.
-- Palette, Home, and command-rail navigation automatically load the selected read-only reference. Codex catalogs are application-owned and remain available before gameplay begins; failed reference loads render an explicit error instead of an indefinite loading state.
+- Palette, Home, and command-rail navigation automatically load the selected read-only reference. Failed reference loads render an explicit error instead of an indefinite loading state.
 - Connection, scene-generation, retry, and session-resume indicators.
 - A masthead Britannian calendar showing the live formatted game date/time, moon-phase label, and authentic runic phase glyph from the shared `runic_font.png` sprite sheet.
 - Correlated accepted/completed/failed command handling with replay deduplication.
-- Typed wind, calendar, world-navigation, dungeon-explorer, moongate, VFX, ecosystem, vehicle, inventory-locker, conversation, encounter-composer, search/item-stack, quest-inventory, logging, combat-map, shrine, and party result views, plus schema-generated fallback controls.
+- Typed wind, calendar, world-navigation, moongate, ecosystem, vehicle, inventory-locker, encounter-composer, search/item-stack, quest-inventory, logging, combat-map, shrine, and party result views, plus schema-generated fallback controls.
 - Strict Shrine ownership: Codex renders immutable mantra/word/location/reward reference, while Game renders current quest/ruined state and explicit alterations. Cross-navigation preserves the selected shrine.
 - A specialized Wind console with automatic telemetry, pause/resume, age, explicit direction selection, and Apply.
 - A specialized Combat Map catalog that loads and filters in place without exposing a manual query form.
@@ -35,27 +35,23 @@ The responsive query/mutation shell and first intent-based workspaces are implem
 - A top-level Scenarios workspace that defaults to Library, groups Project / Shared and Personal / Local definitions, and opens a selected definition in Details.
 - Revision-safe create, update, delete, and duplicate flows with explicit project/destructive review, stale-revision rejection, and no-overwrite destinations.
 - Edit Scenario controls for schema-v2 `current`/`init`/named-snapshot baselines, typed launch parameters, ordered command/note steps, direct scenario-safe catalog command addition, and catalog-driven typed literal or launch-parameter argument controls.
-- Immutable Quick Setups for reviewed starvation, camping, guard-hostility, waterfall, Word-of-Power, and death/resurrection utilities; these are built-in utilities, not saved scenario scripts.
+- Immutable Quick Setups for reviewed camping and death/resurrection utilities; these are built-in utilities, not saved scenario scripts.
 - Revision- and scene-bound browser Run Review with typed launch values and an execution plan, plus bounded durable Run History for queued/running current status and completed per-step results.
 - A Saves workspace grouping Project / Shared, Personal / Local, and Rollback / Recovery records, with detached compact detail, stable-scene capture, reviewed load/delete, automatic rollback disclosure, and reviewed named-baseline assignment to the active scenario draft.
 - Global History capture of server-normalized typed invocations, with a persistent masthead active-scenario target, per-result Add to Scenario, and target-bound RECORD ON/OFF controls for eligible successful mutations.
 - A World Navigator that preserves staged destination drafts while live status silently refreshes their reviewed source preconditions. It submits one atomic exact or authoritative route placement across large, small, and dungeon maps. Dungeon routes expose outside entrance, canonical inside start, and the non-Doom Underworld-exit ladder; unavailable route targets remain visible with a reason. Physical shrine/Codex setup remains a separate lane; Spirituality and waterfall transitions remain separate workflows.
-- A Dungeon Explorer with live facing/light/revision telemetry, a clickable Y-major 8x8 raw/kind/payload grid, and reviewed exact dungeon/floor/coordinate/facing/light setup.
 - A Moongate phase atlas with all moonstone records, reviewed production travel, coordinate-destination handoff into the Navigator, and a coordinate-free Shrine of Spirituality route during 00:00-00:09.
-- A three-pane read-only Conversation Script Explorer with source/dialog filtering and the exact patched semantic runtime document. Counts and summaries come from the same semantic catalog as gameplay; no secondary decoder is loaded.
-- A Tile Atlas with authenticated sprite previews, sticky focused tile details, and derived passability reference; an aligned NPC Schedule Index with sprite previews, loaded schedule slots, semantic conversation names/descriptions, and verified handoff to the detached Conversation Script Explorer for regular NPCs. Missing semantic programs remain explicitly unavailable. Long Tile, NPC, Monster, Equipment, Spell, Location, and ecosystem tables use bounded keyboard-accessible scrolling with sticky headings; short reference tables remain unbounded.
-- A Spell and Reagent Grimoire with searchable original-versus-Redux profiles for all 48 spells, including targeting, formulas, VFX, screen indicators, audio phase, turn effects, Combat Events, failure communication, known issues, opportunities, and direct code/source references.
+- The Monster Ecosystem roster uses bounded keyboard-accessible scrolling with sticky headings; short reference tables remain unbounded.
 - A reviewed Combat Encounter Composer for atomic map, direction, monster, count, friends, and optional deterministic seed selection.
 - A comprehensive Logging Control instrument with master/stdout switches, typed minimum level, explicit category channels, and a handoff to the read-only log window.
 - A separate read-only log window with level/category/text filters, pause/follow controls, overwrite reporting, and support for multiple tabs without consuming the single controller connection.
 - An Active Combat Console with an 11x11 tactical map, party and monster condition telemetry, DEX forecast, reviewed stable-ID mutations, and a fixed-room-only Clear Room review that defeats hostile enemies and declares victory without exiting combat. Mutations are unavailable while combat animation or dialogs are active.
-- A current-map VFX Test Bench with truthful effect identities, bounded coordinates, active-effect telemetry, and one serialized projectile lane.
 - A Monster Ecosystem Console with map capacity, enemy telemetry, explicit generation settings, confirmed enemy-only clear, and special spawn attempts.
 - A dedicated Ships instrument with current PartyVehicle details, hull preview, reviewed non-sinking damage, full repair, and exact Redux skiff quantities from 0 through 12.
 - A Game Prepared Spell Inventory grouped by circle, with exact staged quantities, a reviewed all-99 preset, and active-duration controls for exact remaining turns and authentic Light/Time Stop activation.
 - A persistent top-bar Free Move switch backed by the same explicit setter and status query as the Debug Options instrument.
 - A combat-only masthead **Escape Combat** action that submits `combat.exit-debug` with the latest encounter ID and reviewed snapshot fingerprint. It disappears outside combat and disables during transient combat work; the server rejects fixed dungeon rooms because their exploration continuation requires a normal room exit.
-- System Debug Options and Display instruments for retry-safe renderer flags and exact runtime game-window state. Display mode and preset-size requests are presentation-only and do not persist player Configuration choices.
+- System Debug Options and Display instruments for retry-safe renderer flags, including the lighting overlay, and exact runtime game-window state. Display mode and preset-size requests are presentation-only and do not persist player Configuration choices.
 - A System Redux Modifications instrument for deliberate, locally persisted gameplay choices. It groups explicit typed toggles by gameplay domain, including persistent hidden-dungeon discoveries and subdued unlit dungeon visibility, labels Redux and original modes, refreshes after mutation without continuous polling, and keeps persisted preferences out of Scenario Lab. Combat Speed (50–400 percent, step 50), Confirm Quick Save, Show Combat HP Bars, and Maximum Action Popups (0–3, zero Off) share player Configuration's canonical preferences. Numeric controls derive constraints from catalog metadata, preserve drafts across refreshes, and reject fractional/out-of-step values. Active Combat's speed control is a compatibility view of that same master speed, not a separate debug override. An open Configuration dialog disables Redux preference controls with an Apply/Cancel explanation; server-side conflict checks also reject stale browser attempts.
   Its Navigation panel offers **Flexible sextant use**, off by default (original nighttime world-only policy). The opt-in permits daytime and settlement use on all floors, including cellars, while retaining dungeon/Underworld exclusions and sextant ownership. The switch persists `Gameplay.Navigation.FlexibleSextantUse` and refreshes the owning typed status after mutation.
 - A Tools Observation pane that owns Telescope, Spyglass, and Crystal Ball production workflows, presents their distinct requirements and branches, and shows the latest queued context without polling or automatic execution.
@@ -117,12 +113,10 @@ World Navigator is owned by `world.position.status`; it submits
 commands remain catalogued but are hidden from duplicate Tools navigation. Its
 location control opens the complete destination list on click and filters ranked
 matches by location name, map type, or ID as the operator types.
-Dungeon Explorer is owned by `dungeon.explorer.status`, with
-`dungeon.explorer.setup` as its hidden companion mutation.
 
 ### Status-Backed Refresh
 
-Status-backed instruments query when selected, generally poll silently only while visible, and issue an immediate silent status query after each successful companion mutation. World Navigator and Dungeon Explorer preserve dirty destination/setup drafts while polling advances only the reviewed live-source preconditions. A `stale_world_position` or `stale_dungeon_state` failure triggers one silent status refresh and never automatically retries the mutation. The masthead calendar and combat-only quick exit are explicit global consumers, so their calendar and active-combat status queries continue silently across workspaces. Refreshed status, not optimistic UI state, is authoritative. Dungeon Explorer resets only after matching applied telemetry or explicit Reset. Refreshes otherwise reconcile selections while preserving unrelated dirty drafts, and routine polling does not enter global history.
+Status-backed instruments query when selected, generally poll silently only while visible, and issue an immediate silent status query after each successful companion mutation. World Navigator preserves dirty destination drafts while polling advances only the reviewed live-source preconditions. A `stale_world_position` failure triggers one silent status refresh and never automatically retries the mutation. The masthead calendar and combat-only quick exit are explicit global consumers, so their calendar and active-combat status queries continue silently across workspaces. Refreshed status, not optimistic UI state, is authoritative. Refreshes otherwise reconcile selections while preserving unrelated dirty drafts, and routine polling does not enter global history.
 
 Active Combat also refreshes when it is the selected instrument, with duplicate
 pending queries suppressed. Hidden browser pages stop routine polling. Workspace
@@ -172,16 +166,15 @@ Home owns no catalog commands and exposes no mutation controls. The previously s
               +====================================================+
               | COMMAND PALETTE                               Esc x |
               +====================================================+
-              | > consumables_                                    |
+              | > shrine_                                         |
               +----------------------------------------------------+
               | MATCHES                                            |
-              | > Consumables Codex                                |
-              |   Codex / Original vs current Redux behavior       |
+              | > Shrine Reference                                 |
+              |   Codex / Immutable virtue reference               |
               |                                              Enter |
               +----------------------------------------------------+
-              |   Inventory Locker                                  |
-              |   Prepared Spell Inventory                          |
-              |   Search Location Atlas                             |
+              |   Shrine Progress                                   |
+              |   Game / Live shrine quest state                    |
               +----------------------------------------------------+
               | READ-ONLY REFERENCES AUTO-LOAD · NO MUTATIONS RUN   |
               +====================================================+
@@ -271,7 +264,7 @@ Project and personal records can be deleted only at the reviewed revision. The u
 Scenarios is a top-level workspace with three primary tasks:
 
 - **Library** is the default and groups definitions under Project / Shared and Personal / Local, with search, source filtering, and separate new-project/new-personal actions.
-- **Quick Setups** contains immutable, purpose-built deterministic setup and production-workflow utilities. They are not saved scenario definitions and cannot be edited or duplicated.
+- **Quick Setups** contains immutable camping and death/resurrection production-workflow utilities. They are not saved scenario definitions and cannot be edited or duplicated.
 - **Run History** lists the active run plus up to 20 newest successful or failed runs from private local disk, with stable run-ID selection and complete step detail.
 
 Selecting a Library entry opens **Details**, which shows its source-qualified reference, revision, baseline, launch-parameter count, and step count. Details is the gateway to Review & Run, Edit, Duplicate, and Delete. Create refuses an existing destination; update and delete require the loaded revision; duplicate fixes the reviewed source revision and requires an absent explicit destination. Project / Shared writes and destructive actions use explicit review.
@@ -313,8 +306,8 @@ Library RUN and historical Home Review Again open this review even for
 parameterless definitions. Missing required launch values do not block entry to
 the screen containing their inputs; they block final Start. Parameter ID edits
 retain the input node/caret and migrate bindings using stable session row keys.
-Quick Setup reviews display exact seed/branch values; editing those values or
-pressing Escape/Cancel disarms the review. Catalog validation errors stay visible
+Quick Setup death reviews display the reviewed party fingerprint; a party change,
+task switch, Escape, or Cancel disarms the review. Catalog validation errors stay visible
 on Scenarios. Project-write/delete/duplicate modals own focus, trap Tab, make the
 background inert, and restore invoking focus on Escape. Capture's focus loop
 includes insertion position; inventory quantity controls have operation/item

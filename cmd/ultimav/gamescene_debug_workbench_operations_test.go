@@ -97,6 +97,7 @@ func TestDebugOptionCommandsUseExplicitIdempotentState(t *testing.T) {
 	require.True(t, level.Success)
 	assert.True(t, state.DebugOptions.BypassSpellLevelRestrictions)
 
+	state.DebugOptions.LightOverlay = true
 	status, _ := scene.executeOperationalDebugCommand(debugging.Request{
 		SessionID: "test", ID: "debug-status", CommandID: debugging.CommandDebugOptionsStatus,
 	})
@@ -104,4 +105,5 @@ func TestDebugOptionCommandsUseExplicitIdempotentState(t *testing.T) {
 	require.NoError(t, json.Unmarshal(status.Data, &statusData))
 	assert.True(t, statusData.UnlimitedCastingResources)
 	assert.True(t, statusData.BypassSpellLevelRestrictions)
+	assert.True(t, statusData.LightingOverlayEnabled)
 }

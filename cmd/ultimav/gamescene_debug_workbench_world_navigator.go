@@ -15,23 +15,12 @@ import (
 
 var errInvalidWorldPlacement = errors.New("invalid world placement")
 
-func (g *GameScene) executeWorldDungeonExplorerDebugCommand(
-	request debugging.Request,
-) (debugging.Result, bool) {
-	switch request.CommandID {
-	case debugging.CommandWorldPositionSet:
-		return g.executeWorldPositionSet(request), true
-	case debugging.CommandDungeonExplorerStatus:
-		return debugSuccessResult(
-			request,
-			"Dungeon Explorer status loaded.",
-			newDungeonExplorerStatusData(g),
-		), true
-	case debugging.CommandDungeonExplorerSetup:
-		return g.executeDungeonExplorerSetup(request), true
-	default:
+func (g *GameScene) executeWorldNavigatorDebugCommand(request debugging.Request) (debugging.Result, bool) {
+	if request.CommandID != debugging.CommandWorldPositionSet {
 		return debugging.Result{}, false
 	}
+
+	return g.executeWorldPositionSet(request), true
 }
 
 func (g *GameScene) executeWorldPositionSet(request debugging.Request) debugging.Result {
@@ -58,7 +47,6 @@ func (g *GameScene) executeWorldPositionSet(request debugging.Request) debugging
 		return debugging.FailureResult(request, "invalid_world_setup", err.Error())
 	}
 	beforeDungeon := currentDungeonAuthoritySnapshot(g.gameState)
-	beforeDungeonStatus := newDungeonExplorerStatusData(g)
 
 	var (
 		operation game_state.WorldSetupResult
@@ -105,7 +93,6 @@ func (g *GameScene) executeWorldPositionSet(request debugging.Request) debugging
 	}
 
 	afterDungeon := currentDungeonAuthoritySnapshot(g.gameState)
-	afterDungeonStatus := newDungeonExplorerStatusData(g)
 	status := newWorldPositionStatusData(g.gameState)
 	result := debugSuccessResultWithMode(
 		request,
@@ -114,13 +101,7 @@ func (g *GameScene) executeWorldPositionSet(request debugging.Request) debugging
 		status,
 	)
 	appendWorldSetupChanges(&result.Changes, operation)
-	appendDungeonExplorerChanges(
-		&result.Changes,
-		beforeDungeon,
-		afterDungeon,
-		beforeDungeonStatus,
-		afterDungeonStatus,
-	)
+	appendDungeonSetupChanges(&result.Changes, beforeDungeon, afterDungeon)
 
 	return result
 }
@@ -223,72 +204,6 @@ func worldPositionPlacementSummary(
 	return summary + "."
 }
 
-func (g *GameScene) executeDungeonExplorerSetup(request debugging.Request) debugging.Result {
-	if result, blocked := g.worldSetupBlockedResult(request); blocked {
-		return result
-	}
-	if !reviewedWorldPositionMatches(request, g.gameState) {
-		return debugging.FailureResult(
-			request,
-			"stale_world_position",
-			"world position changed after review",
-		)
-	}
-	if mustDebugRevisionArgument(request, "expectedDungeonRevision") != currentDungeonRevision(g.gameState) {
-		return debugging.FailureResult(
-			request,
-			"stale_dungeon_state",
-			"dungeon state changed after review",
-		)
-	}
-	if mustDebugStringArgument(request, "expectedSourceFingerprint") != debugWorldSourceFingerprint(g.gameState) {
-		return debugging.FailureResult(
-			request,
-			"stale_dungeon_state",
-			"world and dungeon source state changed after review",
-		)
-	}
-
-	facing, ok := debugDungeonFacing(mustDebugStringArgument(request, "facing"))
-	if !ok {
-		panic("validated dungeon facing is unknown")
-	}
-	beforeDungeon := currentDungeonAuthoritySnapshot(g.gameState)
-	beforeDungeonStatus := newDungeonExplorerStatusData(g)
-	operation, err := g.gameState.DebugSetupDungeon(
-		mustDebugLocationArgument(request, "dungeon"),
-		mustDebugFloorArgument(request, "floor", false),
-		references.Position{
-			X: mustDebugCoordinateArgument(request, "x", int(references.XDungeonMapTiles)-1),
-			Y: mustDebugCoordinateArgument(request, "y", int(references.YDungeonMapTiles)-1),
-		},
-		facing,
-		mustDebugBooleanArgument(request, "lit"),
-	)
-	if err != nil {
-		return debugging.FailureResult(request, "invalid_world_setup", err.Error())
-	}
-
-	afterDungeon := currentDungeonAuthoritySnapshot(g.gameState)
-	afterDungeonStatus := newDungeonExplorerStatusData(g)
-	result := debugSuccessResultWithMode(
-		request,
-		debugging.ExecutionSynchronized,
-		"Dungeon setup applied atomically.",
-		afterDungeonStatus,
-	)
-	appendWorldSetupChanges(&result.Changes, operation.WorldSetupResult)
-	appendDungeonExplorerChanges(
-		&result.Changes,
-		beforeDungeon,
-		afterDungeon,
-		beforeDungeonStatus,
-		afterDungeonStatus,
-	)
-
-	return result
-}
-
 func reviewedWorldPositionMatches(request debugging.Request, state *game_state.GameState) bool {
 	current := state.MapState.PlayerLocation
 
@@ -298,21 +213,12 @@ func reviewedWorldPositionMatches(request debugging.Request, state *game_state.G
 		mustDebugIntegerArgument(request, "expectedY") == int(current.Position.Y)
 }
 
-func currentDungeonRevision(state *game_state.GameState) uint64 {
-	if state.MapState.PlayerLocation.Location.GetMapType() != references.DungeonMapType {
-		return 0
-	}
-	snapshot, active := state.DungeonStateSnapshot()
-	if !active {
-		return 0
-	}
-
-	return snapshot.Revision
-}
-
 type dungeonAuthoritySnapshot struct {
-	Active   bool
-	Snapshot game_state.DungeonStateSnapshot
+	Active                     bool
+	Snapshot                   game_state.DungeonStateSnapshot
+	Lit                        bool
+	TorchMinutesRemaining      int
+	MagicLightMinutesRemaining int
 }
 
 type dungeonWandererSemanticData struct {
@@ -363,7 +269,11 @@ type debugDungeonPlacementTarget struct {
 func currentDungeonAuthoritySnapshot(state *game_state.GameState) dungeonAuthoritySnapshot {
 	snapshot, active := state.DungeonStateSnapshot()
 
-	return dungeonAuthoritySnapshot{Active: active, Snapshot: snapshot}
+	return dungeonAuthoritySnapshot{
+		Active: active, Snapshot: snapshot, Lit: state.MapState.Lighting.HasAnyLight(),
+		TorchMinutesRemaining:      state.MapState.Lighting.TorchMinutesRemaining(),
+		MagicLightMinutesRemaining: state.MagicLightMinutesRemaining,
+	}
 }
 
 func debugWorldSourceFingerprint(state *game_state.GameState) string {
@@ -465,15 +375,6 @@ func mustDebugCoordinateArgument(
 	}
 
 	return references.Coordinate(value) //nolint:gosec // G115: Checked against the catalog's maximum map coordinate above.
-}
-
-func mustDebugRevisionArgument(request debugging.Request, argumentID string) uint64 {
-	value := mustDebugIntegerArgument(request, argumentID)
-	if value < 0 {
-		panic(fmt.Sprintf("validated debug command %q argument %q is negative", request.CommandID, argumentID))
-	}
-
-	return uint64(value)
 }
 
 func newWorldPositionStatusData(state *game_state.GameState) debugging.WorldPositionStatusData {
@@ -718,114 +619,7 @@ func debugWorldPositionBounds(mapType references.GeneralMapType) debugging.World
 	}
 }
 
-func newDungeonExplorerStatusData(scene *GameScene) debugging.DungeonExplorerStatusData {
-	state := scene.gameState
-	current := state.MapState.PlayerLocation
-	setupAvailable, setupUnavailableReason := scene.dungeonSetupAvailability()
-	result := debugging.DungeonExplorerStatusData{
-		SourceFingerprint:          debugWorldSourceFingerprint(state),
-		Active:                     false,
-		SetupAvailable:             setupAvailable,
-		SetupUnavailableReason:     setupUnavailableReason,
-		LocationID:                 int(current.Location),
-		LocationName:               current.Location.String(),
-		Floor:                      int(current.Floor),
-		DisplayLevel:               0,
-		X:                          int(current.Position.X),
-		Y:                          int(current.Position.Y),
-		FacingID:                   0,
-		FacingLabel:                "",
-		LastDirectionID:            0,
-		LastDirectionLabel:         "",
-		Lit:                        state.MapState.Lighting.HasAnyLight(),
-		TorchMinutesRemaining:      state.MapState.Lighting.TorchMinutesRemaining(),
-		MagicLightMinutesRemaining: state.MagicLightMinutesRemaining,
-		Revision:                   0,
-		Cells:                      make([]debugging.DungeonExplorerCellData, 0),
-	}
-	if current.Location.GetMapType() != references.DungeonMapType {
-		return result
-	}
-	snapshot, active := state.DungeonStateSnapshot()
-	if !active {
-		return result
-	}
-
-	result.Active = true
-	result.DisplayLevel = int(current.Floor) + 1
-	result.FacingID = int(snapshot.Facing)
-	result.FacingLabel = debugDungeonFacingLabel(snapshot.Facing)
-	result.LastDirectionID = int(snapshot.LastDirection)
-	result.LastDirectionLabel = debugDungeonLastDirectionLabel(snapshot.LastDirection)
-	result.Revision = snapshot.Revision
-	result.Cells = make(
-		[]debugging.DungeonExplorerCellData,
-		0,
-		int(references.XDungeonMapTiles*references.YDungeonMapTiles),
-	)
-	for y := range references.YDungeonMapTiles {
-		for x := range references.XDungeonMapTiles {
-			position := references.Position{X: x, Y: y}
-			cell, ok := snapshot.Cells.Cell(current.Floor, position)
-			if !ok {
-				panic("active dungeon has an invalid current coordinate")
-			}
-			result.Cells = append(result.Cells, debugging.DungeonExplorerCellData{
-				X:        int(x),
-				Y:        int(y),
-				Raw:      int(cell.Raw()),
-				KindID:   int(cell.Kind()),
-				KindName: debugDungeonCellKindName(cell.Kind()),
-				Payload:  int(cell.Payload()),
-				Bit08:    cell.HasBit08(),
-				Player:   position == current.Position,
-			})
-		}
-	}
-
-	return result
-}
-
-func (g *GameScene) dungeonSetupAvailability() (bool, string) {
-	if _, message, blocked := g.worldSetupBlock(); blocked {
-		return false, message
-	}
-	if g.gameState.IsInCombat() {
-		return false, "dungeon setup is unavailable during combat"
-	}
-	if g.gameState.PartyVehicle.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
-		return false, "exit the current vehicle before changing world setup"
-	}
-	if g.gameState.GameReferences == nil || g.gameState.GameReferences.LocationReferences == nil {
-		return false, "dungeon source data is unavailable"
-	}
-	current := g.gameState.MapState.PlayerLocation
-	switch current.Location.GetMapType() {
-	case references.LargeMapType, references.SmallMapType:
-		return true, ""
-	case references.DungeonMapType:
-		if _, active := g.gameState.DungeonStateSnapshot(); !active {
-			return false, "active dungeon state does not match the current location"
-		}
-		if !g.gameState.IsAtDungeonCommandBoundary() {
-			return false, "a dungeon command cycle is active"
-		}
-
-		return true, ""
-	case references.CombatMapType, references.CampingMapType:
-		return false, "dungeon setup is unavailable in the current map context"
-	default:
-		return false, "dungeon setup is unavailable in the current map context"
-	}
-}
-
-func appendDungeonExplorerChanges(
-	changes *[]debugging.StateChange,
-	before dungeonAuthoritySnapshot,
-	after dungeonAuthoritySnapshot,
-	beforeStatus debugging.DungeonExplorerStatusData,
-	afterStatus debugging.DungeonExplorerStatusData,
-) {
+func appendDungeonSetupChanges(changes *[]debugging.StateChange, before, after dungeonAuthoritySnapshot) {
 	appendSemanticChange(changes, "dungeon.active", before.Active, after.Active)
 	appendSemanticChange(changes, "dungeon.locationId", int(before.Snapshot.Location), int(after.Snapshot.Location))
 	appendSemanticChange(changes, "dungeon.cells", flattenedDungeonCells(before), flattenedDungeonCells(after))
@@ -849,18 +643,18 @@ func appendDungeonExplorerChanges(
 		dungeonWandererSemantic(after.Snapshot.Wanderer),
 	)
 	appendSemanticChange(changes, "dungeon.revision", before.Snapshot.Revision, after.Snapshot.Revision)
-	appendSemanticChange(changes, "lighting.lit", beforeStatus.Lit, afterStatus.Lit)
+	appendSemanticChange(changes, "lighting.lit", before.Lit, after.Lit)
 	appendSemanticChange(
 		changes,
 		"lighting.torchMinutesRemaining",
-		beforeStatus.TorchMinutesRemaining,
-		afterStatus.TorchMinutesRemaining,
+		before.TorchMinutesRemaining,
+		after.TorchMinutesRemaining,
 	)
 	appendSemanticChange(
 		changes,
 		"lighting.magicLightMinutesRemaining",
-		beforeStatus.MagicLightMinutesRemaining,
-		afterStatus.MagicLightMinutesRemaining,
+		before.MagicLightMinutesRemaining,
+		after.MagicLightMinutesRemaining,
 	)
 }
 
@@ -882,21 +676,6 @@ func flattenedDungeonCells(authority dungeonAuthoritySnapshot) []int {
 	}
 
 	return cells
-}
-
-func debugDungeonFacing(value string) (references.DungeonFacing, bool) {
-	switch value {
-	case debugDirectionNorthName:
-		return references.DungeonFacingNorth, true
-	case debugDirectionEastName:
-		return references.DungeonFacingEast, true
-	case debugDirectionSouthName:
-		return references.DungeonFacingSouth, true
-	case debugDirectionWestName:
-		return references.DungeonFacingWest, true
-	default:
-		return 0, false
-	}
 }
 
 func debugDungeonFacingLabel(facing references.DungeonFacing) string {
@@ -931,30 +710,4 @@ func debugDungeonLastDirectionLabel(direction references.DungeonLastDirection) s
 	default:
 		panic("invalid dungeon last direction")
 	}
-}
-
-func debugDungeonCellKindName(kind references.DungeonCellKind) string {
-	names := [...]string{
-		"passage",
-		"ladder_up",
-		"ladder_down",
-		"ladder_both",
-		"closed_chest",
-		"fountain",
-		"pit_or_trap",
-		"open_chest",
-		"energy_field",
-		"reserved",
-		"cleared_room",
-		"wall",
-		"special_wall",
-		"hidden_door",
-		"revealed_door",
-		"live_room",
-	}
-	if int(kind) >= len(names) {
-		panic("invalid dungeon cell kind")
-	}
-
-	return names[kind]
 }

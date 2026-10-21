@@ -130,7 +130,7 @@ func TestProcessWordOfPowerTogglesNonDoomEntrancesFromTheUnderworld(t *testing.T
 			state.SetDungeonState(dungeon, false)
 			state.MapState.PlayerLocation.Position = entrance.Right()
 			require.Equal(t, indexes.SpriteIndex(indexes.BlockEntrance), state.GetEffectiveTile(&entrance))
-			require.True(t, state.ProcessWordOfPower(GetWordForDungeon(dungeon)))
+			require.True(t, state.ProcessWordOfPower(wordForDungeon(dungeon)))
 			assert.True(t, state.IsDungeonOpen(dungeon))
 			assert.Empty(t, callbacks.Messages)
 
@@ -224,7 +224,7 @@ func TestProcessWordOfPowerRejectsWrongTileAndUsesWestSouthEastNorthPriority(t *
 	})
 }
 
-func TestGetWordForDungeon(t *testing.T) {
+func TestWordForDungeon(t *testing.T) {
 	tests := []struct {
 		name     string
 		dungeon  references.Location
@@ -243,7 +243,7 @@ func TestGetWordForDungeon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			word := GetWordForDungeon(tt.dungeon)
+			word := wordForDungeon(tt.dungeon)
 			assert.Equal(t, tt.expected, word)
 		})
 	}

@@ -514,14 +514,12 @@ describe("Scenarios workspace", () => {
       combatActive: false, dialogActive: false, gameplayWorkflowActive: false,
       scriptedSceneActive: false, gameplayTerminal: true, finaleActive: true, allPartyDead: false,
       party: [],
-      guards: { supported: false, criminal: false, potentialGuardCount: 0, hostilePotentialGuardCount: 0 },
     }
 
     mountScenarioLab(newScenarioComposerDraft(), "quick-setups", undefined, undefined, [], [], {}, data)
 
     expect(root.querySelector(".scenario-context")?.textContent).toContain("TERMINAL FINALE")
-    expect(root.querySelector<HTMLButtonElement>(".blackthorn-interrogation-card button")?.disabled).toBe(true)
-    expect(root.querySelector<HTMLButtonElement>(".lord-british-finale-card button")?.disabled).toBe(true)
+    expect(root.querySelector<HTMLButtonElement>(".hole-up-card button")?.disabled).toBe(true)
   })
 
   it("offers schema-v2 named baselines with project portability filtering", async () => {
@@ -553,12 +551,10 @@ function mountScenarioLab(composerValue: ScenarioComposerDraft, taskValue: Scena
     },
     template: `<ScenarioLab
       :composer="composer" :data="data" :definition-list="definitionList" :run-status="runStatus" :selected-run-id="selectedRunID" :active-task="activeTask"
-      :validation-issues="validationIssues" :pending-status="false" :pending-direct="false" :pending-hourly="false"
-      :pending-guards="false" :pending-waterfall="false" :pending-bridge-troll="false" :pending-word="false"
-      :pending-blackthorn-interrogation="false" :pending-lord-british-finale="false"
+      :validation-issues="validationIssues" :pending-status="false"
       :pending-hole-up="false" :pending-kill-party="false" :pending-death-sequence="false"
       :pending-definition-list="false" :pending-definition-get="false" :pending-definition-save="false"
-      :pending-run-start="false" :word-choices="[]"
+      :pending-run-start="false"
       :commands="commands" :option-sets="optionSets" :snapshots="snapshots"
       @update-composer="composer = $event" @update-active-task="activeTask = $event" @select-run="selectedRunID = $event"
     />`,

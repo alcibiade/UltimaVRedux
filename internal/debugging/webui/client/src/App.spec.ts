@@ -143,7 +143,7 @@ describe("debug workbench connection", () => {
 
 	it("opens Home on every launch while preserving the saved instrument and history state", async () => {
 		localStorage.setItem("u5r-debug-workbench-workspace", "codex")
-		localStorage.setItem("u5r-debug-workbench-instrument", "codex.tile.catalog")
+		localStorage.setItem("u5r-debug-workbench-instrument", "shrine.status")
 		localStorage.setItem("u5r-debug-workbench-history-collapsed", "true")
 		mountApp()
 		const connection = MockWebSocket.instances[0]
@@ -156,8 +156,8 @@ describe("debug workbench connection", () => {
 		expect(root.querySelector("[data-home-workspace]")).not.toBeNull()
 		expect(root.querySelector(".instrument-title-row")).toBeNull()
 		await openWorkspace("codex")
-		expect(root.querySelector('[data-command-select="codex.tile.catalog"]')?.getAttribute("aria-current")).toBe("true")
-		expect(root.querySelector(".instrument-title-row")?.textContent).toContain("Tile Atlas")
+		expect(root.querySelector('[data-command-select="shrine.status"]')?.getAttribute("aria-current")).toBe("true")
+		expect(root.querySelector(".instrument-title-row")?.textContent).toContain("Shrine Reference")
 		expect(root.querySelector(".instrument-title-row .execution-mode")?.textContent).toContain("IMMUTABLE REFERENCE")
 		expect(root.querySelector(".history-panel")?.classList.contains("collapsed")).toBe(true)
 		expect(root.querySelector(".history-panel .stream-actions button")?.textContent).toBe("EXPAND HISTORY")
@@ -171,17 +171,17 @@ describe("debug workbench connection", () => {
 		connection.message(formCatalogSnapshot())
 		await flushUI()
 		await openWorkspace("codex")
-		click('button[data-command-select="codex.npc.catalog"]')
+		click('button[data-command-select="shrine.status"]')
 		click(".history-panel .stream-actions button")
 		await flushUI()
 
 		expect(localStorage.getItem("u5r-debug-workbench-workspace")).toBeNull()
-		expect(localStorage.getItem("u5r-debug-workbench-instrument")).toBe("codex.npc.catalog")
+		expect(localStorage.getItem("u5r-debug-workbench-instrument")).toBe("shrine.status")
 		expect(localStorage.getItem("u5r-debug-workbench-history-collapsed")).toBe("true")
 	})
 
 	it("opens a recent Home surface and automatically loads its read-only query", async () => {
-		localStorage.setItem("u5r-debug-workbench-navigation-recents", JSON.stringify(["codex:codex.consumable.catalog"]))
+		localStorage.setItem("u5r-debug-workbench-navigation-recents", JSON.stringify(["codex:shrine.status"]))
 		mountApp()
 		const connection = MockWebSocket.instances[0]
 		connection.open()
@@ -189,15 +189,15 @@ describe("debug workbench connection", () => {
 		connection.message(formCatalogSnapshot())
 		await flushUI()
 
-		expect(root.querySelector('[data-home-recent="codex:codex.consumable.catalog"]')?.textContent).toContain("Consumables Codex")
+		expect(root.querySelector('[data-home-recent="codex:shrine.status"]')?.textContent).toContain("Shrine Reference")
 		const sentBeforeNavigation = connection.sent.length
-		click('[data-home-recent="codex:codex.consumable.catalog"]')
+		click('[data-home-recent="codex:shrine.status"]')
 		await flushUI()
 
 		expect(root.querySelector('[data-workspace="codex"]')?.getAttribute("aria-current")).toBe("page")
-		expect(root.querySelector('[data-command-select="codex.consumable.catalog"]')?.getAttribute("aria-current")).toBe("true")
+		expect(root.querySelector('[data-command-select="shrine.status"]')?.getAttribute("aria-current")).toBe("true")
 		expect(connection.sent).toHaveLength(sentBeforeNavigation + 1)
-		expect(executionForCommand(connection, "codex.consumable.catalog").payload.arguments).toEqual({})
+		expect(executionForCommand(connection, "shrine.status").payload.arguments).toEqual({})
 	})
 
 	it("keeps an existing retained run on Home until Latest Run is opened", async () => {
@@ -225,68 +225,6 @@ describe("debug workbench connection", () => {
 		expect(root.querySelector('[data-scenario-screen="latest-run"]')).not.toBeNull()
 	})
 
-	it("opens a verified NPC TLK reference in the conversation explorer", async () => {
-		mountApp()
-		const connection = MockWebSocket.instances[0]
-		connection.open()
-		connection.message(sessionReady("session-1"))
-		connection.message(formCatalogSnapshot())
-		await flushUI()
-		await openWorkspace("codex")
-		click('button[data-command-select="codex.npc.catalog"]')
-		await flushUI()
-		const npcQuery = executionForCommand(connection, "codex.npc.catalog")
-		connection.message(successfulQueryCompletion(npcQuery.id, "codex.npc.catalog", "NPC schedule index loaded.", [{
-			locationID: 2, dialogNumber: 1, spriteIndex: 256, location: "Britain", type: "0x00", times: ["6", "12", "18"], ai: ["0", "1", "2"], positions: ["1,1,0", "2,2,0", "3,3,0"],
-			conversationKind: "TLK", conversationSource: "towne", conversationIndex: 0, conversationName: "Iolo", conversationDescription: "Bard", hasConversation: true,
-		}]))
-		await flushUI()
-		click(".codex-atlas .cross-workspace-link")
-		await flushUI()
-		expect(executionForCommand(connection, "conversation.script.catalog").payload.arguments).toEqual({ source: "towne" })
-		expect(executionForCommand(connection, "conversation.script.inspect").payload.arguments).toEqual({ source: "towne", index: 0 })
-	})
-
-	it("owns both focused Codex catalogs in specialized surfaces", async () => {
-		mountApp()
-		const connection = MockWebSocket.instances[0]
-		connection.open()
-		connection.message(sessionReady("session-1"))
-		connection.message(formCatalogSnapshot())
-		await flushUI()
-		await openWorkspace("tools")
-		const toolIDs = [...root.querySelectorAll<HTMLElement>("[data-command-select]")].map((element) => element.dataset.commandSelect)
-		expect(toolIDs).not.toContain("codex.search-location.catalog")
-		expect(toolIDs).not.toContain("codex.consumable.catalog")
-
-		await openWorkspace("codex")
-		click('button[data-command-select="codex.search-location.catalog"]')
-		await flushUI()
-		const searchQuery = executionForCommand(connection, "codex.search-location.catalog")
-		connection.message(successfulQueryCompletion(searchQuery.id, "codex.search-location.catalog", "Search location atlas loaded.", []))
-		await flushUI()
-		expect(root.querySelector(".search-location-atlas")).not.toBeNull()
-
-		click('button[data-command-select="codex.consumable.catalog"]')
-		await flushUI()
-		const consumableQuery = executionForCommand(connection, "codex.consumable.catalog")
-		connection.message(successfulQueryCompletion(consumableQuery.id, "codex.consumable.catalog", "Consumables codex loaded.", []))
-		await flushUI()
-		expect(root.querySelector(".consumables-codex")).not.toBeNull()
-
-		click("[data-command-palette-launcher]")
-		await flushUI()
-		const paletteInput = root.querySelector<HTMLInputElement>("#command-palette-input")!
-		paletteInput.value = "consumables"
-		paletteInput.dispatchEvent(new Event("input"))
-		await flushUI()
-		expect(root.querySelector('[data-palette-surface="codex:codex.consumable.catalog"]')).not.toBeNull()
-		paletteInput.value = "search location"
-		paletteInput.dispatchEvent(new Event("input"))
-		await flushUI()
-		expect(root.querySelector('[data-palette-surface="codex:codex.search-location.catalog"]')).not.toBeNull()
-	})
-
 	it("shows an explicit failure when an automatically loaded reference query fails", async () => {
 		mountApp()
 		const connection = MockWebSocket.instances[0]
@@ -295,18 +233,16 @@ describe("debug workbench connection", () => {
 		connection.message(formCatalogSnapshot())
 		await flushUI()
 		await openWorkspace("codex")
-		click('button[data-command-select="codex.quest.catalog"]')
-		await flushUI()
-		const query = executionForCommand(connection, "codex.quest.catalog")
+		const query = executionForCommand(connection, "combat.map-catalog.all")
 		connection.message({
 			version: 1, id: query.id, type: "command.failed", payload: {
-				sessionId: "session-1", requestId: query.id, commandId: "codex.quest.catalog", sceneGeneration: 1,
-				success: false, errorCode: "codex_reference_load_failed", errorMessage: "missing reference data",
+				sessionId: "session-1", requestId: query.id, commandId: "combat.map-catalog.all", sceneGeneration: 1,
+				success: false, errorCode: "reference_load_failed", errorMessage: "missing reference data",
 			},
 		})
 		await flushUI()
 
-		expect(root.querySelector("[data-query-load-failure]")?.textContent).toContain("codex_reference_load_failed :: missing reference data")
+		expect(root.querySelector("[data-query-load-failure]")?.textContent).toContain("reference_load_failed :: missing reference data")
 	})
 
 	it("owns the three observation workflows in one typed pane", async () => {
@@ -611,12 +547,10 @@ describe("debug workbench connection", () => {
     expect(commandIDs).not.toContain("quest.item.remove")
     expect(commandIDs).not.toContain("movement.teleport")
 		expect(commandIDs).not.toContain("world.position.set")
-		expect(commandIDs).not.toContain("dungeon.explorer.setup")
     expect(commandIDs).not.toContain("moongate.status")
     expect(commandIDs).not.toContain("moongate.travel")
-    expect(commandIDs).not.toContain("conversation.script.inspect")
     expect(commandIDs).not.toContain("combat.encounter.start")
-    expect(commandIDs).not.toContain("vfx.projectile")
+    expect(commandIDs).not.toContain("overlay.lighting.set")
     expect(commandIDs).not.toContain("monster.clear-map-enemies")
     expect(commandIDs).not.toContain("ship.damage-raw")
 		expect(commandIDs).not.toContain("ship.skiff.set")
@@ -756,15 +690,15 @@ describe("debug workbench connection", () => {
     const input = root.querySelector<HTMLInputElement>("#command-palette-input")!
     expect(document.activeElement).toBe(input)
     expect(root.querySelector<HTMLElement>(".masthead")?.inert).toBe(true)
-    setInputValue(input, "Quest Artifact Ledger")
+    setInputValue(input, "Shrine Reference")
     await flushUI()
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }))
     await flushUI()
 
     expect(root.querySelector('[data-workspace="codex"]')?.getAttribute("aria-current")).toBe("page")
-    expect(root.querySelector(".instrument-title-row")?.textContent).toContain("Quest Artifact Ledger")
+    expect(root.querySelector(".instrument-title-row")?.textContent).toContain("Shrine Reference")
     expect(connection.sent).toHaveLength(sentBeforePalette + 1)
-    expect(executionForCommand(connection, "codex.quest.catalog").payload.arguments).toEqual({})
+    expect(executionForCommand(connection, "shrine.status").payload.arguments).toEqual({})
     expect(root.querySelector("[data-command-palette]")).toBeNull()
     expect(root.querySelector<HTMLElement>(".masthead")?.inert).toBe(false)
 
@@ -1477,7 +1411,7 @@ describe("debug workbench connection", () => {
 		expect(root.querySelector(".loadout-editor")?.textContent).toContain("0 staged slots")
 	})
 
-	it("owns deterministic forced branches and explicitly confirms reviewed death scenarios", async () => {
+	it("owns camping and explicitly confirms reviewed death quick setups", async () => {
 		mountApp()
 		const connection = MockWebSocket.instances[0]
 		connection.open()
@@ -1506,60 +1440,9 @@ describe("debug workbench connection", () => {
 		const refreshedScenario = executionForCommand(connection, "scenario.status")
 		connection.message(scenarioStatusCompletion(refreshedScenario.id))
 		await flushUI()
-		const direct = root.querySelectorAll<HTMLElement>(".scenario-card")[1]
-		setInputValue(direct?.querySelector<HTMLInputElement>("input"), "77")
-		await flushUI()
-		direct?.querySelector<HTMLButtonElement>("button")?.click()
-		await flushUI()
-		expect(direct?.querySelector("button")?.textContent).toContain("CONFIRM DAMAGE")
-		direct?.querySelector<HTMLButtonElement>("button")?.click()
-		expect(executionForCommand(connection, "scenario.starvation.trigger").payload.arguments).toEqual({ seed: 77 })
-
-		const guardCard = root.querySelectorAll<HTMLElement>(".scenario-card")[3]
-		guardCard?.querySelector<HTMLButtonElement>("button")?.click()
-		expect(executionForCommand(connection, "scenario.guards.activate").payload.arguments).toEqual({})
-
-		root.querySelector<HTMLButtonElement>(".waterfall-setup-card button")?.click()
-		expect(executionForCommand(connection, "scenario.waterfall.setup").payload.arguments).toEqual({})
-
-		root.querySelector<HTMLButtonElement>(".bridge-troll-card button")?.click()
-		await flushUI()
-		expect(root.querySelector<HTMLButtonElement>(".bridge-troll-card button")?.textContent).toContain("CONFIRM GOLD / DEX / POSITION")
-		root.querySelector<HTMLButtonElement>(".bridge-troll-card button")?.click()
-		expect(executionForCommand(connection, "scenario.bridge-troll.start").payload.arguments).toEqual({ seed: 77 })
-
-		const blackthornButton = root.querySelector<HTMLButtonElement>(".blackthorn-interrogation-card button")
-		blackthornButton?.click()
-		await flushUI()
-		expect(blackthornButton?.textContent).toContain("CONFIRM PALACE / SHRINE / PARTY")
-		blackthornButton?.click()
-		expect(executionForCommand(connection, "scenario.blackthorn-interrogation.start").payload.arguments).toEqual({ expectedPartyFingerprint: "party-1" })
-
-		setSelectValue(root.querySelector<HTMLSelectElement>(".lord-british-finale-card select"), "false")
-		await flushUI()
-		const finaleButton = root.querySelector<HTMLButtonElement>(".lord-british-finale-card button")
-		finaleButton?.click()
-		await flushUI()
-		expect(finaleButton?.textContent).toContain("CONFIRM TERMINAL FINALE")
-		setSelectValue(root.querySelector<HTMLSelectElement>(".lord-british-finale-card select"), "true")
-		await flushUI()
-		finaleButton?.click()
-		expect(executionsForCommand(connection, "scenario.lord-british-finale.start")).toHaveLength(0)
-		await flushUI()
-		expect(root.querySelector("[data-quick-review]")?.textContent).toContain("WOODEN BOX OWNED")
-		finaleButton?.click()
-		expect(executionForCommand(connection, "scenario.lord-british-finale.start").payload.arguments).toEqual({ expectedPartyFingerprint: "party-1", woodenBox: true })
-
-		setSelectValue(root.querySelector<HTMLSelectElement>("#scenario-word"), "veramocor")
-		await flushUI()
-		root.querySelector<HTMLButtonElement>(".word-setup-card button")?.click()
-		expect(executionForCommand(connection, "scenario.word.setup").payload.arguments).toEqual({ word: "veramocor" })
-
 		const rawCommandIDs = Array.from(root.querySelectorAll<HTMLElement>('[data-command-select]')).map((element) => element.dataset.commandSelect)
 		expect(rawCommandIDs).not.toContain("death.kill-party")
 		expect(rawCommandIDs).not.toContain("death.test-sequence")
-		expect(rawCommandIDs).not.toContain("scenario.blackthorn-interrogation.start")
-		expect(rawCommandIDs).not.toContain("scenario.lord-british-finale.start")
 		const killButton = root.querySelector<HTMLButtonElement>(".death-wipe-card button")
 		killButton?.click()
 		await flushUI()
@@ -2394,6 +2277,7 @@ describe("debug workbench connection", () => {
 			dialogBoundsEnabled: false,
 			unlimitedCastingResources: false,
 			bypassSpellLevelRestrictions: false,
+			lightingOverlayEnabled: false,
 		}))
 		await flushUI()
 		expect(root.querySelector(".free-move-quick")?.textContent).toContain("FREE MOVE OFF")
@@ -2409,6 +2293,7 @@ describe("debug workbench connection", () => {
 			dialogBoundsEnabled: false,
 			unlimitedCastingResources: false,
 			bypassSpellLevelRestrictions: false,
+			lightingOverlayEnabled: false,
 		}))
 		await flushUI()
 		expect(root.querySelector(".free-move-quick")?.textContent).toContain("FREE MOVE ON")
@@ -2420,6 +2305,8 @@ describe("debug workbench connection", () => {
 		expect(root.querySelector('[aria-label="Debug options"]')?.textContent).toContain("Unlimited Casting Resources")
 		const switches = root.querySelectorAll<HTMLButtonElement>('[aria-label="Debug options"] [role="switch"]')
 		switches[3].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+		expect(executionForCommand(connection, "overlay.lighting.set").payload.arguments).toEqual({ enabled: true })
+		switches[4].dispatchEvent(new MouseEvent("click", { bubbles: true }))
 		const unlimited = executionForCommand(connection, "magic.unlimited-casting-resources.set")
 		expect(unlimited.payload.arguments).toEqual({ enabled: true })
 	})
@@ -2923,67 +2810,7 @@ describe("debug workbench connection", () => {
 		expect(setupRows[1]?.textContent).toContain("DEFERRED")
   })
 
-	it("owns Dungeon Explorer, serializes exact setup types, and refreshes only its status without overlapping polling", async () => {
-		mountApp()
-		const connection = MockWebSocket.instances[0]
-		connection.open()
-		connection.message(sessionReady("session-1"))
-		connection.message(formCatalogSnapshot())
-		await flushUI()
-		await openWorkspace("game")
-		click('button[data-command-select="dungeon.explorer.status"]')
-		await flushUI()
-		const initialStatus = executionForCommand(connection, "dungeon.explorer.status")
-		connection.message(dungeonExplorerCompletion(initialStatus.id))
-		await flushUI()
-
-		expect(root.querySelectorAll(".dungeon-grid [role=gridcell]")).toHaveLength(64)
-		expect([...root.querySelectorAll<HTMLElement>(".dungeon-grid [role=gridcell]")].slice(0, 10).map((cell) => `${cell.dataset.x},${cell.dataset.y}`)).toEqual([
-			"0,0", "1,0", "2,0", "3,0", "4,0", "5,0", "6,0", "7,0", "0,1", "1,1",
-		])
-		click('.dungeon-grid [data-cell-index="18"]')
-		setSelectValue(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon"]'), "40")
-		setSelectValue(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon floor"]'), "7")
-		setSelectValue(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon facing"]'), "west")
-		setSelectValue(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon lighting"]'), "false")
-		await flushUI()
-
-		vi.advanceTimersByTime(1000)
-		await flushUI()
-		const oldPoll = executionForCommand(connection, "dungeon.explorer.status")
-		connection.message(dungeonExplorerCompletion(oldPoll.id, {
-			sourceFingerprint: "dungeon-source-2", x: 5, y: 6, revision: 13,
-		}))
-		await flushUI()
-		expect(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon"]')?.value).toBe("40")
-		expect(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon floor"]')?.value).toBe("7")
-		expect([...root.querySelectorAll<HTMLInputElement>(".dungeon-setup-form input")].map((input) => input.value)).toEqual(["2", "2"])
-
-		const worldRefreshes = executionsForCommand(connection, "world.position.status").length
-		click('.dungeon-setup-form button[type="submit"]')
-		const setup = executionForCommand(connection, "dungeon.explorer.setup")
-		expect(setup.payload.arguments).toEqual({
-			dungeon: "40", floor: 7, x: 2, y: 2, facing: "west", lit: false,
-			expectedLocationId: 33, expectedFloor: 2, expectedX: 5, expectedY: 6, expectedDungeonRevision: 13,
-			expectedSourceFingerprint: "dungeon-source-2",
-		})
-		const statusRefreshes = executionsForCommand(connection, "dungeon.explorer.status").length
-		vi.advanceTimersByTime(1000)
-		await flushUI()
-		expect(executionsForCommand(connection, "dungeon.explorer.status")).toHaveLength(statusRefreshes)
-
-		connection.message(successfulMutationCompletion(setup.id, "dungeon.explorer.setup", "synchronized_live"))
-		await flushUI()
-		expect(executionsForCommand(connection, "dungeon.explorer.status")).toHaveLength(statusRefreshes + 1)
-		expect(executionsForCommand(connection, "world.position.status")).toHaveLength(worldRefreshes)
-		const refreshed = executionForCommand(connection, "dungeon.explorer.status")
-		connection.message(dungeonExplorerCompletion(refreshed.id, { locationId: 40, locationName: "Doom", floor: 7, displayLevel: 8, x: 2, y: 2, facingId: 3, facingLabel: "West", lastDirectionId: 3, lastDirectionLabel: "West", lit: false, revision: 0 }))
-		await flushUI()
-		expect(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon"]')?.value).toBe("40")
-		expect(root.querySelector<HTMLSelectElement>('[aria-label="Dungeon floor"]')?.value).toBe("7")
-	})
-
-	it("silently refreshes each stale review owner exactly once without retrying its mutation", async () => {
+	it("silently refreshes the stale World Navigator review exactly once without retrying its mutation", async () => {
 		mountApp()
 		const connection = MockWebSocket.instances[0]
 		connection.open()
@@ -3011,26 +2838,6 @@ describe("debug workbench connection", () => {
 		await flushUI()
 		expect(executionsForCommand(connection, "world.position.status")).toHaveLength(worldRefreshes + 1)
 		expect(executionsForCommand(connection, "world.position.set")).toHaveLength(1)
-
-		const staleWorldRefresh = executionForCommand(connection, "world.position.status")
-		connection.message(worldPositionCompletion(staleWorldRefresh.id))
-		click('button[data-command-select="dungeon.explorer.status"]')
-		await flushUI()
-		const dungeonStatus = executionForCommand(connection, "dungeon.explorer.status")
-		connection.message(dungeonExplorerCompletion(dungeonStatus.id))
-		await flushUI()
-		click('.dungeon-grid [data-cell-index="18"]')
-		click('.dungeon-setup-form button[type="submit"]')
-		const dungeonSetup = executionForCommand(connection, "dungeon.explorer.setup")
-		const dungeonRefreshes = executionsForCommand(connection, "dungeon.explorer.status").length
-		connection.message(failedCommandCompletion(dungeonSetup.id, "dungeon.explorer.setup", "stale_dungeon_state"))
-		await flushUI()
-		expect(executionsForCommand(connection, "dungeon.explorer.status")).toHaveLength(dungeonRefreshes + 1)
-		expect(executionsForCommand(connection, "dungeon.explorer.setup")).toHaveLength(1)
-		connection.message(failedCommandCompletion(dungeonSetup.id, "dungeon.explorer.setup", "stale_dungeon_state"))
-		await flushUI()
-		expect(executionsForCommand(connection, "dungeon.explorer.status")).toHaveLength(dungeonRefreshes + 1)
-		expect(executionsForCommand(connection, "dungeon.explorer.setup")).toHaveLength(1)
 	})
 
   it("owns reviewed moongate travel and links the destination to Navigator", async () => {
@@ -3179,54 +2986,6 @@ describe("debug workbench connection", () => {
     expect(mutation.payload.arguments).toEqual({ index: "7", questState: "offering", ruined: false })
   })
 
-  it("loads semantic-only conversations without Talk execution", async () => {
-    mountApp()
-    const connection = MockWebSocket.instances[0]
-    connection.open()
-    connection.message(sessionReady("session-1"))
-    connection.message(formCatalogSnapshot())
-    await flushUI()
-    await openWorkspace("codex")
-    click('button[data-command-select="conversation.script.catalog"]')
-    await flushUI()
-
-    const towneCatalog = executionForCommand(connection, "conversation.script.catalog")
-    expect(towneCatalog.payload.arguments).toEqual({ source: "towne" })
-    connection.message(conversationCatalogCompletion(towneCatalog.id, "towne", 3))
-    await flushUI()
-    click(".conversation-sources button:first-of-type")
-    const castleCatalog = executionForCommand(connection, "conversation.script.catalog")
-    expect(castleCatalog.payload.arguments).toEqual({ source: "castle" })
-    await flushUI()
-    expect(root.querySelector(".conversation-script-list button")).toBeNull()
-    connection.message(conversationCatalogCompletion(castleCatalog.id, "castle", 7))
-    await flushUI()
-    setInputValue(root.querySelector<HTMLInputElement>("#conversation-filter"), "8")
-    await flushUI()
-    expect(root.querySelectorAll(".conversation-script-list button")).toHaveLength(1)
-    click(".conversation-script-list button")
-
-    const detail = executionForCommand(connection, "conversation.script.inspect")
-    expect(detail.payload.arguments).toEqual({ source: "castle", index: 7 })
-    connection.message(conversationDetailCompletion(detail.id))
-    await flushUI()
-    expect(root.querySelector(".conversation-document")?.textContent).toContain("original.castle.008")
-    expect(root.querySelector(".conversation-document")?.textContent).toContain("Greetings, Avatar")
-    expect(root.querySelector(".conversation-view-tabs")).toBeNull()
-    expect(root.querySelector(".conversation-document")?.textContent).not.toContain("Legacy TLK Decode")
-    click(".conversation-sources button:nth-of-type(2)")
-    const keepCatalog = executionForCommand(connection, "conversation.script.catalog")
-    connection.message(conversationCatalogCompletion(keepCatalog.id, "keep", 7))
-    await flushUI()
-    click(".conversation-script-list button")
-    const keepDetail = executionForCommand(connection, "conversation.script.inspect")
-    connection.message(conversationDetailCompletion(keepDetail.id, "keep"))
-    await flushUI()
-    expect(root.querySelector(".semantic-document")?.textContent).toContain("original.keep.008")
-    expect(connection.sent.map((message) => JSON.parse(message) as { payload?: { commandId?: string } })
-      .some((message) => message.payload?.commandId?.includes("talk"))).toBe(false)
-  })
-
   it("reviews a combat composition before sending exact typed start arguments", async () => {
     mountApp()
     const connection = MockWebSocket.instances[0]
@@ -3256,61 +3015,6 @@ describe("debug workbench connection", () => {
       territory: "britannia", britanniaMap: 0, entryDirection: "west", monsterType: "32",
       countMode: "exact", exactCount: 3, friends: true, seed: 123,
     })
-  })
-
-  it("bounds projectile submission and renders the refreshed active VFX state", async () => {
-    mountApp()
-    const connection = MockWebSocket.instances[0]
-    connection.open()
-    connection.message(sessionReady("session-1"))
-    connection.message(formCatalogSnapshot())
-    await flushUI()
-    await openWorkspace("system")
-    click('button[data-command-select="vfx.status"]')
-    await flushUI()
-    const status = executionForCommand(connection, "vfx.status")
-    connection.message(vfxStatusCompletion(status.id, false))
-    await flushUI()
-    click("#vfx-tab-projectile")
-    await flushUI()
-    const coordinates = root.querySelectorAll<HTMLInputElement>('.vfx-control-panel input[type="number"]')
-    setInputValue(coordinates[0], "11")
-    setInputValue(coordinates[1], "9")
-    await flushUI()
-    expect(root.querySelector<HTMLButtonElement>('.vfx-control-panel button[type="submit"]')?.disabled).toBe(true)
-    setInputValue(coordinates[0], "10")
-    await flushUI()
-    click('.vfx-control-panel button[type="submit"]')
-    const projectile = executionForCommand(connection, "vfx.projectile")
-    expect(projectile.payload.arguments).toEqual({ fromMode: "player", toX: 10, toY: 9, projectileType: "arrow" })
-    connection.message(successfulMutationCompletion(projectile.id, "vfx.projectile", "presentation"))
-    await flushUI()
-    const refresh = executionForCommand(connection, "vfx.status")
-    connection.message(vfxStatusCompletion(refresh.id, true))
-    await flushUI()
-    expect(root.querySelector(".vfx-telemetry")?.textContent).toContain("ACTIVE")
-    expect(root.querySelector<HTMLButtonElement>('.vfx-control-panel button[type="submit"]')?.disabled).toBe(true)
-  })
-
-  it("submits parameterized earthquake feedback from the VFX Test Bench", async () => {
-    mountApp()
-    const connection = MockWebSocket.instances[0]
-    connection.open()
-    connection.message(sessionReady("session-1"))
-    connection.message(formCatalogSnapshot())
-    await flushUI()
-    await openWorkspace("system")
-    click('button[data-command-select="vfx.status"]')
-    await flushUI()
-    const status = executionForCommand(connection, "vfx.status")
-    connection.message(vfxStatusCompletion(status.id, false))
-    await flushUI()
-
-    click("#vfx-tab-earthquake")
-    await flushUI()
-    click('.vfx-control-panel button[type="submit"]')
-
-    expect(executionForCommand(connection, "environment.earthquake").payload.arguments).toEqual({ durationTenths: 20, intensityTenths: 8 })
   })
 
   it("submits explicit monster generation state and requires confirmation to clear enemies", async () => {
@@ -4325,21 +4029,6 @@ function worldPositionCompletion(requestId: string, overrides: Record<string, un
   })
 }
 
-function dungeonExplorerCompletion(requestId: string, overrides: Record<string, unknown> = {}): object {
-	const cells = Array.from({ length: 64 }, (_, index) => {
-		const x = index % 8
-		const y = Math.floor(index / 8)
-		if (index === 18) return { x, y, raw: 0xd8, kindId: 13, kindName: "hidden_door", payload: 8, bit08: true, player: false }
-		return { x, y, raw: 0, kindId: 0, kindName: "passage", payload: 0, bit08: false, player: x === 3 && y === 4 }
-	})
-	return successfulQueryCompletion(requestId, "dungeon.explorer.status", "Dungeon Explorer status loaded.", {
-		sourceFingerprint: "dungeon-source-1",
-		active: true, setupAvailable: true, locationId: 33, locationName: "Deceit", floor: 2, displayLevel: 3,
-		x: 3, y: 4, facingId: 2, facingLabel: "South", lastDirectionId: 2, lastDirectionLabel: "South",
-		lit: true, torchMinutesRemaining: 17, magicLightMinutesRemaining: 23, revision: 12, cells, ...overrides,
-	})
-}
-
 function moongateStatusCompletion(requestId: string): object {
   return successfulQueryCompletion(requestId, "moongate.status", "Moongate status loaded.", {
     sourceFingerprint: "source-1", phase: "New Moon", phaseIndex: 0, visible: true, playerOnActiveGate: true, teleportationActive: false,
@@ -4353,29 +4042,6 @@ function spiritualityMoongateStatusCompletion(requestId: string): object {
     sourceFingerprint: "source-1", phase: "New Moon", phaseIndex: 0, visible: true, playerOnActiveGate: true, teleportationActive: false,
     moonstones: [{ index: 0, phase: "New Moon", x: 10, y: 20, map: 0, level: 0, state: "buried", found: true }],
     route: { fingerprint: "spirituality:6", kind: "spirituality", shrineIndex: 6, shrineName: "Spirituality" },
-  })
-}
-
-function conversationCatalogCompletion(requestId: string, source: string, index: number): object {
-  return successfulQueryCompletion(requestId, "conversation.script.catalog", `Conversation catalog loaded: ${source} (1 scripts).`, {
-    sources: [
-      { id: "castle", scriptCount: 8 }, { id: "keep", scriptCount: 6 },
-      { id: "towne", scriptCount: 48 }, { id: "dwelling", scriptCount: 16 },
-    ],
-    selectedSource: source,
-    scripts: [{ index, dialog: index + 1, semanticId: `original.${source}.${String(index + 1).padStart(3, "0")}`, name: "Lord British", description: "Castle audience", topicCount: 1, questionCount: 0, patched: false }],
-  })
-}
-
-function conversationDetailCompletion(requestId: string, source = "castle"): object {
-  return successfulQueryCompletion(requestId, "conversation.script.inspect", `Conversation script loaded: ${source} dialog 8.`, {
-    sourceId: source,
-    index: 7,
-    dialog: 8,
-    semanticId: `original.${source}.008`,
-    schema: "ultima5redux.conversation/v1",
-    patched: false,
-    runtimeYaml: `schema: ultima5redux.conversation/v1\nid: original.${source}.008\ngreeting: Greetings, Avatar\n`,
   })
 }
 
@@ -4406,19 +4072,6 @@ function merchantTesterCatalogCompletion(requestId: string): object {
       familyId: "guild", familyLabel: "Guild", dialogCode: 5, implemented: true,
       previewAvailable: true, liveAvailable: true, liveExecutionMode: "coordinated_alteration",
     }],
-  })
-}
-
-function vfxStatusCompletion(requestId: string, active: boolean): object {
-  return successfulQueryCompletion(requestId, "vfx.status", "VFX status loaded.", {
-    mapType: "small_map",
-    player: { x: 4, y: 5 },
-    maximumX: 10,
-    maximumY: 10,
-    visualEffects: active ? [{ worldPosition: { x: 10, y: 9 }, spriteIndex: 123, scaleMinimum: 0.5, scaleMaximum: 1.5, screenX: 0, screenY: 0, type: "kapow", duration: 500, elapsed: 100 }] : [],
-    activeProjectile: active ? { fromTileX: 4, fromTileY: 5, toTileX: 10, toTileY: 9, currentTileX: 6, currentTileY: 6, type: "arrow", typeId: 0, active: true } : undefined,
-    earthquakeActive: false,
-    lightingOverlayEnabled: false,
   })
 }
 

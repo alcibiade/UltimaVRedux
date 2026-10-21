@@ -36,11 +36,6 @@ func (aslm *AuthenticSearchLocationManager) SearchAtPosition(x, y references.Coo
 	return result
 }
 
-// HasActiveBlackthornInterrogation reports transient authoritative ownership.
-func (g *GameState) HasActiveBlackthornInterrogation() bool {
-	return g.blackthornSession != nil
-}
-
 // SetPoisoned sets the monster's poisoned state.
 func (m *CombatMonster) SetPoisoned(poisoned bool) {
 	m.conditions.isPoisoned = poisoned
@@ -271,4 +266,16 @@ func (g *GameState) BuildTeleportationSequence(destination MoongateDestination) 
 // Returns true while the retained logical cascade owns completion. ref:ENV-0003.
 func (g *GameState) ProcessWaterfallHazard(_ *references.Position) bool {
 	return g.startWaterfallHazard(nil)
+}
+
+// DebugSetupDungeon installs a fresh dungeon visit at one exact coordinate and
+// replaces carried light with the requested state, without consuming time or RNG.
+func (g *GameState) DebugSetupDungeon(
+	location references.Location,
+	floor references.FloorNumber,
+	position references.Position,
+	facing references.DungeonFacing,
+	lit bool,
+) (DungeonSetupResult, error) {
+	return g.debugSetupDungeon(location, floor, position, facing, references.DungeonLastDirection(facing), &lit)
 }

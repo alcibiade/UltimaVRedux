@@ -74,6 +74,7 @@ type debugOptionsStatusResult struct {
 	DialogBoundsEnabled          bool `json:"dialogBoundsEnabled"`
 	UnlimitedCastingResources    bool `json:"unlimitedCastingResources"`
 	BypassSpellLevelRestrictions bool `json:"bypassSpellLevelRestrictions"`
+	LightingOverlayEnabled       bool `json:"lightingOverlayEnabled"`
 }
 
 func (g *GameScene) executeOperationalDebugCommand(request debugging.Request) (debugging.Result, bool) {
@@ -223,6 +224,7 @@ func newDebugOptionsStatusResult(state *game_state.GameState) debugOptionsStatus
 		DialogBoundsEnabled:          snapshot.DialogBoundingBoxesShown,
 		UnlimitedCastingResources:    snapshot.UnlimitedCastingResources,
 		BypassSpellLevelRestrictions: snapshot.BypassSpellLevelRestrictions,
+		LightingOverlayEnabled:       snapshot.LightingOverlayEnabled,
 	}
 }
 

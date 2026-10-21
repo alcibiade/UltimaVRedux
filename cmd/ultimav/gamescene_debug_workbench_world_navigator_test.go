@@ -11,14 +11,12 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/debugging"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
-	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/minimap"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 func TestWorldPositionStatusReturnsEveryDestinationFloorAndDefault(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
+	scene := newWorldNavigatorDebugTestScene(t)
 
 	result := scene.ExecuteDebugCommand(debugging.Request{CommandID: debugging.CommandWorldPositionStatus})
 
@@ -152,67 +150,8 @@ func TestWorldPositionStatusReturnsEveryDestinationFloorAndDefault(t *testing.T)
 	}
 }
 
-func TestDungeonExplorerStatusReturnsDetachedYMajorSemanticCells(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
-	state := scene.gameState
-	player := references.Position{X: 3, Y: 4}
-	_, err := state.DebugSetupDungeon(
-		references.Deceit,
-		2,
-		player,
-		references.DungeonFacingSouth,
-		true,
-	)
-	require.NoError(t, err)
-	semanticPosition := references.Position{X: 2, Y: 3}
-	_, err = state.TransformDungeonCell(2, semanticPosition, func(references.DungeonCell) references.DungeonCell {
-		return references.DungeonCell(0xd8)
-	})
-	require.NoError(t, err)
-	projection := state.MapState.LayeredMaps.GetLayeredMap(references.DungeonMapType, 2)
-	require.NotNil(t, projection)
-	projection.SetTileByLayer(map_state.MapLayer, &semanticPosition, indexes.BrickFloor)
-
-	result := scene.ExecuteDebugCommand(debugging.Request{CommandID: debugging.CommandDungeonExplorerStatus})
-
-	require.True(t, result.Success, result.ErrorMessage)
-	var status debugging.DungeonExplorerStatusData
-	require.NoError(t, json.Unmarshal(result.Data, &status))
-	assert.True(t, status.Active)
-	assert.True(t, status.SetupAvailable)
-	assert.Equal(t, int(references.Deceit), status.LocationID)
-	assert.Equal(t, 2, status.Floor)
-	assert.Equal(t, 3, status.DisplayLevel)
-	assert.Equal(t, int(references.DungeonFacingSouth), status.FacingID)
-	assert.Equal(t, "South", status.FacingLabel)
-	assert.Equal(t, int(references.DungeonLastSouth), status.LastDirectionID)
-	assert.Equal(t, "South", status.LastDirectionLabel)
-	assert.True(t, status.Lit)
-	assert.Zero(t, status.TorchMinutesRemaining)
-	assert.Equal(t, game_state.VasLorLightDuration, status.MagicLightMinutesRemaining)
-	assert.Equal(t, uint64(1), status.Revision)
-	assert.Len(t, status.SourceFingerprint, sha256HexLength)
-	require.Len(t, status.Cells, 64)
-	playerCells := 0
-	for index, cell := range status.Cells {
-		assert.Equal(t, index%8, cell.X)
-		assert.Equal(t, index/8, cell.Y)
-		if cell.Player {
-			playerCells++
-		}
-	}
-	assert.Equal(t, 1, playerCells)
-	assert.True(t, status.Cells[int(player.Y)*8+int(player.X)].Player)
-	semanticCell := status.Cells[int(semanticPosition.Y)*8+int(semanticPosition.X)]
-	assert.Equal(t, 0xd8, semanticCell.Raw)
-	assert.Equal(t, int(references.DungeonHiddenDoor), semanticCell.KindID)
-	assert.Equal(t, "hidden_door", semanticCell.KindName)
-	assert.Equal(t, 8, semanticCell.Payload)
-	assert.True(t, semanticCell.Bit08)
-}
-
 func TestWorldPositionSetPreservesSwitchesAndClearsDungeonAuthority(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
+	scene := newWorldNavigatorDebugTestScene(t)
 	state := scene.gameState
 	_, err := state.DebugSetupDungeon(
 		references.Deceit,
@@ -297,7 +236,7 @@ func TestWorldPositionSetPreservesSwitchesAndClearsDungeonAuthority(t *testing.T
 }
 
 func TestWorldPositionSetResolvesDungeonRouteIntentsAndRestartsAuthority(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
+	scene := newWorldNavigatorDebugTestScene(t)
 	state := scene.gameState
 	state.MapState.Lighting.RestoreTorchMinutes(17)
 	state.MagicLightMinutesRemaining = 23
@@ -430,74 +369,9 @@ func TestWorldPositionSetResolvesDungeonRouteIntentsAndRestartsAuthority(t *test
 	assert.Empty(t, unavailable.Changes)
 }
 
-func TestDungeonExplorerSetupAppliesExactArgumentsAndSemanticChanges(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
-	state := scene.gameState
-	state.MapState.Lighting.RestoreTorchMinutes(17)
-
-	result := scene.ExecuteDebugCommand(dungeonExplorerSetupDebugRequest(
-		state,
-		references.Hythloth,
-		7,
-		references.Position{X: 7, Y: 0},
-		"west",
-		false,
-		0,
-	))
-
-	require.True(t, result.Success, result.ErrorMessage)
-	assert.Equal(t, debugging.ExecutionSynchronized, result.EffectiveExecutionMode)
-	var status debugging.DungeonExplorerStatusData
-	require.NoError(t, json.Unmarshal(result.Data, &status))
-	assert.True(t, status.Active)
-	assert.Equal(t, int(references.Hythloth), status.LocationID)
-	assert.Equal(t, 7, status.Floor)
-	assert.Equal(t, 8, status.DisplayLevel)
-	assert.Equal(t, 7, status.X)
-	assert.Zero(t, status.Y)
-	assert.Equal(t, int(references.DungeonFacingWest), status.FacingID)
-	assert.Equal(t, "West", status.FacingLabel)
-	assert.False(t, status.Lit)
-	assert.Zero(t, status.TorchMinutesRemaining)
-	assert.Zero(t, status.MagicLightMinutesRemaining)
-	require.Len(t, status.Cells, 64)
-	paths := stateChangePaths(result.Changes)
-	assert.Contains(t, paths, "world.locationId")
-	assert.Contains(t, paths, "world.floor")
-	assert.Contains(t, paths, "world.position.x")
-	assert.Contains(t, paths, "world.position.y")
-	assert.Contains(t, paths, "dungeon.facing")
-	assert.Contains(t, paths, "dungeon.lastDirection")
-	assert.Contains(t, paths, "dungeon.cells")
-	assert.Contains(t, paths, "lighting.lit")
-	assert.Contains(t, paths, "lighting.torchMinutesRemaining")
-	for _, change := range result.Changes {
-		if change.Path != "dungeon.cells" {
-			continue
-		}
-		var before, after []int
-		require.NoError(t, json.Unmarshal(change.Before, &before))
-		require.NoError(t, json.Unmarshal(change.After, &after))
-		assert.Empty(t, before)
-		assert.Len(t, after, references.DungeonCellCount)
-	}
-
-	noOpSetup := scene.ExecuteDebugCommand(dungeonExplorerSetupDebugRequest(
-		state,
-		references.Hythloth,
-		7,
-		references.Position{X: 7, Y: 0},
-		"west",
-		false,
-		0,
-	))
-	require.True(t, noOpSetup.Success, noOpSetup.ErrorMessage)
-	assert.Empty(t, noOpSetup.Changes)
-}
-
-func TestWorldDungeonMutationsRejectStaleReviewsWithoutPartialMutation(t *testing.T) {
+func TestWorldPositionSetRejectsStaleReviewsWithoutPartialMutation(t *testing.T) {
 	t.Run("world position", func(t *testing.T) {
-		scene := newDungeonExplorerDebugTestScene(t)
+		scene := newWorldNavigatorDebugTestScene(t)
 		state := scene.gameState
 		request := worldPositionSetDebugRequest(
 			state,
@@ -517,7 +391,7 @@ func TestWorldDungeonMutationsRejectStaleReviewsWithoutPartialMutation(t *testin
 	})
 
 	t.Run("world source lighting", func(t *testing.T) {
-		scene := newDungeonExplorerDebugTestScene(t)
+		scene := newWorldNavigatorDebugTestScene(t)
 		state := scene.gameState
 		request := worldPositionSetDebugRequest(
 			state,
@@ -536,110 +410,10 @@ func TestWorldDungeonMutationsRejectStaleReviewsWithoutPartialMutation(t *testin
 		assert.Equal(t, 9, state.MapState.Lighting.TorchMinutesRemaining())
 		assert.Empty(t, result.Changes)
 	})
-
-	t.Run("dungeon world position", func(t *testing.T) {
-		scene := newDungeonExplorerDebugTestScene(t)
-		state := scene.gameState
-		request := dungeonExplorerSetupDebugRequest(
-			state,
-			references.Deceit,
-			0,
-			references.Position{X: 4, Y: 4},
-			"east",
-			true,
-			0,
-		)
-		request.Arguments["expectedFloor"] = json.RawMessage(`1`)
-		before := state.MapState.PlayerLocation
-
-		result := scene.ExecuteDebugCommand(request)
-
-		assert.Equal(t, "stale_world_position", result.ErrorCode)
-		assert.Equal(t, before, state.MapState.PlayerLocation)
-		_, active := state.DungeonStateSnapshot()
-		assert.False(t, active)
-	})
-
-	t.Run("dungeon revision", func(t *testing.T) {
-		scene := newDungeonExplorerDebugTestScene(t)
-		state := scene.gameState
-		_, err := state.DebugSetupDungeon(
-			references.Deceit,
-			0,
-			references.Position{X: 1, Y: 1},
-			references.DungeonFacingNorth,
-			true,
-		)
-		require.NoError(t, err)
-		request := dungeonExplorerSetupDebugRequest(
-			state,
-			references.Doom,
-			7,
-			references.Position{X: 7, Y: 7},
-			"west",
-			false,
-			0,
-		)
-		_, err = state.TransformDungeonCell(0, references.Position{}, func(cell references.DungeonCell) references.DungeonCell {
-			return cell ^ 0x01
-		})
-		require.NoError(t, err)
-		beforeLocation := state.MapState.PlayerLocation
-		beforeDungeon, active := state.DungeonStateSnapshot()
-		require.True(t, active)
-		beforeLight := state.MapState.Lighting.HasAnyLight()
-
-		result := scene.ExecuteDebugCommand(request)
-
-		assert.Equal(t, "stale_dungeon_state", result.ErrorCode)
-		assert.Equal(t, "dungeon state changed after review", result.ErrorMessage)
-		assert.Equal(t, beforeLocation, state.MapState.PlayerLocation)
-		afterDungeon, active := state.DungeonStateSnapshot()
-		require.True(t, active)
-		assert.Equal(t, beforeDungeon, afterDungeon)
-		assert.Equal(t, beforeLight, state.MapState.Lighting.HasAnyLight())
-		assert.Empty(t, result.Changes)
-	})
-
-	t.Run("dungeon source lighting", func(t *testing.T) {
-		scene := newDungeonExplorerDebugTestScene(t)
-		state := scene.gameState
-		_, err := state.DebugSetupDungeon(
-			references.Deceit,
-			0,
-			references.Position{X: 1, Y: 1},
-			references.DungeonFacingNorth,
-			true,
-		)
-		require.NoError(t, err)
-		request := dungeonExplorerSetupDebugRequest(
-			state,
-			references.Doom,
-			7,
-			references.Position{X: 7, Y: 7},
-			"west",
-			false,
-			0,
-		)
-		beforeLocation := state.MapState.PlayerLocation
-		beforeDungeon, active := state.DungeonStateSnapshot()
-		require.True(t, active)
-		state.MagicLightMinutesRemaining--
-
-		result := scene.ExecuteDebugCommand(request)
-
-		assert.Equal(t, "stale_dungeon_state", result.ErrorCode)
-		assert.Equal(t, "world and dungeon source state changed after review", result.ErrorMessage)
-		assert.Equal(t, beforeLocation, state.MapState.PlayerLocation)
-		afterDungeon, active := state.DungeonStateSnapshot()
-		require.True(t, active)
-		assert.Equal(t, beforeDungeon, afterDungeon)
-		assert.Empty(t, result.Changes)
-	})
 }
 
-func TestWorldDungeonScenarioRuntimeReviewUsesStateProducedByPreviousStep(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
+func TestWorldPositionScenarioRuntimeReviewUsesCurrentState(t *testing.T) {
+	scene := newWorldNavigatorDebugTestScene(t)
 	catalog := debugging.NewInitialCatalog()
 	worldDefinition, ok := catalog.Get(debugging.CommandWorldPositionSet)
 	require.True(t, ok)
@@ -665,92 +439,9 @@ func TestWorldDungeonScenarioRuntimeReviewUsesStateProducedByPreviousStep(t *tes
 	worldResult := scene.ExecuteDebugCommand(resolvedWorld)
 	require.True(t, worldResult.Success, worldResult.ErrorMessage)
 
-	dungeonDefinition, ok := catalog.Get(debugging.CommandDungeonExplorerSetup)
-	require.True(t, ok)
-	dungeonRequest := dungeonExplorerSetupDebugRequest(
-		scene.gameState,
-		references.Deceit,
-		0,
-		references.Position{X: 4, Y: 4},
-		"east",
-		true,
-		99,
-	)
-	dungeonRequest.Arguments["expectedLocationId"] = json.RawMessage(`0`)
-	dungeonRequest.Arguments["expectedFloor"] = json.RawMessage(`7`)
-	dungeonRequest.Arguments["expectedX"] = json.RawMessage(`1`)
-	dungeonRequest.Arguments["expectedY"] = json.RawMessage(`2`)
-	dungeonRequest.Arguments["expectedSourceFingerprint"] = json.RawMessage(`"persisted"`)
-
-	resolvedDungeon, err := scene.ResolveScenarioRuntimeParameters(dungeonRequest, dungeonDefinition)
-	require.NoError(t, err)
-	assert.JSONEq(t, strconv.Itoa(int(references.Minoc)), string(resolvedDungeon.Arguments["expectedLocationId"]))
-	assert.JSONEq(t, `0`, string(resolvedDungeon.Arguments["expectedFloor"]))
-	assert.JSONEq(t, `15`, string(resolvedDungeon.Arguments["expectedX"]))
-	assert.JSONEq(t, `30`, string(resolvedDungeon.Arguments["expectedY"]))
-	assert.JSONEq(t, `0`, string(resolvedDungeon.Arguments["expectedDungeonRevision"]))
-	dungeonResult := scene.ExecuteDebugCommand(resolvedDungeon)
-	require.True(t, dungeonResult.Success, dungeonResult.ErrorMessage)
-	assert.Equal(t, references.Deceit, scene.gameState.MapState.PlayerLocation.Location)
 }
 
-func TestDungeonExplorerSetupReportsFreshAuthorityReplacement(t *testing.T) {
-	scene := newDungeonExplorerDebugTestScene(t)
-	state := scene.gameState
-	position := references.Position{X: 2, Y: 3}
-	_, err := state.DebugSetupDungeon(
-		references.Deceit,
-		0,
-		position,
-		references.DungeonFacingNorth,
-		true,
-	)
-	require.NoError(t, err)
-	changedPosition := references.Position{X: 6, Y: 5}
-	_, err = state.TransformDungeonCell(7, changedPosition, func(cell references.DungeonCell) references.DungeonCell {
-		return cell ^ 0x01
-	})
-	require.NoError(t, err)
-	state.ActiveDurationEffect = game_state.DurationEffect{
-		EffectType:     game_state.DurationEffectQuickness,
-		TurnsRemaining: 10,
-	}
-	token, _ := state.BeginDungeonCommandCycle()
-	state.CompleteDungeonCommandCycle(token, game_state.DungeonCommandOnly)
-	before, active := state.DungeonStateSnapshot()
-	require.True(t, active)
-	require.True(t, before.QuicknessSkipNext)
-
-	result := scene.ExecuteDebugCommand(dungeonExplorerSetupDebugRequest(
-		state,
-		references.Deceit,
-		0,
-		position,
-		"north",
-		true,
-		int(before.Revision),
-	))
-
-	require.True(t, result.Success, result.ErrorMessage)
-	paths := stateChangePaths(result.Changes)
-	assert.Contains(t, paths, "dungeon.cells")
-	assert.Contains(t, paths, "dungeon.quicknessSkipNext")
-	assert.Contains(t, paths, "dungeon.revision")
-	for _, change := range result.Changes {
-		if change.Path != "dungeon.cells" {
-			continue
-		}
-		var beforeCells, afterCells []int
-		require.NoError(t, json.Unmarshal(change.Before, &beforeCells))
-		require.NoError(t, json.Unmarshal(change.After, &afterCells))
-		require.Len(t, beforeCells, references.DungeonCellCount)
-		require.Len(t, afterCells, references.DungeonCellCount)
-		index := 7*64 + int(changedPosition.Y)*8 + int(changedPosition.X)
-		assert.NotEqual(t, beforeCells[index], afterCells[index])
-	}
-}
-
-func TestDungeonExplorerChangesReportWandererSemantically(t *testing.T) {
+func TestDungeonSetupChangesReportWandererSemantically(t *testing.T) {
 	before := dungeonAuthoritySnapshot{
 		Active: true,
 		Snapshot: game_state.DungeonStateSnapshot{
@@ -766,10 +457,9 @@ func TestDungeonExplorerChangesReportWandererSemantically(t *testing.T) {
 	}
 	after := before
 	after.Snapshot.Wanderer = nil
-	status := debugging.DungeonExplorerStatusData{}
 	changes := make([]debugging.StateChange, 0)
 
-	appendDungeonExplorerChanges(&changes, before, after, status, status)
+	appendDungeonSetupChanges(&changes, before, after)
 
 	require.Len(t, changes, 1)
 	assert.Equal(t, "dungeon.wanderer", changes[0].Path)
@@ -777,7 +467,7 @@ func TestDungeonExplorerChangesReportWandererSemantically(t *testing.T) {
 	assert.JSONEq(t, `null`, string(changes[0].After))
 }
 
-func TestWorldDungeonMutationsUseWorldSetupSceneBlockers(t *testing.T) {
+func TestWorldPositionSetUsesWorldSetupSceneBlockers(t *testing.T) {
 	blockers := []struct {
 		name      string
 		errorCode string
@@ -808,56 +498,24 @@ func TestWorldDungeonMutationsUseWorldSetupSceneBlockers(t *testing.T) {
 		},
 	}
 	for _, blocker := range blockers {
-		for _, commandID := range []string{
-			debugging.CommandWorldPositionSet,
-			debugging.CommandDungeonExplorerSetup,
-		} {
-			t.Run(blocker.name+"/"+commandID, func(t *testing.T) {
-				scene := newDungeonExplorerDebugTestScene(t)
-				state := scene.gameState
-				var request debugging.Request
-				if commandID == debugging.CommandWorldPositionSet {
-					request = worldPositionSetDebugRequest(
-						state,
-						references.Minoc,
-						0,
-						references.Position{X: 15, Y: 30},
-					)
-				} else {
-					request = dungeonExplorerSetupDebugRequest(
-						state,
-						references.Deceit,
-						0,
-						references.Position{X: 4, Y: 4},
-						"east",
-						true,
-						0,
-					)
-				}
-				before := state.MapState.PlayerLocation
-				blocker.apply(scene)
+		t.Run(blocker.name, func(t *testing.T) {
+			scene := newWorldNavigatorDebugTestScene(t)
+			state := scene.gameState
+			request := worldPositionSetDebugRequest(state, references.Minoc, 0, references.Position{X: 15, Y: 30})
+			before := state.MapState.PlayerLocation
+			blocker.apply(scene)
 
-				statusResult := scene.ExecuteDebugCommand(debugging.Request{
-					CommandID: debugging.CommandDungeonExplorerStatus,
-				})
-				require.True(t, statusResult.Success)
-				var status debugging.DungeonExplorerStatusData
-				require.NoError(t, json.Unmarshal(statusResult.Data, &status))
-				assert.False(t, status.SetupAvailable)
-				assert.NotEmpty(t, status.SetupUnavailableReason)
+			result := scene.ExecuteDebugCommand(request)
 
-				result := scene.ExecuteDebugCommand(request)
-
-				assert.Equal(t, blocker.errorCode, result.ErrorCode)
-				assert.Equal(t, before, state.MapState.PlayerLocation)
-				_, active := state.DungeonStateSnapshot()
-				assert.False(t, active)
-			})
-		}
+			assert.Equal(t, blocker.errorCode, result.ErrorCode)
+			assert.Equal(t, before, state.MapState.PlayerLocation)
+			_, active := state.DungeonStateSnapshot()
+			assert.False(t, active)
+		})
 	}
 }
 
-func newDungeonExplorerDebugTestScene(t *testing.T) *GameScene {
+func newWorldNavigatorDebugTestScene(t *testing.T) *GameScene {
 	t.Helper()
 	state, _ := game_state.NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
@@ -896,27 +554,6 @@ func worldRoutePositionSetDebugRequest(
 	arguments["location"] = mustDebugJSON(strconv.Itoa(int(location)))
 
 	return debugging.Request{CommandID: debugging.CommandWorldPositionSet, Arguments: arguments}
-}
-
-func dungeonExplorerSetupDebugRequest(
-	state *game_state.GameState,
-	location references.Location,
-	floor references.FloorNumber,
-	position references.Position,
-	facing string,
-	lit bool,
-	expectedRevision int,
-) debugging.Request {
-	arguments := reviewedWorldPositionDebugArguments(state)
-	arguments["dungeon"] = mustDebugJSON(strconv.Itoa(int(location)))
-	arguments["floor"] = mustDebugJSON(int(floor))
-	arguments["x"] = mustDebugJSON(int(position.X))
-	arguments["y"] = mustDebugJSON(int(position.Y))
-	arguments["facing"] = mustDebugJSON(facing)
-	arguments["lit"] = mustDebugJSON(lit)
-	arguments["expectedDungeonRevision"] = mustDebugJSON(expectedRevision)
-
-	return debugging.Request{CommandID: debugging.CommandDungeonExplorerSetup, Arguments: arguments}
 }
 
 func reviewedWorldPositionDebugArguments(state *game_state.GameState) map[string]json.RawMessage {

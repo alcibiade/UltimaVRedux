@@ -58,11 +58,6 @@ func (d DialogNumber) IsMerchant() bool {
 	return d >= DialogWeaponDealer && d <= DialogInnkeeper
 }
 
-// IsRegularNPC returns true if this dialog number represents a regular TLK-based NPC
-func (d DialogNumber) IsRegularNPC() bool {
-	return d > NoResponse && d < MerchantThreshold
-}
-
 // IsSpecial returns true if this dialog number triggers special logic (merchant or guard)
 func (d DialogNumber) IsSpecial() bool {
 	return d >= MerchantThreshold

@@ -300,62 +300,6 @@ func TestDebugTravelToLandmarkUsesPhysicalDestinations(t *testing.T) {
 	assert.Equal(t, before, result.After)
 }
 
-func TestDebugSetupWaterfallPositionsOneStepBeforeAuthenticTrigger(t *testing.T) {
-	state, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-
-	result, err := state.DebugSetupWaterfall()
-
-	require.NoError(t, err)
-	assert.Equal(t, references.BritanniaUnderworld, result.After.Location)
-	assert.Equal(t, references.FloorNumber(0), result.After.Floor)
-	assert.Equal(t, references.Position{X: 54, Y: 135}, result.After.Position)
-}
-
-func TestDebugSetupBridgeTrollForcesProductionSneakAndAttackPreconditions(t *testing.T) {
-	state, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-	character := state.trollTollCharacter()
-	require.NotNil(t, character)
-	character.Dexterity = 17
-	state.PartyState.Inventory.Gold.Set(100)
-
-	result, err := state.DebugSetupBridgeTroll(95)
-
-	require.NoError(t, err)
-	assert.Equal(t, references.BritanniaUnderworld, result.After.Location)
-	assert.Equal(t, references.FloorNumber(0), result.After.Floor)
-	assert.Equal(t, result.Bridge, result.After.Position)
-	assert.True(t, state.GetCurrentLayeredMapAvatarTopTile().IsTrollBridge())
-	assert.Equal(t, byte(17), result.DexterityBefore)
-	assert.Equal(t, byte(0), result.DexterityAfter)
-	assert.Equal(t, uint16(100), result.GoldBefore)
-	assert.Equal(t, uint16(0), result.GoldAfter)
-	assert.Equal(t, uint64(95), state.RandomSeed())
-}
-
-func TestDebugSetupWordOfPowerUsesAuthoritativeAdjacentEntrance(t *testing.T) {
-	for _, word := range []string{WordFallax, WordVilis, WordInopia, WordMalum, WordAvidus, WordInfama, WordIgnavus, WordVeramocor} {
-		t.Run(word, func(t *testing.T) {
-			state, _ := NewIntegrationTestBuilder(t).
-				WithLocation(references.Britain).
-				WithSystemCallbacks().
-				Build()
-
-			result, err := state.DebugSetupWordOfPower(word)
-			require.NoError(t, err)
-			assert.Equal(t, references.BritanniaUnderworld, result.After.Location)
-			assert.Equal(t, dungeonEntranceFloor(result.Dungeon), result.After.Floor)
-			assert.Equal(t, 1, result.After.Position.HeuristicTileDistance(result.Entrance))
-			assert.True(t, state.ProcessWordOfPower(word), "setup must satisfy the normal Word-of-Power action")
-		})
-	}
-}
-
 func TestDebugSetupDungeonSupportsEveryDungeonAndExactSemanticSelection(t *testing.T) {
 	state, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).
@@ -639,18 +583,6 @@ func TestDebugWorldSetupOperationsRejectActiveDungeonCommandWithoutMutation(t *t
 		}},
 		{name: "travel to landmark", run: func(state *GameState) error {
 			_, err := state.DebugTravelToLandmark("honesty")
-			return err
-		}},
-		{name: "setup waterfall", run: func(state *GameState) error {
-			_, err := state.DebugSetupWaterfall()
-			return err
-		}},
-		{name: "setup bridge troll", run: func(state *GameState) error {
-			_, err := state.DebugSetupBridgeTroll(253)
-			return err
-		}},
-		{name: "setup word of power", run: func(state *GameState) error {
-			_, err := state.DebugSetupWordOfPower(WordFallax)
 			return err
 		}},
 	}

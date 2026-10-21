@@ -903,9 +903,8 @@ This is a repeatable inspection procedure, not a record of manual acceptance.
    is intentionally empty; this walkthrough can inspect report/command behavior,
    while listening acceptance requires a future assigned recording.
 
-Generic Workbench VFX previews inspect rendering primitives; real encounter
-events above exercise authoritative producer-to-presentation routing. Neither
-previewing a primitive nor reading an automated assertion constitutes a live
+Real encounter events above exercise authoritative producer-to-presentation
+routing. Reading an automated assertion does not constitute a live
 keyboard/audiovisual acceptance pass.
 
 ## Area-Spell Outcome Feedback
@@ -1209,5 +1208,3 @@ Focused tests live beside the owning packages:
 - `internal/ui/mainscreen/character_summary_layout_test.go` for original-size
   portraits and identical name/resource/status rendering across combat entry,
   conditions, recovery and exploration, including font-metric preservation
-
-The browser Workbench VFX instruments are the supported runtime inspection surface.

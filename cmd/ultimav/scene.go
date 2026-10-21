@@ -17,7 +17,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/player_save"
 	"github.com/bradhannah/UltimaVRedux/internal/profiling"
-	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/save_snapshot"
 	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
@@ -53,8 +52,6 @@ type Game struct {
 	scenarioHistoryError              string
 	scenarioNow                       func() time.Time
 	scenarioRunID                     func() (string, error)
-	debugGameReferences               *references.GameReferences
-	debugReferencesLoader             func(*config.UltimaVConfiguration) (*references.GameReferences, error)
 	snapshotRepository                snapshotRepository
 	snapshotSceneBuilder              func(*config.UltimaVConfiguration, save_snapshot.SaveSnapshot) (Scene, error)
 	snapshotNow                       func() time.Time
@@ -184,7 +181,6 @@ func NewGame(initialScene Scene) *Game {
 		sceneGeneration:               atomic.Uint64{},
 		scenarioNow:                   time.Now,
 		scenarioRunID:                 newScenarioRunID,
-		debugReferencesLoader:         references.NewGameReferences,
 		snapshotNow:                   time.Now,
 		snapshotGameVersion:           developmentGameVersion,
 		playerSaveNow:                 time.Now,

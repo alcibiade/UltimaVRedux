@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/bradhannah/UltimaVRedux/internal/conversation/semantic"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
@@ -14,7 +13,6 @@ const (
 	categoryShrines               = "Shrines"
 	categoryCalendar              = "Calendar"
 	categoryCombat                = "Combat"
-	categoryVFX                   = "VFX"
 	categoryMonsters              = "Monsters"
 	categoryVehicles              = "Vehicles"
 	parameterIndex                = "index"
@@ -23,7 +21,7 @@ const (
 	categoryQuestItems            = "Quest Items"
 	contextGameplay               = "gameplay"
 	contextOutsideCombat          = "outside_combat"
-	initialCatalogSize            = 152
+	initialCatalogSize            = 133
 	reviewedRosterFingerprintName = "Reviewed Roster Fingerprint"
 )
 
@@ -95,22 +93,10 @@ const (
 	CommandMovementLandmarkTravel = "movement.landmark.travel"
 	// CommandMoongateStatus reports moon phase, moonstones, and computed destination.
 	CommandMoongateStatus = "moongate.status"
-	// CommandConversationScriptCatalog lists loaded conversation sources and one source's scripts.
-	CommandConversationScriptCatalog = "conversation.script.catalog"
-	// CommandConversationScriptInspect returns one detached conversation script.
-	CommandConversationScriptInspect = "conversation.script.inspect"
 	// CommandCombatEncounterOptions reports valid encounter composer options.
 	CommandCombatEncounterOptions = "combat.encounter.options"
 	// CommandCombatEncounterStart starts a composed tactical encounter.
 	CommandCombatEncounterStart = "combat.encounter.start"
-	// CommandVFXStatus reports active presentation effects.
-	CommandVFXStatus = "vfx.status"
-	// CommandVFXKapow presents a kapow effect without changing gameplay state.
-	CommandVFXKapow = "vfx.kapow"
-	// CommandVFXProjectile presents a projectile without changing gameplay state.
-	CommandVFXProjectile = "vfx.projectile"
-	// CommandEnvironmentEarthquake presents a parameterized earthquake without changing gameplay state.
-	CommandEnvironmentEarthquake = "environment.earthquake"
 	// CommandMonsterEcosystemStatus reports current-map monster generation and units.
 	CommandMonsterEcosystemStatus = "monster.ecosystem.status"
 	// CommandMonsterGenerationSet changes natural monster generation settings.
@@ -164,8 +150,6 @@ const (
 
 const (
 	initialExperienceParameter = "experience"
-	initialSourceParameter     = "source"
-	initialSourceLabel         = "Source"
 	initialMovementCategory    = "Movement"
 )
 
@@ -595,14 +579,12 @@ func NewInitialCatalog() *Catalog {
 	definitions = append(definitions, fifthBatchCommands()...)
 	definitions = append(definitions, sixthBatchCommands()...)
 	definitions = append(definitions, seventhBatchCommands()...)
-	definitions = append(definitions, codexCatalogCommands()...)
 	definitions = append(definitions, saveSnapshotCommands()...)
 	definitions = append(definitions, partyEquipmentCommands()...)
 	definitions = append(definitions, reduxModificationCommands()...)
-	definitions = append(definitions, worldDungeonExplorerCommands()...)
+	definitions = append(definitions, worldNavigatorCommands()...)
 	definitions = append(definitions, activeCombatDungeonRoomCommands()...)
 	definitions = append(definitions, merchantTesterCommands()...)
-	definitions = append(definitions, scriptedSceneScenarioCommands()...)
 	definitions = append(definitions, displayModeCommands()...)
 	definitions = append(definitions, scenarioRunCancelCommands()...)
 	applyCommandSearchTerms(definitions)
@@ -619,14 +601,12 @@ func applyCommandSearchTerms(definitions []CommandDefinition) {
 	terms := map[string][]string{
 		CommandWorldPositionStatus:                       {"teleport", "travel", "map", "location", "coordinates", "floor", "navigator"},
 		CommandWorldPositionSet:                          {"teleport", "travel", "map", "location", "coordinates", "floor", "navigator"},
-		CommandDungeonExplorerStatus:                     {"dungeon", "map", "cells", "facing", "lighting", "semantic", "explorer"},
-		CommandDungeonExplorerSetup:                      {"dungeon", "setup", "floor", "position", "facing", "lighting", "explorer"},
 		CommandInventoryLockerStatus:                     {"items", "supplies", "food", "gold", "reagents", "potions", "scrolls", "equipment", "armory"},
 		CommandInventorySpellStatus:                      {"spells", "magic", "prepared", "light", "time stop", "duration", "incantations"},
 		CommandGuardsStatus:                              {"guards", "criminal", "wanted", "shadowlords", "death", "resurrection", "world diagnostics"},
 		CommandDisplayStatus:                             {"resolution", debugDisplayModeFullscreen, debugDisplayModeMaximized, "window", "screen", "display", "pending"},
 		CommandDisplayModeSet:                            {"resolution", debugDisplayModeFullscreen, debugDisplayModeMaximized, "window", "screen", "display"},
-		CommandDebugOptionsStatus:                        {"free move", "collision", "placeholders", "dialog bounds", "debug overlays", "unlimited casting", "spell level bypass"},
+		CommandDebugOptionsStatus:                        {"free move", "collision", "placeholders", "dialog bounds", "lighting overlay", "debug overlays", "unlimited casting", "spell level bypass"},
 		CommandLoggingStatus:                             {"logs", "console", "categories", "stdout", "verbosity", "logging"},
 		CommandMonsterEcosystemStatus:                    {"spawn", "enemies", "generation", "pirate", "whirlpool", "monsters"},
 		CommandCombatStatus:                              {"battle", "tactical", "monsters", "turn", "dex", "encounter", "combat"},
@@ -635,14 +615,7 @@ func applyCommandSearchTerms(definitions []CommandDefinition) {
 		CommandPartyCharacterUpdate:                      {"party", "characters", "stats", "hp", "mp", initialExperienceParameter, "roster", "karma"},
 		CommandQuestItemStatus:                           {"artifacts", "shards", "quest inventory", "special items"},
 		CommandVehicleStatus:                             {"ships", "frigate", "skiff", "hull", "boat", "vehicle"},
-		CommandScenarioStatus:                            {"test setup", "reproduce", "starvation", "guards", "waterfall", "bridge troll", "word of power", "death"},
-		CommandVFXStatus:                                 {"visual effects", "projectile", "earthquake", "lighting", "renderer", "presentation"},
-		CommandConversationScriptCatalog:                 {"talk", "dialogue", "dialog", "npc", "tlk", "conversation"},
-		CommandCodexTileCatalog:                          {"sprites", "tiles", "passability", "terrain", "animation", "lighting"},
-		CommandCodexNPCCatalog:                           {"npc", "schedule", "dialogue", "conversation", "sprite", "ai"},
-		CommandCodexSpellCatalog:                         {"spell", "magic", "reagent", "targeting", "audio", "visual", "formula", "known issues", "code references"},
-		CommandCodexSearchLocations:                      {"search", "atlas", "sjog", "object", "payload", "repeat"},
-		CommandCodexConsumables:                          {"potion", "scroll", "consumable", "original", "redux", "support"},
+		CommandScenarioStatus:                            {"test setup", "reproduce", "camping", "death"},
 		CommandReduxModificationsStatus:                  {"redux", "deviation", "original behavior", "monster division", "splits", "dungeon", "discoveries", "visibility"},
 		CommandReduxCombatRepeatedMonsterDivisionSet:     {"redux", "combat", "slime", "gargoyle", "splits"},
 		CommandReduxDungeonsPersistHiddenDiscoveriesSet:  {"redux", "dungeon", "hidden door", "hidden pit", "persistence"},
@@ -652,8 +625,6 @@ func applyCommandSearchTerms(definitions []CommandDefinition) {
 		CommandMerchantTesterCatalog:                     {"merchant", "shop", "guild", "preview", "live", "tester"},
 		CommandMerchantTesterPreviewOpen:                 {"merchant", "shop", "guild", "preview", "tester"},
 		CommandMerchantTesterLiveOpen:                    {"merchant", "shop", "guild", "live", "tester"},
-		CommandScenarioBlackthornInterrogation:           {"scripted scene", "martyr", "mantra", "palace", "prison"},
-		CommandScenarioLordBritishFinale:                 {"scripted scene", "doom", "rescue", "wooden box", "certificate"},
 	}
 	for index := range definitions {
 		definitions[index].SearchTerms = append([]string(nil), terms[definitions[index].ID]...)
@@ -676,7 +647,6 @@ func partyKarmaCommands() []CommandDefinition {
 
 //nolint:funlen,exhaustruct,lll // Catalog declarations are clearer when each command stays self-contained.
 func secondBatchToolCommands() []CommandDefinition {
-	minimumIndex, maximumScriptIndex := 0, 47
 	minimumCoordinate, maximumCoordinate := 0, 255
 	minimumMap, maximumMap := 0, references.TotalCombatMaps-1
 	minimumDungeon, maximumDungeon := 0, references.MaxDungeonCombatIndex
@@ -685,38 +655,11 @@ func secondBatchToolCommands() []CommandDefinition {
 	minimumSeed := 0
 	minimumOdds, maximumOdds := 1, 1000
 	minimumDamage, maximumDamage := 1, 98
-	minimumEarthquakeDuration, maximumEarthquakeDuration := 1, 100
-	minimumEarthquakeIntensity, maximumEarthquakeIntensity := 1, 20
 	minimumSkiffs, maximumSkiffs := 0, references.MaxFrigateSkiffs
 	minimumFloor, maximumFloor := -1, 5
 	minimumEnemyCount, maximumEnemyCount := 0, 32
 
-	optionalCoordinate := func(id, name string) ParameterDefinition {
-		return ParameterDefinition{ID: id, Name: name, Kind: ParameterInteger, Minimum: &minimumCoordinate, Maximum: &maximumCoordinate, ControlHint: controlHintNumber}
-	}
-	sources := []Choice{
-		{Value: string(semantic.OriginalSourceCastle), Label: "Castle", Metadata: nil},
-		{Value: string(semantic.OriginalSourceKeep), Label: "Keep", Metadata: nil},
-		{Value: string(semantic.OriginalSourceTowne), Label: "Towne", Metadata: nil},
-		{Value: string(semantic.OriginalSourceDwelling), Label: "Dwelling", Metadata: nil},
-	}
-
 	return []CommandDefinition{
-		{
-			ID: CommandConversationScriptCatalog, Category: "Conversations", Name: "Conversation Script Catalog",
-			Description:    "List loaded runtime semantic conversations for one original source.",
-			Parameters:     []ParameterDefinition{{ID: initialSourceParameter, Name: initialSourceLabel, Kind: ParameterEnum, Default: json.RawMessage(`"towne"`), Choices: sources, ControlHint: controlHintSelect, Availability: []string{contextGameplay}}},
-			ExecutionModes: []ExecutionMode{ExecutionQuery},
-		},
-		{
-			ID: CommandConversationScriptInspect, Category: "Conversations", Name: "Inspect Conversation Script",
-			Description: "Inspect the exact patched semantic document executed by Redux.",
-			Parameters: []ParameterDefinition{
-				{ID: initialSourceParameter, Name: initialSourceLabel, Kind: ParameterEnum, Required: true, Choices: sources, ControlHint: controlHintSelect, Availability: []string{contextGameplay}},
-				{ID: parameterIndex, Name: "Script Index", Kind: ParameterInteger, Required: true, Minimum: &minimumIndex, Maximum: &maximumScriptIndex, ControlHint: controlHintNumber},
-			},
-			ExecutionModes: []ExecutionMode{ExecutionQuery},
-		},
 		{
 			ID: CommandCombatEncounterOptions, Category: categoryCombat, Name: "Encounter Options",
 			Description:    "List maps, entry directions, count modes, and spawnable monsters.",
@@ -739,34 +682,6 @@ func secondBatchToolCommands() []CommandDefinition {
 				{ID: "seed", Name: "Seed", Kind: ParameterInteger, Minimum: &minimumSeed, ControlHint: controlHintNumber},
 			},
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
-		},
-		{ID: CommandVFXStatus, Category: categoryVFX, Name: "VFX Status", Description: "Show active visual effects and projectile state.", ExecutionModes: []ExecutionMode{ExecutionQuery}},
-		{
-			ID: CommandVFXKapow, Category: categoryVFX, Name: "Kapow", Description: "Present a kapow effect without gameplay mutation.",
-			Parameters: []ParameterDefinition{
-				{ID: "targetMode", Name: "Target", Kind: ParameterEnum, Required: true, Choices: []Choice{{Value: "player", Label: "Player"}, {Value: "coordinates", Label: "Coordinates"}}, ControlHint: controlHintSelect, Availability: []string{contextGameplay}},
-				optionalCoordinate("x", "X"), optionalCoordinate("y", "Y"),
-			},
-			ExecutionModes: []ExecutionMode{ExecutionPresentation},
-		},
-		{
-			ID: CommandVFXProjectile, Category: categoryVFX, Name: "Projectile", Description: "Present one serialized projectile without gameplay mutation.",
-			Parameters: []ParameterDefinition{
-				{ID: "fromMode", Name: "From", Kind: ParameterEnum, Required: true, Choices: []Choice{{Value: "player", Label: "Player"}, {Value: "coordinates", Label: "Coordinates"}}, ControlHint: controlHintSelect, Availability: []string{contextGameplay}},
-				optionalCoordinate("fromX", "From X"), optionalCoordinate("fromY", "From Y"),
-				{ID: "toX", Name: "To X", Kind: ParameterInteger, Required: true, Minimum: &minimumCoordinate, Maximum: &maximumCoordinate, ControlHint: controlHintNumber},
-				{ID: "toY", Name: "To Y", Kind: ParameterInteger, Required: true, Minimum: &minimumCoordinate, Maximum: &maximumCoordinate, ControlHint: controlHintNumber},
-				{ID: "projectileType", Name: "Projectile", Kind: ParameterEnum, Required: true, Choices: projectileChoices(), ControlHint: controlHintSelect},
-			},
-			ExecutionModes: []ExecutionMode{ExecutionPresentation},
-		},
-		{
-			ID: CommandEnvironmentEarthquake, Category: categoryVFX, Name: "Earthquake", Description: "Present a serialized earthquake without damage, messages, or input blocking.", Aliases: []string{"env earthquake"},
-			Parameters: []ParameterDefinition{
-				{ID: "durationTenths", Name: "Duration (Tenths)", Kind: ParameterInteger, Required: true, Default: json.RawMessage(`20`), Minimum: &minimumEarthquakeDuration, Maximum: &maximumEarthquakeDuration, ControlHint: controlHintNumber, Availability: []string{contextGameplay}},
-				{ID: "intensityTenths", Name: "Intensity (Tenths)", Kind: ParameterInteger, Required: true, Default: json.RawMessage(`8`), Minimum: &minimumEarthquakeIntensity, Maximum: &maximumEarthquakeIntensity, ControlHint: controlHintNumber, Availability: []string{contextGameplay}},
-			},
-			ExecutionModes: []ExecutionMode{ExecutionPresentation},
 		},
 		{ID: CommandMonsterEcosystemStatus, Category: categoryMonsters, Name: "Monster Ecosystem", Description: "Show current-map generation and enemy state.", ExecutionModes: []ExecutionMode{ExecutionQuery}},
 		{
@@ -861,15 +776,6 @@ func monsterChoices() []Choice {
 	}
 
 	return choices
-}
-
-func projectileChoices() []Choice {
-	return []Choice{
-		{Value: "arrow", Label: "Arrow", Metadata: nil}, {Value: "axe", Label: "Axe", Metadata: nil},
-		{Value: "rock", Label: "Rock", Metadata: nil}, {Value: "cannonball", Label: "Cannonball", Metadata: nil},
-		{Value: "violet", Label: "Violet", Metadata: nil}, {Value: "red", Label: "Red", Metadata: nil},
-		{Value: "blue", Label: "Blue", Metadata: nil}, {Value: "green", Label: "Green", Metadata: nil},
-	}
 }
 
 //nolint:funlen,exhaustruct,lll // Catalog declarations are clearer when each command stays self-contained.

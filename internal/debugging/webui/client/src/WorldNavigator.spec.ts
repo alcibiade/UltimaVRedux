@@ -1,10 +1,8 @@
 import { createApp, h, nextTick, reactive, type App as VueApp } from "vue"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import DungeonExplorer from "./DungeonExplorer.vue"
 import WorldNavigator from "./WorldNavigator.vue"
-import type { DungeonExplorerStatusData, WorldPositionStatusData } from "./approved_tool_views"
-import type { Choice } from "./protocol"
+import type { WorldPositionStatusData } from "./approved_tool_views"
 
 let app: VueApp<Element> | undefined
 let root: HTMLElement
@@ -250,66 +248,6 @@ describe("World Navigator", () => {
 	})
 })
 
-describe("Dungeon Explorer", () => {
-  it("renders Y-major semantic cells and preserves then reconciles its exact typed setup draft", async () => {
-    const apply = vi.fn()
-    const state = reactive<{ data: DungeonExplorerStatusData; pending: boolean }>({ data: dungeonStatus(), pending: false })
-    mount(() => h(DungeonExplorer, {
-      data: state.data,
-      pending: state.pending,
-      dungeons,
-      facings,
-      onApply: apply,
-    }))
-    await nextTick()
-
-    const cells = [...root.querySelectorAll<HTMLElement>(".dungeon-grid [role=gridcell]")]
-    expect(cells).toHaveLength(64)
-    expect(cells.slice(0, 10).map((cell) => `${cell.dataset.x},${cell.dataset.y}`)).toEqual([
-      "0,0", "1,0", "2,0", "3,0", "4,0", "5,0", "6,0", "7,0", "0,1", "1,1",
-    ])
-    click('.dungeon-grid [data-cell-index="18"]')
-    await nextTick()
-    expect(root.querySelector(".dungeon-cell-inspector")?.textContent).toContain("0xD8")
-    expect(root.querySelector(".dungeon-cell-inspector")?.textContent).toContain("hidden_door #13")
-    expect(root.querySelector(".dungeon-cell-inspector")?.textContent).toContain("Payload8")
-    expect(root.querySelector(".dungeon-cell-inspector")?.textContent).toContain("Bit 0x08SET")
-
-    setSelect('[aria-label="Dungeon"]', "40")
-    setSelect('[aria-label="Dungeon floor"]', "7")
-    setSelect('[aria-label="Dungeon facing"]', "west")
-    setSelect('[aria-label="Dungeon lighting"]', "false")
-    await nextTick()
-    state.data = dungeonStatus({ sourceFingerprint: "dungeon-source-2" })
-    await nextTick()
-    expect(select('[aria-label="Dungeon"]').value).toBe("40")
-    expect(select('[aria-label="Dungeon floor"]').value).toBe("7")
-    expect(inputs(".dungeon-setup-form input").map((input) => input.value)).toEqual(["2", "2"])
-
-    click('.dungeon-setup-form button[type="submit"]')
-    expect(apply).toHaveBeenCalledWith({
-      dungeon: "40", floor: 7, x: 2, y: 2, facing: "west", lit: false,
-      expectedLocationId: 33, expectedFloor: 2, expectedX: 3, expectedY: 4, expectedDungeonRevision: 12,
-      expectedSourceFingerprint: "dungeon-source-2",
-    })
-
-    state.data = dungeonStatus({ locationId: 40, locationName: "Doom", floor: 7, displayLevel: 8, x: 2, y: 2, facingId: 3, facingLabel: "West", lastDirectionId: 3, lastDirectionLabel: "West", lit: false, revision: 0 })
-    await nextTick()
-    state.data = dungeonStatus({ locationId: 40, locationName: "Doom", floor: 7, displayLevel: 8, x: 5, y: 6, facingId: 3, facingLabel: "West", lastDirectionId: 3, lastDirectionLabel: "West", lit: false, revision: 1 })
-    await nextTick()
-    expect(inputs(".dungeon-setup-form input").map((input) => input.value)).toEqual(["5", "6"])
-  })
-
-  it("shows the setup blocker and disables apply", async () => {
-    const state = dungeonStatus({ setupAvailable: false, setupUnavailableReason: "a dungeon command cycle is active" })
-    mount(() => h(DungeonExplorer, { data: state, pending: false, dungeons, facings }))
-    await nextTick()
-
-    expect(root.querySelector(".disabled-reason")?.textContent).toContain("dungeon command cycle")
-    expect(root.querySelector<HTMLButtonElement>('.dungeon-setup-form button[type="submit"]')?.disabled).toBe(true)
-  })
-})
-
 const dungeonBounds = { minimumX: 0, maximumX: 7, minimumY: 0, maximumY: 7 }
 const destinations = [{
   locationId: 0, locationName: "Britannia / Underworld", mapType: "large", floors: [-1, 0],
@@ -339,34 +277,11 @@ const destinations = [{
     { placement: "dungeon_underworld_exit", placementLabel: "Underworld exit ladder", route: "underworld", routeLabel: "Underworld", available: false, unavailableReason: "Doom has no down-ladder Underworld endpoint; its floor-zero Up route exits to Britannia", locationId: 40 },
   ],
 }]
-const dungeons: Choice[] = [
-  { value: "33", label: "Deceit" }, { value: "34", label: "Despise" }, { value: "35", label: "Destard" }, { value: "36", label: "Wrong" },
-  { value: "37", label: "Covetous" }, { value: "38", label: "Shame" }, { value: "39", label: "Hythloth" }, { value: "40", label: "Doom" },
-]
-const facings: Choice[] = [
-  { value: "north", label: "North" }, { value: "east", label: "East" }, { value: "south", label: "South" }, { value: "west", label: "West" },
-]
-
 function worldStatus(overrides: Partial<WorldPositionStatusData> = {}): WorldPositionStatusData {
   return {
     sourceFingerprint: "world-source-1",
     locationId: 0, locationName: "Britannia / Underworld", mapType: "large", floor: 0, x: 100, y: 101,
     bounds: { minimumX: 0, maximumX: 255, minimumY: 0, maximumY: 255 }, destinations, ...overrides,
-  }
-}
-
-function dungeonStatus(overrides: Partial<DungeonExplorerStatusData> = {}): DungeonExplorerStatusData {
-  const cells = Array.from({ length: 64 }, (_, index) => {
-    const x = index % 8
-    const y = Math.floor(index / 8)
-    if (index === 18) return { x, y, raw: 0xd8, kindId: 13, kindName: "hidden_door", payload: 8, bit08: true, player: false }
-    return { x, y, raw: 0, kindId: 0, kindName: "passage", payload: 0, bit08: false, player: x === 3 && y === 4 }
-  })
-  return {
-    sourceFingerprint: "dungeon-source-1",
-    active: true, setupAvailable: true, locationId: 33, locationName: "Deceit", floor: 2, displayLevel: 3,
-    x: 3, y: 4, facingId: 2, facingLabel: "South", lastDirectionId: 2, lastDirectionLabel: "South",
-    lit: true, torchMinutesRemaining: 17, magicLightMinutesRemaining: 23, revision: 12, cells, ...overrides,
   }
 }
 

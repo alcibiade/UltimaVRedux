@@ -862,17 +862,3 @@ func (g *GameState) applyStarvationDamage() []int {
 
 	return g.PartyState.DamageFromStarvation(g.RandomIntInRange)
 }
-
-// ForceHourlyFoodCheck forces a meal time food consumption check.
-// This is used by debug commands to trigger starvation without waiting for time to advance.
-// It temporarily resets lastProcessedHour to force the check to run.
-func (g *GameState) ForceHourlyFoodCheck() {
-	// Reset the last processed hour to force the check to run
-	g.lastProcessedHour = -1
-
-	// Set time to a meal hour (12:00) to ensure starvation occurs
-	g.DateTime.Hour = 12
-
-	// Run the hourly food consumption check
-	g.checkHourlyFoodConsumption()
-}

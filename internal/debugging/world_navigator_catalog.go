@@ -10,31 +10,15 @@ import (
 const (
 	// CommandWorldPositionSet atomically applies an exact position or authoritative route target.
 	CommandWorldPositionSet = "world.position.set"
-	// CommandDungeonExplorerStatus reports the active semantic dungeon floor.
-	CommandDungeonExplorerStatus = "dungeon.explorer.status"
-	// CommandDungeonExplorerSetup installs one exact production dungeon setup.
-	CommandDungeonExplorerSetup = "dungeon.explorer.setup"
 
-	categoryDungeonExplorer     = "Dungeon Explorer"
 	parameterWorldPlacement     = "placement"
 	parameterWorldRoute         = "route"
 	parameterWorldLocation      = "location"
 	parameterWorldFloor         = "floor"
-	parameterDungeon            = "dungeon"
-	parameterDungeonFacing      = "facing"
 	parameterExpectedLocationID = "expectedLocationId"
 	parameterExpectedFloor      = "expectedFloor"
 	parameterExpectedSource     = "expectedSourceFingerprint"
-	dungeonName                 = "Dungeon"
 	floorName                   = "Floor"
-	dungeonFacingNorth          = "north"
-	dungeonFacingEast           = "east"
-	dungeonFacingSouth          = "south"
-	dungeonFacingWest           = "west"
-	dungeonFacingNorthLabel     = "North"
-	dungeonFacingEastLabel      = "East"
-	dungeonFacingSouthLabel     = "South"
-	dungeonFacingWestLabel      = "West"
 	worldRouteBritanniaLabel    = "Britannia"
 	worldRouteUnderworldLabel   = "Underworld"
 
@@ -53,13 +37,10 @@ const (
 )
 
 //nolint:funlen,exhaustruct // Complete schemas are kept together for direct Go/TypeScript review.
-func worldDungeonExplorerCommands() []CommandDefinition {
+func worldNavigatorCommands() []CommandDefinition {
 	minimumWorldLocation, maximumWorldLocation := 0, int(references.Doom)
 	minimumWorldFloor, maximumWorldFloor := -1, references.DungeonFloorCount-1
 	minimumWorldCoordinate, maximumWorldCoordinate := 0, int(references.XLargeMapTiles)-1
-	minimumDungeonFloor, maximumDungeonFloor := 0, references.DungeonFloorCount-1
-	minimumDungeonCoordinate, maximumDungeonCoordinate := 0, int(references.XDungeonMapTiles)-1
-	minimumRevision := 0
 	reviewedWorldParameters := []ParameterDefinition{
 		{ID: parameterExpectedLocationID, Name: "Reviewed Location", Kind: ParameterInteger, Required: true, Minimum: &minimumWorldLocation, Maximum: &maximumWorldLocation, Availability: []string{contextGameplay, contextOutsideCombat}, ScenarioRuntime: true},
 		{ID: parameterExpectedFloor, Name: "Reviewed Floor", Kind: ParameterInteger, Required: true, Minimum: &minimumWorldFloor, Maximum: &maximumWorldFloor, Availability: []string{contextGameplay, contextOutsideCombat}, ScenarioRuntime: true},
@@ -79,37 +60,11 @@ func worldDungeonExplorerCommands() []CommandDefinition {
 	}...)
 	worldParameters = append(worldParameters, reviewedWorldParameters...)
 
-	dungeonParameters := make([]ParameterDefinition, 0, 7+len(reviewedWorldParameters))
-	dungeonParameters = append(dungeonParameters, []ParameterDefinition{
-		{ID: parameterDungeon, Name: dungeonName, Kind: ParameterEnum, Required: true, Choices: dungeonLocationChoices(), ControlHint: controlHintSelect, Availability: []string{contextGameplay, contextOutsideCombat}},
-		{ID: parameterWorldFloor, Name: floorName, Kind: ParameterInteger, Required: false, Default: json.RawMessage(`0`), Minimum: &minimumDungeonFloor, Maximum: &maximumDungeonFloor, ControlHint: controlHintNumber, Availability: []string{contextGameplay, contextOutsideCombat}},
-		{ID: "x", Name: "X", Kind: ParameterInteger, Required: false, Default: json.RawMessage(`4`), Minimum: &minimumDungeonCoordinate, Maximum: &maximumDungeonCoordinate, ControlHint: controlHintNumber, Availability: []string{contextGameplay, contextOutsideCombat}},
-		{ID: "y", Name: "Y", Kind: ParameterInteger, Required: false, Default: json.RawMessage(`4`), Minimum: &minimumDungeonCoordinate, Maximum: &maximumDungeonCoordinate, ControlHint: controlHintNumber, Availability: []string{contextGameplay, contextOutsideCombat}},
-		{ID: parameterDungeonFacing, Name: "Facing", Kind: ParameterEnum, Required: false, Default: json.RawMessage(`"east"`), Choices: dungeonFacingChoices(), ControlHint: controlHintSelect, Availability: []string{contextGameplay, contextOutsideCombat}},
-		{ID: "lit", Name: "Lit", Kind: ParameterBoolean, Required: false, Default: json.RawMessage(`true`), ControlHint: controlHintSelect, Availability: []string{contextGameplay, contextOutsideCombat}},
-	}...)
-	dungeonParameters = append(dungeonParameters, reviewedWorldParameters...)
-	dungeonParameters = append(dungeonParameters, ParameterDefinition{
-		ID: "expectedDungeonRevision", Name: "Reviewed Dungeon Revision", Kind: ParameterInteger, Required: true,
-		Minimum: &minimumRevision, Availability: []string{contextGameplay, contextOutsideCombat}, ScenarioRuntime: true,
-	})
-
 	return []CommandDefinition{
 		{
 			ID: CommandWorldPositionSet, Category: "World", Name: "Set World Position",
 			Description: "Atomically apply one reviewed exact position or authoritative dungeon route target.",
 			Aliases:     []string{"world navigator set", "teleport location floor"}, Parameters: worldParameters,
-			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
-		},
-		{
-			ID: CommandDungeonExplorerStatus, Category: categoryDungeonExplorer, Name: categoryDungeonExplorer,
-			Description: "Inspect the active semantic dungeon floor, facing, lighting, and packed cells.",
-			Aliases:     []string{"dungeon status", "dungeon map"}, ExecutionModes: []ExecutionMode{ExecutionQuery},
-		},
-		{
-			ID: CommandDungeonExplorerSetup, Category: categoryDungeonExplorer, Name: "Set Up " + dungeonName,
-			Description: "Atomically install one reviewed dungeon, floor, coordinate, facing, and light setup.",
-			Aliases:     []string{"dungeon setup", "enter dungeon"}, Parameters: dungeonParameters,
 			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 		},
 	}
@@ -144,15 +99,6 @@ func worldLocationChoices() []Choice {
 	return choices
 }
 
-func dungeonLocationChoices() []Choice {
-	choices := make([]Choice, 0, int(references.Doom-references.Deceit)+1)
-	for location := references.Deceit; location <= references.Doom; location++ {
-		choices = append(choices, Choice{Value: strconv.Itoa(int(location)), Label: location.String()})
-	}
-
-	return choices
-}
-
 func worldFloorChoices() []Choice {
 	choices := make([]Choice, 0, 1+references.DungeonFloorCount)
 	choices = append(choices, Choice{Value: "-1", Label: "Underworld / Basement (-1)"})
@@ -164,13 +110,4 @@ func worldFloorChoices() []Choice {
 	}
 
 	return choices
-}
-
-func dungeonFacingChoices() []Choice {
-	return []Choice{
-		{Value: dungeonFacingNorth, Label: dungeonFacingNorthLabel},
-		{Value: dungeonFacingEast, Label: dungeonFacingEastLabel},
-		{Value: dungeonFacingSouth, Label: dungeonFacingSouthLabel},
-		{Value: dungeonFacingWest, Label: dungeonFacingWestLabel},
-	}
 }

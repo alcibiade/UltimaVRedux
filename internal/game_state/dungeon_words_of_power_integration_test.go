@@ -21,7 +21,7 @@ func TestWordOfPowerSurveyRequiresKnownIdentityAndSuccessfulTarget(t *testing.T)
 			state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &entrance, dungeonOpenEntranceSprite(dungeon))
 			state.PartyState.Inventory.QuestItems.Set(references.Sextant, 1)
 			state.DateTime.Hour = 19
-			word := GetWordForDungeon(dungeon)
+			word := wordForDungeon(dungeon)
 			require.True(t, state.ProcessWordOfPower(word), "blind valid Yell still changes the seal")
 			require.Empty(t, state.journalDungeons(), "matching an internal identity does not disclose it")
 			if dungeon == references.Shame || dungeon == references.Doom {
@@ -273,7 +273,7 @@ func TestDungeonStateManagement_Integration(t *testing.T) {
 		}
 
 		for i, dungeon := range allDungeons {
-			word := GetWordForDungeon(dungeon)
+			word := wordForDungeon(dungeon)
 			assert.Equal(t, expectedWords[i], word, "Dungeon %s should map to word %s", dungeon, expectedWords[i])
 
 			// Verify round-trip consistency
@@ -283,7 +283,7 @@ func TestDungeonStateManagement_Integration(t *testing.T) {
 		}
 
 		// Test invalid dungeon
-		invalidWord := GetWordForDungeon(references.Britain)
+		invalidWord := wordForDungeon(references.Britain)
 		assert.Equal(t, "", invalidWord, "Non-dungeon location should return empty word")
 	})
 }

@@ -28,12 +28,6 @@ import ActiveCombatConsole from "./ActiveCombatConsole.vue"
 import LoggingConsole from "./LoggingConsole.vue"
 import CombatEncounterComposer from "./CombatEncounterComposer.vue"
 import CombatMapCatalog, { type CombatMapCatalogData } from "./CombatMapCatalog.vue"
-import CodexCatalog from "./CodexCatalog.vue"
-import TileAtlas, { type TileAtlasEntry } from "./TileAtlas.vue"
-import SearchLocationAtlas, { type SearchLocationAtlasEntry } from "./SearchLocationAtlas.vue"
-import ConsumablesCodex, { type ConsumableCodexEntry } from "./ConsumablesCodex.vue"
-import NPCScheduleIndex, { type NPCScheduleEntry } from "./NPCScheduleIndex.vue"
-import ConversationScriptExplorer from "./ConversationScriptExplorer.vue"
 import MerchantTester from "./MerchantTester.vue"
 import MoongateAtlas from "./MoongateAtlas.vue"
 import MonsterEcosystemConsole from "./MonsterEcosystemConsole.vue"
@@ -52,10 +46,7 @@ import ReduxModificationsConsole from "./ReduxModificationsConsole.vue"
 import WorldDiagnostics from "./WorldDiagnostics.vue"
 import InventoryLocker from "./InventoryLocker.vue"
 import SpellInventory from "./SpellInventory.vue"
-import SpellGrimoire, { type SpellGrimoireEntry } from "./SpellGrimoire.vue"
-import VFXTestBench from "./VFXTestBench.vue"
 import WorldNavigator from "./WorldNavigator.vue"
-import DungeonExplorer from "./DungeonExplorer.vue"
 import ObservationPane, { type ObservationCommandID } from "./ObservationPane.vue"
 import MoonPhaseGlyph from "./MoonPhaseGlyph.vue"
 import CommandPalette from "./CommandPalette.vue"
@@ -64,17 +55,13 @@ import { recentNavigationSurfaces, updateNavigationRecents, type NavigationSurfa
 import type {
   CalendarStatusData,
   CombatEncounterOptionsData,
-  ConversationCatalogData,
-  ConversationDetailData,
   MerchantTesterCatalogData,
   MonsterEcosystemData,
   MoongateStatusData,
   QuestItemStatusData,
   SearchStatusData,
   VehicleStatusData,
-  VFXStatusData,
   WorldPositionStatusData,
-  DungeonExplorerStatusData,
   InventoryLockerStatusData,
   SpellInventoryStatusData,
   ActiveCombatStatusData,
@@ -193,8 +180,6 @@ const questShardUseCommandID = "quest.shard.use"
 const usableInventoryPresetCommandID = "quest.inventory.preset-usable"
 const worldPositionStatusCommandID = "world.position.status"
 const worldPositionSetCommandID = "world.position.set"
-const dungeonExplorerStatusCommandID = "dungeon.explorer.status"
-const dungeonExplorerSetupCommandID = "dungeon.explorer.setup"
 const movementTeleportCommandID = "movement.teleport"
 const movementEnterLocationCommandID = "movement.enter-location"
 const movementFloorSetCommandID = "movement.floor.set"
@@ -204,14 +189,6 @@ const partyKarmaSetCommandID = "party.karma.set"
 const partyCharacterInspectCommandID = "party.character.inspect"
 const partyRosterMutationCommandIDs = ["party.maximize-levels", "party.status.set", "party.fill", "party.member.add"]
 const scenarioStatusCommandID = "scenario.status"
-const scenarioStarvationTriggerCommandID = "scenario.starvation.trigger"
-const scenarioStarvationHourlyCommandID = "scenario.starvation.force-hourly"
-const scenarioGuardsActivateCommandID = "scenario.guards.activate"
-const scenarioWaterfallSetupCommandID = "scenario.waterfall.setup"
-const scenarioBridgeTrollCommandID = "scenario.bridge-troll.start"
-const scenarioWordSetupCommandID = "scenario.word.setup"
-const scenarioBlackthornInterrogationCommandID = "scenario.blackthorn-interrogation.start"
-const scenarioLordBritishFinaleCommandID = "scenario.lord-british-finale.start"
 const scenarioDefinitionListCommandID = "scenario.definition.list"
 const scenarioDefinitionGetCommandID = "scenario.definition.get"
 const scenarioDefinitionValidateCommandID = "scenario.definition.validate"
@@ -238,23 +215,16 @@ const deathKillPartyCommandID = "death.kill-party"
 const deathTestSequenceCommandID = "death.test-sequence"
 const observationCommandID = "command-test.telescope"
 const observationCommandIDs: ObservationCommandID[] = [observationCommandID, "command-test.spyglass", "command-test.crystal-ball"]
-const scenarioMutationCommandIDs = [scenarioStarvationTriggerCommandID, scenarioStarvationHourlyCommandID, scenarioGuardsActivateCommandID, scenarioWaterfallSetupCommandID, scenarioBridgeTrollCommandID, scenarioWordSetupCommandID, scenarioBlackthornInterrogationCommandID, scenarioLordBritishFinaleCommandID, commandTestHoleUpCommandID, deathKillPartyCommandID, deathTestSequenceCommandID]
+const scenarioMutationCommandIDs = [commandTestHoleUpCommandID, deathKillPartyCommandID, deathTestSequenceCommandID]
 const moongateStatusCommandID = "moongate.status"
 const moongateOverlaySetCommandID = "overlay.moongate.set"
 const moongateTravelCommandID = "moongate.travel"
-const conversationCatalogCommandID = "conversation.script.catalog"
-const conversationInspectCommandID = "conversation.script.inspect"
 const combatEncounterOptionsCommandID = "combat.encounter.options"
 const combatEncounterStartCommandID = "combat.encounter.start"
 const merchantTesterCatalogCommandID = "merchant.tester.catalog"
 const merchantTesterPreviewCommandID = "merchant.tester.preview.open"
 const merchantTesterLiveCommandID = "merchant.tester.live.open"
 const merchantTesterOperationCommandIDs = [merchantTesterPreviewCommandID, merchantTesterLiveCommandID]
-const vfxStatusCommandID = "vfx.status"
-const vfxKapowCommandID = "vfx.kapow"
-const vfxProjectileCommandID = "vfx.projectile"
-const environmentEarthquakeCommandID = "environment.earthquake"
-const lightingOverlaySetCommandID = "overlay.lighting.set"
 const monsterEcosystemStatusCommandID = "monster.ecosystem.status"
 const monsterGenerationSetCommandID = "monster.generation.set"
 const monsterClearMapEnemiesCommandID = "monster.clear-map-enemies"
@@ -268,12 +238,13 @@ const shipRepairFullCommandID = "ship.repair-full"
 const shipSkiffSetCommandID = "ship.skiff.set"
 const shipMutationCommandIDs = [vehicleSpawnCommandID, vehicleForceBoardCommandID, shipDamageRawCommandID, shipRepairFullCommandID, shipSkiffSetCommandID]
 const debugOptionsStatusCommandID = "debug.options.status"
+const lightingOverlaySetCommandID = "overlay.lighting.set"
 const movementFreeMoveSetCommandID = "movement.free-move.set"
 const textPlaceholdersSetCommandID = "overlay.text-placeholders.set"
 const dialogBoundsSetCommandID = "overlay.dialog-bounds.set"
 const unlimitedCastingResourcesSetCommandID = "magic.unlimited-casting-resources.set"
 const spellLevelRestrictionsBypassSetCommandID = "magic.spell-level-restrictions-bypass.set"
-const debugOptionsMutationCommandIDs = [movementFreeMoveSetCommandID, textPlaceholdersSetCommandID, dialogBoundsSetCommandID, unlimitedCastingResourcesSetCommandID, spellLevelRestrictionsBypassSetCommandID]
+const debugOptionsMutationCommandIDs = [movementFreeMoveSetCommandID, textPlaceholdersSetCommandID, dialogBoundsSetCommandID, lightingOverlaySetCommandID, unlimitedCastingResourcesSetCommandID, spellLevelRestrictionsBypassSetCommandID]
 const displayStatusCommandID = "display.status"
 const displayModeSetCommandID = "display.mode.set"
 const displayResolutionSetCommandID = "display.resolution.set"
@@ -303,13 +274,6 @@ const deathStatusCommandID = "death.status"
 const worldDiagnosticCommandIDs = [guardStatusCommandID, shadowlordStatusCommandID, deathStatusCommandID]
 const inventoryLockerStatusCommandID = "inventory.locker.status"
 const activeCombatStatusCommandID = "combat.status"
-const codexCommandIDs = [
-  "codex.equipment.catalog", "codex.monster.catalog", "codex.spell.catalog", "codex.tile.catalog",
-  "codex.location.catalog", "codex.npc.catalog", "codex.quest.catalog", "codex.save-format.catalog",
-  "codex.search-location.catalog", "codex.consumable.catalog",
-]
-const longCodexCommandIDs = new Set(["codex.equipment.catalog", "codex.monster.catalog", "codex.spell.catalog", "codex.location.catalog"])
-const flowCodexCommandIDs = new Set([...longCodexCommandIDs, "codex.tile.catalog", "codex.npc.catalog"])
 const activeCombatSleepCommandID = "combat.monster.sleep.set"
 const activeCombatExitCommandID = "combat.exit-debug"
 const activeCombatSpawnCommandID = "combat.monster.spawn"
@@ -362,20 +326,10 @@ const integratedCommandIDs = new Set([
 	questShardUseCommandID,
   worldPositionStatusCommandID,
   worldPositionSetCommandID,
-  dungeonExplorerStatusCommandID,
-  dungeonExplorerSetupCommandID,
   ...legacyWorldSetupCommandIDs,
   movementLandmarkTravelCommandID,
   partyKarmaSetCommandID,
   scenarioStatusCommandID,
-  scenarioStarvationTriggerCommandID,
-  scenarioStarvationHourlyCommandID,
-  scenarioGuardsActivateCommandID,
-  scenarioWaterfallSetupCommandID,
-  scenarioBridgeTrollCommandID,
-  scenarioWordSetupCommandID,
-  scenarioBlackthornInterrogationCommandID,
-  scenarioLordBritishFinaleCommandID,
   ...scenarioCompanionCommandIDs,
   ...saveSnapshotCommandIDs,
   commandTestHoleUpCommandID,
@@ -384,17 +338,10 @@ const integratedCommandIDs = new Set([
   moongateStatusCommandID,
   moongateOverlaySetCommandID,
   moongateTravelCommandID,
-  conversationCatalogCommandID,
-  conversationInspectCommandID,
   combatEncounterOptionsCommandID,
   combatEncounterStartCommandID,
   merchantTesterCatalogCommandID,
   ...merchantTesterOperationCommandIDs,
-  vfxStatusCommandID,
-  vfxKapowCommandID,
-  vfxProjectileCommandID,
-  environmentEarthquakeCommandID,
-  lightingOverlaySetCommandID,
   monsterEcosystemStatusCommandID,
   monsterGenerationSetCommandID,
   monsterClearMapEnemiesCommandID,
@@ -419,7 +366,6 @@ const integratedCommandIDs = new Set([
   spellInventoryStatusCommandID,
   ...spellInventoryMutationCommandIDs,
   activeCombatStatusCommandID,
-  ...codexCommandIDs,
   ...activeCombatMutationCommandIDs,
   ...observationCommandIDs,
 ])
@@ -431,9 +377,7 @@ const polledIntegratedQueryIDs = new Set([
   searchStatusCommandID,
   questItemStatusCommandID,
   worldPositionStatusCommandID,
-  dungeonExplorerStatusCommandID,
   moongateStatusCommandID,
-  vfxStatusCommandID,
   monsterEcosystemStatusCommandID,
   vehicleStatusCommandID,
   inventoryLockerStatusCommandID,
@@ -486,8 +430,6 @@ provideInstrumentSession(computed(() => `${sessionID.value}:${sceneGeneration.va
 })
 const livePollingPaused = ref(false)
 const selectedShrineIndex = ref(0)
-const conversationSource = ref("towne")
-const selectedConversationIndex = ref(-1)
 const linkedWorldCoordinates = ref<{ x: number; y: number }>()
 const commandSearch = ref("")
 const collapsedCategories = ref(new Set<string>())
@@ -646,13 +588,9 @@ const mastheadCalendar = computed(() => latestCalendarResult.value?.data ? calen
 const latestSearchResult = computed(() => latestResults.value[searchStatusCommandID])
 const latestQuestItemResult = computed(() => latestResults.value[questItemStatusCommandID])
 const latestWorldPositionResult = computed(() => latestResults.value[worldPositionStatusCommandID])
-const latestDungeonExplorerResult = computed(() => latestResults.value[dungeonExplorerStatusCommandID])
 const latestMoongateResult = computed(() => latestResults.value[moongateStatusCommandID])
-const latestConversationCatalogResult = computed(() => latestResults.value[conversationCatalogCommandID])
-const latestConversationDetailResult = computed(() => latestResults.value[conversationInspectCommandID])
 const latestCombatEncounterOptionsResult = computed(() => latestResults.value[combatEncounterOptionsCommandID])
 const latestMerchantTesterCatalogResult = computed(() => latestResults.value[merchantTesterCatalogCommandID])
-const latestVFXStatusResult = computed(() => latestResults.value[vfxStatusCommandID])
 const latestMonsterEcosystemResult = computed(() => latestResults.value[monsterEcosystemStatusCommandID])
 const latestVehicleStatusResult = computed(() => latestResults.value[vehicleStatusCommandID])
 const latestInventoryLockerResult = computed(() => latestResults.value[inventoryLockerStatusCommandID])
@@ -729,10 +667,7 @@ const latestObservationResult = computed(() => [...results.value].reverse().find
   observationCommandIDs.includes(result.commandId as ObservationCommandID) && result.success && result.data !== undefined,
 ))
 const observationPending = computed(() => observationCommandIDs.some(commandPending))
-const scenarioWordChoices = computed(() => commands.value.find((command) => command.id === scenarioWordSetupCommandID)?.parameters?.find((parameter) => parameter.id === "word")?.choices ?? [])
 const worldLandmarkChoices = computed(() => commands.value.find((command) => command.id === movementLandmarkTravelCommandID)?.parameters?.find((parameter) => parameter.id === "landmark")?.choices ?? [])
-const dungeonChoices = computed(() => commands.value.find((command) => command.id === dungeonExplorerSetupCommandID)?.parameters?.find((parameter) => parameter.id === "dungeon")?.choices ?? [])
-const dungeonFacingChoices = computed(() => commands.value.find((command) => command.id === dungeonExplorerSetupCommandID)?.parameters?.find((parameter) => parameter.id === "facing")?.choices ?? [])
 const catalogWorkspaces: { id: CatalogWorkspaceID; label: string; detail: string }[] = [
   { id: "game", label: "Game", detail: "State & setup" },
   { id: "codex", label: "Codex", detail: "Reference" },
@@ -1184,15 +1119,8 @@ function receiveResult(result: CommandResult): void {
     formMessages.value[result.commandId] = "Available party options changed. Review the refreshed selection before retrying."
   }
   if (result.success && merchantTesterOperationCommandIDs.includes(result.commandId)) merchantCatalogExplicitRefreshRequired = true
-  if (!result.success && result.errorCode === "stale_world_position") {
-    const owner = result.commandId === dungeonExplorerSetupCommandID
-      ? dungeonExplorerStatusCommandID
-      : result.commandId === worldPositionSetCommandID ? worldPositionStatusCommandID : ""
-    if (owner) void nextTick(() => runQueryByID(owner, true))
-  }
-  if (!result.success && result.commandId === dungeonExplorerSetupCommandID
-    && result.errorCode === "stale_dungeon_state") {
-    void nextTick(() => runQueryByID(dungeonExplorerStatusCommandID, true))
+  if (!result.success && result.errorCode === "stale_world_position" && result.commandId === worldPositionSetCommandID) {
+    void nextTick(() => runQueryByID(worldPositionStatusCommandID, true))
   }
   if (result.errorCode === "stale_options" || result.effectiveExecutionMode && result.effectiveExecutionMode !== "query") requestCatalog()
   if (result.success && result.commandId === windSetCommandID) void nextTick(() => runQueryByID(windStatusCommandID, true))
@@ -1203,7 +1131,6 @@ function receiveResult(result: CommandResult): void {
   if (result.success && result.commandId === searchOverlaySetCommandID) void nextTick(() => runQueryByID(searchStatusCommandID, true))
   if (result.success && (result.commandId === questItemEnsureCommandID || result.commandId === questItemRemoveCommandID || result.commandId === questShardUseCommandID)) void nextTick(() => runQueryByID(questItemStatusCommandID, true))
   if (result.success && (result.commandId === worldPositionSetCommandID || result.commandId === movementLandmarkTravelCommandID)) void nextTick(() => runQueryByID(worldPositionStatusCommandID, true))
-  if (result.success && result.commandId === dungeonExplorerSetupCommandID) void nextTick(() => runQueryByID(dungeonExplorerStatusCommandID, true))
   if (result.success && scenarioMutationCommandIDs.includes(result.commandId)) void nextTick(() => runQueryByID(scenarioStatusCommandID, true))
   if (result.success && result.commandId === scenarioDefinitionGetCommandID && result.data) {
     const loaded = result.data as ScenarioDefinitionGetResult
@@ -1351,8 +1278,6 @@ function receiveResult(result: CommandResult): void {
   }
   if (result.success && (result.commandId === deathKillPartyCommandID || result.commandId === deathTestSequenceCommandID)) void nextTick(() => runQueryByID(deathStatusCommandID, true))
   if (result.success && (result.commandId === moongateOverlaySetCommandID || result.commandId === moongateTravelCommandID)) void nextTick(() => runQueryByID(moongateStatusCommandID, true))
-  if (result.success && [vfxKapowCommandID, vfxProjectileCommandID, environmentEarthquakeCommandID].includes(result.commandId)) void nextTick(() => runQueryByID(vfxStatusCommandID, true))
-  if (result.success && result.commandId === lightingOverlaySetCommandID) void nextTick(() => runQueryByID(vfxStatusCommandID, true))
   if (result.success && [monsterGenerationSetCommandID, monsterClearMapEnemiesCommandID, monsterSpawnWhirlpoolCommandID, monsterSpawnPirateCommandID].includes(result.commandId)) {
     void nextTick(() => runQueryByID(monsterEcosystemStatusCommandID, true))
   }
@@ -1392,7 +1317,7 @@ function commandBelongsToWorkspace(command: CommandDefinition, workspace: Worksp
       return false
     case "game":
       return command.id === windStatusCommandID || command.id === calendarStatusCommandID
-        || command.id === worldPositionStatusCommandID || command.id === dungeonExplorerStatusCommandID || command.id === moongateStatusCommandID
+        || command.id === worldPositionStatusCommandID || command.id === moongateStatusCommandID
         || command.id === monsterEcosystemStatusCommandID || command.id === activeCombatStatusCommandID
         || command.id === shrineStatusCommandID || command.id === partyCharacterCommandID
         || command.id === partyEquipmentLoadoutCommandID || command.id === partyCharacterInspectCommandID
@@ -1400,9 +1325,9 @@ function commandBelongsToWorkspace(command: CommandDefinition, workspace: Worksp
         || command.id === vehicleStatusCommandID || command.id === inventoryLockerStatusCommandID
         || command.id === spellInventoryStatusCommandID || command.id === guardStatusCommandID
     case "codex":
-      return command.id === "combat.map-catalog.all" || command.id === shrineStatusCommandID || command.id === conversationCatalogCommandID || codexCommandIDs.includes(command.id)
+      return command.id === "combat.map-catalog.all" || command.id === shrineStatusCommandID
     case "system":
-      return command.id === loggingStatusCommandID || command.id === vfxStatusCommandID
+      return command.id === loggingStatusCommandID
 		 || command.id === debugOptionsStatusCommandID || command.id === displayStatusCommandID
 		 || command.id === reduxModificationsStatusCommandID
     case "scenarios":
@@ -1419,7 +1344,7 @@ function commandBelongsToWorkspace(command: CommandDefinition, workspace: Worksp
 function primaryWorkspaceForCommand(command: CommandDefinition): WorkspaceID {
   if (saveSnapshotCommandIDs.includes(command.id)) return "saves"
   if (command.id === scenarioStatusCommandID) return "scenarios"
-  if (codexCommandIDs.includes(command.id) || command.id === "combat.map-catalog.all" || command.id === conversationCatalogCommandID) return "codex"
+  if (command.id === "combat.map-catalog.all") return "codex"
   if (commandBelongsToWorkspace(command, "system")) return "system"
   if (commandBelongsToWorkspace(command, "game")) return "game"
   return "tools"
@@ -1432,15 +1357,14 @@ function workspaceLabel(workspace: WorkspaceID): string {
 function navigationCategory(command: CommandDefinition, workspace: WorkspaceID): string {
   let category = command.category
   if (workspace === "game") {
-    if ([windStatusCommandID, calendarStatusCommandID, worldPositionStatusCommandID, dungeonExplorerStatusCommandID, moongateStatusCommandID, searchStatusCommandID].includes(command.id)) category = "World"
+    if ([windStatusCommandID, calendarStatusCommandID, worldPositionStatusCommandID, moongateStatusCommandID, searchStatusCommandID].includes(command.id)) category = "World"
     else if ([partyCharacterCommandID, partyEquipmentLoadoutCommandID, partyCharacterInspectCommandID, inventoryLockerStatusCommandID, spellInventoryStatusCommandID, questItemStatusCommandID].includes(command.id)) category = "Party & Inventory"
     else if ([activeCombatStatusCommandID, monsterEcosystemStatusCommandID].includes(command.id)) category = "Combat & Creatures"
     else category = "Vehicles & Progression"
   } else if (workspace === "system") {
     if (command.id === loggingStatusCommandID) category = "Application"
     else if (command.id === reduxModificationsStatusCommandID) category = "Redux Modifications"
-    else if ([displayStatusCommandID, debugOptionsStatusCommandID].includes(command.id)) category = "Game Window"
-    else category = "Presentation"
+    else category = "Game Window"
   } else if (workspace === "scenarios") {
     category = "Scenarios"
   } else if (workspace === "tools") {
@@ -1449,18 +1373,14 @@ function navigationCategory(command: CommandDefinition, workspace: WorkspaceID):
     else if (command.id === merchantTesterCatalogCommandID) category = "Merchant Testing"
     else category = "Advanced Commands"
   } else if (workspace === "codex") {
-    if ([conversationCatalogCommandID, "codex.npc.catalog"].includes(command.id)) category = "People & Dialogue"
-    else if (["combat.map-catalog.all", "codex.tile.catalog", "codex.location.catalog", "codex.search-location.catalog"].includes(command.id)) category = "World & Maps"
-    else if (["codex.save-format.catalog"].includes(command.id)) category = "Data Formats"
-    else if (command.id === shrineStatusCommandID) category = "Virtues"
-    else category = "Rules & Indexes"
+    category = command.id === shrineStatusCommandID ? "Virtues" : "World & Maps"
   }
   return commandSearch.value.trim() ? `${workspaceLabel(workspace)} / ${category}` : category
 }
 
 function navigationCategoryOrder(name: string): number {
   const category = name.includes(" / ") ? name.slice(name.indexOf(" / ") + 3) : name
-  const order = ["World", "Party & Inventory", "Combat & Creatures", "Vehicles & Progression", "Rules & Indexes", "World & Maps", "People & Dialogue", "Virtues", "Data Formats", "Application", "Game Window", "Redux Modifications", "Presentation", "Scenarios", "Workflows", "Encounter Setup", "Merchant Testing", "Advanced Commands"]
+  const order = ["World", "Party & Inventory", "Combat & Creatures", "Vehicles & Progression", "World & Maps", "Virtues", "Application", "Game Window", "Redux Modifications", "Scenarios", "Workflows", "Encounter Setup", "Merchant Testing", "Advanced Commands"]
   const index = order.indexOf(category)
   return index < 0 ? order.length : index
 }
@@ -1478,7 +1398,7 @@ function workspaceCommandName(command: CommandDefinition, workspace = activeWork
 }
 
 function workspaceCommandDescription(command: CommandDefinition, workspace = activeWorkspace.value): string {
-	if (command.id === scenarioStatusCommandID) return "Manage shared and personal scenario definitions, use immutable quick setups, and review retained runs."
+	if (command.id === scenarioStatusCommandID) return "Manage shared and personal scenario definitions, use camping and death quick setups, and review retained runs."
 	if (command.id === saveSnapshotListCommandID) return "Capture, inspect, load, and revision-safely remove immutable gameplay checkpoints."
 	if (command.id === observationCommandID) return "Queue the production Telescope, Spyglass, or Crystal Ball workflow and inspect its expected branch and context."
 	if (command.id === guardStatusCommandID) return "Inspect hidden guard hostility, Shadowlord placement, and death/resurrection consequences."
@@ -1504,15 +1424,12 @@ function companionOwnerCommandID(commandID: string): string {
   if ([searchItemStackAddCommandID, searchProgressResetCommandID, searchOverlaySetCommandID, commandTestSearchCommandID].includes(commandID)) return searchStatusCommandID
   if ([questItemEnsureCommandID, questItemRemoveCommandID, questShardUseCommandID, usableInventoryPresetCommandID].includes(commandID)) return questItemStatusCommandID
   if (commandID === worldPositionSetCommandID || commandID === movementLandmarkTravelCommandID) return worldPositionStatusCommandID
-  if (commandID === dungeonExplorerSetupCommandID) return dungeonExplorerStatusCommandID
   if (scenarioCompanionCommandIDs.includes(commandID) || scenarioMutationCommandIDs.includes(commandID)) return scenarioStatusCommandID
   if (saveSnapshotCommandIDs.includes(commandID)) return saveSnapshotListCommandID
   if (observationCommandIDs.includes(commandID as ObservationCommandID)) return observationCommandID
   if ([moongateOverlaySetCommandID, moongateTravelCommandID].includes(commandID)) return moongateStatusCommandID
-  if (commandID === conversationInspectCommandID) return conversationCatalogCommandID
   if (commandID === combatEncounterStartCommandID) return combatEncounterOptionsCommandID
   if (merchantTesterOperationCommandIDs.includes(commandID)) return merchantTesterCatalogCommandID
-  if ([vfxKapowCommandID, vfxProjectileCommandID, environmentEarthquakeCommandID, lightingOverlaySetCommandID].includes(commandID)) return vfxStatusCommandID
   if ([monsterGenerationSetCommandID, monsterClearMapEnemiesCommandID, monsterSpawnWhirlpoolCommandID, monsterSpawnPirateCommandID].includes(commandID)) return monsterEcosystemStatusCommandID
   if (shipMutationCommandIDs.includes(commandID)) return vehicleStatusCommandID
   if (debugOptionsMutationCommandIDs.includes(commandID)) return debugOptionsStatusCommandID
@@ -1577,14 +1494,13 @@ function openScenarioFromHome(task: "library" | "latest-run", runID?: string): v
 function instrumentModeLabel(command: CommandDefinition): string {
   if (command.id === observationCommandID) return "GAME-WINDOW OBSERVATION WORKFLOWS"
   if (command.id === shrineStatusCommandID && activeWorkspace.value === "game") return "LIVE STATE + EXPLICIT ALTERATION"
-  if (command.id === shrineStatusCommandID || command.id === "combat.map-catalog.all" || command.id === conversationCatalogCommandID || codexCommandIDs.includes(command.id)) return "IMMUTABLE REFERENCE"
+  if (command.id === shrineStatusCommandID || command.id === "combat.map-catalog.all") return "IMMUTABLE REFERENCE"
   if (command.id === combatEncounterOptionsCommandID) return "SYNCHRONIZED COMPOSER"
 	if (command.id === merchantTesterCatalogCommandID) return "QUERY + PREVIEW + DESTRUCTIVE LIVE"
 	if (command.id === worldPositionStatusCommandID) return "POSITION SNAPSHOT + EXPLICIT CONTROL"
   if (command.id === windStatusCommandID || command.id === calendarStatusCommandID || command.id === searchStatusCommandID
-    || command.id === questItemStatusCommandID || command.id === dungeonExplorerStatusCommandID) return "LIVE TELEMETRY + EXPLICIT CONTROL"
+    || command.id === questItemStatusCommandID) return "LIVE TELEMETRY + EXPLICIT CONTROL"
   if (command.id === moongateStatusCommandID) return "LIVE TELEMETRY + ROUTING REFERENCE"
-  if (command.id === vfxStatusCommandID) return "LIVE TELEMETRY + PRESENTATION CONTROL"
 	if (command.id === monsterEcosystemStatusCommandID || command.id === vehicleStatusCommandID || command.id === debugOptionsStatusCommandID || command.id === displayStatusCommandID) return "LIVE TELEMETRY + EXPLICIT CONTROL"
   if (command.id === activeCombatStatusCommandID) return "LIVE TACTICAL TELEMETRY + REVIEWED CONTROL"
 	if (command.id === partyCharacterCommandID) return "ACTIVE CHARACTER + PREVIEWED ALTERATION"
@@ -1605,8 +1521,8 @@ function instrumentExecutionModes(command: CommandDefinition): string {
 
 function instrumentOwnsMutation(command: CommandDefinition): boolean {
   return isMutation(command) || command.id === windStatusCommandID || command.id === calendarStatusCommandID
-    || command.id === searchStatusCommandID || command.id === questItemStatusCommandID || command.id === worldPositionStatusCommandID || command.id === dungeonExplorerStatusCommandID
-     || command.id === combatEncounterOptionsCommandID || command.id === vfxStatusCommandID || command.id === monsterEcosystemStatusCommandID
+    || command.id === searchStatusCommandID || command.id === questItemStatusCommandID || command.id === worldPositionStatusCommandID
+     || command.id === combatEncounterOptionsCommandID || command.id === monsterEcosystemStatusCommandID
      || command.id === vehicleStatusCommandID || command.id === debugOptionsStatusCommandID || command.id === displayStatusCommandID
      || command.id === inventoryLockerStatusCommandID
      || command.id === spellInventoryStatusCommandID
@@ -1621,9 +1537,8 @@ function instrumentWidthClass(command: CommandDefinition): string {
   if (command.id === windStatusCommandID || command.id === calendarStatusCommandID) return "instrument--narrow"
   if (command.id === partyCharacterCommandID || command.id === partyCharacterInspectCommandID || command.id === shrineStatusCommandID && activeWorkspace.value === "game"
     || command.id === searchStatusCommandID || command.id === questItemStatusCommandID || command.id === worldPositionStatusCommandID) return "instrument--editor"
-  if (command.id === dungeonExplorerStatusCommandID) return "instrument--reference"
-  if (command.id === "combat.map-catalog.all" || command.id === shrineStatusCommandID || command.id === conversationCatalogCommandID || codexCommandIDs.includes(command.id)) return "instrument--reference"
-  if (command.id === combatEncounterOptionsCommandID || command.id === vfxStatusCommandID
+  if (command.id === "combat.map-catalog.all" || command.id === shrineStatusCommandID) return "instrument--reference"
+  if (command.id === combatEncounterOptionsCommandID
 	 || command.id === monsterEcosystemStatusCommandID || command.id === vehicleStatusCommandID || command.id === debugOptionsStatusCommandID || command.id === displayStatusCommandID) return "instrument--editor"
 	if (command.id === guardStatusCommandID) return "instrument--reference"
   if (command.id === inventoryLockerStatusCommandID || command.id === spellInventoryStatusCommandID) return "instrument--reference"
@@ -1670,11 +1585,6 @@ function autoExecuteSelectedQuery(): void {
 	}
   if (activeWorkspace.value === "tools" && ![scenarioStatusCommandID, combatEncounterOptionsCommandID, merchantTesterCatalogCommandID].includes(command.id)) return
   if (["combat.map-catalog.all", combatEncounterOptionsCommandID].includes(command.id) && latestResults.value[command.id]) return
-  if (command.id === conversationCatalogCommandID) {
-    const loadedSource = (latestResults.value[command.id]?.data as ConversationCatalogData | undefined)?.selectedSource
-    if (loadedSource === conversationSource.value) return
-    drafts.value[command.id] = { source: conversationSource.value }
-  }
   runCommand(command, true)
 }
 
@@ -2241,37 +2151,6 @@ function scenarioCaptureState(result: ResultEntry): "completed" | "pending" | "r
   return resultEligibleForScenario(result) ? "ready" : "unavailable"
 }
 
-function selectConversationSource(source: string): void {
-  if (source === conversationSource.value) return
-  conversationSource.value = source
-  selectedConversationIndex.value = -1
-  const command = supportedCommands.value.find((candidate) => candidate.id === conversationCatalogCommandID)
-  if (!command) return
-  drafts.value[command.id] = { source }
-  runCommand(command, true)
-}
-
-function inspectConversationScript(index: number): void {
-  selectedConversationIndex.value = index
-  const command = supportedCommands.value.find((candidate) => candidate.id === conversationInspectCommandID)
-  if (!command) return
-  drafts.value[command.id] = { source: conversationSource.value, index: String(index) }
-  runCommand(command, true)
-}
-
-function openNPCConversation(value: { source: string; index: number }): void {
-  activeWorkspace.value = "codex"
-  selectedCommandID.value = conversationCatalogCommandID
-  conversationSource.value = value.source
-  selectedConversationIndex.value = value.index
-  const catalog = supportedCommands.value.find((candidate) => candidate.id === conversationCatalogCommandID)
-  if (catalog) {
-    drafts.value[catalog.id] = { source: value.source }
-    runCommand(catalog, true)
-  }
-  inspectConversationScript(value.index)
-}
-
 function setMonsterGeneration(value: { enabled: boolean; odds: number }): void {
   runSpecializedMutation(monsterGenerationSetCommandID, { enabled: String(value.enabled), odds: String(value.odds) })
 }
@@ -2324,36 +2203,6 @@ function applyWorldPosition(value: {
   if (value.x !== undefined) argumentsByID.x = String(value.x)
   if (value.y !== undefined) argumentsByID.y = String(value.y)
   runSpecializedMutation(worldPositionSetCommandID, argumentsByID)
-}
-
-function applyDungeonSetup(value: {
-  dungeon: string
-  floor: number
-  x: number
-  y: number
-  facing: string
-  lit: boolean
-  expectedLocationId: number
-  expectedFloor: number
-  expectedX: number
-  expectedY: number
-  expectedDungeonRevision: number
-  expectedSourceFingerprint: string
-}): void {
-  runSpecializedMutation(dungeonExplorerSetupCommandID, {
-    dungeon: value.dungeon,
-    floor: String(value.floor),
-    x: String(value.x),
-    y: String(value.y),
-    facing: value.facing,
-    lit: String(value.lit),
-    expectedLocationId: String(value.expectedLocationId),
-    expectedFloor: String(value.expectedFloor),
-    expectedX: String(value.expectedX),
-    expectedY: String(value.expectedY),
-    expectedSourceFingerprint: value.expectedSourceFingerprint,
-    expectedDungeonRevision: String(value.expectedDungeonRevision),
-  })
 }
 
 function openWorldNavigator(value: { x: number; y: number }): void {
@@ -2601,20 +2450,8 @@ function worldPositionStatusData(value: unknown): WorldPositionStatusData {
   return value as WorldPositionStatusData
 }
 
-function dungeonExplorerStatusData(value: unknown): DungeonExplorerStatusData {
-  return value as DungeonExplorerStatusData
-}
-
 function moongateStatusData(value: unknown): MoongateStatusData {
   return value as MoongateStatusData
-}
-
-function conversationCatalogData(value: unknown): ConversationCatalogData {
-  return value as ConversationCatalogData
-}
-
-function conversationDetailData(value: unknown): ConversationDetailData {
-  return value as ConversationDetailData
 }
 
 function combatEncounterOptionsData(value: unknown): CombatEncounterOptionsData {
@@ -2623,10 +2460,6 @@ function combatEncounterOptionsData(value: unknown): CombatEncounterOptionsData 
 
 function merchantTesterCatalogData(value: unknown): MerchantTesterCatalogData {
   return value as MerchantTesterCatalogData
-}
-
-function vfxStatusData(value: unknown): VFXStatusData {
-  return value as VFXStatusData
 }
 
 function monsterEcosystemData(value: unknown): MonsterEcosystemData {
@@ -2949,7 +2782,7 @@ onBeforeUnmount(() => {
         </p>
       </aside>
 
-      <section v-if="activeWorkspace !== 'home'" class="instrument-bank" :class="{ 'is-codex-long': activeWorkspace === 'codex' && selectedCommand ? longCodexCommandIDs.has(selectedCommand.id) : false, 'is-codex-flow': activeWorkspace === 'codex' && selectedCommand ? flowCodexCommandIDs.has(selectedCommand.id) : false }" aria-labelledby="instrument-title">
+      <section v-if="activeWorkspace !== 'home'" class="instrument-bank" aria-labelledby="instrument-title">
         <div v-if="activeWorkspace !== 'scenarios' && activeWorkspace !== 'saves'" class="section-heading">
           <span>02</span>
           <h2 id="instrument-title">Active Instrument</h2>
@@ -3056,14 +2889,6 @@ onBeforeUnmount(() => {
             :data="latestScenarioStatusResult?.data as ScenarioStatusData | undefined"
             :updated-at="latestScenarioStatusResult?.receivedAt"
             :pending-status="commandPending(scenarioStatusCommandID)"
-            :pending-direct="commandPending(scenarioStarvationTriggerCommandID)"
-            :pending-hourly="commandPending(scenarioStarvationHourlyCommandID)"
-            :pending-guards="commandPending(scenarioGuardsActivateCommandID)"
-            :pending-waterfall="commandPending(scenarioWaterfallSetupCommandID)"
-            :pending-bridge-troll="commandPending(scenarioBridgeTrollCommandID)"
-            :pending-word="commandPending(scenarioWordSetupCommandID)"
-            :pending-blackthorn-interrogation="commandPending(scenarioBlackthornInterrogationCommandID)"
-            :pending-lord-british-finale="commandPending(scenarioLordBritishFinaleCommandID)"
             :pending-hole-up="commandPending(commandTestHoleUpCommandID)"
             :pending-kill-party="commandPending(deathKillPartyCommandID)"
             :pending-death-sequence="commandPending(deathTestSequenceCommandID)"
@@ -3076,7 +2901,6 @@ onBeforeUnmount(() => {
             :historical-run-issue="historicalRunIssue"
             :reviewed-baseline-revision="scenarioReviewedBaselineRevision"
             :reviewed-scene-generation="scenarioReviewedSceneGeneration"
-            :word-choices="scenarioWordChoices"
             :composer="scenarioComposer"
             :definition-list="latestScenarioDefinitionListResult?.data ? scenarioDefinitionListData(latestScenarioDefinitionListResult.data) : undefined"
             :run-status="latestScenarioRunStatusResult?.data ? scenarioRunStatusData(latestScenarioRunStatusResult.data) : undefined"
@@ -3168,15 +2992,6 @@ onBeforeUnmount(() => {
             @apply="applyWorldPosition"
             @travel-landmark="(landmark) => runSpecializedMutation(movementLandmarkTravelCommandID, { landmark })"
           />
-          <DungeonExplorer
-            v-else-if="selectedCommand.id === dungeonExplorerStatusCommandID"
-            :data="latestDungeonExplorerResult?.data ? dungeonExplorerStatusData(latestDungeonExplorerResult.data) : undefined"
-            :updated-at="latestDungeonExplorerResult?.receivedAt"
-            :pending="commandPending(dungeonExplorerStatusCommandID) || commandPending(dungeonExplorerSetupCommandID)"
-            :dungeons="dungeonChoices"
-            :facings="dungeonFacingChoices"
-            @apply="applyDungeonSetup"
-          />
           <MoongateAtlas
             v-else-if="selectedCommand.id === moongateStatusCommandID"
             :data="latestMoongateResult?.data ? moongateStatusData(latestMoongateResult.data) : undefined"
@@ -3215,50 +3030,6 @@ onBeforeUnmount(() => {
             :pending="commandPending(selectedCommand.id)"
             @section="updateSelectedCombatSection"
           />
-          <TileAtlas
-            v-else-if="selectedCommand.id === 'codex.tile.catalog'"
-            :data="latestResults[selectedCommand.id]?.data as TileAtlasEntry[] | undefined"
-          />
-          <NPCScheduleIndex
-            v-else-if="selectedCommand.id === 'codex.npc.catalog'"
-            :data="latestResults[selectedCommand.id]?.data as NPCScheduleEntry[] | undefined"
-            @conversation="openNPCConversation"
-          />
-          <SearchLocationAtlas
-            v-else-if="selectedCommand.id === 'codex.search-location.catalog'"
-            :data="latestResults[selectedCommand.id]?.data as SearchLocationAtlasEntry[] | undefined"
-          />
-          <ConsumablesCodex
-            v-else-if="selectedCommand.id === 'codex.consumable.catalog'"
-            :data="latestResults[selectedCommand.id]?.data as ConsumableCodexEntry[] | undefined"
-          />
-          <SpellGrimoire
-            v-else-if="selectedCommand.id === 'codex.spell.catalog'"
-            :data="latestResults[selectedCommand.id]?.data as SpellGrimoireEntry[] | undefined"
-          />
-          <CodexCatalog
-            v-else-if="codexCommandIDs.includes(selectedCommand.id)"
-            :title="selectedCommand.name"
-            :subtitle="selectedCommand.description"
-            :data="latestResults[selectedCommand.id]?.data as Record<string, unknown>[] | undefined"
-            :sticky-header="longCodexCommandIDs.has(selectedCommand.id)"
-          />
-          <ConversationScriptExplorer
-            v-else-if="selectedCommand.id === conversationCatalogCommandID"
-            :catalog="latestConversationCatalogResult?.data
-              && conversationCatalogData(latestConversationCatalogResult.data).selectedSource === conversationSource
-              ? conversationCatalogData(latestConversationCatalogResult.data) : undefined"
-            :detail="latestConversationDetailResult?.data
-              && conversationDetailData(latestConversationDetailResult.data).sourceId === conversationSource
-              && conversationDetailData(latestConversationDetailResult.data).index === selectedConversationIndex
-              ? conversationDetailData(latestConversationDetailResult.data) : undefined"
-            :source="conversationSource"
-            :selected-index="selectedConversationIndex"
-            :catalog-pending="commandPending(conversationCatalogCommandID)"
-            :detail-pending="commandPending(conversationInspectCommandID)"
-            @source="selectConversationSource"
-            @inspect="inspectConversationScript"
-          />
           <CombatEncounterComposer
             v-else-if="selectedCommand.id === combatEncounterOptionsCommandID"
             :options="latestCombatEncounterOptionsResult?.data ? combatEncounterOptionsData(latestCombatEncounterOptionsResult.data) : undefined"
@@ -3275,18 +3046,6 @@ onBeforeUnmount(() => {
             :pending-live="commandPending(merchantTesterLiveCommandID)"
             @preview="(argumentsByID) => runSpecializedMutation(merchantTesterPreviewCommandID, argumentsByID)"
             @live="(argumentsByID) => runSpecializedMutation(merchantTesterLiveCommandID, argumentsByID)"
-          />
-          <VFXTestBench
-            v-else-if="selectedCommand.id === vfxStatusCommandID"
-            :status="latestVFXStatusResult?.data ? vfxStatusData(latestVFXStatusResult.data) : undefined"
-            :pending-kapow="commandPending(vfxKapowCommandID)"
-            :pending-projectile="commandPending(vfxProjectileCommandID)"
-            :pending-earthquake="commandPending(environmentEarthquakeCommandID)"
-            :pending-lighting-overlay="commandPending(lightingOverlaySetCommandID)"
-            @kapow="(argumentsByID) => runSpecializedMutation(vfxKapowCommandID, argumentsByID)"
-            @projectile="(argumentsByID) => runSpecializedMutation(vfxProjectileCommandID, argumentsByID)"
-            @earthquake="(argumentsByID) => runSpecializedMutation(environmentEarthquakeCommandID, argumentsByID)"
-            @set-lighting-overlay="(enabled) => runSpecializedMutation(lightingOverlaySetCommandID, { enabled: String(enabled) })"
           />
           <MonsterEcosystemConsole
             v-else-if="selectedCommand.id === monsterEcosystemStatusCommandID"

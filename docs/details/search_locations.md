@@ -1,10 +1,9 @@
 # Ultima V Search Locations
 
 This document describes the 113 fixed Search records, their
-class-aware Redux decoding, and Search persistence. The Debug Workbench Search
-Location Atlas (`codex.search-location.catalog`) is the exhaustive per-record
-view; it is generated from the same immutable source-order arrays used by
-gameplay and avoids maintaining a second hand-transcribed table here. The
+class-aware Redux decoding, and Search persistence. The
+[record table](#record-table) lists every record; the immutable source-order
+arrays in `internal/references/search_locations.go` remain authoritative. The
 canonical behavioral reference is [CMD-0007](../gamefacts/COMMANDS_REFERENCE.md#cmd-0007).
 
 ## Source Records
@@ -63,6 +62,130 @@ armour quantities or 41-torch caches.
 Records 13 and 15 do not set ordinary one-time found bits. Their inventory and
 coordinate conditions control later availability. Record 14 stores the day on
 successful placement and can regenerate on a different day.
+
+## Record Table
+
+Generated from `GetAllSearchLocations` and `DecodeSearchLocationItem`. Location
+names are the `references.Location` identifiers with the raw map number in
+parentheses; floor `-1` is the Underworld on map 0 and a basement elsewhere.
+Class/payload are the raw source bytes; equipment, potion and scroll results are
+one item, while provisions show their pickup quantity.
+
+| # | Location (map) | Floor | X,Y | Class/payload | Decoded result |
+|---:|---|---:|---|---|---|
+| 0 | BritanniaUnderworld (0) | -1 | 233,233 | `0b/0f` | Mystic Armour |
+| 1 | BritanniaUnderworld (0) | -1 | 233,233 | `05/29` | Mystic Sword |
+| 2 | BritanniaUnderworld (0) | -1 | 233,233 | `0b/0f` | Mystic Armour |
+| 3 | BritanniaUnderworld (0) | -1 | 233,233 | `05/29` | Mystic Sword |
+| 4 | BritanniaUnderworld (0) | -1 | 233,233 | `0b/0f` | Mystic Armour |
+| 5 | BritanniaUnderworld (0) | -1 | 233,233 | `05/29` | Mystic Sword |
+| 6 | BritanniaUnderworld (0) | -1 | 233,233 | `0b/0f` | Mystic Armour |
+| 7 | BritanniaUnderworld (0) | -1 | 233,233 | `05/29` | Mystic Sword |
+| 8 | BritanniaUnderworld (0) | -1 | 233,233 | `0b/0f` | Mystic Armour |
+| 9 | BritanniaUnderworld (0) | -1 | 233,233 | `05/29` | Mystic Sword |
+| 10 | BritanniaUnderworld (0) | -1 | 233,233 | `0b/0f` | Mystic Armour |
+| 11 | BritanniaUnderworld (0) | -1 | 233,233 | `05/29` | Mystic Sword |
+| 12 | EastBritanny (21) | 0 | 15,2 | `04/ff` | H.M.S. Cape Plans |
+| 13 | PalaceOfBlackthorn (18) | -1 | 8,6 | `07/09` | Keys ×9 |
+| 14 | Minoc (5) | 0 | 2,2 | `07/85` | Skull Keys ×5 |
+| 15 | BritanniaUnderworld (0) | 0 | 64,80 | `05/27` | Glass Sword |
+| 16 | PalaceOfBlackthorn (18) | 1 | 7,6 | `05/23` | Sword of Chaos |
+| 17 | PalaceOfBlackthorn (18) | 1 | 23,6 | `05/28` | Jeweled Sword |
+| 18 | Moonglow (1) | 0 | 8,5 | `08/01` | Gems ×1 |
+| 19 | Moonglow (1) | 0 | 25,6 | `0b/0a` | Leather Armour |
+| 20 | Moonglow (1) | 0 | 25,8 | `0b/0a` | Leather Armour |
+| 21 | Moonglow (1) | 0 | 23,5 | `03/05` | Purple Potion |
+| 22 | Moonglow (1) | 0 | 13,13 | `03/06` | Black Potion |
+| 23 | Moonglow (1) | 0 | 14,13 | `03/07` | White Potion |
+| 24 | Moonglow (1) | 0 | 16,13 | `04/05` | Kal Xen Corp Scroll |
+| 25 | Moonglow (1) | 0 | 17,13 | `04/07` | An Tym Scroll |
+| 26 | Moonglow (1) | 1 | 24,19 | `0f/0a` | Food ×10 |
+| 27 | Moonglow (1) | 0 | 27,3 | `0d/03` | Torches ×3 |
+| 28 | Moonglow (1) | 0 | 27,29 | `0a/2a` | Ring of Invisibility |
+| 29 | Britain (2) | 0 | 2,1 | `0f/05` | Food ×5 |
+| 30 | Britain (2) | 0 | 6,26 | `05/14` | Main Gauche |
+| 31 | Britain (2) | 1 | 24,6 | `0a/2b` | Ring of Protection |
+| 32 | Jhelom (3) | 0 | 21,16 | `04/01` | Rel Hur Scroll |
+| 33 | Jhelom (3) | 0 | 20,10 | `0f/05` | Food ×5 |
+| 34 | Jhelom (3) | 0 | 29,1 | `0f/0a` | Food ×10 |
+| 35 | Jhelom (3) | 0 | 30,23 | `05/26` | Magic Axe |
+| 36 | Jhelom (3) | 0 | 1,29 | `0d/04` | Torches ×4 |
+| 37 | Yew (4) | 0 | 29,11 | `05/12` | Club |
+| 38 | Yew (4) | 0 | 22,26 | `03/03` | Green Potion |
+| 39 | Yew (4) | 0 | 1,26 | `04/04` | In Quas Wis Scroll |
+| 40 | Yew (4) | 0 | 13,2 | `1f/00` | Moldy corpse |
+| 41 | Yew (4) | 0 | 14,2 | `1f/00` | Moldy corpse |
+| 42 | Yew (4) | 0 | 14,4 | `1e/00` | Rotting body |
+| 43 | Yew (4) | 0 | 16,3 | `1e/00` | Rotting body |
+| 44 | Yew (4) | 0 | 18,2 | `1e/00` | Rotting body |
+| 45 | Yew (4) | 0 | 16,3 | `05/15` | Spear |
+| 46 | Yew (4) | -1 | 27,22 | `05/25` | Silver Sword |
+| 47 | Yew (4) | -1 | 20,22 | `07/05` | Keys ×5 |
+| 48 | Minoc (5) | 0 | 27,8 | `02/63` | Gold ×99 |
+| 49 | Minoc (5) | 1 | 13,11 | `04/01` | Rel Hur Scroll |
+| 50 | Minoc (5) | 1 | 12,11 | `04/01` | Rel Hur Scroll |
+| 51 | Minoc (5) | 1 | 8,21 | `03/01` | Yellow Potion |
+| 52 | Minoc (5) | 1 | 8,23 | `03/02` | Red Potion |
+| 53 | Minoc (5) | 1 | 7,23 | `04/06` | In Mani Corp Scroll |
+| 54 | Trinsic (6) | 1 | 24,6 | `08/04` | Gems ×4 |
+| 55 | SkaraBrae (7) | 0 | 5,2 | `1e/00` | Rotting body |
+| 56 | SkaraBrae (7) | 0 | 6,7 | `03/01` | Yellow Potion |
+| 57 | NewMagincia (8) | 1 | 21,18 | `03/03` | Green Potion |
+| 58 | NewMagincia (8) | 1 | 25,21 | `07/07` | Keys ×7 |
+| 59 | Fogsbane (9) | 0 | 10,12 | `0d/09` | Torches ×9 |
+| 60 | Greyhaven (11) | 0 | 21,15 | `03/00` | Blue Potion |
+| 61 | Greyhaven (11) | 0 | 14,9 | `08/05` | Gems ×5 |
+| 62 | Greyhaven (11) | 0 | 16,12 | `02/32` | Gold ×50 |
+| 63 | IolosHut (13) | 0 | 24,2 | `03/07` | White Potion |
+| 64 | SuteksHut (14) | 0 | 16,12 | `04/05` | Kal Xen Corp Scroll |
+| 65 | SuteksHut (14) | 0 | 14,16 | `0c/2d` | Amulet of Turning |
+| 66 | SuteksHut (14) | 0 | 17,12 | `04/07` | An Tym Scroll |
+| 67 | SuteksHut (14) | 0 | 14,12 | `03/04` | Orange Potion |
+| 68 | LordBritishsCastle (17) | 0 | 20,7 | `0b/0a` | Leather Armour |
+| 69 | LordBritishsCastle (17) | 0 | 21,7 | `0b/0b` | Ring Mail |
+| 70 | LordBritishsCastle (17) | 0 | 22,7 | `0b/09` | Cloth Armour |
+| 71 | LordBritishsCastle (17) | 0 | 23,7 | `0b/0c` | Scale Mail |
+| 72 | LordBritishsCastle (17) | 1 | 21,13 | `05/1e` | Long Sword |
+| 73 | LordBritishsCastle (17) | -1 | 7,18 | `07/07` | Keys ×7 |
+| 74 | LordBritishsCastle (17) | -1 | 20,23 | `0a/2c` | Ring of Regeneration |
+| 75 | PalaceOfBlackthorn (18) | 1 | 17,18 | `03/03` | Green Potion |
+| 76 | PalaceOfBlackthorn (18) | 2 | 13,6 | `04/05` | Kal Xen Corp Scroll |
+| 77 | PalaceOfBlackthorn (18) | 2 | 14,6 | `04/05` | Kal Xen Corp Scroll |
+| 78 | PalaceOfBlackthorn (18) | 2 | 16,6 | `04/02` | In Sanct Scroll |
+| 79 | PalaceOfBlackthorn (18) | 2 | 17,6 | `04/07` | An Tym Scroll |
+| 80 | PalaceOfBlackthorn (18) | 2 | 19,7 | `0a/2b` | Ring of Protection |
+| 81 | WestBritanny (19) | 0 | 3,2 | `1e/00` | Rotting body |
+| 82 | WestBritanny (19) | 0 | 5,7 | `1e/00` | Rotting body |
+| 83 | WestBritanny (19) | 0 | 7,7 | `1e/00` | Rotting body |
+| 84 | WestBritanny (19) | 0 | 7,2 | `1e/00` | Rotting body |
+| 85 | WestBritanny (19) | 0 | 5,7 | `04/06` | In Mani Corp Scroll |
+| 86 | WestBritanny (19) | 0 | 3,2 | `0a/2c` | Ring of Regeneration |
+| 87 | NorthBritanny (20) | 0 | 18,25 | `08/03` | Gems ×3 |
+| 88 | EastBritanny (21) | 0 | 13,2 | `04/01` | Rel Hur Scroll |
+| 89 | EastBritanny (21) | 0 | 14,2 | `04/01` | Rel Hur Scroll |
+| 90 | EastBritanny (21) | 0 | 16,2 | `04/01` | Rel Hur Scroll |
+| 91 | Paws (22) | 0 | 13,13 | `0a/2a` | Ring of Invisibility |
+| 92 | Paws (22) | 0 | 3,12 | `07/05` | Keys ×5 |
+| 93 | Cove (23) | 0 | 15,1 | `0c/2f` | Ankh |
+| 94 | BuccaneersDen (24) | 0 | 19,22 | `07/01` | Keys ×1 |
+| 95 | BuccaneersDen (24) | 0 | 19,22 | `03/03` | Green Potion |
+| 96 | Ararat (25) | 0 | 25,16 | `04/01` | Rel Hur Scroll |
+| 97 | Bordermarch (26) | 0 | 11,4 | `0c/2e` | Spiked Collar |
+| 98 | Farthing (27) | 0 | 11,17 | `03/05` | Purple Potion |
+| 99 | Farthing (27) | 0 | 10,17 | `03/04` | Orange Potion |
+| 100 | Windemere (28) | 0 | 19,22 | `04/05` | Kal Xen Corp Scroll |
+| 101 | Lycaeum (30) | 2 | 23,9 | `0a/2a` | Ring of Invisibility |
+| 102 | Lycaeum (30) | 2 | 23,7 | `0c/2e` | Spiked Collar |
+| 103 | Lycaeum (30) | 2 | 20,7 | `03/07` | White Potion |
+| 104 | Lycaeum (30) | 1 | 22,19 | `05/12` | Club |
+| 105 | Lycaeum (30) | 1 | 22,17 | `0c/2e` | Spiked Collar |
+| 106 | EmpathAbbey (31) | 0 | 6,3 | `03/01` | Yellow Potion |
+| 107 | EmpathAbbey (31) | 0 | 19,7 | `0f/14` | Food ×20 |
+| 108 | SerpentsHold (32) | 1 | 8,21 | `03/07` | White Potion |
+| 109 | Moonglow (1) | 1 | 19,24 | `0f/10` | Food ×16 |
+| 110 | Moonglow (1) | 1 | 20,24 | `0f/0d` | Food ×13 |
+| 111 | LordBritishsCastle (17) | 2 | 12,12 | `03/06` | Black Potion |
+| 112 | LordBritishsCastle (17) | 2 | 12,12 | `04/07` | An Tym Scroll |
 
 ## Search Command Flow
 
@@ -150,7 +273,6 @@ Focused coverage includes:
 - `internal/game_state/surface_corpse_persistence_test.go`
 - `internal/game_state/search_save_data_integration_test.go`
 
-The Workbench `codex.search-location.catalog` query exposes raw class/payload,
-decoded item identity, pickup quantity semantics, exact map/floor/coordinate,
-and repeat requirements for every record. It is immutable reference data and
-does not expose or mutate live found state.
+`search_locations_decode_test.go` pins the raw source tables and checks that
+every record decodes to a catalog item or world object. Regenerate the record
+table from the same functions if the source arrays change.

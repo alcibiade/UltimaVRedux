@@ -33,7 +33,7 @@ resulting catalog is executed by `SemanticConversationEngine`.
 Original TLK records, opcodes, keywords, and flow are documented separately in
 [Talk System Structure](../gamefacts/TALK_SYSTEM_STRUCTURE.md).
 
-Gameplay, Workbench inspection, and offline lookup all use the semantic catalog.
+Gameplay and offline lookup both use the semantic catalog.
 Original binary decoding belongs to the importer; no compatibility AST or
 second interpreter is loaded. Shared response/action contracts live in
 `internal/conversation/protocol.go`. Talk callbacks expose NPC dialog creation
@@ -327,15 +327,8 @@ path, or hunk mismatches.
 
 ## Inspection And Tests
 
-The Workbench Conversation Script Explorer is inspection-only and reads the
-exact patched semantic document from the production catalog. Source counts and
-dialog summaries use sorted actual catalog identities, not a separately decoded
-model. NPC Schedule Index resolves names, descriptions, and Explorer links from
-the same semantic programs. Inspection does not execute or mutate conversations.
-The browser request index remains zero-based; semantic dialog identities are
-one-based. Neither is an NPC map-unit slot.
-
-For offline lookup, `go run ./cmd/ref_dump --output u5dump/json` exports
+Semantic dialog identities are one-based and are not NPC map-unit slots. For
+offline lookup, `go run ./cmd/ref_dump --output u5dump/json` exports
 `ConversationCatalog.json` alongside NPC, tile, and location snapshots.
 Conversation values are the exact post-patch semantic documents converted to
 JSON, not another script format. `scripts/npc-lookup.py` uses them for name and

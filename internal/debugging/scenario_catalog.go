@@ -5,18 +5,6 @@ import "encoding/json"
 const (
 	// CommandScenarioStatus reports context and state used by forced scenarios.
 	CommandScenarioStatus = "scenario.status"
-	// CommandScenarioStarvationTrigger applies one deterministic starvation damage check.
-	CommandScenarioStarvationTrigger = "scenario.starvation.trigger"
-	// CommandScenarioStarvationHourly forces zero food and the authentic hourly meal check.
-	CommandScenarioStarvationHourly = "scenario.starvation.force-hourly"
-	// CommandScenarioGuardsActivate makes eligible town guards hostile.
-	CommandScenarioGuardsActivate = "scenario.guards.activate"
-	// CommandScenarioWaterfallSetup positions the party one step before the canonical waterfall trigger.
-	CommandScenarioWaterfallSetup = "scenario.waterfall.setup"
-	// CommandScenarioBridgeTroll starts the production bridge sneak and attack workflow from deterministic state.
-	CommandScenarioBridgeTroll = "scenario.bridge-troll.start"
-	// CommandScenarioWordSetup positions the party beside the dungeon matching a Word of Power.
-	CommandScenarioWordSetup = "scenario.word.setup"
 	// CommandScenarioDefinitionList lists durable scripted scenario definitions.
 	CommandScenarioDefinitionList = "scenario.definition.list"
 	// CommandScenarioDefinitionGet returns one complete durable scripted scenario definition.
@@ -40,7 +28,6 @@ const (
 )
 
 func scenarioCommands() []CommandDefinition {
-	minimumSeed, maximumSeed := 0, 2147483647
 	referencePattern := `^(project|personal):[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`
 	slugPattern := `^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`
 	revisionPattern := `^[a-f0-9]{64}$`
@@ -67,59 +54,11 @@ func scenarioCommands() []CommandDefinition {
 	optionalRevisionParameter := func(id, name string) ParameterDefinition {
 		return ParameterDefinition{ID: id, Name: name, Kind: ParameterString, Default: json.RawMessage(`""`), Pattern: `^(?:[a-f0-9]{64})?$`}
 	}
-	seed := func() []ParameterDefinition {
-		return []ParameterDefinition{{
-			ID: "seed", Name: "Deterministic Seed", Kind: ParameterInteger, Required: true,
-			Minimum: &minimumSeed, Maximum: &maximumSeed, ControlHint: controlHintNumber,
-			Availability: []string{contextGameplay},
-		}}
-	}
 
 	return []CommandDefinition{
 		{
 			ID: CommandScenarioStatus, Category: "Scenarios", Name: "Scenario Lab",
 			Description: "Inspect and run exceptional deterministic gameplay scenarios.", ExecutionModes: []ExecutionMode{ExecutionQuery},
-		},
-		{
-			ID: CommandScenarioStarvationTrigger, Category: "Scenarios", Name: "Trigger Starvation Damage",
-			Description: "Apply one deterministic starvation damage check without changing food or time.", Aliases: []string{"pc starving"},
-			Parameters: seed(), ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
-		},
-		{
-			ID: CommandScenarioStarvationHourly, Category: "Scenarios", Name: "Force Hourly Starvation",
-			Description: "Set food to zero, set hour 12, and run the authentic hourly meal check.", Aliases: []string{"pc starving force"},
-			Parameters: seed(), ExecutionModes: []ExecutionMode{ExecutionAlteration}, Destructive: true,
-		},
-		{
-			ID: CommandScenarioGuardsActivate, Category: "Scenarios", Name: "Activate Town Guards",
-			Description: "Mark the party criminal and make all eligible guards on the current small map hostile.", Aliases: []string{"guards activate"},
-			ExecutionModes: []ExecutionMode{ExecutionLiveSafe},
-		},
-		{
-			ID: CommandScenarioWaterfallSetup, Category: "Scenarios", Name: "Set Up Waterfall Entry",
-			Description: "Move to the tile immediately before the canonical waterfall trigger step.", Aliases: []string{"mv special falls"},
-			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
-		},
-		{
-			ID: CommandScenarioBridgeTroll, Category: "Scenarios", Name: "Test Bridge Troll Sneak and Attack",
-			Description: "Move onto an original troll bridge, force the first sneak check to fail, set gold to zero, and start the production toll workflow.",
-			Aliases:     []string{"bridge troll", "troll attack"}, Parameters: seed(),
-			ExecutionModes: []ExecutionMode{ExecutionWorkflow}, Destructive: true, ScenarioTerminal: true,
-		},
-		{
-			ID: CommandScenarioWordSetup, Category: "Scenarios", Name: "Set Up Word of Power",
-			Description: "Move beside the original dungeon entrance matching one Word of Power.", Aliases: []string{"command yell"},
-			Parameters: []ParameterDefinition{{
-				ID: "word", Name: "Word of Power", Kind: ParameterEnum, Required: true,
-				Choices: []Choice{
-					{Value: "fallax", Label: "FALLAX · Deceit", Metadata: nil}, {Value: "vilis", Label: "VILIS · Despise", Metadata: nil},
-					{Value: "inopia", Label: "INOPIA · Destard", Metadata: nil}, {Value: "malum", Label: "MALUM · Wrong", Metadata: nil},
-					{Value: "avidus", Label: "AVIDUS · Covetous", Metadata: nil}, {Value: "infama", Label: "INFAMA · Shame", Metadata: nil},
-					{Value: "ignavus", Label: "IGNAVUS · Hythloth", Metadata: nil}, {Value: "veramocor", Label: "VERAMOCOR · Doom", Metadata: nil},
-				},
-				ControlHint: controlHintSelect, Availability: []string{contextGameplay},
-			}},
-			ExecutionModes: []ExecutionMode{ExecutionSynchronized},
 		},
 		{
 			ID: CommandScenarioDefinitionList, Category: "Scenarios", Name: "List Scripted Scenarios",

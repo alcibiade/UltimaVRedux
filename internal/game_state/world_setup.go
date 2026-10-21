@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	rng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
@@ -50,27 +48,6 @@ type DungeonSetupResult struct {
 	WorldSetupResult
 	BeforeDungeon DungeonSetupSemanticState
 	AfterDungeon  DungeonSetupSemanticState
-}
-
-// WordOfPowerSetupResult reports an authoritative dungeon-entrance test setup.
-type WordOfPowerSetupResult struct {
-	WorldSetupResult
-	Word     string
-	Dungeon  references.Location
-	Entrance references.Position
-}
-
-// BridgeTrollSetupResult reports the deterministic state prepared before the
-// production bridge-troll workflow begins.
-type BridgeTrollSetupResult struct {
-	WorldSetupResult
-	Bridge          references.Position
-	Seed            uint64
-	CharacterSlot   int
-	DexterityBefore byte
-	DexterityAfter  byte
-	GoldBefore      uint16
-	GoldAfter       uint16
 }
 
 // DebugEnterSmallLocation transitions directly to the normal entry point without simulating travel time.
@@ -286,18 +263,6 @@ func (g *GameState) debugSetWorldPosition(
 	result.SmashedAfter = g.smashed
 
 	return result, nil
-}
-
-// DebugSetupDungeon atomically installs a fresh production dungeon visit at
-// one exact semantic coordinate without consuming gameplay time or randomness.
-func (g *GameState) DebugSetupDungeon(
-	location references.Location,
-	floor references.FloorNumber,
-	position references.Position,
-	facing references.DungeonFacing,
-	lit bool,
-) (DungeonSetupResult, error) {
-	return g.debugSetupDungeon(location, floor, position, facing, references.DungeonLastDirection(facing), &lit)
 }
 
 // DebugSetupDungeonRoute installs a fresh production dungeon visit with route
@@ -517,80 +482,6 @@ func (g *GameState) DebugTravelToLandmark(name string) (WorldSetupResult, error)
 	)
 }
 
-// DebugSetupWaterfall positions the party one movement step before the authentic waterfall trigger.
-func (g *GameState) DebugSetupWaterfall() (WorldSetupResult, error) {
-	result := g.currentWorldSetupResult()
-	if err := g.validateWorldSetupContext(); err != nil {
-		return result, err
-	}
-	setup := references.Position{X: waterfallUnderworldEntryX, Y: waterfallUnderworldEntryY - 3}
-	g.TransitionToLocation(references.BritanniaUnderworld, 0, setup, TransitionFullLocation, false)
-	result.After = g.MapState.PlayerLocation
-	result.SmashedAfter = g.smashed
-
-	return result, nil
-}
-
-// DebugSetupBridgeTroll moves onto an authentic troll-bridge tile and forces
-// the first eligible character to fail the production sneak check. Refusing
-// the toll or attempting to pay zero gold then enters the normal attack path.
-func (g *GameState) DebugSetupBridgeTroll(seed uint64) (BridgeTrollSetupResult, error) {
-	result := BridgeTrollSetupResult{WorldSetupResult: g.currentWorldSetupResult(), Seed: seed}
-	if err := g.validateWorldSetupContext(); err != nil {
-		return result, err
-	}
-	bridge, err := g.firstOverworldTrollBridge()
-	if err != nil {
-		return result, err
-	}
-	character := g.trollTollCharacter()
-	if character == nil {
-		return result, fmt.Errorf("%w: no active Good or Poisoned character can test the toll", ErrInvalidWorldSetup)
-	}
-
-	result.Bridge = bridge
-	result.CharacterSlot = g.activePartySlot(character)
-	result.DexterityBefore = character.Dexterity
-	result.GoldBefore = g.PartyState.Inventory.Gold.Get()
-	character.Dexterity = 0
-	g.PartyState.Inventory.Gold.Set(0)
-	g.SetRandomSeed(seed)
-	g.TransitionToLocation(references.BritanniaUnderworld, 0, bridge, TransitionFullLocation, false)
-	result.DexterityAfter = character.Dexterity
-	result.GoldAfter = g.PartyState.Inventory.Gold.Get()
-	result.After = g.MapState.PlayerLocation
-	result.SmashedAfter = g.smashed
-
-	return result, nil
-}
-
-// DebugSetupWordOfPower positions the party beside the authoritative entrance for one dungeon word.
-func (g *GameState) DebugSetupWordOfPower(word string) (WordOfPowerSetupResult, error) {
-	result := WordOfPowerSetupResult{WorldSetupResult: g.currentWorldSetupResult()}
-	if err := g.validateWorldSetupContext(); err != nil {
-		return result, err
-	}
-	dungeon, found := GetDungeonForWord(word)
-	if !found {
-		return result, fmt.Errorf("%w: unknown Word of Power %q", ErrInvalidWorldSetup, word)
-	}
-	entrance, found := g.GetDungeonEntranceCoordinates()[dungeon]
-	if !found {
-		return result, fmt.Errorf("%w: dungeon entrance for %s is unavailable", ErrInvalidWorldSetup, dungeon.String())
-	}
-	floor := dungeonEntranceFloor(dungeon)
-	setup := g.wordOfPowerSetupPosition(entrance, floor)
-
-	g.TransitionToLocation(references.BritanniaUnderworld, floor, setup, TransitionFullLocation, false)
-	result.After = g.MapState.PlayerLocation
-	result.SmashedAfter = g.smashed
-	result.Word = GetWordForDungeon(dungeon)
-	result.Dungeon = dungeon
-	result.Entrance = entrance
-
-	return result, nil
-}
-
 func (g *GameState) validateWorldSetupContext() error {
 	if err := g.validateStableWorldSetupContext(); err != nil {
 		return err
@@ -626,32 +517,6 @@ func (g *GameState) validateStableWorldSetupContext() error {
 	}
 
 	return fmt.Errorf("%w: unavailable in the current map context", ErrInvalidWorldSetup)
-}
-
-func (g *GameState) firstOverworldTrollBridge() (references.Position, error) {
-	if g.GameReferences == nil || g.GameReferences.OverworldLargeMapReference == nil {
-		return references.Position{}, fmt.Errorf("%w: overworld map is unavailable", ErrInvalidWorldSetup)
-	}
-	for y := range references.YLargeMapTiles {
-		for x := range references.XLargeMapTiles {
-			index := g.GameReferences.OverworldLargeMapReference.GetSpriteIndex(x, y)
-			if index == indexes.TrollBridgeHoriz || index == indexes.TrollBridgeVert {
-				return references.Position{X: x, Y: y}, nil
-			}
-		}
-	}
-
-	return references.Position{}, fmt.Errorf("%w: overworld has no troll bridge", ErrInvalidWorldSetup)
-}
-
-func (g *GameState) activePartySlot(target *party_state.PlayerCharacter) int {
-	for slot := range party_state.MaxActiveParty {
-		if g.PartyState.GetCharacter(slot) == target {
-			return slot
-		}
-	}
-
-	panic("active party character has no active slot")
 }
 
 func (g *GameState) debugFloorRange() (references.FloorNumber, references.FloorNumber, error) {
@@ -740,23 +605,4 @@ func debugFlameLandmarkDestination(flame references.FlameOfPrinciple) references
 		Floor:    references.FloorNumber(location.Floor),
 		Position: references.Position{X: references.Coordinate(location.X), Y: references.Coordinate(location.Y)},
 	}
-}
-
-func (g *GameState) wordOfPowerSetupPosition(
-	entrance references.Position,
-	floor references.FloorNumber,
-) references.Position {
-	largeMap := g.MapState.LayeredMaps.GetLayeredMap(references.LargeMapType, floor)
-	candidates := []references.Position{entrance.Left(), entrance.Right(), entrance.Up(), entrance.Down()}
-	for _, candidate := range candidates {
-		wrapped := candidate.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
-		tile := largeMap.GetTileTopMapOnlyTile(wrapped)
-		if tile != nil && tile.IsPassable(references.NoPartyVehicle) {
-			return *wrapped
-		}
-	}
-
-	// Some sealed entrances are completely enclosed by water or mountains. The original
-	// Yell check only requires adjacency, so use a deterministic adjacent test position.
-	return *candidates[0].GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
 }

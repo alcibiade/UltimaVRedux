@@ -7,6 +7,7 @@ type DebugOptionsSnapshot struct {
 	DialogBoundingBoxesShown     bool
 	UnlimitedCastingResources    bool
 	BypassSpellLevelRestrictions bool
+	LightingOverlayEnabled       bool
 }
 
 // CurrentDebugOptionsSnapshot returns current gameplay and renderer diagnostics.
@@ -17,6 +18,7 @@ func (g *GameState) CurrentDebugOptionsSnapshot() DebugOptionsSnapshot {
 		DialogBoundingBoxesShown:     g.DebugOptions.DialogBoundingBoxes,
 		UnlimitedCastingResources:    g.DebugOptions.UnlimitedCastingResources,
 		BypassSpellLevelRestrictions: g.DebugOptions.BypassSpellLevelRestrictions,
+		LightingOverlayEnabled:       g.DebugOptions.LightOverlay,
 	}
 }
 

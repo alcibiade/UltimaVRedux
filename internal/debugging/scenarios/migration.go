@@ -16,7 +16,6 @@ const (
 	partyCharacterUpdateCommand        = "party.character.update"
 	partyEquipmentLoadoutUpdateCommand = "party.equipment.loadout.update"
 	worldPositionSetCommand            = "world.position.set"
-	dungeonExplorerSetupCommand        = "dungeon.explorer.setup"
 )
 
 // MigrationCode identifies one load-only scenario definition migration.
@@ -123,11 +122,6 @@ func runtimeWorldArgumentIDs(commandID string) []string {
 	switch commandID {
 	case worldPositionSetCommand:
 		return []string{"expectedLocationId", "expectedFloor", "expectedX", "expectedY", "expectedSourceFingerprint"}
-	case dungeonExplorerSetupCommand:
-		return []string{
-			"expectedLocationId", "expectedFloor", "expectedX", "expectedY", "expectedSourceFingerprint",
-			"expectedDungeonRevision",
-		}
 	default:
 		return nil
 	}
