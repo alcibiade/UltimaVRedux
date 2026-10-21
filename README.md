@@ -29,6 +29,29 @@ your party, and face tactical battles in a world of magic and mystery.
 
 *Explore West Winds by torchlight: a wooded coastline, a full party, and the journey ahead.*
 
+<table>
+  <tr>
+    <td align="center">
+      <a href="screenshots/battle-on-the-bridge.png">
+        <img src="screenshots/battle-on-the-bridge.png" alt="The party battles trolls on a bridge, with turn order and a battle report alongside the combat map" width="260">
+      </a>
+      <br><strong>Battle on the bridge</strong>
+    </td>
+    <td align="center">
+      <a href="screenshots/britain-after-dark.png">
+        <img src="screenshots/britain-after-dark.png" alt="Exploring Britain at night, with illuminated buildings and the party status panel" width="260">
+      </a>
+      <br><strong>Britain after dark</strong>
+    </td>
+    <td align="center">
+      <a href="screenshots/mapping-britannia.png">
+        <img src="screenshots/mapping-britannia.png" alt="The map of Britannia with the moonstone category selected and a location highlighted near the Deep Forest" width="260">
+      </a>
+      <br><strong>Mapping Britannia</strong>
+    </td>
+  </tr>
+</table>
+
 These screenshots show existing development builds; details may differ in the
 current preview.
 
