@@ -154,6 +154,13 @@ func TestCodexWordOfPowerAfterWordPageAndOnCompletedRevisit(t *testing.T) {
 					}
 					_, known = scene.gameState.WordOfPowerKnowledge("doom")
 					require.Equal(t, visit > 0 || index == 4, known, "discovery follows the acknowledged word-bearing page")
+					gates := scene.gameState.CurrentQuestJournalDossier().Dungeons
+					if known {
+						require.Len(t, gates, 1, "the Final Gate row follows word discovery")
+						require.Equal(t, visit > 0, strings.Contains(gates[0].Description, "awaits thy coming"))
+					} else {
+						require.Empty(t, gates, "no Final Gate row before the word page")
+					}
 					require.Equal(t, visit == 0 && index == 4, scene.journalNotice.pending)
 					require.Equal(t, visit > 0, scene.gameState.CodexRevelationComplete,
 						"the final paragraph is not recorded until it is acknowledged")
@@ -179,6 +186,9 @@ func TestCodexWordOfPowerAfterWordPageAndOnCompletedRevisit(t *testing.T) {
 				}
 			}
 			require.Equal(t, 1, wordNotes)
+			gates := scene.gameState.CurrentQuestJournalDossier().Dungeons
+			require.Len(t, gates, 1, "repeated visits keep one Final Gate row")
+			require.Equal(t, "Final Gate", gates[0].Name)
 		})
 	}
 }
@@ -219,6 +229,7 @@ func TestCodexFinalPageInterruptionRetainsOnlyWordUntilRevisit(t *testing.T) {
 	before := scene.gameState.QuestJournalEvents()
 	require.Len(t, before, 1)
 	require.NotContains(t, scene.gameState.CurrentQuestJournalDossier().Chronicle[0].Summary, "awaits")
+	require.NotContains(t, scene.gameState.CurrentQuestJournalDossier().Dungeons[0].Description, "awaits")
 	scene.Dispose()
 	dialog.Dismiss()
 	scene.gameState.EventQueueManager.Update()
@@ -261,6 +272,9 @@ func TestCodexFinalPageInterruptionRetainsOnlyWordUntilRevisit(t *testing.T) {
 		require.Contains(t, entry.Summary, clue)
 	}
 	require.NotContains(t, entry.Title+entry.Summary, "Doom")
+	gate := revisit.gameState.CurrentQuestJournalDossier().Dungeons[0]
+	require.Equal(t, entry.Summary, gate.Description, "both views share the retained revelation")
+	require.Equal(t, entry.Source, gate.Source)
 }
 
 func newCodexWordOfPowerTestScene(t *testing.T, completed bool) *GameScene {

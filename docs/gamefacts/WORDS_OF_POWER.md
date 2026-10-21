@@ -130,7 +130,10 @@ patches commit when displayed output reaches the scalar discovery action.
 Goeth's accepted answer establishes Destard; AIPONI remains a Spoken clue until
 successful INOPIA use confirms it. Sindar's separate naming response does not
 retroactively name his word note. Hidden persistence keys do not authorize names
-in display or search.
+in display or search. The Codex word adds a generic Journal Dungeons **Final
+Gate** clue row (see WORD-0005); it is not a Doom identity, entrance association
+or seal observation, and an observed Doom row still earns its word only through
+successful use.
 
 Look at an unobscured canonical open/sealed exterior records name, world, and
 observed seal state without teaching its word. Wrong artwork/world/occupants do
@@ -165,9 +168,13 @@ Codex revelation, retaining initial date/source/identity and all four clue parag
 with responsive wrapping. Page-turn announcement is not a clue. No unspoken Doom
 name, entrance association, or coordinate is added; search uses visible clue text,
 not hidden IDs. Word-only knowledge remains if interrupted before completion.
-First completion marks the existing event updated; repeats are silent. Native v24
+First completion marks the existing event updated; repeats are silent. The
+Journal Dungeons **Final Gate** row is a second, derived view of the same state:
+it appears with the word, shows only the word-only summary until completion and
+then the same retained four paragraphs. It adds no event, date, notice or
+persisted record, so existing saves show it without a revisit. Native v24
 persists `codexRevelationComplete` independently of quest/word flags; legacy
 imports start incomplete. Browsing never completes it. Original narrative
 payload and exclusive revelation claims remain unverified here.
 
-**Implementation:** `internal/game_state/codex_revelation.go`, `cmd/ultimav/gamescene_shrine.go`
+**Implementation:** `internal/game_state/codex_revelation.go`, `cmd/ultimav/gamescene_shrine.go`, `internal/game_state/journal_dungeons.go`

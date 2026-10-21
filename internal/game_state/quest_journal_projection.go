@@ -70,7 +70,7 @@ func (g *GameState) projectKnowledgeNote(subject string) (string, string) {
 				return "Codex revelation: VERAMOCOR", codexRevelationText
 			}
 
-			return "Word of Power: VERAMOCOR", "The Codex revealed VERAMOCOR to unlock the gate."
+			return "Word of Power: VERAMOCOR", codexWordSummary
 		}
 
 		return "Word of Power: " + candidate.dungeon.String(), "The Word of Power for " + candidate.dungeon.String() + " is " + candidate.word + "."

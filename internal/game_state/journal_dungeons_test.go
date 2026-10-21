@@ -2,6 +2,7 @@ package game_state
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
@@ -149,7 +150,58 @@ func TestDungeonJournalStillDoesNotAssociateShameOrDoomWordsAlone(t *testing.T) 
 	for _, dungeon := range []string{"shame", "doom"} {
 		require.True(t, state.DiscoverWordOfPowerKnowledge(dungeon, DialogueKnowledgeSource("Speaker")))
 	}
-	require.Empty(t, state.journalDungeons())
+	entries := state.journalDungeons()
+	require.Len(t, entries, 1, "only the generic gate clue appears")
+	require.Equal(t, "Final Gate", entries[0].Name)
+}
+
+func TestDungeonJournalFinalGateFollowsCodexKnowledge(t *testing.T) {
+	state, callbacks := NewIntegrationTestBuilder(t).WithLocation(references.BritanniaUnderworld).
+		WithRandomSeed(42).WithSystemCallbacks().Build()
+	require.Empty(t, state.journalDungeons(), "no placeholder before the word is learned")
+	require.True(t, state.DiscoverWordOfPowerKnowledge("doom", RevelationKnowledgeSource("Codex of Ultimate Wisdom")))
+	reloadGate := func() journal.DungeonEntry {
+		t.Helper()
+		snapshot, err := state.CaptureSaveSnapshot()
+		require.NoError(t, err)
+		reloaded, err := NewGameStateFromSaveSnapshot(snapshot, state.GameConfig, state.GameReferences,
+			xTilesVisibleOnGameScreen, yTilesVisibleOnGameScreen)
+		require.NoError(t, err)
+		entries := reloaded.journalDungeons()
+		require.Len(t, entries, 1)
+
+		return entries[0]
+	}
+
+	before, events, clock, calls := state.dungeonJournal, state.QuestJournalEvents(), state.DateTime, state.GetRNG().Calls()
+	callbacks.Reset()
+	partial := state.CurrentQuestJournalDossier().Dungeons
+	require.Equal(t, []journal.DungeonEntry{{Name: "Final Gate", Word: "VERAMOCOR", Source: "Codex of Ultimate Wisdom",
+		Description: "The Codex revealed VERAMOCOR to unlock the gate.", Gate: true}}, partial)
+	require.Equal(t, partial[0], reloadGate(), "existing word-only saves gain the partial row")
+	require.Equal(t, before, state.dungeonJournal, "projection grants no observation")
+	require.Equal(t, events, state.QuestJournalEvents())
+	require.Equal(t, clock, state.DateTime)
+	require.Equal(t, calls, state.GetRNG().Calls())
+	require.Empty(t, callbacks.Messages)
+
+	require.True(t, state.RecordCompleteCodexRevelation())
+	complete := state.journalDungeons()
+	require.Len(t, complete, 1)
+	require.Equal(t, codexRevelationText, complete[0].Description)
+	require.Equal(t, complete[0], reloadGate(), "complete saves show the full clue")
+	require.Equal(t, events, state.QuestJournalEvents(), "the gate adds no Chronicle event")
+	require.NotContains(t, strings.ToLower(fmt.Sprintf("%+v", complete)), "doom")
+	require.Equal(t, [8]bool{}, state.DungeonStates, "the clue unseals nothing")
+
+	entrance := state.GetDungeonEntranceCoordinates()[references.Doom]
+	state.MapState.PlayerLocation.Floor = references.FloorNumber(references.UNDERWORLD)
+	state.observeDungeonEntrance(references.Doom, entrance, state.sampleDungeonObservation(), false)
+	observed := state.journalDungeons()
+	require.Len(t, observed, 2)
+	require.Equal(t, "Doom", observed[0].Name)
+	require.Empty(t, observed[0].Word, "the hidden key alone never enriches an observed Doom row")
+	require.Equal(t, complete[0], observed[1])
 }
 
 func TestChronicleAcquisitionMilestonesAreFirsts(t *testing.T) {

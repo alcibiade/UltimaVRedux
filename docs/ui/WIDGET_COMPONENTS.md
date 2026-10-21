@@ -615,7 +615,14 @@ navigation use the same three-row result pitch as rendering.
 
 Dungeons lists discovered identities only, with independent observed-entrance
 state and explicitly learned words. It does not expose unknown rows or completion
-counters and does not reinterpret curated visit stars.
+counters and does not reinterpret curated visit stars. Once the Codex word is
+learned, a final **Final Gate** row presents it as a gate clue rather than a
+dungeon: heading, Word of Power, source and the disclosed clue text, with no
+entrance or location fields. The clue text is the word-only summary until final
+Codex acknowledgement, then the same four paragraphs as the Chronicle entry, one
+paragraph per detail line for measured paging. Both views derive from the same
+knowledge and completion state, so searches for the word, source or clue text
+legitimately reach both tabs.
 
 After the final Codex page is acknowledged, the existing word-only Chronicle
 entry becomes **Codex revelation: VERAMOCOR**, containing all four clue paragraphs

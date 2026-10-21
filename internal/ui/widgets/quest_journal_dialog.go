@@ -1001,6 +1001,9 @@ func questJournalLearnedField(label, value string) questJournalDetailLine {
 }
 
 func questJournalDungeonDetail(entry journal.DungeonEntry) []questJournalDetailLine {
+	if entry.Gate {
+		return questJournalGateDetail(entry)
+	}
 	lines := []questJournalDetailLine{
 		questJournalLearnedField("Dungeon", entry.Name),
 		questJournalLearnedField("Entrance", entry.Entrance),
@@ -1017,6 +1020,24 @@ func questJournalDungeonDetail(entry journal.DungeonEntry) []questJournalDetailL
 		if entry.Source != "" {
 			lines = append(lines, questJournalLearnedField("Source", entry.Source))
 		}
+	}
+
+	return lines
+}
+
+// questJournalGateDetail presents a learned clue without entrance or location
+// fields: the gate has no observed site, so those would assert false facts.
+func questJournalGateDetail(entry journal.DungeonEntry) []questJournalDetailLine {
+	lines := []questJournalDetailLine{
+		{label: "", value: entry.Name, color: DialogHeaderColor, header: true},
+		questJournalLearnedField("Word of Power", entry.Word),
+		questJournalLearnedField("Source", entry.Source),
+	}
+	// Separate paragraphs so paging can break between them.
+	for paragraph := range strings.SplitSeq(entry.Description, "\n\n") {
+		lines = append(lines,
+			questJournalDetailLine{label: "", value: "", color: DialogValueColor, header: false},
+			questJournalDetailLine{label: "", value: paragraph, color: DialogValueColor, header: false})
 	}
 
 	return lines

@@ -2,6 +2,9 @@ package game_state
 
 import "github.com/bradhannah/UltimaVRedux/internal/journal"
 
+// codexWordSummary is the only disclosure before the final page is acknowledged.
+const codexWordSummary = "The Codex revealed VERAMOCOR to unlock the gate."
+
 // The four clue paragraphs from CodexRevelationMessages, with source hard
 // wrapping removed. The opening page-turn announcement is presentation only.
 const codexRevelationText = "Beyond Shame's egress in the centre of the Underworld there is a place of darkness.\n\n" +
