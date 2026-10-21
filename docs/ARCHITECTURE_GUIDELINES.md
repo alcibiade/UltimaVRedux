@@ -65,8 +65,8 @@ facts. Reference constructors return detached maps and tiles so modifications in
 one game state cannot mutate another state's definitions.
 
 `cmd/ref_dump` combines runtime tiles with developer annotations for lookup
-scripts. Its `u5dump/json/TileReferences.json` output is generated inspection
-data, not an editable game definition. Remove unused properties rather than
+scripts. Its `u5dump/json/TileReferences.json` output is generated, git-ignored
+inspection data, not an editable game definition. Remove unused properties rather than
 keeping a second catalog for potential future consumers.
 
 ## External Effects

@@ -324,7 +324,7 @@ def validate_repository(
             within(game, path).is_file(), f"missing implementation/test locator: {path}"
         )
     # Scan maintained Go code only, not caches, generated output, or original data.
-    for directory in ("cmd", "internal", "pkg", "test", "scripts", "u5dump"):
+    for directory in ("cmd", "internal", "pkg", "test", "scripts"):
         for path in sorted((game / directory).rglob("*.go")):
             relative = path.relative_to(game).as_posix()
             text = within(game, relative).read_text(encoding="utf-8")

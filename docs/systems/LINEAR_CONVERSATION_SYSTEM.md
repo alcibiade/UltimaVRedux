@@ -340,8 +340,8 @@ For offline lookup, `go run ./cmd/ref_dump --output u5dump/json` exports
 Conversation values are the exact post-patch semantic documents converted to
 JSON, not another script format. `scripts/npc-lookup.py` uses them for name and
 topic/question-keyword searches; location/schedule lookup uses `NPCReferences.json`.
-These generated snapshots contain original game text, are private, and must not
-be committed. Regenerate them after source data or project patches change.
+These generated snapshots contain original game data, are private, and are
+git-ignored. Regenerate them after source data or project patches change.
 
 Focused verification:
 

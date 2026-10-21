@@ -235,7 +235,11 @@ def load_json(filename: str) -> JSONValue:
     """Load a JSON file from u5dump/json/."""
     json_path = find_script_dir() / "u5dump" / "json" / filename
     if not json_path.exists():
-        print(f"Error: {json_path} not found", file=sys.stderr)
+        print(
+            f"Error: {json_path} not found. Generate it with "
+            "go run ./cmd/ref_dump --output u5dump/json",
+            file=sys.stderr,
+        )
         sys.exit(1)
     with open(json_path, "r", encoding="utf-8") as f:
         return json.load(f)

@@ -120,7 +120,6 @@ linters:
       - OLD/
       - bin/
       - temp_dump/
-      - u5dump/
       - testdata/
       - ".*_test\\.go$"  # Exclude all test files from strict linting
     rules:
