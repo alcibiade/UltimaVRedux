@@ -13,7 +13,7 @@ and include:
 - What you expected and what actually happened.
 - Steps to reproduce, including relevant game conditions.
 - Useful error text or public documentation/reference identifiers.
-- The version from `ultimav --version` or the title screen, and the `crash.log` and
+- The version from `ultimav --version` or the title screen (press V), and the `crash.log` and
   `redux.log` described in [files and folders](docs/INSTALL.md#files-and-folders).
 
 Gameplay observations, public manuals, and other public references are welcome.

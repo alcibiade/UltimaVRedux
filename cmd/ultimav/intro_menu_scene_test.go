@@ -16,6 +16,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
@@ -123,6 +124,67 @@ func TestIntroMenuNavigationClampsAtEdges(t *testing.T) {
 	scene.keyboard.SimulateKeyPress(ebiten.KeyDown)
 	require.NoError(t, scene.Update(nil))
 	assert.Equal(t, len(text.IntroChoices)-1, scene.nCurrentSelection)
+}
+
+func TestIntroMenuVersionHiddenUntilVToggles(t *testing.T) {
+	scene := newIntroInputTestScene()
+	assert.False(t, scene.showVersion, "the version is a debug aid, hidden by default")
+	for _, want := range []bool{true, false} {
+		scene.keyboard.SimulateKeyPress(ebiten.KeyV)
+		require.NoError(t, scene.Update(nil))
+		require.NoError(t, scene.Update(nil))
+		assert.Equal(t, want, scene.showVersion)
+	}
+	assert.Zero(t, scene.nCurrentSelection, "V does not move or activate the selection")
+}
+
+func TestIntroMenuVersionDrawsInsideLowerBorderBand(t *testing.T) {
+	manager := display.GetManager()
+	saved := *manager
+	t.Cleanup(func() { *manager = saved })
+	retirePresentationFixtureCaches(t)
+	for _, height := range []int{720, 1080} {
+		t.Run(fmt.Sprint(height), func(t *testing.T) {
+			width := height * 16 / 9
+			manager.PublishLogicalSize(width, height)
+			font := text.NewUltimaFont(text.GetIntroFontSize())
+			render := func(show bool) *ebiten.Image {
+				scene := &IntroMenuScene{
+					introSprites: &sprites.IntroSprites{
+						Ultima16Logo:   ebiten.NewImage(1, 1),
+						ReduxLogo:      ebiten.NewImage(1, 1),
+						FlameAnimation: sprites.NewImageAnimation([]*ebiten.Image{ebiten.NewImage(1, 1)}, 100),
+					},
+					presentationCanvas: ebiten.NewImage(introLogicalWidth, introLogicalHeight),
+					borderSprites:      sprites.NewBorderSprites(),
+					ultimaFont:         font,
+					versionOutput:      newIntroVersionOutput(),
+					showVersion:        show,
+				}
+				screen := newPresentationRaster(width, height)
+				scene.drawMenu(screen)
+
+				return screen
+			}
+			hidden, shown := render(false), render(true)
+			scale := introMenuBorderScale(width)
+			bandBottom := float64(height) * text.IntroMenuFramePlacement().EndPercentY
+			bandTop := bandBottom - introMenuBorderBandReferencePixels*scale
+			changed := 0
+			for y := range height {
+				for x := range width {
+					if hidden.At(x, y) == shown.At(x, y) {
+						continue
+					}
+					changed++
+					require.GreaterOrEqual(t, float64(y), bandTop, "version pixel above the band at %d,%d", x, y)
+					require.Less(t, float64(y), bandBottom, "version pixel below the band at %d,%d", x, y)
+					require.Greater(t, x, width/2, "version is right-aligned")
+				}
+			}
+			assert.Positive(t, changed, "the shown version draws pixels")
+		})
+	}
 }
 
 func TestIntroMenuEscapeAsksBeforeExiting(t *testing.T) {

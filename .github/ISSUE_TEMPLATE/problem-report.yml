@@ -12,7 +12,7 @@ body:
     id: version
     attributes:
       label: Game version or commit
-      description: Include the release tag or commit, or say if it is unknown.
+      description: Include the release tag or commit (press V on the title screen, or run ultimav --version), or say if it is unknown.
     validations:
       required: true
   - type: dropdown

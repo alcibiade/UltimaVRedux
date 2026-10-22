@@ -304,7 +304,7 @@ settings, saves, and unrelated checkout files are not copied into the payload.
 Go build metadata is trimmed of local source paths; `release.json` records the
 commit because the exported source has no Git directory. The build stamps the
 version into the binary (`-X main.version`), which `ultimav --version`, the title
-screen, crash logs and saves report. Archive timestamps are
+screen (V toggles it on the menu frame's lower border), crash logs and saves report. Archive timestamps are
 not normalized, so byte-for-byte reproducibility is not claimed.
 
 The final output directory appears only when every build and checksum finishes.

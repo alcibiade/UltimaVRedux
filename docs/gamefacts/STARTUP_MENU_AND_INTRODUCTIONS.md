@@ -29,7 +29,9 @@ Introduction/credits return to menu; attract repeats until input.
 **REDUX DEVIATION: INTRO-0001:** Redux provides nine choices including native save
 selection, legacy import, data directory, and Configure/Display alongside creation
 and presentations. Its navigation differs from original wrap and title interruption
-requires Enter. These support current setup/save workflows. Unavailable flip/fizz
+requires Enter. V shows or hides the build version on the menu frame's lower
+border; it is hidden by default and selects nothing. These support current
+setup/save workflows and bug reports. Unavailable flip/fizz
 driver operations use deterministic substitutes rather than claimed original pixels.
 
 **Implementation:** `cmd/ultimav/intro_menu_scene.go`
