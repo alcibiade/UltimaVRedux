@@ -64,9 +64,9 @@ Ordinary explicit unready retains the capped-refund contract.
 **Attack order, range, and hit test**
 
 **Kind:** rule
-**Uses:** EQUIP-0001, EQUIP-0002
+**Uses:** EQUIP-0001, EQUIP-0002, RNG-0001, ENEMY-0003
 **Original:** Incomplete
-**Redux:** Unverified
+**Redux:** Matches
 
 Attack-capable items are considered in helmet, first-hand, second-hand order,
 with separate aiming. A two-handed item is attacked once. No offensive equipment
@@ -74,20 +74,44 @@ selects bare hands; the sentinel's complete accuracy path remains unresolved.
 Adjacent handling has aiming distance one. Distance is floor-Euclidean, so diagonal
 adjacency also has distance one.
 
-For ordinary physical weapons, use Strength for the bludgeoning category and
-Dexterity otherwise:
+For ordinary physical weapons, a party member uses Strength for the bludgeoning
+category (Spiked Helm, Spiked Shield, Club, Mace and Two-Handed Hammer; Morning
+Star is not bludgeoning) and Dexterity otherwise. A monster uses its catalog
+Strength when it bludgeons and its effective Dexterity otherwise. No level,
+equipment or other bonus is added to either attribute:
 
 ```text
 threshold = trunc((30 + target_effective_dexterity - attacker_attribute) / 2)
 hit if combat_roll() >= threshold
-combat_roll(): halve the result of random_call(0, 60); replace zero with one
+combat_roll(): the transformed d30 of RNG-0001
 ```
 
-The underlying random generator's distribution was not established; this is not
-a conventional uniform d30. Sleep, Mimic identity, and monster Time Stop conditions
-can supply effective Dexterity 1 without making every attack automatically hit.
-Glass, Chaos, and Jeweled Sword bypass this hit test when evaluated as those weapons.
-Hit testing does not guarantee projectile arrival or final HP loss.
+The arithmetic is signed, so a threshold of 1 or less always hits. A party
+member's Dexterity is its character Dexterity; a monster's is the encounter
+Dexterity fixed when it is created (ENEMY-0003), not the bare catalog value.
+Sleep (including a member that enters combat asleep), Mimic identity, and monster
+Time Stop conditions supply effective Dexterity 1 without making every attack
+automatically hit. Glass, Chaos, and Jeweled Sword bypass this hit test when
+evaluated as those weapons. Hit testing does not guarantee projectile arrival or
+final HP loss; a hit that armor reduces to no damage is reported as a graze, not
+a miss.
+
+If the generator's draws were uniform over 0 through 60, a threshold t from 2 to
+30 would hit (61 − 2t)/61 of the time: about 67% at 10, 51% at 15 (equal
+attributes) and 34% at 20. These figures are conditional, for two reasons that
+keep the original assessment Incomplete:
+
+- The external random generator is not part of the recovered original source.
+  Its callers show that its upper bound is inclusive, but its distribution is not
+  established, and the original source itself describes the generator as weak.
+  The original game's actual hit rates may therefore drift from these figures.
+- Bare hands look up their attack category past the end of the original's weapon
+  table, so whether they use Strength or Dexterity depends on the shipped binary's
+  data layout. Redux uses Dexterity.
+
+Redux matches the established parts within that scope. It draws uniformly over
+0 through 60. It reads a member's current Dexterity where the original copies it
+when combat begins; the two agree unless Dexterity changes during an encounter.
 
 ### EQUIP-0013
 
