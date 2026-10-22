@@ -122,7 +122,8 @@ func TestInitialCatalogContainsReadOnlySlice(t *testing.T) {
 	require.NotNil(t, definitions[76].Parameters[0].Maximum)
 	require.NotNil(t, definitions[76].Parameters[0].Step)
 	assert.Equal(t, 50, *definitions[76].Parameters[0].Minimum)
-	assert.Equal(t, 400, *definitions[76].Parameters[0].Maximum)
+	assert.Equal(t, 2000, *definitions[76].Parameters[0].Maximum)
+	assert.Len(t, definitions[76].Parameters[0].Choices, 11)
 	assert.Equal(t, 50, *definitions[76].Parameters[0].Step)
 	assert.Equal(t, CommandGuardsStatus, definitions[77].ID)
 	assert.Equal(t, CommandShadowlordStatus, definitions[78].ID)
@@ -874,14 +875,14 @@ func TestInitialCatalogValidatesLoggingAndPresentationArguments(t *testing.T) {
 		{SessionID: "test", ID: "category", CommandID: CommandLoggingCategorySet, Arguments: map[string]json.RawMessage{"category": json.RawMessage(`"combat"`), "enabled": json.RawMessage(`true`)}},
 		{SessionID: "test", ID: "level", CommandID: CommandLoggingLevelSet, Arguments: map[string]json.RawMessage{"level": json.RawMessage(`"WARN"`)}},
 		{SessionID: "test", ID: "overlay", CommandID: CommandSearchOverlaySet, Arguments: map[string]json.RawMessage{"enabled": json.RawMessage(`true`)}},
-		{SessionID: "test", ID: "speed", CommandID: CommandCombatPresentationSpeedSet, Arguments: map[string]json.RawMessage{"percent": json.RawMessage(`400`)}},
+		{SessionID: "test", ID: "speed", CommandID: CommandCombatPresentationSpeedSet, Arguments: map[string]json.RawMessage{"percent": json.RawMessage(`2000`)}},
 	} {
 		require.NoError(t, catalog.ValidateRequest(request))
 	}
 
 	invalid := Request{SessionID: "test", ID: "invalid", CommandID: CommandLoggingCategorySet, Arguments: map[string]json.RawMessage{"category": json.RawMessage(`"unknown"`), "enabled": json.RawMessage(`true`)}}
 	require.ErrorIs(t, catalog.ValidateRequest(invalid), ErrInvalidRequest)
-	invalid = Request{SessionID: "test", ID: "invalid", CommandID: CommandCombatPresentationSpeedSet, Arguments: map[string]json.RawMessage{"percent": json.RawMessage(`401`)}}
+	invalid = Request{SessionID: "test", ID: "invalid", CommandID: CommandCombatPresentationSpeedSet, Arguments: map[string]json.RawMessage{"percent": json.RawMessage(`2001`)}}
 	require.ErrorIs(t, catalog.ValidateRequest(invalid), ErrInvalidRequest)
 }
 

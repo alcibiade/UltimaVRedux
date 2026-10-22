@@ -15,7 +15,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
-func combatTimingTestRates() []float64 { return []float64{0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4} }
+func combatTimingTestRates() []float64 { return config.CombatSpeedSpec().Choices() }
 
 func setCombatTimingTestRate(scene *GameScene, rate float64) {
 	if scene.gameConfig == nil {
@@ -34,11 +34,15 @@ func TestCombatTimingAuthoredBudgetsEveryRate(t *testing.T) {
 		{250, 1000, 650, 333, 75, 175, 1250, 100},
 		{167, 667, 433, 222, 50, 117, 833, 67},
 		{125, 500, 325, 167, 38, 88, 625, 50},
-		{100, 400, 260, 133, 30, 70, 500, 40},
 		{83, 333, 217, 111, 25, 58, 417, 33},
-		{71, 286, 186, 95, 21, 50, 357, 29},
 		{63, 250, 163, 83, 19, 44, 313, 25},
+		{42, 167, 108, 56, 13, 29, 208, 17},
+		{31, 125, 81, 42, 9, 22, 156, 13},
+		{21, 83, 54, 28, 6, 15, 104, 8},
+		{16, 63, 41, 21, 5, 11, 78, 6},
+		{13, 50, 33, 17, 4, 9, 63, 5},
 	}
+	require.Len(t, combatTimingTestRates(), len(wants))
 	for index, rate := range combatTimingTestRates() {
 		t.Run(fmt.Sprint(rate), func(t *testing.T) {
 			timing := newCombatPresentationTiming(rate)
@@ -53,11 +57,18 @@ func TestCombatTimingAuthoredBudgetsEveryRate(t *testing.T) {
 		})
 	}
 	assert.Equal(t, int64(333), newCombatPresentationTiming(0).durationMs(333), "zero-valued fixture policy is intentionally 1x")
-	for _, rate := range []float64{-1, 0.25, 0.75, 4.5, math.NaN(), math.Inf(1)} {
+	for _, rate := range []float64{-1, 0.25, 0.75, 2.5, 4.5, 10, 20.5, math.NaN(), math.Inf(1)} {
 		assert.Panics(t, func() { newCombatPresentationTiming(rate) }, "invalid explicit rates are programming errors")
 	}
 	assert.Equal(t, uint64(math.MaxUint64), newCombatPresentationTiming(0.5).duration(math.MaxUint64))
 	assert.Equal(t, int64(math.MaxInt64), newCombatPresentationTiming(0.5).durationMs(math.MaxInt64))
+}
+
+func TestCombatImpactLabelBudgetScalesAboveReadableFloor(t *testing.T) {
+	for _, test := range []struct{ rate, want float64 }{{0.5, 2.5}, {1, 1.25}, {2, 0.625}, {4, 0.313}, {8, 0.3}, {20, 0.3}} {
+		assert.InDelta(t, test.want, newCombatPresentationTiming(test.rate).impactLabelSeconds(), 1e-9, "%gx", test.rate)
+	}
+	assert.InDelta(t, 1.25, combatPresentationTiming{}.impactLabelSeconds(), 1e-9, "zero policy is authored 1x")
 }
 
 func TestCombatTimingSynchronousScopeRestoresAndDoesNotScaleSharedClocks(t *testing.T) {
@@ -147,11 +158,13 @@ func TestCombatTimingAutoAttackHoldKeepsLabelsReadableEveryRate(t *testing.T) {
 			assert.True(t, scene.inputBlocked)
 			drainCombatPacingAt(scene, start+2*hold)
 			assert.False(t, scene.inputBlocked)
-			// Independently advance label age: the label budget is always 1250ms,
-			// regardless of whether one or two sources have already advanced.
+			// Independently advance label age: the label budget follows the
+			// captured rate above its floor, however many sources have advanced.
 			scene.combatImpactEffects = nil
 			scene.showCombatImpact(first.Feedback)
-			state.ElapsedMs += combatImpactDurationMs - 1
+			require.Len(t, scene.combatImpactEffects, 1)
+			labelMs := max(scene.combatImpactEffects[0].timing.durationMs(combatImpactDurationMs), combatImpactLabelFloorMs)
+			state.ElapsedMs += labelMs - 1
 			scene.updateCombatImpactEffects(0)
 			require.Len(t, scene.combatImpactEffects, 1)
 			state.ElapsedMs++

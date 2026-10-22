@@ -28,25 +28,20 @@ it("routes Active Combat speed through the string-draft preference control", asy
   app.mount(root)
   try {
     const control = root.querySelector('[data-preference="combat.presentation.speed.set"]')!
-    const input = control.querySelector("input")!
+    const select = control.querySelector("select")!
     const button = control.querySelector("button")!
-    for (const invalid of ["", "75", "50.5", "401"]) {
-      input.value = invalid
-      input.dispatchEvent(new Event("input"))
-      await nextTick()
-      expect(button.disabled).toBe(true)
-      button.click()
-    }
+    expect(button.disabled).toBe(true)
+    button.click()
     expect(mutate).not.toHaveBeenCalled()
-    input.value = "400"
-    input.dispatchEvent(new Event("input"))
+    select.value = "2000"
+    select.dispatchEvent(new Event("change"))
     await nextTick()
     props.data.presentationSpeedPercent = 200
     await nextTick()
-    expect(input.value).toBe("400")
+    expect(select.value).toBe("2000")
     expect(button.disabled).toBe(false)
     button.click()
-    expect(mutate).toHaveBeenCalledWith({ commandID: "combat.presentation.speed.set", argumentsByID: { percent: "400" } })
+    expect(mutate).toHaveBeenCalledWith({ commandID: "combat.presentation.speed.set", argumentsByID: { percent: "2000" } })
     props.data.configurationEditing = true
     await nextTick()
     expect(button.disabled).toBe(true)

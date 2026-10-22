@@ -122,6 +122,9 @@ function validateInteger(parameter: ParameterDefinition, value: string): string 
   if (parameter.minimum !== undefined && number < parameter.minimum) return `Must be at least ${parameter.minimum}.`
   if (parameter.maximum !== undefined && number > parameter.maximum) return `Must be at most ${parameter.maximum}.`
 	if (parameter.step !== undefined && (number - (parameter.minimum ?? 0)) % parameter.step !== 0) return `Use steps of ${parameter.step} from ${parameter.minimum ?? 0}.`
+  if (parameter.choices?.length && !parameter.choices.some((choice) => Number(choice.value) === number)) {
+    return `Choose one of ${parameter.choices.map((choice) => choice.value).join(", ")}.`
+  }
 
   return undefined
 }

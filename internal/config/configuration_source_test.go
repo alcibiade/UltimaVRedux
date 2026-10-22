@@ -166,9 +166,9 @@ func TestQoLMigrationDoesNotWriteOnLoadAndKeepsExternalDataPath(t *testing.T) {
 	assert.Equal(t, 1.0, configuration.GetCombatSpeedFactor())
 	external := "Debug:\n  CombatMovementSpeedFactor: 0.75\nDataFilePath: new-selection\nUnknown: external\n"
 	require.NoError(t, os.WriteFile(file, []byte(external), 0o600))
-	require.NoError(t, configuration.SetCombatSpeedFactor(2.5))
+	require.NoError(t, configuration.SetCombatSpeedFactor(12))
 	source := readConfigurationFixture(t, file)
 	assert.Equal(t, "new-selection", source.GetString("DataFilePath"))
 	assert.Equal(t, "external", source.GetString("Unknown"))
-	assert.Equal(t, 2.5, source.GetFloat64(gameplayCombatSpeedKey))
+	assert.Equal(t, 12.0, source.GetFloat64(gameplayCombatSpeedKey))
 }

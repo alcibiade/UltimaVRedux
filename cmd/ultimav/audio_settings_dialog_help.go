@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -13,35 +12,48 @@ import (
 // Each entry is an Output row with natural wrapping; empty entries are real
 // paragraph-spacing rows. Do not embed newlines or unsupported punctuation.
 func combatSpeedHelpLines(spec config.NumericSettingSpec) []string {
+	choices := make([]string, 0, len(spec.Choices()))
+	for _, value := range spec.Choices() {
+		choices = append(choices, formatCombatSpeed(value))
+	}
+
 	return []string{
 		"Change how quickly combat actions and animations play.", "",
-		fmt.Sprintf("%.1fx is normal speed.", spec.Default),
+		formatCombatSpeed(spec.Default) + " is normal speed.",
 		"Higher values make combat faster.", "",
-		fmt.Sprintf("Choose %.1fx to %.1fx.", spec.Min, spec.Max),
-		fmt.Sprintf("Left/Right changes speed by %.1fx.", spec.Step), "",
-		fmt.Sprintf("Default: %.1fx", spec.Default),
+		"Choose " + joinGameplayChoices(choices) + ".", "",
+		"Default: " + formatCombatSpeed(spec.Default),
 	}
 }
 
+// formatCombatSpeed omits a trailing .0 so whole speeds read 1x and 20x.
+func formatCombatSpeed(value float64) string {
+	return strconv.FormatFloat(value, 'f', -1, 64) + "x"
+}
+
 func actionPopupsHelpLines(spec config.NumericSettingSpec) []string {
-	choices := make([]string, 0, int((spec.Max-spec.Min)/spec.Step)+1)
-	for value := int(spec.Min); value <= int(spec.Max); value += int(spec.Step) {
-		choice := strconv.Itoa(value)
+	choices := make([]string, 0, len(spec.Choices()))
+	for _, value := range spec.Choices() {
+		choice := strconv.Itoa(int(value))
 		if value == 0 {
 			choice = gameplaySettingOffLabel
 		}
 		choices = append(choices, choice)
 	}
-	last := len(choices) - 1
-	choiceText := strings.Join(choices[:last], ", ") + " or " + choices[last]
 
 	return []string{
 		"Choose how many action messages can appear over the map at once.", "",
 		"Off hides these popups.",
 		"Messages still appear in the lower-right text area.", "",
-		"Choose " + choiceText + ".", "",
+		"Choose " + joinGameplayChoices(choices) + ".", "",
 		"Default: " + strconv.Itoa(int(spec.Default)),
 	}
+}
+
+func joinGameplayChoices(choices []string) string {
+	last := len(choices) - 1
+
+	return strings.Join(choices[:last], ", ") + " or " + choices[last]
 }
 
 func (setting gameplaySettingDefinition) detailLines() []string {

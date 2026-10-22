@@ -1,6 +1,10 @@
 package debugging
 
-import "github.com/bradhannah/UltimaVRedux/internal/config"
+import (
+	"strconv"
+
+	"github.com/bradhannah/UltimaVRedux/internal/config"
+)
 
 const (
 	parameterEnabledName = "Enabled"
@@ -19,6 +23,12 @@ func presentationCommands() []CommandDefinition {
 	const percentScale = 100
 	spec := config.CombatSpeedSpec()
 	minimumSpeed, maximumSpeed, step := int(spec.Min*percentScale), int(spec.Max*percentScale), int(spec.Step*percentScale)
+	speedChoices := make([]Choice, 0, len(spec.Choices()))
+	for _, speed := range spec.Choices() {
+		speedChoices = append(speedChoices, Choice{
+			Value: strconv.Itoa(int(speed * percentScale)), Label: strconv.FormatFloat(speed, 'f', -1, 64) + "x",
+		})
+	}
 	setBoolean := func(id, name, description string, aliases []string) CommandDefinition {
 		return CommandDefinition{
 			ID: id, Category: "Presentation", Name: name, Description: description, Aliases: aliases,
@@ -34,7 +44,7 @@ func presentationCommands() []CommandDefinition {
 		{
 			ID: CommandCombatPresentationSpeedSet, Category: categoryReduxModifications, Name: "Set Combat Speed",
 			Description: "Persist master combat animation and action-pause speed. Higher values shorten presentation without changing combat rules.", Aliases: []string{"combat speed"},
-			Parameters:     []ParameterDefinition{{ID: "percent", Name: "Speed Percent", Kind: ParameterInteger, Required: true, Minimum: &minimumSpeed, Maximum: &maximumSpeed, Step: &step, ControlHint: controlHintNumber}},
+			Parameters:     []ParameterDefinition{{ID: "percent", Name: "Speed Percent", Kind: ParameterInteger, Required: true, Minimum: &minimumSpeed, Maximum: &maximumSpeed, Step: &step, Choices: speedChoices, ControlHint: controlHintNumber}},
 			ExecutionModes: []ExecutionMode{ExecutionPresentation}, Destructive: false,
 			ScenarioExcluded: true,
 		},

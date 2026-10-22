@@ -192,7 +192,7 @@ func TestCombatAutoAttackPresentsDualWeaponImpactsSequentially(t *testing.T) {
 	require.NotNil(t, state.CombatScene.AttackTargeting)
 	assert.Equal(t, 1, state.CombatScene.AttackTargeting.SourceIndex)
 
-	scene.combatImpactEffects[0].Elapsed = combatImpactDurationSeconds
+	scene.combatImpactEffects[0].Elapsed = scene.combatImpactEffects[0].timing.impactLabelSeconds()
 	state.ElapsedMs++
 	state.EventQueueManager.Update()
 	scene.updateCombatImpactEffects(0)
@@ -201,7 +201,7 @@ func TestCombatAutoAttackPresentsDualWeaponImpactsSequentially(t *testing.T) {
 	assert.Zero(t, combatImpactLane(scene.combatImpactEffects, 0))
 	assert.Equal(t, actor, state.CombatScene.GetCurrentTurnIdentity())
 
-	scene.combatImpactEffects[0].Elapsed = combatImpactDurationSeconds
+	scene.combatImpactEffects[0].Elapsed = scene.combatImpactEffects[0].timing.impactLabelSeconds()
 	state.ElapsedMs += combatImpactDurationMs
 	for range 4 {
 		state.EventQueueManager.Update()

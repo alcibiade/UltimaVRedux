@@ -25,7 +25,10 @@ function apply(): void {
 <template>
   <section class="instrument-setting" :data-preference="commandId">
     <div><strong>{{ command?.name }}</strong><p>{{ command?.description }}</p></div>
-    <input :value="draft" @input="draft = ($event.target as HTMLInputElement).value" :aria-label="command?.name" type="number" :min="parameter?.minimum" :max="parameter?.maximum" :step="parameter?.step ?? 1" :disabled="disabled || !parameter" />
+    <select v-if="parameter?.choices?.length" :value="draft" @change="draft = ($event.target as HTMLSelectElement).value" :aria-label="command?.name" :disabled="disabled">
+      <option v-for="choice in parameter.choices" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
+    </select>
+    <input v-else :value="draft" @input="draft = ($event.target as HTMLInputElement).value" :aria-label="command?.name" type="number" :min="parameter?.minimum" :max="parameter?.maximum" :step="parameter?.step ?? 1" :disabled="disabled || !parameter" />
     <button type="button" :disabled="disabled || Boolean(error) || Number(draft) === value" @click="apply">APPLY {{ draft }}</button>
     <small v-if="error" role="status">{{ error }}</small>
   </section>
