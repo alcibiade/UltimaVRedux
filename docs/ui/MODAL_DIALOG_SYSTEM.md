@@ -305,7 +305,7 @@ The additional Gameplay preferences are:
 
 | Preference | Persisted key | Allowed values | Default |
 |---|---|---|---|
-| Combat Speed | `Gameplay.Combat.SpeedFactor` | 0.5x–4.0x, step 0.5x | 1.0x |
+| Combat Speed | `Gameplay.Combat.SpeedFactor` | 0.5x, 1x, 1.5x, 2x, 3x, 4x, 6x, 8x, 12x, 16x, 20x | 1x |
 | Confirm Quick Save | `Gameplay.Saves.ConfirmQuickSave` | On / Off | On |
 | Show Combat HP Bars | `Gameplay.Combat.ShowHealthBars` | On / Off | On |
 | Maximum Action Popups | `Gameplay.Presentation.MaxVisibleActionPopups` | integer 0–3; 0 is Off | 3 |
@@ -314,7 +314,9 @@ The details pane uses short player-facing sentences and blank paragraph rows,
 appended as separate `Output` lines with natural wrapping. Measurement uses the
 same populated Output as drawing, including blank rows, at the established font
 size. Numeric choices, adjustments and defaults derive from the shared specs:
-for example, "Choose 0.5x to 4.0x." and "Choose Off, 1, 2 or 3." UI copy uses
+for example, "Choose 0.5x, 1x, 1.5x, 2x, 3x, 4x, 6x, 8x, 12x, 16x or 20x." and
+"Choose Off, 1, 2 or 3." Speeds omit a trailing `.0`, and the value column is
+measured from the widest formatted choice. UI copy uses
 font-safe ASCII punctuation rather than an en dash or compact technical range
 syntax. The current value remains separately labeled. Combat speed shortens animations and action pauses while
 preserving combat rules; different elapsed timelines need not produce identical
@@ -323,18 +325,22 @@ confirmation Off still reports success. HP-bars Off adds general monster injury
 descriptions to numeric reports and retains fleeing indicators.
 
 `NumericSettingSpec` owns numeric bounds, step and default for both controls and
-persistence. Runtime fields remain typed, including an integer popup count.
+persistence. An optional ascending `Values` list narrows the grid to listed
+choices; Left/Right then moves one listed choice and clamps at either end. Runtime fields remain typed, including an integer popup count.
 Defaults apply only to absent source keys: explicit false and zero are retained.
-Invalid explicit speed/count values fail loading and saving before mutation.
+Invalid explicit speed/count values fail loading and saving before mutation. A
+saved speed that lies on the half-step grid but is no longer listed, such as a
+former 2.5x or 3.5x, loads as the nearest listed choice with ties upward (3x and
+4x) and a load diagnostic; the next gameplay save writes the listed value.
 `config.DefaultGameplayConfiguration` holds the only gameplay defaults: loading
 starts from it and replaces each value the configuration sets, so tests that
 construct detached models from it get the defaults players get.
 Nil configuration or a missing Gameplay section gives consumers legacy defaults.
 
 The new combat-speed key takes precedence over the legacy Debug movement key.
-When only a valid legacy speed exists, it rounds to the nearest half-step and
-clamps to 0.5x–4.0x; positive midpoints round upward (0.25→0.5, 0.75→1.0,
-1.25→1.5). Normalization is diagnosed, and the canonical key is written on the
+When only a valid legacy speed exists, it moves to the nearest listed choice,
+clamped to the list; exact midpoints resolve upward (0.25→0.5, 0.75→1, 1.25→1.5,
+2.5→3). Normalization is diagnosed, and the canonical key is written on the
 next successful save. F2 detail persistence and full saves never write the old
 speed authority. Immediate Workbench gameplay preference setters reject writes
 while this dialog owns a staged transaction; Apply/Cancel releases that reservation.

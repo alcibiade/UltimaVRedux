@@ -122,7 +122,8 @@ func testCombatFiniteEffectAdmission(t *testing.T, rate float64, hitchMs int64) 
 	// lifetime/geometry boundary below, and require pixels on the first ordinary
 	// 16ms frame using a logical display that actually matches this render target.
 	const firstDrawAgeMs int64 = 16
-	ages := []int64{0, 1, firstDrawAgeMs, combatImpactDurationMs - 1, combatImpactDurationMs, combatImpactDurationMs + 1}
+	labelMs := max(timing.durationMs(combatImpactDurationMs), combatImpactLabelFloorMs)
+	ages := []int64{0, 1, firstDrawAgeMs, labelMs - 1, labelMs, labelMs + 1}
 	for _, base := range []int64{
 		combatStrikeDurationMs, combatDivisionTetherDurationMs, combatLungeDurationMs, combatJoltDurationMs,
 		combatSceptreActorDurationMs, combatFieldDispelDurationMs, 500, combatDivisionDurationMs, combatVanishDurationMs,
@@ -162,7 +163,7 @@ func assertCombatFiniteEffectAge(
 	t *testing.T, scene *GameScene, timing combatPresentationTiming, startedMs, ageMs int64, childIndex int,
 ) {
 	t.Helper()
-	if ageMs < combatImpactDurationMs {
+	if ageMs < max(timing.durationMs(combatImpactDurationMs), combatImpactLabelFloorMs) {
 		require.Len(t, scene.combatImpactEffects, 2, "physical and area-spell labels retain their reading lifetime")
 		for _, effect := range scene.combatImpactEffects {
 			assert.Equal(t, startedMs, effect.StartedMs)

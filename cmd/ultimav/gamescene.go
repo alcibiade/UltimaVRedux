@@ -247,6 +247,7 @@ type GameScene struct {
 	combatSignatureEffects []*combatSignatureEffect
 	combatResolutionTiming *combatPresentationTiming
 	combatAttackTiming     combatAttackTimingSnapshot
+	combatTurnHandOff      combatTurnHandOffMark
 	combatAllegiance       combatAllegianceState
 	combatRenderFrame      combatRenderFrame
 	combatMovement         CombatMovementAnimation

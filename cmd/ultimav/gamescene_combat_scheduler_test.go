@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,10 +20,10 @@ func TestCombatAutoPassWithoutSignatureHonorsSpeedAdjustedDelay(t *testing.T) {
 		{name: "normal", speed: 1, durationMs: 250},
 		{name: "one and half", speed: 1.5, durationMs: 167},
 		{name: "double", speed: 2, durationMs: 125},
-		{name: "two and half", speed: 2.5, durationMs: 100},
 		{name: "triple", speed: 3, durationMs: 83},
-		{name: "three and half", speed: 3.5, durationMs: 71},
-		{name: "fast", speed: 4, durationMs: 63},
+		{name: "quadruple", speed: 4, durationMs: 63},
+		{name: "twelvefold", speed: 12, durationMs: 21},
+		{name: "maximum", speed: 20, durationMs: 13},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			scene, callbacks := newCombatUseTestScene(t)
@@ -76,6 +77,46 @@ func TestCombatAutoPassWithoutSignatureHonorsSpeedAdjustedDelay(t *testing.T) {
 			after := snapshotBlockedCombatState(t, state)
 			assert.ErrorIs(t, state.CompleteScheduledCombatStep(step.Token), game_state.ErrCombatPresentationDuplicate)
 			assert.Equal(t, after, snapshotBlockedCombatState(t, state), "duplicate completion must not advance the replacement turn")
+		})
+	}
+}
+
+func TestCombatTurnHandOffScalesOnlyForSameFrameReview(t *testing.T) {
+	scene, _ := newCombatUseTestScene(t)
+	state := scene.gameState
+	state.ElapsedMs = 900
+	assert.Zero(t, scene.takeCombatTurnHandOff(newCombatPresentationTiming(1)), "no predecessor")
+	for _, test := range []struct{ speed, want float64 }{{1, 16}, {2, 8}, {4, 4}, {20, 1}} {
+		scene.markCombatTurnHandOff()
+		assert.Equal(t, int64(test.want), scene.takeCombatTurnHandOff(newCombatPresentationTiming(test.speed)), "%gx", test.speed)
+		assert.Zero(t, scene.takeCombatTurnHandOff(newCombatPresentationTiming(test.speed)), "consumed once")
+	}
+	scene.markCombatTurnHandOff()
+	state.ElapsedMs++
+	assert.Zero(t, scene.takeCombatTurnHandOff(newCombatPresentationTiming(1)), "a later frame already spent its hand-off")
+	scene.markCombatTurnHandOff()
+	scene.combatTurnHandOff.encounter = &game_state.CombatState{}
+	assert.Zero(t, scene.takeCombatTurnHandOff(newCombatPresentationTiming(1)), "another encounter")
+}
+
+func TestCombatAutoPassAddsScaledHandOffAfterSameFrameCompletion(t *testing.T) {
+	for _, test := range []struct{ speed, durationMs float64 }{{1, 250 + 16}, {20, 13 + 1}} {
+		t.Run(fmt.Sprint(test.speed), func(t *testing.T) {
+			scene, callbacks := newCombatUseTestScene(t)
+			setCombatTimingTestRate(scene, test.speed)
+			state := scene.gameState
+			step := nextNonActionablePCPresentationStep(t, state)
+			require.Equal(t, game_state.CombatPresentationAutoPass, step.Kind)
+			const startMs int64 = 900
+			state.ElapsedMs = startMs
+			scene.markCombatTurnHandOff()
+			scene.startScheduledCombatAutoPass(step)
+			drainCombatPacingAt(scene, startMs)
+			drainCombatPacingAt(scene, startMs+int64(test.durationMs)-1)
+			require.True(t, callbacks.InputBlocked)
+			drainCombatPacingAt(scene, startMs+int64(test.durationMs))
+			require.False(t, callbacks.InputBlocked, "the guarded workflow releases in its completion frame")
+			assert.Equal(t, startMs+int64(test.durationMs), scene.combatTurnHandOff.finishedMs)
 		})
 	}
 }

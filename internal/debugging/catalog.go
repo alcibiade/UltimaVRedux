@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 )
 
 var (
@@ -222,6 +223,16 @@ func validateParameterConstraints(commandID string, parameter ParameterDefinitio
 			parameter.ID,
 		)
 	}
+	// Integer choices narrow the bounds and step; each one must satisfy them.
+	for _, choice := range parameter.Choices {
+		if parameter.Kind != ParameterInteger {
+			break
+		}
+		if err := validateIntegerArgument(parameter, json.RawMessage(choice.Value)); err != nil {
+			return fmt.Errorf("%w: command %q parameter %q has invalid integer choice: %w",
+				ErrInvalidCatalog, commandID, parameter.ID, err)
+		}
+	}
 	if parameter.Pattern != "" {
 		if _, err := regexp.Compile(parameter.Pattern); err != nil {
 			return fmt.Errorf(
@@ -296,6 +307,9 @@ func validateIntegerArgument(parameter ParameterDefinition, raw json.RawMessage)
 	// Unsigned subtraction preserves distances spanning the signed integer range.
 	if parameter.Step != nil && (uint(value)-uint(*parameter.Minimum))%uint(*parameter.Step) != 0 {
 		return fmt.Errorf("%w: must advance from %d in steps of %d", ErrInvalidArgument, *parameter.Minimum, *parameter.Step)
+	}
+	if len(parameter.Choices) > 0 && !containsChoice(parameter.Choices, strconv.Itoa(value)) {
+		return fmt.Errorf("%w: unknown choice %d", ErrInvalidArgument, value)
 	}
 
 	return nil

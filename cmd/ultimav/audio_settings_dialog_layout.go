@@ -388,8 +388,18 @@ func (d *ConfigurationDialog) buildGameplayRects(
 	return listRect, rows, detailRect
 }
 
+// gameplayCheckboxWidth fits the widest value cell: a checkbox or any numeric choice.
 func (d *ConfigurationDialog) gameplayCheckboxWidth() int {
-	width, _ := d.gameplayOutput.Font.MeasureString("4.0x ")
+	width, _ := d.gameplayOutput.Font.MeasureString("[X] ")
+	for _, setting := range gameplaySettings() {
+		if setting.numeric == nil {
+			continue
+		}
+		for _, choice := range setting.numeric.spec.Choices() {
+			choiceWidth, _ := d.gameplayOutput.Font.MeasureString(setting.numeric.format(choice) + " ")
+			width = max(width, choiceWidth)
+		}
+	}
 
 	return int(math.Ceil(width))
 }

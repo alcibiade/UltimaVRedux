@@ -701,24 +701,39 @@ func (eqm *EventQueueManager) handleQueueCleanup(
 	isEmpty := len(queue.events) == 0 && len(queue.continuousEvents) == 0 &&
 		!queue.waitingForInput && !queue.pendingInputUnblock
 
-	if isEmpty {
-		if queue.lifecycle == queueStarted {
-			eqm.beginQueueFinalization(queue)
-		}
-		if queue.autoBlockUnblockInput && eqm.systemCallbacks != nil && queue.inputBlockOwned {
-			logging.Debugf(logging.CategoryGameState,
-				"EventQueue: Queue '%s' is empty - entering pendingInputUnblock state", queueName)
-			queue.pendingInputUnblock = true
-		} else {
-			logging.Debugf(logging.CategoryGameState,
-				"EventQueue: Queue '%s' is empty - marking for cleanup", queueName)
-			*queuesToDelete = append(*queuesToDelete, queueName)
-		}
-	} else {
+	if !isEmpty {
 		logging.Debugf(logging.CategoryGameState,
 			"EventQueue: Queue '%s' not empty - delayed: %d, continuous: %d, waitingForInput: %t, pendingInputUnblock: %t",
 			queueName, len(queue.events), len(queue.continuousEvents), queue.waitingForInput, queue.pendingInputUnblock)
+
+		return
 	}
+	if queue.lifecycle == queueStarted {
+		eqm.beginQueueFinalization(queue)
+	}
+	if queue.autoBlockUnblockInput && eqm.systemCallbacks != nil && queue.inputBlockOwned {
+		logging.Debugf(logging.CategoryGameState,
+			"EventQueue: Queue '%s' is empty - entering pendingInputUnblock state", queueName)
+		queue.pendingInputUnblock = true
+		if !eqm.releaseGuardedHandOff(queue, queueName) {
+			return
+		}
+	} else {
+		logging.Debugf(logging.CategoryGameState,
+			"EventQueue: Queue '%s' is empty - marking for cleanup", queueName)
+	}
+	*queuesToDelete = append(*queuesToDelete, queueName)
+}
+
+// releaseGuardedHandOff releases a guarded workflow in its completion Update
+// when the guard already passes, so the next owner is not delayed by a frame.
+func (eqm *EventQueueManager) releaseGuardedHandOff(queue *NamedEventQueue, queueName string) bool {
+	if queue.inputReleaseReady == nil || eqm.shutdown {
+		return false
+	}
+	eqm.processPendingInputUnblock(queue, queueName)
+
+	return !queue.pendingInputUnblock
 }
 
 // blockInputIfNeeded blocks input with reference counting

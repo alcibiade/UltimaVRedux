@@ -68,7 +68,8 @@ func validateConfigurationTypes(source *viper.Viper) error {
 
 func validateGameplaySourceNumbers(source *viper.Viper) error {
 	if source.IsSet(gameplayCombatSpeedKey) {
-		if err := CombatSpeedSpec().Validate(source.GetFloat64(gameplayCombatSpeedKey)); err != nil {
+		// Former grid choices load, then move to the nearest current choice.
+		if err := CombatSpeedSpec().ValidateGrid(source.GetFloat64(gameplayCombatSpeedKey)); err != nil {
 			return fmt.Errorf("%s: %w", gameplayCombatSpeedKey, err)
 		}
 	} else if source.IsSet(legacyCombatSpeedKey) &&

@@ -974,7 +974,8 @@ binding eligibility, including moves in the same millisecond or with zero damage
 For a bound move, burn tint and label become visible at **50% movement progress**,
 when the smooth interpolation reaches the destination tile's near edge. Their
 age stays zero through the remaining movement. Completed arrival starts a full
-**450 ms tint fade** and **1250 ms floating-result lifetime**; movement speed does
+**450 ms tint fade** and the floating-result lifetime (1250 ms at 1x, divided by
+the captured combat rate with a 300 ms floor); movement speed does
 not consume that post-arrival budget. The tint begins at alpha 0.72 and fades
 linearly. It covers only the sprite silhouette, after persistent condition
 artwork, while the normal HP/allegiance and selection passes keep their ownership.
@@ -1107,7 +1108,8 @@ owning wait. Confirmations remain player-dismissed.
 
 Concurrent motion is independent of result reading: impact snapshots store
 effective 300 ms lunge, 320 ms jolt and 180 ms strike durations, while floating
-labels always retain 1250 ms. Division's 280 ms tether / 720 ms total and 110 ms
+labels divide their 1250 ms reading budget by the same rate but never shorten
+below 300 ms. Division's 280 ms tether / 720 ms total and 110 ms
 outline interval, 750 ms disappearance, 320 ms Sceptre / 420 ms field-dispel cues,
 and 500 ms combat Kapow bursts scale without acquiring input or a new completion
 dependency. Their noncombat callers and the movement-bound fire readability
@@ -1119,7 +1121,7 @@ combat Kapow snapshots record their admission timestamp. Updates calculate age
 from `GameState.ElapsedMs` rather than adding the previous frame's delta, so a
 50 ms or 200 ms frame cannot erase a newly admitted 4x strike, division or vanish
 before its first draw. Normal aging and expiry still use their captured durations;
-the 1250 ms reading budget remains unscaled. Movement-bound fire retains its
+the label reading budget uses its captured rate above the 300 ms floor. Movement-bound fire retains its
 separate contact/arrival clock. Sceptre, field-dispel and signature effects already
 use admission clocks; queued spell animations retain their animation-admission
 ownership. Noncombat Kapow effects retain their independent cosmetic delta clock.
@@ -1196,7 +1198,7 @@ Focused tests live beside the owning packages:
 - `cmd/ultimav/gamescene_combat_effect_admission_test.go` for production-order
   concurrent effect publication after hitches, the first 16 ms strike draw with
   an explicitly published logical display size,
-  exact expiry boundaries, same-time updates and unscaled label reading time
+  exact expiry boundaries, same-time updates and scaled label reading time with its floor
 - `cmd/ultimav/gamescene_combat_signature_disclosure_test.go` for concealed versus
   retired possession origins and immutable report disclosure after slot reuse
 - `cmd/ultimav/gamescene_combat_signature_composition_test.go` for teleport

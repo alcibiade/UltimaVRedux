@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"io/fs"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/audio"
 	"github.com/bradhannah/UltimaVRedux/internal/config"
+	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/legacy_save"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
@@ -89,6 +91,7 @@ type IntroMenuScene struct {
 	menuIdleStartedMs       int64
 	nCurrentSelection       int
 	notice                  string
+	showVersion             bool
 	journeyOnwardEnabled    bool
 	saveAvailabilityKnown   bool
 	menuVisible             bool
@@ -178,7 +181,7 @@ func newIntroMenuState(
 		borderSprites:           sprites.NewBorderSprites(),
 		ultimaFont:              font,
 		noticeOutput:            text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, introNoticeLineCount, 80),
-		versionOutput:           newIntroVersionOutput(font),
+		versionOutput:           newIntroVersionOutput(),
 		keyboard:                input.NewKeyboard(250),
 		config:                  gameConfig,
 		audioManager:            nil,
@@ -202,6 +205,7 @@ func newIntroMenuState(
 		menuIdleStartedMs:       0,
 		nCurrentSelection:       introChoiceLoad,
 		notice:                  "",
+		showVersion:             false,
 		journeyOnwardEnabled:    false,
 		saveAvailabilityKnown:   false,
 		menuVisible:             false,
@@ -271,7 +275,8 @@ func (m *IntroMenuScene) Dispose() {
 func (m *IntroMenuScene) InvalidateResolution() {
 	m.ultimaFont = text.NewUltimaFont(text.GetIntroFontSize())
 	m.noticeOutput.SetFont(m.ultimaFont, m.ultimaFont.TextFace.Metrics().HAscent*1.2)
-	m.versionOutput.SetFont(m.ultimaFont, m.ultimaFont.TextFace.Metrics().HAscent*1.2)
+	versionFont := newIntroVersionFont()
+	m.versionOutput.SetFont(versionFont, versionFont.TextFace.Metrics().HAscent*1.2)
 }
 
 func (m *IntroMenuScene) GetUltimaConfiguration() *config.UltimaVConfiguration {
@@ -284,7 +289,7 @@ func (m *IntroMenuScene) PrepareInputForSceneActivation() {
 
 //nolint:gochecknoglobals // Fixed input map.
 var boundKeysIntro = beradinput.NewBindings(
-	ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyEscape,
+	ebiten.KeyDown, ebiten.KeyUp, ebiten.KeyEnter, ebiten.KeyNumpadEnter, ebiten.KeyEscape, ebiten.KeyV,
 )
 
 //nolint:gochecknoglobals // All-key presentations use the keyboard adapter; Caps Lock is not actionable input.
@@ -345,6 +350,11 @@ func (m *IntroMenuScene) Update(game *Game) error {
 
 	if *pressedKey == ebiten.KeyEscape {
 		m.showExitConfirmation(game)
+
+		return nil
+	}
+	if *pressedKey == ebiten.KeyV {
+		m.showVersion = !m.showVersion
 
 		return nil
 	}
@@ -1265,7 +1275,7 @@ func (m *IntroMenuScene) drawTitleBackdrop(screen *ebiten.Image) {
 func (m *IntroMenuScene) drawMenu(screen *ebiten.Image) {
 	m.drawTitleBackdrop(screen)
 	menuBorder, menuBorderOp := m.borderSprites.VeryPixelatedRoundedBlueWhite.CreateSizedAndScaledBorderSprite(
-		400,
+		introMenuBorderIdealWidth,
 		text.IntroMenuFramePlacement(),
 	)
 	screen.DrawImage(menuBorder, menuBorderOp)
@@ -1275,20 +1285,63 @@ func (m *IntroMenuScene) drawMenu(screen *ebiten.Image) {
 	}
 	m.ultimaFont.DrawIntroChoices(screen, m.nCurrentSelection, enabledChoices)
 	m.drawNotice(screen)
+	if m.showVersion {
+		m.drawVersion(screen)
+	}
+}
+
+const (
+	// introMenuBorderIdealWidth is the screen width at which the menu border
+	// draws its reference artwork at 1:1; wider screens scale it up.
+	introMenuBorderIdealWidth = 400
+	// introMenuBorderBandReferencePixels is the blue band's thickness in the
+	// 20x20 reference border, and introMenuBorderCornerReferencePixels clears
+	// its rounded corner.
+	introMenuBorderBandReferencePixels   = 6
+	introMenuBorderCornerReferencePixels = 8
+	// introVersionFontBandFraction sizes the version font to sit inside the band.
+	introVersionFontBandFraction = 0.8
+)
+
+// introMenuBorderScale is the menu border's reference-to-screen pixel scale.
+func introMenuBorderScale(screenWidth int) float64 {
+	return float64(screenWidth) / introMenuBorderIdealWidth
+}
+
+// drawVersion writes the build version on the menu frame's lower blue band,
+// right-aligned clear of the rounded corner. V toggles it.
+func (m *IntroMenuScene) drawVersion(screen *ebiten.Image) {
 	bounds := screen.Bounds()
+	placement := text.IntroMenuFramePlacement()
+	scale := introMenuBorderScale(bounds.Dx())
+	bandHeight := introMenuBorderBandReferencePixels * scale
+	bandTop := float64(bounds.Dy())*placement.EndPercentY - bandHeight
+	left := float64(bounds.Dx()) * placement.StartPercentX
+	right := float64(bounds.Dx())*placement.EndPercentX - introMenuBorderCornerReferencePixels*scale
+	// Centering the line box centers the glyphs, descenders included.
+	top := bandTop + (bandHeight-m.versionOutput.GetLineSpacing())/2
 	m.versionOutput.DrawPanelContent(
 		screen,
-		image.Pt(bounds.Dx()/2, bounds.Dy()*19/20),
-		bounds.Dx()/2-bounds.Dx()/40,
+		image.Pt(int(math.Round(left)), int(math.Round(top))),
+		int(right-left),
 		textv2.AlignEnd,
 	)
 }
 
+// newIntroVersionFont sizes the version line to the menu border's blue band.
+func newIntroVersionFont() *text.UltimaFont {
+	screenWidth, _ := display.GetManager().GetCurrentSize()
+	bandHeight := introMenuBorderBandReferencePixels * introMenuBorderScale(screenWidth)
+
+	return text.NewUltimaFont(bandHeight * introVersionFontBandFraction)
+}
+
 // newIntroVersionOutput holds the title screen's version line, so bug reports
 // can quote it; the content never changes after construction.
-func newIntroVersionOutput(font *text.UltimaFont) *text.Output {
+func newIntroVersionOutput() *text.Output {
+	font := newIntroVersionFont()
 	output := text.NewOutput(font, font.TextFace.Metrics().HAscent*1.2, 1, 80)
-	output.AppendLine().LightGray(runtimeGameVersion()).WithAlignment(textv2.AlignEnd).Done()
+	output.AppendLine().White(runtimeGameVersion()).WithAlignment(textv2.AlignEnd).Done()
 
 	return output
 }

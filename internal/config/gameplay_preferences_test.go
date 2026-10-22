@@ -35,7 +35,7 @@ func TestQoLDefaultsDistinguishAbsentAndExplicitValues(t *testing.T) {
 func TestQoLEveryNumericValueRoundTrips(t *testing.T) {
 	configuration, file := configurationFixture(t, "unknown: retained\n")
 	pointer := configuration.GameplayConfiguration
-	for speed := 0.5; speed <= 4; speed += 0.5 {
+	for _, speed := range CombatSpeedSpec().Choices() {
 		for count := 0; count <= 3; count++ {
 			require.NoError(t, configuration.SetCombatSpeedFactor(speed))
 			require.NoError(t, configuration.SetMaxVisibleActionPopups(count))
@@ -60,7 +60,7 @@ func TestQoLStrictSourceValidation(t *testing.T) {
 		key   string
 		value any
 	}{
-		{gameplayCombatSpeedKey, 0}, {gameplayCombatSpeedKey, 0.75}, {gameplayCombatSpeedKey, 4.5},
+		{gameplayCombatSpeedKey, 0}, {gameplayCombatSpeedKey, 0.75}, {gameplayCombatSpeedKey, 20.5},
 		{gameplayCombatSpeedKey, "2"}, {gameplayCombatSpeedKey, true},
 		{gameplayCombatSpeedKey, math.NaN()}, {gameplayCombatSpeedKey, math.Inf(1)},
 		{gameplayMaxActionPopupsKey, 1.5}, {gameplayMaxActionPopupsKey, 1.0},
@@ -77,7 +77,9 @@ func TestQoLStrictSourceValidation(t *testing.T) {
 }
 
 func TestLegacySpeedMigrationAndCanonicalPrecedence(t *testing.T) {
-	for _, test := range []struct{ legacy, want float64 }{{0.25, 0.5}, {0.75, 1}, {1.25, 1.5}, {3.9, 4}, {2, 2}} {
+	for _, test := range []struct{ legacy, want float64 }{
+		{0.25, 0.5}, {0.75, 1}, {1.25, 1.5}, {2.25, 2}, {2.5, 3}, {3.5, 4}, {3.9, 4}, {2, 2},
+	} {
 		configuration, file := configurationFixture(t, fmt.Sprintf("Debug:\n  CombatMovementSpeedFactor: %g\n", test.legacy))
 		assert.Equal(t, test.want, configuration.GetCombatSpeedFactor())
 		if test.legacy != test.want {
@@ -96,8 +98,20 @@ func TestLegacySpeedMigrationAndCanonicalPrecedence(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 3.0, loaded.GetCombatSpeedFactor(), "debug/F2/full saves cannot restore legacy authority")
 	}
-	configuration, _ := configurationFixture(t, "Gameplay:\n  Combat:\n    SpeedFactor: 2.5\nDebug:\n  CombatMovementSpeedFactor: 1.25\n")
-	assert.Equal(t, 2.5, configuration.GetCombatSpeedFactor())
+	configuration, _ := configurationFixture(t, "Gameplay:\n  Combat:\n    SpeedFactor: 16\nDebug:\n  CombatMovementSpeedFactor: 1.25\n")
+	assert.Equal(t, 16.0, configuration.GetCombatSpeedFactor())
+	assert.Empty(t, configuration.ConfigurationDiagnostics())
+}
+
+func TestFormerCanonicalSpeedGridValuesMoveToNearestChoice(t *testing.T) {
+	for _, test := range []struct{ saved, want float64 }{{2.5, 3}, {3.5, 4}, {5, 6}, {13.5, 12}} {
+		configuration, file := configurationFixture(t, fmt.Sprintf("Gameplay:\n  Combat:\n    SpeedFactor: %g\n", test.saved))
+		assert.Equal(t, test.want, configuration.GetCombatSpeedFactor())
+		require.Len(t, configuration.ConfigurationDiagnostics(), 1)
+		assert.Contains(t, configuration.ConfigurationDiagnostics()[0], fmt.Sprintf("combat speed %g to %g", test.saved, test.want))
+		require.NoError(t, configuration.SaveGameplayConfiguration())
+		assert.Equal(t, test.want, readConfigurationFixture(t, file).GetFloat64(gameplayCombatSpeedKey))
+	}
 }
 
 func TestQoLInvalidPersistenceDoesNotMutateSourceOrFile(t *testing.T) {
@@ -106,7 +120,7 @@ func TestQoLInvalidPersistenceDoesNotMutateSourceOrFile(t *testing.T) {
 	require.NoError(t, err)
 	beforeSource := configuration.source.AllSettings()
 	before := *configuration.GameplayConfiguration
-	for _, speed := range []float64{0, 0.75, 4.1, math.NaN(), math.Inf(1)} {
+	for _, speed := range []float64{0, 0.75, 2.5, 4.1, 5, 21, math.NaN(), math.Inf(1)} {
 		require.ErrorIs(t, configuration.SetCombatSpeedFactor(speed), ErrGameplayPreference)
 		settings := ConfigurationSettings{Audio: *configuration.AudioConfiguration, Display: *configuration.DisplayConfiguration, Gameplay: before}
 		settings.Gameplay.CombatSpeedFactor = speed
@@ -160,4 +174,22 @@ func TestNumericSettingSpecValidationAndIndexedSteps(t *testing.T) {
 	assert.InDelta(t, 0.3, spec.Advance(0.2, 1), 1e-12)
 	assert.Equal(t, spec.Min, spec.Advance(spec.Default, -100))
 	assert.InDelta(t, spec.Max, spec.Advance(spec.Default, 100), 1e-12)
+}
+
+func TestNumericSettingSpecValueListValidationAndSteps(t *testing.T) {
+	for _, values := range [][]float64{{1, 2, 3}, {0, 2, 3}, {0, 3, 2}, {0, 1, 1, 3}, {0, 1.5, 3}, {0, 2, 3, 4}} {
+		require.Error(t, NumericSettingSpec{Min: 0, Max: 3, Step: 1, Default: 1, Values: values}.Validate(0))
+	}
+	spec := CombatSpeedSpec()
+	require.NoError(t, spec.Validate(12))
+	require.Error(t, spec.Validate(10))
+	require.NoError(t, spec.ValidateGrid(10))
+	assert.Equal(t, []float64{0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 20}, spec.Choices())
+	assert.Equal(t, 6.0, spec.Advance(4, 1))
+	assert.Equal(t, 3.0, spec.Advance(4, -1))
+	assert.Equal(t, 20.0, spec.Advance(16, 5))
+	assert.Equal(t, 0.5, spec.Advance(1, -5))
+	for _, test := range []struct{ value, want float64 }{{0, 0.5}, {1.75, 2}, {10, 12}, {14, 16}, {99, 20}} {
+		assert.Equal(t, test.want, spec.Nearest(test.value), "%g", test.value)
+	}
 }

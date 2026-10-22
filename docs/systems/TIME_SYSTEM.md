@@ -51,8 +51,8 @@ and Daemon summoners, including captured-rate cases. Its oracle includes
 
 ### Combat Presentation Speed
 
-Combat uses one canonical preference, `GetCombatSpeedFactor()`: 0.5x through
-4x in 0.5 steps, default 1x. `combatPresentationTiming` captures a validated
+Combat uses one canonical preference, `GetCombatSpeedFactor()`: 0.5x, 1x, 1.5x,
+2x, 3x, 4x, 6x, 8x, 12x, 16x or 20x, default 1x. `combatPresentationTiming` captures a validated
 value for the committed action. Included authored millisecond durations are
 divided **once**, rounded to the nearest millisecond (positive halves upward),
 with zero preserved and a 1 ms technical minimum for positive work. A zero-valued
@@ -60,16 +60,25 @@ policy or detached fixture deliberately defaults to 1x. Other invalid nonzero
 factors are programming errors at this boundary; configuration owns validation
 of explicit preferences. No old debug factor is multiplied in.
 
-| Stage | Authored at 1x | At 4x |
-| --- | ---: | ---: |
-| Ordinary / targeted enemy anticipation | 250 / 1000 ms | 63 / 250 ms |
-| Ordinary enemy movement | 650 ms | 163 ms |
-| Player or controlled-monster movement | 333 ms | 83 ms |
-| AI bat/mongbat anticipation / movement | 75 / 175 ms | 19 / 44 ms |
-| Condition-driven party auto-pass | 250 ms | 63 ms |
-| Tab non-projectile source hold | 1250 ms | 313 ms |
-| Minimum projectile flight | 100 ms | 25 ms |
-| Chest reveal interval / victory departure per member | 500 / 180 ms | 125 / 45 ms |
+| Stage | Authored at 1x | At 4x | At 20x |
+| --- | ---: | ---: | ---: |
+| Ordinary / targeted enemy anticipation | 250 / 1000 ms | 63 / 250 ms | 13 / 50 ms |
+| Scheduled turn hand-off (same-frame review) | 16 ms | 4 ms | 1 ms |
+| Ordinary enemy movement | 650 ms | 163 ms | 33 ms |
+| Player or controlled-monster movement | 333 ms | 83 ms | 17 ms |
+| AI bat/mongbat anticipation / movement | 75 / 175 ms | 19 / 44 ms | 4 / 9 ms |
+| Condition-driven party auto-pass | 250 ms | 63 ms | 13 ms |
+| Tab non-projectile source hold | 1250 ms | 313 ms | 63 ms |
+| Floating result label (300 ms floor) | 1250 ms | 313 ms | 300 ms |
+| Minimum projectile flight | 100 ms | 25 ms | 5 ms |
+| Chest reveal interval / victory departure per member | 500 / 180 ms | 125 / 45 ms | 25 / 9 ms |
+
+Enemy turns and condition-driven auto-passes release their input block in the
+same queue update that completes them when no unprotected key is held. The next
+scheduled actor reviewed in that frame adds the scaled 16 ms hand-off, replacing
+the one 60 TPS frame the release formerly took: 1x pacing is unchanged and faster
+rates shorten the gap between actors. A held key still defers the release, and a
+later review adds no hand-off because it has already spent its frames.
 
 The same snapshot covers deferred anticipation, every source of a multi-source
 attack, outbound/impact/return travel, and all phases of a committed Cast/Use or
@@ -91,9 +100,10 @@ Shared world projectile and spell helpers retain 1x unless explicitly in the
 combat presentation path. The projectile's authored 100 ms minimum is applied
 before scaling, with no second perceptibility floor.
 
-Floating result text retains its **1250 ms reading lifetime** independently of
-the Tab source hold. Movement-bound fire still admits at 50% progress and keeps
-its post-arrival 450 ms tint / 1250 ms label budget. Reports, action-card
+Floating result text divides its **1250 ms reading lifetime** by the admitted
+rate but never shortens below **300 ms**, independently of the Tab source hold.
+Movement-bound fire still admits at 50% progress and keeps its post-arrival
+450 ms tint with the same scaled label budget. Reports, action-card
 reveal/hold/fade, status/selection/idle pulses, targeting, held-key protection,
 player acknowledgements, polling and audio keep their own clocks. Camping,
 death/resurrection narratives, bridge-troll narration and dungeon-owned

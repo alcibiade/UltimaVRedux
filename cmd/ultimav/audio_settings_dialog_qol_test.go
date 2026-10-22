@@ -41,13 +41,13 @@ func TestConfigurationQoLKeyboardDomainsAndScrollableReachability(t *testing.T) 
 	for range 20 {
 		pressAudioSettingsKey(dialog, ebiten.KeyLeft)
 	}
-	for _, want := range []float64{0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4} {
+	for _, want := range []float64{0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16, 20} {
 		assert.Equal(t, want, dialog.stagedGameplay.CombatSpeedFactor)
 		pressAudioSettingsKey(dialog, ebiten.KeyRight)
 	}
-	assert.Equal(t, 4.0, dialog.stagedGameplay.CombatSpeedFactor)
+	assert.Equal(t, 20.0, dialog.stagedGameplay.CombatSpeedFactor)
 	pressAudioSettingsKey(dialog, ebiten.KeySpace)
-	assert.Equal(t, 4.0, dialog.stagedGameplay.CombatSpeedFactor)
+	assert.Equal(t, 20.0, dialog.stagedGameplay.CombatSpeedFactor)
 	dialog.focusedGameplayIndex = gameplayMaxActionPopupsIndex
 	for range 5 {
 		pressAudioSettingsKey(dialog, ebiten.KeyLeft)
@@ -72,9 +72,9 @@ func TestConfigurationQoLHelpUsesApprovedFontSafeParagraphs(t *testing.T) {
 	expected := map[int][]string{
 		gameplayCombatSpeedIndex: {
 			"Change how quickly combat actions and animations play.", "",
-			"1.0x is normal speed.", "Higher values make combat faster.", "",
-			"Choose 0.5x to 4.0x.", "Left/Right changes speed by 0.5x.", "",
-			"Default: 1.0x",
+			"1x is normal speed.", "Higher values make combat faster.", "",
+			"Choose 0.5x, 1x, 1.5x, 2x, 3x, 4x, 6x, 8x, 12x, 16x or 20x.", "",
+			"Default: 1x",
 		},
 		gameplayMaxActionPopupsIndex: {
 			"Choose how many action messages can appear over the map at once.", "",
@@ -162,9 +162,12 @@ func TestConfigurationQoLHelpUsesApprovedFontSafeParagraphs(t *testing.T) {
 func TestConfigurationNumericHelpFollowsSpecifications(t *testing.T) {
 	assert.Equal(t, []string{
 		"Change how quickly combat actions and animations play.", "",
-		"2.0x is normal speed.", "Higher values make combat faster.", "",
-		"Choose 1.0x to 3.0x.", "Left/Right changes speed by 1.0x.", "", "Default: 2.0x",
+		"2x is normal speed.", "Higher values make combat faster.", "",
+		"Choose 1x, 2x or 3x.", "", "Default: 2x",
 	}, combatSpeedHelpLines(config.NumericSettingSpec{Min: 1, Max: 3, Step: 1, Default: 2}))
+	assert.Contains(t, combatSpeedHelpLines(config.NumericSettingSpec{
+		Min: 0.5, Max: 8, Step: 0.5, Default: 1, Values: []float64{0.5, 1, 8},
+	}), "Choose 0.5x, 1x or 8x.")
 	assert.Contains(t, actionPopupsHelpLines(config.NumericSettingSpec{Min: 0, Max: 4, Step: 2, Default: 2}),
 		"Choose Off, 2 or 4.")
 	assert.Contains(t, actionPopupsHelpLines(config.NumericSettingSpec{Min: 0, Max: 4, Step: 2, Default: 2}), "Default: 2")

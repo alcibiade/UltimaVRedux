@@ -80,7 +80,9 @@ System > Redux Modifications also owns combat speed, quick-save confirmation,
 combat health bars and the simultaneous action-popup limit. These use the same
 typed `UltimaVConfiguration` getters and atomic setters as player Configuration.
 `combat.presentation.speed.set` remains a compatibility command ID, with integer
-`percent` transport from 50 through 400 in steps of 50. It controls master combat
+`percent` transport limited to listed integer `choices` (50, 100, 150, 200, 300,
+400, 600, 800, 1200, 1600 and 2000) within 50–2000 in steps of 50. Integer
+choices are validated in the catalog and request path, and in the browser form. It controls master combat
 presentation, including animations and action pauses, through
 `Gameplay.Combat.SpeedFactor`; Debug configuration is no longer a speed writer.
 Active Combat exposes the same command and canonical status value.

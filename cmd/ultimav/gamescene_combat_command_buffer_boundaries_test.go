@@ -14,7 +14,9 @@ func TestBufferedCombatBlockedCompletionFrameRejectsArrowBeforeQueueAdvance(t *t
 	require.NoError(t, scene.Update(nil))
 	delete(held, ebiten.KeyG)
 	// Finish presentation only as far as authoritative readiness while its
-	// finalizing workflow still owns the input block.
+	// finalizing workflow still owns the input block. A held foreign key keeps
+	// the guarded release pending; otherwise it releases in this same frame.
+	held[ebiten.KeyShiftLeft] = true
 	for range 200 {
 		scene.gameState.ElapsedMs += 16
 		scene.updateWindAndEffects()
@@ -24,6 +26,7 @@ func TestBufferedCombatBlockedCompletionFrameRejectsArrowBeforeQueueAdvance(t *t
 		}
 	}
 	require.True(t, scene.inputBlocked)
+	delete(held, ebiten.KeyShiftLeft)
 	held[ebiten.KeyRight] = true
 	require.NoError(t, scene.Update(nil))
 	require.Equal(t, GetDirectionInput, scene.secondaryKeyState)

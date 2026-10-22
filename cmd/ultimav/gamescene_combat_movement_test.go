@@ -67,6 +67,7 @@ func TestFastScheduledMonsterPacingScalingAndFallback(t *testing.T) {
 		{"normal", 1, combatMonsterPacing{75, 175}},
 		{"double", 2, combatMonsterPacing{38, 88}},
 		{"quadruple", 4, combatMonsterPacing{19, 44}},
+		{"maximum", 20, combatMonsterPacing{4, 9}},
 		{"unset", 0, combatMonsterPacing{75, 175}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -78,7 +79,7 @@ func TestFastScheduledMonsterPacingScalingAndFallback(t *testing.T) {
 			assert.Equal(t, test.want, pacing)
 		})
 	}
-	for _, invalid := range []float64{-1, 0.24, 4.01, math.NaN(), math.Inf(1)} {
+	for _, invalid := range []float64{-1, 0.24, 4.01, 5, 20.01, math.NaN(), math.Inf(1)} {
 		scene.gameConfig.GameplayConfiguration.CombatSpeedFactor = invalid
 		assert.Panics(t, func() { scene.fastScheduledMonsterPacing(step.Actor) })
 	}

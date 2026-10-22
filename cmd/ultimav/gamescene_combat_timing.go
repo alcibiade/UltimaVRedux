@@ -3,11 +3,13 @@ package main
 import (
 	"math"
 
+	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 )
 
 // combatPresentationTiming is an immutable action snapshot. Authored durations
-// enter this policy once; gameplay clocks, reading time and audio never do.
+// enter this policy once; gameplay clocks and audio never do. Floating label
+// reading time does, above a readable floor.
 // Its zero value is the authored 1x policy.
 type combatPresentationTiming struct {
 	factor float64
@@ -19,7 +21,7 @@ func newCombatPresentationTiming(factor float64) combatPresentationTiming {
 	if factor == 0 {
 		return combatPresentationTiming{}
 	}
-	if math.IsNaN(factor) || math.IsInf(factor, 0) || factor < 0.5 || factor > 4 || math.Mod(factor, 0.5) != 0 {
+	if config.CombatSpeedSpec().Validate(factor) != nil {
 		panic("invalid combat presentation speed factor")
 	}
 

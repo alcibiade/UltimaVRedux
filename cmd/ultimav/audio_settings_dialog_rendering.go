@@ -96,7 +96,7 @@ func gameplaySettings() [audioSettingsGameplayCount]gameplaySettingDefinition {
 				spec:   config.CombatSpeedSpec(),
 				get:    func(s config.GameplayConfiguration) float64 { return s.CombatSpeedFactor },
 				set:    func(s *config.GameplayConfiguration, value float64) { s.CombatSpeedFactor = value },
-				format: func(value float64) string { return fmt.Sprintf("%.1fx", value) },
+				format: formatCombatSpeed,
 			},
 		},
 		{

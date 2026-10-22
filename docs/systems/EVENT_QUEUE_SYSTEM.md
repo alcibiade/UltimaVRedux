@@ -40,6 +40,11 @@ manager.Workflow("camping_workflow").
 - Equal-priority pending workflows retain FIFO order.
 - `Finally()` executes exactly once before input ownership is released.
 - Natural completion waits for physical key release before releasing an owned input block.
+  An unguarded workflow checks release on the update after `Finally()`. A workflow
+  with an `InputReleaseReady` guard checks it in the same update, so a passing
+  guard releases and removes the workflow immediately; a failing guard keeps the
+  block until a later update passes it. Only the combat scheduler's enemy-turn
+  and auto-pass workflows use the guard; they add their own scaled hand-off pause.
 - `HandoffTo()` finalizes and removes the current workflow before starting its successor.
 
 ### Fixed-Name Entry Policy

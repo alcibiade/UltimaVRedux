@@ -82,7 +82,8 @@ func TestCombatTimingSharedPulseExplicitScopeAndSnapshot(t *testing.T) {
 				start := state.ElapsedMs
 				drainCombatPacingAt(scene, start)
 				drainCombatPacingAt(scene, start+duration/2)
-				assert.InDelta(t, 0.4, intensity, 0.001)
+				// At 12x and above each pulse segment rounds to a few whole milliseconds.
+				assert.InDelta(t, 0.4, intensity, 0.01)
 				drainCombatPacingAt(scene, start+duration-1)
 				assert.False(t, completed)
 				drainCombatPacingAt(scene, start+duration)

@@ -29,8 +29,9 @@ const formCommand: CommandDefinition = {
 describe("generated command forms", () => {
   it("validates canonical combat-speed steps from the shared catalog", () => {
     const command = (catalog as CommandDefinition[]).find(command => command.id === "combat.presentation.speed.set")!
-    for (const percent of [50, 100, 150, 200, 250, 300, 350, 400]) expect(validateDraft(command, { percent: String(percent) })).toEqual({})
-    for (const percent of [25, 75, 125, 401, 50.5]) expect(validateDraft(command, { percent: String(percent) }).percent).toBeTruthy()
+    for (const percent of [50, 100, 150, 200, 300, 400, 600, 800, 1200, 1600, 2000]) expect(validateDraft(command, { percent: String(percent) })).toEqual({})
+    for (const percent of [25, 75, 125, 250, 350, 500, 2001, 50.5]) expect(validateDraft(command, { percent: String(percent) }).percent).toBeTruthy()
+    expect(validateDraft(command, { percent: "250" }).percent).toContain("Choose one of 50, 100")
     expect(command.scenarioExcluded).toBe(true)
   })
   it("retains zero and false defaults as editable values", () => {

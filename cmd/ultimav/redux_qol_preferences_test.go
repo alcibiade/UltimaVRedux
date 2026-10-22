@@ -13,7 +13,7 @@ import (
 func TestWorkbenchQoLCanonicalPreferencesAndDialogConflict(t *testing.T) {
 	configuration, _ := newReduxModificationsTestConfiguration(t)
 	for _, test := range []struct{ command, parameter, value string }{
-		{debugging.CommandCombatPresentationSpeedSet, "percent", "250"},
+		{debugging.CommandCombatPresentationSpeedSet, "percent", "1200"},
 		{debugging.CommandReduxConfirmQuickSaveSet, "enabled", "false"},
 		{debugging.CommandReduxCombatHPBarsSet, "enabled", "false"},
 		{debugging.CommandReduxActionPopupsSet, "count", "0"},
@@ -33,12 +33,12 @@ func TestWorkbenchQoLCanonicalPreferencesAndDialogConflict(t *testing.T) {
 		result, _ = executeReduxModificationsDebugCommand(request, configuration)
 		assert.Empty(t, result.Changes, "no-op changes are omitted")
 	}
-	assert.Equal(t, 2.5, configuration.GetCombatSpeedFactor())
+	assert.Equal(t, 12.0, configuration.GetCombatSpeedFactor())
 	assert.False(t, configuration.GetConfirmQuickSave())
 	assert.False(t, configuration.GetShowCombatHPBars())
 	assert.Zero(t, configuration.GetMaxVisibleActionPopups())
 	status := newReduxModificationsStatusData(configuration)
-	assert.Equal(t, 250, status.Combat.SpeedPercent)
+	assert.Equal(t, 1200, status.Combat.SpeedPercent)
 	assert.False(t, status.ConfigurationEditing)
 }
 

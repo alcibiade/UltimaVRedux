@@ -613,7 +613,9 @@ after slot reuse. An additional interrupted-action cue is an intentional
 presentation extension; its recording slot remains silent until assigned.
 
 **REDUX DEVIATION: configurable combat presentation.** Gameplay's Combat Speed
-selects 0.5x through 4.0x in 0.5 increments, default 1x. One immutable rate is
+selects 0.5x, 1x, 1.5x, 2x, 3x, 4x, 6x, 8x, 12x, 16x or 20x, default 1x. Faster
+rates approach the near-instant animation of the original on a fast machine
+without removing presentation entirely. One immutable rate is
 captured for each committed action and divides its authored anticipation,
 movement, flight/return, action-effect and signature-phase durations once.
 Automatic passes, applicable Tab attack-source holds, chest reveal cadence and
@@ -622,9 +624,14 @@ through subsequent sources; changing settings does not retime an admitted effect
 Positive durations have a 1 ms technical minimum and round to nearest millisecond.
 Zero/no-animation paths remain immediate. Phase admission cannot inherit the
 preceding frame's elapsed time; hitches do not skip newly admitted signature phases.
+A scheduled enemy turn or automatic pass releases input in its completion frame
+when no unprotected key is held; the next scheduled actor reviewed in that frame
+adds a 16 ms hand-off divided by its rate, so 1x pacing matches the former
+one-frame release and faster rates shorten the gap between actors.
 
-Numeric impact labels keep their reading lifetime independently of shortened
-lunges and auto-attack holds. Report emphasis, action-card lifetimes, input release
+Numeric impact labels divide their 1250 ms reading lifetime by the captured rate
+but never shorten below 300 ms, independently of shortened lunges and auto-attack
+holds. Report emphasis, action-card lifetimes, input release
 protection, user acknowledgement, persistent idle/status animation and audio
 retain their own clocks. The setting does not alter combat formulas, turn costs or
 DEX scheduling. Existing wind ticks still consume the shared gameplay RNG during
@@ -639,7 +646,7 @@ rocks 8 outside towns, and town shots 6. Redux uses the corresponding 0.325, 0.2
 and 0.15 pixels/ms rates without display-scale changes, but deliberately smooths
 Euclidean travel with an authored 100 ms minimum so short flights remain
 perceptible at 1x. Combat applies the captured rate after computing this base
-flight, including the minimum (25 ms at 4x); noncombat callers retain base timing.
+flight, including the minimum (25 ms at 4x, 5 ms at 20x); noncombat callers retain base timing.
 Presentation adds no damage calculation or RNG draw and preserves impact and
 resource commitment boundaries; the shared wind timeline qualification above applies.
 

@@ -81,9 +81,14 @@ func completeCombatPacingSwarmMove(
 ) int64 {
 	t.Helper()
 	startMs := scene.gameState.ElapsedMs
-	anticipationMs, movementMs := int64(75), int64(175)
+	// A turn reviewed in its predecessor's completion frame adds the 1x hand-off.
+	handOffMs := int64(0)
+	if mark := scene.combatTurnHandOff; mark.encounter == scene.gameState.CombatScene && mark.finishedMs == startMs {
+		handOffMs = combatTurnHandOffMs
+	}
+	anticipationMs, movementMs := 75+handOffMs, int64(175)
 	if baseline {
-		anticipationMs, movementMs = 250, 650
+		anticipationMs, movementMs = 250+handOffMs, 650
 		// Inject the former 1x profile into the production workflow. This changes
 		// presentation only: the actor remains a bat/mongbat for every AI stage.
 		scene.startScheduledMonsterTurnWithPacing(step, combatMonsterPacing{250, 650}, true)
@@ -159,10 +164,11 @@ func TestScheduledBatPacingSeededSwarmEquivalenceAndElapsedBudget(t *testing.T) 
 				assertCombatPacingBoundaryEquivalent(t, baseline, accelerated)
 				assert.Equal(t, baselineCallbacks.CombatEvents, acceleratedCallbacks.CombatEvents)
 				if action == 15 {
+					// Every action after the first also carries the 16ms 1x hand-off.
 					require.Len(t, actors, 16)
-					assert.Equal(t, int64(14400), baselineMs)
-					assert.Equal(t, int64(4000), acceleratedMs)
-					t.Logf("seed=9182 actors=16 actions=16 factor=1 injected-clock baseline=%dms accelerated=%dms reduction=72.22%%", baselineMs, acceleratedMs)
+					assert.Equal(t, int64(14400+15*combatTurnHandOffMs), baselineMs)
+					assert.Equal(t, int64(4000+15*combatTurnHandOffMs), acceleratedMs)
+					t.Logf("seed=9182 actors=16 actions=16 factor=1 injected-clock baseline=%dms accelerated=%dms", baselineMs, acceleratedMs)
 				}
 			}
 			repeatedActors := 0
@@ -172,8 +178,8 @@ func TestScheduledBatPacingSeededSwarmEquivalenceAndElapsedBudget(t *testing.T) 
 				}
 			}
 			assert.Positive(t, repeatedActors, "the second batch must exercise repeated actor travel")
-			assert.Equal(t, int64(28800), baselineMs)
-			assert.Equal(t, int64(8000), acceleratedMs)
+			assert.Equal(t, int64(28800+31*combatTurnHandOffMs), baselineMs)
+			assert.Equal(t, int64(8000+31*combatTurnHandOffMs), acceleratedMs)
 			assert.LessOrEqual(t, acceleratedMs*2, baselineMs, "at least 50%% less injected presentation time")
 			t.Logf("seed=9182 actors=16 actions=32 factor=1 injected-clock baseline=%dms accelerated=%dms; manual readability acceptance remains required", baselineMs, acceleratedMs)
 		})

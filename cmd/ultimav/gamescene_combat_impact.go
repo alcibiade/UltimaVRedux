@@ -18,7 +18,7 @@ import (
 
 const (
 	combatImpactDurationMs         int64 = 1250
-	combatImpactDurationSeconds          = float64(combatImpactDurationMs) / 1000
+	combatImpactLabelFloorMs       int64 = 300
 	combatJoltDurationMs                 = 320
 	combatLungeDurationMs                = 300
 	combatJoltDurationSeconds            = float64(combatJoltDurationMs) / 1000
@@ -77,7 +77,13 @@ type CombatImpactEffect struct {
 	motion            combatImpactMotion
 }
 
-// Motion has its own admitted durations; label age retains the reading budget.
+// impactLabelSeconds is the floating label's reading budget: scaled with the
+// admitted combat speed, but never below combatImpactLabelFloorMs.
+func (timing combatPresentationTiming) impactLabelSeconds() float64 {
+	return float64(max(timing.durationMs(combatImpactDurationMs), combatImpactLabelFloorMs)) / 1000
+}
+
+// Motion and the label reading budget both follow the admitted timing.
 type combatImpactMotion struct {
 	jolt, lunge, strike float64
 }
@@ -232,13 +238,13 @@ func (g *GameScene) updateCombatImpactEffects(_ float64) {
 			}
 		} else {
 			// Queues can admit impacts earlier in this same update. Only time
-			// after admission belongs to their motion and unscaled reading clock.
+			// after admission belongs to their motion and reading clock.
 			effect.Elapsed = float64(max(g.gameState.ElapsedMs-effect.StartedMs, 0)) / 1000
 			if !g.combatAreaImpactStillDisclosed(*effect) {
 				continue
 			}
 		}
-		if effect.Elapsed >= combatImpactDurationSeconds {
+		if effect.Elapsed >= effect.timing.impactLabelSeconds() {
 			continue
 		}
 		g.combatImpactEffects[writeIndex] = *effect
@@ -502,7 +508,7 @@ func (g *GameScene) drawCombatDamageIndicator(
 	effect *CombatImpactEffect,
 	lane int,
 ) {
-	progress := effect.Elapsed / combatImpactDurationSeconds
+	progress := effect.Elapsed / effect.timing.impactLabelSeconds()
 	easeOut := 1 - math.Pow(1-progress, combatDamageEaseExponent)
 	rise := easeOut * combatDamageRisePixels
 

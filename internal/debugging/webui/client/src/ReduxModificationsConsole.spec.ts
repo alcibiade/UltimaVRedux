@@ -121,10 +121,11 @@ describe("ReduxModificationsConsole", () => {
       }, pending: false, commands: catalog as CommandDefinition[],
     })
     app.mount(root)
-    const speed = root.querySelector<HTMLInputElement>('[data-preference="combat.presentation.speed.set"] input')!
-    expect(speed.min).toBe("50")
-    expect(speed.max).toBe("400")
-    expect(speed.step).toBe("50")
+    const speed = root.querySelector<HTMLSelectElement>('[data-preference="combat.presentation.speed.set"] select')!
+    expect([...speed.options].map((option) => option.value)).toEqual(
+      ["50", "100", "150", "200", "300", "400", "600", "800", "1200", "1600", "2000"])
+    expect(speed.options[0]!.textContent).toBe("0.5x")
+    expect(speed.value).toBe("200")
     expect(speed.disabled).toBe(true)
     expect(root.textContent).toContain("Close Configuration with Apply or Cancel")
     expect(root.textContent).toContain("0 means Off")

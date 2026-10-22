@@ -69,7 +69,7 @@ func combatFireEvents(events []game_state.CombatEvent) []game_state.CombatEvent 
 }
 
 func TestCombatFireKeyboardMovementSurvivesContactAndArrival(t *testing.T) {
-	for _, speed := range []float64{0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4} {
+	for _, speed := range combatTimingTestRates() {
 		t.Run(fmt.Sprint(speed), func(t *testing.T) {
 			scene, actor, events := newCombatFireMovementTest(t, indexes.Fireplace)
 			state := scene.gameState

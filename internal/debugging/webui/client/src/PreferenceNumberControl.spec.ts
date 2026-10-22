@@ -4,7 +4,7 @@ import PreferenceNumberControl from "./PreferenceNumberControl.vue"
 import catalog from "./initial_catalog.fixture.json"
 import type { CommandDefinition } from "./protocol"
 
-it("validates speed steps, retains drafts on refresh, and emits only allowed values", async () => {
+it("offers only listed speeds, retains drafts on refresh, and emits only allowed values", async () => {
   const commandID = "combat.presentation.speed.set"
   const apply = vi.fn()
   const props = reactive({ commandId: commandID, command: (catalog as CommandDefinition[]).find(command => command.id === commandID), value: 100, disabled: false, onApply: apply })
@@ -12,21 +12,21 @@ it("validates speed steps, retains drafts on refresh, and emits only allowed val
   const app = createApp({ setup: () => () => h(PreferenceNumberControl, props) })
   app.mount(root)
   try {
-    const input = root.querySelector("input")!
+    expect(root.querySelector("input")).toBeNull()
+    const select = root.querySelector("select")!
     const button = root.querySelector("button")!
-    input.value = "75"
-    input.dispatchEvent(new Event("input"))
-    await nextTick()
+    expect([...select.options].map((option) => option.textContent)).toEqual(
+      ["0.5x", "1x", "1.5x", "2x", "3x", "4x", "6x", "8x", "12x", "16x", "20x"])
+    expect(select.value).toBe("100")
     expect(button.disabled).toBe(true)
-    expect(root.textContent).toContain("steps of 50")
-    input.value = "250"
-    input.dispatchEvent(new Event("input"))
+    select.value = "1200"
+    select.dispatchEvent(new Event("change"))
     await nextTick()
     props.value = 200
     await nextTick()
-    expect(input.value).toBe("250")
+    expect(select.value).toBe("1200")
     button.click()
-    expect(apply).toHaveBeenCalledWith({ percent: "250" })
+    expect(apply).toHaveBeenCalledWith({ percent: "1200" })
     props.disabled = true
     await nextTick()
     button.click()
@@ -35,11 +35,6 @@ it("validates speed steps, retains drafts on refresh, and emits only allowed val
 })
 
 it.each([
-  ["combat.presentation.speed.set", ""],
-  ["combat.presentation.speed.set", "not-a-number"],
-  ["combat.presentation.speed.set", "50.5"],
-  ["combat.presentation.speed.set", "49"],
-  ["combat.presentation.speed.set", "401"],
   ["redux.presentation.action-popups.set", ""],
   ["redux.presentation.action-popups.set", "0.5"],
   ["redux.presentation.action-popups.set", "-1"],
@@ -64,7 +59,6 @@ it.each([
 })
 
 it.each([
-  ["combat.presentation.speed.set", "percent", 100, 50, 400],
   ["redux.presentation.action-popups.set", "count", 1, 0, 3],
 ] as const)("retains blank and boundary drafts through %s refreshes", async (commandId, parameterID, initial, minimum, maximum) => {
   const apply = vi.fn()
