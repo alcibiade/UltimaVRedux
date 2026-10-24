@@ -133,7 +133,7 @@ func requireSindarReceivingRoute(t *testing.T, state *GameState, sindar *map_uni
 	require.Equal(t, goal.Position, path[len(path)-1])
 	previous := sindar.Pos()
 	for _, next := range path {
-		require.Contains(t, previous.Neighbors(), next, "receiving route must contain only cardinal steps")
+		require.Equal(t, 1, previous.HeuristicTileDistance(next), "receiving route must contain only cardinal steps")
 		require.GreaterOrEqual(t, next.X, references.Coordinate(0))
 		require.Less(t, next.X, references.XSmallMapTiles)
 		require.GreaterOrEqual(t, next.Y, references.Coordinate(0))
@@ -191,7 +191,7 @@ func TestSindarInstalledOvernightPassTravel(t *testing.T) {
 			require.Empty(t, sindar.MapUnitDetails().CurrentPath)
 			seenHiddenSlots[slot] = true
 		case sindar.Floor() == 0 && previous != sindar.Pos():
-			require.Contains(t, previous.Neighbors(), sindar.Pos(), "visible movement must be an adjacent step")
+			require.Equal(t, 1, previous.HeuristicTileDistance(sindar.Pos()), "visible movement must be an adjacent step")
 			position := sindar.Pos()
 			tile := state.GetCurrentLayeredMap().GetSmallMapPersistentTerrainTile(&position, state.DateTime.Hour)
 			require.NotNil(t, tile)

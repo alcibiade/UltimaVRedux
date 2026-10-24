@@ -2,9 +2,9 @@ package ai
 
 import (
 	"fmt"
+	"image"
 	"slices"
 
-	"github.com/bradhannah/UltimaVRedux/internal/astar"
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
@@ -224,16 +224,15 @@ func (m *NPCAIControllerLargeMap) cleanupDistantEnemies() {
 }
 
 func (m *NPCAIControllerLargeMap) calculateNextNPCPosition(mapUnit map_units.MapUnit) {
-	if _, ok := mapUnit.(*map_units.NPCEnemy); !ok {
+	enemy, ok := mapUnit.(*map_units.NPCEnemy)
+	if !ok {
 		// Friendly units do not currently move in the large maps (ie. Frigates)
 		return
 	}
 
 	// Respect per-enemy immobility flags (e.g., Reapers, Mimics, fields)
-	if enemy, ok := mapUnit.(*map_units.NPCEnemy); ok {
-		if enemy.EnemyReference.DoNotMove {
-			return
-		}
+	if enemy.EnemyReference.DoNotMove {
+		return
 	}
 
 	if mapUnit.PosPtr().IsNextTo(m.mapState.PlayerLocation.Position, mapUnit.Floor(), m.mapState.PlayerLocation.Floor) {
@@ -274,34 +273,56 @@ func (m *NPCAIControllerLargeMap) calculateNextNPCPosition(mapUnit map_units.Map
 	if m.oneInXOdds(directedPursuitWaitOdds) {
 		return
 	}
-	m.setBestNextPositionToMoveTowardsWalkablePoint(mapUnit)
+	m.setBestNextPositionToMoveTowardsWalkablePoint(enemy)
 }
 
-func (m *NPCAIControllerLargeMap) setBestNextPositionToMoveTowardsWalkablePoint(mapUnit map_units.MapUnit) {
-	// this is an optimized a* pathfinding algorithm that limits the size of the map that it reads from
-	aStarMap := astar.NewAStarMap()
-	aStarMap.InitializeByLayeredMapWithLimit(
-		mapUnit,
-		m.mapState.GetLayeredMapByCurrentLocation(),
-		m.enemyMovementOccupiedPositions(mapUnit),
-		true,
-		m.mapState.PlayerLocation.Position,
-		pathfindingRadius,
-		references.XLargeMapTiles,
-		references.YLargeMapTiles)
+// setBestNextPositionToMoveTowardsWalkablePoint searches only a window around
+// the player. The window uses unwrapped coordinates, so a route may cross the
+// world's wrapping edge; positions wrap only to read the map.
+func (m *NPCAIControllerLargeMap) setBestNextPositionToMoveTowardsWalkablePoint(enemy *map_units.NPCEnemy) {
+	player := m.mapState.PlayerLocation.Position
+	layeredMap := m.mapState.GetLayeredMapByCurrentLocation()
+	occupied := m.enemyMovementOccupiedPositions(enemy)
+	window := image.Rect(
+		int(player.X)-pathfindingRadius, int(player.Y)-pathfindingRadius,
+		int(player.X)+pathfindingRadius, int(player.Y)+pathfindingRadius)
+	path := references.FindRoute(nearestLargeMapCopy(enemy.Pos(), player), player, window,
+		func(position references.Position) int {
+			position.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
+			if slices.Contains(occupied, position) ||
+				!enemy.EnemyReference.CanMoveToTile(layeredMap.GetTopTile(&position)) {
+				return -1
+			}
 
-	// make sure the correct enemies spawn on the correct tiles (water, sand, ground)
-
-	path := aStarMap.AStar(m.mapState.PlayerLocation.Position)
-	if len(path) > 1 {
-		// if the path is empty, we don't move
-		m.tryMoveEnemyTo(mapUnit, path[1])
-	} else {
-		// if we don't find a new position using AStar, then we at least try to get them closer to the avatar using
-		// basic pathing
-		m.setBestNextPositionToMoveTowardsWalkablePointDumb(mapUnit)
+			return 1
+		})
+	if len(path) <= 1 {
+		// without a route, at least try to get them closer to the avatar using basic pathing
+		m.setBestNextPositionToMoveTowardsWalkablePointDumb(enemy)
 
 		return
+	}
+	next := path[1]
+	m.tryMoveEnemyTo(enemy, *next.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles))
+}
+
+// nearestLargeMapCopy moves position by whole map sizes to the copy closest to
+// anchor, so a position just across the wrapping edge counts as nearby.
+func nearestLargeMapCopy(position, anchor references.Position) references.Position {
+	return references.Position{
+		X: nearestWrappedCoordinate(position.X, anchor.X, references.XLargeMapTiles),
+		Y: nearestWrappedCoordinate(position.Y, anchor.Y, references.YLargeMapTiles),
+	}
+}
+
+func nearestWrappedCoordinate(value, anchor, size references.Coordinate) references.Coordinate {
+	switch {
+	case value-anchor > size/2:
+		return value - size
+	case anchor-value > size/2:
+		return value + size
+	default:
+		return value
 	}
 }
 
@@ -807,7 +828,7 @@ func (m *NPCAIControllerLargeMap) handleWhirlpoolMovement(mapUnit map_units.MapU
 	} else {
 		logging.Debugf(logging.CategoryAI, "Whirlpool at %v attempting seek movement", oldPos)
 		// Seek toward player
-		m.setBestNextPositionToMoveTowardsWalkablePoint(mapUnit)
+		m.setBestNextPositionToMoveTowardsWalkablePoint(enemy)
 	}
 
 	newPos := enemy.Pos()

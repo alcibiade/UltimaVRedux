@@ -176,28 +176,40 @@ func TestLargeMapBatMongbatAndCrawlerUseOrdinaryPursuit(t *testing.T) {
 }
 
 func TestLargeMapAStarRoutesAroundLiveUnprojectedObject(t *testing.T) {
-	rng := &scriptedGenerationRNG{t: t}
-	controller, layer := newLargeMapGenerationTestController(t, 0, 12, rng)
-	start := references.Position{X: 92, Y: 100}
-	blocked := references.Position{X: 93, Y: 100}
-	for x := start.X; x <= 100; x++ {
-		for y := references.Coordinate(99); y <= 101; y++ {
-			position := references.Position{X: x, Y: y}
-			layer.SetTileByLayer(map_state.MapLayer, &position, indexes.Grass)
-		}
+	for _, test := range []struct {
+		name    string
+		playerX references.Coordinate
+	}{{"inside the map", 100}, {"across the wrapping edge", 2}} {
+		t.Run(test.name, func(t *testing.T) {
+			rng := &scriptedGenerationRNG{t: t}
+			controller, layer := newLargeMapGenerationTestController(t, 0, 12, rng)
+			controller.mapState.PlayerLocation.Position.X = test.playerX
+			start := references.Position{X: test.playerX - 8, Y: 100}
+			start.GetWrapped(references.XLargeMapTiles, references.YLargeMapTiles)
+			blocked := start
+			blocked.GoRight(true)
+			column := start
+			for range 9 {
+				for y := references.Coordinate(99); y <= 101; y++ {
+					position := references.Position{X: column.X, Y: y}
+					layer.SetTileByLayer(map_state.MapLayer, &position, indexes.Grass)
+				}
+				column.GoRight(true)
+			}
+			enemy := addTerrainTestEnemy(t, controller, references.MonsterGhost, start)
+			object := map_units.NewNPCFriendly(*references.NewNPCReferenceForSurfaceChest(
+				references.BritanniaUnderworld, blocked, 0,
+			), 1)
+			object.SetPos(blocked)
+			controller.mapUnits = append(controller.mapUnits, object)
+
+			controller.setBestNextPositionToMoveTowardsWalkablePoint(enemy)
+
+			assert.Contains(t, []references.Position{{X: start.X, Y: 99}, {X: start.X, Y: 101}}, enemy.Pos(),
+				"A* must route around live occupancy, not merely reject the final occupied step")
+			assert.Empty(t, rng.calls)
+		})
 	}
-	enemy := addTerrainTestEnemy(t, controller, references.MonsterGhost, start)
-	object := map_units.NewNPCFriendly(*references.NewNPCReferenceForSurfaceChest(
-		references.BritanniaUnderworld, blocked, 0,
-	), 1)
-	object.SetPos(blocked)
-	controller.mapUnits = append(controller.mapUnits, object)
-
-	controller.setBestNextPositionToMoveTowardsWalkablePoint(enemy)
-
-	assert.Contains(t, []references.Position{{X: 92, Y: 99}, {X: 92, Y: 101}}, enemy.Pos(),
-		"A* must route around live occupancy, not merely reject the final occupied step")
-	assert.Empty(t, rng.calls)
 }
 
 func TestLargeMapPirateMovementChecksTerrainAndOccupancy(t *testing.T) {

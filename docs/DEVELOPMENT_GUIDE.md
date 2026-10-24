@@ -95,6 +95,12 @@ published pins. See [ADR-013](ADR/ADR-013-berad-rng-input.md),
 [RNG ownership](systems/TIME_SYSTEM.md#shared-rng-ownership) and
 [keyboard integration](systems/INPUT_HANDLING.md#keyboard-mechanism-boundary).
 
+[Berad Path](https://github.com/bradhannah/berad-sdk/tree/bea6c1522e86/modules/berad-path)
+is the A* route search. `references.FindRoute` adapts it to tile positions; the
+game keeps terrain prices, occupancy, the overworld search window and its edge
+wrapping, and what a unit does without a route. SDK checks use `make path-check`;
+game AI and combat-assistance tests exercise the published pin.
+
 The consumed Audio/Text runtimes and audio tools have passed the SDK's
 [strict formatting/lint policy](https://github.com/bradhannah/berad-sdk/blob/81526f97e7c9/docs/LINTING.md):
 the same pinned Go style tools and applicable strict rules, with full-source

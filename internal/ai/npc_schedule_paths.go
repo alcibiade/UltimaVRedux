@@ -2,9 +2,9 @@ package ai
 
 import (
 	"cmp"
+	"image"
 	"slices"
 
-	"github.com/bradhannah/UltimaVRedux/internal/astar"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
@@ -58,8 +58,9 @@ func (n *NPCAIControllerSmallMap) findScheduledPath(
 		return nil
 	}
 	behavior := friendly.NPCReference.Schedule.GetIndividualNPCBehaviourByUltimaDate(*n.dateTime)
-	aStarMap := astar.NewAStarMap()
-	aStarMap.InitializeByMovementCost(start, references.XSmallMapTiles, references.YSmallMapTiles,
+	smallMap := image.Rect(0, 0, int(references.XSmallMapTiles), int(references.YSmallMapTiles))
+
+	return references.FindRoute(start, goal, smallMap,
 		func(position references.Position) int {
 			// REDUX DEVIATION: NPC-0002: original planning marks limited nearby
 			// objects. Redux excludes all authoritative occupants, including goals,
@@ -81,6 +82,4 @@ func (n *NPCAIControllerSmallMap) findScheduledPath(
 
 			return terrain.GetNPCWalkableWeight()
 		})
-
-	return aStarMap.AStar(goal)
 }
