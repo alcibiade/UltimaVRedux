@@ -8,6 +8,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // AmbientSourcePlan is Redux's neutral presentation intent. Gain contains only
@@ -75,7 +76,7 @@ func (planner *AmbientPlanner) Sources(listener references.Position,
 		if authored > 0 {
 			sourceGain = definition.BaseVolume / authored
 		}
-		distanceGain := AmbientDistanceGain(candidate.distance, definition.MaxDistance)
+		distanceGain := berad.QuadraticDistanceGain(candidate.distance, definition.MaxDistance)
 		gain := sourceGain * candidate.modifier * distanceGain
 		if !finiteSourceGain(gain) {
 			return nil, fmt.Errorf("%w: ambient source %s gain must be in [0,2]", ErrAudioLibrary, sourceID)

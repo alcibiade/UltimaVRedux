@@ -361,8 +361,11 @@ prepared recording slots and loop through movement/sail toggles until departure 
 vessel change. Sailing music and per-step movement effects remain independent.
 
 Spatial attenuation belongs to the ambient source planner's authored radius and
-distance profile. Semantic SFX requests supply gain directly; neither lane applies
-stereo positioning or occlusion.
+distance profile. The profile is Berad Audio's `QuadraticDistanceGain`: full gain
+within one tile, `1 - (distance / radius)^2` beyond it, silence at the radius, and
+a radius of 0 is a non-spatial background bed. Redux keeps source selection: the
+strongest tile per cue, bard and moongate sources and the lighthouse. Semantic SFX
+requests supply gain directly; neither lane applies stereo positioning or occlusion.
 
 ## Volume Settings
 

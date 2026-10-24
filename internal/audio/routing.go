@@ -324,18 +324,3 @@ func validateRoutingAssignments(
 
 	return nil
 }
-
-// AmbientDistanceGain is shared by game playback and distance auditions.
-func AmbientDistanceGain(distance, radius float64) float64 {
-	if radius == 0 {
-		return 1
-	}
-	if distance >= radius {
-		return 0
-	}
-	if distance <= 1 {
-		return 1
-	}
-
-	return max(0, 1-distance*distance/(radius*radius))
-}

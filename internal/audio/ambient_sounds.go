@@ -8,6 +8,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
 )
 
 // AmbientSoundType is a game-owned cue identity, not an engine enum.
@@ -125,11 +126,11 @@ func ambientSpriteMappingsFor(routing Routing) map[indexes.SpriteIndex]AmbientSo
 func strongerAmbientSource(candidate AmbientSoundDefinition, distance float64,
 	previous AmbientSoundDefinition, previousDistance float64, existing bool,
 ) bool {
-	volume := candidate.BaseVolume * AmbientDistanceGain(distance, candidate.MaxDistance)
+	volume := candidate.BaseVolume * berad.QuadraticDistanceGain(distance, candidate.MaxDistance)
 	if volume <= 0 {
 		return false
 	}
-	priorVolume := previous.BaseVolume * AmbientDistanceGain(previousDistance, previous.MaxDistance)
+	priorVolume := previous.BaseVolume * berad.QuadraticDistanceGain(previousDistance, previous.MaxDistance)
 
 	return !existing || volume > priorVolume || (volume == priorVolume && distance < previousDistance)
 }
