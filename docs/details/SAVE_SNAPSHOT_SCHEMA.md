@@ -978,6 +978,8 @@ generator is injected independently of gameplay RNG and time.
 `userDescription` is an optional, per-checkpoint player note of at most 80 Unicode
 runes. Valid UTF-8, single-line text is required; controls and Unicode line and
 paragraph separators are rejected. An absent or empty note means no description.
+The in-game editor accepts at most 22 runes so a new note fits whole on its
+Save/Load row; longer stored notes remain valid.
 The editor trims surrounding whitespace on submission, but decoding does not
 coerce saved text. Existing `description` remains independent system/developer
 capture-purpose text with its own contract.

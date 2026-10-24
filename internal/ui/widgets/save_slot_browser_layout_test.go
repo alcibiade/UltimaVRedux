@@ -91,6 +91,7 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 			require.NotContains(t, b.footerOutput.GetOutputStr(false), "Page Up")
 			require.Contains(t, b.footerOutput.GetOutputStr(false), "[Space] Details")
 			require.Contains(t, strings.Join(strings.Fields(b.detailOutput.GetOutputStr(false)), " "), strings.TrimSpace(views[0].Description))
+			require.True(t, b.showDescriptions, "measured eight-row layout fits row descriptions at supported sizes")
 			// Geometry covers every preset; pixels cover fractional and dense scaling.
 			if size.X != 1366 && size.X != 2560 {
 				return
@@ -188,11 +189,45 @@ func TestSaveSlotBrowserCompactFallbackKeepsFullDescriptionPaged(t *testing.T) {
 	}}, SaveSlotBrowserConfig{Placement: sprites.PercentBasedPlacement{
 		StartPercentX: 0.1, EndPercentX: 0.9, StartPercentY: 0.25, EndPercentY: 0.75,
 	}})
+	require.False(t, b.showDescriptions)
 	require.Contains(t, strings.Join(strings.Fields(b.detailOutput.GetOutputStr(false)), " "), strings.TrimSpace(description))
 	require.Greater(t, b.detailPageCount(), 1)
 	for page := range b.detailPageCount() {
 		require.Equal(t, page, b.detailPage)
 		b.moveDetailPage(1)
+	}
+}
+
+func TestSaveSlotBrowserRowShowsWholeDescriptionUpToLimit(t *testing.T) {
+	// The in-game browser covers the map area, the narrowest Save/Load layout.
+	inGame := sprites.PercentBasedPlacement{StartPercentX: 0, EndPercentX: 0.76, StartPercentY: 0, EndPercentY: 1}
+	atLimit := strings.Repeat("W", SaveSlotRowDescriptionMaxRunes)
+	older := "Britain, day 12 - bought the crossbows"
+	for _, size := range config.SupportedWindowResolutions() {
+		t.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(t *testing.T) {
+			setResponsiveDialogTestResolution(t, size.X, size.Y)
+			for _, description := range []string{atLimit, older} {
+				view := SaveSlotView{ID: "slot-01", Label: "Slot 1", RowSummary: "Avatar", HasSave: true, Description: description}
+				b := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), []SaveSlotView{view}, SaveSlotBrowserConfig{Placement: inGame})
+				require.True(t, b.showDescriptions, "two body-size lines fit each row")
+				screen := ebiten.NewImageWithOptions(b.rowRects[0], nil)
+				b.drawSlotRow(screen, b.rowRects[0], view, false)
+				screen.Dispose()
+				require.Same(t, b.bodyFont, b.rowOutput.Font, "the description matches the slot name's size")
+				lines := strings.Split(strings.TrimRight(b.rowOutput.GetOutputStr(false), "\n"), "\n")
+				require.Len(t, lines, saveSlotBrowserRowLines)
+				shown := strings.TrimSpace(lines[1])
+				measured, _ := b.bodyFont.MeasureString(shown)
+				require.LessOrEqual(t, measured,
+					float64(b.rowRects[0].Dx()-saveSlotBrowserRowHorizontalPadding*saveSlotBrowserCenterDivisor))
+				if description == atLimit {
+					require.Equal(t, atLimit, shown, "a description at the limit is never cut")
+				} else {
+					require.True(t, strings.HasPrefix(shown, "Britain, day 12"), shown)
+					require.True(t, strings.HasSuffix(shown, saveSlotBrowserTruncationSuffix), shown)
+				}
+			}
+		})
 	}
 }
 

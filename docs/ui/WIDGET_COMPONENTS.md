@@ -511,8 +511,13 @@ high-contrast background, including backward selections and composition ranges.
 An empty Load browser explains Create/Import and exposes only dismissal guidance.
 
 `SaveSlotBrowser` consumes detached views and emits primary/cancel callbacks.
-Each slot row is one line. The selected save's description leads its details, in
-full, directly under the slot name.
+Each slot row shows the slot name with the save's description beneath it, both at
+body size. The player's description editor accepts at most
+`SaveSlotRowDescriptionMaxRunes` (22) characters, the most that fits whole on a
+row in the narrow in-game layout at every supported size. Longer notes from earlier
+saves or imports end in an ellipsis on the row; saving over one pre-fills its
+first 22 characters for review. The selected save's description also leads its
+details, in full, directly under the slot name.
 The application chooses the newest marker independently of cursor position:
 Save uses the active playthrough, Load the overall newest ready checkpoint.
 Load skips empty slots; Save retains them. Require explicit selection when there

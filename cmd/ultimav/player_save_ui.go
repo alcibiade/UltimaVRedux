@@ -353,7 +353,11 @@ func playerSaveDescriptionInitial(
 		return draft.text
 	}
 	if playthroughID != "" && summary.Metadata.PlaythroughID == playthroughID {
-		return summary.Metadata.UserDescription
+		// Older saves allowed longer notes. Offer the part that fits rather than an
+		// empty box, which Enter would save over the note.
+		runes := []rune(summary.Metadata.UserDescription)
+
+		return strings.TrimSpace(string(runes[:min(len(runes), widgets.SaveSlotRowDescriptionMaxRunes)]))
 	}
 
 	return ""
@@ -399,7 +403,7 @@ func showPlayerSaveDescriptionEditor(
 		Notice:      playerSaveDescriptionNotice(summary, playthroughID),
 		InitialText: playerSaveDescriptionInitial(summary, playthroughID, draft),
 		Keyboard:    keyboard, Validate: validatePlayerSaveDescriptionInput,
-		MaxRunes:     save_snapshot.MaxUserDescriptionRunes,
+		MaxRunes:     widgets.SaveSlotRowDescriptionMaxRunes,
 		IsKeyPressed: nil,
 		OnResult: func(value string, submitted bool) {
 			stack.MustRemoveWidgetInstance(editor)

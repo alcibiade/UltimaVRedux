@@ -38,7 +38,12 @@ const (
 	saveSlotBrowserTruncationSuffix      = "..."
 	saveSlotBrowserCornerRadiusUnits     = 2
 	saveSlotBrowserReviewLineCount       = 3
+	saveSlotBrowserRowLines              = 2
 	defaultCancelActionLabel             = "Cancel"
+
+	// SaveSlotRowDescriptionMaxRunes is the longest description that fits whole
+	// on its row in the narrowest (in-game) Save/Load layout at every supported size.
+	SaveSlotRowDescriptionMaxRunes = 22
 )
 
 var _ Widget = (*SaveSlotBrowser)(nil)
@@ -128,6 +133,7 @@ type SaveSlotBrowser struct {
 	rowRects        [saveSlotBrowserVisibleRows]image.Rectangle
 	frameRects      []image.Rectangle
 
+	showDescriptions      bool
 	detailLineCapacity    int
 	detailContentCapacity int
 	detailPage            int
@@ -283,7 +289,7 @@ func (b *SaveSlotBrowser) ensureLayout() {
 		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: saveSlotBrowserBodyLineSpacing,
-		MaxLines:              1,
+		MaxLines:              saveSlotBrowserRowLines,
 		MaxChars:              saveSlotBrowserMinimumTextChars,
 	})
 	b.detailHeadingOutput = text.NewOutput(b.bodyFont, b.rowOutput.GetLineSpacing(), 1, modalDialogTitleMaxChars)
@@ -349,6 +355,8 @@ func (b *SaveSlotBrowser) calculateLayout() {
 	}
 
 	b.calculateRowRectangles()
+	b.showDescriptions = float64(b.rowRects[0].Dy()) >= b.rowOutput.GetTotalHeightForLines(saveSlotBrowserRowLines)+
+		float64(b.pixelUnit()*saveSlotBrowserCenterDivisor)
 
 	b.sizeOutputsToLayout(footerLines)
 }
@@ -518,6 +526,18 @@ func (b *SaveSlotBrowser) drawSlotRow(
 	b.rowOutput.Reset()
 	b.rowOutput.AppendLine().Text(rowText, rowColor).Done()
 	textHeight := b.rowOutput.GetFontHeight()
+	if b.showDescriptions {
+		// Reserve both lines on every row so slot names align whether or not a row has a description.
+		textHeight = b.rowOutput.GetTotalHeightForLines(saveSlotBrowserRowLines)
+		if view.Description != "" {
+			descriptionColor := DialogItemQuantityColor
+			if selected {
+				descriptionColor = DialogSelectedText
+			}
+			b.rowOutput.AppendLine().Text(truncateRunes(view.Description, b.bodyFont.CharsForWidth(textWidth)),
+				descriptionColor).Done()
+		}
+	}
 	rowY := rowRect.Min.Y + max(0, (rowRect.Dy()-int(math.Ceil(textHeight)))/saveSlotBrowserCenterDivisor)
 	b.rowOutput.DrawPanelContent(
 		screen,
