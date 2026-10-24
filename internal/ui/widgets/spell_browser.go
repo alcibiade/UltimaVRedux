@@ -313,7 +313,7 @@ func (p *spellPresentation) layout(width, height int) {
 	}
 	p.width, p.height = width, height
 	p.font, p.row = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
 		MaxLines: spellBrowserRowLines, MaxChars: spellBrowserTextCapacity,
 	})
 	spacing := p.row.GetLineSpacing()
@@ -330,7 +330,7 @@ func (p *spellPresentation) layout(width, height int) {
 	p.pageIndicator = text.NewOutput(p.font, spacing, 1, spellBrowserTextCapacity)
 	p.footer = text.NewOutput(p.font, spacing, spellBrowserFooterLines*spellBrowserRowLines, spellBrowserTextCapacity)
 	_, p.title = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeDialogTitle, LineSpacing: 0, LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
 		MaxLines: spellBrowserRowLines, MaxChars: spellBrowserTextCapacity,
 	})
 	marginX, marginY := int(float64(width)*zStatsDossierDefaultMarginX), int(float64(height)*zStatsDossierDefaultMarginY)

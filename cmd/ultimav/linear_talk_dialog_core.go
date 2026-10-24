@@ -25,9 +25,9 @@ var _ widgets.Widget = (*LinearTalkDialog)(nil)
 var _ game_state.TalkDialog = (*LinearTalkDialog)(nil)
 
 const (
-	// Talk dialog uses FontSizeLarge (20pt) with 1.3x line spacing (26pt) for readability
-	talkFontSize              = widgets.FontSizeLarge // 20pt
-	talkLineSpacingMultiplier = 1.3                   // 26/20 = 1.3 for extra readability
+	// Talk dialog uses FontSizeCompact (20pt) with 1.3x line spacing (26pt) for readability
+	talkFontSize              = widgets.FontSizeCompact // 20pt
+	talkLineSpacingMultiplier = 1.3                     // 26/20 = 1.3 for extra readability
 	talkContinuousMaxLines    = 14
 	talkMaxCharsInput         = 45
 	talkHistoryMaxEntries     = 256

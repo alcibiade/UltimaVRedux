@@ -109,8 +109,8 @@ func TestCharacterRosterDialogUsesCompactTopAlignedLedgerGeometry(t *testing.T) 
 	}
 	fontHeight := int(math.Ceil(dialog.shell.rowOutput.GetFontHeight()))
 	assert.LessOrEqual(t, layout.rowRects[0].Dy()-fontHeight, fontHeight/2+layout.pixelUnit)
-	assert.Equal(t, GetScaledFont(FontSizeLarge).TextFace.Size, dialog.shell.bodyFont.TextFace.Size)
-	assert.Equal(t, GetScaledFont(FontSizeDefault).TextFace.Size, dialog.shell.footerOutput.Font.TextFace.Size)
+	assert.Equal(t, GetScaledFont(FontSizeCompact).TextFace.Size, dialog.shell.bodyFont.TextFace.Size)
+	assert.Equal(t, GetScaledFont(FontSizeHUD).TextFace.Size, dialog.shell.footerOutput.Font.TextFace.Size)
 }
 
 func TestSpellCastingDialogResizePreservesWorkflowState(t *testing.T) {

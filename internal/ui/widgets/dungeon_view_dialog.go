@@ -96,7 +96,7 @@ func (d *DungeonViewDialog) rebuildLayout(screenWidth, screenHeight int) {
 }
 
 func newDungeonViewOutput(screenWidth int) *utext.Output {
-	return newDungeonViewOutputSized(screenWidth, FontSizeLarge)
+	return newDungeonViewOutputSized(screenWidth, FontSizeCompact)
 }
 
 //nolint:exhaustruct,mnd // A bounded text panel has room for wrapped headings and hints, even at compact widths.

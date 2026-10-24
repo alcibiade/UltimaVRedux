@@ -15,8 +15,8 @@ func TestReadyCompactTypographyAndThreePaneColumnBudget(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
 	state, _ := game_state.NewIntegrationTestBuilder(t).WithLocation(references.Britain).WithSystemCallbacks().Build()
 	dialog := NewReadyEquipmentDialog(newWidgetTestKeyboard(-1), &sprites.SpriteSheet{}, state, game_state.ReadyEquipmentRequest{})
-	require.Equal(t, GetScaledFont(FontSizeLarge).TextFace.Size, dialog.font.TextFace.Size)
-	require.Equal(t, GetScaledFont(FontSizeDialogTitle).TextFace.Size, dialog.titleFont.TextFace.Size)
+	require.Equal(t, GetScaledFont(FontSizeCompact).TextFace.Size, dialog.font.TextFace.Size)
+	require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, dialog.titleFont.TextFace.Size)
 	require.GreaterOrEqual(t, float64(dialog.itemsBorder.GetBounds().Dx()), 1280*0.9*0.38)
 	require.Greater(t, dialog.detailContentRect().Dx(), 0)
 }
@@ -27,7 +27,7 @@ func TestReadyEveryGearRowFitsWithMarkersIconsAndFullQuantity(t *testing.T) {
 		t.Run(size.String(), func(t *testing.T) {
 			setResponsiveDialogTestResolution(t, size.X, size.Y)
 			dialog := NewReadyEquipmentDialog(newWidgetTestKeyboard(-1), &sprites.SpriteSheet{}, state, game_state.ReadyEquipmentRequest{})
-			require.Equal(t, GetScaledFont(FontSizeLarge).TextFace.Size, dialog.font.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeCompact).TextFace.Size, dialog.font.TextFace.Size)
 			bounds := dialog.itemsBorder.GetInteriorBounds()
 			row := dialog.itemTextRect(bounds, bounds.Min.Y)
 			require.Less(t, row.Max.X, bounds.Max.X-dialog.itemScrollGutter())

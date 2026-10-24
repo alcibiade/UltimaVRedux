@@ -12,7 +12,7 @@ func TestRunicReferencePanelFitsRightRail(t *testing.T) {
 	var panel RunicReferencePanel
 	for _, size := range []image.Point{{640, 360}, {1280, 720}, {1920, 1080}, {3840, 2160}} {
 		rail := image.Rect(size.X*3/4, 0, size.X, size.Y)
-		font := text.NewUltimaFont(float64(FontSizeMainScreen) * float64(size.X) / 1920)
+		font := text.NewUltimaFont(float64(FontSizeBody) * float64(size.X) / 1920)
 		lineSpacing := font.TextFace.Size * 1.087
 		panel.ensureLayout(rail, font, lineSpacing)
 		for index, output := range panel.cells {
@@ -40,7 +40,7 @@ func TestRunicReferencePanelFitsRightRail(t *testing.T) {
 
 func TestRunicReferenceIncludesAlphabetAndAuthoredCompounds(t *testing.T) {
 	var panel RunicReferencePanel
-	panel.ensureLayout(image.Rect(1440, 0, 1920, 1080), text.NewUltimaFont(float64(FontSizeMainScreen)), 25)
+	panel.ensureLayout(image.Rect(1440, 0, 1920, 1080), text.NewUltimaFont(float64(FontSizeBody)), 25)
 	for index, letter := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 		require.Equal(t, string(letter)+" "+string(letter), panel.cells[index].GetOutputStr(false))
 	}

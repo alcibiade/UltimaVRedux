@@ -63,7 +63,7 @@ func TestAtlasNoteEditorRenderedFooterAndValidationFitSupportedSizes(t *testing.
 					require.Equal(t, "[Tab/Shift+Tab] Field [Enter] Paragraph [Ctrl+Enter] Save [Esc] Cancel", atlasStatusWords(editor.output))
 					require.Equal(t, 2, editor.output.GetPanelContentLineCount(), "actual measured key/action rows")
 					require.Equal(t, strings.Join(strings.Fields(message), " "), atlasStatusWords(editor.validation))
-					require.Equal(t, GetScaledFont(FontSizeMainScreen).TextFace.Size, editor.font.TextFace.Size)
+					require.Equal(t, GetScaledFont(FontSizeBody).TextFace.Size, editor.font.TextFace.Size)
 					require.Equal(t, editor.font.TextFace.Size, editor.validation.Font.TextFace.Size)
 					require.True(t, editor.hintRect.In(editor.pane.Inset(ClassicUIPixelUnit(size.X, size.Y))))
 					require.True(t, editor.validationRect.In(editor.pane))

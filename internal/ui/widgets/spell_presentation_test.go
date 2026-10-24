@@ -229,8 +229,8 @@ func TestSpellAvailabilityUsesCasterAndKeepsSelectedContrast(t *testing.T) {
 
 func TestSpellRecipeGroupsIndentedInventoryWithAvailabilityColours(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
-	font := GetScaledFont(FontSizeMainScreen)
-	output := text.NewOutput(font, GetScaledLineHeight(FontSizeMainScreen), 32, 80)
+	font := GetScaledFont(FontSizeBody)
+	output := text.NewOutput(font, GetScaledLineHeight(FontSizeBody), 32, 80)
 	spell := testMixCatalog()[references.AnNox]
 	spell.Reagents = []string{"Ginseng", "Garlic"}
 	spell.RecipeInventory = []game_state.SpellReagentStock{

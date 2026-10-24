@@ -53,12 +53,12 @@ type dungeonHUDLayout struct {
 func (g *GameScene) initializeDungeonHUDOutputs() {
 	g.releaseDungeonHUD()
 	_, g.dungeonHUD.level = widgets.GetScaledFontWithOutput(widgets.FontConfig{
-		Size:     widgets.FontSizeDefault,
+		Size:     widgets.FontSizeHUD,
 		MaxLines: 1,
 		MaxChars: dungeonStatusMaxChars,
 	})
 	_, g.dungeonHUD.direction = widgets.GetScaledFontWithOutput(widgets.FontConfig{
-		Size:     widgets.FontSizeDefault,
+		Size:     widgets.FontSizeHUD,
 		MaxLines: 1,
 		MaxChars: dungeonStatusMaxChars,
 	})

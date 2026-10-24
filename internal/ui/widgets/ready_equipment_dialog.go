@@ -151,7 +151,7 @@ func (d *ReadyEquipmentDialog) initializeTypography() {
 	// Intentional compact typography: Ready's dense gear columns need the original
 	// 20-size body, not the 23-size main-screen body used by broader readers.
 	d.font, _ = GetScaledFontWithOutput(FontConfig{
-		Size:        FontSizeLarge,
+		Size:        FontSizeCompact,
 		MaxLines:    1,
 		MaxChars:    readyInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: 0,
@@ -159,7 +159,7 @@ func (d *ReadyEquipmentDialog) initializeTypography() {
 
 	// Title font for panel headers
 	d.titleFont, d.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size:        FontSizeDialogTitle,
+		Size:        FontSizeTitle,
 		MaxLines:    1,
 		MaxChars:    readyInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: 0,

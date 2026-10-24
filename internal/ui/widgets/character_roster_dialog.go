@@ -235,7 +235,7 @@ func (s *characterRosterDialogShell) calculateLayout(width, height, rowCount int
 	footerHeight := max(pixelUnit*characterRosterDialogFooterUnits, 1)
 	paneHeaderHeight := max(1, pixelUnit*characterRosterDialogPaneHeaderUnits)
 	padding := max(1, pixelUnit*characterRosterDialogPaddingUnits)
-	_, rowCharacterHeight := GetScaledFont(FontSizeLarge).MeasureString("M")
+	_, rowCharacterHeight := GetScaledFont(FontSizeCompact).MeasureString("M")
 	rowHeight := max(1, int(math.Ceil(rowCharacterHeight*(1+characterRosterDialogRowSpacingChars))))
 	desiredBodyHeight := max(
 		pixelUnit*characterRosterDialogMinimumBodyUnits,
@@ -308,23 +308,23 @@ func (s *characterRosterDialogShell) createOutputs() {
 		detailLines = characterHealthDetailLines
 	}
 	_, s.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: 1, MaxChars: characterRosterDialogMaximumChars,
 	})
 	s.bodyFont, s.rowOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeLarge, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeCompact, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: 1, MaxChars: characterRosterDialogMaximumChars,
 	})
 	_, s.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeDefault, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeHUD, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: 1, MaxChars: characterRosterDialogMaximumChars,
 	})
 	_, s.detailOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeLarge, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeCompact, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: detailLines, MaxChars: characterRosterDialogMaximumChars,
 	})
 	_, s.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeDefault, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeHUD, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: characterRosterDialogFooterMaximumLines, MaxChars: characterRosterDialogFooterMaximumChars,
 	})
 	s.titleOutput.SetMaxCharsPerLine(max(

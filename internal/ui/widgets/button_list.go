@@ -326,14 +326,14 @@ func (b *ButtonListModal) ensureLayout(width, height int) {
 
 func (b *ButtonListModal) initializeLayoutOutputs(width int) {
 	_, b.titleOutput = GetScaledFontWithOutputForWidth(FontConfig{
-		Size:                  FontSizeDialogTitle,
+		Size:                  FontSizeTitle,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,
 		MaxChars:              1,
 	}, width)
 	_, b.descriptionOutput = GetScaledFontWithOutputForWidth(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: buttonListDescriptionSpacing,
 		MaxLines:              max(1, utf8.RuneCountInString(b.description)+1),
@@ -341,14 +341,14 @@ func (b *ButtonListModal) initializeLayoutOutputs(width int) {
 	}, width)
 	b.descriptionOutput.SetHyphenateLongWords(false)
 	_, b.rowOutput = GetScaledFontWithOutputForWidth(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,
 		MaxChars:              1,
 	}, width)
 	_, b.footerOutput = GetScaledFontWithOutputForWidth(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              buttonListFooterLines,

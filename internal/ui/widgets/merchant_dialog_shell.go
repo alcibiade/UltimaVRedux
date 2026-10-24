@@ -217,21 +217,21 @@ func (s *MerchantDialogShell) ensureLayout() {
 
 func (s *MerchantDialogShell) rebuildOutputs() {
 	_, s.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: merchantShellLineSpacing,
 		MaxLines:              merchantShellHeaderReservedLines,
 		MaxChars:              merchantShellMinimumTextChars,
 	})
 	_, s.ownerOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: merchantShellLineSpacing,
 		MaxLines:              1,
 		MaxChars:              merchantShellMinimumTextChars,
 	})
 	s.bodyFont, s.exchangeOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: merchantShellLineSpacing,
 		MaxLines:              merchantShellMinimumTextChars,
@@ -240,7 +240,7 @@ func (s *MerchantDialogShell) rebuildOutputs() {
 	s.exchangeHint = text.NewOutput(s.bodyFont, s.exchangeOutput.GetLineSpacing(),
 		merchantShellSpeechHintLines, merchantShellMinimumTextChars)
 	_, s.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: merchantShellLineSpacing,
 		MaxLines:              merchantShellFooterMaximumLines,

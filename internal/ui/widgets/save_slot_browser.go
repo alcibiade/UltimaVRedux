@@ -156,7 +156,7 @@ func NewSaveSlotBrowser(views []SaveSlotView, config SaveSlotBrowserConfig) *Sav
 	browser.cancelActionLabel = saveSlotBrowserLabel(strings.TrimSpace(config.CancelActionLabel), defaultCancelActionLabel)
 	browser.fontSize = config.FontSize
 	if browser.fontSize <= 0 {
-		browser.fontSize = FontSizeMainScreen
+		browser.fontSize = FontSizeBody
 	}
 	browser.keyboard = config.Keyboard
 	browser.placement = placement
@@ -281,7 +281,7 @@ func (b *SaveSlotBrowser) ensureLayout() {
 	b.outerBorder = NewOpaqueBorder(b.placement, BorderWidthStandard, pkgcolor.DialogBackground.RGBA())
 
 	_, b.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeDialogTitle,
+		Size:                  FontSizeTitle,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,

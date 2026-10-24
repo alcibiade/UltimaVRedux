@@ -276,15 +276,15 @@ func (d *ArmsTradeDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
 		MaxLines: 1, MaxChars: armsTradeMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
 		MaxLines: armsTradeMaximumBodyLines, MaxChars: armsTradeMinimumTextChars,
 	})
 	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
 		MaxLines: armsTradeFooterLines, MaxChars: armsTradeMinimumTextChars,
 	})
 	d.headerOutput.SetMaxCharsPerLine(max(armsTradeMinimumTextChars,

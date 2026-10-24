@@ -59,7 +59,7 @@ func (d *ArmsTradeDialog) GetBodyText() string {
 }
 
 // GetFontSize returns the semantic modal font size.
-func (d *ArmsTradeDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ArmsTradeDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // GetBodyText returns the current quantity and projected-value presentation.
 func (d *GuildPurchaseDialog) GetBodyText() string {
@@ -77,7 +77,7 @@ func (d *GuildPurchaseDialog) GetFooterGuidance() string {
 
 // GetFontSize returns the semantic font size used throughout the modal.
 func (d *GuildPurchaseDialog) GetFontSize() StandardFontSize {
-	return FontSizeMainScreen
+	return FontSizeBody
 }
 
 // HasPendingPurchaseIntent reports whether the workflow has an unconsumed selection intent.
@@ -130,7 +130,7 @@ func (d *GuildShopDialog) GetCatalogRowBounds(index int) image.Rectangle {
 
 // GetFontSize returns the semantic font size used throughout Guild presentation.
 func (d *GuildShopDialog) GetFontSize() StandardFontSize {
-	return FontSizeMainScreen
+	return FontSizeBody
 }
 
 // IsAwaitingResult reports whether duplicate workflow completion is blocked.
@@ -169,7 +169,7 @@ func (d *HealerShopDialog) GetDetailBounds() image.Rectangle {
 }
 
 // GetFontSize returns the semantic font size used throughout healer presentation.
-func (d *HealerShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *HealerShopDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // IsAwaitingResult reports whether duplicate workflow completion is blocked.
 func (d *HealerShopDialog) IsAwaitingResult() bool { return d.phase == HealerShopAwaitingResult }
@@ -181,7 +181,7 @@ func (d *HealerTreatmentDialog) GetIntent() HealerTreatmentIntent { return d.int
 func (d *HealerTreatmentDialog) GetFooterGuidance() string { return "Enter: Confirm  Esc: Back" }
 
 // GetFontSize returns the standard merchant font size.
-func (d *HealerTreatmentDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *HealerTreatmentDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // HasPendingPurchaseRequest reports whether confirmation emitted an unconsumed request.
 func (d *HorsePurchaseDialog) HasPendingPurchaseRequest() bool { return d.pending != nil }
@@ -210,7 +210,7 @@ func (d *HorsePurchaseDialog) GetFooterGuidance() string {
 }
 
 // GetFontSize returns the standard merchant font size.
-func (d *HorsePurchaseDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *HorsePurchaseDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // HasPendingPurchaseIntent reports whether an unconsumed approval intent exists.
 func (d *HorseShopDialog) HasPendingPurchaseIntent() bool { return d.pendingIntent != nil }
@@ -237,7 +237,7 @@ func (d *HorseShopDialog) GetHorseSpriteBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard merchant presentation font size.
-func (d *HorseShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *HorseShopDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // IsAwaitingResult reports whether duplicate workflow completion is blocked.
 func (d *HorseShopDialog) IsAwaitingResult() bool { return d.phase == HorseShopAwaitingResult }
@@ -271,7 +271,7 @@ func (d *InnActionDialog) GetBodyBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard main-screen merchant font size.
-func (d *InnActionDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *InnActionDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // IsPreview reports whether confirmation stops before Inn authority.
 func (d *InnActionDialog) IsPreview() bool { return d.intent.Preview }
@@ -357,7 +357,7 @@ func (d *InnShopDialog) GetTableBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard main-screen merchant font size.
-func (d *InnShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *InnShopDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // IsAwaitingResult reports whether workflow authority owns an approved request.
 func (d *InnShopDialog) IsAwaitingResult() bool { return d.phase == InnShopAwaitingResult }
@@ -378,7 +378,7 @@ func (d *ItemSelectionDialog) GetSelectedItemIndex() int {
 func (d *ItemSelectionDialog) GetDetailPage() int { return d.detailPage }
 
 // GetFontSize returns the semantic font size used by every picker output.
-func (d *ItemSelectionDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ItemSelectionDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // GetHeaderBounds returns the full-width common header region.
 func (s *MerchantDialogShell) GetHeaderBounds() image.Rectangle {
@@ -424,7 +424,7 @@ func (s *MerchantDialogShell) GetFooterBounds() image.Rectangle {
 
 // GetFontSize returns the semantic font size used throughout the shell.
 func (s *MerchantDialogShell) GetFontSize() StandardFontSize {
-	return FontSizeMainScreen
+	return FontSizeBody
 }
 
 // GetFirstSelectedIndex returns the locked character index.
@@ -476,7 +476,7 @@ func (d *QuestJournalDialog) GetSelectedIndex() int {
 func (d *QuestJournalDialog) GetDetailPage() int { return d.detailPage }
 
 // GetFontSize returns the semantic body font size (the title uses DialogTitle).
-func (d *QuestJournalDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *QuestJournalDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // GetBodyText returns the selected supplied approval presentation.
 func (d *ReagentPurchaseDialog) GetBodyText() string {
@@ -493,7 +493,7 @@ func (d *ReagentPurchaseDialog) GetFooterGuidance() string {
 }
 
 // GetFontSize returns the standard merchant font size.
-func (d *ReagentPurchaseDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ReagentPurchaseDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // HasPendingPurchaseIntent reports whether the workflow has an unconsumed modal intent.
 func (d *ReagentShopDialog) HasPendingPurchaseIntent() bool { return d.pendingIntent != nil }
@@ -513,7 +513,7 @@ func (d *ReagentShopDialog) GetDetailBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard merchant font size.
-func (d *ReagentShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ReagentShopDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // IsAwaitingResult reports whether authority owns the accepted request.
 func (d *ReagentShopDialog) IsAwaitingResult() bool { return d.phase == ReagentShopAwaitingResult }
@@ -587,7 +587,7 @@ func (d *ShipDispatchDialog) GetBodyBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard merchant font size.
-func (d *ShipDispatchDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ShipDispatchDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // GetQuantity returns the selected vessel or skiff quantity.
 func (d *ShipPurchaseDialog) GetQuantity() int { return d.quantity }
@@ -614,7 +614,7 @@ func (d *ShipPurchaseDialog) GetBodyBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard merchant font size.
-func (d *ShipPurchaseDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ShipPurchaseDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // HasPendingPurchaseIntent reports whether a purchase modal must be opened.
 func (d *ShipShopDialog) HasPendingPurchaseIntent() bool { return d.pendingBuy != nil }
@@ -671,7 +671,7 @@ func (d *ShipShopDialog) GetManifestBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard merchant presentation font size.
-func (d *ShipShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ShipShopDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // IsAwaitingResult reports whether purchase or travel authority currently owns the action.
 func (d *ShipShopDialog) IsAwaitingResult() bool {
@@ -703,7 +703,7 @@ func (d *ShipTravelDialog) GetBodyBounds() image.Rectangle {
 }
 
 // GetFontSize returns the standard merchant font size.
-func (d *ShipTravelDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *ShipTravelDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // GetMinValue returns the minimum value (test accessor)
 func (s *Slider) GetMinValue() int {
@@ -752,7 +752,7 @@ func (d *TavernActionDialog) GetBodyText() string {
 }
 
 // GetFontSize returns the standard main-screen merchant font size.
-func (d *TavernActionDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *TavernActionDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // ShowWithoutAnimation makes a non-complete approval immediately visible.
 func (d *TavernActionDialog) ShowWithoutAnimation() {
@@ -815,7 +815,7 @@ func (d *TavernShopDialog) GetTranscriptViewport() []TavernTranscriptEntry {
 func (d *TavernShopDialog) GetTranscriptScroll() int { return d.transcriptScroll }
 
 // GetFontSize returns the standard main-screen merchant font size.
-func (d *TavernShopDialog) GetFontSize() StandardFontSize { return FontSizeMainScreen }
+func (d *TavernShopDialog) GetFontSize() StandardFontSize { return FontSizeBody }
 
 // ShowWithoutAnimation makes a non-complete Tavern parent immediately visible.
 func (d *TavernShopDialog) ShowWithoutAnimation() {

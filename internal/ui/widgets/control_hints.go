@@ -170,7 +170,7 @@ func (h *staticViewerHint) draw(screen *ebiten.Image, artwork image.Rectangle, h
 	width, _ := display.GetManager().GetCurrentSize()
 	if h.output == nil || h.width != width {
 		h.width = width
-		_, h.output = GetScaledFontWithOutputForWidth(FontConfig{Size: FontSizeMainScreen,
+		_, h.output = GetScaledFontWithOutputForWidth(FontConfig{Size: FontSizeBody,
 			MaxLines: staticViewerHintLines, MaxChars: staticViewerHintChars, LineSpacing: 0,
 			LineSpacingMultiplier: staticViewerHintLineSpacing}, width)
 	}

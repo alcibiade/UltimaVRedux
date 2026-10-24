@@ -179,15 +179,15 @@ func (d *TavernResultDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
 		MaxLines: 1, MaxChars: tavernResultMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
 		MaxLines: tavernResultMaximumBodyLines, MaxChars: tavernResultMinimumTextChars,
 	})
 	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
 		MaxLines: 1, MaxChars: tavernResultMinimumTextChars,
 	})
 	d.headerOutput.SetMaxCharsPerLine(max(

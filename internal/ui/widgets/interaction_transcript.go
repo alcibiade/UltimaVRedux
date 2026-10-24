@@ -188,7 +188,7 @@ func newInteractionTranscriptTextInput(keyboard *input.Keyboard, maxInputLength 
 			StartPercentY: 0,
 			EndPercentY:   0,
 		},
-		GetScaledLineHeight(FontSizeLarge),
+		GetScaledLineHeight(FontSizeCompact),
 		maxInputLength,
 		nil,
 		TextInputCallbacks{
@@ -456,8 +456,8 @@ func (d *InteractionTranscript) ensureLayout(width, height int) {
 	}
 	d.lastWidth = width
 	d.lastHeight = height
-	d.font = GetScaledFont(FontSizeLarge)
-	fontPoint := GetScaledLineHeight(FontSizeLarge)
+	d.font = GetScaledFont(FontSizeCompact)
+	fontPoint := GetScaledLineHeight(FontSizeCompact)
 	lineSpacing := text.GetScaledNumberToResolution(display.GetManager(), messageFontLineSpacing)
 	pixelUnit := getClassicUIPixelUnit(width, height)
 	padding := max(pixelUnit*interactionTranscriptPaddingUnits, inputPromptMinimumPadding)

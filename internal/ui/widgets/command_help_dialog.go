@@ -104,7 +104,7 @@ func (d *CommandHelpDialog) ensureLayout() {
 		StartPercentY: commandHelpMargin, EndPercentY: 1 - commandHelpMargin,
 	})
 	font, output := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, MaxLines: 1, MaxChars: commandHelpInitialChars,
+		Size: FontSizeBody, MaxLines: 1, MaxChars: commandHelpInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: commandHelpSpacing,
 	})
 	chars := max(1, font.CharsForWidth(d.border.GetInteriorBounds().Dx()-2*commandHelpPadding))

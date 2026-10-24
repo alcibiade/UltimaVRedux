@@ -187,7 +187,7 @@ func TestTavernActionDialogPreviewResponsiveSemanticFooterAndLifecycle(t *testin
 	require.Contains(t, compactTavernText(dialog.GetTitleText()), "PREVIEW - Approve Meal")
 	require.Contains(t, compactTavernText(dialog.GetBodyText()), "PREVIEW: authority has not run")
 	require.False(t, dialog.GetBounds().Empty())
-	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
+	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 
 	requireKeyedGuidance(t, dialog.GetFooterGuidance())
 	require.True(t, dialog.IsVisible())

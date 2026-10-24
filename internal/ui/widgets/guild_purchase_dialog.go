@@ -254,28 +254,28 @@ func (d *GuildPurchaseDialog) ensureLayout() {
 
 func (d *GuildPurchaseDialog) rebuildOutputs() {
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildPurchaseLineSpacing,
 		MaxLines:              1,
 		MaxChars:              guildPurchaseMinimumTextChars,
 	})
 	_, d.bodyOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildPurchaseLineSpacing,
 		MaxLines:              guildPurchaseMaximumLines,
 		MaxChars:              guildPurchaseMinimumTextChars,
 	})
 	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildPurchaseLineSpacing,
 		MaxLines:              guildPurchaseFooterLines,
 		MaxChars:              guildPurchaseMinimumTextChars,
 	})
 	_, d.totalOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildPurchaseLineSpacing,
 		MaxLines:              guildPurchaseTotalLines,

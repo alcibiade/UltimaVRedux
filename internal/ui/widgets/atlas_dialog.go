@@ -292,7 +292,7 @@ func (d *AtlasDialog) ensureLayout() {
 		return
 	}
 	d.width, d.height = w, h
-	config := FontConfig{Size: FontSizeMainScreen, LineSpacing: 0,
+	config := FontConfig{Size: FontSizeBody, LineSpacing: 0,
 		LineSpacingMultiplier: 1.15, MaxLines: journal.MaxAtlasNoteDescriptionRunes + 32, MaxChars: 128}
 	d.font, d.details = GetScaledFontWithOutput(config)
 	_, d.footer = GetScaledFontWithOutput(config)

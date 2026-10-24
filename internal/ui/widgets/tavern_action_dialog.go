@@ -262,15 +262,15 @@ func (d *TavernActionDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
 		MaxLines: 1, MaxChars: tavernActionMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
 		MaxLines: tavernActionMaximumBodyLines, MaxChars: tavernActionMinimumTextChars,
 	})
 	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
 		MaxLines: tavernActionFooterLines, MaxChars: tavernActionMinimumTextChars,
 	})
 	d.headerOutput.SetMaxCharsPerLine(max(

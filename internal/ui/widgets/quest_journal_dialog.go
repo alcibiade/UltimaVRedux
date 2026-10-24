@@ -467,7 +467,7 @@ func (d *QuestJournalDialog) ensureLayout() {
 func (d *QuestJournalDialog) rebuildOutputs() {
 	d.exchangeOutput = nil
 	config := FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: questJournalLineSpacingMultiplier,
 		MaxLines:              1,
@@ -475,9 +475,9 @@ func (d *QuestJournalDialog) rebuildOutputs() {
 	}
 	d.font, d.rowOutput = GetScaledFontWithOutput(config)
 	_, d.tabOutput = GetScaledFontWithOutput(config)
-	config.Size = FontSizeDialogTitle
+	config.Size = FontSizeTitle
 	_, d.titleOutput = GetScaledFontWithOutput(config)
-	config.Size = FontSizeMainScreen
+	config.Size = FontSizeBody
 	config.MaxLines = questJournalDetailMaxLines
 	_, d.detailOutput = GetScaledFontWithOutput(config)
 	config.MaxLines = d.footerLineCount()

@@ -201,15 +201,15 @@ func (d *ReagentPurchaseDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
 		MaxLines: 1, MaxChars: reagentPurchaseMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
 		MaxLines: reagentPurchaseMaximumBodyLines, MaxChars: reagentPurchaseMinimumTextChars,
 	})
 	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
 		MaxLines: reagentPurchaseFooterLines, MaxChars: reagentPurchaseMinimumTextChars,
 	})
 	d.headerOutput.SetMaxCharsPerLine(max(

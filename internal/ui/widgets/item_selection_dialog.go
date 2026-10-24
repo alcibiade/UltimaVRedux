@@ -455,7 +455,7 @@ func (d *ItemSelectionDialog) ensureLayout() {
 
 func (d *ItemSelectionDialog) rebuildOutputs() {
 	config := FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: itemDialogLineSpacingMultiplier,
 		MaxLines:              itemDialogTitleMaxLines,

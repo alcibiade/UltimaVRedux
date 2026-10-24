@@ -20,7 +20,7 @@ func TestSaveSlotBrowserImportFailureNoticeVisibleOnEmptySlot(t *testing.T) {
 				ID: "slot-01", Label: "Slot 1", Status: "Empty", PrimaryEnabled: true,
 				Details: []SaveSlotDetail{{Value: "No save data."}},
 			}}, SaveSlotBrowserConfig{
-				Title: "Import Legacy Save", PrimaryActionLabel: "Import", FontSize: FontSizeMainScreen,
+				Title: "Import Legacy Save", PrimaryActionLabel: "Import", FontSize: FontSizeBody,
 				InitialSelectionID: "slot-01", Notice: notice,
 			})
 			require.Contains(t, strings.Join(strings.Fields(browser.detailOutput.GetOutputStr(false)), " "), notice)

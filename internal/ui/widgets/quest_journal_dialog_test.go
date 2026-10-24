@@ -108,8 +108,8 @@ func TestQuestJournalDialogUsesSemanticFontsAndResponsiveLayout(t *testing.T) {
 	dialog.ensureLayout()
 	smallSize := dialog.font.TextFace.Size
 
-	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
-	require.Equal(t, GetScaledFont(FontSizeDialogTitle).TextFace.Size, dialog.titleOutput.Font.TextFace.Size)
+	require.Equal(t, FontSizeBody, dialog.GetFontSize())
+	require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, dialog.titleOutput.Font.TextFace.Size)
 	for _, size := range []float64{
 		dialog.tabOutput.Font.TextFace.Size,
 		dialog.rowOutput.Font.TextFace.Size,

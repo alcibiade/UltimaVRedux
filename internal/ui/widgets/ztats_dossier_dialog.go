@@ -38,7 +38,7 @@ const (
 	zStatsDossierMinimumRows           = 1
 	zStatsDossierDetailMaxLines        = 1024
 	zStatsDossierLineSpacingMultiplier = 1.20
-	zStatsDossierTitleFontSize         = FontSizeDialogTitle
+	zStatsDossierTitleFontSize         = FontSizeTitle
 	zStatsDossierTabRows               = 2
 	zStatsDossierTabColumns            = 4
 	zStatsDossierPercentMultiplier     = 100
@@ -177,7 +177,7 @@ func NewZStatsDossierDialog(
 	}
 	fontSize := config.FontSize
 	if fontSize <= 0 {
-		fontSize = FontSizeMainScreen
+		fontSize = FontSizeBody
 	}
 
 	//nolint:exhaustruct // Remaining fields are presentation state initialized by ensureLayout or their zero values.

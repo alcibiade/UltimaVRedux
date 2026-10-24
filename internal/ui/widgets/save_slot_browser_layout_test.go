@@ -67,7 +67,7 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 			views[3].Newest = true
 			views[0].Problem = strings.Repeat("Damaged data. ", 30)
 			b := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), views, SaveSlotBrowserConfig{
-				Title: "Select Save Game", PrimaryActionLabel: "Import", FontSize: FontSizeMainScreen,
+				Title: "Select Save Game", PrimaryActionLabel: "Import", FontSize: FontSizeBody,
 				NewestLegend: "* Newest save for this playthrough",
 			})
 			require.Equal(t, 8, len(b.rowRects))
@@ -81,7 +81,7 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 				}
 			}
 			require.Equal(t, b.rowRects[0].Min.Y-listFrame.Min.Y, listFrame.Max.Y-b.rowRects[7].Max.Y)
-			require.Equal(t, GetScaledFont(FontSizeDialogTitle).TextFace.Size, b.titleOutput.Font.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, b.titleOutput.Font.TextFace.Size)
 			require.Same(t, b.titleOutput.Font, b.detailHeadingOutput.Font)
 			require.Less(t, b.detailHeadingRect.Max.Y, b.detailTextRect.Min.Y)
 			require.LessOrEqual(t, b.footerOutput.GetTotalHeightForLines(b.footerOutput.GetPanelContentLineCount()), float64(b.footerTextRect.Dy()))
@@ -162,7 +162,7 @@ func TestSaveSlotBrowserSelectedFolderReviewFitsSupportedSizes(t *testing.T) {
 				Details: []SaveSlotDetail{{Label: "Folder", Value: path}},
 			}}, SaveSlotBrowserConfig{
 				Title: "Choose Game Files", PrimaryActionLabel: "Use Selected", CancelActionLabel: "Back",
-				FontSize: FontSizeMainScreen, ReviewLabel: "Selected Folder",
+				FontSize: FontSizeBody, ReviewLabel: "Selected Folder",
 			})
 
 			require.True(t, browser.reviewFrameRect.In(browser.detailRect))
@@ -188,7 +188,7 @@ func TestSaveSlotBrowserCompactFallbackKeepsFullDescriptionPaged(t *testing.T) {
 	description := strings.Repeat("Checkpoint details remain available. ", 20)
 	b := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), []SaveSlotView{{
 		ID: "slot-01", Label: "Slot 1", Description: description,
-	}}, SaveSlotBrowserConfig{FontSize: FontSizeMainScreen, Placement: sprites.PercentBasedPlacement{
+	}}, SaveSlotBrowserConfig{FontSize: FontSizeBody, Placement: sprites.PercentBasedPlacement{
 		StartPercentX: 0.1, EndPercentX: 0.9, StartPercentY: 0.25, EndPercentY: 0.75,
 	}})
 	require.False(t, b.showDescriptions)

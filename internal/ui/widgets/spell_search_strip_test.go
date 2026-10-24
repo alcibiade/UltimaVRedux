@@ -188,7 +188,7 @@ func TestZStatsSpellTitleNeverAcknowledgesUnreadAndCustomPlacementIsHonored(t *t
 		original := cloneZStatsDossier(dossier)
 		configuration := testZStatsDossierConfig(newWidgetTestKeyboard(0))
 		configuration.Placement = sprites.PercentBasedPlacement{StartPercentX: .05, StartPercentY: .05, EndPercentX: .95, EndPercentY: .95}
-		configuration.FontSize = FontSizeLarge
+		configuration.FontSize = FontSizeCompact
 		dialog := NewZStatsDossierDialog(dossier, configuration)
 		t.Cleanup(dialog.outerBorder.Dispose)
 		require.Equal(t, *sprites.GetRectangleFromPercents(configuration.Placement), dialog.outerBorder.GetBounds())

@@ -608,15 +608,15 @@ func (d *ShipShopDialog) ensureLayout() {
 	d.lastScreenWidth, d.lastScreenHeight = width, height
 	d.shell.GetBounds()
 	d.cardFont, d.cardOutputs[0] = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: shipShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: shipShopLineSpacing,
 		MaxLines: shipShopCardTextLines, MaxChars: shipShopMinimumTextChars,
 	})
 	_, d.cardOutputs[1] = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: shipShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: shipShopLineSpacing,
 		MaxLines: shipShopCardTextLines, MaxChars: shipShopMinimumTextChars,
 	})
 	d.manifestFont, d.manifestOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: shipShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: shipShopLineSpacing,
 		MaxLines: shipShopManifestLines, MaxChars: shipShopMinimumTextChars,
 	})
 	d.calculateLayout()

@@ -377,14 +377,14 @@ func (d *GuildShopDialog) ensureLayout() {
 	d.shell.GetBounds()
 
 	d.catalogFont, d.catalogOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildShopLineSpacing,
 		MaxLines:              1,
 		MaxChars:              guildShopMinimumTextChars,
 	})
 	d.statusFont, d.statusOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildShopLineSpacing,
 		MaxLines:              guildShopStatusMinimumLines,

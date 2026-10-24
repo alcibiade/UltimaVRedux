@@ -380,11 +380,11 @@ func (d *ReagentShopDialog) ensureLayout() {
 	d.lastScreenWidth, d.lastScreenHeight = width, height
 	d.shell.GetBounds()
 	d.catalogFont, d.catalogOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: reagentShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: reagentShopLineSpacing,
 		MaxLines: 1, MaxChars: reagentShopMinimumTextChars,
 	})
 	d.detailFont, d.detailOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: reagentShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: reagentShopLineSpacing,
 		MaxLines: reagentShopDetailLines, MaxChars: reagentShopMinimumTextChars,
 	})
 	d.calculateLayout()

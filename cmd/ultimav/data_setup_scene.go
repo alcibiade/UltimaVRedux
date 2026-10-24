@@ -701,7 +701,7 @@ func (s *dataSetupScene) showSearchDetails(game *Game) {
 	var browser *widgets.SaveSlotBrowser
 	browser = widgets.NewSaveSlotBrowser(views, widgets.SaveSlotBrowserConfig{
 		Title: "Search Details", PrimaryActionLabel: setupBackLabel,
-		CancelActionLabel: setupBackLabel, FontSize: widgets.FontSizeMainScreen,
+		CancelActionLabel: setupBackLabel, FontSize: widgets.FontSizeBody,
 		InitialSelectionID: "", NewestLegend: "", ReviewLabel: "",
 		RequireExplicitSelection: false,
 		Notice:                   "Bounded local search only. No whole-computer scan was performed.",

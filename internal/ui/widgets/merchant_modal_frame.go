@@ -69,12 +69,12 @@ func (f *merchantModalFrame) calculateLayout() {
 	f.inset = max(f.config.minimumInset, min(interior.Dx(), interior.Dy())/merchantModalInsetDivisor)
 	content := insetRectangle(interior, f.inset)
 
-	font := GetScaledFont(FontSizeMainScreen)
+	font := GetScaledFont(FontSizeBody)
 	metrics := font.TextFace.Metrics()
 	fontHeight := metrics.HAscent + metrics.HDescent
 	lineSpacing := gametext.GetScaledNumberToResolution(
 		display.GetManager(),
-		float64(FontSizeMainScreen)*f.config.lineSpacingMultiplier,
+		float64(FontSizeBody)*f.config.lineSpacingMultiplier,
 	)
 	footerTextHeight := fontHeight + float64(f.config.footerMinimumLines-1)*lineSpacing
 	headerHeight := max(
@@ -131,15 +131,15 @@ func (f *merchantModalFrame) newOutputs(budget merchantModalTextBudget) (*gamete
 	*gametext.Output,
 ) {
 	_, headerOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
 		MaxLines: 1, MaxChars: budget.minimumChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
 		MaxLines: budget.maximumBodyLines, MaxChars: budget.minimumChars,
 	})
 	_, footerOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: budget.lineSpacing,
 		MaxLines: budget.footerLines, MaxChars: budget.minimumChars,
 	})
 	headerOutput.SetMaxCharsPerLine(max(budget.minimumChars,

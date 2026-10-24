@@ -713,15 +713,15 @@ func (d *InnShopDialog) ensureLayout() {
 	d.lastScreenWidth, d.lastScreenHeight = width, height
 	d.shell.GetBounds()
 	_, d.modeOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: innShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innShopLineSpacing,
 		MaxLines: innShopModeHeaderMaxLines, MaxChars: innShopMinimumTextChars,
 	})
 	d.rowFont, d.rowOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: innShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innShopLineSpacing,
 		MaxLines: 1, MaxChars: innShopMinimumTextChars,
 	})
 	d.detailFont, d.detailOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: innShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innShopLineSpacing,
 		MaxLines: innShopMaximumDetailLines, MaxChars: innShopMinimumTextChars,
 	})
 	d.calculateLayout()

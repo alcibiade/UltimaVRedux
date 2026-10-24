@@ -877,19 +877,19 @@ func (d *ArmsShopDialog) ensureLayout() {
 	d.lastScreenWidth, d.lastScreenHeight = width, height
 	d.shell.GetBounds()
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
 		MaxLines: 1, MaxChars: armsShopMinimumTextChars,
 	})
 	_, d.sortOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
 		MaxLines: 1, MaxChars: armsShopMinimumTextChars,
 	})
 	d.rowFont, d.rowOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
 		MaxLines: armsShopDetailLines, MaxChars: armsShopMinimumTextChars,
 	})
 	_, d.detailOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsShopLineSpacing,
 		MaxLines: armsShopDetailLines, MaxChars: armsShopMinimumTextChars,
 	})
 	d.calculateLayout()

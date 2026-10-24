@@ -31,13 +31,13 @@ func TestButtonListModalUsesBalancedContentMeasuredCard(t *testing.T) {
 	assert.Less(t, modal.layout.cardRect.Dy(), modal.layout.cardRect.Dx(),
 		"a one-row menu should remain compact rather than reserving fixed vertical space")
 	assert.Equal(t,
-		gametext.GetScaledNumberToWidth(modal.lastWidth, float64(FontSizeMainScreen)),
+		gametext.GetScaledNumberToWidth(modal.lastWidth, float64(FontSizeBody)),
 		modal.rowOutput.Font.TextFace.Size,
 	)
 	assert.Equal(t, modal.rowOutput.Font.TextFace.Size, modal.descriptionOutput.Font.TextFace.Size)
 	assert.Equal(t, modal.rowOutput.Font.TextFace.Size, modal.footerOutput.Font.TextFace.Size)
 	assert.Equal(t,
-		gametext.GetScaledNumberToWidth(modal.lastWidth, float64(FontSizeDialogTitle)),
+		gametext.GetScaledNumberToWidth(modal.lastWidth, float64(FontSizeTitle)),
 		modal.titleOutput.Font.TextFace.Size,
 	)
 }
