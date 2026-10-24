@@ -244,6 +244,13 @@ func TestSaveDescriptionDefaultsAndInputContract(t *testing.T) {
 	assert.NotContains(t, playerSaveDescriptionNotice(summary, testPlaythroughID), "another playthrough")
 	draft = playerSaveDescriptionDraft{slot: summary.Slot, text: "", set: true}
 	assert.Empty(t, playerSaveDescriptionInitial(summary, testPlaythroughID, &draft))
+	// An older, longer note is offered cut to the box's limit, never as an empty box.
+	draft = playerSaveDescriptionDraft{}
+	summary.Metadata.UserDescription = "Britain, day 12 - bought the crossbows"
+	assert.Equal(t, "Britain, day 12 - boug", playerSaveDescriptionInitial(summary, testPlaythroughID, &draft))
+	summary.Metadata.UserDescription = strings.Repeat("界", widgets.SaveSlotRowDescriptionMaxRunes+5)
+	assert.Equal(t, strings.Repeat("界", widgets.SaveSlotRowDescriptionMaxRunes),
+		playerSaveDescriptionInitial(summary, testPlaythroughID, &draft))
 	for _, invalid := range []string{"\ntext", "text\r", "text\t", "bad\x00", strings.Repeat("a", 81)} {
 		assert.NotEmpty(t, validatePlayerSaveDescriptionInput(invalid))
 	}
@@ -271,7 +278,7 @@ func TestManualDescriptionNestedRetryRemovesAllDialogsAndDoesNotAdvanceGameplay(
 		pressEscapeMenuWidgetKey(scene, browser, ebiten.KeyEnter)
 		editor := requireEscapeMenuDialog[*widgets.SaveDescriptionEntryModal](t, scene)
 		if attempt == 0 {
-			editor.SetText("  About to go to Doom  ")
+			editor.SetText(" About to go to Doom ")
 		} else {
 			assert.Equal(t, "About to go to Doom", editor.GetText())
 		}
