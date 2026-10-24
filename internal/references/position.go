@@ -188,17 +188,7 @@ func (p *Position) IsWithinN(targetPosition *Position, n int) bool {
 	return helpers.AbsInt(int(targetPosition.X-p.X)) <= n && helpers.AbsInt(int(targetPosition.Y-p.Y)) <= n
 }
 
-// Neighbors returns the left, right, up and down positions without wrapping.
-func (p *Position) Neighbors() []Position {
-	return []Position{
-		{X: p.X - 1, Y: p.Y}, // Left
-		{X: p.X + 1, Y: p.Y}, // Right
-		{X: p.X, Y: p.Y - 1}, // Up
-		{X: p.X, Y: p.Y + 1}, // Down
-	}
-}
-
-// HeuristicTileDistance returns the Manhattan distance to b, for path finding.
+// HeuristicTileDistance returns the Manhattan distance to b.
 func (p *Position) HeuristicTileDistance(b Position) int {
 	return helpers.AbsInt(int(p.X-b.X)) + helpers.AbsInt(int(p.Y-b.Y))
 }

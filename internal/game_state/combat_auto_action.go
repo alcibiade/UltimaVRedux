@@ -1,7 +1,8 @@
 package game_state
 
 import (
-	"github.com/bradhannah/UltimaVRedux/internal/astar"
+	"image"
+
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
 
@@ -163,19 +164,21 @@ func (g *GameState) findShortestCombatAutoPath(
 	activeIdentity CombatTurnIdentity,
 	start references.Position,
 ) combatAutoPath {
-	pathfinder := astar.NewAStarMap()
-	pathfinder.InitializeByMovementCost(
-		start,
-		references.XCombatMapTiles,
-		references.YCombatMapTiles,
-		func(position references.Position) int {
-			if g.isCombatPositionValidForPC(&position, activeIdentity) {
-				return 1
-			}
+	// Check each tile once; every candidate route below reuses the answers.
+	var passable [references.XCombatMapTiles][references.YCombatMapTiles]bool
+	for x := range references.XCombatMapTiles {
+		for y := range references.YCombatMapTiles {
+			passable[x][y] = g.isCombatPositionValidForPC(&references.Position{X: x, Y: y}, activeIdentity)
+		}
+	}
+	combatMap := image.Rect(0, 0, int(references.XCombatMapTiles), int(references.YCombatMapTiles))
+	entryCost := func(position references.Position) int {
+		if passable[position.X][position.Y] {
+			return 1
+		}
 
-			return -1
-		},
-	)
+		return -1
+	}
 
 	best := combatAutoPath{
 		positions:    nil,
@@ -200,7 +203,7 @@ func (g *GameState) findShortestCombatAutoPath(
 				continue
 			}
 
-			path := pathfinder.AStar(candidate)
+			path := references.FindRoute(start, candidate, combatMap, entryCost)
 			if len(path) < 2 || !isBetterCombatAutoPath(path, distance, currentHP, monsterIndex, best) {
 				continue
 			}

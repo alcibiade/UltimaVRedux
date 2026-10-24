@@ -353,7 +353,6 @@ Useful focused Go commands:
 go test ./internal/game_state -run '^TestSpecificBehavior$' -count=1
 go test ./internal/game_state -run 'Integration' -v
 go test ./internal/debugging/... -race
-go test ./internal/astar -bench . -benchmem
 ```
 
 On a headless Linux host, wrap Ebitengine-dependent tests with Xvfb:

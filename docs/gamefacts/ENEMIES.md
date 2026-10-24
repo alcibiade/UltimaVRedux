@@ -298,7 +298,8 @@ does not immediately start a second combat check.
 Redux deliberately uses ordinary pursuit for Bat/Mongbat, retaining flight and
 slowdown exemption rather than inventing behavior from conflicting source.
 Ordinary Redux movement chooses random motion on one in four phases, then waits
-on one in four remaining directed opportunities, otherwise uses A*. Thus Redux
+on one in four remaining directed opportunities, otherwise uses A* within a
+30-tile square around the party, crossing the world's wrapping edge when needed. Thus Redux
 probabilities are 25% wander, 18.75% wait, 56.25% directed pursuit. Destination
 slowdown still applies to the chosen step. The wait offsets A* routing around
 obstacles. Deterministic synthetic comparison requires at least 10% greater mean

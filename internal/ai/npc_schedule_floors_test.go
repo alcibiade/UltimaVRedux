@@ -91,7 +91,7 @@ func TestNPCIncomingBlockedEntryDefersAndRetries(t *testing.T) {
 			case "destination party":
 				controller.mapState.PlayerLocation.Position = goal
 			case "route":
-				for _, neighbor := range entry.Neighbors() {
+				for _, neighbor := range entry.GetFourDirectionsWrapped(references.XSmallMapTiles, references.YSmallMapTiles) {
 					terrain.SetTileByLayer(map_state.MapLayer, &neighbor, indexes.StoneBrickWall)
 				}
 			case "missing":
@@ -114,7 +114,7 @@ func TestNPCIncomingBlockedEntryDefersAndRetries(t *testing.T) {
 			controller.mapState.PlayerLocation.Position = references.Position{X: 30, Y: 30}
 			terrain.UnSetTileByLayer(map_state.MapOverrideLayer, &entry)
 			terrain.SetTileByLayer(map_state.MapLayer, &entry, indexes.LadderUp)
-			for _, neighbor := range entry.Neighbors() {
+			for _, neighbor := range entry.GetFourDirectionsWrapped(references.XSmallMapTiles, references.YSmallMapTiles) {
 				terrain.SetTileByLayer(map_state.MapLayer, &neighbor, indexes.BrickFloor)
 			}
 			controller.calculateNextNPCPosition(npc)
@@ -143,7 +143,7 @@ func TestNPCFloorTravelSelectsReachableAlternative(t *testing.T) {
 			for _, entry := range []references.Position{near, far} {
 				terrain.SetTileByLayer(map_state.MapLayer, &entry, indexes.LadderUp)
 			}
-			for _, neighbor := range near.Neighbors() {
+			for _, neighbor := range near.GetFourDirectionsWrapped(references.XSmallMapTiles, references.YSmallMapTiles) {
 				terrain.SetTileByLayer(map_state.MapLayer, &neighbor, indexes.StoneBrickWall)
 			}
 			controller.calculateNextNPCPosition(npc)
