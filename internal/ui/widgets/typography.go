@@ -118,6 +118,13 @@ func newScaledFontWithOutput(
 	return font, output
 }
 
+// scaledFontHeight returns the resolution-scaled glyph height (ascent plus descent).
+func scaledFontHeight(size StandardFontSize) float64 {
+	metrics := GetScaledFont(size).TextFace.Metrics()
+
+	return metrics.HAscent + metrics.HDescent
+}
+
 // GetScaledLineHeight returns the resolution-scaled line height for a font size.
 // Useful when you need to calculate text positioning without creating an Output.
 func GetScaledLineHeight(size StandardFontSize) float64 {

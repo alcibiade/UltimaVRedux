@@ -179,7 +179,7 @@ func (d *TavernResultDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
 		MaxLines: 1, MaxChars: tavernResultMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{

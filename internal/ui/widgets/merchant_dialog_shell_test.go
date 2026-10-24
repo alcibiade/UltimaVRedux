@@ -99,7 +99,8 @@ func TestMerchantDialogShellBoundsLatestExchangeAndGuidance(t *testing.T) {
 		Footer:   MerchantDialogFooterView{Guidance: longText},
 	})
 
-	require.LessOrEqual(t, shell.headerOutput.GetPanelContentLineCount(), merchantShellHeaderReservedLines)
+	require.Equal(t, 1, shell.titleOutput.GetPanelContentLineCount())
+	require.Equal(t, 1, shell.headerOutput.GetPanelContentLineCount())
 	require.Greater(t, shell.exchangePageCount(), 1)
 	require.Equal(t, strings.Join(strings.Fields(longText), " "),
 		strings.Join(strings.Fields(shell.exchangeOutput.GetOutputStr(true)), " "))
@@ -108,6 +109,7 @@ func TestMerchantDialogShellBoundsLatestExchangeAndGuidance(t *testing.T) {
 		shell.footerOutput.GetPanelContentLineCount(),
 		shell.footerOutput.GetLineCapacity(shell.footerText.Dy()),
 	)
+	require.Contains(t, shell.titleOutput.GetOutputStr(false), "...")
 	require.Contains(t, shell.headerOutput.GetOutputStr(false), "...")
 	require.NotContains(t, shell.exchangeOutput.GetOutputStr(false), "...")
 	require.Contains(t, shell.footerOutput.GetOutputStr(false), "...")
@@ -150,7 +152,7 @@ func TestMerchantDialogShellRefreshAndResolutionRebuildPreserveData(t *testing.T
 	require.Equal(t, "The Rusty Sword", shell.GetHeaderView().ShopIdentity)
 	require.Equal(t, "A refreshed exchange.", shell.GetExchangeView().Text)
 	require.Equal(t, "[Enter] Confirm   [Esc] Leave", shell.GetFooterView().Guidance)
-	require.Contains(t, shell.headerOutput.GetOutputStr(false), "The Rusty Sword")
+	require.Contains(t, shell.titleOutput.GetOutputStr(false), "The Rusty Sword")
 	require.Equal(t, "A refreshed exchange.", strings.Join(strings.Fields(shell.exchangeOutput.GetOutputStr(false)), " "))
 }
 

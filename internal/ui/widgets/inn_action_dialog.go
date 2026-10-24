@@ -165,7 +165,7 @@ func (d *InnActionDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
 		MaxLines: 1, MaxChars: innActionMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{

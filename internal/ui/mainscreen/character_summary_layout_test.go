@@ -31,7 +31,7 @@ func TestCharacterRightTextBoundsLeaveScaledBorderInset(t *testing.T) {
 func TestCharacterTextRetainsUnchangedRowsAndRefreshesVisibleValues(t *testing.T) {
 	party := summaryBaselineParty()
 	summary := &CharacterSummary{}
-	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeXLarge, characterOutputMaxLines)
+	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeBody, characterOutputMaxLines)
 	screen := ebiten.NewImage(1, 1)
 	t.Cleanup(screen.Dispose)
 	summary.Draw(party, screen, -1, false, -1)
@@ -87,7 +87,7 @@ func TestCharacterTextRetainsUnchangedRowsAndRefreshesVisibleValues(t *testing.T
 			summary.output = text.NewOutput(summary.ultimaFont, summary.output.GetLineSpacing()+1, characterOutputMaxLines, 80)
 		},
 		func() {
-			summary.ultimaFont, summary.output = newMainScreenOutput(1920, widgets.FontSizeXLarge, characterOutputMaxLines)
+			summary.ultimaFont, summary.output = newMainScreenOutput(1920, widgets.FontSizeBody, characterOutputMaxLines)
 		},
 	} {
 		before, oldLeft, oldRight := row.builds, row.left, row.right
@@ -101,15 +101,16 @@ func TestCharacterTextRetainsUnchangedRowsAndRefreshesVisibleValues(t *testing.T
 }
 
 func TestCharacterSummaryRenderingMatchesOriginalPortraitAndTextBaseline(t *testing.T) {
-	// Positions captured from b19e37af's ordinary six-row layout. These do not
-	// call the production layout or typography helpers to compute expectations.
+	// Positions captured from b19e37af's ordinary six-row layout, with text one
+	// pixel higher for the 23-size body typography. These do not call the
+	// production layout or typography helpers to compute expectations.
 	for _, fixture := range []struct {
 		width, rowPitch, portraitX, portraitY, portraitSize int
 		textX, textY, leftWidth, rightX, rightWidth         int
 	}{
 		{960, 41, 739, 15, 37, 780, 19, 85, 869, 73},
-		{1280, 54, 985, 20, 50, 1039, 26, 115, 1158, 98},
-		{1920, 81, 1478, 29, 77, 1559, 39, 174, 1737, 147},
+		{1280, 54, 985, 20, 50, 1039, 25, 115, 1158, 98},
+		{1920, 81, 1478, 29, 77, 1559, 38, 174, 1737, 147},
 	} {
 		t.Run(fmt.Sprint(fixture.width), func(t *testing.T) {
 			party := summaryBaselineParty()
@@ -119,13 +120,13 @@ func TestCharacterSummaryRenderingMatchesOriginalPortraitAndTextBaseline(t *test
 			expected := ebiten.NewImage(fixture.width, fixture.width*9/16)
 			t.Cleanup(actual.Dispose)
 			t.Cleanup(expected.Dispose)
-			size := 22 * float64(fixture.width) / 1920
+			size := 23 * float64(fixture.width) / 1920
 			font := text.NewUltimaFont(size)
 			reference := text.NewOutput(font, size*1.59, 10, 16)
 			fontBefore := *summary.ultimaFont.TextFace
 			metricsBefore := summary.ultimaFont.TextFace.Metrics()
 			glyphWidth, glyphHeight := summary.ultimaFont.MeasureString("Pois. 75/100HP 30MP")
-			_, otherHUD := newMainScreenOutput(fixture.width, widgets.FontSizeSmall, 10)
+			_, otherHUD := newMainScreenOutput(fixture.width, widgets.FontSizeHUD, 10)
 			require.NotSame(t, summary.ultimaFont, otherHUD.Font)
 			otherHUD.SetMaxCharsPerLine(80)
 			otherTarget := ebiten.NewImage(fixture.width, fixture.width*9/16)

@@ -82,13 +82,13 @@ func (s *characterRosterDialogShell) createGuardResourceOutputs(width int, reduc
 			MaxLines: lines, MaxChars: characterRosterDialogFooterMaximumChars,
 		}, point, func(value float64) float64 { return value * point / float64(size) })
 	}
-	_, s.titleOutput = makeOutput(FontSizeBody, 1)
+	_, s.titleOutput = makeOutput(FontSizeTitle, 1)
 	s.bodyFont, s.rowOutput = makeOutput(FontSizeCompact, 1)
-	_, s.headerOutput = makeOutput(FontSizeHUD, 1)
+	_, s.headerOutput = makeOutput(FontSizeCompact, 1)
 	_, s.detailOutput = makeOutput(FontSizeCompact, guardResourceDetailLines)
 	// Intermediate candidates may wrap the two hints to more physical lines. Do
 	// not overwrite the beginning before measuring whether that candidate fits.
-	_, s.footerOutput = makeOutput(FontSizeHUD, guardResourceFooterBufferLines)
+	_, s.footerOutput = makeOutput(FontSizeBody, guardResourceFooterBufferLines)
 }
 
 func (s *characterRosterDialogShell) guardResourceNamesFit(options []CharacterSelectionOption) bool {

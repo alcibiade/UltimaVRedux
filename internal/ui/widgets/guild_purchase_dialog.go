@@ -254,7 +254,7 @@ func (d *GuildPurchaseDialog) ensureLayout() {
 
 func (d *GuildPurchaseDialog) rebuildOutputs() {
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeBody,
+		Size:                  FontSizeTitle,
 		LineSpacing:           0,
 		LineSpacingMultiplier: guildPurchaseLineSpacing,
 		MaxLines:              1,

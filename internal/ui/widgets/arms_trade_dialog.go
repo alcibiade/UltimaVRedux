@@ -276,7 +276,7 @@ func (d *ArmsTradeDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: armsTradeLineSpacing,
 		MaxLines: 1, MaxChars: armsTradeMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{

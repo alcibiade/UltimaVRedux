@@ -95,14 +95,14 @@ func TestCharacterSelectionDialogLayoutStaysWithinPlacementAndPreservesInspectio
 	setResponsiveDialogTestResolution(t, 320, 200)
 	dialog := newCharacterSelectionTestDialog(characterSelectionTestOptions(), func(int) {})
 	dialog.HandleNumber(2)
-	dialog.shell.ensureLayout(320, 200, len(dialog.GetOptions()))
+	dialog.shell.ensureLayout(320, 200, len(dialog.GetOptions()), dialog.footer())
 	workspace := sprites.GetRectangleFromPercents(*createMockPlacement())
 	panel := dialog.shell.layout.panelRect
 	assert.True(t, panel.In(*workspace))
 	assert.Equal(t, 1, dialog.GetCurrentSelection())
 
 	setResponsiveDialogTestResolution(t, 1280, 720)
-	dialog.shell.ensureLayout(1280, 720, len(dialog.GetOptions()))
+	dialog.shell.ensureLayout(1280, 720, len(dialog.GetOptions()), dialog.footer())
 	assert.Equal(t, 1, dialog.GetCurrentSelection())
 	assert.NotEqual(t, panel, dialog.shell.layout.panelRect)
 }

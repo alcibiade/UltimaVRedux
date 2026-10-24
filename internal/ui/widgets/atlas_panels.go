@@ -80,7 +80,7 @@ func (d *AtlasDialog) drawOverviewRow(screen *ebiten.Image, rect image.Rectangle
 //nolint:mnd // Half a standard margin separates measured category cells.
 func (d *AtlasDialog) layoutCategoryTabs(margin int) int {
 	padding := margin / 2
-	left, top := margin, margin+d.rowHeight
+	left, top := margin, margin+int(math.Ceil(d.header.GetTotalHeightForLines(1)))+2
 	for choice := journal.AtlasAllPlaces; choice < journal.AtlasPlaceFilterCount; choice++ {
 		width, _ := d.font.MeasureString(choice.String())
 		cellWidth := int(math.Ceil(width)) + margin

@@ -6,7 +6,6 @@ import (
 	"math"
 	"strings"
 	"testing"
-	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -67,7 +66,7 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 			views[3].Newest = true
 			views[0].Problem = strings.Repeat("Damaged data. ", 30)
 			b := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), views, SaveSlotBrowserConfig{
-				Title: "Select Save Game", PrimaryActionLabel: "Import", FontSize: FontSizeBody,
+				Title: "Select Save Game", PrimaryActionLabel: "Import",
 				NewestLegend: "* Newest save for this playthrough",
 			})
 			require.Equal(t, 8, len(b.rowRects))
@@ -82,7 +81,7 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 			}
 			require.Equal(t, b.rowRects[0].Min.Y-listFrame.Min.Y, listFrame.Max.Y-b.rowRects[7].Max.Y)
 			require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, b.titleOutput.Font.TextFace.Size)
-			require.Same(t, b.titleOutput.Font, b.detailHeadingOutput.Font)
+			require.Same(t, b.bodyFont, b.detailHeadingOutput.Font, "DETAILS is a section label at body size")
 			require.Less(t, b.detailHeadingRect.Max.Y, b.detailTextRect.Min.Y)
 			require.LessOrEqual(t, b.footerOutput.GetTotalHeightForLines(b.footerOutput.GetPanelContentLineCount()), float64(b.footerTextRect.Dy()))
 			for _, line := range strings.Split(b.footerOutput.GetOutputStr(false), "\n") {
@@ -92,8 +91,6 @@ func TestSaveSlotBrowserConnectedGeometryAtSupportedSizes(t *testing.T) {
 			require.NotContains(t, b.footerOutput.GetOutputStr(false), "Page Up")
 			require.Contains(t, b.footerOutput.GetOutputStr(false), "[Space] Details")
 			require.Contains(t, strings.Join(strings.Fields(b.detailOutput.GetOutputStr(false)), " "), strings.TrimSpace(views[0].Description))
-			t.Logf("secondary descriptions visible: %v; row height %d", b.showDescriptions, b.rowRects[0].Dy())
-			require.True(t, b.showDescriptions, "measured eight-row layout fits at supported sizes")
 			// Geometry covers every preset; pixels cover fractional and dense scaling.
 			if size.X != 1366 && size.X != 2560 {
 				return
@@ -162,7 +159,7 @@ func TestSaveSlotBrowserSelectedFolderReviewFitsSupportedSizes(t *testing.T) {
 				Details: []SaveSlotDetail{{Label: "Folder", Value: path}},
 			}}, SaveSlotBrowserConfig{
 				Title: "Choose Game Files", PrimaryActionLabel: "Use Selected", CancelActionLabel: "Back",
-				FontSize: FontSizeBody, ReviewLabel: "Selected Folder",
+				ReviewLabel: "Selected Folder",
 			})
 
 			require.True(t, browser.reviewFrameRect.In(browser.detailRect))
@@ -188,38 +185,14 @@ func TestSaveSlotBrowserCompactFallbackKeepsFullDescriptionPaged(t *testing.T) {
 	description := strings.Repeat("Checkpoint details remain available. ", 20)
 	b := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), []SaveSlotView{{
 		ID: "slot-01", Label: "Slot 1", Description: description,
-	}}, SaveSlotBrowserConfig{FontSize: FontSizeBody, Placement: sprites.PercentBasedPlacement{
+	}}, SaveSlotBrowserConfig{Placement: sprites.PercentBasedPlacement{
 		StartPercentX: 0.1, EndPercentX: 0.9, StartPercentY: 0.25, EndPercentY: 0.75,
 	}})
-	require.False(t, b.showDescriptions)
 	require.Contains(t, strings.Join(strings.Fields(b.detailOutput.GetOutputStr(false)), " "), strings.TrimSpace(description))
 	require.Greater(t, b.detailPageCount(), 1)
 	for page := range b.detailPageCount() {
 		require.Equal(t, page, b.detailPage)
 		b.moveDetailPage(1)
-	}
-}
-
-func TestSaveSlotBrowserDescriptionPreviewRetainsPrefix(t *testing.T) {
-	// Non-repeating text distinguishes the preview's prefix from a wrapped tail.
-	description := "Before Blackthorn: carry keys, rescue friends, then prepare for Doom. Final note."
-	for _, size := range config.SupportedWindowResolutions() {
-		t.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(t *testing.T) {
-			setResponsiveDialogTestResolution(t, size.X, size.Y)
-			view := SaveSlotView{ID: "slot-01", Label: "Slot 1", RowSummary: "Avatar", HasSave: true, Description: description}
-			b := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), []SaveSlotView{view}, SaveSlotBrowserConfig{})
-			require.True(t, b.showDescriptions)
-			textWidth := b.rowRects[0].Dx() - saveSlotBrowserRowHorizontalPadding*saveSlotBrowserCenterDivisor
-			capacity := b.descriptionOutput.Font.CharsForWidth(textWidth)
-			expected := truncateRunes(description, capacity)
-			require.Greater(t, utf8.RuneCountInString(expected), modalDialogTitleMaxChars)
-			screen := ebiten.NewImageWithOptions(b.rowRects[0], nil)
-			b.drawSlotRow(screen, b.rowRects[0], view, false)
-			screen.Dispose()
-			require.Equal(t, expected, strings.TrimSpace(b.descriptionOutput.GetOutputStr(false)))
-			require.True(t, strings.HasPrefix(b.descriptionOutput.GetOutputStr(false), "Before Blackthorn:"))
-			require.Equal(t, 1, b.descriptionOutput.GetPanelContentLineCount())
-		})
 	}
 }
 

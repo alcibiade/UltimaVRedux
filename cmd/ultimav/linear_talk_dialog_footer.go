@@ -14,23 +14,19 @@ const (
 	excerptNoticeDurationMs = 3000
 )
 
-// Add the footer beneath the existing continuous transcript. Keep its height
-// fixed across input, key waits, history and capture confirmation so inline
-// typing never jumps when a hint changes. Small windows shift the whole card
-// upward rather than reducing the transcript to make room for controls.
+// Take the footer from the bottom of the card, beneath the continuous transcript.
+// Keep its height fixed across input, key waits, history and capture
+// confirmation so inline typing never jumps when a hint changes. The card stays
+// inside the map frame, so the transcript yields the footer's rows.
 func (d *LinearTalkDialog) layoutWithFooter(bounds image.Rectangle) linearTalkDialogLayout {
 	layout := calculateLinearTalkDialogLayout(bounds)
 	padding := layout.pixelUnit * talkFooterPaddingUnits
 	height := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(talkFooterLines))) + padding*2 + layout.pixelUnit
-	layout.footerDividerY = layout.frameRect.Max.Y - layout.pixelUnit
-	layout.frameRect.Max.Y += height
-	layout.footerRect = image.Rect(layout.continuousTranscriptRect.Min.X, layout.footerDividerY+layout.pixelUnit+padding,
+	transcriptBottom := layout.frameRect.Max.Y - height
+	layout.continuousTranscriptRect.Max.Y = transcriptBottom - layout.pixelUnit*linearTalkContentVerticalPaddingUnits
+	layout.footerDividerY = transcriptBottom - layout.pixelUnit
+	layout.footerRect = image.Rect(layout.continuousTranscriptRect.Min.X, transcriptBottom+padding,
 		layout.continuousTranscriptRect.Max.X, layout.frameRect.Max.Y-padding-layout.pixelUnit)
-	shift := image.Pt(0, min(0, bounds.Max.Y-layout.pixelUnit-layout.frameRect.Max.Y))
-	layout.frameRect = layout.frameRect.Add(shift)
-	layout.continuousTranscriptRect = layout.continuousTranscriptRect.Add(shift)
-	layout.footerRect = layout.footerRect.Add(shift)
-	layout.footerDividerY += shift.Y
 
 	return layout
 }

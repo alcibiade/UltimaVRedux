@@ -360,7 +360,7 @@ func newShipMerchantModalFrame(placement sprites.PercentBasedPlacement) *merchan
 
 func newShipMerchantModalOutputs(frame *merchantModalFrame) (*text.Output, *text.Output, *text.Output) {
 	_, headerOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: shipModalLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: shipModalLineSpacing,
 		MaxLines: 1, MaxChars: shipModalMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{

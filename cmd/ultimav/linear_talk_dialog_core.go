@@ -25,9 +25,9 @@ var _ widgets.Widget = (*LinearTalkDialog)(nil)
 var _ game_state.TalkDialog = (*LinearTalkDialog)(nil)
 
 const (
-	// Talk dialog uses FontSizeCompact (20pt) with 1.3x line spacing (26pt) for readability
-	talkFontSize              = widgets.FontSizeCompact // 20pt
-	talkLineSpacingMultiplier = 1.3                     // 26/20 = 1.3 for extra readability
+	// Talk uses the standard body size with extra line spacing for readability.
+	talkFontSize              = widgets.FontSizeBody
+	talkLineSpacingMultiplier = 1.3
 	talkContinuousMaxLines    = 14
 	talkMaxCharsInput         = 45
 	talkHistoryMaxEntries     = 256
@@ -36,21 +36,18 @@ const (
 )
 
 const (
-	talkPercentOffEdge          = 0.1
+	talkPercentOffEdge          = 0.02
+	talkCardGapPercentY         = 0.015
 	percentTextIndentFromBorder = 0.017
 )
 
 const (
 	borderStartPercentX = talkPercentOffEdge
 	borderEndPercentX   = .75 + .01 - talkPercentOffEdge
-	borderStartPercentY = .54
-	borderEndPercentY   = 0.93
-)
-
-const (
-	talkOutputBorderEndPercentY  = 0.865 // Where primary/output border ends
-	talkInputBorderStartPercentY = 0.845 // Where input border starts (2% overlap for blending)
-	talkInputBorderEndPercentY   = borderEndPercentY
+	// Start below the avatar and the tile beneath it, so the speaker stays visible.
+	borderStartPercentY = float64(yCenter+2)/yTilesVisibleOnGameScreen + talkCardGapPercentY
+	// End just inside the map frame, whose inner edge is about 98% down the screen.
+	borderEndPercentY = 0.98 - talkCardGapPercentY
 )
 
 const (

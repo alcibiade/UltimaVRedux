@@ -262,7 +262,7 @@ func (d *TavernActionDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
 		MaxLines: 1, MaxChars: tavernActionMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{

@@ -201,7 +201,7 @@ func (d *ReagentPurchaseDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: reagentPurchaseLineSpacing,
 		MaxLines: 1, MaxChars: reagentPurchaseMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{

@@ -116,7 +116,7 @@ func localDungeonViewBounds(border *Border) image.Rectangle {
 }
 
 func (d *DungeonViewDialog) prepareOutputs(screenWidth, width int) {
-	d.titleOutput = newDungeonViewOutput(screenWidth)
+	d.titleOutput = newDungeonViewOutputSized(screenWidth, FontSizeTitle)
 	d.legendOutput = newDungeonViewOutput(screenWidth)
 	// Ordinary edge labels have their own measured typography. Four-character
 	// axis tags must fit eight adjacent columns without borrowing neighboring cells.

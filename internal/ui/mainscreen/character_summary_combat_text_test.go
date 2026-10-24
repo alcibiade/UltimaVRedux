@@ -179,7 +179,7 @@ func requireCharacterCombatStatusInkFits(t *testing.T, row *characterTextRow, wi
 
 func TestCharacterSummaryCombatStatusFitTracksBoundsAndPreservesMP(t *testing.T) {
 	summary := &CharacterSummary{}
-	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeXLarge, characterOutputMaxLines)
+	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeBody, characterOutputMaxLines)
 	bounds := image.Rect(0, 0, 282, 328)
 	summary.SetBounds(bounds)
 	character := summaryBaselineParty().GetCharacter(0)
@@ -227,7 +227,7 @@ func TestCharacterSummaryCombatStatusFitTracksBoundsAndPreservesMP(t *testing.T)
 
 func TestCharacterSummaryCombatTextCacheIncludesEffectiveLabel(t *testing.T) {
 	summary := &CharacterSummary{}
-	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeXLarge, characterOutputMaxLines)
+	summary.ultimaFont, summary.output = newMainScreenOutput(1280, widgets.FontSizeBody, characterOutputMaxLines)
 	character := summaryBaselineParty().GetCharacter(0)
 	row := summary.prepareCharacterText(0, character, color.White)
 	builds := row.builds

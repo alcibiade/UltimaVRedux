@@ -24,11 +24,11 @@ func TestCharacterSelectionDialogResizePreservesSelection(t *testing.T) {
 	dialog.HandleKeyDown()
 	selected := dialog.GetCurrentSelection()
 	oldFont := dialog.shell.bodyFont
-	dialog.shell.ensureLayout(1280, 720, len(dialog.GetOptions()))
+	dialog.shell.ensureLayout(1280, 720, len(dialog.GetOptions()), dialog.footer())
 	oldPanelBounds := dialog.shell.layout.panelRect
 
 	setResponsiveDialogTestResolution(t, 1920, 1080)
-	dialog.shell.ensureLayout(1920, 1080, len(dialog.GetOptions()))
+	dialog.shell.ensureLayout(1920, 1080, len(dialog.GetOptions()), dialog.footer())
 
 	assert.Equal(t, selected, dialog.GetCurrentSelection())
 	assert.NotSame(t, oldFont, dialog.shell.bodyFont)
@@ -48,7 +48,7 @@ func TestNewOrderDialogResizePreservesSecondSelectionStage(t *testing.T) {
 	require.Equal(t, CharacterSelectionLocked, newOrderOptionByIndex(t, dialog.GetOptions(), firstSelection).State)
 
 	setResponsiveDialogTestResolution(t, 1920, 1080)
-	dialog.shell.ensureLayout(1920, 1080, len(dialog.GetOptions()))
+	dialog.shell.ensureLayout(1920, 1080, len(dialog.GetOptions()), dialog.footer())
 
 	assert.Equal(t, Stage2SelectSecond, dialog.GetStage())
 	assert.Equal(t, firstSelection, dialog.GetFirstSelectedIndex())
@@ -68,7 +68,7 @@ func TestCharacterRosterDialogUsesLogicalScreenBoundsAtSupportedResolutions(t *t
 	placement := *createMockPlacement()
 	dialog := newCharacterSelectionTestDialog(characterSelectionTestOptions(), func(int) {})
 	for _, resolution := range resolutions {
-		dialog.shell.ensureLayout(resolution.X, resolution.Y, len(dialog.GetOptions()))
+		dialog.shell.ensureLayout(resolution.X, resolution.Y, len(dialog.GetOptions()), dialog.footer())
 		workspace := image.Rect(
 			int(float64(resolution.X)*placement.StartPercentX),
 			int(float64(resolution.Y)*placement.StartPercentY),
@@ -85,7 +85,7 @@ func TestCharacterRosterDialogUsesLogicalScreenBoundsAtSupportedResolutions(t *t
 func TestCharacterRosterDialogUsesCompactTopAlignedLedgerGeometry(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
 	dialog := newCharacterSelectionTestDialog(characterSelectionTestOptions(), func(int) {})
-	dialog.shell.ensureLayout(1280, 720, len(dialog.GetOptions()))
+	dialog.shell.ensureLayout(1280, 720, len(dialog.GetOptions()), dialog.footer())
 	layout := dialog.shell.layout
 	workspace := image.Rect(0, 0, int(1280*createMockPlacement().EndPercentX), 720)
 
@@ -110,7 +110,7 @@ func TestCharacterRosterDialogUsesCompactTopAlignedLedgerGeometry(t *testing.T) 
 	fontHeight := int(math.Ceil(dialog.shell.rowOutput.GetFontHeight()))
 	assert.LessOrEqual(t, layout.rowRects[0].Dy()-fontHeight, fontHeight/2+layout.pixelUnit)
 	assert.Equal(t, GetScaledFont(FontSizeCompact).TextFace.Size, dialog.shell.bodyFont.TextFace.Size)
-	assert.Equal(t, GetScaledFont(FontSizeHUD).TextFace.Size, dialog.shell.footerOutput.Font.TextFace.Size)
+	assert.Equal(t, GetScaledFont(FontSizeBody).TextFace.Size, dialog.shell.footerOutput.Font.TextFace.Size)
 }
 
 func TestSpellCastingDialogResizePreservesWorkflowState(t *testing.T) {

@@ -296,7 +296,8 @@ func (d *AtlasDialog) ensureLayout() {
 		LineSpacingMultiplier: 1.15, MaxLines: journal.MaxAtlasNoteDescriptionRunes + 32, MaxChars: 128}
 	d.font, d.details = GetScaledFontWithOutput(config)
 	_, d.footer = GetScaledFontWithOutput(config)
-	_, d.header = GetScaledFontWithOutput(config)
+	_, d.header = GetScaledFontWithOutput(FontConfig{Size: FontSizeTitle, LineSpacing: 0,
+		LineSpacingMultiplier: config.LineSpacingMultiplier, MaxLines: 1, MaxChars: config.MaxChars})
 	config.MaxLines = 4
 	_, d.row = GetScaledFontWithOutput(config)
 	_, d.label = GetScaledFontWithOutput(config)

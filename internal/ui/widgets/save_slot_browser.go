@@ -109,11 +109,9 @@ type SaveSlotBrowser struct {
 	detailOutput        *text.Output
 	footerOutput        *text.Output
 	bodyFont            *text.UltimaFont
-	descriptionOutput   *text.Output
 	detailHeadingOutput *text.Output
 	reviewHeadingOutput *text.Output
 	reviewOutput        *text.Output
-	showDescriptions    bool
 	titleY              int
 	detailHeadingRect   image.Rectangle
 	detailHeadingY      int
@@ -294,17 +292,12 @@ func (b *SaveSlotBrowser) ensureLayout() {
 		MaxLines:              1,
 		MaxChars:              saveSlotBrowserMinimumTextChars,
 	})
-	b.detailHeadingOutput = text.NewOutput(b.titleOutput.Font, b.titleOutput.GetLineSpacing(), 1, modalDialogTitleMaxChars)
+	b.detailHeadingOutput = text.NewOutput(b.bodyFont, b.rowOutput.GetLineSpacing(), 1, modalDialogTitleMaxChars)
 	b.detailHeadingOutput.AppendLine().Text("DETAILS", DialogHeaderColor).Done()
 	if b.reviewLabel != "" {
-		b.reviewHeadingOutput = text.NewOutput(
-			b.titleOutput.Font, b.titleOutput.GetLineSpacing(), 1, modalDialogTitleMaxChars,
-		)
+		b.reviewHeadingOutput = text.NewOutput(b.bodyFont, b.rowOutput.GetLineSpacing(), 1, modalDialogTitleMaxChars)
 		b.reviewHeadingOutput.AppendLine().Text(b.reviewLabel, DialogHeaderColor).Done()
 	}
-	_, b.descriptionOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeSmall, LineSpacing: 0, LineSpacingMultiplier: 0, MaxLines: 1, MaxChars: modalDialogTitleMaxChars,
-	})
 
 	b.calculateLayout()
 	b.populateDetailOutput()
@@ -362,8 +355,6 @@ func (b *SaveSlotBrowser) calculateLayout() {
 	}
 
 	b.calculateRowRectangles()
-	b.showDescriptions = float64(b.rowRects[0].Dy()) >= b.rowOutput.GetFontHeight()+
-		b.descriptionOutput.GetFontHeight()+float64(b.pixelUnit()*saveSlotBrowserCenterDivisor)
 
 	b.sizeOutputsToLayout(footerLines)
 }
@@ -412,7 +403,6 @@ func (b *SaveSlotBrowser) layoutReviewFrame(inset, padding int) {
 func (b *SaveSlotBrowser) sizeOutputsToLayout(footerLines int) {
 	rowTextWidth := max(1, b.listRect.Dx()-saveSlotBrowserRowHorizontalPadding*saveSlotBrowserCenterDivisor)
 	b.rowOutput.SetMaxCharsPerLine(b.bodyFont.CharsForWidth(rowTextWidth))
-	b.descriptionOutput.SetMaxCharsPerLine(b.descriptionOutput.Font.CharsForWidth(rowTextWidth))
 	b.titleOutput.SetMaxCharsPerLine(b.titleOutput.Font.CharsForWidth(max(1, b.titleRect.Dx())))
 
 	detailTextWidth := max(1, b.detailTextRect.Dx())
@@ -534,9 +524,6 @@ func (b *SaveSlotBrowser) drawSlotRow(
 	b.rowOutput.Reset()
 	b.rowOutput.AppendLine().Text(rowText, rowColor).Done()
 	textHeight := b.rowOutput.GetFontHeight()
-	if b.showDescriptions {
-		textHeight += b.descriptionOutput.GetFontHeight() + float64(b.pixelUnit())
-	}
 	rowY := rowRect.Min.Y + max(0, (rowRect.Dy()-int(math.Ceil(textHeight)))/saveSlotBrowserCenterDivisor)
 	b.rowOutput.DrawPanelContent(
 		screen,
@@ -544,18 +531,6 @@ func (b *SaveSlotBrowser) drawSlotRow(
 		textWidth,
 		etext.AlignStart,
 	)
-	if b.showDescriptions && view.Description != "" {
-		descriptionColor := DialogItemQuantityColor
-		if selected {
-			descriptionColor = DialogSelectedText
-		}
-		b.descriptionOutput.Reset()
-		b.descriptionOutput.AppendLine().Text(truncateRunes(view.Description,
-			b.descriptionOutput.Font.CharsForWidth(textWidth)), descriptionColor).Done()
-		b.descriptionOutput.DrawPanelContent(screen,
-			image.Pt(rowRect.Min.X+saveSlotBrowserRowHorizontalPadding,
-				rowY+int(math.Ceil(b.rowOutput.GetFontHeight()))+b.pixelUnit()), textWidth, etext.AlignStart)
-	}
 }
 
 func (b *SaveSlotBrowser) drawScrollCues(screen *ebiten.Image) {
@@ -750,6 +725,9 @@ func (b *SaveSlotBrowser) populateSelectedDetailOutput(view SaveSlotView) {
 		DialogHeaderColor,
 		remaining,
 	)
+	if remaining > 0 && view.Description != "" {
+		remaining -= b.appendDetailText(view.Description, DialogValueColor, remaining)
+	}
 	remaining = b.appendDetailStatus(view, remaining)
 	if remaining > 0 && b.notice != "" {
 		remaining -= b.appendDetailText(
@@ -759,9 +737,6 @@ func (b *SaveSlotBrowser) populateSelectedDetailOutput(view SaveSlotView) {
 		)
 	}
 	remaining = b.appendDetailRows(view, remaining)
-	if view.Description != "" {
-		remaining -= b.appendDetailPair("Description", view.Description, DialogValueColor, remaining)
-	}
 	if remaining > 0 && view.Problem != "" {
 		b.appendDetailText(
 			"Problem: "+view.Problem,

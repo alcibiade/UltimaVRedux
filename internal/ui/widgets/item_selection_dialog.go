@@ -133,6 +133,7 @@ type ItemSelectionDialog struct {
 	outerBorder  *Border
 	font         *text.UltimaFont
 	titleOutput  *text.Output
+	itemOutput   *text.Output
 	tabOutput    *text.Output
 	rowOutput    *text.Output
 	detailOutput *text.Output
@@ -455,16 +456,18 @@ func (d *ItemSelectionDialog) ensureLayout() {
 
 func (d *ItemSelectionDialog) rebuildOutputs() {
 	config := FontConfig{
-		Size:                  FontSizeBody,
+		Size:                  FontSizeTitle,
 		LineSpacing:           0,
 		LineSpacingMultiplier: itemDialogLineSpacingMultiplier,
-		MaxLines:              itemDialogTitleMaxLines,
+		MaxLines:              1,
 		MaxChars:              itemDialogMinimumTextChars,
 	}
-	d.font, d.titleOutput = GetScaledFontWithOutput(config)
-	config.MaxLines = 1
-	_, d.tabOutput = GetScaledFontWithOutput(config)
+	_, d.titleOutput = GetScaledFontWithOutput(config)
+	config.Size = FontSizeBody
+	d.font, d.tabOutput = GetScaledFontWithOutput(config)
 	_, d.rowOutput = GetScaledFontWithOutput(config)
+	config.MaxLines = itemDialogTitleMaxLines
+	_, d.itemOutput = GetScaledFontWithOutput(config)
 	config.MaxLines = itemDialogDetailMaxLines
 	_, d.detailOutput = GetScaledFontWithOutput(config)
 	config.MaxLines = 1
@@ -478,10 +481,11 @@ func (d *ItemSelectionDialog) calculateLayout() {
 	padding := max(itemDialogMinimumPadding, min(interior.Dx(), interior.Dy())/itemDialogPaddingDivisor)
 	content := insetRectangle(interior, padding)
 	lineHeight := max(1, int(math.Ceil(d.rowOutput.GetLineSpacing())))
+	titleHeight := max(1, int(math.Ceil(d.titleOutput.GetLineSpacing())))
 	tabRows := d.tabRowCount(content.Dx(), padding)
 	headerLines := max(itemDialogHeaderMinimumLines, tabRows+1)
 	headerHeight := min(
-		max(1, lineHeight*headerLines+padding*3),
+		max(1, titleHeight+lineHeight*(headerLines-1)+padding*3),
 		max(1, content.Dy()/itemDialogVerticalRegionDivisor),
 	)
 	footerHeight := min(
@@ -506,7 +510,7 @@ func (d *ItemSelectionDialog) calculateLayout() {
 		d.layout.headerRect.Min.X+padding,
 		d.layout.headerRect.Min.Y+padding,
 		d.layout.headerRect.Max.X-padding,
-		min(d.layout.headerRect.Max.Y, d.layout.headerRect.Min.Y+padding+lineHeight),
+		min(d.layout.headerRect.Max.Y, d.layout.headerRect.Min.Y+padding+titleHeight),
 	)
 	d.layout.tabsRect = image.Rect(
 		d.layout.headerRect.Min.X+padding,
@@ -519,7 +523,7 @@ func (d *ItemSelectionDialog) calculateLayout() {
 	d.calculateTabRects(tabRows)
 	d.calculateDetailRects(lineHeight)
 
-	d.titleOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(d.layout.titleRect.Dx())))
+	d.titleOutput.SetMaxCharsPerLine(max(1, d.titleOutput.Font.CharsForWidth(d.layout.titleRect.Dx())))
 	if len(d.layout.tabRects) > 0 {
 		d.tabOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(d.layout.tabRects[0].Dx())))
 	}
@@ -624,7 +628,7 @@ func (d *ItemSelectionDialog) drawHeader(screen *ebiten.Image) {
 			break
 		}
 	}
-	d.titleOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(d.layout.titleRect.Dx())))
+	d.titleOutput.SetMaxCharsPerLine(max(1, d.titleOutput.Font.CharsForWidth(d.layout.titleRect.Dx())))
 	d.titleOutput.Reset()
 	d.titleOutput.AppendLine().
 		WithAlignment(etext.AlignCenter).
@@ -788,14 +792,14 @@ func (d *ItemSelectionDialog) drawDetailHeader(screen *ebiten.Image, item game_s
 	}
 
 	textRect := image.Rect(textStart, header.Min.Y, header.Max.X, header.Max.Y)
-	d.titleOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(max(1, textRect.Dx()))))
-	d.titleOutput.Reset()
-	d.titleOutput.AppendLine().Text(item.FullName, DialogHeaderColor).WordWrap().Done()
-	d.titleOutput.AppendLine().
+	d.itemOutput.SetMaxCharsPerLine(max(1, d.font.CharsForWidth(max(1, textRect.Dx()))))
+	d.itemOutput.Reset()
+	d.itemOutput.AppendLine().Text(item.FullName, DialogHeaderColor).WordWrap().Done()
+	d.itemOutput.AppendLine().
 		Text("Qty: ", DialogLabelColor).
 		Textf("%d", DialogValueColor, item.Quantity).
 		Done()
-	d.titleOutput.DrawPanelContent(screen, textRect.Min, max(1, textRect.Dx()), etext.AlignStart)
+	d.itemOutput.DrawPanelContent(screen, textRect.Min, max(1, textRect.Dx()), etext.AlignStart)
 }
 
 func (d *ItemSelectionDialog) drawFooter(screen *ebiten.Image) {

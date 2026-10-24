@@ -17,23 +17,22 @@ import (
 )
 
 const (
-	merchantShellStartPercentX       = 0.10
-	merchantShellEndPercentX         = 0.90
-	merchantShellStartPercentY       = 0.10
-	merchantShellEndPercentY         = 0.90
-	merchantShellHeaderRatio         = 0.12
-	merchantShellFooterRatio         = 0.10
-	merchantShellMerchantPaneRatio   = 0.33
-	merchantShellPortraitRatio       = 0.25
-	merchantShellPaddingDivisor      = 64
-	merchantShellMinimumPadding      = 4
-	merchantShellTextInsetUnits      = 2
-	merchantShellCenterDivisor       = 2
-	merchantShellLineSpacing         = 1.15
-	merchantShellMinimumTextChars    = 8
-	merchantShellHeaderReservedLines = 2
-	merchantShellFooterMaximumLines  = 2
-	merchantShellSpeechHintLines     = 2
+	merchantShellStartPercentX      = 0.10
+	merchantShellEndPercentX        = 0.90
+	merchantShellStartPercentY      = 0.10
+	merchantShellEndPercentY        = 0.90
+	merchantShellHeaderRatio        = 0.12
+	merchantShellFooterRatio        = 0.10
+	merchantShellMerchantPaneRatio  = 0.33
+	merchantShellPortraitRatio      = 0.25
+	merchantShellPaddingDivisor     = 64
+	merchantShellMinimumPadding     = 4
+	merchantShellTextInsetUnits     = 2
+	merchantShellCenterDivisor      = 2
+	merchantShellLineSpacing        = 1.15
+	merchantShellMinimumTextChars   = 8
+	merchantShellFooterMaximumLines = 2
+	merchantShellSpeechHintLines    = 2
 )
 
 // MerchantDialogHeaderView is finalized display data for the common merchant header.
@@ -93,6 +92,7 @@ type MerchantDialogShell struct {
 	exchangeText   image.Rectangle
 	footerText     image.Rectangle
 
+	titleOutput      *text.Output
 	headerOutput     *text.Output
 	ownerOutput      *text.Output
 	exchangeOutput   *text.Output
@@ -122,6 +122,7 @@ func NewMerchantDialogShell(config MerchantDialogShellConfig) *MerchantDialogShe
 		portraitText:     emptyBounds,
 		exchangeText:     emptyBounds,
 		footerText:       emptyBounds,
+		titleOutput:      nil,
 		headerOutput:     nil,
 		ownerOutput:      nil,
 		exchangeOutput:   nil,
@@ -216,11 +217,18 @@ func (s *MerchantDialogShell) ensureLayout() {
 }
 
 func (s *MerchantDialogShell) rebuildOutputs() {
+	_, s.titleOutput = GetScaledFontWithOutput(FontConfig{
+		Size:                  FontSizeTitle,
+		LineSpacing:           0,
+		LineSpacingMultiplier: merchantShellLineSpacing,
+		MaxLines:              1,
+		MaxChars:              merchantShellMinimumTextChars,
+	})
 	_, s.headerOutput = GetScaledFontWithOutput(FontConfig{
 		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: merchantShellLineSpacing,
-		MaxLines:              merchantShellHeaderReservedLines,
+		MaxLines:              1,
 		MaxChars:              merchantShellMinimumTextChars,
 	})
 	_, s.ownerOutput = GetScaledFontWithOutput(FontConfig{
@@ -254,7 +262,7 @@ func (s *MerchantDialogShell) calculateLayout() {
 	content := insetRectangle(interior, padding)
 	gap := padding
 	headerHeight := max(
-		int(math.Ceil(s.headerOutput.GetTotalHeightForLines(merchantShellHeaderReservedLines)))+padding,
+		int(math.Ceil(s.titleOutput.GetTotalHeightForLines(1)+s.headerOutput.GetTotalHeightForLines(1)))+padding,
 		int(float64(content.Dy())*merchantShellHeaderRatio),
 	)
 	footerHeight := max(
@@ -319,6 +327,10 @@ func (s *MerchantDialogShell) calculateTextLayout() {
 }
 
 func (s *MerchantDialogShell) configureOutputCapacity() {
+	s.titleOutput.SetMaxCharsPerLine(max(
+		merchantShellMinimumTextChars,
+		s.titleOutput.Font.CharsForWidth(max(1, s.headerText.Dx())),
+	))
 	s.headerOutput.SetMaxCharsPerLine(max(
 		merchantShellMinimumTextChars,
 		s.headerOutput.Font.CharsForWidth(max(1, s.headerText.Dx())),
@@ -347,7 +359,8 @@ func (s *MerchantDialogShell) configureOutputCapacity() {
 }
 
 func (s *MerchantDialogShell) populateOutputs() {
-	if s.headerOutput == nil || s.ownerOutput == nil || s.exchangeOutput == nil || s.footerOutput == nil {
+	if s.titleOutput == nil || s.headerOutput == nil || s.ownerOutput == nil || s.exchangeOutput == nil ||
+		s.footerOutput == nil {
 		return
 	}
 	s.populateHeaderOutput()
@@ -357,10 +370,12 @@ func (s *MerchantDialogShell) populateOutputs() {
 }
 
 func (s *MerchantDialogShell) populateHeaderOutput() {
+	s.titleOutput.Reset()
+	titleChars := s.titleOutput.Font.CharsForWidth(max(1, s.headerText.Dx()))
+	shop, _ := fitWrappedText(s.header.ShopIdentity, s.titleOutput.Font, s.titleOutput.GetLineSpacing(), titleChars, 1)
+	s.titleOutput.AppendLine().WithAlignment(etext.AlignCenter).White(shop).Done()
 	s.headerOutput.Reset()
 	maxChars := s.headerOutput.Font.CharsForWidth(max(1, s.headerText.Dx()))
-	shop, _ := fitWrappedText(s.header.ShopIdentity, s.headerOutput.Font, s.headerOutput.GetLineSpacing(), maxChars, 1)
-	s.headerOutput.AppendLine().WithAlignment(etext.AlignCenter).White(shop).Done()
 	details, _ := fitWrappedText(
 		merchantHeaderDetails(s.header),
 		s.headerOutput.Font,
@@ -532,10 +547,12 @@ func appendControlGuidance(output *text.Output, guidance string, width int) {
 }
 
 func (s *MerchantDialogShell) drawHeader(screen *ebiten.Image) {
-	lineCount := s.headerOutput.GetPanelContentLineCount()
-	textHeight := int(math.Ceil(s.headerOutput.GetTotalHeightForLines(lineCount)))
+	titleHeight := s.titleOutput.GetTotalHeightForLines(1)
+	textHeight := int(math.Ceil(titleHeight + s.headerOutput.GetTotalHeightForLines(1)))
 	startY := s.headerText.Min.Y + max(0, (s.headerText.Dy()-textHeight)/merchantShellCenterDivisor)
-	s.headerOutput.DrawPanelContent(screen, image.Pt(s.headerText.Min.X, startY), s.headerText.Dx(), etext.AlignCenter)
+	s.titleOutput.DrawPanelContent(screen, image.Pt(s.headerText.Min.X, startY), s.headerText.Dx(), etext.AlignCenter)
+	s.headerOutput.DrawPanelContent(screen, image.Pt(s.headerText.Min.X, startY+int(math.Ceil(titleHeight))),
+		s.headerText.Dx(), etext.AlignCenter)
 }
 
 func (s *MerchantDialogShell) drawMerchantSprite(screen *ebiten.Image) {

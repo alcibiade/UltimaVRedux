@@ -326,8 +326,9 @@ func TestItemSelectionDialogIgnoresNumberShortcutsAndUsesResponsiveMainFont(t *t
 	pressItemDialogKey(dialog, keyboard, ebiten.Key1)
 	assert.Zero(t, dialog.GetSelectedCategory(), "number keys do not select categories")
 	require.Equal(t, FontSizeBody, dialog.GetFontSize())
+	require.Greater(t, dialog.titleOutput.Font.TextFace.Size, smallSize, "the window title uses the title size")
 	for _, size := range []float64{
-		dialog.titleOutput.Font.TextFace.Size,
+		dialog.itemOutput.Font.TextFace.Size,
 		dialog.tabOutput.Font.TextFace.Size,
 		dialog.rowOutput.Font.TextFace.Size,
 		dialog.detailOutput.Font.TextFace.Size,

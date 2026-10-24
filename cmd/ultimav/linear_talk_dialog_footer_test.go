@@ -30,7 +30,11 @@ func TestTalkFooterIsConnectedBelowUnchangedInlineInput(t *testing.T) {
 	layout := dialog.layoutWithFooter(screen.Bounds())
 	before := dialog.Output.GetOutputStr(true)
 	dialog.Draw(screen)
-	require.Equal(t, base.continuousTranscriptRect.Size(), layout.continuousTranscriptRect.Size(), "footer must not consume transcript space")
+	require.Equal(t, base.frameRect, layout.frameRect, "the footer comes out of the card, not below it")
+	require.GreaterOrEqual(t, layout.frameRect.Min.Y, 720*(int(yCenter)+2)/yTilesVisibleOnGameScreen,
+		"the avatar and the tile beneath it stay visible")
+	_, aperture := surfaceMapBorderGeometry()
+	require.Less(t, layout.frameRect.Max.Y, aperture.Max.Y, "the card stays inside the map frame")
 	inputRect := dialog.continuousInputRect(layout)
 	require.Equal(t, layout.continuousTranscriptRect.Max.Y, inputRect.Max.Y)
 	require.Less(t, inputRect.Max.Y, layout.footerDividerY)
@@ -60,7 +64,7 @@ func TestTalkFooterStatesFitAndDoNotMoveInlineInput(t *testing.T) {
 		bounds := image.Rect(0, 0, resolution.X, resolution.Y)
 		layout := dialog.layoutWithFooter(bounds)
 		require.True(t, layout.frameRect.In(bounds))
-		require.Equal(t, calculateLinearTalkDialogLayout(bounds).continuousTranscriptRect.Size(), layout.continuousTranscriptRect.Size())
+		require.Equal(t, calculateLinearTalkDialogLayout(bounds).frameRect, layout.frameRect)
 		transcript := dialog.Output.GetOutputStr(true)
 		for _, state := range []string{"input", "continue", "close", "kept", "history", "failure"} {
 			dialog.waitingForKeypressContinue = state == "continue"

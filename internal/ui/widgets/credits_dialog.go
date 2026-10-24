@@ -91,7 +91,8 @@ func (d *CreditsDialog) ensureLayout() {
 	d.metrics = metrics
 	spacing := metrics.GetLineSpacing()
 	contentWidth := d.border.GetInteriorBounds().Dx() - creditsSides*creditsPadding
-	d.header = text.NewOutput(font, spacing, 1, len("ACKNOWLEDGMENTS"))
+	d.header = text.NewOutput(GetScaledFont(FontSizeTitle), GetScaledLineHeight(FontSizeTitle)*creditsLineSpacing,
+		1, len("ACKNOWLEDGMENTS"))
 	d.header.AppendLine().Text("ACKNOWLEDGMENTS", DialogHeaderColor).Done()
 	d.header = d.header.WrappedCopyForWidth(contentWidth)
 	d.footer = text.NewOutput(font, spacing, creditsFooterRows, max(1, font.CharsForWidth(contentWidth)))

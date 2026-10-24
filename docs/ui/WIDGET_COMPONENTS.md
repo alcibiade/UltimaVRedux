@@ -511,6 +511,8 @@ high-contrast background, including backward selections and composition ranges.
 An empty Load browser explains Create/Import and exposes only dismissal guidance.
 
 `SaveSlotBrowser` consumes detached views and emits primary/cancel callbacks.
+Each slot row is one line. The selected save's description leads its details, in
+full, directly under the slot name.
 The application chooses the newest marker independently of cursor position:
 Save uses the active playthrough, Load the overall newest ready checkpoint.
 Load skips empty slots; Save retains them. Require explicit selection when there
@@ -819,7 +821,9 @@ but keep separate input state machines. Every row is inspectable; Enter confirms
 only actionable or warning rows. Status color describes the detached condition,
 not eligibility or encounter possession. Owners supply action-specific facts and
 availability. New Order keeps Avatar inspectable but immovable, previews both
-exact positions, and returns from stage 2 to stage 1 on Escape.
+exact positions, and returns from stage 2 to stage 1 on Escape. The footer packs
+its control hints by measured width and reserves every packed row, so no hint is
+dropped.
 
 Healing and resurrection targets may supply detached `CharacterSelectionHealth`.
 Those selectors use a wider roster with current/max HP, missing HP, and condition
@@ -885,7 +889,8 @@ For specialized Ready, Cast, Mix, and read-only views, use the component map and
 the corresponding scene workflow. Required constructor dependencies and result
 polling differ by component; there is no generic result-bearing dialog type.
 
-Ready deliberately retains its compact 20-size body and 26-size headings. A
+Ready deliberately retains its compact 20-size body. Its character name uses
+the 26-size title; EQUIPPED, AVAILABLE and DETAILS are 23-size section labels. A
 full-width character header shows the selected character's `GetKeySpriteIndex`
 sprite at integer nearest-neighbour scale, name, and `CHAR N/count` in active-party
 order (including dead members in the count). Its measured text bounds reserve the

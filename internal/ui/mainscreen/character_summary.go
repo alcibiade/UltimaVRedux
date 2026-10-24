@@ -83,7 +83,7 @@ func NewCharacterSummaryForWidth(spriteSheet *sprites.SpriteSheet, screenWidth i
 	// Use centralized typography system for consistent font scaling
 	characterSummary.ultimaFont, characterSummary.output = newMainScreenOutput(
 		screenWidth,
-		widgets.FontSizeXLarge,
+		widgets.FontSizeBody,
 		characterOutputMaxLines,
 	)
 	logicalHeight := screenWidth * logicalAspectHeight / logicalAspectWidth
