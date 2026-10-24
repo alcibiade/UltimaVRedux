@@ -39,8 +39,6 @@ const (
 
 // Modal dialog layout constants (shared by ButtonListModal, CharacterSelectionDialog, NewOrderDialog)
 const (
-	// Typography - use FontSizeXLarge (22pt) via typography.go for scaled fonts
-	// NOTE: modalDialogFontSize kept for compatibility; prefer GetScaledFontWithOutput(FontSizeXLarge)
 	modalDialogTitleMaxChars = 30 // Maximum characters in title
 )
 

@@ -86,7 +86,6 @@ type ZStatsDossierDialogConfig struct {
 	Keyboard    *input.Keyboard
 	SpriteSheet *sprites.SpriteSheet
 	Placement   sprites.PercentBasedPlacement
-	FontSize    StandardFontSize
 	OnDismiss   func()
 }
 
@@ -119,7 +118,6 @@ type ZStatsDossierDialog struct {
 	placement        sprites.PercentBasedPlacement
 	defaultPlacement bool
 	contentPadding   int
-	fontSize         StandardFontSize
 	onDismiss        func()
 	itemIndices      []int
 
@@ -175,10 +173,6 @@ func NewZStatsDossierDialog(
 	if placement.EndPercentX <= placement.StartPercentX || placement.EndPercentY <= placement.StartPercentY {
 		panic("ZStatsDossierDialog: placement must have positive width and height")
 	}
-	fontSize := config.FontSize
-	if fontSize <= 0 {
-		fontSize = FontSizeBody
-	}
 
 	//nolint:exhaustruct // Remaining fields are presentation state initialized by ensureLayout or their zero values.
 	dialog := &ZStatsDossierDialog{
@@ -188,7 +182,6 @@ func NewZStatsDossierDialog(
 		spriteSheet:       config.SpriteSheet,
 		placement:         placement,
 		defaultPlacement:  zStatsDossierPlacementIsZero(config.Placement),
-		fontSize:          fontSize,
 		onDismiss:         config.OnDismiss,
 		itemIndices:       zStatsOwnedItemIndices(dossier.Items),
 		activeTab:         ZStatsDossierCharacterTab,
@@ -609,7 +602,7 @@ func (d *ZStatsDossierDialog) ensureLayout() {
 	d.lastScreenHeight = screenHeight
 	d.spellView.layout(screenWidth, screenHeight)
 	d.bodyFont, d.rowOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  d.fontSize,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
 		MaxLines:              zStatsDossierDetailMaxLines,
@@ -623,7 +616,7 @@ func (d *ZStatsDossierDialog) ensureLayout() {
 		MaxChars:              zStatsDossierMinimumTextChars,
 	})
 	_, d.tabOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  d.fontSize,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: zStatsDossierLineSpacingMultiplier,
 		MaxLines:              1,

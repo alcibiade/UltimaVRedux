@@ -70,7 +70,6 @@ type SaveSlotBrowserConfig struct {
 	Title                    string
 	PrimaryActionLabel       string
 	CancelActionLabel        string
-	FontSize                 StandardFontSize
 	InitialSelectionID       string
 	NewestLegend             string
 	ReviewLabel              string
@@ -98,7 +97,6 @@ type SaveSlotBrowser struct {
 	notice             string
 	newestLegend       string
 	reviewLabel        string
-	fontSize           StandardFontSize
 
 	listState    *ScrollableListState
 	hasSelection bool
@@ -152,10 +150,6 @@ func NewSaveSlotBrowser(views []SaveSlotView, config SaveSlotBrowserConfig) *Sav
 	browser.title = saveSlotBrowserLabel(config.Title, "Save Slots")
 	browser.primaryActionLabel = saveSlotBrowserLabel(config.PrimaryActionLabel, "Select")
 	browser.cancelActionLabel = saveSlotBrowserLabel(strings.TrimSpace(config.CancelActionLabel), defaultCancelActionLabel)
-	browser.fontSize = config.FontSize
-	if browser.fontSize <= 0 {
-		browser.fontSize = FontSizeBody
-	}
 	browser.keyboard = config.Keyboard
 	browser.placement = placement
 	browser.onPrimary = config.OnPrimary
@@ -286,7 +280,7 @@ func (b *SaveSlotBrowser) ensureLayout() {
 		MaxChars:              modalDialogTitleMaxChars,
 	})
 	b.bodyFont, b.rowOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  b.fontSize,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: saveSlotBrowserBodyLineSpacing,
 		MaxLines:              1,

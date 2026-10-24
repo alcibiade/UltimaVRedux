@@ -335,19 +335,6 @@ func TestIntroSaveDialogsUseConsistentFontSize(t *testing.T) {
 	require.Equal(t, expectedSize, pathModal.hintOutput.Font.TextFace.Size)
 }
 
-func TestSaveSlotBrowserUsesConfiguredFontSizeThroughout(t *testing.T) {
-	const configuredSize = StandardFontSize(23)
-	browser := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), makeSaveSlotViews(1), SaveSlotBrowserConfig{
-		FontSize: configuredSize,
-	})
-	expectedSize := GetScaledFont(configuredSize).TextFace.Size
-
-	require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, browser.titleOutput.Font.TextFace.Size)
-	require.Equal(t, expectedSize, browser.bodyFont.TextFace.Size)
-	require.Equal(t, expectedSize, browser.detailOutput.Font.TextFace.Size)
-	require.Equal(t, expectedSize, browser.footerOutput.Font.TextFace.Size)
-}
-
 func TestSaveSlotBrowserFooterUsesClassicTwoLineLayout(t *testing.T) {
 	browser := newTestSaveSlotBrowser(newWidgetTestKeyboard(0), makeSaveSlotViews(1), SaveSlotBrowserConfig{
 		PrimaryActionLabel: "Save",
@@ -395,7 +382,7 @@ func TestSaveSlotBrowserDrawsSelectedFolderReview(t *testing.T) {
 		ID: "gog", Label: "GOG installation", ReviewValue: path, HasSave: true, PrimaryEnabled: true,
 		Details: []SaveSlotDetail{{Label: "Folder", Value: path}},
 	}}, SaveSlotBrowserConfig{
-		FontSize: FontSizeBody, ReviewLabel: "Selected Folder",
+		ReviewLabel: "Selected Folder",
 	})
 
 	browser.ensureLayout()

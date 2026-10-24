@@ -5,28 +5,17 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
-// StandardFontSize provides semantic font sizes for consistent typography.
-// These match the established sizes already in use across the widget system.
+// StandardFontSize is a text role's size at the 1920-wide reference; the helpers
+// below scale it to the current window. Choose a role, not a number: any other
+// size is a named, measured local exception.
 type StandardFontSize float64
 
 const (
-	// FontSizeXSmall is used for compact UI elements like Slider.
-	FontSizeXSmall StandardFontSize = 12
-
-	// FontSizeSmall is used for dense lists and compact elements.
-	FontSizeSmall StandardFontSize = 14
-
-	// FontSizeMedium is used for compact character-focused elements.
-	FontSizeMedium StandardFontSize = 16
-
 	// FontSizeHUD is for small fixed main-screen indicators such as provisions and wind.
 	FontSizeHUD StandardFontSize = 18
 
 	// FontSizeCompact is for dense tables measured not to fit at body size, such as Ready's gear.
 	FontSizeCompact StandardFontSize = 20
-
-	// FontSizeXLarge is used for modal dialog titles and headers.
-	FontSizeXLarge StandardFontSize = 22
 
 	// FontSizeBody is for readable dialog text: rows, prompts, conversation, footers and section labels.
 	FontSizeBody StandardFontSize = 23
@@ -66,7 +55,7 @@ func GetScaledFont(size StandardFontSize) *text.UltimaFont {
 // Example usage:
 //
 //	font, output := GetScaledFontWithOutput(FontConfig{
-//	    Size:     FontSizeSmall,
+//	    Size:     FontSizeBody,
 //	    MaxLines: 10,
 //	    MaxChars: 50,
 //	})

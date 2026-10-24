@@ -20,6 +20,8 @@ import (
 const (
 	dungeonViewMinimumTextSize  = 10
 	dungeonViewMinimumTextSpace = 11
+	// Measured exception: four-character axis tags must fit eight adjacent columns.
+	dungeonViewEdgeFontSize StandardFontSize = 16
 )
 
 // DungeonViewDialog presents a detached current-floor observation with a matching key.
@@ -120,7 +122,7 @@ func (d *DungeonViewDialog) prepareOutputs(screenWidth, width int) {
 	d.legendOutput = newDungeonViewOutput(screenWidth)
 	// Ordinary edge labels have their own measured typography. Four-character
 	// axis tags must fit eight adjacent columns without borrowing neighboring cells.
-	d.edgeOutput = newDungeonViewOutputSized(screenWidth, FontSizeMedium)
+	d.edgeOutput = newDungeonViewOutputSized(screenWidth, dungeonViewEdgeFontSize)
 	d.footerOutput = newDungeonViewOutput(screenWidth)
 	d.titleOutput.AppendLine().Yellow(strings.ToUpper(d.model.Location.String())).
 		LightGray("   LEVEL ").Whitef("%d OF %d", int(d.model.Floor)+1, references.DungeonFloorCount).

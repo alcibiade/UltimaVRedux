@@ -553,8 +553,7 @@ func (s *dataSetupScene) showCandidateBrowser(
 	})
 	var browser *widgets.SaveSlotBrowser
 	browser = widgets.NewSaveSlotBrowser(views, widgets.SaveSlotBrowserConfig{
-		Title: "Choose Game Files", PrimaryActionLabel: "Use Selected",
-		CancelActionLabel: s.cancelLabel(), FontSize: defaultOutputFontSize,
+		Title: "Choose Game Files", PrimaryActionLabel: "Use Selected", CancelActionLabel: s.cancelLabel(),
 		InitialSelectionID: initialSelectionID, NewestLegend: newestLegend,
 		ReviewLabel: "Selected Folder", RequireExplicitSelection: false, Notice: notice, Keyboard: s.keyboard,
 		Placement: sprites.PercentBasedPlacement{
@@ -700,8 +699,7 @@ func (s *dataSetupScene) showSearchDetails(game *Game) {
 	views := s.searchDetailViews()
 	var browser *widgets.SaveSlotBrowser
 	browser = widgets.NewSaveSlotBrowser(views, widgets.SaveSlotBrowserConfig{
-		Title: "Search Details", PrimaryActionLabel: setupBackLabel,
-		CancelActionLabel: setupBackLabel, FontSize: widgets.FontSizeBody,
+		Title: "Search Details", PrimaryActionLabel: setupBackLabel, CancelActionLabel: setupBackLabel,
 		InitialSelectionID: "", NewestLegend: "", ReviewLabel: "",
 		RequireExplicitSelection: false,
 		Notice:                   "Bounded local search only. No whole-computer scan was performed.",

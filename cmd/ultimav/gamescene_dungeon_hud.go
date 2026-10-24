@@ -25,6 +25,8 @@ const (
 	dungeonDirectionEast           = "East"
 	dungeonDirectionSouth          = "South"
 	dungeonDirectionWest           = "West"
+	// The debug coordinate overlay is not player-facing, so it stays small.
+	dungeonHUDDebugFontSize widgets.StandardFontSize = 12
 )
 
 type dungeonHUDOutputs struct {
@@ -63,7 +65,7 @@ func (g *GameScene) initializeDungeonHUDOutputs() {
 		MaxChars: dungeonStatusMaxChars,
 	})
 	_, g.dungeonHUD.debug = widgets.GetScaledFontWithOutput(widgets.FontConfig{
-		Size:     widgets.FontSizeXSmall,
+		Size:     dungeonHUDDebugFontSize,
 		MaxLines: 1,
 		MaxChars: dungeonDebugMaxChars,
 	})

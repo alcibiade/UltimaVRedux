@@ -226,7 +226,6 @@ func (d *ConfigurationDialog) initializeComponents() {
 		MinValue:     0,
 		MaxValue:     maximumSlider,
 		Label:        "Music Volume",
-		FontSize:     float64(widgets.FontSizeBody),
 		OnValueChanged: func(_, newValue int) {
 			d.stagedAudio.SetMusicVolume(newValue)
 			d.saveError = ""
@@ -242,7 +241,6 @@ func (d *ConfigurationDialog) initializeComponents() {
 		MinValue:     0,
 		MaxValue:     maximumSlider,
 		Label:        "SFX Volume",
-		FontSize:     float64(widgets.FontSizeBody),
 		OnValueChanged: func(_, newValue int) {
 			d.stagedAudio.SetSoundEffectVolume(newValue)
 			d.saveError = ""
@@ -258,7 +256,6 @@ func (d *ConfigurationDialog) initializeComponents() {
 		MinValue:     0,
 		MaxValue:     maximumSlider,
 		Label:        "Ambient Volume",
-		FontSize:     float64(widgets.FontSizeBody),
 		OnValueChanged: func(_, newValue int) {
 			d.stagedAudio.SetAmbientVolume(newValue)
 			d.saveError = ""

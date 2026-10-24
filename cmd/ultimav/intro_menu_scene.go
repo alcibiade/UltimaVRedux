@@ -881,7 +881,6 @@ func (m *IntroMenuScene) openPlayerSaveBrowserWithState(
 		PrimaryActionLabel:       action,
 		CancelActionLabel:        "",
 		ReviewLabel:              "",
-		FontSize:                 defaultOutputFontSize,
 		InitialSelectionID:       model.initialSelectionID,
 		NewestLegend:             model.newestLegend,
 		RequireExplicitSelection: model.requireExplicitSelection,

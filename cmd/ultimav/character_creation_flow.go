@@ -219,7 +219,6 @@ func (g *Game) openCharacterCreationSaveBrowser(
 		PrimaryActionLabel:       characterCreationSaveAction,
 		CancelActionLabel:        "",
 		ReviewLabel:              "",
-		FontSize:                 defaultOutputFontSize,
 		InitialSelectionID:       model.initialSelectionID,
 		NewestLegend:             model.newestLegend,
 		RequireExplicitSelection: model.requireExplicitSelection,
