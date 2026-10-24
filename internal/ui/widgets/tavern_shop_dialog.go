@@ -1104,11 +1104,11 @@ func (d *TavernShopDialog) ensureLayout() {
 	d.lastScreenWidth, d.lastScreenHeight = width, height
 	d.shell.GetBounds()
 	_, d.modeOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernShopLineSpacing,
 		MaxLines: tavernShopModeHeaderMaxLines, MaxChars: tavernShopMinimumTextChars,
 	})
 	d.bodyFont, d.bodyOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: tavernShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernShopLineSpacing,
 		MaxLines: tavernShopMaximumBodyLines, MaxChars: tavernShopMinimumTextChars,
 	})
 	d.calculateLayout()

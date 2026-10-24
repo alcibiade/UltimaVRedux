@@ -357,7 +357,7 @@ func TestDungeonHUDCacheTextFontResizeAndRelease(t *testing.T) {
 		assertDungeonBackingReleased(t, level)
 		assertDungeonBackingReleased(t, direction)
 		assert.NotSame(t, oldFont, scene.dungeonHUD.level.Font)
-		assert.InDelta(t, gameText.GetScaledNumberToWidth(size.X, float64(widgets.FontSizeDefault)), scene.dungeonHUD.level.Font.TextFace.Size, 1e-9)
+		assert.InDelta(t, gameText.GetScaledNumberToWidth(size.X, float64(widgets.FontSizeHUD)), scene.dungeonHUD.level.Font.TextFace.Size, 1e-9)
 		resized := newPresentationRaster(size.X, size.Y)
 		t.Cleanup(resized.Deallocate)
 		scene.drawDungeonHUD(resized, status)

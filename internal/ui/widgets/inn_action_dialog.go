@@ -165,15 +165,15 @@ func (d *InnActionDialog) ensureLayout() {
 		return
 	}
 	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
 		MaxLines: 1, MaxChars: innActionMinimumTextChars,
 	})
 	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
 		MaxLines: innActionMaximumBodyLines, MaxChars: innActionMinimumTextChars,
 	})
 	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
 		MaxLines: innActionFooterLines, MaxChars: innActionMinimumTextChars,
 	})
 	d.headerOutput.SetMaxCharsPerLine(max(

@@ -71,7 +71,7 @@ func TestSpellBrowserLayoutAndResize(t *testing.T) {
 			require.NotNil(t, spell)
 			prepareSpellCatalogRow(dialog.view.row, dialog.view.count, dialog.view.listRect.Inset(dialog.view.padding), *spell, true, dialog.spellAvailable(*spell))
 			require.Equal(t, references.VasFlam, dialog.GetSelectedSpell())
-			require.Equal(t, GetScaledFont(FontSizeMainScreen).TextFace.Size, dialog.view.font.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeBody).TextFace.Size, dialog.view.font.TextFace.Size)
 			require.Equal(t, 2, dialog.view.row.GetPanelContentLineCount())
 			require.NotContains(t, dialog.view.row.GetOutputStr(false), "(Low MP)")
 			require.Contains(t, dialog.view.row.GetOutputStr(false), "Fireball")

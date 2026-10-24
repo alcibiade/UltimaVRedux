@@ -380,15 +380,15 @@ func (d *HorseShopDialog) ensureLayout() {
 
 func (d *HorseShopDialog) rebuildOutputs() {
 	d.showroomFont, d.showroomTitleOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: horseShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: horseShopLineSpacing,
 		MaxLines: 1, MaxChars: horseShopMinimumTextChars,
 	})
 	_, d.showroomDetailsOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: horseShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: horseShopLineSpacing,
 		MaxLines: horseShopShowroomDetailLines, MaxChars: horseShopMinimumTextChars,
 	})
 	d.statusFont, d.statusOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: horseShopLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: horseShopLineSpacing,
 		MaxLines: horseShopStatusMinimumLines, MaxChars: horseShopMinimumTextChars,
 	})
 }

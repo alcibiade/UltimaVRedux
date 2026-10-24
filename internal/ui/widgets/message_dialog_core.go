@@ -190,11 +190,10 @@ const (
 
 // Dialog configuration constants
 const (
-	// Text configuration - uses FontSizeLarge (20pt) from typography system
-	// messageFontLineSpacing uses 1.3x ratio (26pt) for readable message text
-	messageFontPoint                   = float64(FontSizeLarge) // 20pt - maps to typography.FontSizeLarge
-	messageFontLineSpacing             = messageFontPoint + 6   // 26pt (1.3x multiplier for readability)
-	messageMaxTextLines                = 10                     // Default total line capacity, including any prompt
+	// Message text uses the standard body size with extra line spacing for readability.
+	messageFontPoint                   = float64(FontSizeBody)
+	messageFontLineSpacing             = messageFontPoint + 6
+	messageMaxTextLines                = 10 // Default total line capacity, including any prompt
 	messageMaxCharsPerLine             = 45
 	messagePercentTextIndentFromBorder = 0.02
 

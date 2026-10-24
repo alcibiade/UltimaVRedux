@@ -5,34 +5,23 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
-// StandardFontSize provides semantic font sizes for consistent typography.
-// These match the established sizes already in use across the widget system.
+// StandardFontSize is a text role's size at the 1920-wide reference; the helpers
+// below scale it to the current window. Choose a role, not a number: any other
+// size is a named, measured local exception.
 type StandardFontSize float64
 
 const (
-	// FontSizeXSmall is used for compact UI elements like Slider.
-	FontSizeXSmall StandardFontSize = 12
+	// FontSizeHUD is for small fixed main-screen indicators such as provisions and wind.
+	FontSizeHUD StandardFontSize = 18
 
-	// FontSizeSmall is used for dense lists and compact elements.
-	FontSizeSmall StandardFontSize = 14
+	// FontSizeCompact is for dense tables measured not to fit at body size, such as Ready's gear.
+	FontSizeCompact StandardFontSize = 20
 
-	// FontSizeMedium is used for compact character-focused elements.
-	FontSizeMedium StandardFontSize = 16
+	// FontSizeBody is for readable dialog text: rows, prompts, conversation, footers and section labels.
+	FontSizeBody StandardFontSize = 23
 
-	// FontSizeDefault is the standard size for general UI text like ItemDialog.
-	FontSizeDefault StandardFontSize = 18
-
-	// FontSizeLarge is used for prominent inputs like InputBox and medium buttons.
-	FontSizeLarge StandardFontSize = 20
-
-	// FontSizeXLarge is used for modal dialog titles and headers.
-	FontSizeXLarge StandardFontSize = 22
-
-	// FontSizeMainScreen is used for readable text in main-screen workflows.
-	FontSizeMainScreen StandardFontSize = 23
-
-	// FontSizeDialogTitle is used for prominent titles above main-screen dialog content.
-	FontSizeDialogTitle StandardFontSize = 26
+	// FontSizeTitle is for the one name at the top of each window.
+	FontSizeTitle StandardFontSize = 26
 )
 
 // Line spacing multipliers for specific use cases
@@ -66,7 +55,7 @@ func GetScaledFont(size StandardFontSize) *text.UltimaFont {
 // Example usage:
 //
 //	font, output := GetScaledFontWithOutput(FontConfig{
-//	    Size:     FontSizeSmall,
+//	    Size:     FontSizeBody,
 //	    MaxLines: 10,
 //	    MaxChars: 50,
 //	})
@@ -116,6 +105,13 @@ func newScaledFontWithOutput(
 	output.SetFont(font, scaledLineSpacing)
 
 	return font, output
+}
+
+// scaledFontHeight returns the resolution-scaled glyph height (ascent plus descent).
+func scaledFontHeight(size StandardFontSize) float64 {
+	metrics := GetScaledFont(size).TextFace.Metrics()
+
+	return metrics.HAscent + metrics.HDescent
 }
 
 // GetScaledLineHeight returns the resolution-scaled line height for a font size.

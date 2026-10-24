@@ -58,7 +58,7 @@ func TestGuildPurchaseDialogQuantityBoundsProjectionAndSingleRequest(t *testing.
 	})
 
 	require.Equal(t, uint16(1), dialog.GetBundleCount())
-	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
+	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 	require.Equal(t, "Five torches for twelve gold.", dialog.GetPitch())
 	require.Contains(t, dialog.GetBodyText(), `"Five torches for twelve`)
 	require.Contains(t, dialog.GetBodyText(), `gold."`)

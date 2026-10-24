@@ -442,14 +442,14 @@ func (d *HealerShopDialog) ensureLayout() {
 	d.shell.GetBounds()
 
 	d.cellFont, d.cellOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: healerShopLineSpacing,
 		MaxLines:              healerShopServiceLines,
 		MaxChars:              healerShopMinimumTextChars,
 	})
 	d.detailFont, d.detailOutput = GetScaledFontWithOutput(FontConfig{
-		Size:                  FontSizeMainScreen,
+		Size:                  FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: healerShopLineSpacing,
 		MaxLines:              healerShopDetailLines,

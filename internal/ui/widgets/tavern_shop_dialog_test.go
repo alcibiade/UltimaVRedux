@@ -503,7 +503,7 @@ func TestTavernShopDialogResponsiveDrawSessionErrorAndLifecycle(t *testing.T) {
 	keyboard := newWidgetTestKeyboard(0)
 	dialog := newTestTavernShopDialog(keyboard, testTavernState(references.TavernMenuWineCheese), nil)
 	require.False(t, dialog.GetWorkspaceBounds().Empty())
-	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
+	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 	require.True(t, dialog.IsVisible())
 	require.False(t, dialog.IsComplete())
 

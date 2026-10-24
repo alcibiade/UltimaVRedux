@@ -70,7 +70,7 @@ type provisionCell struct {
 func NewProvisionSummaryForWidth(screenWidth int) *ProvisionSummary {
 	var summary ProvisionSummary
 	summary.rowHeight = ProvisionAmmoRowHeight(screenWidth)
-	summary.ultimaFont, summary.output = newMainScreenOutput(screenWidth, widgets.FontSizeDefault, provisionOutputMaxLines)
+	summary.ultimaFont, summary.output = newMainScreenOutput(screenWidth, widgets.FontSizeHUD, provisionOutputMaxLines)
 	summary.ammoLabelWidth = max(measuredProvisionWidth(summary.ultimaFont, "Ar"),
 		measuredProvisionWidth(summary.ultimaFont, "Qr"))
 	summary.ammoValueWidth = measuredProvisionWidth(summary.ultimaFont, "99")
@@ -96,7 +96,7 @@ func NewProvisionSummaryForWidth(screenWidth int) *ProvisionSummary {
 // ProvisionAmmoRowHeight reserves one normal-font summary line, including the
 // established scaled baseline spacing. No compact typography is used for ammo.
 func ProvisionAmmoRowHeight(screenWidth int) int {
-	return int(math.Ceil(float64(widgets.FontSizeDefault) * widgets.MainScreenLineSpacingMultiplier *
+	return int(math.Ceil(float64(widgets.FontSizeHUD) * widgets.MainScreenLineSpacingMultiplier *
 		float64(screenWidth) / mainScreenReferenceWidth))
 }
 

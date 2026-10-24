@@ -130,8 +130,7 @@ type InputBoxBuilder struct {
 }
 
 const (
-	// InputBox uses FontSizeLarge (20pt) - maps to typography.FontSizeLarge
-	inputBoxFontSize = FontSizeLarge // 20pt, using typography system
+	inputBoxFontSize = FontSizeBody
 	// Line spacing uses 1:1 ratio (same as font size) - default in GetScaledFontWithOutput
 )
 
@@ -400,7 +399,6 @@ func (b *InputBoxBuilder) calculateAutoSizeDimensions(
 	centerX, centerY float64, textLines, charsPerLine int,
 ) InputBoxConfig {
 	// Use shared auto-sizing function (InputBox has no prompt lines)
-	// FontSizeLarge (20pt) with 1:1 line spacing
 	placement := CalculateDialogAutoSizeDimensions(NewDialogAutoSizingParams(
 		centerX,
 		centerY,

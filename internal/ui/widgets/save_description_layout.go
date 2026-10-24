@@ -15,7 +15,7 @@ const (
 
 func (m *SaveDescriptionEntryModal) configureDescriptionRendering() {
 	_, m.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeDialogTitle, LineSpacing: 0, LineSpacingMultiplier: 0, MaxLines: 1, MaxChars: modalDialogTitleMaxChars,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: 0, MaxLines: 1, MaxChars: modalDialogTitleMaxChars,
 	})
 	m.titleOutput.AppendLine().Text(m.title, DialogHeaderColor).Done()
 	padding := m.scaledDimension(saveDescriptionContentPadding, saveDescriptionMinimumPadding)

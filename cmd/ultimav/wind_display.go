@@ -79,7 +79,7 @@ func (w *WindDisplay) ensureLayout() {
 	w.lastScreenWidth = screenWidth
 	w.lastScreenHeight = screenHeight
 	w.font, w.output = widgets.GetScaledFontWithOutput(widgets.FontConfig{
-		Size:                  widgets.FontSizeDefault,
+		Size:                  widgets.FontSizeHUD,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,

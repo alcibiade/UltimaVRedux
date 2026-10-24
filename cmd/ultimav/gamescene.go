@@ -36,7 +36,7 @@ const (
 
 const (
 	// Line spacing multiplier: 25/23 ≈ 1.087 for slightly extra vertical space
-	defaultOutputFontSize        = widgets.FontSizeMainScreen
+	defaultOutputFontSize        = widgets.FontSizeBody
 	defaultOutputLineSpacingMult = 1.087 // 25/23 for original 25pt spacing at 23pt font
 	maxCharsPerLine              = 16
 	visibleLinesForOutput        = 11

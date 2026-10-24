@@ -51,6 +51,7 @@ type ReadyEquipmentDialog struct {
 	font            *text.UltimaFont
 	titleFont       *text.UltimaFont
 	titleOutput     *text.Output
+	sectionOutput   *text.Output
 	charOutput      *text.Output
 	slotsOutput     *text.Output
 	itemsOutput     *text.Output
@@ -151,15 +152,21 @@ func (d *ReadyEquipmentDialog) initializeTypography() {
 	// Intentional compact typography: Ready's dense gear columns need the original
 	// 20-size body, not the 23-size main-screen body used by broader readers.
 	d.font, _ = GetScaledFontWithOutput(FontConfig{
-		Size:        FontSizeLarge,
+		Size:        FontSizeCompact,
 		MaxLines:    1,
 		MaxChars:    readyInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: 0,
 	})
 
-	// Title font for panel headers
+	// The character name is the window title; panel headings are section labels.
 	d.titleFont, d.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size:        FontSizeDialogTitle,
+		Size:        FontSizeTitle,
+		MaxLines:    1,
+		MaxChars:    readyInitialChars,
+		LineSpacing: 0, LineSpacingMultiplier: 0,
+	})
+	_, d.sectionOutput = GetScaledFontWithOutput(FontConfig{
+		Size:        FontSizeBody,
 		MaxLines:    1,
 		MaxChars:    readyInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: 0,
@@ -366,7 +373,7 @@ func (d *ReadyEquipmentDialog) updateAvailableItems() {
 // calculateVisibleItemSlots calculates how many items can fit in the items panel
 func (d *ReadyEquipmentDialog) calculateVisibleItemSlots() int {
 	itemsRect := d.itemsBorder.GetInteriorBounds()
-	headerHeight := int(d.titleFont.TextFace.Size) + itemDialogTextPadding*readyCenterDivisor
+	headerHeight := int(d.sectionOutput.Font.TextFace.Size) + itemDialogTextPadding*readyCenterDivisor
 	lineHeight := d.itemRowHeight()
 
 	availableHeight := itemsRect.Dy() - headerHeight
@@ -625,9 +632,9 @@ func (d *ReadyEquipmentDialog) drawPanelHeader(screen *ebiten.Image, border *Bor
 	headerY := headerBounds.Min.Y + itemDialogTextPadding
 	contentWidth := headerBounds.Dx() - leftPadding*readyCenterDivisor
 
-	d.titleOutput.Reset()
-	d.titleOutput.AppendLine().Text(headerText, DialogHeaderColor).Done()
-	d.titleOutput.DrawPanelContent(
+	d.sectionOutput.Reset()
+	d.sectionOutput.AppendLine().Text(headerText, DialogHeaderColor).Done()
+	d.sectionOutput.DrawPanelContent(
 		screen,
 		image.Pt(headerBounds.Min.X+leftPadding, headerY),
 		contentWidth,
@@ -642,7 +649,7 @@ func (d *ReadyEquipmentDialog) drawSlotsPanel(screen *ebiten.Image) {
 	d.drawPanelHeader(screen, d.slotsBorder, "EQUIPPED")
 
 	bounds := d.slotsBorder.GetInteriorBounds()
-	headerFontSize := d.titleFont.TextFace.Size
+	headerFontSize := d.sectionOutput.Font.TextFace.Size
 	leftPadding := itemDialogTextPadding + readyDetailInset
 	fontSize := d.font.TextFace.Size
 	lineHeight := int(fontSize * readyLineSpacingMultiplier)
@@ -733,7 +740,7 @@ func (d *ReadyEquipmentDialog) drawItemsPanel(screen *ebiten.Image) {
 	d.drawPanelHeader(screen, d.itemsBorder, "AVAILABLE")
 
 	bounds := d.itemsBorder.GetInteriorBounds()
-	headerFontSize := d.titleFont.TextFace.Size
+	headerFontSize := d.sectionOutput.Font.TextFace.Size
 	leftPadding := itemDialogTextPadding + readyDetailInset
 	fontSize := d.font.TextFace.Size
 	lineHeight := d.itemRowHeight()
@@ -835,7 +842,7 @@ func (d *ReadyEquipmentDialog) cycleDetailPage(delta int) {
 func (d *ReadyEquipmentDialog) detailContentRect() image.Rectangle {
 	bounds := d.detailBorder.GetInteriorBounds()
 	padding := itemDialogTextPadding + readyDetailInset
-	top := bounds.Min.Y + itemDialogTextPadding*readyCenterDivisor + int(d.titleOutput.GetTotalHeightForLines(1))
+	top := bounds.Min.Y + itemDialogTextPadding*readyCenterDivisor + int(d.sectionOutput.GetTotalHeightForLines(1))
 
 	return image.Rect(bounds.Min.X+padding, top, bounds.Max.X-padding, bounds.Max.Y-itemDialogTextPadding)
 }

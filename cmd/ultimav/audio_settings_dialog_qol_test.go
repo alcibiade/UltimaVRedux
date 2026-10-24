@@ -126,7 +126,7 @@ func TestConfigurationQoLHelpUsesApprovedFontSafeParagraphs(t *testing.T) {
 		inset := max(1, dialog.layout.pixelUnit*audioSettingsCenterDivisor)
 		width := dialog.layout.gameplayDetail.Dx() - inset*audioSettingsCenterDivisor
 		chars := dialog.detailOutput.Font.CharsForWidth(width)
-		assert.Equal(t, gametext.GetScaledNumberToWidth(resolution.X, float64(widgets.FontSizeMainScreen)),
+		assert.Equal(t, gametext.GetScaledNumberToWidth(resolution.X, float64(widgets.FontSizeBody)),
 			dialog.detailOutput.Font.TextFace.Size, "help retains normal typography")
 		for index, lines := range expected {
 			dialog.focusedGameplayIndex = index

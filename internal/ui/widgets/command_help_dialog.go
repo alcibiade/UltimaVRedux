@@ -20,7 +20,6 @@ const (
 	commandHelpFooterRows   = 8
 	commandHelpInitialChars = 80
 	commandHelpSpacing      = 1.2
-	commandHelpHeaderRows   = 2
 	commandHelpIconRows     = 2
 	commandHelpSides        = 2
 )
@@ -65,6 +64,7 @@ type CommandHelpDialog struct {
 	row        int
 	width      int
 	height     int
+	title      *text.Output
 	header     *text.Output
 	status     HelpStatusView
 	statusMode bool
@@ -83,7 +83,7 @@ func NewCommandHelpDialog(
 		navigation: newNavigation(keyboard.IsKeyHeld),
 		entries:    append([]CommandHelpEntry(nil), entries...), keyboard: keyboard, onClose: onClose,
 		output: nil, footer: nil, border: nil, row: 0, width: 0, height: 0,
-		header: nil, status: HelpStatusView{Worn: append([]StatusHelpEntry(nil), status.Worn...),
+		title: nil, header: nil, status: HelpStatusView{Worn: append([]StatusHelpEntry(nil), status.Worn...),
 			Effects: append([]StatusHelpEntry(nil), status.Effects...), Food: status.Food},
 		statusMode: false, pageRows: [2]int{}, icons: nil,
 	}
@@ -104,13 +104,18 @@ func (d *CommandHelpDialog) ensureLayout() {
 		StartPercentY: commandHelpMargin, EndPercentY: 1 - commandHelpMargin,
 	})
 	font, output := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, MaxLines: 1, MaxChars: commandHelpInitialChars,
+		Size: FontSizeBody, MaxLines: 1, MaxChars: commandHelpInitialChars,
 		LineSpacing: 0, LineSpacingMultiplier: commandHelpSpacing,
 	})
 	chars := max(1, font.CharsForWidth(d.border.GetInteriorBounds().Dx()-2*commandHelpPadding))
 	d.output = text.NewOutput(font, output.GetLineSpacing(), max(1,
 		(len(d.entries)+len(d.status.Worn)+len(d.status.Effects)+1)*commandHelpEntryRows), chars)
-	d.header = text.NewOutput(font, output.GetLineSpacing(), commandHelpHeaderRows, chars)
+	_, d.title = GetScaledFontWithOutput(FontConfig{
+		Size: FontSizeTitle, MaxLines: 1, MaxChars: commandHelpInitialChars,
+		LineSpacing: 0, LineSpacingMultiplier: commandHelpSpacing,
+	})
+	d.title.AppendLine().Text("HELP", DialogHeaderColor).Done()
+	d.header = text.NewOutput(font, output.GetLineSpacing(), 1, chars)
 	d.footer = text.NewOutput(font, output.GetLineSpacing(), commandHelpFooterRows, chars)
 	d.populatePage()
 }
@@ -119,7 +124,6 @@ func (d *CommandHelpDialog) populatePage() {
 	d.output.Reset()
 	d.icons = nil
 	d.header.Reset()
-	d.header.AppendLine().Text("HELP", DialogHeaderColor).Done()
 	commandsColor, statusColor := DialogHeaderColor, DialogControlHintColor
 	commandsLabel, statusLabel := "[Commands]", "Status"
 	if d.statusMode {
@@ -191,7 +195,7 @@ func (d *CommandHelpDialog) appendStatusGroup(title, empty string, entries []Sta
 
 func (d *CommandHelpDialog) contentBounds() image.Rectangle {
 	bounds := d.border.GetInteriorBounds().Inset(commandHelpPadding)
-	bounds.Min.Y += int(d.header.GetTotalHeightForLines(d.header.GetPanelContentLineCount())) + commandHelpPadding
+	bounds.Min.Y += int(d.title.GetTotalHeightForLines(1)+d.header.GetTotalHeightForLines(1)) + commandHelpPadding
 	bounds.Max.Y -= int(d.footer.GetTotalHeightForLines(d.footer.GetPanelContentLineCount())) + commandHelpPadding
 
 	return bounds
@@ -255,6 +259,8 @@ func (d *CommandHelpDialog) Draw(screen *ebiten.Image) {
 	FillClassicPixelRoundedRect(screen, d.border.GetBounds(), pixelUnit, ucolor.DialogBackground.RGBA())
 	DrawClassicPixelRoundedFrame(screen, d.border.GetBounds(), pixelUnit, DialogRuleColor)
 	bounds := d.border.GetInteriorBounds().Inset(commandHelpPadding)
+	d.title.DrawPanelContent(screen, bounds.Min, bounds.Dx(), etext.AlignCenter)
+	bounds.Min.Y += int(d.title.GetTotalHeightForLines(1))
 	d.header.DrawPanelContent(screen, bounds.Min, bounds.Dx(), etext.AlignCenter)
 	content := d.contentBounds()
 	if d.statusMode {

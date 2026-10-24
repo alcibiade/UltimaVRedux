@@ -54,7 +54,7 @@ func TestCombatLootDialogOverflowAndAcknowledgementIsolation(t *testing.T) {
 
 func TestLootRowsCenterIconsAndSingleOrWrappedDescriptions(t *testing.T) {
 	for _, screenWidth := range []int{1280, 1920} {
-		_, output := GetScaledFontWithOutputForWidth(FontConfig{Size: FontSizeMainScreen, LineSpacingMultiplier: 1, MaxLines: 4, MaxChars: 40}, screenWidth)
+		_, output := GetScaledFontWithOutputForWidth(FontConfig{Size: FontSizeBody, LineSpacingMultiplier: 1, MaxLines: 4, MaxChars: 40}, screenWidth)
 		for _, lines := range []int{1, 2, 3} {
 			iconHeight := output.GetTotalHeightForLines(2)
 			textHeight := output.GetTotalHeightForLines(lines)

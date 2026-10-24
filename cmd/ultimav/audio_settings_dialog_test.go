@@ -84,11 +84,11 @@ func TestConfigurationDialogBasicCreation(t *testing.T) {
 	assert.Equal(t, dialog.labelOutput.Font.TextFace.Size, dialog.gameplayOutput.Font.TextFace.Size)
 	assert.Equal(t, dialog.labelOutput.Font.TextFace.Size, dialog.footerOutput.Font.TextFace.Size)
 	assert.Equal(t,
-		gametext.GetScaledNumberToWidth(dialog.lastWidth, float64(widgets.FontSizeMainScreen)),
+		gametext.GetScaledNumberToWidth(dialog.lastWidth, float64(widgets.FontSizeBody)),
 		dialog.labelOutput.Font.TextFace.Size,
 	)
 	assert.Equal(t,
-		gametext.GetScaledNumberToWidth(dialog.lastWidth, float64(widgets.FontSizeDialogTitle)),
+		gametext.GetScaledNumberToWidth(dialog.lastWidth, float64(widgets.FontSizeTitle)),
 		dialog.titleOutput.Font.TextFace.Size,
 	)
 	assert.True(t, placementContainsRect(*placement, dialog.layout.cardRect, dialog.lastWidth, dialog.lastHeight),

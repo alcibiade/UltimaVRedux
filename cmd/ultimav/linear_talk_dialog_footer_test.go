@@ -30,7 +30,11 @@ func TestTalkFooterIsConnectedBelowUnchangedInlineInput(t *testing.T) {
 	layout := dialog.layoutWithFooter(screen.Bounds())
 	before := dialog.Output.GetOutputStr(true)
 	dialog.Draw(screen)
-	require.Equal(t, base.continuousTranscriptRect.Size(), layout.continuousTranscriptRect.Size(), "footer must not consume transcript space")
+	require.Equal(t, base.frameRect, layout.frameRect, "the footer comes out of the card, not below it")
+	require.GreaterOrEqual(t, layout.frameRect.Min.Y, 720*(int(yCenter)+2)/yTilesVisibleOnGameScreen,
+		"the avatar and the tile beneath it stay visible")
+	_, aperture := surfaceMapBorderGeometry()
+	require.Less(t, layout.frameRect.Max.Y, aperture.Max.Y, "the card stays inside the map frame")
 	inputRect := dialog.continuousInputRect(layout)
 	require.Equal(t, layout.continuousTranscriptRect.Max.Y, inputRect.Max.Y)
 	require.Less(t, inputRect.Max.Y, layout.footerDividerY)
@@ -47,7 +51,8 @@ func TestTalkFooterIsConnectedBelowUnchangedInlineInput(t *testing.T) {
 	require.Equal(t, "FLAM", dialog.TextInput.GetText())
 	require.NotContains(t, interestPlaceholder, "|")
 	require.Equal(t, " name, job, bye", interestPlaceholder)
-	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "History")
+	require.Contains(t, dialog.footerOutput.GetOutputStr(false), "Journal")
+	require.NotContains(t, dialog.footerOutput.GetOutputStr(false), "History", "command help lists History")
 }
 
 func TestTalkFooterStatesFitAndDoNotMoveInlineInput(t *testing.T) {
@@ -60,7 +65,7 @@ func TestTalkFooterStatesFitAndDoNotMoveInlineInput(t *testing.T) {
 		bounds := image.Rect(0, 0, resolution.X, resolution.Y)
 		layout := dialog.layoutWithFooter(bounds)
 		require.True(t, layout.frameRect.In(bounds))
-		require.Equal(t, calculateLinearTalkDialogLayout(bounds).continuousTranscriptRect.Size(), layout.continuousTranscriptRect.Size())
+		require.Equal(t, calculateLinearTalkDialogLayout(bounds).frameRect, layout.frameRect)
 		transcript := dialog.Output.GetOutputStr(true)
 		for _, state := range []string{"input", "continue", "close", "kept", "history", "failure"} {
 			dialog.waitingForKeypressContinue = state == "continue"
@@ -75,17 +80,23 @@ func TestTalkFooterStatesFitAndDoNotMoveInlineInput(t *testing.T) {
 			case "failure":
 				dialog.setExcerptNotice("Unable to keep excerpt: "+strings.Repeat("long-path/", 30), false)
 			}
-			require.Equal(t, layout, dialog.layoutWithFooter(bounds))
-			widgets.PrepareKeyboardFooter(layout.footerRect, dialog.conversationFooterGuidance(layout.footerRect.Dx()),
-				dialog.footerOutput)
+			stateLayout := dialog.layoutWithFooter(bounds)
+			require.Equal(t, layout.frameRect, stateLayout.frameRect)
+			if state != "history" && state != "failure" {
+				require.Equal(t, 1, dialog.footerLines(), "live conversation hints keep one row")
+				require.Equal(t, layout, stateLayout, "a live hint change must not move the transcript or input")
+			}
+			widgets.PrepareKeyboardFooter(stateLayout.footerRect,
+				dialog.conversationFooterGuidance(stateLayout.footerRect.Dx()), dialog.footerOutput)
 			require.Equal(t, transcript, dialog.Output.GetOutputStr(true), "preparing hints must not change speech or retained history")
 			require.Equal(t, "FLAM", dialog.TextInput.GetText())
 			for _, line := range strings.Split(dialog.footerOutput.GetOutputStr(false), "\n") {
 				measured, _ := dialog.footerOutput.Font.MeasureString(strings.TrimSpace(line))
-				require.LessOrEqual(t, measured, float64(layout.footerRect.Dx()), "%dx%d %s: %s", resolution.X, resolution.Y, state, line)
+				require.LessOrEqual(t, measured, float64(stateLayout.footerRect.Dx()), "%dx%d %s: %s", resolution.X, resolution.Y, state, line)
 			}
-			require.LessOrEqual(t, dialog.footerOutput.GetPanelContentLineCount(), talkFooterLines)
-			guidance := dialog.conversationFooterGuidance(layout.footerRect.Dx())
+			require.LessOrEqual(t, dialog.footerOutput.GetPanelContentLineCount(), dialog.footerLines(),
+				"%dx%d %s", resolution.X, resolution.Y, state)
+			guidance := dialog.conversationFooterGuidance(stateLayout.footerRect.Dx())
 			switch state {
 			case "continue":
 				require.Contains(t, guidance, "[Space] Continue")

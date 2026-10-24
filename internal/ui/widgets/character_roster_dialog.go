@@ -37,7 +37,7 @@ const (
 	characterRosterDialogMapRows             = 13
 	characterRosterDialogMaximumChars        = 80
 	characterRosterDialogDetailMaximumLines  = 12
-	characterRosterDialogFooterMaximumLines  = 1
+	characterRosterDialogFooterMaximumLines  = 3
 	characterRosterDialogFooterMaximumChars  = 100
 )
 
@@ -151,6 +151,7 @@ type characterRosterDialogShell struct {
 
 	lastScreenWidth  int
 	lastScreenHeight int
+	lastFooter       string
 }
 
 func newCharacterRosterDialogShell(
@@ -182,7 +183,7 @@ func (s *characterRosterDialogShell) draw(screen *ebiten.Image, view characterRo
 		return
 	}
 	bounds := screen.Bounds()
-	s.ensureLayout(bounds.Dx(), bounds.Dy(), len(view.options))
+	s.ensureLayout(bounds.Dx(), bounds.Dy(), len(view.options), view.footer)
 	vector.FillRect(
 		screen,
 		float32(s.layout.panelRect.Min.X),
@@ -199,24 +200,25 @@ func (s *characterRosterDialogShell) draw(screen *ebiten.Image, view characterRo
 	s.drawFrames(screen)
 }
 
-func (s *characterRosterDialogShell) ensureLayout(width, height, rowCount int) {
+func (s *characterRosterDialogShell) ensureLayout(width, height, rowCount int, footer string) {
 	if width <= 0 || height <= 0 {
 		return
 	}
 	if s.titleOutput != nil && width == s.lastScreenWidth && height == s.lastScreenHeight &&
-		len(s.layout.rowRects) == rowCount {
+		len(s.layout.rowRects) == rowCount && footer == s.lastFooter {
 		return
 	}
 	s.lastScreenWidth = width
 	s.lastScreenHeight = height
-	s.calculateLayout(width, height, rowCount)
+	s.lastFooter = footer
+	s.calculateLayout(width, height, rowCount, footer)
 	s.createOutputs()
 }
 
 // calculateLayout keeps responsive pane geometry together for bounds review.
 //
 //nolint:funlen // Keep interdependent roster, portrait, and detail bounds in one geometry calculation.
-func (s *characterRosterDialogShell) calculateLayout(width, height, rowCount int) {
+func (s *characterRosterDialogShell) calculateLayout(width, height, rowCount int, guidance string) {
 	workspace := image.Rect(
 		int(float64(width)*s.placement.StartPercentX),
 		int(float64(height)*s.placement.StartPercentY),
@@ -232,10 +234,15 @@ func (s *characterRosterDialogShell) calculateLayout(width, height, rowCount int
 		panelWidth = availableWidth
 	}
 	headerHeight := max(pixelUnit*characterRosterDialogHeaderUnits, 1)
-	footerHeight := max(pixelUnit*characterRosterDialogFooterUnits, 1)
 	paneHeaderHeight := max(1, pixelUnit*characterRosterDialogPaneHeaderUnits)
 	padding := max(1, pixelUnit*characterRosterDialogPaddingUnits)
-	_, rowCharacterHeight := GetScaledFont(FontSizeLarge).MeasureString("M")
+	// Reserve every packed hint row so no control hint is scrolled out of the footer.
+	footerRows := len(packControlHintRows(GetScaledFont(FontSizeBody), ParseControlHints(guidance),
+		panelWidth-padding*characterRosterDialogCenterDivisor, controlHintSeparator))
+	footerHeight := max(pixelUnit*characterRosterDialogFooterUnits,
+		int(math.Ceil(float64(footerRows)*GetScaledLineHeight(FontSizeBody)*characterRosterDialogLineSpacing))+
+			padding*characterRosterDialogCenterDivisor)
+	_, rowCharacterHeight := GetScaledFont(FontSizeCompact).MeasureString("M")
 	rowHeight := max(1, int(math.Ceil(rowCharacterHeight*(1+characterRosterDialogRowSpacingChars))))
 	desiredBodyHeight := max(
 		pixelUnit*characterRosterDialogMinimumBodyUnits,
@@ -308,23 +315,23 @@ func (s *characterRosterDialogShell) createOutputs() {
 		detailLines = characterHealthDetailLines
 	}
 	_, s.titleOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: 1, MaxChars: characterRosterDialogMaximumChars,
 	})
 	s.bodyFont, s.rowOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeLarge, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeCompact, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: 1, MaxChars: characterRosterDialogMaximumChars,
 	})
 	_, s.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeDefault, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeCompact, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: 1, MaxChars: characterRosterDialogMaximumChars,
 	})
 	_, s.detailOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeLarge, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeCompact, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: detailLines, MaxChars: characterRosterDialogMaximumChars,
 	})
 	_, s.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeDefault, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: characterRosterDialogLineSpacing,
 		MaxLines: characterRosterDialogFooterMaximumLines, MaxChars: characterRosterDialogFooterMaximumChars,
 	})
 	s.titleOutput.SetMaxCharsPerLine(max(
@@ -513,9 +520,9 @@ func characterRosterDetailColor(state CharacterSelectionState) stdcolor.Color {
 
 func (s *characterRosterDialogShell) drawFooter(screen *ebiten.Image, footer string) {
 	s.footerOutput.Reset()
-	AppendControlHints(s.footerOutput.AppendLine(), footer).WordWrap().Done()
-	totalHeight := int(math.Ceil(s.footerOutput.GetTotalHeightForLines(characterRosterDialogFooterMaximumLines)))
 	content := insetCharacterRosterRect(s.layout.footerRect, s.layout.padding)
+	PackControlHints(s.footerOutput, ParseControlHints(footer), content.Dx(), etext.AlignCenter)
+	totalHeight := int(math.Ceil(s.footerOutput.GetTotalHeightForLines(s.footerOutput.GetPanelContentLineCount())))
 	y := content.Min.Y + max(0, (content.Dy()-totalHeight)/characterRosterDialogCenterDivisor)
 	s.footerOutput.DrawPanelContent(screen, image.Pt(content.Min.X, y), content.Dx(), etext.AlignCenter)
 }

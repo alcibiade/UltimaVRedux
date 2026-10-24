@@ -44,8 +44,8 @@ func assertSummaryInterior(t *testing.T, dialog *CombatLootDialog, viewport imag
 	assert.GreaterOrEqual(t, s.body.Min.Y, dialog.bounds.Min.Y+s.padding+s.headingHeight)
 	assert.LessOrEqual(t, s.body.Max.Y, s.footer.Min.Y, "the clipped scroll region cannot paint over the footer")
 	assert.GreaterOrEqual(t, s.footer.Dy(), combatSummaryTextHeight(dialog.output))
-	assert.Equal(t, text.GetScaledNumberToWidth(s.screenWidth, float64(FontSizeMainScreen)), dialog.output.Font.TextFace.Size)
-	assert.Equal(t, text.GetScaledNumberToWidth(s.screenWidth, float64(FontSizeDialogTitle)), dialog.heading.Font.TextFace.Size)
+	assert.Equal(t, text.GetScaledNumberToWidth(s.screenWidth, float64(FontSizeBody)), dialog.output.Font.TextFace.Size)
+	assert.Equal(t, text.GetScaledNumberToWidth(s.screenWidth, float64(FontSizeTitle)), dialog.heading.Font.TextFace.Size)
 }
 
 func TestCombatSummaryBottomAnchorContentHeightAndResize(t *testing.T) {

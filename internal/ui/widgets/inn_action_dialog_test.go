@@ -251,7 +251,7 @@ func TestInnActionDialogSemanticBackgroundFooterColorsAndNoMouseAssumptions(t *t
 	requireImageRegionContainsColor(t, screen, dialog.GetBodyBounds(), MerchantDialogBackgroundColor)
 	requireImageRegionContainsColor(t, screen, dialog.frame.footerText, DialogControlKeyColor)
 	requireImageRegionContainsColor(t, screen, dialog.frame.footerText, DialogControlHintColor)
-	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
+	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 	require.True(t, dialog.IsVisible())
 	require.False(t, dialog.IsComplete())
 	dialog.ShowWithoutAnimation()

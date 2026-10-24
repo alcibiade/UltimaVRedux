@@ -272,7 +272,7 @@ func (d *CombatLootDialog) prepareText(width, screenWidth, padding int) (int, in
 
 func (d *CombatLootDialog) initializeText(width, screenWidth, padding int) {
 	font, output := GetScaledFontWithOutputForWidth(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: 1,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: 1,
 		MaxLines: lootMaximumTextRows, MaxChars: lootInitialTextChars,
 	}, screenWidth)
 	d.output, d.width = output, width
@@ -323,12 +323,12 @@ func combatSummaryTextHeight(output *text.Output) int {
 func (d *CombatLootDialog) initializeSummaryText(width, screenWidth, padding int) {
 	layout := d.summary
 	_, d.output = GetScaledFontWithOutputForWidth(FontConfig{
-		Size: FontSizeMainScreen, LineSpacing: 0, LineSpacingMultiplier: 1,
+		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: 1,
 		MaxLines: lootMaximumTextRows, MaxChars: lootInitialTextChars,
 	}, screenWidth)
 	layout.footerSource = d.output
 	_, heading := GetScaledFontWithOutputForWidth(FontConfig{
-		Size: FontSizeDialogTitle, LineSpacing: 0, LineSpacingMultiplier: 1,
+		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: 1,
 		MaxLines: lootMaximumTextRows, MaxChars: lootInitialTextChars,
 	}, screenWidth)
 	innerWidth := width - padding*lootSides

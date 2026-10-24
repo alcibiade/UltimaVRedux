@@ -116,7 +116,6 @@ func (g *GameScene) openPlayerSaveBrowserWithState(
 	browser = widgets.NewSaveSlotBrowser(model.views, widgets.SaveSlotBrowserConfig{
 		Title:                    playerSaveBrowserTitle(mode),
 		PrimaryActionLabel:       playerSaveBrowserAction(mode),
-		FontSize:                 defaultOutputFontSize,
 		InitialSelectionID:       model.initialSelectionID,
 		NewestLegend:             model.newestLegend,
 		RequireExplicitSelection: model.requireExplicitSelection,

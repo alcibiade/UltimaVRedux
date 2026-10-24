@@ -269,7 +269,7 @@ func (g *GameScene) initializeResizeableVisualElements() {
 	g.dungeonGraffitiOutput = newDungeonGraffitiOutput(g.ultimaFont)
 
 	_, g.combatDamageOutput = widgets.GetScaledFontWithOutput(widgets.FontConfig{
-		Size:                  widgets.FontSizeXLarge,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 1,
 		MaxLines:              1,

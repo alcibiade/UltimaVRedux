@@ -71,8 +71,6 @@ type SliderConfig struct {
 	// Callback functions (optional)
 	OnValueChanged func(oldValue, newValue int) // Called when value changes
 
-	// Display options
-	FontSize float64 // Font size for label text (default 12)
 }
 
 const (
@@ -80,8 +78,6 @@ const (
 	sliderTrackMargin     = 5 // Pixels of empty margin at each end of the track
 	sliderFocusThickness  = 2 // Pixel width of the focus border
 )
-
-// sliderDefaultFontSize uses FontSizeXSmall (12) from typography system
 
 // normalizeSliderConfig validates the config, logging and correcting bad values, and fills in defaults.
 func normalizeSliderConfig(config SliderConfig) SliderConfig {
@@ -112,11 +108,6 @@ func normalizeSliderConfig(config SliderConfig) SliderConfig {
 		} else {
 			config.InitialValue = config.MaxValue
 		}
-	}
-
-	// Apply safe defaults
-	if config.FontSize <= 0 {
-		config.FontSize = float64(FontSizeXSmall) // Default to 12
 	}
 
 	// Apply default colors if not specified
@@ -170,7 +161,7 @@ func NewSlider(config SliderConfig) *Slider {
 
 	// Initialize display components using centralized typography system
 	widget.font, widget.output = GetScaledFontWithOutput(FontConfig{
-		Size:                  StandardFontSize(config.FontSize),
+		Size:                  FontSizeBody,
 		MaxLines:              1, // Single line for label
 		MaxChars:              sliderMaxCharsPerLine,
 		LineSpacing:           0,

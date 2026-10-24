@@ -112,33 +112,14 @@ func (d *LinearTalkDialog) linearTalkResponseMarkerWidth() int {
 }
 
 func calculateLinearTalkDialogLayout(bounds image.Rectangle) linearTalkDialogLayout {
-	outputFrameRect := percentRect(
-		bounds,
-		borderStartPercentX,
-		borderStartPercentY,
-		borderEndPercentX,
-		talkOutputBorderEndPercentY,
-	)
-	inputFrameRect := percentRect(
-		bounds,
-		borderStartPercentX,
-		talkInputBorderStartPercentY,
-		borderEndPercentX,
-		talkInputBorderEndPercentY,
-	)
-	frameRect := image.Rect(
-		outputFrameRect.Min.X,
-		outputFrameRect.Min.Y,
-		inputFrameRect.Max.X,
-		inputFrameRect.Max.Y,
-	)
+	frameRect := percentRect(bounds, borderStartPercentX, borderStartPercentY, borderEndPercentX, borderEndPercentY)
 	pixelUnit := widgets.ClassicUIPixelUnit(bounds.Dx(), bounds.Dy())
 	continuousTranscriptRect := percentRect(
 		bounds,
 		textRectStartPercentX,
 		borderStartPercentY,
 		borderEndPercentX-percentTextIndentFromBorder,
-		talkInputBorderEndPercentY,
+		borderEndPercentY,
 	)
 	verticalPadding := pixelUnit * linearTalkContentVerticalPaddingUnits
 	continuousTranscriptRect.Min.Y = frameRect.Min.Y + verticalPadding

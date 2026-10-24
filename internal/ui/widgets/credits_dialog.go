@@ -86,12 +86,13 @@ func (d *CreditsDialog) ensureLayout() {
 		StartPercentY: creditsMargin, EndPercentY: 1 - creditsMargin,
 	})
 	font, metrics := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeMainScreen, MaxLines: 1, MaxChars: 1, LineSpacing: 0, LineSpacingMultiplier: creditsLineSpacing,
+		Size: FontSizeBody, MaxLines: 1, MaxChars: 1, LineSpacing: 0, LineSpacingMultiplier: creditsLineSpacing,
 	})
 	d.metrics = metrics
 	spacing := metrics.GetLineSpacing()
 	contentWidth := d.border.GetInteriorBounds().Dx() - creditsSides*creditsPadding
-	d.header = text.NewOutput(font, spacing, 1, len("ACKNOWLEDGMENTS"))
+	d.header = text.NewOutput(GetScaledFont(FontSizeTitle), GetScaledLineHeight(FontSizeTitle)*creditsLineSpacing,
+		1, len("ACKNOWLEDGMENTS"))
 	d.header.AppendLine().Text("ACKNOWLEDGMENTS", DialogHeaderColor).Done()
 	d.header = d.header.WrappedCopyForWidth(contentWidth)
 	d.footer = text.NewOutput(font, spacing, creditsFooterRows, max(1, font.CharsForWidth(contentWidth)))

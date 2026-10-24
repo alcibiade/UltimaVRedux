@@ -19,7 +19,7 @@ func TestInteractionTranscriptRetainsContentAcrossPromptStages(t *testing.T) {
 	dialog.BeginYesNo("Drop a coin?")
 	require.Equal(t, yesNoControlHint, dialog.footerOutput.GetOutputStr(false))
 	yesNoInputX := dialog.textInput.mainTextPlacement.StartPercentX
-	require.Greater(t, dialog.transcriptOutput.GetLineSpacing(), GetScaledLineHeight(FontSizeLarge))
+	require.Greater(t, dialog.transcriptOutput.GetLineSpacing(), GetScaledLineHeight(FontSizeCompact))
 	yesNoInputRect := sprites.GetRectangleFromPercents(dialog.textInput.mainTextPlacement)
 	expectedYesNoRowY := dialog.layout.transcriptRect.Min.Y + int(math.Round(dialog.transcriptOutput.GetLineSpacing()))
 	require.Equal(t, expectedYesNoRowY, yesNoInputRect.Min.Y)

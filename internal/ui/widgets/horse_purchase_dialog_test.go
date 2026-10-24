@@ -28,7 +28,7 @@ func TestHorsePurchaseDialogShowsOnlyHorsePriceAndGoldConsequence(t *testing.T) 
 	assert.Equal(t, "Preview Horse Price: 170 gold Party gold: 500 -> 330", body)
 	assert.NotContains(t, body, "Horse: Horse")
 	assert.Equal(t, "[Enter] Confirm   [Esc] Back", dialog.GetFooterGuidance())
-	assert.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
+	assert.Equal(t, FontSizeBody, dialog.GetFontSize())
 
 	visible := strings.ToLower(strings.Join([]string{title, body, dialog.GetFooterGuidance()}, " "))
 	for _, forbidden := range horseDialogForbiddenDetails() {

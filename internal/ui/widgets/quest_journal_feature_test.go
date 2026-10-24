@@ -118,7 +118,7 @@ func TestQuestJournalLayoutAndCompleteFooterAtAllSizes(t *testing.T) {
 			dossier := testQuestJournalDossier()
 			dossier.Shadowlords[2].DisplayName = "Shadowlord III"
 			dialog := NewQuestJournalDialog(dossier, configuration)
-			require.Equal(t, GetScaledFont(FontSizeDialogTitle).TextFace.Size, dialog.titleOutput.Font.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, dialog.titleOutput.Font.TextFace.Size)
 			for tab, rect := range dialog.layout.tabRects {
 				width, _ := dialog.font.MeasureString(dialog.tabTitle(QuestJournalTab(tab)))
 				require.LessOrEqual(t, width, float64(rect.Dx()))

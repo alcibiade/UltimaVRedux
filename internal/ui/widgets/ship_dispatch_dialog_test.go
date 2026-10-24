@@ -28,7 +28,7 @@ func TestShipDispatchDialogShowsRefreshedDeliveryAndAvailableEscort(t *testing.T
 	require.Equal(t, "[Enter] Return to showroom   [D] Escort",
 		dialog.GetFooterGuidance())
 	require.Equal(t, state, dialog.GetState())
-	require.Equal(t, FontSizeMainScreen, dialog.GetFontSize())
+	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 
 	visible := strings.ToLower(body + " " + dialog.GetFooterGuidance())
 	for _, forbidden := range shipDialogForbiddenDetails() {

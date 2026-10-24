@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/bradhannah/UltimaVRedux/internal/config"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	pkgcolor "github.com/bradhannah/UltimaVRedux/pkg/color"
@@ -19,7 +20,7 @@ func TestCharacterRosterCompactRowMarkers(t *testing.T) {
 	setResponsiveDialogTestResolution(t, 1280, 720)
 	dialog := newCharacterSelectionTestDialog(characterSelectionTestOptions(), func(int) {})
 	shell := dialog.shell
-	shell.ensureLayout(1280, 720, 1)
+	shell.ensureLayout(1280, 720, 1, "")
 	tests := []struct {
 		name     string
 		state    CharacterSelectionState
@@ -52,7 +53,7 @@ func TestCharacterRosterNamesFitBesidePoisonedStatus(t *testing.T) {
 			setResponsiveDialogTestResolution(t, size[0], size[1])
 			dialog := newCharacterSelectionTestDialog(characterSelectionTestOptions(), func(int) {})
 			shell := dialog.shell
-			shell.ensureLayout(size[0], size[1], 1)
+			shell.ensureLayout(size[0], size[1], 1, "")
 			row := shell.layout.rowRects[0]
 			nameRect, statusRect := shell.rosterRowTextRects(row, "Poisoned")
 			statusWidth, _ := shell.bodyFont.MeasureString("Poisoned")
@@ -89,7 +90,7 @@ func TestHealingRosterColumnsFitAndHealthIsDetached(t *testing.T) {
 			options[index].Status = "Poisoned"
 		}
 		dialog := newCharacterSelectionTestDialog(options, func(int) {})
-		dialog.shell.ensureLayout(size[0], size[1], len(options))
+		dialog.shell.ensureLayout(size[0], size[1], len(options), dialog.footer())
 		columns := dialog.shell.healthColumns(dialog.shell.layout.rowRects[0], dialog.options)
 		nameWidth, _ := dialog.shell.bodyFont.MeasureString("> 1 Geoffrey")
 		require.GreaterOrEqual(t, float64(columns[0].Dx()), nameWidth)
@@ -176,5 +177,23 @@ func TestCharacterRosterDrawPreservesStatusColorInBothPanes(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCharacterRosterFooterShowsEveryHintAtSupportedSizes(t *testing.T) {
+	for _, size := range config.SupportedWindowResolutions() {
+		t.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(t *testing.T) {
+			setResponsiveDialogTestResolution(t, size.X, size.Y)
+			dialog := newCharacterSelectionTestDialog(characterSelectionTestOptions(), func(int) {})
+			screen := ebiten.NewImage(size.X, size.Y)
+			defer screen.Deallocate()
+			dialog.Draw(screen)
+			footer := dialog.shell.footerOutput
+			for _, hint := range []string{"Inspect", "Select", "Cancel"} {
+				require.Contains(t, footer.GetOutputStr(false), hint)
+			}
+			content := insetCharacterRosterRect(dialog.shell.layout.footerRect, dialog.shell.layout.padding)
+			require.LessOrEqual(t, footer.GetTotalHeightForLines(footer.GetPanelContentLineCount()), float64(content.Dy()))
+		})
 	}
 }

@@ -236,7 +236,7 @@ func TestSaveDescriptionMeasuredLayoutAtSupportedSizes(t *testing.T) {
 				previousBottom = rect.Max.Y
 			}
 			require.LessOrEqual(t, m.noticeOutput.GetTotalHeightForLines(m.noticeOutput.GetPanelContentLineCount()), float64(rects.notice.Dy()))
-			require.Equal(t, GetScaledFont(FontSizeDialogTitle).TextFace.Size, m.titleOutput.Font.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, m.titleOutput.Font.TextFace.Size)
 			require.Contains(t, strings.Join(strings.Fields(m.noticeOutput.GetOutputStr(false)), " "), m.notice)
 			require.Contains(t, m.hintOutput.GetOutputStr(false), "[Ctrl+U] Clear description")
 			require.Contains(t, m.hintOutput.GetOutputStr(false), "[Enter] Save")

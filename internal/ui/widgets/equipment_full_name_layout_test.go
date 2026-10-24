@@ -80,7 +80,7 @@ func TestArmsFullCatalogRowsFitWithIconsCountsAndScrolling(t *testing.T) {
 			}
 			require.Positive(t, dialog.GetScrollOffset())
 			require.Equal(t, references.TwoHSword, dialog.GetSelectedEquipment())
-			require.Equal(t, GetScaledFont(FontSizeMainScreen).TextFace.Size, dialog.rowFont.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeBody).TextFace.Size, dialog.rowFont.TextFace.Size)
 		})
 	}
 }

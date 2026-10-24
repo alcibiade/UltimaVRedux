@@ -197,14 +197,14 @@ func (d *ConfigurationDialog) layoutIsCurrent(width, height int) bool {
 
 func (d *ConfigurationDialog) initializeLayoutOutputs(width int) {
 	_, d.titleOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeDialogTitle,
+		Size:                  widgets.FontSizeTitle,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,
 		MaxChars:              1,
 	}, width)
 	_, d.tabOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,
@@ -217,42 +217,42 @@ func (d *ConfigurationDialog) initializeLayoutOutputs(width int) {
 		gameplayLines = max(gameplayLines, len([]rune(setting.label)))
 	}
 	_, d.gameplayOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              gameplayLines,
 		MaxChars:              1,
 	}, width)
 	_, d.detailOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              audioSettingsDetailLines,
 		MaxChars:              1,
 	}, width)
 	_, d.labelOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,
 		MaxChars:              1,
 	}, width)
 	_, d.valueOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              1,
 		MaxChars:              1,
 	}, width)
 	_, d.presetOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              audioSettingsDisplayPresetLines,
 		MaxChars:              1,
 	}, width)
 	_, d.footerOutput = widgets.GetScaledFontWithOutputForWidth(widgets.FontConfig{
-		Size:                  widgets.FontSizeMainScreen,
+		Size:                  widgets.FontSizeBody,
 		LineSpacing:           0,
 		LineSpacingMultiplier: 0,
 		MaxLines:              audioSettingsFooterLines,

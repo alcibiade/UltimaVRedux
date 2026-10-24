@@ -66,13 +66,13 @@ func TestProvisionTypographyIsIndependentOfMapViewport(t *testing.T) {
 	const screenWidth = 1280
 	for _, width := range []int{1280, 960, 563} {
 		panel.Update(rows, image.Rect(0, 0, width, 720), screenWidth)
-		assert.InDelta(t, float64(widgets.FontSizeMainScreen)*screenWidth/1920, panel.header.Font.TextFace.Size, 0.001)
+		assert.InDelta(t, float64(widgets.FontSizeBody)*screenWidth/1920, panel.header.Font.TextFace.Size, 0.001)
 		assert.Equal(t, panel.header.Font.TextFace.Size, panel.foodDetails.Font.TextFace.Size)
-		assert.InDelta(t, float64(widgets.FontSizeDialogTitle)*screenWidth/1920, panel.foodHeading.Font.TextFace.Size, 0.001)
+		assert.InDelta(t, float64(widgets.FontSizeTitle)*screenWidth/1920, panel.foodHeading.Font.TextFace.Size, 0.001)
 		assert.True(t, panel.bounds.In(image.Rect(0, 0, width, 720)))
 	}
 	panel.Update(rows, image.Rect(0, 0, 960, 720), 1920)
-	assert.Equal(t, float64(widgets.FontSizeMainScreen), panel.header.Font.TextFace.Size)
+	assert.Equal(t, float64(widgets.FontSizeBody), panel.header.Font.TextFace.Size)
 }
 
 func TestProvisionTypographyRebuildsOnlyForLogicalWidthChange(t *testing.T) {
@@ -94,7 +94,7 @@ func TestProvisionTypographyRebuildsOnlyForLogicalWidthChange(t *testing.T) {
 	assert.NotSame(t, header, panel.header)
 	assert.NotSame(t, heading, panel.foodHeading)
 	assert.NotSame(t, details, panel.foodDetails)
-	assert.InDelta(t, float64(widgets.FontSizeMainScreen)*1788/1920, panel.header.Font.TextFace.Size, 0.001)
+	assert.InDelta(t, float64(widgets.FontSizeBody)*1788/1920, panel.header.Font.TextFace.Size, 0.001)
 }
 
 func TestActualFoodLossUsesProminentHeadingAndPreservesGrossGains(t *testing.T) {
