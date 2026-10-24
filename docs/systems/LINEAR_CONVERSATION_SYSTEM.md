@@ -294,16 +294,20 @@ transcript row; it does not acquire a separate input box.
 
 Keyboard hints occupy a connected footer below the transcript, separated by one
 classic frame rule. The footer uses the conversation font and line spacing,
-shared white key/grey description styling, and a stable two-line capacity.
+and shared white key/grey description styling. It keeps one row across input,
+waits and capture confirmation, so inline input never moves when a hint changes;
+history review and capture failures take a second row from the transcript.
 The card spans the map's width and starts below the Avatar and the tile beneath
 it, so the speaker stays visible; it ends just inside the map frame. The footer
 takes its rows from the bottom of the card.
-`Tab` keeps an excerpt and `Shift+J` opens Journal. During a wait, the footer
-advertises Space to continue or close. Successful capture briefly changes the
-Tab label to `Excerpt kept`; this expires after three seconds of scene elapsed
-time without entering speech/history or changing inline input. Failures retain
-a bounded readable status and Retry hint. The interest placeholder lists topic
-suggestions (`name, job, bye`); controls belong to the footer.
+`Tab` keeps an excerpt and `Shift+J` opens Journal. The footer does not list
+History, which keeps the hints to one row; command help lists Page Up. During a
+wait, the footer advertises Space to continue or close. Successful capture
+briefly changes the Tab label to `Excerpt kept`; this expires after three
+seconds of scene elapsed time without entering speech/history or changing
+inline input. Failures retain a bounded readable status and Retry hint. The
+interest placeholder lists topic suggestions (`name, job, bye`); controls
+belong to the footer.
 
 `REDUX DEVIATION:` Original wait control `0x8F` waits silently
 ([TALK-0003](../gamefacts/TALK_SYSTEM_STRUCTURE.md#talk-0003)). Redux shows

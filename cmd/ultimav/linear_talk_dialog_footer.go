@@ -15,13 +15,11 @@ const (
 )
 
 // Take the footer from the bottom of the card, beneath the continuous transcript.
-// Keep its height fixed across input, key waits, history and capture
-// confirmation so inline typing never jumps when a hint changes. The card stays
-// inside the map frame, so the transcript yields the footer's rows.
+// The card stays inside the map frame, so the transcript yields the footer's rows.
 func (d *LinearTalkDialog) layoutWithFooter(bounds image.Rectangle) linearTalkDialogLayout {
 	layout := calculateLinearTalkDialogLayout(bounds)
 	padding := layout.pixelUnit * talkFooterPaddingUnits
-	height := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(talkFooterLines))) + padding*2 + layout.pixelUnit
+	height := int(math.Ceil(d.footerOutput.GetTotalHeightForLines(d.footerLines()))) + padding*2 + layout.pixelUnit
 	transcriptBottom := layout.frameRect.Max.Y - height
 	layout.continuousTranscriptRect.Max.Y = transcriptBottom - layout.pixelUnit*linearTalkContentVerticalPaddingUnits
 	layout.footerDividerY = transcriptBottom - layout.pixelUnit
@@ -31,6 +29,22 @@ func (d *LinearTalkDialog) layoutWithFooter(bounds image.Rectangle) linearTalkDi
 	return layout
 }
 
+// footerLines keeps one row across input, key waits and capture confirmation,
+// so inline typing never jumps when a hint changes. History review and capture
+// failures need a second row and take it from the transcript.
+func (d *LinearTalkDialog) footerLines() int {
+	if d.historyPanel != nil || d.excerptFailed() {
+		return talkFooterLines
+	}
+
+	return 1
+}
+
+// excerptFailed reports a retained capture failure, which offers Retry.
+func (d *LinearTalkDialog) excerptFailed() bool {
+	return d.excerptNotice != "" && d.excerptNotice != "Excerpt kept"
+}
+
 func (d *LinearTalkDialog) conversationFooterGuidance(width int) string {
 	acknowledge := ""
 	if d.historyPanel == nil && d.waitingForKeypressContinue {
@@ -38,7 +52,7 @@ func (d *LinearTalkDialog) conversationFooterGuidance(width int) string {
 	} else if d.historyPanel == nil && d.waitingForDismissal {
 		acknowledge = "[Space] Close   "
 	}
-	if d.excerptNotice != "" && d.excerptNotice != "Excerpt kept" {
+	if d.excerptFailed() {
 		// Keep the failure's prefix readable without allowing an OS path or other
 		// long diagnostic to overflow the frame. Retry retains the interaction.
 		notice := widgets.FitDialogLine(d.excerptNotice, d.footerOutput.Font, width)
@@ -53,7 +67,8 @@ func (d *LinearTalkDialog) conversationFooterGuidance(width int) string {
 		return "[Up/Down] Exchange   [Shift+Up/Down/PgUp/PgDn] Read   " + keep + "   [Esc] Back"
 	}
 
-	return acknowledge + keep + "   [Shift+Up/PgUp] History   [Shift+J] Journal"
+	// History is left out so these hints fit one row; command help lists PgUp.
+	return acknowledge + keep + "   [Shift+J] Journal"
 }
 
 func (d *LinearTalkDialog) drawConversationFooter(screen *ebiten.Image, layout linearTalkDialogLayout) {
