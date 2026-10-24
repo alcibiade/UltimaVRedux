@@ -138,7 +138,7 @@ func TestFountainFramesAndStrongestFireRetainLiveVoices(t *testing.T) {
 	plans, err := manager.planner.Sources(references.Position{}, tiles, nil)
 	require.NoError(t, err)
 	require.Len(t, plans, 1)
-	require.InDelta(t, 0.8*AmbientDistanceGain(4, 8), plans[0].Gain, 1e-9)
+	require.InDelta(t, 0.8*0.75, plans[0].Gain, 1e-9, "4 of 8 tiles: 1 - (4/8)^2")
 	count := len(backend.players)
 	manager.UpdateAmbientSoundsWithDynamicSources(references.Position{}, tiles[:1], nil)
 	require.Len(t, backend.players, count, "strongest static source changes gain, not voice identity")
@@ -176,7 +176,8 @@ func TestLighthouseSharesTileVoiceAcrossMovementFloorAndExit(t *testing.T) {
 	manager.UpdateAmbientSoundsWithDynamicSources(outside, tiles, nil)
 	manager.Update()
 	require.Len(t, backend.players, 1)
-	require.InDelta(t, definition.BaseVolume*AmbientDistanceGain(5, 10), manager.ambience.Snapshot().Sources[0].Voice.Gain, 1e-9)
+	require.InDelta(t, definition.BaseVolume*0.75, manager.ambience.Snapshot().Sources[0].Voice.Gain, 1e-9,
+		"5 of 10 tiles: 1 - (5/10)^2")
 	outside.X += 6
 	manager.UpdateAmbientSoundsWithDynamicSources(outside, tiles, nil)
 	*now = now.Add(definition.FadeOutTime)

@@ -138,9 +138,13 @@ func TestReduxLighthouseAndProjectedDynamicIdentityRemainGameOwned(t *testing.T)
 	if err != nil || bed[0].ID != "background/"+string(gameaudio.AmbientFire) || bed[0].Gain != 1 {
 		t.Fatal(bed, err)
 	}
-	for _, distance := range []float64{0, 1, 2, 4, 8, 9} {
-		if gameaudio.AmbientDistanceGain(distance, 8) != audio.QuadraticDistanceGain(distance, 8) {
-			t.Fatal("attenuation changed", distance)
+	// Redux's ambient profile: full within one tile, 1 - (distance/radius)^2 beyond,
+	// silent at the radius, and a radius of 0 is a non-spatial bed.
+	for _, item := range []struct{ distance, radius, want float64 }{
+		{0, 8, 1}, {1, 8, 1}, {2, 8, 0.9375}, {4, 8, 0.75}, {8, 8, 0}, {9, 8, 0}, {5, 10, 0.75}, {100, 0, 1},
+	} {
+		if got := audio.QuadraticDistanceGain(item.distance, item.radius); got != item.want {
+			t.Fatal("attenuation changed", item, got)
 		}
 	}
 }
