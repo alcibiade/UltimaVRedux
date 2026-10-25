@@ -65,12 +65,12 @@ func (catalog *Catalog) addMusicMoments() {
 		catalog.Moments = append(catalog.Moments, moment)
 	}
 	for _, world := range []string{"overworld", "underworld"} {
-		cue := resolveAudioAssignment(productionLibrary().Routing.Music, "world/"+world)
+		cue := resolveAudioAssignment(productionLibrary().Routing.Groups[routingGroupMusic], "world/"+world)
 		moment := catalog.musicMoment("music/world/"+world, world, strings.TrimPrefix(cue, "music/track/"))
 		moment.SourceSymbols = []string{sceneSoundscapeSymbol}
 		catalog.Moments = append(catalog.Moments, moment)
 	}
-	if cue := productionLibrary().Routing.Naval["sailing"]; cue != nil {
+	if cue := productionLibrary().Routing.Groups[routingGroupNaval]["sailing"]; cue != nil {
 		moment := catalog.musicMoment("music/naval/sailing", "Sailing", strings.TrimPrefix(*cue, "music/track/"))
 		moment.SourceSymbols = []string{sceneSoundscapeSymbol}
 		moment.Playback = "once per sail-hoist; fade on furling; combat takes precedence"
@@ -128,7 +128,7 @@ func (catalog *Catalog) addAmbientMoments() {
 	}
 	for target, name := range DungeonTargets() {
 		moment := newCatalogMoment("ambient/dungeon/"+target, name+" background", catalogAmbience)
-		cue := resolveAudioAssignment(productionLibrary().Routing.Dungeon, target)
+		cue := resolveAudioAssignment(productionLibrary().Routing.Groups[routingGroupDungeon], target)
 		moment.SourceSymbols = []string{"DungeonAmbientSource"}
 		moment.Playback = "non-spatial persistent loop; retained through dungeon room transitions"
 		if cue == "" {
@@ -143,7 +143,7 @@ func (catalog *Catalog) addAmbientMoments() {
 		moment := newCatalogMoment("ambient/naval/"+vessel, NavalTargets()[vessel], catalogAmbience)
 		moment.SourceSymbols = []string{"NavalAmbientSource"}
 		moment.Playback = "persistent non-spatial loop while aboard"
-		if cue := productionLibrary().Routing.Naval[vessel]; cue != nil {
+		if cue := productionLibrary().Routing.Groups[routingGroupNaval][vessel]; cue != nil {
 			catalog.assignCue(&moment, *cue)
 		} else {
 			moment.Availability, moment.Note = catalogSilent, "No onboard ambient sound assigned yet."

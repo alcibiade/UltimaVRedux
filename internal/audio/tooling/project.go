@@ -3,7 +3,6 @@
 package tooling
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -25,18 +24,7 @@ const newAmbientGain = 0.3
 // No embedded assets are selected: the editable manifest is explicitly disk-backed.
 func OpenAuthoringEditor(path string) (*authoring.LibraryEditor, error) {
 	options := authoring.DefaultEditorOptions(ebitengine.Decode)
-	options.Validate = func(document authoring.LibraryDocument) error {
-		var game gameaudio.LibraryDocument
-		data, err := json.Marshal(document)
-		if err != nil {
-			return fmt.Errorf("encode authoring metadata: %w", err)
-		}
-		if err := json.Unmarshal(data, &game); err != nil {
-			return fmt.Errorf("adapt authoring document: %w", err)
-		}
-
-		return gameaudio.ReduxLibraryValidator(game)
-	}
+	options.Validate = gameaudio.ReduxLibraryValidator
 	options.Calibration = func(family string) authoring.CalibrationOptions {
 		value := authoring.DefaultCalibrationOptions()
 		value.TargetDB = gameaudio.DefaultCalibrationTarget(family)
@@ -59,12 +47,7 @@ func OpenAuthoringEditor(path string) (*authoring.LibraryEditor, error) {
 
 		return directory + "/" + identity + "_" + fingerprint[:12] + strings.ToLower(filepath.Ext(source)), nil
 	}
-	tiles := gameaudio.TileTargets()
-	targets := make([]authoring.TileTarget, 0, len(tiles))
-	for _, tile := range tiles {
-		targets = append(targets, authoring.TileTarget{ID: tile.ID, Name: tile.Name, Frames: tile.Frames})
-	}
-	options.Targets = authoring.AuthoringTargets{Tiles: targets, Families: gameaudio.AcousticFamilies(),
+	options.Targets = authoring.AuthoringTargets{Tiles: gameaudio.TileTargets(), Families: gameaudio.AcousticFamilies(),
 		Groups: map[string]authoring.AssignmentGroup{
 			categoryMusic: {Label: "Music", Targets: gameaudio.MusicTargets(),
 				DefaultTarget: "default", Category: categoryMusic},

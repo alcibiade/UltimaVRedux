@@ -9,7 +9,7 @@ func dungeonAmbientSource(library *Library, definitions map[AmbientSoundType]Amb
 	location references.Location, listener references.Position,
 ) (AmbientSoundSource, bool) {
 	// TODO(audio): Supply cave/brick recordings; loop through floors/combat, fade on exit.
-	cue := AmbientSoundType(library.document.Routing.dungeonCue(location))
+	cue := AmbientSoundType(dungeonCue(library.document.Routing, location))
 	if cue == "" {
 		return AmbientSoundSource{}, false //nolint:exhaustruct // Explicit or inherited silence.
 	}
@@ -28,7 +28,7 @@ func navalAmbientSource(
 	if vessel != NavalFrigate && vessel != NavalSkiff {
 		return AmbientSoundSource{}, false //nolint:exhaustruct // No supported boarded vessel.
 	}
-	cue := routing.Naval[vessel]
+	cue := routing.Groups[routingGroupNaval][vessel]
 	if cue == nil {
 		return AmbientSoundSource{}, false //nolint:exhaustruct // Authored silence.
 	}

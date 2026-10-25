@@ -1213,15 +1213,7 @@ func (d *ArmsShopDialog) modeTabColors() (stdcolor.Color, stdcolor.Color) {
 }
 
 func (d *ArmsShopDialog) syncPresentation() {
-	d.shell.Refresh(
-		MerchantDialogHeaderView{
-			ShopIdentity: d.state.Merchant.ShopName,
-			Owner:        d.state.Merchant.OwnerName,
-			PartyGold:    strconv.FormatUint(uint64(d.state.Gold), 10),
-		},
-		MerchantDialogExchangeView{Text: d.latestExchange},
-		MerchantDialogFooterView{Guidance: d.footerGuidance()},
-	)
+	d.shell.RefreshShop(d.state.Merchant, d.state.Gold, d.latestExchange, d.footerGuidance())
 	d.populateWorkspaceOutput()
 }
 

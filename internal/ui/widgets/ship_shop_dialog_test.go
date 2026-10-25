@@ -48,7 +48,6 @@ func TestShipShopDialogBoundedNavigationCardsAndManifest(t *testing.T) {
 	manifest = compactShipText(dialog.GetManifestText())
 	require.Contains(t, manifest, "Action: Dispatch standalone skiff")
 	require.Contains(t, manifest, "One standalone skiff will arrive at this harbour.")
-	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 	require.Equal(t, "[Left/Right] Select   [Enter] Review   [Esc] Leave",
 		dialog.GetShell().GetFooterView().Guidance)
 

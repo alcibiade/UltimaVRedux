@@ -76,7 +76,7 @@ func (manager *GameAudioManager) voiceDescription(lane, identity string, cueID b
 	return PlaybackVoice{ID: identity, Lane: lane, CueID: string(cueID), RecordingID: string(recordingID),
 		Asset: manager.library.recordingPath(string(recordingID)), State: string(state), Loop: loop, PositionMs: 0,
 		Window: cloneAudioValue(recording.PlaybackWindow), Failure: "",
-		Gain: GainBreakdown{Recording: manager.library.document.recordingCalibration(string(recordingID)),
+		Gain: GainBreakdown{Recording: recordingCalibration(manager.library.document, string(recordingID)),
 			Cue:     manager.library.document.Cues[string(cueID)].VolumeModifier,
 			Request: 1, Distance: 1, Modifier: 1, Category: 1, Envelope: 1, Effective: 0}}
 }

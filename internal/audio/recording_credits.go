@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// provenanceUnknown is the authored placeholder for an unrecorded provenance fact.
+const provenanceUnknown = "unknown"
+
 // RecordingCredit is a detached metadata-only credit, independent of playback,
 // cue multiplicity, calibration, diagnostic catalog scans, and audio decoding.
 type RecordingCredit struct {
@@ -20,7 +23,7 @@ func RecordingCredits() []RecordingCredit {
 	return recordingCredits(productionLibrary())
 }
 
-func recordingCredits(library *audioLibrary) []RecordingCredit {
+func recordingCredits(library *LibraryDocument) []RecordingCredit {
 	ids := make([]string, 0, len(library.Recordings))
 	for id, recording := range library.Recordings {
 		if recording.File != nil {

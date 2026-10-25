@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
 )
 
 func TestMonsterSignatureCuesResolveToSilentCombatSlots(t *testing.T) {
@@ -35,13 +36,13 @@ func TestMonsterSignatureCuesResolveToSilentCombatSlots(t *testing.T) {
 			recording, exists := library.Recordings[test.recording]
 			require.True(t, exists)
 			require.Nil(t, recording.File)
-			require.Empty(t, library.recordingPath(test.recording))
+			require.Empty(t, assetRecordingPath(library, test.recording))
 			require.True(t, isPlaceholderSound(test.effect))
 
-			require.Equal(t, test.family, library.Taxonomy.recordingFamily(test.recording))
-			profile, exists := library.Taxonomy.Profiles[library.Taxonomy.cueProfile(test.cue)]
+			require.Equal(t, test.family, recordingFamily(library.Taxonomy, test.recording))
+			profile, exists := library.Taxonomy.Profiles[cueProfile(library.Taxonomy, test.cue)]
 			require.True(t, exists)
-			require.Equal(t, CueClassification{
+			require.Equal(t, authoring.CueClassification{
 				TargetAcousticFamily: test.family,
 				Phase:                test.phase,
 				Outcome:              test.outcome,

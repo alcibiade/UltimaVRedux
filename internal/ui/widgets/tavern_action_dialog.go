@@ -96,27 +96,13 @@ func NewTavernActionDialog(config TavernActionDialogConfig) *TavernActionDialog 
 }
 
 // Draw renders the opaque semantic Tavern approval modal.
-//
-//nolint:dupl // Merchant approval dialogs intentionally share the established modal rendering shape.
 func (d *TavernActionDialog) Draw(screen *ebiten.Image) {
 	if screen == nil || !d.IsVisible() {
 		return
 	}
 	d.ensureLayout()
 	d.frame.draw(screen)
-	d.headerOutput.DrawPanelContent(
-		screen,
-		image.Pt(d.frame.headerText.Min.X, verticallyCenteredOutputY(d.frame.headerText, d.headerOutput)),
-		d.frame.headerText.Dx(),
-		etext.AlignCenter,
-	)
-	d.bodyOutput.DrawPanelContent(screen, d.frame.bodyText.Min, d.frame.bodyText.Dx(), etext.AlignStart)
-	d.footerOutput.DrawPanelContent(
-		screen,
-		image.Pt(d.frame.footerText.Min.X, verticallyCenteredOutputY(d.frame.footerText, d.footerOutput)),
-		d.frame.footerText.Dx(),
-		etext.AlignCenter,
-	)
+	d.frame.drawOutputs(screen, d.headerOutput, d.bodyOutput, d.footerOutput)
 }
 
 // Update confirms one normal action, chooses warned Stop/Continue, or cancels.
@@ -256,37 +242,14 @@ func (d *TavernActionDialog) cancel() {
 	d.Dismiss()
 }
 
-//nolint:dupl // Keep Tavern-specific font budgets and output population with its approval layout.
 func (d *TavernActionDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return
 	}
-	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
-		MaxLines: 1, MaxChars: tavernActionMinimumTextChars,
+	d.headerOutput, d.bodyOutput, d.footerOutput = d.frame.newOutputs(merchantModalTextBudget{
+		lineSpacing: tavernActionLineSpacing, maximumBodyLines: tavernActionMaximumBodyLines,
+		footerLines: tavernActionFooterLines, minimumChars: tavernActionMinimumTextChars, fixedBody: false,
 	})
-	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
-		MaxLines: tavernActionMaximumBodyLines, MaxChars: tavernActionMinimumTextChars,
-	})
-	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernActionLineSpacing,
-		MaxLines: tavernActionFooterLines, MaxChars: tavernActionMinimumTextChars,
-	})
-	d.headerOutput.SetMaxCharsPerLine(max(
-		tavernActionMinimumTextChars,
-		d.headerOutput.Font.CharsForWidth(max(1, d.frame.headerText.Dx())),
-	))
-	d.bodyOutput = text.NewOutput(
-		bodyFont,
-		bodyOutput.GetLineSpacing(),
-		max(1, bodyOutput.GetLineCapacity(max(1, d.frame.bodyText.Dy()))),
-		max(tavernActionMinimumTextChars, bodyFont.CharsForWidth(max(1, d.frame.bodyText.Dx()))),
-	)
-	d.footerOutput.SetMaxCharsPerLine(max(
-		tavernActionMinimumTextChars,
-		d.footerOutput.Font.CharsForWidth(max(1, d.frame.footerText.Dx())),
-	))
 	d.populateOutputs()
 }
 

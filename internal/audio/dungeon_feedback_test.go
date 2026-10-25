@@ -16,11 +16,11 @@ func TestDungeonFeedbackCuesResolveToIntentionalSilentSlots(t *testing.T) {
 	for _, test := range []struct {
 		effect                  game_state.SoundEffect
 		symbol, name, recording string
-		classification          CueClassification
+		classification          authoring.CueClassification
 	}{
 		{
 			effect: game_state.SoundDispel, symbol: "SoundDispel", name: "Dispel Field", recording: "field_dispel_01",
-			classification: CueClassification{
+			classification: authoring.CueClassification{
 				TargetAcousticFamily: "magic", Phase: "resolution", Outcome: "success",
 				MixRole: "foreground_feedback", Emitters: []string{"player"},
 				Contexts: []string{"combat", "exploration", "interaction", "spellcasting"},
@@ -29,7 +29,7 @@ func TestDungeonFeedbackCuesResolveToIntentionalSilentSlots(t *testing.T) {
 		{
 			effect: game_state.SoundElectricalDamage, symbol: "SoundElectricalDamage",
 			name: "Electrical Injury", recording: "electrical_injury_01",
-			classification: CueClassification{
+			classification: authoring.CueClassification{
 				TargetAcousticFamily: "impact", Phase: "impact", Outcome: "harm",
 				MixRole: "foreground_feedback", Emitters: []string{"environment"}, Contexts: []string{"exploration"},
 			},
@@ -53,10 +53,10 @@ func TestDungeonFeedbackCuesResolveToIntentionalSilentSlots(t *testing.T) {
 			require.Nil(t, recording.CalibrationTargetDB)
 			require.Empty(t, recording.CalibrationPolicy)
 			require.Equal(t, unknownRecordingProvenance(), recording.Provenance)
-			require.Empty(t, library.recordingPath(test.recording))
+			require.Empty(t, assetRecordingPath(library, test.recording))
 			require.True(t, isPlaceholderSound(test.effect))
-			require.Equal(t, test.classification.TargetAcousticFamily, library.Taxonomy.recordingFamily(test.recording))
-			profile := library.Taxonomy.Profiles[library.Taxonomy.cueProfile(cueID)]
+			require.Equal(t, test.classification.TargetAcousticFamily, recordingFamily(library.Taxonomy, test.recording))
+			profile := library.Taxonomy.Profiles[cueProfile(library.Taxonomy, cueID)]
 			require.Equal(t, test.classification, profile)
 			// No device is needed: intentional silence resolves before backend
 			// preparation, voice creation or variant/instance advancement.
@@ -80,10 +80,10 @@ func TestDispelSlotPreservesAbsorbHealingRecording(t *testing.T) {
 	recording := library.Recordings[metadata.RecordingID]
 	require.NotNil(t, recording.File)
 	require.NotNil(t, recording.CalibrationGainDB)
-	require.Equal(t, CalibrationManual, recording.CalibrationPolicy)
+	require.Equal(t, authoring.CalibrationManual, recording.CalibrationPolicy)
 	require.NotEqual(t, "unknown", recording.Provenance.License)
 	require.False(t, isPlaceholderSound(game_state.SoundAbsorb))
-	clip, err := authoring.LoadRecordingContext(context.Background(), library.recordingPath(metadata.RecordingID), ebitengine.Decode)
+	clip, err := authoring.LoadRecordingContext(context.Background(), assetRecordingPath(library, metadata.RecordingID), ebitengine.Decode)
 	require.NoError(t, err)
 	_, err = clip.SuggestCalibration(recording.PlaybackWindow, authoring.DefaultCalibrationOptions())
 	require.NoError(t, err, "Absorb retains a decodable, non-silent recording")

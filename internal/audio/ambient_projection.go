@@ -69,7 +69,7 @@ func (planner *AmbientPlanner) Sources(listener references.Position,
 		if _, ambient := planner.definitions[definition.SoundType]; !exists || !ambient {
 			return nil, fmt.Errorf("%w: ambient source %s has no ambient cue", ErrAudioLibrary, sourceID)
 		}
-		authored := cue.VolumeModifier * planner.library.document.recordingCalibration(cue.RecordingID)
+		authored := cue.VolumeModifier * recordingCalibration(planner.library.document, cue.RecordingID)
 		sourceGain := 0.0
 		if authored > 0 {
 			sourceGain = definition.BaseVolume / authored

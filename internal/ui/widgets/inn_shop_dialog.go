@@ -906,7 +906,7 @@ func (d *InnShopDialog) configureDetailOutput(inset int) {
 }
 
 func (d *InnShopDialog) drawRestCard(screen *ebiten.Image) {
-	d.drawCardFrame(screen, d.cardBounds)
+	drawMerchantPane(screen, d.cardBounds, d.pixelUnit())
 	d.detailOutput.DrawPanelContent(
 		screen,
 		d.detailText.Min,
@@ -916,7 +916,7 @@ func (d *InnShopDialog) drawRestCard(screen *ebiten.Image) {
 }
 
 func (d *InnShopDialog) drawRosterTable(screen *ebiten.Image) {
-	d.drawCardFrame(screen, d.tableBounds)
+	drawMerchantPane(screen, d.tableBounds, d.pixelUnit())
 	headings := []string{innShopColumnName, innShopColumnStatus, "ELIGIBILITY"}
 	if d.mode == InnShopPickup {
 		headings = []string{innShopColumnName, innShopColumnStatus, "MONTHS", "CHARGE"}
@@ -964,23 +964,13 @@ func (d *InnShopDialog) drawRosterTable(screen *ebiten.Image) {
 }
 
 func (d *InnShopDialog) drawDetailCard(screen *ebiten.Image) {
-	d.drawCardFrame(screen, d.detailBounds)
+	drawMerchantPane(screen, d.detailBounds, d.pixelUnit())
 	d.detailOutput.DrawPanelContent(
 		screen,
 		d.detailText.Min,
 		max(1, d.detailText.Dx()),
 		etext.AlignStart,
 	)
-}
-
-func (d *InnShopDialog) drawCardFrame(screen *ebiten.Image, bounds image.Rectangle) {
-	vector.FillRect(
-		screen,
-		float32(bounds.Min.X), float32(bounds.Min.Y),
-		float32(bounds.Dx()), float32(bounds.Dy()),
-		MerchantDialogBackgroundColor, false,
-	)
-	DrawClassicPixelRoundedFrame(screen, bounds, d.pixelUnit(), DialogRuleLightColor)
 }
 
 func (d *InnShopDialog) drawCell(
@@ -1184,15 +1174,7 @@ func (d *InnShopDialog) modeTabColors() [innShopModeCount]stdcolor.Color {
 }
 
 func (d *InnShopDialog) syncPresentation() {
-	d.shell.Refresh(
-		MerchantDialogHeaderView{
-			ShopIdentity: d.state.Merchant.ShopName,
-			Owner:        d.state.Merchant.OwnerName,
-			PartyGold:    strconv.FormatUint(uint64(d.state.Gold), 10),
-		},
-		MerchantDialogExchangeView{Text: d.latestExchange},
-		MerchantDialogFooterView{Guidance: d.footerGuidance()},
-	)
+	d.shell.RefreshShop(d.state.Merchant, d.state.Gold, d.latestExchange, d.footerGuidance())
 	d.populateOutputs()
 }
 

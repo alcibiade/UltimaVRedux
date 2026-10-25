@@ -6,6 +6,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
@@ -115,16 +116,18 @@ func (f *merchantModalFrame) draw(screen *ebiten.Image) {
 }
 
 // merchantModalTextBudget sets the line spacing and line/character limits of
-// a merchant modal's header, body and footer outputs.
+// a merchant modal's header, body and footer outputs. A fixed body keeps
+// maximumBodyLines rather than the number of lines its area fits.
 type merchantModalTextBudget struct {
 	lineSpacing      float64
 	maximumBodyLines int
 	footerLines      int
 	minimumChars     int
+	fixedBody        bool
 }
 
 // newOutputs creates header, body and footer outputs sized to the frame's text
-// areas; the body holds as many lines as its area fits.
+// areas; unless fixed, the body holds as many lines as its area fits.
 func (f *merchantModalFrame) newOutputs(budget merchantModalTextBudget) (*gametext.Output, *gametext.Output,
 	*gametext.Output,
 ) {
@@ -142,8 +145,11 @@ func (f *merchantModalFrame) newOutputs(budget merchantModalTextBudget) (*gamete
 	})
 	headerOutput.SetMaxCharsPerLine(max(budget.minimumChars,
 		headerOutput.Font.CharsForWidth(max(1, f.headerText.Dx()))))
-	bodyOutput = gametext.NewOutput(bodyFont, bodyOutput.GetLineSpacing(),
-		max(1, bodyOutput.GetLineCapacity(max(1, f.bodyText.Dy()))),
+	bodyLines := max(1, bodyOutput.GetLineCapacity(max(1, f.bodyText.Dy())))
+	if budget.fixedBody {
+		bodyLines = budget.maximumBodyLines
+	}
+	bodyOutput = gametext.NewOutput(bodyFont, bodyOutput.GetLineSpacing(), bodyLines,
 		max(budget.minimumChars, bodyFont.CharsForWidth(max(1, f.bodyText.Dx()))))
 	footerOutput.SetMaxCharsPerLine(max(budget.minimumChars,
 		footerOutput.Font.CharsForWidth(max(1, f.footerText.Dx()))))
@@ -166,6 +172,13 @@ func (f *merchantModalFrame) drawOutputs(screen *ebiten.Image, header, body, foo
 		f.footerText.Dx(),
 		etext.AlignCenter,
 	)
+}
+
+// drawMerchantPane fills a shop pane with the merchant background and draws its light frame.
+func drawMerchantPane(screen *ebiten.Image, bounds image.Rectangle, pixelUnit int) {
+	vector.FillRect(screen, float32(bounds.Min.X), float32(bounds.Min.Y), float32(bounds.Dx()), float32(bounds.Dy()),
+		MerchantDialogBackgroundColor, false)
+	DrawClassicPixelRoundedFrame(screen, bounds, pixelUnit, DialogRuleLightColor)
 }
 
 func (f *merchantModalFrame) bounds() image.Rectangle {

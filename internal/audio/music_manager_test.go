@@ -27,7 +27,7 @@ func TestAuthoredLocationMusic(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
-			track := productionLibrary().Routing.musicFor(test.location, references.FloorNumber(references.OVERWORLD))
+			track := musicFor(productionLibrary().Routing, test.location, references.FloorNumber(references.OVERWORLD))
 			assert.Equal(t, test.expectedTrack, track, test.description)
 		})
 	}

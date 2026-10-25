@@ -164,32 +164,10 @@ func (d *InnActionDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return
 	}
-	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
-		MaxLines: 1, MaxChars: innActionMinimumTextChars,
+	d.headerOutput, d.bodyOutput, d.footerOutput = d.frame.newOutputs(merchantModalTextBudget{
+		lineSpacing: innActionLineSpacing, maximumBodyLines: innActionMaximumBodyLines,
+		footerLines: innActionFooterLines, minimumChars: innActionMinimumTextChars, fixedBody: true,
 	})
-	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
-		MaxLines: innActionMaximumBodyLines, MaxChars: innActionMinimumTextChars,
-	})
-	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: innActionLineSpacing,
-		MaxLines: innActionFooterLines, MaxChars: innActionMinimumTextChars,
-	})
-	d.headerOutput.SetMaxCharsPerLine(max(
-		innActionMinimumTextChars,
-		d.headerOutput.Font.CharsForWidth(max(1, d.frame.headerText.Dx())),
-	))
-	d.bodyOutput = text.NewOutput(
-		bodyFont,
-		bodyOutput.GetLineSpacing(),
-		innActionMaximumBodyLines,
-		max(innActionMinimumTextChars, bodyFont.CharsForWidth(max(1, d.frame.bodyText.Dx()))),
-	)
-	d.footerOutput.SetMaxCharsPerLine(max(
-		innActionMinimumTextChars,
-		d.footerOutput.Font.CharsForWidth(max(1, d.frame.footerText.Dx())),
-	))
 	d.populateOutputs()
 }
 

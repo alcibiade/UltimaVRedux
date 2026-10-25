@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -12,6 +13,7 @@ import (
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
+	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
@@ -152,6 +154,21 @@ func (s *MerchantDialogShell) Refresh(
 	s.exchange = exchange
 	s.footer = footer
 	s.populateOutputs()
+}
+
+// RefreshShop shows a shop's name and owner, the party's gold, the latest
+// exchange and the footer guidance.
+func (s *MerchantDialogShell) RefreshShop(
+	merchant references.MerchantDefinition, gold uint16, exchange, guidance string,
+) {
+	s.Refresh(
+		MerchantDialogHeaderView{
+			ShopIdentity: merchant.ShopName, Owner: merchant.OwnerName,
+			PartyGold: strconv.FormatUint(uint64(gold), 10),
+		},
+		MerchantDialogExchangeView{Text: exchange},
+		MerchantDialogFooterView{Guidance: guidance},
+	)
 }
 
 // DrawBackground draws the opaque shell backing before family-owned workspace content.

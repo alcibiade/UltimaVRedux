@@ -543,7 +543,7 @@ func (d *HealerShopDialog) configureColumns() {
 }
 
 func (d *HealerShopDialog) drawServicePane(screen *ebiten.Image) {
-	d.drawPaneFrame(screen, d.serviceBounds)
+	drawMerchantPane(screen, d.serviceBounds, d.pixelUnit())
 	d.drawCell(screen, d.serviceHeader, d.serviceColumns[0], "Svc", DialogLabelColor, etext.AlignCenter)
 	d.drawCell(screen, d.serviceHeader, d.serviceColumns[1], "Price", DialogLabelColor, etext.AlignCenter)
 	d.drawHeaderRule(screen, d.serviceHeader)
@@ -575,7 +575,7 @@ func (d *HealerShopDialog) drawServicePane(screen *ebiten.Image) {
 }
 
 func (d *HealerShopDialog) drawRecipientPane(screen *ebiten.Image) {
-	d.drawPaneFrame(screen, d.recipientBounds)
+	drawMerchantPane(screen, d.recipientBounds, d.pixelUnit())
 	headings := [...]string{"Name", "State", "HP"}
 	for index, heading := range headings {
 		d.drawCell(screen, d.recipientHeader, d.recipientColumns[index], heading, DialogLabelColor, etext.AlignStart)
@@ -638,26 +638,13 @@ func healerRecipientRowColor(
 }
 
 func (d *HealerShopDialog) drawDetailPane(screen *ebiten.Image) {
-	d.drawPaneFrame(screen, d.detailBounds)
+	drawMerchantPane(screen, d.detailBounds, d.pixelUnit())
 	d.detailOutput.DrawPanelContent(
 		screen,
 		image.Pt(d.detailTextBounds.Min.X, verticallyCenteredOutputY(d.detailTextBounds, d.detailOutput)),
 		max(1, d.detailTextBounds.Dx()),
 		etext.AlignStart,
 	)
-}
-
-func (d *HealerShopDialog) drawPaneFrame(screen *ebiten.Image, bounds image.Rectangle) {
-	vector.FillRect(
-		screen,
-		float32(bounds.Min.X),
-		float32(bounds.Min.Y),
-		float32(bounds.Dx()),
-		float32(bounds.Dy()),
-		MerchantDialogBackgroundColor,
-		false,
-	)
-	DrawClassicPixelRoundedFrame(screen, bounds, d.pixelUnit(), DialogRuleLightColor)
 }
 
 func (d *HealerShopDialog) drawCell(
@@ -815,15 +802,7 @@ func (d *HealerShopDialog) detailActionText(eligible bool, affordable bool) (str
 }
 
 func (d *HealerShopDialog) syncPresentation() {
-	d.shell.Refresh(
-		MerchantDialogHeaderView{
-			ShopIdentity: d.state.Merchant.ShopName,
-			Owner:        d.state.Merchant.OwnerName,
-			PartyGold:    strconv.FormatUint(uint64(d.state.Gold), 10),
-		},
-		MerchantDialogExchangeView{Text: d.latestExchange},
-		MerchantDialogFooterView{Guidance: d.footerGuidance()},
-	)
+	d.shell.RefreshShop(d.state.Merchant, d.state.Gold, d.latestExchange, d.footerGuidance())
 	d.populateDetailOutput()
 }
 

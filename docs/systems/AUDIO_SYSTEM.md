@@ -23,7 +23,7 @@ Redux's gate covers the consuming adapters and application behavior.
 | SDK `AmbientController` | Desired-source reconciliation, budgets, releases, retries and completion |
 | Redux `MusicManager` | Location/combat/sailing scheduling, interruptions and session history |
 | Redux `AmbientPlanner` | JSON/world interpretation, grouping, source identities and gain projection |
-| SDK `authoring` and tools | Document/history, analysis/calibration, source-bound transactions, persistence, terminal editor, catalog and probes |
+| SDK `authoring` and tools | Schema-3 document model, parsing and structural validation, playback projection, history, analysis/calibration, source-bound transactions, persistence, terminal editor, catalog and probes |
 | Redux `internal/audio/tooling` | Project validation, world labels, eligibility, calibration-family targets, sliders, import destinations and Help |
 
 Reusable contracts and generic operation are maintained upstream:
@@ -587,7 +587,8 @@ duration, material/family, variants, looping and exclusions; generation is not a
 - `music_manager.go`, `music_policy.go`, `music_ownership.go`: score selection/history/holds.
 - `ambient_projection.go`, `ambient_sources.go`, `routing*.go`: game grouping/world interpretation.
 - `configuration.go`, `calibration_policy.go`: preference curve and family targets.
-- `library*.go`, `assets/library.json`: immutable game metadata/assets and Redux validation.
+- `library*.go`, `assets/library.json`: the embedded library on the SDK document model,
+  asset snapshots and `ReduxLibraryValidator` (vocabulary, completeness, routing targets).
 - `catalog*.go`, `cmd/audio-catalog`: game enrichment and report launcher.
 - `tooling/`, `cmd/audio-editor`: Redux authoring preset and tool launcher.
 - `game_audio*_test.go`, `game_ambient_test.go`, metadata/policy tests: live adapter and game contracts.

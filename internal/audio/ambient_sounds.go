@@ -48,14 +48,14 @@ type AmbientSoundSource struct {
 func defaultAmbientSoundDefinitions() map[AmbientSoundType]AmbientSoundDefinition {
 	library := productionLibrary()
 
-	return buildAmbientDefinitions(library, library.recordingPath)
+	return buildAmbientDefinitions(library, func(id string) string { return assetRecordingPath(library, id) })
 }
 
 func ambientSoundDefinitions(project *Library) map[AmbientSoundType]AmbientSoundDefinition {
 	return buildAmbientDefinitions(project.document, project.recordingPath)
 }
 
-func buildAmbientDefinitions(library *audioLibrary,
+func buildAmbientDefinitions(library *LibraryDocument,
 	recordingPath func(string) string,
 ) map[AmbientSoundType]AmbientSoundDefinition {
 	definitions := make(map[AmbientSoundType]AmbientSoundDefinition)
@@ -63,7 +63,7 @@ func buildAmbientDefinitions(library *audioLibrary,
 		cue := library.Cues[id]
 		kind := AmbientSoundType(id)
 		definitions[kind] = AmbientSoundDefinition{SoundType: kind, FileName: recordingPath(cue.RecordingID),
-			MaxDistance: profile.RadiusTiles, BaseVolume: cue.VolumeModifier * library.recordingCalibration(cue.RecordingID),
+			MaxDistance: profile.RadiusTiles, BaseVolume: cue.VolumeModifier * recordingCalibration(library, cue.RecordingID),
 			FadeInTime:  time.Duration(profile.FadeInMs) * time.Millisecond,
 			FadeOutTime: time.Duration(profile.FadeOutMs) * time.Millisecond}
 	}

@@ -9,12 +9,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
-// TileTarget is a game-derived animation-family authoring descriptor.
-type TileTarget struct {
-	ID, Name string
-	Frames   []int
-}
-
 // TileTargets derives Redux source descriptors from its actual animation atlas.
 func TileTargets() []TileTarget {
 	var result []TileTarget

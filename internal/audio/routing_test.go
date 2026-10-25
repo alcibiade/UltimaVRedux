@@ -13,16 +13,16 @@ func TestReduxRoutingRejectsUnknownWorldTargetsAndWrongCategories(t *testing.T) 
 		"animation member":   func(r *Routing) { r.Tiles["217"] = TileAudio{AmbientCue: string(AmbientFountain)} },
 		"unknown cue":        func(r *Routing) { r.Tiles["216"] = TileAudio{AmbientCue: "ambient/missing"} },
 		"bad surface":        func(r *Routing) { r.DefaultSurface = "missing" },
-		"missing default":    func(r *Routing) { delete(r.Music, "default") },
+		"missing default":    func(r *Routing) { delete(r.Groups[routingGroupMusic], "default") },
 		"negative fade":      func(r *Routing) { r.Ambient[string(AmbientFountain)] = AmbientProfile{RadiusTiles: 8, FadeInMs: -1} },
-		"spatial background": func(r *Routing) { r.Dungeon["default"] = new(string(AmbientFountain)) },
-		"ambient music":      func(r *Routing) { r.Music["default"] = new(string(AmbientFountain)) },
+		"spatial background": func(r *Routing) { r.Groups[routingGroupDungeon]["default"] = new(string(AmbientFountain)) },
+		"ambient music":      func(r *Routing) { r.Groups[routingGroupMusic]["default"] = new(string(AmbientFountain)) },
 		"music footstep":     func(r *Routing) { r.Surfaces["stone"] = []string{"music/track/town"} },
-		"missing naval":      func(r *Routing) { delete(r.Naval, "skiff") },
-		"unknown naval":      func(r *Routing) { r.Naval["rowboat"] = nil },
-		"music onboard":      func(r *Routing) { r.Naval["frigate"] = new("music/track/hornpipe") },
-		"spatial onboard":    func(r *Routing) { r.Naval["skiff"] = new(string(AmbientFire)) },
-		"ambient sailing":    func(r *Routing) { r.Naval["sailing"] = new(string(AmbientFountain)) },
+		"missing naval":      func(r *Routing) { delete(r.Groups[routingGroupNaval], "skiff") },
+		"unknown naval":      func(r *Routing) { r.Groups[routingGroupNaval]["rowboat"] = nil },
+		"music onboard":      func(r *Routing) { r.Groups[routingGroupNaval]["frigate"] = new("music/track/hornpipe") },
+		"spatial onboard":    func(r *Routing) { r.Groups[routingGroupNaval]["skiff"] = new(string(AmbientFire)) },
+		"ambient sailing":    func(r *Routing) { r.Groups[routingGroupNaval]["sailing"] = new(string(AmbientFountain)) },
 	} {
 		t.Run(name, func(t *testing.T) {
 			document := freshTestLibrary(t)
@@ -35,20 +35,20 @@ func TestReduxRoutingRejectsUnknownWorldTargetsAndWrongCategories(t *testing.T) 
 
 func TestReduxRoutingInheritanceSilenceAndIndependentTileOverrides(t *testing.T) {
 	routing := cloneAudioValue(productionLibrary().Routing)
-	routing.Music["location/2"] = nil
-	cue := resolveAudioAssignment(routing.Music, "location/2")
+	routing.Groups[routingGroupMusic]["location/2"] = nil
+	cue := resolveAudioAssignment(routing.Groups[routingGroupMusic], "location/2")
 	require.Empty(t, cue)
-	delete(routing.Music, "location/2")
-	cue = resolveAudioAssignment(routing.Music, "location/2")
-	require.Equal(t, *routing.Music["default"], cue)
-	routing.Dungeon["default"] = new("ambient/dungeon_cave")
-	delete(routing.Dungeon, locationMusicKey(references.Deceit))
-	routing.Dungeon[locationMusicKey(references.Doom)] = nil
-	require.Equal(t, "ambient/dungeon_cave", routing.dungeonCue(references.Deceit))
-	require.Empty(t, routing.dungeonCue(references.Doom))
-	require.Empty(t, routing.dungeonCue(references.Britain))
-	require.Equal(t, "overworld", routing.musicFor(references.BuccaneersDen, 0))
-	require.Equal(t, "music/track/hornpipe", *routing.Naval["sailing"])
+	delete(routing.Groups[routingGroupMusic], "location/2")
+	cue = resolveAudioAssignment(routing.Groups[routingGroupMusic], "location/2")
+	require.Equal(t, *routing.Groups[routingGroupMusic]["default"], cue)
+	routing.Groups[routingGroupDungeon]["default"] = new("ambient/dungeon_cave")
+	delete(routing.Groups[routingGroupDungeon], locationMusicKey(references.Deceit))
+	routing.Groups[routingGroupDungeon][locationMusicKey(references.Doom)] = nil
+	require.Equal(t, "ambient/dungeon_cave", dungeonCue(routing, references.Deceit))
+	require.Empty(t, dungeonCue(routing, references.Doom))
+	require.Empty(t, dungeonCue(routing, references.Britain))
+	require.Equal(t, "overworld", musicFor(routing, references.BuccaneersDen, 0))
+	require.Equal(t, "music/track/hornpipe", *routing.Groups[routingGroupNaval]["sailing"])
 	shared := routing.Ambient[string(AmbientFire)]
 	assignment := routing.Tiles["178"]
 	assignment.RadiusTiles, assignment.Gain = new(12.0), new(0.5)

@@ -33,7 +33,7 @@ func TestReduxAdapterUsesItsInjectedLibraryAcrossLanes(t *testing.T) {
 			cue.VolumeModifier = gain
 			document.Cues[id] = cue
 		}
-		document.Routing.Music[locationMusicKey(references.Britain)] = new("music/track/title")
+		document.Routing.Groups[routingGroupMusic][locationMusicKey(references.Britain)] = new("music/track/title")
 	})
 	require.NoError(t, manager.PlaySoundEffect(game_state.SoundHeal))
 	require.InDelta(t, 0.17, manager.sfx.Snapshot()[0].Gain, 1e-9)

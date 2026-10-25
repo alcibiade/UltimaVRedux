@@ -47,28 +47,28 @@ func TestHexGrateCyclesFourDistinctSharedFileClipsAndLeavesBrickAssignments(t *t
 }
 
 func TestCueVariantSchemaAndCatalogLinks(t *testing.T) {
-	for name, change := range map[string]func(*audioLibrary){
-		"both forms": func(l *audioLibrary) {
+	for name, change := range map[string]func(*LibraryDocument){
+		"both forms": func(l *LibraryDocument) {
 			c := l.Cues["sfx/SoundWalkMetal1"]
 			c.RecordingID = "stone_steps_01"
 			l.Cues["sfx/SoundWalkMetal1"] = c
 		},
-		"duplicate": func(l *audioLibrary) {
+		"duplicate": func(l *LibraryDocument) {
 			c := l.Cues["sfx/SoundWalkMetal1"]
 			c.RecordingIDs[1] = c.RecordingIDs[0]
 			l.Cues["sfx/SoundWalkMetal1"] = c
 		},
-		"unknown": func(l *audioLibrary) {
+		"unknown": func(l *LibraryDocument) {
 			c := l.Cues["sfx/SoundWalkMetal1"]
 			c.RecordingIDs[1] = "absent"
 			l.Cues["sfx/SoundWalkMetal1"] = c
 		},
-		"missing policy": func(l *audioLibrary) {
+		"missing policy": func(l *LibraryDocument) {
 			c := l.Cues["sfx/SoundWalkMetal1"]
 			c.Selection = ""
 			l.Cues["sfx/SoundWalkMetal1"] = c
 		},
-		"unsupported music": func(l *audioLibrary) {
+		"unsupported music": func(l *LibraryDocument) {
 			c := l.Cues["music/track/town"]
 			c.RecordingID, c.RecordingIDs, c.Selection = "", []string{"stone_steps_01", "stone_steps_02"}, SelectionCycle
 			l.Cues["music/track/town"] = c

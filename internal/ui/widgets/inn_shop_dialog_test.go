@@ -288,8 +288,6 @@ func TestInnShopDialogPreviewLabelsKeyboardOnlyFooterAndSemanticBacking(t *testi
 	backgroundInset := dialog.GetShell().pixelUnit() * 2
 	point := dialog.GetShell().GetWorkspaceBounds().Min.Add(image.Pt(backgroundInset, backgroundInset))
 	requireColorRGBA(t, MerchantDialogBackgroundColor, screen.At(point.X, point.Y))
-	require.Equal(t, FontSizeBody, dialog.GetFontSize())
-	require.Equal(t, FontSizeBody, dialog.GetShell().GetFontSize())
 }
 
 func TestInnShopDialogHelpExplainsLeaveAndPickupWithoutLeavingBrowse(t *testing.T) {

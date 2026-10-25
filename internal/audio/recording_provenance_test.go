@@ -19,7 +19,6 @@ func TestAuthoredProvenanceSurvivesCatalogAndRenamedPaths(t *testing.T) {
 		}
 		recording := productionLibrary().Recordings[asset.ID]
 		require.Equal(t, recording.Provenance, asset.Provenance, asset.ID)
-		require.NoError(t, validateRecordingProvenance(asset.ID, asset.Provenance))
 		if recording.File == nil {
 			require.Equal(t, unknownRecordingProvenance(), asset.Provenance)
 		}

@@ -460,16 +460,7 @@ func (d *GuildShopDialog) configureStatusOutput() {
 }
 
 func (d *GuildShopDialog) drawCatalog(screen *ebiten.Image) {
-	vector.FillRect(
-		screen,
-		float32(d.catalogBounds.Min.X),
-		float32(d.catalogBounds.Min.Y),
-		float32(d.catalogBounds.Dx()),
-		float32(d.catalogBounds.Dy()),
-		MerchantDialogBackgroundColor,
-		false,
-	)
-	DrawClassicPixelRoundedFrame(screen, d.catalogBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.catalogBounds, d.pixelUnit())
 
 	headings := [...]string{"Item", "Bundle", "Owned", "Price"}
 	for index, heading := range headings {
@@ -550,16 +541,7 @@ func (d *GuildShopDialog) drawCatalogCell(
 }
 
 func (d *GuildShopDialog) drawStatus(screen *ebiten.Image) {
-	vector.FillRect(
-		screen,
-		float32(d.statusBounds.Min.X),
-		float32(d.statusBounds.Min.Y),
-		float32(d.statusBounds.Dx()),
-		float32(d.statusBounds.Dy()),
-		MerchantDialogBackgroundColor,
-		false,
-	)
-	DrawClassicPixelRoundedFrame(screen, d.statusBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.statusBounds, d.pixelUnit())
 	d.statusOutput.DrawPanelContent(
 		screen,
 		image.Pt(d.statusText.Min.X, verticallyCenteredOutputY(d.statusText, d.statusOutput)),
@@ -591,15 +573,7 @@ func (d *GuildShopDialog) populateWorkspaceOutputs() {
 }
 
 func (d *GuildShopDialog) syncPresentation() {
-	d.shell.Refresh(
-		MerchantDialogHeaderView{
-			ShopIdentity: d.state.Merchant.ShopName,
-			Owner:        d.state.Merchant.OwnerName,
-			PartyGold:    strconv.FormatUint(uint64(d.state.Gold), 10),
-		},
-		MerchantDialogExchangeView{Text: d.latestExchange},
-		MerchantDialogFooterView{Guidance: d.footerGuidance()},
-	)
+	d.shell.RefreshShop(d.state.Merchant, d.state.Gold, d.latestExchange, d.footerGuidance())
 	d.populateWorkspaceOutputs()
 }
 

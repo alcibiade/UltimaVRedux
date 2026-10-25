@@ -169,7 +169,7 @@ func TestHarpsichordSoundMetadataAndAssets(t *testing.T) {
 			t.Fatalf("digit %d metadata = %#v", digit, metadata)
 		}
 
-		filePath := productionLibrary().recordingPath(metadata.RecordingID)
+		filePath := assetRecordingPath(productionLibrary(), metadata.RecordingID)
 		fileData, err := soundFiles.ReadFile(filePath)
 		if err != nil {
 			t.Fatalf("read digit %d WAV: %v", digit, err)

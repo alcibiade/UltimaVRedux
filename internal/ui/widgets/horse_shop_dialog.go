@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"strconv"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"github.com/bradhannah/UltimaVRedux/internal/display"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -480,16 +478,7 @@ func (d *HorseShopDialog) configureStatusOutput(inset int) {
 }
 
 func (d *HorseShopDialog) drawShowroom(screen *ebiten.Image) {
-	vector.FillRect(
-		screen,
-		float32(d.showroomBounds.Min.X),
-		float32(d.showroomBounds.Min.Y),
-		float32(d.showroomBounds.Dx()),
-		float32(d.showroomBounds.Dy()),
-		MerchantDialogBackgroundColor,
-		false,
-	)
-	DrawClassicPixelRoundedFrame(screen, d.showroomBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.showroomBounds, d.pixelUnit())
 	d.showroomTitleOutput.DrawPanelContent(
 		screen,
 		image.Pt(d.showroomTitleText.Min.X, verticallyCenteredOutputY(d.showroomTitleText, d.showroomTitleOutput)),
@@ -534,16 +523,7 @@ func (d *HorseShopDialog) drawHorseSprite(screen *ebiten.Image) {
 }
 
 func (d *HorseShopDialog) drawStatus(screen *ebiten.Image) {
-	vector.FillRect(
-		screen,
-		float32(d.statusBounds.Min.X),
-		float32(d.statusBounds.Min.Y),
-		float32(d.statusBounds.Dx()),
-		float32(d.statusBounds.Dy()),
-		MerchantDialogBackgroundColor,
-		false,
-	)
-	DrawClassicPixelRoundedFrame(screen, d.statusBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.statusBounds, d.pixelUnit())
 	d.statusOutput.DrawPanelContent(
 		screen,
 		image.Pt(d.statusTextBounds.Min.X, verticallyCenteredOutputY(d.statusTextBounds, d.statusOutput)),
@@ -620,15 +600,7 @@ func (d *HorseShopDialog) populateBrowseStatusOutput() {
 }
 
 func (d *HorseShopDialog) syncPresentation() {
-	d.shell.Refresh(
-		MerchantDialogHeaderView{
-			ShopIdentity: d.state.Merchant.ShopName,
-			Owner:        d.state.Merchant.OwnerName,
-			PartyGold:    strconv.FormatUint(uint64(d.state.Gold), 10),
-		},
-		MerchantDialogExchangeView{Text: d.latestExchange},
-		MerchantDialogFooterView{Guidance: d.footerGuidance()},
-	)
+	d.shell.RefreshShop(d.state.Merchant, d.state.Gold, d.latestExchange, d.footerGuidance())
 	d.populateWorkspaceOutputs()
 }
 

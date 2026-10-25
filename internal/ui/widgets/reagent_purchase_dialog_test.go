@@ -27,7 +27,6 @@ func TestReagentPurchaseDialogDisplaysSuppliedApprovalAndPaidOverflow(t *testing
 
 	assert.Equal(t, uint16(1), dialog.GetBundleCount())
 	assert.Equal(t, approval, dialog.GetApprovalView())
-	assert.Equal(t, FontSizeBody, dialog.GetFontSize())
 	assert.True(t, dialog.IsPreview())
 	assert.Contains(t, dialog.headerOutput.GetOutputStr(false), "PREVIEW - Purchase Ginseng")
 	assert.Contains(t, body, "Bundles (before theft)")

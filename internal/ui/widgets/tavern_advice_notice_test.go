@@ -28,7 +28,7 @@ func TestTavernAdviceNoticeRightPaneLayoutAndResize(t *testing.T) {
 			require.True(t, bounds.In(pane), "notice %v outside right pane %v", bounds, pane)
 			require.InDelta(t, pane.Min.X+pane.Max.X, bounds.Min.X+bounds.Max.X, 1)
 			require.InDelta(t, pane.Min.Y+pane.Max.Y, bounds.Min.Y+bounds.Max.Y, 1)
-			require.Equal(t, GetScaledFont(shop.GetFontSize()).TextFace.Size, notice.bodyOutput.Font.TextFace.Size)
+			require.Equal(t, GetScaledFont(FontSizeBody).TextFace.Size, notice.bodyOutput.Font.TextFace.Size)
 			require.Equal(t, strings.Fields(message), strings.Fields(notice.bodyOutput.GetOutputStr(false)))
 			require.Equal(t, strings.Fields(DialogCloseHint), strings.Fields(notice.footerOutput.GetOutputStr(false)))
 			require.True(t, notice.body.In(bounds))

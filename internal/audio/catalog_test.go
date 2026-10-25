@@ -21,7 +21,7 @@ import (
 func TestFountainAmbientAndDrinkingUseSeparateCues(t *testing.T) {
 	library := productionLibrary()
 	ambient := defaultAmbientSoundDefinitions()[AmbientFountain]
-	require.Equal(t, library.recordingPath("fountain_gurgle_01"), ambient.FileName)
+	require.Equal(t, assetRecordingPath(library, "fountain_gurgle_01"), ambient.FileName)
 	require.NotEmpty(t, ambient.FileName)
 	for _, sprite := range []indexes.SpriteIndex{
 		indexes.Fountain1, indexes.Fountain2, indexes.Fountain3, indexes.Fountain4,
@@ -66,7 +66,7 @@ func TestCatalogCoversEveryDeclaredEffectAndProductionAssignment(t *testing.T) {
 		name, exists := names[effect]
 		require.True(t, exists, "metadata lacks a stable identity: %v", effect)
 		moment := findCatalogMoment(t, catalog, "sfx/"+name)
-		require.Equal(t, productionLibrary().recordingPath(metadata.RecordingID), moment.ConfiguredFile)
+		require.Equal(t, assetRecordingPath(productionLibrary(), metadata.RecordingID), moment.ConfiguredFile)
 		require.Equal(t, metadata.RecordingID, moment.AssetID)
 		require.Equal(t, metadata.VolumeModifier, *moment.ConfiguredGain)
 		if !isPlaceholderSound(effect) {
@@ -81,21 +81,21 @@ func TestCatalogCoversEveryDeclaredEffectAndProductionAssignment(t *testing.T) {
 	}
 	for id, metadata := range musicTrackMetadataMap() {
 		moment := findCatalogMoment(t, catalog, "music/track/"+id)
-		require.Equal(t, productionLibrary().recordingPath(metadata.RecordingID), moment.ConfiguredFile)
+		require.Equal(t, assetRecordingPath(productionLibrary(), metadata.RecordingID), moment.ConfiguredFile)
 		require.Equal(t, metadata.VolumeModifier, *moment.ConfiguredGain)
 	}
 	for kind, definition := range defaultAmbientSoundDefinitions() {
 		moment := findCatalogMoment(t, catalog, "ambient/"+catalogAmbientNames()[kind])
 		require.Equal(t, definition.FileName, moment.ConfiguredFile)
 		require.InDelta(t, definition.BaseVolume,
-			*moment.ConfiguredGain*productionLibrary().recordingCalibration(moment.AssetID), 1e-9)
+			*moment.ConfiguredGain*recordingCalibration(productionLibrary(), moment.AssetID), 1e-9)
 		require.Equal(t, definition.MaxDistance, *moment.MaxDistanceTiles)
 	}
 	for context, track := range musicContextTracks() {
 		moment := findCatalogMoment(t, catalog, "music/context/"+context)
 		metadata, exists := musicTrackMetadataMap()[track]
 		require.True(t, exists)
-		require.Equal(t, productionLibrary().recordingPath(metadata.RecordingID), moment.ConfiguredFile)
+		require.Equal(t, assetRecordingPath(productionLibrary(), metadata.RecordingID), moment.ConfiguredFile)
 	}
 }
 
@@ -105,7 +105,7 @@ func TestCatalogUsesAuthoredIntentWithoutAcceptingPlaceholderAssignments(t *test
 	library := productionLibrary()
 	for id := range library.Cues {
 		moment := findCatalogMoment(t, catalog, id)
-		classification := library.Taxonomy.Profiles[library.Taxonomy.cueProfile(id)]
+		classification := library.Taxonomy.Profiles[cueProfile(library.Taxonomy, id)]
 		require.Equal(t, cueCategory(id), moment.Category, id)
 		require.Equal(t, classification.TargetAcousticFamily, moment.Family, id)
 		require.Equal(t, classification.Phase, moment.Phase, id)
@@ -114,7 +114,7 @@ func TestCatalogUsesAuthoredIntentWithoutAcceptingPlaceholderAssignments(t *test
 	}
 	for _, asset := range catalog.Assets {
 		if asset.Registered {
-			require.Equal(t, library.Taxonomy.recordingFamily(asset.ID), asset.AcousticFamily)
+			require.Equal(t, recordingFamily(library.Taxonomy, asset.ID), asset.AcousticFamily)
 		}
 	}
 	push := findCatalogMoment(t, catalog, "sfx/SoundPushObject")

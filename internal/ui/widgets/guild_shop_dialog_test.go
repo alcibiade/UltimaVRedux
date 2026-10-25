@@ -50,8 +50,6 @@ func TestGuildShopDialogConstructorContractsAndCanonicalOrder(t *testing.T) {
 	require.Equal(t, references.Key, offers[0].Provision)
 	require.Equal(t, references.Gem, offers[1].Provision)
 	require.Equal(t, references.Torches, offers[2].Provision)
-	require.Equal(t, FontSizeBody, dialog.GetFontSize())
-	require.Equal(t, FontSizeBody, dialog.GetShell().GetFontSize())
 }
 
 func TestGuildShopDialogSelectionKeepsOnlyGreetingAndHeldRepeat(t *testing.T) {

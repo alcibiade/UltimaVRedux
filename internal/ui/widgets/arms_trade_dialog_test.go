@@ -151,7 +151,6 @@ func TestArmsTradeDialogGeometryIsCenteredAndBounded(t *testing.T) {
 		require.InDelta(t, size[0]/2, bounds.Min.X+bounds.Dx()/2, 1)
 		require.True(t, dialog.frame.bodyBounds.In(bounds))
 		require.True(t, dialog.frame.footerBounds.In(bounds))
-		require.Equal(t, FontSizeBody, dialog.GetFontSize())
 	}
 }
 

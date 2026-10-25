@@ -16,6 +16,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	audio "github.com/bradhannah/berad-sdk/modules/berad-audio"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
 )
 
 // fireCue is the authored ambient cue this bridge fixture recalibrates and routes.
@@ -143,7 +144,7 @@ func TestReduxLighthouseAndProjectedDynamicIdentityRemainGameOwned(t *testing.T)
 func TestReduxProjectionPreservesNullSlotsAndOrderedVariants(t *testing.T) {
 	library, _ := project(t)
 	document := library.Document()
-	definition, err := gameaudio.PlaybackDefinition(document)
+	definition, err := authoring.PlaybackDefinition(document)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +172,7 @@ func TestReduxProjectionPreservesNullSlotsAndOrderedVariants(t *testing.T) {
 	recording := document.Recordings[fire.RecordingID]
 	recording.PlaybackWindow.EndMs = math.MaxInt64
 	document.Recordings[fire.RecordingID] = recording
-	if _, err := gameaudio.PlaybackDefinition(document); !errors.Is(err, gameaudio.ErrAudioLibrary) {
+	if _, err := authoring.PlaybackDefinition(document); !errors.Is(err, gameaudio.ErrAudioLibrary) {
 		t.Fatal("overflowed authored window accepted", err)
 	}
 }

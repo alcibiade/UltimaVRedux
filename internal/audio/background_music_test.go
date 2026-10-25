@@ -28,7 +28,7 @@ func TestMusicTrackMetadataConsistency(t *testing.T) {
 			require.NotEmpty(t, metadata.Description)
 			require.GreaterOrEqual(t, metadata.VolumeModifier, 0.1)
 			require.LessOrEqual(t, metadata.VolumeModifier, 2.0)
-			if file := productionLibrary().recordingPath(metadata.RecordingID); file != "" {
+			if file := assetRecordingPath(productionLibrary(), metadata.RecordingID); file != "" {
 				relative, music := strings.CutPrefix(file, "assets/music/")
 				require.True(t, music)
 				require.NotEmpty(t, relative)
