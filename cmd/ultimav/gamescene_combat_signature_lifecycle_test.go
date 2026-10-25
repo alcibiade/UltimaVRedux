@@ -9,6 +9,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
 func TestCombatSignatureSchedulerWaitsForFullEffectAndOwnsCleanup(t *testing.T) {
@@ -54,7 +55,7 @@ func TestCombatDaemonScrollCancellationCleansInvocationAtEveryPhase(t *testing.T
 		clearCombatUseQuestItems(scene.gameState)
 		scene.gameState.PartyState.Inventory.Scrolls.Set(references.ScrollKalXenCorp, 1)
 		scene.StartCombatUseWorkflow()
-		dialog := waitForCombatItemDialog(t, scene)
+		dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 		dialog.HandleEnter()
 		for range 150 {
 			scene.gameState.ElapsedMs += 10
@@ -82,7 +83,7 @@ func TestCombatInPorProductionCancellationCleansEveryPhase(t *testing.T) {
 		state.PartyState.Inventory.Spells.Set(references.InPor, 1)
 		state.ConfirmSpellKnowledge(references.InPor, game_state.ExperimentationKnowledgeSource())
 		scene.combatMapInputHandler(ebiten.KeyC)
-		dialog := waitForProductionSpellDialog(t, scene)
+		dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 		for _, key := range []ebiten.Key{ebiten.KeyI, ebiten.KeyP, ebiten.KeyEnter} {
 			scene.keyboard.SimulateKeyPress(key)
 			dialog.Update()

@@ -615,7 +615,7 @@ func (g *GameScene) dispatchSpellEffect(
 	case references.KalXen, references.InBetXen, references.KalXenCorp:
 		q.ThenSequence(g.thenCastCombatSummon(request.Spell, request.CasterIdx))
 	case references.AnXenCorp:
-		q.ThenSequence(g.thenCastCombatAnXenCorp(request.CasterIdx))
+		q.ThenSequence(g.thenCastCombatRepel(request.CasterIdx, g.gameState.CastCombatAnXenCorp, combatRepelFeedbackText))
 	case references.InSanct:
 		q.ThenSequence(g.thenCastInSanct())
 	case references.QuasAnWis:
@@ -632,7 +632,7 @@ func (g *GameScene) dispatchSpellEffect(
 	case references.AnTym:
 		q.ThenSequence(g.thenCastAnTym())
 	case references.InQuasCorp:
-		q.ThenSequence(g.thenCastCombatInQuasCorp(request.CasterIdx))
+		q.ThenSequence(g.thenCastCombatRepel(request.CasterIdx, g.gameState.CastCombatInQuasCorp, combatFearFeedbackText))
 
 	// Character-target spells
 	case references.Mani:

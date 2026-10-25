@@ -3,7 +3,6 @@ package widgets
 import (
 	"fmt"
 	"image"
-	stdcolor "image/color"
 	"math"
 	"strconv"
 	"strings"
@@ -104,13 +103,6 @@ type itemSelectionLayout struct {
 	footerRect       image.Rectangle
 	tabRects         []image.Rectangle
 	padding          int
-}
-
-type itemSelectionDetailLine struct {
-	label  string
-	value  string
-	color  stdcolor.Color
-	header bool
 }
 
 // ItemSelectionDialog presents a responsive keyboard-only master/detail Use picker.
@@ -821,10 +813,10 @@ func (d *ItemSelectionDialog) drawFooter(screen *ebiten.Image) {
 	)
 }
 
-func (d *ItemSelectionDialog) detailPages() [][]itemSelectionDetailLine {
+func (d *ItemSelectionDialog) detailPages() [][]detailLine {
 	item := d.selectedItem()
 	if item == nil {
-		return [][]itemSelectionDetailLine{{{
+		return [][]detailLine{{{
 			label: "", value: "No item selected.", color: DialogEmptyColor, header: false,
 		}}}
 	}
@@ -832,26 +824,26 @@ func (d *ItemSelectionDialog) detailPages() [][]itemSelectionDetailLine {
 	lines := append(d.actionDetailLines(*item), d.loreDetailLines(*item)...)
 	pages := d.paginateDetailLines(lines)
 	if len(pages) == 0 {
-		return [][]itemSelectionDetailLine{{}}
+		return [][]detailLine{{}}
 	}
 
 	return pages
 }
 
-func (d *ItemSelectionDialog) actionDetailLines(item game_state.UseableItemInfo) []itemSelectionDetailLine {
-	var lines []itemSelectionDetailLine
+func (d *ItemSelectionDialog) actionDetailLines(item game_state.UseableItemInfo) []detailLine {
+	var lines []detailLine
 	if item.UnavailableReason != "" {
-		lines = append(lines, itemSelectionDetailLine{
+		lines = append(lines, detailLine{
 			label: "", value: item.UnavailableReason, color: DialogStatusWarningColor, header: false,
 		})
 	} else {
 		for _, hint := range []string{item.EffectSummary, item.Requirement, item.Consumption} {
 			if hint != "" {
-				lines = append(lines, itemSelectionDetailLine{label: "", value: hint, color: DialogControlHintColor, header: false})
+				lines = append(lines, detailLine{label: "", value: hint, color: DialogControlHintColor, header: false})
 			}
 		}
 		if warning := strings.TrimSpace(item.Warning); warning != "" {
-			lines = append(lines, itemSelectionDetailLine{label: "", value: warning, color: DialogWarningColor, header: false})
+			lines = append(lines, detailLine{label: "", value: warning, color: DialogWarningColor, header: false})
 		}
 	}
 
@@ -869,16 +861,16 @@ func unavailableRowLabel(name string, available bool) string {
 	return name
 }
 
-func (d *ItemSelectionDialog) loreDetailLines(item game_state.UseableItemInfo) []itemSelectionDetailLine {
+func (d *ItemSelectionDialog) loreDetailLines(item game_state.UseableItemInfo) []detailLine {
 	description := strings.TrimSpace(item.Description)
 	if description == "" {
 		return nil
 	}
-	lines := []itemSelectionDetailLine{
+	lines := []detailLine{
 		{label: "", value: description, color: DialogValueColor, header: false},
 	}
 	if attribution := strings.TrimSpace(item.ItemRef.ItemDescriptionAttribution); attribution != "" {
-		lines = append(lines, itemSelectionDetailLine{
+		lines = append(lines, detailLine{
 			label: "Source", value: attribution, color: DialogNavHintColor, header: false,
 		})
 	}
@@ -886,7 +878,7 @@ func (d *ItemSelectionDialog) loreDetailLines(item game_state.UseableItemInfo) [
 	return lines
 }
 
-func (d *ItemSelectionDialog) paginateDetailLines(lines []itemSelectionDetailLine) [][]itemSelectionDetailLine {
+func (d *ItemSelectionDialog) paginateDetailLines(lines []detailLine) [][]detailLine {
 	content := d.detailTextRect()
 	maxChars := max(1, d.font.CharsForWidth(max(1, content.Dx())))
 	lineCapacity := max(1, d.detailOutput.GetLineCapacity(max(1, content.Dy())))
@@ -895,11 +887,11 @@ func (d *ItemSelectionDialog) paginateDetailLines(lines []itemSelectionDetailLin
 		return nil
 	}
 
-	remaining := append([]itemSelectionDetailLine(nil), lines...)
-	pages := make([][]itemSelectionDetailLine, 0, 1)
-	page := make([]itemSelectionDetailLine, 0, lineCapacity)
+	remaining := append([]detailLine(nil), lines...)
+	pages := make([][]detailLine, 0, 1)
+	page := make([]detailLine, 0, lineCapacity)
 	for len(remaining) > 0 {
-		candidate := append(append([]itemSelectionDetailLine(nil), page...), remaining[0])
+		candidate := append(append([]detailLine(nil), page...), remaining[0])
 		if d.detailLineCount(candidate) <= lineCapacity {
 			page = candidate
 			remaining = remaining[1:]
@@ -908,7 +900,7 @@ func (d *ItemSelectionDialog) paginateDetailLines(lines []itemSelectionDetailLin
 		}
 		if len(page) > 0 {
 			if remainingRows := lineCapacity - d.detailLineCount(page); remainingRows > 0 {
-				first, remainder := d.splitDetailLine(remaining[0], remainingRows)
+				first, remainder := splitDetailLine(remaining[0], remainingRows, d.detailLineCount)
 				page = append(page, first)
 				if remainder == nil {
 					remaining = remaining[1:]
@@ -922,8 +914,8 @@ func (d *ItemSelectionDialog) paginateDetailLines(lines []itemSelectionDetailLin
 			continue
 		}
 
-		first, remainder := d.splitDetailLine(remaining[0], lineCapacity)
-		pages = append(pages, []itemSelectionDetailLine{first})
+		first, remainder := splitDetailLine(remaining[0], lineCapacity, d.detailLineCount)
+		pages = append(pages, []detailLine{first})
 		if remainder == nil {
 			remaining = remaining[1:]
 		} else {
@@ -937,37 +929,7 @@ func (d *ItemSelectionDialog) paginateDetailLines(lines []itemSelectionDetailLin
 	return pages
 }
 
-func (d *ItemSelectionDialog) splitDetailLine(
-	line itemSelectionDetailLine,
-	lineCapacity int,
-) (itemSelectionDetailLine, *itemSelectionDetailLine) {
-	words := strings.Fields(line.value)
-	if len(words) <= 1 {
-		return line, nil
-	}
-	bestEnd := 1
-	for end := 1; end <= len(words); end++ {
-		candidate := line
-		candidate.value = strings.Join(words[:end], " ")
-		if d.detailLineCount([]itemSelectionDetailLine{candidate}) > lineCapacity {
-			break
-		}
-		bestEnd = end
-	}
-	first := line
-	first.value = strings.Join(words[:bestEnd], " ")
-	if bestEnd == len(words) {
-		return first, nil
-	}
-	remainder := line
-	remainder.label = ""
-	remainder.header = false
-	remainder.value = strings.Join(words[bestEnd:], " ")
-
-	return first, &remainder
-}
-
-func (d *ItemSelectionDialog) detailLineCount(lines []itemSelectionDetailLine) int {
+func (d *ItemSelectionDialog) detailLineCount(lines []detailLine) int {
 	d.detailOutput.Reset()
 	for _, line := range lines {
 		d.appendDetailLine(line)
@@ -976,7 +938,7 @@ func (d *ItemSelectionDialog) detailLineCount(lines []itemSelectionDetailLine) i
 	return d.detailOutput.GetPanelContentLineCount()
 }
 
-func (d *ItemSelectionDialog) appendDetailLine(line itemSelectionDetailLine) {
+func (d *ItemSelectionDialog) appendDetailLine(line detailLine) {
 	builder := d.detailOutput.AppendLine()
 	if line.header {
 		builder.Text(line.value, DialogHeaderColor).WordWrap().Done()

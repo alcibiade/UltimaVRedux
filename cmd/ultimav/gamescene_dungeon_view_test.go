@@ -30,7 +30,7 @@ func TestDungeonGemViewRetainsCommandThroughDismissal(t *testing.T) {
 
 	assert.True(t, state.EventQueueManager.HasWorkflow("dungeon_view_workflow"))
 	assert.False(t, state.IsAtDungeonCommandBoundary())
-	dialog := waitForDungeonViewDialog(t, scene)
+	dialog := waitForTopModal[*widgets.DungeonViewDialog](t, scene)
 	assert.Same(t, dialog, scene.dialogStack.PeekTopModalDialog())
 	assert.Zero(t, state.PartyState.Inventory.Provisions.Gems.Get())
 	dialog.Dismiss()
@@ -68,7 +68,7 @@ func TestDungeonGemViewTwiceRestoresImmediateDungeonInput(t *testing.T) {
 
 	for range 2 {
 		scene.dungeonMapInputHandler(ebiten.KeyV)
-		dialog := waitForDungeonViewDialog(t, scene)
+		dialog := waitForTopModal[*widgets.DungeonViewDialog](t, scene)
 		held[ebiten.KeyEscape] = true
 		scene.keyboard.SetAllowKeyPressImmediately()
 		dialog.Update()
@@ -108,7 +108,7 @@ func TestDungeonPreparedInQuasWisUsesSharedViewWorkflow(t *testing.T) {
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	for _, key := range []ebiten.Key{ebiten.KeyI, ebiten.KeyQ, ebiten.KeyW} {
 		scene.keyboard.SimulateKeyPress(key)
 		spellDialog.Update()
@@ -116,7 +116,7 @@ func TestDungeonPreparedInQuasWisUsesSharedViewWorkflow(t *testing.T) {
 	assert.Equal(t, references.InQuasWis, spellDialog.GetSelectedSpell())
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
-	dungeonView := waitForDungeonViewDialog(t, scene)
+	dungeonView := waitForTopModal[*widgets.DungeonViewDialog](t, scene)
 
 	assert.Equal(t, byte(3), caster.GetCurrentMp())
 	assert.Zero(t, state.PartyState.Inventory.Spells.Get(references.InQuasWis))
@@ -143,7 +143,7 @@ func TestDungeonPreparedCastCancellationPreservesResourcesAndCompletesCommand(t 
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	spellDialog.Dismiss()
 	drainProductionCastWorkflow(t, scene)
 
@@ -164,9 +164,9 @@ func TestDungeonInQuasWisScrollUsesSharedViewWorkflow(t *testing.T) {
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
-	dungeonView := waitForDungeonViewDialog(t, scene)
+	dungeonView := waitForTopModal[*widgets.DungeonViewDialog](t, scene)
 
 	assert.Zero(t, state.PartyState.Inventory.Scrolls.Get(references.ScrollInQuasWis))
 	assert.False(t, state.IsAtDungeonCommandBoundary())
@@ -188,9 +188,9 @@ func TestDungeonInQuasWisScrollShutdownCompletesCommand(t *testing.T) {
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
-	waitForDungeonViewDialog(t, scene)
+	waitForTopModal[*widgets.DungeonViewDialog](t, scene)
 
 	require.False(t, state.IsAtDungeonCommandBoundary())
 	require.NotPanics(t, state.EventQueueManager.Shutdown)
@@ -218,7 +218,7 @@ func TestDungeonSceptreClearsCurrentFieldAndCompletesCommand(t *testing.T) {
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 
@@ -263,7 +263,7 @@ func TestDungeonSceptreClearsWrappedFacingFieldThroughProductionUse(t *testing.T
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 
@@ -306,7 +306,7 @@ func TestDungeonSceptreNoEffectPreservesItemAndCompletesCommand(t *testing.T) {
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 
@@ -326,7 +326,7 @@ func TestDungeonUseCancellationPreservesScrollAndCompletesCommand(t *testing.T) 
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.Dismiss()
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 
@@ -344,7 +344,7 @@ func TestDungeonUseRejectsSelectionRemovedWhileDialogIsOpen(t *testing.T) {
 	mock.Reset()
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForDungeonItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	state.PartyState.Inventory.Scrolls.Set(references.ScrollInQuasWis, 0)
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
@@ -365,7 +365,7 @@ func TestDungeonUseKeepsOwnedGrappleInspectable(t *testing.T) {
 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 
-	dialog := waitForDungeonItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	assert.False(t, dialog.IsDismissed())
 	assert.True(t, state.EventQueueManager.HasWorkflow("dungeon_use_item_workflow"))
@@ -419,34 +419,6 @@ func newDungeonViewTestSceneAt(
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}, mock
-}
-
-func waitForDungeonViewDialog(t *testing.T, scene *GameScene) *widgets.DungeonViewDialog {
-	t.Helper()
-	for range 30 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.DungeonViewDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("dungeon View dialog was not shown")
-
-	return nil
-}
-
-func waitForDungeonItemDialog(t *testing.T, scene *GameScene) *widgets.ItemSelectionDialog {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ItemSelectionDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("dungeon item selection dialog was not shown")
-
-	return nil
 }
 
 func drainDungeonWorkflow(t *testing.T, scene *GameScene, name string) {

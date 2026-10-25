@@ -7,6 +7,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 )
@@ -61,11 +62,11 @@ func TestCombatUseDelayedConfirmationRetainsOriginalSelection(t *testing.T) {
 				clearCombatUseQuestItems(scene.gameState)
 				scene.gameState.PartyState.Inventory.QuestItems.Set(item, 1)
 				scene.combatMapInputHandler(ebiten.KeyU)
-				dialog := waitForCombatItemDialog(t, scene)
+				dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 				dialog.HandleEnter()
 				var confirm func()
 				if item == references.HMSCape {
-					capeDialog := waitForHMSCapeDialog(t, scene)
+					capeDialog := waitForTopModal[*widgets.InputBox](t, scene)
 					confirm = func() { confirmHMSCapeDialog(t, scene, capeDialog) }
 				} else {
 					waitForCombatSceptreDirectionPrompt(t, scene)
@@ -105,7 +106,7 @@ func TestPaidDaemonScrollDoesNotSummonIntoReplacementEncounter(t *testing.T) {
 	commits := state.CastUseCommitSequence()
 	monsters := state.CombatScene.MonsterManager.Count()
 	scene.combatMapInputHandler(ebiten.KeyU)
-	waitForCombatItemDialog(t, scene).HandleEnter()
+	waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 	require.Zero(t, state.PartyState.Inventory.Scrolls.Get(references.ScrollKalXenCorp))
 	require.Equal(t, commits+1, state.CastUseCommitSequence(), "confirmed consumption remains paid")
@@ -139,7 +140,7 @@ func TestCombatWarningPotionStillCommitsAndCanSubstitute(t *testing.T) {
 		require.Empty(t, items[0].UnavailableReason)
 		require.Contains(t, items[0].Warning, "still be consumed")
 		scene.combatMapInputHandler(ebiten.KeyU)
-		waitForCombatItemDialog(t, scene).HandleEnter()
+		waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 		drainCombatUseWorkflow(t, scene)
 
 		actor := expected.gameState.CombatScene.GetCurrentTurnIdentity()
@@ -169,7 +170,7 @@ func TestCombatUseDoesNotCompleteAnotherCommit(t *testing.T) {
 		clearCombatUseQuestItems(state)
 		state.PartyState.Inventory.Scrolls.Set(references.ScrollInSanct, 2)
 		scene.combatMapInputHandler(ebiten.KeyU)
-		dialog := waitForCombatItemDialog(t, scene)
+		dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 		// A separate authoritative operation pays without completing this actor's action.
 		require.True(t, state.CommitScrollUse(references.ScrollInSanct))
 		before := snapshotBlockedCombatState(t, state)
@@ -194,8 +195,8 @@ func TestCombatCapeStaleConfirmationDoesNotCompleteAnotherCommit(t *testing.T) {
 	clearCombatUseQuestItems(state)
 	state.PartyState.Inventory.QuestItems.Set(references.HMSCape, 1)
 	scene.combatMapInputHandler(ebiten.KeyU)
-	waitForCombatItemDialog(t, scene).HandleEnter()
-	dialog := waitForHMSCapeDialog(t, scene)
+	waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
+	dialog := waitForTopModal[*widgets.InputBox](t, scene)
 	externalCommit, _ := state.BeginHMSCapeUse()
 	require.Equal(t, game_state.HMSCapeUseEnabled, state.CommitHMSCapeUse(externalCommit))
 	before := snapshotBlockedCombatState(t, state)
@@ -219,8 +220,8 @@ func TestCombatCapeConfirmedUseCompletesExactlyOneAction(t *testing.T) {
 			candidate.gameState.SetHMSCapeActivated(enabled)
 		}
 		scene.combatMapInputHandler(ebiten.KeyU)
-		waitForCombatItemDialog(t, scene).HandleEnter()
-		confirmHMSCapeDialog(t, scene, waitForHMSCapeDialog(t, scene))
+		waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
+		confirmHMSCapeDialog(t, scene, waitForTopModal[*widgets.InputBox](t, scene))
 		drainCombatUseWorkflow(t, scene)
 		commit, _ := expected.gameState.BeginHMSCapeUse()
 		expected.gameState.CommitHMSCapeUse(commit)

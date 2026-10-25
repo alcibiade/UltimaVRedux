@@ -89,13 +89,6 @@ type questJournalLayout struct {
 	padding    int
 }
 
-type questJournalDetailLine struct {
-	label  string
-	value  string
-	color  stdcolor.Color
-	header bool
-}
-
 // QuestJournalDialog presents a detached read-only quest dossier.
 type QuestJournalDialog struct {
 	navigation
@@ -118,7 +111,7 @@ type QuestJournalDialog struct {
 	searchResults     []int
 	searchSelection   int
 	searchInput       *TextInput
-	cachedDetailPages [][]questJournalDetailLine
+	cachedDetailPages [][]detailLine
 
 	outerBorder            *Border
 	font                   *text.UltimaFont
@@ -667,7 +660,7 @@ func (d *QuestJournalDialog) footerLineCount() int {
 	return lines
 }
 
-func (d *QuestJournalDialog) detailPages() [][]questJournalDetailLine {
+func (d *QuestJournalDialog) detailPages() [][]detailLine {
 	if d.cachedDetailPages == nil {
 		d.cachedDetailPages = d.buildDetailPages()
 	}
@@ -675,22 +668,22 @@ func (d *QuestJournalDialog) detailPages() [][]questJournalDetailLine {
 	return d.cachedDetailPages
 }
 
-func (d *QuestJournalDialog) buildDetailPages() [][]questJournalDetailLine {
+func (d *QuestJournalDialog) buildDetailPages() [][]detailLine {
 	content := d.detailContentRect()
 	maxChars := max(1, d.font.CharsForWidth(max(1, content.Dx())))
 	lineCapacity := max(1, d.detailOutput.GetLineCapacity(max(1, content.Dy())))
 	d.detailOutput.SetMaxCharsPerLine(maxChars)
 	lines := d.detailLines()
 	if len(lines) == 0 {
-		return [][]questJournalDetailLine{{{
+		return [][]detailLine{{{
 			label: "", value: "No entry selected.", color: DialogEmptyColor, header: false,
 		}}}
 	}
 
-	pages := make([][]questJournalDetailLine, 0, 1)
-	page := make([]questJournalDetailLine, 0, lineCapacity)
+	pages := make([][]detailLine, 0, 1)
+	page := make([]detailLine, 0, lineCapacity)
 	for len(lines) > 0 {
-		candidate := append(append([]questJournalDetailLine(nil), page...), lines[0])
+		candidate := append(append([]detailLine(nil), page...), lines[0])
 		if d.detailLineCount(candidate) <= lineCapacity {
 			page = candidate
 			lines = lines[1:]
@@ -704,8 +697,8 @@ func (d *QuestJournalDialog) buildDetailPages() [][]questJournalDetailLine {
 			continue
 		}
 
-		first, remainder := d.splitDetailLine(lines[0], lineCapacity)
-		pages = append(pages, []questJournalDetailLine{first})
+		first, remainder := splitDetailLine(lines[0], lineCapacity, d.detailLineCount)
+		pages = append(pages, []detailLine{first})
 		if remainder == nil {
 			lines = lines[1:]
 		} else {
@@ -716,43 +709,13 @@ func (d *QuestJournalDialog) buildDetailPages() [][]questJournalDetailLine {
 		pages = append(pages, page)
 	}
 	if len(pages) == 0 {
-		return [][]questJournalDetailLine{{}}
+		return [][]detailLine{{}}
 	}
 
 	return pages
 }
 
-func (d *QuestJournalDialog) splitDetailLine(
-	line questJournalDetailLine,
-	lineCapacity int,
-) (questJournalDetailLine, *questJournalDetailLine) {
-	words := strings.Fields(line.value)
-	if len(words) <= 1 {
-		return line, nil
-	}
-	bestEnd := 1
-	for end := 1; end <= len(words); end++ {
-		candidate := line
-		candidate.value = strings.Join(words[:end], " ")
-		if d.detailLineCount([]questJournalDetailLine{candidate}) > lineCapacity {
-			break
-		}
-		bestEnd = end
-	}
-	first := line
-	first.value = strings.Join(words[:bestEnd], " ")
-	if bestEnd == len(words) {
-		return first, nil
-	}
-	remainder := line
-	remainder.label = ""
-	remainder.header = false
-	remainder.value = strings.Join(words[bestEnd:], " ")
-
-	return first, &remainder
-}
-
-func (d *QuestJournalDialog) detailLineCount(lines []questJournalDetailLine) int {
+func (d *QuestJournalDialog) detailLineCount(lines []detailLine) int {
 	d.detailOutput.Reset()
 	for _, line := range lines {
 		d.appendDetailLine(line)
@@ -761,7 +724,7 @@ func (d *QuestJournalDialog) detailLineCount(lines []questJournalDetailLine) int
 	return d.detailOutput.GetPanelContentLineCount()
 }
 
-func (d *QuestJournalDialog) appendDetailLine(line questJournalDetailLine) {
+func (d *QuestJournalDialog) appendDetailLine(line detailLine) {
 	builder := d.detailOutput.AppendLine()
 	query := d.readingQuery
 	if line.value == questJournalNotLearned {
@@ -780,7 +743,7 @@ func (d *QuestJournalDialog) appendDetailLine(line questJournalDetailLine) {
 	builder.WordWrap().Done()
 }
 
-func (d *QuestJournalDialog) detailLines() []questJournalDetailLine {
+func (d *QuestJournalDialog) detailLines() []detailLine {
 	if d.currentItemCount() == 0 {
 		return nil
 	}
@@ -888,19 +851,19 @@ func questJournalDismissShortcut(key ebiten.Key, shiftPressed bool) bool {
 	return key == ebiten.KeyEscape || key == ebiten.KeyJ && shiftPressed
 }
 
-func questJournalChronicleDetail(event game_state.QuestJournalChronicleEntry) []questJournalDetailLine {
+func questJournalChronicleDetail(event game_state.QuestJournalChronicleEntry) []detailLine {
 	if event.Title != "" {
-		lines := []questJournalDetailLine{
+		lines := []detailLine{
 			{label: "", value: event.Title, color: DialogHeaderColor, header: true},
 			{label: "", value: event.Summary, color: DialogValueColor, header: false},
 		}
 		if event.Source != "" {
-			lines = append(lines, questJournalDetailLine{
+			lines = append(lines, detailLine{
 				label: "Source", value: event.Source, color: DialogValueColor, header: false,
 			})
 		}
 		if event.OccurredOn != nil {
-			lines = append(lines, questJournalDetailLine{
+			lines = append(lines, detailLine{
 				label: "Date", color: DialogValueColor, header: false,
 				value: fmt.Sprintf("%d-%d-%d", event.OccurredOn.Month, event.OccurredOn.Day, event.OccurredOn.Year),
 			})
@@ -913,7 +876,7 @@ func questJournalChronicleDetail(event game_state.QuestJournalChronicleEntry) []
 	if strings.Contains(title, "Shadowlord") {
 		defeated = title + " was permanently defeated."
 	}
-	lines := []questJournalDetailLine{
+	lines := []detailLine{
 		{label: "", value: title, color: DialogHeaderColor, header: true},
 		{
 			label: "", value: defeated,
@@ -921,12 +884,12 @@ func questJournalChronicleDetail(event game_state.QuestJournalChronicleEntry) []
 		},
 	}
 	if event.OccurredOn == nil {
-		return append(lines, questJournalDetailLine{
+		return append(lines, detailLine{
 			label: "", value: "Previously defeated; date unknown",
 			color: DialogNavHintColor, header: false,
 		})
 	}
-	lines = append(lines, questJournalDetailLine{
+	lines = append(lines, detailLine{
 		label: "Date",
 		value: fmt.Sprintf(
 			"%d-%d-%d",
@@ -940,7 +903,7 @@ func questJournalChronicleDetail(event game_state.QuestJournalChronicleEntry) []
 	return lines
 }
 
-func questJournalVirtueDetail(virtue game_state.QuestJournalVirtue) []questJournalDetailLine {
+func questJournalVirtueDetail(virtue game_state.QuestJournalVirtue) []detailLine {
 	state, stateColor := questJournalVirtueStateText(virtue.QuestState)
 	answer := questJournalNotLearned
 	answerColor := DialogEmptyColor
@@ -955,23 +918,23 @@ func questJournalVirtueDetail(virtue game_state.QuestJournalVirtue) []questJourn
 		mantraColor = DialogValueColor
 	}
 
-	lines := []questJournalDetailLine{
+	lines := []detailLine{
 		{label: "", value: virtue.Name, color: DialogHeaderColor, header: true},
 		{label: "Shrine quest", value: state, color: stateColor, header: false},
 	}
 	if virtue.Ruined {
-		lines = append(lines, questJournalDetailLine{
+		lines = append(lines, detailLine{
 			label: "Shrine", value: "Destroyed", color: DialogStatusWarningColor, header: false,
 		})
 	}
 
 	return append(lines,
-		questJournalDetailLine{label: "Mantra", value: mantra, color: mantraColor, header: false},
-		questJournalDetailLine{label: "Codex answer", value: answer, color: answerColor, header: false},
+		detailLine{label: "Mantra", value: mantra, color: mantraColor, header: false},
+		detailLine{label: "Codex answer", value: answer, color: answerColor, header: false},
 	)
 }
 
-func questJournalShadowlordDetail(shadowlord game_state.QuestJournalShadowlord) []questJournalDetailLine {
+func questJournalShadowlordDetail(shadowlord game_state.QuestJournalShadowlord) []detailLine {
 	state := "Defeated"
 	stateColor := DialogStatusOKColor
 	if shadowlord.State == game_state.QuestJournalShadowlordLiving {
@@ -979,7 +942,7 @@ func questJournalShadowlordDetail(shadowlord game_state.QuestJournalShadowlord) 
 		stateColor = DialogStatusWarningColor
 	}
 
-	return []questJournalDetailLine{
+	return []detailLine{
 		{label: "", value: shadowlord.DisplayName, color: DialogHeaderColor, header: true},
 		questJournalLearnedField("Embodies", shadowlord.Association),
 		questJournalLearnedField("Opposes", shadowlord.Opposes),
@@ -991,20 +954,20 @@ func questJournalShadowlordDetail(shadowlord game_state.QuestJournalShadowlord) 
 	}
 }
 
-func questJournalLearnedField(label, value string) questJournalDetailLine {
+func questJournalLearnedField(label, value string) detailLine {
 	fieldColor := DialogValueColor
 	if value == "" {
 		value, fieldColor = questJournalNotLearned, DialogEmptyColor
 	}
 
-	return questJournalDetailLine{label: label, value: value, color: fieldColor, header: false}
+	return detailLine{label: label, value: value, color: fieldColor, header: false}
 }
 
-func questJournalDungeonDetail(entry journal.DungeonEntry) []questJournalDetailLine {
+func questJournalDungeonDetail(entry journal.DungeonEntry) []detailLine {
 	if entry.Gate {
 		return questJournalGateDetail(entry)
 	}
-	lines := []questJournalDetailLine{
+	lines := []detailLine{
 		questJournalLearnedField("Dungeon", entry.Name),
 		questJournalLearnedField("Entrance", entry.Entrance),
 	}
@@ -1027,8 +990,8 @@ func questJournalDungeonDetail(entry journal.DungeonEntry) []questJournalDetailL
 
 // questJournalGateDetail presents a learned clue without entrance or location
 // fields: the gate has no observed site, so those would assert false facts.
-func questJournalGateDetail(entry journal.DungeonEntry) []questJournalDetailLine {
-	lines := []questJournalDetailLine{
+func questJournalGateDetail(entry journal.DungeonEntry) []detailLine {
+	lines := []detailLine{
 		{label: "", value: entry.Name, color: DialogHeaderColor, header: true},
 		questJournalLearnedField("Word of Power", entry.Word),
 		questJournalLearnedField("Source", entry.Source),
@@ -1036,8 +999,8 @@ func questJournalGateDetail(entry journal.DungeonEntry) []questJournalDetailLine
 	// Separate paragraphs so paging can break between them.
 	for paragraph := range strings.SplitSeq(entry.Description, "\n\n") {
 		lines = append(lines,
-			questJournalDetailLine{label: "", value: "", color: DialogValueColor, header: false},
-			questJournalDetailLine{label: "", value: paragraph, color: DialogValueColor, header: false})
+			detailLine{label: "", value: "", color: DialogValueColor, header: false},
+			detailLine{label: "", value: paragraph, color: DialogValueColor, header: false})
 	}
 
 	return lines

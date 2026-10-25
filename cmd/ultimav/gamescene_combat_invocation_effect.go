@@ -191,17 +191,22 @@ func (g *GameScene) setCombatSummonPhase(phase combatSummonEffectPhase) {
 	g.combatSummonEffect.Progress = 0
 }
 
-//nolint:dupl // Fear deliberately reuses repel's aggregate presentation timing.
-func (g *GameScene) thenCastCombatAnXenCorp(casterIdx int) event_queue.Sequence {
+// thenCastCombatRepel casts Repel Undead or Fear, which share the caster cue and
+// target pulses; cast applies the spell's rule and feedback describes its result.
+func (g *GameScene) thenCastCombatRepel(
+	casterIdx int,
+	cast func(int) game_state.CombatAnXenCorpResult,
+	feedback func(game_state.CombatAnXenCorpResult) string,
+) event_queue.Sequence {
 	timing := g.captureCombatTiming()
 
 	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
 		var result game_state.CombatAnXenCorpResult
 
 		return q.Then(g.combatTimingStep(timing, func() {
-			result = g.gameState.CastCombatAnXenCorp(casterIdx)
+			result = cast(casterIdx)
 			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
-			g.gameState.SystemCallbacks.Message.AddRowStr(combatRepelFeedbackText(result))
+			g.gameState.SystemCallbacks.Message.AddRowStr(feedback(result))
 			caster := g.activeCombatCasterIdentity(casterIdx)
 			g.combatRepelEffect = &combatRepelSpellEffect{
 				CasterIdx:  casterIdx,
@@ -220,32 +225,10 @@ func (g *GameScene) thenCastCombatAnXenCorp(casterIdx int) event_queue.Sequence 
 				g.combatRepelEffect.Progress = progress
 			})
 		}).Then(func() {
+			// The cast workflow's Finally clears this on cancellation; a Finally here
+			// would replace that workflow's cleanup.
 			g.combatRepelEffect = nil
 		})
-	}
-}
-
-//nolint:dupl // Fear deliberately reuses repel's aggregate presentation timing.
-func (g *GameScene) thenCastCombatInQuasCorp(casterIdx int) event_queue.Sequence {
-	timing := g.captureCombatTiming()
-
-	return func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		var result game_state.CombatAnXenCorpResult
-
-		return q.Then(g.combatTimingStep(timing, func() {
-			result = g.gameState.CastCombatInQuasCorp(casterIdx)
-			g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundMagic)
-			g.gameState.SystemCallbacks.Message.AddRowStr(combatFearFeedbackText(result))
-			caster := g.activeCombatCasterIdentity(casterIdx)
-			g.combatRepelEffect = &combatRepelSpellEffect{CasterIdx: casterIdx, CasterSlot: caster.Slot, Caster: g.gameState.CombatScene.GetCombatantPosition(caster), Result: result, Phase: combatRepelCasterCue}
-		})).Animate(timing.duration(combatRepelCasterCueMs), func(progress float32) {
-			g.combatRepelEffect.Progress = progress
-		}).Then(func() {
-			g.combatRepelEffect.Phase = combatRepelTargets
-			g.combatRepelEffect.Progress = 0
-		}).If(func() bool { return combatRepelHasTargets(result) }, func(effectQ *event_queue.SequentialEventBuilder) {
-			effectQ.Animate(timing.duration(combatRepelTargetsMs), func(progress float32) { g.combatRepelEffect.Progress = progress })
-		}).Finally(func() { g.combatRepelEffect = nil })
 	}
 }
 

@@ -38,7 +38,7 @@ func TestCombatUseCancellationPreservesItemAndActiveAction(t *testing.T) {
 	identityBefore := scene.gameState.CombatScene.GetCurrentTurnIdentity()
 
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.Dismiss()
 	drainCombatUseWorkflow(t, scene)
 
@@ -54,7 +54,7 @@ func TestCombatSceptreItemCancellationCreatesNoVisualEffect(t *testing.T) {
 	scene.gameState.PartyState.Inventory.QuestItems.Set(references.Sceptre, 1)
 
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.Dismiss()
 	drainCombatUseWorkflow(t, scene)
 
@@ -71,7 +71,7 @@ func TestBlackPotionAppliesInvisibilityAndCompletesOneAction(t *testing.T) {
 	identityBefore := scene.gameState.CombatScene.GetCurrentTurnIdentity()
 
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 
@@ -90,7 +90,7 @@ func TestPurplePotionTransformsActiveCombatantAndCompletesAction(t *testing.T) {
 	monstersBefore := scene.gameState.CombatScene.MonsterManager.Count()
 
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 
@@ -111,7 +111,7 @@ func TestKalXenCorpScrollConsumesAndSummonsLoyalDaemon(t *testing.T) {
 			mock.Reset()
 
 			scene.StartCombatUseWorkflow()
-			dialog := waitForCombatItemDialog(t, scene)
+			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			dialog.HandleEnter()
 			drainCombatUseWorkflow(t, scene)
 
@@ -146,7 +146,7 @@ func TestCombatDurationScrollsActivateAndCompleteAction(t *testing.T) {
 				scene.gameState.CombatScene.PreCombatPlayerLocation.Location = origin
 				scene.gameState.PartyState.Inventory.Scrolls.Set(test.scroll, 1)
 				scene.StartCombatUseWorkflow()
-				dialog := waitForCombatItemDialog(t, scene)
+				dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 				dialog.HandleEnter()
 				drainCombatUseWorkflow(t, scene)
 
@@ -180,7 +180,7 @@ func TestKalXenCorpScrollNoRoomStillConsumesAndCompletesAction(t *testing.T) {
 	mock.Reset()
 
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 
@@ -227,7 +227,7 @@ func TestCombatSceptreBarrierClearSkipsDirectionalFieldFallback(t *testing.T) {
 	mock.Reset()
 
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 
@@ -338,7 +338,7 @@ func clearCombatUseQuestItems(state *game_state.GameState) {
 func selectCombatSceptre(t *testing.T, scene *GameScene) {
 	t.Helper()
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	waitForCombatSceptreDirectionPrompt(t, scene)
 }
@@ -360,20 +360,6 @@ func resolveCombatSceptreDirection(t *testing.T, scene *GameScene, key ebiten.Ke
 	scene.keyboard.SimulateKeyPress(key)
 	scene.gameState.ElapsedMs += DialogPollingRateMs
 	scene.gameState.EventQueueManager.Update()
-}
-
-func waitForCombatItemDialog(t *testing.T, scene *GameScene) *widgets.ItemSelectionDialog {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ItemSelectionDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("combat item selection dialog was not shown")
-
-	return nil
 }
 
 func drainCombatUseWorkflow(t *testing.T, scene *GameScene) {

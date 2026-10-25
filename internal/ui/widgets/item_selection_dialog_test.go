@@ -308,7 +308,7 @@ func TestItemSelectionCategoriesIncludeUnavailableOwnershipAndWarningRowsStayAct
 	config.OnSelect = func(game_state.UseableItemInfo) { selectedCount++ }
 	warningDialog := NewItemSelectionDialog(config)
 	require.Equal(t, "White", unavailableRowLabel(warning.Name, warning.UnavailableReason == ""))
-	require.Contains(t, warningDialog.actionDetailLines(warning), itemSelectionDetailLine{
+	require.Contains(t, warningDialog.actionDetailLines(warning), detailLine{
 		label: "", value: warning.Warning, color: DialogWarningColor, header: false,
 	})
 	warningDialog.HandleEnter()

@@ -189,143 +189,89 @@ func (g *GameScene) merchantTesterDefinition(
 	return merchant, nil
 }
 
+// prepareMerchantPreview reviews one shop and confirms its prose and the merchant
+// and extra sprites are available before the tester opens it.
+func prepareMerchantPreview[S, P any](
+	g *GameScene,
+	id references.MerchantID,
+	label string,
+	review func(references.MerchantID) (game_state.MerchantShopReview[S], error),
+	prose func(S) (P, error),
+	extraSprites ...indexes.SpriteIndex,
+) (game_state.MerchantShopReview[S], error) {
+	shop, err := review(id)
+	if err != nil {
+		return game_state.MerchantShopReview[S]{}, fmt.Errorf("reviewing %s merchant: %w", label, err)
+	}
+	if _, err = prose(shop.State); err != nil {
+		return game_state.MerchantShopReview[S]{}, err
+	}
+	if g.spriteSheet == nil {
+		return game_state.MerchantShopReview[S]{}, errMerchantTesterSpriteUnavailable
+	}
+	for _, sprite := range append([]indexes.SpriteIndex{shop.MerchantSpriteIndex}, extraSprites...) {
+		if g.spriteSheet.GetSprite(sprite) == nil {
+			return game_state.MerchantShopReview[S]{}, errMerchantTesterSpriteUnavailable
+		}
+	}
+
+	return shop, nil
+}
+
 func (g *GameScene) prepareGuildMerchantPreview(
 	id references.MerchantID,
 ) (game_state.GuildShopReview, error) {
-	review, err := g.gameState.ReviewGuildShopByMerchantID(id)
-	if err != nil {
-		return game_state.GuildShopReview{}, fmt.Errorf("reviewing Guild merchant: %w", err)
-	}
-	if _, err = g.resolveGuildShopProse(review.State); err != nil {
-		return game_state.GuildShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil {
-		return game_state.GuildShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "Guild", g.gameState.ReviewGuildShopByMerchantID,
+		g.resolveGuildShopProse)
 }
 
 func (g *GameScene) prepareArmsMerchantPreview(
 	id references.MerchantID,
 ) (game_state.ArmsShopReview, error) {
-	review, err := g.gameState.ReviewArmsShopByMerchantID(id)
-	if err != nil {
-		return game_state.ArmsShopReview{}, fmt.Errorf("reviewing Arms merchant: %w", err)
-	}
-	if _, err = g.resolveArmsShopProse(review.State); err != nil {
-		return game_state.ArmsShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil {
-		return game_state.ArmsShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "Arms", g.gameState.ReviewArmsShopByMerchantID,
+		g.resolveArmsShopProse)
 }
 
 func (g *GameScene) prepareHealerMerchantPreview(
 	id references.MerchantID,
 ) (game_state.HealerShopReview, error) {
-	review, err := g.gameState.ReviewHealerShopByMerchantID(id)
-	if err != nil {
-		return game_state.HealerShopReview{}, fmt.Errorf("reviewing healer merchant: %w", err)
-	}
-	if _, err = g.resolveHealerShopProse(review.State); err != nil {
-		return game_state.HealerShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil {
-		return game_state.HealerShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "healer", g.gameState.ReviewHealerShopByMerchantID,
+		g.resolveHealerShopProse)
 }
 
 func (g *GameScene) prepareReagentMerchantPreview(
 	id references.MerchantID,
 ) (game_state.ReagentShopReview, error) {
-	review, err := g.gameState.ReviewReagentShopByMerchantID(id)
-	if err != nil {
-		return game_state.ReagentShopReview{}, fmt.Errorf("reviewing reagent merchant: %w", err)
-	}
-	if _, err = g.resolveReagentShopProse(review.State); err != nil {
-		return game_state.ReagentShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil {
-		return game_state.ReagentShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "reagent", g.gameState.ReviewReagentShopByMerchantID,
+		g.resolveReagentShopProse)
 }
 
 func (g *GameScene) prepareHorseMerchantPreview(
 	id references.MerchantID,
 ) (game_state.HorseShopReview, error) {
-	review, err := g.gameState.ReviewHorseShopByMerchantID(id)
-	if err != nil {
-		return game_state.HorseShopReview{}, fmt.Errorf("reviewing horse merchant: %w", err)
-	}
-	if _, err = g.resolveHorseShopProse(review.State); err != nil {
-		return game_state.HorseShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil ||
-		g.spriteSheet.GetSprite(indexes.HorseRight) == nil {
-		return game_state.HorseShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "horse", g.gameState.ReviewHorseShopByMerchantID,
+		g.resolveHorseShopProse, indexes.HorseRight)
 }
 
 func (g *GameScene) prepareShipMerchantPreview(
 	id references.MerchantID,
 ) (game_state.ShipShopReview, error) {
-	review, err := g.gameState.ReviewShipShopByMerchantID(id)
-	if err != nil {
-		return game_state.ShipShopReview{}, fmt.Errorf("reviewing ship merchant: %w", err)
-	}
-	if _, err = g.resolveShipShopProse(review.State); err != nil {
-		return game_state.ShipShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil ||
-		g.spriteSheet.GetSprite(indexes.ShipNoSailsRight) == nil ||
-		g.spriteSheet.GetSprite(indexes.SkiffRight) == nil {
-		return game_state.ShipShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "ship", g.gameState.ReviewShipShopByMerchantID,
+		g.resolveShipShopProse, indexes.ShipNoSailsRight, indexes.SkiffRight)
 }
 
 func (g *GameScene) prepareInnMerchantPreview(
 	id references.MerchantID,
 ) (game_state.InnShopReview, error) {
-	review, err := g.gameState.ReviewInnShopByMerchantID(id)
-	if err != nil {
-		return game_state.InnShopReview{}, fmt.Errorf("reviewing Inn merchant: %w", err)
-	}
-	if _, err = g.resolveInnShopProse(review.State); err != nil {
-		return game_state.InnShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil {
-		return game_state.InnShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "Inn", g.gameState.ReviewInnShopByMerchantID,
+		g.resolveInnShopProse)
 }
 
 func (g *GameScene) prepareTavernMerchantPreview(
 	id references.MerchantID,
 ) (game_state.TavernShopReview, error) {
-	review, err := g.gameState.ReviewTavernShopByMerchantID(id)
-	if err != nil {
-		return game_state.TavernShopReview{}, fmt.Errorf("reviewing Tavern merchant: %w", err)
-	}
-	if _, err = g.resolveTavernShopProse(review.State); err != nil {
-		return game_state.TavernShopReview{}, err
-	}
-	if g.spriteSheet == nil || g.spriteSheet.GetSprite(review.MerchantSpriteIndex) == nil {
-		return game_state.TavernShopReview{}, errMerchantTesterSpriteUnavailable
-	}
-
-	return review, nil
+	return prepareMerchantPreview(g, id, "Tavern", g.gameState.ReviewTavernShopByMerchantID,
+		g.resolveTavernShopProse)
 }
 
 func (g *GameScene) validateMerchantTesterPreview(merchant references.MerchantDefinition) error {

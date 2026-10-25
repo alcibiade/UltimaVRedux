@@ -211,10 +211,7 @@ type TavernShopState struct {
 }
 
 // TavernShopReview is a pure production snapshot with canonical sprite identity.
-type TavernShopReview struct {
-	State               TavernShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type TavernShopReview = MerchantShopReview[TavernShopState]
 
 // TavernMealRequest carries comparison-only reviewed meal authority.
 type TavernMealRequest struct {
@@ -384,20 +381,11 @@ func (g *GameState) GetTavernShopState(session MerchantSession) (TavernShopState
 
 // ReviewTavernShopByMerchantID builds production quotes without a session, mutation, callbacks, or RNG.
 func (g *GameState) ReviewTavernShopByMerchantID(id references.MerchantID) (TavernShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyTavern, ErrInvalidTavernRequest, "a Tavern")
-	if err != nil {
-		return TavernShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return TavernShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildTavernShopState(merchant, buyer, buyerIndex, int(buyer.Intelligence), false)
-	if err != nil {
-		return TavernShopReview{}, err
-	}
-
-	return TavernShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyTavern, ErrInvalidTavernRequest, "a Tavern", func(
+		merchant references.MerchantDefinition, buyer *party_state.PlayerCharacter, buyerIndex int,
+	) (TavernShopState, error) {
+		return g.buildTavernShopState(merchant, buyer, buyerIndex, int(buyer.Intelligence), false)
+	})
 }
 
 // PurchaseTavernMeal revalidates and commits one meal order.

@@ -108,7 +108,7 @@ func TestOutdoorWindowProductionCastCostsCancellationAndFailureText(t *testing.T
 				before, calls := state.DateTime, state.GetRNG().Calls()
 				callbacks.Reset()
 				scene.startSpellCastingWorkflow()
-				dialog := waitForProductionSpellDialog(t, scene)
+				dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 				enterSpellSyllables(scene, dialog, []ebiten.Key{ebiten.KeyI, ebiten.KeyP})
 				scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 				dialog.Update()

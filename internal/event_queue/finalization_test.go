@@ -337,3 +337,45 @@ func assertPanics(t *testing.T, action func()) {
 	}()
 	action()
 }
+
+func TestFinalization_NestedFinallyPanicsInsteadOfReplacingCleanup(t *testing.T) {
+	manager := NewEventQueueManager(func() int64 { return 0 }, nil)
+	manager.Workflow("nested_finally").
+		Priority(PriorityNormal).
+		Sequential().
+		First(func() {}).
+		ThenSequence(func(sequence *SequentialEventBuilder) *SequentialEventBuilder {
+			return sequence.Then(func() {}).Finally(func() {})
+		}).
+		Finally(func() {}).
+		Start()
+
+	assertPanics(t, func() {
+		for range 5 {
+			manager.Update()
+		}
+	})
+}
+
+func TestFinalization_TakeOverFinallyReplacesWorkflowCleanup(t *testing.T) {
+	manager := NewEventQueueManager(func() int64 { return 0 }, nil)
+	var execution []string
+	manager.Workflow("take_over").
+		Priority(PriorityNormal).
+		Sequential().
+		First(func() { execution = append(execution, "first") }).
+		ThenSequence(func(sequence *SequentialEventBuilder) *SequentialEventBuilder {
+			return sequence.Then(func() { execution = append(execution, "nested") }).
+				TakeOverFinally(func() { execution = append(execution, "nested cleanup") })
+		}).
+		Finally(func() { execution = append(execution, "workflow cleanup") }).
+		Start()
+	for range 5 {
+		manager.Update()
+	}
+
+	want := []string{"first", "nested", "nested cleanup"}
+	if !reflect.DeepEqual(execution, want) {
+		t.Fatalf("execution = %v, want %v", execution, want)
+	}
+}

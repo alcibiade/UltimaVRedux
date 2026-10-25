@@ -10,6 +10,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
 func TestCastPartyConfirmationCostMatrix(t *testing.T) {
@@ -32,11 +33,11 @@ func TestCastPartyConfirmationCostMatrix(t *testing.T) {
 				} else {
 					scene.startSpellCastingWorkflow()
 				}
-				dialog := waitForProductionSpellDialog(t, scene)
+				dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 				enterSpellSyllables(scene, dialog, []ebiten.Key{ebiten.KeyA, ebiten.KeyN})
 				scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 				dialog.Update()
-				targetDialog := waitForProductionCharacterSelection(t, scene)
+				targetDialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 				assert.Equal(t, byte(8), caster.GetCurrentMp())
 				assert.Equal(t, uint16(2), state.PartyState.Inventory.Spells.Get(references.AnNox))
 				assert.Equal(t, before, state.DateTime)
@@ -120,7 +121,7 @@ func TestUseConsumableConfirmationCostMatrix(t *testing.T) {
 						selectSurfaceUseItem(t, scene)
 						drainUseSelectionWorkflow(t, scene)
 					}
-					dialog := waitForProductionCharacterSelection(t, scene)
+					dialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 					assert.Equal(t, uint16(2), quantity())
 					assert.Equal(t, before, state.DateTime)
 					assert.Equal(t, calls, state.GetRNG().Calls())
@@ -203,7 +204,7 @@ func TestDungeonUseRejectsMovedSelectorWithoutCommitment(t *testing.T) {
 	calls := state.GetRNG().Calls()
 	callbacks.Reset()
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	dialog := waitForDungeonItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	state.MapState.PlayerLocation.Position.X++
 	dialog.HandleEnter()
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
@@ -241,7 +242,7 @@ func TestWhitePotionCommitsOnlyAfterFinalTargetConfirmation(t *testing.T) {
 					selectSurfaceUseItem(t, scene)
 					drainUseSelectionWorkflow(t, scene)
 				}
-				dialog := waitForProductionCharacterSelection(t, scene)
+				dialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 				assert.Equal(t, uint16(2), state.PartyState.Inventory.Potions.Get(references.White))
 				assert.Equal(t, before, state.DateTime)
 				assert.Equal(t, calls, state.GetRNG().Calls())
@@ -307,7 +308,7 @@ func TestCastDirectionCancellationAndShutdownPreserveResourcesTimeAndRNG(t *test
 			calls := state.GetRNG().Calls()
 			callbacks.Reset()
 			scene.smallMapInputHandler(ebiten.KeyC)
-			dialog := waitForProductionSpellDialog(t, scene)
+			dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, dialog, []ebiten.Key{ebiten.KeyA, ebiten.KeyY})
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			dialog.Update()

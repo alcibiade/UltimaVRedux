@@ -88,7 +88,7 @@ func TestProductionKeyboardCastConsumesResourcesAndExactlyOneMinute(t *testing.T
 	scene := newProductionCastTestScene(state)
 
 	scene.smallMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	assert.Equal(t, references.InLor, spellDialog.GetSelectedSpell())
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
@@ -112,7 +112,7 @@ func TestProductionCombatCastDialogCancellationPreservesAction(t *testing.T) {
 	scene := newProductionCastTestScene(actual)
 
 	scene.combatMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	spellDialog.Dismiss()
 	drainProductionCastWorkflow(t, scene)
 
@@ -155,7 +155,7 @@ func TestProductionCombatAutomaticCastTerminalMatrix(t *testing.T) {
 			scene := newProductionCastTestScene(actual)
 
 			scene.combatMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			for _, key := range []ebiten.Key{ebiten.KeyI, ebiten.KeyX, ebiten.KeyM} {
 				scene.keyboard.SimulateKeyPress(key)
 				spellDialog.Update()
@@ -223,7 +223,7 @@ func TestProductionCombatPreRequestFailurePreservesAction(t *testing.T) {
 			scene := newProductionCastTestScene(actual)
 
 			scene.combatMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			for _, key := range test.keys {
 				scene.keyboard.SimulateKeyPress(key)
 				spellDialog.Update()
@@ -269,7 +269,7 @@ func TestProductionCombatPartyTargetNoEffectAndSuccessConsumeResourcesAndOneActi
 			scene := newProductionCastTestScene(actual)
 
 			scene.combatMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			scene.keyboard.SimulateKeyPress(ebiten.KeyM)
 			spellDialog.Update()
 			require.Equal(t, references.Mani, spellDialog.GetSelectedSpell())
@@ -311,7 +311,7 @@ func TestProductionCombatPartyTargetCancellationPreservesResourcesAndAction(t *t
 	scene := newProductionCastTestScene(actual)
 
 	scene.combatMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyM)
 	spellDialog.Update()
 	require.Equal(t, references.Mani, spellDialog.GetSelectedSpell())
@@ -334,7 +334,7 @@ func TestProductionCastShutdownRemovesOpenSpellDialog(t *testing.T) {
 	scene := newProductionCastTestScene(state)
 
 	scene.combatMapInputHandler(ebiten.KeyC)
-	waitForProductionSpellDialog(t, scene)
+	waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	require.NotZero(t, scene.dialogStack.Count())
 
 	require.NotPanics(t, state.EventQueueManager.Shutdown)
@@ -356,7 +356,7 @@ func TestProductionCombatVasManiRejectsBeforeTargetWithoutCost(t *testing.T) {
 	scene := newProductionCastTestScene(actual)
 
 	scene.combatMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	for _, key := range []ebiten.Key{ebiten.KeyV, ebiten.KeyM} {
 		scene.keyboard.SimulateKeyPress(key)
 		spellDialog.Update()
@@ -452,7 +452,7 @@ func TestProductionVasRelPorPhaseWorkflowCommitsOnlyValidSelection(t *testing.T)
 			scene := newProductionCastTestScene(state)
 
 			scene.smallMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			for _, key := range []ebiten.Key{ebiten.KeyV, ebiten.KeyR, ebiten.KeyP} {
 				scene.keyboard.SimulateKeyPress(key)
 				spellDialog.Update()
@@ -460,7 +460,7 @@ func TestProductionVasRelPorPhaseWorkflowCommitsOnlyValidSelection(t *testing.T)
 			require.Equal(t, references.VasRelPor, spellDialog.GetSelectedSpell())
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			spellDialog.Update()
-			phaseDialog := waitForProductionPhaseInput(t, scene)
+			phaseDialog := waitForTopModal[*widgets.InputBox](t, scene)
 			scene.keyboard.SimulateKeyPress(test.phaseKey)
 			phaseDialog.Update()
 			if test.phaseKey != ebiten.KeyEscape {
@@ -507,7 +507,7 @@ func TestProductionCastAbsorptionUsesValidationFeedbackWithoutConsumption(t *tes
 	scene := newProductionCastTestScene(state)
 
 	scene.smallMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
 	drainProductionCastWorkflow(t, scene)
@@ -639,46 +639,21 @@ func assertCombatMatchesSingleFinish(t *testing.T, actual, expected *game_state.
 	assert.Equal(t, expectedForecast, actualForecast, "Cast must finish the accepted action exactly once")
 }
 
-func waitForProductionSpellDialog(t *testing.T, scene *GameScene) *widgets.SpellCastingDialog {
+// waitForTopModal advances workflows until the top modal dialog is a D and
+// returns it.
+func waitForTopModal[D any](t *testing.T, scene *GameScene) D {
 	t.Helper()
-	for range 10 {
+	for range 30 {
 		scene.gameState.ElapsedMs += DialogPollingRateMs
 		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.SpellCastingDialog); ok {
+		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(D); ok {
 			return dialog
 		}
 	}
-	t.Fatal("production spell dialog was not shown")
+	var none D
+	t.Fatalf("%T was not shown", none)
 
-	return nil
-}
-
-func waitForProductionPhaseInput(t *testing.T, scene *GameScene) *widgets.InputBox {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.InputBox); ok {
-			return dialog
-		}
-	}
-	t.Fatal("production phase input was not shown")
-
-	return nil
-}
-
-func waitForProductionCharacterSelection(t *testing.T, scene *GameScene) *widgets.CharacterSelectionDialog {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.CharacterSelectionDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("production character selection was not shown")
-
-	return nil
+	return none
 }
 
 func drainProductionCastWorkflow(t *testing.T, scene *GameScene) {

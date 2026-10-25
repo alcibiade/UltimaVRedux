@@ -5,6 +5,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +27,7 @@ func TestCombatArtifactUseTogglesThroughProductionRouteExactlyOnce(t *testing.T)
 			expectedCallbacks.Reset()
 			sequence := scene.gameState.CastUseCommitSequence()
 			scene.combatMapInputHandler(ebiten.KeyU)
-			dialog := waitForCombatItemDialog(t, scene)
+			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			dialog.HandleEnter()
 			dialog.HandleEnter()
 			drainCombatUseWorkflow(t, scene)
@@ -51,7 +52,7 @@ func TestCombatUnavailableOnlyInventoryRemainsInspectableAndFree(t *testing.T) {
 		clearCombatUseQuestItems(scene.gameState)
 		scene.gameState.PartyState.Inventory.Scrolls.Set(item, 2)
 		scene.combatMapInputHandler(ebiten.KeyU)
-		dialog := waitForCombatItemDialog(t, scene)
+		dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 		before := snapshotBlockedCombatState(t, scene.gameState)
 		dialog.HandleEnter()
 		require.False(t, dialog.IsDismissed())
@@ -69,7 +70,7 @@ func TestCombatArtifactUseRejectsChangedActorBeforeCommit(t *testing.T) {
 	clearCombatUseQuestItems(scene.gameState)
 	scene.gameState.PartyState.Inventory.QuestItems.Set(references.Crown, 1)
 	scene.StartCombatUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	scene.gameState.FinishCombatAction()
 	before := snapshotBlockedCombatState(t, scene.gameState)
 	dialog.HandleEnter()
@@ -101,7 +102,7 @@ func TestCombatCrownUseReplacesDurationEffectsAndPreservesIndependentArtifacts(t
 			require.True(t, activate.apply(state, 100))
 			amulet, badge := state.AmuletState, state.BadgeState
 			scene.combatMapInputHandler(ebiten.KeyU)
-			waitForCombatItemDialog(t, scene).HandleEnter()
+			waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 			drainCombatUseWorkflow(t, scene)
 			require.True(t, state.IsCrownActive())
 			require.Equal(t, game_state.DurationEffect{}, state.ActiveDurationEffect)
@@ -126,7 +127,7 @@ func TestCombatIndependentArtifactUsePreservesCrownAndDuration(t *testing.T) {
 				require.True(t, state.ActivateProtectionEffect(100))
 			}
 			scene.combatMapInputHandler(ebiten.KeyU)
-			waitForCombatItemDialog(t, scene).HandleEnter()
+			waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 			drainCombatUseWorkflow(t, scene)
 			require.Equal(t, crown, state.IsCrownActive())
 			require.Equal(t, !crown, state.HasActiveDurationEffect(game_state.DurationEffectProtection))
@@ -151,7 +152,7 @@ func TestCombatDurationScrollUseReplacesCrownWithoutRemovingAmuletOrBadge(t *tes
 	require.True(t, state.ToggleAmulet())
 	require.True(t, state.ToggleBadge())
 	scene.combatMapInputHandler(ebiten.KeyU)
-	waitForCombatItemDialog(t, scene).HandleEnter()
+	waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 	require.False(t, state.IsCrownActive())
 	require.True(t, state.HasActiveDurationEffect(game_state.DurationEffectProtection))

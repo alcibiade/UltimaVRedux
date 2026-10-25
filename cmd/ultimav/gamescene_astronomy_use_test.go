@@ -62,7 +62,7 @@ func TestAstronomyFeedbackHistoryExactlyOnceAtEveryPopupCap(t *testing.T) {
 					scene.ShowTelescopeInteraction()
 				}
 				if test.modal {
-					dialog := waitForAstronomyDialog(t, scene)
+					dialog := waitForTopModal[*widgets.AstronomyDialog](t, scene)
 					assert.Len(t, scene.transientActionFeedback, min(limit, 1))
 					assert.True(t, state.EventQueueManager.HasInputBlockingWorkflows(), "astronomy still owns acknowledgement at Off")
 					dialog.Update()
@@ -123,7 +123,7 @@ func TestTownTelescopeLookCompletesCommandExactlyOnce(t *testing.T) {
 	scene.keyboard.SimulateKeyPress(ebiten.KeyRight)
 
 	scene.smallMapHandleSecondaryInput()
-	waitForAstronomyDialog(t, scene)
+	waitForTopModal[*widgets.AstronomyDialog](t, scene)
 
 	assert.Empty(t, callbacks.TimeAdvanced())
 	require.NotPanics(t, state.EventQueueManager.Shutdown)
@@ -205,10 +205,10 @@ func TestSurfaceKeyURoutesSpyglassThroughCallbackAndCompletesOnce(t *testing.T) 
 	callbacks.Reset()
 
 	scene.largeMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForCombatItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	drainUseSelectionWorkflow(t, scene)
-	astronomyDialog := waitForAstronomyDialog(t, scene)
+	astronomyDialog := waitForTopModal[*widgets.AstronomyDialog](t, scene)
 
 	assert.Equal(t, 1, callbackRequests)
 	assert.Contains(t, feedback, "Thou dost see the night sky!")
@@ -245,7 +245,7 @@ func TestSurfaceKeyURoutesSextantOutputAndCompletesOnce(t *testing.T) {
 	callbacks.Reset()
 
 	scene.largeMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForCombatItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	drainUseSelectionWorkflow(t, scene)
 
@@ -283,7 +283,7 @@ func TestSpyglassAcceptsBritanniaAtSourceNightBoundaries(t *testing.T) {
 			completed := 0
 
 			scene.startSpyglassWorkflow(func() { completed++ })
-			waitForAstronomyDialog(t, scene)
+			waitForTopModal[*widgets.AstronomyDialog](t, scene)
 			state.EventQueueManager.Shutdown()
 
 			assert.Equal(t, 1, completed)
@@ -336,18 +336,4 @@ func TestSpyglassUsesSourceDayAndLocationFeedback(t *testing.T) {
 		assert.Contains(t, feedback, "Not here!")
 		assert.False(t, state.EventQueueManager.HasWorkflow("spyglass_workflow"))
 	})
-}
-
-func waitForAstronomyDialog(t *testing.T, scene *GameScene) *widgets.AstronomyDialog {
-	t.Helper()
-	for range 30 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.AstronomyDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("spyglass workflow did not show astronomy")
-
-	return nil
 }

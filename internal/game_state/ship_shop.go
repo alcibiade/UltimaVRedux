@@ -124,10 +124,7 @@ type ShipShopState struct {
 }
 
 // ShipShopReview is a pure production snapshot with canonical sprite identity.
-type ShipShopReview struct {
-	State               ShipShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type ShipShopReview = MerchantShopReview[ShipShopState]
 
 // ShipPurchaseRequest carries comparison-only reviewed authority.
 type ShipPurchaseRequest struct {
@@ -183,20 +180,7 @@ func (g *GameState) GetShipShopState(session MerchantSession) (ShipShopState, er
 // ReviewShipShopByMerchantID builds production quotes without issuing a
 // session, invoking callbacks, consuming RNG, advancing time, or mutating units.
 func (g *GameState) ReviewShipShopByMerchantID(id references.MerchantID) (ShipShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyShip, ErrInvalidShipPurchase, "a ship dealer")
-	if err != nil {
-		return ShipShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return ShipShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildShipShopState(merchant, buyer, buyerIndex)
-	if err != nil {
-		return ShipShopReview{}, err
-	}
-
-	return ShipShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyShip, ErrInvalidShipPurchase, "a ship dealer", g.buildShipShopState)
 }
 
 // PurchaseShip revalidates and commits one canonical vessel purchase.

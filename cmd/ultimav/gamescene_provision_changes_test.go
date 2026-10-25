@@ -76,10 +76,10 @@ func TestProvisionFeedbackBritainRationsActualCommitWhileMerchantOpen(t *testing
 			review, err := fixture.state.ReviewTavernShopByMerchantID(references.MerchantTavernBritain)
 			require.NoError(t, err)
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			dialog := waitForTavernDialog(t, fixture)
+			dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 			selectTavernOrderItem(t, fixture, dialog, widgets.TavernOrderProvision)
 			pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-			approval := waitForTavernActionDialog(t, fixture)
+			approval := waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 			for pack := 1; pack < test.packs; pack++ {
 				pressMerchantDialogKey(fixture, ebiten.KeyRight)
 			}
@@ -91,7 +91,7 @@ func TestProvisionFeedbackBritainRationsActualCommitWhileMerchantOpen(t *testing
 				})
 			} else {
 				pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-				waitForTavernResultDialog(t, fixture)
+				waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 			}
 			top := fixture.scene.dialogStack.PeekTopModalDialog()
 			count := fixture.scene.dialogStack.Count()

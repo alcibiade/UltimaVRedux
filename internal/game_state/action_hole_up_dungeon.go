@@ -80,7 +80,7 @@ func (g *GameState) AddDungeonCampingSequenceToBuilder(
 				g.SystemCallbacks.Screen.HideMessageDialog()
 			}).Wait(int64(g.SystemCallbacks.Screen.GetMessageDialogFadeOutDuration())).
 				Then(func() { g.SystemCallbacks.Screen.PopMessageDialog() })
-		}).Finally(func() {
+		}).TakeOverFinally(func() {
 		g.finalizeCampingSequence(scene, state, completionCleanup)
 	})
 }

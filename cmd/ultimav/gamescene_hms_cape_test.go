@@ -25,7 +25,7 @@ func TestHMSCapeWorkflowCancellationDoesNotMutate(t *testing.T) {
 	callbacks.Reset()
 
 	scene.startHMSCapeWorkflow(commit, func() { completed++ })
-	dialog := waitForHMSCapeDialog(t, scene)
+	dialog := waitForTopModal[*widgets.InputBox](t, scene)
 
 	assert.NotContains(t, dialog.Question, "global setting")
 	assert.NotContains(t, dialog.Question, "makes them faster")
@@ -51,7 +51,7 @@ func TestHMSCapeWorkflowConfirmsEnableAndDisable(t *testing.T) {
 	commit, _ := state.BeginHMSCapeUse()
 	require.NotNil(t, commit)
 	scene.startHMSCapeWorkflow(commit, func() {})
-	dialog := waitForHMSCapeDialog(t, scene)
+	dialog := waitForTopModal[*widgets.InputBox](t, scene)
 	confirmHMSCapeDialog(t, scene, dialog)
 	drainNamedSurfaceUseWorkflow(t, scene, hmsCapeWorkflowName)
 
@@ -63,7 +63,7 @@ func TestHMSCapeWorkflowConfirmsEnableAndDisable(t *testing.T) {
 	commit, _ = state.BeginHMSCapeUse()
 	require.NotNil(t, commit)
 	scene.startHMSCapeWorkflow(commit, func() {})
-	dialog = waitForHMSCapeDialog(t, scene)
+	dialog = waitForTopModal[*widgets.InputBox](t, scene)
 	assert.Contains(t, dialog.Question, "Put these plans aside? (Y/N)")
 	confirmHMSCapeDialog(t, scene, dialog)
 	drainNamedSurfaceUseWorkflow(t, scene, hmsCapeWorkflowName)
@@ -72,20 +72,6 @@ func TestHMSCapeWorkflowConfirmsEnableAndDisable(t *testing.T) {
 	assert.Contains(t, callbacks.Messages, "You put the H.M.S. Cape plans aside.")
 	assert.Equal(t, []game_state.SoundEffect{game_state.SoundSummon}, callbacks.SoundEffectsPlayed)
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.HMSCape))
-}
-
-func waitForHMSCapeDialog(t *testing.T, scene *GameScene) *widgets.InputBox {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.InputBox); ok {
-			return dialog
-		}
-	}
-	t.Fatal("HMS Cape confirmation dialog was not shown")
-
-	return nil
 }
 
 func confirmHMSCapeDialog(t *testing.T, scene *GameScene, dialog *widgets.InputBox) {

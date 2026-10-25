@@ -13,6 +13,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -40,7 +41,7 @@ func newCombatDoorSpellScene(t *testing.T, spell references.Spell) (*GameScene, 
 func selectProductionCombatDoorSpell(t *testing.T, scene *GameScene, spell references.Spell) {
 	t.Helper()
 	scene.combatMapInputHandler(ebiten.KeyC)
-	dialog := waitForProductionSpellDialog(t, scene)
+	dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	keys := []ebiten.Key{ebiten.KeyI, ebiten.KeyE, ebiten.KeyP}
 	switch spell {
 	case references.AnSanct:
@@ -85,7 +86,7 @@ func TestCombatDoorSpellProductionSyllablesRespectInjectedControlAndRelease(t *t
 					return controlHeld && key == control
 				})
 				scene.combatMapInputHandler(ebiten.KeyC)
-				dialog := waitForProductionSpellDialog(t, scene)
+				dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 				initialSpell := dialog.GetSelectedSpell()
 				require.Equal(t, references.InLor, initialSpell)
 				commits := state.CastUseCommitSequence()

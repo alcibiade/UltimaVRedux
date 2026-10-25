@@ -6,7 +6,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 var (
@@ -107,10 +106,7 @@ type HealerShopState struct {
 }
 
 // HealerShopReview is a read-only production snapshot with canonical sprite identity.
-type HealerShopReview struct {
-	State               HealerShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type HealerShopReview = MerchantShopReview[HealerShopState]
 
 // HealerServiceRequest identifies one service and active-party recipient.
 type HealerServiceRequest struct {
@@ -183,20 +179,7 @@ func (g *GameState) GetHealerShopState(session MerchantSession) (HealerShopState
 // ReviewHealerShopByMerchantID builds production treatment projections without
 // issuing a session, invoking callbacks, consuming RNG, or consulting loaded NPC state.
 func (g *GameState) ReviewHealerShopByMerchantID(id references.MerchantID) (HealerShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyHealer, ErrInvalidHealerRequest, "a healer")
-	if err != nil {
-		return HealerShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return HealerShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildHealerShopState(merchant, buyer, buyerIndex)
-	if err != nil {
-		return HealerShopReview{}, err
-	}
-
-	return HealerShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyHealer, ErrInvalidHealerRequest, "a healer", g.buildHealerShopState)
 }
 
 // QuoteHealerTreatment returns a current trusted charge and recipient projection.

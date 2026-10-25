@@ -9,6 +9,7 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
 func TestProductionCombatCastStatusTargetLifecycle(t *testing.T) {
@@ -48,7 +49,7 @@ func TestProductionCombatCastStatusTargetLifecycle(t *testing.T) {
 			scene := newProductionCastTestScene(actual)
 
 			scene.combatMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			for _, key := range []ebiten.Key{ebiten.KeyA, test.lastSyllable} {
 				scene.keyboard.SimulateKeyPress(key)
 				spellDialog.Update()

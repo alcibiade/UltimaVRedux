@@ -101,7 +101,7 @@ func TestAmmunitionMerchantRefillRearmsNextCrossing(t *testing.T) {
 	state.PartyState.Inventory.Equipment.Set(references.Arrows, 18)
 	scene.resetProvisionChanges()
 	scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Arrows)
 	openArmsTradeDialog(t, fixture, shop)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
