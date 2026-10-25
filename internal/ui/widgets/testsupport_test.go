@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
+	"github.com/bradhannah/UltimaVRedux/internal/text"
 )
 
 // GetScrollOffset returns the active table's first visible row index.
@@ -51,11 +52,7 @@ func (d *ArmsShopDialog) GetSortBounds() image.Rectangle {
 
 // GetBodyText returns the current finalized prose and projections.
 func (d *ArmsTradeDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
+	return outputText(d.bodyOutput)
 }
 
 // GetBodyText returns the current quantity and projected-value presentation.
@@ -89,11 +86,7 @@ func (d *GuildShopDialog) GetCatalogQuotes() [guildShopOfferCount]game_state.Gui
 
 // GetStatusText returns the currently displayed selection note or receipt.
 func (d *GuildShopDialog) GetStatusText() string {
-	if d.statusOutput == nil {
-		return ""
-	}
-
-	return d.statusOutput.GetOutputStr(false)
+	return outputText(d.statusOutput)
 }
 
 // GetCatalogBounds returns the compact currently rendered catalog bounds.
@@ -127,11 +120,7 @@ func (d *GuildShopDialog) IsAwaitingResult() bool {
 
 // GetDetailText returns the current four-line action projection.
 func (d *HealerShopDialog) GetDetailText() string {
-	if d.detailOutput == nil {
-		return ""
-	}
-
-	return d.detailOutput.GetOutputStr(false)
+	return outputText(d.detailOutput)
 }
 
 // GetServicePaneBounds returns the rendered service pane.
@@ -169,20 +158,12 @@ func (d *HorsePurchaseDialog) HasPendingPurchaseRequest() bool { return d.pendin
 
 // GetTitleText returns the exact purchase title.
 func (d *HorsePurchaseDialog) GetTitleText() string {
-	if d.headerOutput == nil {
-		return ""
-	}
-
-	return d.headerOutput.GetOutputStr(false)
+	return outputText(d.headerOutput)
 }
 
 // GetBodyText returns the horse, price, and party-gold consequence presentation.
 func (d *HorsePurchaseDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
+	return outputText(d.bodyOutput)
 }
 
 // GetFooterGuidance returns the exact keyboard-only approval controls.
@@ -222,20 +203,12 @@ func (d *InnActionDialog) HasPendingRequest() bool { return d.pending != nil }
 
 // GetTitleText returns the visible action title, including PREVIEW when applicable.
 func (d *InnActionDialog) GetTitleText() string {
-	if d.headerOutput == nil {
-		return ""
-	}
-
-	return d.headerOutput.GetOutputStr(false)
+	return outputText(d.headerOutput)
 }
 
 // GetBodyText returns the exact mode-specific approval consequences.
 func (d *InnActionDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
+	return outputText(d.bodyOutput)
 }
 
 // GetBodyBounds returns the semantically backed modal body.
@@ -307,11 +280,7 @@ func (d *InnShopDialog) GetLeaveRows() []game_state.InnLeaveRow {
 
 // GetDetailText returns the active consequence card, row detail, or receipt.
 func (d *InnShopDialog) GetDetailText() string {
-	if d.detailOutput == nil {
-		return ""
-	}
-
-	return d.detailOutput.GetOutputStr(false)
+	return outputText(d.detailOutput)
 }
 
 // GetCardBounds returns the Rest consequence card or list-mode detail card.
@@ -438,11 +407,7 @@ func (d *QuestJournalDialog) GetDetailPage() int { return d.detailPage }
 
 // GetBodyText returns the selected supplied approval presentation.
 func (d *ReagentPurchaseDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
+	return outputText(d.bodyOutput)
 }
 
 // GetFooterGuidance returns the exact keyboard guidance displayed by the modal.
@@ -675,20 +640,12 @@ func (d *TavernActionDialog) HasPendingRequest() bool { return d.pending != nil 
 
 // GetTitleText returns the visible action title, including PREVIEW when applicable.
 func (d *TavernActionDialog) GetTitleText() string {
-	if d.headerOutput == nil {
-		return ""
-	}
-
-	return d.headerOutput.GetOutputStr(false)
+	return outputText(d.headerOutput)
 }
 
 // GetBodyText returns exact mode-specific approval presentation.
 func (d *TavernActionDialog) GetBodyText() string {
-	if d.bodyOutput == nil {
-		return ""
-	}
-
-	return d.bodyOutput.GetOutputStr(false)
+	return outputText(d.bodyOutput)
 }
 
 // ShowWithoutAnimation makes a non-complete approval immediately visible.
@@ -775,4 +732,13 @@ func (d *ZStatsDossierDialog) GetSelectedListIndex() int {
 	}
 
 	return d.currentSelection()
+}
+
+// outputText returns the finalized text of output, or "" before layout creates it.
+func outputText(output *text.Output) string {
+	if output == nil {
+		return ""
+	}
+
+	return output.GetOutputStr(false)
 }

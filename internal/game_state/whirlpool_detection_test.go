@@ -10,47 +10,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestWhirlpoolDetection_ShipOnWhirlpool verifies that the system can detect
-// when a ship/frigate is on a whirlpool tile
-func TestWhirlpoolDetection_ShipOnWhirlpool(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.BritanniaUnderworld).
-		WithPlayerAt(100, 100).
-		Build()
-
-	// Find a deep water position and spawn a whirlpool
-	layeredMap := gs.GetCurrentLayeredMap()
-	var whirlpoolPos references.Position
-	found := false
-
-	for y := references.Coordinate(0); y < references.YLargeMapTiles && !found; y++ {
-		for x := references.Coordinate(0); x < references.XLargeMapTiles && !found; x++ {
-			pos := references.Position{X: x, Y: y}
-			tile := layeredMap.GetTopTile(&pos)
-			if tile.Is(indexes.Water1) {
-				whirlpoolPos = pos
-				found = true
+// Frigates and skiffs on a whirlpool both qualify for its transport.
+// ref:SHIP-0003
+func TestWhirlpoolDetection_VesselOnWhirlpool(t *testing.T) {
+	for _, vessel := range []references.VehicleType{references.FrigateVehicle, references.SkiffVehicle} {
+		gs, _ := NewIntegrationTestBuilder(t).
+			WithLocation(references.BritanniaUnderworld).
+			WithPlayerAt(100, 100).
+			Build()
+		layeredMap := gs.GetCurrentLayeredMap()
+		var whirlpoolPos references.Position
+		found := false
+		for y := references.Coordinate(0); y < references.YLargeMapTiles && !found; y++ {
+			for x := references.Coordinate(0); x < references.XLargeMapTiles && !found; x++ {
+				pos := references.Position{X: x, Y: y}
+				if layeredMap.GetTopTile(&pos).Is(indexes.Water1) {
+					whirlpoolPos, found = pos, true
+				}
 			}
 		}
+		require.True(t, found, "Should find deep water tile")
+		require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
+
+		gs.PartyVehicle = *map_units.NewNPCFriendlyVehiceNewRef(vessel, whirlpoolPos, 0)
+		gs.MapState.PlayerLocation.Position = whirlpoolPos
+
+		assert.True(t, gs.IsPlayerOnWhirlpool(), "vehicle %v on the whirlpool tile", vessel)
 	}
-
-	require.True(t, found, "Should find deep water tile")
-
-	// Force spawn whirlpool
-	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
-
-	// Board a frigate and move to whirlpool position
-	frigate := map_units.NewNPCFriendlyVehiceNewRef(
-		references.FrigateVehicle,
-		whirlpoolPos,
-		0,
-	)
-	gs.PartyVehicle = *frigate
-	gs.MapState.PlayerLocation.Position = whirlpoolPos
-
-	// TEST: Should detect ship on whirlpool
-	isOnWhirlpool := gs.IsPlayerOnWhirlpool()
-	assert.True(t, isOnWhirlpool, "Should detect frigate on whirlpool tile")
 }
 
 // TestWhirlpoolDetection_ShipNotOnWhirlpool verifies that detection correctly
@@ -91,49 +77,6 @@ func TestWhirlpoolDetection_ShipNotOnWhirlpool(t *testing.T) {
 	// TEST: Should NOT detect whirlpool
 	isOnWhirlpool := gs.IsPlayerOnWhirlpool()
 	assert.False(t, isOnWhirlpool, "Should not detect whirlpool when not present")
-}
-
-// TestWhirlpoolDetection_SkiffOnWhirlpool verifies that skiffs are NOT
-// affected by whirlpools (original: only ships/frigates)
-func TestWhirlpoolDetection_SkiffOnWhirlpool(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.BritanniaUnderworld).
-		WithPlayerAt(100, 100).
-		Build()
-
-	// Find and spawn whirlpool
-	layeredMap := gs.GetCurrentLayeredMap()
-	var whirlpoolPos references.Position
-	found := false
-
-	for y := references.Coordinate(0); y < references.YLargeMapTiles && !found; y++ {
-		for x := references.Coordinate(0); x < references.XLargeMapTiles && !found; x++ {
-			pos := references.Position{X: x, Y: y}
-			tile := layeredMap.GetTopTile(&pos)
-			if tile.Is(indexes.Water1) {
-				whirlpoolPos = pos
-				found = true
-			}
-		}
-	}
-
-	require.True(t, found, "Should find deep water tile")
-
-	// Spawn whirlpool
-	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
-
-	// Board SKIFF (not frigate) and move to whirlpool
-	skiff := map_units.NewNPCFriendlyVehiceNewRef(
-		references.SkiffVehicle,
-		whirlpoolPos,
-		0,
-	)
-	gs.PartyVehicle = *skiff
-	gs.MapState.PlayerLocation.Position = whirlpoolPos
-
-	// Skiffs and frigates both qualify for whirlpool transport. ref:SHIP-0003
-	isOnWhirlpool := gs.IsPlayerOnWhirlpool()
-	assert.True(t, isOnWhirlpool, "Skiffs should be affected by whirlpools (original behavior)")
 }
 
 // TestWhirlpoolDetection_OnFootOnWhirlpool verifies that player on foot

@@ -1,6 +1,8 @@
 package game_state
 
 import (
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,91 +58,39 @@ func TestEnvironmentalHazardsIntegrationSwamp(t *testing.T) {
 	assert.Equal(t, []TransientIconKind{TransientIconPoisonOnset}, mockCallbacks.TransientIconCalls)
 }
 
-func TestEnvironmentalHazardsIntegrationLava(t *testing.T) {
-	gameState, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(54321).
-		Build()
+// Lava, and a fireplace on a small map, burn whoever stands on them.
+func TestEnvironmentalHazardsIntegrationBurningTiles(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		tile     indexes.SpriteIndex
+		seed     uint64
+		position references.Position
+	}{
+		{name: "lava", tile: indexes.Lava, seed: 54321, position: references.Position{X: 15, Y: 15}},
+		{name: "fireplace in town", tile: indexes.Fireplace, seed: 99999, position: references.Position{X: 12, Y: 12}},
+	} {
+		gameState, mockCallbacks := NewIntegrationTestBuilder(t).
+			WithLocation(references.Britain).
+			WithSystemCallbacks().
+			WithRandomSeed(test.seed).
+			Build()
+		const initialHP = uint16(30)
+		char := gameState.PartyState.GetCharacter(0)
+		char.SetHp(initialHP)
+		char.SetMaxHp(initialHP)
+		char.SetStatus(party_state.Good)
+		char.PartyMap = party_state.PartyMapActive
+		gameState.MapState.GetLayeredMapByCurrentLocation().SetTileByLayer(0, &test.position, test.tile)
+		gameState.MapState.PlayerLocation.Position = test.position
 
-	// Setup party member with known HP
-	initialHP := uint16(25)
-	char := gameState.PartyState.GetCharacter(0)
-	char.SetHp(initialHP)
-	char.SetMaxHp(initialHP)
-	char.SetStatus(party_state.Good)
-	char.PartyMap = party_state.PartyMapActive
+		gameState.ProcessEnvironmentalHazardsOnTurnAdvancement()
+		drainTurnHazardFeedback(gameState)
 
-	// Find or create a lava tile position for testing
-	testPos := references.Position{X: 15, Y: 15}
-	layeredMap := gameState.MapState.GetLayeredMapByCurrentLocation()
-
-	// Set a lava tile at the test position
-	layeredMap.SetTileByLayer(0, &testPos, indexes.Lava) // MapLayer = 0
-
-	// Move player to lava tile
-	gameState.MapState.PlayerLocation.Position = testPos
-
-	// Process environmental hazards
-	gameState.ProcessEnvironmentalHazardsOnTurnAdvancement()
-	drainTurnHazardFeedback(gameState)
-
-	// Verify integration results
-	assert.True(t, len(mockCallbacks.Messages) > 0, "Should show hazard message")
-	// Check that a burning message was shown (character names come from SAVED.GAM)
-	foundBurningMessage := false
-	for _, msg := range mockCallbacks.Messages {
-		if len(msg) >= 8 && msg[:8] == "Burning:" {
-			foundBurningMessage = true
-			break
-		}
+		assert.True(t, slices.ContainsFunc(mockCallbacks.Messages, func(message string) bool {
+			return strings.HasPrefix(message, "Burning:")
+		}), "%s shows a burning message with character names", test.name)
+		assert.Less(t, char.GetCurrentHp(), initialHP, test.name)
 	}
-	assert.True(t, foundBurningMessage, "Should show burning message with character names")
-	assert.True(t, gameState.PartyState.GetCharacter(0).GetCurrentHp() < initialHP, "Character should have taken damage")
-	// Note: HP cannot go below 0 since currentHp is uint16 (unsigned)
-}
-
-func TestEnvironmentalHazardsIntegrationFireplaceInTown(t *testing.T) {
-	gameState, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain). // Small map location
-		WithSystemCallbacks().
-		WithRandomSeed(99999).
-		Build()
-
-	// Setup party member
-	initialHP := uint16(30)
-	char := gameState.PartyState.GetCharacter(0)
-	char.SetHp(initialHP)
-	char.SetMaxHp(initialHP)
-	char.SetStatus(party_state.Good)
-	char.PartyMap = party_state.PartyMapActive
-
-	// Find or create a fireplace tile position for testing
-	testPos := references.Position{X: 12, Y: 12}
-	layeredMap := gameState.MapState.GetLayeredMapByCurrentLocation()
-
-	// Set a fireplace tile at the test position
-	layeredMap.SetTileByLayer(0, &testPos, indexes.Fireplace) // MapLayer = 0
-
-	// Move player to fireplace tile
-	gameState.MapState.PlayerLocation.Position = testPos
-
-	// Process environmental hazards
-	gameState.ProcessEnvironmentalHazardsOnTurnAdvancement()
-	drainTurnHazardFeedback(gameState)
-
-	// Verify fireplace is dangerous in small maps
-	assert.True(t, len(mockCallbacks.Messages) > 0, "Should show hazard message")
-	// Check that a burning message was shown (character names come from SAVED.GAM)
-	foundBurningMessage := false
-	for _, msg := range mockCallbacks.Messages {
-		if len(msg) >= 8 && msg[:8] == "Burning:" {
-			foundBurningMessage = true
-			break
-		}
-	}
-	assert.True(t, foundBurningMessage, "Should show burning message with character names")
-	assert.True(t, gameState.PartyState.GetCharacter(0).GetCurrentHp() < initialHP, "Character should have taken damage")
 }
 
 func TestEnvironmentalHazardsIntegrationSafeTiles(t *testing.T) {
