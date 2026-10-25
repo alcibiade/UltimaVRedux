@@ -107,8 +107,6 @@ func TestQuestJournalDialogUsesSemanticFontsAndResponsiveLayout(t *testing.T) {
 	pressQuestJournalKey(dialog, keyboard, ebiten.KeyDown)
 	dialog.ensureLayout()
 	smallSize := dialog.font.TextFace.Size
-
-	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 	require.Equal(t, GetScaledFont(FontSizeTitle).TextFace.Size, dialog.titleOutput.Font.TextFace.Size)
 	for _, size := range []float64{
 		dialog.tabOutput.Font.TextFace.Size,

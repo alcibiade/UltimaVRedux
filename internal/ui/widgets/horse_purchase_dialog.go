@@ -162,6 +162,7 @@ func (d *HorsePurchaseDialog) ensureLayout() {
 		maximumBodyLines: horsePurchaseMaximumBodyLines,
 		footerLines:      horsePurchaseFooterLines,
 		minimumChars:     horsePurchaseMinimumTextChars,
+		fixedBody:        false,
 	})
 	d.populateOutputs()
 }

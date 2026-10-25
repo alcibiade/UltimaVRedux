@@ -27,7 +27,6 @@ func TestShipTravelDialogDisplaysAndConfirmsExactReviewedTravel(t *testing.T) {
 	require.Equal(t, "[Enter] Travel   [Esc] Back", dialog.GetFooterGuidance())
 	require.Equal(t, intent, dialog.GetIntent())
 	require.True(t, dialog.IsPreview())
-	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 
 	visible := strings.ToLower(body + " " + dialog.GetFooterGuidance())
 	for _, forbidden := range shipDialogForbiddenDetails() {

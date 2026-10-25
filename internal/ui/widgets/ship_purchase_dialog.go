@@ -86,13 +86,7 @@ func (d *ShipPurchaseDialog) Draw(screen *ebiten.Image) {
 	}
 	d.ensureLayout()
 	d.frame.draw(screen)
-	d.headerOutput.DrawPanelContent(screen,
-		image.Pt(d.frame.headerText.Min.X, verticallyCenteredOutputY(d.frame.headerText, d.headerOutput)),
-		d.frame.headerText.Dx(), etext.AlignCenter)
-	d.bodyOutput.DrawPanelContent(screen, d.frame.bodyText.Min, d.frame.bodyText.Dx(), etext.AlignStart)
-	d.footerOutput.DrawPanelContent(screen,
-		image.Pt(d.frame.footerText.Min.X, verticallyCenteredOutputY(d.frame.footerText, d.footerOutput)),
-		d.frame.footerText.Dx(), etext.AlignCenter)
+	d.frame.drawOutputs(screen, d.headerOutput, d.bodyOutput, d.footerOutput)
 }
 
 // Update confirms or cancels the reviewed request after release debounce.
@@ -359,24 +353,8 @@ func newShipMerchantModalFrame(placement sprites.PercentBasedPlacement) *merchan
 }
 
 func newShipMerchantModalOutputs(frame *merchantModalFrame) (*text.Output, *text.Output, *text.Output) {
-	_, headerOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: shipModalLineSpacing,
-		MaxLines: 1, MaxChars: shipModalMinimumTextChars,
+	return frame.newOutputs(merchantModalTextBudget{
+		lineSpacing: shipModalLineSpacing, maximumBodyLines: shipModalMaximumBodyLines,
+		footerLines: shipModalFooterLines, minimumChars: shipModalMinimumTextChars, fixedBody: true,
 	})
-	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: shipModalLineSpacing,
-		MaxLines: shipModalMaximumBodyLines, MaxChars: shipModalMinimumTextChars,
-	})
-	_, footerOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: shipModalLineSpacing,
-		MaxLines: shipModalFooterLines, MaxChars: shipModalMinimumTextChars,
-	})
-	headerOutput.SetMaxCharsPerLine(max(shipModalMinimumTextChars,
-		headerOutput.Font.CharsForWidth(max(1, frame.headerText.Dx()))))
-	bodyOutput = text.NewOutput(bodyFont, bodyOutput.GetLineSpacing(), shipModalMaximumBodyLines,
-		max(shipModalMinimumTextChars, bodyFont.CharsForWidth(max(1, frame.bodyText.Dx()))))
-	footerOutput.SetMaxCharsPerLine(max(shipModalMinimumTextChars,
-		footerOutput.Font.CharsForWidth(max(1, frame.footerText.Dx()))))
-
-	return headerOutput, bodyOutput, footerOutput
 }

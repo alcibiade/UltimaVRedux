@@ -110,27 +110,13 @@ func NewTavernResultDialog(config TavernResultDialogConfig) *TavernResultDialog 
 }
 
 // Draw renders the opaque result modal.
-//
-//nolint:dupl // Merchant result modals intentionally share the established rendering shape.
 func (d *TavernResultDialog) Draw(screen *ebiten.Image) {
 	if screen == nil || !d.IsVisible() {
 		return
 	}
 	d.ensureLayout()
 	d.frame.draw(screen)
-	d.headerOutput.DrawPanelContent(
-		screen,
-		image.Pt(d.frame.headerText.Min.X, verticallyCenteredOutputY(d.frame.headerText, d.headerOutput)),
-		d.frame.headerText.Dx(),
-		etext.AlignCenter,
-	)
-	d.bodyOutput.DrawPanelContent(screen, d.frame.bodyText.Min, d.frame.bodyText.Dx(), etext.AlignStart)
-	d.footerOutput.DrawPanelContent(
-		screen,
-		image.Pt(d.frame.footerText.Min.X, verticallyCenteredOutputY(d.frame.footerText, d.footerOutput)),
-		d.frame.footerText.Dx(),
-		etext.AlignCenter,
-	)
+	d.frame.drawOutputs(screen, d.headerOutput, d.bodyOutput, d.footerOutput)
 }
 
 // Update waits for explicit result acknowledgement.
@@ -178,32 +164,10 @@ func (d *TavernResultDialog) ensureLayout() {
 	if !d.frame.ensureLayout() {
 		return
 	}
-	_, d.headerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeTitle, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
-		MaxLines: 1, MaxChars: tavernResultMinimumTextChars,
+	d.headerOutput, d.bodyOutput, d.footerOutput = d.frame.newOutputs(merchantModalTextBudget{
+		lineSpacing: tavernResultLineSpacing, maximumBodyLines: tavernResultMaximumBodyLines,
+		footerLines: 1, minimumChars: tavernResultMinimumTextChars, fixedBody: false,
 	})
-	bodyFont, bodyOutput := GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
-		MaxLines: tavernResultMaximumBodyLines, MaxChars: tavernResultMinimumTextChars,
-	})
-	_, d.footerOutput = GetScaledFontWithOutput(FontConfig{
-		Size: FontSizeBody, LineSpacing: 0, LineSpacingMultiplier: tavernResultLineSpacing,
-		MaxLines: 1, MaxChars: tavernResultMinimumTextChars,
-	})
-	d.headerOutput.SetMaxCharsPerLine(max(
-		tavernResultMinimumTextChars,
-		d.headerOutput.Font.CharsForWidth(max(1, d.frame.headerText.Dx())),
-	))
-	d.bodyOutput = text.NewOutput(
-		bodyFont,
-		bodyOutput.GetLineSpacing(),
-		max(1, bodyOutput.GetLineCapacity(max(1, d.frame.bodyText.Dy()))),
-		max(tavernResultMinimumTextChars, bodyFont.CharsForWidth(max(1, d.frame.bodyText.Dx()))),
-	)
-	d.footerOutput.SetMaxCharsPerLine(max(
-		tavernResultMinimumTextChars,
-		d.footerOutput.Font.CharsForWidth(max(1, d.frame.footerText.Dx())),
-	))
 	d.populateOutputs()
 }
 

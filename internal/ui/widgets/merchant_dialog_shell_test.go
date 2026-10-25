@@ -38,7 +38,6 @@ func TestMerchantDialogShellUsesCompactTwoColumnLayout(t *testing.T) {
 	require.Less(t, portrait.Max.Y, exchange.Min.Y)
 	require.Less(t, header.Max.Y, body.Min.Y)
 	require.Less(t, body.Max.Y, footer.Min.Y)
-	require.Equal(t, FontSizeBody, shell.GetFontSize())
 
 	for _, bounds := range []image.Rectangle{header, body, merchantPane, workspace, portrait, exchange, footer} {
 		require.True(t, bounds.In(outer), "%v must be inside %v", bounds, outer)

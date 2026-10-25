@@ -439,9 +439,7 @@ func (d *ReagentShopDialog) configureTextLayout() {
 }
 
 func (d *ReagentShopDialog) drawCatalog(screen *ebiten.Image) {
-	vector.FillRect(screen, float32(d.catalogBounds.Min.X), float32(d.catalogBounds.Min.Y),
-		float32(d.catalogBounds.Dx()), float32(d.catalogBounds.Dy()), MerchantDialogBackgroundColor, false)
-	DrawClassicPixelRoundedFrame(screen, d.catalogBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.catalogBounds, d.pixelUnit())
 	for index, heading := range d.GetCatalogHeadings() {
 		d.drawCatalogCell(screen, d.catalogHeader, d.catalogColumns[index], heading, DialogLabelColor, etext.AlignCenter)
 	}
@@ -488,9 +486,7 @@ func (d *ReagentShopDialog) drawHorizontalRule(screen *ebiten.Image, bounds imag
 }
 
 func (d *ReagentShopDialog) drawDetail(screen *ebiten.Image) {
-	vector.FillRect(screen, float32(d.detailBounds.Min.X), float32(d.detailBounds.Min.Y),
-		float32(d.detailBounds.Dx()), float32(d.detailBounds.Dy()), MerchantDialogBackgroundColor, false)
-	DrawClassicPixelRoundedFrame(screen, d.detailBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.detailBounds, d.pixelUnit())
 	d.detailOutput.DrawPanelContent(
 		screen,
 		image.Pt(d.detailTextBounds.Min.X, verticallyCenteredOutputY(d.detailTextBounds, d.detailOutput)),

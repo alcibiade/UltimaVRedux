@@ -70,13 +70,7 @@ func (d *ShipDispatchDialog) Draw(screen *ebiten.Image) {
 	}
 	d.ensureLayout()
 	d.frame.draw(screen)
-	d.headerOutput.DrawPanelContent(screen,
-		image.Pt(d.frame.headerText.Min.X, verticallyCenteredOutputY(d.frame.headerText, d.headerOutput)),
-		d.frame.headerText.Dx(), etext.AlignCenter)
-	d.bodyOutput.DrawPanelContent(screen, d.frame.bodyText.Min, d.frame.bodyText.Dx(), etext.AlignStart)
-	d.footerOutput.DrawPanelContent(screen,
-		image.Pt(d.frame.footerText.Min.X, verticallyCenteredOutputY(d.frame.footerText, d.footerOutput)),
-		d.frame.footerText.Dx(), etext.AlignCenter)
+	d.frame.drawOutputs(screen, d.headerOutput, d.bodyOutput, d.footerOutput)
 }
 
 // Update chooses exactly one post-delivery action after release debounce.

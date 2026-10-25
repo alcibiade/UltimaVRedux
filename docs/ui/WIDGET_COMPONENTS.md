@@ -746,10 +746,13 @@ utterance resets to its beginning; refreshing the same text preserves the page,
 and resize clamps it. Paging owns no transaction, session, or gameplay time.
 
 `merchantModalFrame` shares placement, bounds, insets, classic pixel geometry,
-and resize caching for nested approvals. It is not a Widget and owns no text,
-input, callbacks, requests, Preview state, or lifecycle. Each concrete dialog
-uses its change-reporting layout method to rebuild derived resources while
-retaining family-specific body/footer policies.
+and resize caching for nested approvals. `newOutputs` builds their title-size
+header, body and footer outputs from a per-dialog budget (a body either fits its
+area or keeps a fixed line count), and `drawOutputs` draws them. It is not a
+Widget and owns no text content, input, callbacks, requests, Preview state, or
+lifecycle. Each concrete dialog uses its change-reporting layout method to
+rebuild derived resources and populates its own text. Shop windows draw their
+light-framed panes with `drawMerchantPane`.
 
 ### Transaction Pattern
 

@@ -719,9 +719,7 @@ func (d *ShipShopDialog) drawCardSprite(screen *ebiten.Image, index int) {
 }
 
 func (d *ShipShopDialog) drawManifest(screen *ebiten.Image) {
-	vector.FillRect(screen, float32(d.manifestBounds.Min.X), float32(d.manifestBounds.Min.Y),
-		float32(d.manifestBounds.Dx()), float32(d.manifestBounds.Dy()), MerchantDialogBackgroundColor, false)
-	DrawClassicPixelRoundedFrame(screen, d.manifestBounds, d.pixelUnit(), DialogRuleLightColor)
+	drawMerchantPane(screen, d.manifestBounds, d.pixelUnit())
 	d.manifestOutput.DrawPanelContent(screen, d.manifestText.Min, max(1, d.manifestText.Dx()), etext.AlignStart)
 }
 

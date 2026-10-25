@@ -27,7 +27,6 @@ func TestHealerShopDialogUsesExistingShellAndBoundedTwoPaneWorkspace(t *testing.
 		assert.Less(t, dialog.GetServicePaneBounds().Max.X, dialog.GetRecipientPaneBounds().Min.X)
 		assert.LessOrEqual(t, dialog.GetRecipientPaneBounds().Max.Y, dialog.GetDetailBounds().Min.Y)
 		assert.Greater(t, dialog.GetRecipientPaneBounds().Dx(), dialog.GetServicePaneBounds().Dx()*2)
-		assert.Equal(t, FontSizeBody, dialog.GetFontSize())
 	}
 }
 

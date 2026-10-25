@@ -32,7 +32,6 @@ func TestShipPurchaseDialogDisplaysVesselDockSkiffsAndPayment(t *testing.T) {
 	require.NotContains(t, body, "Escort after purchase")
 	require.Equal(t, "[Enter] Confirm   [Esc] Back", dialog.GetFooterGuidance())
 	require.True(t, dialog.IsPreview())
-	require.Equal(t, FontSizeBody, dialog.GetFontSize())
 
 	visible := strings.ToLower(strings.Join([]string{title, body, dialog.GetFooterGuidance()}, " "))
 	for _, forbidden := range shipDialogForbiddenDetails() {

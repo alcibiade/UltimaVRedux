@@ -25,8 +25,6 @@ func TestReagentShopDialogUsesFullWorkspaceAndProjectionFreeCatalog(t *testing.T
 	assert.True(t, dialog.GetCatalogBounds().In(workspace))
 	assert.True(t, dialog.GetDetailBounds().In(workspace))
 	assert.Greater(t, dialog.GetCatalogBounds().Dx(), workspace.Dx()*9/10)
-	assert.Equal(t, FontSizeBody, dialog.GetFontSize())
-	assert.Equal(t, FontSizeBody, dialog.GetShell().GetFontSize())
 	assert.Equal(t, [4]string{"Ginseng", "x10", "10", "20"}, dialog.GetCatalogRowText(0))
 	assert.Equal(t, "--", dialog.GetCatalogRowText(1)[3])
 

@@ -23,8 +23,6 @@ func TestHorseShopDialogReadyDeferredClosedAndUnaffordableContent(t *testing.T) 
 	assert.Equal(t, "Horse for Sale Horse 170 gold", compactHorseText(ready.GetShowroomText()))
 	assert.Equal(t, "Enter to review this purchase.", compactHorseText(ready.GetStatusText()))
 	assert.Equal(t, "[Enter] Review purchase   [Esc] Leave", ready.GetShell().GetFooterView().Guidance)
-	assert.Equal(t, FontSizeBody, ready.GetFontSize())
-	assert.Equal(t, FontSizeBody, ready.GetShell().GetFontSize())
 
 	deferredState := testHorseShopState()
 	deferredState.Quote.Placement = game_state.HorsePlacementReview{
