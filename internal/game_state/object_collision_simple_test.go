@@ -7,6 +7,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestObjectPresentAt_BasicFunctionality tests the core collision detection
@@ -157,3 +159,18 @@ func (s *SimpleTestMapUnit) IsVisible() bool                        { return s.v
 func (s *SimpleTestMapUnit) SetVisible(visible bool)                { s.visible = visible }
 func (s *SimpleTestMapUnit) IsEmptyMapUnit() bool                   { return false }
 func (s *SimpleTestMapUnit) GetKeySpriteIndex() indexes.SpriteIndex { return indexes.Avatar1 }
+
+// Quest items draw as overlays, so the Stonegate Sceptre's map unit is always
+// hidden and never occupies its square.
+func TestHiddenQuestItemNPCDoesNotBlockMovement(t *testing.T) {
+	sceptre := references.Position{X: 15, Y: 15}
+	gs, _ := NewIntegrationTestBuilder(t).
+		WithLocation(references.Stonegate).
+		WithPlayerAt(15, 14).
+		WithSystemCallbacks().
+		Build()
+	npc := gs.CurrentNPCAIController.GetNpcs().GetMapUnitAtPositionOrNil(sceptre)
+	require.NotNil(t, npc, "Stonegate places the Sceptre map unit at (15,15)")
+	require.True(t, gs.isQuestItemNPCHidden(*npc))
+	assert.False(t, gs.ObjectPresentAt(&sceptre))
+}

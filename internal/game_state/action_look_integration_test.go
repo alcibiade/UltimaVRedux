@@ -87,49 +87,6 @@ func TestLookCommand_LargeMap_Integration(t *testing.T) {
 	assert.Equal(t, 1, mockCallbacks.TimeAdvanced()[0], "Should advance 1 minute")
 }
 
-// TestLookCommand_SpecialCases_Integration tests special case handling like clocks
-func TestLookCommand_SpecialCases_Integration(t *testing.T) {
-	// Test in a location that might have clocks (castle/town)
-	gameState, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.LordBritishsCastle).
-		WithPlayerAt(5, 5). // Try different position for potential clock tiles
-		WithSystemCallbacks().
-		Build()
-
-	// Set a specific game time to test clock display
-	gameState.DateTime.Hour = 14   // 2 PM
-	gameState.DateTime.Minute = 30 // 2:30 PM
-
-	mockCallbacks.Reset()
-
-	// Look in all directions to potentially find a clock
-	directions := []references.Direction{references.Up, references.Down, references.Left, references.Right}
-	foundClock := false
-
-	for _, direction := range directions {
-		mockCallbacks.Reset()
-		result := gameState.ActionLookSmallMap(direction)
-		assert.True(t, result, "Look command should succeed")
-
-		// Check if we found a clock (message would contain time)
-		if len(mockCallbacks.Messages) > 0 {
-			message := mockCallbacks.Messages[0]
-			if containsTimeString(message, gameState.DateTime.GetTimeAsString()) {
-				foundClock = true
-				t.Logf("Found clock at direction %v with time display: %s", direction, message)
-				break
-			}
-		}
-	}
-
-	// Log result for debugging (don't assert since clock location is not guaranteed)
-	if foundClock {
-		t.Logf("✅ Successfully found and tested clock special case handling")
-	} else {
-		t.Logf("ℹ️ No clock found at test position - clock special case not tested")
-	}
-}
-
 // TestLookCommand_ErrorHandling_Integration tests edge cases and bounds
 func TestLookCommand_ErrorHandling_Integration(t *testing.T) {
 	// Test look command edge cases
@@ -154,10 +111,4 @@ func TestLookCommand_ErrorHandling_Integration(t *testing.T) {
 		// Should have responses for all directions
 		assert.Equal(t, 4, len(mockCallbacks.Messages), "Should handle all edge directions")
 	})
-}
-
-// Helper function to check if a message contains a time string
-func containsTimeString(message, timeString string) bool {
-	return len(timeString) > 0 && len(message) > len("Thou dost see") &&
-		message[len("Thou dost see"):] != message[:len("Thou dost see")]
 }

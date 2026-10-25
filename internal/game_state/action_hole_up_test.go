@@ -300,27 +300,6 @@ func TestBedRest_ActiveMemberCount(t *testing.T) {
 	assert.Equal(t, 3, count, "Should count 3 active members (Good + Poisoned)")
 }
 
-// TestActionHoleUpSmallMap_Integration tests the complete workflow
-func TestActionHoleUpSmallMap_Integration(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(15, 15). // Will need to find actual bed location
-		WithSystemCallbacks().
-		Build()
-
-	t.Log("🛏️ Hole Up Small Map Integration Test")
-
-	// Test the action (this will initially fail until implemented)
-	result := gs.ActionHoleUpSmallMap()
-
-	t.Logf("ActionHoleUpSmallMap result: %v", result)
-	t.Logf("Messages received: %v", mockCallbacks.Messages)
-
-	// This test documents the expected behavior:
-	// - If on bed: should trigger duration dialog request
-	// - If not on bed: should show "Find a bed first!"
-}
-
 // TestBedRest_StarvationOncePerHour tests that starvation damage applies once per hour when food is zero
 // Original behavior: original party-effect rules - starvation only triggers when hour changes
 // See ref:CAMP-0005.

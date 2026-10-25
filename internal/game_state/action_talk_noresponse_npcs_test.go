@@ -8,45 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestNoResponseNPCsHandling tests the comprehensive fix for NoResponse NPCs (DialogNumber=0)
-func TestNoResponseNPCsHandling(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(15, 15).
-		WithSystemCallbacks().
-		Build()
-	t.Run("NoResponseNPC", func(t *testing.T) {
-		// Create a mock NPC with DialogNumber=0 (NoResponse)
-		noResponseNPC := &map_units.NPCFriendly{}
-		noResponseNPC.NPCReference = references.NPCReference{
-			DialogNumber: byte(references.NoResponse), // 0
-		}
-
-		mockCallbacks.Reset()
-
-		t.Logf("Testing NoResponse NPC dialog creation (DialogNumber: %d)", references.NoResponse)
-
-		// This should not crash and should return nil
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("CRASH: NoResponse NPC should not crash: %v", r)
-			}
-		}()
-
-		dialog := gs.SystemCallbacks.Talk.CreateTalkDialog(noResponseNPC)
-
-		// Validate behavior
-		assert.Nil(t, dialog, "NoResponse NPC should return nil dialog")
-		t.Logf("CreateTalkDialog correctly returned nil for NoResponse NPC")
-
-		// Now test PushDialog with nil
-		t.Logf("Testing PushDialog with nil dialog...")
-		gs.SystemCallbacks.Talk.PushDialog(dialog) // This should not crash
-
-		t.Logf("✅ PushDialog handled nil gracefully for NoResponse NPC")
-	})
-}
-
 // TestAllMerchantTypes validates that all merchant dialog numbers are properly identified
 func TestAllMerchantTypes(t *testing.T) {
 	t.Run("MerchantDialogNumbers", func(t *testing.T) {

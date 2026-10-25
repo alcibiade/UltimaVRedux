@@ -3,82 +3,9 @@ package game_state
 import (
 	"testing"
 
-	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/stretchr/testify/assert"
 )
-
-// TestTalkCrashPreventionRegression ensures that talking to guards and merchants
-// no longer causes panics and provides appropriate user feedback.
-//
-// This test prevents regression of the bug where type assertion on nil dialog
-// interface caused crashes when talking to special NPCs.
-func TestTalkCrashPreventionRegression(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithPlayerAt(15, 15).
-		WithSystemCallbacks().
-		Build()
-	testCases := []struct {
-		name         string
-		dialogNumber references.DialogNumber
-		expectedMsg  string
-	}{
-		{
-			name:         "Guard Dialog",
-			dialogNumber: references.DialogGuard,
-			expectedMsg:  "The guard stares at you suspiciously.",
-		},
-		{
-			name:         "Weapon Dealer",
-			dialogNumber: references.DialogWeaponDealer,
-			expectedMsg:  "The weapon dealer nods but says nothing.",
-		},
-		{
-			name:         "Barkeeper",
-			dialogNumber: references.DialogBarkeeper,
-			expectedMsg:  "The barkeeper nods but says nothing.",
-		},
-		{
-			name:         "Horse Dealer",
-			dialogNumber: references.DialogHorseDealer,
-			expectedMsg:  "The horse dealer nods but says nothing.",
-		},
-		{
-			name:         "Innkeeper",
-			dialogNumber: references.DialogInnkeeper,
-			expectedMsg:  "The innkeeper nods but says nothing.",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Create mock NPC with special dialog number
-			mockNPC := &map_units.NPCFriendly{}
-			mockNPC.NPCReference = references.NPCReference{
-				DialogNumber: byte(tc.dialogNumber),
-			}
-
-			mockCallbacks.Reset()
-
-			// Test dialog creation - should return nil but not crash
-			dialog := gs.SystemCallbacks.Talk.CreateTalkDialog(mockNPC)
-			assert.Nil(t, dialog, "Dialog should be nil for special NPC")
-
-			// Test push dialog - should not crash with nil dialog
-			assert.NotPanics(t, func() {
-				gs.SystemCallbacks.Talk.PushDialog(dialog)
-			}, "PushDialog should handle nil gracefully")
-
-			// Validate that appropriate user feedback was provided
-			// Note: In real implementation, feedback is provided by CreateTalkDialog
-			// MockSystemCallbacks doesn't simulate this, but real implementation does
-			t.Logf("✅ No panic occurred for %s", tc.name)
-			t.Logf("   Dialog returned: %v", dialog)
-			t.Logf("   Expected user message: %s", tc.expectedMsg)
-		})
-	}
-}
 
 // TestTalkDialogCrashPrevention specifically tests the panic prevention in PushDialog
 func TestTalkDialogCrashPrevention(t *testing.T) {

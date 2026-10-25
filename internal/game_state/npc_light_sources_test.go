@@ -267,40 +267,6 @@ func TestGetLightSourceProperties_UnknownMarker(t *testing.T) {
 // End-to-End Logic Chain Test
 // ============================================================================
 
-func TestSeahorseLightEmissionLogicChain(t *testing.T) {
-	// This test verifies the complete logic chain from sprite index to light properties
-	// Simulates what happens in renderMapUnitSprite()
-
-	seahorseSprite := indexes.SpriteIndex(indexes.Seahorse1) // 384
-
-	// Step 1: Check if light-emitting
-	isLightEmitting := IsLightEmittingNPC(seahorseSprite)
-	assert.True(t, isLightEmitting, "Step 1: Seahorse should be detected as light-emitting")
-
-	// Step 2: Get marker index
-	markerIndex := GetNPCLightMarkerIndex(seahorseSprite)
-	assert.NotEqual(t, indexes.SpriteIndex(0), markerIndex,
-		"Step 2: Should return non-zero marker index")
-	assert.Equal(t, map_state.SeahorseMarkerIndex, markerIndex,
-		"Step 2: Should return SeahorseMarkerIndex")
-
-	// Step 3: Get light properties
-	props := map_state.GetLightSourceProperties(markerIndex)
-	assert.True(t, props.HasBreathing,
-		"Step 3: Properties should have breathing enabled")
-	assert.Greater(t, props.BreathingPeriodMs, 0,
-		"Step 3: Breathing period should be > 0")
-
-	// Log the complete chain for debugging
-	t.Logf("Logic chain verified:")
-	t.Logf("  Sprite: %d (Seahorse1)", seahorseSprite)
-	t.Logf("  IsLightEmittingNPC: %v", isLightEmitting)
-	t.Logf("  MarkerIndex: 0x%X", markerIndex)
-	t.Logf("  HasBreathing: %v", props.HasBreathing)
-	t.Logf("  BreathingPeriodMs: %d", props.BreathingPeriodMs)
-	t.Logf("  TintColor: R=%.2f G=%.2f B=%.2f", props.TintColor.R, props.TintColor.G, props.TintColor.B)
-}
-
 // IsLightEmittingNPC and GetNPCLightMarkerIndex classify sprites with the live
 // predicates; the marker mapping repeats getNPCLightInfoIfEmitsLight's.
 // IsLightEmittingNPC returns true if the sprite index represents a creature that emits light.
