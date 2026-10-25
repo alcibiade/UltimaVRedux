@@ -255,6 +255,25 @@ func TestShrineQuestCompletionRevalidatesAndCommitsRewardsOnce(t *testing.T) {
 	assert.Equal(t, 53, state.PartyState.Karma.Value)
 }
 
+func TestShrineQuestCompletionCapsAvatarStatsAndLeavesCompanionsAlone(t *testing.T) {
+	state, _ := NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
+	enterShrineServiceTestContext(state, 6)
+	state.SetShrineQuestCompleted(6, true)
+	state.SetShrineQuestActive(6, true)
+	avatar := state.PartyState.GetAvatar()
+	avatar.Strength, avatar.Dexterity, avatar.Intelligence = MaxStatValue, MaxStatValue-1, 12
+	companion := state.PartyState.GetCharacter(1)
+	require.NotNil(t, companion)
+	companionStats := [3]byte{companion.Strength, companion.Dexterity, companion.Intelligence}
+
+	review, err := state.ReviewShrineMeditation(6)
+	require.NoError(t, err)
+	_, err = state.CommitShrineQuestCompletion(6, review.Fingerprint)
+	require.NoError(t, err)
+	assert.Equal(t, [3]byte{MaxStatValue, MaxStatValue, 13}, [3]byte{avatar.Strength, avatar.Dexterity, avatar.Intelligence})
+	assert.Equal(t, companionStats, [3]byte{companion.Strength, companion.Dexterity, companion.Intelligence})
+}
+
 func TestShrineQuestAssignmentRevalidatesAndCommitsOnce(t *testing.T) {
 	state, _ := NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
 	enterShrineServiceTestContext(state, 2)
