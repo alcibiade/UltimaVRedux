@@ -57,7 +57,7 @@ func TestBridgeTrollSuccessfulPaymentRetainsTollTranscript(t *testing.T) {
 	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartBridgeTrollEncounterWorkflow()
-	initialDialog := waitForBridgeTranscript(t, scene)
+	initialDialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	require.Contains(t, initialDialog.TranscriptText(), "Thou spieth trolls under the bridge!")
 	require.Empty(t, initialDialog.ActivePrompt())
 	tollDialog := waitForBridgeTollDialog(t, scene)
@@ -116,7 +116,7 @@ func TestBridgeTrollEvasionUsesPassiveTranscriptUntilAcknowledgement(t *testing.
 	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartBridgeTrollEncounterWorkflow()
-	dialog := waitForBridgeTranscript(t, scene)
+	dialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	require.Empty(t, dialog.ActivePrompt())
 	for range 20 {
 		state.ElapsedMs += 1000
@@ -178,7 +178,7 @@ func runBridgeTrollAttackPath(
 	before := state.DateTime
 	scene.StartBridgeTrollEncounterWorkflow()
 
-	initialDialog := waitForBridgeTranscript(t, scene)
+	initialDialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	tollDialog := waitForBridgeTollDialog(t, scene)
 	require.Same(t, initialDialog, tollDialog)
 	require.Equal(t, "Dost thou pay?", tollDialog.ActivePrompt())
@@ -260,20 +260,6 @@ func waitForBridgeTollDialog(t *testing.T, scene *GameScene) *widgets.Interactio
 		}
 	}
 	t.Fatal("bridge toll yes/no dialog was not shown")
-
-	return nil
-}
-
-func waitForBridgeTranscript(t *testing.T, scene *GameScene) *widgets.InteractionTranscript {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.InteractionTranscript); ok {
-			return dialog
-		}
-	}
-	t.Fatal("bridge troll transcript was not shown")
 
 	return nil
 }

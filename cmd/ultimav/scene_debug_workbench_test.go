@@ -261,7 +261,7 @@ func TestGameReplacementActivationFailureLeavesOldSceneUnprepared(t *testing.T) 
 			require.Error(t, err)
 			assert.Same(t, oldScene, game.currentScene)
 			assert.Equal(t, generation, game.DebugSceneGeneration())
-			assert.Equal(t, 1, countString(events, "new.dispose"))
+			assert.Equal(t, 1, countEqual(events, "new.dispose"))
 			assert.NotContains(t, events, "old.prepare")
 			assert.NotContains(t, events, "old.dispose")
 		})
@@ -290,18 +290,7 @@ func TestGameReplacementPreservesBridgeAndRejectsQueuedStaleRequest(t *testing.T
 	assert.False(t, oldScene.executed)
 	assert.False(t, newScene.executed)
 	assert.Equal(t, 1, newScene.updates)
-	assert.Equal(t, 1, countString(events, "old.dispose"))
-}
-
-func countString(values []string, target string) int {
-	count := 0
-	for _, value := range values {
-		if value == target {
-			count++
-		}
-	}
-
-	return count
+	assert.Equal(t, 1, countEqual(events, "old.dispose"))
 }
 
 func TestGameApplicationQueryIgnoresSceneGeneration(t *testing.T) {

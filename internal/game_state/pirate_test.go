@@ -91,11 +91,11 @@ func TestPirateCannonSerializesEveryQueuedAttack(t *testing.T) {
 		gs.FirePirateCannon(pirate, target)
 	})
 	assert.Len(t, gs.pirateAttackQueue, 3)
-	assert.Equal(t, 0, countMessage(mock.Messages, "* BOOOM! *"), "queued attacks must not present early")
+	assert.Equal(t, 0, countEqual(mock.Messages, "* BOOOM! *"), "queued attacks must not present early")
 
 	drainGameplayWorkflows(t, gs)
 	assert.Empty(t, gs.pirateAttackQueue)
-	assert.Equal(t, 3, countMessage(mock.Messages, "* BOOOM! *"))
+	assert.Equal(t, 3, countEqual(mock.Messages, "* BOOOM! *"))
 	assert.Len(t, mock.ProjectilesStarted, 3)
 	assert.Equal(t, uint16(wantHP), member.GetCurrentHp())
 	assert.Equal(t, uint64(3), gs.GetRNG().Calls())

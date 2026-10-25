@@ -72,7 +72,7 @@ func TestSmallMapShadowlordEncounterPreservesIdentityAndReclaimsSceptre(t *testi
 					assert.True(t, state.ShadowlordState.IsAlive(lord))
 
 					if ownsSceptre {
-						assert.Equal(t, 1, countStrings(callbacks.Messages, "The Sceptre is reclaimed!"))
+						assert.Equal(t, 1, countEqual(callbacks.Messages, "The Sceptre is reclaimed!"))
 						assert.Equal(t, []SoundEffect{SoundShardPulse}, callbacks.SoundEffectsPlayed)
 						assert.True(t, state.CombatScene.SmallMapOrigin.Consequences.SceptreReclaimed)
 					} else {
@@ -389,7 +389,7 @@ func TestActionAttackSmallMapStartsEligibleShadowlordEncounterOnce(t *testing.T)
 			require.NotNil(t, state.CombatScene)
 			assert.Equal(t, SmallMapEncounterAttack, state.CombatScene.SmallMapOrigin.Cause)
 			assert.Equal(t, references.Nosfentor, state.CombatScene.SmallMapOrigin.Shadowlord)
-			assert.Equal(t, 1, countStrings(callbacks.Messages, "The Sceptre is reclaimed!"))
+			assert.Equal(t, 1, countEqual(callbacks.Messages, "The Sceptre is reclaimed!"))
 			assert.Equal(t, []SoundEffect{SoundShardPulse}, callbacks.SoundEffectsPlayed)
 			assert.Empty(t, callbacks.TimeAdvanced(),
 				"Attack completes its source-map turn only after combat")
@@ -629,15 +629,4 @@ func smallMapShadowlordSourceName(sourceKind SmallMapEncounterSourceKind) string
 		return "automatic"
 	}
 	return "yell"
-}
-
-func countStrings(values []string, target string) int {
-	count := 0
-	for _, value := range values {
-		if value == target {
-			count++
-		}
-	}
-
-	return count
 }

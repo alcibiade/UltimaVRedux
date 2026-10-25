@@ -47,7 +47,7 @@ func TestCombatYellCompletesOneAction(t *testing.T) {
 			scene.keyboard.SetAllowKeyPressImmediately()
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			dialog.Update()
-			drainCombatYellWorkflow(t, scene)
+			drainSceneWorkflow(t, scene, "combat_yell", KeyboardDebounceMs)
 
 			assert.Contains(t, mock.Messages, test.message)
 			assert.Empty(t, mock.TimeAdvanced())
@@ -61,18 +61,6 @@ func newCombatYellTestScene(t *testing.T) (*GameScene, *game_state.MockSystemCal
 	scene.gameState.BeginCombatTurns(game_state.CombatTurnsPresented)
 
 	return scene, mock
-}
-
-func drainCombatYellWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += KeyboardDebounceMs
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("combat_yell") {
-			return
-		}
-	}
-	t.Fatal("combat Yell workflow did not complete")
 }
 
 func keyPointer(key ebiten.Key) *ebiten.Key {

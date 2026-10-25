@@ -392,7 +392,7 @@ func TestSmallMapChestJimmyThenOpenProductionPathCompletesOnceEach(t *testing.T)
 	assert.NotContains(t, callbacks.Messages, "Trapped!", "Jimmy disarmed the actual parent")
 	assert.Equal(t, uint16(2), state.PartyState.Inventory.Provisions.Keys.Get())
 	assert.Equal(t, []int{game_state.DefaultSmallMapMinutesPerTurn}, callbacks.TimeAdvanced())
-	assert.Equal(t, 1, countString(callbacks.Messages, "Opened! That chest isn't yours Avatar!"))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "Opened! That chest isn't yours Avatar!"))
 	assert.Equal(t, PrimaryInput, scene.secondaryKeyState)
 	children := state.CurrentNPCAIController.GetNpcs().GetFriendliesMatching(func(candidate *map_units.NPCFriendly) bool {
 		return candidate.IsTransientSurfaceChest() && candidate.Pos() == chest.Pos() && candidate.Floor() == chest.Floor()
@@ -473,12 +473,12 @@ func TestLordBritishChestExistingLootIsPreservedThroughTrappedOpenAndOneCommandC
 	require.Greater(t, len(stackAfter.Items), len(stackBefore.Items))
 	assert.Equal(t, stackBefore.Items, stackAfter.Items[len(stackAfter.Items)-len(stackBefore.Items):], "new allocations retain the existing pile and its pickup priority")
 	assert.Equal(t, references.ItemAndQuantity{Item: references.Gold, Quantity: 7}, *state.ItemStacksMap.Peek(target))
-	assert.Equal(t, 1, countString(callbacks.Messages, "Trapped!"))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "Trapped!"))
 	require.Contains(t, callbacks.Messages, "Found:")
 	assert.Less(t, slices.Index(callbacks.Messages, "Trapped!"), slices.Index(callbacks.Messages, "Found:"))
 	assert.Contains(t, callbacks.SoundEffectsPlayed, game_state.SoundTrapTrigger)
 	assert.Contains(t, callbacks.SoundEffectsPlayed, game_state.SoundKarmaDown)
-	assert.Equal(t, 1, countString(callbacks.Messages, "Opened! That chest isn't yours Avatar!"))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "Opened! That chest isn't yours Avatar!"))
 	assert.Equal(t, []int{game_state.DefaultSmallMapMinutesPerTurn}, callbacks.TimeAdvanced())
 }
 

@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -33,8 +32,8 @@ func TestCrystalBallRetainsFramingTranscriptUntilGemView(t *testing.T) {
 	waitForCrystalBallTranscriptResult(t, scene, transcript, "Strange vision!", "[Enter/Esc] Continue")
 	require.Contains(t, transcript.TranscriptText(), option.Name+" looks into the crystal ball.")
 	require.NotContains(t, transcript.TranscriptText(), "Who will look?")
-	acknowledgeCrystalBallTranscript(t, scene, transcript)
-	gemView := waitForCrystalBallGemView(t, scene)
+	acknowledgeTranscript(t, scene, transcript)
+	gemView := waitForTopModalWithin[*widgets.GemViewDialog](t, scene, 1000, 100)
 	require.NotContains(t, scene.dialogStack.Dialogs(), transcript)
 	gemView.Dismiss()
 	drainNamedWorkflow(t, scene, "crystal_ball_workflow")
@@ -64,7 +63,7 @@ func TestCrystalBallDeathVisionRetainsResultUntilAcknowledged(t *testing.T) {
 	require.Contains(t, transcript.TranscriptText(), option.Name+" looks into the crystal ball.")
 	require.NotContains(t, transcript.TranscriptText(), "Who will look?")
 	require.Contains(t, callbacks.SoundEffectsPlayed, game_state.SoundDeathVision)
-	acknowledgeCrystalBallTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainNamedWorkflow(t, scene, "crystal_ball_workflow")
 
 	require.False(t, scene.dialogStack.HasOpenDialog())
@@ -146,9 +145,9 @@ func TestCrystalBallUsesEligibleActiveViewerWithoutSelector(t *testing.T) {
 					wantCalls++ // The existing damage builder draws even for fixed damage.
 				}
 				require.Equal(t, wantCalls, state.GetRNG().Calls())
-				acknowledgeCrystalBallTranscript(t, scene, transcript)
+				acknowledgeTranscript(t, scene, transcript)
 				if success {
-					waitForCrystalBallGemView(t, scene).Dismiss()
+					waitForTopModalWithin[*widgets.GemViewDialog](t, scene, 1000, 100).Dismiss()
 				}
 				drainNamedWorkflow(t, scene, "crystal_ball_workflow")
 				require.False(t, scene.dialogStack.HasOpenDialog())
@@ -245,31 +244,4 @@ func waitForCrystalBallTranscriptResult(
 		}
 	}
 	t.Fatalf("crystal-ball transcript result %q was not shown", content)
-}
-
-func acknowledgeCrystalBallTranscript(
-	t *testing.T,
-	scene *GameScene,
-	transcript *widgets.InteractionTranscript,
-) {
-	t.Helper()
-	scene.keyboard.ClearFrameConsumption()
-	scene.keyboard.SetForceWaitAnyKey(-1000)
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	transcript.Update()
-	require.True(t, transcript.InputComplete())
-}
-
-func waitForCrystalBallGemView(t *testing.T, scene *GameScene) *widgets.GemViewDialog {
-	t.Helper()
-	for range 100 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.GemViewDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("crystal-ball gem view was not shown")
-
-	return nil
 }

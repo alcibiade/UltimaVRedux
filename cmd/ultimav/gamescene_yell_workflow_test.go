@@ -87,7 +87,7 @@ func TestOutdoorYellCompletionRunsCodexCheckpointExactlyOnce(t *testing.T) {
 	drainNamedWorkflow(t, scene, "surface_command_completion")
 
 	assert.Equal(t, references.Position{X: 0xe9, Y: 0xec}, scene.gameState.MapState.PlayerLocation.Position)
-	assert.Equal(t, 1, countString(callbacks.Messages, "\"Thou art not upon a Sacred Quest!\nPassage denied!\""))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "\"Thou art not upon a Sacred Quest!\nPassage denied!\""))
 }
 
 func newOutdoorYellWorkflowScene(t *testing.T) (*GameScene, *game_state.MockSystemCallbacks) {

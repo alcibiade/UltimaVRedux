@@ -159,7 +159,7 @@ func TestOutdoorFireballPassUnderworldCarpetContactAndRanged(t *testing.T) {
 					assert.Contains(t, mock.SoundEffectsPlayed, SoundBroadside)
 				} else {
 					assert.Empty(t, mock.ProjectilesStarted)
-					assert.Equal(t, 1, countMessage(mock.Messages, "Attacked!"))
+					assert.Equal(t, 1, countEqual(mock.Messages, "Attacked!"))
 				}
 			})
 		}
@@ -249,13 +249,13 @@ func TestOutdoorFireballMultipleActorsSourceOrderAndBlockedConsumption(t *testin
 	assert.Equal(t, want.Calls(), gs.GetRNG().Calls())
 	assert.Equal(t, references.Position{X: 95, Y: 100}, mover.Pos(), "blocked shot suppresses subsequent movement")
 	assert.Equal(t, references.Position{X: 103, Y: 100}, blocked.Pos())
-	assert.Equal(t, 1, countMessage(mock.Messages, "Attacked!"))
+	assert.Equal(t, 1, countEqual(mock.Messages, "Attacked!"))
 	drainGameplayWorkflows(t, gs)
 	require.Len(t, mock.ProjectilesStarted, 3)
 	assert.Equal(t, references.MissileRed, mock.ProjectilesStarted[0].ProjectileType)
 	assert.Equal(t, references.MissileCannonBall, mock.ProjectilesStarted[1].ProjectileType)
 	assert.Equal(t, references.MissileRed, mock.ProjectilesStarted[2].ProjectileType)
-	assert.Equal(t, 1, countMessage(mock.Messages, "* BOOOM! *"))
+	assert.Equal(t, 1, countEqual(mock.Messages, "* BOOOM! *"))
 	assert.Equal(t, want.Calls(), gs.GetRNG().Calls(), "feedback has no gameplay draws")
 }
 
@@ -376,8 +376,8 @@ func TestOutdoorFireballWrappedShipBlockedAndSinkingOrder(t *testing.T) {
 			}
 			assert.Equal(t, references.SkiffVehicle, gs.PartyVehicle.GetVehicleDetails().VehicleType)
 			drainGameplayWorkflows(t, gs)
-			assert.Equal(t, 1, countMessage(mock.Messages, "Ship sunk!"))
-			assert.Equal(t, 1, countMessage(mock.Messages, "Abandon ship!"))
+			assert.Equal(t, 1, countEqual(mock.Messages, "Ship sunk!"))
+			assert.Equal(t, 1, countEqual(mock.Messages, "Abandon ship!"))
 		})
 	}
 }
@@ -396,7 +396,7 @@ func TestOutdoorFireballRoughSeasAreIndependentOfMonsterContact(t *testing.T) {
 			hpAfterEntry := gs.PartyState.GetCharacter(0).GetCurrentHp()
 			if terrain == indexes.Water1 {
 				assert.Less(t, hpAfterEntry, uint16(100))
-				assert.Equal(t, 1, countMessage(mock.Messages, "Rough seas!"))
+				assert.Equal(t, 1, countEqual(mock.Messages, "Rough seas!"))
 			} else {
 				assert.Equal(t, uint16(100), hpAfterEntry)
 				assert.NotContains(t, mock.Messages, "Rough seas!")
@@ -404,7 +404,7 @@ func TestOutdoorFireballRoughSeasAreIndependentOfMonsterContact(t *testing.T) {
 			assert.NotContains(t, mock.Messages, "Attacked!")
 			passOutdoorFireballTurn(gs)
 			assert.Less(t, gs.PartyState.GetCharacter(0).GetCurrentHp(), hpAfterEntry)
-			assert.Equal(t, 1, countMessage(mock.Messages, "Attacked!"))
+			assert.Equal(t, 1, countEqual(mock.Messages, "Attacked!"))
 			assert.Empty(t, mock.ProjectilesStarted)
 		})
 	}

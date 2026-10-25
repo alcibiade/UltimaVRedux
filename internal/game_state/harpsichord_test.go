@@ -43,7 +43,7 @@ func TestHarpsichordRealCastleMelodyPermanentlyOpensPassage(t *testing.T) {
 	playHarpsichordMelody(t, state)
 	assert.Equal(t, indexes.SpriteIndex(indexes.BrickFloor), passageMap.GetTileByLayer(map_state.MapLayer, &passagePosition).Index)
 	drainHarpsichordWorkflow(t, state)
-	assert.Equal(t, 2, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundEarthquake))
+	assert.Equal(t, 2, countEqual(callbacks.SoundEffectsPlayed, SoundEarthquake))
 }
 
 func TestHarpsichordMelodyProgressPreservesSameFloorAndResetsOnTransition(t *testing.T) {

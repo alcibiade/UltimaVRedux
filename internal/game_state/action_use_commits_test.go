@@ -121,7 +121,7 @@ func TestPotionUseCancellationAndFullHealPreserveOriginalRNGOrder(t *testing.T) 
 	require.True(t, committed)
 	require.NotNil(t, cancelledOutcome)
 	assert.True(t, state.CancelPotionEffect(cancelledOutcome))
-	assert.Equal(t, 1, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundPotionDrink),
+	assert.Equal(t, 1, countEqual(callbacks.SoundEffectsPlayed, SoundPotionDrink),
 		"paid use has a single consumption request even if its effect is cancelled")
 	assert.Equal(t, uint16(100), target.GetCurrentHp(), "not resolving models character-selection cancellation")
 	assert.Equal(t, rngCallsBeforeCancel, state.GetRNG().Calls())
@@ -134,7 +134,7 @@ func TestPotionUseCancellationAndFullHealPreserveOriginalRNGOrder(t *testing.T) 
 	assert.Equal(t, PotionEffectHealed, state.CommitPotionEffect(failureOutcome, 0))
 	assert.Equal(t, uint16(100), target.GetCurrentHp())
 	assert.Equal(t, uint16(0), state.PartyState.Inventory.Potions.Get(references.Yellow))
-	assert.Equal(t, 2, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundPotionDrink))
+	assert.Equal(t, 2, countEqual(callbacks.SoundEffectsPlayed, SoundPotionDrink))
 }
 
 func TestCarpetBoardingCommitRejectsStaleStateWithoutPartialEffects(t *testing.T) {

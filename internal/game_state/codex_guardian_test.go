@@ -44,7 +44,7 @@ func TestCodexGuardianPassRepeatsOnEveryEligibleConsumedTurn(t *testing.T) {
 
 	assert.Equal(t, references.Position{X: codexGuardianX, Y: codexGuardianY},
 		state.MapState.PlayerLocation.Position)
-	assert.Equal(t, 2, countMatchingMessages(callbacks.Messages, "\"Pass, Seeker!\""))
+	assert.Equal(t, 2, countEqual(callbacks.Messages, "\"Pass, Seeker!\""))
 	assert.False(t, callbacks.SoundEffectWasPlayed(SoundGuardianBlock))
 }
 

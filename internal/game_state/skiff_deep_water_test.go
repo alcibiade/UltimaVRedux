@@ -91,7 +91,7 @@ func TestSkiffDeepWater_DamageTriggered(t *testing.T) {
 	assert.Equal(t, 1, callbacks.UnblockInputCalls)
 	assert.False(t, callbacks.InputBlocked)
 	assert.False(t, gs.EventQueueManager.HasActiveWorkflows())
-	assert.Equal(t, 1, countMessage(callbacks.Messages, "Rough seas!"))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "Rough seas!"))
 	require.NotEmpty(t, callbacks.ScreenFlashIntensities)
 	assert.Zero(t, callbacks.ScreenFlashIntensities[len(callbacks.ScreenFlashIntensities)-1])
 	require.NotEmpty(t, callbacks.ScreenShakeOffsets)
@@ -291,7 +291,7 @@ func TestSkiffDeepWater_CarpetSame(t *testing.T) {
 	assert.Equal(t, 1, callbacks.UnblockInputCalls)
 	assert.False(t, callbacks.InputBlocked)
 	assert.False(t, gs.EventQueueManager.HasActiveWorkflows())
-	assert.Equal(t, 1, countMessage(callbacks.Messages, "Rough seas!"))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "Rough seas!"))
 }
 
 // TestSkiffDeepWater_DeadMembersSkipped verifies dead party members are not damaged

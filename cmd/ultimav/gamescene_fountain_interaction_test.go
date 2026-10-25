@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
@@ -23,9 +22,9 @@ func TestSurfaceFountainRetainsTranscriptAroundCharacterSelection(t *testing.T) 
 	transcript := waitForFountainTranscript(t, scene, "Thou dost see a gurgling fountain!")
 	require.Equal(t, 1, callbacks.BlockInputCalls)
 	require.Equal(t, 1, scene.dialogStack.Count())
-	acknowledgeFountainTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 
-	selector := waitForFountainCharacterSelector(t, scene)
+	selector := waitForTopModalWithin[*widgets.CharacterSelectionDialog](t, scene, 1000, 100)
 	require.Equal(t, 2, scene.dialogStack.Count())
 	require.Same(t, transcript, scene.dialogStack.Dialogs()[0])
 	selectedName := selector.GetCurrentOption().Name
@@ -34,11 +33,11 @@ func TestSurfaceFountainRetainsTranscriptAroundCharacterSelection(t *testing.T) 
 	waitForFountainTranscript(t, scene, selectedName+" drinks from the fountain.")
 	require.Same(t, transcript, scene.dialogStack.PeekTopModalDialog())
 	require.Contains(t, transcript.TranscriptText(), "Who shall drink?  > "+selectedName)
-	acknowledgeFountainTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 
 	waitForFountainTranscript(t, scene, "Refreshing!")
 	require.Contains(t, transcript.TranscriptText(), "Refreshing!")
-	acknowledgeFountainTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainFountainWorkflow(t, scene)
 
 	expectedDate := dateBefore
@@ -55,8 +54,8 @@ func TestSurfaceFountainCharacterCancellationCleansPersistentTranscript(t *testi
 
 	scene.ShowFountainInteraction()
 	transcript := waitForFountainTranscript(t, scene, "Thou dost see a gurgling fountain!")
-	acknowledgeFountainTranscript(t, scene, transcript)
-	selector := waitForFountainCharacterSelector(t, scene)
+	acknowledgeTranscript(t, scene, transcript)
+	selector := waitForTopModalWithin[*widgets.CharacterSelectionDialog](t, scene, 1000, 100)
 	selector.HandleEscape()
 	drainFountainWorkflow(t, scene)
 
@@ -99,33 +98,6 @@ func waitForFountainTranscript(
 	t.Fatalf("fountain transcript did not show %q", content)
 
 	return nil
-}
-
-func waitForFountainCharacterSelector(t *testing.T, scene *GameScene) *widgets.CharacterSelectionDialog {
-	t.Helper()
-	for range 100 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.CharacterSelectionDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("fountain workflow did not show character selection")
-
-	return nil
-}
-
-func acknowledgeFountainTranscript(
-	t *testing.T,
-	scene *GameScene,
-	dialog *widgets.InteractionTranscript,
-) {
-	t.Helper()
-	scene.keyboard.ClearFrameConsumption()
-	scene.keyboard.SetForceWaitAnyKey(-1000)
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	dialog.Update()
-	require.True(t, dialog.InputComplete())
 }
 
 func drainFountainWorkflow(t *testing.T, scene *GameScene) {

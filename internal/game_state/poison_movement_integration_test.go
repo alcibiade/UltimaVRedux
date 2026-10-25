@@ -65,34 +65,12 @@ func TestRepeatedConsumedUpdatesCoalescePoisonFeedback(t *testing.T) {
 		gs.EventQueueManager.UpdateFeedback()
 	}
 	assert.False(t, gs.EventQueueManager.HasFeedback(poisonFeedbackQueueName))
-	assert.Equal(t, 1, countMatchingMessages(mockCallbacks.Messages, "Oof!"))
-	assert.Equal(t, 1, countMatchingSounds(mockCallbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+	assert.Equal(t, 1, countEqual(mockCallbacks.Messages, "Oof!"))
+	assert.Equal(t, 1, countEqual(mockCallbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
 
 	gs.completeSurfaceCycleWithActorPhase(references.SmallMapType, DefaultSmallMapMinutesPerTurn, false)
 	assert.Equal(t, uint16(7), character.GetCurrentHp())
 	assert.True(t, gs.EventQueueManager.HasFeedback(poisonFeedbackQueueName))
-}
-
-func countMatchingMessages(messages []string, wanted string) int {
-	count := 0
-	for _, message := range messages {
-		if message == wanted {
-			count++
-		}
-	}
-
-	return count
-}
-
-func countMatchingSounds(sounds []SoundEffect, wanted SoundEffect) int {
-	count := 0
-	for _, sound := range sounds {
-		if sound == wanted {
-			count++
-		}
-	}
-
-	return count
 }
 
 func TestPoisonDeathDuringConsumedSurfaceUpdate(t *testing.T) {

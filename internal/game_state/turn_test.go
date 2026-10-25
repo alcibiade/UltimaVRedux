@@ -592,7 +592,7 @@ func TestConsumedSurfaceObservesOnlyLatestTimeRequest(t *testing.T) {
 
 	assert.Equal(t, 7, gs.lastProcessedHour)
 	assert.Empty(t, gs.pendingProvisionHours)
-	assert.Equal(t, 0, countMatchingMessages(callbacks.Messages, "Starving!"),
+	assert.Equal(t, 0, countEqual(callbacks.Messages, "Starving!"),
 		"the following same-hour command replaces the earlier crossing")
 	assert.Empty(t, callbacks.TransientIconCalls)
 }

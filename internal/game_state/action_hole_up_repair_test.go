@@ -192,11 +192,11 @@ func TestShipRepairRetainsPirateAttackFromEveryActorPhase(t *testing.T) {
 
 	require.True(t, gs.ActionHoleUpRepairShip())
 	drainGameplayWorkflows(t, gs)
-	assert.Equal(t, ShipRepairCycles, countMessage(callbacks.Messages, "* BOOOM! *"))
+	assert.Equal(t, ShipRepairCycles, countEqual(callbacks.Messages, "* BOOOM! *"))
 
 	gs.CompleteSurfaceCommandCycle(references.LargeMapType)
 	drainGameplayWorkflows(t, gs)
-	assert.Equal(t, ShipRepairCycles+1, countMessage(callbacks.Messages, "* BOOOM! *"))
+	assert.Equal(t, ShipRepairCycles+1, countEqual(callbacks.Messages, "* BOOOM! *"))
 	want := before
 	for range ShipRepairCycles {
 		want.Advance(ShipRepairMinutesPerCycle)
@@ -394,17 +394,6 @@ func drainGameplayWorkflows(t *testing.T, state *GameState) {
 		state.EventQueueManager.Update()
 	}
 	require.False(t, state.EventQueueManager.HasActiveWorkflows())
-}
-
-func countMessage(messages []string, wanted string) int {
-	count := 0
-	for _, message := range messages {
-		if message == wanted {
-			count++
-		}
-	}
-
-	return count
 }
 
 // TestActionHoleUpRepairShip_MinimumHullTen verifies repair repeats

@@ -161,3 +161,15 @@ func (w *WindDisplay) IsVisible() bool {
 func (w *WindDisplay) Draw(screen *ebiten.Image, windDirection environment.WindDirection) {
 	w.DrawLabel(screen, windDirection.GetUIString())
 }
+
+// countEqual returns how many values equal want.
+func countEqual[T comparable](values []T, want T) int {
+	count := 0
+	for _, value := range values {
+		if value == want {
+			count++
+		}
+	}
+
+	return count
+}

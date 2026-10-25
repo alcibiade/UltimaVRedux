@@ -98,9 +98,9 @@ func TestEnemyRangedHitInterruptsOnlyActiveSailingAndPreservesSails(t *testing.T
 			if sails == map_units.SailRaised {
 				wantNotices = 1
 			}
-			assert.Equal(t, wantNotices, countMessage(callbacks.Messages, "Under attack! Sailing interrupted."))
+			assert.Equal(t, wantNotices, countEqual(callbacks.Messages, "Under attack! Sailing interrupted."))
 			state.FirePirateCannon(pirate, state.MapState.PlayerLocation.Position)
-			assert.Equal(t, wantNotices, countMessage(callbacks.Messages, "Under attack! Sailing interrupted."))
+			assert.Equal(t, wantNotices, countEqual(callbacks.Messages, "Under attack! Sailing interrupted."))
 			drainGameplayWorkflows(t, state)
 			assert.Len(t, callbacks.ProjectilesStarted, 2)
 		})
@@ -149,7 +149,7 @@ func TestOutdoorFireballSailingInterruptionRequiresSuccessfulHit(t *testing.T) {
 				assert.Equal(t, outcome != "hit", state.IsSailing())
 				assert.Equal(t, map_units.SailRaised, details.SailState)
 				assert.Equal(t, references.Right, details.CurrentDirection())
-				assert.Equal(t, outcome == "hit", countMessage(callbacks.Messages, "Under attack! Sailing interrupted.") == 1)
+				assert.Equal(t, outcome == "hit", countEqual(callbacks.Messages, "Under attack! Sailing interrupted.") == 1)
 			})
 		}
 	}
@@ -202,7 +202,7 @@ func TestOutdoorFireballSinkingStopsForEveryFallback(t *testing.T) {
 				assert.False(t, state.IsSailing())
 				assert.Equal(t, fallback, state.PartyVehicle.GetVehicleDetails().VehicleType)
 				assert.Equal(t, fallback == references.NoPartyVehicle, state.PartyState.IsAllPartyDead())
-				assert.Equal(t, 1, countMessage(callbacks.Messages, "Under attack! Sailing interrupted."))
+				assert.Equal(t, 1, countEqual(callbacks.Messages, "Under attack! Sailing interrupted."))
 				rng := state.GetRNG().Calls()
 				drainGameplayWorkflows(t, state)
 				assert.Equal(t, rng, state.GetRNG().Calls())
@@ -251,7 +251,7 @@ func TestInterruptedOutdoorPhaseRetainsEveryLowerSlotHit(t *testing.T) {
 		assert.Equal(t, uint16(max(0, int(hpBefore)-partyDamage)), member.GetCurrentHp())
 		assert.Equal(t, want.Calls(), state.GetRNG().Calls())
 		assert.False(t, state.IsSailing())
-		assert.Equal(t, 1, countMessage(callbacks.Messages, "Under attack! Sailing interrupted."))
+		assert.Equal(t, 1, countEqual(callbacks.Messages, "Under attack! Sailing interrupted."))
 		drainGameplayWorkflows(t, state)
 		assert.Len(t, callbacks.ProjectilesStarted, 3)
 		assert.Equal(t, want.Calls(), state.GetRNG().Calls(), "presentation must not replay the actor phase")

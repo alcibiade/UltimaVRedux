@@ -111,7 +111,7 @@ func TestCombatReadyMultipleChangesPersistUntilEscapeAndCompleteOnce(t *testing.
 	assert.False(t, dialog.IsDismissed())
 
 	pressProductionReadyKey(actual, dialog, ebiten.KeyEscape)
-	drainProductionReadyWorkflow(t, actual)
+	drainSceneWorkflow(t, actual, "ready_equipment_workflow", DialogPollingRateMs)
 	applyExpectedProductionReadyChanges(t, expected, references.LeatherHelm, references.Dagger)
 	expected.gameState.FinishCombatAction()
 	assertProductionReadyGameplayEqual(t, expected.gameState, actual.gameState)
@@ -130,7 +130,7 @@ func TestCombatReadyEscapeWithoutChangeCompletesExactlyOnceAfterCleanup(t *testi
 	actual.combatMapInputHandler(ebiten.KeyR)
 	dialog := waitForProductionReadyDialog(t, actual)
 	pressProductionReadyKey(actual, dialog, ebiten.KeyEscape)
-	drainProductionReadyWorkflow(t, actual)
+	drainSceneWorkflow(t, actual, "ready_equipment_workflow", DialogPollingRateMs)
 	expected.gameState.FinishCombatAction()
 
 	assertProductionReadyGameplayEqual(t, expected.gameState, actual.gameState)
@@ -161,7 +161,7 @@ func TestCombatReadyVanishingRingDismissesImmediatelyWithoutRefund(t *testing.T)
 	assert.Equal(t, references.NoEquipment, character.GetEquippedItem(references.SlotRing))
 	assert.Zero(t, scene.gameState.PartyState.Inventory.Equipment.Get(references.RingRegeneration))
 	assert.Contains(t, strings.Join(callbacks.Messages, ""), "Ring vanishes!")
-	drainProductionReadyWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "ready_equipment_workflow", DialogPollingRateMs)
 	assert.Zero(t, scene.dialogStack.Count())
 }
 
@@ -180,7 +180,7 @@ func TestCombatReadyUnreadyInvisibilityRingClearsEffect(t *testing.T) {
 	assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.Equipment.Get(references.RingInvisibility))
 	assert.Equal(t, callsBefore, scene.gameState.GetRNG().Calls())
 	pressProductionReadyKey(scene, dialog, ebiten.KeyEscape)
-	drainProductionReadyWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "ready_equipment_workflow", DialogPollingRateMs)
 	assert.False(t, scene.gameState.CombatScene.IsCombatPCInvisible(actor))
 }
 
@@ -213,7 +213,7 @@ func TestReadyWorkflowCleansModalAndKeyboardBeforeCompletionCallback(t *testing.
 	})
 	dialog := waitForProductionReadyDialog(t, scene)
 	pressProductionReadyKey(scene, dialog, ebiten.KeyEscape)
-	drainProductionReadyWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "ready_equipment_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, 1, completed)
 }
@@ -249,7 +249,7 @@ func TestCombatReadyConfirmedSwapAndCancelRetainOneCompletionOwner(t *testing.T)
 	require.Equal(t, references.NoEquipment, character.GetEquippedItem(references.SlotShield))
 	require.Equal(t, actor, actual.gameState.CombatScene.GetCurrentTurnIdentity())
 	pressProductionReadyKey(actual, dialog, ebiten.KeyEscape)
-	drainProductionReadyWorkflow(t, actual)
+	drainSceneWorkflow(t, actual, "ready_equipment_workflow", DialogPollingRateMs)
 	request, _ := expected.gameState.BeginReadyEquipment(true)
 	transaction := game_state.ReadyEquipmentTransaction{Request: request, CharacterIndex: actor.EntityIndex,
 		ExpectedOccupant: character.GetNameAsString(), Equipment: references.Halberd}
@@ -309,18 +309,6 @@ func pressProductionReadyKey(scene *GameScene, dialog *widgets.ReadyEquipmentDia
 	dialog.Update()
 	scene.gameState.ElapsedMs += DialogPollingRateMs
 	scene.gameState.EventQueueManager.Update()
-}
-
-func drainProductionReadyWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("ready_equipment_workflow") {
-			return
-		}
-	}
-	t.Fatal("combat Ready workflow did not complete")
 }
 
 func productionReadyPC(state *game_state.GameState, start int) game_state.CombatTurnIdentity {

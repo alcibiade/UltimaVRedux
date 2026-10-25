@@ -115,7 +115,7 @@ func TestShrineMeditationRetainsTranscriptThroughThreeMantras(t *testing.T) {
 	require.Contains(t, transcriptText, "Virtue? > HONE")
 	require.Equal(t, 3, strings.Count(transcriptText, "Mantra: >"))
 	require.Contains(t, transcriptText, "Thy thoughts are unfocused.")
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainNamedWorkflow(t, scene, "shrine_meditation")
 
 	require.Equal(t, 1, callbacks.BlockInputCalls)
@@ -260,7 +260,7 @@ func TestShrineOfferingRetainsTranscriptThroughPaymentResult(t *testing.T) {
 	require.Contains(t, transcriptText, "ALAKAZAM!")
 	require.Equal(t, uint16(200), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Contains(t, callbacks.SoundEffectsPlayed, game_state.SoundShrineOffering)
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainNamedWorkflow(t, scene, "shrine_meditation")
 
 	require.Equal(t, 1, callbacks.BlockInputCalls)
@@ -287,7 +287,7 @@ func TestShrineOfferingCancellationRetainsGoldAndRemovesTranscriptBeforeWalkOut(
 	require.Same(t, transcript, waitForShrineTranscriptResult(t, scene, transcript, "Thou dost leave the shrine."))
 	require.Equal(t, uint16(500), scene.gameState.PartyState.Inventory.Gold.Get())
 
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	scene.gameState.ElapsedMs += 1000
 	scene.gameState.EventQueueManager.Update()
 	require.False(t, scene.dialogStack.HasOpenDialog())
@@ -322,13 +322,13 @@ func TestShrineOfferingInsufficientGoldRepromptsAndAcceptsAffordableRetry(t *tes
 	require.Contains(t, strings.Join(strings.Fields(transcript.TranscriptText()), " "),
 		"Thou hast not that much gold!")
 	require.Equal(t, uint16(100), scene.gameState.PartyState.Inventory.Gold.Get())
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	require.Same(t, transcript, waitForTranscriptPrompt(t, scene, "Hundredweights?"))
 	enterTranscriptText(t, scene, transcript, "1")
 	require.Same(t, transcript, waitForShrineTranscriptResult(t, scene, transcript, "ALAKAZAM!"))
 	require.Equal(t, uint16(0), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Equal(t, 1, strings.Count(transcript.TranscriptText(), "Offer how many hundredweights gold?"))
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainNamedWorkflow(t, scene, "shrine_meditation")
 
 	require.Equal(t, originalLocation, scene.gameState.MapState.PlayerLocation)
@@ -367,13 +367,13 @@ func TestShrineOfferingInsufficientGoldRepromptsAndZeroExits(t *testing.T) {
 	enterTranscriptText(t, scene, transcript, "3")
 	require.Same(t, transcript, waitForShrineTranscriptResult(t, scene, transcript, "Thou hast not that much gold!"))
 	require.Equal(t, uint16(100), scene.gameState.PartyState.Inventory.Gold.Get())
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	require.Same(t, transcript, waitForTranscriptPrompt(t, scene, "Hundredweights?"))
 	enterTranscriptText(t, scene, transcript, "0")
 	require.Same(t, transcript, waitForShrineTranscriptResult(t, scene, transcript, "Thou dost leave the shrine."))
 	require.Equal(t, uint16(100), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Equal(t, 1, strings.Count(transcript.TranscriptText(), "Offer how many hundredweights gold?"))
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainNamedWorkflow(t, scene, shrineMeditationWorkflowName)
 
 	require.Equal(t, uint16(100), scene.gameState.PartyState.Inventory.Gold.Get())
@@ -572,19 +572,6 @@ func waitForShrineTranscriptResult(
 	t.Fatalf("shrine transcript result %q was not shown", content)
 
 	return nil
-}
-
-func acknowledgeShrineTranscript(
-	t *testing.T,
-	scene *GameScene,
-	transcript *widgets.InteractionTranscript,
-) {
-	t.Helper()
-	scene.keyboard.ClearFrameConsumption()
-	scene.keyboard.SetForceWaitAnyKey(-1000)
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	transcript.Update()
-	require.True(t, transcript.InputComplete())
 }
 
 func enterInputBoxText(t *testing.T, scene *GameScene, dialog *widgets.InputBox, value string) {

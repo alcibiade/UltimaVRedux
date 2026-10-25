@@ -572,3 +572,15 @@ func wordForDungeon(dungeon references.Location) string {
 
 	return ""
 }
+
+// countEqual returns how many values equal want.
+func countEqual[T comparable](values []T, want T) int {
+	count := 0
+	for _, value := range values {
+		if value == want {
+			count++
+		}
+	}
+
+	return count
+}

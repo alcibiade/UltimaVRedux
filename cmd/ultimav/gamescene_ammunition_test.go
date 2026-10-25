@@ -103,7 +103,7 @@ func TestAmmunitionMerchantRefillRearmsNextCrossing(t *testing.T) {
 	scene.StartTalkWorkflow(fixture.direction)
 	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Arrows)
-	openArmsTradeDialog(t, fixture, shop)
+	openMerchantModal[*widgets.ArmsTradeDialog](t, fixture, shop, widgets.ArmsShopAwaitingTrade)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
 		return state.PartyState.Inventory.Equipment.Get(references.Arrows) == 99
