@@ -21,7 +21,7 @@ func TestAcousticFamiliesRemainIndependentOfGameplayContextAndPlaybackCategory(t
 		{"ambient/AmbientMagical", "magic", catalogAmbience, "source_loop"},
 	} {
 		t.Run(test.cue, func(t *testing.T) {
-			profile := library.Taxonomy.Profiles[library.Taxonomy.cueProfile(test.cue)]
+			profile := library.Taxonomy.Profiles[cueProfile(library.Taxonomy, test.cue)]
 			require.Equal(t, test.family, profile.TargetAcousticFamily)
 			require.Equal(t, test.category, cueCategory(test.cue))
 			require.Equal(t, test.role, profile.MixRole)
@@ -32,10 +32,10 @@ func TestAcousticFamiliesRemainIndependentOfGameplayContextAndPlaybackCategory(t
 func TestPreparedRecordingSlotsHaveConsistentIntendedFamilies(t *testing.T) {
 	library := productionLibrary()
 	for cueID, cue := range library.Cues {
-		profile := library.Taxonomy.Profiles[library.Taxonomy.cueProfile(cueID)]
+		profile := library.Taxonomy.Profiles[cueProfile(library.Taxonomy, cueID)]
 		for _, recordingID := range cue.Recordings() {
 			if library.Recordings[recordingID].File == nil {
-				require.Equal(t, profile.TargetAcousticFamily, library.Taxonomy.recordingFamily(recordingID),
+				require.Equal(t, profile.TargetAcousticFamily, recordingFamily(library.Taxonomy, recordingID),
 					"empty slot %s should describe the intended sound for %s", recordingID, cueID)
 			}
 		}

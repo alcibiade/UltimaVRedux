@@ -10,53 +10,13 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
-// AmbientProfile configures a persistent loop. Radius zero is a non-spatial
-// background; positive radii are in map tiles. Tile sources can override radius
-// and multiply the cue/recording mix by their own relative gain.
-type AmbientProfile struct {
-	RadiusTiles float64 `json:"radiusTiles"`
-	FadeInMs    int64   `json:"fadeInMs"`
-	FadeOutMs   int64   `json:"fadeOutMs"`
-}
-
-// TileAudio attaches audio to a canonical animation family or a static tile.
-// Empty ambience means none; an empty surface inherits DefaultSurface. Nil
-// radius/gain inherit the sound's range and 100% mix; explicit zero gain is mute.
-type TileAudio struct {
-	AmbientCue  string   `json:"ambientCue,omitempty"`
-	Surface     string   `json:"surface,omitempty"`
-	RadiusTiles *float64 `json:"radiusTiles,omitempty"`
-	Gain        *float64 `json:"gain,omitempty"`
-}
-
-// TileAmbientSettings resolves per-family overrides without changing the shared
-// cue, recording calibration, or fades. A missing gain means 100% of the cue mix.
-func (routing Routing) TileAmbientSettings(tileID string) (AmbientProfile, float64) {
-	assignment := routing.Tiles[tileID]
-	profile := routing.Ambient[assignment.AmbientCue]
-	level := 1.0
-	if assignment.RadiusTiles != nil {
-		profile.RadiusTiles = *assignment.RadiusTiles
-	}
-	if assignment.Gain != nil {
-		level = *assignment.Gain
-	}
-
-	return profile, level
-}
-
-// Routing is shared by the authoring document and immutable game runtime.
-// Missing music/dungeon keys inherit; a present null explicitly selects silence.
-type Routing struct {
-	Ambient        map[string]AmbientProfile `json:"ambient"`
-	Tiles          map[string]TileAudio      `json:"tiles"`
-	Surfaces       map[string][]string       `json:"surfaces"`
-	DefaultSurface string                    `json:"defaultSurface"`
-	Music          map[string]*string        `json:"music"`
-	Dungeon        map[string]*string        `json:"dungeon"`
-	Naval          map[string]*string        `json:"naval"`
-	Emitters       map[string]string         `json:"emitters"`
-}
+// Schema-3 assignment groups in Routing.Groups. Missing music/dungeon keys
+// inherit the group's default; a present null explicitly selects silence.
+const (
+	routingGroupMusic   = "music"
+	routingGroupDungeon = "dungeon"
+	routingGroupNaval   = "naval"
+)
 
 const routingDefault = "default"
 const maxAmbientRadius = 32
@@ -122,7 +82,7 @@ func resolveAudioAssignment(assignments map[string]*string, target string) strin
 	return *value
 }
 
-func (routing Routing) musicFor(location references.Location, floor references.FloorNumber) string {
+func musicFor(routing Routing, location references.Location, floor references.FloorNumber) string {
 	key := locationMusicKey(location)
 	if location == references.BritanniaUnderworld {
 		key = "world/overworld"
@@ -130,23 +90,24 @@ func (routing Routing) musicFor(location references.Location, floor references.F
 			key = "world/underworld"
 		}
 	}
-	cue := resolveAudioAssignment(routing.Music, key)
+	cue := resolveAudioAssignment(routing.Groups[routingGroupMusic], key)
 
 	return strings.TrimPrefix(cue, "music/track/")
 }
 
-func (routing Routing) dungeonCue(location references.Location) string {
+func dungeonCue(routing Routing, location references.Location) string {
 	if location.GetMapType() != references.DungeonMapType {
 		return ""
 	}
-	cue := resolveAudioAssignment(routing.Dungeon, locationMusicKey(location))
+	cue := resolveAudioAssignment(routing.Groups[routingGroupDungeon], locationMusicKey(location))
 
 	return cue
 }
 
-func (routing Routing) validate(library *audioLibrary) error {
-	if routing.Ambient == nil || routing.Tiles == nil || routing.Surfaces == nil ||
-		routing.Music == nil || routing.Dungeon == nil || routing.Naval == nil || routing.Emitters == nil {
+func validateRouting(routing Routing, library *LibraryDocument) error {
+	if routing.Ambient == nil || routing.Tiles == nil || routing.Surfaces == nil || routing.Emitters == nil ||
+		routing.Groups[routingGroupMusic] == nil || routing.Groups[routingGroupDungeon] == nil ||
+		routing.Groups[routingGroupNaval] == nil {
 		return fmt.Errorf("%w: routing sections are required", ErrAudioLibrary)
 	}
 	for cueID, profile := range routing.Ambient {
@@ -154,25 +115,26 @@ func (routing Routing) validate(library *audioLibrary) error {
 			return err
 		}
 	}
-	if err := routing.validateTilesAndSurfaces(library); err != nil {
+	if err := validateTilesAndSurfaces(routing, library); err != nil {
 		return err
 	}
-	if err := validateRoutingAssignments(routing.Music, MusicTargets(), library, false); err != nil {
+	if err := validateRoutingAssignments(routing.Groups[routingGroupMusic], MusicTargets(), library, false); err != nil {
 		return err
 	}
-	if err := validateRoutingAssignments(routing.Dungeon, DungeonTargets(), library, true); err != nil {
+	dungeon := routing.Groups[routingGroupDungeon]
+	if err := validateRoutingAssignments(dungeon, DungeonTargets(), library, true); err != nil {
 		return err
 	}
-	if err := routing.validateNaval(library); err != nil {
+	if err := validateNaval(routing, library); err != nil {
 		return err
 	}
 
-	return routing.validateEmitters()
+	return validateEmitters(routing)
 }
 
-func (routing Routing) validateNaval(library *audioLibrary) error {
+func validateNaval(routing Routing, library *LibraryDocument) error {
 	targets := NavalTargets()
-	for target, cue := range routing.Naval {
+	for target, cue := range routing.Groups[routingGroupNaval] {
 		if _, exists := targets[target]; !exists {
 			return fmt.Errorf("%w: unknown naval situation %s", ErrAudioLibrary, target)
 		}
@@ -195,7 +157,7 @@ func (routing Routing) validateNaval(library *audioLibrary) error {
 		}
 	}
 	for target := range targets {
-		if _, exists := routing.Naval[target]; !exists {
+		if _, exists := routing.Groups[routingGroupNaval][target]; !exists {
 			return fmt.Errorf("%w: missing naval situation %s", ErrAudioLibrary, target)
 		}
 	}
@@ -203,7 +165,7 @@ func (routing Routing) validateNaval(library *audioLibrary) error {
 	return nil
 }
 
-func (routing Routing) validateEmitters() error {
+func validateEmitters(routing Routing) error {
 	emitters := []string{"bard", "moongate"}
 	if len(routing.Emitters) != len(emitters) {
 		return fmt.Errorf("%w: routing requires bard and moongate emitters", ErrAudioLibrary)
@@ -218,7 +180,7 @@ func (routing Routing) validateEmitters() error {
 	return nil
 }
 
-func validateAmbientProfile(library *audioLibrary, cueID string, profile AmbientProfile) error {
+func validateAmbientProfile(library *LibraryDocument, cueID string, profile AmbientProfile) error {
 	if !strings.HasPrefix(cueID, "ambient/") || strings.TrimPrefix(cueID, "ambient/") == "" {
 		return fmt.Errorf("%w: invalid ambient cue %q", ErrAudioLibrary, cueID)
 	}
@@ -235,7 +197,7 @@ func validateAmbientProfile(library *audioLibrary, cueID string, profile Ambient
 	return nil
 }
 
-func (routing Routing) validateTilesAndSurfaces(library *audioLibrary) error {
+func validateTilesAndSurfaces(routing Routing, library *LibraryDocument) error {
 	if _, exists := routing.Surfaces[routing.DefaultSurface]; !exists {
 		return fmt.Errorf("%w: unknown default footstep surface", ErrAudioLibrary)
 	}
@@ -250,10 +212,10 @@ func (routing Routing) validateTilesAndSurfaces(library *audioLibrary) error {
 		}
 	}
 
-	return routing.validateTileAssignments()
+	return validateTileAssignments(routing)
 }
 
-func (routing Routing) validateTileAssignments() error {
+func validateTileAssignments(routing Routing) error {
 	tiles := references.NewTileReferences()
 	for key, assignment := range routing.Tiles {
 		number, err := strconv.Atoi(key)
@@ -297,7 +259,7 @@ func validateTileAmbientOverrides(tileID string, assignment TileAudio) error {
 }
 
 func validateRoutingAssignments(
-	assignments map[string]*string, targets map[string]string, library *audioLibrary, background bool,
+	assignments map[string]*string, targets map[string]string, library *LibraryDocument, background bool,
 ) error {
 	if _, exists := assignments[routingDefault]; !exists {
 		return fmt.Errorf("%w: audio assignments require an explicit default", ErrAudioLibrary)

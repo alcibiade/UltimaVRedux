@@ -9,15 +9,8 @@ import (
 	"sync"
 
 	berad "github.com/bradhannah/berad-sdk/modules/berad-audio"
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
 )
-
-// LibraryDocument is the versioned authoring schema. Loading makes a detached
-// immutable snapshot; changing this value cannot change an existing runtime.
-type LibraryDocument = audioLibrary
-
-// LibraryValidator adds consumer completeness, vocabulary and routing rules to
-// structural validation. It receives a detached document and must be deterministic.
-type LibraryValidator func(LibraryDocument) error
 
 // LibraryOptions selects an explicit asset mount and optional consumer policy.
 // AssetRoot is an fs path ("." for the supplied filesystem root), not a machine path.
@@ -29,7 +22,7 @@ type LibraryOptions struct {
 // Library owns an immutable document and one snapshot of each referenced encoded
 // asset. Filesystem changes after construction cannot silently retarget playback.
 type Library struct {
-	document      *audioLibrary
+	document      *LibraryDocument
 	assets        map[string][]byte
 	prefix        string
 	encodedBytes  int64
@@ -44,9 +37,9 @@ func NewLibrary(data []byte, files fs.FS, options LibraryOptions) (*Library, err
 	if files == nil {
 		return nil, fmt.Errorf("%w: asset filesystem is required", ErrAudioLibrary)
 	}
-	document, err := parseLibraryDocument(data, options.Validate)
+	document, err := authoring.ParseDocument(data, options.Validate)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse audio library: %w", err)
 	}
 	root := options.AssetRoot
 	if root == "" {
@@ -60,7 +53,7 @@ func NewLibrary(data []byte, files fs.FS, options LibraryOptions) (*Library, err
 		return nil, fmt.Errorf("mount audio assets: %w", err)
 	}
 	library := new(Library)
-	library.document, library.assets = document, make(map[string][]byte)
+	library.document, library.assets = &document, make(map[string][]byte)
 	if root != "." {
 		library.prefix = root + "/"
 	}

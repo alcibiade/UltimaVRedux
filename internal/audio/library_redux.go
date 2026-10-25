@@ -23,18 +23,18 @@ func ReduxLibraryValidator(document LibraryDocument) error {
 	if err := validateLibraryCues(&document); err != nil {
 		return err
 	}
-	if err := document.Taxonomy.validateProfiles(); err != nil {
+	if err := validateProfiles(document.Taxonomy); err != nil {
 		return err
 	}
 
-	return document.Routing.validate(&document)
+	return validateRouting(document.Routing, &document)
 }
 
 func validRecordingPath(name string) bool {
 	return validAssetPath(name) && (strings.HasPrefix(name, "sounds/") || strings.HasPrefix(name, "music/"))
 }
 
-func validateLibraryCues(library *audioLibrary) error {
+func validateLibraryCues(library *LibraryDocument) error {
 	expected := knownLibraryCueIDs(library)
 	for cueID, cue := range library.Cues {
 		if !expected[cueID] {
@@ -53,7 +53,7 @@ func validateLibraryCues(library *audioLibrary) error {
 	return nil
 }
 
-func knownLibraryCueIDs(library *audioLibrary) map[string]bool {
+func knownLibraryCueIDs(library *LibraryDocument) map[string]bool {
 	ids := make(map[string]bool)
 	for _, symbol := range catalogEffectNames() {
 		ids["sfx/"+symbol] = true

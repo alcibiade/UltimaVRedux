@@ -94,15 +94,15 @@ func (catalog *Catalog) assignCue(moment *CatalogMoment, cueID string) {
 	library := productionLibrary()
 	entry := library.Cues[cueID]
 	moment.SearchTerms = append(slices.Clone(entry.SearchTerms),
-		library.Taxonomy.ProfileSearchTerms[library.Taxonomy.cueProfile(cueID)]...)
-	profile := library.Taxonomy.Profiles[library.Taxonomy.cueProfile(cueID)]
+		library.Taxonomy.ProfileSearchTerms[cueProfile(library.Taxonomy, cueID)]...)
+	profile := library.Taxonomy.Profiles[cueProfile(library.Taxonomy, cueID)]
 	moment.Category = cueCategory(cueID)
 	moment.Family, moment.Phase = profile.TargetAcousticFamily, profile.Phase
 	moment.Outcome, moment.MixRole = profile.Outcome, profile.MixRole
 	moment.Emitters, moment.Contexts = slices.Clone(profile.Emitters), slices.Clone(profile.Contexts)
 	moment.CueID, moment.AssetID = cueID, entry.PrimaryRecording()
 	for _, id := range entry.Recordings() {
-		family := library.Taxonomy.recordingFamily(id)
+		family := recordingFamily(library.Taxonomy, id)
 		if !slices.Contains(moment.AssignedFamilies, family) {
 			moment.AssignedFamilies = append(moment.AssignedFamilies, family)
 		}
@@ -111,7 +111,7 @@ func (catalog *Catalog) assignCue(moment *CatalogMoment, cueID string) {
 		moment.AssetIDs, moment.Selection = entry.Recordings(), entry.Selection
 	}
 	moment.HowToHear, moment.ConfiguredGain = entry.HowToHear, &entry.VolumeModifier
-	moment.ConfiguredFile = library.recordingPath(entry.PrimaryRecording())
+	moment.ConfiguredFile = assetRecordingPath(library, entry.PrimaryRecording())
 	if window := library.Recordings[entry.PrimaryRecording()].PlaybackWindow; window != nil {
 		selection := *window
 		moment.Window = &selection

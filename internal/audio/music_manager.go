@@ -37,12 +37,12 @@ func newMusicManager(host musicHost, output musicPlayback, now func() time.Time)
 }
 
 func musicForLocation(location references.Location) string {
-	return productionLibrary().Routing.musicFor(location, references.FloorNumber(references.OVERWORLD))
+	return musicFor(productionLibrary().Routing, location, references.FloorNumber(references.OVERWORLD))
 }
 
 // GetMusicForContext returns appropriate music for game contexts (intro, victory, etc.)
 func (mm *MusicManager) GetMusicForContext(context string) string {
-	return musicForContext(mm.audioManager.musicLibrary().document.Routing.Music, context)
+	return musicForContext(mm.audioManager.musicLibrary().document.Routing.Groups[routingGroupMusic], context)
 }
 
 func musicForContext(assignments map[string]*string, context string) string {
@@ -56,7 +56,7 @@ func musicContextTracks() map[string]string {
 	tracks := make(map[string]string)
 	for target := range MusicTargets() {
 		if strings.HasPrefix(target, "context/") {
-			cue := resolveAudioAssignment(productionLibrary().Routing.Music, target)
+			cue := resolveAudioAssignment(productionLibrary().Routing.Groups[routingGroupMusic], target)
 			tracks[strings.TrimPrefix(target, "context/")] = strings.TrimPrefix(cue, "music/track/")
 		}
 	}
@@ -82,7 +82,7 @@ func (mm *MusicManager) PlayMusicForScene(location references.PlayerLocation) er
 	defer mm.mutex.Unlock()
 	mm.policy.cue = "" // An explicit new location request replaces any pending special cue.
 	mm.currentLocation = location.Location
-	mm.policy.exploration = mm.audioManager.musicLibrary().document.Routing.musicFor(location.Location, location.Floor)
+	mm.policy.exploration = musicFor(mm.audioManager.musicLibrary().document.Routing, location.Location, location.Floor)
 
 	return mm.policy.update()
 }
@@ -98,11 +98,11 @@ func (mm *MusicManager) SetSceneSoundscape(
 			mm.policy.cue = ""
 		}
 		mm.currentLocation = location.Location
-		mm.policy.exploration = mm.audioManager.musicLibrary().document.Routing.musicFor(location.Location, location.Floor)
+		mm.policy.exploration = musicFor(mm.audioManager.musicLibrary().document.Routing, location.Location, location.Floor)
 	}
 	mm.policy.combatTrack = mm.GetMusicForContext("combat")
 	track := ""
-	if cue := mm.audioManager.musicLibrary().document.Routing.Naval["sailing"]; cue != nil {
+	if cue := mm.audioManager.musicLibrary().document.Routing.Groups[routingGroupNaval]["sailing"]; cue != nil {
 		track = strings.TrimPrefix(*cue, "music/track/")
 	}
 	mm.policy.setSailing(sailsRaised, track)

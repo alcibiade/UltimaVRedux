@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/bradhannah/berad-sdk/modules/berad-audio/authoring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,10 +29,10 @@ func TestRecordingCreditsAreStableDetachedMetadataWithoutCueDuplication(t *testi
 	// Metadata projection has no dependency on opening, decoding or inspecting
 	// the referenced recording; fake paths and duplicate cues need no audio FS.
 	file := "sounds/nonexistent.wav"
-	fixture := &audioLibrary{Recordings: map[string]libraryRecording{
+	fixture := &LibraryDocument{Recordings: map[string]authoring.Recording{
 		"present":     {File: &file, Provenance: unknownRecordingProvenance()},
 		"placeholder": {Provenance: unknownRecordingProvenance()},
-	}, Cues: map[string]libraryCue{
+	}, Cues: map[string]authoring.Cue{
 		"one": {RecordingID: "present"}, "two": {RecordingID: "present"},
 	}}
 	projected := recordingCredits(fixture)

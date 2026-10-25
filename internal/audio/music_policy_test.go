@@ -608,7 +608,7 @@ func TestCombatVictoryStopsScoreAndKeepsBattlefieldQuiet(t *testing.T) {
 func TestCombatVictoryUsesShortSoundInsteadOfMusicRecording(t *testing.T) {
 	cue := productionLibrary().Cues["sfx/SoundCombatVictory"]
 	require.Equal(t, "combat_victory_01", cue.RecordingID)
-	require.NotEmpty(t, productionLibrary().recordingPath(cue.RecordingID))
+	require.NotEmpty(t, assetRecordingPath(productionLibrary(), cue.RecordingID))
 	require.Equal(t, "fanfare_for_the_virtuous", productionLibrary().Cues["music/track/victory"].RecordingID)
 }
 
