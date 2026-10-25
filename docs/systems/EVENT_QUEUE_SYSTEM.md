@@ -227,11 +227,11 @@ workflow.ThenSequence(showConfirmation("Continue?"))
 
 Use `ThenSequence` when the parent must own and wait for the inserted steps. Starting another independent workflow does not make the parent wait.
 
-Inserted steps run on the parent's queue, so a `Finally` inside a sequence or `If`
-block replaces the parent's cleanup when that step runs. Clear sequence-local state
-with `Then` and leave cancellation cleanup to the parent's `Finally`. Camping is the
-deliberate exception: its sequence takes over the slot and calls the caller's
-completion from its own cleanup.
+Inserted steps run on the parent's queue, so `Finally` panics inside a sequence or
+`If` block rather than silently replacing the parent's cleanup. Clear
+sequence-local state with `Then` and leave cancellation cleanup to the parent's
+`Finally`. Camping is the deliberate exception: its sequence calls
+`TakeOverFinally` and runs the caller's completion from its own cleanup.
 
 ### Animation Admission And Time
 
@@ -269,7 +269,9 @@ Use `While` when the condition must be evaluated repeatedly.
 
 ## Cleanup And Handoff
 
-`Finally` is a replaceable exact-once cleanup slot, not an ordinary final action.
+`Finally` is a replaceable exact-once cleanup slot on the workflow builder, not an
+ordinary final action. Nested sequences cannot set it; see
+[Reusable Sequences](#reusable-sequences).
 
 ```go
 workflow.Finally(func() {

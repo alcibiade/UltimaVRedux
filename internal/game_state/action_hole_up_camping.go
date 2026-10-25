@@ -500,7 +500,7 @@ func (g *GameState) addCampingSequenceToBuilder(
 					g.SystemCallbacks.Screen.PopMessageDialog()
 					logging.Debugf(logging.CategoryGameState, "Camping: Non-wanderer - MessageDialog popped")
 				})
-		}).Finally(func() {
+		}).TakeOverFinally(func() {
 		g.finalizeCampingSequence(campingScene, campingState, completionCleanup)
 	})
 

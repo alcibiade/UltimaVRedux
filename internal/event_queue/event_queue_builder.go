@@ -15,6 +15,7 @@ type SequentialEventBuilder struct {
 	queue        *NamedEventQueue
 	currentEvent *DelayedEvent // The event currently being built for chaining
 	priority     int           // Execution priority (lower number = higher priority)
+	nested       bool          // Built by If at run time on its workflow's queue
 }
 
 // newDelayedEvent creates an unchained event; builders attach continuations explicitly.
@@ -228,6 +229,7 @@ func (seb *SequentialEventBuilder) If(
 				queue:        seb.queue,
 				currentEvent: nil,
 				priority:     0,
+				nested:       true,
 			}
 
 			// Create a dummy first event to start the chain
@@ -685,9 +687,27 @@ func (seb *SequentialEventBuilder) RepeatWithRuntimeDelay(
 //	        audio.Stop(sound).Now() // Cleanup
 //	    }).
 //	    Start()
+//
+// Finally panics inside an If or ThenSequence block: that block runs on the
+// workflow's queue, so it would silently replace the cleanup registered when the
+// workflow was built. Clear block-local state with Then instead.
 func (seb *SequentialEventBuilder) Finally(action func()) *SequentialEventBuilder {
+	if seb.nested {
+		panic("EventQueue: Finally inside a nested sequence would replace its workflow's cleanup; " +
+			"use Then, or TakeOverFinally to replace it deliberately")
+	}
 	seb.queue.lastAction = action
 	logging.Debugf(logging.CategoryGameState, "EventQueue: Finally cleanup action registered")
+
+	return seb
+}
+
+// TakeOverFinally replaces the workflow's cleanup from inside a nested sequence.
+// The action becomes the only cleanup, so it must also do whatever the
+// workflow's own Finally would have done.
+func (seb *SequentialEventBuilder) TakeOverFinally(action func()) *SequentialEventBuilder {
+	seb.queue.lastAction = action
+	logging.Debugf(logging.CategoryGameState, "EventQueue: nested sequence took over the cleanup action")
 
 	return seb
 }

@@ -327,13 +327,11 @@ func assertOutdoorWhirlpoolHandoffCleanup(t *testing.T, committed bool) {
 	name := outdoorWhirlpoolWorkflowName(20)
 	handedOff := false
 	owner := state.EventQueueManager.Workflow(name).Priority(event_queue.PriorityHigh)
-	owner.Sequential().BlockInput().
-		First(func() {}).ThenSequence(func(sequence *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		// Exercise runtime sequence construction and normal owner termination,
-		// without Shutdown's separate GameState cleanup hiding a lost finalizer.
-		state.buildOutdoorWhirlpoolTransportationQueue(sequence, phase)
-		return sequence
-	}).Then(func() { t.Error("cancelled transport must not resume its actor cursor") }).Start()
+	sequence := owner.Sequential().BlockInput().First(func() {})
+	// Build like the production owner, then exercise normal owner termination
+	// without Shutdown's separate GameState cleanup hiding a lost finalizer.
+	state.buildOutdoorWhirlpoolTransportationQueue(sequence, phase)
+	sequence.Then(func() { t.Error("cancelled transport must not resume its actor cursor") }).Start()
 	for updates := 0; ; updates++ {
 		require.Less(t, updates, 50)
 		state.ElapsedMs += 100
