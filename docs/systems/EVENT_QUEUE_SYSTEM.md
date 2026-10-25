@@ -227,6 +227,12 @@ workflow.ThenSequence(showConfirmation("Continue?"))
 
 Use `ThenSequence` when the parent must own and wait for the inserted steps. Starting another independent workflow does not make the parent wait.
 
+Inserted steps run on the parent's queue, so a `Finally` inside a sequence or `If`
+block replaces the parent's cleanup when that step runs. Clear sequence-local state
+with `Then` and leave cancellation cleanup to the parent's `Finally`. Camping is the
+deliberate exception: its sequence takes over the slot and calls the caller's
+completion from its own cleanup.
+
 ### Animation Admission And Time
 
 An animation admitted by a delayed callback starts at the current queue update,

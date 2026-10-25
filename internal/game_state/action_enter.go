@@ -402,11 +402,6 @@ func (g *GameState) ThenExitLocationTransition() func(
 				g.SystemCallbacks.Visual.SetMapFadeLevel(0.0)
 				if !routeOwnsCycle {
 					g.AdvanceGameplayMinutes(1)
-				}
-			}).Finally(
-
-			func() {
-				if !routeOwnsCycle {
 					g.ProcessPendingProvisionHours()
 				}
 			})

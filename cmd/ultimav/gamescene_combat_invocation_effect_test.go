@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -142,4 +143,55 @@ func TestCombatInvocationCleanupClearsEveryTemporaryChannel(t *testing.T) {
 
 	assert.Nil(t, scene.combatSummonEffect)
 	assert.Nil(t, scene.combatRepelEffect)
+}
+
+func TestCombatRepelAndFearCastsFinishTheCombatActionOnce(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		spell references.Spell
+		keys  []ebiten.Key
+		cast  func(*game_state.GameState, int) game_state.CombatAnXenCorpResult
+	}{
+		{
+			name: "Repel Undead", spell: references.AnXenCorp,
+			keys: []ebiten.Key{ebiten.KeyA, ebiten.KeyX, ebiten.KeyC},
+			cast: (*game_state.GameState).CastCombatAnXenCorp,
+		},
+		{
+			name: "Fear", spell: references.InQuasCorp,
+			keys: []ebiten.Key{ebiten.KeyI, ebiten.KeyQ, ebiten.KeyC},
+			cast: (*game_state.GameState).CastCombatInQuasCorp,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			scene, callbacks, _ := newAreaSpellOutcomeScene(t, test.spell, references.MonsterSkeleton)
+			baseline, _, _ := newAreaSpellOutcomeScene(t, test.spell, references.MonsterSkeleton)
+			state, expected := scene.gameState, baseline.gameState
+			casterIdx := state.CombatScene.GetActiveCombatantIndex()
+			request := game_state.CastRequest{Spell: test.spell, CasterIdx: casterIdx}
+			require.True(t, expected.ValidateAndConsumeSpellResources(request).Valid)
+			test.cast(expected, casterIdx)
+			expected.FinishCombatAction()
+
+			scene.startSpellCastingWorkflow()
+			dialog := waitForProductionSpellDialog(t, scene)
+			enterSpellSyllables(scene, dialog, test.keys)
+			require.Equal(t, test.spell, dialog.GetSelectedSpell())
+			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
+			dialog.Update()
+			for range 100 {
+				state.ElapsedMs += 125
+				state.EventQueueManager.Update()
+				if !state.EventQueueManager.HasActiveWorkflows() {
+					break
+				}
+			}
+
+			require.False(t, state.EventQueueManager.HasActiveWorkflows())
+			assert.False(t, callbacks.InputBlocked)
+			assert.Nil(t, scene.combatRepelEffect)
+			assert.Zero(t, scene.dialogStack.Count())
+			assertCombatMatchesSingleFinish(t, state, expected)
+		})
+	}
 }

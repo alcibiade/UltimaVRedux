@@ -14,7 +14,6 @@ type Sequence func(*SequentialEventBuilder) *SequentialEventBuilder
 type SequentialEventBuilder struct {
 	queue        *NamedEventQueue
 	currentEvent *DelayedEvent // The event currently being built for chaining
-	lastAction   func()        // Cleanup action that always runs at sequence end
 	priority     int           // Execution priority (lower number = higher priority)
 }
 
@@ -228,7 +227,6 @@ func (seb *SequentialEventBuilder) If(
 			tempBuilder := &SequentialEventBuilder{
 				queue:        seb.queue,
 				currentEvent: nil,
-				lastAction:   nil,
 				priority:     0,
 			}
 
@@ -688,8 +686,7 @@ func (seb *SequentialEventBuilder) RepeatWithRuntimeDelay(
 //	    }).
 //	    Start()
 func (seb *SequentialEventBuilder) Finally(action func()) *SequentialEventBuilder {
-	seb.lastAction = action
-	seb.queue.lastAction = action // Also store in queue for Update() access
+	seb.queue.lastAction = action
 	logging.Debugf(logging.CategoryGameState, "EventQueue: Finally cleanup action registered")
 
 	return seb
