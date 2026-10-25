@@ -28,104 +28,23 @@ import (
 // YELL SUMMONING TESTS - NPCs should NOT be affected
 // =============================================================================
 
-// TestYellSummoning_DoesNotAffectNPCs validates that yell-summoned Shadowlords
-// do NOT apply behavior effects to NPCs. This is the key distinction from the
-// original game: town Yell does NOT call NPC influence.
-//
-// Source: original command rules - town Yell does NOT set shadowlord global
+// Town Yell summons a Shadowlord without its automatic-presence effects: NPC AI
+// is untouched and no automatic presence (or vegetation pass) is recorded.
 // See ref:SHADOW-0002.
-func TestYellSummoning_DoesNotAffectNPCs(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
+func TestYellSummoningAppliesNoTownEffects(t *testing.T) {
+	for _, name := range []string{"ASTAROTH", "FAULINEI", "NOSFENTOR"} {
+		gs, _ := newBootstrapSaveTestState(t)
+		gs.ShadowlordState.Reset()
+		gs.TransitionToLocation(references.Lycaeum, 0, references.Position{X: 15, Y: 10}, TransitionFullLocation, false)
+		controller, ok := gs.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
+		require.True(t, ok)
+		before := countNPCsWithOverriddenAI(controller)
 
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	gs.ShadowlordState.Reset()
-
-	// Set up mock callbacks
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-
-	// Transition to Lycaeum (Keep) to properly set up small map controller
-	gs.TransitionToLocation(references.Lycaeum, 0, references.Position{X: 15, Y: 10}, TransitionFullLocation, false)
-
-	// Ensure we have a small map controller
-	smallMapController, ok := gs.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
-	require.True(t, ok, "Should have small map controller at Keep")
-
-	// Count NPCs with overridden AI before summoning
-	npcsBefore := countNPCsWithOverriddenAI(smallMapController)
-
-	// Yell to summon Astaroth (the one that would make NPCs hostile)
-	result := gs.TrySummonShadowlord("ASTAROTH")
-	require.True(t, result, "Summoning should succeed")
-
-	// Count NPCs with overridden AI after summoning
-	npcsAfter := countNPCsWithOverriddenAI(smallMapController)
-
-	// KEY TEST: NPCs should NOT have their AI overridden by yell summoning
-	assert.Equal(t, npcsBefore, npcsAfter,
-		"Yell summoning should NOT affect NPC AI (original: shadow_effects() not called)")
-}
-
-// TestYellSummoning_Faulinei_NoNPCEffects validates Faulinei yell summoning
-func TestYellSummoning_Faulinei_NoNPCEffects(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-	gs.ShadowlordState.Reset()
-
-	// Transition to Lycaeum (Keep) to properly set up small map controller
-	gs.TransitionToLocation(references.Lycaeum, 0, references.Position{X: 15, Y: 10}, TransitionFullLocation, false)
-
-	smallMapController, ok := gs.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
-	require.True(t, ok, "Should have small map controller")
-
-	npcsBefore := countNPCsWithOverriddenAI(smallMapController)
-
-	result := gs.TrySummonShadowlord("FAULINEI")
-	require.True(t, result, "Summoning should succeed")
-
-	npcsAfter := countNPCsWithOverriddenAI(smallMapController)
-
-	assert.Equal(t, npcsBefore, npcsAfter,
-		"Faulinei yell summoning should NOT affect NPCs")
-}
-
-// TestYellSummoning_Nosfentor_NoNPCEffects validates Nosfentor yell summoning
-func TestYellSummoning_Nosfentor_NoNPCEffects(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	gs.ShadowlordState.Reset()
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-	gs.ShadowlordState.Reset()
-
-	// Transition to Lycaeum (Keep) to properly set up small map controller
-	gs.TransitionToLocation(references.Lycaeum, 0, references.Position{X: 15, Y: 10}, TransitionFullLocation, false)
-
-	smallMapController, ok := gs.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
-	require.True(t, ok, "Should have small map controller")
-
-	npcsBefore := countNPCsWithOverriddenAI(smallMapController)
-
-	result := gs.TrySummonShadowlord("NOSFENTOR")
-	require.True(t, result, "Summoning should succeed")
-
-	npcsAfter := countNPCsWithOverriddenAI(smallMapController)
-
-	assert.Equal(t, npcsBefore, npcsAfter,
-		"Nosfentor yell summoning should NOT affect NPCs")
+		require.True(t, gs.TrySummonShadowlord(name), name)
+		assert.Equal(t, before, countNPCsWithOverriddenAI(controller), "%s must not override NPC AI", name)
+		assert.Equal(t, references.Shadowlord(-1), gs.ShadowlordState.AutomaticPresence,
+			"%s must not set automatic presence", name)
+	}
 }
 
 // =============================================================================
@@ -139,14 +58,7 @@ func TestYellSummoning_Nosfentor_NoNPCEffects(t *testing.T) {
 // Source: original town rules - case 1 sets hostile schedule override and tlk=0xfe
 // See ref:SHADOW-0002.
 func TestAutomaticPresence_Astaroth_MakesNPCsHostile(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	// Set fixed seed for deterministic 50% selection
 	gs.SetRandomSeed(12345)
@@ -176,14 +88,7 @@ func TestAutomaticPresence_Astaroth_MakesNPCsHostile(t *testing.T) {
 // Source: original town rules - case 2 sets fleeing schedule override and tlk=0xfd
 // See ref:SHADOW-0002.
 func TestAutomaticPresence_Nosfentor_MakesNPCsFlee(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 	gs.ShadowlordState.Reset()
 
 	gs.SetRandomSeed(12345)
@@ -210,14 +115,7 @@ func TestAutomaticPresence_Nosfentor_MakesNPCsFlee(t *testing.T) {
 // Source: original town rules - case 0 has no NPC behavior code
 // See ref:SHADOW-0002.
 func TestAutomaticPresence_Faulinei_NoNPCBehaviorChange(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	// Transition to Lycaeum (Keep) to properly set up small map controller
 	gs.TransitionToLocation(references.Lycaeum, 0, references.Position{X: 15, Y: 10}, TransitionFullLocation, false)
@@ -247,14 +145,7 @@ func TestAutomaticPresence_Faulinei_NoNPCBehaviorChange(t *testing.T) {
 // Implementation: AutomaticPresence tracks moon-based presence, which is checked
 // by hardResetSmallMapAfterFloorChange to preserve overridden AI types.
 func TestNPCEffects_PersistAcrossFloorChanges(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.SetRandomSeed(12345)
 
@@ -306,14 +197,7 @@ func TestNPCEffects_PersistAcrossFloorChanges(t *testing.T) {
 // Source: original shop rules - Faulinei shop theft function
 // See ref:SHADOW-0002.
 func TestFaulineiShopTheft_AutomaticPresence(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.SetRandomSeed(12345)
 
@@ -342,14 +226,7 @@ func TestFaulineiShopTheft_AutomaticPresence(t *testing.T) {
 //
 // Source: Yell summoning sets last_called but NOT shadowlord global
 func TestFaulineiShopTheft_YellSummoning_NoTheft(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.SetRandomSeed(12345)
 
@@ -376,14 +253,7 @@ func TestFaulineiShopTheft_YellSummoning_NoTheft(t *testing.T) {
 // TestFaulineiShopTheft_OtherShadowlord_NoTheft validates that Astaroth and
 // Nosfentor presence does NOT cause shop theft.
 func TestFaulineiShopTheft_OtherShadowlord_NoTheft(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.SetRandomSeed(12345)
 
@@ -405,14 +275,7 @@ func TestFaulineiShopTheft_OtherShadowlord_NoTheft(t *testing.T) {
 
 // TestFaulineiShopTheft_NoGold validates behavior when party has no gold.
 func TestFaulineiShopTheft_NoGold(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.SetRandomSeed(12345)
 
@@ -432,14 +295,7 @@ func TestFaulineiShopTheft_NoGold(t *testing.T) {
 
 // TestFaulineiShopTheft_LimitedGold validates that theft is limited to available gold.
 func TestFaulineiShopTheft_LimitedGold(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.SetRandomSeed(12345)
 
@@ -475,14 +331,7 @@ func TestFaulineiShopTheft_LimitedGold(t *testing.T) {
 // Note: 7/8 (87.5%) chance per affected tile
 // See ref:SHADOW-0002.
 func TestMapEffects_AutomaticPresence_DestroysCrops(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	// Set deterministic seed for 7/8 probability testing
 	gs.SetRandomSeed(12345)
@@ -631,46 +480,10 @@ func currentSmallMapTerrain(gs *GameState) []indexes.SpriteIndex {
 	return terrain
 }
 
-// TestMapEffects_YellSummoning_NoMapChanges validates that yell-summoned
-// Shadowlords do NOT cause map effects.
-//
-// Source: original command rules - town Yell does NOT call vegetation effects
-// See ref:SHADOW-0002.
-func TestMapEffects_YellSummoning_NoMapChanges(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	gs.ShadowlordState.Reset()
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-
-	// Transition to a Keep
-	gs.TransitionToLocation(references.Lycaeum, 0, references.Position{X: 15, Y: 10}, TransitionFullLocation, false)
-
-	// Yell summoning should NOT trigger map effects
-	result := gs.TrySummonShadowlord("ASTAROTH")
-	require.True(t, result, "Summoning should succeed")
-
-	// Verify that map effects were NOT applied
-	// The AutomaticPresence should still be -1 (unset)
-	assert.Equal(t, references.Shadowlord(-1), gs.ShadowlordState.AutomaticPresence,
-		"Yell summoning should NOT set AutomaticPresence")
-}
-
 // TestMapEffects_SevenEighthsProbability validates the 7/8 (87.5%) probability.
 // We test this by running multiple iterations and checking the distribution.
 func TestMapEffects_SevenEighthsProbability(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	// Test the probability function directly
 	// Run 1000 iterations and check it's close to 87.5%
@@ -884,52 +697,25 @@ func TestMidnightMovesLivingShadowlordsWithoutRefreshingLoadedPresence(t *testin
 // Source: Original town initialization in original town rules check Shadowlord assignment state array on entry.
 // See ref:SHADOW-0002.
 func TestShadowlordTownEntry_DetectsPresence(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
+	for _, lord := range []references.Shadowlord{references.Astaroth, references.Nosfentor} {
+		gs, _ := newBootstrapSaveTestState(t)
+		gs.ShadowlordState.Reset()
+		gs.ShadowlordState.TownAssignments[lord] = references.Britain
+		require.False(t, gs.ShadowlordState.HasAutomaticPresence())
 
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-	gs.ShadowlordState.Reset()
-
-	expectedLord := references.Astaroth
-	gs.ShadowlordState.TownAssignments[expectedLord] = references.Britain
-
-	// Verify no automatic presence initially
-	assert.False(t, gs.ShadowlordState.HasAutomaticPresence(),
-		"Should not have automatic presence before entering town")
-
-	result := gs.TransitionToLocation(
-		references.Britain,
-		references.MainFloor,
-		references.Position{X: 15, Y: 10},
-		TransitionFullLocation,
-		false,
-	)
-	lords := result.ShadowlordsPresent
-
-	// Should return the expected Shadowlord and have automatic presence set
-	require.Len(t, lords, 1, "Should return exactly one Shadowlord")
-	assert.Equal(t, expectedLord, lords[0], "Returned Shadowlord should match expected")
-	assert.True(t, gs.ShadowlordState.HasAutomaticPresence(),
-		"Should have automatic presence after entering town with Shadowlord")
-	assert.Equal(t, expectedLord, gs.ShadowlordState.AutomaticPresence,
-		"Automatic presence should match the assigned Shadowlord")
+		// Any entry row except the jail row (Y=4) applies presence.
+		result := gs.TransitionToLocation(
+			references.Britain, references.MainFloor, references.Position{X: 15, Y: 10}, TransitionFullLocation, false,
+		)
+		assert.Equal(t, []references.Shadowlord{lord}, result.ShadowlordsPresent)
+		assert.Equal(t, lord, gs.ShadowlordState.AutomaticPresence)
+	}
 }
 
 // TestShadowlordTownEntry_NoPresenceWithoutShadowlord validates that entering
 // a town without a Shadowlord does NOT trigger automatic presence.
 func TestShadowlordTownEntry_NoPresenceWithoutShadowlord(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	gs.ShadowlordState.TownAssignments = [references.ShadowlordCount]references.Location{}
 
@@ -951,15 +737,6 @@ func TestShadowlordTownEntry_NoPresenceWithoutShadowlord(t *testing.T) {
 // TestShadowlordTownEntry_NonShadowlordTown validates that non-Shadowlord
 // locations (keeps, castles, dungeons) do not trigger presence check.
 func TestShadowlordTownEntry_NonShadowlordTown(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-
 	// Verify keeps are not valid Shadowlord towns
 	assert.False(t, IsShadowlordTown(references.Stonegate),
 		"Keeps should not be valid Shadowlord towns")
@@ -1007,14 +784,7 @@ func TestShadowlordSpawnPosition_MatchesOriginal(t *testing.T) {
 // TestShadowlordTownEntry_JailEntrySkipsPresence verifies that entry
 // at player Y=4 skips automatic presence effects. ref:SHADOW-0002
 func TestShadowlordTownEntry_JailEntrySkipsPresence(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 	gs.ShadowlordState.Reset()
 
 	gs.ShadowlordState.TownAssignments[references.Faulinei] = references.Britain
@@ -1037,45 +807,6 @@ func TestShadowlordTownEntry_JailEntrySkipsPresence(t *testing.T) {
 	assert.Empty(t, lords, "Should return no Shadowlords when entering via jail (Y=4)")
 	assert.False(t, gs.ShadowlordState.HasAutomaticPresence(),
 		"Should NOT have automatic presence when entering via jail (Y=4)")
-}
-
-// TestShadowlordTownEntry_NormalEntryAppliesPresence validates that normal town
-// entry (not via jail) DOES apply Shadowlord presence effects.
-func TestShadowlordTownEntry_NormalEntryAppliesPresence(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-	gs.ShadowlordState.Reset()
-
-	expectedLord := references.Nosfentor
-	gs.ShadowlordState.TownAssignments[expectedLord] = references.Britain
-
-	// Simulate normal entry: player NOT at Y=4
-	// Verify no automatic presence initially
-	assert.False(t, gs.ShadowlordState.HasAutomaticPresence(),
-		"Should not have automatic presence before town entry check")
-
-	result := gs.TransitionToLocation(
-		references.Britain,
-		references.MainFloor,
-		references.Position{X: 15, Y: 10},
-		TransitionFullLocation,
-		false,
-	)
-	lords := result.ShadowlordsPresent
-
-	// Should return the expected Shadowlord and have automatic presence for normal entry
-	require.Len(t, lords, 1, "Should return exactly one Shadowlord")
-	assert.Equal(t, expectedLord, lords[0], "Returned Shadowlord should match expected")
-	assert.True(t, gs.ShadowlordState.HasAutomaticPresence(),
-		"Should have automatic presence when entering normally (Y != 4)")
-	assert.Equal(t, expectedLord, gs.ShadowlordState.AutomaticPresence,
-		"Automatic presence should match expected Shadowlord")
 }
 
 // TestShadowlordTownEntry_JailEntryVariousYPositions validates that ONLY Y=4
@@ -1139,14 +870,7 @@ func TestShadowlordTownEntry_JailEntryVariousYPositions(t *testing.T) {
 // where ALL THREE living Shadowlords are returned on entry.
 // See ref:SHADOW-0002.
 func TestStonegatePresence_AllThreeShadowlordsReturned(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 	gs.ShadowlordState.Reset()
 
 	// All Shadowlords should be alive initially

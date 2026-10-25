@@ -11,16 +11,7 @@ import (
 // Based on original Search/Get/Open/Jimmy rules buried-moonstone search behavior
 // See ref:MOON-0004.
 func TestMoonstoneBurialAndSearch(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-
-	// Set up mock system callbacks
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, _ := newBootstrapSaveTestState(t)
 
 	// Set player to overworld at a specific location
 	gs.MapState.PlayerLocation.Location = references.BritanniaUnderworld // Overworld = 0

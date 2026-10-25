@@ -8,7 +8,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/test/helpers"
 )
 
 // Test Shadowlord system implementation for planned work and planned work.
@@ -216,16 +215,7 @@ func TestTrySummonShadowlord_SpawnFailureRestoresState(t *testing.T) {
 }
 
 func TestTrySummonShadowlord_NotAtKeep(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-
-	// Set up mock callbacks
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, mockCallbacks := newBootstrapSaveTestState(t)
 
 	// Set player at Britain (not a Keep)
 	gs.MapState.PlayerLocation.Location = references.Britain
@@ -245,17 +235,8 @@ func TestTrySummonShadowlord_NotAtKeep(t *testing.T) {
 }
 
 func TestClearShadowlordOnLocationChange_Integration(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
+	gs, _ := newBootstrapSaveTestState(t)
 	gs.ShadowlordState.Reset()
-
-	// Set up mock callbacks
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
 
 	// Start at Lycaeum with summoned Shadowlord
 	gs.MapState.PlayerLocation.Location = references.Lycaeum
@@ -273,17 +254,8 @@ func TestClearShadowlordOnLocationChange_Integration(t *testing.T) {
 }
 
 func TestClearShadowlordOnFloorChange_Integration(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
+	gs, _ := newBootstrapSaveTestState(t)
 	gs.ShadowlordState.Reset()
-
-	// Set up mock callbacks
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
 
 	// Start at Lycaeum floor 0 with summoned Shadowlord
 	gs.MapState.PlayerLocation.Location = references.Lycaeum
