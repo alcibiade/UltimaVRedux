@@ -26,8 +26,8 @@ func moonstonePlaceholder(value string) bool {
 		value == moonstoneUnrecorded || value == moonstoneSurveyHelp
 }
 
-func questJournalMoonstoneDetail(entry journal.MoonstoneEntry) []questJournalDetailLine {
-	var lines []questJournalDetailLine
+func questJournalMoonstoneDetail(entry journal.MoonstoneEntry) []detailLine {
+	var lines []detailLine
 	if !entry.OriginalSiteRetired && entry.ChartedOrigin != "" {
 		lines = append(lines, questJournalLearnedField("Charted origin", entry.ChartedOrigin))
 	}
@@ -49,7 +49,7 @@ func questJournalMoonstoneDetail(entry journal.MoonstoneEntry) []questJournalDet
 				moonstoneSurveyLines("Last-observed placement", entry.LastObservedSurvey, entry.SurveySource)...)
 		} else {
 			lines = append(lines, questJournalLearnedField("Coordinates", moonstoneUnmeasured),
-				questJournalDetailLine{label: "", value: moonstoneSurveyHelp, color: DialogNavHintColor, header: false})
+				detailLine{label: "", value: moonstoneSurveyHelp, color: DialogNavHintColor, header: false})
 		}
 	}
 	lines = append(lines, questJournalLearnedField("Discovery source", entry.FirstSource.String()),
@@ -61,7 +61,7 @@ func questJournalMoonstoneDetail(entry journal.MoonstoneEntry) []questJournalDet
 
 func moonstoneSurveyLines(
 	label string, survey journal.SurveyedLocation, source journal.MoonstoneSource,
-) []questJournalDetailLine {
+) []detailLine {
 	site := survey.Location
 	world := site.Map.String()
 	if site.Map == references.BritanniaUnderworld {
@@ -73,7 +73,7 @@ func moonstoneSurveyLines(
 	//nolint:gosec // Measured locations are validated map coordinates (0..255).
 	coordinates := references.FormatBritannianCoordinates(references.Coordinate(site.X), references.Coordinate(site.Y))
 
-	return []questJournalDetailLine{
+	return []detailLine{
 		questJournalLearnedField(label, fmt.Sprintf("%s (floor %d) · %s", world, site.Floor, coordinates)),
 		questJournalLearnedField(label+" measured", moonstoneDate(survey.RecordedAt)),
 		questJournalLearnedField(label+" method", source.String()),
