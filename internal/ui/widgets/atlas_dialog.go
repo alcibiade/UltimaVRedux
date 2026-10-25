@@ -374,24 +374,6 @@ func (d *AtlasDialog) drawDirectory(screen *ebiten.Image) {
 		rowHeight, int(math.Ceil(d.font.TextFace.Size)), d.font, d.row)
 }
 
-func fitAtlasText(font *text.UltimaFont, value string, width int) string {
-	measured, _ := font.MeasureString(value)
-	if measured <= float64(width) {
-		return value
-	}
-	const suffix = "..."
-	runes := []rune(value)
-	for len(runes) > 0 {
-		measured, _ = font.MeasureString(string(runes) + suffix)
-		if measured <= float64(width) {
-			return string(runes) + suffix
-		}
-		runes = runes[:len(runes)-1]
-	}
-
-	return ""
-}
-
 func atlasCoordinates(p journal.SiteLocation) string {
 	//nolint:gosec // The DTO contains validated survey coordinates 0..255.
 	return references.FormatBritannianCoordinates(references.Coordinate(p.X), references.Coordinate(p.Y))

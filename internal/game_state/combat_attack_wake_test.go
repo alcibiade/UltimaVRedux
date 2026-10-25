@@ -170,7 +170,7 @@ func TestDirectedSpellWakePreservesFreshSleepAndHazardBoundary(t *testing.T) {
 		t.Run(fmt.Sprint(spell), func(t *testing.T) {
 			state, mock, source, target, sibling, _, _ := newAttackWakeFixture(t)
 			state.PartyState.Inventory.Spells.Set(spell, 1)
-			if !isCombatFieldSpell(spell) {
+			if !IsCombatFieldSpell(spell) {
 				state.CombatScene.setCombatPCPossessed(target, true)
 			}
 			require.True(t, state.BeginCombatSpellTargeting(CastRequest{Spell: spell, CasterIdx: source.EntityIndex}).Valid)

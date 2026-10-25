@@ -554,16 +554,6 @@ func (g *GameScene) restoreSpellXRay(state *spellCastingWorkflowState) {
 	state.restoreXRay = false
 }
 
-func isCombatFieldSpell(spell references.Spell) bool {
-	//nolint:exhaustive // Only field spells return true.
-	switch spell {
-	case references.InFlamGrav, references.InNoxGrav, references.InZuGrav, references.InSanctGrav:
-		return true
-	default:
-		return false
-	}
-}
-
 func (g *GameScene) showTemporaryCastFailure(message string) {
 	g.ShowTimedOverlayMessage(message, castFailureDialogDurationMs, true, true)
 }

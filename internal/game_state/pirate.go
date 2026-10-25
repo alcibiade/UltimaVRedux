@@ -83,7 +83,7 @@ func (g *GameState) ForceSpawnPirateAtRandomLocationWithPosition() (references.P
 func (g *GameState) spawnPirateAt(pos references.Position, targetPos references.Position) bool {
 	// Determine initial direction toward player
 	direction := g.calculateDirectionToward(pos, targetPos)
-	spriteIndex := g.getPirateSpriteForDirection(direction)
+	spriteIndex := references.PirateShipSprite(direction)
 
 	pirateTile := g.GameReferences.TileReferences.GetTile(spriteIndex)
 	pirateEnemy := references.NewPirateShipEnemyReference(pirateTile)
@@ -130,24 +130,6 @@ func (g *GameState) calculateDirectionToward(source, target references.Position)
 	}
 
 	return references.Up
-}
-
-// getPirateSpriteForDirection returns the appropriate pirate ship sprite for a direction
-func (g *GameState) getPirateSpriteForDirection(direction references.Direction) indexes.SpriteIndex {
-	switch direction {
-	case references.Up:
-		return indexes.PirateShipUp
-	case references.Right:
-		return indexes.PirateShipRight
-	case references.Down:
-		return indexes.PirateShipDown
-	case references.Left:
-		return indexes.PirateShipLeft
-	case references.NoneDirection:
-		return indexes.PirateShipDown // No direction specified - default facing down
-	default:
-		return indexes.PirateShipDown // Unknown direction - default facing down
-	}
 }
 
 // Pirate attack constants matching original Ultima V
@@ -380,7 +362,7 @@ func (g *GameState) rotatePirateToBroadside(pirate *map_units.NPCEnemy, targetPo
 		broadsideDir = references.Up
 	}
 
-	newSprite := g.getPirateSpriteForDirection(broadsideDir)
+	newSprite := references.PirateShipSprite(broadsideDir)
 	newTile := g.GameReferences.TileReferences.GetTile(newSprite)
 	pirate.SetFacing(broadsideDir, newTile)
 }

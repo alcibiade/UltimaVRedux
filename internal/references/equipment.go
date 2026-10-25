@@ -60,6 +60,11 @@ const (
 	SlotAmulet                      // Amulet/Neck slot
 )
 
+// EquipmentSlots returns the six equippable slots in display order.
+func EquipmentSlots() []EquipmentSlot {
+	return []EquipmentSlot{SlotHelm, SlotArmour, SlotWeapon, SlotShield, SlotRing, SlotAmulet}
+}
+
 // DisplayName labels the two persisted Weapon/Shield fields as generic hands.
 func (s EquipmentSlot) DisplayName() string {
 	if s == SlotWeapon {

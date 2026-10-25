@@ -20,7 +20,7 @@ func newEquipmentLoadoutTestState(t *testing.T) *GameState {
 	character.SetStatus(party_state.Good)
 	character.SetHp(max(character.GetCurrentHp(), 1))
 	character.Strength = 30
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		character.SetEquippedItem(slot, references.NoEquipment)
 	}
 
@@ -173,7 +173,7 @@ func TestAlterEquipmentLoadoutsAppliesAggregateInventoryAtomically(t *testing.T)
 	ally.SetHp(max(ally.GetCurrentHp(), 1))
 	ally.Strength = 30
 	for _, character := range []*party_state.PlayerCharacter{avatar, ally} {
-		for _, slot := range equipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			character.SetEquippedItem(slot, references.NoEquipment)
 		}
 		character.SetEquippedItem(references.SlotWeapon, references.Dagger)
@@ -201,7 +201,7 @@ func TestAlterEquipmentLoadoutsRejectsAnyInvalidTargetBeforeAggregateMutation(t 
 	ally.SetStatus(party_state.Good)
 	ally.SetHp(max(ally.GetCurrentHp(), 1))
 	ally.Strength = 1
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		ally.SetEquippedItem(slot, references.NoEquipment)
 	}
 	state.PartyState.Inventory.Equipment.Set(references.LongSword, 2)
@@ -225,7 +225,7 @@ func TestAlterEquipmentLoadoutsRejectsInsufficientAggregateInventoryBeforeMutati
 	ally.SetHp(max(ally.GetCurrentHp(), 1))
 	ally.Strength = 30
 	for _, character := range []*party_state.PlayerCharacter{avatar, ally} {
-		for _, slot := range equipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			character.SetEquippedItem(slot, references.NoEquipment)
 		}
 	}

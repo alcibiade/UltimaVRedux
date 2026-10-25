@@ -78,7 +78,7 @@ func TestClearDebugEquipmentStateClearsCarriedAndAllRosterLoadoutsOnce(t *testin
 	gameState.PartyState.Inventory.Equipment.Set(references.LongSword, 3)
 	gameState.PartyState.Inventory.Equipment.Set(references.Arrows, 8)
 	gameState.PartyState.ForEachCharacter(func(_ int, character *party_state.PlayerCharacter) {
-		for _, slot := range debugEquipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			character.SetEquippedItem(slot, references.NoEquipment)
 		}
 	})

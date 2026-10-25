@@ -74,6 +74,26 @@ func TestMeasureText_ExplicitNewlines(t *testing.T) {
 	}
 }
 
+func TestMeasureTextMatchesOutputWrapping(t *testing.T) {
+	// Dialogs size with MeasureText and draw with Output, so the two must agree,
+	// including non-ASCII punctuation and words longer than a row.
+	font := NewUltimaFont(20)
+	for _, message := range []string{
+		"Lord British – ruler of all Britannia – awaits thee in his castle.",
+		"Thou hast found a Supercalifragilisticexpialidocious scroll!",
+		`"Awake, Avatar, and feel restored!"`,
+	} {
+		for width := 8; width <= 40; width++ {
+			output := NewOutput(font, 26, 64, width)
+			output.AppendLine().Text(message, nil).Done()
+			drawn := output.WrappedCopy(width).GetPanelContentLineCount()
+			if measured := MeasureText(message, font, 26, width).Lines; measured != drawn {
+				t.Errorf("width %d: MeasureText %d lines, Output %d lines: %q", width, measured, drawn, message)
+			}
+		}
+	}
+}
+
 func TestMeasureText_WrappingBehavior(t *testing.T) {
 	font := NewUltimaFont(20)
 

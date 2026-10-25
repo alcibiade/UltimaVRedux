@@ -483,7 +483,7 @@ func TestMissRedirectCanDamageFriendlyCollateralAndNeverSelf(t *testing.T) {
 	collateralIndex := (attackerIndex + 1) % party_state.MaxActiveParty
 	collateral := gs.PartyState.GetCharacter(collateralIndex)
 	require.True(t, collateral.IsInParty())
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		collateral.SetEquippedItem(slot, references.NoEquipment)
 	}
 	require.Zero(t, gs.combatPartyDefense(collateral))

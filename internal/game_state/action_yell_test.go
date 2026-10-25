@@ -54,7 +54,7 @@ func TestActionYellSmallMap_WordsOfPower(t *testing.T) {
 	}
 }
 
-func TestActionYellCombatMap(t *testing.T) {
+func TestActionYellWithoutEffect(t *testing.T) {
 	gs := createTestGameState()
 	mockCallbacks := NewMockSystemCallbacks(t)
 	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
@@ -68,30 +68,9 @@ func TestActionYellCombatMap(t *testing.T) {
 	} {
 		mockCallbacks.Reset()
 
-		assert.True(t, gs.ActionYellCombatMap(test.word))
+		assert.True(t, gs.ActionYellWithoutEffect(test.word))
 		assert.Equal(t, []string{test.message}, mockCallbacks.Messages)
 		assert.Empty(t, mockCallbacks.TimeAdvanced())
-	}
-}
-
-func TestActionYellDungeonMap(t *testing.T) {
-	for _, test := range []struct {
-		name    string
-		word    string
-		message string
-	}{
-		{name: "empty", message: "Nothing"},
-		{name: "nonempty", word: "ANYTHING", message: "No effect!"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			gs := createTestGameState()
-			mockCallbacks := NewMockSystemCallbacks(t)
-			gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
-
-			assert.True(t, gs.ActionYellDungeonMap(test.word))
-			assert.Equal(t, []string{test.message}, mockCallbacks.Messages)
-			assert.Empty(t, mockCallbacks.TimeAdvanced())
-		})
 	}
 }
 
@@ -111,13 +90,13 @@ func TestActionYellMap_CaseInsensitive(t *testing.T) {
 		{
 			name:     "Combat map mixed case",
 			word:     "FaLlAx",
-			testFunc: (*GameState).ActionYellCombatMap,
+			testFunc: (*GameState).ActionYellWithoutEffect,
 			result:   true,
 		},
 		{
 			name:     "Dungeon map with spaces",
 			word:     " FALLAX ",
-			testFunc: (*GameState).ActionYellDungeonMap,
+			testFunc: (*GameState).ActionYellWithoutEffect,
 			result:   true,
 		},
 	}

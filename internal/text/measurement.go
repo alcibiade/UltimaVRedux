@@ -2,6 +2,7 @@ package text
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	etext "github.com/hajimehoshi/ebiten/v2/text/v2"
 )
@@ -15,7 +16,7 @@ type Measurement struct {
 }
 
 // MeasureText analyzes text content and returns dimension requirements.
-// If maxCharsPerLine > 0, text will be wrapped at word boundaries.
+// If maxCharsPerLine > 0, text wraps exactly as an Output with that width draws it.
 // If maxCharsPerLine == 0, no wrapping is applied (only explicit newlines).
 func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPerLine int) Measurement {
 	// Split by explicit newlines first
@@ -25,14 +26,21 @@ func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPer
 	}
 
 	var allLines []string
-
+	var wrapper Output
+	wrapper.maxCharsPerLine = maxCharsPerLine
 	for _, line := range explicitLines {
-		// Apply wrapping only when content exceeds the available columns.
-		if maxCharsPerLine > 0 && len(line) > maxCharsPerLine {
-			wrapped := wrapPlainLine(line, maxCharsPerLine)
-			allLines = append(allLines, wrapped...)
-		} else {
+		if maxCharsPerLine <= 0 || utf8.RuneCountInString(line) <= maxCharsPerLine {
 			allLines = append(allLines, line)
+
+			continue
+		}
+		segment := ColorSegment{Text: line, Color: nil, FontType: FontTypeNormal, FontScale: FontScaleNormal}
+		for _, row := range wrapper.wrapStyledLine([]ColorSegment{segment}) {
+			var joined strings.Builder
+			for _, part := range row.Segments {
+				joined.WriteString(part.Text)
+			}
+			allLines = append(allLines, joined.String())
 		}
 	}
 
@@ -42,9 +50,7 @@ func MeasureText(text string, font *UltimaFont, lineSpacing float64, maxCharsPer
 	var maxChars int
 
 	for _, line := range allLines {
-		if len(line) > maxChars {
-			maxChars = len(line)
-		}
+		maxChars = max(maxChars, utf8.RuneCountInString(line))
 
 		width, _ := etext.Measure(line, font.TextFace, 0)
 		if width > maxWidth {
@@ -75,43 +81,4 @@ func (o *Output) MeasureLineSegments(segments []ColorSegment) float64 {
 	}
 
 	return width
-}
-
-// wrapPlainLine splits a plain text line at word boundaries to fit within maxChars.
-// Returns a slice of wrapped lines.
-func wrapPlainLine(text string, maxChars int) []string {
-	var result []string
-
-	remaining := text
-	for len(remaining) > 0 {
-		splitAt := maxChars
-		splitOnSpace := false
-		if len(remaining) <= maxChars {
-			splitAt = len(remaining)
-		} else {
-			searchStart := 0
-			for searchStart < maxChars && remaining[searchStart] == ' ' {
-				searchStart++
-			}
-			for index := searchStart; index < maxChars; index++ {
-				if remaining[index] == ' ' {
-					splitAt = index
-					splitOnSpace = true
-				}
-			}
-		}
-
-		chunk := remaining[:splitAt]
-		remaining = remaining[splitAt:]
-		if splitOnSpace {
-			remaining = remaining[1:]
-		}
-		remaining = strings.TrimLeft(remaining, " ")
-		if splitAt == maxChars && len(remaining) > 0 {
-			chunk += "-"
-		}
-		result = append(result, chunk)
-	}
-
-	return result
 }

@@ -247,14 +247,7 @@ func (p *PlayerCharacter) IsSlotEmpty(slot references.EquipmentSlot) bool {
 // GetTotalAttack returns the sum of attack values from all equipped items.
 func (p *PlayerCharacter) GetTotalAttack() int {
 	total := 0
-	for _, slot := range []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	} {
+	for _, slot := range references.EquipmentSlots() {
 		item := p.GetEquippedItem(slot)
 		if item != references.NoEquipment {
 			total += item.GetAttackValue()
@@ -267,14 +260,7 @@ func (p *PlayerCharacter) GetTotalAttack() int {
 // GetTotalDefense returns the sum of defense values from all equipped items.
 func (p *PlayerCharacter) GetTotalDefense() int {
 	total := 0
-	for _, slot := range []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	} {
+	for _, slot := range references.EquipmentSlots() {
 		item := p.GetEquippedItem(slot)
 		if item != references.NoEquipment {
 			total += item.GetDefenseValue()
@@ -289,14 +275,7 @@ func (p *PlayerCharacter) GetTotalDefense() int {
 // the cumulative "weight" of all readied items to determine if a new item can be equipped.
 func (p *PlayerCharacter) GetTotalEquippedStrRequirement() int {
 	sum := 0
-	for _, slot := range []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	} {
+	for _, slot := range references.EquipmentSlots() {
 		item := p.GetEquippedItem(slot)
 		if item != references.NoEquipment {
 			sum += item.GetStrengthRequired()

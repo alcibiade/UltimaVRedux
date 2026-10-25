@@ -146,7 +146,7 @@ func (g *GameState) hasReadyEquipmentOptions(request ReadyEquipmentRequest) bool
 		if character == nil || !character.IsInParty() || !character.IsAlive() {
 			continue
 		}
-		for _, slot := range equipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			if character.GetEquippedItem(slot) != references.NoEquipment {
 				return true
 			}
@@ -203,7 +203,7 @@ func (g *GameState) ApplyReadyEquipment(
 	// A reviewed swap returns every displaced item and applies the final loadout
 	// atomically, so two-handed transitions cannot leave partially removed gear.
 	// See ref:EQUIP-0010.
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		before, after := plan.preview.Before[slot], plan.preview.After[slot]
 		if before == after {
 			continue
@@ -292,7 +292,7 @@ func firstReadiedEquipmentSlot(
 	character *party_state.PlayerCharacter,
 	equipment references.Equipment,
 ) (references.EquipmentSlot, bool) {
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		if character.GetEquippedItem(slot) == equipment {
 			return slot, true
 		}

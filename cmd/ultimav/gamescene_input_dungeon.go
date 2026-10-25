@@ -381,7 +381,7 @@ func (g *GameScene) startDungeonYellWorkflow(token game_state.DungeonCommandCycl
 				if !submitted {
 					text = ""
 				}
-				g.gameState.ActionYellDungeonMap(text)
+				g.gameState.ActionYellWithoutEffect(text)
 			},
 		)).
 		Finally(func() {

@@ -77,7 +77,7 @@ func (g *GameState) BeginCombatSpellTargeting(request CastRequest) SpellValidati
 	if profile.Selection != references.TargetCombatantCrosshair && profile.Selection != references.TargetTileCrosshair {
 		return SpellValidationResult{Valid: false, ErrorMsg: "Invalid target!"}
 	}
-	if !isCombatProjectileSpell(request.Spell) && !isCombatFieldSpell(request.Spell) {
+	if !isCombatProjectileSpell(request.Spell) && !IsCombatFieldSpell(request.Spell) {
 		return SpellValidationResult{Valid: false, ErrorMsg: "Spell not implemented!"}
 	}
 
@@ -166,7 +166,7 @@ func (g *GameState) confirmCombatSpellTargetWithRNG(rng references.RandomProvide
 	monster, monsterIdx := g.CombatScene.MonsterManager.GetMonsterIndexAtPosition(targeting.Cursor)
 	target, occupied := g.combatSpellTargetAt(targeting.Cursor, monster, monsterIdx)
 	damageProjectile := isCombatDamageProjectileSpell(targeting.Request.Spell)
-	if !isCombatFieldSpell(targeting.Request.Spell) &&
+	if !IsCombatFieldSpell(targeting.Request.Spell) &&
 		((!occupied && !damageProjectile) ||
 			(occupied && !g.isCombatSpellTargetValid(targeting.Request.Spell, monster, target))) {
 		return result
@@ -322,9 +322,9 @@ func (g *GameState) publishBlockedCombatSpell(pending pendingCombatSpell) {
 	})
 }
 
-func isCombatFieldSpell(spell references.Spell) bool {
+// IsCombatFieldSpell reports the spells that place a field at a crosshair target.
+func IsCombatFieldSpell(spell references.Spell) bool {
 	//nolint:exhaustive // Only field spells return true.
-	//nolint:exhaustive // This switch owns only the crosshair spell family.
 	switch spell {
 	case references.InFlamGrav, references.InNoxGrav, references.InZuGrav, references.InSanctGrav:
 		return true

@@ -173,7 +173,7 @@ func (g *GameState) ClearDebugEquipmentState() []DebugEquipmentStateChange {
 	}
 
 	g.PartyState.ForEachCharacter(func(rosterIndex int, character *party_state.PlayerCharacter) {
-		for _, slot := range debugEquipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			equipment := character.GetEquippedItem(slot)
 			if equipment == references.NoEquipment {
 				continue
@@ -188,17 +188,6 @@ func (g *GameState) ClearDebugEquipmentState() []DebugEquipmentStateChange {
 	})
 
 	return changes
-}
-
-func debugEquipmentSlots() []references.EquipmentSlot {
-	return []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	}
 }
 
 func debugEquipmentSlotID(slot references.EquipmentSlot) string {

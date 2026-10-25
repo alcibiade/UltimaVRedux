@@ -319,7 +319,7 @@ func (d *AtlasDialog) placeMapCallout(selected journal.AtlasEntry, marker image.
 	// Name is already public/generic as appropriate; never look up an identity here.
 	unit := ClassicUIPixelUnit(d.width, d.height)
 	padding := 3 * unit
-	name := fitAtlasText(d.font, selected.Name, d.mapRect.Dx()-2*padding-2*unit)
+	name := FitDialogLine(selected.Name, d.font, d.mapRect.Dx()-2*padding-2*unit)
 	width, height := d.font.MeasureString(name)
 	plate := atlasCalloutPlate(marker, image.Pt(int(math.Ceil(width))+2*padding,
 		int(math.Ceil(height))+2*padding), d.mapRect, obstacles, d.selectionBounds(marker), unit)

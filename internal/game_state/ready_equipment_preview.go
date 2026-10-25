@@ -20,7 +20,7 @@ func newReadyEquipmentPreview(character *party_state.PlayerCharacter) ReadyEquip
 		preview.Before[slot] = references.NoEquipment
 		preview.After[slot] = references.NoEquipment
 	}
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		preview.Before[slot] = character.GetEquippedItem(slot)
 	}
 	preview.After = preview.Before
@@ -35,7 +35,7 @@ func (preview ReadyEquipmentPreview) RequiresConfirmation() bool {
 	if preview.Selection != ReadyEquipmentEquip {
 		return false
 	}
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		if preview.Removes(slot) {
 			return true
 		}
@@ -91,7 +91,7 @@ func (preview ReadyEquipmentPreview) selectHand(equipment references.Equipment, 
 
 func readyEquipmentTotals(equipment [references.SlotAmulet + 1]references.Equipment) ReadyEquipmentTotals {
 	var totals ReadyEquipmentTotals
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		item := equipment[slot]
 		if item == references.NoEquipment {
 			continue
@@ -106,7 +106,7 @@ func readyEquipmentTotals(equipment [references.SlotAmulet + 1]references.Equipm
 
 func (g *GameState) validateReadyReturns(preview ReadyEquipmentPreview) error {
 	returns := make(map[references.Equipment]int)
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		if preview.Removes(slot) {
 			returns[preview.Before[slot]]++
 		}

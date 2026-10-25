@@ -180,7 +180,7 @@ func (g *GameState) CurrentZStatsDossier() ZStatsDossier {
 	for _, rosterIndex := range activeRosterIndices {
 		character := g.PartyState.GetCharacter(rosterIndex)
 		characters = append(characters, projectZStatsCharacter(rosterIndex, character))
-		for _, slot := range zStatsEquipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			equipment := character.GetEquippedItem(slot)
 			if equipment >= references.LeatherHelm && equipment <= references.Ankh {
 				readied[equipment]++
@@ -289,8 +289,8 @@ func projectZStatsCharacter(rosterIndex int, character *party_state.PlayerCharac
 		highestCircle = min(int(character.Level), references.MaxSpellCircle)
 	}
 
-	equipped := make([]ZStatsEquippedItem, 0, len(zStatsEquipmentSlots()))
-	for _, slot := range zStatsEquipmentSlots() {
+	equipped := make([]ZStatsEquippedItem, 0, len(references.EquipmentSlots()))
+	for _, slot := range references.EquipmentSlots() {
 		equipment := character.GetEquippedItem(slot)
 		ammo := equipment.GetRequiredAmmo()
 		equipped = append(equipped, ZStatsEquippedItem{
@@ -355,17 +355,6 @@ func zStatsLevelProgress(character *party_state.PlayerCharacter) (int, int, int,
 	ready := CalculateLevelFromExperience(character.Exp) > character.Level
 
 	return nextLevelExperience, experienceIntoLevel, experienceForNextLevel, experienceToNextLevel, progress, ready
-}
-
-func zStatsEquipmentSlots() []references.EquipmentSlot {
-	return []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	}
 }
 
 func zStatsEquipmentName(equipment references.Equipment) string {
