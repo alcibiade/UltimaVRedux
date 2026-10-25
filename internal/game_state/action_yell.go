@@ -253,20 +253,8 @@ func (g *GameState) GetAdjacentRuinedShrine(word string) *ShrineData {
 	return nil
 }
 
-// ActionYellCombatMap reports a combat yell without applying a gameplay effect.
-func (g *GameState) ActionYellCombatMap(word string) bool {
-	if word == "" {
-		g.SystemCallbacks.Message.AddRowStr("Nothing")
-
-		return true
-	}
-	g.SystemCallbacks.Message.AddRowStr("No effect!")
-
-	return true
-}
-
-// ActionYellDungeonMap reports a dungeon yell without applying a gameplay effect.
-func (g *GameState) ActionYellDungeonMap(word string) bool {
+// ActionYellWithoutEffect reports a combat or dungeon yell; neither applies a gameplay effect.
+func (g *GameState) ActionYellWithoutEffect(word string) bool {
 	if word == "" {
 		g.SystemCallbacks.Message.AddRowStr("Nothing")
 

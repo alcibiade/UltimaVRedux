@@ -77,8 +77,8 @@ func BuildDungeonViewModel(
 	reveal := func(position displayPosition, playerCell bool) bool {
 		visited[position.y][position.x] = true
 		sourcePosition := references.Position{
-			X: wrappedDungeonViewCoordinate(position.x - DungeonViewCenter + int(player.Position.X)),
-			Y: wrappedDungeonViewCoordinate(position.y - DungeonViewCenter + int(player.Position.Y)),
+			X: references.WrapDungeonCoordinate(position.x - DungeonViewCenter + int(player.Position.X)),
+			Y: references.WrapDungeonCoordinate(position.y - DungeonViewCenter + int(player.Position.Y)),
 		}
 		sourceCell, ok := snapshot.Cells.Cell(player.Floor, sourcePosition)
 		if !ok {
@@ -137,16 +137,6 @@ func (g *GameState) CurrentDungeonViewModel() (DungeonViewModel, error) {
 	}
 
 	return BuildDungeonViewModel(snapshot, g.MapState.PlayerLocation)
-}
-
-func wrappedDungeonViewCoordinate(value int) references.Coordinate {
-	size := int(references.XDungeonMapTiles)
-	value %= size
-	if value < 0 {
-		value += size
-	}
-
-	return references.Coordinate(value)
 }
 
 func dungeonViewCellBlocksPropagation(cell references.DungeonCell) bool {

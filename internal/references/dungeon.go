@@ -157,3 +157,14 @@ const (
 func (d DungeonLastDirection) IsValid() bool {
 	return d <= DungeonArrivedFromAbove
 }
+
+// WrapDungeonCoordinate wraps one axis onto the 8-tile dungeon floor grid.
+func WrapDungeonCoordinate(value int) Coordinate {
+	size := int(XDungeonMapTiles)
+	value %= size
+	if value < 0 {
+		value += size
+	}
+
+	return Coordinate(value)
+}

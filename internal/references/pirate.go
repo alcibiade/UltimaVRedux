@@ -13,6 +13,22 @@ func IsPirateShipSprite(sprite indexes.SpriteIndex) bool {
 		sprite == indexes.PirateShipLeft
 }
 
+// PirateShipSprite returns the pirate facing for direction; no direction faces down.
+func PirateShipSprite(direction Direction) indexes.SpriteIndex {
+	switch direction {
+	case Up:
+		return indexes.PirateShipUp
+	case Right:
+		return indexes.PirateShipRight
+	case Left:
+		return indexes.PirateShipLeft
+	case Down, NoneDirection:
+		return indexes.PirateShipDown
+	default:
+		return indexes.PirateShipDown
+	}
+}
+
 // NewPirateShipEnemyReference creates the special overworld pirate representation.
 // MonsterStocks is the original monster-table slot reused for pirate ships.
 func NewPirateShipEnemyReference(tile *Tile) EnemyReference {

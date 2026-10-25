@@ -302,7 +302,7 @@ func (g *GameScene) startCombatYellWorkflow() {
 				if !submitted {
 					text = ""
 				}
-				g.gameState.ActionYellCombatMap(text)
+				g.gameState.ActionYellWithoutEffect(text)
 			},
 		)).
 		Finally(func() {
@@ -952,12 +952,12 @@ func (g *GameScene) startCombatSpellEffect(result game_state.CombatSpellTargetRe
 		}
 		if !launch.Blocked {
 			g.gameState.SystemCallbacks.Visual.PlayKapowAtPosition(launch.Impact)
-			if !isCombatFieldSpell(result.Spell) {
+			if !game_state.IsCombatFieldSpell(result.Spell) {
 				g.gameState.SystemCallbacks.Audio.PlaySoundEffect(game_state.SoundSpellImpact)
 			}
 		}
 	})).ThenSequence(func(q *event_queue.SequentialEventBuilder) *event_queue.SequentialEventBuilder {
-		if isCombatFieldSpell(result.Spell) {
+		if game_state.IsCombatFieldSpell(result.Spell) {
 			// This legacy leading-only dynamic delay is ineffective. Preserve the
 			// reviewed 1x behavior rather than silently add a new field-spell hold.
 			return q.Wait(timing.durationMs(combatFieldCreationHoldDurationMs))

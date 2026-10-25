@@ -199,7 +199,7 @@ func (g *GameState) ResolveDungeonSearchWithCharacter(
 		return DungeonSearchResult{}
 	}
 
-	target, ok := dungeonSearchTarget(g.MapState.PlayerLocation.Position, dungeon.facing, direction)
+	target, ok := dungeonRelativeTarget(g.MapState.PlayerLocation.Position, dungeon.facing, direction)
 	if !ok {
 		g.SystemCallbacks.UI.ShowActionFeedback(MessageCantSearchThere, false)
 		g.SystemCallbacks.Message.AddRowStr("Search-" + MessageCantSearchThere)
@@ -373,32 +373,4 @@ func (g *GameState) CanSearchDungeonMap() bool {
 	g.SystemCallbacks.Message.AddRowStr("You find darkness.")
 
 	return false
-}
-
-func dungeonSearchTarget(
-	position references.Position,
-	facing references.DungeonFacing,
-	direction references.Direction,
-) (references.Position, bool) {
-	if direction == references.Down {
-		return position, true
-	}
-	targetFacing := facing
-	switch direction {
-	case references.Up:
-	case references.Left:
-		targetFacing = facing.TurnLeft()
-	case references.Right:
-		targetFacing = facing.TurnRight()
-	case references.Down, references.NoneDirection:
-		return references.Position{}, false
-	default:
-		return references.Position{}, false
-	}
-	target := targetFacing.Direction().GetNewPositionInDirection(&position)
-	if target == nil {
-		return references.Position{}, false
-	}
-
-	return *target.GetWrapped(references.XDungeonMapTiles, references.YDungeonMapTiles), true
 }

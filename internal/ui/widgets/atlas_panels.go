@@ -54,7 +54,7 @@ func (d *AtlasDialog) drawPlacesHeading(screen *ebiten.Image) {
 func (d *AtlasDialog) preparePlacesHeading() {
 	prefix := "PLACES  "
 	prefixWidth, _ := d.font.MeasureString(prefix)
-	value := fitAtlasText(d.font, fmt.Sprintf("%d total, %d mapped", len(d.entries), d.mappedCount()),
+	value := FitDialogLine(fmt.Sprintf("%d total, %d mapped", len(d.entries), d.mappedCount()), d.font,
 		d.placesHeaderRect.Dx()-int(math.Ceil(prefixWidth)))
 	d.panelHeader.Reset()
 	d.panelHeader.SetMaxCharsPerLine(max(1, utf8.RuneCountInString(prefix+value)))
@@ -128,7 +128,7 @@ func (d *AtlasDialog) drawPlaceRow(screen *ebiten.Image, rect image.Rectangle, e
 	atlasSingleLine(d.row, mark, colour)
 	d.row.DrawPanelContent(target, image.Pt(rect.Min.X, textTop), rect.Dx(), etext.AlignStart)
 	left += cell + 8
-	name := fitAtlasText(d.font, entry.Name, rect.Max.X-left-cell-8)
+	name := FitDialogLine(entry.Name, d.font, rect.Max.X-left-cell-8)
 	atlasSingleLine(d.row, name, colour)
 	d.row.DrawPanelContent(target, image.Pt(left, textTop), rect.Max.X-left, etext.AlignStart)
 	if _, ok := entry.PlotPosition(); ok {

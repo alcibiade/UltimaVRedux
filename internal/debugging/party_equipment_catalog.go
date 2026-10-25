@@ -15,9 +15,9 @@ const (
 )
 
 func partyEquipmentCommands() []CommandDefinition {
-	parameters := make([]ParameterDefinition, 0, len(partyEquipmentSlots())+2)
+	parameters := make([]ParameterDefinition, 0, len(references.EquipmentSlots())+2)
 	parameters = append(parameters, partyEquipmentCharacterParameter())
-	for _, slot := range partyEquipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		parameters = append(parameters, ParameterDefinition{
 			ID:           partyEquipmentSlotID(slot),
 			Name:         slot.String(),
@@ -91,17 +91,6 @@ func partyEquipmentSlotChoices(slot references.EquipmentSlot) []Choice {
 	}
 
 	return choices
-}
-
-func partyEquipmentSlots() []references.EquipmentSlot {
-	return []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	}
 }
 
 func partyEquipmentSlotID(slot references.EquipmentSlot) string {

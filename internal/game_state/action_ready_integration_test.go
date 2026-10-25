@@ -299,16 +299,16 @@ func TestApplyReadyEquipmentDuplicateUnreadyUsesSlotOrderAndDiscardsAt99(t *test
 
 func TestApplyReadyEquipmentUnreadySearchesAllSixSlotsInPersistedOrder(t *testing.T) {
 	state, character, request := newReadyExplorationTestState(t)
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		character.SetEquippedItem(slot, references.Dagger)
 	}
 
-	for index, wantSlot := range equipmentSlots() {
+	for index, wantSlot := range references.EquipmentSlots() {
 		result, err := state.ApplyReadyEquipment(readyTransaction(request, character, references.Dagger))
 		require.NoError(t, err)
 		assert.Equal(t, ReadyEquipmentUnready, result.Selection)
 		assert.Equal(t, references.NoEquipment, character.GetEquippedItem(wantSlot))
-		for _, remainingSlot := range equipmentSlots()[index+1:] {
+		for _, remainingSlot := range references.EquipmentSlots()[index+1:] {
 			assert.Equal(t, references.Dagger, character.GetEquippedItem(remainingSlot))
 		}
 	}
@@ -465,7 +465,7 @@ func clearReadyTestEquipment(state *GameState) {
 		if character == nil {
 			continue
 		}
-		for _, slot := range equipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			character.SetEquippedItem(slot, references.NoEquipment)
 		}
 	}

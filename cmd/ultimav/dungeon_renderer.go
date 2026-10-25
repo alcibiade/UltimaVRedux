@@ -314,19 +314,9 @@ func dungeonRelativePosition(
 	}
 
 	return references.Position{
-		X: wrapDungeonCoordinate(int(position.X) + forward*forwardX + left*leftX),
-		Y: wrapDungeonCoordinate(int(position.Y) + forward*forwardY + left*leftY),
+		X: references.WrapDungeonCoordinate(int(position.X) + forward*forwardX + left*leftX),
+		Y: references.WrapDungeonCoordinate(int(position.Y) + forward*forwardY + left*leftY),
 	}
-}
-
-func wrapDungeonCoordinate(value int) references.Coordinate {
-	size := int(references.XDungeonMapTiles)
-	value %= size
-	if value < 0 {
-		value += size
-	}
-
-	return references.Coordinate(value)
 }
 
 func appendDungeonCenter(

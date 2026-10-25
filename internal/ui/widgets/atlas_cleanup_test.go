@@ -221,7 +221,7 @@ func TestAtlasVisibleTextUsesGlyphsPresentInActualFont(t *testing.T) {
 			}
 		}
 	}
-	truncated := fitAtlasText(dialog.font, "A very long location name", 70)
+	truncated := FitDialogLine("A very long location name", dialog.font, 70)
 	require.True(t, strings.HasSuffix(truncated, "..."))
 	width, _ := dialog.font.MeasureString(truncated)
 	require.LessOrEqual(t, width, float64(70))

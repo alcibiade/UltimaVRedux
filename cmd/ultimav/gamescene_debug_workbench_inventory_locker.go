@@ -385,9 +385,9 @@ func appendInventoryEquipped(result *inventoryLockerResult, state *game_state.Ga
 		entry := inventoryEquippedResult{
 			RosterIndex: rosterIndex,
 			Name:        character.GetNameAsString(),
-			Slots:       make([]inventoryEquippedSlotResult, 0, len(inventoryEquipmentSlots())),
+			Slots:       make([]inventoryEquippedSlotResult, 0, len(references.EquipmentSlots())),
 		}
-		for _, slot := range inventoryEquipmentSlots() {
+		for _, slot := range references.EquipmentSlots() {
 			equipment := character.GetEquippedItem(slot)
 			name := ""
 			if equipment != references.NoEquipment {
@@ -399,17 +399,6 @@ func appendInventoryEquipped(result *inventoryLockerResult, state *game_state.Ga
 		}
 		result.Equipped = append(result.Equipped, entry)
 	})
-}
-
-func inventoryEquipmentSlots() []references.EquipmentSlot {
-	return []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	}
 }
 
 func inventoryLockerFingerprint(result inventoryLockerResult) string {

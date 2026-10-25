@@ -442,14 +442,7 @@ func (g *GameState) readiedArmsQuantity(equipment references.Equipment) uint16 {
 		if index >= party_state.MaxActiveParty || character.PartyMap != party_state.PartyMapActive {
 			return
 		}
-		for _, slot := range [...]references.EquipmentSlot{
-			references.SlotHelm,
-			references.SlotArmour,
-			references.SlotWeapon,
-			references.SlotShield,
-			references.SlotRing,
-			references.SlotAmulet,
-		} {
+		for _, slot := range references.EquipmentSlots() {
 			if character.GetEquippedItem(slot) == equipment {
 				quantity++
 			}

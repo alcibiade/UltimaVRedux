@@ -190,7 +190,7 @@ func (g *GameState) planEquipmentLoadout(input EquipmentLoadoutAlteration) (equi
 	}
 
 	changedSlots := make([]references.EquipmentSlot, 0, len(changeSources))
-	for _, slot := range equipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		newEquipment, requestedChange := requested[slot]
 		if !requestedChange || current[slot] == newEquipment {
 			continue
@@ -302,23 +302,12 @@ func equipmentCanOccupySlot(equipment references.Equipment, slot references.Equi
 }
 
 func equipmentLoadout(character *party_state.PlayerCharacter) map[references.EquipmentSlot]references.Equipment {
-	loadout := make(map[references.EquipmentSlot]references.Equipment, len(equipmentSlots()))
-	for _, slot := range equipmentSlots() {
+	loadout := make(map[references.EquipmentSlot]references.Equipment, len(references.EquipmentSlots()))
+	for _, slot := range references.EquipmentSlots() {
 		loadout[slot] = character.GetEquippedItem(slot)
 	}
 
 	return loadout
-}
-
-func equipmentSlots() []references.EquipmentSlot {
-	return []references.EquipmentSlot{
-		references.SlotHelm,
-		references.SlotArmour,
-		references.SlotWeapon,
-		references.SlotShield,
-		references.SlotRing,
-		references.SlotAmulet,
-	}
 }
 
 func isEquipmentSlot(slot references.EquipmentSlot) bool {

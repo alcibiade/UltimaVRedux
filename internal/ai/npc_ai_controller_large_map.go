@@ -425,7 +425,7 @@ func (m *NPCAIControllerLargeMap) generateTileBasedMonster() {
 			}
 			direction := m.calculatePirateSeekDirections(pos, playerPos)[0]
 			pirate := references.NewPirateShipEnemyReference(
-				m.tileRefs.GetTile(m.getPirateSpriteForDirection(direction)),
+				m.tileRefs.GetTile(references.PirateShipSprite(direction)),
 			)
 			enemy = &pirate
 		} else {
@@ -646,24 +646,6 @@ func (m *NPCAIControllerLargeMap) getPirateShipDirection(mapUnit map_units.MapUn
 	return references.Up
 }
 
-// getPirateSpriteForDirection returns the pirate ship sprite for a given direction
-func (m *NPCAIControllerLargeMap) getPirateSpriteForDirection(direction references.Direction) indexes.SpriteIndex {
-	switch direction {
-	case references.Up:
-		return indexes.PirateShipUp
-	case references.Right:
-		return indexes.PirateShipRight
-	case references.Down:
-		return indexes.PirateShipDown
-	case references.Left:
-		return indexes.PirateShipLeft
-	case references.NoneDirection:
-		return indexes.PirateShipDown // No direction specified - default facing down
-	default:
-		return indexes.PirateShipDown // Unknown direction - default facing down
-	}
-}
-
 // rotatePirateShip updates the pirate ship's sprite to face the given direction
 // This is used when a pirate ship needs to turn before moving
 func (m *NPCAIControllerLargeMap) rotatePirateShip(mapUnit map_units.MapUnit, newDirection references.Direction) {
@@ -672,7 +654,7 @@ func (m *NPCAIControllerLargeMap) rotatePirateShip(mapUnit map_units.MapUnit, ne
 		return
 	}
 
-	newSprite := m.getPirateSpriteForDirection(newDirection)
+	newSprite := references.PirateShipSprite(newDirection)
 	newTile := m.tileRefs.GetTile(newSprite)
 	enemy.SetFacing(newDirection, newTile)
 

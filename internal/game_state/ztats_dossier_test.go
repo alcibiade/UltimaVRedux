@@ -354,7 +354,7 @@ func newZStatsTestCharacter(
 		character.MarkAsDead()
 	}
 	character.SetMp(12)
-	for _, slot := range zStatsEquipmentSlots() {
+	for _, slot := range references.EquipmentSlots() {
 		character.SetEquippedItem(slot, references.NoEquipment)
 	}
 
