@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/draw"
 	"slices"
 	"testing"
 
@@ -244,16 +245,27 @@ func newCombatFieldSquareOracle(t *testing.T, scene *GameScene) *combatFieldSqua
 		expected: make(map[references.Position]*image.RGBA), elapsedMs: scene.getElapsedMs(),
 	}
 	var bounds image.Rectangle
+	regions := make(map[references.Position]image.Rectangle)
+	for _, field := range scene.gameState.CombatScene.Fields() {
+		region := combatFixtureRasterBounds(scene.combatSquareMarkerDrawOptions(field.Position()))
+		regions[field.Position()] = region
+		bounds = bounds.Union(region)
+	}
+	// Draw each oracle into the target production draws into, so fractional
+	// screen shake rounds against the same destination origin in both renders.
+	oracle.screen = ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{Unmanaged: true})
+	t.Cleanup(oracle.screen.Dispose)
+	oracle.pixels = image.NewRGBA(bounds)
 	for _, field := range scene.gameState.CombatScene.Fields() {
 		position := field.Position()
-		options := scene.combatSquareMarkerDrawOptions(position)
-		region := combatFixtureRasterBounds(options)
-		expected := ebiten.NewImageWithOptions(region, &ebiten.NewImageOptions{Unmanaged: true})
+		region := regions[position]
 		hash := int32(position.X)*int32(references.YCombatMapTiles) + int32(position.Y)
-		expected.DrawImage(scene.spriteSheet.GetAnimatedSprite(field.Sprite(), hash, oracle.elapsedMs), options)
+		oracle.screen.Clear()
+		oracle.screen.DrawImage(scene.spriteSheet.GetAnimatedSprite(field.Sprite(), hash, oracle.elapsedMs),
+			scene.combatSquareMarkerDrawOptions(position))
+		oracle.screen.ReadPixels(oracle.pixels.Pix)
 		pixels := image.NewRGBA(region)
-		expected.ReadPixels(pixels.Pix)
-		expected.Dispose()
+		draw.Draw(pixels, region, oracle.pixels, region.Min, draw.Src)
 		opaque := 0
 		for offset := 3; offset < len(pixels.Pix); offset += 4 {
 			if pixels.Pix[offset] != 0 {
@@ -262,11 +274,7 @@ func newCombatFieldSquareOracle(t *testing.T, scene *GameScene) *combatFieldSqua
 		}
 		require.Positive(t, opaque, "oracle for field %v must actually draw", position)
 		oracle.expected[position] = pixels
-		bounds = bounds.Union(region)
 	}
-	oracle.screen = ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{Unmanaged: true})
-	t.Cleanup(oracle.screen.Dispose)
-	oracle.pixels = image.NewRGBA(bounds)
 
 	return oracle
 }
