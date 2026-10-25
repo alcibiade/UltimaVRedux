@@ -95,75 +95,33 @@ func TestBedRest_PoisonDeath(t *testing.T) {
 	}
 }
 
-// TestBedRest_HealingRates tests HP and MP regeneration rates
-func TestBedRest_HealingRates(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
+// Each 10-minute sleep cycle restores 1 HP and 2 MP, capped at MaxHp and
+// Intelligence; the dead do not regenerate.
+func TestBedRestRegenerationCycle(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		status     party_state.CharacterStatus
+		hp, wantHp uint16
+		mp, wantMp byte
+	}{
+		{name: "regenerates", status: party_state.Sleep, hp: 50, mp: 20, wantHp: 51, wantMp: 22},
+		{name: "capped at maximums", status: party_state.Sleep, hp: 100, mp: 50, wantHp: 100, wantMp: 50},
+		{name: "dead stay dead", status: party_state.Dead, hp: 0, mp: 0, wantHp: 0, wantMp: 0},
+	} {
+		gs, _ := NewIntegrationTestBuilder(t).WithLocation(references.Britain).WithSystemCallbacks().Build()
+		char := gs.PartyState.GetCharacter(0)
+		char.SetStatus(test.status)
+		char.SetMaxHp(100)
+		char.SetHp(test.hp)
+		char.Intelligence = 50
+		char.SetMp(test.mp)
 
-	// Set up character with reduced HP and MP
-	char := gs.PartyState.GetCharacter(0)
-	char.SetStatus(party_state.Sleep)
-	char.SetMaxHp(100)
-	char.SetHp(50)
-	char.Intelligence = 50
-	char.SetMp(20)
+		gs.PartyState.RegenerateSleepHealth()
 
-	initialHp := char.GetCurrentHp()
-	initialMp := char.GetCurrentMp()
-
-	// Run one healing cycle (10 minutes)
-	gs.PartyState.RegenerateSleepHealth()
-
-	// Verify healing amounts
-	assert.Equal(t, initialHp+1, char.GetCurrentHp(), "Should heal 1 HP per 10-minute cycle")
-	assert.Equal(t, initialMp+2, char.GetCurrentMp(), "Should heal 2 MP per 10-minute cycle")
-}
-
-// TestBedRest_MaxHealthLimits tests that healing doesn't exceed maximums
-func TestBedRest_MaxHealthLimits(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-
-	// Set up character at near-max health
-	char := gs.PartyState.GetCharacter(0)
-	char.SetStatus(party_state.Sleep)
-	char.SetMaxHp(100)
-	char.SetHp(100) // Already at max
-	char.Intelligence = 50
-	char.SetMp(50) // Already at max
-
-	// Run healing cycle
-	gs.PartyState.RegenerateSleepHealth()
-
-	// Should not exceed maximums
-	assert.Equal(t, uint16(100), char.GetCurrentHp(), "HP should not exceed MaxHp")
-	assert.Equal(t, byte(50), char.GetCurrentMp(), "MP should not exceed Intelligence")
-}
-
-// TestBedRest_DeadCharactersDontHeal tests that dead characters don't regenerate
-func TestBedRest_DeadCharactersDontHeal(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		Build()
-
-	// Set up dead character
-	char := gs.PartyState.GetCharacter(0)
-	char.SetStatus(party_state.Dead)
-	char.SetHp(0)
-	char.SetMp(0)
-
-	// Run healing cycle
-	gs.PartyState.RegenerateSleepHealth()
-
-	// Dead characters should remain dead and at 0 HP/MP
-	assert.Equal(t, uint16(0), char.GetCurrentHp(), "Dead characters should not heal HP")
-	assert.Equal(t, byte(0), char.GetCurrentMp(), "Dead characters should not heal MP")
-	assert.Equal(t, party_state.Dead, char.GetStatus(), "Dead characters should remain dead")
+		assert.Equal(t, test.wantHp, char.GetCurrentHp(), test.name)
+		assert.Equal(t, test.wantMp, char.GetCurrentMp(), test.name)
+		assert.Equal(t, test.status, char.GetStatus(), test.name)
+	}
 }
 
 // TestBedRest_SleepStatusManagement tests setting and clearing sleep status

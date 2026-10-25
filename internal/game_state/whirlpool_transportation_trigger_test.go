@@ -12,7 +12,8 @@ import (
 )
 
 // TestWhirlpoolTransportation_FrigateManualMovement verifies that manual
-// arrow key movement onto a whirlpool triggers transportation (not just automatic sailing)
+// arrow key movement onto a whirlpool triggers transportation (not just automatic
+// sailing), with the sails furled so no sailing mode is required.
 func TestWhirlpoolTransportation_FrigateManualMovement(t *testing.T) {
 	gs, mockCallbacks := NewIntegrationTestBuilder(t).
 		WithLocation(references.BritanniaUnderworld).
@@ -247,92 +248,4 @@ func TestWhirlpoolTransportation_OnFootNoTransport(t *testing.T) {
 		"On-foot player should remain at whirlpool position (no teleport)")
 	assert.Equal(t, references.FloorNumber(0), gs.MapState.PlayerLocation.Floor,
 		"Should still be on overworld floor (no teleport)")
-}
-
-// TestWhirlpoolTransportation_FrigateSailsDown verifies that frigates with sails
-// down (anchored/rowing) still trigger whirlpool transportation
-func TestWhirlpoolTransportation_FrigateSailsDown(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.BritanniaUnderworld).
-		WithPlayerAt(100, 100).
-		WithSystemCallbacks().
-		Build()
-
-	// Find deep water and spawn whirlpool (skip 3 tiles to avoid test pollution)
-	layeredMap := gs.GetCurrentLayeredMap()
-	var whirlpoolPos references.Position
-	found := false
-	skip := 0
-
-	for y := references.Coordinate(0); y < references.YLargeMapTiles && !found; y++ {
-		for x := references.Coordinate(0); x < references.XLargeMapTiles && !found; x++ {
-			pos := references.Position{X: x, Y: y}
-			tile := layeredMap.GetTopTile(&pos)
-			if tile.Is(indexes.Water1) {
-				if skip < 3 {
-					skip++
-
-					continue
-				}
-				whirlpoolPos = pos
-				found = true
-			}
-		}
-	}
-
-	require.True(t, found, "Should find deep water")
-
-	// Spawn whirlpool
-	require.True(t, gs.spawnWhirlpoolAt(whirlpoolPos), "Should spawn whirlpool for test")
-
-	// Setup frigate with SAILS DOWN (anchored, not sailing)
-	adjacentPos := references.Position{X: whirlpoolPos.X - 1, Y: whirlpoolPos.Y}
-	frigate := map_units.NewNPCFriendlyVehiceNewRef(
-		references.FrigateVehicle,
-		adjacentPos,
-		0,
-	)
-	frigate.GetVehicleDetails().SetSailState(map_units.SailFurled) // SAILS DOWN
-	frigate.GetVehicleDetails().SetHullHP(99)
-	gs.PartyVehicle = *frigate
-	gs.MapState.PlayerLocation.Position = adjacentPos
-
-	// Clear any existing messages
-	mockCallbacks.Messages = []string{}
-
-	// MANUAL ROWING: Move frigate onto whirlpool with sails down (rowing, not sailing)
-	gs.MapState.PlayerLocation.Position = whirlpoolPos
-	gs.FinishTurn()
-
-	// After movement, caller must check for whirlpool and trigger transportation
-	// (prevents nested event queue violation when called from WhileAwaitingInput)
-	if gs.IsPlayerOnWhirlpool() {
-		q := gs.EventQueueManager.Workflow("whirlpool_transportation").
-			Priority(event_queue.PriorityHigh).
-			Sequential()
-		gs.BuildWhirlpoolTransportationQueue(q)
-		q.Start()
-	}
-
-	// Process event queue for transportation
-	// Must advance ElapsedMs to allow animations to progress (deltaMs > 0)
-	for gs.EventQueueManager.HasActiveWorkflows() {
-		gs.ElapsedMs += 16 // Simulate ~60fps frame advancement
-		gs.EventQueueManager.Update()
-	}
-
-	// TEST: Sails down should STILL trigger transportation (no sailing mode requirement)
-	assert.Contains(t, mockCallbacks.Messages, "WHIRLPOOL!",
-		"Frigate with sails down should still trigger whirlpool transportation")
-
-	// TEST: Should teleport to underworld
-	expectedPos := references.Position{X: 34, Y: 18}
-	assert.Equal(t, expectedPos, gs.MapState.PlayerLocation.Position,
-		"Should teleport to underworld destination")
-	assert.Equal(t, references.FloorNumber(-1), gs.MapState.PlayerLocation.Floor,
-		"Should be on underworld floor (-1)")
-
-	// TEST: Hull should take damage
-	hullHP := gs.PartyVehicle.GetVehicleDetails().GetHullHP()
-	assert.Less(t, hullHP, 99, "Hull should take damage from whirlpool")
 }
