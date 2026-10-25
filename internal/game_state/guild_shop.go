@@ -7,7 +7,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 // ErrInvalidGuildPurchase indicates an unsupported offer or invalid trusted quote.
@@ -24,10 +23,7 @@ type GuildShopState struct {
 }
 
 // GuildShopReview is a read-only production quote snapshot with the canonical merchant sprite identity.
-type GuildShopReview struct {
-	State               GuildShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type GuildShopReview = MerchantShopReview[GuildShopState]
 
 // GuildOfferQuote describes one canonical guild offer against current inventory and gold.
 type GuildOfferQuote struct {
@@ -76,20 +72,7 @@ func (g *GameState) GetGuildShopState(session MerchantSession) (GuildShopState, 
 // ReviewGuildShopByMerchantID builds the same production quotes without
 // issuing a session, touching callbacks, or consulting mutable loaded NPC state.
 func (g *GameState) ReviewGuildShopByMerchantID(id references.MerchantID) (GuildShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyGuild, ErrInvalidGuildPurchase, "a Guild merchant")
-	if err != nil {
-		return GuildShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return GuildShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildGuildShopState(merchant, buyer, buyerIndex)
-	if err != nil {
-		return GuildShopReview{}, err
-	}
-
-	return GuildShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyGuild, ErrInvalidGuildPurchase, "a Guild merchant", g.buildGuildShopState)
 }
 
 func (g *GameState) buildGuildShopState(

@@ -6,7 +6,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 var (
@@ -36,10 +35,7 @@ type ArmsShopState struct {
 }
 
 // ArmsShopReview is a read-only production snapshot with canonical sprite identity.
-type ArmsShopReview struct {
-	State               ArmsShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type ArmsShopReview = MerchantShopReview[ArmsShopState]
 
 // ArmsBuyQuote describes one dealer-stock item against current gold and capacity.
 type ArmsBuyQuote struct {
@@ -127,20 +123,7 @@ func (g *GameState) GetArmsShopState(session MerchantSession) (ArmsShopState, er
 // ReviewArmsShopByMerchantID builds production quotes without issuing a
 // session, invoking callbacks, consuming RNG, or consulting loaded NPC state.
 func (g *GameState) ReviewArmsShopByMerchantID(id references.MerchantID) (ArmsShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyArms, ErrInvalidArmsRequest, "an Arms merchant")
-	if err != nil {
-		return ArmsShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return ArmsShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildArmsShopState(merchant, buyer, buyerIndex)
-	if err != nil {
-		return ArmsShopReview{}, err
-	}
-
-	return ArmsShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyArms, ErrInvalidArmsRequest, "an Arms merchant", g.buildArmsShopState)
 }
 
 func (g *GameState) buildArmsShopState(

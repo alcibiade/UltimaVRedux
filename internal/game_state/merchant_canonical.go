@@ -3,8 +3,17 @@ package game_state
 import (
 	"fmt"
 
+	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
+
+// MerchantShopReview is a read-only production snapshot of one shop with its
+// merchant's canonical sprite identity.
+type MerchantShopReview[S any] struct {
+	State               S
+	MerchantSpriteIndex indexes.SpriteIndex
+}
 
 // canonicalMerchant resolves a merchant ID to its definition and canonical NPC
 // reference for reviews that run without a live session. wrongFamily is the
@@ -47,4 +56,31 @@ func (g *GameState) canonicalMerchant(
 	}
 
 	return merchant, npcReference, nil
+}
+
+// reviewMerchantShop builds one shop's production state for the current pricing
+// character without issuing a session, invoking callbacks, consuming RNG,
+// advancing time, or consulting loaded NPC state.
+func reviewMerchantShop[S any](
+	g *GameState,
+	id references.MerchantID,
+	family references.MerchantFamily,
+	wrongFamily error,
+	role string,
+	build func(references.MerchantDefinition, *party_state.PlayerCharacter, int) (S, error),
+) (MerchantShopReview[S], error) {
+	merchant, npcReference, err := g.canonicalMerchant(id, family, wrongFamily, role)
+	if err != nil {
+		return MerchantShopReview[S]{}, err
+	}
+	buyer, buyerIndex := g.merchantPricingCharacter()
+	if buyer == nil {
+		return MerchantShopReview[S]{}, ErrMerchantBuyerUnavailable
+	}
+	state, err := build(merchant, buyer, buyerIndex)
+	if err != nil {
+		return MerchantShopReview[S]{}, err
+	}
+
+	return MerchantShopReview[S]{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 // ErrInvalidReagentPurchase indicates an unsupported offer or invalid current bundle count.
@@ -38,10 +37,7 @@ type ReagentShopState struct {
 }
 
 // ReagentShopReview is a read-only production snapshot with canonical sprite identity.
-type ReagentShopReview struct {
-	State               ReagentShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type ReagentShopReview = MerchantShopReview[ReagentShopState]
 
 // ReagentOfferQuote describes one canonical bundle against current inventory and gold.
 type ReagentOfferQuote struct {
@@ -117,20 +113,7 @@ func (g *GameState) GetReagentShopState(session MerchantSession) (ReagentShopSta
 // ReviewReagentShopByMerchantID builds production quotes without issuing a
 // session, invoking callbacks, consuming RNG, or consulting loaded NPC state.
 func (g *GameState) ReviewReagentShopByMerchantID(id references.MerchantID) (ReagentShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyReagent, ErrInvalidReagentPurchase, "a reagent merchant")
-	if err != nil {
-		return ReagentShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return ReagentShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildReagentShopState(merchant, buyer, buyerIndex)
-	if err != nil {
-		return ReagentShopReview{}, err
-	}
-
-	return ReagentShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyReagent, ErrInvalidReagentPurchase, "a reagent merchant", g.buildReagentShopState)
 }
 
 func (g *GameState) buildReagentShopState(

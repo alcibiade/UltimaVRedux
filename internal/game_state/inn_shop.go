@@ -8,7 +8,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 var (
@@ -185,10 +184,7 @@ type InnShopState struct {
 }
 
 // InnShopReview is a pure production snapshot with canonical sprite identity.
-type InnShopReview struct {
-	State               InnShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type InnShopReview = MerchantShopReview[InnShopState]
 
 // InnRestRequest carries comparison-only nightly review authority.
 type InnRestRequest struct {
@@ -310,20 +306,11 @@ func (g *GameState) GetInnShopState(session MerchantSession) (InnShopState, erro
 // ReviewInnShopByMerchantID builds production projections without issuing a
 // session, invoking callbacks, consuming RNG, advancing time, or mutating state.
 func (g *GameState) ReviewInnShopByMerchantID(id references.MerchantID) (InnShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyInn, ErrInvalidInnRequest, "an Inn")
-	if err != nil {
-		return InnShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return InnShopReview{}, ErrMerchantBuyerUnavailable
-	}
-	state, err := g.buildInnShopState(merchant, buyer, buyerIndex, int(buyer.Intelligence))
-	if err != nil {
-		return InnShopReview{}, err
-	}
-
-	return InnShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+	return reviewMerchantShop(g, id, references.MerchantFamilyInn, ErrInvalidInnRequest, "an Inn", func(
+		merchant references.MerchantDefinition, buyer *party_state.PlayerCharacter, buyerIndex int,
+	) (InnShopState, error) {
+		return g.buildInnShopState(merchant, buyer, buyerIndex, int(buyer.Intelligence))
+	})
 }
 
 // RestAtInn revalidates and commits one complete original overnight transaction.

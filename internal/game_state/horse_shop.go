@@ -66,10 +66,7 @@ type HorseShopState struct {
 }
 
 // HorseShopReview is a read-only production snapshot with canonical sprite identity.
-type HorseShopReview struct {
-	State               HorseShopState
-	MerchantSpriteIndex indexes.SpriteIndex
-}
+type HorseShopReview = MerchantShopReview[HorseShopState]
 
 // HorsePurchaseRequest carries comparison-only review identity. GameState
 // derives the merchant, buyer, price, gold, and placement again before committing.
@@ -113,25 +110,16 @@ func (g *GameState) GetHorseShopState(session MerchantSession) (HorseShopState, 
 // ReviewHorseShopByMerchantID builds a production price without issuing a
 // session, invoking callbacks, consuming RNG, advancing time, or mutating map state.
 func (g *GameState) ReviewHorseShopByMerchantID(id references.MerchantID) (HorseShopReview, error) {
-	merchant, npcReference, err := g.canonicalMerchant(id, references.MerchantFamilyHorse, ErrInvalidHorsePurchase, "a horse dealer")
-	if err != nil {
-		return HorseShopReview{}, err
-	}
-	buyer, buyerIndex := g.merchantPricingCharacter()
-	if buyer == nil {
-		return HorseShopReview{}, ErrMerchantBuyerUnavailable
-	}
+	return reviewMerchantShop(g, id, references.MerchantFamilyHorse, ErrInvalidHorsePurchase, "a horse dealer", func(
+		merchant references.MerchantDefinition, buyer *party_state.PlayerCharacter, buyerIndex int,
+	) (HorseShopState, error) {
+		placement := HorsePlacementReview{BlockStatus: HorseShopBlockAvailabilityDeferred}
+		if g.canReviewLoadedHorsePlacement(merchant) {
+			placement = g.reviewHorsePlacement()
+		}
 
-	placement := HorsePlacementReview{BlockStatus: HorseShopBlockAvailabilityDeferred}
-	if g.canReviewLoadedHorsePlacement(merchant) {
-		placement = g.reviewHorsePlacement()
-	}
-	state, err := g.buildHorseShopState(merchant, buyer, buyerIndex, placement)
-	if err != nil {
-		return HorseShopReview{}, err
-	}
-
-	return HorseShopReview{State: state, MerchantSpriteIndex: npcReference.GetSpriteIndex()}, nil
+		return g.buildHorseShopState(merchant, buyer, buyerIndex, placement)
+	})
 }
 
 // PurchaseHorse revalidates and commits one original horse transaction.
