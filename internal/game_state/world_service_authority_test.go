@@ -274,6 +274,27 @@ func TestShrineQuestCompletionCapsAvatarStatsAndLeavesCompanionsAlone(t *testing
 	assert.Equal(t, companionStats, [3]byte{companion.Strength, companion.Dexterity, companion.Intelligence})
 }
 
+// Completion adds 3 karma, Humility another 3, each capped at 99. ref:KARMA-0009
+func TestShrineQuestCompletionKarmaAwardIsCappedAt99(t *testing.T) {
+	for _, test := range []struct{ shrine, before, after int }{
+		{shrine: 6, before: 98, after: 99},
+		{shrine: 7, before: 50, after: 56},
+		{shrine: 7, before: 98, after: 99},
+	} {
+		state, _ := NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
+		enterShrineServiceTestContext(state, test.shrine)
+		state.SetShrineQuestCompleted(test.shrine, true)
+		state.SetShrineQuestActive(test.shrine, true)
+		state.PartyState.Karma.Value = test.before
+
+		review, err := state.ReviewShrineMeditation(test.shrine)
+		require.NoError(t, err)
+		_, err = state.CommitShrineQuestCompletion(test.shrine, review.Fingerprint)
+		require.NoError(t, err)
+		assert.Equal(t, test.after, state.PartyState.Karma.Value, "shrine %d from karma %d", test.shrine, test.before)
+	}
+}
+
 func TestShrineQuestAssignmentRevalidatesAndCommitsOnce(t *testing.T) {
 	state, _ := NewIntegrationTestBuilder(t).WithSystemCallbacks().Build()
 	enterShrineServiceTestContext(state, 2)

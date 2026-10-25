@@ -275,7 +275,7 @@ that ordering is deliberately retained for a single coherent reward transaction;
 equal final values do not imply identical intermediate feedback.
 
 **Implementation:** `internal/game_state/shrine_service.go`, `internal/game_state/shrine_data.go`
-**Tests:** `internal/game_state/shrine_quest_completion_test.go`
+**Tests:** `internal/game_state/world_service_authority_test.go`
 
 ### KARMA-0010
 
