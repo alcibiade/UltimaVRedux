@@ -96,8 +96,8 @@ func TestCombatInterruptionProductionKeyboardRoutesOnceToBothReportsAndAudio(t *
 			event := callbacks.CombatEvents[0]
 			require.Equal(t, game_state.CombatEventInterruption, event.Kind)
 			assert.Equal(t, actor.EntityIndex, event.Target.Index)
-			assert.Equal(t, 1, countSoundEffect(callbacks.SoundEffectsPlayed, game_state.SoundCombatInterrupted))
-			assert.Equal(t, 1, countExactMessage(callbacks.Messages, "Orc interferes!"))
+			assert.Equal(t, 1, countEqual(callbacks.SoundEffectsPlayed, game_state.SoundCombatInterrupted))
+			assert.Equal(t, 1, countEqual(callbacks.Messages, "Orc interferes!"))
 			assert.Equal(t, uint16(2), state.PartyState.Inventory.Equipment.Get(references.Arrows))
 			assert.Equal(t, actor, state.CombatScene.GetCurrentTurnIdentity(), "interruption does not complete the remaining source/action")
 			wantAction := "bow attack"
@@ -143,32 +143,12 @@ func TestCombatInterruptionProductionKeyboardRoutesOnceToBothReportsAndAudio(t *
 				}
 				assert.False(t, state.EventQueueManager.HasWorkflow(combatAutoAttackWorkflowName))
 				assert.False(t, callbacks.InputBlocked)
-				assert.Equal(t, 1, countSoundEffect(callbacks.SoundEffectsPlayed, game_state.SoundCombatInterrupted))
-				assert.Equal(t, 1, countExactMessage(callbacks.Messages, "Orc interferes!"))
+				assert.Equal(t, 1, countEqual(callbacks.SoundEffectsPlayed, game_state.SoundCombatInterrupted))
+				assert.Equal(t, 1, countEqual(callbacks.Messages, "Orc interferes!"))
 			}
 			state.EventQueueManager.Shutdown()
 		})
 	}
-}
-
-func countSoundEffect(effects []game_state.SoundEffect, wanted game_state.SoundEffect) int {
-	count := 0
-	for _, effect := range effects {
-		if effect == wanted {
-			count++
-		}
-	}
-	return count
-}
-
-func countExactMessage(messages []string, wanted string) int {
-	count := 0
-	for _, message := range messages {
-		if message == wanted {
-			count++
-		}
-	}
-	return count
 }
 
 func TestCombatInterruptionReportFreezesIdentityAndConcealment(t *testing.T) {

@@ -243,6 +243,6 @@ func TestOutdoorWhirlpoolSameWorldTransportRetainsDescendingContinuation(t *test
 	assert.Nil(t, gs.GetWhirlpoolAt(second))
 	require.Len(t, mock.ProjectilesStarted, 1)
 	assert.Equal(t, attacker.Pos(), mock.ProjectilesStarted[0].FromPos)
-	assert.Equal(t, 2, countMessage(mock.Messages, "WHIRLPOOL!"))
+	assert.Equal(t, 2, countEqual(mock.Messages, "WHIRLPOOL!"))
 	assert.False(t, mock.InputBlocked)
 }

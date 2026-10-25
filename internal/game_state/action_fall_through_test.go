@@ -9,28 +9,18 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	"github.com/bradhannah/UltimaVRedux/test/helpers"
 )
 
 // TestStonegateTrapBehavior_Integration exercises the consumed-town-turn hazard
 // checkpoint independently of movement and the presentation callback.
 func TestStonegateTrapBehavior_Integration(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-
-	// Set up mock system callbacks for testing
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, mockCallbacks := newBootstrapSaveTestState(t)
 
 	// Position player in Stonegate at the reported trap location
 	gs.MapState.PlayerLocation.Location = references.Stonegate
 	gs.MapState.PlayerLocation.Floor = references.FloorNumber(0)
 	gs.MapState.PlayerLocation.Position = references.Position{X: 15, Y: 16}
-	gs.UpdateSmallMap(gameRefs.TileReferences, gameRefs.LocationReferences)
+	gs.UpdateSmallMap(gs.GameReferences.TileReferences, gs.GameReferences.LocationReferences)
 
 	// Verify we're on a TRAP tile (BrickFloorHole)
 	currentTile := gs.GetCurrentLayeredMapAvatarTopTile()
@@ -51,22 +41,13 @@ func TestStonegateTrapBehavior_Integration(t *testing.T) {
 
 // TestNormalTrapBehavior_Integration tests normal TRAP tiles outside of Stonegate
 func TestNormalTrapBehavior_Integration(t *testing.T) {
-	config := helpers.LoadTestConfiguration(t)
-	gameRefs := helpers.LoadTestGameReferences(t, config)
-	saveData := helpers.LoadBootstrapSaveData(t)
-	xTiles, yTiles := helpers.GetTestGameConstants()
-
-	gs := mustNewGameStateFromLegacySaveBytes(saveData, config, gameRefs, xTiles, yTiles)
-
-	// Set up mock system callbacks for testing
-	mockCallbacks := NewMockSystemCallbacks(t)
-	gs.SystemCallbacks = mockCallbacks.ToSystemCallbacks()
+	gs, mockCallbacks := newBootstrapSaveTestState(t)
 
 	// Position player in Britain (not Stonegate) on a multi-floor building
 	gs.MapState.PlayerLocation.Location = references.Britain
 	gs.MapState.PlayerLocation.Floor = references.FloorNumber(1) // Upper floor
 	gs.MapState.PlayerLocation.Position = references.Position{X: 15, Y: 15}
-	gs.UpdateSmallMap(gameRefs.TileReferences, gameRefs.LocationReferences)
+	gs.UpdateSmallMap(gs.GameReferences.TileReferences, gs.GameReferences.LocationReferences)
 
 	// Manually place a TRAP tile for testing
 	currentMap := gs.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, gs.MapState.PlayerLocation.Floor)

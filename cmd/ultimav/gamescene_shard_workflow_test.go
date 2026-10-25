@@ -38,7 +38,7 @@ func TestSmallMapUseSelectorDispatchesEachSelectedShard(t *testing.T) {
 			scene.smallMapInputHandler(ebiten.KeyU)
 			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			dialog.HandleEnter()
-			drainUseItemWorkflow(t, scene)
+			drainSceneWorkflow(t, scene, "use_item_workflow", DialogPollingRateMs)
 
 			assert.Equal(t, []references.QuestItem{test.shard}, selected)
 			assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.QuestItems.Get(test.shard))
@@ -58,7 +58,7 @@ func TestSmallMapUseSelectorCancellationDoesNotQueueOrConsumeShard(t *testing.T)
 	scene.smallMapInputHandler(ebiten.KeyU)
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.Dismiss()
-	drainUseItemWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "use_item_workflow", DialogPollingRateMs)
 
 	assert.Empty(t, selected)
 	assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.QuestItems.Get(references.ShardOfFalsehood))
@@ -85,7 +85,7 @@ func TestSmallMapYellResolvesTurnAfterSubmittedResult(t *testing.T) {
 			assert.Equal(t, before, scene.gameState.DateTime, "Yell must wait for submitted input before resolving the turn")
 			dialog := waitForTopModal[*widgets.InputBox](t, scene)
 			submitSmallMapYell(t, scene, dialog, test.word)
-			drainSmallMapYellWorkflow(t, scene)
+			drainSceneWorkflow(t, scene, "yell_small_map", KeyboardDebounceMs)
 
 			if test.suppresses {
 				assert.Equal(t, before, scene.gameState.DateTime)
@@ -377,35 +377,11 @@ func submitSmallMapYell(t *testing.T, scene *GameScene, dialog *widgets.InputBox
 	dialog.Update()
 }
 
-func drainSmallMapYellWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += KeyboardDebounceMs
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("yell_small_map") {
-			return
-		}
-	}
-	t.Fatal("small-map Yell workflow did not complete")
-}
-
 func assertShardWorkflowFinishedTurn(t *testing.T, before, actual datetime.UltimaDate) {
 	t.Helper()
 	expected := before
 	expected.Advance(1)
 	assert.Equal(t, expected, actual, "selected Shard Use must complete one normal small-map turn")
-}
-
-func drainUseItemWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("use_item_workflow") {
-			return
-		}
-	}
-	t.Fatal("Use item workflow did not complete")
 }
 
 func drainShardWorkflow(t *testing.T, scene *GameScene) int {

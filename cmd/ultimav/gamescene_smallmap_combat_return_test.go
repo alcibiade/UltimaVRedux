@@ -99,7 +99,7 @@ func TestProductionSmallMapAttackInputAcceptsShadowlordOriginsAndConclusions(t *
 						expectedReclaims = 1
 					}
 					assert.Equal(t, expectedReclaims,
-						countProductionMessages(callbacks.Messages, "The Sceptre is reclaimed!"))
+						countEqual(callbacks.Messages, "The Sceptre is reclaimed!"))
 					if ownsSceptre {
 						assert.Equal(t, []game_state.SoundEffect{game_state.SoundShardPulse}, callbacks.SoundEffectsPlayed)
 					} else {
@@ -187,7 +187,7 @@ func TestProductionSmallMapAttackInputRejectsInvalidShadowlordTargets(t *testing
 			assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.Sceptre))
 			assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.ShardOfFalsehood))
 			assert.True(t, state.ShadowlordState.IsAlive(references.Faulinei))
-			assert.Equal(t, 1, countProductionMessages(callbacks.Messages, test.wantFeedback))
+			assert.Equal(t, 1, countEqual(callbacks.Messages, test.wantFeedback))
 			assert.NotContains(t, callbacks.Messages, "The Sceptre is reclaimed!")
 			assert.Empty(t, callbacks.SoundEffectsPlayed)
 			assert.Empty(t, callbacks.CombatConclusions)
@@ -557,17 +557,6 @@ func productionShadowlordSourceName(sourceKind game_state.SmallMapEncounterSourc
 	}
 
 	return "yell"
-}
-
-func countProductionMessages(messages []string, target string) int {
-	count := 0
-	for _, message := range messages {
-		if message == target {
-			count++
-		}
-	}
-
-	return count
 }
 
 func productionVisitLocalRatOrBatBySlot(

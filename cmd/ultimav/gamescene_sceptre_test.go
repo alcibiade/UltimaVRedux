@@ -40,7 +40,7 @@ func TestSurfaceSceptreClearsBarriersWithoutDirectionAndCompletesTurn(t *testing
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainCombatUseWorkflow(t, scene)
-	drainSceptreWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "sceptre_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.Grass),
 		state.GetCurrentLayeredMap().SpriteIndexByLayer(map_state.MapLayer, barrier))
@@ -71,7 +71,7 @@ func TestSurfaceSceptreSafeFallbackReportsNoEffectAndCompletesTurn(t *testing.T)
 	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartSceptreWorkflow()
-	drainSceptreWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "sceptre_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.Sceptre))
 	assert.Contains(t, mock.Messages, "No effect!")
@@ -97,22 +97,10 @@ func TestLargeMapSceptreUsesWrappedScanAndSurfaceTurnCost(t *testing.T) {
 	scene := &GameScene{gameState: state, keyboard: input.NewKeyboardWithKeyStateSource(0, noSceneTestKeyHeld)}
 
 	scene.StartSceptreWorkflow()
-	drainSceptreWorkflow(t, scene)
+	drainSceneWorkflow(t, scene, "sceptre_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.Grass),
 		state.GetCurrentLayeredMap().SpriteIndexByLayer(map_state.MapLayer, barrier))
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.Sceptre))
 	assert.Equal(t, expectedTime, state.DateTime)
-}
-
-func drainSceptreWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("sceptre_workflow") {
-			return
-		}
-	}
-	t.Fatal("Sceptre workflow did not complete")
 }

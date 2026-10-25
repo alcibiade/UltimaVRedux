@@ -643,8 +643,16 @@ func assertCombatMatchesSingleFinish(t *testing.T, actual, expected *game_state.
 // returns it.
 func waitForTopModal[D any](t *testing.T, scene *GameScene) D {
 	t.Helper()
-	for range 30 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
+
+	return waitForTopModalWithin[D](t, scene, DialogPollingRateMs, 30)
+}
+
+// waitForTopModalWithin advances workflows by stepMs for at most updates
+// updates until the top modal dialog is a D, and returns it.
+func waitForTopModalWithin[D any](t *testing.T, scene *GameScene, stepMs int64, updates int) D {
+	t.Helper()
+	for range updates {
+		scene.gameState.ElapsedMs += stepMs
 		scene.gameState.EventQueueManager.Update()
 		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(D); ok {
 			return dialog
@@ -654,6 +662,30 @@ func waitForTopModal[D any](t *testing.T, scene *GameScene) D {
 	t.Fatalf("%T was not shown", none)
 
 	return none
+}
+
+// drainSceneWorkflow advances workflows by stepMs until the named workflow ends.
+func drainSceneWorkflow(t *testing.T, scene *GameScene, name string, stepMs int64) {
+	t.Helper()
+	for range 20 {
+		scene.gameState.ElapsedMs += stepMs
+		scene.gameState.EventQueueManager.Update()
+		if !scene.gameState.EventQueueManager.HasWorkflow(name) {
+			return
+		}
+	}
+	t.Fatalf("workflow %q did not complete", name)
+}
+
+// acknowledgeTranscript presses Enter on an interaction transcript and requires
+// it to accept the acknowledgement.
+func acknowledgeTranscript(t *testing.T, scene *GameScene, transcript *widgets.InteractionTranscript) {
+	t.Helper()
+	scene.keyboard.ClearFrameConsumption()
+	scene.keyboard.SetForceWaitAnyKey(-1000)
+	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
+	transcript.Update()
+	require.True(t, transcript.InputComplete())
 }
 
 func drainProductionCastWorkflow(t *testing.T, scene *GameScene) {

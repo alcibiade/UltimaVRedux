@@ -207,7 +207,7 @@ func waitForBlackthornPrompt(
 		}
 		if dialog.ActivePrompt() == "" && !dialog.InputComplete() &&
 			strings.HasPrefix(dialog.ControlHint(), "[Enter/Esc]") {
-			acknowledgeBlackthornTranscript(t, scene, dialog)
+			acknowledgeTranscript(t, scene, dialog)
 		}
 	}
 	t.Fatalf("Blackthorn prompt %q was not shown; transcript: %q", prompt, transcriptText(dialog))
@@ -230,23 +230,10 @@ func drainBlackthornWorkflow(
 		if scene.dialogStack.PeekTopModalDialog() == dialog &&
 			dialog.ActivePrompt() == "" && !dialog.InputComplete() &&
 			strings.HasPrefix(dialog.ControlHint(), "[Enter/Esc]") {
-			acknowledgeBlackthornTranscript(t, scene, dialog)
+			acknowledgeTranscript(t, scene, dialog)
 		}
 	}
 	t.Fatalf("Blackthorn workflow did not complete; transcript: %q", transcriptText(dialog))
-}
-
-func acknowledgeBlackthornTranscript(
-	t *testing.T,
-	scene *GameScene,
-	dialog *widgets.InteractionTranscript,
-) {
-	t.Helper()
-	scene.keyboard.ClearFrameConsumption()
-	scene.keyboard.SetForceWaitAnyKey(-1000)
-	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
-	dialog.Update()
-	require.True(t, dialog.InputComplete())
 }
 
 func transcriptText(dialog *widgets.InteractionTranscript) string {

@@ -161,7 +161,7 @@ func TestShipFireOwnsOneCycleAndAllowsPirateRetaliation(t *testing.T) {
 	wantTime.Advance(DefaultLargeMapMinutesPerTurn)
 	assert.Equal(t, wantTime, state.DateTime)
 	assert.Less(t, state.PartyVehicle.GetVehicleDetails().GetHullHP(), hullBefore)
-	assert.Equal(t, 1, countMessage(callbacks.Messages, "* BOOOM! *"))
+	assert.Equal(t, 1, countEqual(callbacks.Messages, "* BOOOM! *"))
 }
 
 func newShipCannonAuthorityState(t *testing.T) (*GameState, *MockSystemCallbacks) {

@@ -1408,7 +1408,7 @@ func TestMerchantTesterPreviewFinallyRemovesOnlyOwnedDialogs(t *testing.T) {
 	result := fixture.scene.ExecuteDebugCommand(merchantTesterPreviewRequest(references.MerchantGuildPaws))
 	require.True(t, result.Success)
 	ownedShop := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
-	ownedPurchase := openGuildPurchaseDialog(t, fixture, ownedShop)
+	ownedPurchase := openMerchantModal[*widgets.GuildPurchaseDialog](t, fixture, ownedShop, widgets.GuildShopAwaitingQuantity)
 	decoy := widgets.NewGuildPurchaseDialog(widgets.GuildPurchaseDialogConfig{
 		Keyboard: fixture.scene.keyboard,
 		Quote:    ownedPurchase.GetQuote(),

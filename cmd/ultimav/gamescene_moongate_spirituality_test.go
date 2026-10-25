@@ -71,7 +71,7 @@ func TestMoongateSpiritualityHandoffUsesCapturedRouteAndRestoresSource(t *testin
 
 	enterTranscriptText(t, scene, transcript, "WRONG")
 	require.Same(t, transcript, waitForShrineTranscriptResult(t, scene, transcript, "Thy thoughts are unfocused."))
-	acknowledgeShrineTranscript(t, scene, transcript)
+	acknowledgeTranscript(t, scene, transcript)
 	drainNamedWorkflow(t, scene, shrineMeditationWorkflowName)
 
 	assert.Equal(t, source, state.MapState.PlayerLocation)

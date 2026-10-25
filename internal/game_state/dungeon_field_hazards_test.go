@@ -33,7 +33,7 @@ func TestDungeonSleepFieldsConsumeFieldAndReplaceNonDeadStatuses(t *testing.T) {
 			assert.Equal(t, uint64(len(characters)), state.GetRNG().Calls()-beforeRNG,
 				"dead active members still consume a save roll")
 			assert.Equal(t, []string{"Sleep spell!"}, callbacks.Messages)
-			assert.Equal(t, 2, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+			assert.Equal(t, 2, countEqual(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
 		})
 	}
 }
@@ -62,8 +62,8 @@ func TestDungeonPoisonFieldsPersistAndTickInSameCompletion(t *testing.T) {
 			assert.Equal(t, cell, currentDungeonInteractionCell(t, state))
 			assert.Equal(t, uint64(len(characters)), state.GetRNG().Calls()-beforeRNG)
 			assert.Equal(t, []string{"Poison!"}, callbacks.Messages)
-			assert.Zero(t, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
-			assert.Equal(t, 1, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundPoison),
+			assert.Zero(t, countEqual(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+			assert.Equal(t, 1, countEqual(callbacks.SoundEffectsPlayed, SoundPoison),
 				"resolved party-wide poison injury requests one semantic cue")
 		})
 	}
@@ -147,8 +147,8 @@ func TestDungeonFireFieldsDamageEveryNonDeadMemberAndPersist(t *testing.T) {
 			assert.Equal(t, cell, currentDungeonInteractionCell(t, state))
 			assert.Equal(t, uint64(3), state.GetRNG().Calls()-beforeRNG)
 			assert.Equal(t, []string{"Fire!!"}, callbacks.Messages)
-			assert.Zero(t, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
-			assert.Equal(t, 1, countMatchingSounds(callbacks.SoundEffectsPlayed, SoundFireBurn))
+			assert.Zero(t, countEqual(callbacks.SoundEffectsPlayed, SoundWhiteNoiseDamage))
+			assert.Equal(t, 1, countEqual(callbacks.SoundEffectsPlayed, SoundFireBurn))
 		})
 	}
 }

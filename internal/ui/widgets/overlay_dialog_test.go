@@ -257,89 +257,36 @@ func TestEffectsPresets(t *testing.T) {
 // INTEGRATION TESTS - Dialog Creation
 // =====================================
 
-func TestOverlayDialog_Build_PanicsIfSizingMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when sizing is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "Sizing", "Panic message should mention Sizing")
-	}()
-
-	NewOverlayDialog("Test").
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithExternallyManagedDuration(1000).
-		Build()
-}
-
-func TestOverlayDialog_Build_PanicsIfPositionMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when position is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "Position", "Panic message should mention Position")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithExternallyManagedDuration(1000).
-		Build()
-}
-
-func TestOverlayDialog_Build_PanicsIfEffectsMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when effects are missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "Effects", "Panic message should mention Effects")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithContentAlignment(ContentAlignCenter).
-		WithTextAlignment(TextAlignCenter).
-		WithExternallyManagedDuration(1000).
-		Build()
-}
-
-func TestOverlayDialog_Build_PanicsIfContentAlignmentMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when content alignment is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "ContentAlignment", "Panic message should mention ContentAlignment")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithTextAlignment(TextAlignCenter).
-		WithExternallyManagedDuration(1000).
-		Build()
-}
-
-func TestOverlayDialog_Build_PanicsIfTextAlignmentMissing(t *testing.T) {
-	defer func() {
-		r := recover()
-		require.NotNil(t, r, "Build() should panic when text alignment is missing")
-		panicMsg := r.(string)
-		assert.Contains(t, panicMsg, "TextAlignment", "Panic message should mention TextAlignment")
-	}()
-
-	NewOverlayDialog("Test").
-		WithSizing(SizingAutoFitDefault).
-		WithPosition(PositionMapCenterLower).
-		WithEffects(EffectsNone).
-		WithContentAlignment(ContentAlignCenter).
-		WithExternallyManagedDuration(1000).
-		Build()
+// Build panics, naming the setting, when any required setting is missing.
+func TestOverlayDialog_Build_PanicsIfRequiredSettingMissing(t *testing.T) {
+	type step = func(*OverlayDialogBuilder) *OverlayDialogBuilder
+	required := map[string]step{
+		"Sizing":   func(b *OverlayDialogBuilder) *OverlayDialogBuilder { return b.WithSizing(SizingAutoFitDefault) },
+		"Position": func(b *OverlayDialogBuilder) *OverlayDialogBuilder { return b.WithPosition(PositionMapCenterLower) },
+		"Effects":  func(b *OverlayDialogBuilder) *OverlayDialogBuilder { return b.WithEffects(EffectsNone) },
+		"ContentAlignment": func(b *OverlayDialogBuilder) *OverlayDialogBuilder {
+			return b.WithContentAlignment(ContentAlignCenter)
+		},
+		"TextAlignment": func(b *OverlayDialogBuilder) *OverlayDialogBuilder {
+			return b.WithTextAlignment(TextAlignCenter)
+		},
+	}
+	for missing := range required {
+		builder := NewOverlayDialog("Test").WithExternallyManagedDuration(1000)
+		for name, apply := range required {
+			if name != missing {
+				builder = apply(builder)
+			}
+		}
+		func() {
+			defer func() {
+				r := recover()
+				require.NotNil(t, r, "Build() should panic when %s is missing", missing)
+				assert.Contains(t, r.(string), missing, "panic names the missing setting")
+			}()
+			builder.Build()
+		}()
+	}
 }
 
 func TestOverlayDialog_Build_PanicsIfBothDurationMethodsCalled(t *testing.T) {

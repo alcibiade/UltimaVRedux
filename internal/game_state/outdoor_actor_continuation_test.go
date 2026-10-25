@@ -93,7 +93,7 @@ func TestOutdoorActorContinuationOrdersConsecutiveBattlesBeforeFireball(t *testi
 				require.NoError(t, state.ResolvePendingOverworldContact())
 				assert.Equal(t, oracle.Calls(), state.GetRNG().Calls(), "presentation and repeated drain cannot run actors again")
 				assert.Equal(t, oracle.Intn(1000000), state.GetRNG().Intn(1000000))
-				assert.Equal(t, 2, countMessage(mock.Messages, "Attacked!"))
+				assert.Equal(t, 2, countEqual(mock.Messages, "Attacked!"))
 				assert.False(t, mock.InputBlocked)
 				assert.False(t, state.HasPendingOverworldContact())
 			})
@@ -245,7 +245,7 @@ func assertShipRepairContinuationAcrossBattles(t *testing.T, reason CombatEndRea
 	}
 	want.Advance(2)
 	assert.Equal(t, want, state.DateTime)
-	assert.Equal(t, 5, countMessage(mock.Messages, "*hammering*"))
+	assert.Equal(t, 5, countEqual(mock.Messages, "*hammering*"))
 	assert.Nil(t, state.activeShipRepair)
 	assert.Nil(t, state.outdoorActorContinuation)
 	assert.False(t, state.HasPendingOverworldContact())
@@ -528,7 +528,7 @@ func TestShipRepairOutdoorContinuationWaitsForLowerSlotFireball(t *testing.T) {
 	}
 	want.Advance(2)
 	assert.Equal(t, want, state.DateTime)
-	assert.Equal(t, 5, countMessage(mock.Messages, "*hammering*"))
+	assert.Equal(t, 5, countEqual(mock.Messages, "*hammering*"))
 	assert.Len(t, mock.ProjectilesStarted, 1)
 	assert.False(t, mock.InputBlocked)
 	assert.Nil(t, state.activeShipRepair)

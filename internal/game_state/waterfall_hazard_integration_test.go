@@ -119,30 +119,7 @@ func TestWaterfallHazard_DeadCharactersSkipped_Integration(t *testing.T) {
 	initialHP := character.GetCurrentHp()
 	character.SetStatus(party_state.Dead)
 
-	// Trigger waterfall hazard (pass player position, function checks below it)
-	gs.ProcessWaterfallHazard(&playerPos)
-
-	// Process event queue
-	gs.EventQueueManager.Update()
-	gs.ElapsedMs += 400
-	for i := 0; i < 20; i++ {
-		gs.EventQueueManager.Update()
-		gs.ElapsedMs++
-	}
-
-	// Advance past glide duration
-	gs.ElapsedMs += 2500
-	for i := 0; i < 20; i++ {
-		gs.EventQueueManager.Update()
-		gs.ElapsedMs++
-	}
-
-	// Advance past fade in
-	gs.ElapsedMs += 300
-	for i := 0; i < 20; i++ {
-		gs.EventQueueManager.Update()
-		gs.ElapsedMs++
-	}
+	runWaterfallHazard(gs, playerPos)
 
 	assert.Equal(t, initialHP, character.GetCurrentHp(),
 		"Dead character should not take waterfall damage")
@@ -170,30 +147,7 @@ func TestWaterfallHazard_CarpetNotProtected_Integration(t *testing.T) {
 	character.Dexterity = 5 // Low DEX = high failure chance
 	initialHP := character.GetCurrentHp()
 
-	// Trigger waterfall hazard (pass player position, function checks below it)
-	gs.ProcessWaterfallHazard(&playerPos)
-
-	// Process event queue
-	gs.EventQueueManager.Update()
-	gs.ElapsedMs += 400
-	for i := 0; i < 20; i++ {
-		gs.EventQueueManager.Update()
-		gs.ElapsedMs++
-	}
-
-	// Advance past glide duration
-	gs.ElapsedMs += 2500
-	for i := 0; i < 20; i++ {
-		gs.EventQueueManager.Update()
-		gs.ElapsedMs++
-	}
-
-	// Advance past fade in
-	gs.ElapsedMs += 300
-	for i := 0; i < 20; i++ {
-		gs.EventQueueManager.Update()
-		gs.ElapsedMs++
-	}
+	runWaterfallHazard(gs, playerPos)
 
 	assert.Less(t, character.GetCurrentHp(), initialHP,
 		"Carpet should NOT protect from waterfall damage")
@@ -217,4 +171,18 @@ func TestWaterfallHazard_NonWaterfallTile_NoEffect_Integration(t *testing.T) {
 
 	assert.Equal(t, initialHP, character.GetCurrentHp(),
 		"Non-waterfall tile should not trigger hazard")
+}
+
+// runWaterfallHazard triggers the waterfall below playerPos and advances the
+// queue through its message, glide and fade-in phases.
+func runWaterfallHazard(gs *GameState, playerPos references.Position) {
+	gs.ProcessWaterfallHazard(&playerPos)
+	gs.EventQueueManager.Update()
+	for _, advanceMs := range []int64{400, 2500, 300} {
+		gs.ElapsedMs += advanceMs
+		for range 20 {
+			gs.EventQueueManager.Update()
+			gs.ElapsedMs++
+		}
+	}
 }
