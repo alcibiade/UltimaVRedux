@@ -11,6 +11,7 @@ func TestDialogNumbers(t *testing.T) {
 		assert.Equal(t, DialogNumber(0), NoResponse)
 		assert.False(t, NoResponse.IsMerchant())
 		assert.False(t, NoResponse.IsSpecial())
+		assert.Equal(t, "", NoResponse.GetMerchantType())
 	})
 
 	t.Run("RegularNPC", func(t *testing.T) {
@@ -25,6 +26,7 @@ func TestDialogNumbers(t *testing.T) {
 		assert.Equal(t, DialogNumber(128), MerchantThreshold)
 		assert.False(t, MerchantThreshold.IsMerchant())
 		assert.True(t, MerchantThreshold.IsSpecial())
+		assert.Equal(t, "", MerchantThreshold.GetMerchantType())
 	})
 
 	t.Run("WeaponDealer", func(t *testing.T) {
