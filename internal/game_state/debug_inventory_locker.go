@@ -179,7 +179,7 @@ func (g *GameState) ClearDebugEquipmentState() []DebugEquipmentStateChange {
 				continue
 			}
 			changes = append(changes, DebugEquipmentStateChange{
-				Path:   fmt.Sprintf("party.roster.%d.equipment.%s", rosterIndex, debugEquipmentSlotID(slot)),
+				Path:   fmt.Sprintf("party.roster.%d.equipment.%s", rosterIndex, equipmentSlotID(slot)),
 				Before: equipment.ID(),
 				After:  references.NoEquipment.ID(),
 			})
@@ -188,27 +188,6 @@ func (g *GameState) ClearDebugEquipmentState() []DebugEquipmentStateChange {
 	})
 
 	return changes
-}
-
-func debugEquipmentSlotID(slot references.EquipmentSlot) string {
-	switch slot {
-	case references.SlotHelm:
-		return "helm"
-	case references.SlotArmour:
-		return "armour"
-	case references.SlotWeapon:
-		return "weapon"
-	case references.SlotShield:
-		return "shield"
-	case references.SlotRing:
-		return "ring"
-	case references.SlotAmulet:
-		return "amulet"
-	case references.SlotNone:
-		panic("non-equipment slot has no debug identifier")
-	default:
-		panic("unknown equipment slot")
-	}
 }
 
 // ApplyDebugInventoryPreset applies one absolute, idempotent inventory locker preset.
