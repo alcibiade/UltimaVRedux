@@ -22,7 +22,7 @@ func TestDungeonUsePotionCancellationPreservesInventoryTimeAndRNG(t *testing.T) 
 	selectOnlyDungeonUseItem(t, scene)
 	require.Equal(t, uint16(1), state.PartyState.Inventory.Potions.Get(references.Green))
 	require.False(t, state.IsAtDungeonCommandBoundary())
-	dialog := waitForProductionCharacterSelection(t, scene)
+	dialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 	rngCalls := state.GetRNG().Calls()
 	dialog.HandleEscape()
 	drainDungeonWorkflow(t, scene, "potion_workflow")
@@ -231,7 +231,7 @@ func TestDungeonUseResurrectionCancellationPreservesInventoryAndTime(t *testing.
 
 	selectOnlyDungeonUseItem(t, scene)
 	require.Equal(t, uint16(1), state.PartyState.Inventory.Scrolls.Get(references.ScrollInManiCorp))
-	dialog := waitForProductionCharacterSelection(t, scene)
+	dialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 	dialog.HandleEscape()
 	drainDungeonWorkflow(t, scene, "resurrection_scroll")
 
@@ -323,7 +323,7 @@ func TestDungeonUseSourceRejectionsAndConsumption(t *testing.T) {
 			callbacks.Reset()
 
 			scene.dungeonMapInputHandler(ebiten.KeyU)
-			dialog := waitForDungeonItemDialog(t, scene)
+			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			calls := state.GetRNG().Calls()
 			dialog.HandleEnter()
 			require.False(t, dialog.IsDismissed())
@@ -341,7 +341,7 @@ func TestDungeonUseSourceRejectionsAndConsumption(t *testing.T) {
 func selectOnlyDungeonUseItem(t *testing.T, scene *GameScene) {
 	t.Helper()
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	dialog := waitForDungeonItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
 }

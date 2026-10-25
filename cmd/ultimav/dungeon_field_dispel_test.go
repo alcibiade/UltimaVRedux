@@ -13,6 +13,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
 func newDungeonFieldDispelTestScene(t *testing.T) (*GameScene, *game_state.MockSystemCallbacks) {
@@ -306,7 +307,7 @@ func TestDungeonFieldDispelProductionSceptreRendersBeforeExpiry(t *testing.T) {
 	require.NoError(t, err)
 	callbacks.Reset()
 	scene.dungeonMapInputHandler(ebiten.KeyU)
-	dialog := waitForDungeonItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	for range 30 {
 		state.ElapsedMs += 10
@@ -476,7 +477,7 @@ func TestDungeonFieldDispelProductionAnGravCommitsAndFinishesWhileVisible(t *tes
 	beforeDate := state.DateTime
 	callbacks.Reset()
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	dialog := waitForProductionSpellDialog(t, scene)
+	dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	enterSpellSyllables(scene, dialog, []ebiten.Key{ebiten.KeyA, ebiten.KeyG})
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	dialog.Update()

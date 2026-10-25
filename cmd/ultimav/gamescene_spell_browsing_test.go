@@ -56,7 +56,7 @@ func TestCastMixShortcutReturnsToSameSelectorAndChargesOnlyMixOnCancel(t *testin
 			} else {
 				scene.smallMapInputHandler(ebiten.KeyC)
 			}
-			selector := waitForProductionSpellDialog(t, scene)
+			selector := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			press(ebiten.KeyI)
 			press(ebiten.KeyL)
 			before := state.DateTime
@@ -115,7 +115,7 @@ func TestCastPrerequisiteRefusalRetainsBrowserWithoutSpendingResources(t *testin
 			} else {
 				scene.smallMapInputHandler(ebiten.KeyC)
 			}
-			selector := waitForProductionSpellDialog(t, scene)
+			selector := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			press(ebiten.KeyI)
 			press(ebiten.KeyL)
 			before := state.DateTime
@@ -200,7 +200,7 @@ func TestCastNestedMixShutdownCleansBothModals(t *testing.T) {
 	state.PartyState.GetAvatar().Class = party_state.Wizard
 	state.PartyState.GetAvatar().SetMp(8)
 	scene.smallMapInputHandler(ebiten.KeyC)
-	waitForProductionSpellDialog(t, scene)
+	waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	press(ebiten.KeyControl, ebiten.KeyM)
 	waitForSpellBrowserState(t, scene, func() bool { return scene.dialogStack.Count() == 2 })
 	state.EventQueueManager.Shutdown()
@@ -222,7 +222,7 @@ func TestCastMixCancellationAndFailureResumeParent(t *testing.T) {
 			state.PartyState.Inventory.Reagent.Set(references.Ginseng, 6)
 			state.PartyState.Inventory.Spells.Set(references.InLor, 0)
 			scene.smallMapInputHandler(ebiten.KeyC)
-			selector := waitForProductionSpellDialog(t, scene)
+			selector := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			press(ebiten.KeyI)
 			press(ebiten.KeyL)
 			press(ebiten.KeyControl, ebiten.KeyM)

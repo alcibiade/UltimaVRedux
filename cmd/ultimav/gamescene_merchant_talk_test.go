@@ -65,7 +65,7 @@ func TestManualGuildTalkPurchaseRepeatCloseOwnsOneMinute(t *testing.T) {
 	keysBefore := fixture.state.PartyState.Inventory.Provisions.Keys.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	pricePerBundle := dialog.GetSelectedQuote().PricePerBundle
 	require.Equal(t, 1, fixture.scene.dialogStack.Count())
 
@@ -110,7 +110,7 @@ func TestManualGuildTalkCancellationOwnsOneMinute(t *testing.T) {
 	keysBefore := fixture.state.PartyState.Inventory.Provisions.Keys.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	waitForGuildDialog(t, fixture)
+	waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
 		return !fixture.state.EventQueueManager.HasActiveWorkflows()
@@ -127,7 +127,7 @@ func TestGuildQuantityModalUsesSelectedPitchAndCancelResumesBrowse(t *testing.T)
 	gemsBefore := fixture.state.PartyState.Inventory.Provisions.Gems.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	greeting := dialog.GetLatestExchange()
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	quote := dialog.GetSelectedQuote()
@@ -163,7 +163,7 @@ func TestGuildQuantityModalUsesSelectedPitchAndCancelResumesBrowse(t *testing.T)
 func TestGuildQuantityModalCommitsExactBatchRequestAndResult(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.NewMagincia, references.MerchantGuildNewMagincia)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	quote := dialog.GetSelectedQuote()
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 	keysBefore := fixture.state.PartyState.Inventory.Provisions.Keys.Get()
@@ -196,7 +196,7 @@ func TestManualMerchantTalkAppliesTalk3OneShotBeforeDispatch(t *testing.T) {
 	fixture.npc.NPCReference.Schedule.Ai[arrived] = byte(references.Talk3)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	require.Equal(t, references.AiType(references.Wander3), references.AiType(fixture.npc.NPCReference.Schedule.Ai[arrived]))
 	require.False(t, fixture.npc.ApplyTalk3OneShot(), "shared Talk dispatch must apply the transition exactly once")
 
@@ -214,7 +214,7 @@ func TestNPCAutoTalkGuildUsesSharedWorkflowWithoutSecondMinute(t *testing.T) {
 
 	require.True(t, fixture.scene.processNPCAutoTalk())
 	require.Equal(t, map_units.PendingNPCInteractionNone, fixture.npc.MapUnitDetails().PendingInteraction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	require.Equal(t, references.AiType(references.Wander3), references.AiType(fixture.npc.NPCReference.Schedule.Ai[1]))
 	require.False(t, fixture.npc.ApplyTalk3OneShot(), "TALK3 transition must be one-shot")
 
@@ -324,7 +324,7 @@ func TestTavernTalkSetupCancellationMealRefreshAndOneMinute(t *testing.T) {
 	foodBefore := fixture.state.PartyState.Inventory.Provisions.Food.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForTavernDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 	require.False(t, dialog.IsPreview())
 	require.Equal(t, references.MerchantFamilyTavern, dialog.GetState().Merchant.Family)
 	require.Equal(t, "The Wayfarer Tavern", dialog.GetShell().GetHeaderView().ShopIdentity)
@@ -343,7 +343,7 @@ func TestTavernTalkSetupCancellationMealRefreshAndOneMinute(t *testing.T) {
 	quote := dialog.GetState().Meal
 	action = openTavernActionDialog(t, fixture, dialog)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-	resultDialog := waitForTavernResultDialog(t, fixture)
+	resultDialog := waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 	require.Equal(t, "Meal Served", resultDialog.GetView().Title)
 	require.Equal(t, quote.Meal.Name, resultDialog.GetView().Item)
 	require.Contains(t, resultDialog.GetBodyText(), quote.Meal.Name)
@@ -383,7 +383,7 @@ func TestTavernWarningStopAndContinueUseTypedAuthority(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantTavernBritain)
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			dialog := waitForTavernDialog(t, fixture)
+			dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 			selectTavernOrderItem(t, fixture, dialog, widgets.TavernOrderDrink)
 			for range 3 {
 				completeTavernAction(t, fixture, dialog, ebiten.KeyEnter)
@@ -435,7 +435,7 @@ func TestTavernInformationUnknownCancelSuccessRepeatAndInsufficient(t *testing.T
 		input := newMerchantRuneQueue()
 		fixture.scene.appendInputChars = input.Append
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		dialog := waitForTavernDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 		completeTavernAction(t, fixture, dialog, ebiten.KeyEnter)
 		require.True(t, dialog.GetState().CustomerEligible)
 		pressMerchantDialogKey(fixture, ebiten.KeyC)
@@ -453,7 +453,7 @@ func TestTavernInformationUnknownCancelSuccessRepeatAndInsufficient(t *testing.T
 		pumpMerchantWorkflowUntil(t, fixture, func() bool {
 			return dialog.GetPhase() == widgets.TavernShopBrowse
 		})
-		notice := waitForTavernNoticeDialog(t, fixture)
+		notice := waitForMerchantDialog[*widgets.TavernAdviceNotice](t, fixture)
 		require.Contains(t, notice.GetContentText(), dialog.GetState().Merchant.OwnerName+" says")
 		require.Contains(t, notice.GetContentText(), `"That, I cannot help thee with."`)
 		pane, bounds := dialog.GetWorkspaceBounds(), notice.GetBounds()
@@ -474,7 +474,7 @@ func TestTavernInformationUnknownCancelSuccessRepeatAndInsufficient(t *testing.T
 		input.Push(rawQuestion)
 		fixture.scene.updateDialogs()
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		action := waitForTavernActionDialog(t, fixture)
+		action := waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 		require.Equal(t, "hone", action.GetIntent().Information.Topic.Key)
 		require.NotEmpty(t, action.GetIntent().InformationPitch)
 		pressMerchantDialogKey(fixture, ebiten.KeyEscape)
@@ -484,7 +484,7 @@ func TestTavernInformationUnknownCancelSuccessRepeatAndInsufficient(t *testing.T
 		require.Equal(t, rawQuestion, dialog.GetTopicInput(), "approval cancellation must restore raw input")
 
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		action = waitForTavernActionDialog(t, fixture)
+		action = waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 		pumpMerchantWorkflowUntil(t, fixture, func() bool {
 			return dialog.GetPhase() == widgets.TavernShopBrowse
@@ -500,7 +500,7 @@ func TestTavernInformationUnknownCancelSuccessRepeatAndInsufficient(t *testing.T
 		input.Push(secondQuestion)
 		fixture.scene.updateDialogs()
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		waitForTavernActionDialog(t, fixture)
+		waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 		pumpMerchantWorkflowUntil(t, fixture, func() bool {
 			return dialog.GetPhase() == widgets.TavernShopBrowse
@@ -524,15 +524,15 @@ func TestTavernInformationUnknownCancelSuccessRepeatAndInsufficient(t *testing.T
 		input := newMerchantRuneQueue()
 		fixture.scene.appendInputChars = input.Append
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		dialog := waitForTavernDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 		completeTavernAction(t, fixture, dialog, ebiten.KeyEnter)
 		pressMerchantDialogKey(fixture, ebiten.KeyC)
 		input.Push("honesty")
 		fixture.scene.updateDialogs()
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		waitForTavernActionDialog(t, fixture)
+		waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		resultDialog := waitForTavernResultDialog(t, fixture)
+		resultDialog := waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 		require.True(t, resultDialog.IsVisible())
 		require.False(t, dialog.IsDismissed())
 		require.Equal(t, "Information Refused", resultDialog.GetView().Title)
@@ -563,14 +563,14 @@ func TestTavernProvisionPartialAndTerminalOutcomes(t *testing.T) {
 		fixture.state.PartyState.Inventory.Gold.Set(uint16(review.State.Provision.PricePerPack))
 		foodBefore := fixture.state.PartyState.Inventory.Provisions.Food.Get()
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		dialog := waitForTavernDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 		selectTavernOrderItem(t, fixture, dialog, widgets.TavernOrderProvision)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		action := waitForTavernActionDialog(t, fixture)
+		action := waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyRight)
 		require.Equal(t, 2, action.GetProvisionPackCount())
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-		resultDialog := waitForTavernResultDialog(t, fixture)
+		resultDialog := waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 		require.Equal(t, "Partial Order", resultDialog.GetView().Title)
 		require.Equal(t, widgets.TavernResultCaution, resultDialog.GetView().Tone)
 		require.Contains(t, resultDialog.GetView().Detail, "1 of 2")
@@ -601,12 +601,12 @@ func TestTavernProvisionPartialAndTerminalOutcomes(t *testing.T) {
 			fixture.state.PartyState.Inventory.Gold.Set(0)
 			fixture.state.PartyState.Inventory.Provisions.Food.Set(test.food)
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			dialog := waitForTavernDialog(t, fixture)
+			dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 			selectTavernOrderItem(t, fixture, dialog, widgets.TavernOrderProvision)
 			pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-			waitForTavernActionDialog(t, fixture)
+			waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 			pressMerchantDialogKey(fixture, ebiten.KeyEnter)
-			resultDialog := waitForTavernResultDialog(t, fixture)
+			resultDialog := waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 			require.Equal(t, test.wantTitle, resultDialog.GetView().Title)
 			require.Equal(t, widgets.TavernResultFailure, resultDialog.GetView().Tone)
 			require.False(t, dialog.IsDismissed(), "terminal result waits for acknowledgement")
@@ -632,13 +632,13 @@ func TestTavernMealAndDrinkInsufficientFundsDismiss(t *testing.T) {
 			fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantTavernBritain)
 			fixture.state.PartyState.Inventory.Gold.Set(0)
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			dialog := waitForTavernDialog(t, fixture)
+			dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 			selectTavernOrderItem(t, fixture, dialog, test.item)
 			if test.item == widgets.TavernOrderMeal {
 				action := openTavernActionDialog(t, fixture, dialog)
 				pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 				require.True(t, action.IsDismissed())
-				resultDialog := waitForTavernResultDialog(t, fixture)
+				resultDialog := waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 				require.Equal(t, "Meal Refused", resultDialog.GetView().Title)
 				pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 			} else {
@@ -722,7 +722,7 @@ func TestTavernProseUsesStableSourceRowsWithoutGameplayRNG(t *testing.T) {
 func TestArmsMerchantRouteOpensProductionDialogWithoutLinearTalk(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForArmsDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 
 	exchange := dialog.GetShell().GetExchangeView().Text
 	require.Contains(t, exchange, "Buy or Sell")
@@ -746,7 +746,7 @@ func TestHorseMerchantRoutePurchasesOneHorseAndOwnsOneManualMinute(t *testing.T)
 	horsesBefore := countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs())
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHorseDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 	price := dialog.GetQuote().Price
 	require.False(t, hasLinearTalkDialog(&fixture.scene.dialogStack))
 	completeHorsePurchase(t, fixture, dialog)
@@ -777,7 +777,7 @@ func TestHorseMerchantAllowsMountedDealer(t *testing.T) {
 	)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHorseDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 	require.Equal(t, "Horse & Rider", dialog.GetShell().GetHeaderView().ShopIdentity)
 	dialog.Dismiss()
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -796,7 +796,7 @@ func TestHorseMerchantInitialPlacementFailureShowsStableClosed(t *testing.T) {
 	})
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHorseDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 
 	require.Equal(t, widgets.HorseShopStableClosed, dialog.GetPhase())
 	require.Equal(t, "The stables are closed.", dialog.GetLatestExchange())
@@ -819,7 +819,7 @@ func TestHorseMerchantUnaffordableConfirmationUsesTerminalSourceRefusal(t *testi
 	rngBefore := fixture.state.GetRNG().Calls()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHorseDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 	completeHorsePurchase(t, fixture, dialog)
 
 	require.Equal(t, widgets.HorseShopFundsRefusal, dialog.GetPhase())
@@ -843,7 +843,7 @@ func TestHorsePurchaseChildBackAndStalePlacementBoundaries(t *testing.T) {
 		horsesBefore := countHorseTalkVehicles(fixture.state.CurrentNPCAIController.GetNpcs())
 
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		dialog := waitForHorseDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 		purchaseDialog := openHorsePurchaseDialog(t, fixture, dialog)
 		pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 		require.True(t, purchaseDialog.IsCancelled())
@@ -871,7 +871,7 @@ func TestHorsePurchaseChildBackAndStalePlacementBoundaries(t *testing.T) {
 		rngBefore := fixture.state.GetRNG().Calls()
 
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		dialog := waitForHorseDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 		purchaseDialog := openHorsePurchaseDialog(t, fixture, dialog)
 		intent := purchaseDialog.GetIntent()
 		blocker := map_units.NewNPCFriendlyVehiceNewRef(
@@ -903,7 +903,7 @@ func TestNPCAutoTalkHorseUsesSharedWorkflowWithoutSecondMinute(t *testing.T) {
 	fixture.npc.MapUnitDetails().PendingInteraction = map_units.PendingNPCInteractionTalk
 
 	require.True(t, fixture.scene.processNPCAutoTalk())
-	dialog := waitForHorseDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 	dialog.Dismiss()
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
 		return !fixture.state.EventQueueManager.HasActiveWorkflows()
@@ -961,7 +961,7 @@ func TestHorseTalkFinallyRemovesOnlyOwnedChildAndParent(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Trinsic, references.MerchantHorseTrinsic)
 	setHorseTalkCandidateTiles(t, fixture, [4]indexes.SpriteIndex{indexes.Grass})
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForHorseDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 	ownedPurchase := openHorsePurchaseDialog(t, fixture, ownedShop)
 	review, err := fixture.state.ReviewHorseShopByMerchantID(references.MerchantHorseTrinsic)
 	require.NoError(t, err)
@@ -1004,7 +1004,7 @@ func TestManualHealerTalkRepeatsFreeServicesWithinOneMinute(t *testing.T) {
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHealerDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HealerShopDialog](t, fixture)
 	require.Equal(t, "The Healers Mission", dialog.GetShell().GetHeaderView().ShopIdentity)
 	require.Equal(t, "Regina", dialog.GetShell().GetHeaderView().Owner)
 	require.False(t, hasLinearTalkDialog(&fixture.scene.dialogStack))
@@ -1043,7 +1043,7 @@ func TestManualHealerAllTreatsEveryEligibleRecipientAtomically(t *testing.T) {
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHealerDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HealerShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyA)
 	completeHealerService(t, fixture, dialog)
 
@@ -1067,11 +1067,11 @@ func TestHealerTreatmentApprovalCancelReturnsToBrowseWithoutMutation(t *testing.
 	avatar.SetStatus(party_state.Poisoned)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHealerDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HealerShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.HealerShopAwaitingApproval, dialog.GetPhase())
-	treatmentDialog := waitForHealerTreatmentDialog(t, fixture)
+	treatmentDialog := waitForMerchantDialog[*widgets.HealerTreatmentDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	require.True(t, treatmentDialog.IsCancelled())
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -1098,7 +1098,7 @@ func TestHealerInsufficientFundsReturnsToBrowseWithoutMutation(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(1)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForHealerDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.HealerShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyH)
 	completeHealerService(t, fixture, dialog)
 
@@ -1119,7 +1119,7 @@ func TestGuildResultProseUsesCapturedBuyer(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.NewMagincia, references.MerchantGuildNewMagincia)
 	fixture.state.PartyState.GetCharacter(0).Gender = party_state.Female
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	pricePerBundle := dialog.GetSelectedQuote().PricePerBundle
 
 	completeGuildPurchase(t, fixture, dialog, 1)
@@ -1140,7 +1140,7 @@ func TestGuildBatchReceiptSaturatesWithoutOverflowWarning(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(5000)
 	fixture.state.PartyState.Inventory.Provisions.Keys.Set(94)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	pricePerBundle := dialog.GetSelectedQuote().PricePerBundle
 
 	completeGuildPurchase(t, fixture, dialog, 2)
@@ -1170,7 +1170,7 @@ func TestGuildBatchReceiptAppendsFaulineiTheft(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(1000)
 	fixture.state.PartyState.Inventory.Provisions.Torches.Set(5)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	quote := dialog.GetSelectedQuote()
@@ -1199,7 +1199,7 @@ func TestGuildAuthorityErrorRemovesQuantityModalAndUsesBoundedSessionError(t *te
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 	keysBefore := fixture.state.PartyState.Inventory.Provisions.Keys.Get()
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForGuildDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	purchaseDialog := openGuildPurchaseDialog(t, fixture, dialog)
 	fixture.state.PartyState.GetCharacter(0).SetStatus(party_state.Dead)
 
@@ -1274,7 +1274,7 @@ func TestNormalizeOriginalGuildGreetingBalancesOnlyOuterQuotes(t *testing.T) {
 func TestGuildTalkFinallyRemovesOnlyOwnedDialogInstance(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.NewMagincia, references.MerchantGuildNewMagincia)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForGuildDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	ownedPurchase := openGuildPurchaseDialog(t, fixture, ownedShop)
 	decoy := widgets.NewGuildPurchaseDialog(widgets.GuildPurchaseDialogConfig{
 		Keyboard: fixture.scene.keyboard,
@@ -1299,7 +1299,7 @@ func TestGuildTalkFinallyRemovesOnlyOwnedDialogInstance(t *testing.T) {
 func TestTavernTalkFinallyRemovesOnlyOwnedDialogInstances(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantTavernBritain)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForTavernDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 	ownedAction := openTavernActionDialog(t, fixture, ownedShop)
 	review, err := fixture.state.ReviewTavernShopByMerchantID(references.MerchantTavernBritain)
 	require.NoError(t, err)
@@ -1333,7 +1333,7 @@ func TestArmsNestedTradeCancellationReturnsToOwningShop(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Bow)
 	trade := openArmsTradeDialog(t, fixture, shop)
 	require.Equal(t, 2, fixture.scene.dialogStack.Count())
@@ -1360,7 +1360,7 @@ func TestManualArmsTalkRepeatedBatchBuySellModeSwitchesOwnOneMinute(t *testing.T
 	fixture.state.PartyState.Inventory.Equipment.Set(references.Bow, 2)
 	fixture.state.PartyState.GetCharacter(0).SetEquippedItem(references.SlotWeapon, references.Bow)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Bow)
 	buyQuote := armsBuyRow(t, shop, references.Bow)
 	require.Equal(t, uint16(1), buyQuote.Readied)
@@ -1415,7 +1415,7 @@ func TestArmsAmmunitionPurchaseRefillsAndReportsAggregateResult(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(1000)
 	fixture.state.PartyState.Inventory.Equipment.Set(references.Arrows, 5)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Arrows)
 	quote := armsBuyRow(t, shop, references.Arrows)
 
@@ -1439,7 +1439,7 @@ func TestArmsSellStateExcludesWornOnlyEquipment(t *testing.T) {
 	fixture.state.PartyState.Inventory.Equipment.Set(references.Dagger, 1)
 	fixture.state.PartyState.GetCharacter(0).SetEquippedItem(references.SlotWeapon, references.LongSword)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyS)
 
 	for _, row := range shop.GetRows() {
@@ -1455,7 +1455,7 @@ func TestArmsBuyCapacityRefusalReturnsToBuy(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 	fixture.state.PartyState.Inventory.Gold.Set(1000)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Bow)
 	trade := openArmsTradeDialog(t, fixture, shop)
 	fixture.state.PartyState.Inventory.Equipment.Set(references.Bow, 99)
@@ -1485,7 +1485,7 @@ func TestArmsCurrentBuyBlockersUseMerchantRefusalsBeforeTradeModal(t *testing.T)
 		fixture.state.PartyState.Inventory.Gold.Set(1000)
 		fixture.state.PartyState.Inventory.Equipment.Set(references.Arrows, 99)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForArmsDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 		selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Arrows)
 
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
@@ -1504,7 +1504,7 @@ func TestArmsCurrentBuyBlockersUseMerchantRefusalsBeforeTradeModal(t *testing.T)
 		fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 		fixture.state.PartyState.Inventory.Gold.Set(0)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForArmsDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 
@@ -1527,7 +1527,7 @@ func TestArmsInsufficientFundsRefusalEndsTalk(t *testing.T) {
 			fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 			fixture.state.PartyState.Inventory.Gold.Set(1000)
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			shop := waitForArmsDialog(t, fixture)
+			shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 			selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Bow)
 			openArmsTradeDialog(t, fixture, shop)
 			fixture.state.PartyState.Inventory.Gold.Set(0)
@@ -1562,7 +1562,7 @@ func TestArmsSellRefusalTerminalAndNonterminalPolicies(t *testing.T) {
 				fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 				fixture.state.PartyState.Inventory.Equipment.Set(references.Arrows, 5)
 				fixture.scene.StartTalkWorkflow(fixture.direction)
-				shop := waitForArmsDialog(t, fixture)
+				shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 				selectArmsEquipment(t, fixture, shop, widgets.ArmsShopSell, references.Arrows)
 				trade := openArmsTradeDialog(t, fixture, shop)
 				require.Equal(t, widgets.ArmsTradeUsedAmmunitionRefusal, trade.GetRefusalKind())
@@ -1585,7 +1585,7 @@ func TestArmsSellRefusalTerminalAndNonterminalPolicies(t *testing.T) {
 		fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 		fixture.state.PartyState.Inventory.Equipment.Set(references.JewelShield, 1)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForArmsDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 		selectArmsEquipment(t, fixture, shop, widgets.ArmsShopSell, references.JewelShield)
 		trade := openArmsTradeDialog(t, fixture, shop)
 		require.Equal(t, widgets.ArmsTradeZeroPriceRefusal, trade.GetRefusalKind())
@@ -1609,7 +1609,7 @@ func TestArmsSellRefusalTerminalAndNonterminalPolicies(t *testing.T) {
 		fixture.state.PartyState.Inventory.Gold.Set(100)
 		fixture.state.PartyState.Inventory.Equipment.Set(references.LongSword, 2)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForArmsDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 		selectArmsEquipment(t, fixture, shop, widgets.ArmsShopSell, references.LongSword)
 		trade := openArmsTradeDialog(t, fixture, shop)
 		require.Equal(t, widgets.ArmsTradeNoRefusal, trade.GetRefusalKind())
@@ -1650,7 +1650,7 @@ func TestArmsPreviewBuyAndSellStopBeforeAuthorityWithoutMutation(t *testing.T) {
 	beforeRNG := fixture.state.GetRNG().Calls()
 
 	fixture.scene.startArmsMerchantPreviewWorkflow(review)
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, shop, widgets.ArmsShopBuy, references.Bow)
 	completeArmsTrade(t, fixture, shop, 2)
 	require.Contains(t, shop.GetReceiptText(), "gold and equipment are unchanged")
@@ -1678,7 +1678,7 @@ func TestNPCAutoTalkArmsUsesSharedWorkflowWithoutSecondMinute(t *testing.T) {
 	fixture.npc.MapUnitDetails().PendingInteraction = map_units.PendingNPCInteractionTalk
 
 	require.True(t, fixture.scene.processNPCAutoTalk())
-	shop := waitForArmsDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	require.Equal(t, references.AiType(references.Wander3), references.AiType(fixture.npc.NPCReference.Schedule.Ai[1]))
 	shop.Dismiss()
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -1725,7 +1725,7 @@ func TestArmsProseResolutionIsCanonicalDeterministicAndDoesNotConsumeRNG(t *test
 func TestArmsTalkFinallyRemovesOnlyOwnedDialogInstances(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantArmsBritain)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForArmsDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 	selectArmsEquipment(t, fixture, ownedShop, widgets.ArmsShopBuy, references.Bow)
 	ownedTrade := openArmsTradeDialog(t, fixture, ownedShop)
 	decoy := widgets.NewArmsTradeDialog(widgets.ArmsTradeDialogConfig{
@@ -1766,7 +1766,7 @@ func TestManualReagentTalkRepeatedPurchasesRefreshWithinOneMinute(t *testing.T) 
 	fixture.state.PartyState.Inventory.Gold.Set(500)
 	fixture.state.PartyState.Inventory.Reagent.Set(references.SpiderSilk, 0)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForReagentDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	selectReagent(t, fixture, shop, references.SpiderSilk)
 	quote := shop.GetSelectedQuote()
 
@@ -1821,7 +1821,7 @@ func TestMerchantTalkFixtureShiftDoesNotLeakIntoScriptedNavigation(t *testing.T)
 				})
 			}
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			shop := waitForReagentDialog(t, fixture)
+			shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 			quotes := shop.GetCatalogQuotes()
 			require.GreaterOrEqual(t, len(quotes), 2)
 			require.Equal(t, quotes[0].Reagent, shop.GetSelectedReagent())
@@ -1850,7 +1850,7 @@ func TestReagentPurchaseCancelReturnsToBrowseWithoutMutation(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(500)
 	fixture.state.PartyState.Inventory.Reagent.Set(references.Ginseng, 7)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForReagentDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	selectReagent(t, fixture, shop, references.Ginseng)
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 	reagentBefore := fixture.state.PartyState.Inventory.Reagent.Get(references.Ginseng)
@@ -1882,7 +1882,7 @@ func TestReagentAggregatePurchaseRefreshesSaturationAndCompleteReceipt(t *testin
 	fixture.state.PartyState.Inventory.Gold.Set(100)
 	fixture.state.PartyState.Inventory.Reagent.Set(references.BloodMoss, 94)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForReagentDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	selectReagent(t, fixture, shop, references.BloodMoss)
 	quote := shop.GetSelectedQuote()
 	require.Equal(t, uint16(2), quote.BundleQuantity)
@@ -1936,7 +1936,7 @@ func TestReagentBlockedOfferDoesNotOpenPurchaseChild(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(500)
 	fixture.state.PartyState.Inventory.Reagent.Set(references.Ginseng, 99)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForReagentDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	selectReagent(t, fixture, shop, references.Ginseng)
 	require.Equal(t, game_state.ReagentOfferBlockInventoryFull, shop.GetSelectedQuote().BlockReason)
 
@@ -1957,7 +1957,7 @@ func TestReagentAuthorityErrorRemovesChildAndUsesBoundedSessionError(t *testing.
 	fixture.state.PartyState.Inventory.Gold.Set(500)
 	fixture.state.PartyState.Inventory.Reagent.Set(references.Ginseng, 7)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForReagentDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	selectReagent(t, fixture, shop, references.Ginseng)
 	purchase := openReagentPurchaseDialog(t, fixture, shop)
 	fixture.state.PartyState.GetCharacter(0).SetStatus(party_state.Dead)
@@ -2046,7 +2046,7 @@ func TestReagentPreviewConfirmedRequestIsPureAndKeepsExistingSession(t *testing.
 	beforeInventory := fixture.state.PartyState.Inventory.LockerSnapshot()
 
 	fixture.scene.startReagentMerchantPreviewWorkflow(review)
-	shop := waitForReagentDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	require.True(t, shop.IsPreview())
 	require.Contains(t, shop.GetDetailText(), "PREVIEW")
 	selectReagent(t, fixture, shop, references.SpiderSilk)
@@ -2081,7 +2081,7 @@ func TestReagentPreviewConfirmedRequestIsPureAndKeepsExistingSession(t *testing.
 func TestReagentTalkFinallyRemovesOnlyOwnedChildThenParent(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Yew, references.MerchantReagentYew)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForReagentDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 	ownedPurchase := openReagentPurchaseDialog(t, fixture, ownedShop)
 	review, err := fixture.state.ReviewReagentShopByMerchantID(references.MerchantReagentYew)
 	require.NoError(t, err)
@@ -2118,7 +2118,7 @@ func TestShipMerchantRouteOpensProductionShowroomAndOwnsOneManualMinute(t *testi
 	fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForShipDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 
 	require.Equal(t, "Island Shipwrights", shop.GetShell().GetHeaderView().ShopIdentity)
 	require.Equal(t, "Bantral", shop.GetShell().GetHeaderView().Owner)
@@ -2148,7 +2148,7 @@ func TestShipFirstDeliveryDispatchReturnsToShowroom(t *testing.T) {
 			fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 			fixture.state.PartyState.Inventory.Gold.Set(2000)
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			shop := waitForShipDialog(t, fixture)
+			shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 			if test.selectSkiff {
 				pressMerchantDialogKey(fixture, ebiten.KeyRight)
 			}
@@ -2156,7 +2156,7 @@ func TestShipFirstDeliveryDispatchReturnsToShowroom(t *testing.T) {
 			price := shop.GetSelectedQuote().Price
 
 			completeShipPurchase(t, fixture, shop)
-			dispatch := waitForShipDispatchDialog(t, fixture)
+			dispatch := waitForMerchantDialog[*widgets.ShipDispatchDialog](t, fixture)
 			require.Equal(t, widgets.ShipShopSuccessReceipt, shop.GetPhase())
 			require.Equal(t, 2, fixture.scene.dialogStack.Count())
 			require.Equal(t, goldBefore-uint16(price), fixture.state.PartyState.Inventory.Gold.Get())
@@ -2190,9 +2190,9 @@ func TestShipFirstDeliveryDispatchTravelCleansTalkBeforeEscort(t *testing.T) {
 	fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 	fixture.state.PartyState.Inventory.Gold.Set(2000)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForShipDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 	completeShipPurchase(t, fixture, shop)
-	dispatch := waitForShipDispatchDialog(t, fixture)
+	dispatch := waitForMerchantDialog[*widgets.ShipDispatchDialog](t, fixture)
 	review := dispatch.GetState().Travel
 	units := shipTalkOverworldUnits(t, fixture)
 	unitCount := len(*units)
@@ -2228,11 +2228,11 @@ func TestShipPersistentHarbourTravelApprovalCancelThenTravel(t *testing.T) {
 	)
 	require.NoError(t, err)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForShipDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 	require.Equal(t, game_state.ShipBerthMooredFrigate, shop.GetState().Berth.State)
 
 	pressMerchantDialogKey(fixture, ebiten.KeyD)
-	firstApproval := waitForShipTravelDialog(t, fixture)
+	firstApproval := waitForMerchantDialog[*widgets.ShipTravelDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	require.True(t, firstApproval.IsCancelled())
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -2242,7 +2242,7 @@ func TestShipPersistentHarbourTravelApprovalCancelThenTravel(t *testing.T) {
 	require.Empty(t, fixture.callbacks.TimeAdvanced())
 
 	pressMerchantDialogKey(fixture, ebiten.KeyD)
-	approval := waitForShipTravelDialog(t, fixture)
+	approval := waitForMerchantDialog[*widgets.ShipTravelDialog](t, fixture)
 	review := approval.GetIntent().Review
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -2264,9 +2264,9 @@ func TestShipHarbourTravelStaleArrivalRefreshesBrowseWithoutExtraTime(t *testing
 	_, err := fixture.state.PlaceVehicleAtBritanniaDock(references.FrigateVehicle, references.Jhelom, false)
 	require.NoError(t, err)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	shop := waitForShipDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyD)
-	approval := waitForShipTravelDialog(t, fixture)
+	approval := waitForMerchantDialog[*widgets.ShipTravelDialog](t, fixture)
 	review := approval.GetIntent().Review
 	blocker := map_units.NewNPCFriendlyVehiceNewRef(
 		references.CarpetVehicle,
@@ -2298,7 +2298,7 @@ func TestShipPurchaseFundsStaleRefreshAndLoadedSkiffBoundaries(t *testing.T) {
 		fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 		fixture.state.PartyState.Inventory.Gold.Set(1)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForShipDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 		completeShipPurchase(t, fixture, shop)
 
 		require.Equal(t, widgets.ShipShopFundsRefusal, shop.GetPhase())
@@ -2317,7 +2317,7 @@ func TestShipPurchaseFundsStaleRefreshAndLoadedSkiffBoundaries(t *testing.T) {
 		fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 		fixture.state.PartyState.Inventory.Gold.Set(2000)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForShipDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 		purchase := openShipPurchaseDialog(t, fixture, shop)
 		fixture.state.PartyState.Inventory.Gold.Set(1999)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
@@ -2349,7 +2349,7 @@ func TestShipPurchaseFundsStaleRefreshAndLoadedSkiffBoundaries(t *testing.T) {
 		require.NoError(t, err)
 		fixture.state.PartyState.Inventory.Gold.Set(1000)
 		fixture.scene.StartTalkWorkflow(fixture.direction)
-		shop := waitForShipDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyRight)
 		require.Equal(t, references.SkiffVehicle, shop.GetSelectedVehicle())
 		completeShipPurchase(t, fixture, shop)
@@ -2380,7 +2380,7 @@ func TestShipPreviewPurchaseAndTravelStopWithoutGameplayMutation(t *testing.T) {
 		beforeRNG := fixture.state.GetRNG().Calls()
 
 		fixture.scene.startShipMerchantPreviewWorkflow(review)
-		shop := waitForShipDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 		require.True(t, shop.IsPreview())
 		completeShipPurchase(t, fixture, shop)
 
@@ -2414,9 +2414,9 @@ func TestShipPreviewPurchaseAndTravelStopWithoutGameplayMutation(t *testing.T) {
 		beforeRNG := fixture.state.GetRNG().Calls()
 
 		fixture.scene.startShipMerchantPreviewWorkflow(review)
-		shop := waitForShipDialog(t, fixture)
+		shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyD)
-		approval := waitForShipTravelDialog(t, fixture)
+		approval := waitForMerchantDialog[*widgets.ShipTravelDialog](t, fixture)
 		require.True(t, approval.IsPreview())
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 		pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -2444,9 +2444,9 @@ func TestNPCAutoTalkShipTravelPreservesNoSecondTalkMinute(t *testing.T) {
 	fixture.npc.MapUnitDetails().PendingInteraction = map_units.PendingNPCInteractionTalk
 
 	require.True(t, fixture.scene.processNPCAutoTalk())
-	shop := waitForShipDialog(t, fixture)
+	shop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyD)
-	waitForShipTravelDialog(t, fixture)
+	waitForMerchantDialog[*widgets.ShipTravelDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
 		return !fixture.state.EventQueueManager.HasActiveWorkflows()
@@ -2508,7 +2508,7 @@ func TestShipProseUsesDeterministicSourceFamiliesWithoutGameplayRNG(t *testing.T
 func TestShipTalkFinallyRemovesOnlyOwnedPurchaseAndParent(t *testing.T) {
 	fixture := newShipMerchantTalkFixture(t, references.Jhelom, references.MerchantShipJhelom)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForShipDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 	ownedPurchase := openShipPurchaseDialog(t, fixture, ownedShop)
 	review, err := fixture.state.ReviewShipShopByMerchantID(references.MerchantShipJhelom)
 	require.NoError(t, err)
@@ -2550,7 +2550,7 @@ func TestInnMerchantRouteOpensProductionDialogWithDeterministicProse(t *testing.
 	rngBefore := fixture.state.GetRNG().Calls()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 
 	require.Equal(t, "The Wayfarer Inn", dialog.GetShell().GetHeaderView().ShopIdentity)
 	require.Equal(t, "Donya", dialog.GetShell().GetHeaderView().Owner)
@@ -2574,7 +2574,7 @@ func TestInnActionCancellationReturnsToSameModeWithoutMutation(t *testing.T) {
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyL)
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	action := openInnActionDialog(t, fixture, dialog)
@@ -2605,7 +2605,7 @@ func TestInnRestNoVacancyBlocksBeforeApproval(t *testing.T) {
 	dateBefore := fixture.state.DateTime
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	require.Equal(t, game_state.InnRestBlockNoVacancy, dialog.GetState().Rest.BlockReason)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 
@@ -2655,7 +2655,7 @@ func TestInnPickupDeadAndPartyFullBlockBeforeApproval(t *testing.T) {
 			rngBefore := fixture.state.GetRNG().Calls()
 
 			fixture.scene.StartTalkWorkflow(fixture.direction)
-			dialog := waitForInnDialog(t, fixture)
+			dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 			pressMerchantDialogKey(fixture, ebiten.KeyP)
 			pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 
@@ -2685,7 +2685,7 @@ func TestInnRestInsufficientFundsIsConfirmableExactTerminalRefusal(t *testing.T)
 	rngBefore := fixture.state.GetRNG().Calls()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	require.False(t, dialog.GetState().Rest.Affordable)
 	completeInnAction(t, fixture, dialog)
 	overlay := waitForMerchantOverlay(t, fixture)
@@ -2723,7 +2723,7 @@ func TestInnRestSuccessUsesAuthorityReceiptThenTerminalFeedback(t *testing.T) {
 	goldBefore := fixture.state.PartyState.Inventory.Gold.Get()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	quote := dialog.GetState().Rest
 	completeInnAction(t, fixture, dialog)
 	require.NotEmpty(t, fixture.callbacks.MapFadeLevels)
@@ -2769,7 +2769,7 @@ func TestInnLeaveAndPickupRefreshSameModesWithExactTheftReceipt(t *testing.T) {
 	leftName := fixture.state.PartyState.GetCharacter(1).GetNameAsString()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyL)
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	completeInnAction(t, fixture, dialog)
@@ -2818,7 +2818,7 @@ func TestInnPickupGuardRefusalIsTerminalWithoutPaymentOrRosterChange(t *testing.
 	rngBefore := fixture.state.GetRNG().Calls()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyP)
 	row := dialog.GetPickupRows()[0]
 	require.False(t, row.Affordable)
@@ -2857,7 +2857,7 @@ func TestInnPickupPoisonDeathIsDisclosedAndRemainsInPickupMode(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(500)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyP)
 	completeInnAction(t, fixture, dialog)
 
@@ -2884,7 +2884,7 @@ func TestInnRestAllDeadResultDisclosesDeathBeforeCleanHandoff(t *testing.T) {
 	dateBefore := fixture.state.DateTime
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	completeInnAction(t, fixture, dialog)
 	pumpInnRestFeedbackUntilDone(t, fixture)
 	overlay := waitForMerchantOverlay(t, fixture)
@@ -2917,7 +2917,7 @@ func TestInnAllDeadPartyCanRemainAndPickupLivingGuest(t *testing.T) {
 	fixture.state.PartyState.Inventory.Gold.Set(1000)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyL)
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	completeInnAction(t, fixture, dialog)
@@ -2946,7 +2946,7 @@ func TestInnAllDeadTerminalExitCleansUpBeforeDeathHandoffAndSkipsTalkMinute(t *t
 	dateBefore := fixture.state.DateTime
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForInnDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyL)
 	pressMerchantDialogKey(fixture, ebiten.KeyDown)
 	completeInnAction(t, fixture, dialog)
@@ -2968,7 +2968,7 @@ func TestInnTalkFinallyRemovesOnlyOwnedActionAndParent(t *testing.T) {
 	fixture := newMerchantTalkFixture(t, references.Britain, references.MerchantInnBritain)
 	prepareInnTalkRoster(fixture, 2)
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	ownedShop := waitForInnDialog(t, fixture)
+	ownedShop := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 	ownedAction := openInnActionDialog(t, fixture, ownedShop)
 	review, err := fixture.state.ReviewInnShopByMerchantID(references.MerchantInnBritain)
 	require.NoError(t, err)
@@ -3129,427 +3129,6 @@ func setMerchantTalkDesiredSlot(
 	t.Fatalf("merchant schedule has no hour for desired slot %d", wanted)
 }
 
-func waitForGuildDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.GuildShopDialog {
-	t.Helper()
-
-	var dialog *widgets.GuildShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.GuildShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForArmsDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.ArmsShopDialog {
-	t.Helper()
-
-	var dialog *widgets.ArmsShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ArmsShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForHealerDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.HealerShopDialog {
-	t.Helper()
-
-	var dialog *widgets.HealerShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.HealerShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForReagentDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.ReagentShopDialog {
-	t.Helper()
-
-	var dialog *widgets.ReagentShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ReagentShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForHorseDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.HorseShopDialog {
-	t.Helper()
-
-	var dialog *widgets.HorseShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.HorseShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForShipDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.ShipShopDialog {
-	t.Helper()
-
-	var dialog *widgets.ShipShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ShipShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForInnDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.InnShopDialog {
-	t.Helper()
-
-	var dialog *widgets.InnShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.InnShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForTavernDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.TavernShopDialog {
-	t.Helper()
-
-	var dialog *widgets.TavernShopDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.TavernShopDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForTavernActionDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.TavernActionDialog {
-	t.Helper()
-
-	var dialog *widgets.TavernActionDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.TavernActionDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForTavernResultDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.TavernResultDialog {
-	t.Helper()
-
-	var dialog *widgets.TavernResultDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.TavernResultDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForTavernNoticeDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.TavernAdviceNotice {
-	t.Helper()
-
-	var dialog *widgets.TavernAdviceNotice
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.TavernAdviceNotice); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForInnActionDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.InnActionDialog {
-	t.Helper()
-
-	var dialog *widgets.InnActionDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.InnActionDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForHealerTreatmentDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.HealerTreatmentDialog {
-	t.Helper()
-
-	var dialog *widgets.HealerTreatmentDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.HealerTreatmentDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForArmsTradeDialog(t *testing.T, fixture *merchantTalkFixture) *widgets.ArmsTradeDialog {
-	t.Helper()
-
-	var dialog *widgets.ArmsTradeDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ArmsTradeDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForGuildPurchaseDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.GuildPurchaseDialog {
-	t.Helper()
-
-	var dialog *widgets.GuildPurchaseDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.GuildPurchaseDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForReagentPurchaseDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.ReagentPurchaseDialog {
-	t.Helper()
-
-	var dialog *widgets.ReagentPurchaseDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ReagentPurchaseDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForHorsePurchaseDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.HorsePurchaseDialog {
-	t.Helper()
-
-	var dialog *widgets.HorsePurchaseDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.HorsePurchaseDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForShipPurchaseDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.ShipPurchaseDialog {
-	t.Helper()
-
-	var dialog *widgets.ShipPurchaseDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ShipPurchaseDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForShipDispatchDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.ShipDispatchDialog {
-	t.Helper()
-
-	var dialog *widgets.ShipDispatchDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ShipDispatchDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
-func waitForShipTravelDialog(
-	t *testing.T,
-	fixture *merchantTalkFixture,
-) *widgets.ShipTravelDialog {
-	t.Helper()
-
-	var dialog *widgets.ShipTravelDialog
-	pumpMerchantWorkflowUntil(t, fixture, func() bool {
-		for _, widget := range fixture.scene.dialogStack.Dialogs() {
-			if candidate, ok := widget.(*widgets.ShipTravelDialog); ok {
-				dialog = candidate
-
-				return true
-			}
-		}
-
-		return false
-	})
-	require.NotNil(t, dialog)
-
-	return dialog
-}
-
 func waitForMerchantOverlay(t *testing.T, fixture *merchantTalkFixture) *widgets.OverlayDialog {
 	t.Helper()
 
@@ -3575,42 +3154,42 @@ func waitForConcreteMerchantDialog(
 	t.Helper()
 
 	if family == references.MerchantFamilyGuild {
-		dialog := waitForGuildDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyArms {
-		dialog := waitForArmsDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.ArmsShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyHealer {
-		dialog := waitForHealerDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.HealerShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyReagent {
-		dialog := waitForReagentDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.ReagentShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyHorse {
-		dialog := waitForHorseDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.HorseShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyShip {
-		dialog := waitForShipDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.ShipShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyInn {
-		dialog := waitForInnDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.InnShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
 	if family == references.MerchantFamilyTavern {
-		dialog := waitForTavernDialog(t, fixture)
+		dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 
 		return dialog.GetShell(), dialog.Dismiss
 	}
@@ -3666,7 +3245,7 @@ func openTavernActionDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.TavernShopAwaitingApproval, dialog.GetPhase())
 
-	return waitForTavernActionDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.TavernActionDialog](t, fixture)
 }
 
 func completeTavernAction(
@@ -3681,7 +3260,7 @@ func completeTavernAction(
 	require.True(t, action.IsDismissed())
 	if !action.IsPreview() && (action.GetIntent().Action == widgets.TavernActionMeal ||
 		action.GetIntent().Action == widgets.TavernActionProvision) {
-		result := waitForTavernResultDialog(t, fixture)
+		result := waitForMerchantDialog[*widgets.TavernResultDialog](t, fixture)
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 		require.True(t, result.IsDismissed())
 		pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -3712,7 +3291,7 @@ func openInnActionDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.InnShopAwaitingApproval, dialog.GetPhase())
 
-	return waitForInnActionDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.InnActionDialog](t, fixture)
 }
 
 func completeInnAction(
@@ -3746,7 +3325,7 @@ func completeHealerService(
 		pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	}
 	require.Equal(t, widgets.HealerShopAwaitingApproval, dialog.GetPhase())
-	treatmentDialog := waitForHealerTreatmentDialog(t, fixture)
+	treatmentDialog := waitForMerchantDialog[*widgets.HealerTreatmentDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.True(t, treatmentDialog.IsDismissed())
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
@@ -3764,7 +3343,7 @@ func openGuildPurchaseDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.GuildShopAwaitingQuantity, dialog.GetPhase())
 
-	return waitForGuildPurchaseDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.GuildPurchaseDialog](t, fixture)
 }
 
 func selectReagent(
@@ -3793,7 +3372,7 @@ func openReagentPurchaseDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.ReagentShopAwaitingQuantity, dialog.GetPhase())
 
-	return waitForReagentPurchaseDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.ReagentPurchaseDialog](t, fixture)
 }
 
 func completeReagentPurchase(
@@ -3831,7 +3410,7 @@ func openHorsePurchaseDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.HorseShopAwaitingApproval, dialog.GetPhase())
 
-	return waitForHorsePurchaseDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.HorsePurchaseDialog](t, fixture)
 }
 
 func completeHorsePurchase(
@@ -3861,7 +3440,7 @@ func openShipPurchaseDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.ShipShopAwaitingPurchaseApproval, dialog.GetPhase())
 
-	return waitForShipPurchaseDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.ShipPurchaseDialog](t, fixture)
 }
 
 func completeShipPurchase(
@@ -3936,7 +3515,7 @@ func openArmsTradeDialog(
 	pressMerchantDialogKey(fixture, ebiten.KeyEnter)
 	require.Equal(t, widgets.ArmsShopAwaitingTrade, dialog.GetPhase())
 
-	return waitForArmsTradeDialog(t, fixture)
+	return waitForMerchantDialog[*widgets.ArmsTradeDialog](t, fixture)
 }
 
 func completeArmsTrade(
@@ -4088,6 +3667,29 @@ func countHorseTalkVehicles(units *map_units.MapUnits) int {
 	}
 
 	return count
+}
+
+// waitForMerchantDialog pumps the merchant workflow until a dialog of type D is
+// on the stack and returns it.
+func waitForMerchantDialog[D any](t *testing.T, fixture *merchantTalkFixture) D {
+	t.Helper()
+
+	var dialog D
+	found := false
+	pumpMerchantWorkflowUntil(t, fixture, func() bool {
+		for _, widget := range fixture.scene.dialogStack.Dialogs() {
+			if candidate, ok := widget.(D); ok {
+				dialog, found = candidate, true
+
+				return true
+			}
+		}
+
+		return false
+	})
+	require.True(t, found)
+
+	return dialog
 }
 
 func pumpMerchantWorkflowUntil(

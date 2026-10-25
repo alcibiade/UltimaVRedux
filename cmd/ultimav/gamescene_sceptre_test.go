@@ -11,6 +11,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 	"github.com/bradhannah/UltimaVRedux/internal/text"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -36,7 +37,7 @@ func TestSurfaceSceptreClearsBarriersWithoutDirectionAndCompletesTurn(t *testing
 	state.SystemCallbacks.Flow.Items.StartSceptreWorkflow = scene.startSceptreWorkflow
 
 	scene.StartUseWorkflow()
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 	drainCombatUseWorkflow(t, scene)
 	drainSceptreWorkflow(t, scene)

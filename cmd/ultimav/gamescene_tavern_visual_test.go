@@ -12,6 +12,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
 func TestTavernMealTableOverlayRendersNorthSignalAndTracksMapVisit(t *testing.T) {
@@ -27,7 +28,7 @@ func TestTavernMealTableOverlayRendersNorthSignalAndTracksMapVisit(t *testing.T)
 	layer.UnSetTileByLayer(map_state.MapOverrideLayer, south)
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	dialog := waitForTavernDialog(t, fixture)
+	dialog := waitForMerchantDialog[*widgets.TavernShopDialog](t, fixture)
 	completeTavernAction(t, fixture, dialog, ebiten.KeyEnter)
 	overlay := fixture.scene.currentTavernMealTableOverlay()
 	require.NotNil(t, overlay)

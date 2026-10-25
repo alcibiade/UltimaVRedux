@@ -11,6 +11,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	beradrng "github.com/bradhannah/berad-sdk/modules/berad-rng"
 )
 
@@ -154,7 +155,7 @@ func TestCombatAreaSpellFullWorkflowPaysResolvesAndCompletesOnce(t *testing.T) {
 			// Exercise the production selector, payment, effect dispatch, and
 			// cleanup; never call a spell effect separately on the actual scene.
 			scene.startSpellCastingWorkflow()
-			dialog := waitForProductionSpellDialog(t, scene)
+			dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, dialog, test.keys)
 			require.Equal(t, test.spell, dialog.GetSelectedSpell())
 			assert.Equal(t, byte(30), caster.GetCurrentMp())

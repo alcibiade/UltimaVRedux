@@ -36,7 +36,7 @@ func TestSmallMapUseSelectorDispatchesEachSelectedShard(t *testing.T) {
 			}
 
 			scene.smallMapInputHandler(ebiten.KeyU)
-			dialog := waitForShardItemDialog(t, scene)
+			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			dialog.HandleEnter()
 			drainUseItemWorkflow(t, scene)
 
@@ -56,7 +56,7 @@ func TestSmallMapUseSelectorCancellationDoesNotQueueOrConsumeShard(t *testing.T)
 	}
 
 	scene.smallMapInputHandler(ebiten.KeyU)
-	dialog := waitForShardItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.Dismiss()
 	drainUseItemWorkflow(t, scene)
 
@@ -83,7 +83,7 @@ func TestSmallMapYellResolvesTurnAfterSubmittedResult(t *testing.T) {
 			scene.smallMapInputHandler(ebiten.KeyY)
 
 			assert.Equal(t, before, scene.gameState.DateTime, "Yell must wait for submitted input before resolving the turn")
-			dialog := waitForSmallMapYellDialog(t, scene)
+			dialog := waitForTopModal[*widgets.InputBox](t, scene)
 			submitSmallMapYell(t, scene, dialog, test.word)
 			drainSmallMapYellWorkflow(t, scene)
 
@@ -360,34 +360,6 @@ func clearShardUseTestInventory(state *game_state.GameState) {
 		state.PartyState.Inventory.Moonstones.Set(moonstone, 0)
 	}
 	state.PartyState.Inventory.Provisions.SkullKeys.Set(0)
-}
-
-func waitForShardItemDialog(t *testing.T, scene *GameScene) *widgets.ItemSelectionDialog {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.ItemSelectionDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("Shard item selection dialog was not shown")
-
-	return nil
-}
-
-func waitForSmallMapYellDialog(t *testing.T, scene *GameScene) *widgets.InputBox {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.InputBox); ok {
-			return dialog
-		}
-	}
-	t.Fatal("small-map Yell dialog was not shown")
-
-	return nil
 }
 
 func submitSmallMapYell(t *testing.T, scene *GameScene, dialog *widgets.InputBox, word string) {

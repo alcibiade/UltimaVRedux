@@ -10,6 +10,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	ucolor "github.com/bradhannah/UltimaVRedux/pkg/color"
 )
 
@@ -174,7 +175,7 @@ func TestCombatRepelAndFearCastsFinishTheCombatActionOnce(t *testing.T) {
 			expected.FinishCombatAction()
 
 			scene.startSpellCastingWorkflow()
-			dialog := waitForProductionSpellDialog(t, scene)
+			dialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, dialog, test.keys)
 			require.Equal(t, test.spell, dialog.GetSelectedSpell())
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)

@@ -30,7 +30,7 @@ func TestCombatSkullKeyPickerDispatchAndOneAction(t *testing.T) {
 				before := snapshotBlockedCombatState(t, scene.gameState)
 				commits := scene.gameState.CastUseCommitSequence()
 				scene.combatMapInputHandler(ebiten.KeyU)
-				dialog := waitForCombatItemDialog(t, scene)
+				dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 				dialog.HandleEnter()
 				dialog.HandleEnter()
 				waitForUseAuthorityDialog(t, scene)
@@ -78,7 +78,7 @@ func TestCombatKeyAndWatchCancellationAndShutdownAreFreeBeforeCommit(t *testing.
 				before := snapshotBlockedCombatState(t, scene.gameState)
 				commits := scene.gameState.CastUseCommitSequence()
 				scene.combatMapInputHandler(ebiten.KeyU)
-				dialog := waitForCombatItemDialog(t, scene)
+				dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 				switch exit {
 				case "menu cancel":
 					dialog.Dismiss()
@@ -112,7 +112,7 @@ func TestCombatKeyAndWatchCancellationDoesNotCompleteUnrelatedCommit(t *testing.
 	for _, item := range []references.Item{references.SkullKeys, references.PocketWatch} {
 		scene, _ := newCombatKeyWatchScene(t, item, false)
 		scene.combatMapInputHandler(ebiten.KeyU)
-		dialog := waitForCombatItemDialog(t, scene)
+		dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 		scene.gameState.CommitCastUseAttempt()
 		commits := scene.gameState.CastUseCommitSequence()
 		before := snapshotBlockedCombatState(t, scene.gameState)
@@ -127,7 +127,7 @@ func TestCombatKeyAndWatchCancellationDoesNotCompleteUnrelatedCommit(t *testing.
 func TestCombatSkullKeyInvalidatedPromptCleansUpWithoutMoreInput(t *testing.T) {
 	scene, _ := newCombatKeyWatchScene(t, references.SkullKeys, false)
 	scene.combatMapInputHandler(ebiten.KeyU)
-	waitForCombatItemDialog(t, scene).HandleEnter()
+	waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 	waitForUseAuthorityDialog(t, scene)
 	changeCombatKeyWatchScene(t, scene, references.SkullKeys, "encounter")
 	before := snapshotBlockedCombatState(t, scene.gameState)
@@ -146,7 +146,7 @@ func TestCombatSkullKeyDirectionRejectsStaleOwnerOrStock(t *testing.T) {
 			scene, _ := newCombatKeyWatchScene(t, references.SkullKeys, false)
 			setProductionCombatPushTerrain(scene.gameState, references.Position{X: 5, Y: 4}, indexes.MagicLockDoor)
 			scene.combatMapInputHandler(ebiten.KeyU)
-			waitForCombatItemDialog(t, scene).HandleEnter()
+			waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 			waitForUseAuthorityDialog(t, scene)
 			changeCombatKeyWatchScene(t, scene, references.SkullKeys, change)
 			before := snapshotBlockedCombatState(t, scene.gameState)
@@ -167,7 +167,7 @@ func TestCombatPocketWatchPickerAwaitsDismissalBeforeOneAction(t *testing.T) {
 	expected, expectedCallbacks := newCombatKeyWatchScene(t, references.PocketWatch, false)
 	commits := scene.gameState.CastUseCommitSequence()
 	scene.combatMapInputHandler(ebiten.KeyU)
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	// The clock is read at execution, not when the item picker was opened.
 	for _, candidate := range []*GameScene{scene, expected} {
 		candidate.gameState.DateTime.Hour, candidate.gameState.DateTime.Minute = 23, 47
@@ -241,7 +241,7 @@ func TestCombatPocketWatchInvalidatedDisplayCleansUpWithoutCompletingReplacement
 			t.Run(fmt.Sprintf("%s/shutdown=%v", change, shutdown), func(t *testing.T) {
 				scene, _ := newCombatKeyWatchScene(t, references.PocketWatch, false)
 				scene.combatMapInputHandler(ebiten.KeyU)
-				waitForCombatItemDialog(t, scene).HandleEnter()
+				waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 				watch := waitForCombatPocketWatch(t, scene)
 				changeCombatKeyWatchScene(t, scene, references.PocketWatch, change)
 				before := snapshotBlockedCombatState(t, scene.gameState)

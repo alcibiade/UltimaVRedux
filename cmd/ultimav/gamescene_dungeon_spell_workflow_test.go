@@ -77,7 +77,7 @@ func TestProductionDungeonPackedSpellWorkflowMatrix(t *testing.T) {
 			scene := newProductionCastTestScene(state)
 
 			scene.dungeonMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, spellDialog, test.keys)
 			require.Equal(t, test.spell, spellDialog.GetSelectedSpell())
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
@@ -119,11 +119,11 @@ func TestProductionDungeonPackedSpellRejectionPreservesResourcesAndCompletesComm
 	scene := newProductionCastTestScene(state)
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	enterSpellSyllables(scene, spellDialog, []ebiten.Key{ebiten.KeyA, ebiten.KeyS})
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
-	failure := waitForProductionSpellOverlay(t, scene)
+	failure := waitForTopModal[*widgets.OverlayDialog](t, scene)
 	assert.Equal(t, "Failed!", failure.GetMessage())
 	failure.Dismiss()
 	drainProductionCastWorkflow(t, scene)
@@ -153,7 +153,7 @@ func TestProductionDungeonPackedSpellCancellationCompletesCommand(t *testing.T) 
 	scene := newProductionCastTestScene(state)
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	spellDialog.Dismiss()
 	drainProductionCastWorkflow(t, scene)
 
@@ -219,7 +219,7 @@ func TestProductionDungeonFloorSpellWorkflowHandlesInternalAndBoundaryTravel(t *
 			scene := newProductionCastTestScene(state)
 
 			scene.dungeonMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, spellDialog, test.keys)
 			require.Equal(t, test.spell, spellDialog.GetSelectedSpell())
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
@@ -260,11 +260,11 @@ func TestProductionDungeonFloorSpellRejectionPreservesResources(t *testing.T) {
 	scene := newProductionCastTestScene(state)
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	enterSpellSyllables(scene, spellDialog, []ebiten.Key{ebiten.KeyU, ebiten.KeyP})
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
-	failure := waitForProductionSpellOverlay(t, scene)
+	failure := waitForTopModal[*widgets.OverlayDialog](t, scene)
 	assert.Equal(t, "Failed!", failure.GetMessage())
 	failure.Dismiss()
 	drainProductionCastWorkflow(t, scene)
@@ -315,7 +315,7 @@ func TestProductionDungeonTimeSpellsActivateInDeceitAndDoom(t *testing.T) {
 				scene := newProductionCastTestScene(state)
 
 				scene.dungeonMapInputHandler(ebiten.KeyC)
-				spellDialog := waitForProductionSpellDialog(t, scene)
+				spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 				enterSpellSyllables(scene, spellDialog, test.keys)
 				scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 				spellDialog.Update()
@@ -353,7 +353,7 @@ func TestProductionDungeonAnTymAtMoongateBoundaryCompletesWithoutDeadlock(t *tes
 	scene := newProductionCastTestScene(state)
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	enterSpellSyllables(scene, spellDialog, []ebiten.Key{ebiten.KeyA, ebiten.KeyT})
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
@@ -404,11 +404,11 @@ func TestProductionDungeonVasRelPorCompletesTokenBeforeExactTravel(t *testing.T)
 			scene := newProductionCastTestScene(state)
 
 			scene.dungeonMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, spellDialog, []ebiten.Key{ebiten.KeyV, ebiten.KeyR, ebiten.KeyP})
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			spellDialog.Update()
-			phaseDialog := waitForProductionPhaseInput(t, scene)
+			phaseDialog := waitForTopModal[*widgets.InputBox](t, scene)
 			scene.keyboard.SimulateKeyPress(ebiten.Key3)
 			phaseDialog.Update()
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
@@ -464,11 +464,11 @@ func TestProductionDungeonVasRelPorInstallsCrossDungeonDestination(t *testing.T)
 	scene := newProductionCastTestScene(state)
 
 	scene.dungeonMapInputHandler(ebiten.KeyC)
-	spellDialog := waitForProductionSpellDialog(t, scene)
+	spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 	enterSpellSyllables(scene, spellDialog, []ebiten.Key{ebiten.KeyV, ebiten.KeyR, ebiten.KeyP})
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 	spellDialog.Update()
-	phaseDialog := waitForProductionPhaseInput(t, scene)
+	phaseDialog := waitForTopModal[*widgets.InputBox](t, scene)
 	scene.keyboard.SimulateKeyPress(ebiten.Key3)
 	phaseDialog.Update()
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
@@ -525,11 +525,11 @@ func TestProductionDungeonVasRelPorUnavailableAndCancelledPathsRemainAtomic(t *t
 			scene := newProductionCastTestScene(state)
 
 			scene.dungeonMapInputHandler(ebiten.KeyC)
-			spellDialog := waitForProductionSpellDialog(t, scene)
+			spellDialog := waitForTopModal[*widgets.SpellCastingDialog](t, scene)
 			enterSpellSyllables(scene, spellDialog, []ebiten.Key{ebiten.KeyV, ebiten.KeyR, ebiten.KeyP})
 			scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 			spellDialog.Update()
-			phaseDialog := waitForProductionPhaseInput(t, scene)
+			phaseDialog := waitForTopModal[*widgets.InputBox](t, scene)
 			if test.cancel {
 				scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 				phaseDialog.Update()
@@ -538,7 +538,7 @@ func TestProductionDungeonVasRelPorUnavailableAndCancelledPathsRemainAtomic(t *t
 				phaseDialog.Update()
 				scene.keyboard.SimulateKeyPress(ebiten.KeyEnter)
 				phaseDialog.Update()
-				failure := waitForProductionSpellOverlay(t, scene)
+				failure := waitForTopModal[*widgets.OverlayDialog](t, scene)
 				assert.Equal(t, "No effect!", failure.GetMessage())
 				failure.Dismiss()
 			}
@@ -559,20 +559,6 @@ func enterSpellSyllables(scene *GameScene, dialog *widgets.SpellCastingDialog, k
 		scene.keyboard.SimulateKeyPress(key)
 		dialog.Update()
 	}
-}
-
-func waitForProductionSpellOverlay(t *testing.T, scene *GameScene) *widgets.OverlayDialog {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.OverlayDialog); ok {
-			return dialog
-		}
-	}
-	t.Fatal("production spell feedback overlay was not shown")
-
-	return nil
 }
 
 func dungeonSpellPassagePosition(

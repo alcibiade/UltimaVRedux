@@ -37,7 +37,7 @@ func TestCombatYellCompletesOneAction(t *testing.T) {
 			scene, mock := newCombatYellTestScene(t)
 
 			scene.combatMapInputHandler(ebiten.KeyY)
-			dialog := waitForCombatYellDialog(t, scene)
+			dialog := waitForTopModal[*widgets.InputBox](t, scene)
 			if test.input != nil {
 				scene.keyboard.SetForceWaitAnyKey(0)
 				scene.keyboard.SimulateKeyPress(*test.input)
@@ -61,20 +61,6 @@ func newCombatYellTestScene(t *testing.T) (*GameScene, *game_state.MockSystemCal
 	scene.gameState.BeginCombatTurns(game_state.CombatTurnsPresented)
 
 	return scene, mock
-}
-
-func waitForCombatYellDialog(t *testing.T, scene *GameScene) *widgets.InputBox {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.InputBox); ok {
-			return dialog
-		}
-	}
-	t.Fatal("combat yell dialog was not shown")
-
-	return nil
 }
 
 func drainCombatYellWorkflow(t *testing.T, scene *GameScene) {

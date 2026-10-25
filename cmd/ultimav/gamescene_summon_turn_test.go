@@ -8,6 +8,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/game_state"
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/stretchr/testify/require"
@@ -48,7 +49,7 @@ func TestSummonInputReturnsWithoutTownCycleAtAllFlames(t *testing.T) {
 					require.NoError(t, err)
 					date := state.DateTime
 					scene.smallMapInputHandler(ebiten.KeyY)
-					dialog := waitForSmallMapYellDialog(t, scene)
+					dialog := waitForTopModal[*widgets.InputBox](t, scene)
 					submitSmallMapYell(t, scene, dialog, strings.ToUpper(ritual.lord.String()))
 					// Drain every workflow, including any erroneously deferred completion.
 					for range 100 {
@@ -89,7 +90,7 @@ func TestSummonPreservesTemporalCadenceUntilRealPass(t *testing.T) {
 		state.ActiveDurationEffect = game_state.DurationEffect{EffectType: effect, TurnsRemaining: 8}
 		date, calls := state.DateTime, state.GetRNG().Calls()
 		scene.smallMapInputHandler(ebiten.KeyY)
-		submitSmallMapYell(t, scene, waitForSmallMapYellDialog(t, scene), "FAULINEI")
+		submitSmallMapYell(t, scene, waitForTopModal[*widgets.InputBox](t, scene), "FAULINEI")
 		for range 100 {
 			state.ElapsedMs += 100
 			state.EventQueueManager.Update()

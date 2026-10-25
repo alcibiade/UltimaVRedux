@@ -12,6 +12,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
+	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -219,7 +220,7 @@ func TestFaulineiConversationTheftExcludesMerchantHandler(t *testing.T) {
 	rngCallsBefore := fixture.state.GetRNG().Calls()
 
 	fixture.scene.StartTalkWorkflow(fixture.direction)
-	waitForGuildDialog(t, fixture)
+	waitForMerchantDialog[*widgets.GuildShopDialog](t, fixture)
 	pressMerchantDialogKey(fixture, ebiten.KeyEscape)
 	pumpMerchantWorkflowUntil(t, fixture, func() bool {
 		return !fixture.state.EventQueueManager.HasActiveWorkflows()

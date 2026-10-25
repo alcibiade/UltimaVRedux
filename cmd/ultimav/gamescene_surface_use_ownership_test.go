@@ -184,7 +184,7 @@ func TestSurfaceKeyURoutesBlackBadgeEffectAndCompletesOnce(t *testing.T) {
 	callbacks.Reset()
 
 	scene.smallMapInputHandler(ebiten.KeyU)
-	itemDialog := waitForCombatItemDialog(t, scene)
+	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	drainUseSelectionWorkflow(t, scene)
 
@@ -285,7 +285,7 @@ func newSurfaceUseOwnershipSceneAt(
 func selectSurfaceUseItem(t *testing.T, scene *GameScene) {
 	t.Helper()
 	scene.smallMapInputHandler(ebiten.KeyU)
-	dialog := waitForCombatItemDialog(t, scene)
+	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
 }
 
