@@ -18,6 +18,10 @@ contributors. The game displays the original contributor credits, including the
 artwork and music acknowledgments. Original-derived tile sheets, IBM/runic bitmap
 font sheets, screenshots and compatibility fixtures are not relicensed as MIT by
 their inclusion here. The bitmap sheets are distinct from the FontStruct TTF below.
+The application icon shown for the window, the macOS Dock and the Windows
+executable is the original Avatar tile (atlas tile 284) from the bundled tile
+sheet, enlarged by whole-pixel replication; it carries the same terms as that
+sheet.
 
 The Redux logo and blue/white border artwork were created by Brad Hannah. The
 harpsichord-note bank was synthesized for the project from the original note

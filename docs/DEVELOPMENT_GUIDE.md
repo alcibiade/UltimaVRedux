@@ -259,6 +259,7 @@ for review, revision, scenario, and rollback contracts, and
 | `make format` | Apply repository formatting. |
 | `make lint` | Run the repository-pinned Go and Python linters. |
 | `make web-build` | Rebuild Debug Workbench browser assets after frontend changes. |
+| `make generate` | Regenerate the committed Windows executable icon resources (`cmd/ultimav/rsrc_windows_*.syso`) after changing the icon tile or sprite atlas; `internal/appicon` tests fail while they are stale. |
 | `make validate` | Run standard local validation after final edits. |
 | `make quality-gate` | Run the final pre-PR validation gate when required. |
 

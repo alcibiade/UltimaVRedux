@@ -359,6 +359,14 @@ and a bounded startup were verified from a clean environment without a C
 compiler. Compiling for a target does not establish its native graphics, audio,
 input, setup or save/load behavior.
 
+The game uses the original Avatar tile as its icon. Windows executables embed it
+for Explorer, shortcuts and the taskbar; macOS shows it in the Dock while the game
+runs, because the download is not an app bundle; Linux window managers that read
+X11 window icons show it in their task lists. GNOME Shell instead takes icons from
+installed desktop entries, which the portable archives do not provide, so it shows
+a generic icon. The Windows icon has been verified in built executables, not yet
+on a native Windows desktop.
+
 Linux needs X11 (or XWayland), OpenGL and ALSA runtime libraries, which desktop
 installations normally include. On Debian and Ubuntu they come from `libgl1
 libx11-6 libxcursor1 libxext6 libxi6 libxinerama1 libxrandr2 libxrender1
