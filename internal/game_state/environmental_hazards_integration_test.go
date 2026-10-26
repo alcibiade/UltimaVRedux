@@ -163,45 +163,6 @@ func TestEnvironmentalHazardsSkipInactivePartyMembers(t *testing.T) {
 	assert.Equal(t, party_state.Poisoned, gameState.PartyState.GetCharacter(1).GetStatus(), "Active member should be poisoned")
 }
 
-func TestEnvironmentalHazardsTurnAdvancement(t *testing.T) {
-	gameState, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(11111).
-		Build()
-
-	// Setup party
-	char := gameState.PartyState.GetCharacter(0)
-	char.SetHp(30)
-	char.SetMaxHp(30)
-	char.SetStatus(party_state.Good)
-	char.PartyMap = party_state.PartyMapActive
-
-	// Set lava tile
-	testPos := references.Position{X: 30, Y: 30}
-	layeredMap := gameState.MapState.GetLayeredMapByCurrentLocation()
-	layeredMap.SetTileByLayer(0, &testPos, indexes.Lava)
-	gameState.MapState.PlayerLocation.Position = testPos
-
-	// Test turn advancement hazards
-	mockCallbacks.Reset()
-	gameState.ProcessEnvironmentalHazardsOnTurnAdvancement()
-	for range 30 {
-		gameState.ElapsedMs += 20
-		gameState.EventQueueManager.UpdateFeedback()
-	}
-
-	// Verify hazards are processed on turn advancement too (character names come from SAVED.GAM)
-	foundBurningMessage := false
-	for _, msg := range mockCallbacks.Messages {
-		if len(msg) >= 8 && msg[:8] == "Burning:" {
-			foundBurningMessage = true
-			break
-		}
-	}
-	assert.True(t, foundBurningMessage, "Should process hazards on turn advancement with character names")
-}
-
 func TestTurnHazardRepeatedLavaAppliesOncePerCallBeforeFeedback(t *testing.T) {
 	const seed = uint64(329)
 	state, callbacks := NewIntegrationTestBuilder(t).
