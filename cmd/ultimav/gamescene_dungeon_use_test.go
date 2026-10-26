@@ -25,7 +25,7 @@ func TestDungeonUsePotionCancellationPreservesInventoryTimeAndRNG(t *testing.T) 
 	dialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 	rngCalls := state.GetRNG().Calls()
 	dialog.HandleEscape()
-	drainDungeonWorkflow(t, scene, "potion_workflow")
+	drainSceneWorkflow(t, scene, "potion_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, rngCalls, state.GetRNG().Calls())
 	assert.True(t, state.PartyState.GetCharacter(0).IsGood())
@@ -117,7 +117,7 @@ func TestDungeonUseRejectedDoomTimeStopRetainsTokenUntilFeedbackExpires(t *testi
 	callbacks.Reset()
 
 	selectOnlyDungeonUseItem(t, scene)
-	overlay := waitForDungeonTimedOverlay(t, scene)
+	overlay := waitForTimedOverlay(t, scene)
 
 	require.Zero(t, state.PartyState.Inventory.Scrolls.Get(references.ScrollAnTym))
 	assert.Equal(t, "No effect!", overlay.GetMessage())
@@ -233,7 +233,7 @@ func TestDungeonUseResurrectionCancellationPreservesInventoryAndTime(t *testing.
 	require.Equal(t, uint16(1), state.PartyState.Inventory.Scrolls.Get(references.ScrollInManiCorp))
 	dialog := waitForTopModal[*widgets.CharacterSelectionDialog](t, scene)
 	dialog.HandleEscape()
-	drainDungeonWorkflow(t, scene, "resurrection_scroll")
+	drainSceneWorkflow(t, scene, "resurrection_scroll", DialogPollingRateMs)
 
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.Equal(t, expectedTime, state.DateTime)
@@ -331,7 +331,7 @@ func TestDungeonUseSourceRejectionsAndConsumption(t *testing.T) {
 			assert.Equal(t, test.wantQuantity, test.quantity(state))
 			assert.Empty(t, callbacks.Messages, "unavailable entries never dispatch their old effect handler")
 			dialog.Dismiss()
-			drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+			drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 			assert.True(t, state.IsAtDungeonCommandBoundary())
 			assert.Equal(t, expectedTime, state.DateTime)
 		})
@@ -343,7 +343,7 @@ func selectOnlyDungeonUseItem(t *testing.T, scene *GameScene) {
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 }
 
 func drainDungeonEffectWorkflow(t *testing.T, scene *GameScene, name string) {
@@ -359,20 +359,6 @@ func drainDungeonEffectWorkflow(t *testing.T, scene *GameScene, name string) {
 		}
 	}
 	t.Fatalf("dungeon effect workflow %q did not complete", name)
-}
-
-func waitForDungeonTimedOverlay(t *testing.T, scene *GameScene) *widgets.OverlayDialog {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if overlay, ok := scene.timedOverlayDialog.(*widgets.OverlayDialog); ok {
-			return overlay
-		}
-	}
-	t.Fatal("dungeon timed overlay was not shown")
-
-	return nil
 }
 
 func grantDungeonQuestItem(item references.QuestItem) func(*game_state.GameState) {

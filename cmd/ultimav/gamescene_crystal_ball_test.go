@@ -36,7 +36,7 @@ func TestCrystalBallRetainsFramingTranscriptUntilGemView(t *testing.T) {
 	gemView := waitForTopModalWithin[*widgets.GemViewDialog](t, scene, 1000, 100)
 	require.NotContains(t, scene.dialogStack.Dialogs(), transcript)
 	gemView.Dismiss()
-	drainNamedWorkflow(t, scene, "crystal_ball_workflow")
+	drainSceneWorkflow(t, scene, "crystal_ball_workflow", 1000)
 
 	expectedDate := dateBefore
 	expectedDate.Advance(1)
@@ -64,7 +64,7 @@ func TestCrystalBallDeathVisionRetainsResultUntilAcknowledged(t *testing.T) {
 	require.NotContains(t, transcript.TranscriptText(), "Who will look?")
 	require.Contains(t, callbacks.SoundEffectsPlayed, game_state.SoundDeathVision)
 	acknowledgeTranscript(t, scene, transcript)
-	drainNamedWorkflow(t, scene, "crystal_ball_workflow")
+	drainSceneWorkflow(t, scene, "crystal_ball_workflow", 1000)
 
 	require.False(t, scene.dialogStack.HasOpenDialog())
 	require.Equal(t, 1, callbacks.BlockInputCalls)
@@ -79,7 +79,7 @@ func TestCrystalBallCancellationCleansTranscript(t *testing.T) {
 	scene.StartCrystalBallWorkflow()
 	_, selector := waitForCrystalBallSelector(t, scene)
 	selector.HandleEscape()
-	drainNamedWorkflow(t, scene, "crystal_ball_workflow")
+	drainSceneWorkflow(t, scene, "crystal_ball_workflow", 1000)
 
 	require.False(t, scene.dialogStack.HasOpenDialog())
 	require.Equal(t, []int{1}, callbacks.TimeAdvanced())
@@ -149,7 +149,7 @@ func TestCrystalBallUsesEligibleActiveViewerWithoutSelector(t *testing.T) {
 				if success {
 					waitForTopModalWithin[*widgets.GemViewDialog](t, scene, 1000, 100).Dismiss()
 				}
-				drainNamedWorkflow(t, scene, "crystal_ball_workflow")
+				drainSceneWorkflow(t, scene, "crystal_ball_workflow", 1000)
 				require.False(t, scene.dialogStack.HasOpenDialog())
 				require.Equal(t, []int{1}, callbacks.TimeAdvanced())
 				require.Equal(t, 1, callbacks.BlockInputCalls)
@@ -176,7 +176,7 @@ func TestCrystalBallClearsIneligibleActiveViewerBeforeFallback(t *testing.T) {
 			require.Equal(t, -1, state.GetActivePlayerIndex())
 			require.NotEqual(t, 1, selector.GetCurrentOption().CharacterIndex)
 			selector.HandleEscape()
-			drainNamedWorkflow(t, scene, "crystal_ball_workflow")
+			drainSceneWorkflow(t, scene, "crystal_ball_workflow", 1000)
 			require.Equal(t, rngCalls, state.GetRNG().Calls())
 			require.False(t, scene.dialogStack.HasOpenDialog())
 			require.Equal(t, []int{1}, callbacks.TimeAdvanced())

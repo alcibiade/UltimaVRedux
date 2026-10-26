@@ -548,7 +548,7 @@ func TestCastEligibilityFailuresUseTemporaryOverlay(t *testing.T) {
 		})
 
 		scene.smallMapInputHandler(ebiten.KeyC)
-		overlay := waitForCastFailureOverlay(t, scene)
+		overlay := waitForTimedOverlay(t, scene)
 		assert.Equal(t, "No one in the party has magical ability!", overlay.GetMessage())
 		assertTemporaryCastOverlayDismisses(t, scene)
 		drainProductionCastWorkflow(t, scene)
@@ -563,7 +563,7 @@ func TestCastEligibilityFailuresUseTemporaryOverlay(t *testing.T) {
 		require.True(t, scene.gameState.SetActivePlayer(0))
 
 		scene.smallMapInputHandler(ebiten.KeyC)
-		overlay := waitForCastFailureOverlay(t, scene)
+		overlay := waitForTimedOverlay(t, scene)
 		assert.Equal(t, avatar.GetNameAsString()+" has no M.P. remaining!", overlay.GetMessage())
 		assertTemporaryCastOverlayDismisses(t, scene)
 		drainProductionCastWorkflow(t, scene)
@@ -667,7 +667,7 @@ func waitForTopModalWithin[D any](t *testing.T, scene *GameScene, stepMs int64, 
 // drainSceneWorkflow advances workflows by stepMs until the named workflow ends.
 func drainSceneWorkflow(t *testing.T, scene *GameScene, name string, stepMs int64) {
 	t.Helper()
-	for range 20 {
+	for range 500 {
 		scene.gameState.ElapsedMs += stepMs
 		scene.gameState.EventQueueManager.Update()
 		if !scene.gameState.EventQueueManager.HasWorkflow(name) {
@@ -719,24 +719,42 @@ func waitForProductionPartySpellTargeting(t *testing.T, scene *GameScene) {
 	t.Fatal("combat party spell did not transfer to battlefield targeting")
 }
 
-func waitForCastFailureOverlay(t *testing.T, scene *GameScene) *widgets.OverlayDialog {
-	t.Helper()
-	for range 10 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if overlay, ok := scene.timedOverlayDialog.(*widgets.OverlayDialog); ok {
-			return overlay
-		}
-	}
-	t.Fatal("cast failure overlay was not shown")
-
-	return nil
-}
-
 func assertTemporaryCastOverlayDismisses(t *testing.T, scene *GameScene) {
 	t.Helper()
 	scene.gameState.ElapsedMs += castFailureDialogDurationMs
 	scene.updateTimedOverlay()
 	assert.Nil(t, scene.timedOverlayDialog)
 	assert.Zero(t, scene.dialogStack.Count())
+}
+
+// drainDismissingOverlays drains the named workflow in one-second steps,
+// dismissing any feedback overlay that would otherwise wait for a key.
+func drainDismissingOverlays(t *testing.T, scene *GameScene, name string) {
+	t.Helper()
+	for range 50 {
+		if overlay, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.OverlayDialog); ok {
+			overlay.Dismiss()
+		}
+		scene.gameState.ElapsedMs += 1000
+		scene.gameState.EventQueueManager.Update()
+		if !scene.gameState.EventQueueManager.HasWorkflow(name) {
+			return
+		}
+	}
+	t.Fatalf("workflow %q did not complete", name)
+}
+
+// waitForTimedOverlay advances workflows until the scene shows its timed overlay.
+func waitForTimedOverlay(t *testing.T, scene *GameScene) *widgets.OverlayDialog {
+	t.Helper()
+	for range 20 {
+		scene.gameState.ElapsedMs += DialogPollingRateMs
+		scene.gameState.EventQueueManager.Update()
+		if overlay, ok := scene.timedOverlayDialog.(*widgets.OverlayDialog); ok {
+			return overlay
+		}
+	}
+	t.Fatal("timed overlay was not shown")
+
+	return nil
 }

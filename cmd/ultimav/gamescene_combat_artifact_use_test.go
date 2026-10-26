@@ -30,7 +30,7 @@ func TestCombatArtifactUseTogglesThroughProductionRouteExactlyOnce(t *testing.T)
 			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			dialog.HandleEnter()
 			dialog.HandleEnter()
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 			expected.gameState.UseItem(expected.gameState.GetUsableItemsForContext(game_state.UsageCombat)[0])
 			expected.gameState.FinishCombatAction()
 			require.Equal(t, sequence+1, scene.gameState.CastUseCommitSequence())
@@ -58,7 +58,7 @@ func TestCombatUnavailableOnlyInventoryRemainsInspectableAndFree(t *testing.T) {
 		require.False(t, dialog.IsDismissed())
 		require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 		dialog.Dismiss()
-		drainCombatUseWorkflow(t, scene)
+		drainDismissingOverlays(t, scene, "use_item_workflow")
 		before.ElapsedMs = scene.gameState.ElapsedMs
 		require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 	}
@@ -74,7 +74,7 @@ func TestCombatArtifactUseRejectsChangedActorBeforeCommit(t *testing.T) {
 	scene.gameState.FinishCombatAction()
 	before := snapshotBlockedCombatState(t, scene.gameState)
 	dialog.HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	before.ElapsedMs = scene.gameState.ElapsedMs
 	require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 	require.False(t, scene.gameState.IsCrownActive())
@@ -103,7 +103,7 @@ func TestCombatCrownUseReplacesDurationEffectsAndPreservesIndependentArtifacts(t
 			amulet, badge := state.AmuletState, state.BadgeState
 			scene.combatMapInputHandler(ebiten.KeyU)
 			waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 			require.True(t, state.IsCrownActive())
 			require.Equal(t, game_state.DurationEffect{}, state.ActiveDurationEffect)
 			require.Equal(t, amulet, state.AmuletState)
@@ -128,7 +128,7 @@ func TestCombatIndependentArtifactUsePreservesCrownAndDuration(t *testing.T) {
 			}
 			scene.combatMapInputHandler(ebiten.KeyU)
 			waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 			require.Equal(t, crown, state.IsCrownActive())
 			require.Equal(t, !crown, state.HasActiveDurationEffect(game_state.DurationEffectProtection))
 			if item == references.Amulet {
@@ -153,7 +153,7 @@ func TestCombatDurationScrollUseReplacesCrownWithoutRemovingAmuletOrBadge(t *tes
 	require.True(t, state.ToggleBadge())
 	scene.combatMapInputHandler(ebiten.KeyU)
 	waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	require.False(t, state.IsCrownActive())
 	require.True(t, state.HasActiveDurationEffect(game_state.DurationEffectProtection))
 	require.True(t, state.IsAmuletActive())

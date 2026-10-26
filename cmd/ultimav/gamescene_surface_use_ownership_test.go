@@ -88,7 +88,7 @@ func TestSurfaceUseRejectedStonegateTimeStopConsumesAndCompletesOneCycle(t *test
 
 	selectSurfaceUseItem(t, scene)
 	drainUseSelectionWorkflow(t, scene)
-	overlay := waitForDungeonTimedOverlay(t, scene)
+	overlay := waitForTimedOverlay(t, scene)
 
 	require.Zero(t, state.PartyState.Inventory.Scrolls.Get(references.ScrollAnTym))
 	assert.Equal(t, "No effect!", overlay.GetMessage())

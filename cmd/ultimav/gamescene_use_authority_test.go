@@ -28,7 +28,7 @@ func TestSkullKeyWorkflowPassPreservesInventoryAndTime(t *testing.T) {
 	waitForUseAuthorityDialog(t, scene)
 	assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.Provisions.SkullKeys.Get())
 	scene.keyboard.SimulateKeyPress(ebiten.KeySpace)
-	drainUseAuthorityWorkflow(t, scene, "skull_key_workflow")
+	drainSceneWorkflow(t, scene, "skull_key_workflow", 1000)
 
 	assert.Empty(t, callbacks.TimeAdvanced())
 	assert.Zero(t, scene.dialogStack.Count())
@@ -45,7 +45,7 @@ func TestCarpetWorkflowStaleCommitDoesNotPartiallyBoard(t *testing.T) {
 	scene.gameState.PartyState.Inventory.QuestItems.Set(references.Carpet, 2)
 
 	scene.StartCarpetBoardingWorkflow(commit)
-	drainUseAuthorityWorkflow(t, scene, "carpet_boarding")
+	drainSceneWorkflow(t, scene, "carpet_boarding", 1000)
 
 	assert.Equal(t, uint16(2), scene.gameState.PartyState.Inventory.QuestItems.Get(references.Carpet))
 	assert.Equal(t, references.NoPartyVehicle, scene.gameState.PartyVehicle.GetVehicleDetails().VehicleType)
@@ -79,16 +79,4 @@ func waitForUseAuthorityDialog(t *testing.T, scene *GameScene) {
 		}
 	}
 	t.Fatal("Use authority direction dialog did not open")
-}
-
-func drainUseAuthorityWorkflow(t *testing.T, scene *GameScene, workflow string) {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow(workflow) {
-			return
-		}
-	}
-	t.Fatalf("%s did not complete", workflow)
 }
