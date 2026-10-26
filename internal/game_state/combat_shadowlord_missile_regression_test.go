@@ -178,12 +178,7 @@ func TestCombatMissileOverlayRespectsObjectVisibility(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			state, _ := newSyntheticDungeonTriggerCombatState(t)
-			raw := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-			for x := range references.XCombatMapTiles {
-				for y := range references.YCombatMapTiles {
-					raw[x][y] = byte(indexes.BrickFloor)
-				}
-			}
+			raw := brickFloorCombatRaw()
 			tile := test.terrain
 			if tile == 0 {
 				tile = indexes.StoneBrickWall

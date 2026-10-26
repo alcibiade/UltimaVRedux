@@ -17,7 +17,7 @@ func TestCombatRingInitializationUsesLivingPartyOrderAndSleepGate(t *testing.T) 
 	dead := activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Dead)
 	sleeping := activateCombatRingTestCharacter(state, 1, references.RingInvisibility, party_state.Sleep)
 	awake := activateCombatRingTestCharacter(state, 2, references.RingInvisibility, party_state.Good)
-	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(combatRingDisappearanceRollMaximum+1) == combatRingDisappearanceRollResult &&
 			rng.Intn(combatRingDisappearanceRollMaximum+1) != combatRingDisappearanceRollResult
 	})
@@ -45,7 +45,7 @@ func TestCombatRingInitializationRunsNestedRegenerationSweeps(t *testing.T) {
 	first.SetHp(first.GetMaxHp() - 2)
 	sleeping.SetHp(sleeping.GetMaxHp() - 2)
 	capped.SetHp(capped.GetMaxHp())
-	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		if rng.Intn(16) == combatRingDisappearanceRollResult {
 			return false
 		}
@@ -84,7 +84,7 @@ func TestCombatRingInitializationRunsNestedRegenerationSweeps(t *testing.T) {
 func TestCombatRingInitializationPrecedesMonsterDexterity(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
 	activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
-	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(16) != combatRingDisappearanceRollResult
 	})
 	expected := beradrng.New(seed)
@@ -115,7 +115,7 @@ func TestOverworldCombatValidationPrecedesRingDisappearance(t *testing.T) {
 	gameReferences := *state.GameReferences
 	gameReferences.EnemyReferences = &enemyReferences
 	state.GameReferences = &gameReferences
-	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(combatRingDisappearanceRollMaximum+1) == combatRingDisappearanceRollResult
 	})
 	state.SetRandomSeed(seed)
@@ -148,7 +148,7 @@ func TestCombatActionEndRunsOneRegenerationSweepBeforeFields(t *testing.T) {
 		fieldPosition = references.Position{}
 	}
 	require.True(t, state.CombatScene.AddField(NewCombatField(CombatFieldSleep, fieldPosition)))
-	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(8) == 7 && rng.Intn(8) == 7 && rng.Intn(256) >= 16
 	})
 	state.SetRandomSeed(seed)
@@ -185,7 +185,7 @@ func TestCombatInvisibilityRingPersistsForEncounterAndClearsOnExit(t *testing.T)
 func TestCampingRingInitializationPrecedesAmbushRNGAndTransfersVisibility(t *testing.T) {
 	state, _ := newCombatRingTestState(t)
 	activateCombatRingTestCharacter(state, 0, references.RingInvisibility, party_state.Good)
-	seed := findCombatRingSeed(t, func(rng *beradrng.Source) bool {
+	seed := areaSpellSeed(t, func(rng *beradrng.Source) bool {
 		return rng.Intn(16) != combatRingDisappearanceRollResult
 	})
 	expected := beradrng.New(seed)
@@ -242,18 +242,6 @@ func newCombatRingState(state *GameState) *CombatState {
 	state.configureCombatTurnQueue(combat)
 
 	return combat
-}
-
-func findCombatRingSeed(t *testing.T, matches func(*beradrng.Source) bool) uint64 {
-	t.Helper()
-	for seed := uint64(0); seed < 1_000_000; seed++ {
-		if matches(beradrng.New(seed)) {
-			return seed
-		}
-	}
-	t.Fatal("unable to find deterministic combat-ring seed")
-
-	return 0
 }
 
 func successfulRingRolls(rolls ...int) uint16 {

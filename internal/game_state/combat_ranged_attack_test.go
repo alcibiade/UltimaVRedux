@@ -53,22 +53,12 @@ func setupPlayerRangedAttackTest(
 }
 
 func setOpenCombatMissileMap(gs *GameState) {
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	gs.CombatScene.CombatMapRef.SetRawData(rawData)
 }
 
 func setBlockedCombatMissileMap(gs *GameState, blocked references.Position) {
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	rawData[blocked.X][blocked.Y] = byte(indexes.StoneBrickWall)
 	gs.CombatScene.CombatMapRef.SetRawData(rawData)
 }

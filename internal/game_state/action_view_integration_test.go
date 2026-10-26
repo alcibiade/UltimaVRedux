@@ -107,35 +107,29 @@ func TestViewCommandDungeonWithoutGemStillClaimsFullCompletion(t *testing.T) {
 	assert.True(t, gs.IsAtDungeonCommandBoundary())
 }
 
-// TestViewCommand_SmallMap_NoGems tests V command without gems in inventory
-func TestViewCommand_SmallMap_NoGems(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.LordBritishsCastle).
-		WithPlayerAt(12, 12).
-		WithSystemCallbacks().
-		Build()
-
-	t.Run("ViewFailsWithoutGems", func(t *testing.T) {
+// View without gems reports "You have none!" and opens no gem view on either map.
+func TestViewCommand_NoGems(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		location references.Location
+		x, y     int
+		view     func(*GameState) bool
+	}{
+		{name: "small map", location: references.LordBritishsCastle, x: 12, y: 12, view: (*GameState).ActionViewSmallMap},
+		{name: "large map", location: references.BritanniaUnderworld, x: 100, y: 100, view: (*GameState).ActionViewLargeMap},
+	} {
+		gs, mockCallbacks := NewIntegrationTestBuilder(t).
+			WithLocation(test.location).
+			WithPlayerAt(test.x, test.y).
+			WithSystemCallbacks().
+			Build()
 		mockCallbacks.Reset()
-
-		// Ensure no gems
 		gs.PartyState.Inventory.Provisions.Gems.Set(0)
 
-		result := gs.ActionViewSmallMap()
-
-		// Should fail
-		assert.False(t, result, "View should fail without gems")
-
-		// Should show "You have none!" message
-		assert.Equal(t, 1, len(mockCallbacks.Messages),
-			"Should have one message")
-		assert.Equal(t, "You have none!", mockCallbacks.Messages[0],
-			"Should show 'You have none!' feedback")
-
-		// Should NOT trigger ShowGemViewInteraction callback
-		assert.False(t, mockCallbacks.ShowGemViewInteractionCalled,
-			"Should not trigger ShowGemViewInteraction without gems")
-	})
+		assert.False(t, test.view(gs), test.name)
+		assert.Equal(t, []string{"You have none!"}, mockCallbacks.Messages, test.name)
+		assert.False(t, mockCallbacks.ShowGemViewInteractionCalled, test.name)
+	}
 }
 
 // TestViewCommand_LargeMap_WithGems tests V command on large map with gems
@@ -166,37 +160,6 @@ func TestViewCommand_LargeMap_WithGems(t *testing.T) {
 		assert.True(t, mockCallbacks.ShowGemViewInteractionCalled,
 			"Should trigger ShowGemViewInteraction callback on large map")
 		assert.Equal(t, []int{1}, mockCallbacks.TimeAdvanced())
-	})
-}
-
-// TestViewCommand_LargeMap_NoGems tests V command on large map without gems
-func TestViewCommand_LargeMap_NoGems(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.BritanniaUnderworld).
-		WithPlayerAt(100, 100).
-		WithSystemCallbacks().
-		Build()
-
-	t.Run("ViewFailsWithoutGemsOnLargeMap", func(t *testing.T) {
-		mockCallbacks.Reset()
-
-		// Ensure no gems
-		gs.PartyState.Inventory.Provisions.Gems.Set(0)
-
-		result := gs.ActionViewLargeMap()
-
-		// Should fail
-		assert.False(t, result, "View should fail without gems on large map")
-
-		// Should show "You have none!" message
-		assert.Equal(t, 1, len(mockCallbacks.Messages),
-			"Should have one message")
-		assert.Equal(t, "You have none!", mockCallbacks.Messages[0],
-			"Should show 'You have none!' feedback on large map")
-
-		// Should NOT trigger ShowGemViewInteraction callback
-		assert.False(t, mockCallbacks.ShowGemViewInteractionCalled,
-			"Should not trigger ShowGemViewInteraction without gems on large map")
 	})
 }
 
