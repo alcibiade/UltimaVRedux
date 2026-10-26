@@ -188,16 +188,7 @@ func TestDungeonZStatsRoutingStaysAtCommandBoundary(t *testing.T) {
 }
 
 func TestCombatZStatsRoutingDoesNotFinishAction(t *testing.T) {
-	state, callbacks := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	require.NoError(t, state.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		game_state.CombatEntryNorth,
-	))
+	state, callbacks := newBritainCombatTestState(t, 42)
 	state.BeginCombatTurns(game_state.CombatTurnsPresented)
 	state.ActiveDurationEffect = game_state.DurationEffect{
 		EffectType: game_state.DurationEffectProtection, TurnsRemaining: 7,

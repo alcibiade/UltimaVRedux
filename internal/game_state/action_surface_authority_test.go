@@ -71,16 +71,7 @@ func TestSmallMapChestJimmyOpenSharePersistentAuthority(t *testing.T) {
 	assert.Equal(t, []string{chestDisarmedMessage}, callbacks.Messages)
 	assert.Equal(t, []int{DefaultSmallMapMinutesPerTurn}, callbacks.TimeAdvanced())
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	restored, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	restored := roundTripSaveSnapshot(t, state)
 	restoredChest := surfaceChestByNumber(t, restored, chestNumber)
 	assert.False(t, restoredChest.SurfaceChestLocked())
 	assert.Equal(t, 2, restoredChest.SurfaceChestTreasureValue())
@@ -425,16 +416,7 @@ func TestLargeMapJimmyMutationRoundTrips(t *testing.T) {
 	state.jimmySuccessForTesting = func(*party_state.PlayerCharacter) bool { return true }
 	require.True(t, state.ActionJimmyLargeMap(references.Left))
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	restored, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	restored := roundTripSaveSnapshot(t, state)
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.RegularDoor), restored.GetCurrentLayeredMap().GetTileTopMapOnlyTile(target).Index)
 	assert.Equal(t, uint16(2), restored.PartyState.Inventory.Provisions.Keys.Get())

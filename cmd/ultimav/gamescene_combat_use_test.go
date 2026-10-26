@@ -299,16 +299,7 @@ func assertCombatSceptreActorEffect(
 
 func newCombatUseTestScene(t *testing.T) (*GameScene, *game_state.MockSystemCallbacks) {
 	t.Helper()
-	state, mock := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, state.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		game_state.CombatEntryNorth,
-	))
+	state, mock := newBritainCombatTestState(t, 1)
 	require.True(t, state.CombatScene.GetCurrentTurnIdentity().IsPartyMember)
 
 	// Workflow release predicates must see fixture-owned held keys, not host input.

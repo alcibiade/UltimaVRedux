@@ -5,7 +5,6 @@ import (
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestShardOverlaySystem_PositionDetection tests that shard positions are correctly detected
@@ -239,17 +238,7 @@ func TestDestroyedShardRemainsAbsentAfterNativeHydration(t *testing.T) {
 	gs.ShadowlordState.Reset()
 	gs.PartyState.Inventory.QuestItems.Set(references.ShardOfCowardice, 0)
 	gs.ShadowlordState.Kill(references.Nosfentor)
-	snapshot, err := gs.CaptureSaveSnapshot()
-	require.NoError(t, err)
-
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		gs.GameConfig,
-		gs.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, gs)
 
 	assert.False(t, hydrated.IsShardVisible(
 		references.Position{X: 176, Y: 184},

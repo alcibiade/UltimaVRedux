@@ -23,12 +23,7 @@ func setupHostileSpecialMonsterTest(
 	monsterType references.MonsterType,
 ) (*GameState, *MockSystemCallbacks, *CombatMonster, int) {
 	t.Helper()
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, mock := newBritainCombatTestState(t, 1)
 	clearCombatMonstersForTest(gs.CombatScene)
 	monsterRef := &(*gs.GameReferences.EnemyReferences)[monsterType]
 	monster := NewCombatMonster(monsterType, monsterRef, references.Position{X: 0, Y: 0}, newFixedRNG(1))

@@ -315,17 +315,7 @@ func TestProcessTurnEffectsDoesNotRunTownAutoWakeDuringCombat(t *testing.T) {
 func setupCombatStatusTest(t *testing.T) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	require.NoError(t, gs.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		CombatEntryNorth,
-	))
+	gs, mock := newBritainCombatTestState(t, 42)
 	require.NotNil(t, gs.CombatScene)
 	mock.Reset()
 

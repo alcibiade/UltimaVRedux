@@ -602,16 +602,7 @@ func newProductionCastTestScene(state *game_state.GameState) *GameScene {
 
 func newProductionCombatCastState(t *testing.T) (*game_state.GameState, *game_state.MockSystemCallbacks) {
 	t.Helper()
-	state, mock := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	require.NoError(t, state.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		game_state.CombatEntryNorth,
-	))
+	state, mock := newBritainCombatTestState(t, 42)
 	state.BeginCombatTurns(game_state.CombatTurnsImmediate)
 	state.PartyState.ForEachCharacter(func(_ int, caster *party_state.PlayerCharacter) {
 		if !caster.IsInParty() {

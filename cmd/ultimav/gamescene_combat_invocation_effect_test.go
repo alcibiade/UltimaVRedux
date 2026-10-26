@@ -100,12 +100,7 @@ func TestCombatInsectStackPipsAndHealthAreStable(t *testing.T) {
 }
 
 func TestCombatSummonSequenceMutatesOnceAndCleansPresentation(t *testing.T) {
-	gs, _ := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
+	gs, _ := newBritainCombatTestState(t, 1)
 	scene := &GameScene{gameState: gs}
 	casterIdx := gs.CombatScene.GetActiveCombatantIndex()
 	before := gs.CombatScene.MonsterManager.Count()

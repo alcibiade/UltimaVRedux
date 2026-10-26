@@ -165,16 +165,7 @@ func TestDungeonPackedSpellMutationSurvivesSaveSnapshotRoundTrip(t *testing.T) {
 	setDungeonInteractionCell(t, state, facing, 0x08)
 	require.True(t, state.CastDungeonPackedSpell(references.InSanctGrav).Applied)
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 
 	assert.Equal(t, references.DungeonCell(0x8b), dungeonInteractionCellAt(t, hydrated, facing))
 }
@@ -329,16 +320,7 @@ func TestDungeonQuicknessCastPreservesAlternatingCadenceAcrossSnapshot(t *testin
 	assert.Equal(t, 1, first.ElapsedMinutes)
 	assert.Zero(t, second.ElapsedMinutes)
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 	assert.Equal(t, state.ActiveDurationEffect, hydrated.ActiveDurationEffect)
 
 	token, expected := state.BeginDungeonCommandCycle()

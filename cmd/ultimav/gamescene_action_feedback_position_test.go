@@ -22,12 +22,7 @@ func TestCombatSearchFeedbackRenderedPosition(t *testing.T) {
 	for _, size := range []image.Point{{X: 1280, Y: 720}, {X: 1365, Y: 768}, {X: 1920, Y: 1080}, {X: 2560, Y: 1440}, {X: 3840, Y: 2160}} {
 		t.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(t *testing.T) {
 			manager.PublishLogicalSize(size.X, size.Y)
-			state, mock := game_state.NewIntegrationTestBuilder(t).
-				WithLocation(references.Britain).
-				WithSystemCallbacks().
-				WithRandomSeed(42).
-				Build()
-			require.NoError(t, state.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
+			state, mock := newBritainCombatTestState(t, 42)
 			scene := newProductionCastTestScene(state)
 			previous := manager.SetMapPopupViewportProvider(scene.mapPopupViewport)
 			defer manager.SetMapPopupViewportProvider(previous)

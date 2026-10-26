@@ -12,13 +12,7 @@ import (
 )
 
 func TestActionOpenCombatMapRemovesEmptyChest(t *testing.T) {
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(169).
-		Build()
-
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, mock := newBritainCombatTestState(t, 169)
 	activePosition := gs.CombatScene.GetPartyMemberPosition(gs.CombatScene.GetActiveCombatantIndex())
 	targetPosition := references.Down.GetNewPositionInDirection(&activePosition)
 	require.NotNil(t, targetPosition)
@@ -182,13 +176,7 @@ func TestActionOpenCombatMapTriggersLockedChestTrap(t *testing.T) {
 }
 
 func TestGenerateCombatChestContentsCreatesCollectibleObjects(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(169).
-		Build()
-
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, _ := newBritainCombatTestState(t, 169)
 	position := references.Position{X: 5, Y: 5}
 	revealLines := gs.generateCombatChestContents(position, combatTreasureDiceSides)
 

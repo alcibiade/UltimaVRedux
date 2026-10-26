@@ -1,7 +1,10 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/character_creation"
 	"github.com/bradhannah/UltimaVRedux/internal/environment"
@@ -172,4 +175,18 @@ func countEqual[T comparable](values []T, want T) int {
 	}
 
 	return count
+}
+
+// newBritainCombatTestState builds a seeded Britain state and enters the
+// Britannia combat territory from the north.
+func newBritainCombatTestState(t *testing.T, seed uint64) (*game_state.GameState, *game_state.MockSystemCallbacks) {
+	t.Helper()
+	gs, mockCallbacks := game_state.NewIntegrationTestBuilder(t).
+		WithLocation(references.Britain).
+		WithSystemCallbacks().
+		WithRandomSeed(seed).
+		Build()
+	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth))
+
+	return gs, mockCallbacks
 }

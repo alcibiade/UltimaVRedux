@@ -122,16 +122,7 @@ func TestBlackthornMartyrSurvivesNativeSnapshotHydration(t *testing.T) {
 	state.FinishBlackthornInterrogation()
 	want := *state.PartyState.GetCharacter(15)
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 
 	got := *hydrated.PartyState.GetCharacter(15)
 	require.True(t, reflect.DeepEqual(want, got))

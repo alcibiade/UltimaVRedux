@@ -30,22 +30,23 @@ func TestActionZtatsShowsDetachedDossierWithoutMutatingState(t *testing.T) {
 	require.Equal(t, beforeKnowledge, state.KnowledgeSnapshot())
 }
 
-func TestNewSystemCallbacksRejectsNilShowZStatsDossier(t *testing.T) {
-	valid := NewMockSystemCallbacks(t).ToSystemCallbacks()
-	uiCallbacks := valid.UI
-	uiCallbacks.ShowZStatsDossier = nil
+func TestNewSystemCallbacksRejectsNilDossierCallbacks(t *testing.T) {
+	for _, test := range []struct {
+		clear func(*UICallbacks)
+		want  error
+	}{
+		{clear: func(ui *UICallbacks) { ui.ShowZStatsDossier = nil }, want: errZStatsCallbackRequired},
+		{clear: func(ui *UICallbacks) { ui.ShowQuestJournalDossier = nil }, want: errQuestJournalCallbackRequired},
+	} {
+		valid := NewMockSystemCallbacks(t).ToSystemCallbacks()
+		uiCallbacks := valid.UI
+		test.clear(&uiCallbacks)
 
-	callbacks, err := NewSystemCallbacks(
-		valid.Message,
-		valid.Visual,
-		valid.Audio,
-		valid.Screen,
-		valid.Flow,
-		valid.Talk,
-		uiCallbacks,
-		valid.Combat,
-	)
+		callbacks, err := NewSystemCallbacks(
+			valid.Message, valid.Visual, valid.Audio, valid.Screen, valid.Flow, valid.Talk, uiCallbacks, valid.Combat,
+		)
 
-	require.Nil(t, callbacks)
-	require.ErrorIs(t, err, errZStatsCallbackRequired)
+		require.Nil(t, callbacks)
+		require.ErrorIs(t, err, test.want)
+	}
 }

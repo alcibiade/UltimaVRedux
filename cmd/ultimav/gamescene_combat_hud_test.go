@@ -80,14 +80,7 @@ func TestCombatUtilitySpellPlainTextDescribesPersistentMutation(t *testing.T) {
 }
 
 func TestCombatHUDFormatsMonsterVisibilityAndTeleportEvents(t *testing.T) {
-	gs, _ := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(
-		0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth,
-	))
+	gs, _ := newBritainCombatTestState(t, 42)
 	gs.CombatScene.MonsterManager.Clear()
 	monsterRef := &(*gs.GameReferences.EnemyReferences)[references.MonsterShadowlord]
 	monster := game_state.NewCombatMonster(
@@ -166,14 +159,7 @@ func TestCurrentCombatTurnIdentityIsHiddenBeforeTurnsStart(t *testing.T) {
 }
 
 func TestCurrentCombatTurnIdentityIsVisibleAfterGameStateStartsTurns(t *testing.T) {
-	state, _ := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	require.NoError(t, state.TransitionToCombatMap(
-		0, references.BritanniaCombatTerritory, game_state.CombatEntryNorth,
-	))
+	state, _ := newBritainCombatTestState(t, 42)
 	state.BeginCombatTurns(game_state.CombatTurnsImmediate)
 
 	identity, valid := currentCombatTurnIdentity(state.CombatScene)
