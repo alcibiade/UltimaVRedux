@@ -116,16 +116,7 @@ func TestSaveSnapshotHydrationKeepsActiveDungeonExactBeforeFreshReplay(t *testin
 	})
 	state.recordDungeonDiscovery(dungeonDiscoveryHiddenDoor, floor, position)
 
-	saved, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		saved,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 	active, ok := hydrated.DungeonStateSnapshot()
 	require.True(t, ok)
 	activeCell, ok := active.Cells.Cell(floor, position)

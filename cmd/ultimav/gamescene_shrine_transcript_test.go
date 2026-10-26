@@ -40,7 +40,7 @@ func TestShrineQuestCompletionShowsGuidanceOnlyAtAcknowledgement(t *testing.T) {
 	scene.gameState.EventQueueManager.Workflow(workflow).
 		Priority(event_queue.PriorityNormal).Sequential().BlockInput().
 		First(func() {}).ThenSequence(scene.thenShowShrineQuestCompletionEffects(message)).Start()
-	dialog := waitForModalType[*widgets.MessageDialog](t, scene)
+	dialog := waitForTopModalWithin[*widgets.MessageDialog](t, scene, 1000, 200)
 	expected := widgets.NewMessageDialog(message).WithAutoSizeDefault().WithSeparatePromptArea().
 		WithContentTextAlignment(widgets.ContentAlignCenter).WithEffects(false).Build()
 	expected.ShowWithoutAnimation()
@@ -78,7 +78,7 @@ func TestShrineQuestCompletionShowsGuidanceOnlyAtAcknowledgement(t *testing.T) {
 	pressed = true
 	scene.gameState.EventQueueManager.Update()
 	pressed = false
-	drainNamedWorkflow(t, scene, workflow)
+	drainSceneWorkflow(t, scene, workflow, 1000)
 	require.False(t, scene.dialogStack.HasOpenDialog())
 	require.False(t, callbacks.InputBlocked)
 }
@@ -116,7 +116,7 @@ func TestShrineMeditationRetainsTranscriptThroughThreeMantras(t *testing.T) {
 	require.Equal(t, 3, strings.Count(transcriptText, "Mantra: >"))
 	require.Contains(t, transcriptText, "Thy thoughts are unfocused.")
 	acknowledgeTranscript(t, scene, transcript)
-	drainNamedWorkflow(t, scene, "shrine_meditation")
+	drainSceneWorkflow(t, scene, "shrine_meditation", 1000)
 
 	require.Equal(t, 1, callbacks.BlockInputCalls)
 	require.Equal(t, 1, callbacks.UnblockInputCalls)
@@ -143,7 +143,7 @@ func TestShrineMeditationEmptyOrEscapeExitsWithoutUnfocusedFeedback(t *testing.T
 				scene.keyboard.SimulateKeyPress(key)
 				transcript.Update()
 				require.True(t, transcript.InputComplete())
-				drainNamedWorkflow(t, scene, shrineMeditationWorkflowName)
+				drainSceneWorkflow(t, scene, shrineMeditationWorkflowName, 1000)
 				require.NotContains(t, transcript.TranscriptText(), "unfocused")
 				require.False(t, scene.gameState.IsShrineQuestActive(0))
 				require.False(t, scene.dialogStack.HasOpenDialog())
@@ -166,15 +166,15 @@ func TestShrineAssignmentSendsVisitorToCodexForOpposedVice(t *testing.T) {
 		enterTranscriptText(t, scene, transcript, "RA")
 	}
 
-	assignment := waitForModalType[*widgets.OverlayDialog](t, scene)
+	assignment := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 	message := strings.Join(strings.Fields(assignment.GetMessage()), " ")
 	require.Contains(t, message, "go unto the Codex and learn the failing of a life without Valour!")
 	require.NotContains(t, message, "VERAMOCOR")
 	assignment.Dismiss()
-	followup := waitForModalType[*widgets.OverlayDialog](t, scene)
+	followup := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 	require.Contains(t, followup.GetMessage(), "Return again when thy Quest is done!")
 	followup.Dismiss()
-	drainNamedWorkflow(t, scene, "shrine_meditation")
+	drainSceneWorkflow(t, scene, "shrine_meditation", 1000)
 }
 
 func TestCompassionCodexKeepsWordingTranscriptQuestAndKeyboardDismissal(t *testing.T) {
@@ -188,7 +188,7 @@ func TestCompassionCodexKeepsWordingTranscriptQuestAndKeyboardDismissal(t *testi
 			}
 			scene.StartCodexWorkflow()
 			dismissNextShrineOverlay(t, scene)
-			answer := waitForModalType[*widgets.OverlayDialog](t, scene)
+			answer := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 			require.Contains(t, answer.GetMessage(), "\n"+wisdom)
 			require.Contains(t, callbacks.Messages, wisdom)
 			require.True(t, scene.gameState.IsShrineQuestCompleted(1))
@@ -199,7 +199,7 @@ func TestCompassionCodexKeepsWordingTranscriptQuestAndKeyboardDismissal(t *testi
 			scene.keyboard.SimulateKeyPress(key)
 			answer.Update()
 			require.True(t, answer.IsDismissed())
-			drainNamedWorkflow(t, scene, "codex_reading")
+			drainSceneWorkflow(t, scene, "codex_reading", 1000)
 			require.False(t, scene.dialogStack.HasOpenDialog())
 			require.False(t, callbacks.InputBlocked)
 		})
@@ -225,7 +225,7 @@ func TestFinalCodexCompletionPresentsSourceBackedRevelation(t *testing.T) {
 	for range 5 {
 		revelation = append(revelation, dismissNextShrineOverlay(t, scene))
 	}
-	drainNamedWorkflow(t, scene, "codex_reading")
+	drainSceneWorkflow(t, scene, "codex_reading", 1000)
 
 	transcript := strings.Join(revelation, " ")
 	require.Contains(t, transcript, "SHAME'S EGRESS")
@@ -261,7 +261,7 @@ func TestShrineOfferingRetainsTranscriptThroughPaymentResult(t *testing.T) {
 	require.Equal(t, uint16(200), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Contains(t, callbacks.SoundEffectsPlayed, game_state.SoundShrineOffering)
 	acknowledgeTranscript(t, scene, transcript)
-	drainNamedWorkflow(t, scene, "shrine_meditation")
+	drainSceneWorkflow(t, scene, "shrine_meditation", 1000)
 
 	require.Equal(t, 1, callbacks.BlockInputCalls)
 	require.Equal(t, 1, callbacks.UnblockInputCalls)
@@ -291,7 +291,7 @@ func TestShrineOfferingCancellationRetainsGoldAndRemovesTranscriptBeforeWalkOut(
 	scene.gameState.ElapsedMs += 1000
 	scene.gameState.EventQueueManager.Update()
 	require.False(t, scene.dialogStack.HasOpenDialog())
-	drainNamedWorkflow(t, scene, "shrine_meditation")
+	drainSceneWorkflow(t, scene, "shrine_meditation", 1000)
 
 	require.Equal(t, uint16(500), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Equal(t, 1, callbacks.BlockInputCalls)
@@ -329,7 +329,7 @@ func TestShrineOfferingInsufficientGoldRepromptsAndAcceptsAffordableRetry(t *tes
 	require.Equal(t, uint16(0), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Equal(t, 1, strings.Count(transcript.TranscriptText(), "Offer how many hundredweights gold?"))
 	acknowledgeTranscript(t, scene, transcript)
-	drainNamedWorkflow(t, scene, "shrine_meditation")
+	drainSceneWorkflow(t, scene, "shrine_meditation", 1000)
 
 	require.Equal(t, originalLocation, scene.gameState.MapState.PlayerLocation)
 	require.Equal(t, expectedDate, scene.gameState.DateTime)
@@ -374,7 +374,7 @@ func TestShrineOfferingInsufficientGoldRepromptsAndZeroExits(t *testing.T) {
 	require.Equal(t, uint16(100), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Equal(t, 1, strings.Count(transcript.TranscriptText(), "Offer how many hundredweights gold?"))
 	acknowledgeTranscript(t, scene, transcript)
-	drainNamedWorkflow(t, scene, shrineMeditationWorkflowName)
+	drainSceneWorkflow(t, scene, shrineMeditationWorkflowName, 1000)
 
 	require.Equal(t, uint16(100), scene.gameState.PartyState.Inventory.Gold.Get())
 	require.Equal(t, originalLocation, scene.gameState.MapState.PlayerLocation)
@@ -400,7 +400,7 @@ func TestRuinedShrineRestorationUsesOneTranscriptForVirtueAndMantras(t *testing.
 	require.NotNil(t, scene.gameState.GetAdjacentRuinedShrine(shrineData.WordOfPower))
 
 	scene.ShowYellDialogLargeMap()
-	yell := waitForModalType[*widgets.InputBox](t, scene)
+	yell := waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200)
 	enterInputBoxText(t, scene, yell, "SPEAK"+shrineData.WordOfPower)
 	transcript := waitForTranscriptPrompt(t, scene, "Virtue?")
 	enterTranscriptText(t, scene, transcript, shrineData.VirtueName+"ISMYVIRTUE")
@@ -408,7 +408,7 @@ func TestRuinedShrineRestorationUsesOneTranscriptForVirtueAndMantras(t *testing.
 		require.Same(t, transcript, waitForTranscriptPrompt(t, scene, "Mantra:"))
 		enterTranscriptText(t, scene, transcript, shrineData.Mantra)
 	}
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
 
 	require.False(t, scene.gameState.IsShrineRuined(shrineData.Index))
 	require.True(t, scene.gameState.IsShrineRuined(1))
@@ -428,13 +428,13 @@ func TestRuinedShrineRestorationRejectsMeditationKeyAndStopsBeforeMantras(t *tes
 	scene.gameState.SetShrineRuined(shrineData.Index, true)
 
 	scene.ShowYellDialogLargeMap()
-	yell := waitForModalType[*widgets.InputBox](t, scene)
+	yell := waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200)
 	enterInputBoxText(t, scene, yell, shrineData.WordOfPower)
 	transcript := waitForTranscriptPrompt(t, scene, "Virtue?")
 	enterTranscriptText(t, scene, transcript, shrineData.VirtueKey)
-	overlay := waitForModalType[*widgets.OverlayDialog](t, scene)
+	overlay := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 	overlay.Dismiss()
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
 
 	require.True(t, scene.gameState.IsShrineRuined(shrineData.Index))
 	require.NotContains(t, transcript.TranscriptText(), "Mantra:")
@@ -453,14 +453,14 @@ func TestRuinedShrineRestorationEscapePreservesStateAndReleasesInput(t *testing.
 	scene.gameState.SetShrineRuined(shrineData.Index, true)
 
 	scene.ShowYellDialogLargeMap()
-	yell := waitForModalType[*widgets.InputBox](t, scene)
+	yell := waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200)
 	enterInputBoxText(t, scene, yell, shrineData.WordOfPower)
 	transcript := waitForTranscriptPrompt(t, scene, "Virtue?")
 	scene.keyboard.ClearFrameConsumption()
 	scene.keyboard.SetForceWaitAnyKey(-1000)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	transcript.Update()
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
 
 	require.True(t, scene.gameState.IsShrineRuined(shrineData.Index))
 	require.False(t, scene.dialogStack.HasOpenDialog())
@@ -476,7 +476,7 @@ func TestRuinedShrineMantraCancellationStopsRemainingQuestions(t *testing.T) {
 	}
 	scene.gameState.SetShrineRuined(shrine.Index, true)
 	scene.ShowYellDialogLargeMap()
-	enterInputBoxText(t, scene, waitForModalType[*widgets.InputBox](t, scene), shrine.WordOfPower)
+	enterInputBoxText(t, scene, waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200), shrine.WordOfPower)
 	transcript := waitForTranscriptPrompt(t, scene, "Virtue?")
 	enterTranscriptText(t, scene, transcript, shrine.VirtueName)
 	waitForTranscriptPrompt(t, scene, "Mantra:")
@@ -484,7 +484,7 @@ func TestRuinedShrineMantraCancellationStopsRemainingQuestions(t *testing.T) {
 	scene.keyboard.SetForceWaitAnyKey(-1000)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	transcript.Update()
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
 	require.NotContains(t, transcript.TranscriptText(), "Thy thoughts are unfocused.")
 	require.True(t, scene.gameState.IsShrineRuined(shrine.Index))
 	require.False(t, scene.dialogStack.HasOpenDialog())
@@ -589,38 +589,11 @@ func enterInputBoxText(t *testing.T, scene *GameScene, dialog *widgets.InputBox,
 	dialog.Update()
 }
 
-func waitForModalType[T widgets.Widget](t *testing.T, scene *GameScene) T {
-	t.Helper()
-	for range 200 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(T); ok {
-			return dialog
-		}
-	}
-	var zero T
-	t.Fatalf("modal %T was not shown", zero)
-
-	return zero
-}
-
 func dismissNextShrineOverlay(t *testing.T, scene *GameScene) string {
 	t.Helper()
-	dialog := waitForModalType[*widgets.OverlayDialog](t, scene)
+	dialog := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 	message := strings.Join(strings.Fields(dialog.GetMessage()), " ")
 	dialog.Dismiss()
 
 	return message
-}
-
-func drainNamedWorkflow(t *testing.T, scene *GameScene, name string) {
-	t.Helper()
-	for range 500 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow(name) {
-			return
-		}
-	}
-	t.Fatalf("workflow %q did not complete", name)
 }

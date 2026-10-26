@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
-	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
 // TestApplyCombatDamageToMonster_SurvivingSlimeDivides prevents ordinary hits from
@@ -174,12 +173,7 @@ func TestResolveCombatProjectileSpell_SurvivingSlimeDivides(t *testing.T) {
 }
 
 func fillCombatMapForDivisionTest(gs *GameState) {
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	gs.CombatScene.CombatMapRef.SetRawData(rawData)
 }
 

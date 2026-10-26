@@ -102,16 +102,7 @@ func TestExecuteJailSentenceClearsSourceItemsAndSurvivesNativeHydration(t *testi
 	state.ExecuteJailSentence()
 
 	assert.False(t, state.ItemStacksMap.HasItemStackAtPosition(&itemPosition))
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 	assert.Equal(t, state.MapState.PlayerLocation, hydrated.MapState.PlayerLocation)
 	assert.Equal(t, state.LastLargeMapPosition, hydrated.LastLargeMapPosition)
 	assert.Equal(t, state.LastLargeMapFloor, hydrated.LastLargeMapFloor)

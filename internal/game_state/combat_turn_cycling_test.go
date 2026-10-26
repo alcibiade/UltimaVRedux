@@ -26,14 +26,7 @@ import (
 // not party slot order. This test verifies that all active PCs get turns
 // and that the queue advances correctly.
 func TestCombatTurnCycling_NormalMode_AdvancesThroughActiveMembers(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 	require.NotNil(t, gs.CombatScene)
 
 	// Solo mode should NOT be active by default
@@ -108,14 +101,7 @@ func TestCombatTurnCycling_NormalMode_SyncsActivePlayerIndex(t *testing.T) {
 // combat turn text stays in the scrolling transcript without opening an action
 // feedback popup. Popups overlap during movement because every move ends a turn.
 func TestAdvanceCombatTurn_PCTurnPromptUsesMessageOutput(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, mockCallbacks := newBritainCombatTestState(t, 42)
 
 	actionFeedbackCalls := 0
 	gs.SystemCallbacks.UI.ShowActionFeedback = func(_ string, _ bool) {
@@ -141,14 +127,7 @@ func TestAdvanceCombatTurn_PCTurnPromptUsesMessageOutput(t *testing.T) {
 // the CurrentTurnIndex (matching original combat scheduler active_player behavior).
 // See ref:COMBAT-0002.
 func TestCombatSoloMode_OnlySoloCharacterGetsTurn(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	// Find an active party member to use as solo character
 	soloIdx := -1
@@ -172,17 +151,7 @@ func TestCombatSoloMode_OnlySoloCharacterGetsTurn(t *testing.T) {
 }
 
 func TestCombatSoloModePresentedTurnsFastForwardSkippedPC(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	require.NoError(t, gs.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		CombatEntryNorth,
-	))
+	gs, mockCallbacks := newBritainCombatTestState(t, 42)
 
 	var activeMembers []int
 	for i := range party_state.MaxActiveParty {
@@ -258,14 +227,7 @@ func TestCombatSoloModeFastForwardStopsForHostileTurn(t *testing.T) {
 }
 
 func TestCombatSoloModeFastForwardsSkippedPCAfterVictory(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(
-		0, references.BritanniaCombatTerritory, CombatEntryNorth,
-	))
+	gs, _ := newBritainCombatTestState(t, 42)
 	activeMembers := gs.ActiveCombatPartyMembers()
 	require.GreaterOrEqual(t, len(activeMembers), 2)
 	skippedPC, selectedPC := activeMembers[0], activeMembers[1]
@@ -297,14 +259,7 @@ func TestCombatSoloModeFastForwardsSkippedPCAfterVictory(t *testing.T) {
 // TestCombatSoloMode_CannotMoveSelectedCharacterOutOfTurn prevents number-key
 // selection from granting action authority before the DEX queue reaches that PC.
 func TestCombatSoloMode_CannotMoveSelectedCharacterOutOfTurn(t *testing.T) {
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, mock := newBritainCombatTestState(t, 42)
 
 	// Find two active party members
 	var activeMembers []int
@@ -367,14 +322,7 @@ func TestCombatSoloMode_CannotMoveSelectedCharacterOutOfTurn(t *testing.T) {
 // mode allows AdvanceCombatTurn to resume normal dex-based cycling where
 // all active PCs get turns (not just the solo character).
 func TestCombatSoloMode_ClearRestoresNormalCycling(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	turnBefore := gs.CombatScene.GetCurrentTurnMemberIndex()
 
@@ -401,12 +349,7 @@ func TestCombatSoloMode_ClearRestoresNormalCycling(t *testing.T) {
 }
 
 func TestCombatSoloModeDoesNotAutoPassPossessedPC(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, _ := newBritainCombatTestState(t, 42)
 	active := gs.ActiveCombatPartyMembers()
 	require.GreaterOrEqual(t, len(active), 2)
 	selected, possessed := active[0], active[1]
@@ -435,14 +378,7 @@ func TestCombatSoloModeDoesNotAutoPassPossessedPC(t *testing.T) {
 // rejects positions occupied by active monsters, preventing party members
 // from walking onto monster tiles.
 func TestCombatMovement_BlockedByMonster(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()
@@ -471,14 +407,7 @@ func TestCombatMovement_BlockedByMonster(t *testing.T) {
 // TestCombatMovement_DeadMonsterDoesNotBlock verifies that killed monsters
 // do not block movement — only active monsters should be collision checked.
 func TestCombatMovement_DeadMonsterDoesNotBlock(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()

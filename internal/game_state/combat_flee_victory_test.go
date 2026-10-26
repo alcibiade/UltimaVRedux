@@ -37,14 +37,7 @@ func setupCombatForFlee(
 ) (*GameState, *MockSystemCallbacks, *CombatMonster) {
 	t.Helper()
 
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, mock := newBritainCombatTestState(t, 42)
 	require.NotNil(t, gs.CombatScene)
 
 	// Clear existing monsters
@@ -73,14 +66,7 @@ func setupCombatNoMonsters(
 ) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, mock := newBritainCombatTestState(t, 42)
 	require.NotNil(t, gs.CombatScene)
 
 	// Clear all monsters
@@ -385,14 +371,7 @@ func TestCombatEscape_NotYetWhenNoVictory(t *testing.T) {
 // TestCombatMovement_BlockedNotFled verifies that blocked movement within the
 // map returns CombatMoveBlocked (not CombatMoveFled) — regression check.
 func TestCombatMovement_BlockedNotFled(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	// Place PC in the center — any movement should be within bounds
 	activeIdx := gs.CombatScene.GetActiveCombatantIndex()

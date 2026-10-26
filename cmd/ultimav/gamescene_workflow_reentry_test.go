@@ -37,7 +37,7 @@ func TestWishingWellEscapeCompletesWorkflowAndPreservesResources(t *testing.T) {
 	require.NotPanics(t, func() { scene.ShowWellInteraction(&position) })
 	assert.Equal(t, 1, callbacks.BlockInputCalls)
 
-	dialog := waitForWorkflowDialog[*widgets.InteractionTranscript](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	assert.Contains(t, dialog.TranscriptText(), "Thou dost see a well.")
 	assert.Equal(t, "Drop a coin?", dialog.ActivePrompt())
 	answerWishingWellCoinPrompt(t, scene, dialog, ebiten.KeyY)
@@ -63,7 +63,7 @@ func TestWishingWellZeroGoldYesCompletesAndReleasesInput(t *testing.T) {
 	position := findWishingWellWorkflowPosition(t, scene.gameState)
 
 	scene.ShowWellInteraction(&position)
-	dialog := waitForWorkflowDialog[*widgets.InteractionTranscript](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	answerWishingWellCoinPrompt(t, scene, dialog, ebiten.KeyY)
 	acknowledgeWishingWell(t, scene, dialog)
 	drainWishingWellWorkflow(t, scene)
@@ -84,7 +84,7 @@ func TestWishingWellNoCompletesWithoutWishInput(t *testing.T) {
 	position := findWishingWellWorkflowPosition(t, scene.gameState)
 
 	scene.ShowWellInteraction(&position)
-	dialog := waitForWorkflowDialog[*widgets.InteractionTranscript](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	answerWishingWellCoinPrompt(t, scene, dialog, ebiten.KeyN)
 	acknowledgeWishingWell(t, scene, dialog)
 	drainWishingWellWorkflow(t, scene)
@@ -103,7 +103,7 @@ func TestWishingWellSubmittedWishCompletesAndOwnsDialog(t *testing.T) {
 	dateBefore := scene.gameState.DateTime
 
 	scene.ShowWellInteraction(&position)
-	dialog := waitForWorkflowDialog[*widgets.InteractionTranscript](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	require.Equal(t, 1, scene.dialogStack.Count())
 	answerWishingWellCoinPrompt(t, scene, dialog, ebiten.KeyY)
 	waitForWishingWellPrompt(t, scene, dialog, "Thy wish?")
@@ -138,7 +138,7 @@ func TestWishingWellLookOwnsOneDeferredSurfaceCycle(t *testing.T) {
 	require.True(t, scene.gameState.EventQueueManager.HasWorkflow("surface_command_completion"))
 	assert.Equal(t, dateBefore, scene.gameState.DateTime)
 
-	dialog := waitForWorkflowDialog[*widgets.InteractionTranscript](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InteractionTranscript](t, scene, 1000, 20)
 	answerWishingWellCoinPrompt(t, scene, dialog, ebiten.KeyY)
 	waitForWishingWellPrompt(t, scene, dialog, "Thy wish?")
 	enterWishingWellText(t, scene, dialog, "DRAGON WISHX")
@@ -284,21 +284,6 @@ func TestStonegateKeepsAlreadyLiveDeathWorkflow(t *testing.T) {
 
 	assert.False(t, state.EventQueueManager.HasWorkflow("stonegate_trap_workflow"))
 	assert.True(t, state.EventQueueManager.HasWorkflow(deathResurrectionWorkflowName))
-}
-
-func waitForWorkflowDialog[T widgets.Widget](t *testing.T, scene *GameScene) T {
-	t.Helper()
-	for range 20 {
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if dialog, ok := scene.dialogStack.PeekTopModalDialog().(T); ok {
-			return dialog
-		}
-	}
-	var zero T
-	t.Fatalf("workflow dialog %T was not shown", zero)
-
-	return zero
 }
 
 func newWishingWellWorkflowTestScene(t *testing.T, gold uint16) (*GameScene, *game_state.MockSystemCallbacks) {

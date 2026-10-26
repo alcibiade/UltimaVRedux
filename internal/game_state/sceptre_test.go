@@ -64,16 +64,7 @@ func TestSceptreBarrierClearSurvivesNativeSnapshot(t *testing.T) {
 	state.GetCurrentLayeredMap().SetTileByLayer(map_state.MapLayer, &barrier, indexes.ShadowlordBoundary1)
 	require.Equal(t, []references.Position{barrier}, state.ClearNearbySceptreBarriers())
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.Grass),
 		hydrated.GetCurrentLayeredMap().SpriteIndexByLayer(map_state.MapLayer, barrier))

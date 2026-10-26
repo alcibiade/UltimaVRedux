@@ -584,3 +584,31 @@ func countEqual[T comparable](values []T, want T) int {
 
 	return count
 }
+
+// newBritainCombatTestState builds a seeded Britain state and enters the
+// Britannia combat territory from the north.
+func newBritainCombatTestState(t *testing.T, seed uint64) (*GameState, *MockSystemCallbacks) {
+	t.Helper()
+	gs, mockCallbacks := NewIntegrationTestBuilder(t).
+		WithLocation(references.Britain).
+		WithSystemCallbacks().
+		WithRandomSeed(seed).
+		Build()
+	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+
+	return gs, mockCallbacks
+}
+
+// roundTripSaveSnapshot captures state as a native save snapshot and returns
+// the state rebuilt from it.
+func roundTripSaveSnapshot(t *testing.T, state *GameState) *GameState {
+	t.Helper()
+	snapshot, err := state.CaptureSaveSnapshot()
+	require.NoError(t, err)
+	hydrated, err := NewGameStateFromSaveSnapshot(
+		snapshot, state.GameConfig, state.GameReferences, xTilesVisibleOnGameScreen, yTilesVisibleOnGameScreen,
+	)
+	require.NoError(t, err)
+
+	return hydrated
+}

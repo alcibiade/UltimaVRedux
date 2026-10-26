@@ -51,13 +51,7 @@ func TestRollCombatCorpseSearchOriginalOutcomes(t *testing.T) {
 }
 
 func TestActionSearchCombatMapConsumesCorpse(t *testing.T) {
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(169).
-		Build()
-
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, mock := newBritainCombatTestState(t, 169)
 	activeIndex := gs.CombatScene.GetActiveCombatantIndex()
 	activePosition := gs.CombatScene.GetPartyMemberPosition(activeIndex)
 	targetPosition := references.Down.GetNewPositionInDirection(&activePosition)

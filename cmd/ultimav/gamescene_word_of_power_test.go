@@ -146,7 +146,7 @@ func TestCodexWordOfPowerAfterWordPageAndOnCompletedRevisit(t *testing.T) {
 				scene.updateJournalNotice()
 				openingRevision := scene.journalVisits.Revision
 				for index, message := range game_state.CodexRevelationMessages {
-					dialog := waitForModalType[*widgets.OverlayDialog](t, scene)
+					dialog := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 					require.True(t, dialog.IsVisible())
 					require.Equal(t, message, dialog.GetMessage(), "retain the verified Codex text verbatim")
 					if index == 3 {
@@ -166,7 +166,7 @@ func TestCodexWordOfPowerAfterWordPageAndOnCompletedRevisit(t *testing.T) {
 						"the final paragraph is not recorded until it is acknowledged")
 					dialog.Dismiss()
 				}
-				drainNamedWorkflow(t, scene, "codex_reading")
+				drainSceneWorkflow(t, scene, "codex_reading", 1000)
 				entry, known := scene.gameState.WordOfPowerKnowledge("doom")
 				require.True(t, known)
 				require.True(t, scene.gameState.CodexRevelationComplete)
@@ -198,11 +198,11 @@ func TestCodexWordOfPowerCancelledBeforeWordPageRemainsUnknown(t *testing.T) {
 	scene.StartCodexWorkflow()
 	dismissNextShrineOverlay(t, scene) // The book opens.
 	for _, message := range game_state.CodexRevelationMessages[:2] {
-		dialog := waitForModalType[*widgets.OverlayDialog](t, scene)
+		dialog := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 		require.Equal(t, message, dialog.GetMessage())
 		dialog.Dismiss()
 	}
-	dialog := waitForModalType[*widgets.OverlayDialog](t, scene)
+	dialog := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 	require.Equal(t, game_state.CodexRevelationMessages[2], dialog.GetMessage())
 	scene.Dispose()
 	dialog.Dismiss()
@@ -221,7 +221,7 @@ func TestCodexFinalPageInterruptionRetainsOnlyWordUntilRevisit(t *testing.T) {
 	for range game_state.CodexRevelationMessages[:4] {
 		dismissNextShrineOverlay(t, scene)
 	}
-	dialog := waitForModalType[*widgets.OverlayDialog](t, scene)
+	dialog := waitForTopModalWithin[*widgets.OverlayDialog](t, scene, 1000, 200)
 	require.Equal(t, game_state.CodexRevelationMessages[4], dialog.GetMessage())
 	word, known := scene.gameState.WordOfPowerKnowledge("doom")
 	require.True(t, known)
@@ -257,7 +257,7 @@ func TestCodexFinalPageInterruptionRetainsOnlyWordUntilRevisit(t *testing.T) {
 	for range game_state.CodexRevelationMessages {
 		dismissNextShrineOverlay(t, revisit)
 	}
-	drainNamedWorkflow(t, revisit, "codex_reading")
+	drainSceneWorkflow(t, revisit, "codex_reading", 1000)
 	require.True(t, revisit.gameState.CodexRevelationComplete)
 	require.Equal(t, before, revisit.gameState.QuestJournalEvents())
 	after, known := revisit.gameState.WordOfPowerKnowledge("doom")

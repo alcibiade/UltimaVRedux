@@ -72,7 +72,7 @@ func TestMoongateSpiritualityHandoffUsesCapturedRouteAndRestoresSource(t *testin
 	enterTranscriptText(t, scene, transcript, "WRONG")
 	require.Same(t, transcript, waitForShrineTranscriptResult(t, scene, transcript, "Thy thoughts are unfocused."))
 	acknowledgeTranscript(t, scene, transcript)
-	drainNamedWorkflow(t, scene, shrineMeditationWorkflowName)
+	drainSceneWorkflow(t, scene, shrineMeditationWorkflowName, 1000)
 
 	assert.Equal(t, source, state.MapState.PlayerLocation)
 	assert.Nil(t, state.ShrineScene)
@@ -119,7 +119,7 @@ func TestMoongateFailedActivationContractsAllGatesWithoutTime(t *testing.T) {
 	result := state.ReviewMoongateTravel()
 	require.True(t, result.FailedButActivated)
 	scene.triggerMoongateTravel()
-	drainNamedWorkflow(t, scene, "moongate_activation")
+	drainSceneWorkflow(t, scene, "moongate_activation", 1000)
 	assert.Equal(t, game_state.MoongateStageHidden, state.MoongateStage())
 	assert.Empty(t, state.GetActiveMoongatePositions())
 	assert.Equal(t, before, state.DateTime)

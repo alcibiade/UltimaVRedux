@@ -26,14 +26,7 @@ import (
 // TestGetActiveCombatantIndex_NormalMode verifies that GetActiveCombatantIndex
 // returns CurrentTurnIndex when solo mode is not active.
 func TestGetActiveCombatantIndex_NormalMode(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 	require.NotNil(t, gs.CombatScene)
 
 	assert.False(t, gs.CombatScene.IsSoloMoveActive())
@@ -44,14 +37,7 @@ func TestGetActiveCombatantIndex_NormalMode(t *testing.T) {
 // TestGetActiveCombatantIndex_SoloMode verifies that selecting a future solo
 // character cannot replace the actor whose queue turn is currently authoritative.
 func TestGetActiveCombatantIndex_SoloMode(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	// Find a different active member than CurrentTurnIndex
 	var soloIdx int
@@ -73,14 +59,7 @@ func TestGetActiveCombatantIndex_SoloMode(t *testing.T) {
 // getActiveCombatantPosition returns the position of the active combatant,
 // not a fixed center position.
 func TestGetActiveCombatantPosition_ReturnsCorrectPosition(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	idx := gs.CombatScene.GetActiveCombatantIndex()
 	expectedPos := gs.CombatScene.GetPartyMemberPosition(idx)
@@ -93,14 +72,7 @@ func TestGetActiveCombatantPosition_ReturnsCorrectPosition(t *testing.T) {
 // TestGetActiveCombatantPosition_SoloMode verifies the selected future actor
 // cannot replace the current turn's position.
 func TestGetActiveCombatantPosition_SoloMode(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	currentIndex := gs.CombatScene.CurrentTurnIndex
 	currentPosition := gs.CombatScene.GetPartyMemberPosition(currentIndex)
@@ -276,14 +248,7 @@ func TestCombatDoorActions_AdvanceAfterHandledOutcome(t *testing.T) {
 // ActionKlimbCombatMap examines the tile at the active combatant's position
 // (not the fixed center) and restores PlayerLocation.Position afterward.
 func TestActionKlimbCombatMap_UsesActiveCombatantPosition(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	savedCenterPos := gs.MapState.PlayerLocation.Position
 

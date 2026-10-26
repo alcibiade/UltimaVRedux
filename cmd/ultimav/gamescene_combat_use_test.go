@@ -40,7 +40,7 @@ func TestCombatUseCancellationPreservesItemAndActiveAction(t *testing.T) {
 	scene.StartCombatUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.Dismiss()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.Potions.Get(references.Black))
 	assert.Equal(t, identityBefore, scene.gameState.CombatScene.GetCurrentTurnIdentity())
@@ -56,7 +56,7 @@ func TestCombatSceptreItemCancellationCreatesNoVisualEffect(t *testing.T) {
 	scene.StartCombatUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.Dismiss()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Empty(t, scene.combatSceptreEffects)
 	assert.Empty(t, scene.combatFieldDispels)
@@ -73,7 +73,7 @@ func TestBlackPotionAppliesInvisibilityAndCompletesOneAction(t *testing.T) {
 	scene.StartCombatUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Zero(t, scene.gameState.PartyState.Inventory.Potions.Get(references.Black))
 	assert.True(t, scene.gameState.CombatScene.IsPartyMemberInvisible(identityBefore.EntityIndex))
@@ -92,7 +92,7 @@ func TestPurplePotionTransformsActiveCombatantAndCompletesAction(t *testing.T) {
 	scene.StartCombatUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Zero(t, scene.gameState.PartyState.Inventory.Potions.Get(references.Purple))
 	assert.True(t, scene.gameState.CombatScene.PartyActive[identityBefore.EntityIndex])
@@ -113,7 +113,7 @@ func TestKalXenCorpScrollConsumesAndSummonsLoyalDaemon(t *testing.T) {
 			scene.StartCombatUseWorkflow()
 			dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 			dialog.HandleEnter()
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 
 			assert.Zero(t, scene.gameState.PartyState.Inventory.Scrolls.Get(references.ScrollKalXenCorp))
 			require.NotEmpty(t, mock.CombatEvents)
@@ -148,7 +148,7 @@ func TestCombatDurationScrollsActivateAndCompleteAction(t *testing.T) {
 				scene.StartCombatUseWorkflow()
 				dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 				dialog.HandleEnter()
-				drainCombatUseWorkflow(t, scene)
+				drainDismissingOverlays(t, scene, "use_item_workflow")
 
 				assert.Zero(t, scene.gameState.PartyState.Inventory.Scrolls.Get(test.scroll))
 				if test.scroll == references.ScrollVasLor {
@@ -182,7 +182,7 @@ func TestKalXenCorpScrollNoRoomStillConsumesAndCompletesAction(t *testing.T) {
 	scene.StartCombatUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Zero(t, scene.gameState.PartyState.Inventory.Scrolls.Get(references.ScrollKalXenCorp),
 		"original Use consumes the scroll before summon placement (ref:CONSUME-0001)")
@@ -204,7 +204,7 @@ func TestCombatSceptreDispelConsumesOneActionWithoutConsumption(t *testing.T) {
 	selectCombatSceptre(t, scene)
 	assertCombatSceptreActorEffect(t, scene, identityBefore, origin)
 	resolveCombatSceptreDirection(t, scene, ebiten.KeyArrowDown)
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.QuestItems.Get(references.Sceptre))
 	require.Len(t, scene.gameState.CombatScene.Fields(), 1)
@@ -229,7 +229,7 @@ func TestCombatSceptreBarrierClearSkipsDirectionalFieldFallback(t *testing.T) {
 	scene.StartCombatUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.Grass), scene.gameState.CombatScene.CombatMapRef.GetTileNumber(target))
 	assert.Equal(t, indexes.SpriteIndex(indexes.Grass),
@@ -268,7 +268,7 @@ func TestCombatSceptreNoEffectIsPaidAndPassIsFree(t *testing.T) {
 				scene.gameState.CombatScene.GetCombatantPosition(identityBefore),
 			)
 			resolveCombatSceptreDirection(t, scene, test.key)
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 
 			assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.QuestItems.Get(references.Sceptre))
 			assert.Empty(t, scene.gameState.CombatScene.Fields())
@@ -299,16 +299,7 @@ func assertCombatSceptreActorEffect(
 
 func newCombatUseTestScene(t *testing.T) (*GameScene, *game_state.MockSystemCallbacks) {
 	t.Helper()
-	state, mock := game_state.NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, state.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		game_state.CombatEntryNorth,
-	))
+	state, mock := newBritainCombatTestState(t, 1)
 	require.True(t, state.CombatScene.GetCurrentTurnIdentity().IsPartyMember)
 
 	// Workflow release predicates must see fixture-owned held keys, not host input.
@@ -360,19 +351,4 @@ func resolveCombatSceptreDirection(t *testing.T, scene *GameScene, key ebiten.Ke
 	scene.keyboard.SimulateKeyPress(key)
 	scene.gameState.ElapsedMs += DialogPollingRateMs
 	scene.gameState.EventQueueManager.Update()
-}
-
-func drainCombatUseWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 50 {
-		if overlay, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.OverlayDialog); ok {
-			overlay.Dismiss()
-		}
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("use_item_workflow") {
-			return
-		}
-	}
-	t.Fatal("combat Use workflow did not complete")
 }

@@ -78,14 +78,7 @@ func TestSignum(t *testing.T) {
 // behavior is exercised through findNearestOpponent below.
 
 func TestCombatPCTargetFixture_SingleActivePC(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 	require.NotNil(t, gs.CombatScene)
 
 	// Only one PC active at position (5,8)
@@ -106,14 +99,7 @@ func TestCombatPCTargetFixture_SingleActivePC(t *testing.T) {
 }
 
 func TestCombatPCTargetFixture_PicksClosest(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	// Two PCs active: PC0 at (2,2) far, PC1 at (5,4) close
 	for i := range party_state.MaxActiveParty {
@@ -245,14 +231,7 @@ func TestNoOpponentForcesEveryMonsterToOneHPAndFleeing(t *testing.T) {
 // See ref:COMBAT-0008.
 
 func TestMonsterSeek_MovesTowardPC(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()
@@ -288,14 +267,7 @@ func TestMonsterSeek_MovesTowardPC(t *testing.T) {
 }
 
 func TestMonsterSeek_DoNotMoveFlag(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()
@@ -590,12 +562,7 @@ func setupMonsterTeleportTest(
 	teleports bool,
 ) (*GameState, *MockSystemCallbacks, *CombatMonster, int) {
 	t.Helper()
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, mock := newBritainCombatTestState(t, 1)
 	clearCombatMonstersForTest(gs.CombatScene)
 	for index := range party_state.MaxActiveParty {
 		gs.CombatScene.PartyActive[index] = false
@@ -1221,14 +1188,7 @@ func TestAdvanceCombatTurn_MonsterKillsPC_DefeatCheck(t *testing.T) {
 // See ref:COMBAT-0008.
 
 func TestIsCombatPositionValid_OutOfBounds(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	enemyRefs := *gs.GameReferences.EnemyReferences
 	ref := &enemyRefs[references.MonsterOrc]
@@ -1243,14 +1203,7 @@ func TestIsCombatPositionValid_OutOfBounds(t *testing.T) {
 }
 
 func TestIsCombatPositionValid_OccupiedByPC(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	enemyRefs := *gs.GameReferences.EnemyReferences
 	ref := &enemyRefs[references.MonsterOrc]
@@ -1266,14 +1219,7 @@ func TestIsCombatPositionValid_OccupiedByPC(t *testing.T) {
 }
 
 func TestIsCombatPositionValid_OccupiedByOtherMonster(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(42).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 42)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()

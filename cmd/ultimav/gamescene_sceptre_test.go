@@ -39,7 +39,7 @@ func TestSurfaceSceptreClearsBarriersWithoutDirectionAndCompletesTurn(t *testing
 	scene.StartUseWorkflow()
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	dialog.HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	drainSceneWorkflow(t, scene, "sceptre_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, indexes.SpriteIndex(indexes.Grass),

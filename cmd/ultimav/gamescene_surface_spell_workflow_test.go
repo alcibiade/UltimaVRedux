@@ -14,7 +14,6 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
-	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/bradhannah/UltimaVRedux/pkg/input"
 )
 
@@ -59,7 +58,7 @@ func TestSurfaceDirectionalSpellProductionDispatchOwnsResourcesAndTime(t *testin
 				First(func() {})
 			scene.dispatchSpellEffect(workflow, request, castState)
 			workflow.Finally(func() { scene.finishSpellCastingWorkflow(castState) }).Start()
-			drainSurfaceSpellWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "test_surface_spell_dispatch")
 
 			assert.Equal(t, uint16(0), state.PartyState.Inventory.Spells.Get(test.spell))
 			assert.Equal(t, test.wantMP, caster.GetCurrentMp())
@@ -170,7 +169,7 @@ func TestCoreSurfaceSpellProductionDispatchOwnsResourcesAndTime(t *testing.T) {
 				First(func() {})
 			scene.dispatchSpellEffect(workflow, request, castState)
 			workflow.Finally(func() { scene.finishSpellCastingWorkflow(castState) }).Start()
-			drainSurfaceSpellWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "test_surface_spell_dispatch")
 
 			assert.Equal(t, uint16(0), state.PartyState.Inventory.Spells.Get(test.spell))
 			assert.Equal(t, byte(8-references.GetSpellCircle(test.spell)), caster.GetCurrentMp())
@@ -199,7 +198,7 @@ func TestRelHurProductionBuilderHandlesRejectedDirection(t *testing.T) {
 		Sequential().
 		First(func() {})
 	workflow.ThenSequence(scene.thenCastRelHur(references.NoneDirection)).Finally(func() {}).Start()
-	drainSurfaceSpellWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "test_surface_spell_dispatch")
 
 	assert.Contains(t, mock.SoundEffectsPlayed, game_state.SoundSpellFailure)
 	assert.NotContains(t, mock.SoundEffectsPlayed, game_state.SoundMagic)
@@ -343,7 +342,7 @@ func TestVasRelPorProductionDispatchOwnsTransitionResourcesAndOneMinute(t *testi
 				First(func() {})
 			scene.dispatchSpellEffect(workflow, request, castState)
 			workflow.Finally(func() {}).Start()
-			drainSurfaceSpellWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "test_surface_spell_dispatch")
 
 			assert.Equal(t, uint16(0), state.PartyState.Inventory.Spells.Get(references.VasRelPor))
 			assert.Equal(t, byte(0), caster.GetCurrentMp())
@@ -397,19 +396,4 @@ func TestActualMoongateTeleportUsesDestinationWithoutOwningTimeOrSyntheticDaytim
 	assert.Equal(t, references.Position{X: 14, Y: 15}, state.MapState.PlayerLocation.Position)
 	assert.Equal(t, beforeTime, state.DateTime)
 	assert.Empty(t, scene.moongateVisualSystem.GetActiveRenderers())
-}
-
-func drainSurfaceSpellWorkflow(t *testing.T, scene *GameScene) {
-	t.Helper()
-	for range 20 {
-		if overlay, ok := scene.dialogStack.PeekTopModalDialog().(*widgets.OverlayDialog); ok {
-			overlay.Dismiss()
-		}
-		scene.gameState.ElapsedMs += 1000
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow("test_surface_spell_dispatch") {
-			return
-		}
-	}
-	t.Fatal("surface spell workflow did not complete")
 }

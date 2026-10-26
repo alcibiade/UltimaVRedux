@@ -38,12 +38,7 @@ func newStrictSummonRNG(t *testing.T, values ...int) *strictSummonRNG {
 
 func newCombatSummonTestState(t *testing.T) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth))
+	gs, mock := newBritainCombatTestState(t, 1)
 
 	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
 	for x := range references.XCombatMapTiles {

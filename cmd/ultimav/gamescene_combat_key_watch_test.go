@@ -37,7 +37,7 @@ func TestCombatSkullKeyPickerDispatchAndOneAction(t *testing.T) {
 				before.ElapsedMs = scene.gameState.ElapsedMs
 				require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState), "prompt is free")
 				scene.keyboard.SimulateKeyPress(ebiten.KeyArrowUp)
-				drainCombatUseWorkflow(t, scene)
+				drainDismissingOverlays(t, scene, "use_item_workflow")
 
 				key, _ := expected.gameState.BeginSkullKeyUse()
 				result, paid := expected.gameState.CommitCombatSkullKeyUse(key, references.Up)
@@ -60,7 +60,7 @@ func TestCombatSkullKeyPickerDispatchAndOneAction(t *testing.T) {
 				}
 				require.Nil(t, scene.castUseDirectionDialog)
 				require.Zero(t, scene.dialogStack.Count())
-				drainCombatUseWorkflow(t, scene)
+				drainDismissingOverlays(t, scene, "use_item_workflow")
 				assertCombatKeyWatchState(t, scene, expected)
 			})
 		}
@@ -96,7 +96,7 @@ func TestCombatKeyAndWatchCancellationAndShutdownAreFreeBeforeCommit(t *testing.
 						scene.gameState.EventQueueManager.Shutdown()
 					}
 				}
-				drainCombatUseWorkflow(t, scene)
+				drainDismissingOverlays(t, scene, "use_item_workflow")
 				before.ElapsedMs = scene.gameState.ElapsedMs
 				require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 				require.Equal(t, commits, scene.gameState.CastUseCommitSequence())
@@ -117,7 +117,7 @@ func TestCombatKeyAndWatchCancellationDoesNotCompleteUnrelatedCommit(t *testing.
 		commits := scene.gameState.CastUseCommitSequence()
 		before := snapshotBlockedCombatState(t, scene.gameState)
 		dialog.Dismiss()
-		drainCombatUseWorkflow(t, scene)
+		drainDismissingOverlays(t, scene, "use_item_workflow")
 		before.ElapsedMs = scene.gameState.ElapsedMs
 		require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 		require.Equal(t, commits, scene.gameState.CastUseCommitSequence())
@@ -132,7 +132,7 @@ func TestCombatSkullKeyInvalidatedPromptCleansUpWithoutMoreInput(t *testing.T) {
 	changeCombatKeyWatchScene(t, scene, references.SkullKeys, "encounter")
 	before := snapshotBlockedCombatState(t, scene.gameState)
 	commits := scene.gameState.CastUseCommitSequence()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	before.ElapsedMs = scene.gameState.ElapsedMs
 	require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 	require.Equal(t, commits, scene.gameState.CastUseCommitSequence())
@@ -152,7 +152,7 @@ func TestCombatSkullKeyDirectionRejectsStaleOwnerOrStock(t *testing.T) {
 			before := snapshotBlockedCombatState(t, scene.gameState)
 			commits := scene.gameState.CastUseCommitSequence()
 			scene.keyboard.SimulateKeyPress(ebiten.KeyArrowUp)
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 			before.ElapsedMs = scene.gameState.ElapsedMs
 			require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 			require.Equal(t, commits, scene.gameState.CastUseCommitSequence())
@@ -189,7 +189,7 @@ func TestCombatPocketWatchPickerAwaitsDismissalBeforeOneAction(t *testing.T) {
 	}
 	watch.Dismiss()
 	watch.Dismiss()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	commit := expected.gameState.BeginCombatPocketWatchUse(expected.gameState.CaptureCombatUseOwner())
 	_, paid := expected.gameState.CommitCombatPocketWatchUse(commit)
 	require.True(t, paid)
@@ -200,7 +200,7 @@ func TestCombatPocketWatchPickerAwaitsDismissalBeforeOneAction(t *testing.T) {
 	require.Zero(t, scene.dialogStack.Count())
 	require.Nil(t, scene.pocketWatchDialog)
 	require.False(t, scene.gameState.EventQueueManager.HasInputBlockingWorkflows())
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	assertCombatKeyWatchState(t, scene, expected)
 }
 
@@ -225,7 +225,7 @@ func TestCombatPocketWatchRejectsChangesBetweenConstructionAndCommit(t *testing.
 			before := snapshotBlockedCombatState(t, state)
 			commits := state.CastUseCommitSequence()
 			builder.Start()
-			drainCombatUseWorkflow(t, scene)
+			drainDismissingOverlays(t, scene, "use_item_workflow")
 			before.ElapsedMs = state.ElapsedMs
 			require.Equal(t, before, snapshotBlockedCombatState(t, state))
 			require.Equal(t, commits, state.CastUseCommitSequence())

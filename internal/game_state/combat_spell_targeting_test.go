@@ -21,12 +21,7 @@ func setupVasFlamTargeting(t *testing.T) (*GameState, *MockSystemCallbacks, *Com
 	caster.Intelligence = 30
 	caster.SetMp(30)
 	gs.PartyState.Inventory.Spells.Set(references.VasFlam, 2)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	gs.CombatScene.CombatMapRef.SetRawData(rawData)
 	mock.Reset()
 
@@ -301,12 +296,7 @@ func TestBlockedCombatFieldTrajectoryCommitsButSuppressesAllFourFields(t *testin
 			origin := references.Position{X: 3, Y: 3}
 			target := references.Position{X: 6, Y: 3}
 			gs.CombatScene.SetPartyMemberPosition(casterIdx, origin)
-			raw := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-			for x := range references.XCombatMapTiles {
-				for y := range references.YCombatMapTiles {
-					raw[x][y] = byte(indexes.BrickFloor)
-				}
-			}
+			raw := brickFloorCombatRaw()
 			raw[4][3] = byte(indexes.StoneBrickWall)
 			gs.CombatScene.CombatMapRef.SetRawData(raw)
 			gs.PartyState.Inventory.Spells.Set(spell, 1)
@@ -345,36 +335,44 @@ func TestCombatApplyMagicDamageModifiers_BypassesUndeadButNotImmortal(t *testing
 		"original immortal monsters remain immune to magic damage")
 }
 
-func TestCombatMissileImpactPosition_StopsAtOriginalBlockingTerrain(t *testing.T) {
-	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
+// A missile stops on the first sampled blocking tile of its original pixel
+// path; the final sample is not collision tested, so it still reaches a walled
+// target square.
+func TestCombatMissileImpactPosition(t *testing.T) {
+	for _, test := range []struct {
+		name                 string
+		wall, from, to, want references.Position
+		reached              bool
+	}{
+		{
+			name: "stops at blocking terrain", wall: references.Position{X: 6, Y: 5},
+			from: references.Position{X: 5, Y: 5}, to: references.Position{X: 7, Y: 5}, want: references.Position{X: 6, Y: 5},
+		},
+		{
+			name: "follows the sampled pixel path", wall: references.Position{X: 0, Y: 1},
+			from: references.Position{X: 0, Y: 0}, to: references.Position{X: 1, Y: 2}, want: references.Position{X: 0, Y: 1},
+		},
+		{
+			name: "final sample not collision tested", wall: references.Position{X: 1, Y: 0},
+			from: references.Position{X: 0, Y: 0}, to: references.Position{X: 1, Y: 0}, want: references.Position{X: 1, Y: 0},
+			reached: true,
+		},
+	} {
+		combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
+		rawData := brickFloorCombatRaw()
+		rawData[test.wall.X][test.wall.Y] = byte(indexes.StoneBrickWall)
+		combatMap.SetRawData(rawData)
+
+		impact, reached := combatMissileImpactPosition(combatMap.GetTileNumber, test.from, test.to, references.MissileNone)
+
+		assert.Equal(t, test.reached, reached, test.name)
+		assert.Equal(t, test.want, impact, test.name)
 	}
-	rawData[6][5] = byte(indexes.StoneBrickWall)
-	combatMap.SetRawData(rawData)
-
-	impact, reached := combatMissileImpactPosition(
-		combatMap.GetTileNumber,
-		references.Position{X: 5, Y: 5},
-		references.Position{X: 7, Y: 5},
-		references.MissileNone,
-	)
-
-	assert.False(t, reached)
-	assert.Equal(t, references.Position{X: 6, Y: 5}, impact)
 }
 
 func TestTraceCombatProjectileLaunch_PreservesAimAndRecordsBlockedImpact(t *testing.T) {
 	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	rawData[6][5] = byte(indexes.StoneBrickWall)
 	combatMap.SetRawData(rawData)
 	from := references.Position{X: 5, Y: 5}
@@ -387,50 +385,6 @@ func TestTraceCombatProjectileLaunch_PreservesAimAndRecordsBlockedImpact(t *test
 	assert.Equal(t, references.Position{X: 6, Y: 5}, launch.Impact)
 	assert.Equal(t, references.MissileBlue, launch.Missile)
 	assert.True(t, launch.Blocked)
-}
-
-func TestCombatMissileImpactPosition_UsesOriginalSampledPixelPath(t *testing.T) {
-	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
-	rawData[0][1] = byte(indexes.StoneBrickWall)
-	combatMap.SetRawData(rawData)
-
-	impact, reached := combatMissileImpactPosition(
-		combatMap.GetTileNumber,
-		references.Position{X: 0, Y: 0},
-		references.Position{X: 1, Y: 2},
-		references.MissileNone,
-	)
-
-	assert.False(t, reached)
-	assert.Equal(t, references.Position{X: 0, Y: 1}, impact)
-}
-
-func TestCombatMissileImpactPosition_DoesNotCollisionTestFinalSample(t *testing.T) {
-	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
-	rawData[1][0] = byte(indexes.StoneBrickWall)
-	combatMap.SetRawData(rawData)
-
-	impact, reached := combatMissileImpactPosition(
-		combatMap.GetTileNumber,
-		references.Position{X: 0, Y: 0},
-		references.Position{X: 1, Y: 0},
-		references.MissileNone,
-	)
-
-	assert.True(t, reached)
-	assert.Equal(t, references.Position{X: 1, Y: 0}, impact)
 }
 
 func TestConfirmCombatSpellTarget_BlockedVasFlamConsumesCastWithoutDamage(t *testing.T) {
@@ -449,12 +403,7 @@ func TestConfirmCombatSpellTarget_BlockedVasFlamConsumesCastWithoutDamage(t *tes
 		newFixedRNG(1),
 	)
 	gs.CombatScene.AddMonsterToQueue(monster)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	rawData[6][5] = byte(indexes.StoneBrickWall)
 	gs.CombatScene.CombatMapRef.SetRawData(rawData)
 	caster := gs.PartyState.GetCharacter(activeIdx)
@@ -483,4 +432,16 @@ func TestConfirmCombatSpellTarget_BlockedVasFlamConsumesCastWithoutDamage(t *tes
 	require.True(t, gs.ResolvePendingCombatSpell())
 	require.Len(t, mock.CombatEvents, 1)
 	assert.True(t, mock.CombatEvents[0].Diagnostics.ProjectileBlocked)
+}
+
+// brickFloorCombatRaw returns combat map raw data covered in brick floor.
+func brickFloorCombatRaw() *[references.XCombatMapTiles][references.YCombatMapTiles]byte {
+	raw := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
+	for x := range references.XCombatMapTiles {
+		for y := range references.YCombatMapTiles {
+			raw[x][y] = byte(indexes.BrickFloor)
+		}
+	}
+
+	return raw
 }

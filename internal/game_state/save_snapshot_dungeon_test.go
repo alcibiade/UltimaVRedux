@@ -95,17 +95,7 @@ func TestActiveDungeonSaveSnapshotPreservesExactWandererMovementContinuation(t *
 	} {
 		require.True(t, state.activeDungeon.cells.SetCell(6, position, 0x00))
 	}
-	saved, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		saved,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 
 	wantResult := state.moveDungeonWanderer()
 	gotResult := hydrated.moveDungeonWanderer()

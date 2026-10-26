@@ -150,16 +150,7 @@ func TestDungeonChestMutationSurvivesSaveSnapshotRoundTrip(t *testing.T) {
 	state, _ := newDungeonInteractionTestState(t, 0x48, 1)
 	runDungeonInteraction(t, state, func() { assert.True(t, state.ActionOpenDungeonMap(0)) })
 
-	snapshot, err := state.CaptureSaveSnapshot()
-	require.NoError(t, err)
-	hydrated, err := NewGameStateFromSaveSnapshot(
-		snapshot,
-		state.GameConfig,
-		state.GameReferences,
-		xTilesVisibleOnGameScreen,
-		yTilesVisibleOnGameScreen,
-	)
-	require.NoError(t, err)
+	hydrated := roundTripSaveSnapshot(t, state)
 
 	assert.Equal(t, references.DungeonCell(0x78), currentDungeonInteractionCell(t, hydrated))
 }

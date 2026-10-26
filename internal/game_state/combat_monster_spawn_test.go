@@ -258,14 +258,7 @@ func TestEnemyReference_KeyFrameTile_NotNilForValidMonsters(t *testing.T) {
 // TestCombatMonsterManager_ForEachActive_SkipsDeadMonsters ensures that killed
 // monsters are not visited by ForEachActive, matching the renderer's skip logic.
 func TestCombatMonsterManager_ForEachActive_SkipsDeadMonsters(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(99).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 99)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()
@@ -300,14 +293,7 @@ func TestCombatMonsterManager_ForEachActive_SkipsDeadMonsters(t *testing.T) {
 // results in count=1, correct type, active, and not dead — matching the
 // legacy direct combat-entry debug grammar behavior.
 func TestCombatMonster_SpawnExactlyOne(t *testing.T) {
-	gs, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(123).
-		Build()
-
-	err := gs.TransitionToCombatMap(0, references.BritanniaCombatTerritory, CombatEntryNorth)
-	require.NoError(t, err)
+	gs, _ := newBritainCombatTestState(t, 123)
 
 	manager := gs.CombatScene.MonsterManager
 	manager.Clear()

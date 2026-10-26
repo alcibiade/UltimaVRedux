@@ -33,14 +33,14 @@ func TestOutdoorYellDefersSurfaceCompletionUntilWordEffectCleanup(t *testing.T) 
 	require.True(t, scene.gameState.EventQueueManager.HasWorkflow("surface_command_completion"))
 	assert.Equal(t, dateBefore, scene.gameState.DateTime)
 
-	dialog := waitForModalType[*widgets.InputBox](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200)
 	enterInputBoxText(t, scene, dialog, strings.Repeat("A", 24)+game_state.WordFallax)
 	assert.True(t, scene.gameState.IsDungeonOpen(references.Deceit))
 	assert.Equal(t, dateBefore, scene.gameState.DateTime)
 
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
 	require.False(t, scene.dialogStack.HasOpenDialog())
-	drainNamedWorkflow(t, scene, "surface_command_completion")
+	drainSceneWorkflow(t, scene, "surface_command_completion", 1000)
 	expectedDate := dateBefore
 	expectedDate.Advance(2)
 	assert.Equal(t, expectedDate, scene.gameState.DateTime)
@@ -60,14 +60,14 @@ func TestOutdoorYellEscapePreservesMapAndCompletesOneCycle(t *testing.T) {
 	dateBefore := scene.gameState.DateTime
 
 	scene.largeMapInputHandler(ebiten.KeyY)
-	dialog := waitForModalType[*widgets.InputBox](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	dialog.Update()
 	assert.False(t, scene.gameState.IsDungeonOpen(references.Deceit))
 	assert.Equal(t, dateBefore, scene.gameState.DateTime)
 
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
-	drainNamedWorkflow(t, scene, "surface_command_completion")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
+	drainSceneWorkflow(t, scene, "surface_command_completion", 1000)
 	expectedDate := dateBefore
 	expectedDate.Advance(2)
 	assert.Equal(t, expectedDate, scene.gameState.DateTime)
@@ -80,11 +80,11 @@ func TestOutdoorYellCompletionRunsCodexCheckpointExactlyOnce(t *testing.T) {
 	callbacks.Reset()
 
 	scene.largeMapInputHandler(ebiten.KeyY)
-	dialog := waitForModalType[*widgets.InputBox](t, scene)
+	dialog := waitForTopModalWithin[*widgets.InputBox](t, scene, 1000, 200)
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	dialog.Update()
-	drainNamedWorkflow(t, scene, "word_of_power_entry")
-	drainNamedWorkflow(t, scene, "surface_command_completion")
+	drainSceneWorkflow(t, scene, "word_of_power_entry", 1000)
+	drainSceneWorkflow(t, scene, "surface_command_completion", 1000)
 
 	assert.Equal(t, references.Position{X: 0xe9, Y: 0xec}, scene.gameState.MapState.PlayerLocation.Position)
 	assert.Equal(t, 1, countEqual(callbacks.Messages, "\"Thou art not upon a Sacred Quest!\nPassage denied!\""))

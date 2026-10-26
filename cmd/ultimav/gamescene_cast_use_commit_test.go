@@ -207,7 +207,7 @@ func TestDungeonUseRejectsMovedSelectorWithoutCommitment(t *testing.T) {
 	dialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	state.MapState.PlayerLocation.Position.X++
 	dialog.HandleEnter()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, uint16(2), state.PartyState.Inventory.Scrolls.Get(references.ScrollVasLor))
 	assert.Zero(t, state.CastUseCommitSequence())

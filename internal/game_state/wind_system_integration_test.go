@@ -29,29 +29,6 @@ func TestWindSystemIntegrationBasic(t *testing.T) {
 	// Note: Wind UI messages are disabled by design - wind changes are silent
 }
 
-func TestWindSystemIntegrationTurnAdvancement(t *testing.T) {
-	gameState, _ := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(11111).
-		Build()
-
-	// Process many turns to potentially trigger wind change
-	for i := 0; i < 200; i++ {
-		gameState.ProcessWindOnTurnAdvancement()
-	}
-
-	// Wind may or may not have changed (1/64 chance per turn)
-	// But the system should still be working
-	currentWind := gameState.GetCurrentWind()
-
-	// Verify wind is still a valid direction
-	assert.True(t, currentWind >= environment.Calm && currentWind <= environment.West,
-		"Wind should be a valid direction")
-
-	// Note: Wind changes are silent - no UI messages expected for natural wind changes
-}
-
 func TestWindSystemIntegrationPirateShipSpeed(t *testing.T) {
 	gameState, _ := NewIntegrationTestBuilder(t).
 		WithLocation(references.Britain).

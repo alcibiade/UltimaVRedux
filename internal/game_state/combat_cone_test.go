@@ -13,12 +13,7 @@ import (
 
 func newOpenCombatConeMap() *references.CombatMapReference {
 	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	combatMap.SetRawData(rawData)
 
 	return combatMap
@@ -89,12 +84,7 @@ func (g *GameState) applyCombatInVasGravCorpAtPosition(casterIdx int, position r
 
 func TestTraceCombatCone_ClipsFootprintAtBlockingTerrain(t *testing.T) {
 	combatMap := newOpenCombatConeMap()
-	rawData := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			rawData[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	rawData := brickFloorCombatRaw()
 	rawData[5][6] = byte(indexes.StoneBrickWall)
 	combatMap.SetRawData(rawData)
 	spec, found := CombatConeSpecForSpell(references.InZu)

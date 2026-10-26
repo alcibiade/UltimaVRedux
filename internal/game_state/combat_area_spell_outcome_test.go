@@ -13,14 +13,15 @@ import (
 
 // These seed searches use only detached streams. The selected bounded fixture
 // is reset before each cast; production RNG is never used to arrange outcomes.
+// areaSpellSeed returns the first seed whose RNG stream satisfies accepts.
 func areaSpellSeed(t *testing.T, accepts func(*beradrng.Source) bool) uint64 {
 	t.Helper()
-	for seed := uint64(1); seed < 10000; seed++ {
+	for seed := uint64(0); seed < 1_000_000; seed++ {
 		if accepts(beradrng.New(seed)) {
 			return seed
 		}
 	}
-	t.Fatal("no deterministic area-spell fixture seed")
+	t.Fatal("no deterministic fixture seed")
 
 	return 0
 }

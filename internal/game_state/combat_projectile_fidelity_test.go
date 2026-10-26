@@ -13,12 +13,7 @@ import (
 
 func TestOriginalCombatMissileSamplingByType(t *testing.T) {
 	combatMap := references.NewCombatMapReference(0, references.BritanniaCombatTerritory)
-	raw := &[references.XCombatMapTiles][references.YCombatMapTiles]byte{}
-	for x := range references.XCombatMapTiles {
-		for y := range references.YCombatMapTiles {
-			raw[x][y] = byte(indexes.BrickFloor)
-		}
-	}
+	raw := brickFloorCombatRaw()
 	wall := references.Position{X: 5, Y: 5}
 	raw[wall.X][wall.Y] = byte(indexes.StoneBrickWall)
 	combatMap.SetRawData(raw)

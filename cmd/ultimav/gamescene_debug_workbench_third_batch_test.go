@@ -159,7 +159,7 @@ func TestDebugMoongateTravelHandsOffSpiritualityRouteAndRestoresSourceOnCancel(t
 	scene.keyboard.SimulateKeyPress(ebiten.KeyEscape)
 	transcript.Update()
 	require.True(t, transcript.InputComplete())
-	drainNamedWorkflow(t, scene, shrineMeditationWorkflowName)
+	drainSceneWorkflow(t, scene, shrineMeditationWorkflowName, 1000)
 
 	assert.Equal(t, source, state.MapState.PlayerLocation)
 	assert.Nil(t, state.ShrineScene)

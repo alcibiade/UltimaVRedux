@@ -34,7 +34,7 @@ func TestDungeonGemViewRetainsCommandThroughDismissal(t *testing.T) {
 	assert.Same(t, dialog, scene.dialogStack.PeekTopModalDialog())
 	assert.Zero(t, state.PartyState.Inventory.Provisions.Gems.Get())
 	dialog.Dismiss()
-	drainDungeonWorkflow(t, scene, "dungeon_view_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_view_workflow", DialogPollingRateMs)
 
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.Equal(t, expectedTime, state.DateTime)
@@ -74,7 +74,7 @@ func TestDungeonGemViewTwiceRestoresImmediateDungeonInput(t *testing.T) {
 		dialog.Update()
 		held[ebiten.KeyEscape] = false
 		require.True(t, dialog.IsDismissed())
-		drainDungeonWorkflow(t, scene, "dungeon_view_workflow")
+		drainSceneWorkflow(t, scene, "dungeon_view_workflow", DialogPollingRateMs)
 
 		assert.False(t, mock.InputBlocked)
 		assert.False(t, state.EventQueueManager.HasActiveWorkflows())
@@ -171,7 +171,7 @@ func TestDungeonInQuasWisScrollUsesSharedViewWorkflow(t *testing.T) {
 	assert.Zero(t, state.PartyState.Inventory.Scrolls.Get(references.ScrollInQuasWis))
 	assert.False(t, state.IsAtDungeonCommandBoundary())
 	dungeonView.Dismiss()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.Equal(t, expectedTime, state.DateTime)
@@ -220,7 +220,7 @@ func TestDungeonSceptreClearsCurrentFieldAndCompletesCommand(t *testing.T) {
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	snapshot, ok := state.DungeonStateSnapshot()
 	require.True(t, ok)
@@ -265,7 +265,7 @@ func TestDungeonSceptreClearsWrappedFacingFieldThroughProductionUse(t *testing.T
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	snapshot, ok = state.DungeonStateSnapshot()
 	require.True(t, ok)
@@ -308,7 +308,7 @@ func TestDungeonSceptreNoEffectPreservesItemAndCompletesCommand(t *testing.T) {
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.QuestItems.Get(references.Sceptre))
 	assert.Contains(t, mock.Messages, "No effect!")
@@ -328,7 +328,7 @@ func TestDungeonUseCancellationPreservesScrollAndCompletesCommand(t *testing.T) 
 	scene.dungeonMapInputHandler(ebiten.KeyU)
 	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.Dismiss()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	assert.Equal(t, uint16(1), state.PartyState.Inventory.Scrolls.Get(references.ScrollInQuasWis))
 	assert.True(t, state.IsAtDungeonCommandBoundary())
@@ -347,7 +347,7 @@ func TestDungeonUseRejectsSelectionRemovedWhileDialogIsOpen(t *testing.T) {
 	itemDialog := waitForTopModal[*widgets.ItemSelectionDialog](t, scene)
 	itemDialog.HandleEnter()
 	state.PartyState.Inventory.Scrolls.Set(references.ScrollInQuasWis, 0)
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 
 	assert.Contains(t, mock.Messages, "You have none!")
 	assert.True(t, state.IsAtDungeonCommandBoundary())
@@ -374,7 +374,7 @@ func TestDungeonUseKeepsOwnedGrappleInspectable(t *testing.T) {
 	assert.Equal(t, expectedTime, state.DateTime)
 	assert.NotContains(t, mock.Messages, "No usable items!")
 	dialog.Dismiss()
-	drainDungeonWorkflow(t, scene, "dungeon_use_item_workflow")
+	drainSceneWorkflow(t, scene, "dungeon_use_item_workflow", DialogPollingRateMs)
 	assert.True(t, state.IsAtDungeonCommandBoundary())
 	assert.Equal(t, expectedTime, state.DateTime)
 }
@@ -419,18 +419,6 @@ func newDungeonViewTestSceneAt(
 		spriteSheet:       &sprites.SpriteSheet{},
 		autoOpenDoorState: &AutoOpenDoorState{},
 	}, mock
-}
-
-func drainDungeonWorkflow(t *testing.T, scene *GameScene, name string) {
-	t.Helper()
-	for range 30 {
-		scene.gameState.ElapsedMs += DialogPollingRateMs
-		scene.gameState.EventQueueManager.Update()
-		if !scene.gameState.EventQueueManager.HasWorkflow(name) {
-			return
-		}
-	}
-	t.Fatalf("dungeon workflow %q did not complete", name)
 }
 
 func clearPreparedSpellsForDungeonView(state *game_state.GameState) {

@@ -26,23 +26,3 @@ func TestActionQuestJournalShowsDetachedDossierWithoutAdvancingGameplay(t *testi
 	assert.Equal(t, beforeInventory, state.PartyState.Inventory.LockerSnapshot())
 	assert.Empty(t, callbacks.TimeAdvanced())
 }
-
-func TestNewSystemCallbacksRejectsNilShowQuestJournalDossier(t *testing.T) {
-	valid := NewMockSystemCallbacks(t).ToSystemCallbacks()
-	uiCallbacks := valid.UI
-	uiCallbacks.ShowQuestJournalDossier = nil
-
-	callbacks, err := NewSystemCallbacks(
-		valid.Message,
-		valid.Visual,
-		valid.Audio,
-		valid.Screen,
-		valid.Flow,
-		valid.Talk,
-		uiCallbacks,
-		valid.Combat,
-	)
-
-	require.Nil(t, callbacks)
-	require.ErrorIs(t, err, errQuestJournalCallbackRequired)
-}

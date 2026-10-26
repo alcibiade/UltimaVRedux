@@ -504,47 +504,26 @@ func TestScrollDurationEffectRefresh(t *testing.T) {
 		"Should have consumed both scrolls")
 }
 
-// TestVasLorScrollTriggersWorkflow tests that VasLor scroll triggers the visual effects workflow.
-func TestVasLorScrollTriggersWorkflow(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.BritanniaUnderworld).
-		WithPlayerAt(100, 100).
-		WithSystemCallbacks().
-		Build()
+// Light and Time Stop scrolls start their workflow and are consumed.
+func TestWorkflowScrollsTriggerWorkflowAndAreConsumed(t *testing.T) {
+	for _, test := range []struct {
+		scroll  references.Scroll
+		started func(*MockSystemCallbacks) bool
+	}{
+		{scroll: references.ScrollVasLor, started: func(m *MockSystemCallbacks) bool { return m.StartLightScrollWorkflowCalled }},
+		{scroll: references.ScrollAnTym, started: func(m *MockSystemCallbacks) bool { return m.StartTimeStopScrollWorkflowCalled }},
+	} {
+		gs, mockCallbacks := NewIntegrationTestBuilder(t).
+			WithLocation(references.BritanniaUnderworld).
+			WithPlayerAt(100, 100).
+			WithSystemCallbacks().
+			Build()
+		gs.PartyState.Inventory.Scrolls.Set(test.scroll, 1)
 
-	// Give party a Light scroll
-	gs.PartyState.Inventory.Scrolls.Set(references.ScrollVasLor, 1)
-
-	// Use scroll - should trigger workflow callback
-	result := gs.useScroll(references.ScrollVasLor)
-	assert.True(t, result, "Light scroll should succeed")
-	assert.True(t, mockCallbacks.StartLightScrollWorkflowCalled, "Should trigger StartLightScrollWorkflow callback")
-
-	// Scroll should be consumed
-	assert.Equal(t, 0, int(gs.PartyState.Inventory.Scrolls.Get(references.ScrollVasLor)),
-		"Scroll should be consumed")
-}
-
-// TestAnTymScrollTriggersWorkflow tests that AnTym (Time Stop) scroll triggers the visual effects workflow.
-// The actual time stop effect is activated by the workflow (in gamescene_use_scroll.go).
-func TestAnTymScrollTriggersWorkflow(t *testing.T) {
-	gs, mockCallbacks := NewIntegrationTestBuilder(t).
-		WithLocation(references.BritanniaUnderworld).
-		WithPlayerAt(100, 100).
-		WithSystemCallbacks().
-		Build()
-
-	// Give party a Time Stop scroll
-	gs.PartyState.Inventory.Scrolls.Set(references.ScrollAnTym, 1)
-
-	// Use scroll - should trigger workflow callback
-	result := gs.useScroll(references.ScrollAnTym)
-	assert.True(t, result, "Time Stop scroll should succeed")
-	assert.True(t, mockCallbacks.StartTimeStopScrollWorkflowCalled, "Should trigger StartTimeStopScrollWorkflow callback")
-
-	// Scroll should be consumed
-	assert.Equal(t, 0, int(gs.PartyState.Inventory.Scrolls.Get(references.ScrollAnTym)),
-		"Scroll should be consumed")
+		assert.True(t, gs.useScroll(test.scroll), "scroll %d", test.scroll)
+		assert.True(t, test.started(mockCallbacks), "scroll %d starts its workflow", test.scroll)
+		assert.Zero(t, gs.PartyState.Inventory.Scrolls.Get(test.scroll), "scroll %d is consumed", test.scroll)
+	}
 }
 
 // TestInManiCorpScrollTriggersWorkflow tests that In Mani Corp (Resurrection) scroll triggers the workflow.

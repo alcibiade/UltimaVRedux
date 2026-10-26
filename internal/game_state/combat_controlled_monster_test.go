@@ -138,16 +138,7 @@ func TestMagePhysicalDamagePolicyMatchesHostileAndControlledAttacks(t *testing.T
 func setupControlledMonsterTest(t *testing.T) (*GameState, *MockSystemCallbacks) {
 	t.Helper()
 
-	gs, mock := NewIntegrationTestBuilder(t).
-		WithLocation(references.Britain).
-		WithSystemCallbacks().
-		WithRandomSeed(1).
-		Build()
-	require.NoError(t, gs.TransitionToCombatMap(
-		0,
-		references.BritanniaCombatTerritory,
-		CombatEntryNorth,
-	))
+	gs, mock := newBritainCombatTestState(t, 1)
 	clearCombatMonstersForTest(gs.CombatScene)
 	gs.CombatScene.TurnQueue = NewCombatTurnQueue()
 	gs.CombatScene.turnsStarted = true

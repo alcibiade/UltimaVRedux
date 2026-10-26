@@ -40,7 +40,7 @@ func TestCombatUseRejectsChangesAfterSequenceConstruction(t *testing.T) {
 				before := snapshotBlockedCombatState(t, scene.gameState)
 				commits := scene.gameState.CastUseCommitSequence()
 				builder.Start()
-				drainCombatUseWorkflow(t, scene)
+				drainDismissingOverlays(t, scene, "use_item_workflow")
 				before.ElapsedMs = scene.gameState.ElapsedMs
 				require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 				require.Equal(t, commits, scene.gameState.CastUseCommitSequence())
@@ -76,7 +76,7 @@ func TestCombatUseDelayedConfirmationRetainsOriginalSelection(t *testing.T) {
 				before := snapshotBlockedCombatState(t, scene.gameState)
 				commits := scene.gameState.CastUseCommitSequence()
 				confirm()
-				drainCombatUseWorkflow(t, scene)
+				drainDismissingOverlays(t, scene, "use_item_workflow")
 				before.ElapsedMs = scene.gameState.ElapsedMs
 				require.Equal(t, before, snapshotBlockedCombatState(t, scene.gameState))
 				require.Equal(t, commits, scene.gameState.CastUseCommitSequence())
@@ -107,7 +107,7 @@ func TestPaidDaemonScrollDoesNotSummonIntoReplacementEncounter(t *testing.T) {
 	monsters := state.CombatScene.MonsterManager.Count()
 	scene.combatMapInputHandler(ebiten.KeyU)
 	waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	require.Zero(t, state.PartyState.Inventory.Scrolls.Get(references.ScrollKalXenCorp))
 	require.Equal(t, commits+1, state.CastUseCommitSequence(), "confirmed consumption remains paid")
 	require.Equal(t, monsters, state.CombatScene.MonsterManager.Count())
@@ -141,7 +141,7 @@ func TestCombatWarningPotionStillCommitsAndCanSubstitute(t *testing.T) {
 		require.Contains(t, items[0].Warning, "still be consumed")
 		scene.combatMapInputHandler(ebiten.KeyU)
 		waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
-		drainCombatUseWorkflow(t, scene)
+		drainDismissingOverlays(t, scene, "use_item_workflow")
 
 		actor := expected.gameState.CombatScene.GetCurrentTurnIdentity()
 		commit, _ := expected.gameState.BeginPotionUse(references.White, game_state.UsageCombat)
@@ -180,7 +180,7 @@ func TestCombatUseDoesNotCompleteAnotherCommit(t *testing.T) {
 		} else {
 			dialog.HandleEnter() // The displayed quantity is now stale.
 		}
-		drainCombatUseWorkflow(t, scene)
+		drainDismissingOverlays(t, scene, "use_item_workflow")
 		before.ElapsedMs = state.ElapsedMs
 		require.Equal(t, before, snapshotBlockedCombatState(t, state))
 		require.Equal(t, commits, state.CastUseCommitSequence())
@@ -202,7 +202,7 @@ func TestCombatCapeStaleConfirmationDoesNotCompleteAnotherCommit(t *testing.T) {
 	before := snapshotBlockedCombatState(t, state)
 	commits := state.CastUseCommitSequence()
 	confirmHMSCapeDialog(t, scene, dialog)
-	drainCombatUseWorkflow(t, scene)
+	drainDismissingOverlays(t, scene, "use_item_workflow")
 	before.ElapsedMs = state.ElapsedMs
 	require.Equal(t, before, snapshotBlockedCombatState(t, state))
 	require.Equal(t, commits, state.CastUseCommitSequence())
@@ -222,7 +222,7 @@ func TestCombatCapeConfirmedUseCompletesExactlyOneAction(t *testing.T) {
 		scene.combatMapInputHandler(ebiten.KeyU)
 		waitForTopModal[*widgets.ItemSelectionDialog](t, scene).HandleEnter()
 		confirmHMSCapeDialog(t, scene, waitForTopModal[*widgets.InputBox](t, scene))
-		drainCombatUseWorkflow(t, scene)
+		drainDismissingOverlays(t, scene, "use_item_workflow")
 		commit, _ := expected.gameState.BeginHMSCapeUse()
 		expected.gameState.CommitHMSCapeUse(commit)
 		expected.gameState.FinishCombatAction()
@@ -251,7 +251,7 @@ func TestCombatSceptreCompletionDistinguishesPaidFailureAndCancellation(t *testi
 			expected.gameState.FinishCombatAction()
 		}
 		resolveCombatSceptreDirection(t, scene, key)
-		drainCombatUseWorkflow(t, scene)
+		drainDismissingOverlays(t, scene, "use_item_workflow")
 		expected.gameState.ElapsedMs = scene.gameState.ElapsedMs
 		require.Equal(t, snapshotBlockedCombatState(t, expected.gameState), snapshotBlockedCombatState(t, scene.gameState))
 		require.Equal(t, expected.gameState.CastUseCommitSequence(), scene.gameState.CastUseCommitSequence())
