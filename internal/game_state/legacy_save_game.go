@@ -238,6 +238,7 @@ func (g *GameState) initializeLegacyMaps() {
 		RandomProvider:  g.AsRandomProvider(),
 	}
 	g.LargeMapNPCAIController[references.OVERWORLD] = ai.NewNPCAIControllerLargeMap(overworldNPCAIInput)
+	g.LargeMapNPCAIController[references.OVERWORLD].SetSpawnBlocked(g.isClaimSpawnBlocked)
 	underworldNPCAIInput := ai.NewNPCAIControllerLargeMapInput{
 		World:           references.UNDERWORLD,
 		TileRefs:        g.GameReferences.TileReferences,

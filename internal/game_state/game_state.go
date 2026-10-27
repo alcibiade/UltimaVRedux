@@ -253,6 +253,8 @@ type GameState struct {
 	atlasFleet              journal.AtlasFleetState
 	atlasNoteSession        *atlasNoteSession
 	moonstoneJournal        [8]journal.MoonstoneObservation
+	// crafting is the optional Redux crafting and housing state (ref:CRAFT-0001).
+	crafting craftingState
 
 	// Criminal status tracking - guards arrest criminals instead of extortion
 	// Does NOT persist across map transitions (guards forget when you leave)

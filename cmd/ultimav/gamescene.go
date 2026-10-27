@@ -64,6 +64,8 @@ const (
 	FireDirectionInput
 	DungeonQuitInput
 	SurfaceQuitInput
+	GatherDirectionInput
+	BuildDirectionInput
 )
 
 // VisualEffect represents a temporary visual effect on screen
@@ -179,6 +181,7 @@ type GameScene struct {
 	atlasView                        widgets.AtlasViewState
 	atlasChordHeld                   bool
 	atlasMarkChordHeld               bool
+	pendingBuildPieceID              int
 	quickLoadChordHeld               bool
 	journalNotice                    journalNotice
 	journalNoticeSuppressed          bool

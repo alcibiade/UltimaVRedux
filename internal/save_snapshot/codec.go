@@ -211,11 +211,9 @@ func Decode(data []byte) (Envelope, error) {
 			return Envelope{}, fmt.Errorf("%w: decode JSON: %w", ErrInvalidEnvelope, err)
 		}
 	} else {
-		var previous saveSnapshotV24
-		if err = decodeRequiredJSON(encoded.Snapshot, &previous); err != nil {
+		if snapshot, err = decodePreviousSnapshot(encoded.Snapshot, version); err != nil {
 			return Envelope{}, fmt.Errorf("%w: decode version %d snapshot: %w", ErrInvalidEnvelope, version, err)
 		}
-		snapshot = previous.validationView()
 		if issues := validateSnapshot(snapshot, version); len(issues) != 0 {
 			return Envelope{}, &ValidationError{Issues: issues}
 		}
@@ -611,4 +609,23 @@ func ValidateUserDescription(value string) error {
 	}
 
 	return nil
+}
+
+// decodePreviousSnapshot decodes a supported older version into the current DTO.
+// Fields added after that version keep their zero values.
+func decodePreviousSnapshot(data []byte, version int) (SaveSnapshot, error) {
+	if version == 25 {
+		var previous saveSnapshotV25
+		if err := decodeRequiredJSON(data, &previous); err != nil {
+			return SaveSnapshot{}, err
+		}
+
+		return previous.validationView(), nil
+	}
+	var previous saveSnapshotV24
+	if err := decodeRequiredJSON(data, &previous); err != nil {
+		return SaveSnapshot{}, err
+	}
+
+	return previous.validationView(), nil
 }

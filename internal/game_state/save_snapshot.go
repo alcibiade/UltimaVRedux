@@ -389,6 +389,7 @@ func (g *GameState) CaptureSaveSnapshot() (save_snapshot.SaveSnapshot, error) {
 	g.captureEffects(&snapshot)
 	g.captureContinuation(&snapshot)
 	g.captureRedux(&snapshot)
+	g.captureCrafting(&snapshot)
 	g.captureDungeon(&snapshot)
 	wind := g.windSystem.Snapshot()
 	snapshot.Wind = save_snapshot.WindSnapshot{Direction: int(wind.Direction), UpdateCounter: wind.UpdateCounter, NextTickMs: wind.NextTickMs}
@@ -928,6 +929,7 @@ func NewGameStateFromSaveSnapshot(snapshot save_snapshot.SaveSnapshot, gameConfi
 	if err := g.restoreOpenDoor(snapshot.OpenDoor); err != nil {
 		return nil, err
 	}
+	g.restoreCrafting(snapshot.Crafting)
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
 	case references.LargeMapType:
 		g.UpdateLighthouseForLargeMap()
@@ -1111,6 +1113,7 @@ func (g *GameState) initializeSnapshotMapsAndControllers() {
 	for _, world := range []references.World{references.OVERWORLD, references.UNDERWORLD} {
 		g.LargeMapNPCAIController[world] = ai.NewNPCAIControllerLargeMap(ai.NewNPCAIControllerLargeMapInput{World: world, TileRefs: g.GameReferences.TileReferences, MapState: &g.MapState, DebugOptions: &g.DebugOptions, TheOdds: &g.TheOdds, EnemyReferences: g.GameReferences.EnemyReferences, DateTime: &g.DateTime, WindProvider: g, RandomProvider: g.AsRandomProvider()})
 	}
+	g.LargeMapNPCAIController[references.OVERWORLD].SetSpawnBlocked(g.isClaimSpawnBlocked)
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
 	case references.LargeMapType:
 		g.CurrentNPCAIController = g.GetCurrentLargeMapNPCAIController()

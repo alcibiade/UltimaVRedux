@@ -610,6 +610,9 @@ func (g *GameState) processSingleCampingCycle(campingScene *camping.CampingScene
 		// Prevent random ambushes when testing wanderer in debug mode
 		if campingState.ForceWanderer && !campingState.ForceAmbush {
 			logging.Debugf(logging.CategoryGameState, "DEBUG: Skipping random ambush check - testing wanderer")
+		} else if !forcedAmbush && g.isClaimedCampSite(campingScene.GetOriginalPlayerLocation()) {
+			// REDUX DEVIATION: CRAFT-0006: the original can ambush any camp; Redux land claims are safe.
+			logging.Debugf(logging.CategoryGameState, "Camping: inside an own land claim - no ambush roll")
 		} else if g.CheckForAmbushDuringHour(forcedAmbush) {
 			ambush, err := g.QueueOutdoorCampingAmbush(
 				campingScene, campingState, campingState.ActivePlayerIndex,

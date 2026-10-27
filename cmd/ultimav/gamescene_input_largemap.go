@@ -52,6 +52,11 @@ func (g *GameScene) largeMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 	defer g.gameState.EndSurfaceCommandRouting()
 	originMapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
 	result := newSurfaceCommandResult(surfaceCommandStillActive, originMapType)
+	if craftingResult, handled := g.largeMapCraftingChord(key, originMapType); handled {
+		g.completeSurfaceCommand(craftingResult)
+
+		return
+	}
 
 	//nolint:exhaustive // Only outdoor command keys are admitted; unbound keys return without completing a command.
 	switch key {
@@ -323,7 +328,19 @@ func (g *GameScene) largeMapHandleSecondaryInput() {
 	case PushDirectionInput:
 		result = surfaceResultFromSuccess(g.gameState.ActionPushLargeMap(direction), originMapType)
 		g.secondaryKeyState = PrimaryInput
+	case GatherDirectionInput:
+		result = surfaceResultFromSuccess(g.gameState.ActionGatherLargeMap(direction), originMapType)
+		g.secondaryKeyState = PrimaryInput
+	case BuildDirectionInput:
+		result = surfaceResultFromSuccess(g.largeMapCraftingDirection(direction), originMapType)
+		g.secondaryKeyState = PrimaryInput
 	case OpenDirectionInput:
+		if g.largeMapHomeChestOpen(direction, g.craftingCompletion(originMapType)) {
+			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
+			g.secondaryKeyState = PrimaryInput
+
+			break
+		}
 		state := g.surfaceOpenSecondaryWithDialog(direction, func(state surfaceCommandState) {
 			g.completeSurfaceCommand(newSurfaceCommandResult(state, originMapType))
 		})

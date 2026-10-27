@@ -24,12 +24,10 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 			return err
 		}
 		var snapshot SaveSnapshot
-		if version == MinimumVersion {
-			var previous saveSnapshotV24
-			if err = decodeRequiredJSON(data, &previous); err != nil {
+		if version < CurrentVersion {
+			if snapshot, err = decodePreviousSnapshot(data, version); err != nil {
 				return err
 			}
-			snapshot = previous.validationView()
 		} else if err = decodeRequiredJSON(data, &snapshot); err != nil {
 			return err
 		}
@@ -45,6 +43,9 @@ func registerJournalSchemaFormats(compiler *jsonschema.Compiler, version int) {
 			if err = snapshot.Excerpts.Validate(); err != nil {
 				add("excerpts", "invalid", err.Error())
 			}
+		}
+		if version >= 26 {
+			validateCrafting(snapshot.Crafting, add)
 		}
 		if len(issues) != 0 {
 			return &ValidationError{Issues: issues}

@@ -6,7 +6,7 @@ import "github.com/bradhannah/UltimaVRedux/internal/journal"
 
 const (
 	// CurrentVersion is the native snapshot schema version.
-	CurrentVersion = 25
+	CurrentVersion = 26
 	// MinimumVersion is the oldest native snapshot schema this build promotes.
 	// It shipped in v0.1.0-preview.1; older native saves are unsupported.
 	MinimumVersion = 24
@@ -39,6 +39,12 @@ const (
 	SearchBitmaskBytes = 24
 	// DungeonRoomProgressBytes is the fixed byte length of cleared dungeon-room state.
 	DungeonRoomProgressBytes = 14
+	// CraftingMaterialCount is the number of crafting material slots.
+	CraftingMaterialCount = 2
+	// CraftingToolCount is the number of crafting tool slots.
+	CraftingToolCount = 2
+	// CraftingProvisionCount is the number of provision slots in a home chest.
+	CraftingProvisionCount = 6
 )
 
 // SaveSnapshot is the complete versioned native gameplay state DTO.
@@ -69,8 +75,46 @@ type SaveSnapshot struct {
 	AtlasNotes              journal.AtlasNotesState             `json:"atlasNotes"`
 	AtlasFleet              journal.AtlasFleetState             `json:"atlasFleet"`
 	CodexRevelationComplete bool                                `json:"codexRevelationComplete"`
+	Crafting                CraftingSnapshot                    `json:"crafting"`
 
 	reconstructMapUnits bool
+}
+
+// CraftingSnapshot is the optional Redux crafting and housing state (ref:CRAFT-0001).
+// Placed tiles themselves travel in MapMutations; Placements remembers what each covered.
+type CraftingSnapshot struct {
+	Materials  [CraftingMaterialCount]uint16 `json:"materials"`
+	Tools      [CraftingToolCount]uint16     `json:"tools"`
+	LandClaims []LandClaimSnapshot           `json:"landClaims"`
+	Placements []PlacementSnapshot           `json:"placements"`
+	HomeChests []HomeChestSnapshot           `json:"homeChests"`
+}
+
+// LandClaimSnapshot is one claimed overworld rectangle; X and Y are its wrapped north-west corner.
+type LandClaimSnapshot struct {
+	ID     int    `json:"id"`
+	Name   string `json:"name"`
+	X      int    `json:"x"`
+	Y      int    `json:"y"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+}
+
+// PlacementSnapshot records one placed build piece and the overworld tile it replaced.
+type PlacementSnapshot struct {
+	X       int `json:"x"`
+	Y       int `json:"y"`
+	PieceID int `json:"pieceId"`
+	Under   int `json:"under"`
+}
+
+// HomeChestSnapshot is the contents of one storage chest; Provisions uses Provision order.
+type HomeChestSnapshot struct {
+	X          int                            `json:"x"`
+	Y          int                            `json:"y"`
+	Materials  [CraftingMaterialCount]uint16  `json:"materials"`
+	Tools      [CraftingToolCount]uint16      `json:"tools"`
+	Provisions [CraftingProvisionCount]uint16 `json:"provisions"`
 }
 
 // BasementChestDailyRecordSnapshot is indexed by LordBritishBasementChests,

@@ -13,7 +13,8 @@ func (g *GameScene) hasUncommittedSurfaceDirection(mapType references.GeneralMap
 	//nolint:exhaustive // Only reachable ordinary, precommit surface prompts belong here.
 	switch g.secondaryKeyState {
 	case GetDirectionInput, PushDirectionInput, OpenDirectionInput, JimmyDoorDirectionInput,
-		KlimbDirectionInput, LookDirectionInput, TalkDirectionInput, SearchDirectionInput, AttackDirectionInput:
+		KlimbDirectionInput, LookDirectionInput, TalkDirectionInput, SearchDirectionInput, AttackDirectionInput,
+		GatherDirectionInput, BuildDirectionInput:
 		return true
 	case FireDirectionInput:
 		return mapType == references.LargeMapType

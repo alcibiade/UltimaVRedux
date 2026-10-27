@@ -53,6 +53,18 @@ type NPCAIControllerLargeMap struct {
 
 	mapUnits               map_units.MapUnits
 	positionOccupiedChance *map_units.XyOccupiedMap
+	// spawnBlocked reports Redux land-claim squares where monsters never appear (ref:CRAFT-0006).
+	spawnBlocked func(references.Position) bool
+}
+
+// SetSpawnBlocked installs a predicate for squares where natural monster generation is suppressed.
+// REDUX DEVIATION: CRAFT-0006: the original has no monster-free land; nil restores original generation.
+func (m *NPCAIControllerLargeMap) SetSpawnBlocked(blocked func(references.Position) bool) {
+	m.spawnBlocked = blocked
+}
+
+func (m *NPCAIControllerLargeMap) isSpawnBlocked(position references.Position) bool {
+	return m.spawnBlocked != nil && m.spawnBlocked(position)
 }
 
 // NewNPCAIControllerLargeMapInput carries the shared game state a large-map controller reads and mutates.
@@ -409,6 +421,9 @@ func (m *NPCAIControllerLargeMap) generateTileBasedMonster() {
 		if pos.X < 0 || pos.Y < 0 {
 			panic(fmt.Sprintf("unexpected negative position X=%d Y=%d", pos.X, pos.Y))
 		}
+		if m.isSpawnBlocked(pos) {
+			continue
+		}
 
 		tile := m.mapState.GetLayeredMapByCurrentLocation().GetTopTile(&pos)
 
@@ -453,7 +468,7 @@ func (m *NPCAIControllerLargeMap) randomSignedAxisDistance(minimum, maximum int)
 }
 
 func (m *NPCAIControllerLargeMap) shouldGenerateTileBasedMonster() bool {
-	if !m.debugOptions.MonsterGen {
+	if !m.debugOptions.MonsterGen || m.isSpawnBlocked(m.mapState.PlayerLocation.Position) {
 		return false
 	}
 

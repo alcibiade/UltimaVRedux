@@ -618,6 +618,45 @@ func (g *GameState) projectZStatsOwnedItems(inventoryReferences *references.Inve
 		})
 	}
 
+	return append(items, g.projectZStatsCraftingItems()...)
+}
+
+// zStatsCraftingItemIDBase keeps Redux crafting rows clear of original item IDs (ref:CRAFT-0001).
+const zStatsCraftingItemIDBase = 1000
+
+func (g *GameState) projectZStatsCraftingItems() []ZStatsOwnedItem {
+	items := make([]ZStatsOwnedItem, 0, references.NumberOfMaterials+references.NumberOfTools)
+	for _, material := range references.MaterialCatalog() {
+		quantity := g.PartyState.Inventory.Materials.Get(material)
+		if quantity == 0 {
+			continue
+		}
+		sprite := indexes.SpriteIndex(indexes.FireLogs)
+		description := "Timber felled with an axe or gathered by hand. Used to craft tools and build."
+		if material == references.Stone {
+			sprite = indexes.SmallRockWall
+			description = "Stone quarried from hills and mountains with a pick. Used to craft tools and build."
+		}
+		items = append(items, ZStatsOwnedItem{
+			ID: zStatsCraftingItemIDBase + int(material), SpriteIndex: sprite, Category: "Material",
+			Name: material.Name(), Quantity: quantity, Description: description,
+		})
+	}
+	for _, tool := range references.ToolCatalog() {
+		quantity := g.PartyState.Inventory.Tools.Get(tool)
+		if quantity == 0 {
+			continue
+		}
+		description := "Fells trees and thins forests for full wood yields (Alt+G)."
+		if tool == references.Pick {
+			description = "Quarries hills and mountains for stone (Alt+G)."
+		}
+		items = append(items, ZStatsOwnedItem{
+			ID: zStatsCraftingItemIDBase + references.NumberOfMaterials + int(tool), SpriteIndex: indexes.ItemWeapon,
+			Category: "Tool", Name: tool.Name(), Quantity: quantity, Description: description,
+		})
+	}
+
 	return items
 }
 

@@ -37,6 +37,7 @@ func TestV25ExcerptsCodecSchemaAndFrozenV24(t *testing.T) {
 	require.Error(t, err, "current saves must explicitly own even an empty collection")
 	require.Error(t, schema.Validate(document))
 	body["version"] = 24
+	delete(body, "crafting")
 	old, err := json.Marshal(document)
 	require.NoError(t, err)
 	frozen, _ := compileNativeSaveSchemaFile(t, "native-save-e2-s24.schema.json")

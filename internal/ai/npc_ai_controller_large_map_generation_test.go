@@ -306,3 +306,13 @@ func newLargeMapGenerationTestController(
 
 	return controller, state.GetLayeredMapByCurrentLocation()
 }
+
+func TestClaimBlockedLargeMapMonsterGenerationConsumesNoRandomness(t *testing.T) {
+	rng := &scriptedGenerationRNG{t: t}
+	controller, _ := newLargeMapGenerationTestController(t, references.FloorNumber(references.OVERWORLD), 8, rng)
+	party := controller.mapState.PlayerLocation.Position
+	controller.SetSpawnBlocked(func(position references.Position) bool { return position == party })
+
+	assert.False(t, controller.shouldGenerateTileBasedMonster(), "no generation attempt inside a land claim (ref:CRAFT-0006)")
+	assert.Empty(t, rng.calls)
+}

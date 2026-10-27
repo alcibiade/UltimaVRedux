@@ -60,6 +60,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | [`ADR/ADR-011-berad-text.md`](ADR/ADR-011-berad-text.md) | Explain SDK-owned typography/rendering with game-owned text and input policy. | `text` | ADR rationale |
 | [`ADR/ADR-012-berad-graphics.md`](ADR/ADR-012-berad-graphics.md) | Explain SDK image/resource mechanics with game-owned artwork, presentation and lifetime adapters. | `rendering` | ADR rationale |
 | [`ADR/ADR-013-berad-rng-input.md`](ADR/ADR-013-berad-rng-input.md) | Explain exact RNG continuation and shared keyboard mechanisms with game-owned policies. | `architecture` | ADR rationale |
+| [`ADR/ADR-014-crafting-and-housing.md`](ADR/ADR-014-crafting-and-housing.md) | Record the optional crafting, land claim and housing system. | `gameplay` | ADR rationale |
 
 ## Current Systems
 
@@ -104,7 +105,7 @@ separate catalog entries; they are not additional behavioral topics.
 
 | Document | One-line purpose | Primary owner | Authority classification |
 |---|---|---|---|
-| [`gamefacts/README.md`](gamefacts/README.md) | Navigate the 39 behavioral and compatibility topics. | `game-facts` | Index |
+| [`gamefacts/README.md`](gamefacts/README.md) | Navigate the 40 behavioral and compatibility topics. | `game-facts` | Index |
 | [`gamefacts/CONVENTIONS.md`](gamefacts/CONVENTIONS.md) | Define stable IDs, rule statuses, pseudocode, and relationships. | `game-facts` | General policy |
 | [`gamefacts/ASTRONOMY.md`](gamefacts/ASTRONOMY.md) | Record instrument gates, star rendering, planets, and comets. | `astronomy` | Gamefact |
 | [`gamefacts/BRIT_CBT_FORMAT.md`](gamefacts/BRIT_CBT_FORMAT.md) | Specify combat-map records, formations, and selection. | `combat` | Gamefact |
@@ -113,6 +114,7 @@ separate catalog entries; they are not additional behavioral topics.
 | [`gamefacts/CHARACTER_PROGRESSION.md`](gamefacts/CHARACTER_PROGRESSION.md) | Record attributes, experience, levels, and advancement. | `characters` | Gamefact |
 | [`gamefacts/COMBAT.md`](gamefacts/COMBAT.md) | Record combat flow, formulas, AI, status, and Redux differences. | `combat` | Gamefact |
 | [`gamefacts/COMMANDS_REFERENCE.md`](gamefacts/COMMANDS_REFERENCE.md) | Catalog command behavior, completion, doors, and chests. | `commands` | Gamefact |
+| [`gamefacts/CRAFTING.md`](gamefacts/CRAFTING.md) | Record the optional Redux gathering, tool, land claim, building and storage rules. | `gameplay` | Gamefact |
 | [`gamefacts/CRIME_PRISON.md`](gamefacts/CRIME_PRISON.md) | Record crime, guards, arrest, interrogation, and rescue. | `crime` | Gamefact |
 | [`gamefacts/DEATH_RESURRECTION.md`](gamefacts/DEATH_RESURRECTION.md) | Record death, revival, and party recovery. | `characters` | Gamefact |
 | [`gamefacts/DUNGEON_SYSTEM.md`](gamefacts/DUNGEON_SYSTEM.md) | Record dungeon layout, movement, rooms, hazards, and transitions. | `dungeons` | Gamefact |

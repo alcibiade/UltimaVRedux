@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -67,6 +69,11 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 		{Key: commandHelpPartyKeys, Purpose: "Active party member", NextInput: "0 selects all; 1-6 selects a party position."},
 		{Key: "Shift+J", Purpose: "Quest journal", NextInput: "Review discovered information; Esc closes."},
 		{Key: "Ctrl+N", Purpose: "Mark current position", NextInput: "On the surface overworld, open the map note editor at your current sextant fix. Requires a usable sextant; Esc returns to the map."},
+		{Key: "Alt+G", Purpose: "Gather wood or stone", NextInput: direction + " Optional Crafting and Housing (Configure). " +
+			"An axe fells trees and thins forests; a pick quarries hills and mountains. Bare hands sometimes find a little."},
+		{Key: "Alt+C", Purpose: "Craft tools", NextInput: "Optional Crafting and Housing. Choose a recipe; materials are spent at once. Esc cancels for free."},
+		{Key: "Alt+B", Purpose: "Claim land and build", NextInput: "Optional Crafting and Housing. Stake a claim, then build floors, walls, doors and " +
+			"furniture inside it, or demolish what you built. Open your storage chest to store or take goods."},
 		{Key: "F4", Purpose: "Last battle summary", NextInput: "Review collected totals from the last completed encounter in this session; Enter/Esc closes. No turn is spent."},
 		{Key: "Ctrl+M", Purpose: "Toggle music", NextInput: "Toggle music from primary input."},
 		{Key: "Ctrl+R", Purpose: "Runic alphabet reference", NextInput: "Toggle the right-side chart during exploration, sign reading or conversation. Translate the runes yourself; no time is spent."},
@@ -76,7 +83,7 @@ func commandHelpEntries(context references.GeneralMapType) []widgets.CommandHelp
 	}
 	for index := range entries {
 		entry := &entries[index]
-		if entry.Key == "Ctrl+N" && context != references.LargeMapType {
+		if (entry.Key == "Ctrl+N" || strings.HasPrefix(entry.Key, "Alt+")) && context != references.LargeMapType {
 			entry.Unavailable = "Available on the surface overworld."
 		}
 		switch context {
