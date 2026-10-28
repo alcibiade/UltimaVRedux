@@ -11,7 +11,6 @@ import (
 type CraftRecipeOption struct {
 	Recipe     references.CraftRecipe
 	Affordable bool
-	Owned      uint16
 }
 
 // CraftRecipeOptions lists every recipe with whether the party can afford it now.
@@ -23,7 +22,6 @@ func (g *GameState) CraftRecipeOptions() []CraftRecipeOption {
 		options = append(options, CraftRecipeOption{
 			Recipe:     recipe,
 			Affordable: inventory.CanAfford(recipe.Cost),
-			Owned:      inventory.Tools.Get(recipe.Output),
 		})
 	}
 
@@ -35,6 +33,11 @@ func (g *GameState) CraftRecipeOptions() []CraftRecipeOption {
 func (g *GameState) ApplyCraft(recipeID int) error {
 	if !g.IsCraftingEnabled() {
 		return ErrCraftingDisabled
+	}
+	if !g.IsCraftingSite() {
+		g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+		return ErrCraftingNotOnSurface
 	}
 	var recipe references.CraftRecipe
 	found := false
@@ -58,7 +61,7 @@ func (g *GameState) ApplyCraft(recipeID int) error {
 		article = "an"
 	}
 	g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("You craft %s %s.", article, recipe.Name))
-	g.AdvanceGameplayMinutesAndProcessProvisions(recipe.Minutes)
+	g.advanceCraftingMenuLabor(recipe.Minutes)
 
 	return nil
 }

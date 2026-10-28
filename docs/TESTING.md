@@ -287,6 +287,11 @@ physical keyboard behavior, readable presentation, or audible cue ordering.
 Record those observations in the relevant issue after a real game-window run;
 do not keep a second completion ledger in a system guide.
 
+Manual-only rigs sit behind build tags so normal runs, `make check` and the linter
+never compile them. The `craftingmanual` tag renders the screenshots of
+[the crafting manual](CRAFTING_AND_HOUSING.md#for-maintainers-regenerating-the-screenshots)
+through a real scene; it needs real game data and `CRAFTING_MANUAL_DIR`.
+
 ## Commands
 
 ### Resource-Sensitive Runs

@@ -39,11 +39,16 @@ envelope or snapshot versions, or promotion.
 The required `crafting` member holds the optional Redux crafting and housing state
 ([CRAFT-0001](../gamefacts/CRAFTING.md#craft-0001)): `materials` (Wood, Stone; 0–9999)
 and `tools` (Axe, Pick; 0–99) in catalog order; at most four `landClaims`
-(`id`, 1–24 character `name`, north-west corner `x`/`y`, `width` and `height` 16);
-`placements` (`x`, `y`, build `pieceId`, and the overworld tile `under` it, for
-demolition); and `homeChests` (`x`, `y`, `materials`, `tools`, and six `provisions`
-in Provision order). Collections may be null or empty. Placed tiles themselves are
-ordinary `mapMutations`. V24 and V25 promote with an empty `crafting` member.
+(`id`, a `name` of 1–24 printable ASCII characters with no surrounding spaces,
+north-west corner `x`/`y`, `width` and `height` 16); `placements` (`x`, `y`, build
+`pieceId`, and the overworld tile `under` it, for demolition); and `homeChests`
+(`x`, `y`, `materials`, `tools`, and six `provisions` in Provision order).
+Collections may be null or empty. The Go validator also requires that claims do
+not overlap (with wrap-around), that every placement and chest lies inside a claim,
+and that chests and storage-chest placements pair one to one. Placed tiles
+themselves are ordinary `mapMutations`; they are not cross-checked, because a floor
+built over an identical original floor leaves no mutation. V24 and V25 promote
+with an empty `crafting` member.
 
 ### Snapshot 25 Save-Owned Excerpts
 

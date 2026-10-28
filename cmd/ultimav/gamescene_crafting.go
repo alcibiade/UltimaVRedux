@@ -14,7 +14,7 @@ import (
 )
 
 // REDUX DEVIATION: CRAFT-0001: the original binds no Alt chords. With Gameplay.Crafting.Enabled,
-// Alt+G gathers, Alt+C crafts and Alt+B builds on the overworld surface; see ref:CRAFT-0001.
+// Alt+G gathers, Alt+C crafts and Alt+B builds on the overworld surface, on foot; see ref:CRAFT-0001.
 
 const (
 	craftingMenuButtonWidthPercent = 0.40
@@ -22,15 +22,53 @@ const (
 	landClaimNamePattern           = "^[ -~]{0,24}$"
 )
 
-// largeMapCraftingChord routes Alt+G, Alt+C and Alt+B. It reports false for any other key,
-// leaving ordinary command routing untouched.
+// isCraftingChord reports whether the accepted key is G, C or B with Alt held. Every such key
+// belongs to the crafting chords on every map, so it never falls through to Get, Cast or Board.
+func (g *GameScene) isCraftingChord(key ebiten.Key) bool {
+	return g.keyboard.IsModifierPressed(input.ModifierAlt) &&
+		(key == ebiten.KeyG || key == ebiten.KeyC || key == ebiten.KeyB)
+}
+
+// refuseCraftingChord answers a crafting chord that may not run here and reports whether it did.
+// Like exact Ctrl+N, a chord counts only with Alt alone: Ctrl, Shift or Meta with it answers
+// "What?", as does a chord while the option is off. Off the overworld surface or aboard a vehicle
+// the answer is "Not here!". A refusal spends no time and opens no prompt or menu.
+func (g *GameScene) refuseCraftingChord() bool {
+	exact := !g.keyboard.IsModifierPressed(input.ModifierCtrl) &&
+		!g.keyboard.IsModifierPressed(input.ModifierShift) &&
+		!g.keyboard.IsModifierPressed(input.ModifierMeta)
+	switch {
+	case !exact || !g.gameState.IsCraftingEnabled():
+		g.gameState.SystemCallbacks.Message.AddRowStr("What?")
+	case !g.gameState.IsCraftingSite():
+		g.gameState.SystemCallbacks.Message.AddRowStr("Not here!")
+	default:
+		return false
+	}
+
+	return true
+}
+
+// craftingChordOffLargeMap answers a crafting chord on a town, dungeon or combat map, before that
+// map's own command routing can read it as Get, Cast or Board. It reports whether it did.
+func (g *GameScene) craftingChordOffLargeMap(key ebiten.Key) bool {
+	if !g.isCraftingChord(key) {
+		return false
+	}
+	if !g.refuseCraftingChord() {
+		panic("crafting chord admitted off the large map")
+	}
+
+	return true
+}
+
+// largeMapCraftingChord routes Alt+G, Alt+C and Alt+B on the overworld and the underworld. It
+// reports false for any other key, leaving ordinary command routing untouched.
 func (g *GameScene) largeMapCraftingChord(key ebiten.Key, origin references.GeneralMapType) (surfaceCommandResult, bool) {
-	if !g.keyboard.IsModifierPressed(input.ModifierAlt) ||
-		(key != ebiten.KeyG && key != ebiten.KeyC && key != ebiten.KeyB) {
+	if !g.isCraftingChord(key) {
 		return surfaceCommandResult{}, false
 	}
-	if !g.gameState.IsCraftingEnabled() {
-		g.gameState.SystemCallbacks.Message.AddRowStr("What?")
+	if g.refuseCraftingChord() {
 		result := newSurfaceCommandResult(surfaceCommandRejected, origin)
 		result.ConsumesNormalCycle = false
 
@@ -55,11 +93,13 @@ func (g *GameScene) largeMapCraftingChord(key ebiten.Key, origin references.Gene
 	return newSurfaceCommandResult(surfaceCommandDeferred, origin), true
 }
 
-// craftingCompletion finishes a menu-driven crafting command; cancelling a menu is free.
+// craftingCompletion finishes a menu-driven crafting command. Cancelling a menu and a refused
+// recipe, claim or name are free (ref:CRAFT-0003, ref:CRAFT-0004). A completed command spends the
+// ordinary surface turn here; the action itself paid only its labor beyond that turn.
 func (g *GameScene) craftingCompletion(origin references.GeneralMapType) func(surfaceCommandState) {
 	return func(state surfaceCommandState) {
 		result := newSurfaceCommandResult(state, origin)
-		if state == surfaceCommandCancelled {
+		if state == surfaceCommandCancelled || state == surfaceCommandRejected {
 			result.ConsumesNormalCycle = false
 		}
 		g.completeSurfaceCommand(result)
@@ -106,10 +146,28 @@ func (g *GameScene) craftingStockDescription() string {
 	return "You carry " + strings.Join(parts, ", ") + "."
 }
 
+// craftingShortfallDescription names the rows the party cannot afford, so availability is
+// explained in text rather than left for the player to work out from the costs.
+func craftingShortfallDescription(unaffordable []string) string {
+	if len(unaffordable) == 0 {
+		return ""
+	}
+
+	return " Not enough for: " + strings.Join(unaffordable, ", ") + "."
+}
+
 func (g *GameScene) openCraftMenu(finish func(surfaceCommandState)) {
 	var menu *widgets.ButtonListModal
-	menu = g.newCraftingMenu("Craft", g.craftingStockDescription(), g.cancelCraftingMenu(finish))
-	for _, option := range g.gameState.CraftRecipeOptions() {
+	options := g.gameState.CraftRecipeOptions()
+	unaffordable := make([]string, 0, len(options))
+	for _, option := range options {
+		if !option.Affordable {
+			unaffordable = append(unaffordable, option.Recipe.Name)
+		}
+	}
+	description := g.craftingStockDescription() + craftingShortfallDescription(unaffordable)
+	menu = g.newCraftingMenu("Craft", description, g.cancelCraftingMenu(finish))
+	for _, option := range options {
 		recipe := option.Recipe
 		menu.AddButton(fmt.Sprintf("%s (%s)", recipe.Name, recipe.Cost.Describe()), func() {
 			g.dialogStack.MustRemoveWidgetInstance(menu)
@@ -163,12 +221,21 @@ const buildDemolishPiece = -1
 
 func (g *GameScene) openBuildCategoryMenu(category references.BuildCategory, finish func(surfaceCommandState)) {
 	var menu *widgets.ButtonListModal
-	menu = g.newCraftingMenu(category.Name(), g.craftingStockDescription(), g.cancelCraftingMenu(finish))
+	options := make([]game_state.BuildPieceOption, 0)
+	unaffordable := make([]string, 0)
 	for _, option := range g.gameState.BuildPieceOptions() {
-		piece := option.Piece
-		if piece.Category != category {
+		if option.Piece.Category != category {
 			continue
 		}
+		options = append(options, option)
+		if !option.Affordable {
+			unaffordable = append(unaffordable, option.Piece.Name)
+		}
+	}
+	description := g.craftingStockDescription() + craftingShortfallDescription(unaffordable)
+	menu = g.newCraftingMenu(category.Name(), description, g.cancelCraftingMenu(finish))
+	for _, option := range options {
+		piece := option.Piece
 		menu.AddButton(fmt.Sprintf("%s (%s)", piece.Name, piece.Cost.Describe()), func() {
 			g.dialogStack.MustRemoveWidgetInstance(menu)
 			g.beginBuildDirection(piece.ID, piece.Name+"-", finish)

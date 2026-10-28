@@ -5,8 +5,10 @@ gathering, crafting, building or land ownership. With it, the party can cut wood
 quarry stone, craft its own tools, stake a claim on the open land of Britannia, and
 build a house there, with walls, a door, furniture and a storage chest.
 
-Everything happens on the **overworld surface**: never in towns, castles, dungeons,
-the Underworld, combat, or aboard a vehicle. The rules quoted here are the defaults;
+Everything happens on the **overworld surface**, on foot: never in towns, castles,
+dungeons, the Underworld, combat, or aboard a horse, carpet or ship. Elsewhere the new
+keys answer "Not here!" and cost nothing. The keys count only with **Alt** alone:
+Ctrl, Shift or Meta held with them answers "What?". The rules quoted here are the defaults;
 the exact rules and their IDs are in [CRAFTING Game Facts](gamefacts/CRAFTING.md), and
 the design rationale is in [ADR-014](ADR/ADR-014-crafting-and-housing.md).
 
@@ -19,7 +21,10 @@ Open the game menu (**Esc**), choose **Configure**, stay on the **Gameplay** tab
 move to **Crafting and Housing**. Toggle it with **Space** and press **Enter** to
 apply. The setting is saved with your configuration (`Gameplay.Crafting.Enabled`),
 not with a save game, and it can be switched off again at any time: your materials,
-claims and buildings stay in the save, waiting.
+claims and buildings stay in the save, waiting. While it is off, what you built stays
+on the map as ordinary tiles: walls still block and a door still opens, but a storage
+chest only answers "It's open!" without showing its contents, and claims give no
+protection from monsters.
 
 ![The Configure dialog, Gameplay tab, with Crafting and Housing selected and on](../screenshots/crafting/01-configure-option.png)
 
@@ -57,7 +62,7 @@ You can always start with your **bare hands**: one attempt in three turns up a
 branch or a loose stone, and the land is left as it was. That is slow, but it is
 enough to craft your first tools.
 
-![Three bare-handed attempts find nothing, the fourth gathers 1 Wood by hand](../screenshots/crafting/03-gather-bare-hands.png)
+![A bare-handed attempt finds no Wood, the next gathers 1 Wood by hand](../screenshots/crafting/03-gather-bare-hands.png)
 
 With the right tool you gather much more, and wood-cutting changes the land:
 
@@ -72,11 +77,11 @@ With the right tool you gather much more, and wood-cutting changes the land:
 | Mountains | Pick | 2 to 3 Stone | Unchanged | Refused: "You need a Pick!" |
 
 So a forest thins step by step, down to open grass, while hills and mountains are
-never used up. Anything else, or a square with an object on it, answers "Nothing to
-gather!". Every attempt, lucky or not, costs one turn plus up to 10 minutes of
+never used up. Anything else, or a square with a creature or dropped items on it,
+answers "Nothing to gather!". Every attempt, lucky or not, costs one turn plus up to 10 minutes of
 labour, and the party eats as time passes.
 
-![With an axe: Gather East yields 3 Wood, then 4 Wood, and the forest square has thinned](../screenshots/crafting/06-gather-axe.png)
+![With an axe: Gather East yields 2 Wood, then 2 Wood more, and the forest square has thinned](../screenshots/crafting/06-gather-axe.png)
 
 ![With a pick, the party quarries the hills to the south, 2 Stone at a time](../screenshots/crafting/07-gather-stone.png)
 
@@ -89,8 +94,8 @@ Press **Alt+C** to open the recipe menu.
 | Axe | 3 Wood, 2 Stone | 30 minutes |
 | Pick | 4 Wood, 3 Stone | 30 minutes |
 
-If the party cannot afford a recipe, it is refused with the missing cost and nothing
-is spent.
+The menu description names any recipe you cannot afford yet. Choosing one anyway is
+refused with the missing cost, and neither materials nor time are spent.
 
 ![The Craft menu: You carry 12 Wood, 7 Stone; Axe and Pick with their costs](../screenshots/crafting/04-craft-menu.png)
 
@@ -113,10 +118,12 @@ when:
 - it would overlap another of your claims;
 - any of its squares holds a town, castle, keep, shrine, dungeon, lighthouse or any
   other entrance;
+- any of its squares holds a moongate (a buried moonstone);
 - more than half of it is water;
 - the party cannot pay.
 
-Then the game asks for a name of 1 to 24 characters and **Enter** confirms it.
+A refused claim costs neither gold, materials nor time. Then the game asks for a name
+of 1 to 24 letters, digits, spaces or punctuation, and **Enter** confirms it.
 **Esc** clears the text. To back out, confirm an empty name: the game answers "A
 claim needs a name." and nothing is paid.
 
@@ -126,7 +133,8 @@ claim needs a name." and nothing is paid.
 
 The claim is pinned on the Atlas (**M**) under **My Notes**, at its centre, without
 needing a sextant. If the Atlas has no room left for notes, the claim still exists,
-but it is not pinned. Claims are permanent: there is no way to abandon one.
+but it is not pinned. If one of your own notes already marks that square, it is kept
+as it is. Claims are permanent: there is no way to abandon one.
 
 ![The Atlas, My Notes: HEARTHMERE, Your land claim, labelled on the map of Britannia](../screenshots/crafting/21-atlas.png)
 
@@ -193,7 +201,7 @@ closes it.
 
 ![The Store menu: Everything, Materials, Tools, Gold, Food, and Torches, gems and keys](../screenshots/crafting/17-storage-store.png)
 
-![After storing materials: Chest: 99 Wood, 56 Stone, and the message Store materials: 155.](../screenshots/crafting/18-storage-stored.png)
+![After storing materials: Chest: 97 Wood, 56 Stone, and the message Store materials: 153.](../screenshots/crafting/18-storage-stored.png)
 
 The contents are saved with the claim.
 
@@ -216,7 +224,7 @@ cut forests are stored as ordinary changes to the overworld map.
 ## Known limits
 
 - Building only works on the overworld surface, never in towns, castles, dungeons
-  or the Underworld.
+  or the Underworld, and never on a moongate square.
 - A door stays open once it is opened, as every overworld door does.
 - Claims cannot be abandoned, moved or resized.
 - Cut forests do not grow back.

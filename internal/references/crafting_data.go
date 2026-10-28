@@ -2,6 +2,7 @@ package references
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
@@ -203,17 +204,6 @@ func BuildPieceByID(id int) (BuildPiece, bool) {
 	return BuildPiece{}, false
 }
 
-// BuildPieceBySprite returns the piece that places the given sprite.
-func BuildPieceBySprite(sprite indexes.SpriteIndex) (BuildPiece, bool) {
-	for _, piece := range BuildPieces() {
-		if piece.Sprite == sprite {
-			return piece, true
-		}
-	}
-
-	return BuildPiece{}, false
-}
-
 // IsBuildableGround reports whether a piece may be placed over the tile: open ground or a placed floor.
 func IsBuildableGround(sprite indexes.SpriteIndex) bool {
 	switch sprite {
@@ -282,9 +272,28 @@ const (
 	MaxLandClaimNameLength = 24
 	// MaxLandClaimWaterTiles bounds how much of a claim may be water.
 	MaxLandClaimWaterTiles = LandClaimSize * LandClaimSize / 2
+	// LandClaimStakeMinutes is the game time spent staking a claim.
+	LandClaimStakeMinutes = 10
 )
 
+// IsValidLandClaimName reports whether a claim name is 1 to 24 printable game-font characters
+// (' ' through '~') with no surrounding spaces: the in-game input box, the save validator and
+// the Atlas label rule all accept exactly these names.
+func IsValidLandClaimName(name string) bool {
+	if name == "" || len(name) > MaxLandClaimNameLength || strings.TrimSpace(name) != name {
+		return false
+	}
+	for index := range len(name) {
+		if name[index] < ' ' || name[index] > '~' {
+			return false
+		}
+	}
+
+	return true
+}
+
 // LandClaimStakeCost is the material paid to stake a claim.
+
 //
 //nolint:gochecknoglobals // Read-only tunable.
 var LandClaimStakeCost = MaterialCost{Wood: 10, Stone: 5}

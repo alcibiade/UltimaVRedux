@@ -419,9 +419,15 @@ func (g *GameScene) Update(game *Game) error {
 		return nil
 	}
 
+	// The large map routes its crafting chords inside surface command routing; every other map
+	// answers them here so Alt+G, Alt+C and Alt+B never become Get, Cast or Board (ref:CRAFT-0001).
+	if mapType != references.LargeMapType && g.craftingChordOffLargeMap(acceptedKey) {
+		return nil
+	}
 	switch mapType {
 	case references.LargeMapType:
 		g.largeMapInputHandlerWithGame(game, acceptedKey)
+
 	case references.SmallMapType:
 		g.smallMapInputHandlerWithGame(game, acceptedKey)
 	case references.CombatMapType:

@@ -12,7 +12,8 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/sprites/indexes"
 )
 
-var craftingFixtureParty = references.Position{X: 100, Y: 100}
+// craftingFixtureParty is far from every settlement and moonstone, so a claim centred on it is legal.
+var craftingFixtureParty = references.Position{X: 130, Y: 100}
 
 // newCraftingFixture puts the party on a cleared grass square of the overworld with crafting on.
 func newCraftingFixture(t *testing.T, enabled bool) (*GameState, *MockSystemCallbacks) {

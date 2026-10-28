@@ -15,7 +15,7 @@ func (g *GameState) ActionGatherLargeMap(direction references.Direction) bool {
 
 		return false
 	}
-	if !g.isOnOverworldSurface() || g.PartyVehicle.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
+	if !g.IsCraftingSite() {
 		g.SystemCallbacks.Message.AddRowStr("Not here!")
 
 		return false
@@ -30,7 +30,8 @@ func (g *GameState) ActionGatherLargeMap(direction references.Direction) bool {
 	overworld := g.overworldMap()
 	terrain := overworld.SpriteIndexByLayer(map_state.MapLayer, position)
 	source, ok := references.GatherSourceForTile(terrain)
-	if !ok || g.ObjectPresentAt(&position) {
+	if !ok || g.largeMapPushOccupied(position) {
+
 		g.SystemCallbacks.Message.AddRowStr("Nothing to gather!")
 
 		return false

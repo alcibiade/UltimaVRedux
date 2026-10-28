@@ -78,7 +78,7 @@
       "required": ["id", "name", "x", "y", "width", "height"],
       "properties": {
         "id": {"type": "integer", "minimum": 0},
-        "name": {"type": "string", "minLength": 1, "maxLength": 24},
+        "name": {"type": "string", "pattern": "^[!-~](?:[ -~]{0,22}[!-~])?$"},
         "x": {"$ref": "#/$defs/coordinate"}, "y": {"$ref": "#/$defs/coordinate"},
         "width": {"const": 16}, "height": {"const": 16}
       }

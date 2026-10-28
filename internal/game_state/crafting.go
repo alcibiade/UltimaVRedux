@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
@@ -29,6 +28,7 @@ var (
 	ErrTooManyLandClaims      = errors.New("too many land claims")
 	ErrLandAlreadyClaimed     = errors.New("land is already claimed")
 	ErrLandClaimHasSettlement = errors.New("a settlement lies within the claim")
+	ErrLandClaimHasMoongate   = errors.New("a moongate lies within the claim")
 	ErrLandClaimTooWet        = errors.New("too much water within the claim")
 	ErrInvalidLandClaimName   = errors.New("invalid land claim name")
 )
@@ -101,6 +101,23 @@ func (g *GameState) isOnOverworldSurface() bool {
 		g.MapState.PlayerLocation.Floor == references.FloorNumber(references.OVERWORLD)
 }
 
+// IsCraftingSite reports whether the party may gather, craft or build where it stands: on the
+// overworld surface and on foot, never aboard a vehicle (ref:CRAFT-0001).
+func (g *GameState) IsCraftingSite() bool {
+	return g.isOnOverworldSurface() && g.PartyVehicle.GetVehicleDetails().VehicleType == references.NoPartyVehicle
+}
+
+// isMoongateSquare reports whether a placed moonstone can open a moongate on the overworld square.
+// A moongate square is never claimed or built on, by day or by night (ref:CRAFT-0004).
+func (g *GameState) isMoongateSquare(position references.Position) bool {
+	if g.moonstoneSystem == nil {
+		g.moonstoneSystem = NewMoonstoneSystem()
+	}
+
+	return g.moonstoneSystem.CanCreateMoongateAt(references.BritanniaUnderworld,
+		references.FloorNumber(references.OVERWORLD), position)
+}
+
 func (g *GameState) overworldMap() *map_state.LayeredMap {
 	return g.MapState.LayeredMaps.GetLayeredMap(references.LargeMapType, references.FloorNumber(references.OVERWORLD))
 }
@@ -144,12 +161,12 @@ func (g *GameState) HomeChestAt(position references.Position) (*HomeChest, bool)
 	return chest, ok
 }
 
-// NormalizeLandClaimName trims a proposed claim name and reports whether it is acceptable.
+// NormalizeLandClaimName trims a proposed claim name and reports whether it is acceptable
+// (references.IsValidLandClaimName).
 func NormalizeLandClaimName(name string) (string, bool) {
 	name = strings.TrimSpace(name)
-	length := utf8.RuneCountInString(name)
 
-	return name, utf8.ValidString(name) && length > 0 && length <= references.MaxLandClaimNameLength
+	return name, references.IsValidLandClaimName(name)
 }
 
 func (g *GameState) captureCrafting(snapshot *save_snapshot.SaveSnapshot) {
@@ -405,14 +422,36 @@ func (g *GameState) HomeChestSummary(position references.Position) string {
 // Surface command routing owns the ordinary turn; the extra minutes always pass.
 func (g *GameState) advanceCraftingLabor(minutes int) {
 	g.AdvanceOrdinarySurfaceCommandMinutes(DefaultLargeMapMinutesPerTurn)
+	g.advanceCraftingMenuLabor(minutes)
+}
+
+// advanceCraftingMenuLabor spends only the minutes a menu command takes beyond the ordinary
+// surface turn. Craft and Stake finish from a menu or workflow callback, outside surface command
+// routing, and the scene then completes them through the surface command cycle, which pays that
+// ordinary turn; the total is exactly the documented labor (ref:CRAFT-0003, ref:CRAFT-0004).
+func (g *GameState) advanceCraftingMenuLabor(minutes int) {
 	if extra := minutes - DefaultLargeMapMinutesPerTurn; extra > 0 {
 		g.AdvanceGameplayMinutesAndProcessProvisions(extra)
 	}
 }
 
+// atlasPinOutcome reports what pinning a claim on the Atlas did.
+type atlasPinOutcome int
+
+const (
+	atlasPinned atlasPinOutcome = iota
+	// atlasAlreadyMarked means a note already stands at the claim's centre; it is kept as is.
+	atlasAlreadyMarked
+	// atlasNoRoom means the Atlas holds its maximum number of notes.
+	atlasNoRoom
+	// atlasRefused means the note failed Atlas validation, for example an out-of-range date.
+	atlasRefused
+)
+
 // pinLandClaimOnAtlas adds an Atlas note at the claim's centre, without needing a sextant fix:
-// the party knows where its own land lies. A full or occupied Atlas leaves the claim unpinned.
-func (g *GameState) pinLandClaimOnAtlas(claim LandClaim) bool {
+// the party knows where its own land lies. A full Atlas leaves the claim unpinned, and an
+// existing note at the centre is left untouched.
+func (g *GameState) pinLandClaimOnAtlas(claim LandClaim) atlasPinOutcome {
 	center := claim.Center()
 	record := journal.AtlasNoteRecord{
 		Position: journal.SiteLocation{Map: references.BritanniaUnderworld, Floor: references.FloorNumber(references.OVERWORLD),
@@ -422,21 +461,23 @@ func (g *GameState) pinLandClaimOnAtlas(claim LandClaim) bool {
 		RecordedAt:  g.sampleDungeonObservation().at.Time,
 	}
 	candidate := g.CaptureAtlasNotes()
-	if len(candidate.Records) >= journal.MaxAtlasNotes || candidate.LastID >= journal.MaxAtlasIdentity {
-		return false
-	}
 	for _, existing := range candidate.Records {
 		if existing.Position == record.Position {
-			return false
+			return atlasAlreadyMarked
 		}
+	}
+	if len(candidate.Records) >= journal.MaxAtlasNotes || candidate.LastID >= journal.MaxAtlasIdentity {
+		return atlasNoRoom
 	}
 	record.ID = candidate.LastID + 1
 	candidate.LastID = record.ID
 	candidate.Records = append(candidate.Records, record)
 	if journal.ValidateAtlasNotes(candidate) != nil {
-		return false
+		// Claim names share the Atlas label repertoire; only the note's date can still fail.
+		return atlasRefused
 	}
+
 	g.atlasNotes = candidate
 
-	return true
+	return atlasPinned
 }

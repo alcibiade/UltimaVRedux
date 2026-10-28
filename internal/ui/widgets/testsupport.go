@@ -66,6 +66,12 @@ func (b *ButtonListModal) ButtonTexts() []string {
 	return texts
 }
 
+// Description returns the menu's description text.
+func (b *ButtonListModal) Description() string { return b.description }
+
+// ActivateButton runs the row's callback as Enter on that row would.
+func (b *ButtonListModal) ActivateButton(index int) { b.items[index].callback() }
+
 // GetTitle returns the action-specific dialog title.
 func (d *CharacterSelectionDialog) GetTitle() string { return d.title }
 

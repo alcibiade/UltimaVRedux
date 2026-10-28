@@ -4,7 +4,10 @@ The original game has no gathering, crafting, building or land ownership. Every 
 in this topic describes an optional Redux addition, off by default and enabled with
 the Configure option **Crafting and Housing** (`Gameplay.Crafting.Enabled`). While
 the option is off, the added chords answer "What?", claims grant no protection, and
-the game behaves as the original. Tunable numbers live in one table,
+every original rule applies again. Anything already built stays on the map as
+ordinary tiles: walls block, a placed door opens through Open, and a storage chest
+answers the generic "It's open!" without access to its contents; materials and tools
+stay in the inventory. Tunable numbers live in one table,
 `internal/references/crafting_data.go`; this topic quotes the defaults.
 
 ### CRAFT-0001
@@ -19,7 +22,10 @@ the game behaves as the original. Tunable numbers live in one table,
 The original binds no Alt chords and keeps no material, tool or ownership state.
 Redux adds three surface-overworld commands: Alt+G Gather, Alt+C Craft and Alt+B
 Build. They work only on the overworld surface (floor 0), on foot, never in towns,
-dungeons, the underworld, combat or aboard a vehicle.
+dungeons, the underworld, combat or aboard a vehicle. A chord counts only with Alt
+alone, as exact Ctrl+N does; with Ctrl, Shift or Meta also held it answers "What?".
+Elsewhere, or aboard a vehicle, every chord answers "Not here!" on every map, opens no
+prompt or menu, and spends no time; it never falls through to Get, Cast or Board.
 
 The party carries two materials (Wood, Stone; large stacks capped at 9999) and two
 tools (Axe, Pick; small stacks capped at 99). Ztats lists them under Material and
@@ -32,7 +38,7 @@ Rationale: a house-building sandbox for players who have finished or want to
 extend the quest, kept separate from every original rule it does not touch.
 
 **Implementation:** `internal/references/crafting_data.go`, `internal/game_state/crafting.go`, `cmd/ultimav/gamescene_crafting.go`
-**Tests:** `internal/game_state/crafting_test.go`
+**Tests:** `internal/game_state/crafting_test.go`, `internal/game_state/crafting_rules_test.go`, `cmd/ultimav/gamescene_crafting_test.go`, `internal/save_snapshot/validation_v26_test.go`
 
 ### CRAFT-0002
 
@@ -43,8 +49,9 @@ extend the quest, kept separate from every original rule it does not touch.
 **Original:** Established
 **Redux:** Intentional deviation
 
-Gather takes a direction and examines the adjacent overworld terrain. An object on
-the square, or terrain that yields nothing, refuses with "Nothing to gather!".
+Gather takes a direction and examines the adjacent overworld terrain. A creature or
+an item stack on the square, or terrain that yields nothing, refuses with "Nothing
+to gather!".
 
 | Terrain | Tool | Tool yield | Tile after a tool harvest | Bare hands |
 | --- | --- | --- | --- | --- |
@@ -71,9 +78,11 @@ successful or not, spends one ordinary surface turn plus labour up to 10 minutes
 **Original:** Established
 **Redux:** Intentional deviation
 
-Craft opens a recipe menu. An Axe costs 3 Wood and 2 Stone; a Pick costs 4 Wood and
-3 Stone. Each takes 30 minutes. A recipe the party cannot afford is refused with the
-missing cost and spends nothing. Cancelling the menu is free.
+Craft opens a recipe menu whose description names the recipes the party cannot
+afford. An Axe costs 3 Wood and 2 Stone; a Pick costs 4 Wood and 3 Stone. Each takes
+30 minutes in all, the ordinary surface turn included. A recipe the party cannot
+afford is refused with the missing cost and spends neither materials nor time.
+Cancelling the menu is free.
 
 **Implementation:** `internal/game_state/action_craft.go`
 
@@ -90,11 +99,14 @@ From the Build menu, outside any claim, the party may stake a 16x16 claim centre
 on its square (the party's square is at offset 8,8 from the north-west corner).
 Claims wrap with the overworld. A claim is refused when the party already holds 4,
 when it would overlap another claim, when any square holds a settlement, castle,
-shrine, dungeon or other entrance, or when more than half of it is water. It costs
-300 gold plus 10 Wood and 5 Stone of stakes, takes a name of 1 to 24 printable
-characters, and spends 10 minutes. The claim's name is pinned on the Atlas at its
-centre without needing a sextant fix; a full Atlas leaves it unpinned. Claims are
-permanent.
+shrine, dungeon or other entrance, when any square holds a moongate (a placed
+moonstone, open or not), or when more than half of it is water. A refused claim, or
+an empty name, spends nothing. It costs 300 gold plus 10 Wood and 5 Stone of stakes,
+takes a name of 1 to 24 printable ASCII characters (the Atlas label repertoire), and
+spends 10 minutes in all, the ordinary surface turn included. The claim's name is
+pinned on the Atlas at its centre without needing a sextant fix; a full Atlas leaves
+it unpinned with a message, and an existing note at the centre is kept silently.
+Claims are permanent.
 
 **Implementation:** `internal/game_state/action_build.go`
 
@@ -108,7 +120,7 @@ permanent.
 **Redux:** Intentional deviation
 
 Build places one piece on an adjacent square inside one of the party's claims. The
-square must hold no object or item, and its terrain must be grass, brush, desert,
+square must hold no object, item or moongate, and its terrain must be grass, brush, desert,
 path, plowed field or a placed floor. Pieces are original tiles: wood and stone
 floors, stone and rough walls, windows, fences, doors, tables, chairs, beds, a
 dresser, bookcase, end table, barrel, fireplace and storage chest. Passability,

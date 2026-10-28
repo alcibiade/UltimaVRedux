@@ -46,6 +46,9 @@ func (g *GameState) ProposeLandClaim() LandClaimProposal {
 				isSettlementSprite(overworld.SpriteIndexByLayer(map_state.MapLayer, position)) {
 				return LandClaimProposal{Err: ErrLandClaimHasSettlement}
 			}
+			if g.isMoongateSquare(position) {
+				return LandClaimProposal{Err: ErrLandClaimHasMoongate}
+			}
 			if tile := g.GameReferences.TileReferences.GetTile(overworld.SpriteIndexByLayer(map_state.MapLayer, position)); tile != nil && tile.IsWater() {
 				water++
 			}
@@ -83,6 +86,8 @@ func LandClaimRejection(err error) string {
 		return "That land is already yours!"
 	case errors.Is(err, ErrLandClaimHasSettlement):
 		return "Too near a settlement!"
+	case errors.Is(err, ErrLandClaimHasMoongate):
+		return "Too near a moongate!"
 	case errors.Is(err, ErrLandClaimTooWet):
 		return "Too much water here!"
 	case errors.Is(err, ErrNotEnoughGold):
@@ -118,10 +123,15 @@ func (g *GameState) StakeLandClaim(name string) (LandClaim, error) {
 	claim := LandClaim{ID: nextID, Name: normalized, Origin: proposal.Origin}
 	g.crafting.claims = append(g.crafting.claims, claim)
 	g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("You claim %s!", normalized))
-	if !g.pinLandClaimOnAtlas(claim) {
+	switch g.pinLandClaimOnAtlas(claim) {
+	case atlasPinned, atlasAlreadyMarked:
+		// An existing note at the centre already marks the land; it is left untouched.
+	case atlasNoRoom:
 		g.SystemCallbacks.Message.AddRowStr("Your Atlas has no room to mark it.")
+	case atlasRefused:
+		g.SystemCallbacks.Message.AddRowStr("Your Atlas cannot mark it.")
 	}
-	g.AdvanceGameplayMinutesAndProcessProvisions(references.GatherMinutes)
+	g.advanceCraftingMenuLabor(references.LandClaimStakeMinutes)
 
 	return claim, nil
 }
@@ -150,7 +160,7 @@ func (g *GameState) buildTarget(direction references.Direction) (references.Posi
 
 		return references.Position{}, false
 	}
-	if !g.isOnOverworldSurface() || g.PartyVehicle.GetVehicleDetails().VehicleType != references.NoPartyVehicle {
+	if !g.IsCraftingSite() {
 		g.SystemCallbacks.Message.AddRowStr("Not here!")
 
 		return references.Position{}, false
@@ -167,7 +177,14 @@ func (g *GameState) buildTarget(direction references.Direction) (references.Posi
 
 		return references.Position{}, false
 	}
+	if g.isMoongateSquare(position) {
+		// A moonstone buried inside a claim after it was staked still keeps its gate clear.
+		g.SystemCallbacks.Message.AddRowStr("Not here!")
+
+		return references.Position{}, false
+	}
 	if g.largeMapPushOccupied(position) {
+
 		g.SystemCallbacks.Message.AddRowStr("Something is in the way!")
 
 		return references.Position{}, false
