@@ -62,6 +62,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 | [`ADR/ADR-012-berad-graphics.md`](ADR/ADR-012-berad-graphics.md) | Explain SDK image/resource mechanics with game-owned artwork, presentation and lifetime adapters. | `rendering` | ADR rationale |
 | [`ADR/ADR-013-berad-rng-input.md`](ADR/ADR-013-berad-rng-input.md) | Explain exact RNG continuation and shared keyboard mechanisms with game-owned policies. | `architecture` | ADR rationale |
 | [`ADR/ADR-014-crafting-and-housing.md`](ADR/ADR-014-crafting-and-housing.md) | Record the optional crafting, land claim and housing system. | `gameplay` | ADR rationale |
+| [`ADR/ADR-015-land-claim-homestead.md`](ADR/ADR-015-land-claim-homestead.md) | Plan one-square land claims that open a town-scale homestead map for building. | `gameplay` | ADR rationale |
 
 ## Current Systems
 
