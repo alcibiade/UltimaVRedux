@@ -35,6 +35,7 @@ Game Facts rule IDs rather than fragile descriptive-heading references.
 |---|---|---|---|
 | [`README.md`](README.md) | Catalog every retained documentation file and its ownership. | `documentation` | Index |
 | [`INSTALL.md`](INSTALL.md) | Explain beginner Go setup, source installation, portable binaries, launch-path resolution, original-data setup, and platform limits. | `installation` | Procedure |
+| [`CRAFTING_AND_HOUSING.md`](CRAFTING_AND_HOUSING.md) | Guide players through the optional Crafting and Housing feature, with screenshots: gathering, tools, land claims, building and storage. | `crafting` | Procedure |
 | [`ARCHITECTURE_GUIDELINES.md`](ARCHITECTURE_GUIDELINES.md) | Define package boundaries and cross-system architecture guardrails. | `architecture` | General policy |
 | [`brand-guidelines.md`](brand-guidelines.md) | Define visual identity and brand usage. | `visual-design` | General policy |
 | [`CODING_CONVENTIONS.md`](CODING_CONVENTIONS.md) | Define Go/Python style, typing, determinism, error, testing, and UI conventions. | `engineering` | General policy |
@@ -155,7 +156,7 @@ separate catalog entries; they are not additional behavioral topics.
 | [`testing/SHADOWLORD_MANUAL_TESTS.md`](testing/SHADOWLORD_MANUAL_TESTS.md) | Provide reproducible manual Workbench checks for Shadowlord behavior. | `testing` | Procedure |
 
 The versioned JSON files under `schemas/` are native-save support assets owned
-by the saves domain. Snapshot version 25 is current within envelope 2; version 24
-is the only frozen promotion source. Frozen schemas V16–V24 remain because the
+by the saves domain. Snapshot version 26 is current within envelope 2; versions 24
+and 25 are the frozen promotion sources. Frozen schemas V16–V25 remain because the
 current schema reuses their definitions locally. See the snapshot contract for
 executable schema and promotion boundaries.

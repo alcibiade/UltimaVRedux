@@ -2,6 +2,7 @@ package game_state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
@@ -52,7 +53,11 @@ func (g *GameState) ApplyCraft(recipeID int) error {
 		return ErrNotEnoughMaterials
 	}
 	inventory.Tools.IncrementBy(recipe.Output, 1)
-	g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("You craft a %s.", recipe.Name))
+	article := "a"
+	if strings.ContainsRune("AEIOU", rune(recipe.Name[0])) {
+		article = "an"
+	}
+	g.SystemCallbacks.Message.AddRowStr(fmt.Sprintf("You craft %s %s.", article, recipe.Name))
 	g.AdvanceGameplayMinutesAndProcessProvisions(recipe.Minutes)
 
 	return nil

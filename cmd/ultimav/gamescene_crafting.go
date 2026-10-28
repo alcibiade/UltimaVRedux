@@ -17,8 +17,8 @@ import (
 // Alt+G gathers, Alt+C crafts and Alt+B builds on the overworld surface; see ref:CRAFT-0001.
 
 const (
-	craftingMenuButtonWidthPercent = 0.34
-	craftingMenuBorderWidthPercent = 0.42
+	craftingMenuButtonWidthPercent = 0.40
+	craftingMenuBorderWidthPercent = 0.48
 	landClaimNamePattern           = "^[ -~]{0,24}$"
 )
 
@@ -132,10 +132,14 @@ func (g *GameScene) openBuildMenu(finish func(surfaceCommandState)) {
 	if inside {
 		description = "You stand on " + claim.Name + ". " + description
 	}
+	if !inside {
+		// The cost lives in the description: a button row is too narrow for it.
+		description += fmt.Sprintf(" A claim costs %d gold and %s.", references.LandClaimGoldCost,
+			references.LandClaimStakeCost.Describe())
+	}
 	menu = g.newCraftingMenu("Build", description, g.cancelCraftingMenu(finish))
 	if !inside {
-		menu.AddButton(fmt.Sprintf("Stake a claim (%d gold, %s)", references.LandClaimGoldCost,
-			references.LandClaimStakeCost.Describe()), func() {
+		menu.AddButton("Stake a claim here", func() {
 			g.dialogStack.MustRemoveWidgetInstance(menu)
 			g.appendToCurrentRowStr("Claim")
 			g.startLandClaim(finish)
@@ -291,7 +295,9 @@ func (g *GameScene) openHomeChestCategoryMenu(position references.Position, depo
 	}
 	menu.AddButton("Everything", func() { transfer(game_state.HomeChestCategories(), "everything") })
 	for _, category := range game_state.HomeChestCategories() {
-		menu.AddButton(category.Name(), func() {
+		// Category names are lowercase for messages; rows start with a capital like "Everything".
+		label := strings.ToUpper(category.Name()[:1]) + category.Name()[1:]
+		menu.AddButton(label, func() {
 			transfer([]game_state.HomeChestCategory{category}, category.Name())
 		})
 	}
