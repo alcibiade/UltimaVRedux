@@ -141,7 +141,8 @@ func TestOpenOnTheStorageChestStoresAndTakesGoods(t *testing.T) {
 	assert.Equal(t, []string{"Store...", "Take..."}, chest.ButtonTexts())
 	chest.ActivateButton(0)
 	store := topCraftingMenu(t, scene)
-	assert.Equal(t, []string{"Everything", "Materials", "Tools", "Pieces", "Gold", "Food, torches, gems and keys",
+	assert.Equal(t, []string{"Everything but food, torches, keys and tools", "Materials", "Tools", "Pieces", "Gold",
+		"Food, torches, gems and keys",
 		"Arms and armour", "Potions", "Scrolls"},
 		store.ButtonTexts())
 	store.ActivateButton(1)
@@ -160,6 +161,63 @@ func TestOpenOnTheStorageChestStoresAndTakesGoods(t *testing.T) {
 	openNorthThroughScene(scene)
 	topCraftingMenu(t, scene).Cancel()
 	assert.Empty(t, callbacks.TimeAdvanced(), "closing the chest without moving anything is free")
+}
+
+func TestStoringEverythingLeavesFoodTorchesKeysAndToolsWithTheParty(t *testing.T) {
+	scene, callbacks := newBuildScene(t)
+	inventory := &scene.gameState.PartyState.Inventory
+	inventory.Pieces.Set(references.PieceStorageChest, 1)
+	buildThroughScene(t, scene, ebiten.KeyUp)
+	inventory.Materials.Set(references.Wood, 20)
+	inventory.Tools.Set(references.Axe, 1)
+	inventory.Gold.Set(300)
+	inventory.Provisions.Food.Set(50)
+	inventory.Provisions.Torches.Set(4)
+	inventory.Provisions.Keys.Set(2)
+	inventory.Provisions.SkullKeys.Set(1)
+	inventory.Provisions.Gems.Set(3)
+	callbacks.Reset()
+
+	openNorthThroughScene(scene)
+	topCraftingMenu(t, scene).ActivateButton(0)
+	topCraftingMenu(t, scene).ActivateButton(0)
+
+	assert.Contains(t, callbacks.Messages, "Store everything: 323.")
+	assert.Zero(t, inventory.Materials.Get(references.Wood))
+	assert.Zero(t, inventory.Gold.Get())
+	assert.Zero(t, inventory.Provisions.Gems.Get(), "gems are no survival goods")
+	assert.Equal(t, uint16(50), inventory.Provisions.Food.Get(), "the party keeps its food")
+	assert.Equal(t, uint16(4), inventory.Provisions.Torches.Get())
+	assert.Equal(t, uint16(2), inventory.Provisions.Keys.Get())
+	assert.Equal(t, uint16(1), inventory.Provisions.SkullKeys.Get())
+	assert.Equal(t, uint16(1), inventory.Tools.Get(references.Axe))
+
+	// The provisions row still stores them, and Take everything brings everything back.
+	chest := topCraftingMenu(t, scene)
+	chest.ActivateButton(0)
+	store := topCraftingMenu(t, scene)
+	store.ActivateButton(indexOfButton(t, store.ButtonTexts(), "Food, torches, gems and keys"))
+	assert.Zero(t, inventory.Provisions.Food.Get())
+	topCraftingMenu(t, scene).ActivateButton(1)
+	take := topCraftingMenu(t, scene)
+	assert.Equal(t, "Everything", take.ButtonTexts()[0])
+	take.ActivateButton(0)
+	assert.Equal(t, uint16(50), inventory.Provisions.Food.Get())
+	assert.Equal(t, uint16(300), inventory.Gold.Get())
+	topCraftingMenu(t, scene).Cancel()
+	assert.Equal(t, game_state.DefaultSmallMapMinutesPerTurn, sumSceneMinutes(callbacks.TimeAdvanced()))
+}
+
+func indexOfButton(t *testing.T, texts []string, text string) int {
+	t.Helper()
+	for index, candidate := range texts {
+		if candidate == text {
+			return index
+		}
+	}
+	require.Failf(t, "no such button", "%q not in %v", text, texts)
+
+	return -1
 }
 
 func TestHoleUpOnTheOwnBedRestsLikeAnInnThroughTheScene(t *testing.T) {

@@ -140,12 +140,9 @@ func (g *GameScene) openStorageChestCategoryMenu(position references.Position, s
 	menu = g.newCraftingMenu(verb, description+" "+g.gameState.StorageChestSummary(position), func() {
 		g.openStorageChestMenu(position, used, finish)
 	})
-	transfer := func(categories []game_state.StorageChestCategory, label string) {
+	transfer := func(move func() int, label string) {
 		g.dialogStack.MustRemoveWidgetInstance(menu)
-		moved := 0
-		for _, category := range categories {
-			moved += g.gameState.TransferStorageChest(position, category, store)
-		}
+		moved := move()
 		messages := g.gameState.SystemCallbacks.Message
 		if moved == 0 {
 			messages.AddRowStr("Nothing to move.")
@@ -154,10 +151,17 @@ func (g *GameScene) openStorageChestCategoryMenu(position references.Position, s
 		}
 		g.openStorageChestMenu(position, used || moved > 0, finish)
 	}
-	menu.AddButton("Everything", func() { transfer(game_state.StorageChestCategories(), "everything") })
+	// Storing everything leaves food, torches, keys and tools with the party (ref:CRAFT-0011).
+	everything := "Everything"
+	if store {
+		everything = "Everything but food, torches, keys and tools"
+	}
+	menu.AddButton(everything, func() {
+		transfer(func() int { return g.gameState.TransferStorageChestEverything(position, store) }, "everything")
+	})
 	for _, category := range game_state.StorageChestCategories() {
 		menu.AddButton(category.Name(), func() {
-			transfer([]game_state.StorageChestCategory{category}, category.Name())
+			transfer(func() int { return g.gameState.TransferStorageChest(position, category, store) }, category.Name())
 		})
 	}
 	g.dialogStack.PushModalDialog(menu)

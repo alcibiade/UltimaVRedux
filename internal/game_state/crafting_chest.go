@@ -12,6 +12,9 @@ import (
 // built on its own deed map keeps goods across visits, and opening it costs no karma; see
 // ref:CRAFT-0011.
 
+// REDUX DEVIATION: CRAFT-0011: storing everything leaves food, torches, keys, skull keys and
+// tools with the party, so a full store never strands it; see ref:CRAFT-0011.
+
 // REDUX DEVIATION: CRAFT-0018: the original has no player storage for arms, potions or scrolls.
 // A storage chest also keeps them, never taking a readied item; see ref:CRAFT-0018.
 
@@ -95,12 +98,25 @@ func (c StorageChestCategory) Name() string {
 }
 
 // storageChestSlot pairs one party stack with the chest counter that stores it. Keep is the part
-// of the party stack that never goes into the chest: readied equipment.
+// of the party stack that never goes into the chest: readied equipment. Survival marks the goods
+// that storing everything leaves with the party: food, torches, keys, skull keys and tools.
 type storageChestSlot struct {
-	party party_state.ItemQuantity
-	chest *uint16
-	limit uint16
-	keep  uint16
+	party    party_state.ItemQuantity
+	chest    *uint16
+	limit    uint16
+	keep     uint16
+	survival bool
+}
+
+// isSurvivalProvision reports whether storing everything leaves the provision with the party.
+func isSurvivalProvision(provision references.Provision) bool {
+	//nolint:exhaustive // Gems and gold are stored with everything else.
+	switch provision {
+	case references.Food, references.Torches, references.Key, references.SkullKeys:
+		return true
+	default:
+		return false
+	}
 }
 
 func (g *GameState) storageChestSlots(chest *StorageChest, category StorageChestCategory) []storageChestSlot {
@@ -118,7 +134,7 @@ func (g *GameState) storageChestSlots(chest *StorageChest, category StorageChest
 		slots := make([]storageChestSlot, 0, references.NumberOfTools)
 		for _, tool := range references.ToolCatalog() {
 			slots = append(slots, storageChestSlot{party: *inventory.Tools.GetQuantity(tool),
-				chest: &chest.Tools[tool], limit: party_state.ItemQuantitySmallMax})
+				chest: &chest.Tools[tool], limit: party_state.ItemQuantitySmallMax, survival: true})
 		}
 
 		return slots
@@ -138,7 +154,8 @@ func (g *GameState) storageChestSlots(chest *StorageChest, category StorageChest
 		slots := make([]storageChestSlot, 0, NumberOfChestProvisions)
 		for index, provision := range StorageChestProvisions {
 			stack, limit := inventory.ProvisionStack(provision)
-			slots = append(slots, storageChestSlot{party: stack, chest: &chest.Provisions[index], limit: limit})
+			slots = append(slots, storageChestSlot{party: stack, chest: &chest.Provisions[index], limit: limit,
+				survival: isSurvivalProvision(provision)})
 		}
 
 		return slots
@@ -206,6 +223,19 @@ func (g *GameState) StorageChestContents(position references.Position) (StorageC
 // the loaded deed map, each stack stopping at the receiving stack's cap, and returns how many
 // units moved. It spends no time and no karma; the scene completes the Open command once.
 func (g *GameState) TransferStorageChest(position references.Position, category StorageChestCategory, store bool) int {
+	return g.transferStorageChest(position, []StorageChestCategory{category}, store, false)
+}
+
+// TransferStorageChestEverything moves every category at once (ref:CRAFT-0011). Storing leaves
+// food, torches, keys, skull keys and tools with the party, as well as readied equipment;
+// their own category rows still store them. Taking empties the chest up to the party's caps.
+func (g *GameState) TransferStorageChestEverything(position references.Position, store bool) int {
+	return g.transferStorageChest(position, StorageChestCategories(), store, true)
+}
+
+func (g *GameState) transferStorageChest(
+	position references.Position, categories []StorageChestCategory, store, everything bool,
+) int {
 	if g.crafting.active == nil {
 		return 0
 	}
@@ -214,7 +244,19 @@ func (g *GameState) TransferStorageChest(position references.Position, category 
 		return 0
 	}
 	moved := 0
-	for _, slot := range g.storageChestSlots(chest, category) {
+	for _, category := range categories {
+		moved += transferStorageChestSlots(g.storageChestSlots(chest, category), store, everything)
+	}
+
+	return moved
+}
+
+func transferStorageChestSlots(slots []storageChestSlot, store, everything bool) int {
+	moved := 0
+	for _, slot := range slots {
+		if store && everything && slot.survival {
+			continue
+		}
 		if store {
 			amount := min(slot.party.Get()-min(slot.keep, slot.party.Get()), slot.limit-min(slot.limit, *slot.chest))
 			if amount > 0 && slot.party.DecrementBy(amount) {

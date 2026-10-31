@@ -470,6 +470,39 @@ func TestStorageChestTransfersEachCategoryUpToTheCaps(t *testing.T) {
 	assert.Equal(t, "The chest is empty.", state.StorageChestSummary(chest))
 }
 
+func TestStoringEverythingKeepsSurvivalGoodsWithTheParty(t *testing.T) {
+	state, _, _ := newBuildFixture(t)
+	buildNorth(t, state, references.PieceStorageChest)
+	chest := northOfYard()
+	inventory := &state.PartyState.Inventory
+	inventory.Materials.Set(references.Wood, 12)
+	inventory.Tools.Set(references.Pick, 2)
+	inventory.Gold.Set(100)
+	inventory.Provisions.Food.Set(40)
+	inventory.Provisions.Torches.Set(3)
+	inventory.Provisions.Keys.Set(2)
+	inventory.Provisions.SkullKeys.Set(1)
+	inventory.Provisions.Gems.Set(5)
+
+	assert.Equal(t, 12+100+5, state.TransferStorageChestEverything(chest, true))
+
+	contents, _ := state.StorageChestContents(chest)
+	assert.Equal(t, [NumberOfChestProvisions]uint16{0, 5, 0, 0, 0}, contents.Provisions, "only the gems go in")
+	assert.Zero(t, contents.Tools[references.Pick])
+	assert.Equal(t, uint16(40), inventory.Provisions.Food.Get())
+	assert.Equal(t, uint16(3), inventory.Provisions.Torches.Get())
+	assert.Equal(t, uint16(2), inventory.Provisions.Keys.Get())
+	assert.Equal(t, uint16(1), inventory.Provisions.SkullKeys.Get())
+	assert.Equal(t, uint16(2), inventory.Tools.Get(references.Pick))
+
+	// Their own rows still store them, and taking everything brings them all back.
+	assert.Equal(t, 40+3+2+1, state.TransferStorageChest(chest, StorageChestProvisionsCategory, true))
+	assert.Equal(t, 2, state.TransferStorageChest(chest, StorageChestTools, true))
+	assert.Equal(t, 12+100+5+40+3+2+1+2, state.TransferStorageChestEverything(chest, false))
+	contents, _ = state.StorageChestContents(chest)
+	assert.True(t, contents.IsEmpty())
+}
+
 func TestDemolishRefusesANonEmptyChest(t *testing.T) {
 	state, callbacks, _ := newBuildFixture(t)
 	buildNorth(t, state, references.PieceStorageChest)

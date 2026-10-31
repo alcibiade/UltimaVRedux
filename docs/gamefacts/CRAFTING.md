@@ -484,12 +484,20 @@ building, and nothing built is ever lost.
 **Redux:** Intentional deviation
 
 Open on a storage chest the party built on its own deed map, with the option on, prints
-"Storage chest" and shows the chest: what it holds, and Store and Take. Each lists
-Everything, Materials, Tools, Pieces, Gold, and Food, torches, gems and keys (skull keys
-included), then Arms and armour, Potions and Scrolls ([CRAFT-0018](#craft-0018)). Choosing a row moves every unit of those goods; each stack stops at the
-receiving stack's cap (materials, food and gold 9999; tools, pieces, torches, gems and
-keys 99) and the rest stays where it was. The menu prints "Store materials: 20." or
-"Nothing to move." and returns to the chest.
+"Storage chest" and shows the chest: what it holds, and Store and Take. Each lists an
+everything row, then Materials, Tools, Pieces, Gold, and Food, torches, gems and keys (skull
+keys included), then Arms and armour, Potions and Scrolls ([CRAFT-0018](#craft-0018)).
+Choosing a row moves every unit of those goods; each stack stops at the receiving stack's
+cap (materials, food and gold 9999; tools, pieces, torches, gems and keys 99) and the rest
+stays where it was. The menu prints "Store materials: 20." or "Nothing to move." and
+returns to the chest.
+
+Store's everything row reads "Everything but food, torches, keys and tools": it leaves
+Food, Torches, Keys, Skull keys and every tool with the party, as well as readied
+equipment ([CRAFT-0018](#craft-0018)), so storing everything never leaves the party to
+starve in the dark. Their own rows (Tools; Food, torches, gems and keys) still store them.
+Gems and gold go in with everything else. Take's row reads "Everything" and takes every
+unit the party can carry.
 
 Opening it never changes karma, unlike a town chest
 ([KARMA-0005](KARMA.md#karma-0005)). Closing the chest after any move costs the ordinary
@@ -741,7 +749,7 @@ Rationale: the rare reagents stay rare and slow to make, but no recipe depends o
 
 A storage chest ([CRAFT-0011](#craft-0011)) also keeps the party's equipment (every weapon,
 armour, shield, ammunition, ring and amulet, magic or not), potions and scrolls. Store and
-Take add three rows: Arms and armour, Potions and Scrolls; Everything includes them.
+Take add three rows: Arms and armour, Potions and Scrolls; the everything rows include them.
 Storing arms leaves every readied item with the party: only units beyond those readied by
 the active party go into the chest. Each chest slot is capped like the party stack it comes
 from (equipment and potions 99, scrolls 9999). Native save version 26 keeps them in each
