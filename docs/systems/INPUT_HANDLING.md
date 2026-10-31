@@ -358,6 +358,20 @@ in exploration.
 Command Help describes the shortcut and its surface/fix requirements. See
 `cmd/ultimav/gamescene_atlas_mark_shortcut.go` and its `_test.go` coverage.
 
+The optional crafting chords `Alt+G` Gather, `Alt+C` Craft and `Alt+B` Build
+([CRAFT-0001](../gamefacts/CRAFTING.md#craft-0001)) arrive as ordinary accepted G, C
+or B keys with Alt held. One guard (`handleCraftingChord`) owns them right after the
+Command Help shortcut, ahead of intoxicated-movement interception and every map's
+command routing, so they never become Get, Cast or Board on any map. Like `Ctrl+N`
+they count only as an exact chord, Alt alone: with Ctrl, Shift or Meta also held, or
+while `Gameplay.Crafting.Enabled` is off, the chord answers "What?". Where the command
+does not apply (towns, dungeons, the Underworld, combat, aboard a vehicle) it answers
+"Not here!". Refusals open nothing and spend no time. Unlike `Ctrl+N` the chords are
+not release-gated: ordinary single-press debouncing applies. Plain G, C and B, and
+other Alt keys, keep their routing. Alt+B on the overworld opens a modal Build menu
+whose naming prompt completes the command through the surface command cycle; see
+`cmd/ultimav/gamescene_crafting.go` and `gamescene_crafting_test.go`.
+
 The scene owns the exact AtlasDialog instance and freezes elapsed time, calendar,
 RNG, wind, effects and all event queue lanes. Only the top modal updates while
 the session exists. It refreshes detached public evidence and current sextant

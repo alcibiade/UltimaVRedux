@@ -105,7 +105,7 @@ separate catalog entries; they are not additional behavioral topics.
 
 | Document | One-line purpose | Primary owner | Authority classification |
 |---|---|---|---|
-| [`gamefacts/README.md`](gamefacts/README.md) | Navigate the 39 behavioral and compatibility topics. | `game-facts` | Index |
+| [`gamefacts/README.md`](gamefacts/README.md) | Navigate the 40 behavioral and compatibility topics. | `game-facts` | Index |
 | [`gamefacts/CONVENTIONS.md`](gamefacts/CONVENTIONS.md) | Define stable IDs, rule statuses, pseudocode, and relationships. | `game-facts` | General policy |
 | [`gamefacts/ASTRONOMY.md`](gamefacts/ASTRONOMY.md) | Record instrument gates, star rendering, planets, and comets. | `astronomy` | Gamefact |
 | [`gamefacts/BRIT_CBT_FORMAT.md`](gamefacts/BRIT_CBT_FORMAT.md) | Specify combat-map records, formations, and selection. | `combat` | Gamefact |
@@ -114,6 +114,7 @@ separate catalog entries; they are not additional behavioral topics.
 | [`gamefacts/CHARACTER_PROGRESSION.md`](gamefacts/CHARACTER_PROGRESSION.md) | Record attributes, experience, levels, and advancement. | `characters` | Gamefact |
 | [`gamefacts/COMBAT.md`](gamefacts/COMBAT.md) | Record combat flow, formulas, AI, status, and Redux differences. | `combat` | Gamefact |
 | [`gamefacts/COMMANDS_REFERENCE.md`](gamefacts/COMMANDS_REFERENCE.md) | Catalog command behavior, completion, doors, and chests. | `commands` | Gamefact |
+| [`gamefacts/CRAFTING.md`](gamefacts/CRAFTING.md) | Record the optional Redux crafting rules: deeds, generated deed maps, chords and stock. | `gameplay` | Gamefact |
 | [`gamefacts/CRIME_PRISON.md`](gamefacts/CRIME_PRISON.md) | Record crime, guards, arrest, interrogation, and rescue. | `crime` | Gamefact |
 | [`gamefacts/DEATH_RESURRECTION.md`](gamefacts/DEATH_RESURRECTION.md) | Record death, revival, and party recovery. | `characters` | Gamefact |
 | [`gamefacts/DUNGEON_SYSTEM.md`](gamefacts/DUNGEON_SYSTEM.md) | Record dungeon layout, movement, rooms, hazards, and transitions. | `dungeons` | Gamefact |
@@ -154,7 +155,7 @@ separate catalog entries; they are not additional behavioral topics.
 | [`testing/SHADOWLORD_MANUAL_TESTS.md`](testing/SHADOWLORD_MANUAL_TESTS.md) | Provide reproducible manual Workbench checks for Shadowlord behavior. | `testing` | Procedure |
 
 The versioned JSON files under `schemas/` are native-save support assets owned
-by the saves domain. Snapshot version 25 is current within envelope 2; version 24
-is the only frozen promotion source. Frozen schemas V16–V24 remain because the
+by the saves domain. Snapshot version 26 is current within envelope 2; versions 24
+and 25 are the frozen promotion sources. Frozen schemas V16–V25 remain because the
 current schema reuses their definitions locally. See the snapshot contract for
 executable schema and promotion boundaries.

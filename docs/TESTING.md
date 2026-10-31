@@ -287,6 +287,12 @@ physical keyboard behavior, readable presentation, or audible cue ordering.
 Record those observations in the relevant issue after a real game-window run;
 do not keep a second completion ledger in a system guide.
 
+Manual-only rigs sit behind build tags so normal runs, `make check` and the linter
+never compile them. The `craftingmanual` tag
+(`cmd/ultimav/crafting_manual_capture_test.go`) drives a real scene through production
+input to stake, enter and leave deeds and writes review screenshots to
+`CRAFTING_MANUAL_DIR`; it needs real game data and a display (`xvfb-run -a`).
+
 ## Commands
 
 ### Resource-Sensitive Runs
