@@ -61,9 +61,9 @@ func craftRecipesForEquipment() []CraftRecipe {
 		equipmentRecipe(RecipeClub, Club, CraftCategoryWoodenWeapons, 1, 15, bench, planks(2)),
 		equipmentRecipe(RecipeSling, Sling, CraftCategoryWoodenWeapons, 1, 20, bench, planks(1), MaterialGoods(Forage, 1)),
 		equipmentRecipe(RecipeSpear, Spear, CraftCategoryWoodenWeapons, 1, 30, bench, planks(2), ingots(1)),
-		equipmentRecipe(RecipeBow, Bow, CraftCategoryWoodenWeapons, 1, 60, bench, planks(4)),
+		equipmentRecipe(RecipeBow, Bow, CraftCategoryWoodenWeapons, 1, 90, bench, planks(6), MaterialGoods(Forage, 1)),
 		equipmentRecipe(RecipeArrows, Arrows, CraftCategoryWoodenWeapons, 10, 30, bench, planks(1), ingots(1)),
-		equipmentRecipe(RecipeCrossbow, Crossbow, CraftCategoryWoodenWeapons, 1, 90, bench, planks(4), ingots(2)),
+		equipmentRecipe(RecipeCrossbow, Crossbow, CraftCategoryWoodenWeapons, 1, 120, bench, planks(4), ingots(2)),
 		equipmentRecipe(RecipeQuarrels, Quarrels, CraftCategoryWoodenWeapons, 10, 30, bench, planks(1), ingots(1)),
 
 		equipmentRecipe(RecipeClothArmour, ClothArmour, CraftCategoryArmour, 1, 45, bench, MaterialGoods(Forage, 4)),

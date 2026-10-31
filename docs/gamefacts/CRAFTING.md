@@ -572,9 +572,9 @@ deeds do not yield, so it is not craftable either.
 | Bows and wooden arms | Club | 2 Planks | 1 | 15 | Workbench | 5 |
 | Bows and wooden arms | Sling | 1 Planks, 1 Forage | 1 | 20 | Workbench | 10 |
 | Bows and wooden arms | Spear | 2 Planks, 1 Ingots | 1 | 30 | Workbench | 7 |
-| Bows and wooden arms | Bow | 4 Planks | 1 | 60 | Workbench | 75 |
+| Bows and wooden arms | Bow | 6 Planks, 1 Forage | 1 | 90 | Workbench | 75 |
 | Bows and wooden arms | Arrows | 1 Planks, 1 Ingots | 10 | 30 | Workbench | 10 |
-| Bows and wooden arms | Crossbow | 4 Planks, 2 Ingots | 1 | 90 | Workbench | 150 |
+| Bows and wooden arms | Crossbow | 4 Planks, 2 Ingots | 1 | 120 | Workbench | 150 |
 | Bows and wooden arms | Quarrels | 1 Planks, 1 Ingots | 10 | 30 | Workbench | 15 |
 | Body armour | Cloth Armour | 4 Forage | 1 | 45 | Workbench | 20 |
 | Body armour | Leather Armour | 4 Planks, 2 Forage | 1 | 60 | Workbench | 50 |
@@ -597,8 +597,10 @@ spent.
 
 Rationale: each Ingots costs about 50 minutes of mining and smelting, so a forged item
 costs hours of labour that grow with its shop price (Plate Mail about 14 hours), while
-cheap shop goods stay cheaper to buy. A self-sufficient party can arm itself, but magic
-gear still has to be found or bought.
+cheap shop goods stay cheaper to buy. The Bow (6 Planks and 1 Forage, 90 minutes) and the
+Crossbow (120 minutes) take more wood and time than their shop prices alone would suggest,
+so making them to sell is no quicker gold than other work. A self-sufficient party can arm
+itself, but magic gear still has to be found or bought.
 
 **Implementation:** `internal/references/crafting_recipes_items.go`, `internal/game_state/crafting_craft.go`
 **Tests:** `internal/references/crafting_recipes_items_test.go`, `internal/game_state/crafting_items_test.go`
