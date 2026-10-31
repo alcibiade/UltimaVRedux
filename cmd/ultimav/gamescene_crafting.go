@@ -60,11 +60,9 @@ func (g *GameScene) handleCraftingChord(key ebiten.Key) bool {
 	case !g.gameState.CraftingCommandApplies(command):
 		messages.AddRowStr("Not here!")
 	case command == game_state.CraftingGather:
-		// Gathering arrives with resource nodes in a later step (ADR-014 step 2).
-		messages.AddRowStr("Nothing to gather yet!")
+		g.beginGather()
 	case command == game_state.CraftingCraft:
-		// Recipes arrive with stations in a later step (ADR-014 step 3).
-		messages.AddRowStr("Nothing to craft yet!")
+		g.beginCraft()
 	case g.gameState.IsOnDeedMap():
 		// Building pieces arrive in a later step (ADR-014 step 3).
 		messages.AddRowStr("Nothing to build yet!")
@@ -172,13 +170,93 @@ func (g *GameScene) resolveDeedName(text string, submitted bool) surfaceCommandS
 	return surfaceCommandCompleted
 }
 
+// beginGather asks for the direction of the node to gather (ref:CRAFT-0005). The deed map's
+// secondary input routes the answer to GatherDeedNode; Esc cancels for free.
+func (g *GameScene) beginGather() {
+	g.gameState.SystemCallbacks.Message.ShowCommandPrompt("Gather-")
+	g.secondaryKeyState = GatherDirectionInput
+	g.keyboard.SetAllowKeyPressImmediately()
+}
+
+// craftingGatherResult completes a gather: an attempt spends the ordinary turn on top of the
+// minutes GatherDeedNode already spent; a refusal spends nothing.
+func (g *GameScene) craftingGatherResult(attempted bool, origin references.GeneralMapType) surfaceCommandResult {
+	if attempted {
+		return newSurfaceCommandResult(surfaceCommandCompleted, origin)
+	}
+	result := newSurfaceCommandResult(surfaceCommandRejected, origin)
+	result.ConsumesNormalCycle = false
+
+	return result
+}
+
+// beginCraft opens the recipe menu (ref:CRAFT-0007). Every recipe is listed; one the party
+// cannot make now says so in its row. Esc, or choosing a recipe that cannot be made, spends
+// nothing; a craft spends exactly the recipe's minutes, the ordinary turn included.
+func (g *GameScene) beginCraft() {
+	messages := g.gameState.SystemCallbacks.Message
+	messages.ShowCommandPrompt("Craft-")
+	finish := g.craftingCompletion(g.gameState.MapState.PlayerLocation.Location.GetMapType())
+	var menu *widgets.ButtonListModal
+	menu = g.newCraftingMenu("Craft", g.craftMenuDescription(), func() {
+		g.appendToCurrentRowStr("Cancelled")
+		finish(surfaceCommandCancelled)
+	})
+	for _, option := range g.gameState.CraftRecipeOptions() {
+		recipe := option.Recipe
+		menu.AddButton(craftMenuRowLabel(option), func() {
+			g.dialogStack.MustRemoveWidgetInstance(menu)
+			g.appendToCurrentRowStr(recipe.Name)
+			if err := g.gameState.Craft(recipe.ID); err != nil {
+				finish(surfaceCommandRejected)
+
+				return
+			}
+			finish(surfaceCommandCompleted)
+		})
+	}
+	g.dialogStack.PushModalDialog(menu)
+	g.keyboard.PrepareForTransition(0)
+}
+
+// craftMenuRowLabel names a recipe and its inputs, and says in words why it cannot be made now.
+func craftMenuRowLabel(option game_state.CraftRecipeOption) string {
+	label := fmt.Sprintf("%s: %s", option.Recipe.Name, references.DescribeCraftGoods(option.Recipe.Inputs))
+	switch {
+	case !option.StationReady:
+		return label + " (needs " + option.Recipe.Station.Name() + ")"
+	case !option.Affordable:
+		return label + " (lacking)"
+	default:
+		return label
+	}
+}
+
+// craftMenuDescription summarizes the stock recipes draw on.
+func (g *GameScene) craftMenuDescription() string {
+	inventory := &g.gameState.PartyState.Inventory
+	carried := make([]references.CraftGoods, 0, references.NumberOfMaterials)
+	for _, material := range references.MaterialCatalog() {
+		if quantity := inventory.Materials.Get(material); quantity > 0 {
+			carried = append(carried, references.MaterialGoods(material, quantity))
+		}
+	}
+	stock := "no materials"
+	if len(carried) > 0 {
+		stock = references.DescribeCraftGoods(carried)
+	}
+
+	return fmt.Sprintf("Choose what to make. Thou dost carry %s. A recipe marked lacking needs more than thou hast.", stock)
+}
+
 // craftingCommandHelpEntries describes the three chords and where they work now.
 func (g *GameScene) craftingCommandHelpEntries() []widgets.CommandHelpEntry {
 	entries := []widgets.CommandHelpEntry{
-		{Key: "Alt+G", Purpose: "Gather resources", NextInput: "Optional Crafting and Deeds (Configure). On your deed map. " +
-			"Gathering arrives in a later version."},
-		{Key: "Alt+C", Purpose: "Craft", NextInput: "Optional Crafting and Deeds. On the surface overworld or your deed map. " +
-			"Recipes arrive in a later version."},
+		{Key: "Alt+G", Purpose: "Gather resources", NextInput: "Optional Crafting and Deeds (Configure). On your deed map, " +
+			"then a direction: trees and stumps give Wood (Axe), rocks Stone and ore veins Ore (Pick); fruit trees, " +
+			"cacti and reagent patches are picked by hand. Bare hands sometimes win 1 Wood or Stone. Esc cancels for free."},
+		{Key: "Alt+C", Purpose: "Craft", NextInput: "Optional Crafting and Deeds. On the surface overworld or your deed map, " +
+			"on foot: choose a recipe, such as an Axe or a Pick. Rows marked lacking need more materials. Esc cancels for free."},
 		{Key: "Alt+B", Purpose: "Build or stake a deed", NextInput: fmt.Sprintf("Optional Crafting and Deeds. "+
 			"On open overworld land, on foot: buy a deed for %d gold and name it; a hut marks it, and Enter on the hut "+
 			"opens your land. Esc cancels for free.", references.DeedGoldCost)},

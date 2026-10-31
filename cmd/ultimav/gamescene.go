@@ -64,6 +64,8 @@ const (
 	FireDirectionInput
 	DungeonQuitInput
 	SurfaceQuitInput
+	// GatherDirectionInput waits for the direction of an Alt+G gather on a deed map (ref:CRAFT-0005).
+	GatherDirectionInput
 )
 
 // VisualEffect represents a temporary visual effect on screen

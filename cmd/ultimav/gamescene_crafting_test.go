@@ -153,7 +153,9 @@ func TestCraftingChordsOnTheOverworld(t *testing.T) {
 	require.True(t, scene.handleCraftingChord(ebiten.KeyG))
 	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
 
-	assert.Equal(t, []string{"Not here!", "Nothing to craft yet!"}, callbacks.Messages, "gathering is deed-map only")
+	assert.Equal(t, []string{"Not here!"}, callbacks.Messages, "gathering is deed-map only")
+	assert.Equal(t, []string{"Craft-"}, callbacks.CommandPrompts, "crafting tools works on the overworld")
+	topCraftingMenu(t, scene)
 	assert.Empty(t, callbacks.TimeAdvanced())
 }
 
@@ -245,12 +247,15 @@ func TestCraftingChordsOnADeedMap(t *testing.T) {
 	enterCraftingSceneDeed(t, scene)
 	callbacks.Reset()
 
-	for _, key := range []ebiten.Key{ebiten.KeyG, ebiten.KeyC, ebiten.KeyB} {
-		require.True(t, scene.handleCraftingChord(key))
-	}
+	require.True(t, scene.handleCraftingChord(ebiten.KeyG))
+	assert.Equal(t, GatherDirectionInput, scene.secondaryKeyState, "Gather asks for a direction")
+	scene.secondaryKeyState = PrimaryInput
+	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
+	topCraftingMenu(t, scene).Cancel()
+	require.True(t, scene.handleCraftingChord(ebiten.KeyB))
 
-	assert.Equal(t, []string{"Nothing to gather yet!", "Nothing to craft yet!", "Nothing to build yet!"}, callbacks.Messages)
-	assert.Empty(t, callbacks.CommandPrompts)
+	assert.Equal(t, []string{"Gather-", "Craft-"}, callbacks.CommandPrompts)
+	assert.Equal(t, []string{"Nothing to build yet!"}, callbacks.Messages)
 	assert.Empty(t, callbacks.TimeAdvanced())
 	assert.Equal(t, "Home", scene.mapBorderLabel())
 }

@@ -303,8 +303,7 @@ func TestCraftingManualCapture(t *testing.T) {
 	rig.capture("06-meadow-deed-entry")
 	rig.state().MapState.PlayerLocation.Position = references.DeedMapCentre
 	rig.capture("07-meadow-deed-centre")
-	rig.chord(ebiten.KeyG)
-	rig.capture("08-gather-placeholder")
+	rig.captureGathering()
 	rig.state().MapState.PlayerLocation.Position = references.Position{X: references.DeedMapEntry.X, Y: 31}
 	rig.command(ebiten.KeyDown)
 	rig.pump(10)
@@ -358,4 +357,150 @@ func TestCraftingManualCapture(t *testing.T) {
 		rig.press(ebiten.KeyPageDown)
 	}
 	rig.capture("15-command-help")
+}
+
+// deedNode returns the first node of the active deed matching kind and sprite (0: any sprite).
+func (r *craftingManualRig) deedNode(kind references.DeedResourceKind, sprite indexes.SpriteIndex) game_state.DeedResourceNodeState {
+	r.t.Helper()
+	deed, ok := r.state().ActiveDeed()
+	require.True(r.t, ok)
+	for _, node := range r.state().DeedResourceNodes(deed.ID) {
+		if node.Kind == kind && (sprite == 0 || node.Sprite == sprite) && !node.Depleted {
+			return node
+		}
+	}
+	r.t.Fatalf("no fresh %s node", kind.Name())
+
+	return game_state.DeedResourceNodeState{}
+}
+
+// standSouthOf puts the party just south of a node, facing it with Up.
+func (r *craftingManualRig) standSouthOf(node game_state.DeedResourceNodeState) {
+	r.moveTo(int(node.Position.X), int(node.Position.Y)+1)
+	r.pump(5)
+}
+
+// gather presses Alt+G and Up.
+func (r *craftingManualRig) gather() {
+	r.chord(ebiten.KeyG)
+	r.direction(ebiten.KeyUp)
+}
+
+// look presses L and Up.
+func (r *craftingManualRig) look() {
+	r.command(ebiten.KeyL)
+	r.direction(ebiten.KeyUp)
+}
+
+// captureGathering covers ref:CRAFT-0005..0007 on the meadow deed: bare-handed gathering, the
+// recipe menu, crafting tools, felling a tree, mining ore, picking forage and a reagent, Look
+// on nodes, and a Trammel respawn.
+func (r *craftingManualRig) captureGathering() {
+	r.t.Helper()
+	inventory := &r.state().PartyState.Inventory
+	materials := func(material references.Material) uint16 { return inventory.Materials.Get(material) }
+
+	// Bare hands on trees and rocks until the Axe is affordable.
+	tree := r.deedNode(references.DeedResourceWood, indexes.Forest3)
+	r.standSouthOf(tree)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyG)
+	r.capture("08a-gather-prompt")
+	r.direction(ebiten.KeyUp)
+	for materials(references.Wood) < 2 {
+		node := r.deedNode(references.DeedResourceWood, indexes.Forest3)
+		r.standSouthOf(node)
+		r.gather()
+	}
+	r.noon()
+	r.capture("08b-gather-wood-bare-hands")
+	for materials(references.Stone) < 1 {
+		r.standSouthOf(r.deedNode(references.DeedResourceStone, 0))
+		r.gather()
+	}
+
+	// The recipe menu, then an Axe.
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.capture("08c-craft-menu")
+	r.menuChoose(r.menuRow("Axe"))
+	r.noon()
+	r.captureWithFeedback("08d-crafted-axe")
+	require.Equal(r.t, uint16(1), inventory.Tools.Get(references.Axe))
+
+	// Chop a tree until it is felled, then Look at the stump of brush it leaves.
+	tree = r.deedNode(references.DeedResourceWood, indexes.Forest3)
+	r.standSouthOf(tree)
+	r.scene.output.Clear()
+	r.look()
+	r.capture("08e-look-tree")
+	r.scene.output.Clear()
+	for range references.DeedNodeRuleFor(references.DeedResourceWood).Capacity {
+		r.gather()
+	}
+	r.noon()
+	r.capture("08f-tree-felled")
+	r.scene.output.Clear()
+	r.look()
+	r.capture("08g-look-felled-tree")
+
+	// A Pick from gathered materials, then ore.
+	inventory.Materials.Set(references.Wood, 2)
+	inventory.Materials.Set(references.Stone, 2)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow("Pick"))
+	ore := r.deedNode(references.DeedResourceOre, 0)
+	r.standSouthOf(ore)
+	r.scene.output.Clear()
+	r.look()
+	r.gather()
+	r.noon()
+	r.capture("08h-mine-ore")
+
+	// Forage and a reagent, by hand.
+	r.standSouthOf(r.deedNode(references.DeedResourceForage, 0))
+	r.scene.output.Clear()
+	r.look()
+	r.gather()
+	r.noon()
+	r.capture("08i-pick-forage")
+	patch := r.deedNode(references.DeedResourceReagent, 0)
+	r.standSouthOf(patch)
+	r.scene.output.Clear()
+	r.look()
+	r.gather()
+	r.noon()
+	r.capture("08j-pick-reagent")
+
+	// Respawn: the eve of the next Trammel phase change, then Pass across midnight.
+	r.standSouthOf(game_state.DeedResourceNodeState{DeedResourceNode: references.DeedResourceNode{Position: tree.Position}})
+	eve := r.state().DateTime
+	for datetime.TrammelPhaseChanges(eve.GetTotalDays()+1) == datetime.TrammelPhaseChanges(eve.GetTotalDays()) {
+		eve.Day++
+	}
+	eve.Hour, eve.Minute = 23, 58
+	r.state().DateTime = eve
+	r.settle() // Night raises the moongates; their stage workflow owns input until it ends.
+	r.scene.output.Clear()
+	r.capture("08k-before-phase-change")
+	for range 3 {
+		r.command(ebiten.KeySpace)
+	}
+	r.scene.output.Clear()
+	r.look()
+	r.capture("08l-after-phase-change")
+	r.noon()
+	r.settle()
+}
+
+// settle runs frames until no gameplay workflow is active.
+func (r *craftingManualRig) settle() {
+	for range 600 {
+		if !r.state().EventQueueManager.HasActiveWorkflows() {
+			return
+		}
+		r.pump(1)
+	}
+	r.t.Fatal("workflows never settled")
 }

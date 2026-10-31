@@ -324,6 +324,9 @@ func (g *GameScene) smallMapHandleSecondaryInput() {
 		if g.gameState.IsInCombat() {
 			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
 		}
+	case GatherDirectionInput:
+		g.secondaryKeyState = PrimaryInput
+		result = g.craftingGatherResult(g.gameState.GatherDeedNode(direction), originMapType)
 	// CastDirectionInput removed - now handled by spell casting event queue
 	// WindChangeScrollDirectionInput removed - now handled by DirectionPrompt dialog
 	// YellDirectionInput removed - now handled by YellDialog
