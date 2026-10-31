@@ -60,7 +60,10 @@ func (g *GameState) BeginAtlasNoteDraft(id uint64) (*AtlasNoteDraft, error) {
 		return nil, fmt.Errorf("%w: unsupported fix", journal.ErrInvalidAtlasPersonal)
 	}
 	draft.context, draft.location = g.CurrentSextantContext(), g.MapState.PlayerLocation
-	if isSurfaceSextantSettlement(draft.context.Location) {
+	switch {
+	case draft.context.Location.IsDeedLocation():
+		draft.contextLabel = "Your land's hut on Britannia"
+	case isSurfaceSextantSettlement(draft.context.Location):
 		draft.contextLabel = "Settlement entrance on Britannia"
 	}
 	for _, record := range g.atlasNotes.Records {

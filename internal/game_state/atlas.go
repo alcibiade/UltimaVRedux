@@ -301,7 +301,10 @@ func (g *GameState) CurrentAtlasDossier() journal.AtlasDossier {
 	})
 	if fix, ok := g.CurrentSextantFix(); ok {
 		dossier.CurrentFix = journal.SurveyedLocation{Measured: true, Location: journal.SiteLocation{Map: fix.Location, Floor: fix.Floor, X: int(fix.Position.X), Y: int(fix.Position.Y)}}
-		if isSurfaceSextantSettlement(g.MapState.PlayerLocation.Location) {
+		switch {
+		case g.IsOnDeedMap():
+			dossier.FixContext = "Within your land"
+		case isSurfaceSextantSettlement(g.MapState.PlayerLocation.Location):
 			dossier.FixContext = "Within this settlement"
 			if observation := g.currentEarnedAtlasLandmark(); observation != nil && observation.Name != "" && atlasNameSourceValid(observation.SiteKey, observation.NameSource) {
 				dossier.FixContext = "Within " + atlasDisplayName(observation.Name)

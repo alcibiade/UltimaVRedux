@@ -33,7 +33,9 @@ func (g *GameScene) canOpenAtlas() bool {
 	}
 	location := g.gameState.MapState.PlayerLocation.Location
 
-	return location == references.BritanniaUnderworld || location >= references.Moonglow && location <= references.Doom
+	// The party's own deed map reads the Atlas like a settlement; its fix is the hut (ref:CRAFT-0004).
+	return location == references.BritanniaUnderworld || location >= references.Moonglow && location <= references.Doom ||
+		g.gameState.IsOnDeedMap()
 }
 
 // pollAtlasRequest only detects input. It never advances a workflow or changes a

@@ -173,7 +173,8 @@ state, and only one deed map is loaded at a time. Its map frame shows the deed's
 the save list shows "Your land", the overworld theme plays, the surround beyond the edge
 matches the terrain, the sky strip shows as outdoors, and there are no NPCs. With
 Flexible sextant use ([ASTRO-0006](ASTRONOMY.md#astro-0006)) the sextant fix on a deed
-map is the hut square, as a settlement's fix is its exterior. A deed is not an Atlas
+map is the hut square, as a settlement's fix is its exterior. The Atlas opens on a deed
+map as in a settlement and reads "Within your land". A deed is not an Atlas
 landmark; its own pin ([CRAFT-0002](#craft-0002)) marks it.
 
 A save made on a deed map records the deed; loading it regenerates that deed's map

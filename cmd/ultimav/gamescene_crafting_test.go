@@ -281,3 +281,20 @@ func TestCraftingHelpExplainsAvailability(t *testing.T) {
 func TestPlayerSaveLabelNamesDeedMaps(t *testing.T) {
 	assert.Equal(t, "Your land", playerSaveLocationLabel(int(references.DeedLocation), 0))
 }
+
+func TestTheAtlasOpensOnTheOwnDeedMapWithinYourLand(t *testing.T) {
+	scene, _ := newCraftingChordScene(t, references.BritanniaUnderworld, true)
+	enterCraftingSceneDeed(t, scene)
+
+	require.True(t, scene.canOpenAtlas())
+	require.False(t, scene.canOpenAtlasMark(), "marking stays on the overworld")
+	state := scene.gameState
+	state.PartyState.Inventory.QuestItems.Set(references.Sextant, 1)
+	state.GameConfig.GameplayConfiguration.FlexibleSextantUse = true
+	state.DateTime.Hour = 12
+	assert.Equal(t, "Within your land", state.CurrentAtlasDossier().FixContext)
+	draft, err := state.BeginAtlasNoteDraft(0)
+	require.NoError(t, err)
+	assert.Equal(t, "Your land's hut on Britannia", draft.ContextLabel())
+	assert.EqualValues(t, craftingSceneSquare.X, draft.Record().Position.X, "the fix is the hut square")
+}
