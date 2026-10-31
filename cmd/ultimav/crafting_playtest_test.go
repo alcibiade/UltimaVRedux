@@ -631,14 +631,14 @@ func (r *playtestRig) playDeedLoop() {
 	r.press(ebiten.KeyAltLeft, ebiten.KeyB)
 	r.pump(5)
 	t.Logf("Alt+B with %d gold: %q, dialogs %d", inventory.Gold.Get(), r.out(), r.scene.dialogStack.Count())
-	r.capture("p05-stake-without-gold")
+	r.capture("p05-stake-offer")
 	if _, menu := r.scene.dialogStack.PeekTopModalDialog().(*widgets.ButtonListModal); menu {
 		r.press(ebiten.KeyEscape)
 		r.settle()
 	}
-	if inventory.Gold.Get() < references.DeedGoldCost {
-		t.Logf("BALANCE: the stock party has %d gold, short of the %d-gold deed; topping up", inventory.Gold.Get(), references.DeedGoldCost)
-		inventory.Gold.Set(references.DeedGoldCost)
+	if inventory.Gold.Get() < references.FirstDeedGoldCost {
+		t.Logf("BALANCE: the stock party has %d gold, short of the %d-gold deed; topping up", inventory.Gold.Get(), references.FirstDeedGoldCost)
+		inventory.Gold.Set(references.FirstDeedGoldCost)
 	}
 	r.scene.output.Clear()
 	r.press(ebiten.KeyAltLeft, ebiten.KeyB)

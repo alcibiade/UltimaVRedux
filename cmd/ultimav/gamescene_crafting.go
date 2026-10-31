@@ -126,13 +126,13 @@ func (g *GameScene) beginStakeDeed() {
 	finish := g.craftingCompletion(references.LargeMapType)
 	var menu *widgets.ButtonListModal
 	description := fmt.Sprintf("This %s can be yours. A deed costs %d gold; you carry %d. "+
-		"Enter its hut to reach your own land.", proposal.Terrain.Name(), references.DeedGoldCost,
+		"Enter its hut to reach your own land.", proposal.Terrain.Name(), g.gameState.DeedPrice(),
 		g.gameState.PartyState.Inventory.Gold.Get())
 	menu = g.newCraftingMenu("Build", description, func() {
 		g.appendToCurrentRowStr("Cancelled")
 		finish(surfaceCommandCancelled)
 	})
-	menu.AddButton(fmt.Sprintf("Stake a deed here (%d gold)", references.DeedGoldCost), func() {
+	menu.AddButton(fmt.Sprintf("Stake a deed here (%d gold)", g.gameState.DeedPrice()), func() {
 		g.dialogStack.MustRemoveWidgetInstance(menu)
 		g.appendToCurrentRowStr("Stake a deed")
 		g.startDeedNaming(finish)
@@ -393,10 +393,10 @@ func (g *GameScene) craftingCommandHelpEntries() []widgets.CommandHelpEntry {
 			"within one step; rows say what is lacking. Esc cancels for free. After a craft the menu stays on the " +
 			"same recipe to craft again, each craft taking its own time; Esc then closes it."},
 		{Key: "Alt+B", Purpose: "Build or stake a deed", NextInput: fmt.Sprintf("Optional Crafting and Deeds. "+
-			"On open overworld land, on foot: buy a deed for %d gold and name it; a hut marks it, and Enter on the hut "+
+			"On open overworld land, on foot: buy a deed (%d gold for the first, %d after) and name it; a hut marks it, and Enter on the hut "+
 			"opens your land. On your deed map: place a crafted piece, or Demolish one, then a direction. "+
 			"Open on your storage chest stores or takes goods; Hole Up on your own bed rests as at an inn. "+
-			"Esc cancels for free.", references.DeedGoldCost)},
+			"Esc cancels for free.", references.FirstDeedGoldCost, references.DeedGoldCost)},
 	}
 	commands := []game_state.CraftingCommand{game_state.CraftingGather, game_state.CraftingCraft, game_state.CraftingBuild}
 	for index := range entries {

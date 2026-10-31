@@ -47,7 +47,7 @@ func (g *GameState) ProposeDeed() DeedProposal {
 	switch {
 	case !buildable:
 		proposal.Err = ErrDeedNotBuildable
-	case g.PartyState.Inventory.Gold.Get() < references.DeedGoldCost:
+	case g.PartyState.Inventory.Gold.Get() < g.DeedPrice():
 		proposal.Err = ErrDeedNotEnoughGold
 	}
 	proposal.Terrain = terrain
@@ -108,10 +108,21 @@ func (g *GameState) DeedRejection(err error) string {
 	case errors.Is(err, ErrDeedNotOnFoot):
 		return "On foot!"
 	case errors.Is(err, ErrDeedNotEnoughGold):
-		return fmt.Sprintf("A deed costs %d gold; thou hast %d.", references.DeedGoldCost, g.PartyState.Inventory.Gold.Get())
+		return fmt.Sprintf("A deed costs %d gold; thou hast %d.", g.DeedPrice(), g.PartyState.Inventory.Gold.Get())
 	default:
 		return "Not here!"
 	}
+}
+
+// DeedPrice is the gold the next deed costs: the first one is cheaper so a new party can
+// afford it, every later one pays the flat price (ref:CRAFT-0002).
+// REDUX DEVIATION: CRAFT-0002: Redux-only land ownership; the original has no deeds.
+func (g *GameState) DeedPrice() uint16 {
+	if len(g.crafting.deeds) == 0 {
+		return references.FirstDeedGoldCost
+	}
+
+	return references.DeedGoldCost
 }
 
 // NormalizeDeedName trims a proposed deed name and reports whether it is acceptable.
@@ -136,7 +147,7 @@ func (g *GameState) StakeDeed(name string) (Deed, error) {
 
 		return Deed{}, proposal.Err
 	}
-	if !g.PartyState.Inventory.Gold.DecrementBy(references.DeedGoldCost) {
+	if !g.PartyState.Inventory.Gold.DecrementBy(g.DeedPrice()) {
 		panic("validated deed payment failed")
 	}
 	nextID := 0

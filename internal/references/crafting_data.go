@@ -145,7 +145,10 @@ func (c MaterialCost) Describe() string {
 
 // Deed rules (ref:CRAFT-0002).
 const (
-	// DeedGoldCost is the flat price of one deed. There is no material cost and no deed limit.
+	// FirstDeedGoldCost is the price of the party's first deed, so a new party can afford one.
+	FirstDeedGoldCost = 100
+	// DeedGoldCost is the flat price of every further deed. There is no material cost and no
+	// deed limit.
 	DeedGoldCost = 200
 	// MaxDeedNameLength bounds a deed's name; it fits the Atlas label rule.
 	MaxDeedNameLength = 24

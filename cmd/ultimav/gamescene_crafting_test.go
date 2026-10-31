@@ -185,8 +185,8 @@ func TestAltBOffersADeedAndEscIsFree(t *testing.T) {
 	require.True(t, scene.handleCraftingChord(ebiten.KeyB))
 
 	menu := topCraftingMenu(t, scene)
-	assert.Equal(t, []string{"Stake a deed here (200 gold)"}, menu.ButtonTexts())
-	assert.Contains(t, menu.Description(), "A deed costs 200 gold; you carry 1000.")
+	assert.Equal(t, []string{"Stake a deed here (100 gold)"}, menu.ButtonTexts())
+	assert.Contains(t, menu.Description(), "A deed costs 100 gold; you carry 1000.")
 	assert.Equal(t, []string{"Build-"}, callbacks.CommandPrompts)
 	menu.Cancel()
 	assert.Empty(t, callbacks.TimeAdvanced(), "cancelling the menu is free")
@@ -204,7 +204,7 @@ func TestStakingThroughTheSceneSpendsExactlyTheOrdinaryTurn(t *testing.T) {
 	require.Len(t, scene.gameState.Deeds(), 1)
 	assert.Equal(t, game_state.DefaultLargeMapMinutesPerTurn, sumSceneMinutes(callbacks.TimeAdvanced()),
 		"a stake costs the ordinary 2-minute surface turn and nothing more")
-	assert.Equal(t, uint16(1000-references.DeedGoldCost), scene.gameState.PartyState.Inventory.Gold.Get())
+	assert.Equal(t, uint16(1000-references.FirstDeedGoldCost), scene.gameState.PartyState.Inventory.Gold.Get())
 }
 
 func TestRefusedOrCancelledNamesAreFree(t *testing.T) {
@@ -225,7 +225,7 @@ func TestAltBRefusesUnsuitableSquaresWithTheirReason(t *testing.T) {
 
 	require.True(t, scene.handleCraftingChord(ebiten.KeyB))
 
-	assert.Equal(t, []string{"A deed costs 200 gold; thou hast 10."}, callbacks.Messages)
+	assert.Equal(t, []string{"A deed costs 100 gold; thou hast 10."}, callbacks.Messages)
 	assert.Nil(t, scene.dialogStack.PeekTopModalDialog())
 	assert.Empty(t, callbacks.TimeAdvanced())
 }

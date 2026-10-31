@@ -77,7 +77,7 @@ pass every check, in this order; the first failure is printed and nothing is spe
 | The square is not a world location (towne, keep, dungeon, hut and so on) | "Someone else lives here!" |
 | The square is neither one of the eight charted moongate sites nor a square where a buried moonstone can open a gate | "The moongates belong to no one!" |
 | The terrain is open ground (table below); water, swamp, mountains, roads, bridges, every settlement sprite and every structure are not | "No one can build here!" |
-| The party carries at least 200 gold | "A deed costs 200 gold; thou hast <gold carried>." |
+| The party carries the deed price: 100 gold for its first deed, 200 gold for every later one | "A deed costs <price> gold; thou hast <gold carried>." |
 
 | Overworld terrain | Deed terrain |
 | --- | --- |
@@ -86,10 +86,12 @@ pass every check, in this order; the first failure is printed and nothing is spe
 | Foothills | Hills |
 | Desert, including dunes | Desert |
 
-A suitable square opens a Build menu offering "Stake a deed here (200 gold)". Esc closes
+A suitable square opens a Build menu offering "Stake a deed here (<price> gold)". The
+price is 100 gold while the party owns no deed and 200 gold afterwards, so the stock party
+(150 gold) can afford its first one. Esc closes
 it for free. Choosing it asks "Name your land:"; Esc, or a name that is not 1 to 24
 printable characters once surrounding spaces are trimmed, stakes nothing and is free.
-A good name pays 200 gold, records the deed, prints "<name> is yours!" and:
+A good name pays the price, records the deed, prints "<name> is yours!" and:
 
 - turns the square into a hut (sprite 16), an ordinary overworld map mutation that the
   native save keeps like any other changed tile;

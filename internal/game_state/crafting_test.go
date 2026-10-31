@@ -124,7 +124,7 @@ func TestProposeDeedRefusesEveryUnsuitableSquare(t *testing.T) {
 		{"aboard a horse", func(s *GameState) {
 			s.PartyVehicle = *map_units.NewNPCFriendlyVehiceNewRef(references.HorseVehicle, deedFixtureSquare, 0)
 		}, ErrDeedNotOnFoot},
-		{"not enough gold", func(s *GameState) { s.PartyState.Inventory.Gold.Set(references.DeedGoldCost - 1) }, ErrDeedNotEnoughGold},
+		{"not enough gold", func(s *GameState) { s.PartyState.Inventory.Gold.Set(references.FirstDeedGoldCost - 1) }, ErrDeedNotEnoughGold},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			state, _ := newDeedFixture(t, true)
@@ -153,6 +153,27 @@ func TestProposeDeedRefusesOwnAndAdjacentSquaresButNotDiagonals(t *testing.T) {
 	assert.Len(t, state.Deeds(), 2, "there is no deed limit")
 }
 
+func TestFirstDeedCostsLessThanLaterDeeds(t *testing.T) {
+	state, callbacks := newDeedFixture(t, true)
+	state.PartyState.Inventory.Gold.Set(references.FirstDeedGoldCost)
+
+	require.Equal(t, uint16(references.FirstDeedGoldCost), state.DeedPrice())
+	require.NoError(t, state.ProposeDeed().Err, "a new party affords its first deed")
+	stakeFixtureDeed(t, state, "First")
+	assert.Zero(t, state.PartyState.Inventory.Gold.Get())
+
+	assert.Equal(t, uint16(references.DeedGoldCost), state.DeedPrice(), "every later deed pays the flat price")
+	state.MapState.PlayerLocation.Position = offsetSquare(deedFixtureSquare, 2, 0)
+	state.PartyState.Inventory.Gold.Set(references.DeedGoldCost - 1)
+	proposal := state.ProposeDeed()
+	require.ErrorIs(t, proposal.Err, ErrDeedNotEnoughGold)
+	callbacks.Reset()
+	assert.Equal(t, "A deed costs 200 gold; thou hast 199.", state.DeedRejection(proposal.Err))
+	state.PartyState.Inventory.Gold.Set(references.DeedGoldCost)
+	stakeFixtureDeed(t, state, "Second")
+	assert.Zero(t, state.PartyState.Inventory.Gold.Get())
+}
+
 func TestTouchesDeedWrapsAcrossTheWorldSeam(t *testing.T) {
 	state, _ := newDeedFixture(t, true)
 	state.crafting.deeds = []*Deed{{ID: 0, Name: "Seam", Square: references.Position{X: 255, Y: 40}}}
@@ -171,7 +192,7 @@ func TestStakeDeedPaysMarksTheHutAndPinsTheAtlas(t *testing.T) {
 	assert.Equal(t, references.DeedTerrainForest, deed.Terrain)
 	assert.Equal(t, references.DeedGeneratorVersion, deed.GeneratorVersion)
 	assert.Equal(t, references.DeedSeed(0, deedFixtureSquare), deed.Seed)
-	assert.Equal(t, uint16(1000-references.DeedGoldCost), state.PartyState.Inventory.Gold.Get())
+	assert.Equal(t, uint16(1000-references.FirstDeedGoldCost), state.PartyState.Inventory.Gold.Get())
 	assert.Equal(t, indexes.SpriteIndex(indexes.Hut), overworldTile(state, deedFixtureSquare))
 	assert.Equal(t, []string{"Oakhollow is yours!"}, callbacks.Messages)
 	assert.Empty(t, callbacks.TimeAdvanced(), "the scene charges the ordinary turn, never the action")

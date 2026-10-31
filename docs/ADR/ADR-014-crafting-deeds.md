@@ -24,8 +24,8 @@ Add an opt-in crafting system, off by default, behind the gameplay option
 
 ### Deeds
 
-- On a suitable overworld square, the party pays a **flat 200 gold** and a deed is
-  created on the spot. There is **no limit** on the number of deeds, and deeds are
+- On a suitable overworld square, the party pays **100 gold for its first deed and a
+  flat 200 gold for every later one**, and a deed is created on the spot. There is **no limit** on the number of deeds, and deeds are
   **permanent** (they cannot be abandoned or sold).
 - A suitable square:
   - is on the overworld surface, with the party on foot;
