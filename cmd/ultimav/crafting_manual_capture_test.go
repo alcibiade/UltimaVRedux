@@ -433,6 +433,7 @@ func (r *craftingManualRig) captureGathering() {
 	r.menuChoose(r.menuRow("Axe"))
 	r.noon()
 	r.captureWithFeedback("08d-crafted-axe")
+	r.closeCraftMenu()
 	require.Equal(r.t, uint16(1), inventory.Tools.Get(references.Axe))
 
 	// Chop a tree until it is felled, then Look at the stump of brush it leaves.
@@ -512,11 +513,24 @@ func (r *craftingManualRig) settle() {
 }
 
 // craft presses Alt+C and picks a category row, then a recipe row, by their labels.
+// closeCraftMenu presses Esc on the Craft menu a craft leaves open (ref:CRAFT-0007).
+func (r *craftingManualRig) closeCraftMenu() {
+	r.t.Helper()
+	require.Positive(r.t, r.scene.dialogStack.Count(), "the Craft menu stays open after a craft")
+	r.press(ebiten.KeyEscape)
+	require.Zero(r.t, r.scene.dialogStack.Count(), "Esc closes the Craft menu")
+}
+
+// craft makes a recipe through Alt+C, then closes the Craft menu the craft leaves open on the
+// same row (ref:CRAFT-0007).
 func (r *craftingManualRig) craft(category, recipe string) {
 	r.t.Helper()
 	r.chord(ebiten.KeyC)
 	r.menuChoose(r.menuRow(category))
 	r.menuChoose(r.menuRow(recipe))
+	if r.scene.dialogStack.Count() > 0 {
+		r.press(ebiten.KeyEscape)
+	}
 }
 
 // buildPieceAt places a carried piece on a square through Alt+B, its category, the piece and a
@@ -593,6 +607,7 @@ func (r *craftingManualRig) captureBuilding() {
 	r.menuChoose(r.menuRow("Stations"))
 	r.capture("16b-craft-stations")
 	r.menuChoose(r.menuRow("Workbench"))
+	r.press(ebiten.KeyEscape) // The Craft menu stays open after a craft (ref:CRAFT-0007).
 	r.craft("Stations", "Sawmill")
 	r.buildPieceAt(references.PieceWorkbench, 11, 18)
 	r.buildPieceAt(references.PieceSawmill, 12, 18)
@@ -718,6 +733,7 @@ func (r *craftingManualRig) captureBuilding() {
 	r.menuChoose(r.menuRow("Cook food"))
 	r.noon()
 	r.captureWithFeedback("19b-cooked-food")
+	r.closeCraftMenu()
 
 	// Resting in the bed, wounded, in the evening.
 	r.moveTo(12, 12)
@@ -819,6 +835,7 @@ func (r *craftingManualRig) captureArmsAndAlchemy() {
 	r.menuChoose(r.menuRow("Yellow Potion"))
 	r.noon()
 	r.captureWithFeedback("23b-mixed-potion")
+	r.closeCraftMenu()
 	require.Equal(r.t, uint16(1), inventory.Potions.Get(references.Yellow))
 
 	r.scene.output.Clear()
@@ -828,6 +845,7 @@ func (r *craftingManualRig) captureArmsAndAlchemy() {
 	r.menuChoose(r.menuRow("Rel Hur"))
 	r.noon()
 	r.captureWithFeedback("23d-written-scroll")
+	r.closeCraftMenu()
 	require.Equal(r.t, uint16(1), inventory.Scrolls.Get(references.ScrollRelHur))
 
 	r.scene.output.Clear()
@@ -837,6 +855,7 @@ func (r *craftingManualRig) captureArmsAndAlchemy() {
 	r.menuChoose(r.menuRow("Black Pearl"))
 	r.noon()
 	r.captureWithFeedback("23f-refined-black-pearl")
+	r.closeCraftMenu()
 	require.Equal(r.t, uint16(1), inventory.Reagent.Get(references.BlackPearl))
 
 	// Away from the Alchemy table, long rows name only the station.

@@ -42,6 +42,8 @@ type playtestRig struct {
 	revision string
 	width    int
 	height   int
+	// repeatCaptured records that a repeat-craft frame has been captured.
+	repeatCaptured bool
 }
 
 func newPlaytestRig(t *testing.T) *playtestRig {
@@ -506,6 +508,9 @@ func (r *playtestRig) waitForTrammel() {
 }
 
 // craft presses Alt+C and picks the category and recipe rows, returning the message and minutes.
+// craft makes a recipe through Alt+C, its category and its row, and returns what the craft
+// printed and the minutes it took. A successful craft leaves the menu open on the same row
+// (ref:CRAFT-0007); the caller presses Enter to craft again or calls closeCraftMenu.
 func (r *playtestRig) craft(category, recipe string) (string, int) {
 	r.t.Helper()
 	before := r.minutes()
@@ -514,20 +519,73 @@ func (r *playtestRig) craft(category, recipe string) (string, int) {
 	r.menuChoose(r.menuRow(category))
 	r.menuChoose(r.menuRow(recipe))
 	r.settle()
-	if r.scene.dialogStack.Count() > 0 {
-		r.t.Logf("dialog still open after craft %s: %T", recipe, r.scene.dialogStack.PeekTopModalDialog())
-	}
 
 	return r.out(), r.minutes() - before
 }
 
+// craftAgain presses Enter on the reopened Craft menu, crafting the same recipe again.
+func (r *playtestRig) craftAgain(recipe string) (string, int) {
+	r.t.Helper()
+	require.Positive(r.t, r.scene.dialogStack.Count(), "the Craft menu did not stay open for another %s", recipe)
+	require.True(r.t, strings.HasPrefix(r.topMenu().ButtonTexts()[r.topMenu().SelectedIndex()], recipe),
+		"the reopened menu is not on %s", recipe)
+	before := r.minutes()
+	r.scene.output.Clear()
+	r.press(ebiten.KeyEnter)
+	r.settle()
+
+	return r.out(), r.minutes() - before
+}
+
+// closeCraftMenu presses Esc on a Craft menu left open after crafting; closing spends nothing.
+func (r *playtestRig) closeCraftMenu() {
+	r.t.Helper()
+	if r.scene.dialogStack.Count() == 0 {
+		return
+	}
+	before := r.minutes()
+	r.press(ebiten.KeyEscape)
+	r.settle()
+	require.Zero(r.t, r.scene.dialogStack.Count(), "Esc did not close the Craft menu")
+	require.Equal(r.t, before, r.minutes(), "closing the Craft menu spent time")
+}
+
+// mustCraft crafts a recipe times times: once through the menus, then again from the menu the
+// craft leaves open, checking each craft costs exactly the recipe's minutes.
 func (r *playtestRig) mustCraft(category, recipe string, times int) {
 	r.t.Helper()
-	for range times {
-		message, minutes := r.craft(category, recipe)
+	for index := range times {
+		var message string
+		var minutes int
+		if index == 0 {
+			message, minutes = r.craft(category, recipe)
+		} else {
+			message, minutes = r.craftAgain(recipe)
+			if index == 1 && !r.repeatCaptured {
+				r.repeatCaptured = true
+				r.capture("p14b-repeat-craft")
+			}
+		}
 		require.Contains(r.t, message, "Crafted", "craft %s: %s", recipe, message)
 		r.t.Logf("craft %s: %q in %d min", recipe, message, minutes)
+		if want := r.recipeMinutes(recipe); minutes != want {
+			r.t.Errorf("TIMING: craft %s took %d minutes, want %d", recipe, minutes, want)
+		}
 	}
+	r.closeCraftMenu()
+}
+
+// recipeMinutes returns the Game Fact minutes of the recipe whose name the menu row starts with.
+func (r *playtestRig) recipeMinutes(name string) int {
+	r.t.Helper()
+	for _, recipe := range references.CraftRecipes() {
+		if recipe.Name == name {
+			return recipe.Minutes
+		}
+	}
+	r.t.Fatalf("no recipe named %q", name)
+
+	return 0
 }
 
 // build places a carried piece on the target through Alt+B, standing on a given square.
@@ -785,8 +843,18 @@ func (r *playtestRig) playDeedLoop() {
 	r.pump(10)
 	r.menuChoose(r.menuRow("Store"))
 	r.capture("p23b-chest-store-menu")
+	food, torches, keys := inventory.Provisions.Food.Get(), inventory.Provisions.Torches.Get(), inventory.Provisions.Keys.Get()
+	axes, picks := inventory.Tools.Get(references.Axe), inventory.Tools.Get(references.Pick)
 	r.menuChoose(r.menuRow("Everything"))
 	r.capture("p23c-chest-everything")
+	// Storing everything leaves food, torches, keys and tools with the party (ref:CRAFT-0011).
+	require.Equal(t, food, inventory.Provisions.Food.Get(), "the party keeps its food")
+	require.Equal(t, torches, inventory.Provisions.Torches.Get())
+	require.Equal(t, keys, inventory.Provisions.Keys.Get())
+	require.Equal(t, axes, inventory.Tools.Get(references.Axe))
+	require.Equal(t, picks, inventory.Tools.Get(references.Pick))
+	t.Logf("after Everything the party keeps food %d, torches %d, keys %d, axes %d, picks %d",
+		food, torches, keys, axes, picks)
 	for range 3 {
 		if r.scene.dialogStack.Count() == 0 {
 			break
