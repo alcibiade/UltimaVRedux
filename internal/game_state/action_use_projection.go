@@ -164,7 +164,8 @@ func (g *GameState) addMoonstoneUseGuidance(info *UseableItemInfo, context Usage
 		return
 	}
 	mapType := g.MapState.PlayerLocation.Location.GetMapType()
-	if mapType != references.LargeMapType && mapType != references.SmallMapType {
+	if (mapType != references.LargeMapType && mapType != references.SmallMapType) ||
+		g.MapState.PlayerLocation.Location.IsDeedLocation() {
 		markUseItemUnavailable(info, "You cannot bury it here.")
 
 		return

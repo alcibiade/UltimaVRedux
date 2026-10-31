@@ -77,6 +77,12 @@ func (gs *GameState) StartMoongateTransitionWorkflow() {
 		Priority(event_queue.PriorityHigh).
 		Sequential().
 		First(func() {
+			// The original prints neither line when gates rise or fade; Redux announces them.
+			// A deed map can never hold a charted gate, so the line stays silent there
+			// (ref:CRAFT-0022). Towns and the overworld keep the announcement.
+			if gs.MapState.PlayerLocation.Location.IsDeedLocation() {
+				return
+			}
 			if growing {
 				gs.SystemCallbacks.Message.AddRowStr("Instantly, a shimmering blue door springs up!")
 			} else {

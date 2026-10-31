@@ -617,3 +617,29 @@ Rationale: raiders exist to make building worthwhile, never to undo it.
 
 **Implementation:** `internal/ai/npc_ai_deed_raiders.go`, `internal/game_state/crafting_raids.go`, `internal/game_state/combat_small_map_encounter.go`, `internal/game_state/action_attack.go`, `internal/game_state/save_snapshot.go`, `internal/map_units/npc_enemy.go`
 **Tests:** `internal/game_state/crafting_raids_test.go`
+
+### CRAFT-0022
+
+**No moongates on deed maps**
+
+**Kind:** rule
+**Uses:** MOON-0003, CONSUME-0001, CRAFT-0004
+**Original:** Established
+**Redux:** Intentional deviation
+
+The original prints nothing when the moongates rise at 20:00 or fade at 05:00; Redux
+announces the shared stage change ([MOON-0003](MOONSTONE_LOCATIONS.md#moon-0003)) with
+"Instantly, a shimmering blue door springs up!" and "The shimmering door fades from view."
+wherever the party is. On a deed map those lines stay silent; the stage still changes, and
+towns and the overworld keep both lines.
+
+No gate can stand on a deed map. The original buries a moonstone only on map numbers below
+0x21 ([CONSUME-0001](POTIONS_SCROLLS.md#consume-0001)), and the shared deed location is 128,
+so Use on a moonstone there answers "Not here!" and the item list says "You cannot bury it
+here." Without this, a stone buried on one deed would raise a gate on every deed map, since
+they share one location value.
+
+Rationale: an announcement for a door no one can see reads as a bug.
+
+**Implementation:** `internal/game_state/moongate_events.go`, `internal/game_state/action_use.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/journal_moonstones.go`
+**Tests:** `internal/game_state/crafting_moongate_test.go`
