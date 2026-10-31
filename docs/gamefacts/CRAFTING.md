@@ -139,6 +139,11 @@ rocks", outcrops the small mountains tile, fruit trees "a fruit tree", and reage
 patches the crops tile; each patch holds one of the listed reagents. Every interior
 square is open ground that later steps can build on, a resource node, or the lane.
 
+A forest deed has no ore outcrop, so it yields no Ore. Its own land can neither build a
+Forge (3 Ore) nor smelt Ingots (2 Ore each, [CRAFT-0008](#craft-0008)), so it cannot reach
+forged tools, arms, armour or keys on its own: the party needs a hills, grassland or desert
+deed as well, or Ore carried in from one.
+
 Nodes are gathered with Alt+G ([CRAFT-0005](#craft-0005)) and restored by Trammel
 ([CRAFT-0006](#craft-0006)); Look names them by what they are rather than by their
 original tile ("an ore vein", not "mountains"; "a patch of Garlic", not "bountiful
