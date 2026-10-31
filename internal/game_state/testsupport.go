@@ -6,6 +6,7 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/event_queue"
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
 	"github.com/bradhannah/UltimaVRedux/internal/logging"
+	"github.com/bradhannah/UltimaVRedux/internal/map_units"
 	"github.com/bradhannah/UltimaVRedux/internal/party_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
 )
@@ -278,4 +279,60 @@ func (g *GameState) DebugSetupDungeon(
 	lit bool,
 ) (DungeonSetupResult, error) {
 	return g.debugSetupDungeon(location, floor, position, facing, references.DungeonLastDirection(facing), &lit)
+}
+
+// SuppressDeedRaidsForTest stops (or resumes) raid rolls on deed maps, so a test rig can drive a
+// deed for many turns without a random raid (ref:CRAFT-0020).
+func (g *GameState) SuppressDeedRaidsForTest(suppress bool) {
+	g.crafting.raidsSuppressed = suppress
+}
+
+// StartDeedRaidForTest runs the raid spawn as a successful roll would, drawing the game RNG
+// for the monster, the count and the squares; it returns the number of raiders placed.
+func (g *GameState) StartDeedRaidForTest() int {
+	if !g.IsOnDeedMap() {
+		panic("StartDeedRaidForTest: the party is not on a deed map")
+	}
+
+	return g.startDeedRaid()
+}
+
+// SpawnDeedRaidersForTest places raiders of one monster on chosen squares and announces the
+// raid, without drawing the game RNG.
+func (g *GameState) SpawnDeedRaidersForTest(monster references.MonsterType, squares []references.Position) {
+	if !g.IsOnDeedMap() {
+		panic("SpawnDeedRaidersForTest: the party is not on a deed map")
+	}
+	enemyRef, err := g.enemyReferenceForCombat(monster)
+	if err != nil {
+		panic(err)
+	}
+	units := g.CurrentNPCAIController.GetNpcs()
+	for _, square := range squares {
+		raider := map_units.NewEnemyNPC(*enemyRef, references.DynamicSpawnIndex)
+		raider.MarkAsDeedRaider()
+		raider.SetPos(square)
+		raider.SetFloor(g.MapState.PlayerLocation.Floor)
+		raider.SetVisible(true)
+		if !units.AddEnemy(raider) {
+			panic("SpawnDeedRaidersForTest: the map is full")
+		}
+	}
+	g.CurrentNPCAIController.FreshenExistingNPCsOnMap()
+	g.SystemCallbacks.Message.AddRowStr("Raiders approach!")
+}
+
+// DeedRaidTurnsForTest returns the actor turns counted toward the next raid roll.
+func (g *GameState) DeedRaidTurnsForTest() int {
+	return g.crafting.raidTurns
+}
+
+// DeedRaiderPositionsForTest returns the squares of the raiders on the loaded map.
+func (g *GameState) DeedRaiderPositionsForTest() []references.Position {
+	positions := make([]references.Position, 0)
+	for _, raider := range g.deedRaiders() {
+		positions = append(positions, raider.Pos())
+	}
+
+	return positions
 }

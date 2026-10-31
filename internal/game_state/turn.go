@@ -613,6 +613,8 @@ func (g *GameState) calculateMovementTimeCost(tile *references.Tile) int {
 // Handles door closing and NPC movement.
 func (g *GameState) smallMapProcessTurnEffects() {
 	g.smallMapProcessNPCs()
+	// Raids roll only on deed maps, so no other map draws more RNG (ref:CRAFT-0020).
+	g.processDeedRaidTurn()
 }
 
 // advanceTimeSmallMap advances game time for small map movement.
@@ -750,7 +752,13 @@ func (g *GameState) advanceMagicLightMinutes(minutes int) {
 func (g *GameState) smallMapProcessNPCs() {
 	// Original town action processing checks Shadowlord adjacency before action-6 movement.
 	// A Shadowlord that moves adjacent is therefore handed off on a later NPC phase.
-	source := g.queueAdjacentSmallMapShadowlordEncounter()
+	var source map_units.MapUnit
+	if shadowlord := g.queueAdjacentSmallMapShadowlordEncounter(); shadowlord != nil {
+		source = shadowlord
+	} else if raider := g.queueAdjacentDeedRaiderEncounter(); raider != nil {
+		// Optional crafting raiders hand off like Shadowlords (ref:CRAFT-0021).
+		source = raider
+	}
 	if source != nil {
 		controller, ok := g.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 		if !ok {

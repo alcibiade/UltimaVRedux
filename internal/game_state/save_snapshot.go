@@ -309,6 +309,9 @@ func validateSnapshotEnemyIdentity(index int, unit save_snapshot.MapUnitSnapshot
 		valid = monsterType == references.MonsterWhirlpool
 	case map_units.EnemyVariantShadowlord:
 		valid = monsterType == references.MonsterShadowlord
+	case map_units.EnemyVariantDeedRaider:
+		// Raiders are transient and never saved (ref:CRAFT-0021).
+		valid = false
 	}
 	if !valid {
 		return fmt.Errorf("mapUnits[%d]: enemy variant %q is inconsistent with monster type %d", index, unit.EnemyVariant, unit.ReferenceID)
@@ -734,6 +737,10 @@ func (g *GameState) captureMapUnits() ([]save_snapshot.MapUnitSnapshot, error) {
 		loaded := g.CurrentNPCAIController.GetNpcs()
 		representable := make(map_units.MapUnits, 0, len(*loaded))
 		for _, unit := range *loaded {
+			// Deed raiders are transient: a save keeps the deed map without them (ref:CRAFT-0021).
+			if enemy, isEnemy := unit.(*map_units.NPCEnemy); isEnemy && enemy.IsDeedRaider() {
+				continue
+			}
 			friendly, isFriendly := unit.(*map_units.NPCFriendly)
 			if isFriendly && friendly.GetVehicleDetails().VehicleType == references.NoPartyVehicle &&
 				!friendly.IsTransientSurfaceChest() &&

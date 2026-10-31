@@ -30,6 +30,9 @@ const (
 	SmallMapEncounterShadowlordAdjacency
 	// SmallMapEncounterHostileNPCAdjacency follows contact initiated by an authored town monster.
 	SmallMapEncounterHostileNPCAdjacency
+	// SmallMapEncounterDeedRaiderAdjacency begins when an optional crafting raider reaches the
+	// party on its deed map (ref:CRAFT-0021).
+	SmallMapEncounterDeedRaiderAdjacency
 )
 
 // SmallMapEncounterSourceKind preserves the source-map provenance of the combatant.
@@ -42,6 +45,8 @@ const (
 	SmallMapEncounterAutomaticShadowlord
 	// SmallMapEncounterYellShadowlord is a Shadowlord summoned by name at a Keep.
 	SmallMapEncounterYellShadowlord
+	// SmallMapEncounterDeedRaid is an optional crafting raid on a deed map (ref:CRAFT-0021).
+	SmallMapEncounterDeedRaid
 )
 
 // SmallMapEncounterConsequences records both required and applied source-map effects.
@@ -71,6 +76,8 @@ type SmallMapEncounterOrigin struct {
 	CombatMap         references.BritanniaCombatMap
 	ActivePlayerIndex int
 	Consequences      SmallMapEncounterConsequences
+	// RaiderCount is the number of raiders that join a deed raid's battle (ref:CRAFT-0021).
+	RaiderCount int
 }
 
 // SelectSmallMapCombatMap reproduces the town branch of encounter selection.
@@ -151,6 +158,9 @@ func (g *GameState) startSmallMapCombatEncounter(
 	if origin.SourceKind == SmallMapEncounterOrdinaryNPC && origin.MonsterType == references.MonsterGuard {
 		count = references.GuardGroupCount
 	}
+	if origin.SourceKind == SmallMapEncounterDeedRaid {
+		count = origin.RaiderCount
+	}
 	request := CombatEncounterRequest{
 		Map: CombatEncounterMap{
 			Territory:    references.BritanniaCombatTerritory,
@@ -194,7 +204,8 @@ func (g *GameState) buildSmallMapEncounterOrigin(
 	cause SmallMapEncounterCause,
 ) (*SmallMapEncounterOrigin, error) {
 	if cause != SmallMapEncounterAttack && cause != SmallMapEncounterArrestRefusal &&
-		cause != SmallMapEncounterShadowlordAdjacency && cause != SmallMapEncounterHostileNPCAdjacency {
+		cause != SmallMapEncounterShadowlordAdjacency && cause != SmallMapEncounterHostileNPCAdjacency &&
+		cause != SmallMapEncounterDeedRaiderAdjacency {
 		return nil, fmt.Errorf("%w: unsupported cause %d", ErrInvalidSmallMapEncounter, cause)
 	}
 	if source == nil && cause == SmallMapEncounterArrestRefusal {
@@ -219,7 +230,8 @@ func (g *GameState) buildSmallMapEncounterOrigin(
 	}
 	switch typedSource := source.(type) {
 	case *map_units.NPCFriendly:
-		if typedSource == nil || cause == SmallMapEncounterShadowlordAdjacency {
+		if typedSource == nil || cause == SmallMapEncounterShadowlordAdjacency ||
+			cause == SmallMapEncounterDeedRaiderAdjacency {
 			return nil, fmt.Errorf("%w: invalid ordinary NPC source", ErrInvalidSmallMapEncounter)
 		}
 		monsterType, err := smallMapNPCMonsterType(typedSource)
@@ -261,12 +273,23 @@ func (g *GameState) buildSmallMapEncounterOrigin(
 			origin.Consequences.CompleteSourceTurn = true
 		case SmallMapEncounterArrestRefusal:
 			origin.Consequences.ActivateGuards = true
-		case SmallMapEncounterShadowlordAdjacency, SmallMapEncounterHostileNPCAdjacency:
+		case SmallMapEncounterShadowlordAdjacency, SmallMapEncounterHostileNPCAdjacency,
+			SmallMapEncounterDeedRaiderAdjacency:
 			// Adjacency encounters add no Attack or arrest-refusal consequences.
 		}
 	case *map_units.NPCEnemy:
 		if typedSource == nil || cause == SmallMapEncounterArrestRefusal {
 			return nil, fmt.Errorf("%w: invalid enemy source", ErrInvalidSmallMapEncounter)
+		}
+		if typedSource.IsDeedRaider() {
+			if err := g.buildDeedRaidOrigin(origin, typedSource, cause); err != nil {
+				return nil, fmt.Errorf("%w: invalid deed raider", err)
+			}
+
+			break
+		}
+		if cause == SmallMapEncounterDeedRaiderAdjacency {
+			return nil, fmt.Errorf("%w: enemy is not a deed raider", ErrInvalidSmallMapEncounter)
 		}
 		lord, sourceKind, err := g.classifySmallMapShadowlordSource(typedSource)
 		if err != nil {
@@ -339,6 +362,10 @@ func (g *GameState) validateSmallMapEncounterSource(origin *SmallMapEncounterOri
 				g.PartyState.IsNPCDead(origin.Location, origin.NPCNumber)) {
 			return fmt.Errorf("%w: authored Shadowlord is no longer alive", ErrInvalidSmallMapEncounter)
 		}
+	} else if origin.SourceKind == SmallMapEncounterDeedRaid {
+		if err := g.validateDeedRaidOrigin(origin); err != nil {
+			return fmt.Errorf("%w: deed raid changed", err)
+		}
 	} else if err := g.validateSmallMapShadowlordOrigin(origin); err != nil {
 		return err
 	}
@@ -400,8 +427,8 @@ func (g *GameState) validateSmallMapShadowlordOrigin(origin *SmallMapEncounterOr
 			!references.IsKeepLocation(origin.Location) {
 			return fmt.Errorf("%w: summoned Shadowlord presence changed", ErrInvalidSmallMapEncounter)
 		}
-	case SmallMapEncounterOrdinaryNPC:
-		return fmt.Errorf("%w: Shadowlord has ordinary source provenance", ErrInvalidSmallMapEncounter)
+	case SmallMapEncounterOrdinaryNPC, SmallMapEncounterDeedRaid:
+		return fmt.Errorf("%w: Shadowlord has no Shadowlord provenance", ErrInvalidSmallMapEncounter)
 	}
 
 	return nil
@@ -460,6 +487,18 @@ func (g *GameState) findAdjacentArrestGuard() *map_units.NPCFriendly {
 }
 
 func (g *GameState) applySmallMapEncounterConsequences(origin *SmallMapEncounterOrigin) error {
+	if origin.SourceKind == SmallMapEncounterDeedRaid {
+		if origin.Consequences.SourceRemoved {
+			panic("deed raid precombat consequences applied more than once")
+		}
+		// The whole raid joins the battle and leaves the deed map, whatever the outcome.
+		if g.dismissDeedRaiders() != origin.RaiderCount {
+			panic("prevalidated deed raid lost raiders before combat")
+		}
+		origin.Consequences.SourceRemoved = true
+
+		return nil
+	}
 	if origin.SourceKind != SmallMapEncounterOrdinaryNPC {
 		if origin.Consequences.SourceRemoved {
 			panic("small-map Shadowlord precombat consequences applied more than once")

@@ -57,13 +57,13 @@ func (g *GameState) ActionAttackSmallMap(direction references.Direction) bool {
 				return false
 			}
 		case *map_units.NPCEnemy:
-			if _, hasIdentity := source.ShadowlordIdentity(); !hasIdentity {
+			if _, hasIdentity := source.ShadowlordIdentity(); !hasIdentity && !source.IsDeedRaider() {
 				g.SystemCallbacks.UI.ShowActionFeedback("Nothing to attack!", true)
 
 				return false
 			}
 			if _, err := g.StartSmallMapCombatEncounter(source, SmallMapEncounterAttack); err != nil {
-				logging.Errorf(logging.CategoryGameState, "Unable to attack small-map Shadowlord: %v", err)
+				logging.Errorf(logging.CategoryGameState, "Unable to attack small-map enemy: %v", err)
 				g.SystemCallbacks.UI.ShowActionFeedback("Combat could not begin.", true)
 
 				return false

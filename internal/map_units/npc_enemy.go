@@ -20,6 +20,9 @@ const (
 	EnemyVariantWhirlpool EnemyVariant = "whirlpool"
 	// EnemyVariantShadowlord identifies an enemy with a specific Shadowlord identity.
 	EnemyVariantShadowlord EnemyVariant = "shadowlord"
+	// EnemyVariantDeedRaider identifies an optional crafting raider on a deed map
+	// (ref:CRAFT-0021). Raiders are transient and never saved.
+	EnemyVariantDeedRaider EnemyVariant = "deedRaider"
 )
 
 // NPCEnemy single instance of an enemy NPC
@@ -116,6 +119,17 @@ func (enemy *NPCEnemy) SetFacing(direction references.Direction, tile *reference
 	enemy.facing = direction
 	enemy.keyFrameTile = tile
 }
+
+// MarkAsDeedRaider turns an ordinary monster into a deed-map raider (ref:CRAFT-0021).
+func (enemy *NPCEnemy) MarkAsDeedRaider() {
+	if enemy.variant != EnemyVariantStandard {
+		panic(fmt.Sprintf("enemy variant %q cannot raid a deed", enemy.variant))
+	}
+	enemy.variant = EnemyVariantDeedRaider
+}
+
+// IsDeedRaider reports whether the enemy is a deed-map raider.
+func (enemy *NPCEnemy) IsDeedRaider() bool { return enemy.variant == EnemyVariantDeedRaider }
 
 // SetShadowlordIdentity binds the exact Shadowlord represented by this instance.
 func (enemy *NPCEnemy) SetShadowlordIdentity(lord references.Shadowlord) {

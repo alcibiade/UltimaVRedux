@@ -545,3 +545,60 @@ const (
 	// change restores, rounded up.
 	DeedRespawnPercent = 25
 )
+
+// Raids (ref:CRAFT-0020, ref:CRAFT-0021). While the party is on its own deed map with the option
+// on, every DeedRaidCheckTurns actor turns it rolls one in DeedRaidOdds for a raid, unless raiders
+// are already on the map.
+const (
+	// DeedRaidCheckTurns is the number of deed-map actor turns between raid rolls.
+	DeedRaidCheckTurns = 30
+	// DeedRaidOdds is the one-in-N chance of a raid at each roll.
+	DeedRaidOdds = 10
+	// DeedRaidMinRaiders and DeedRaidMaxRaiders bound the size of a raid.
+	DeedRaidMinRaiders = 1
+	DeedRaidMaxRaiders = 3
+	// DeedRaidSpawnDepth is the deepest a raider appears inside the map edge: the decorative
+	// ring and its fringe, never the buildable interior.
+	DeedRaidSpawnDepth = DeedBorderDepth
+	// DeedRaidMinSpawnDistance is the smallest Manhattan distance between the party and a
+	// square where a raider appears.
+	DeedRaidMinSpawnDistance = 8
+)
+
+// DeedRaider is one monster that can raid a deed of a terrain, with its relative weight.
+type DeedRaider struct {
+	Monster MonsterType
+	Weight  int
+}
+
+// DeedRaiders returns the weak-to-middling original monsters that raid a deed of a terrain.
+func DeedRaiders(terrain DeedTerrain) []DeedRaider {
+	switch terrain {
+	case DeedTerrainGrassland:
+		return []DeedRaider{{MonsterRat, 40}, {MonsterFighter, 30}, {MonsterOrc, 30}}
+	case DeedTerrainForest:
+		return []DeedRaider{{MonsterSpider, 35}, {MonsterOrc, 30}, {MonsterInsect, 20}, {MonsterEttin, 15}}
+	case DeedTerrainHills:
+		return []DeedRaider{{MonsterOrc, 45}, {MonsterHeadless, 30}, {MonsterTroll, 25}}
+	case DeedTerrainDesert:
+		return []DeedRaider{{MonsterSnake, 45}, {MonsterInsect, 35}, {MonsterOrc, 20}}
+	default:
+		return nil
+	}
+}
+
+// DeedRaidCombatMap is the battlefield of a raid on a deed of a terrain, fought outdoors.
+func DeedRaidCombatMap(terrain DeedTerrain) BritanniaCombatMap {
+	switch terrain {
+	case DeedTerrainForest:
+		return TreedCombatMap
+	case DeedTerrainHills:
+		return MountainsCombatMap
+	case DeedTerrainDesert:
+		return DesertCombatMap
+	case DeedTerrainGrassland:
+		return GladeCombatMap
+	default:
+		return GladeCombatMap
+	}
+}
