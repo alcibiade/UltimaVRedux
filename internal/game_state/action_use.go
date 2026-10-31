@@ -722,8 +722,11 @@ func (g *GameState) useQuestItem(item references.QuestItem, complete func()) boo
 func (g *GameState) useMoonstone(moonstone references.Moonstone, complete func()) bool {
 	// Check map type restriction: overworld and towns only (mapNum < 0x21)
 	// Dungeons and underworld are not valid burial locations
+	// The original accepts map numbers below 0x21 only; the shared deed location (0x80) is
+	// beyond them, so no moonstone, and no moongate, can ever be on a deed map (ref:CRAFT-0022).
 	mapType := g.MapState.PlayerLocation.Location.GetMapType()
-	if mapType != references.LargeMapType && mapType != references.SmallMapType {
+	if (mapType != references.LargeMapType && mapType != references.SmallMapType) ||
+		g.MapState.PlayerLocation.Location.IsDeedLocation() {
 		g.SystemCallbacks.UI.ShowActionFeedback("Not here!", true)
 
 		return false

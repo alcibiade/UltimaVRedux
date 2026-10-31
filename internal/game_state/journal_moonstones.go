@@ -27,7 +27,8 @@ func (g *GameState) CommitMoonstoneBurial(moonstone references.Moonstone) bool {
 	}
 	location := g.MapState.PlayerLocation
 	mapType := location.Location.GetMapType()
-	if mapType != references.LargeMapType && mapType != references.SmallMapType {
+	if (mapType != references.LargeMapType && mapType != references.SmallMapType) ||
+		location.Location.IsDeedLocation() {
 		return false
 	}
 	tile := g.GetLayeredMapByCurrentLocation().GetTopTile(&location.Position)

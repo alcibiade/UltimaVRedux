@@ -287,6 +287,12 @@ func (n *NPCAIControllerSmallMap) isAffectedByShadowlord(npc *map_units.NPCFrien
 // Based on the original nearby-attack schedule action (6); ref:NPC-0003:
 // The Shadowlord only pursues at Manhattan distances 1 through 3.
 func (n *NPCAIControllerSmallMap) calculateNextEnemyPosition(enemy *map_units.NPCEnemy) {
+	// Optional crafting raiders hunt the party on its deed map (ref:CRAFT-0021).
+	if enemy.IsDeedRaider() {
+		n.moveDeedRaider(enemy)
+
+		return
+	}
 	// Only handle Shadowlords for now - other enemies not supported on small maps
 	if enemy.Variant() != map_units.EnemyVariantShadowlord {
 		return

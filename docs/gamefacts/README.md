@@ -50,7 +50,7 @@ Release availability is described in the repository's installation guidance.
 | [Spells](MAGIC_SPELLS.md) | Prepared casting, all 48 effects/contexts, targeting, and commitment. |
 | [Potions and scrolls](POTIONS_SCROLLS.md) | Item-specific consumption, substitution, effects, and duration ownership. |
 | [Mixing](REAGENT_MIXING.md) | Reagent encodings, all recipes, commitment, failure traps, and learned formulas. |
-| [Crafting](CRAFTING.md) | Optional Redux deeds, generated deed maps, crafting chords, stock, gathering, Trammel respawn, recipes and stations, building, storage chests, home beds, mundane arms and armour, provisions, potions, scrolls and reagent refining. |
+| [Crafting](CRAFTING.md) | Optional Redux deeds, generated deed maps, crafting chords, stock, gathering, Trammel respawn, recipes and stations, building, storage chests, home beds, mundane arms and armour, provisions, potions, scrolls, reagent refining and raids. |
 | [Conventions](CONVENTIONS.md) | Rule IDs, statuses, pseudocode, and groups. |
 
 Report suspected errors through the [issue-first contribution process](../../CONTRIBUTING.md).

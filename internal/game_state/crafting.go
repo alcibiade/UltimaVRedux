@@ -134,6 +134,11 @@ type craftingState struct {
 	active       *Deed
 	activeMap    *references.SmallLocationReference
 	activeLayout *references.DeedLayout
+	// raidTurns counts deed-map actor turns toward the next raid roll (ref:CRAFT-0020). It is
+	// transient: entering a deed map starts it again, and saves do not keep it.
+	raidTurns int
+	// raidsSuppressed stops raid rolls; only test rigs set it (SuppressDeedRaidsForTest).
+	raidsSuppressed bool
 }
 
 // IsCraftingEnabled reports whether the optional crafting rules are on.
@@ -334,6 +339,7 @@ func (c *craftingState) activate(deed *Deed) *references.SmallLocationReference 
 	}
 	c.active = deed
 	c.activeLayout = &layout
+	c.raidTurns = 0
 	c.activeMap = references.NewGeneratedSmallLocationReference(
 		references.DeedLocation, deed.Name, &tiles, references.DeedProfile(deed.Terrain).Outer)
 

@@ -770,3 +770,125 @@ recipe takes.
 
 **Implementation:** `cmd/ultimav/gamescene_crafting.go`, `internal/references/crafting_recipes.go`, `internal/references/item_reagent.go`
 **Tests:** `cmd/ultimav/gamescene_crafting_gather_test.go`, `internal/references/crafting_recipes_items_test.go`
+
+### CRAFT-0020
+
+**Raids on deed maps**
+
+**Kind:** rule
+**Uses:** CRAFT-0003, CRAFT-0004, ENEMY-0004
+**Original:** Established
+**Redux:** Intentional deviation
+
+With the option on, monsters suited to the land now and then raid the party's own deed map,
+while the party is on it. Each deed-map actor turn (the turn of every ordinary command,
+after the actors move) runs:
+
+```
+if the party is not on its deed map:            nothing (no count, no RNG)
+if the option is off:                           any raiders leave; the count resets
+if raiders are on the map, or combat is pending: nothing
+count one turn; at 30 turns:
+    the count restarts
+    roll one in 10; on success, start a raid
+```
+
+A raid draws the game RNG in this order: the monster, from the deed terrain's weighted
+table; the number of raiders, 1 to 3; then one draw per raider for its square among the
+free spawn squares. All raiders of a raid are the same monster. Spawn squares lie in the
+decorative ring or its fringe (at most three squares inside the map edge), are passable to
+raiders ([CRAFT-0021](#craft-0021)), hold no resource node, placement, party, creature or
+item stack, and are at least 8 squares (Manhattan) from the party. Nothing can be built
+that close to the edge ([CRAFT-0010](#craft-0010)), so a raider never appears inside a
+built room. In a hills or desert ring of mountains that leaves the entry lane and the gaps
+in the fringe. A raid prints "Raiders approach!"; with no free square, nothing appears and
+nothing is printed.
+
+| Deed terrain | Raiders (weight) |
+| --- | --- |
+| Grassland | rats (40), fighters (30), orcs (30) |
+| Forest | spiders (35), orcs (30), insect swarms (20), ettins (15) |
+| Hills | orcs (45), headless (30), trolls (25) |
+| Desert | snakes (45), insect swarms (35), orcs (20) |
+
+Every monster is from the original overworld pool ([ENEMY-0004](ENEMIES.md#enemy-0004)) or a
+town fighter; the rare and strong ones of that pool (wisps, dragons, daemons) never raid. At these odds a party that stays on its
+deed sees a raid about every five hours of game time on average. The count is not saved and
+starts again at zero each time the party enters a deed map, and nothing counts while the
+party is elsewhere, resting or in combat. Off deed maps, and on deed maps with the option off,
+the hook draws no RNG, so every original RNG sequence is unchanged.
+
+Rationale: walls and doors are worth building only if something tries to get in.
+
+**Implementation:** `internal/references/crafting_data.go`, `internal/game_state/crafting_raids.go`, `internal/game_state/turn.go`
+**Tests:** `internal/game_state/crafting_raids_test.go`
+
+### CRAFT-0021
+
+**Raiders hunt the party and fight it on the deed**
+
+**Kind:** rule
+**Uses:** CRAFT-0010, CRAFT-0020, CRIME-0004, NPC-0004
+**Original:** Established
+**Redux:** Intentional deviation
+
+Each actor phase, a raider on the party's floor takes one step toward the party:
+
+```
+if next to the party (orthogonally): wait; contact is checked before the actors move
+else follow the shortest route to the party, around walls, closed doors and other units
+else, with the way blocked only by units, follow the shortest route around walls and doors
+else (the party walled in) step to the first free neighbour, east, north, west, south,
+     that is closer; stop when none is
+```
+
+A raider may stand on any square town NPCs may walk on ([NPC-0004](NPC_SCHEDULES.md#npc-0004))
+except a door: **raiders cannot open doors**, so a closed door is a wall to them. An open
+door shows its floor and lets them in, so a party that leaves a door open while raiders
+roam may be followed inside. Raiders walk over built floors and around everything else,
+draw no RNG to move, and never change a tile: walls, doors and furniture are never damaged
+or removed.
+
+Before the actors move, a raider next to the party starts combat, as a town Shadowlord
+does ([CRIME-0004](CRIME_PRISON.md#crime-0004)); Attack on an adjacent raider starts the same
+battle and completes the turn. The whole raid fights together: every raider on the map joins
+the battle and leaves the deed map, whatever the outcome, and the battle prints the
+monster's plural name and "Attacked!". The battlefield follows the deed terrain: grassland
+the glade, forest the treed map, hills the mountains, desert the desert. A raider standing on
+a built piece (an open doorway or a built floor) fights on the brick floor of a town
+interior. There are no karma, guard or crime consequences. Combat returns the party to its
+square on the deed map with every placement intact, and the raid count resumes.
+
+Leaving the deed map removes its raiders, and re-entering starts without any. Raiders are
+transient and never saved: a save made during a raid loads the deed map without them.
+
+Rationale: raiders exist to make building worthwhile, never to undo it.
+
+**Implementation:** `internal/ai/npc_ai_deed_raiders.go`, `internal/game_state/crafting_raids.go`, `internal/game_state/combat_small_map_encounter.go`, `internal/game_state/action_attack.go`, `internal/game_state/save_snapshot.go`, `internal/map_units/npc_enemy.go`
+**Tests:** `internal/game_state/crafting_raids_test.go`
+
+### CRAFT-0022
+
+**No moongates on deed maps**
+
+**Kind:** rule
+**Uses:** MOON-0003, CONSUME-0001, CRAFT-0004
+**Original:** Established
+**Redux:** Intentional deviation
+
+The original prints nothing when the moongates rise at 20:00 or fade at 05:00; Redux
+announces the shared stage change ([MOON-0003](MOONSTONE_LOCATIONS.md#moon-0003)) with
+"Instantly, a shimmering blue door springs up!" and "The shimmering door fades from view."
+wherever the party is. On a deed map those lines stay silent; the stage still changes, and
+towns and the overworld keep both lines.
+
+No gate can stand on a deed map. The original buries a moonstone only on map numbers below
+0x21 ([CONSUME-0001](POTIONS_SCROLLS.md#consume-0001)), and the shared deed location is 128,
+so Use on a moonstone there answers "Not here!" and the item list says "You cannot bury it
+here." Without this, a stone buried on one deed would raise a gate on every deed map, since
+they share one location value.
+
+Rationale: an announcement for a door no one can see reads as a bug.
+
+**Implementation:** `internal/game_state/moongate_events.go`, `internal/game_state/action_use.go`, `internal/game_state/action_use_projection.go`, `internal/game_state/journal_moonstones.go`
+**Tests:** `internal/game_state/crafting_moongate_test.go`
