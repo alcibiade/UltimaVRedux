@@ -704,6 +704,9 @@ func (g *GameState) advanceElapsedGameplayMinutes(elapsed int, consumeFood bool)
 	}
 	if dateBefore.DateOnly() != g.DateTime.DateOnly() {
 		g.moveShadowlordsAtMidnight()
+		// Trammel's phase is day-indexed, so a change of day is the only moment deed nodes
+		// can respawn (ref:CRAFT-0006).
+		g.processDeedRespawn()
 	}
 	g.maintainInnMonths(dateBefore, g.DateTime)
 	g.MapState.Lighting.AdvanceMinutes(elapsed)

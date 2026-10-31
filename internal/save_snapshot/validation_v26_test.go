@@ -23,12 +23,22 @@ func hutMutation(x, y int) MapMutationSnapshot {
 func validCraftingFixture() SaveSnapshot {
 	snapshot := validSnapshot()
 	active := 3
+	layout, err := references.GenerateDeedMap(references.DeedTerrainGrassland, 7, 1)
+	if err != nil {
+		panic(err)
+	}
+	nodes := layout.Nodes
 	snapshot.Crafting = CraftingSnapshot{
 		Materials: [CraftingMaterialCount]uint16{10, 5, 0, 2, 0, 0, 1},
 		Tools:     [CraftingToolCount]uint16{1, 0},
 		Deeds: []DeedSnapshot{
 			{ID: 0, Name: "Homestead", X: 255, Y: 0, Terrain: "grassland", GeneratorVersion: 1, Seed: 7,
-				TileOverrides: []DeedTileOverrideSnapshot{{X: 4, Y: 5, Sprite: int(indexes.Grass)}}},
+				TileOverrides: []DeedTileOverrideSnapshot{{X: 4, Y: 5, Sprite: int(indexes.Grass)}},
+				NodeHarvests: []DeedNodeHarvestSnapshot{
+					{X: int(nodes[0].Position.X), Y: int(nodes[0].Position.Y), Harvests: 1},
+					{X: int(nodes[1].Position.X), Y: int(nodes[1].Position.Y), Harvests: references.DeedNodeRuleFor(nodes[1].Kind).Capacity},
+				},
+				TrammelPhaseChanges: 28900},
 			{ID: 3, Name: "Lord's Rest", X: 100, Y: 100, Terrain: "desert", GeneratorVersion: 1, Seed: 0},
 		},
 		ActiveDeedID: &active,
@@ -92,6 +102,17 @@ func TestValidateCraftingRejectsEachInvalidShape(t *testing.T) {
 		{"duplicate override", func(s *SaveSnapshot) {
 			s.Crafting.Deeds[0].TileOverrides = append(s.Crafting.Deeds[0].TileOverrides, s.Crafting.Deeds[0].TileOverrides[0])
 		}, "crafting.deeds[0].tileOverrides[1]", "duplicate"},
+		{"harvest off the deed map", func(s *SaveSnapshot) { s.Crafting.Deeds[0].NodeHarvests[0].Y = 32 }, "crafting.deeds[0].nodeHarvests[0]", "out_of_range"},
+		{"harvest on no node", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].NodeHarvests[0].X, s.Crafting.Deeds[0].NodeHarvests[0].Y = 15, 15
+		}, "crafting.deeds[0].nodeHarvests[0]", "invalid"},
+		{"duplicate harvest", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].NodeHarvests[1].X = s.Crafting.Deeds[0].NodeHarvests[0].X
+			s.Crafting.Deeds[0].NodeHarvests[1].Y = s.Crafting.Deeds[0].NodeHarvests[0].Y
+		}, "crafting.deeds[0].nodeHarvests[1]", "duplicate"},
+		{"zero harvests", func(s *SaveSnapshot) { s.Crafting.Deeds[0].NodeHarvests[0].Harvests = 0 }, "crafting.deeds[0].nodeHarvests[0].harvests", "out_of_range"},
+		{"harvests over capacity", func(s *SaveSnapshot) { s.Crafting.Deeds[0].NodeHarvests[1].Harvests++ }, "crafting.deeds[0].nodeHarvests[1].harvests", "out_of_range"},
+		{"negative respawn marker", func(s *SaveSnapshot) { s.Crafting.Deeds[1].TrammelPhaseChanges = -1 }, "crafting.deeds[1].trammelPhaseChanges", "out_of_range"},
 		{"deed map without active deed", func(s *SaveSnapshot) { s.Crafting.ActiveDeedID = nil }, "crafting.activeDeedId", "invalid"},
 		{"unknown active deed", func(s *SaveSnapshot) { unknown := 9; s.Crafting.ActiveDeedID = &unknown }, "crafting.activeDeedId", "invalid"},
 		{"active deed off the deed map", func(s *SaveSnapshot) { s.World.Position = validPosition() }, "crafting.activeDeedId", "invalid"},
@@ -135,10 +156,17 @@ func TestV26CraftingCodecAndSchemaAgree(t *testing.T) {
 	deed := document["snapshot"].(map[string]any)["crafting"].(map[string]any)["deeds"].([]any)[0].(map[string]any)
 	deed["terrain"] = "swamp"
 	assert.Error(t, schema.Validate(document), "the schema rejects an unknown terrain")
-	deed["terrain"] = "forest"
+	deed["terrain"] = "grassland"
 	require.NoError(t, schema.Validate(document))
 	deed["seed"] = 4294967296
 	assert.Error(t, schema.Validate(document), "the schema bounds the seed to 32 bits")
+	deed["seed"] = 7
+	require.NoError(t, schema.Validate(document))
+	deed["nodeHarvests"].([]any)[0].(map[string]any)["harvests"] = 0
+	assert.Error(t, schema.Validate(document), "the schema rejects an empty harvest count")
+	deed["nodeHarvests"].([]any)[0].(map[string]any)["harvests"] = 1
+	deed["trammelPhaseChanges"] = -1
+	assert.Error(t, schema.Validate(document), "the schema rejects a negative respawn marker")
 
 	invalid := validCraftingFixture()
 	invalid.Crafting.Deeds[0].Terrain = "swamp"

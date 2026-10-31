@@ -114,7 +114,7 @@ separate catalog entries; they are not additional behavioral topics.
 | [`gamefacts/CHARACTER_PROGRESSION.md`](gamefacts/CHARACTER_PROGRESSION.md) | Record attributes, experience, levels, and advancement. | `characters` | Gamefact |
 | [`gamefacts/COMBAT.md`](gamefacts/COMBAT.md) | Record combat flow, formulas, AI, status, and Redux differences. | `combat` | Gamefact |
 | [`gamefacts/COMMANDS_REFERENCE.md`](gamefacts/COMMANDS_REFERENCE.md) | Catalog command behavior, completion, doors, and chests. | `commands` | Gamefact |
-| [`gamefacts/CRAFTING.md`](gamefacts/CRAFTING.md) | Record the optional Redux crafting rules: deeds, generated deed maps, chords and stock. | `gameplay` | Gamefact |
+| [`gamefacts/CRAFTING.md`](gamefacts/CRAFTING.md) | Record the optional Redux crafting rules: deeds, generated deed maps, chords, stock, gathering, Trammel respawn and tool recipes. | `gameplay` | Gamefact |
 | [`gamefacts/CRIME_PRISON.md`](gamefacts/CRIME_PRISON.md) | Record crime, guards, arrest, interrogation, and rescue. | `crime` | Gamefact |
 | [`gamefacts/DEATH_RESURRECTION.md`](gamefacts/DEATH_RESURRECTION.md) | Record death, revival, and party recovery. | `characters` | Gamefact |
 | [`gamefacts/DUNGEON_SYSTEM.md`](gamefacts/DUNGEON_SYSTEM.md) | Record dungeon layout, movement, rooms, hazards, and transitions. | `dungeons` | Gamefact |

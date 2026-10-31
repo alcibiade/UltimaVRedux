@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bradhannah/UltimaVRedux/internal/datetime"
 	"github.com/bradhannah/UltimaVRedux/internal/journal"
 	"github.com/bradhannah/UltimaVRedux/internal/map_state"
 	"github.com/bradhannah/UltimaVRedux/internal/references"
@@ -144,6 +145,7 @@ func (g *GameState) StakeDeed(name string) (Deed, error) {
 	deed := &Deed{
 		ID: nextID, Name: normalized, Square: proposal.Square, Terrain: proposal.Terrain,
 		GeneratorVersion: references.DeedGeneratorVersion, Seed: references.DeedSeed(nextID, proposal.Square),
+		trammelPhaseChanges: datetime.TrammelPhaseChanges(g.DateTime.GetTotalDays()),
 	}
 	g.crafting.deeds = append(g.crafting.deeds, deed)
 	// The hut is an ordinary overworld map mutation; the native save diffs it against BRIT.DAT.

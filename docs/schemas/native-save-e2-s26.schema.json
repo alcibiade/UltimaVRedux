@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-e2-s26.schema.json",
   "title": "Native Ultima V Redux Save Envelope 2 / Snapshot 26",
-  "description": "Load frozen sibling s16-s25 schemas locally and assert the version-aware ultima5-world-journal format. V26 adds the optional Redux crafting extension (ref:CRAFT-0001): material and tool stock, and deeds. A deed stores its overworld hut square, terrain, generator version and seed, and only the deed-map squares that differ from the generated map; its hut is an ordinary overworld mapMutation. activeDeedId names the deed whose map world.position stands on (location 128).",
+  "description": "Load frozen sibling s16-s25 schemas locally and assert the version-aware ultima5-world-journal format. V26 adds the optional Redux crafting extension (ref:CRAFT-0001): material and tool stock, and deeds. A deed stores its overworld hut square, terrain, generator version and seed, and only the deed-map squares that differ from the generated map; its hut is an ordinary overworld mapMutation. nodeHarvests counts the harvests taken from each resource node since it was last fresh (ref:CRAFT-0005), and trammelPhaseChanges is the deed's Trammel respawn marker (ref:CRAFT-0006). activeDeedId names the deed whose map world.position stands on (location 128).",
   "type": "object", "additionalProperties": false,
   "required": ["format", "envelopeVersion", "metadata", "snapshot"],
   "properties": {
@@ -74,7 +74,7 @@
     },
     "deed": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "name", "x", "y", "terrain", "generatorVersion", "seed", "tileOverrides"],
+      "required": ["id", "name", "x", "y", "terrain", "generatorVersion", "seed", "tileOverrides", "nodeHarvests", "trammelPhaseChanges"],
       "properties": {
         "id": {"type": "integer", "minimum": 0},
         "name": {"type": "string", "pattern": "^[!-~](?:[ -~]{0,22}[!-~])?$"},
@@ -82,7 +82,18 @@
         "terrain": {"enum": ["grassland", "forest", "hills", "desert"]},
         "generatorVersion": {"type": "integer", "minimum": 1},
         "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
-        "tileOverrides": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedTileOverride"}}
+        "tileOverrides": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedTileOverride"}},
+        "nodeHarvests": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedNodeHarvest"}},
+        "trammelPhaseChanges": {"type": "integer", "minimum": 0}
+      }
+    },
+    "deedNodeHarvest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["x", "y", "harvests"],
+      "properties": {
+        "x": {"type": "integer", "minimum": 0, "maximum": 31},
+        "y": {"type": "integer", "minimum": 0, "maximum": 31},
+        "harvests": {"type": "integer", "minimum": 1, "maximum": 255}
       }
     },
     "deedTileOverride": {

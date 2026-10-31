@@ -35,9 +35,10 @@ on accepted key G, C or B with Alt held:
 A command applies only with the party on foot. Gather applies on the party's own deed
 map ([CRAFT-0004](#craft-0004)); Craft and Build apply on the overworld surface (floor 0)
 and on deed maps. Towns, dungeons, the Underworld, combat and vehicles answer
-"Not here!". In this version Gather answers "Nothing to gather yet!", Craft
-"Nothing to craft yet!", and Build on a deed map "Nothing to build yet!", each without
-spending time; Build on the overworld stakes deeds ([CRAFT-0002](#craft-0002)).
+"Not here!". Gather harvests resource nodes ([CRAFT-0005](#craft-0005)), Craft makes
+tools ([CRAFT-0007](#craft-0007)), and Build stakes deeds on the overworld
+([CRAFT-0002](#craft-0002)). In this version Build on a deed map answers
+"Nothing to build yet!" without spending time.
 
 The party carries seven materials (Wood, Stone, Ore, Forage, Planks, Cut stone,
 Ingots; large stacks capped at 9999) and two tools (Axe, Pick; small stacks capped at
@@ -133,8 +134,12 @@ rocks", outcrops the small mountains tile, fruit trees "a fruit tree", and reage
 patches the crops tile; each patch holds one of the listed reagents. Every interior
 square is open ground that later steps can build on, a resource node, or the lane.
 
-In this version nodes are scenery: Look describes their original tiles and nothing can
-be gathered yet. The save stores each deed's terrain, seed, generator version and only
+Nodes are gathered with Alt+G ([CRAFT-0005](#craft-0005)) and restored by Trammel
+([CRAFT-0006](#craft-0006)); Look names them by what they are rather than by their
+original tile ("an ore vein", not "mountains"; "a patch of Garlic", not "bountiful
+crops"). An ore outcrop keeps the small mountains tile of version 1, the same tile as
+part of the hills and desert ring; outcrops always stand inside the clearing, and Look
+tells them apart. The save stores each deed's terrain, seed, generator version and only
 the squares that differ from the generated map, never the 1024 tiles. A generator
 change gets a new version, and existing deeds keep regenerating with theirs.
 
@@ -172,3 +177,128 @@ deeds from one game cannot appear after loading another.
 
 **Implementation:** `internal/game_state/crafting.go`, `internal/game_state/crafting_save.go`, `internal/game_state/action_enter.go`
 **Tests:** `internal/game_state/crafting_test.go`
+
+### CRAFT-0005
+
+**Gathering on deed maps**
+
+**Kind:** rule
+**Uses:** CRAFT-0001, CRAFT-0003
+**Original:** Established
+**Redux:** Intentional deviation
+
+Alt+G on the party's own deed map prints "Gather-" and asks for a direction; Esc cancels
+for free. Anywhere else it answers "Not here!" ([CRAFT-0001](#craft-0001)). The command
+acts on the adjacent square in that direction:
+
+```
+first, bring every deed up to date with Trammel (CRAFT-0006)
+if the square holds a creature or an item stack, is no generated node,
+   or shows anything other than its node or depleted tile:  "Nothing to gather!"
+else if the node is used up:                                 "Nothing left to gather!"
+else if the stack it fills is full (Wood 9999, Garlic 99):   "Thou canst carry no more <name>!"
+else if the node needs a tool the party lacks:
+    if bare hands cannot work it (ore):                      "Thou dost need a Pick!"
+    else roll one in 3: success gathers 1, failure prints "Thy bare hands win no <material>."
+else gather a random yield in the node's range
+a gathered yield adds to the stack (saturating at its cap), prints
+"Gathered <n> <name>.", and counts one harvest; the harvest that reaches the node's
+capacity changes its tile to the depleted tile and prints "It is used up!"
+```
+
+| Node (tile) | Yields | Tool | Bare hands | Yield | Capacity | Minutes | Depleted tile | Look (fresh / used up) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Tree (trees) | Wood | Axe | 1 in 3: 1 | 2-4 | 4 | 10 | brush | a stand of timber / a felled tree |
+| Stump (a hollow stump) | Wood | Axe | 1 in 3: 1 | 2-4 | 4 | 10 | terrain ground | a dry stump / a grubbed-out stump |
+| Rock pile (a pile of rocks) | Stone | Pick | 1 in 3: 1 | 2-3 | 4 | 10 | terrain ground | a pile of rocks / a quarried rock pile |
+| Ore outcrop (small mountains) | Ore | Pick | never | 1-2 | 3 | 15 | foothills | an ore vein / a worked-out ore vein |
+| Fruit tree (a fruit tree) | Forage | none | - | 1-3 | 3 | 5 | brush | a fruit tree |
+| Cactus (a cactus) | Forage | none | - | 1-3 | 3 | 5 | desert ground | a fruiting cactus / a cactus |
+| Reagent patch (crops) | its reagent | none | - | 1-2 | 2 | 10 | a plowed patch | a patch of <reagent> |
+
+Reagents go into the original reagent inventory (cap 99) and are the ones listed for each
+terrain in [CRAFT-0003](#craft-0003). Tools are not used up. A gathered square shows its
+depleted tile as an ordinary deed-map override, and Look on it adds "(depleted)", for
+example "Thou dost see a felled tree (depleted)". A node whose square shows something else
+(a later building step) is not described as a node and cannot be gathered.
+
+Every attempt, successful or not, costs exactly the node's minutes, the ordinary
+one-minute deed-map turn included; a refusal costs nothing and opens nothing. Game RNG:
+a harvest with a tool or by hand draws once for its yield; a bare-handed try at a node that
+needs a tool draws once for success and nothing for its yield of 1.
+
+Rationale: the first tools need Wood and Stone, so bare hands win a little of both; ore,
+the start of metalwork, needs the Pick.
+
+**Implementation:** `internal/references/crafting_data.go`, `internal/game_state/crafting_gather.go`, `internal/game_state/action_look.go`, `cmd/ultimav/gamescene_crafting.go`
+**Tests:** `internal/game_state/crafting_gather_test.go`, `cmd/ultimav/gamescene_crafting_gather_test.go`
+
+### CRAFT-0006
+
+**Trammel restores used-up nodes**
+
+**Kind:** rule
+**Uses:** CRAFT-0005, MOON-0002
+**Original:** Established
+**Redux:** Intentional deviation
+
+Trammel's phase is indexed by day ([MOON-0002](MOONSTONE_LOCATIONS.md#moon-0002)) and
+changes on 16 of the 28 days of each month. At each change, on every deed, whether its
+map is loaded or not:
+
+```
+every node that has given harvests but is not used up becomes fresh again
+n = the used-up nodes still showing their depleted tile
+restore ceil(25% of n) of them, in row-major order (top row first, then left to right):
+    the harvest count clears and the generated tile returns
+on the loaded deed map, skip a node under the party, a creature or an item stack
+    and take the next node in order instead
+```
+
+Each deed keeps a marker: the number of Trammel phase changes since the epoch (day 1 of
+month 1 of year 1) that its nodes have been brought up to. A new deed starts at the day it
+is staked. A deed is brought up to date at every change of day and before every gathering
+attempt; when several phase changes have passed (a long absence, a rest, a time skip), the
+rule runs once for each change, in order, so 8 used-up nodes become 6, then 4, 3, 2, 1, 0.
+A date moved backwards only resets the marker. A deed map suspended under combat or camping
+waits until the next change of day or gathering attempt, so no node reappears under a party
+that has not yet returned. Respawn consumes no game RNG and spends no time. Native save
+version 26 keeps each deed's harvest counts and marker.
+
+Rationale: a stripped deed recovers in about a week of game time, tied to a moon the party
+can see, and the catch-up never depends on whether the deed was visited.
+
+**Implementation:** `internal/datetime/ultima_date.go`, `internal/game_state/crafting_respawn.go`, `internal/game_state/turn.go`
+**Tests:** `internal/game_state/crafting_gather_test.go`, `internal/datetime/trammel_phase_changes_test.go`, `internal/save_snapshot/validation_v26_test.go`
+
+### CRAFT-0007
+
+**Crafting tools**
+
+**Kind:** rule
+**Uses:** CRAFT-0001, CRAFT-0005
+**Original:** Established
+**Redux:** Intentional deviation
+
+Alt+C on the overworld surface or a deed map, on foot, prints "Craft-" and opens a recipe
+menu. Each row names the recipe and its inputs; a row the party cannot make now ends with
+"(lacking)", or "(needs <station>)" once stations exist. The description lists the
+materials carried. Esc closes the menu for free.
+
+| Recipe | Inputs | Output | Minutes | Station |
+| --- | --- | --- | --- | --- |
+| Axe | 2 Wood, 1 Stone | 1 Axe | 30 | none |
+| Pick | 2 Wood, 2 Stone | 1 Pick | 30 | none |
+
+Choosing a row checks, in order: the command still applies ("Not here!"), the station is
+within reach, the party carries every input ("Thou dost need 2 Wood, 2 Stone."), and the
+output fits its stack ("Thou canst carry no more Pick!"). A refusal spends nothing and no
+time. A craft spends the inputs, adds the outputs, prints "Crafted 1 Axe." and costs
+exactly the recipe's minutes, the ordinary turn included (two minutes on the overworld,
+one on a deed map). Crafting consumes no game RNG.
+
+Rationale: tools need no station so play can start anywhere; later recipes add stations
+built on deed maps.
+
+**Implementation:** `internal/references/crafting_data.go`, `internal/game_state/crafting_craft.go`, `cmd/ultimav/gamescene_crafting.go`
+**Tests:** `internal/game_state/crafting_craft_test.go`, `cmd/ultimav/gamescene_crafting_gather_test.go`

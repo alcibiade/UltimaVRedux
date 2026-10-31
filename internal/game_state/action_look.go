@@ -70,6 +70,13 @@ func (g *GameState) ActionLookSmallMap(direction references.Direction) bool {
 	}
 
 	lookDescription := g.GameReferences.LookReferences.GetTileLookDescription(lookTileIndex)
+	if !hasMapUnit {
+		// REDUX DEVIATION: CRAFT-0005: deed-map resource nodes reuse original tiles whose Look
+		// text would mislead ("bountiful crops", "mountains"); Look names the node instead.
+		if nodeDescription, isNode := g.deedNodeLookDescription(*newPosition); isNode {
+			lookDescription = nodeDescription
+		}
+	}
 	fullMessage := "Thou dost see " + lookDescription
 	flameKnowledgeID := ""
 

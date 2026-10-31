@@ -13,8 +13,8 @@ import (
 const MaxDeeds = 4096
 
 // validateCrafting checks the Redux crafting extension (ref:CRAFT-0001): stock ranges, deed
-// identity and placement rules, generator identity, tile overrides, the hut map mutation of every
-// deed and the active deed of a save made on a deed map.
+// identity and placement rules, generator identity, tile overrides, node harvests, the respawn
+// marker, the hut map mutation of every deed and the active deed of a save made on a deed map.
 func validateCrafting(snapshot SaveSnapshot, add func(string, string, string)) {
 	crafting := snapshot.Crafting
 	for index, quantity := range crafting.Materials {
@@ -56,6 +56,10 @@ func validateCrafting(snapshot SaveSnapshot, add func(string, string, string)) {
 			add(path+".generatorVersion", "unsupported", "deed generator version is not supported by this build")
 		}
 		validateDeedOverrides(path, deed.TileOverrides, add)
+		validateDeedNodeHarvests(path, deed, add)
+		if deed.TrammelPhaseChanges < 0 {
+			add(path+".trammelPhaseChanges", "out_of_range", "the respawn marker cannot be negative")
+		}
 	}
 	validateActiveDeed(snapshot, ids, add)
 }
@@ -119,5 +123,49 @@ func validateActiveDeed(snapshot SaveSnapshot, ids map[int]bool, add func(string
 	}
 	if onDeedMap && snapshot.World.Position.Floor != 0 {
 		add("world.position.floor", "out_of_range", "a deed map has one floor")
+	}
+}
+
+// validateDeedNodeHarvests checks that every harvest count names a distinct resource node of the
+// deed's generated map and lies between 1 and that node kind's capacity (ref:CRAFT-0005).
+func validateDeedNodeHarvests(path string, deed DeedSnapshot, add func(string, string, string)) {
+	if len(deed.NodeHarvests) == 0 {
+		return
+	}
+	if len(deed.NodeHarvests) > MaxDeedTileOverrides {
+		add(path+".nodeHarvests", "out_of_range", "a deed has at most one harvest count per square")
+
+		return
+	}
+	terrain, ok := references.DeedTerrainFromKey(deed.Terrain)
+	if !ok {
+		return
+	}
+	layout, err := references.GenerateDeedMap(terrain, deed.Seed, deed.GeneratorVersion)
+	if err != nil {
+		return // The generator version is reported on its own.
+	}
+	seen := make(map[[2]int]bool, len(deed.NodeHarvests))
+	for index, harvest := range deed.NodeHarvests {
+		harvestPath := fmt.Sprintf("%s.nodeHarvests[%d]", path, index)
+		if harvest.X < 0 || harvest.X >= DeedMapTiles || harvest.Y < 0 || harvest.Y >= DeedMapTiles {
+			add(harvestPath, "out_of_range", "a harvest count must lie on the 32x32 deed map")
+
+			continue
+		}
+		key := [2]int{harvest.X, harvest.Y}
+		if seen[key] {
+			add(harvestPath, "duplicate", "harvest count squares must be unique")
+		}
+		seen[key] = true
+		node, isNode := layout.NodeAt(references.Position{X: references.Coordinate(harvest.X), Y: references.Coordinate(harvest.Y)})
+		if !isNode {
+			add(harvestPath, "invalid", "a harvest count must name a resource node of the deed")
+
+			continue
+		}
+		if harvest.Harvests < 1 || harvest.Harvests > references.DeedNodeRuleFor(node.Kind).Capacity {
+			add(harvestPath+".harvests", "out_of_range", "harvests must lie between 1 and the node's capacity")
+		}
 	}
 }

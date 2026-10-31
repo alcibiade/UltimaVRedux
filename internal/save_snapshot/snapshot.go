@@ -94,8 +94,10 @@ type CraftingSnapshot struct {
 
 // DeedSnapshot is one deed. X and Y are its hut square on the overworld. The deed map is not
 // stored: it is regenerated from Terrain, GeneratorVersion and Seed, and TileOverrides lists the
-// squares that differ from the generated map (ref:CRAFT-0003). Later crafting steps extend this
-// record in place (snapshot version 26 is unreleased).
+// squares that differ from the generated map (ref:CRAFT-0003). NodeHarvests lists the resource
+// nodes gathered since they were last fresh (ref:CRAFT-0005), and TrammelPhaseChanges is the
+// deed's respawn marker (ref:CRAFT-0006). Later crafting steps extend this record in place
+// (snapshot version 26 is unreleased).
 type DeedSnapshot struct {
 	ID               int                        `json:"id"`
 	Name             string                     `json:"name"`
@@ -105,6 +107,18 @@ type DeedSnapshot struct {
 	GeneratorVersion int                        `json:"generatorVersion"`
 	Seed             uint32                     `json:"seed"`
 	TileOverrides    []DeedTileOverrideSnapshot `json:"tileOverrides"`
+	NodeHarvests     []DeedNodeHarvestSnapshot  `json:"nodeHarvests"`
+	// TrammelPhaseChanges is the datetime.TrammelPhaseChanges count the deed's nodes have been
+	// brought up to.
+	TrammelPhaseChanges int `json:"trammelPhaseChanges"`
+}
+
+// DeedNodeHarvestSnapshot is the number of harvests taken from one resource node since it was
+// last fresh; a node that has reached its kind's capacity is used up.
+type DeedNodeHarvestSnapshot struct {
+	X        int `json:"x"`
+	Y        int `json:"y"`
+	Harvests int `json:"harvests"`
 }
 
 // DeedTileOverrideSnapshot replaces the generated tile of one deed-map square.

@@ -48,14 +48,23 @@ The required `crafting` member holds the optional Redux crafting state
   `tileOverrides` (null or an array of `x`/`y` 0–31 and `sprite` 0–255): only the
   deed-map squares that differ from the generated map
   ([CRAFT-0003](../gamefacts/CRAFTING.md#craft-0003)). The 1024 generated tiles are
-  never stored; the map is regenerated on load.
+  never stored; the map is regenerated on load. A used-up node's depleted tile is an
+  ordinary override.
+- Each deed also has `nodeHarvests` (null or an array of `x`/`y` 0–31 and `harvests`
+  1–255): the harvests taken from each resource node since it was last fresh, sorted
+  row by row ([CRAFT-0005](../gamefacts/CRAFTING.md#craft-0005)); and
+  `trammelPhaseChanges` (an integer of at least 0): the deed's respawn marker, the
+  count of Trammel phase changes since the epoch that its nodes have been brought up to
+  ([CRAFT-0006](../gamefacts/CRAFTING.md#craft-0006)).
 - `activeDeedId`: the deed whose map the party stands on, required exactly when
   `world.position.location` is the shared deed location 128, and null otherwise
   ([CRAFT-0004](../gamefacts/CRAFTING.md#craft-0004)).
 
 The Go validator also rejects duplicate deed squares, orthogonally adjacent deeds
 (with wrap-around), unknown terrains, generator versions this build cannot
-regenerate, duplicate overrides, a deed map position off floor 0, and any deed whose
+regenerate, duplicate overrides, a harvest count on a square that is not one of the
+deed's generated nodes, a duplicate harvest square, a harvest count above that node
+kind's capacity, a deed map position off floor 0, and any deed whose
 hut is missing from `mapMutations` (each hut is an ordinary overworld `setTile` of
 sprite 16). Hydration rebuilds the deeds and loads the active deed map before the
 current small map, so a save made on a deed map resolves location 128 through its own

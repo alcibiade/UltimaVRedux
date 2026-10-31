@@ -30,7 +30,7 @@ var (
 // Deed is one parcel of land the party owns: a hut square on the overworld and the generated
 // deed map behind it (ref:CRAFT-0002, ref:CRAFT-0003). Deeds are permanent.
 //
-// Later steps add per-deed state (resource node use, placements, chests) as fields here and in
+// Later steps add per-deed state (placements, chests) as fields here and in
 // save_snapshot.DeedSnapshot.
 type Deed struct {
 	ID               int
@@ -41,6 +41,35 @@ type Deed struct {
 	Seed             uint32
 	// overrides holds every deed-map square whose tile differs from the generated one.
 	overrides map[references.Position]indexes.SpriteIndex
+	// harvests holds, for every resource node that has been gathered since it was last fresh,
+	// the number of successful harvests taken (ref:CRAFT-0005). A node absent from the map is
+	// fresh; one whose count reaches its kind's capacity is used up.
+	harvests map[references.Position]int
+	// trammelPhaseChanges is the deed's respawn marker: the Trammel phase-change count
+	// (datetime.TrammelPhaseChanges) its nodes have been brought up to (ref:CRAFT-0006).
+	trammelPhaseChanges int
+}
+
+// TrammelPhaseChanges returns the deed's respawn marker (ref:CRAFT-0006).
+func (d *Deed) TrammelPhaseChanges() int {
+	return d.trammelPhaseChanges
+}
+
+// NodeHarvests returns the harvests taken from the node at a deed-map square since it was last
+// fresh; zero for a fresh node or a square that is no node.
+func (d *Deed) NodeHarvests(position references.Position) int {
+	return d.harvests[position]
+}
+
+// HarvestedNodePositions returns every node with harvests taken, in row-major order.
+func (d *Deed) HarvestedNodePositions() []references.Position {
+	positions := make([]references.Position, 0, len(d.harvests))
+	for position := range d.harvests {
+		positions = append(positions, position)
+	}
+	slices.SortFunc(positions, compareRowMajor)
+
+	return positions
 }
 
 // Layout regenerates the deed map as first generated, without overrides.
@@ -80,11 +109,16 @@ func compareRowMajor(a, b references.Position) int {
 }
 
 // DeedResourceNodeState is one generated resource node of a deed with its current square.
-// Covered is true when an override replaced the node's sprite, for example a built piece.
+// Harvests counts the harvests taken since the node was last fresh, out of Capacity; Depleted
+// means it is used up. Covered is true when the square shows neither the node's sprite nor,
+// for a used-up node, its depleted sprite: something else, such as a built piece, stands there.
 type DeedResourceNodeState struct {
 	references.DeedResourceNode
-	Current indexes.SpriteIndex
-	Covered bool
+	Current  indexes.SpriteIndex
+	Harvests int
+	Capacity int
+	Depleted bool
+	Covered  bool
 }
 
 // craftingState is the persistent crafting state of one game. It lives on GameState, never in
@@ -209,20 +243,43 @@ func (g *GameState) DeedResourceNodes(deedID int) []DeedResourceNodeState {
 	if deed == nil {
 		return nil
 	}
-	layout := deed.Layout()
-	if deed == g.crafting.active {
-		layout = *g.crafting.activeLayout
-	}
+	layout := g.deedLayout(deed)
 	nodes := make([]DeedResourceNodeState, 0, len(layout.Nodes))
 	for _, node := range layout.Nodes {
-		current := node.Sprite
-		if sprite, ok := deed.overrides[node.Position]; ok {
-			current = sprite
-		}
-		nodes = append(nodes, DeedResourceNodeState{DeedResourceNode: node, Current: current, Covered: current != node.Sprite})
+		nodes = append(nodes, deed.nodeState(layout, node))
 	}
 
 	return nodes
+}
+
+// deedLayout returns a deed's generated layout, shared with the loaded map when it is active.
+func (g *GameState) deedLayout(deed *Deed) *references.DeedLayout {
+	if deed == g.crafting.active {
+		return g.crafting.activeLayout
+	}
+	layout := deed.Layout()
+
+	return &layout
+}
+
+func (d *Deed) nodeState(layout *references.DeedLayout, node references.DeedResourceNode) DeedResourceNodeState {
+	current := node.Sprite
+	if sprite, ok := d.overrides[node.Position]; ok {
+		current = sprite
+	}
+	state := DeedResourceNodeState{
+		DeedResourceNode: node, Current: current, Harvests: d.harvests[node.Position],
+		Capacity: references.DeedNodeRuleFor(node.Kind).Capacity,
+	}
+	state.Depleted = state.Harvests >= state.Capacity
+	switch {
+	case current == node.Sprite:
+	case state.Depleted && current == references.DeedDepletedSprite(layout.Terrain, node):
+	default:
+		state.Covered = true
+	}
+
+	return state
 }
 
 // SetDeedTile changes one square of a deed map. The change is kept as an override (or dropped
@@ -233,12 +290,7 @@ func (g *GameState) SetDeedTile(deedID int, position references.Position, sprite
 	if deed == nil || !isDeedMapSquare(position) {
 		panic(fmt.Sprintf("SetDeedTile: deed %d square %v does not exist", deedID, position))
 	}
-	layout := g.crafting.activeLayout
-	if deed != g.crafting.active {
-		generated := deed.Layout()
-		layout = &generated
-	}
-	generated := layout.Tile(position)
+	generated := g.deedLayout(deed).Tile(position)
 	if sprite == generated {
 		delete(deed.overrides, position)
 	} else {
