@@ -18,6 +18,10 @@ const (
 
 // CastAnYlem removes one of the original eligible scenery tiles.
 func (g *GameState) CastAnYlem(pos *references.Position) AnYlemResult {
+	// A piece the party built on its deed stays where its placement records it (ref:CRAFT-0009).
+	if pos == nil || g.isBuiltDeedPiece(*pos) {
+		return AnYlemNoEffect
+	}
 	theMap := g.GetLayeredMapByCurrentLocation()
 	targetTile := theMap.GetTileTopMapOnlyTile(pos)
 	if targetTile == nil || !isAnYlemObject(targetTile.Index) {
@@ -133,7 +137,14 @@ const (
 // Returns the result of the attempt.
 func (g *GameState) MagicLockDoor(pos *references.Position) MagicLockResult {
 	theMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, g.MapState.PlayerLocation.Floor)
+	if pos == nil {
+		return MagicLockNotADoor
+	}
 	targetTile := theMap.GetTileTopMapOnlyTile(pos)
+	if targetTile == nil {
+		// A square beyond the map's edge holds no door.
+		return MagicLockNotADoor
+	}
 
 	switch targetTile.Index { //nolint:exhaustive // Only door tiles can be locked; other tiles are not doors.
 	case indexes.MagicLockDoor, indexes.MagicLockDoorWithView:
@@ -172,7 +183,13 @@ const (
 // Returns the result of the attempt.
 func (g *GameState) DispelField(pos *references.Position) DispelFieldResult {
 	theMap := g.MapState.LayeredMaps.GetLayeredMap(references.SmallMapType, g.MapState.PlayerLocation.Floor)
+	if pos == nil {
+		return DispelFieldNotAField
+	}
 	targetTile := theMap.GetTileTopMapOnlyTile(pos)
+	if targetTile == nil {
+		return DispelFieldNotAField
+	}
 
 	if targetTile.Index == indexes.PoisonField || targetTile.Index == indexes.MagicField || targetTile.Index == indexes.FireField {
 		// Dispel the field - replace with floor

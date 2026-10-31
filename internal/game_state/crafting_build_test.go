@@ -720,3 +720,21 @@ func TestBuiltPiecesCannotBePushedOrPulled(t *testing.T) {
 		callbacks.AssertTimeAdvanced(0)
 	}
 }
+
+func TestAnYlemLeavesBuiltPiecesStanding(t *testing.T) {
+	state, _, _ := newBuildFixture(t)
+	chest := northOfYard()
+	buildNorth(t, state, references.PieceStorageChest)
+
+	assert.Equal(t, AnYlemNoEffect, state.CastAnYlem(&chest))
+	assert.Equal(t, indexes.SpriteIndex(indexes.Box), state.GetLayeredMapByCurrentLocation().GetTileTopMapOnlyTile(&chest).Index)
+	assert.False(t, state.IsPassable(&chest))
+}
+
+func TestAnExPorBeyondTheDeedMapEdgeIsNoDoor(t *testing.T) {
+	state, _, _ := newBuildFixture(t)
+	state.MapState.PlayerLocation.Position = references.Position{X: 0, Y: 15}
+	beyond := references.Position{X: -1, Y: 15}
+
+	assert.Equal(t, MagicLockNotADoor, state.MagicLockDoor(&beyond))
+}

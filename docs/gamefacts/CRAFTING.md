@@ -391,8 +391,8 @@ Build pieces are crafted into the party's piece stock (small stacks, cap 99, sho
 under Piece) and then placed with Build ([CRAFT-0010](#craft-0010)). Every piece is an
 original map tile and keeps that tile's rules: walls, windows, fences, tables and stations
 block movement; floors, chairs and beds can be walked on; an opened door lets the party
-through. Unlike town furniture, no built piece can be pushed or pulled ("Won't budge!"), with
-the option on or off, so a chest, chair, table or station stays on the square it was built on.
+through. Unlike town furniture, no built piece can be pushed or pulled ("Won't budge!") or
+destroyed by An Ylem (it has no effect), with the option on or off, so a chest, chair, table or station stays on the square it was built on.
 Look describes a placed station, bed or storage chest by what it is ("thy own
 bed", "thy storage chest", with "(empty)" when it holds nothing); every other piece keeps
 its tile's original Look text. Building pieces are made at the Workbench:
@@ -416,7 +416,7 @@ its tile's original Look text. Building pieces are made at the Workbench:
 The five stations of [CRAFT-0008](#craft-0008) are pieces of the Stations category. Piece
 identities are save identities and are never reordered.
 
-**Implementation:** `internal/references/crafting_pieces.go`, `internal/references/crafting_recipes.go`, `internal/game_state/crafting_build.go`, `internal/game_state/ztats_dossier.go`, `internal/game_state/action_look.go`, `internal/game_state/action_push.go`
+**Implementation:** `internal/references/crafting_pieces.go`, `internal/references/crafting_recipes.go`, `internal/game_state/crafting_build.go`, `internal/game_state/ztats_dossier.go`, `internal/game_state/action_look.go`, `internal/game_state/action_push.go`, `internal/game_state/action_cast_direction.go`
 **Tests:** `internal/game_state/crafting_build_test.go`
 
 ### CRAFT-0010
