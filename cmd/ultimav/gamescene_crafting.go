@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
@@ -15,13 +16,19 @@ import (
 // REDUX DEVIATION: CRAFT-0001: the original binds no Alt chords. With Gameplay.Crafting.Enabled,
 // Alt+G gathers, Alt+C crafts and Alt+B builds or stakes a deed; see ref:CRAFT-0001.
 
+// REDUX DEVIATION: CRAFT-0019: the original has no Craft menu. Its rows name reagents by short
+// names and drop the inputs of an over-long row whose station is out of reach; see ref:CRAFT-0019.
+
 const (
 	// Recipe rows name the recipe, its inputs and what is missing ("Alchemy table: 6 Planks,
 	// 1 Ingots (needs Workbench)"), so crafting menus use most of the map's width.
 	craftingMenuButtonWidthPercent = 0.66
 	craftingMenuBorderWidthPercent = 0.70
-	deedNamePattern                = "^[ -~]{0,24}$"
-	deedNamingWorkflowName         = "deed_naming"
+	// craftMenuRowMaxChars is the longest recipe row that fits the menu at 1280x720. A longer
+	// row whose station is out of reach drops its inputs (ref:CRAFT-0019).
+	craftMenuRowMaxChars   = 52
+	deedNamePattern        = "^[ -~]{0,24}$"
+	deedNamingWorkflowName = "deed_naming"
 )
 
 // craftingChordCommand maps an accepted key to its crafting command when Alt is held.
@@ -240,7 +247,7 @@ func (g *GameScene) openCraftRecipeMenu(
 	category references.CraftCategory, options []game_state.CraftRecipeOption, finish func(surfaceCommandState),
 ) {
 	var menu *widgets.ButtonListModal
-	menu = g.newCraftingMenu(category.Name(), g.craftMenuDescription(), func() {
+	menu = g.newCraftingMenu(category.Name(), g.craftRecipeMenuDescription(options), func() {
 		g.openCraftCategoryMenu(finish)
 	})
 	for _, option := range options {
@@ -260,17 +267,72 @@ func (g *GameScene) openCraftRecipeMenu(
 	g.keyboard.PrepareForTransition(0)
 }
 
-// craftMenuRowLabel names a recipe and its inputs, and says in words why it cannot be made now.
+// craftMenuRowLabel names a recipe and its inputs, reagents by their short names, and says in
+// words why it cannot be made now. A row too long for the menu whose station is out of reach
+// names only the recipe and the station; its inputs show at the station (ref:CRAFT-0019).
 func craftMenuRowLabel(option game_state.CraftRecipeOption) string {
-	label := fmt.Sprintf("%s: %s", option.Recipe.Name, references.DescribeCraftGoods(option.Recipe.Inputs))
+	label := fmt.Sprintf("%s: %s", option.Recipe.Name, references.DescribeCraftGoodsCompact(option.Recipe.Inputs))
 	switch {
 	case !option.StationReady:
-		return label + " (needs " + option.Recipe.Station.Name() + ")"
+		needs := " (needs " + option.Recipe.Station.Name() + ")"
+		if len(label)+len(needs) > craftMenuRowMaxChars {
+			return option.Recipe.Name + needs
+		}
+
+		return label + needs
 	case !option.Affordable:
 		return label + " (lacking)"
 	default:
 		return label
 	}
+}
+
+// craftRecipeMenuDescription summarizes the stock a category's recipes draw on. A category with
+// reagent inputs lists the carried reagents and Planks by short name and explains the short
+// names (ref:CRAFT-0019).
+func (g *GameScene) craftRecipeMenuDescription(options []game_state.CraftRecipeOption) string {
+	usesReagents := false
+	for _, option := range options {
+		for _, input := range option.Recipe.Inputs {
+			usesReagents = usesReagents || input.Kind == references.CraftGoodsReagent
+		}
+	}
+	if !usesReagents {
+		return g.craftMenuDescription()
+	}
+	inventory := &g.gameState.PartyState.Inventory
+	carried := make([]references.CraftGoods, 0, len(references.ReagentCatalog())+1)
+	if planks := inventory.Materials.Get(references.Planks); planks > 0 {
+		carried = append(carried, references.MaterialGoods(references.Planks, planks))
+	}
+	legend := make([]string, 0, len(references.ReagentCatalog()))
+	for _, reagent := range references.ReagentCatalog() {
+		if quantity := inventory.Reagent.Get(reagent); quantity > 0 {
+			carried = append(carried, references.ReagentGoods(reagent, quantity))
+		}
+		legend = append(legend, reagent.ShortName()+" "+reagent.Name())
+	}
+	stock := "no reagents"
+	if len(carried) > 0 {
+		stock = describeCarriedCompact(carried)
+	}
+
+	return fmt.Sprintf("Thou dost carry %s. Key: %s.", stock, strings.Join(legend, ", "))
+}
+
+// describeCarriedCompact renders carried stock with counts first, reagents by short name, such
+// as "4 Planks, 12 SA, 3 Gi".
+func describeCarriedCompact(goods []references.CraftGoods) string {
+	parts := make([]string, 0, len(goods))
+	for _, item := range goods {
+		name := item.Name()
+		if item.Kind == references.CraftGoodsReagent {
+			name = references.Reagent(item.ID).ShortName()
+		}
+		parts = append(parts, fmt.Sprintf("%d %s", item.Quantity, name))
+	}
+
+	return strings.Join(parts, ", ")
 }
 
 // craftMenuDescription summarizes the stock recipes draw on.
@@ -297,8 +359,10 @@ func (g *GameScene) craftingCommandHelpEntries() []widgets.CommandHelpEntry {
 			"then a direction: trees and stumps give Wood (Axe), rocks Stone and ore veins Ore (Pick); fruit trees, " +
 			"cacti and reagent patches are picked by hand. Bare hands sometimes win 1 Wood or Stone. Esc cancels for free."},
 		{Key: "Alt+C", Purpose: "Craft", NextInput: "Optional Crafting and Deeds. On the surface overworld or your deed map, " +
-			"on foot: choose a category, then a recipe: tools, refined materials, stations, building pieces, furniture " +
-			"or food. Most need a station built within one step; rows say what is lacking. Esc cancels for free."},
+			"on foot: choose a category, then a recipe: tools, refined materials, stations, building pieces, furniture, " +
+			"food, torches and keys, mundane arms and armour (Forge, Workbench), and potions, scrolls and refined " +
+			"reagents (Alchemy table; reagents show as SA, Gi, Ga, SS, BM, BP, NS, MR). Most need a station built " +
+			"within one step; rows say what is lacking. Esc cancels for free."},
 		{Key: "Alt+B", Purpose: "Build or stake a deed", NextInput: fmt.Sprintf("Optional Crafting and Deeds. "+
 			"On open overworld land, on foot: buy a deed for %d gold and name it; a hut marks it, and Enter on the hut "+
 			"opens your land. On your deed map: place a crafted piece, or Demolish one, then a direction. "+

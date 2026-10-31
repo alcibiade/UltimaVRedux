@@ -36,7 +36,9 @@ A command applies only with the party on foot. Gather applies on the party's own
 map ([CRAFT-0004](#craft-0004)); Craft and Build apply on the overworld surface (floor 0)
 and on deed maps. Towns, dungeons, the Underworld, combat and vehicles answer
 "Not here!". Gather harvests resource nodes ([CRAFT-0005](#craft-0005)), Craft makes
-tools, materials, pieces and food ([CRAFT-0007](#craft-0007)), and Build stakes deeds on
+tools, materials, pieces and provisions ([CRAFT-0007](#craft-0007)), mundane arms and
+armour ([CRAFT-0013](#craft-0013)), and potions, scrolls and refined reagents
+([CRAFT-0015](#craft-0015) to [CRAFT-0017](#craft-0017)), and Build stakes deeds on
 the overworld ([CRAFT-0002](#craft-0002)) and places or demolishes pieces on deed maps
 ([CRAFT-0010](#craft-0010)).
 
@@ -285,11 +287,14 @@ can see, and the catch-up never depends on whether the deed was visited.
 
 Alt+C on the overworld surface or a deed map, on foot, prints "Craft-" and opens a menu
 of categories: Tools, Refined materials, Stations, Walls and doors, Floors, Tables and
-chairs, Furnishings and Food. Each category row says how many of its recipes can be made
+chairs, Furnishings and Provisions, then the arms, armour and alchemy categories of
+[CRAFT-0019](#craft-0019). Each category row says how many of its recipes can be made
 now ("Tools (1 ready)", or "(none ready)"). Choosing one lists its recipes; each row names
-the recipe and its inputs, and a row the party cannot make now ends with
+the recipe and its inputs (reagents by short name, [CRAFT-0019](#craft-0019)), and a row
+the party cannot make now ends with
 "(needs <station>)" when the station is not within reach ([CRAFT-0008](#craft-0008)) or
-"(lacking)" when inputs are missing. The description lists the materials carried. Esc
+"(lacking)" when inputs are missing. The description lists the materials carried (for
+alchemy, the Planks and reagents carried). Esc
 on the categories closes the menu for free; Esc on a category's recipes returns to the
 categories.
 
@@ -299,10 +304,12 @@ categories.
 | Pick | 2 Wood, 2 Stone | 1 Pick | 30 | none |
 
 Refined materials, stations and food are in [CRAFT-0008](#craft-0008), building pieces in
-[CRAFT-0009](#craft-0009).
+[CRAFT-0009](#craft-0009), arms and armour in [CRAFT-0013](#craft-0013), torches and keys in
+[CRAFT-0014](#craft-0014), and alchemy in [CRAFT-0015](#craft-0015) to
+[CRAFT-0017](#craft-0017).
 
 Choosing a row checks, in order: the command still applies ("Not here!"), the station is
-within reach ("Thou dost need a Sawmill nearby!"), the party carries every input
+within reach ("Thou dost need a Sawmill nearby!", "Thou dost need an Alchemy table nearby!"), the party carries every input
 ("Thou dost need 2 Wood, 2 Stone."), and every output fits its stack ("Thou canst carry
 no more Pick!"; food stops at 9999, pieces at 99). A refusal spends nothing and no time.
 A craft spends the inputs, adds the outputs, prints "Crafted 1 Axe." and costs exactly
@@ -355,8 +362,10 @@ whoever does.
 | Cook food | 2 Forage, 1 Wood | 3 Food | 20 | Fireplace |
 
 Cooked food is the party's original food stock (cap 9999), eaten at meals as bought
-food is. The Alchemy table has no recipe yet; potions, scrolls and reagent refining come
-in a later step (ADR-014).
+food is. Cooking is in the Provisions category with torches and keys
+([CRAFT-0014](#craft-0014)). The Forge and Workbench also make arms and armour
+([CRAFT-0013](#craft-0013)); the Alchemy table mixes potions, writes scrolls and refines
+reagents ([CRAFT-0015](#craft-0015) to [CRAFT-0017](#craft-0017)).
 
 A party with nothing can reach every station: bare hands win Wood and Stone
 ([CRAFT-0005](#craft-0005)), which make an Axe and a Pick; tools gather enough for the
@@ -469,7 +478,7 @@ building, and nothing built is ever lost.
 Open on a storage chest the party built on its own deed map, with the option on, prints
 "Storage chest" and shows the chest: what it holds, and Store and Take. Each lists
 Everything, Materials, Tools, Pieces, Gold, and Food, torches, gems and keys (skull keys
-included). Choosing a row moves every unit of those goods; each stack stops at the
+included), then Arms and armour, Potions and Scrolls ([CRAFT-0018](#craft-0018)). Choosing a row moves every unit of those goods; each stack stops at the
 receiving stack's cap (materials, food and gold 9999; tools, pieces, torches, gems and
 keys 99) and the rest stays where it was. The menu prints "Store materials: 20." or
 "Nothing to move." and returns to the chest.
@@ -521,3 +530,243 @@ like an inn without paying is what owning a house buys.
 
 **Implementation:** `internal/game_state/crafting_bed.go`, `internal/game_state/inn_shop.go`, `cmd/ultimav/gamescene_crafting_build.go`, `cmd/ultimav/gamescene_input_smallmap.go`
 **Tests:** `internal/game_state/crafting_build_test.go`, `cmd/ultimav/gamescene_crafting_build_test.go`
+
+### CRAFT-0013
+
+**Mundane arms and armour**
+
+**Kind:** rule
+**Uses:** CRAFT-0007, CRAFT-0008, EQUIP-0001
+**Original:** Established
+**Redux:** Intentional deviation
+
+The original sells weapons, armour and shields in shops and makes none. With the option
+on, the Forge and the Workbench make the **mundane** original equipment, as the original
+items ([EQUIP-0001](EQUIPMENT_ORIGINAL_DATA.md#equip-0001)): the same identities, stats,
+prices and save slots, added to the party's equipment inventory (small stacks, cap 99) and
+readied, sold and stored like bought ones. Metal is forged from Ingots; wooden, leather and
+cloth goods are made at the Workbench from Planks and Forage, with Ingots for metal parts.
+
+Never craftable, and kept as shop and quest rewards: everything magic, enchanted, quest-bound
+or precious: Magic Shield, Jewel Shield, Mystic Armour, Sword of Chaos, Magic Bow, Silver
+Sword, Magic Axe, Glass Sword, Jeweled Sword, Mystic Sword, the three rings, the Amulet of
+Turning, the Spiked Collar and the Ankh. Flaming Oil is mundane but needs lamp oil, which
+deeds do not yield, so it is not craftable either.
+
+| Category | Item | Inputs | Made | Minutes | Station | Shop base |
+| --- | --- | --- | ---: | ---: | --- | ---: |
+| Blades | Dagger | 1 Ingots | 1 | 30 | Forge | 1 |
+| Blades | Main Gauche | 2 Ingots | 1 | 45 | Forge | 15 |
+| Blades | Short Sword | 3 Ingots, 1 Planks | 1 | 60 | Forge | 40 |
+| Blades | Long Sword | 4 Ingots, 1 Planks | 1 | 90 | Forge | 70 |
+| Blades | Two-Handed Sword | 7 Ingots, 1 Planks | 1 | 150 | Forge | 200 |
+| Axes and maces | Throwing Axe | 1 Ingots, 1 Planks | 1 | 30 | Forge | 3 |
+| Axes and maces | Mace | 3 Ingots, 1 Planks | 1 | 60 | Forge | 50 |
+| Axes and maces | Morning Star | 4 Ingots, 1 Planks | 1 | 75 | Forge | 60 |
+| Axes and maces | Two-Handed Hammer | 5 Ingots, 2 Planks | 1 | 90 | Forge | 85 |
+| Axes and maces | Two-Handed Axe | 6 Ingots, 2 Planks | 1 | 120 | Forge | 150 |
+| Axes and maces | Halberd | 8 Ingots, 3 Planks | 1 | 150 | Forge | 250 |
+| Bows and wooden arms | Club | 2 Planks | 1 | 15 | Workbench | 5 |
+| Bows and wooden arms | Sling | 1 Planks, 1 Forage | 1 | 20 | Workbench | 10 |
+| Bows and wooden arms | Spear | 2 Planks, 1 Ingots | 1 | 30 | Workbench | 7 |
+| Bows and wooden arms | Bow | 4 Planks | 1 | 60 | Workbench | 75 |
+| Bows and wooden arms | Arrows | 1 Planks, 1 Ingots | 10 | 30 | Workbench | 10 |
+| Bows and wooden arms | Crossbow | 4 Planks, 2 Ingots | 1 | 90 | Workbench | 150 |
+| Bows and wooden arms | Quarrels | 1 Planks, 1 Ingots | 10 | 30 | Workbench | 15 |
+| Body armour | Cloth Armour | 4 Forage | 1 | 45 | Workbench | 20 |
+| Body armour | Leather Armour | 4 Planks, 2 Forage | 1 | 60 | Workbench | 50 |
+| Body armour | Ring Mail | 5 Ingots | 1 | 90 | Forge | 100 |
+| Body armour | Scale Mail | 6 Ingots | 1 | 120 | Forge | 150 |
+| Body armour | Chain Mail | 8 Ingots | 1 | 180 | Forge | 300 |
+| Body armour | Plate Mail | 12 Ingots | 1 | 240 | Forge | 700 |
+| Helms and shields | Leather Helm | 2 Planks, 1 Forage | 1 | 30 | Workbench | 15 |
+| Helms and shields | Chain Coif | 2 Ingots | 1 | 60 | Forge | 50 |
+| Helms and shields | Iron Helm | 3 Ingots | 1 | 75 | Forge | 120 |
+| Helms and shields | Spiked Helm | 4 Ingots | 1 | 90 | Forge | 150 |
+| Helms and shields | Small Shield | 3 Planks, 1 Ingots | 1 | 45 | Workbench | 40 |
+| Helms and shields | Large Shield | 5 Planks, 2 Ingots | 1 | 60 | Workbench | 70 |
+| Helms and shields | Spiked Shield | 4 Ingots, 3 Planks | 1 | 90 | Forge | 120 |
+
+Crafting follows [CRAFT-0007](#craft-0007): the station within one step, every input
+carried, and room for the output ("Thou canst carry no more Arrows!" when 10 more would
+pass 99). Equipment is only ever an output, never an input, so a readied item is never
+spent.
+
+Rationale: each Ingots costs about 50 minutes of mining and smelting, so a forged item
+costs hours of labour that grow with its shop price (Plate Mail about 14 hours), while
+cheap shop goods stay cheaper to buy. A self-sufficient party can arm itself, but magic
+gear still has to be found or bought.
+
+**Implementation:** `internal/references/crafting_recipes_items.go`, `internal/game_state/crafting_craft.go`
+**Tests:** `internal/references/crafting_recipes_items_test.go`, `internal/game_state/crafting_items_test.go`
+
+### CRAFT-0014
+
+**Torches and keys**
+
+**Kind:** rule
+**Uses:** CRAFT-0007, CRAFT-0008
+**Original:** Established
+**Redux:** Intentional deviation
+
+The original buys torches and keys. With the option on, the Provisions category of the Craft
+menu (formerly Food) holds cooking ([CRAFT-0008](#craft-0008)) and two more recipes, which
+add to the party's original provision stacks:
+
+| Recipe | Inputs | Output | Minutes | Station |
+| --- | --- | --- | ---: | --- |
+| Torches | 1 Wood, 1 Forage | 2 Torches | 10 | Workbench |
+| Key | 1 Ingots | 1 Keys | 20 | Forge |
+
+Torches and keys are small stacks (cap 99). Food still comes only from the Fireplace.
+
+Rationale: light and keys are the two provisions a party burns through away from towns.
+
+**Implementation:** `internal/references/crafting_recipes_items.go`
+**Tests:** `internal/game_state/crafting_items_test.go`
+
+### CRAFT-0015
+
+**Potions**
+
+**Kind:** rule
+**Uses:** CRAFT-0007, CRAFT-0008
+**Original:** Established
+**Redux:** Intentional deviation
+
+The original finds potions but never mixes them. With the option on, the Alchemy table
+mixes each of the eight original potions from a fixed reagent recipe, one of each listed
+reagent, into the party's potion inventory (small stacks, cap 99). Crafted potions are the
+original potions and keep their original effects, including unreliable labels. A recipe
+borrows the reagents of the matching spell where one exists.
+
+| Potion | Inputs | Minutes | Based on |
+| --- | --- | ---: | --- |
+| Blue Potion (awaken) | Sulfurous Ash, Ginseng, Garlic | 30 | An Zu, with ash |
+| Yellow Potion (heal) | Ginseng, Spider Silk | 30 | Mani |
+| Red Potion (cure poison) | Ginseng, Garlic | 30 | An Nox |
+| Green Potion (poison) | Blood Moss, Nightshade | 30 | - |
+| Orange Potion (sleep) | Ginseng, Spider Silk, Nightshade | 30 | In Zu |
+| Purple Potion (rat form) | Spider Silk, Blood Moss, Mandrake Root | 30 | - |
+| Black Potion (invisibility) | Blood Moss, Nightshade, Mandrake Root | 30 | Sanct Lor |
+| White Potion (x-ray) | Sulfurous Ash, Mandrake Root | 30 | Wis An Ylem |
+
+Craft menu rows name reagents by short names, as [CRAFT-0019](#craft-0019) describes.
+
+Rationale: potions are the alchemist's staple; spell reagents make the recipes guessable
+for players who know the magic system.
+
+**Implementation:** `internal/references/crafting_recipes_items.go`, `internal/references/item_potion.go`
+**Tests:** `internal/references/crafting_recipes_items_test.go`, `internal/game_state/crafting_items_test.go`
+
+### CRAFT-0016
+
+**Scrolls**
+
+**Kind:** rule
+**Uses:** CRAFT-0007, CRAFT-0008, CRAFT-0015
+**Original:** Established
+**Redux:** Intentional deviation
+
+The original finds scrolls but never writes them. With the option on, the Alchemy table
+writes each of the eight original scrolls from one of each reagent of the matching spell
+and one Planks as paper, into the party's scroll inventory (large stacks, cap 9999). Each
+takes 60 minutes. Crafted scrolls are the original scrolls and read as found ones do.
+
+| Scroll | Reagents (plus 1 Planks) |
+| --- | --- |
+| Vas Lor | Sulfurous Ash, Mandrake Root |
+| Rel Hur | Sulfurous Ash, Blood Moss |
+| In Sanct | Sulfurous Ash, Ginseng, Garlic |
+| In An | Sulfurous Ash, Garlic, Mandrake Root |
+| In Quas Wis | Nightshade, Mandrake Root |
+| Kal Xen Corp | Garlic, Spider Silk, Blood Moss, Mandrake Root |
+| In Mani Corp | Sulfurous Ash, Ginseng, Garlic, Spider Silk, Blood Moss, Mandrake Root |
+| An Tym | Garlic, Blood Moss, Mandrake Root |
+
+Rationale: a scroll is a spell kept on paper; it costs the spell's reagents and labour but
+no mana or level, which the hour of writing and the rare Mandrake Root balance.
+
+**Implementation:** `internal/references/crafting_recipes_items.go`, `internal/references/spell_reagents.go`
+**Tests:** `internal/references/crafting_recipes_items_test.go`, `internal/game_state/crafting_items_test.go`
+
+### CRAFT-0017
+
+**Reagent refining**
+
+**Kind:** rule
+**Uses:** CRAFT-0003, CRAFT-0005, CRAFT-0015, CRAFT-0016
+**Original:** Established
+**Redux:** Intentional deviation
+
+Deed maps grow only five of the eight reagents ([CRAFT-0003](#craft-0003)): Ginseng and
+Garlic on grassland; Spider Silk, Blood Moss and Ginseng in woodland; Sulfurous Ash and
+Blood Moss in the foothills; Sulfurous Ash in the desert. The Alchemy table refines the
+other three from them at a poor rate:
+
+| Recipe | Inputs | Output | Minutes |
+| --- | --- | --- | ---: |
+| Black Pearl | 3 Sulfurous Ash | 1 Black Pearl | 30 |
+| Nightshade | 3 Blood Moss | 1 Nightshade | 30 |
+| Mandrake Root | 3 Ginseng | 1 Mandrake Root | 30 |
+
+Refined reagents go into the original reagent inventory (cap 99) and serve spells as bought
+ones do. With deeds on the right terrains, every potion and scroll can be made from what
+deeds grow alone; reagent shops remain the quicker source.
+
+Rationale: the rare reagents stay rare and slow to make, but no recipe depends on a shop.
+
+**Implementation:** `internal/references/crafting_recipes_items.go`, `internal/references/crafting_data.go`
+**Tests:** `internal/references/crafting_recipes_items_test.go`, `internal/game_state/crafting_items_test.go`
+
+### CRAFT-0018
+
+**Storage chests keep arms, potions and scrolls**
+
+**Kind:** rule
+**Uses:** CRAFT-0011, CRAFT-0013
+**Original:** Established
+**Redux:** Intentional deviation
+
+A storage chest ([CRAFT-0011](#craft-0011)) also keeps the party's equipment (every weapon,
+armour, shield, ammunition, ring and amulet, magic or not), potions and scrolls. Store and
+Take add three rows: Arms and armour, Potions and Scrolls; Everything includes them.
+Storing arms leaves every readied item with the party: only units beyond those readied by
+the active party go into the chest. Each chest slot is capped like the party stack it comes
+from (equipment and potions 99, scrolls 9999). Native save version 26 keeps them in each
+chest's `equipment`, `potions` and `scrolls`.
+
+Rationale: a home's chest should keep spare arms and the alchemist's output, and storing
+must never strip a character's readied weapon.
+
+**Implementation:** `internal/game_state/crafting_chest.go`, `internal/game_state/crafting_save.go`, `internal/save_snapshot/validation_v26.go`
+**Tests:** `internal/game_state/crafting_items_test.go`, `internal/save_snapshot/validation_v26_test.go`
+
+### CRAFT-0019
+
+**Craft menu rows for arms and alchemy**
+
+**Kind:** rule
+**Uses:** CRAFT-0007
+**Original:** Established
+**Redux:** Intentional deviation
+
+The Craft menu lists 16 categories: Tools, Refined materials, Stations, Walls and doors,
+Floors, Tables and chairs, Furnishings, Provisions, Blades, Axes and maces, Bows and wooden
+arms, Body armour, Helms and shields, Potions, Scrolls and Reagent refining. No category
+lists more than nine recipes.
+
+Recipe rows name reagents by their two-letter short names, counted only above one: SA
+Sulfurous Ash, Gi Ginseng, Ga Garlic, SS Spider Silk, BM Blood Moss, BP Black Pearl, NS
+Nightshade, MR Mandrake Root ("In Mani Corp: SA Gi Ga SS BM MR, 1 Planks",
+"Black Pearl: 3 SA"). The description of a category with reagent inputs lists the carried
+Planks and reagents by short name, then the key ("Key: SA Sulfurous Ash, ..."). A row longer than the
+menu (52 characters) whose station is out of reach names only the recipe and the station
+("In Mani Corp (needs Alchemy table)"); its inputs show at the station. Refusals and
+"Crafted" messages use the full names ("Thou dost need an Alchemy table nearby!").
+
+Rationale: rows must fit one line of the menu, which does not scroll, and still say what a
+recipe takes.
+
+**Implementation:** `cmd/ultimav/gamescene_crafting.go`, `internal/references/crafting_recipes.go`, `internal/references/item_reagent.go`
+**Tests:** `cmd/ultimav/gamescene_crafting_gather_test.go`, `internal/references/crafting_recipes_items_test.go`

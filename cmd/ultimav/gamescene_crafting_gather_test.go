@@ -151,3 +151,48 @@ func TestChoosingALackingRecipeSpendsNothing(t *testing.T) {
 	assert.Empty(t, callbacks.TimeAdvanced(), "a refused craft spends no turn")
 	assert.Nil(t, scene.dialogStack.PeekTopModalDialog())
 }
+
+func TestEveryCraftRowFitsTheMenu(t *testing.T) {
+	for _, recipe := range references.CraftRecipes() {
+		for _, option := range []game_state.CraftRecipeOption{
+			{Recipe: recipe, Affordable: true, StationReady: true},
+			{Recipe: recipe, Affordable: false, StationReady: true},
+			{Recipe: recipe, Affordable: false, StationReady: false},
+		} {
+			assert.LessOrEqual(t, len(craftMenuRowLabel(option)), craftMenuRowMaxChars, craftMenuRowLabel(option))
+		}
+	}
+	scroll, _ := references.CraftRecipeByID(references.RecipeScrollInManiCorp)
+	assert.Equal(t, "In Mani Corp: SA Gi Ga SS BM MR, 1 Planks (lacking)",
+		craftMenuRowLabel(game_state.CraftRecipeOption{Recipe: scroll, StationReady: true}))
+	assert.Equal(t, "In Mani Corp (needs Alchemy table)", craftMenuRowLabel(game_state.CraftRecipeOption{Recipe: scroll}),
+		"a row too long away from its station drops its inputs")
+	sword, _ := references.CraftRecipeByID(references.RecipeLongSword)
+	assert.Equal(t, "Long Sword: 4 Ingots, 1 Planks (needs Forge)", craftMenuRowLabel(game_state.CraftRecipeOption{Recipe: sword}))
+}
+
+func TestAlchemyMenusExplainTheReagentShortNames(t *testing.T) {
+	scene, _ := newCraftingChordScene(t, references.BritanniaUnderworld, true, ebiten.KeyAltLeft)
+	inventory := &scene.gameState.PartyState.Inventory
+	inventory.Materials.Set(references.Planks, 4)
+	inventory.Materials.Set(references.Wood, 9)
+	for _, reagent := range references.ReagentCatalog() {
+		inventory.Reagent.Set(reagent, 0)
+	}
+	inventory.Reagent.Set(references.Garlic, 3)
+
+	craftThroughScene(t, scene, references.CraftCategoryPotions, references.RecipeBluePotion)
+
+	// Away from an Alchemy table the craft is refused; reopen the menu to read it.
+	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
+	categories := topCraftingMenu(t, scene)
+	for index, category := range references.CraftCategories() {
+		if category == references.CraftCategoryPotions {
+			categories.ActivateButton(index)
+		}
+	}
+	menu := topCraftingMenu(t, scene)
+	assert.Contains(t, menu.Description(), "Thou dost carry 4 Planks, 3 Ga.")
+	assert.Contains(t, menu.Description(), "Key: SA Sulfurous Ash, Gi Ginseng, Ga Garlic")
+	assert.Equal(t, "Blue Potion: SA Gi Ga (needs Alchemy table)", menu.ButtonTexts()[0])
+}

@@ -305,6 +305,7 @@ func TestCraftingManualCapture(t *testing.T) {
 	rig.capture("07-meadow-deed-centre")
 	rig.captureGathering()
 	rig.captureBuilding()
+	rig.captureArmsAndAlchemy()
 	rig.state().MapState.PlayerLocation.Position = references.Position{X: references.DeedMapEntry.X, Y: 31}
 	rig.command(ebiten.KeyDown)
 	rig.pump(10)
@@ -709,7 +710,7 @@ func (r *craftingManualRig) captureBuilding() {
 	inventory.Materials.Set(references.Forage, 4)
 	r.scene.output.Clear()
 	r.chord(ebiten.KeyC)
-	r.menuChoose(r.menuRow("Food"))
+	r.menuChoose(r.menuRow("Provisions"))
 	r.capture("19a-cook-menu")
 	r.menuChoose(r.menuRow("Cook food"))
 	r.noon()
@@ -735,6 +736,114 @@ func (r *craftingManualRig) captureBuilding() {
 	r.capture("21a-demolish-prompt")
 	r.direction(ebiten.KeyLeft)
 	r.capture("21b-demolished")
+	r.noon()
+	r.settle()
+}
+
+// captureArmsAndAlchemy covers ref:CRAFT-0013 to ref:CRAFT-0019 on the meadow deed, standing between
+// the Forge (17,18) and the Alchemy table (18,18) that captureBuilding placed: the weapon and
+// armour menus, forging a Long Sword and readying it, the alchemy menus, mixing a potion,
+// writing a scroll and refining a reagent.
+func (r *craftingManualRig) captureArmsAndAlchemy() {
+	r.t.Helper()
+	r.noon()
+	inventory := &r.state().PartyState.Inventory
+	inventory.Materials.Set(references.Ingots, 12)
+	inventory.Materials.Set(references.Planks, 6)
+
+	// The Forge's menus; the Workbench is out of reach from here.
+	r.moveTo(18, 17)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.capture("22a-craft-categories")
+	r.menuChoose(r.menuRow("Blades"))
+	r.capture("22b-blades")
+	r.menuKey(ebiten.KeyEscape)
+	r.menuChoose(r.menuRow("Body armour"))
+	r.capture("22c-body-armour")
+	r.menuKey(ebiten.KeyEscape)
+	r.menuChoose(r.menuRow("Helms and shields"))
+	r.capture("22d-helms-shields")
+	r.menuKey(ebiten.KeyEscape)
+	r.menuKey(ebiten.KeyEscape)
+	r.settle()
+
+	// Forge a Long Sword and ready it on the Avatar through the Ready dialog. The Avatar first
+	// sets down his gear, which stays carried, so the sword fits his Strength.
+	avatar := r.state().PartyState.GetCharacter(0)
+	for _, slot := range references.EquipmentSlots() {
+		avatar.SetEquippedItem(slot, references.NoEquipment)
+	}
+	inventory.Equipment.Set(references.LongSword, 0)
+	r.scene.output.Clear()
+	r.craft("Blades", "Long Sword")
+	r.noon()
+	r.captureWithFeedback("22e-forged-long-sword")
+	require.Equal(r.t, uint16(1), inventory.Equipment.Get(references.LongSword))
+	r.scene.output.Clear()
+	r.command(ebiten.KeyR)
+	r.pump(10)
+	ready, ok := r.scene.dialogStack.PeekTopModalDialog().(*widgets.ReadyEquipmentDialog)
+	require.True(r.t, ok, "R opens the Ready dialog")
+	for range 60 {
+		if selected, _ := ready.GetSelectedEquipment(); selected == references.LongSword {
+			break
+		}
+		r.press(ebiten.KeyDown)
+	}
+	r.capture("22f-ready-dialog")
+	r.press(ebiten.KeyEnter)
+	r.pump(10)
+	r.capture("22g-long-sword-readied")
+	require.Equal(r.t, references.LongSword, avatar.GetEquippedItem(references.SlotWeapon), "the forged sword is readied")
+	r.press(ebiten.KeyEscape)
+	r.settle()
+
+	// Alchemy: the menus, a potion, a scroll and a refined reagent.
+	for _, reagent := range references.ReagentCatalog() {
+		inventory.Reagent.Set(reagent, 0)
+	}
+	inventory.Reagent.Set(references.Ginseng, 4)
+	inventory.Reagent.Set(references.SpiderSilk, 2)
+	inventory.Reagent.Set(references.SulfurAsh, 7)
+	inventory.Reagent.Set(references.BloodMoss, 2)
+	inventory.Potions.Set(references.Yellow, 0)
+	inventory.Scrolls.Set(references.ScrollRelHur, 0)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow("Potions"))
+	r.capture("23a-potions")
+	r.menuChoose(r.menuRow("Yellow Potion"))
+	r.noon()
+	r.captureWithFeedback("23b-mixed-potion")
+	require.Equal(r.t, uint16(1), inventory.Potions.Get(references.Yellow))
+
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow("Scrolls"))
+	r.capture("23c-scrolls")
+	r.menuChoose(r.menuRow("Rel Hur"))
+	r.noon()
+	r.captureWithFeedback("23d-written-scroll")
+	require.Equal(r.t, uint16(1), inventory.Scrolls.Get(references.ScrollRelHur))
+
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow("Reagent refining"))
+	r.capture("23e-refining")
+	r.menuChoose(r.menuRow("Black Pearl"))
+	r.noon()
+	r.captureWithFeedback("23f-refined-black-pearl")
+	require.Equal(r.t, uint16(1), inventory.Reagent.Get(references.BlackPearl))
+
+	// Away from the Alchemy table, long rows name only the station.
+	r.moveTo(14, 17)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow("Scrolls"))
+	r.capture("23g-scrolls-away")
+	r.menuKey(ebiten.KeyEscape)
+	r.menuKey(ebiten.KeyEscape)
 	r.noon()
 	r.settle()
 }

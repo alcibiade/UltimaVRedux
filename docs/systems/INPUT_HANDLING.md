@@ -387,7 +387,8 @@ direction prompts) and completes the command cycle only for an attempt
 ([CRAFT-0005](../gamefacts/CRAFTING.md#craft-0005)). Alt+C opens a modal category
 menu, then a recipe menu (Esc returns to the categories), whose choice completes through
 the same cycle, or spends nothing when refused or cancelled
-([CRAFT-0007](../gamefacts/CRAFTING.md#craft-0007)). See
+([CRAFT-0007](../gamefacts/CRAFTING.md#craft-0007)); rows that would not fit one line
+shorten as [CRAFT-0019](../gamefacts/CRAFTING.md#craft-0019) describes. See
 `cmd/ultimav/gamescene_crafting.go`, `gamescene_crafting_build.go`,
 `gamescene_crafting_test.go`, `gamescene_crafting_gather_test.go` and
 `gamescene_crafting_build_test.go`.

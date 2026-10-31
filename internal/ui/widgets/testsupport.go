@@ -310,6 +310,16 @@ func (o *OverlayDialog) IsUserDismissed() bool {
 // GetActiveTab returns the current journal tab.
 func (d *QuestJournalDialog) GetActiveTab() QuestJournalTab { return d.activeTab }
 
+// GetSelectedEquipment returns the highlighted available item, if any.
+func (d *ReadyEquipmentDialog) GetSelectedEquipment() (references.Equipment, bool) {
+	item := d.getSelectedItem()
+	if item == nil {
+		return references.NoEquipment, false
+	}
+
+	return item.Equipment, true
+}
+
 // GetSelectedCharacterIndex returns the currently selected character index
 func (d *ReadyEquipmentDialog) GetSelectedCharacterIndex() int {
 	return d.selectedCharIdx

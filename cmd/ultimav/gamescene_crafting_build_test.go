@@ -141,7 +141,8 @@ func TestOpenOnTheStorageChestStoresAndTakesGoods(t *testing.T) {
 	assert.Equal(t, []string{"Store...", "Take..."}, chest.ButtonTexts())
 	chest.ActivateButton(0)
 	store := topCraftingMenu(t, scene)
-	assert.Equal(t, []string{"Everything", "Materials", "Tools", "Pieces", "Gold", "Food, torches, gems and keys"},
+	assert.Equal(t, []string{"Everything", "Materials", "Tools", "Pieces", "Gold", "Food, torches, gems and keys",
+		"Arms and armour", "Potions", "Scrolls"},
 		store.ButtonTexts())
 	store.ActivateButton(1)
 	assert.Contains(t, callbacks.Messages, "Store materials: 20.")
