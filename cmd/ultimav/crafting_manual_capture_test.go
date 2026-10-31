@@ -613,7 +613,7 @@ func (r *craftingManualRig) captureBuilding() {
 	r.scene.output.Clear()
 	r.noon()
 	r.capture("16d-crafting-stations")
-	r.moveTo(17, 17)
+	r.moveTo(17, 19)
 	r.scene.output.Clear()
 	r.look()
 	r.capture("16e-look-forge")
