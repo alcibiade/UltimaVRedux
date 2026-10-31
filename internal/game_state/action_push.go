@@ -24,7 +24,9 @@ func (g *GameState) ActionPushSmallMap(direction references.Direction) bool {
 	pushableThingTile := smallMap.GetSmallMapPersistentTerrainTile(pushableThingPosition, g.DateTime.Hour)
 
 	// Detailed validation with game state
-	if pushableThingTile == nil || g.ObjectPresentAt(pushableThingPosition) || !pushableThingTile.IsPushable() {
+	// A piece the party built on its deed stays where its placement records it (ref:CRAFT-0009).
+	if pushableThingTile == nil || g.ObjectPresentAt(pushableThingPosition) || !pushableThingTile.IsPushable() ||
+		g.isBuiltDeedPiece(*pushableThingPosition) {
 		g.SystemCallbacks.Message.AddRowStr("Won't budge!")
 
 		return false

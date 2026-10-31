@@ -196,6 +196,18 @@ func (g *GameState) DemolishDeedPiece(direction references.Direction) bool {
 	return true
 }
 
+// isBuiltDeedPiece reports whether the party built a piece on the square of the loaded deed map.
+// Such a piece cannot be pushed or pulled: its placement, chest and station reach stay on its
+// square (ref:CRAFT-0009).
+func (g *GameState) isBuiltDeedPiece(position references.Position) bool {
+	if !g.IsOnDeedMap() {
+		return false
+	}
+	_, built := g.crafting.active.placements[position]
+
+	return built
+}
+
 // forgetTrackedOpenDoorAt drops the player-open door timer when it belongs to the square, without
 // closing the door: the square is about to get a new tile.
 func (g *GameState) forgetTrackedOpenDoorAt(position references.Position) {

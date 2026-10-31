@@ -698,3 +698,25 @@ func TestAnOpenedBuiltDoorSurvivesASaveOnTheDeedMap(t *testing.T) {
 	}
 	assert.False(t, restored.IsPassable(&target), "it closes again as a door")
 }
+
+func TestBuiltPiecesCannotBePushedOrPulled(t *testing.T) {
+	for _, enabled := range []bool{true, false} {
+		state, callbacks, _ := newBuildFixture(t)
+		chest := northOfYard()
+		beyond := references.Position{X: chest.X, Y: chest.Y - 1}
+		buildAt(t, state, references.PieceStoneFloor, yard)
+		buildAt(t, state, references.PieceStoneFloor, chest)
+		buildAt(t, state, references.PieceStoneFloor, beyond)
+		buildAt(t, state, references.PieceStorageChest, chest)
+		state.MapState.PlayerLocation.Position = yard
+		setCraftingEnabled(state, enabled)
+		callbacks.Reset()
+
+		assert.False(t, state.ActionPushSmallMap(references.Up), "a built chest on a brick floor stays put")
+		assert.True(t, callbacks.MessagesContain("Won't budge!"))
+		assert.Equal(t, indexes.SpriteIndex(indexes.Box), liveTile(state, chest))
+		assert.Equal(t, indexes.SpriteIndex(indexes.BrickFloor), liveTile(state, beyond))
+		assert.Equal(t, yard, state.MapState.PlayerLocation.Position)
+		callbacks.AssertTimeAdvanced(0)
+	}
+}
