@@ -369,15 +369,28 @@ does not apply (towns, dungeons, the Underworld, combat, aboard a vehicle) it an
 "Not here!". Refusals open nothing and spend no time. Unlike `Ctrl+N` the chords are
 not release-gated: ordinary single-press debouncing applies. Plain G, C and B, and
 other Alt keys, keep their routing. Alt+B on the overworld opens a modal Build menu
-whose naming prompt completes the command through the surface command cycle. Alt+G on
+whose naming prompt completes the command through the surface command cycle. On a deed
+map Alt+B opens a modal Build menu of carried piece categories and Demolish; a piece
+choice sets `BuildDirectionInput` ("Place-") and Demolish sets `DemolishDirectionInput`
+("Demolish-"). The small-map secondary reader takes either direction, Esc cancels for
+free, and only a placement or demolition completes the command cycle
+([CRAFT-0010](../gamefacts/CRAFTING.md#craft-0010)). Open's direction on the party's own
+storage chest opens a modal chest menu instead of the original footlocker answer; it
+completes the cycle when closed after a transfer and is free otherwise
+([CRAFT-0011](../gamefacts/CRAFTING.md#craft-0011)). Hole Up on the head of the party's
+own bed starts an inn-style rest workflow (with a poison warning menu first when needed)
+instead of the bed-duration prompt ([CRAFT-0012](../gamefacts/CRAFTING.md#craft-0012)).
+Alt+G on
 a deed map shows "Gather-" and sets `GatherDirectionInput`; the deed map's small-map
 secondary reader takes the direction (Esc cancels for free, like the other surface
 direction prompts) and completes the command cycle only for an attempt
-([CRAFT-0005](../gamefacts/CRAFTING.md#craft-0005)). Alt+C opens a modal recipe menu
-whose choice completes through the same cycle, or spends nothing when refused or
-cancelled ([CRAFT-0007](../gamefacts/CRAFTING.md#craft-0007)). See
-`cmd/ultimav/gamescene_crafting.go`, `gamescene_crafting_test.go` and
-`gamescene_crafting_gather_test.go`.
+([CRAFT-0005](../gamefacts/CRAFTING.md#craft-0005)). Alt+C opens a modal category
+menu, then a recipe menu (Esc returns to the categories), whose choice completes through
+the same cycle, or spends nothing when refused or cancelled
+([CRAFT-0007](../gamefacts/CRAFTING.md#craft-0007)). See
+`cmd/ultimav/gamescene_crafting.go`, `gamescene_crafting_build.go`,
+`gamescene_crafting_test.go`, `gamescene_crafting_gather_test.go` and
+`gamescene_crafting_build_test.go`.
 
 The scene owns the exact AtlasDialog instance and freezes elapsed time, calendar,
 RNG, wind, effects and all event queue lanes. Only the top modal updates while

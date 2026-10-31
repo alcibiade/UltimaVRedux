@@ -79,12 +79,45 @@ func TestCraftMenuMarksLackingRowsInText(t *testing.T) {
 
 	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
 
+	categories := topCraftingMenu(t, scene)
+	assert.Equal(t, "Tools (1 ready)", categories.ButtonTexts()[0])
+	assert.Equal(t, "Refined materials (none ready)", categories.ButtonTexts()[1])
+	assert.Contains(t, categories.Description(), "Thou dost carry 2 Wood, 1 Stone.")
+	categories.ActivateButton(0)
 	menu := topCraftingMenu(t, scene)
 	assert.Equal(t, []string{"Axe: 2 Wood, 1 Stone", "Pick: 2 Wood, 2 Stone (lacking)"}, menu.ButtonTexts())
-	assert.Contains(t, menu.Description(), "Thou dost carry 2 Wood, 1 Stone.")
 	menu.Cancel()
+	topCraftingMenu(t, scene).Cancel()
 	assert.Empty(t, callbacks.TimeAdvanced(), "cancelling is free")
 	assert.Nil(t, scene.dialogStack.PeekTopModalDialog())
+}
+
+// craftThroughScene answers Alt+C and picks a category row, then a recipe row.
+func craftThroughScene(t *testing.T, scene *GameScene, category references.CraftCategory, recipe references.CraftRecipeID) {
+	t.Helper()
+	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
+	categories := topCraftingMenu(t, scene)
+	row := 0
+	for index, candidate := range references.CraftCategories() {
+		if candidate == category {
+			row = index
+		}
+	}
+	categories.ActivateButton(row)
+	recipes := topCraftingMenu(t, scene)
+	index := 0
+	for _, candidate := range references.CraftRecipes() {
+		if candidate.Category != category {
+			continue
+		}
+		if candidate.ID == recipe {
+			recipes.ActivateButton(index)
+
+			return
+		}
+		index++
+	}
+	t.Fatalf("recipe %d is not in category %s", recipe, category.Name())
 }
 
 func TestCraftingThroughTheSceneSpendsExactlyTheRecipeMinutes(t *testing.T) {
@@ -99,8 +132,7 @@ func TestCraftingThroughTheSceneSpendsExactlyTheRecipeMinutes(t *testing.T) {
 		scene.gameState.PartyState.Inventory.Materials.Set(references.Stone, 1)
 		callbacks.Reset()
 
-		require.True(t, scene.handleCraftingChord(ebiten.KeyC))
-		topCraftingMenu(t, scene).ActivateButton(0)
+		craftThroughScene(t, scene, references.CraftCategoryTools, references.RecipeAxe)
 
 		assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.Tools.Get(references.Axe))
 		assert.Equal(t, recipe.Minutes, sumSceneMinutes(callbacks.TimeAdvanced()), "on the deed map: %v", onDeed)
@@ -112,8 +144,7 @@ func TestChoosingALackingRecipeSpendsNothing(t *testing.T) {
 	scene, callbacks := newCraftingChordScene(t, references.BritanniaUnderworld, true, ebiten.KeyAltLeft)
 	scene.gameState.PartyState.Inventory.Materials.Set(references.Wood, 1)
 
-	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
-	topCraftingMenu(t, scene).ActivateButton(1)
+	craftThroughScene(t, scene, references.CraftCategoryTools, references.RecipePick)
 
 	assert.Contains(t, callbacks.Messages, "Thou dost need 2 Wood, 2 Stone.")
 	assert.Equal(t, uint16(1), scene.gameState.PartyState.Inventory.Materials.Get(references.Wood))

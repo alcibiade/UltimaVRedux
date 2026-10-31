@@ -57,6 +57,12 @@ func (g *GameScene) surfaceOpenSecondaryWithDialog(
 	onComplete func(surfaceCommandState),
 ) surfaceCommandState {
 	mapType := g.gameState.MapState.PlayerLocation.Location.GetMapType()
+	if position, ok := g.gameState.StorageChestInDirection(direction); ok {
+		// The party's own storage chest opens its contents instead (ref:CRAFT-0011).
+		g.openStorageChest(position, mapType)
+
+		return surfaceCommandDeferred
+	}
 	if !g.gameState.CanOpenSurfaceChest(direction) {
 		if mapType == references.SmallMapType {
 			if g.gameState.ActionOpenSmallMap(direction) {

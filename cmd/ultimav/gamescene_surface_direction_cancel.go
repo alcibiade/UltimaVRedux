@@ -14,7 +14,7 @@ func (g *GameScene) hasUncommittedSurfaceDirection(mapType references.GeneralMap
 	switch g.secondaryKeyState {
 	case GetDirectionInput, PushDirectionInput, OpenDirectionInput, JimmyDoorDirectionInput,
 		KlimbDirectionInput, LookDirectionInput, TalkDirectionInput, SearchDirectionInput, AttackDirectionInput,
-		GatherDirectionInput:
+		GatherDirectionInput, BuildDirectionInput, DemolishDirectionInput:
 		return true
 	case FireDirectionInput:
 		return mapType == references.LargeMapType

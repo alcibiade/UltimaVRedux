@@ -212,6 +212,12 @@ func (g *GameScene) smallMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 	case ebiten.KeyH:
 		g.debugMessage = "Hole Up & Camp"
 		g.gameState.SystemCallbacks.Message.ShowCommandPrompt("Hole up & camp...")
+		if g.gameState.IsOnOwnDeedBed() {
+			// A bed the party built on its own deed rests like an inn (ref:CRAFT-0012).
+			g.beginDeedBedRest(originMapType)
+
+			return
+		}
 		if g.gameState.ActionHoleUpSmallMap() {
 			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
 			g.deferSurfaceCommandCompletion(result)
@@ -327,6 +333,12 @@ func (g *GameScene) smallMapHandleSecondaryInput() {
 	case GatherDirectionInput:
 		g.secondaryKeyState = PrimaryInput
 		result = g.craftingGatherResult(g.gameState.GatherDeedNode(direction), originMapType)
+	case BuildDirectionInput:
+		g.secondaryKeyState = PrimaryInput
+		result = g.craftingGatherResult(g.gameState.BuildDeedPiece(g.pendingBuildPiece, direction), originMapType)
+	case DemolishDirectionInput:
+		g.secondaryKeyState = PrimaryInput
+		result = g.craftingGatherResult(g.gameState.DemolishDeedPiece(direction), originMapType)
 	// CastDirectionInput removed - now handled by spell casting event queue
 	// WindChangeScrollDirectionInput removed - now handled by DirectionPrompt dialog
 	// YellDirectionInput removed - now handled by YellDialog

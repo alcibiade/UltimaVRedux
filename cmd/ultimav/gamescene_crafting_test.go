@@ -253,9 +253,12 @@ func TestCraftingChordsOnADeedMap(t *testing.T) {
 	require.True(t, scene.handleCraftingChord(ebiten.KeyC))
 	topCraftingMenu(t, scene).Cancel()
 	require.True(t, scene.handleCraftingChord(ebiten.KeyB))
+	build := topCraftingMenu(t, scene)
+	assert.Equal(t, []string{"Demolish"}, build.ButtonTexts(), "with no pieces carried only Demolish is offered")
+	assert.Contains(t, build.Description(), "Thou carriest no pieces to build.")
+	build.Cancel()
 
-	assert.Equal(t, []string{"Gather-", "Craft-"}, callbacks.CommandPrompts)
-	assert.Equal(t, []string{"Nothing to build yet!"}, callbacks.Messages)
+	assert.Equal(t, []string{"Gather-", "Craft-", "Build-"}, callbacks.CommandPrompts)
 	assert.Empty(t, callbacks.TimeAdvanced())
 	assert.Equal(t, "Home", scene.mapBorderLabel())
 }

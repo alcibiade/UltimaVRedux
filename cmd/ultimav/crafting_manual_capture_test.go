@@ -304,6 +304,7 @@ func TestCraftingManualCapture(t *testing.T) {
 	rig.state().MapState.PlayerLocation.Position = references.DeedMapCentre
 	rig.capture("07-meadow-deed-centre")
 	rig.captureGathering()
+	rig.captureBuilding()
 	rig.state().MapState.PlayerLocation.Position = references.Position{X: references.DeedMapEntry.X, Y: 31}
 	rig.command(ebiten.KeyDown)
 	rig.pump(10)
@@ -392,7 +393,7 @@ func (r *craftingManualRig) look() {
 	r.direction(ebiten.KeyUp)
 }
 
-// captureGathering covers ref:CRAFT-0005..0007 on the meadow deed: bare-handed gathering, the
+// captureGathering covers ref:CRAFT-0005, ref:CRAFT-0006 and ref:CRAFT-0007 on the meadow deed: bare-handed gathering, the
 // recipe menu, crafting tools, felling a tree, mining ore, picking forage and a reagent, Look
 // on nodes, and a Trammel respawn.
 func (r *craftingManualRig) captureGathering() {
@@ -423,6 +424,8 @@ func (r *craftingManualRig) captureGathering() {
 	r.scene.output.Clear()
 	r.chord(ebiten.KeyC)
 	r.capture("08c-craft-menu")
+	r.menuChoose(r.menuRow("Tools"))
+	r.capture("08c2-craft-tools")
 	r.menuChoose(r.menuRow("Axe"))
 	r.noon()
 	r.captureWithFeedback("08d-crafted-axe")
@@ -448,8 +451,7 @@ func (r *craftingManualRig) captureGathering() {
 	inventory.Materials.Set(references.Wood, 2)
 	inventory.Materials.Set(references.Stone, 2)
 	r.scene.output.Clear()
-	r.chord(ebiten.KeyC)
-	r.menuChoose(r.menuRow("Pick"))
+	r.craft("Tools", "Pick")
 	ore := r.deedNode(references.DeedResourceOre, 0)
 	r.standSouthOf(ore)
 	r.scene.output.Clear()
@@ -503,4 +505,236 @@ func (r *craftingManualRig) settle() {
 		r.pump(1)
 	}
 	r.t.Fatal("workflows never settled")
+}
+
+// craft presses Alt+C and picks a category row, then a recipe row, by their labels.
+func (r *craftingManualRig) craft(category, recipe string) {
+	r.t.Helper()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow(category))
+	r.menuChoose(r.menuRow(recipe))
+}
+
+// buildPieceAt places a carried piece on a square through Alt+B, its category, the piece and a
+// direction, standing on the first free neighbour of the square.
+func (r *craftingManualRig) buildPieceAt(id references.BuildPieceID, x, y int) {
+	r.t.Helper()
+	piece := id.Piece()
+	target := references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}
+	if r.state().PartyState.Inventory.Pieces.Get(id) == 0 {
+		r.state().PartyState.Inventory.Pieces.Set(id, 1)
+	}
+	r.standNextTo(target)
+	r.chord(ebiten.KeyB)
+	r.menuChoose(r.menuRow(piece.Category.Name()))
+	r.menuChoose(r.menuRow(piece.Name + " ("))
+	r.direction(r.directionKeyTo(target))
+	deed, _ := r.state().ActiveDeed()
+	tile, _ := r.state().DeedTileAt(deed.ID, target)
+	require.Equal(r.t, piece.Sprite, tile, "%s was not built at %v", piece.Name, target)
+}
+
+// standNextTo moves the party to a walkable neighbour of a square: south, north, west, then east.
+func (r *craftingManualRig) standNextTo(target references.Position) {
+	r.t.Helper()
+	for _, step := range []references.Position{{Y: 1}, {Y: -1}, {X: -1}, {X: 1}} {
+		stand := references.Position{X: target.X + step.X, Y: target.Y + step.Y}
+		if r.state().IsPassable(&stand) {
+			r.moveTo(int(stand.X), int(stand.Y))
+			r.pump(2)
+
+			return
+		}
+	}
+	r.t.Fatalf("no free square next to %v", target)
+}
+
+func (r *craftingManualRig) directionKeyTo(target references.Position) ebiten.Key {
+	party := r.state().MapState.PlayerLocation.Position
+	switch {
+	case target.Y < party.Y:
+		return ebiten.KeyUp
+	case target.Y > party.Y:
+		return ebiten.KeyDown
+	case target.X < party.X:
+		return ebiten.KeyLeft
+	default:
+		return ebiten.KeyRight
+	}
+}
+
+// captureBuilding covers ref:CRAFT-0008 to ref:CRAFT-0012 on the meadow deed: crafting stations, making
+// planks, the Build menu, a small Ultima V house (stone walls, windows, a door, a wood floor, a
+// bed, a table and chair, a fireplace and a storage chest), storing goods, resting in the bed,
+// cooking at the fireplace and demolishing.
+func (r *craftingManualRig) captureBuilding() {
+	r.t.Helper()
+	r.noon()
+	inventory := &r.state().PartyState.Inventory
+	inventory.Materials.Set(references.Wood, 120)
+	inventory.Materials.Set(references.Stone, 120)
+	inventory.Materials.Set(references.Ore, 12)
+	inventory.Materials.Set(references.Forage, 6)
+
+	// Two stone-floored workshops south of the yard, as a smithy has in a towne.
+	for _, x := range []int{10, 11, 12, 13, 16, 17, 18, 19} {
+		r.buildPieceAt(references.PieceStoneFloor, x, 18)
+	}
+
+	// Bare hands make the first stations, then the stations make the rest.
+	r.moveTo(12, 17)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.capture("16a-craft-categories")
+	r.menuChoose(r.menuRow("Stations"))
+	r.capture("16b-craft-stations")
+	r.menuChoose(r.menuRow("Workbench"))
+	r.craft("Stations", "Sawmill")
+	r.buildPieceAt(references.PieceWorkbench, 11, 18)
+	r.buildPieceAt(references.PieceSawmill, 12, 18)
+	r.moveTo(12, 17)
+	r.scene.output.Clear()
+	r.craft("Refined materials", "Planks")
+	r.craft("Refined materials", "Planks")
+	r.noon()
+	r.captureWithFeedback("16c-making-planks")
+	for range 12 {
+		r.craft("Refined materials", "Cut stone")
+	}
+	r.craft("Stations", "Forge")
+	r.craft("Stations", "Fireplace")
+	r.buildPieceAt(references.PieceForge, 17, 18)
+	r.moveTo(17, 17)
+	r.craft("Refined materials", "Ingots")
+	r.moveTo(12, 17)
+	r.craft("Stations", "Alchemy table")
+	r.buildPieceAt(references.PieceAlchemyTable, 18, 18)
+	r.moveTo(15, 17)
+	r.scene.output.Clear()
+	r.noon()
+	r.capture("16d-crafting-stations")
+	r.moveTo(17, 17)
+	r.scene.output.Clear()
+	r.look()
+	r.capture("16e-look-forge")
+
+	// The Build menu, a category and the direction prompt.
+	r.moveTo(12, 17)
+	r.craft("Walls and doors", "Stone wall")
+	r.moveTo(13, 16)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyB)
+	r.capture("17a-build-menu")
+	r.menuChoose(r.menuRow("Walls and doors"))
+	r.capture("17b-build-walls")
+	r.menuChoose(r.menuRow("Stone wall ("))
+	r.capture("17c-build-direction")
+	r.direction(ebiten.KeyUp)
+	r.noon()
+	r.capture("17d-first-wall")
+
+	// The rest of the house: walls with a fireplace in the north wall, windows and a door in
+	// the south wall, a wood floor, a bed, a table and chair, a bookcase and a storage chest.
+	for x := 11; x <= 17; x++ {
+		piece := references.PieceStoneWall
+		if x == 14 {
+			piece = references.PieceFireplace
+		}
+		r.buildPieceAt(piece, x, 11)
+	}
+	for y := 12; y <= 14; y++ {
+		r.buildPieceAt(references.PieceStoneWall, 11, y)
+		if y == 13 {
+			r.buildPieceAt(references.PieceWindow, 17, y)
+		} else {
+			r.buildPieceAt(references.PieceStoneWall, 17, y)
+		}
+	}
+	for y := 12; y <= 14; y++ {
+		for x := 12; x <= 16; x++ {
+			r.buildPieceAt(references.PieceWoodFloor, x, y)
+		}
+	}
+	r.buildPieceAt(references.PieceBedHead, 12, 12)
+	r.buildPieceAt(references.PieceBedFoot, 13, 12)
+	r.buildPieceAt(references.PieceStorageChest, 16, 12)
+	r.buildPieceAt(references.PieceBookcase, 12, 14)
+	r.buildPieceAt(references.PieceTableWestEnd, 15, 14)
+	r.buildPieceAt(references.PieceTableEastEnd, 16, 14)
+	r.buildPieceAt(references.PieceChairBack, 15, 13)
+	for x := 11; x <= 17; x++ {
+		switch x {
+		case 12, 16:
+			r.buildPieceAt(references.PieceWindow, x, 15)
+		case 14:
+			r.buildPieceAt(references.PieceDoor, x, 15)
+		default:
+			if x != 13 { // 13,15 holds the first wall already.
+				r.buildPieceAt(references.PieceStoneWall, x, 15)
+			}
+		}
+	}
+	r.moveTo(14, 17)
+	r.scene.output.Clear()
+	r.noon()
+	r.capture("17e-house-outside")
+	r.moveTo(14, 16)
+	r.command(ebiten.KeyO)
+	r.direction(ebiten.KeyUp)
+	r.capture("17f-door-open")
+	r.moveTo(14, 13)
+	r.scene.output.Clear()
+	r.noon()
+	r.capture("17g-house-inside")
+
+	// The storage chest: Open shows it; store materials and gold.
+	r.moveTo(15, 12)
+	r.scene.output.Clear()
+	r.command(ebiten.KeyO)
+	r.direction(ebiten.KeyRight)
+	r.capture("18a-chest")
+	r.menuChoose(r.menuRow("Store"))
+	r.capture("18b-chest-store")
+	r.menuChoose(r.menuRow("Materials"))
+	r.menuChoose(r.menuRow("Store"))
+	r.menuChoose(r.menuRow("Gold"))
+	r.capture("18c-chest-stored")
+	r.menuKey(ebiten.KeyEscape)
+	r.settle()
+
+	// Cooking at the fireplace: Forage and Wood make Food.
+	r.moveTo(14, 12)
+	// The chest keeps what was stored; the party brings fresh Forage and Wood.
+	inventory.Materials.Set(references.Wood, 2)
+	inventory.Materials.Set(references.Forage, 4)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyC)
+	r.menuChoose(r.menuRow("Food"))
+	r.capture("19a-cook-menu")
+	r.menuChoose(r.menuRow("Cook food"))
+	r.noon()
+	r.captureWithFeedback("19b-cooked-food")
+
+	// Resting in the bed, wounded, in the evening.
+	r.moveTo(12, 12)
+	r.state().PartyState.GetCharacter(0).SetHp(5)
+	r.state().DateTime.Hour, r.state().DateTime.Minute = 19, 0
+	r.scene.output.Clear()
+	r.capture("20a-in-bed")
+	r.command(ebiten.KeyH)
+	r.pump(80)
+	r.capturePlain("20b-sleeping")
+	r.settle()
+	r.capture("20c-rested")
+
+	// Demolishing the bookcase returns it to stock.
+	r.moveTo(13, 14)
+	r.scene.output.Clear()
+	r.chord(ebiten.KeyB)
+	r.menuChoose(r.menuRow("Demolish"))
+	r.capture("21a-demolish-prompt")
+	r.direction(ebiten.KeyLeft)
+	r.capture("21b-demolished")
+	r.noon()
+	r.settle()
 }

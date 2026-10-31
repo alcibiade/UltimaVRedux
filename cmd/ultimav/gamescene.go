@@ -66,6 +66,10 @@ const (
 	SurfaceQuitInput
 	// GatherDirectionInput waits for the direction of an Alt+G gather on a deed map (ref:CRAFT-0005).
 	GatherDirectionInput
+	// BuildDirectionInput waits for the square an Alt+B piece is placed on (ref:CRAFT-0010).
+	BuildDirectionInput
+	// DemolishDirectionInput waits for the square an Alt+B Demolish clears (ref:CRAFT-0010).
+	DemolishDirectionInput
 )
 
 // VisualEffect represents a temporary visual effect on screen
@@ -209,7 +213,9 @@ type GameScene struct {
 	// Real-time tracking for effects
 	lastEffectsUpdate time.Time
 
-	secondaryKeyState             InputState
+	secondaryKeyState InputState
+	// pendingBuildPiece is the piece a BuildDirectionInput prompt places (ref:CRAFT-0010).
+	pendingBuildPiece             references.BuildPieceID
 	transientCommandInput         transientCommandInputState
 	observedSailingStopEpoch      uint64
 	surfaceSpellWorkflowOwnsCycle bool

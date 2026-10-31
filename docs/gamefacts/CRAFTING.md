@@ -6,8 +6,8 @@ Configure option **Crafting and Deeds** (`Gameplay.Crafting.Enabled`). While the
 is off, the crafting chords answer "What?", a deed's hut is plain scenery that Enter
 answers with "What?", and every original rule applies. Deeds, huts, materials and tools
 already owned are kept, so switching the option back on restores them. Tunable numbers
-live in one table, `internal/references/crafting_data.go`; this topic quotes the
-defaults. The design and delivery order are recorded in ADR-014; this topic covers what
+live in `internal/references` (`crafting_data.go`, `crafting_recipes.go` and
+`crafting_pieces.go`); this topic quotes the defaults. The design and delivery order are recorded in ADR-014; this topic covers what
 is implemented now.
 
 ### CRAFT-0001
@@ -36,15 +36,18 @@ A command applies only with the party on foot. Gather applies on the party's own
 map ([CRAFT-0004](#craft-0004)); Craft and Build apply on the overworld surface (floor 0)
 and on deed maps. Towns, dungeons, the Underworld, combat and vehicles answer
 "Not here!". Gather harvests resource nodes ([CRAFT-0005](#craft-0005)), Craft makes
-tools ([CRAFT-0007](#craft-0007)), and Build stakes deeds on the overworld
-([CRAFT-0002](#craft-0002)). In this version Build on a deed map answers
-"Nothing to build yet!" without spending time.
+tools, materials, pieces and food ([CRAFT-0007](#craft-0007)), and Build stakes deeds on
+the overworld ([CRAFT-0002](#craft-0002)) and places or demolishes pieces on deed maps
+([CRAFT-0010](#craft-0010)).
 
 The party carries seven materials (Wood, Stone, Ore, Forage, Planks, Cut stone,
-Ingots; large stacks capped at 9999) and two tools (Axe, Pick; small stacks capped at
-99). Ztats lists carried ones under Material and Tool. Native save version 26 stores
-the stock and every deed in its `crafting` member; saves from versions 24 and 25 load
-with none.
+Ingots; large stacks capped at 9999), two tools (Axe, Pick; small stacks capped at
+99) and 26 build pieces ([CRAFT-0009](#craft-0009); small stacks capped at 99). Ztats
+lists carried ones under Material, Tool and Piece. Native save version 26 stores the
+stock and every deed in its `crafting` member; saves from versions 24 and 25 load
+with none. With the option off, built pieces stay on deed maps as ordinary tiles,
+their storage chests keep their contents, and the original Open and Hole Up rules
+apply to them.
 
 Rationale: an opt-in sandbox for players who want to own and shape land, kept apart from
 every original rule it does not touch.
@@ -273,32 +276,248 @@ can see, and the catch-up never depends on whether the deed was visited.
 
 ### CRAFT-0007
 
-**Crafting tools**
+**Crafting**
 
 **Kind:** rule
 **Uses:** CRAFT-0001, CRAFT-0005
 **Original:** Established
 **Redux:** Intentional deviation
 
-Alt+C on the overworld surface or a deed map, on foot, prints "Craft-" and opens a recipe
-menu. Each row names the recipe and its inputs; a row the party cannot make now ends with
-"(lacking)", or "(needs <station>)" once stations exist. The description lists the
-materials carried. Esc closes the menu for free.
+Alt+C on the overworld surface or a deed map, on foot, prints "Craft-" and opens a menu
+of categories: Tools, Refined materials, Stations, Walls and doors, Floors, Tables and
+chairs, Furnishings and Food. Each category row says how many of its recipes can be made
+now ("Tools (1 ready)", or "(none ready)"). Choosing one lists its recipes; each row names
+the recipe and its inputs, and a row the party cannot make now ends with
+"(needs <station>)" when the station is not within reach ([CRAFT-0008](#craft-0008)) or
+"(lacking)" when inputs are missing. The description lists the materials carried. Esc
+on the categories closes the menu for free; Esc on a category's recipes returns to the
+categories.
 
 | Recipe | Inputs | Output | Minutes | Station |
 | --- | --- | --- | --- | --- |
 | Axe | 2 Wood, 1 Stone | 1 Axe | 30 | none |
 | Pick | 2 Wood, 2 Stone | 1 Pick | 30 | none |
 
+Refined materials, stations and food are in [CRAFT-0008](#craft-0008), building pieces in
+[CRAFT-0009](#craft-0009).
+
 Choosing a row checks, in order: the command still applies ("Not here!"), the station is
-within reach, the party carries every input ("Thou dost need 2 Wood, 2 Stone."), and the
-output fits its stack ("Thou canst carry no more Pick!"). A refusal spends nothing and no
-time. A craft spends the inputs, adds the outputs, prints "Crafted 1 Axe." and costs
-exactly the recipe's minutes, the ordinary turn included (two minutes on the overworld,
-one on a deed map). Crafting consumes no game RNG.
+within reach ("Thou dost need a Sawmill nearby!"), the party carries every input
+("Thou dost need 2 Wood, 2 Stone."), and every output fits its stack ("Thou canst carry
+no more Pick!"; food stops at 9999, pieces at 99). A refusal spends nothing and no time.
+A craft spends the inputs, adds the outputs, prints "Crafted 1 Axe." and costs exactly
+the recipe's minutes, the ordinary turn included (two minutes on the overworld, one on a
+deed map). Crafting consumes no game RNG.
 
-Rationale: tools need no station so play can start anywhere; later recipes add stations
-built on deed maps.
+Rationale: tools need no station so play can start anywhere; everything else is made at
+stations built on deed maps.
 
-**Implementation:** `internal/references/crafting_data.go`, `internal/game_state/crafting_craft.go`, `cmd/ultimav/gamescene_crafting.go`
+**Implementation:** `internal/references/crafting_recipes.go`, `internal/game_state/crafting_craft.go`, `cmd/ultimav/gamescene_crafting.go`
 **Tests:** `internal/game_state/crafting_craft_test.go`, `cmd/ultimav/gamescene_crafting_gather_test.go`
+
+### CRAFT-0008
+
+**Stations, refined materials and cooking**
+
+**Kind:** rule
+**Uses:** CRAFT-0007, CRAFT-0010
+**Original:** Established
+**Redux:** Intentional deviation
+
+A station is a build piece ([CRAFT-0009](#craft-0009)) placed on a deed map
+([CRAFT-0010](#craft-0010)). A recipe that needs a station can be made only while a placed
+piece serving as that station stands within one square of the party, diagonals and the
+party's own square included (Chebyshev distance 1), on the deed map the party stands on.
+The overworld has no stations. Each station reuses an original tile and has its own Look
+text:
+
+| Station | Tile | Look |
+| --- | --- | --- |
+| Workbench | fire logs (163) | a sturdy workbench with a vise |
+| Sawmill | stocks (132) | a saw frame for cutting planks |
+| Forge | anvil (88) | a forge and anvil |
+| Alchemy table | water jug table (169) | an alchemist's table with flask and retort |
+| Fireplace | fireplace (188) | a hearth fit for cooking |
+
+A placed Fireplace keeps the original fireplace's properties: it can be walked on and burns
+whoever does.
+
+| Recipe | Inputs | Output | Minutes | Station |
+| --- | --- | --- | --- | --- |
+| Planks | 2 Wood | 4 Planks | 20 | Sawmill |
+| Cut stone | 3 Stone | 2 Cut stone | 20 | Workbench |
+| Ingots | 2 Ore, 1 Wood | 1 Ingots | 30 | Forge |
+| Workbench | 6 Wood, 2 Stone | 1 Workbench | 60 | none |
+| Sawmill | 8 Wood, 4 Stone | 1 Sawmill | 60 | none |
+| Forge | 8 Cut stone, 3 Ore | 1 Forge | 90 | Workbench |
+| Alchemy table | 6 Planks, 1 Ingots | 1 Alchemy table | 60 | Workbench |
+| Fireplace | 6 Cut stone | 1 Fireplace | 60 | Workbench |
+| Cook food | 2 Forage, 1 Wood | 3 Food | 20 | Fireplace |
+
+Cooked food is the party's original food stock (cap 9999), eaten at meals as bought
+food is. The Alchemy table has no recipe yet; potions, scrolls and reagent refining come
+in a later step (ADR-014).
+
+A party with nothing can reach every station: bare hands win Wood and Stone
+([CRAFT-0005](#craft-0005)), which make an Axe and a Pick; tools gather enough for the
+Workbench and Sawmill, which need no station; the Workbench makes Cut stone, and with Ore
+from the Pick, the Forge.
+
+Rationale: stations give a deed a working purpose and pace the economy; the first two need
+no station so the chain can start from bare hands.
+
+**Implementation:** `internal/references/crafting_recipes.go`, `internal/references/crafting_pieces.go`, `internal/game_state/crafting_craft.go`, `internal/game_state/crafting_build.go`
+**Tests:** `internal/game_state/crafting_build_test.go`
+
+### CRAFT-0009
+
+**Build pieces**
+
+**Kind:** rule
+**Uses:** CRAFT-0007
+**Original:** Established
+**Redux:** Intentional deviation
+
+Build pieces are crafted into the party's piece stock (small stacks, cap 99, shown in Ztats
+under Piece) and then placed with Build ([CRAFT-0010](#craft-0010)). Every piece is an
+original map tile and keeps that tile's rules: walls, windows, fences, tables and stations
+block movement; floors, chairs and beds can be walked on; an opened door lets the party
+through. Look describes a placed station, bed or storage chest by what it is ("thy own
+bed", "thy storage chest", with "(empty)" when it holds nothing); every other piece keeps
+its tile's original Look text. Building pieces are made at the Workbench:
+
+| Piece | Category | Tile | Inputs | Made | Minutes |
+| --- | --- | --- | --- | --- | --- |
+| Stone wall | Walls and doors | stone brick wall (79) | 1 Cut stone | 1 | 10 |
+| Window | Walls and doors | glass window (75) | 1 Cut stone, 1 Planks | 1 | 15 |
+| Door | Walls and doors | door (184) | 3 Planks | 1 | 20 |
+| Fence (east-west), Fence (north-south) | Walls and doors | fences (202, 203) | 1 Planks | 1 | 10 |
+| Wood floor | Floors | wood floor (64) | 1 Planks | 2 | 10 |
+| Stone floor | Floors | brick floor (68) | 1 Cut stone | 2 | 10 |
+| Table (west end, middle, east end) | Tables and chairs | tables (148-150) | 2 Planks | 1 | 15 |
+| Chair (forward, left, back, right) | Tables and chairs | chairs (144-147) | 1 Planks | 1 | 10 |
+| Bed (head) and Bed (foot) | Furnishings | beds (171, 172) | 4 Planks | 1 of each | 30 |
+| Dresser, Bookcase | Furnishings | 173, 90 | 3 Planks | 1 | 20 |
+| End table | Furnishings | 165 | 1 Planks | 1 | 10 |
+| Barrel | Furnishings | 166 | 2 Planks | 1 | 15 |
+| Storage chest | Furnishings | footlocker (175) | 4 Planks | 1 | 20 |
+
+The five stations of [CRAFT-0008](#craft-0008) are pieces of the Stations category. Piece
+identities are save identities and are never reordered.
+
+**Implementation:** `internal/references/crafting_pieces.go`, `internal/references/crafting_recipes.go`, `internal/game_state/crafting_build.go`, `internal/game_state/ztats_dossier.go`, `internal/game_state/action_look.go`
+**Tests:** `internal/game_state/crafting_build_test.go`
+
+### CRAFT-0010
+
+**Building and demolishing on a deed map**
+
+**Kind:** rule
+**Uses:** CRAFT-0001, CRAFT-0003, CRAFT-0009, CMD-0006
+**Original:** Established
+**Redux:** Intentional deviation
+
+Alt+B on the party's own deed map prints "Build-" and opens a menu: one row per category
+of carried pieces ("Walls and doors (2 kinds)"), then Demolish. With no pieces it offers
+only Demolish and says how to make pieces. A category lists its carried pieces with their
+counts ("Stone wall (6 carried)"); choosing one prints "Place-" and asks for a direction.
+Demolish prints "Demolish-" and asks for a direction. Esc on any menu or prompt is free.
+
+Placing checks the adjacent square, in order; the first failure is printed and nothing is
+spent:
+
+| Check | Refusal |
+| --- | --- |
+| The command applies (option on, on foot, on the deed map) | "Not here!" |
+| The square lies on the map | "Thou canst not build there!" |
+| No party, creature or item stack stands there | "Something is in the way!" |
+| The square is no resource node, fresh or used up, and lies inside the open interior (at least four squares from every edge, clear of the decorative ring and its fringe) | "Thou canst not build there!" |
+| An earlier piece there is a floor and the new piece is not a floor | "Something is built there!" |
+| With no piece there, the tile is buildable ground (grass, brush, foothills, desert, fields, paths) | "Thou canst not build there!" |
+| The party carries the piece | "Thou hast no <piece>!" |
+
+A placement spends one piece, writes its tile as a deed-map override, prints
+"Built: <piece>." and records the piece and the ground it covered; a piece placed on a
+floor also records the floor beneath. Demolish needs a piece the party built ("Thou didst
+not build that!"), the same free square, an empty storage chest ("Empty the chest
+first!") and room in the piece's stack ("Thou canst carry no more <piece>!"). It restores
+the floor beneath, or else the ground, returns the piece to stock and prints
+"Demolished: <piece>.". A built door opens and closes as a town door
+([CMD-0006](COMMANDS_REFERENCE.md#cmd-0006)); demolishing it while open also drops its
+closing timer, so no door reappears on the cleared square.
+
+Placing and demolishing each cost exactly 5 minutes, the ordinary one-minute deed-map turn
+included; a refusal or cancel costs nothing. Neither consumes game RNG. Native save
+version 26 keeps each deed's placements and the piece stock; placements survive leaving
+and re-entering the deed.
+
+Rationale: building happens at town scale, one tile at a time like every original
+building, and nothing built is ever lost.
+
+**Implementation:** `internal/game_state/crafting_build.go`, `internal/game_state/crafting_save.go`, `cmd/ultimav/gamescene_crafting_build.go`
+**Tests:** `internal/game_state/crafting_build_test.go`, `cmd/ultimav/gamescene_crafting_build_test.go`, `internal/save_snapshot/validation_v26_test.go`
+
+### CRAFT-0011
+
+**Storage chests**
+
+**Kind:** rule
+**Uses:** CRAFT-0010, KARMA-0005
+**Original:** Established
+**Redux:** Intentional deviation
+
+Open on a storage chest the party built on its own deed map, with the option on, prints
+"Storage chest" and shows the chest: what it holds, and Store and Take. Each lists
+Everything, Materials, Tools, Pieces, Gold, and Food, torches, gems and keys (skull keys
+included). Choosing a row moves every unit of those goods; each stack stops at the
+receiving stack's cap (materials, food and gold 9999; tools, pieces, torches, gems and
+keys 99) and the rest stays where it was. The menu prints "Store materials: 20." or
+"Nothing to move." and returns to the chest.
+
+Opening it never changes karma, unlike a town chest
+([KARMA-0005](KARMA.md#karma-0005)). Closing the chest after any move costs the ordinary
+one-minute turn; closing it with nothing moved is free. Contents are saved per deed and
+survive leaving the deed. A chest must be empty before it can be demolished
+([CRAFT-0010](#craft-0010)). With the option off it is an ordinary footlocker and Open
+answers "It's open!" as the original does; its contents wait.
+
+Rationale: a home is somewhere to keep things; no karma is lost for taking one's own goods.
+
+**Implementation:** `internal/game_state/crafting_chest.go`, `cmd/ultimav/gamescene_crafting_build.go`, `cmd/ultimav/gamescene_jimmy_integration.go`
+**Tests:** `internal/game_state/crafting_build_test.go`, `cmd/ultimav/gamescene_crafting_build_test.go`
+
+### CRAFT-0012
+
+**Resting in the party's own bed**
+
+**Kind:** rule
+**Uses:** CAMP-0006, CAMP-0007, CRAFT-0010
+**Original:** Established
+**Redux:** Intentional deviation
+
+In the original, Hole Up on a town bed ([CAMP-0006](CAMPING_MECHANICS.md#camp-0006)) lets
+the party sleep for chosen hours with no healing, and only a paid inn stay
+([CAMP-0007](CAMPING_MECHANICS.md#camp-0007)) restores it. With the option on, Hole Up
+while standing on the head of a bed the party built on its own deed map sleeps the inn's
+night instead, for free:
+
+```
+if any active member is poisoned:
+    warn that poison not cured by dawn is fatal, as at an inn; Esc cancels for free
+"Zzzzzzz...", fade out
+Good members fall asleep; active duration magic ends
+twelve five-minute steps, then nine-minute steps with ring checks, until the hour is 6
+every member not dead: full HP; Avatar and mages MP = Intelligence, bards Int / 2;
+    a member still poisoned dies ("Alas! <name> has died!"); sleepers wake
+fade in, "Rested!", and the party steps out of bed to the east when it can
+```
+
+There is no charge, vacancy check or theft, no meal is eaten in the night (as at an
+inn), and the ordinary one-minute turn completes the command. The foot of the bed, beds
+elsewhere and the option off keep the original bed rules.
+
+Rationale: Hole Up is the original bed command, so a home bed needs no new key; resting
+like an inn without paying is what owning a house buys.
+
+**Implementation:** `internal/game_state/crafting_bed.go`, `internal/game_state/inn_shop.go`, `cmd/ultimav/gamescene_crafting_build.go`, `cmd/ultimav/gamescene_input_smallmap.go`
+**Tests:** `internal/game_state/crafting_build_test.go`, `cmd/ultimav/gamescene_crafting_build_test.go`
