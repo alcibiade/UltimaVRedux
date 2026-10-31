@@ -264,3 +264,25 @@ func (d *UltimaDate) GetMoongateMoonPhase() MoonPhase {
 func (d *UltimaDate) GetTotalDays() int {
 	return int(d.Day-1) + int(d.Month-1)*DaysInMonth + int(d.Year-1)*DaysInMonth*MonthsPerYear
 }
+
+// trammelPhaseChangesPerMonth is how often Trammel's day-indexed phase changes in one 28-day
+// cycle, the wrap from the last day to the first included.
+const trammelPhaseChangesPerMonth = 16
+
+// TrammelPhaseChanges counts the days from the epoch (total day 0) through totalDays on which
+// Trammel's phase differs from the day before. Day 0 itself counts none, and a negative day
+// count returns 0. The count only grows with the date, so it can serve as a monotonic marker
+// for rules that act once per phase change (ref:CRAFT-0006).
+func TrammelPhaseChanges(totalDays int) int {
+	if totalDays <= 0 {
+		return 0
+	}
+	changes := totalDays / DaysInMonth * trammelPhaseChangesPerMonth
+	for day := 1; day <= totalDays%DaysInMonth; day++ {
+		if moonPhases[day][0] != moonPhases[day-1][0] {
+			changes++
+		}
+	}
+
+	return changes
+}

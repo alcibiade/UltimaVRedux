@@ -26,3 +26,13 @@ const (
 	NightShade   Reagent = 6
 	MandrakeRoot Reagent = 7
 )
+
+// Name returns the player-facing reagent name used by inventory and shops.
+func (r Reagent) Name() string {
+	item, ok := newReagentItemReferences()[r]
+	if !ok {
+		return "Unknown"
+	}
+
+	return item.ItemName
+}

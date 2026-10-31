@@ -444,3 +444,234 @@ func IsDeedBuildableGround(sprite indexes.SpriteIndex) bool {
 		return false
 	}
 }
+
+// Gathering rules (ref:CRAFT-0005).
+
+// DeedNodeRule is how one kind of resource node is gathered. A node yields until it has given
+// Capacity successful harvests; it is then used up until a Trammel phase change restores it
+// (ref:CRAFT-0006).
+type DeedNodeRule struct {
+	Kind DeedResourceKind
+	// Capacity is the number of successful harvests a fresh node gives.
+	Capacity int
+	// NeedsTool means the kind is worked with Tool; otherwise it is gathered by hand.
+	NeedsTool bool
+	Tool      Tool
+	// MinYield and MaxYield bound one harvest with the tool, or by hand for hand-gathered kinds.
+	MinYield int
+	MaxYield int
+	// BareHandsOneIn, for a kind that needs a tool, is the chance (one in N) that an attempt
+	// without the tool still yields BareHandsYield. Zero means the tool is required.
+	BareHandsOneIn int
+	BareHandsYield int
+	// Minutes is the whole time of one attempt, the ordinary turn included.
+	Minutes int
+}
+
+// DeedNodeRuleFor returns the gathering rule of a node kind.
+func DeedNodeRuleFor(kind DeedResourceKind) DeedNodeRule {
+	switch kind {
+	case DeedResourceWood:
+		return DeedNodeRule{Kind: kind, Capacity: 4, NeedsTool: true, Tool: Axe, MinYield: 2, MaxYield: 4,
+			BareHandsOneIn: 3, BareHandsYield: 1, Minutes: 10}
+	case DeedResourceStone:
+		return DeedNodeRule{Kind: kind, Capacity: 4, NeedsTool: true, Tool: Pick, MinYield: 2, MaxYield: 3,
+			BareHandsOneIn: 3, BareHandsYield: 1, Minutes: 10}
+	case DeedResourceOre:
+		return DeedNodeRule{Kind: kind, Capacity: 3, NeedsTool: true, Tool: Pick, MinYield: 1, MaxYield: 2, Minutes: 15}
+	case DeedResourceForage:
+		return DeedNodeRule{Kind: kind, Capacity: 3, MinYield: 1, MaxYield: 3, Minutes: 5}
+	case DeedResourceReagent:
+		return DeedNodeRule{Kind: kind, Capacity: 2, MinYield: 1, MaxYield: 2, Minutes: 10}
+	default:
+		panic("unknown deed resource kind")
+	}
+}
+
+// DeedResourceKinds returns every node kind in a stable order.
+func DeedResourceKinds() []DeedResourceKind {
+	return []DeedResourceKind{DeedResourceWood, DeedResourceStone, DeedResourceOre, DeedResourceForage, DeedResourceReagent}
+}
+
+// DeedDepletedSprite is the tile a used-up node shows until it is restored: a felled tree
+// leaves brush, a grubbed-out stump, quarried rocks and a picked cactus leave the terrain's
+// ground, a worked-out ore vein leaves foothills, a picked fruit tree leaves brush and a picked
+// reagent patch leaves a plowed patch.
+func DeedDepletedSprite(terrain DeedTerrain, node DeedResourceNode) indexes.SpriteIndex {
+	//nolint:exhaustive // Only generated node sprites deplete; anything else keeps the terrain's ground.
+	switch node.Sprite {
+	case indexes.Forest3:
+		return indexes.Forest1
+	case indexes.SmallMountains:
+		return indexes.Hills1
+	case indexes.Tree:
+		return indexes.Forest2
+	case indexes.WheatInField:
+		return indexes.PlowedField
+	default:
+		return DeedProfile(terrain).Ground
+	}
+}
+
+// DeedNodeLookName is how Look names a node, for example "an ore vein" or "a patch of Garlic".
+// Spent names the node once used up; Look marks it "(depleted)".
+func DeedNodeLookName(node DeedResourceNode) (fresh, spent string) {
+	switch {
+	case node.Kind == DeedResourceReagent:
+		name := node.Reagent.Name()
+
+		return "a patch of " + name, "a patch of " + name
+	case node.Sprite == indexes.Forest3:
+		return "a stand of timber", "a felled tree"
+	case node.Sprite == indexes.DeadTree:
+		return "a dry stump", "a grubbed-out stump"
+	case node.Sprite == indexes.SmallRockWall:
+		return "a pile of rocks", "a quarried rock pile"
+	case node.Sprite == indexes.SmallMountains:
+		return "an ore vein", "a worked-out ore vein"
+	case node.Sprite == indexes.Tree:
+		return "a fruit tree", "a fruit tree"
+	case node.Sprite == indexes.Cactus:
+		return "a fruiting cactus", "a cactus"
+	default:
+		return "something to gather", "something picked clean"
+	}
+}
+
+// Respawn rules (ref:CRAFT-0006).
+const (
+	// DeedRespawnPercent is the share of used-up nodes on every deed that each Trammel phase
+	// change restores, rounded up.
+	DeedRespawnPercent = 25
+)
+
+// Crafting recipes (ref:CRAFT-0007).
+
+// CraftStation is the deed-map piece a recipe needs within one square of the party. Stations
+// arrive with building (ADR-014 step 3); a recipe with CraftStationNone works wherever Craft
+// applies. The value is not a save identity.
+type CraftStation int
+
+// Crafting stations.
+const (
+	CraftStationNone CraftStation = iota
+)
+
+// Name returns the player-facing station name.
+func (s CraftStation) Name() string {
+	switch s {
+	case CraftStationNone:
+		return "none"
+	default:
+		return "Unknown"
+	}
+}
+
+// CraftGoodsKind says which inventory a recipe input or output belongs to. Later steps add
+// original items (weapons, armour, provisions, potions, scrolls) and building pieces.
+type CraftGoodsKind int
+
+// Kinds of crafting goods.
+const (
+	CraftGoodsMaterial CraftGoodsKind = iota
+	CraftGoodsTool
+	CraftGoodsReagent
+)
+
+// CraftGoods is a quantity of one material, tool or reagent. ID is the Material, Tool or
+// Reagent value, according to Kind.
+type CraftGoods struct {
+	Kind     CraftGoodsKind
+	ID       int
+	Quantity uint16
+}
+
+// MaterialGoods is a quantity of a material.
+func MaterialGoods(material Material, quantity uint16) CraftGoods {
+	return CraftGoods{Kind: CraftGoodsMaterial, ID: int(material), Quantity: quantity}
+}
+
+// ToolGoods is a quantity of a tool.
+func ToolGoods(tool Tool, quantity uint16) CraftGoods {
+	return CraftGoods{Kind: CraftGoodsTool, ID: int(tool), Quantity: quantity}
+}
+
+// ReagentGoods is a quantity of a reagent.
+func ReagentGoods(reagent Reagent, quantity uint16) CraftGoods {
+	return CraftGoods{Kind: CraftGoodsReagent, ID: int(reagent), Quantity: quantity}
+}
+
+// Name returns the goods' player-facing name, without the quantity.
+func (c CraftGoods) Name() string {
+	switch c.Kind {
+	case CraftGoodsMaterial:
+		return Material(c.ID).Name()
+	case CraftGoodsTool:
+		return Tool(c.ID).Name()
+	case CraftGoodsReagent:
+		return Reagent(c.ID).Name()
+	default:
+		return "Unknown"
+	}
+}
+
+// Describe renders goods such as "2 Wood".
+func (c CraftGoods) Describe() string {
+	return strconv.Itoa(int(c.Quantity)) + " " + c.Name()
+}
+
+// DescribeCraftGoods renders a list such as "2 Wood, 1 Stone".
+func DescribeCraftGoods(goods []CraftGoods) string {
+	parts := make([]string, 0, len(goods))
+	for _, item := range goods {
+		parts = append(parts, item.Describe())
+	}
+	if len(parts) == 0 {
+		return "nothing"
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// CraftRecipeID identifies a recipe. Recipes are not saved; the value only needs to be stable
+// within one build.
+type CraftRecipeID int
+
+// Recipes.
+const (
+	RecipeAxe CraftRecipeID = iota
+	RecipePick
+)
+
+// CraftRecipe turns Inputs into Outputs in Minutes (the ordinary turn included), at Station.
+type CraftRecipe struct {
+	ID      CraftRecipeID
+	Name    string
+	Inputs  []CraftGoods
+	Outputs []CraftGoods
+	Minutes int
+	Station CraftStation
+}
+
+// CraftRecipes returns every recipe in menu order.
+func CraftRecipes() []CraftRecipe {
+	return []CraftRecipe{
+		{ID: RecipeAxe, Name: "Axe", Minutes: 30, Station: CraftStationNone,
+			Inputs:  []CraftGoods{MaterialGoods(Wood, 2), MaterialGoods(Stone, 1)},
+			Outputs: []CraftGoods{ToolGoods(Axe, 1)}},
+		{ID: RecipePick, Name: "Pick", Minutes: 30, Station: CraftStationNone,
+			Inputs:  []CraftGoods{MaterialGoods(Wood, 2), MaterialGoods(Stone, 2)},
+			Outputs: []CraftGoods{ToolGoods(Pick, 1)}},
+	}
+}
+
+// CraftRecipeByID returns one recipe.
+func CraftRecipeByID(id CraftRecipeID) (CraftRecipe, bool) {
+	for _, recipe := range CraftRecipes() {
+		if recipe.ID == id {
+			return recipe, true
+		}
+	}
+
+	return CraftRecipe{}, false
+}
