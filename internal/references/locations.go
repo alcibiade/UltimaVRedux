@@ -1,6 +1,7 @@
 package references
 
-// Location identifies a map. Values 1-40 are the original maps; 0xFC-0xFF are virtual locations such as camping.
+// Location identifies a map. Values 0-41 are the original maps; 0xF9-0xFF are virtual locations
+// such as camping. DeedLocation (0x80) is the one shared Redux location of every generated deed map.
 type Location byte
 
 // GeneralMapType is the kind of map a location opens.
@@ -70,6 +71,11 @@ const (
 	CombatRestingShrine Location = 41
 )
 
+// DeedLocation is the single synthetic small-map location shared by every generated deed map
+// (ref:CRAFT-0004). The active deed lives in game state; only one deed map is loaded at a time.
+// 0x80 lies clear of the original values 0x00-0x29 and the virtual values 0xF9-0xFF.
+const DeedLocation Location = 0x80
+
 // Map coordinate system constants for large map wraparound calculations
 // The large map is 256x256 tiles with wraparound at edges
 const (
@@ -82,6 +88,11 @@ const (
 	// DynamicSpawnIndex indicates an entity was spawned dynamically (not from save data)
 	DynamicSpawnIndex = -1
 )
+
+// IsDeedLocation reports whether the location is the shared generated deed map.
+func (l Location) IsDeedLocation() bool {
+	return l == DeedLocation
+}
 
 // GetMapType returns the kind of map this location opens.
 func (l Location) GetMapType() GeneralMapType {

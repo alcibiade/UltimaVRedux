@@ -12,6 +12,49 @@ type SmallLocationReference struct {
 	ListOfFloors         []FloorNumber
 
 	npcRefs *[]NPCReference
+	// outerTile overrides the default surround of a generated map; hasOuterTile marks it set.
+	outerTile    indexes.SpriteIndex
+	hasOuterTile bool
+}
+
+// NewGeneratedSmallLocationReference builds a one-floor small map from generated tiles, with no
+// DATA.OVL name, no original data file and no NPCs (ref:CRAFT-0004). Tiles are indexed [x][y].
+func NewGeneratedSmallLocationReference(
+	location Location,
+	name string,
+	tiles *[XSmallMapTiles][YSmallMapTiles]indexes.SpriteIndex,
+	outer indexes.SpriteIndex,
+) *SmallLocationReference {
+	if location.GetMapType() != SmallMapType {
+		panic("generated small locations must route as small maps")
+	}
+	smr := &SmallLocationReference{
+		Location:             location,
+		FriendlyLocationName: name,
+		SmallMapType:         Dwelling,
+		rawData:              make(map[int]*[XSmallMapTiles][YSmallMapTiles]byte),
+		npcRefs:              &[]NPCReference{},
+		outerTile:            outer,
+		hasOuterTile:         true,
+	}
+	smr.addBlankFloor(0)
+	for x := range XSmallMapTiles {
+		for y := range YSmallMapTiles {
+			smr.rawData[0][x][y] = byte(tiles[x][y])
+		}
+	}
+	smr.EnteringText = smr.getEnteringText()
+
+	return smr
+}
+
+// SetTileNumber replaces one source tile of a generated map, for example a deed tile override.
+// Original maps are immutable sources and panic.
+func (s *SmallLocationReference) SetTileNumber(xy Position, floor FloorNumber, sprite indexes.SpriteIndex) {
+	if !s.hasOuterTile {
+		panic("only generated small maps have mutable source tiles")
+	}
+	s.rawData[int(floor)][xy.X][xy.Y] = byte(sprite)
 }
 
 // NewSingleSmallMapReference initializes location metadata before floor data is loaded.
@@ -131,6 +174,8 @@ func (s *SmallLocationReference) GetExitingText() string {
 		return "Leaving Keep\n\n" + s.FriendlyLocationName
 	case Deceit, Despise, Destard, Wrong, Covetous, Shame, Hythloth, Doom:
 		return "Leaving Dungeon\n\n" + s.FriendlyLocationName
+	case DeedLocation:
+		return "Leaving your land\n\n" + s.FriendlyLocationName
 	case EmptyLocation, CampingLocation, BritanniaUnderworld, CombatRestingShrine,
 		ShrineLocation, CodexLocation, CombatLocation, BlackthornPrison, FinaleLocation:
 		// Non-interactive locations use generic message
@@ -160,6 +205,8 @@ func (s *SmallLocationReference) getEnteringText() string {
 		return "Enter Keep\n\n" + s.FriendlyLocationName
 	case Deceit, Despise, Destard, Wrong, Covetous, Shame, Hythloth, Doom:
 		return "Enter Dungeon\n\n" + s.FriendlyLocationName
+	case DeedLocation:
+		return "Enter your land\n\n" + s.FriendlyLocationName
 	case EmptyLocation, CampingLocation, ShrineLocation, CodexLocation, CombatLocation,
 		BlackthornPrison, FinaleLocation, BritanniaUnderworld, CombatRestingShrine:
 		// These locations have no authored small-map entry message.
@@ -170,6 +217,9 @@ func (s *SmallLocationReference) getEnteringText() string {
 
 // GetOuterTile returns the terrain surrounding the small map.
 func (s *SmallLocationReference) GetOuterTile() indexes.SpriteIndex {
+	if s.hasOuterTile {
+		return s.outerTile
+	}
 	//nolint:exhaustive // Only these two locations override the default grass surround.
 	switch s.Location {
 	case SinVraalsHut:

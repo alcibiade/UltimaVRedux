@@ -72,7 +72,9 @@ func GetMapMasterFromLocation(location Location) SmallMapMasterTypes {
 		return CutOrIntroScene
 	case BritanniaUnderworld:
 		return None
-	case EmptyLocation, CampingLocation, ShrineLocation, CodexLocation, CombatLocation, BlackthornPrison, FinaleLocation:
+	case EmptyLocation, CampingLocation, ShrineLocation, CodexLocation, CombatLocation, BlackthornPrison, FinaleLocation,
+		DeedLocation:
+		// Virtual and generated locations have no original data file.
 	}
 
 	return None
