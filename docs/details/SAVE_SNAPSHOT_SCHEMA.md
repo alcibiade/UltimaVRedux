@@ -66,7 +66,9 @@ The required `crafting` member holds the optional Redux crafting state
   the contents of every built storage chest at `x`/`y`, with `materials` (7, 0–9999),
   `tools` (2, 0–99), `pieces` (26, 0–99), `provisions` (5: torches, gems, keys, skull
   keys and food) and `gold` 0–9999
-  ([CRAFT-0011](../gamefacts/CRAFTING.md#craft-0011)).
+  ([CRAFT-0011](../gamefacts/CRAFTING.md#craft-0011)), plus `equipment` (48, indexed by
+  equipment ID, 0–99), `potions` (8, 0–99) and `scrolls` (8, 0–9999)
+  ([CRAFT-0018](../gamefacts/CRAFTING.md#craft-0018)).
 - In snapshot 26, `openDoor` may also name a door the party built on its deed map:
   location 128, floor 0, with the usual X/Y, countdown and closed tile
   ([CRAFT-0010](../gamefacts/CRAFTING.md#craft-0010)).
@@ -82,7 +84,8 @@ kind's capacity, a placement on a resource node, a duplicate placement square, a
 unknown piece, an `under` that is not the deed's generated tile there, a floor beneath
 a floor or a non-floor beneath a piece, a placement whose square lacks the piece's tile
 as its override, a chest record without a built storage chest (or a built chest without
-one), duplicate chest squares, chest torches, gems, keys or skull keys above 99, a deed
+one), duplicate chest squares, chest torches, gems, keys, skull keys, equipment or potions
+above 99, a deed
 map position off floor 0, and any deed whose
 hut is missing from `mapMutations` (each hut is an ordinary overworld `setTile` of
 sprite 16). Hydration rebuilds the deeds and loads the active deed map before the

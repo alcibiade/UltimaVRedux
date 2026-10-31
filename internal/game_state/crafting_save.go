@@ -124,6 +124,12 @@ var (
 	_ [references.NumberOfBuildPieces - save_snapshot.CraftingPieceCount]struct{}
 	_ [save_snapshot.CraftingChestProvisionCount - NumberOfChestProvisions]struct{}
 	_ [NumberOfChestProvisions - save_snapshot.CraftingChestProvisionCount]struct{}
+	_ [save_snapshot.CraftingChestEquipmentCount - references.NumberOfEquipment]struct{}
+	_ [references.NumberOfEquipment - save_snapshot.CraftingChestEquipmentCount]struct{}
+	_ [save_snapshot.CraftingChestPotionCount - references.NumberOfPotions]struct{}
+	_ [references.NumberOfPotions - save_snapshot.CraftingChestPotionCount]struct{}
+	_ [save_snapshot.CraftingChestScrollCount - references.NumberOfScrolls]struct{}
+	_ [references.NumberOfScrolls - save_snapshot.CraftingChestScrollCount]struct{}
 )
 
 // captureDeedPlacements lists a deed's built pieces and chest contents in row-major order.
@@ -144,6 +150,7 @@ func captureDeedPlacements(deed *Deed) ([]save_snapshot.DeedPlacementSnapshot, [
 			chests = append(chests, save_snapshot.DeedChestSnapshot{
 				X: int(position.X), Y: int(position.Y), Materials: chest.Materials, Tools: chest.Tools,
 				Pieces: chest.Pieces, Provisions: chest.Provisions, Gold: chest.Gold,
+				Equipment: chest.Equipment, Potions: chest.Potions, Scrolls: chest.Scrolls,
 			})
 		}
 	}
@@ -173,6 +180,7 @@ func restoreDeedPlacements(deed *Deed, saved save_snapshot.DeedSnapshot) {
 		position := references.Position{X: references.Coordinate(chest.X), Y: references.Coordinate(chest.Y)}
 		deed.chests[position] = &StorageChest{
 			Materials: chest.Materials, Tools: chest.Tools, Pieces: chest.Pieces, Provisions: chest.Provisions, Gold: chest.Gold,
+			Equipment: chest.Equipment, Potions: chest.Potions, Scrolls: chest.Scrolls,
 		}
 	}
 }

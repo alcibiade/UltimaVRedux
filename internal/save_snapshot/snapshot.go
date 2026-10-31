@@ -48,6 +48,13 @@ const (
 	// CraftingChestProvisionCount is the number of provision slots of a storage chest: torches,
 	// gems, keys, skull keys and food, in references.Provision order.
 	CraftingChestProvisionCount = 5
+	// CraftingChestEquipmentCount is the number of equipment slots of a storage chest
+	// (references.NumberOfEquipment).
+	CraftingChestEquipmentCount = 48
+	// CraftingChestPotionCount is the number of potion slots of a storage chest.
+	CraftingChestPotionCount = 8
+	// CraftingChestScrollCount is the number of scroll slots of a storage chest.
+	CraftingChestScrollCount = 8
 	// DeedMapTiles is the width and height of a deed map.
 	DeedMapTiles = 32
 	// MaxDeedTileOverrides bounds the overrides of one deed: every square of its map.
@@ -141,6 +148,11 @@ type DeedChestSnapshot struct {
 	Pieces     [CraftingPieceCount]uint16          `json:"pieces"`
 	Provisions [CraftingChestProvisionCount]uint16 `json:"provisions"`
 	Gold       uint16                              `json:"gold"`
+	// Equipment, Potions and Scrolls are indexed by references.Equipment, Potion and Scroll
+	// (ref:CRAFT-0018).
+	Equipment [CraftingChestEquipmentCount]uint16 `json:"equipment"`
+	Potions   [CraftingChestPotionCount]uint16    `json:"potions"`
+	Scrolls   [CraftingChestScrollCount]uint16    `json:"scrolls"`
 }
 
 // DeedNodeHarvestSnapshot is the number of harvests taken from one resource node since it was

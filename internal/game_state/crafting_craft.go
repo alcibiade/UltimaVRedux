@@ -64,7 +64,7 @@ func (g *GameState) Craft(id references.CraftRecipeID) error {
 		return fmt.Errorf("%w: %d", ErrCraftUnknownRecipe, id)
 	}
 	if !g.craftStationWithinReach(recipe.Station) {
-		messages.AddRowStr(fmt.Sprintf("Thou dost need a %s nearby!", recipe.Station.Name()))
+		messages.AddRowStr(fmt.Sprintf("Thou dost need %s nearby!", recipe.Station.NameWithArticle()))
 
 		return ErrCraftNeedsStation
 	}
@@ -133,6 +133,12 @@ func (g *GameState) craftGoodsQuantity(goods references.CraftGoods) uint16 {
 		stack, _ := inventory.ProvisionStack(references.Provision(goods.ID))
 
 		return stack.Get()
+	case references.CraftGoodsEquipment:
+		return inventory.Equipment.Get(references.Equipment(goods.ID))
+	case references.CraftGoodsPotion:
+		return inventory.Potions.Get(references.Potion(goods.ID))
+	case references.CraftGoodsScroll:
+		return inventory.Scrolls.Get(references.Scroll(goods.ID))
 	default:
 		panic(fmt.Sprintf("craft goods kind %d has no inventory", goods.Kind))
 	}
@@ -140,9 +146,10 @@ func (g *GameState) craftGoodsQuantity(goods references.CraftGoods) uint16 {
 
 func craftGoodsCap(goods references.CraftGoods) uint16 {
 	switch goods.Kind {
-	case references.CraftGoodsMaterial:
+	case references.CraftGoodsMaterial, references.CraftGoodsScroll:
 		return party_state.ItemQuantityLargeMax
-	case references.CraftGoodsTool, references.CraftGoodsReagent, references.CraftGoodsPiece:
+	case references.CraftGoodsTool, references.CraftGoodsReagent, references.CraftGoodsPiece,
+		references.CraftGoodsEquipment, references.CraftGoodsPotion:
 		return party_state.ItemQuantitySmallMax
 	case references.CraftGoodsProvision:
 		var inventory party_state.Inventory
@@ -172,6 +179,15 @@ func (g *GameState) changeCraftGoods(goods references.CraftGoods, add bool) {
 			panic("gold is never a craft good")
 		}
 		stack, _ = inventory.ProvisionStack(references.Provision(goods.ID))
+	case references.CraftGoodsEquipment:
+		if !add {
+			panic("equipment is never a craft input: its count includes readied items")
+		}
+		stack = *inventory.Equipment.GetQuantity(references.Equipment(goods.ID))
+	case references.CraftGoodsPotion:
+		stack = *inventory.Potions.GetQuantity(references.Potion(goods.ID))
+	case references.CraftGoodsScroll:
+		stack = *inventory.Scrolls.GetQuantity(references.Scroll(goods.ID))
 	default:
 		panic(fmt.Sprintf("craft goods kind %d has no inventory", goods.Kind))
 	}

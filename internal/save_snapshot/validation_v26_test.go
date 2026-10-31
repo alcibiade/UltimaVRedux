@@ -50,7 +50,10 @@ func validCraftingFixture() SaveSnapshot {
 					{X: 15, Y: 13, PieceID: int(references.PieceChairForward), Under: ground(15, 13), FloorPieceID: &floor},
 				},
 				Chests: []DeedChestSnapshot{{X: 14, Y: 13, Materials: [CraftingMaterialCount]uint16{9999},
-					Provisions: [CraftingChestProvisionCount]uint16{4: 9999}, Gold: 9999}},
+					Provisions: [CraftingChestProvisionCount]uint16{4: 9999}, Gold: 9999,
+					Equipment: [CraftingChestEquipmentCount]uint16{int(references.LongSword): 99},
+					Potions:   [CraftingChestPotionCount]uint16{int(references.Yellow): 99},
+					Scrolls:   [CraftingChestScrollCount]uint16{int(references.ScrollInManiCorp): 9999}}},
 				NodeHarvests: []DeedNodeHarvestSnapshot{
 					{X: int(nodes[0].Position.X), Y: int(nodes[0].Position.Y), Harvests: 1},
 					{X: int(nodes[1].Position.X), Y: int(nodes[1].Position.Y), Harvests: references.DeedNodeRuleFor(nodes[1].Kind).Capacity},
@@ -184,6 +187,9 @@ func TestValidateCraftingRejectsEachInvalidShape(t *testing.T) {
 		{"chest torches over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Provisions[0] = 100 }, "crafting.deeds[0].chests[0].provisions[0]", "out_of_range"},
 		{"chest food over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Provisions[4] = 10000 }, "crafting.deeds[0].chests[0].provisions[4]", "out_of_range"},
 		{"chest gold over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Gold = 10000 }, "crafting.deeds[0].chests[0].gold", "out_of_range"},
+		{"chest equipment over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Equipment[30] = 100 }, "crafting.deeds[0].chests[0].equipment[30]", "out_of_range"},
+		{"chest potion over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Potions[1] = 100 }, "crafting.deeds[0].chests[0].potions[1]", "out_of_range"},
+		{"chest scroll over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Scrolls[6] = 10000 }, "crafting.deeds[0].chests[0].scrolls[6]", "out_of_range"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			snapshot := validCraftingFixture()
@@ -249,6 +255,16 @@ func TestV26CraftingCodecAndSchemaAgree(t *testing.T) {
 	chest["gold"] = 0
 	delete(chest, "provisions")
 	assert.Error(t, schema.Validate(document), "chest provisions are required")
+	chest["provisions"] = []any{0, 0, 0, 0, 0}
+	require.NoError(t, schema.Validate(document))
+	chest["equipment"].([]any)[30] = 100
+	assert.Error(t, schema.Validate(document), "the schema caps chest equipment")
+	chest["equipment"].([]any)[30] = 0
+	chest["potions"] = []any{0, 0, 0}
+	assert.Error(t, schema.Validate(document), "the schema needs all eight potion slots")
+	chest["potions"] = []any{0, 0, 0, 0, 0, 0, 0, 0}
+	delete(chest, "scrolls")
+	assert.Error(t, schema.Validate(document), "chest scrolls are required")
 
 	withDoor := validCraftingFixture()
 	withDoor.OpenDoor = &OpenDoorSnapshot{

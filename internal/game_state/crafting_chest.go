@@ -12,6 +12,9 @@ import (
 // built on its own deed map keeps goods across visits, and opening it costs no karma; see
 // ref:CRAFT-0011.
 
+// REDUX DEVIATION: CRAFT-0018: the original has no player storage for arms, potions or scrolls.
+// A storage chest also keeps them, never taking a readied item; see ref:CRAFT-0018.
+
 // StorageChestProvisions are the provisions a storage chest keeps besides gold, in the order of
 // StorageChest.Provisions (references.Provision values 0 to 4).
 //
@@ -31,6 +34,10 @@ type StorageChest struct {
 	Pieces     [references.NumberOfBuildPieces]uint16
 	Provisions [NumberOfChestProvisions]uint16
 	Gold       uint16
+	// Equipment, Potions and Scrolls hold original items (ref:CRAFT-0018).
+	Equipment [references.NumberOfEquipment]uint16
+	Potions   [references.NumberOfPotions]uint16
+	Scrolls   [references.NumberOfScrolls]uint16
 }
 
 // IsEmpty reports whether the chest holds nothing.
@@ -48,12 +55,18 @@ const (
 	StorageChestPieces
 	StorageChestGold
 	StorageChestProvisionsCategory
+	// StorageChestEquipment moves weapons, armour, shields, ammunition, rings and amulets, but
+	// never a readied item (ref:CRAFT-0018).
+	StorageChestEquipment
+	StorageChestPotions
+	StorageChestScrolls
 )
 
 // StorageChestCategories returns every category in menu order.
 func StorageChestCategories() []StorageChestCategory {
 	return []StorageChestCategory{
 		StorageChestMaterials, StorageChestTools, StorageChestPieces, StorageChestGold, StorageChestProvisionsCategory,
+		StorageChestEquipment, StorageChestPotions, StorageChestScrolls,
 	}
 }
 
@@ -70,16 +83,24 @@ func (c StorageChestCategory) Name() string {
 		return "Gold"
 	case StorageChestProvisionsCategory:
 		return "Food, torches, gems and keys"
+	case StorageChestEquipment:
+		return "Arms and armour"
+	case StorageChestPotions:
+		return "Potions"
+	case StorageChestScrolls:
+		return "Scrolls"
 	default:
 		return "Goods"
 	}
 }
 
-// storageChestSlot pairs one party stack with the chest counter that stores it.
+// storageChestSlot pairs one party stack with the chest counter that stores it. Keep is the part
+// of the party stack that never goes into the chest: readied equipment.
 type storageChestSlot struct {
 	party party_state.ItemQuantity
 	chest *uint16
 	limit uint16
+	keep  uint16
 }
 
 func (g *GameState) storageChestSlots(chest *StorageChest, category StorageChestCategory) []storageChestSlot {
@@ -118,6 +139,31 @@ func (g *GameState) storageChestSlots(chest *StorageChest, category StorageChest
 		for index, provision := range StorageChestProvisions {
 			stack, limit := inventory.ProvisionStack(provision)
 			slots = append(slots, storageChestSlot{party: stack, chest: &chest.Provisions[index], limit: limit})
+		}
+
+		return slots
+	case StorageChestEquipment:
+		slots := make([]storageChestSlot, 0, references.NumberOfEquipment)
+		for equipment := references.LeatherHelm; equipment <= references.Ankh; equipment++ {
+			slots = append(slots, storageChestSlot{party: *inventory.Equipment.GetQuantity(equipment),
+				chest: &chest.Equipment[equipment], limit: party_state.ItemQuantitySmallMax,
+				keep: g.readiedArmsQuantity(equipment)})
+		}
+
+		return slots
+	case StorageChestPotions:
+		slots := make([]storageChestSlot, 0, references.NumberOfPotions)
+		for _, potion := range references.PotionCatalog() {
+			slots = append(slots, storageChestSlot{party: *inventory.Potions.GetQuantity(potion),
+				chest: &chest.Potions[potion], limit: party_state.ItemQuantitySmallMax})
+		}
+
+		return slots
+	case StorageChestScrolls:
+		slots := make([]storageChestSlot, 0, references.NumberOfScrolls)
+		for _, scroll := range references.ScrollCatalog() {
+			slots = append(slots, storageChestSlot{party: *inventory.Scrolls.GetQuantity(scroll),
+				chest: &chest.Scrolls[scroll], limit: party_state.ItemQuantityLargeMax})
 		}
 
 		return slots
@@ -170,7 +216,7 @@ func (g *GameState) TransferStorageChest(position references.Position, category 
 	moved := 0
 	for _, slot := range g.storageChestSlots(chest, category) {
 		if store {
-			amount := min(slot.party.Get(), slot.limit-min(slot.limit, *slot.chest))
+			amount := min(slot.party.Get()-min(slot.keep, slot.party.Get()), slot.limit-min(slot.limit, *slot.chest))
 			if amount > 0 && slot.party.DecrementBy(amount) {
 				*slot.chest += amount
 				moved += int(amount)
@@ -212,6 +258,15 @@ func (g *GameState) StorageChestSummary(position references.Position) string {
 	}
 	for index, provision := range StorageChestProvisions {
 		add(chest.Provisions[index], references.ProvisionName(provision))
+	}
+	for equipment := references.LeatherHelm; equipment <= references.Ankh; equipment++ {
+		add(chest.Equipment[equipment], equipment.String())
+	}
+	for _, potion := range references.PotionCatalog() {
+		add(chest.Potions[potion], potion.Name())
+	}
+	for _, scroll := range references.ScrollCatalog() {
+		add(chest.Scrolls[scroll], scroll.Name())
 	}
 	add(chest.Gold, "Gold")
 	if len(parts) == 0 {

@@ -39,3 +39,13 @@ func PotionCatalog() []Potion {
 
 	return potions
 }
+
+// Name returns the identified display name, such as "Blue Potion".
+func (p Potion) Name() string {
+	item, ok := newPotionItemReferences()[p]
+	if !ok {
+		return "Unknown"
+	}
+
+	return item.FullDisplayName()
+}

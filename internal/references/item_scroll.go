@@ -39,3 +39,13 @@ func ScrollCatalog() []Scroll {
 
 	return scrolls
 }
+
+// Name returns the identified display name, such as "Vas Lor Scroll".
+func (s Scroll) Name() string {
+	item, ok := newScrollItemReferences()[s]
+	if !ok {
+		return "Unknown"
+	}
+
+	return item.FullDisplayName()
+}

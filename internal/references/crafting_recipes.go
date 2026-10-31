@@ -53,8 +53,18 @@ func (s CraftStation) Name() string {
 	}
 }
 
-// CraftCategory groups recipes in the Craft menu and build pieces in the Build menu. Later
-// steps append categories (weapons, armour, potions, scrolls). The value is not a save identity.
+// NameWithArticle returns the station name after "a" or "an", such as "an Alchemy table".
+func (s CraftStation) NameWithArticle() string {
+	name := s.Name()
+	if strings.ContainsRune("AEIOU", rune(name[0])) {
+		return "an " + name
+	}
+
+	return "a " + name
+}
+
+// CraftCategory groups recipes in the Craft menu and build pieces in the Build menu. The value is
+// not a save identity.
 type CraftCategory int
 
 // Craft categories, in menu order.
@@ -67,6 +77,16 @@ const (
 	CraftCategoryTables
 	CraftCategoryFurnishings
 	CraftCategoryFood
+	// Original mundane weapons, armour and shields (ref:CRAFT-0013).
+	CraftCategoryBlades
+	CraftCategoryHafted
+	CraftCategoryWoodenWeapons
+	CraftCategoryArmour
+	CraftCategoryHelmsShields
+	// Alchemy (ref:CRAFT-0015 to ref:CRAFT-0017).
+	CraftCategoryPotions
+	CraftCategoryScrolls
+	CraftCategoryRefining
 )
 
 // CraftCategories returns every category in menu order.
@@ -74,6 +94,8 @@ func CraftCategories() []CraftCategory {
 	return []CraftCategory{
 		CraftCategoryTools, CraftCategoryMaterials, CraftCategoryStations, CraftCategoryWalls,
 		CraftCategoryFloors, CraftCategoryTables, CraftCategoryFurnishings, CraftCategoryFood,
+		CraftCategoryBlades, CraftCategoryHafted, CraftCategoryWoodenWeapons, CraftCategoryArmour,
+		CraftCategoryHelmsShields, CraftCategoryPotions, CraftCategoryScrolls, CraftCategoryRefining,
 	}
 }
 
@@ -95,7 +117,24 @@ func (c CraftCategory) Name() string {
 	case CraftCategoryFurnishings:
 		return "Furnishings"
 	case CraftCategoryFood:
-		return "Food"
+		// Cooking, torches and keys (ref:CRAFT-0008, ref:CRAFT-0014).
+		return "Provisions"
+	case CraftCategoryBlades:
+		return "Blades"
+	case CraftCategoryHafted:
+		return "Axes and maces"
+	case CraftCategoryWoodenWeapons:
+		return "Bows and wooden arms"
+	case CraftCategoryArmour:
+		return "Body armour"
+	case CraftCategoryHelmsShields:
+		return "Helms and shields"
+	case CraftCategoryPotions:
+		return "Potions"
+	case CraftCategoryScrolls:
+		return "Scrolls"
+	case CraftCategoryRefining:
+		return "Reagent refining"
 	default:
 		return "Other"
 	}
@@ -106,15 +145,16 @@ func (c CraftCategory) IsBuildCategory() bool {
 	switch c {
 	case CraftCategoryStations, CraftCategoryWalls, CraftCategoryFloors, CraftCategoryTables, CraftCategoryFurnishings:
 		return true
-	case CraftCategoryTools, CraftCategoryMaterials, CraftCategoryFood:
+	case CraftCategoryTools, CraftCategoryMaterials, CraftCategoryFood, CraftCategoryBlades, CraftCategoryHafted,
+		CraftCategoryWoodenWeapons, CraftCategoryArmour, CraftCategoryHelmsShields, CraftCategoryPotions,
+		CraftCategoryScrolls, CraftCategoryRefining:
 		return false
 	default:
 		return false
 	}
 }
 
-// CraftGoodsKind says which inventory a recipe input or output belongs to. Step 4 adds the
-// original weapons, armour and shields (references.Equipment) and step 5 potions and scrolls.
+// CraftGoodsKind says which inventory a recipe input or output belongs to.
 type CraftGoodsKind int
 
 // Kinds of crafting goods.
@@ -127,10 +167,19 @@ const (
 	// CraftGoodsProvision is one of the party's original provisions: food, torches, gems or
 	// keys (references.Provision). Gold is never a craft good.
 	CraftGoodsProvision
+	// CraftGoodsEquipment is an original weapon, armour, shield or ammunition (references.Equipment),
+	// counted in the party's equipment inventory (ref:CRAFT-0013). Recipes only output it: the
+	// inventory count includes readied items, so it is never a recipe input.
+	CraftGoodsEquipment
+	// CraftGoodsPotion is an original potion (references.Potion, ref:CRAFT-0015).
+	CraftGoodsPotion
+	// CraftGoodsScroll is an original scroll (references.Scroll, ref:CRAFT-0016).
+	CraftGoodsScroll
 )
 
-// CraftGoods is a quantity of one material, tool, reagent, piece or provision. ID is the
-// Material, Tool, Reagent, BuildPieceID or Provision value, according to Kind.
+// CraftGoods is a quantity of one material, tool, reagent, piece, provision, equipment item,
+// potion or scroll. ID is the Material, Tool, Reagent, BuildPieceID, Provision, Equipment, Potion
+// or Scroll value, according to Kind.
 type CraftGoods struct {
 	Kind     CraftGoodsKind
 	ID       int
@@ -160,6 +209,21 @@ func PieceGoods(piece BuildPieceID, quantity uint16) CraftGoods {
 // ProvisionGoods is a quantity of an original provision.
 func ProvisionGoods(provision Provision, quantity uint16) CraftGoods {
 	return CraftGoods{Kind: CraftGoodsProvision, ID: int(provision), Quantity: quantity}
+}
+
+// EquipmentGoods is a quantity of an original equipment item.
+func EquipmentGoods(equipment Equipment, quantity uint16) CraftGoods {
+	return CraftGoods{Kind: CraftGoodsEquipment, ID: int(equipment), Quantity: quantity}
+}
+
+// PotionGoods is a quantity of an original potion.
+func PotionGoods(potion Potion, quantity uint16) CraftGoods {
+	return CraftGoods{Kind: CraftGoodsPotion, ID: int(potion), Quantity: quantity}
+}
+
+// ScrollGoods is a quantity of an original scroll.
+func ScrollGoods(scroll Scroll, quantity uint16) CraftGoods {
+	return CraftGoods{Kind: CraftGoodsScroll, ID: int(scroll), Quantity: quantity}
 }
 
 // ProvisionName returns the player-facing name of a provision.
@@ -197,6 +261,12 @@ func (c CraftGoods) Name() string {
 		return BuildPieceID(c.ID).Piece().Name
 	case CraftGoodsProvision:
 		return ProvisionName(Provision(c.ID))
+	case CraftGoodsEquipment:
+		return Equipment(c.ID).String()
+	case CraftGoodsPotion:
+		return Potion(c.ID).Name()
+	case CraftGoodsScroll:
+		return Scroll(c.ID).Name()
 	default:
 		return "Unknown"
 	}
@@ -213,6 +283,39 @@ func DescribeCraftGoods(goods []CraftGoods) string {
 	for _, item := range goods {
 		parts = append(parts, item.Describe())
 	}
+	if len(parts) == 0 {
+		return "nothing"
+	}
+
+	return strings.Join(parts, ", ")
+}
+
+// DescribeCraftGoodsCompact renders a list for a one-line menu row: reagents by their short
+// names, separated by spaces and counted only above one ("3 SA", "Gi Ga"), and other goods as
+// DescribeCraftGoods does, for example "SA Gi Ga, 1 Planks" (ref:CRAFT-0019).
+func DescribeCraftGoodsCompact(goods []CraftGoods) string {
+	parts := make([]string, 0, len(goods))
+	reagents := make([]string, 0, len(goods))
+	flushReagents := func() {
+		if len(reagents) > 0 {
+			parts = append(parts, strings.Join(reagents, " "))
+			reagents = reagents[:0]
+		}
+	}
+	for _, item := range goods {
+		if item.Kind != CraftGoodsReagent {
+			flushReagents()
+			parts = append(parts, item.Describe())
+
+			continue
+		}
+		short := Reagent(item.ID).ShortName()
+		if item.Quantity > 1 {
+			short = strconv.Itoa(int(item.Quantity)) + " " + short
+		}
+		reagents = append(reagents, short)
+	}
+	flushReagents()
 	if len(parts) == 0 {
 		return "nothing"
 	}
@@ -257,6 +360,60 @@ const (
 	RecipeBarrel
 	RecipeStorageChest
 	RecipeCookFood
+	// Original mundane equipment and provisions (ref:CRAFT-0013, ref:CRAFT-0014).
+	RecipeDagger
+	RecipeMainGauche
+	RecipeShortSword
+	RecipeLongSword
+	RecipeTwoHandedSword
+	RecipeThrowingAxe
+	RecipeMace
+	RecipeMorningStar
+	RecipeTwoHandedHammer
+	RecipeTwoHandedAxe
+	RecipeHalberd
+	RecipeClub
+	RecipeSling
+	RecipeSpear
+	RecipeBow
+	RecipeArrows
+	RecipeCrossbow
+	RecipeQuarrels
+	RecipeClothArmour
+	RecipeLeatherArmour
+	RecipeRingMail
+	RecipeScaleMail
+	RecipeChainMail
+	RecipePlateMail
+	RecipeLeatherHelm
+	RecipeChainCoif
+	RecipeIronHelm
+	RecipeSpikedHelm
+	RecipeSmallShield
+	RecipeLargeShield
+	RecipeSpikedShield
+	RecipeTorches
+	RecipeKey
+	// Alchemy (ref:CRAFT-0015 to ref:CRAFT-0017).
+	RecipeBluePotion
+	RecipeYellowPotion
+	RecipeRedPotion
+	RecipeGreenPotion
+	RecipeOrangePotion
+	RecipePurplePotion
+	RecipeBlackPotion
+	RecipeWhitePotion
+	RecipeScrollVasLor
+	RecipeScrollRelHur
+	RecipeScrollInSanct
+	RecipeScrollInAn
+	RecipeScrollInQuasWis
+	RecipeScrollKalXenCorp
+	RecipeScrollInManiCorp
+	RecipeScrollAnTym
+	RecipeRefineBlackPearl
+	RecipeRefineNightShade
+	RecipeRefineMandrakeRoot
 )
 
 // CraftRecipe turns Inputs into Outputs in Minutes (the ordinary turn included), at Station.
@@ -285,6 +442,16 @@ func pieceRecipe(
 // CraftRecipes returns every recipe in menu order. The Workbench and Sawmill need no station, so
 // a party with bare hands can gather, make tools and build its first stations (ref:CRAFT-0008).
 func CraftRecipes() []CraftRecipe {
+	recipes := craftRecipesForPieces()
+	recipes = append(recipes, craftRecipesForEquipment()...)
+	recipes = append(recipes, craftRecipesForAlchemy()...)
+
+	return recipes
+}
+
+// craftRecipesForPieces returns the tools, refined materials, pieces and cooking (ref:CRAFT-0007
+// to ref:CRAFT-0009).
+func craftRecipesForPieces() []CraftRecipe {
 	return []CraftRecipe{
 		{ID: RecipeAxe, Name: "Axe", Category: CraftCategoryTools, Minutes: 30, Station: CraftStationNone,
 			Inputs:  []CraftGoods{MaterialGoods(Wood, 2), MaterialGoods(Stone, 1)},

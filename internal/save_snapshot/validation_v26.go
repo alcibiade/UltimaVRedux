@@ -302,4 +302,13 @@ func validateDeedChestContents(path string, chest DeedChestSnapshot, add func(st
 	if chest.Gold > party_state.ItemQuantityLargeMax {
 		add(path+".gold", "out_of_range", "chest gold exceeds the stack cap")
 	}
+	for index, quantity := range chest.Equipment {
+		check("equipment", index, quantity, party_state.ItemQuantitySmallMax)
+	}
+	for index, quantity := range chest.Potions {
+		check("potions", index, quantity, party_state.ItemQuantitySmallMax)
+	}
+	for index, quantity := range chest.Scrolls {
+		check("scrolls", index, quantity, party_state.ItemQuantityLargeMax)
+	}
 }

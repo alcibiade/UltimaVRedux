@@ -228,6 +228,9 @@ const (
 	NoEquipment      Equipment = 255 // 0xFF in decimal
 )
 
+// NumberOfEquipment is the number of carried equipment identities, LeatherHelm (0) to Ankh (47).
+const NumberOfEquipment = 48
+
 // =============================================================================
 // INTERNAL STRUCTURES
 // =============================================================================

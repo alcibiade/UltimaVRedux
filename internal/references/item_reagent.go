@@ -36,3 +36,33 @@ func (r Reagent) Name() string {
 
 	return item.ItemName
 }
+
+// ShortName returns the two-letter abbreviation that compact crafting menu rows use
+// (ref:CRAFT-0019).
+func (r Reagent) ShortName() string {
+	switch r {
+	case SulfurAsh:
+		return "SA"
+	case Ginseng:
+		return "Gi"
+	case Garlic:
+		return "Ga"
+	case SpiderSilk:
+		return "SS"
+	case BloodMoss:
+		return "BM"
+	case BlackPearl:
+		return "BP"
+	case NightShade:
+		return "NS"
+	case MandrakeRoot:
+		return "MR"
+	default:
+		return "??"
+	}
+}
+
+// ReagentCatalog returns every reagent identity in save-data order.
+func ReagentCatalog() []Reagent {
+	return []Reagent{SulfurAsh, Ginseng, Garlic, SpiderSilk, BloodMoss, BlackPearl, NightShade, MandrakeRoot}
+}
