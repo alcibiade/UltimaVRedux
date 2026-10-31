@@ -202,7 +202,8 @@ func (g *GameScene) craftingGatherResult(attempted bool, origin references.Gener
 // of its recipes can be made now, then the recipes of one category. Every recipe is listed; one
 // the party cannot make now says so in its row. Esc on the categories, or choosing a recipe that
 // cannot be made, spends nothing; Esc on a category's recipes returns to the categories. A craft
-// spends exactly the recipe's minutes, the ordinary turn included.
+// spends exactly the recipe's minutes, the ordinary turn included, and reopens the category's
+// recipes on the same row so the party can craft again; Esc then closes the menu for free.
 func (g *GameScene) beginCraft() {
 	messages := g.gameState.SystemCallbacks.Message
 	messages.ShowCommandPrompt("Craft-")
@@ -217,14 +218,11 @@ func (g *GameScene) openCraftCategoryMenu(finish func(surfaceCommandState)) {
 		finish(surfaceCommandCancelled)
 	})
 	for _, category := range references.CraftCategories() {
-		inCategory := make([]game_state.CraftRecipeOption, 0, len(options))
+		inCategory := craftCategoryOptions(options, category)
 		ready := 0
-		for _, option := range options {
-			if option.Recipe.Category == category {
-				inCategory = append(inCategory, option)
-				if option.Available() {
-					ready++
-				}
+		for _, option := range inCategory {
+			if option.Available() {
+				ready++
 			}
 		}
 		if len(inCategory) == 0 {
@@ -236,24 +234,49 @@ func (g *GameScene) openCraftCategoryMenu(finish func(surfaceCommandState)) {
 		}
 		menu.AddButton(label, func() {
 			g.dialogStack.MustRemoveWidgetInstance(menu)
-			g.openCraftRecipeMenu(category, inCategory, finish)
+			g.openCraftRecipeMenu(category, inCategory, finish, 0, false)
 		})
 	}
 	g.dialogStack.PushModalDialog(menu)
 	g.keyboard.PrepareForTransition(0)
 }
 
+// craftCategoryOptions keeps the options of one category, in menu order.
+func craftCategoryOptions(options []game_state.CraftRecipeOption, category references.CraftCategory) []game_state.CraftRecipeOption {
+	inCategory := make([]game_state.CraftRecipeOption, 0, len(options))
+	for _, option := range options {
+		if option.Recipe.Category == category {
+			inCategory = append(inCategory, option)
+		}
+	}
+
+	return inCategory
+}
+
+// openCraftRecipeMenu lists a category's recipes with row selected. Each craft completes its own
+// command with the ordinary turn, then reopens the menu on the same row with fresh rows while
+// GameState allows it (repeat). After a craft, Esc only closes the menu: every craft has already
+// spent its minutes, so closing spends nothing (ref:CRAFT-0007).
 func (g *GameScene) openCraftRecipeMenu(
 	category references.CraftCategory, options []game_state.CraftRecipeOption, finish func(surfaceCommandState),
+	selected int, repeat bool,
 ) {
 	var menu *widgets.ButtonListModal
 	menu = g.newCraftingMenu(category.Name(), g.craftRecipeMenuDescription(options), func() {
-		g.openCraftCategoryMenu(finish)
+		if !repeat {
+			g.openCraftCategoryMenu(finish)
+		}
 	})
-	for _, option := range options {
+	if repeat {
+		menu.SetEscapeLabel("Close")
+	}
+	for index, option := range options {
 		recipe := option.Recipe
 		menu.AddButton(craftMenuRowLabel(option), func() {
 			g.dialogStack.MustRemoveWidgetInstance(menu)
+			if repeat {
+				g.gameState.SystemCallbacks.Message.ShowCommandPrompt("Craft-")
+			}
 			g.appendToCurrentRowStr(recipe.Name)
 			if err := g.gameState.Craft(recipe.ID); err != nil {
 				finish(surfaceCommandRejected)
@@ -261,8 +284,13 @@ func (g *GameScene) openCraftRecipeMenu(
 				return
 			}
 			finish(surfaceCommandCompleted)
+			if g.gameState.CraftMenuMayStayOpen() {
+				g.openCraftRecipeMenu(category, craftCategoryOptions(g.gameState.CraftRecipeOptions(), category), finish,
+					index, true)
+			}
 		})
 	}
+	menu.SetSelectedIndex(selected)
 	g.dialogStack.PushModalDialog(menu)
 	g.keyboard.PrepareForTransition(0)
 }
@@ -362,7 +390,8 @@ func (g *GameScene) craftingCommandHelpEntries() []widgets.CommandHelpEntry {
 			"on foot: choose a category, then a recipe: tools, refined materials, stations, building pieces, furniture, " +
 			"food, torches and keys, mundane arms and armour (Forge, Workbench), and potions, scrolls and refined " +
 			"reagents (Alchemy table; reagents show as SA, Gi, Ga, SS, BM, BP, NS, MR). Most need a station built " +
-			"within one step; rows say what is lacking. Esc cancels for free."},
+			"within one step; rows say what is lacking. Esc cancels for free. After a craft the menu stays on the " +
+			"same recipe to craft again, each craft taking its own time; Esc then closes it."},
 		{Key: "Alt+B", Purpose: "Build or stake a deed", NextInput: fmt.Sprintf("Optional Crafting and Deeds. "+
 			"On open overworld land, on foot: buy a deed for %d gold and name it; a hut marks it, and Enter on the hut "+
 			"opens your land. On your deed map: place a crafted piece, or Demolish one, then a direction. "+

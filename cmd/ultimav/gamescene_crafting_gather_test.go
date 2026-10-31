@@ -140,6 +140,55 @@ func TestCraftingThroughTheSceneSpendsExactlyTheRecipeMinutes(t *testing.T) {
 	}
 }
 
+func TestCraftingAgainKeepsTheMenuOnTheSameRowAndEachCraftCostsItsMinutes(t *testing.T) {
+	pick, _ := references.CraftRecipeByID(references.RecipePick)
+	for _, onDeed := range []bool{false, true} {
+		scene, callbacks := newCraftingChordScene(t, references.BritanniaUnderworld, true, ebiten.KeyAltLeft)
+		if onDeed {
+			enterCraftingSceneDeed(t, scene)
+			holdCraftingKeys(scene, ebiten.KeyAltLeft)
+		}
+		inventory := &scene.gameState.PartyState.Inventory
+		inventory.Materials.Set(references.Wood, 4)
+		inventory.Materials.Set(references.Stone, 4)
+		inventory.Tools.Set(references.Pick, 0)
+		callbacks.Reset()
+
+		craftThroughScene(t, scene, references.CraftCategoryTools, references.RecipePick)
+
+		assert.Equal(t, pick.Minutes, sumSceneMinutes(callbacks.TimeAdvanced()), "first craft, on the deed map: %v", onDeed)
+		assert.Equal(t, uint16(1), inventory.Tools.Get(references.Pick))
+		assert.Equal(t, uint16(2), inventory.Materials.Get(references.Wood))
+		assert.Contains(t, callbacks.Messages, "Crafted 1 Pick.")
+		again := topCraftingMenu(t, scene)
+		assert.Equal(t, references.CraftCategoryTools.Name(), again.Title())
+		assert.Equal(t, 1, again.SelectedIndex(), "the menu stays on the Pick row")
+		assert.Equal(t, []string{"Axe: 2 Wood, 1 Stone", "Pick: 2 Wood, 2 Stone"}, again.ButtonTexts())
+
+		callbacks.Reset()
+		again.ActivateButton(again.SelectedIndex())
+
+		assert.Equal(t, pick.Minutes, sumSceneMinutes(callbacks.TimeAdvanced()), "second craft, on the deed map: %v", onDeed)
+		assert.Equal(t, []string{"Craft-"}, callbacks.CommandPrompts, "each craft prints its own prompt")
+		assert.Equal(t, uint16(2), inventory.Tools.Get(references.Pick))
+		assert.Zero(t, inventory.Materials.Get(references.Wood))
+		assert.Equal(t, uint16(0), inventory.Materials.Get(references.Stone))
+		assert.Contains(t, callbacks.Messages, "Crafted 1 Pick.")
+		third := topCraftingMenu(t, scene)
+		assert.Equal(t, 1, third.SelectedIndex())
+		assert.Equal(t, []string{"Axe: 2 Wood, 1 Stone (lacking)", "Pick: 2 Wood, 2 Stone (lacking)"}, third.ButtonTexts(),
+			"the lacking markers follow the stock")
+
+		callbacks.Reset()
+		third.Cancel()
+
+		assert.Nil(t, scene.dialogStack.PeekTopModalDialog(), "Esc closes the menu")
+		assert.Empty(t, callbacks.TimeAdvanced(), "closing after crafting spends nothing more")
+		assert.Empty(t, callbacks.Messages)
+		assert.Empty(t, callbacks.CommandPrompts)
+	}
+}
+
 func TestChoosingALackingRecipeSpendsNothing(t *testing.T) {
 	scene, callbacks := newCraftingChordScene(t, references.BritanniaUnderworld, true, ebiten.KeyAltLeft)
 	scene.gameState.PartyState.Inventory.Materials.Set(references.Wood, 1)

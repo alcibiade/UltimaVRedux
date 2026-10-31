@@ -86,3 +86,16 @@ func TestCraftWorksOnTheDeedMapWithTheSmallMapTurn(t *testing.T) {
 	recipe, _ := references.CraftRecipeByID(references.RecipePick)
 	assert.Equal(t, recipe.Minutes-DefaultSmallMapMinutesPerTurn, gatherMinutes(callbacks))
 }
+
+func TestTheCraftMenuStaysOpenOnlyWhileNothingClaimsTheParty(t *testing.T) {
+	state, _, _ := newBuildFixture(t)
+	assert.True(t, state.CraftMenuMayStayOpen(), "on the quiet deed map")
+
+	require.Positive(t, state.StartDeedRaidForTest())
+	assert.False(t, state.CraftMenuMayStayOpen(), "raiders on the deed close it")
+	state.dismissDeedRaiders()
+	assert.True(t, state.CraftMenuMayStayOpen())
+
+	setCraftingEnabled(state, false)
+	assert.False(t, state.CraftMenuMayStayOpen(), "crafting no longer applies")
+}

@@ -92,6 +92,16 @@ func (g *GameState) Craft(id references.CraftRecipeID) error {
 	return nil
 }
 
+// CraftMenuMayStayOpen reports whether the Craft menu may reopen after a craft so the party can
+// craft again at once (ref:CRAFT-0007): the command still applies where the party stands and
+// nothing claims its attention: no combat or contact pending, no raider on the deed map, no
+// blocking workflow, and someone still alive.
+func (g *GameState) CraftMenuMayStayOpen() bool {
+	return g.CraftingCommandApplies(CraftingCraft) && g.CombatScene == nil && !g.PartyState.IsAllPartyDead() &&
+		!g.HasPendingOverworldContact() && !g.IsWaterfallHazardActive() && !g.ShouldDeferOverworldContact() &&
+		g.DeedRaiderCount() == 0
+}
+
 // craftStationWithinReach reports whether a recipe's station is usable where the party stands:
 // a placed piece serving as that station within one square of the party, diagonals included,
 // on the party's own deed map (ref:CRAFT-0008).

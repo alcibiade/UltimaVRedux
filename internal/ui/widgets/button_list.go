@@ -298,6 +298,15 @@ func (b *ButtonListModal) GoUp() {
 	}
 }
 
+// SetSelectedIndex selects a button already added, such as the row chosen before the menu was
+// rebuilt. An index outside the buttons is clamped to the nearest one.
+func (b *ButtonListModal) SetSelectedIndex(index int) {
+	if len(b.items) == 0 {
+		return
+	}
+	b.currentSelectionIndex = max(0, min(index, len(b.items)-1))
+}
+
 // AddButton appends a choice; the first button added becomes the selection.
 func (b *ButtonListModal) AddButton(buttonText string, onClickCallback func()) {
 	b.items = append(b.items, buttonListItem{text: buttonText, callback: onClickCallback})

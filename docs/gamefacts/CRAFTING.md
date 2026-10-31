@@ -322,6 +322,15 @@ A craft spends the inputs, adds the outputs, prints "Crafted 1 Axe." and costs e
 the recipe's minutes, the ordinary turn included (two minutes on the overworld, one on a
 deed map). Crafting consumes no game RNG.
 
+After a craft the menu reopens on the same category with the same row selected, and its
+rows and "(lacking)" markers reflect the new stock, so Enter crafts again at once. Each
+further craft prints "Craft-" and its recipe again, shows its own message and costs its own
+recipe's minutes, the ordinary turn included, exactly as a single craft does. Esc then
+closes the menu, and closing spends nothing: every craft has already completed its turn.
+The menu does not reopen when the turn leaves the party something to attend to: crafting
+no longer applies where it stands, combat or a monster contact is pending, raiders are on
+the deed map, or the party is dead. A refused craft closes the menu, spending nothing.
+
 Rationale: tools need no station so play can start anywhere; everything else is made at
 stations built on deed maps.
 

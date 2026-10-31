@@ -66,6 +66,12 @@ func (b *ButtonListModal) ButtonTexts() []string {
 	return texts
 }
 
+// Title returns the menu's title.
+func (b *ButtonListModal) Title() string { return b.titleText }
+
+// SelectedIndex returns the selected button's index, or -1 when there are no buttons.
+func (b *ButtonListModal) SelectedIndex() int { return b.currentSelectionIndex }
+
 // Description returns the menu's description text.
 func (b *ButtonListModal) Description() string { return b.description }
 
