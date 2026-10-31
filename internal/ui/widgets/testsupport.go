@@ -66,6 +66,12 @@ func (b *ButtonListModal) ButtonTexts() []string {
 	return texts
 }
 
+// Description returns the menu's description text.
+func (b *ButtonListModal) Description() string { return b.description }
+
+// ActivateButton runs the row's callback as Enter on that row would.
+func (b *ButtonListModal) ActivateButton(index int) { b.items[index].callback() }
+
 // GetTitle returns the action-specific dialog title.
 func (d *CharacterSelectionDialog) GetTitle() string { return d.title }
 
@@ -523,3 +529,6 @@ func (d *ZStatsDossierDialog) GetActiveTab() ZStatsDossierTab { return d.activeT
 
 // GetSelectedCharacterPosition returns the selected displayed party position, or -1.
 func (d *ZStatsDossierDialog) GetSelectedCharacterPosition() int { return d.selectedCharacter }
+
+// Cancel runs the menu's close callback as Escape would.
+func (b *ButtonListModal) Cancel() { b.closeNoActionCallback() }

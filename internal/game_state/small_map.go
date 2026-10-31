@@ -10,7 +10,7 @@ import (
 // UpdateSmallMap rebuilds the current town, keep or other small map and its NPC controller, keeping basement chest lifetimes.
 func (g *GameState) UpdateSmallMap(tileRefs *references.Tiles, locs *references.LocationReferences) {
 	chests := g.basementChestLifetimes()
-	slr := locs.GetLocationReference(g.MapState.PlayerLocation.Location)
+	slr := g.locationReferenceFrom(locs, g.MapState.PlayerLocation.Location)
 	previous, wasSmallMap := g.CurrentNPCAIController.(*ai.NPCAIControllerSmallMap)
 	preserveAbsent := wasSmallMap && previous.Location() == slr.Location
 	g.resetAndCreateSmallMap(slr, tileRefs)
@@ -31,7 +31,7 @@ func (g *GameState) resetAndCreateSmallMap(slr *references.SmallLocationReferenc
 // reloadCurrentSmallMapTerrain reproduces load_level(FALSE): source terrain is
 // rebuilt while the current NPC controller and its transient AI state survive.
 func (g *GameState) reloadCurrentSmallMapTerrain() {
-	slr := g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
+	slr := g.locationReference(g.MapState.PlayerLocation.Location)
 	g.rebuildSmallMapTerrain(slr, g.GameReferences.TileReferences, &g.MapState.PlayerLocation.Floor)
 	g.UpdateLighthouseForSmallMap()
 }

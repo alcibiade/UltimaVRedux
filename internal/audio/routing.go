@@ -84,6 +84,10 @@ func resolveAudioAssignment(assignments map[string]*string, target string) strin
 
 func musicFor(routing Routing, location references.Location, floor references.FloorNumber) string {
 	key := locationMusicKey(location)
+	// A generated deed map is open Britannian land and plays the overworld theme (ref:CRAFT-0004).
+	if location.IsDeedLocation() {
+		key = "world/overworld"
+	}
 	if location == references.BritanniaUnderworld {
 		key = "world/overworld"
 		if floor == references.FloorNumber(references.UNDERWORLD) {

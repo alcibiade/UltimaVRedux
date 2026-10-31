@@ -304,6 +304,10 @@ func playerSaveLocationLabel(locationID, floor int) string {
 	if locationID < 0 || locationID > 255 {
 		return fmt.Sprintf("Location %d, floor %d", locationID, floor)
 	}
+	if references.Location(locationID).IsDeedLocation() {
+		// The slot list reads only the location byte; every deed map shares it (ref:CRAFT-0004).
+		return "Your land"
+	}
 
 	name := humanizePlayerSaveLocation(references.Location(locationID).String())
 	if references.Location(locationID).GetMapType() == references.DungeonMapType {

@@ -109,6 +109,7 @@ func (g *GameState) TransitionToLocation(
 
 		// Update map system (calls UpdateLargeMap or UpdateSmallMap)
 		g.updateMapAfterFullTransition()
+		g.releaseDeedMapAfterTransition(location)
 		g.InitializeOutdoorWindow()
 		if previousLocation != location || previousFloor != floor {
 			g.MapState.ResetTransientDoor()

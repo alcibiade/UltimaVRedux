@@ -253,6 +253,8 @@ type GameState struct {
 	atlasFleet              journal.AtlasFleetState
 	atlasNoteSession        *atlasNoteSession
 	moonstoneJournal        [8]journal.MoonstoneObservation
+	// crafting is the optional Redux crafting state: deeds and the active deed map (ref:CRAFT-0001).
+	crafting craftingState
 
 	// Criminal status tracking - guards arrest criminals instead of extortion
 	// Does NOT persist across map transitions (guards forget when you leave)
@@ -388,7 +390,7 @@ func (g *GameState) SetPlayerPosition(pos references.Position) {
 
 // GetCurrentSmallLocationReference returns the current location's static reference.
 func (g *GameState) GetCurrentSmallLocationReference() *references.SmallLocationReference {
-	return g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
+	return g.locationReference(g.MapState.PlayerLocation.Location)
 }
 
 // GetLayeredMapByCurrentLocation resolves the active map type and floor.

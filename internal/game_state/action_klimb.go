@@ -369,7 +369,7 @@ func (g *GameState) CombatKlimbTargetKind() CombatKlimbTargetKind {
 func (g *GameState) CanGoUpOneFloor() bool {
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
 	case references.SmallMapType:
-		locationRef := g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
+		locationRef := g.locationReference(g.MapState.PlayerLocation.Location)
 
 		return locationRef.CanGoUpOneFloor(g.MapState.PlayerLocation.Floor)
 	case references.CombatMapType, references.DungeonMapType:
@@ -386,7 +386,7 @@ func (g *GameState) CanGoUpOneFloor() bool {
 func (g *GameState) CanGoDownOneFloor() bool {
 	switch g.MapState.PlayerLocation.Location.GetMapType() {
 	case references.SmallMapType:
-		locationRef := g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
+		locationRef := g.locationReference(g.MapState.PlayerLocation.Location)
 
 		return locationRef.CanGoDownOneFloor(g.MapState.PlayerLocation.Floor)
 	case references.CombatMapType, references.DungeonMapType:
@@ -453,7 +453,7 @@ func (g *GameState) changeFloorBy(delta references.FloorNumber) {
 func (g *GameState) hardResetSmallMapAfterFloorChange() {
 	// Step 1: Update the layered map for the new floor
 	// This handles floor-specific terrain without recreating the NPC controller
-	slr := g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
+	slr := g.locationReference(g.MapState.PlayerLocation.Location)
 	g.resetAndCreateSmallMap(slr, g.GameReferences.TileReferences)
 	// Terrain reconstruction applies vegetation effects once to fresh source terrain,
 	// before scheduled NPC placement. Floor travel retains presence even after midnight moves

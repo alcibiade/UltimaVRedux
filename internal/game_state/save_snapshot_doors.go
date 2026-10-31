@@ -53,6 +53,19 @@ func validateOpenDoorSnapshotCompatibility(
 	mutations []save_snapshot.MapMutationSnapshot,
 	gameReferences *references.GameReferences,
 ) error {
+	return validateOpenDoorSnapshotSource(door, world, mutations, gameReferences,
+		gameReferences.LocationReferences.GetLocationReference)
+}
+
+// validateOpenDoorSnapshotSource is validateOpenDoorSnapshotCompatibility with an explicit source
+// map resolver, so a door on a generated deed map is read from the snapshot's own deed.
+func validateOpenDoorSnapshotSource(
+	door *save_snapshot.OpenDoorSnapshot,
+	world save_snapshot.PositionSnapshot,
+	mutations []save_snapshot.MapMutationSnapshot,
+	gameReferences *references.GameReferences,
+	sourceFor func(references.Location) *references.SmallLocationReference,
+) error {
 	if door == nil {
 		return nil
 	}
@@ -70,7 +83,7 @@ func validateOpenDoorSnapshotCompatibility(
 	if door.RemainingTurns < 0 || door.RemainingTurns > map_state.DefaultOpenDoorTurns || !indexes.SpriteIndex(door.ClosedTile).IsUnlockedDoor() {
 		return errors.New("openDoor: invalid countdown or closed variant")
 	}
-	source := gameReferences.LocationReferences.GetLocationReference(location)
+	source := sourceFor(location)
 	base := source.GetTileNumber(playerLocation(position).Position, references.FloorNumber(position.Floor))
 	override := indexes.NoSprites
 	for _, mutation := range mutations {

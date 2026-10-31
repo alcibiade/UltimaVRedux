@@ -382,6 +382,11 @@ func (g *GameScene) Update(game *Game) error {
 	if g.handleCommandHelpShortcut(acceptedKey) {
 		return nil
 	}
+	// One guard ahead of every map's routing (and of intoxicated movement) owns the optional
+	// Alt crafting chords, so they never become Get, Cast or Board (ref:CRAFT-0001).
+	if g.handleCraftingChord(acceptedKey) {
+		return nil
+	}
 	g.clearSurfaceCameraForInput(acceptedKey)
 	if g.handleQuestJournalShortcut(
 		acceptedKey,

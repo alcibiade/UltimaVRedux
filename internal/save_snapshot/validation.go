@@ -47,6 +47,9 @@ func validateSnapshot(snapshot SaveSnapshot, expectedVersion int) []Issue {
 			add("excerpts", "invalid", err.Error())
 		}
 	}
+	if expectedVersion >= 26 {
+		validateCrafting(snapshot, add)
+	}
 	validateWorldJournal(snapshot, add)
 	validateChestAssessments(snapshot, add)
 	validateOpenDoor(snapshot, add)

@@ -51,7 +51,9 @@ func EvaluateSextantEligibility(context SextantContext) SextantEligibility {
 }
 
 func isSurfaceSextantSettlement(location references.Location) bool {
-	return location >= references.Moonglow && location <= references.SerpentsHold && location != references.Ararat
+	// A deed map is surface land; its exterior is the deed's hut square (ref:CRAFT-0004).
+	return location >= references.Moonglow && location <= references.SerpentsHold && location != references.Ararat ||
+		location.IsDeedLocation()
 }
 
 func isUseAstronomyNight(hour uint8) bool {
@@ -84,6 +86,13 @@ func (g *GameState) CurrentSextantEligibility() SextantEligibility {
 
 // Reference-backed adapters reject nonexistent floors and malformed exteriors.
 func (g *GameState) sextantSettlementExterior(context SextantContext) (references.PlayerLocation, bool) {
+	if context.Location.IsDeedLocation() {
+		if g.crafting.active == nil || context.Floor != 0 {
+			return references.PlayerLocation{}, false
+		}
+
+		return references.PlayerLocation{Location: references.BritanniaUnderworld, Floor: 0, Position: g.crafting.active.Square}, true
+	}
 	refs := g.GameReferences.LocationReferences
 	local := refs.GetLocationReference(context.Location)
 	if local == nil || local.Location != context.Location || !slices.Contains(local.ListOfFloors, context.Floor) {

@@ -94,6 +94,11 @@ func (g *GameState) ResolveEnterLargeMap() EnterLargeMapOutcome {
 		}
 	}
 
+	// A deed square is never a world location; its hut leads to the deed map (ref:CRAFT-0004).
+	if g.ResolveEnterDeed() {
+		return EnterLargeMapTransition
+	}
+
 	newLocation := g.GameReferences.LocationReferences.WorldLocations.GetLocationByPosition(
 		g.MapState.PlayerLocation.Position)
 
@@ -271,7 +276,8 @@ func (g *GameState) StartEnterLocationWorkflow(slr *references.SmallLocationRefe
 			}
 
 			g.SystemCallbacks.UI.ShowActionFeedback(slr.EnteringText, true)
-			if preparedDungeon == nil {
+			// The Atlas already carries the deed's own pin; a deed is not a public landmark.
+			if preparedDungeon == nil && !slr.Location.IsDeedLocation() {
 				g.observeAtlasLandmark(entranceLocation.Position, entranceKind,
 					atlasPresentedEntryName(slr.EnteringText), journal.AtlasSourceEnter, entranceObservation)
 			}
@@ -373,12 +379,18 @@ func (g *GameState) ThenExitLocationTransition() func(
 
 		return q.Then(func() {
 			currentLocation := g.MapState.PlayerLocation.Location
-			slr := g.GameReferences.LocationReferences.GetLocationReference(currentLocation)
+			slr := g.locationReference(currentLocation)
 			exitingText = "Leaving..."
 			if slr != nil {
 				exitingText = slr.GetExitingText()
 			}
 
+			// A deed map is not in DATA.OVL's world table; it leads back to its hut (ref:CRAFT-0004).
+			if currentLocation.IsDeedLocation() {
+				exitPosition, exitFloor = g.deedExit()
+
+				return
+			}
 			exitPosition, exitFloor = g.GameReferences.LocationReferences.WorldLocations.GetWorldLocation(currentLocation)
 		}).
 			Animate(EnterFadeOutMs, func(progress float32) {

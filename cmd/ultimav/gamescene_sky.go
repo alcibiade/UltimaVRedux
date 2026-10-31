@@ -77,7 +77,8 @@ func projectSky(date datetime.UltimaDate) skyStrip {
 }
 
 func skyEligible(player references.PlayerLocation) bool {
-	return player.Location <= references.SerpentsHold && player.Location != references.Ararat && player.Floor >= 0
+	return (player.Location <= references.SerpentsHold && player.Location != references.Ararat ||
+		player.Location.IsDeedLocation()) && player.Floor >= 0
 }
 
 // skyOrigin retains the real world/floor when the viewport is a tactical map.

@@ -2,7 +2,7 @@
 
 ## Status
 
-This document describes native envelope version 2 and canonical `SaveSnapshot` version 25 in
+This document describes native envelope version 2 and canonical `SaveSnapshot` version 26 in
 `internal/save_snapshot`, its strict native envelope, and the runtime
 capture/hydration boundary.
 
@@ -12,13 +12,14 @@ Original-save conversion dispositions are recorded in the
 For headless command-line conversion and loading either a standalone snapshot or
 a player slot, follow the [save converter procedure](SAVE_CONVERTER.md).
 The executable Draft 2020-12 contract is
-[`native-save-e2-s25.schema.json`](../schemas/native-save-e2-s25.schema.json), with
-frozen V16–V24 sibling resources loaded locally. Assert its version-aware
+[`native-save-e2-s26.schema.json`](../schemas/native-save-e2-s26.schema.json), with
+frozen V16–V25 sibling resources loaded locally. Assert its version-aware
 `ultima5-world-journal` format as well as structural validation. Go DTOs and the
 strict codec in `internal/save_snapshot` own the current wire contract.
-Version 24 (first shipped in `v0.1.0-preview.1`) is the only frozen strict
-promotion source, described by
-[`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json).
+Versions 24 (first shipped in `v0.1.0-preview.1`) and 25 are the frozen strict
+promotion sources, described by
+[`native-save-e2-s24.schema.json`](../schemas/native-save-e2-s24.schema.json) and
+[`native-save-e2-s25.schema.json`](../schemas/native-save-e2-s25.schema.json).
 Frozen V16–V23 schemas remain solely because later schemas reuse their
 definitions; they are not decode paths. See
 [Snapshot Version Compatibility](#snapshot-version-compatibility).
@@ -32,6 +33,35 @@ Public availability does not change accepted fields, validation constraints,
 envelope or snapshot versions, or promotion.
 
 ## Principles
+
+### Snapshot 26 Crafting
+
+The required `crafting` member holds the optional Redux crafting state
+([CRAFT-0001](../gamefacts/CRAFTING.md#craft-0001), ADR-014):
+
+- `materials`: seven quantities 0–9999 in catalog order (Wood, Stone, Ore, Forage,
+  Planks, Cut stone, Ingots); `tools`: two quantities 0–99 (Axe, Pick).
+- `deeds` (null or an array): each deed has a unique non-negative `id`, a `name` of
+  1–24 printable ASCII characters with no surrounding spaces, its overworld hut
+  square `x`/`y`, a `terrain` key (`grassland`, `forest`, `hills`, `desert`), the
+  `generatorVersion` and 32-bit `seed` its map was generated with, and
+  `tileOverrides` (null or an array of `x`/`y` 0–31 and `sprite` 0–255): only the
+  deed-map squares that differ from the generated map
+  ([CRAFT-0003](../gamefacts/CRAFTING.md#craft-0003)). The 1024 generated tiles are
+  never stored; the map is regenerated on load.
+- `activeDeedId`: the deed whose map the party stands on, required exactly when
+  `world.position.location` is the shared deed location 128, and null otherwise
+  ([CRAFT-0004](../gamefacts/CRAFTING.md#craft-0004)).
+
+The Go validator also rejects duplicate deed squares, orthogonally adjacent deeds
+(with wrap-around), unknown terrains, generator versions this build cannot
+regenerate, duplicate overrides, a deed map position off floor 0, and any deed whose
+hut is missing from `mapMutations` (each hut is an ordinary overworld `setTile` of
+sprite 16). Hydration rebuilds the deeds and loads the active deed map before the
+current small map, so a save made on a deed map resolves location 128 through its own
+deed; deed maps never enter the shared reference tables, so deeds of one game cannot
+appear after loading another. Later crafting steps extend the deed record in place
+while version 26 is unreleased. V24 and V25 promote with an empty `crafting` member.
 
 ### Snapshot 25 Save-Owned Excerpts
 
@@ -415,8 +445,8 @@ Fixed collection sizes are 16 roster slots, 48 equipment entries, 48 spells, 8 s
 `internal/save_snapshot/snapshot.go` owns field names/types, including the
 checkpoint-local `presentation`, `lastConversation`, `dungeonJournal`,
 `moonstoneJournal`, `atlasLandmarks`, `openDoor`, `basementChestHistory`,
-`atlasNotes`, `atlasFleet`, and `codexRevelationComplete` values.
-The current [JSON schema](../schemas/native-save-e2-s25.schema.json) and `codec.go`
+`atlasNotes`, `atlasFleet`, `codexRevelationComplete`, and `crafting` values.
+The current [JSON schema](../schemas/native-save-e2-s26.schema.json) and `codec.go`
 own required/null/unknown-member rules;
 `validation.go` and the version-specific validators own semantic
 constraints. Use those executable definitions when changing the wire shape.
@@ -883,7 +913,7 @@ NPCs, objects, or progression. See [SPELL-0002](../gamefacts/MAGIC_SPELLS.md#spe
 
 ### Implemented Invariants
 
-- Current snapshot version must equal 25; V24 decode validates its frozen source version before promotion. Vacant roster slots must be zero-valued, occupied names are 1-9 bytes, and character numeric fields fit their runtime ranges. HP cannot exceed maximum HP and MP cannot exceed Intelligence. Occupied records accept only gender `0x0b`/`0x0c`, class `A`/`F`/`B`/`M`, status `G`/`P`/`C`/`S`/`D`, and `partyMap` `0`, `1..40`, `0x7f`, or `0xff`. Slot zero must be occupied, active, and Avatar class without requiring a literal Avatar name. Active characters form a packed prefix of at most six slots.
+- Current snapshot version must equal 26; V24 and V25 decode validate their frozen source version before promotion. Vacant roster slots must be zero-valued, occupied names are 1-9 bytes, and character numeric fields fit their runtime ranges. HP cannot exceed maximum HP and MP cannot exceed Intelligence. Occupied records accept only gender `0x0b`/`0x0c`, class `A`/`F`/`B`/`M`, status `G`/`P`/`C`/`S`/`D`, and `partyMap` `0`, `1..40`, `0x7f`, or `0xff`. Slot zero must be occupied, active, and Avatar class without requiring a literal Avatar name. Active characters form a packed prefix of at most six slots.
 - Karma is 0-99. NPC flag pairs must be in range and unique within each met/dead collection. Native snapshots retain the original zero-based town index (`0..31`); hydration translates it to canonical runtime location IDs (`1..32`) and capture translates it back. See [SAVE-0005](../gamefacts/SAVED_GAM_STRUCTURE.md#save-0005).
 - `continuation.activePlayerIndex` is `-1` or `0..5` and must identify an eligible active-party character when selected. `continuation.beggarKarmaCounter` is `0..255`; `continuation.combatActionTimeCounter` is `0..9`; all continuation booleans are required.
 - Food/gold are at most 9999; gems, torches, keys, skull keys, equipment, spells, potions, reagents, quest items, and moonstones use their runtime maxima; scrolls are at most 9999.
@@ -993,9 +1023,10 @@ Quick Save authority over a player slot.
 
 ### Snapshot Version Compatibility
 
-Within a valid envelope 2, strict decode accepts snapshot version 25
-(`CurrentVersion`) and promotes version 24 (`MinimumVersion`, first shipped in
-`v0.1.0-preview.1`). V24 retains all state; it only receives empty excerpts plus
+Within a valid envelope 2, strict decode accepts snapshot version 26
+(`CurrentVersion`) and promotes versions 25 and 24 (`MinimumVersion`, first shipped in
+`v0.1.0-preview.1`). Both retain all state and receive empty
+[crafting](#snapshot-26-crafting); V24 also receives empty excerpts plus
 the application-level notebook import described
 [above](#snapshot-25-save-owned-excerpts). Promotion consumes no time or RNG and
 never rewrites the source record. Named-record and slot revisions use the
@@ -1005,7 +1036,7 @@ Versions 23 and older, plus future versions, return a typed
 `UnsupportedVersionError`. Player slots holding them list as incompatible with a
 reviewed revision, so they can be overwritten or deleted. Original `SAVED.GAM`
 import is unaffected and always produces the current version. New encoding
-always emits version 25 and rejects the private reconstruction hint.
+always emits version 26 and rejects the private reconstruction hint.
 
 Metadata is not part of gameplay equality comparisons unless explicitly requested.
 

@@ -25,7 +25,8 @@ func (g *GameScene) handleCommandHelpShortcut(key ebiten.Key) bool {
 
 func (g *GameScene) showCommandHelp() {
 	var dialog *widgets.CommandHelpDialog
-	dialog = widgets.NewCommandHelpDialog(commandHelpEntries(g.gameState.MapState.PlayerLocation.Location.GetMapType()),
+	entries := append(commandHelpEntries(g.gameState.MapState.PlayerLocation.Location.GetMapType()), g.craftingCommandHelpEntries()...)
+	dialog = widgets.NewCommandHelpDialog(entries,
 		g.currentHelpStatus(), g.keyboard, func() { g.dialogStack.MustRemoveWidgetInstance(dialog) })
 	g.dialogStack.PushModalDialog(dialog)
 }

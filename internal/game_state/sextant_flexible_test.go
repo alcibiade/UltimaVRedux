@@ -17,7 +17,9 @@ func TestFlexibleSextantPurePolicyAllHoursAndMaps(t *testing.T) {
 				context := SextantContext{HasSextant: true, Flexible: true, Location: references.Location(location), Floor: floor, Hour: hour}
 				want := SextantReady
 				world := location == 0 && floor == 0
-				settlement := location >= 1 && location <= 32 && location != 25 && floor >= -1 && floor <= 3
+				// Deed maps (ref:CRAFT-0004) follow the settlement policy; their single floor is checked later.
+				settlement := (location >= 1 && location <= 32 && location != 25 || location == int(references.DeedLocation)) &&
+					floor >= -1 && floor <= 3
 				if !world && !settlement {
 					want = SextantNotOverworld
 				} else if hour == 24 {

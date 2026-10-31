@@ -52,7 +52,14 @@ func ValidateSaveSnapshotCompatibility(snapshot save_snapshot.SaveSnapshot, game
 	if err := validatePersonalSnapshotCompatibility(snapshot, gameReferences); err != nil {
 		return err
 	}
-	if err := validateOpenDoorSnapshotCompatibility(snapshot.OpenDoor, snapshot.World.Position, snapshot.MapMutations, gameReferences); err != nil {
+	sourceFor := func(location references.Location) *references.SmallLocationReference {
+		if location.IsDeedLocation() {
+			return deedLocationReferenceFromSnapshot(snapshot)
+		}
+
+		return gameReferences.LocationReferences.GetLocationReference(location)
+	}
+	if err := validateOpenDoorSnapshotSource(snapshot.OpenDoor, snapshot.World.Position, snapshot.MapMutations, gameReferences, sourceFor); err != nil {
 		return err
 	}
 	if err := validateSnapshotWorldCompatibility(snapshot.World, snapshot.Wind, gameReferences); err != nil {
@@ -318,6 +325,15 @@ func validateSnapshotPosition(gameReferences *references.GameReferences, path st
 			return fmt.Errorf("%s: large-map world reference is unavailable", path)
 		}
 	case references.SmallMapType:
+		if location.IsDeedLocation() {
+			// A deed map is generated from the snapshot's own deed; structural validation ties
+			// world.position to crafting.activeDeedId (ref:CRAFT-0004).
+			if position.Floor != 0 || position.X >= int(references.XSmallMapTiles) || position.Y >= int(references.YSmallMapTiles) {
+				return fmt.Errorf("%s: coordinates are outside the deed map", path)
+			}
+
+			return nil
+		}
 		locationReference := gameReferences.LocationReferences.GetLocationReference(location)
 		if locationReference == nil {
 			return fmt.Errorf("%s: location reference %d is unavailable", path, position.Location)
@@ -389,6 +405,7 @@ func (g *GameState) CaptureSaveSnapshot() (save_snapshot.SaveSnapshot, error) {
 	g.captureEffects(&snapshot)
 	g.captureContinuation(&snapshot)
 	g.captureRedux(&snapshot)
+	g.captureCrafting(&snapshot)
 	g.captureDungeon(&snapshot)
 	wind := g.windSystem.Snapshot()
 	snapshot.Wind = save_snapshot.WindSnapshot{Direction: int(wind.Direction), UpdateCounter: wind.UpdateCounter, NextTickMs: wind.NextTickMs}
@@ -873,7 +890,7 @@ func (g *GameState) baseTile(location references.Location, floor references.Floo
 		return g.GameReferences.OverworldLargeMapReference.GetSpriteIndex(position.X, position.Y)
 	}
 
-	return g.GameReferences.LocationReferences.GetLocationReference(location).GetTileNumber(position, floor)
+	return g.locationReference(location).GetTileNumber(position, floor)
 }
 
 func positionSnapshot(location references.PlayerLocation) save_snapshot.PositionSnapshot {
@@ -898,6 +915,8 @@ func NewGameStateFromSaveSnapshot(snapshot save_snapshot.SaveSnapshot, gameConfi
 	}
 	g.restoreContinuation(snapshot.Continuation)
 	g.restoreWorld(snapshot)
+	// Deeds precede map hydration: a save on a deed map resolves its location through them.
+	g.restoreCrafting(snapshot.Crafting)
 	g.restoreBasementChestHistory(snapshot)
 	g.initializeMoongateStage()
 	g.lordBritishPassageOpen = snapshot.Redux.LordBritishPassageOpen
@@ -1115,7 +1134,7 @@ func (g *GameState) initializeSnapshotMapsAndControllers() {
 	case references.LargeMapType:
 		g.CurrentNPCAIController = g.GetCurrentLargeMapNPCAIController()
 	case references.SmallMapType:
-		slr := g.GameReferences.LocationReferences.GetLocationReference(g.MapState.PlayerLocation.Location)
+		slr := g.locationReference(g.MapState.PlayerLocation.Location)
 		g.resetAndCreateSmallMap(slr, g.GameReferences.TileReferences)
 		g.CurrentNPCAIController = ai.NewNPCAIControllerSmallMap(slr, g.GameReferences.TileReferences, &g.MapState, &g.DateTime, g,
 			basementChestPopulationChecker{state: g, preserveAbsent: false})

@@ -68,7 +68,7 @@ func CalculateProjectileDuration(
 	dy := toY - fromY
 	distance := math.Sqrt(dx*dx + dy*dy)
 	speed := ProjectilePixelsPerMs
-	if location >= references.Moonglow && location <= references.SerpentsHold {
+	if location >= references.Moonglow && location <= references.SerpentsHold || location.IsDeedLocation() {
 		speed = projectileTownPixelsPerMs
 	} else if missile == references.MissileRock {
 		speed = projectileRockPixelsPerMs

@@ -6,7 +6,7 @@ import "github.com/bradhannah/UltimaVRedux/internal/journal"
 
 const (
 	// CurrentVersion is the native snapshot schema version.
-	CurrentVersion = 25
+	CurrentVersion = 26
 	// MinimumVersion is the oldest native snapshot schema this build promotes.
 	// It shipped in v0.1.0-preview.1; older native saves are unsupported.
 	MinimumVersion = 24
@@ -39,6 +39,14 @@ const (
 	SearchBitmaskBytes = 24
 	// DungeonRoomProgressBytes is the fixed byte length of cleared dungeon-room state.
 	DungeonRoomProgressBytes = 14
+	// CraftingMaterialCount is the number of crafting material slots (references.NumberOfMaterials).
+	CraftingMaterialCount = 7
+	// CraftingToolCount is the number of crafting tool slots (references.NumberOfTools).
+	CraftingToolCount = 2
+	// DeedMapTiles is the width and height of a deed map.
+	DeedMapTiles = 32
+	// MaxDeedTileOverrides bounds the overrides of one deed: every square of its map.
+	MaxDeedTileOverrides = DeedMapTiles * DeedMapTiles
 )
 
 // SaveSnapshot is the complete versioned native gameplay state DTO.
@@ -69,8 +77,41 @@ type SaveSnapshot struct {
 	AtlasNotes              journal.AtlasNotesState             `json:"atlasNotes"`
 	AtlasFleet              journal.AtlasFleetState             `json:"atlasFleet"`
 	CodexRevelationComplete bool                                `json:"codexRevelationComplete"`
+	Crafting                CraftingSnapshot                    `json:"crafting"`
 
 	reconstructMapUnits bool
+}
+
+// CraftingSnapshot is the optional Redux crafting state (ref:CRAFT-0001, ADR-014).
+// ActiveDeedID names the deed whose map the party stands on; it is null unless
+// world.position is the shared deed location (references.DeedLocation).
+type CraftingSnapshot struct {
+	Materials    [CraftingMaterialCount]uint16 `json:"materials"`
+	Tools        [CraftingToolCount]uint16     `json:"tools"`
+	Deeds        []DeedSnapshot                `json:"deeds"`
+	ActiveDeedID *int                          `json:"activeDeedId"`
+}
+
+// DeedSnapshot is one deed. X and Y are its hut square on the overworld. The deed map is not
+// stored: it is regenerated from Terrain, GeneratorVersion and Seed, and TileOverrides lists the
+// squares that differ from the generated map (ref:CRAFT-0003). Later crafting steps extend this
+// record in place (snapshot version 26 is unreleased).
+type DeedSnapshot struct {
+	ID               int                        `json:"id"`
+	Name             string                     `json:"name"`
+	X                int                        `json:"x"`
+	Y                int                        `json:"y"`
+	Terrain          string                     `json:"terrain"`
+	GeneratorVersion int                        `json:"generatorVersion"`
+	Seed             uint32                     `json:"seed"`
+	TileOverrides    []DeedTileOverrideSnapshot `json:"tileOverrides"`
+}
+
+// DeedTileOverrideSnapshot replaces the generated tile of one deed-map square.
+type DeedTileOverrideSnapshot struct {
+	X      int `json:"x"`
+	Y      int `json:"y"`
+	Sprite int `json:"sprite"`
 }
 
 // BasementChestDailyRecordSnapshot is indexed by LordBritishBasementChests,

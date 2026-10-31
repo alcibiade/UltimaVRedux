@@ -152,6 +152,10 @@ func (g *GameScene) mapBorderLabel() string {
 	if location.GetMapType() == references.LargeMapType {
 		return g.gameState.GetCurrentWind().GetUIString()
 	}
+	if deed, onDeed := g.gameState.ActiveDeed(); onDeed && location.IsDeedLocation() {
+		// Generated deed maps carry the player's name for the land (ref:CRAFT-0004).
+		return deed.Name
+	}
 
 	return g.journalLocationLabel(location.String())
 }
