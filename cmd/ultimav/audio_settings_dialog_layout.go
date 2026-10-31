@@ -11,10 +11,10 @@ import (
 
 const (
 	audioSettingsPreferredWidthPercent   = 0.58
-	audioSettingsPreferredHeightScale    = 1.30
+	audioSettingsPreferredHeightScale    = 1.29
 	audioSettingsCenterDivisor           = 2
 	audioSettingsSliderCount             = 3
-	audioSettingsGameplayCount           = 11
+	audioSettingsGameplayCount           = 12
 	audioSettingsCardSectionGapCount     = 3
 	audioSettingsPaddingUnits            = 2
 	audioSettingsSectionGapUnits         = 2

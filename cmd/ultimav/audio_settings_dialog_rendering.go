@@ -43,6 +43,7 @@ const (
 	gameplaySmoothSurfaceMovementIndex
 	gameplayConcealedTurnSlotsIndex
 	gameplayFlexibleSextantUseIndex
+	gameplayCraftingEnabledIndex
 	gameplayCombatSpeedIndex
 	gameplayConfirmQuickSaveIndex
 	gameplayShowCombatHPBarsIndex
@@ -88,6 +89,11 @@ func gameplaySettings() [audioSettingsGameplayCount]gameplaySettingDefinition {
 			label: "Flexible Sextant Use",
 			detail: "Redux: day or night, including surface settlement interiors. Sextant required. " +
 				"No dungeons or Underworld. Off: night world-map use.",
+		},
+		{
+			label: "Crafting and Deeds",
+			detail: "Redux: Alt+B buys a deed to overworld land (200 gold) that Enter " +
+				"opens as your own map; Alt+G and Alt+C follow. Off: original game.",
 		},
 		{
 			label:     "Combat Speed",
@@ -731,6 +737,8 @@ func (d *ConfigurationDialog) gameplaySettingValue(index int) bool {
 		return d.stagedGameplay.ShowConcealedTurnOrderSlots
 	case gameplayFlexibleSextantUseIndex:
 		return d.stagedGameplay.FlexibleSextantUse
+	case gameplayCraftingEnabledIndex:
+		return d.stagedGameplay.CraftingEnabled
 	case gameplayConfirmQuickSaveIndex:
 		return d.stagedGameplay.ConfirmQuickSave
 	case gameplayShowCombatHPBarsIndex:
@@ -756,6 +764,8 @@ func (d *ConfigurationDialog) toggleFocusedGameplaySetting() {
 		d.stagedGameplay.ShowConcealedTurnOrderSlots = !d.stagedGameplay.ShowConcealedTurnOrderSlots
 	case gameplayFlexibleSextantUseIndex:
 		d.stagedGameplay.FlexibleSextantUse = !d.stagedGameplay.FlexibleSextantUse
+	case gameplayCraftingEnabledIndex:
+		d.stagedGameplay.CraftingEnabled = !d.stagedGameplay.CraftingEnabled
 	case gameplayConfirmQuickSaveIndex:
 		d.stagedGameplay.ConfirmQuickSave = !d.stagedGameplay.ConfirmQuickSave
 	case gameplayShowCombatHPBarsIndex:

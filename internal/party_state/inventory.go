@@ -44,6 +44,10 @@ type Inventory struct {
 	QuestItems inventoryQuantities[references.QuestItem, *ItemQuantitySmall]
 	Reagent    inventoryQuantities[references.Reagent, *ItemQuantitySmall]
 	Moonstones inventoryQuantities[references.Moonstone, *ItemQuantitySmall]
+
+	// Materials and Tools are Redux crafting stock (ref:CRAFT-0001); they have no SAVED.GAM slot.
+	Materials inventoryQuantities[references.Material, *ItemQuantityLarge]
+	Tools     inventoryQuantities[references.Tool, *ItemQuantitySmall]
 }
 
 // InventoryLockerSnapshot is a complete, detached view of locker-managed inventory.
@@ -69,6 +73,8 @@ func NewInventory() *Inventory {
 	inv.QuestItems = newInventoryQuantities[references.QuestItem, *ItemQuantitySmall]()
 	inv.Reagent = newInventoryQuantities[references.Reagent, *ItemQuantitySmall]()
 	inv.Moonstones = newInventoryQuantities[references.Moonstone, *ItemQuantitySmall]()
+	inv.Materials = newInventoryQuantities[references.Material, *ItemQuantityLarge]()
+	inv.Tools = newInventoryQuantities[references.Tool, *ItemQuantitySmall]()
 
 	return inv
 }
@@ -204,4 +210,38 @@ func (i *Inventory) ConsumeMealTimeFood(hour int, activeMembers int) (bool, stri
 
 	// Party is starving - UI feedback handled by caller
 	return true, ""
+}
+
+// CanAfford reports whether the party holds every material in the cost.
+func (i *Inventory) CanAfford(cost references.MaterialCost) bool {
+	for _, material := range references.MaterialCatalog() {
+		if i.Materials.Get(material) < cost[material] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// SpendMaterials removes the cost when the party can afford all of it, and reports whether it did.
+func (i *Inventory) SpendMaterials(cost references.MaterialCost) bool {
+	if !i.CanAfford(cost) {
+		return false
+	}
+	for _, material := range references.MaterialCatalog() {
+		if cost[material] > 0 {
+			i.Materials.DecrementBy(material, cost[material])
+		}
+	}
+
+	return true
+}
+
+// AddMaterials adds every material in the amount, saturating at the stack cap.
+func (i *Inventory) AddMaterials(amount references.MaterialCost) {
+	for _, material := range references.MaterialCatalog() {
+		if amount[material] > 0 {
+			i.Materials.IncrementBy(material, amount[material])
+		}
+	}
 }

@@ -618,6 +618,45 @@ func (g *GameState) projectZStatsOwnedItems(inventoryReferences *references.Inve
 		})
 	}
 
+	return append(items, g.projectZStatsCraftingItems()...)
+}
+
+// zStatsCraftingItemIDBase keeps Redux crafting rows clear of original item IDs (ref:CRAFT-0001).
+const zStatsCraftingItemIDBase = 1000
+
+// zStatsMaterialSprites shows each material with an original tile that suggests it.
+//
+//nolint:gochecknoglobals // Read-only presentation table indexed by Material.
+var zStatsMaterialSprites = [references.NumberOfMaterials]indexes.SpriteIndex{
+	references.Wood: indexes.FireLogs, references.Stone: indexes.SmallRockWall, references.Ore: indexes.SmallMountains,
+	references.Forage: indexes.Tree, references.Planks: indexes.WoodFloor1, references.CutStone: indexes.StoneBrickWall,
+	references.Ingots: indexes.Anvil,
+}
+
+// projectZStatsCraftingItems lists carried crafting materials and tools after the original items.
+func (g *GameState) projectZStatsCraftingItems() []ZStatsOwnedItem {
+	items := make([]ZStatsOwnedItem, 0, references.NumberOfMaterials+references.NumberOfTools)
+	for _, material := range references.MaterialCatalog() {
+		quantity := g.PartyState.Inventory.Materials.Get(material)
+		if quantity == 0 {
+			continue
+		}
+		items = append(items, ZStatsOwnedItem{
+			ID: zStatsCraftingItemIDBase + int(material), SpriteIndex: zStatsMaterialSprites[material],
+			Category: "Material", Name: material.Name(), Quantity: quantity, Description: material.Description(),
+		})
+	}
+	for _, tool := range references.ToolCatalog() {
+		quantity := g.PartyState.Inventory.Tools.Get(tool)
+		if quantity == 0 {
+			continue
+		}
+		items = append(items, ZStatsOwnedItem{
+			ID: zStatsCraftingItemIDBase + references.NumberOfMaterials + int(tool), SpriteIndex: indexes.ItemWeapon,
+			Category: "Tool", Name: tool.Name(), Quantity: quantity, Description: tool.Description(),
+		})
+	}
+
 	return items
 }
 

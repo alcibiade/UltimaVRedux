@@ -99,7 +99,10 @@ type GameplayConfiguration struct {
 	// SmoothSurfaceMovement enables optional surface camera scrolling, including boats.
 	SmoothSurfaceMovement bool
 	// FlexibleSextantUse opts into daytime and settlement sextant navigation.
-	FlexibleSextantUse     bool
+	FlexibleSextantUse bool
+	// REDUX DEVIATION: CRAFT-0001: the original has no crafting; CraftingEnabled opts into
+	// overworld gathering, crafting, land claims and house building.
+	CraftingEnabled        bool
 	CombatSpeedFactor      float64
 	ConfirmQuickSave       bool
 	ShowCombatHPBars       bool
@@ -120,6 +123,7 @@ const (
 	gameplayShowSubduedUnlitDungeonsKey        = "Gameplay.Dungeons.ShowSubduedUnlitDungeons"
 	gameplaySmoothSurfaceMovementKey           = "Gameplay.Presentation.SmoothSurfaceMovement"
 	gameplayFlexibleSextantUseKey              = "Gameplay.Navigation.FlexibleSextantUse"
+	gameplayCraftingEnabledKey                 = "Gameplay.Crafting.Enabled"
 )
 
 // LoggingConfiguration holds logging system settings
@@ -700,6 +704,7 @@ func setGameplayConfiguration(configuration *viper.Viper, gameplay GameplayConfi
 	configuration.Set(gameplayShowSubduedUnlitDungeonsKey, gameplay.ShowSubduedUnlitDungeons)
 	configuration.Set(gameplaySmoothSurfaceMovementKey, gameplay.SmoothSurfaceMovement)
 	configuration.Set(gameplayFlexibleSextantUseKey, gameplay.FlexibleSextantUse)
+	configuration.Set(gameplayCraftingEnabledKey, gameplay.CraftingEnabled)
 }
 
 func writeViperConfigAtomically(configuration *viper.Viper, configPath string) error {
@@ -817,6 +822,11 @@ func (uc *UltimaVConfiguration) SetSmoothSurfaceMovement(enabled bool) error {
 // SetFlexibleSextantUse updates and persists optional sextant navigation atomically.
 func (uc *UltimaVConfiguration) SetFlexibleSextantUse(enabled bool) error {
 	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) { settings.FlexibleSextantUse = enabled })
+}
+
+// SetCraftingEnabled updates and persists optional crafting and housing atomically.
+func (uc *UltimaVConfiguration) SetCraftingEnabled(enabled bool) error {
+	return uc.saveGameplayPreference(func(settings *GameplayConfiguration) { settings.CraftingEnabled = enabled })
 }
 
 // configuredBoolean replaces value with the configured setting, if one is set.
