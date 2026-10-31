@@ -225,7 +225,7 @@ func TestAltBRefusesUnsuitableSquaresWithTheirReason(t *testing.T) {
 
 	require.True(t, scene.handleCraftingChord(ebiten.KeyB))
 
-	assert.Equal(t, []string{"A deed costs 200 gold!"}, callbacks.Messages)
+	assert.Equal(t, []string{"A deed costs 200 gold; thou hast 10."}, callbacks.Messages)
 	assert.Nil(t, scene.dialogStack.PeekTopModalDialog())
 	assert.Empty(t, callbacks.TimeAdvanced())
 }

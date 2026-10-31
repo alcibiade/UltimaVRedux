@@ -77,7 +77,7 @@ pass every check, in this order; the first failure is printed and nothing is spe
 | The square is not a world location (towne, keep, dungeon, hut and so on) | "Someone else lives here!" |
 | The square is neither one of the eight charted moongate sites nor a square where a buried moonstone can open a gate | "The moongates belong to no one!" |
 | The terrain is open ground (table below); water, swamp, mountains, roads, bridges, every settlement sprite and every structure are not | "No one can build here!" |
-| The party carries at least 200 gold | "A deed costs 200 gold!" |
+| The party carries at least 200 gold | "A deed costs 200 gold; thou hast <gold carried>." |
 
 | Overworld terrain | Deed terrain |
 | --- | --- |

@@ -118,7 +118,7 @@ func (g *GameScene) beginStakeDeed() {
 	}
 	proposal := g.gameState.ProposeDeed()
 	if proposal.Err != nil {
-		messages.AddRowStr(game_state.DeedRejection(proposal.Err))
+		messages.AddRowStr(g.gameState.DeedRejection(proposal.Err))
 
 		return
 	}

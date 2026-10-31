@@ -87,8 +87,9 @@ func (g *GameState) isMoongateSquare(square references.Position) bool {
 		references.FloorNumber(references.OVERWORLD), square)
 }
 
-// DeedRejection returns the player-facing reason a proposal failed.
-func DeedRejection(err error) string {
+// DeedRejection returns the player-facing reason a proposal failed. A refusal for gold names
+// both the price and the gold the party carries.
+func (g *GameState) DeedRejection(err error) string {
 	switch {
 	case err == nil:
 		return ""
@@ -107,7 +108,7 @@ func DeedRejection(err error) string {
 	case errors.Is(err, ErrDeedNotOnFoot):
 		return "On foot!"
 	case errors.Is(err, ErrDeedNotEnoughGold):
-		return fmt.Sprintf("A deed costs %d gold!", references.DeedGoldCost)
+		return fmt.Sprintf("A deed costs %d gold; thou hast %d.", references.DeedGoldCost, g.PartyState.Inventory.Gold.Get())
 	default:
 		return "Not here!"
 	}
@@ -131,7 +132,7 @@ func (g *GameState) StakeDeed(name string) (Deed, error) {
 	}
 	proposal := g.ProposeDeed()
 	if proposal.Err != nil {
-		g.SystemCallbacks.Message.AddRowStr(DeedRejection(proposal.Err))
+		g.SystemCallbacks.Message.AddRowStr(g.DeedRejection(proposal.Err))
 
 		return Deed{}, proposal.Err
 	}
