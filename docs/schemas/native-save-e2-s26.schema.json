@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/bradhannah/UltimaVRedux/main/docs/schemas/native-save-e2-s26.schema.json",
   "title": "Native Ultima V Redux Save Envelope 2 / Snapshot 26",
-  "description": "Load frozen sibling s16-s25 schemas locally and assert the version-aware ultima5-world-journal format. V26 adds the optional Redux crafting extension (ref:CRAFT-0001): material and tool stock, and deeds. A deed stores its overworld hut square, terrain, generator version and seed, and only the deed-map squares that differ from the generated map; its hut is an ordinary overworld mapMutation. nodeHarvests counts the harvests taken from each resource node since it was last fresh (ref:CRAFT-0005), and trammelPhaseChanges is the deed's Trammel respawn marker (ref:CRAFT-0006). activeDeedId names the deed whose map world.position stands on (location 128).",
+  "description": "Load frozen sibling s16-s25 schemas locally and assert the version-aware ultima5-world-journal format. V26 adds the optional Redux crafting extension (ref:CRAFT-0001): material and tool stock, and deeds. A deed stores its overworld hut square, terrain, generator version and seed, and only the deed-map squares that differ from the generated map; its hut is an ordinary overworld mapMutation. nodeHarvests counts the harvests taken from each resource node since it was last fresh (ref:CRAFT-0005), and trammelPhaseChanges is the deed's Trammel respawn marker (ref:CRAFT-0006). pieces is the build-piece stock (ref:CRAFT-0009); placements lists each deed's built pieces with the ground they cover and any placed floor beneath them (ref:CRAFT-0010), and chests the contents of its storage chests, provisions being torches, gems, keys, skull keys and food (ref:CRAFT-0011). openDoor may also name a built door on the deed map (location 128, floor 0). activeDeedId names the deed whose map world.position stands on (location 128).",
   "type": "object", "additionalProperties": false,
   "required": ["format", "envelopeVersion", "metadata", "snapshot"],
   "properties": {
@@ -36,7 +36,7 @@
         "mapUnits": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/mapUnits"},
         "itemStacks": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/itemStacks"},
         "mapMutations": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/mapMutations"},
-        "openDoor": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/openDoor"},
+        "openDoor": {"anyOf": [{"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/openDoor"}, {"$ref": "#/$defs/deedOpenDoor"}]},
         "basementChestHistory": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/basementChestHistory"},
         "atlasNotes": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/atlasNotes"},
         "atlasFleet": {"$ref": "native-save-e2-s25.schema.json#/$defs/snapshot/properties/atlasFleet"},
@@ -62,19 +62,21 @@
     "coordinate": {"type": "integer", "minimum": 0, "maximum": 255},
     "materials": {"type": "array", "minItems": 7, "maxItems": 7, "items": {"$ref": "#/$defs/quantityLarge"}},
     "tools": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/quantitySmall"}},
+    "pieces": {"type": "array", "minItems": 26, "maxItems": 26, "items": {"$ref": "#/$defs/quantitySmall"}},
     "crafting": {
       "type": "object", "additionalProperties": false,
-      "required": ["materials", "tools", "deeds", "activeDeedId"],
+      "required": ["materials", "tools", "pieces", "deeds", "activeDeedId"],
       "properties": {
         "materials": {"$ref": "#/$defs/materials"},
         "tools": {"$ref": "#/$defs/tools"},
+        "pieces": {"$ref": "#/$defs/pieces"},
         "deeds": {"type": ["array", "null"], "maxItems": 4096, "items": {"$ref": "#/$defs/deed"}},
         "activeDeedId": {"type": ["integer", "null"], "minimum": 0}
       }
     },
     "deed": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "name", "x", "y", "terrain", "generatorVersion", "seed", "tileOverrides", "nodeHarvests", "trammelPhaseChanges"],
+      "required": ["id", "name", "x", "y", "terrain", "generatorVersion", "seed", "tileOverrides", "nodeHarvests", "trammelPhaseChanges", "placements", "chests"],
       "properties": {
         "id": {"type": "integer", "minimum": 0},
         "name": {"type": "string", "pattern": "^[!-~](?:[ -~]{0,22}[!-~])?$"},
@@ -84,7 +86,50 @@
         "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
         "tileOverrides": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedTileOverride"}},
         "nodeHarvests": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedNodeHarvest"}},
-        "trammelPhaseChanges": {"type": "integer", "minimum": 0}
+        "trammelPhaseChanges": {"type": "integer", "minimum": 0},
+        "placements": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedPlacement"}},
+        "chests": {"type": ["array", "null"], "maxItems": 1024, "items": {"$ref": "#/$defs/deedChest"}}
+      }
+    },
+    "deedOpenDoor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["position", "remainingTurns", "closedTile"],
+      "properties": {
+        "position": {
+          "type": "object", "additionalProperties": false, "required": ["location", "x", "y", "floor"],
+          "properties": {
+            "location": {"const": 128},
+            "x": {"type": "integer", "minimum": 0, "maximum": 31},
+            "y": {"type": "integer", "minimum": 0, "maximum": 31},
+            "floor": {"const": 0}
+          }
+        },
+        "remainingTurns": {"type": "integer", "minimum": 0, "maximum": 2},
+        "closedTile": {"enum": [184, 186]}
+      }
+    },
+    "deedPlacement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["x", "y", "pieceId", "under", "floorPieceId"],
+      "properties": {
+        "x": {"type": "integer", "minimum": 4, "maximum": 27},
+        "y": {"type": "integer", "minimum": 4, "maximum": 27},
+        "pieceId": {"type": "integer", "minimum": 0, "maximum": 25},
+        "under": {"type": "integer", "minimum": 0, "maximum": 255},
+        "floorPieceId": {"type": ["integer", "null"], "minimum": 0, "maximum": 25}
+      }
+    },
+    "deedChest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["x", "y", "materials", "tools", "pieces", "provisions", "gold"],
+      "properties": {
+        "x": {"type": "integer", "minimum": 4, "maximum": 27},
+        "y": {"type": "integer", "minimum": 4, "maximum": 27},
+        "materials": {"$ref": "#/$defs/materials"},
+        "tools": {"$ref": "#/$defs/tools"},
+        "pieces": {"$ref": "#/$defs/pieces"},
+        "provisions": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/quantityLarge"}},
+        "gold": {"$ref": "#/$defs/quantityLarge"}
       }
     },
     "deedNodeHarvest": {

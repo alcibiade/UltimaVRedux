@@ -76,6 +76,11 @@ func (g *GameState) ActionLookSmallMap(direction references.Direction) bool {
 		if nodeDescription, isNode := g.deedNodeLookDescription(*newPosition); isNode {
 			lookDescription = nodeDescription
 		}
+		// REDUX DEVIATION: CRAFT-0009: built stations, beds and chests reuse original tiles
+		// (a workbench is the fire-logs tile); Look names the piece instead.
+		if pieceDescription, isPiece := g.deedPieceLookDescription(*newPosition); isPiece {
+			lookDescription = pieceDescription
+		}
 	}
 	fullMessage := "Thou dost see " + lookDescription
 	flameKnowledgeID := ""

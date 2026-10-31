@@ -40,7 +40,9 @@ The required `crafting` member holds the optional Redux crafting state
 ([CRAFT-0001](../gamefacts/CRAFTING.md#craft-0001), ADR-014):
 
 - `materials`: seven quantities 0–9999 in catalog order (Wood, Stone, Ore, Forage,
-  Planks, Cut stone, Ingots); `tools`: two quantities 0–99 (Axe, Pick).
+  Planks, Cut stone, Ingots); `tools`: two quantities 0–99 (Axe, Pick); `pieces`:
+  26 quantities 0–99 of build pieces in piece-ID order
+  ([CRAFT-0009](../gamefacts/CRAFTING.md#craft-0009)).
 - `deeds` (null or an array): each deed has a unique non-negative `id`, a `name` of
   1–24 printable ASCII characters with no surrounding spaces, its overworld hut
   square `x`/`y`, a `terrain` key (`grassland`, `forest`, `hills`, `desert`), the
@@ -56,6 +58,18 @@ The required `crafting` member holds the optional Redux crafting state
   `trammelPhaseChanges` (an integer of at least 0): the deed's respawn marker, the
   count of Trammel phase changes since the epoch that its nodes have been brought up to
   ([CRAFT-0006](../gamefacts/CRAFTING.md#craft-0006)).
+- Each deed also has `placements` (null or an array, sorted row by row): every piece
+  the party built, with `x`/`y` 4–27 (inside the decorative ring), `pieceId` 0–25, the
+  generated ground tile it covers in `under`, and `floorPieceId` (null, or the placed
+  floor beneath a piece built on a floor)
+  ([CRAFT-0010](../gamefacts/CRAFTING.md#craft-0010)); and `chests` (null or an array):
+  the contents of every built storage chest at `x`/`y`, with `materials` (7, 0–9999),
+  `tools` (2, 0–99), `pieces` (26, 0–99), `provisions` (5: torches, gems, keys, skull
+  keys and food) and `gold` 0–9999
+  ([CRAFT-0011](../gamefacts/CRAFTING.md#craft-0011)).
+- In snapshot 26, `openDoor` may also name a door the party built on its deed map:
+  location 128, floor 0, with the usual X/Y, countdown and closed tile
+  ([CRAFT-0010](../gamefacts/CRAFTING.md#craft-0010)).
 - `activeDeedId`: the deed whose map the party stands on, required exactly when
   `world.position.location` is the shared deed location 128, and null otherwise
   ([CRAFT-0004](../gamefacts/CRAFTING.md#craft-0004)).
@@ -64,7 +78,12 @@ The Go validator also rejects duplicate deed squares, orthogonally adjacent deed
 (with wrap-around), unknown terrains, generator versions this build cannot
 regenerate, duplicate overrides, a harvest count on a square that is not one of the
 deed's generated nodes, a duplicate harvest square, a harvest count above that node
-kind's capacity, a deed map position off floor 0, and any deed whose
+kind's capacity, a placement on a resource node, a duplicate placement square, an
+unknown piece, an `under` that is not the deed's generated tile there, a floor beneath
+a floor or a non-floor beneath a piece, a placement whose square lacks the piece's tile
+as its override, a chest record without a built storage chest (or a built chest without
+one), duplicate chest squares, chest torches, gems, keys or skull keys above 99, a deed
+map position off floor 0, and any deed whose
 hut is missing from `mapMutations` (each hut is an ordinary overworld `setTile` of
 sprite 16). Hydration rebuilds the deeds and loads the active deed map before the
 current small map, so a save made on a deed map resolves location 128 through its own

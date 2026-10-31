@@ -14,7 +14,7 @@ const MaxDeeds = 4096
 
 // validateCrafting checks the Redux crafting extension (ref:CRAFT-0001): stock ranges, deed
 // identity and placement rules, generator identity, tile overrides, node harvests, the respawn
-// marker, the hut map mutation of every deed and the active deed of a save made on a deed map.
+// marker, built pieces and storage chests, the hut map mutation of every deed and the active deed of a save made on a deed map.
 func validateCrafting(snapshot SaveSnapshot, add func(string, string, string)) {
 	crafting := snapshot.Crafting
 	for index, quantity := range crafting.Materials {
@@ -25,6 +25,11 @@ func validateCrafting(snapshot SaveSnapshot, add func(string, string, string)) {
 	for index, quantity := range crafting.Tools {
 		if quantity > party_state.ItemQuantitySmallMax {
 			add(fmt.Sprintf("crafting.tools[%d]", index), "out_of_range", "tool quantity exceeds the small stack cap")
+		}
+	}
+	for index, quantity := range crafting.Pieces {
+		if quantity > party_state.ItemQuantitySmallMax {
+			add(fmt.Sprintf("crafting.pieces[%d]", index), "out_of_range", "piece quantity exceeds the small stack cap")
 		}
 	}
 	if len(crafting.Deeds) > MaxDeeds {
@@ -60,6 +65,8 @@ func validateCrafting(snapshot SaveSnapshot, add func(string, string, string)) {
 		if deed.TrammelPhaseChanges < 0 {
 			add(path+".trammelPhaseChanges", "out_of_range", "the respawn marker cannot be negative")
 		}
+		validateDeedPlacements(path, deed, add)
+		validateDeedChests(path, deed, add)
 	}
 	validateActiveDeed(snapshot, ids, add)
 }
@@ -167,5 +174,132 @@ func validateDeedNodeHarvests(path string, deed DeedSnapshot, add func(string, s
 		if harvest.Harvests < 1 || harvest.Harvests > references.DeedNodeRuleFor(node.Kind).Capacity {
 			add(harvestPath+".harvests", "out_of_range", "harvests must lie between 1 and the node's capacity")
 		}
+	}
+}
+
+// deedValidationLayout regenerates a deed's map for checks that need its generated squares. It
+// reports false when the terrain or generator version is invalid; those are reported on their own.
+func deedValidationLayout(deed DeedSnapshot) (references.DeedLayout, bool) {
+	terrain, ok := references.DeedTerrainFromKey(deed.Terrain)
+	if !ok {
+		return references.DeedLayout{}, false
+	}
+	layout, err := references.GenerateDeedMap(terrain, deed.Seed, deed.GeneratorVersion)
+
+	return layout, err == nil
+}
+
+// validateDeedPlacements checks every built piece (ref:CRAFT-0010): a known piece on a distinct
+// interior square that is no resource node, covering the generated ground, with the piece's
+// sprite as the square's tile override, and only a floor beneath a piece built on a floor.
+func validateDeedPlacements(path string, deed DeedSnapshot, add func(string, string, string)) {
+	if len(deed.Placements) == 0 {
+		return
+	}
+	if len(deed.Placements) > MaxDeedTileOverrides {
+		add(path+".placements", "out_of_range", "a deed has at most one placement per square")
+
+		return
+	}
+	layout, ok := deedValidationLayout(deed)
+	if !ok {
+		return
+	}
+	overrides := make(map[[2]int]int, len(deed.TileOverrides))
+	for _, override := range deed.TileOverrides {
+		overrides[[2]int{override.X, override.Y}] = override.Sprite
+	}
+	seen := make(map[[2]int]bool, len(deed.Placements))
+	for index, placement := range deed.Placements {
+		placementPath := fmt.Sprintf("%s.placements[%d]", path, index)
+		position := references.Position{X: references.Coordinate(placement.X), Y: references.Coordinate(placement.Y)}
+		if placement.X < 0 || placement.X >= DeedMapTiles || placement.Y < 0 || placement.Y >= DeedMapTiles ||
+			references.DeedSquareDepth(position) < references.DeedInteriorDepth {
+			add(placementPath, "out_of_range", "a placement must lie inside the deed map's open interior")
+
+			continue
+		}
+		key := [2]int{placement.X, placement.Y}
+		if seen[key] {
+			add(placementPath, "duplicate", "placement squares must be unique")
+		}
+		seen[key] = true
+		if _, isNode := layout.NodeAt(position); isNode {
+			add(placementPath, "invalid", "a piece cannot stand on a resource node")
+		}
+		piece, known := references.BuildPieceByID(references.BuildPieceID(placement.PieceID))
+		if !known {
+			add(placementPath+".pieceId", "unsupported", "unknown build piece")
+
+			continue
+		}
+		if placement.Under != int(layout.Tile(position)) {
+			add(placementPath+".under", "invalid", "a placement must record the generated ground it covers")
+		}
+		if placement.FloorPieceID != nil {
+			floor, floorKnown := references.BuildPieceByID(references.BuildPieceID(*placement.FloorPieceID))
+			if !floorKnown || !floor.IsFloor() || piece.IsFloor() {
+				add(placementPath+".floorPieceId", "invalid", "only a floor can lie beneath a piece, and never beneath a floor")
+			}
+		}
+		if sprite, overridden := overrides[key]; !overridden || sprite != int(piece.Sprite) {
+			add(placementPath, "invalid", "a placed piece's square must show the piece's tile")
+		}
+	}
+}
+
+// validateDeedChests checks storage chest contents (ref:CRAFT-0011): exactly one record per built
+// storage chest, and every slot within the cap of the party stack it comes from.
+func validateDeedChests(path string, deed DeedSnapshot, add func(string, string, string)) {
+	chestSquares := make(map[[2]int]bool)
+	for _, placement := range deed.Placements {
+		if piece, known := references.BuildPieceByID(references.BuildPieceID(placement.PieceID)); known && piece.StorageChest {
+			chestSquares[[2]int{placement.X, placement.Y}] = true
+		}
+	}
+	seen := make(map[[2]int]bool, len(deed.Chests))
+	for index, chest := range deed.Chests {
+		chestPath := fmt.Sprintf("%s.chests[%d]", path, index)
+		key := [2]int{chest.X, chest.Y}
+		if !chestSquares[key] {
+			add(chestPath, "invalid", "a chest record must belong to a built storage chest")
+		}
+		if seen[key] {
+			add(chestPath, "duplicate", "chest squares must be unique")
+		}
+		seen[key] = true
+		validateDeedChestContents(chestPath, chest, add)
+	}
+	for square := range chestSquares {
+		if !seen[square] {
+			add(path+".chests", "invalid", fmt.Sprintf("the storage chest at %d,%d has no contents record", square[0], square[1]))
+		}
+	}
+}
+
+func validateDeedChestContents(path string, chest DeedChestSnapshot, add func(string, string, string)) {
+	check := func(field string, index int, quantity, limit uint16) {
+		if quantity > limit {
+			add(fmt.Sprintf("%s.%s[%d]", path, field, index), "out_of_range", "chest quantity exceeds the stack cap")
+		}
+	}
+	for index, quantity := range chest.Materials {
+		check("materials", index, quantity, party_state.ItemQuantityLargeMax)
+	}
+	for index, quantity := range chest.Tools {
+		check("tools", index, quantity, party_state.ItemQuantitySmallMax)
+	}
+	for index, quantity := range chest.Pieces {
+		check("pieces", index, quantity, party_state.ItemQuantitySmallMax)
+	}
+	for index, quantity := range chest.Provisions {
+		limit := uint16(party_state.ItemQuantitySmallMax)
+		if references.Provision(index) == references.Food {
+			limit = party_state.ItemQuantityLargeMax
+		}
+		check("provisions", index, quantity, limit)
+	}
+	if chest.Gold > party_state.ItemQuantityLargeMax {
+		add(path+".gold", "out_of_range", "chest gold exceeds the stack cap")
 	}
 }

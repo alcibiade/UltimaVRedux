@@ -66,11 +66,14 @@ func TestCraftRecipeOptionsMarkWhatThePartyLacks(t *testing.T) {
 
 	options := state.CraftRecipeOptions()
 
-	require.Len(t, options, 2)
+	require.Len(t, options, len(references.CraftRecipes()))
 	assert.Equal(t, references.RecipeAxe, options[0].Recipe.ID)
 	assert.True(t, options[0].Available())
 	assert.False(t, options[1].Affordable, "a Pick needs 2 Stone")
 	assert.True(t, options[1].StationReady, "tools need no station")
+	assert.Equal(t, references.RecipePlanks, options[2].Recipe.ID)
+	assert.True(t, options[2].Affordable)
+	assert.False(t, options[2].StationReady, "planks need a sawmill, and the overworld has none")
 }
 
 func TestCraftWorksOnTheDeedMapWithTheSmallMapTurn(t *testing.T) {

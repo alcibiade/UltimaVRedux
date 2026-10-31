@@ -28,12 +28,29 @@ func validCraftingFixture() SaveSnapshot {
 		panic(err)
 	}
 	nodes := layout.Nodes
+	ground := func(x, y int) int {
+		return int(layout.Tile(references.Position{X: references.Coordinate(x), Y: references.Coordinate(y)}))
+	}
+	floor := int(references.PieceWoodFloor)
 	snapshot.Crafting = CraftingSnapshot{
 		Materials: [CraftingMaterialCount]uint16{10, 5, 0, 2, 0, 0, 1},
 		Tools:     [CraftingToolCount]uint16{1, 0},
+		Pieces:    [CraftingPieceCount]uint16{references.PieceStoneWall: 4, references.PieceForge: 1},
 		Deeds: []DeedSnapshot{
 			{ID: 0, Name: "Homestead", X: 255, Y: 0, Terrain: "grassland", GeneratorVersion: 1, Seed: 7,
-				TileOverrides: []DeedTileOverrideSnapshot{{X: 4, Y: 5, Sprite: int(indexes.Grass)}},
+				TileOverrides: []DeedTileOverrideSnapshot{
+					{X: 4, Y: 5, Sprite: int(indexes.Grass)},
+					{X: 13, Y: 13, Sprite: int(indexes.StoneBrickWall)},
+					{X: 14, Y: 13, Sprite: int(indexes.Box)},
+					{X: 15, Y: 13, Sprite: int(indexes.ChairBackForward)},
+				},
+				Placements: []DeedPlacementSnapshot{
+					{X: 13, Y: 13, PieceID: int(references.PieceStoneWall), Under: ground(13, 13)},
+					{X: 14, Y: 13, PieceID: int(references.PieceStorageChest), Under: ground(14, 13)},
+					{X: 15, Y: 13, PieceID: int(references.PieceChairForward), Under: ground(15, 13), FloorPieceID: &floor},
+				},
+				Chests: []DeedChestSnapshot{{X: 14, Y: 13, Materials: [CraftingMaterialCount]uint16{9999},
+					Provisions: [CraftingChestProvisionCount]uint16{4: 9999}, Gold: 9999}},
 				NodeHarvests: []DeedNodeHarvestSnapshot{
 					{X: int(nodes[0].Position.X), Y: int(nodes[0].Position.Y), Harvests: 1},
 					{X: int(nodes[1].Position.X), Y: int(nodes[1].Position.Y), Harvests: references.DeedNodeRuleFor(nodes[1].Kind).Capacity},
@@ -49,6 +66,22 @@ func validCraftingFixture() SaveSnapshot {
 	snapshot.MapMutations = []MapMutationSnapshot{hutMutation(255, 0), hutMutation(100, 100)}
 
 	return snapshot
+}
+
+// nodesOfFixture returns the resource node squares of the fixture's first deed.
+func nodesOfFixture() []references.Position {
+	layout, err := references.GenerateDeedMap(references.DeedTerrainGrassland, 7, 1)
+	if err != nil {
+		panic(err)
+	}
+	positions := make([]references.Position, 0, len(layout.Nodes))
+	for _, node := range layout.Nodes {
+		if references.DeedSquareDepth(node.Position) >= references.DeedInteriorDepth {
+			positions = append(positions, node.Position)
+		}
+	}
+
+	return positions
 }
 
 func craftingIssues(snapshot SaveSnapshot) []Issue {
@@ -101,7 +134,7 @@ func TestValidateCraftingRejectsEachInvalidShape(t *testing.T) {
 		{"override sprite", func(s *SaveSnapshot) { s.Crafting.Deeds[0].TileOverrides[0].Sprite = 256 }, "crafting.deeds[0].tileOverrides[0].sprite", "out_of_range"},
 		{"duplicate override", func(s *SaveSnapshot) {
 			s.Crafting.Deeds[0].TileOverrides = append(s.Crafting.Deeds[0].TileOverrides, s.Crafting.Deeds[0].TileOverrides[0])
-		}, "crafting.deeds[0].tileOverrides[1]", "duplicate"},
+		}, "crafting.deeds[0].tileOverrides[4]", "duplicate"},
 		{"harvest off the deed map", func(s *SaveSnapshot) { s.Crafting.Deeds[0].NodeHarvests[0].Y = 32 }, "crafting.deeds[0].nodeHarvests[0]", "out_of_range"},
 		{"harvest on no node", func(s *SaveSnapshot) {
 			s.Crafting.Deeds[0].NodeHarvests[0].X, s.Crafting.Deeds[0].NodeHarvests[0].Y = 15, 15
@@ -117,6 +150,40 @@ func TestValidateCraftingRejectsEachInvalidShape(t *testing.T) {
 		{"unknown active deed", func(s *SaveSnapshot) { unknown := 9; s.Crafting.ActiveDeedID = &unknown }, "crafting.activeDeedId", "invalid"},
 		{"active deed off the deed map", func(s *SaveSnapshot) { s.World.Position = validPosition() }, "crafting.activeDeedId", "invalid"},
 		{"deed map floor", func(s *SaveSnapshot) { s.World.Position.Floor = 1 }, "world.position.floor", "out_of_range"},
+		{"piece over cap", func(s *SaveSnapshot) { s.Crafting.Pieces[0] = 100 }, "crafting.pieces[0]", "out_of_range"},
+		{"placement in the ring", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Placements[0].X = 3 }, "crafting.deeds[0].placements[0]", "out_of_range"},
+		{"duplicate placement", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].Placements[1].X = 13
+		}, "crafting.deeds[0].placements[1]", "duplicate"},
+		{"placement on a node", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].Placements[0].X, s.Crafting.Deeds[0].Placements[0].Y = int(nodesOfFixture()[0].X), int(nodesOfFixture()[0].Y)
+		}, "crafting.deeds[0].placements[0]", "invalid"},
+		{"unknown piece", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Placements[0].PieceID = 26 }, "crafting.deeds[0].placements[0].pieceId", "unsupported"},
+		{"wrong ground", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].Placements[0].Under = int(indexes.Water1)
+		}, "crafting.deeds[0].placements[0].under", "invalid"},
+		{"non-floor beneath", func(s *SaveSnapshot) {
+			wall := int(references.PieceStoneWall)
+			s.Crafting.Deeds[0].Placements[2].FloorPieceID = &wall
+		}, "crafting.deeds[0].placements[2].floorPieceId", "invalid"},
+		{"floor beneath a floor", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].Placements[2].PieceID = int(references.PieceStoneFloor)
+			s.Crafting.Deeds[0].TileOverrides[3].Sprite = int(indexes.BrickFloor)
+		}, "crafting.deeds[0].placements[2].floorPieceId", "invalid"},
+		{"placement without its tile", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].TileOverrides[1].Sprite = int(indexes.Grass)
+		}, "crafting.deeds[0].placements[0]", "invalid"},
+		{"chest without a placed chest", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].X = 13 }, "crafting.deeds[0].chests[0]", "invalid"},
+		{"placed chest without contents", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests = nil }, "crafting.deeds[0].chests", "invalid"},
+		{"duplicate chest", func(s *SaveSnapshot) {
+			s.Crafting.Deeds[0].Chests = append(s.Crafting.Deeds[0].Chests, s.Crafting.Deeds[0].Chests[0])
+		}, "crafting.deeds[0].chests[1]", "duplicate"},
+		{"chest material over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Materials[0] = 10000 }, "crafting.deeds[0].chests[0].materials[0]", "out_of_range"},
+		{"chest tool over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Tools[0] = 100 }, "crafting.deeds[0].chests[0].tools[0]", "out_of_range"},
+		{"chest piece over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Pieces[3] = 100 }, "crafting.deeds[0].chests[0].pieces[3]", "out_of_range"},
+		{"chest torches over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Provisions[0] = 100 }, "crafting.deeds[0].chests[0].provisions[0]", "out_of_range"},
+		{"chest food over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Provisions[4] = 10000 }, "crafting.deeds[0].chests[0].provisions[4]", "out_of_range"},
+		{"chest gold over cap", func(s *SaveSnapshot) { s.Crafting.Deeds[0].Chests[0].Gold = 10000 }, "crafting.deeds[0].chests[0].gold", "out_of_range"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			snapshot := validCraftingFixture()
@@ -167,9 +234,53 @@ func TestV26CraftingCodecAndSchemaAgree(t *testing.T) {
 	deed["nodeHarvests"].([]any)[0].(map[string]any)["harvests"] = 1
 	deed["trammelPhaseChanges"] = -1
 	assert.Error(t, schema.Validate(document), "the schema rejects a negative respawn marker")
+	deed["trammelPhaseChanges"] = 0
+	require.NoError(t, schema.Validate(document))
+	placement := deed["placements"].([]any)[0].(map[string]any)
+	placement["pieceId"] = 26
+	assert.Error(t, schema.Validate(document), "the schema bounds piece IDs")
+	placement["pieceId"] = 0
+	placement["x"] = 3
+	assert.Error(t, schema.Validate(document), "the schema keeps placements off the ring")
+	placement["x"] = 13
+	chest := deed["chests"].([]any)[0].(map[string]any)
+	chest["gold"] = 10000
+	assert.Error(t, schema.Validate(document), "the schema caps chest gold")
+	chest["gold"] = 0
+	delete(chest, "provisions")
+	assert.Error(t, schema.Validate(document), "chest provisions are required")
+
+	withDoor := validCraftingFixture()
+	withDoor.OpenDoor = &OpenDoorSnapshot{
+		Position:       PositionSnapshot{Location: int(references.DeedLocation), X: 13, Y: 12, Floor: 0},
+		RemainingTurns: 1, ClosedTile: int(indexes.RegularDoor),
+	}
+	requireV23RoundTrip(t, schema, withDoor)
+	data, err = EncodeCanonical(validEnvelope(withDoor))
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(data, &document))
+	door := document["snapshot"].(map[string]any)["openDoor"].(map[string]any)
+	door["position"].(map[string]any)["floor"] = 1
+	assert.Error(t, schema.Validate(document), "a deed map's open door is on floor 0")
 
 	invalid := validCraftingFixture()
 	invalid.Crafting.Deeds[0].Terrain = "swamp"
 	_, err = EncodeCanonical(validEnvelope(invalid))
 	assert.ErrorIs(t, err, ErrInvalidSnapshot)
+}
+
+func TestValidateAcceptsATimedDoorOnTheDeedMapOnly(t *testing.T) {
+	snapshot := validCraftingFixture()
+	snapshot.OpenDoor = &OpenDoorSnapshot{
+		Position:       PositionSnapshot{Location: int(references.DeedLocation), X: 13, Y: 12, Floor: 0},
+		RemainingTurns: 2, ClosedTile: int(indexes.RegularDoor),
+	}
+	var issues []Issue
+	validateOpenDoor(snapshot, func(path, code, message string) { issues = append(issues, Issue{path, code, message}) })
+	assert.Empty(t, issues, "a built door on the deed map may be open when saving")
+
+	snapshot.OpenDoor.Position.Floor = 1
+	issues = nil
+	validateOpenDoor(snapshot, func(path, code, message string) { issues = append(issues, Issue{path, code, message}) })
+	assert.NotEmpty(t, issues, "a deed map has one floor")
 }

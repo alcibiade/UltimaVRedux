@@ -361,29 +361,11 @@ func (g *GameState) RestAtInn(session MerchantSession, request InnRestRequest) (
 	result.GoldAfterTheft = g.PartyState.Inventory.Gold.Get()
 
 	g.MapState.PlayerLocation = state.Rest.SleepLocation
-	for index := range state.PartySize {
-		character := g.PartyState.GetCharacter(index)
-		if character.IsGood() {
-			character.SetStatus(party_state.Sleep)
-		}
-	}
 	// REDUX DEVIATION: Inn services clears active effect and duration counter on
 	// entering the Inn conversation. Redux clears them only after paid Rest is
 	// committed so Leave, Pick Up, cancellation, and refusal preserve the effect.
 	// See ref:MERCH-0010.
-	g.ClearDurationEffect()
-
-	for range 12 {
-		g.advanceInnRestMinutes(5)
-	}
-	for g.DateTime.Hour != 6 {
-		result.Regeneration = append(result.Regeneration, g.innRegenerationResults(g.ProcessRegenerationRingSweep())...)
-		g.advanceInnRestMinutes(9)
-	}
-	g.lastProcessedHour = int(g.DateTime.Hour)
-	g.CurrentNPCAIController.HardResetNPCs(true)
-	changes := g.restoreInnMorningParty(state.PartySize)
-	g.publishTransientStatusChanges(changes)
+	result.Regeneration = g.sleepInnNight(state.PartySize)
 	g.MapState.PlayerLocation = state.Rest.WakeLocation
 
 	result.DateTimeAfter = g.DateTime
@@ -393,6 +375,35 @@ func (g *GameState) RestAtInn(session MerchantSession, request InnRestRequest) (
 	result.Members = innProjectionResults(result.Members, result.RosterAfter)
 
 	return result, nil
+}
+
+// sleepInnNight is the committed inn overnight (ref:CAMP-0007): Good members fall asleep, active
+// duration magic clears, twelve five-minute steps then nine-minute steps with ring checks run
+// until the hour is 6, and the morning restores the first partySize members. Paid inn rest and a
+// bed the party built on its own deed (ref:CRAFT-0012) share it.
+func (g *GameState) sleepInnNight(partySize int) []InnRegenerationResult {
+	for index := range partySize {
+		character := g.PartyState.GetCharacter(index)
+		if character.IsGood() {
+			character.SetStatus(party_state.Sleep)
+		}
+	}
+	g.ClearDurationEffect()
+
+	var regeneration []InnRegenerationResult
+	for range 12 {
+		g.advanceInnRestMinutes(5)
+	}
+	for g.DateTime.Hour != 6 {
+		regeneration = append(regeneration, g.innRegenerationResults(g.ProcessRegenerationRingSweep())...)
+		g.advanceInnRestMinutes(9)
+	}
+	g.lastProcessedHour = int(g.DateTime.Hour)
+	g.CurrentNPCAIController.HardResetNPCs(true)
+	changes := g.restoreInnMorningParty(partySize)
+	g.publishTransientStatusChanges(changes)
+
+	return regeneration
 }
 
 // LeaveCompanionAtInn commits one zero-cost stable complete-record transfer.

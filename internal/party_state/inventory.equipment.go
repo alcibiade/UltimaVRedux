@@ -10,7 +10,7 @@ import (
 type inventoryItemType interface {
 	references.Equipment | references.Spell | references.Scroll |
 		references.QuestItem | references.Potion | references.Reagent |
-		references.Moonstone | references.Material | references.Tool
+		references.Moonstone | references.Material | references.Tool | references.BuildPieceID
 }
 
 // inventoryQuantities maps one item identity family to lazily created capped stacks.

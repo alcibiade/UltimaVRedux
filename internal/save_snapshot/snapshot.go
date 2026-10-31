@@ -43,6 +43,11 @@ const (
 	CraftingMaterialCount = 7
 	// CraftingToolCount is the number of crafting tool slots (references.NumberOfTools).
 	CraftingToolCount = 2
+	// CraftingPieceCount is the number of build piece slots (references.NumberOfBuildPieces).
+	CraftingPieceCount = 26
+	// CraftingChestProvisionCount is the number of provision slots of a storage chest: torches,
+	// gems, keys, skull keys and food, in references.Provision order.
+	CraftingChestProvisionCount = 5
 	// DeedMapTiles is the width and height of a deed map.
 	DeedMapTiles = 32
 	// MaxDeedTileOverrides bounds the overrides of one deed: every square of its map.
@@ -88,6 +93,7 @@ type SaveSnapshot struct {
 type CraftingSnapshot struct {
 	Materials    [CraftingMaterialCount]uint16 `json:"materials"`
 	Tools        [CraftingToolCount]uint16     `json:"tools"`
+	Pieces       [CraftingPieceCount]uint16    `json:"pieces"`
 	Deeds        []DeedSnapshot                `json:"deeds"`
 	ActiveDeedID *int                          `json:"activeDeedId"`
 }
@@ -96,8 +102,9 @@ type CraftingSnapshot struct {
 // stored: it is regenerated from Terrain, GeneratorVersion and Seed, and TileOverrides lists the
 // squares that differ from the generated map (ref:CRAFT-0003). NodeHarvests lists the resource
 // nodes gathered since they were last fresh (ref:CRAFT-0005), and TrammelPhaseChanges is the
-// deed's respawn marker (ref:CRAFT-0006). Later crafting steps extend this record in place
-// (snapshot version 26 is unreleased).
+// deed's respawn marker (ref:CRAFT-0006). Placements lists the pieces the party built
+// (ref:CRAFT-0010) and Chests the contents of its storage chests (ref:CRAFT-0011). Later crafting
+// steps extend this record in place (snapshot version 26 is unreleased).
 type DeedSnapshot struct {
 	ID               int                        `json:"id"`
 	Name             string                     `json:"name"`
@@ -110,7 +117,30 @@ type DeedSnapshot struct {
 	NodeHarvests     []DeedNodeHarvestSnapshot  `json:"nodeHarvests"`
 	// TrammelPhaseChanges is the datetime.TrammelPhaseChanges count the deed's nodes have been
 	// brought up to.
-	TrammelPhaseChanges int `json:"trammelPhaseChanges"`
+	TrammelPhaseChanges int                     `json:"trammelPhaseChanges"`
+	Placements          []DeedPlacementSnapshot `json:"placements"`
+	Chests              []DeedChestSnapshot     `json:"chests"`
+}
+
+// DeedPlacementSnapshot is one built piece. Under is the ground tile the piece covered. FloorPieceID
+// names a placed floor beneath a piece built on it; Under is then the ground beneath that floor.
+type DeedPlacementSnapshot struct {
+	X            int  `json:"x"`
+	Y            int  `json:"y"`
+	PieceID      int  `json:"pieceId"`
+	Under        int  `json:"under"`
+	FloorPieceID *int `json:"floorPieceId"`
+}
+
+// DeedChestSnapshot is the contents of one built storage chest.
+type DeedChestSnapshot struct {
+	X          int                                 `json:"x"`
+	Y          int                                 `json:"y"`
+	Materials  [CraftingMaterialCount]uint16       `json:"materials"`
+	Tools      [CraftingToolCount]uint16           `json:"tools"`
+	Pieces     [CraftingPieceCount]uint16          `json:"pieces"`
+	Provisions [CraftingChestProvisionCount]uint16 `json:"provisions"`
+	Gold       uint16                              `json:"gold"`
 }
 
 // DeedNodeHarvestSnapshot is the number of harvests taken from one resource node since it was

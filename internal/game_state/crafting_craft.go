@@ -92,12 +92,16 @@ func (g *GameState) Craft(id references.CraftRecipeID) error {
 	return nil
 }
 
-// craftStationWithinReach reports whether a recipe's station is usable where the party stands.
-// Step 3 (ADR-014) adds the station pieces and their "within one square" check here.
+// craftStationWithinReach reports whether a recipe's station is usable where the party stands:
+// a placed piece serving as that station within one square of the party, diagonals included,
+// on the party's own deed map (ref:CRAFT-0008).
 func (g *GameState) craftStationWithinReach(station references.CraftStation) bool {
 	switch station {
 	case references.CraftStationNone:
 		return true
+	case references.CraftStationWorkbench, references.CraftStationSawmill, references.CraftStationForge,
+		references.CraftStationAlchemyTable, references.CraftStationFireplace:
+		return g.deedStationWithinReach(station)
 	default:
 		panic(fmt.Sprintf("craft station %d has no reach rule", station))
 	}
@@ -123,6 +127,12 @@ func (g *GameState) craftGoodsQuantity(goods references.CraftGoods) uint16 {
 		return inventory.Tools.Get(references.Tool(goods.ID))
 	case references.CraftGoodsReagent:
 		return inventory.Reagent.Get(references.Reagent(goods.ID))
+	case references.CraftGoodsPiece:
+		return inventory.Pieces.Get(references.BuildPieceID(goods.ID))
+	case references.CraftGoodsProvision:
+		stack, _ := inventory.ProvisionStack(references.Provision(goods.ID))
+
+		return stack.Get()
 	default:
 		panic(fmt.Sprintf("craft goods kind %d has no inventory", goods.Kind))
 	}
@@ -132,8 +142,13 @@ func craftGoodsCap(goods references.CraftGoods) uint16 {
 	switch goods.Kind {
 	case references.CraftGoodsMaterial:
 		return party_state.ItemQuantityLargeMax
-	case references.CraftGoodsTool, references.CraftGoodsReagent:
+	case references.CraftGoodsTool, references.CraftGoodsReagent, references.CraftGoodsPiece:
 		return party_state.ItemQuantitySmallMax
+	case references.CraftGoodsProvision:
+		var inventory party_state.Inventory
+		_, limit := inventory.ProvisionStack(references.Provision(goods.ID))
+
+		return limit
 	default:
 		panic(fmt.Sprintf("craft goods kind %d has no inventory", goods.Kind))
 	}
@@ -142,30 +157,30 @@ func craftGoodsCap(goods references.CraftGoods) uint16 {
 // changeCraftGoods adds or removes goods the caller has already checked.
 func (g *GameState) changeCraftGoods(goods references.CraftGoods, add bool) {
 	inventory := &g.PartyState.Inventory
-	var changed bool
+	var stack party_state.ItemQuantity
 	switch goods.Kind {
 	case references.CraftGoodsMaterial:
-		material := references.Material(goods.ID)
-		if add {
-			inventory.Materials.IncrementBy(material, goods.Quantity)
-		}
-		changed = add || inventory.Materials.DecrementBy(material, goods.Quantity)
+		stack = *inventory.Materials.GetQuantity(references.Material(goods.ID))
 	case references.CraftGoodsTool:
-		tool := references.Tool(goods.ID)
-		if add {
-			inventory.Tools.IncrementBy(tool, goods.Quantity)
-		}
-		changed = add || inventory.Tools.DecrementBy(tool, goods.Quantity)
+		stack = *inventory.Tools.GetQuantity(references.Tool(goods.ID))
 	case references.CraftGoodsReagent:
-		reagent := references.Reagent(goods.ID)
-		if add {
-			inventory.Reagent.IncrementBy(reagent, goods.Quantity)
+		stack = *inventory.Reagent.GetQuantity(references.Reagent(goods.ID))
+	case references.CraftGoodsPiece:
+		stack = *inventory.Pieces.GetQuantity(references.BuildPieceID(goods.ID))
+	case references.CraftGoodsProvision:
+		if references.Provision(goods.ID) == references.Gold {
+			panic("gold is never a craft good")
 		}
-		changed = add || inventory.Reagent.DecrementBy(reagent, goods.Quantity)
+		stack, _ = inventory.ProvisionStack(references.Provision(goods.ID))
 	default:
 		panic(fmt.Sprintf("craft goods kind %d has no inventory", goods.Kind))
 	}
-	if !changed {
+	if add {
+		stack.IncrementBy(goods.Quantity)
+
+		return
+	}
+	if !stack.DecrementBy(goods.Quantity) {
 		panic("checked craft input could not be spent")
 	}
 }

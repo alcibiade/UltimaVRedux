@@ -45,9 +45,11 @@ type Inventory struct {
 	Reagent    inventoryQuantities[references.Reagent, *ItemQuantitySmall]
 	Moonstones inventoryQuantities[references.Moonstone, *ItemQuantitySmall]
 
-	// Materials and Tools are Redux crafting stock (ref:CRAFT-0001); they have no SAVED.GAM slot.
+	// Materials, Tools and Pieces are Redux crafting stock (ref:CRAFT-0001, ref:CRAFT-0009);
+	// they have no SAVED.GAM slot.
 	Materials inventoryQuantities[references.Material, *ItemQuantityLarge]
 	Tools     inventoryQuantities[references.Tool, *ItemQuantitySmall]
+	Pieces    inventoryQuantities[references.BuildPieceID, *ItemQuantitySmall]
 }
 
 // InventoryLockerSnapshot is a complete, detached view of locker-managed inventory.
@@ -75,6 +77,7 @@ func NewInventory() *Inventory {
 	inv.Moonstones = newInventoryQuantities[references.Moonstone, *ItemQuantitySmall]()
 	inv.Materials = newInventoryQuantities[references.Material, *ItemQuantityLarge]()
 	inv.Tools = newInventoryQuantities[references.Tool, *ItemQuantitySmall]()
+	inv.Pieces = newInventoryQuantities[references.BuildPieceID, *ItemQuantitySmall]()
 
 	return inv
 }
@@ -179,6 +182,28 @@ func (i *Inventory) putProvision(item *references.ItemAndQuantity) error {
 	}
 
 	return nil
+}
+
+// ProvisionStack returns the party's stack of one provision, gold included, and its cap.
+func (i *Inventory) ProvisionStack(provision references.Provision) (ItemQuantity, uint16) {
+	switch provision {
+	case references.Torches:
+		return &i.Provisions.Torches, ItemQuantitySmallMax
+	case references.Gem:
+		return &i.Provisions.Gems, ItemQuantitySmallMax
+	case references.Key:
+		return &i.Provisions.Keys, ItemQuantitySmallMax
+	case references.SkullKeys:
+		return &i.Provisions.SkullKeys, ItemQuantitySmallMax
+	case references.Food:
+		return &i.Provisions.Food, ItemQuantityLargeMax
+	case references.Gold:
+		return &i.Gold, ItemQuantityLargeMax
+	case references.NoProvision:
+		panic("no provision stack for NoProvision")
+	default:
+		panic(fmt.Sprintf("unknown provision %d", provision))
+	}
 }
 
 // ConsumeMealTimeFood handles food consumption at meal times (6, 12, 18 hours)

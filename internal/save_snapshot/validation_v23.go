@@ -12,9 +12,11 @@ func validateOpenDoor(snapshot SaveSnapshot, add func(string, string, string)) {
 	}
 	position := door.Position
 	validatePosition("openDoor.position", position, add)
-	if position.Location < int(references.Moonglow) || position.Location > int(references.SerpentsHold) ||
-		position.Location != snapshot.World.Position.Location || position.X > 31 || position.Y > 31 ||
-		position.Floor < -1 || position.Floor > 3 {
+	inTowne := position.Location >= int(references.Moonglow) && position.Location <= int(references.SerpentsHold) &&
+		position.Floor >= -1 && position.Floor <= 3
+	// A door the party built on its own deed map opens and closes like a town door (ref:CRAFT-0010).
+	onDeedMap := position.Location == int(references.DeedLocation) && position.Floor == 0
+	if !inTowne && !onDeedMap || position.Location != snapshot.World.Position.Location || position.X > 31 || position.Y > 31 {
 		add("openDoor.position", "inconsistent", "timed door must belong to the active small-map visit")
 	}
 	if door.RemainingTurns < 0 || door.RemainingTurns > 2 {

@@ -635,7 +635,7 @@ var zStatsMaterialSprites = [references.NumberOfMaterials]indexes.SpriteIndex{
 
 // projectZStatsCraftingItems lists carried crafting materials and tools after the original items.
 func (g *GameState) projectZStatsCraftingItems() []ZStatsOwnedItem {
-	items := make([]ZStatsOwnedItem, 0, references.NumberOfMaterials+references.NumberOfTools)
+	items := make([]ZStatsOwnedItem, 0, references.NumberOfMaterials+references.NumberOfTools+references.NumberOfBuildPieces)
 	for _, material := range references.MaterialCatalog() {
 		quantity := g.PartyState.Inventory.Materials.Get(material)
 		if quantity == 0 {
@@ -656,8 +656,34 @@ func (g *GameState) projectZStatsCraftingItems() []ZStatsOwnedItem {
 			Category: "Tool", Name: tool.Name(), Quantity: quantity, Description: tool.Description(),
 		})
 	}
+	for _, piece := range references.BuildPieceCatalog() {
+		quantity := g.PartyState.Inventory.Pieces.Get(piece.ID)
+		if quantity == 0 {
+			continue
+		}
+		items = append(items, ZStatsOwnedItem{
+			ID:          zStatsCraftingItemIDBase + references.NumberOfMaterials + references.NumberOfTools + int(piece.ID),
+			SpriteIndex: piece.Sprite, Category: "Piece", Name: piece.Name, Quantity: quantity,
+			Description: zStatsPieceDescription(piece),
+		})
+	}
 
 	return items
+}
+
+// zStatsPieceDescription explains a carried build piece (ref:CRAFT-0009).
+func zStatsPieceDescription(piece references.BuildPiece) string {
+	description := "A building piece (" + piece.Category.Name() + "). Place it on thine own land with Alt+B."
+	switch {
+	case piece.Station != references.CraftStationNone:
+		return "A crafting station. Place it on thine own land with Alt+B and craft beside it."
+	case piece.StorageChest:
+		return description + " It keeps thy goods safe."
+	case piece.BedHead:
+		return description + " Hole Up on it to rest as at an inn."
+	default:
+		return description
+	}
 }
 
 func zStatsInventoryItemName(item references.InventoryItem) string {

@@ -30,8 +30,7 @@ var (
 // Deed is one parcel of land the party owns: a hut square on the overworld and the generated
 // deed map behind it (ref:CRAFT-0002, ref:CRAFT-0003). Deeds are permanent.
 //
-// Later steps add per-deed state (placements, chests) as fields here and in
-// save_snapshot.DeedSnapshot.
+// Per-deed state (harvests, placements, chests) is mirrored in save_snapshot.DeedSnapshot.
 type Deed struct {
 	ID               int
 	Name             string
@@ -48,6 +47,12 @@ type Deed struct {
 	// trammelPhaseChanges is the deed's respawn marker: the Trammel phase-change count
 	// (datetime.TrammelPhaseChanges) its nodes have been brought up to (ref:CRAFT-0006).
 	trammelPhaseChanges int
+	// placements holds every piece the party built, by square (ref:CRAFT-0010). Each built
+	// square also has its piece's sprite as an override; raiders (ADR-014 step 6) find walls and
+	// doors here.
+	placements map[references.Position]DeedPlacement
+	// chests holds the contents of every built storage chest, by square (ref:CRAFT-0011).
+	chests map[references.Position]*StorageChest
 }
 
 // TrammelPhaseChanges returns the deed's respawn marker (ref:CRAFT-0006).

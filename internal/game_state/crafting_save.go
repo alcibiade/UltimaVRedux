@@ -17,6 +17,9 @@ func (g *GameState) captureCrafting(snapshot *save_snapshot.SaveSnapshot) {
 	for _, tool := range references.ToolCatalog() {
 		crafting.Tools[tool] = inventory.Tools.Get(tool)
 	}
+	for _, piece := range references.BuildPieceCatalog() {
+		crafting.Pieces[piece.ID] = inventory.Pieces.Get(piece.ID)
+	}
 	for _, deed := range g.crafting.deeds {
 		saved := save_snapshot.DeedSnapshot{
 			ID: deed.ID, Name: deed.Name, X: int(deed.Square.X), Y: int(deed.Square.Y), Terrain: deed.Terrain.Key(),
@@ -35,6 +38,7 @@ func (g *GameState) captureCrafting(snapshot *save_snapshot.SaveSnapshot) {
 				X: int(position.X), Y: int(position.Y), Harvests: deed.harvests[position],
 			})
 		}
+		saved.Placements, saved.Chests = captureDeedPlacements(deed)
 		crafting.Deeds = append(crafting.Deeds, saved)
 	}
 	if g.MapState.PlayerLocation.Location.IsDeedLocation() {
@@ -57,6 +61,9 @@ func (g *GameState) restoreCrafting(saved save_snapshot.CraftingSnapshot) {
 	}
 	for _, tool := range references.ToolCatalog() {
 		inventory.Tools.Set(tool, saved.Tools[tool])
+	}
+	for _, piece := range references.BuildPieceCatalog() {
+		inventory.Pieces.Set(piece.ID, saved.Pieces[piece.ID])
 	}
 	g.crafting = restoreDeedState(saved)
 }
@@ -87,6 +94,7 @@ func restoreDeedState(saved save_snapshot.CraftingSnapshot) craftingState {
 			position := references.Position{X: references.Coordinate(override.X), Y: references.Coordinate(override.Y)}
 			deed.overrides[position] = indexes.SpriteIndex(override.Sprite)
 		}
+		restoreDeedPlacements(deed, savedDeed)
 		state.deeds = append(state.deeds, deed)
 	}
 	if saved.ActiveDeedID != nil {
@@ -106,4 +114,65 @@ func deedLocationReferenceFromSnapshot(snapshot save_snapshot.SaveSnapshot) *ref
 	state := restoreDeedState(snapshot.Crafting)
 
 	return state.activeMap
+}
+
+// The save layout mirrors the reference tables; a mismatch is a build error.
+var (
+	_ [save_snapshot.CraftingMaterialCount - references.NumberOfMaterials]struct{}
+	_ [references.NumberOfMaterials - save_snapshot.CraftingMaterialCount]struct{}
+	_ [save_snapshot.CraftingPieceCount - references.NumberOfBuildPieces]struct{}
+	_ [references.NumberOfBuildPieces - save_snapshot.CraftingPieceCount]struct{}
+	_ [save_snapshot.CraftingChestProvisionCount - NumberOfChestProvisions]struct{}
+	_ [NumberOfChestProvisions - save_snapshot.CraftingChestProvisionCount]struct{}
+)
+
+// captureDeedPlacements lists a deed's built pieces and chest contents in row-major order.
+func captureDeedPlacements(deed *Deed) ([]save_snapshot.DeedPlacementSnapshot, []save_snapshot.DeedChestSnapshot) {
+	placements := make([]save_snapshot.DeedPlacementSnapshot, 0, len(deed.placements))
+	chests := make([]save_snapshot.DeedChestSnapshot, 0, len(deed.chests))
+	for _, position := range deed.PlacementPositions() {
+		placement := deed.placements[position]
+		saved := save_snapshot.DeedPlacementSnapshot{
+			X: int(position.X), Y: int(position.Y), PieceID: int(placement.Piece), Under: int(placement.Under),
+		}
+		if placement.OnFloor {
+			floor := int(placement.Floor)
+			saved.FloorPieceID = &floor
+		}
+		placements = append(placements, saved)
+		if chest, ok := deed.chests[position]; ok {
+			chests = append(chests, save_snapshot.DeedChestSnapshot{
+				X: int(position.X), Y: int(position.Y), Materials: chest.Materials, Tools: chest.Tools,
+				Pieces: chest.Pieces, Provisions: chest.Provisions, Gold: chest.Gold,
+			})
+		}
+	}
+
+	return placements, chests
+}
+
+// restoreDeedPlacements rebuilds a deed's built pieces and chests from a validated snapshot.
+func restoreDeedPlacements(deed *Deed, saved save_snapshot.DeedSnapshot) {
+	if len(saved.Placements) > 0 {
+		deed.placements = make(map[references.Position]DeedPlacement, len(saved.Placements))
+	}
+	for _, placement := range saved.Placements {
+		position := references.Position{X: references.Coordinate(placement.X), Y: references.Coordinate(placement.Y)}
+		restored := DeedPlacement{
+			Piece: references.BuildPieceID(placement.PieceID), Under: indexes.SpriteIndex(placement.Under),
+		}
+		if placement.FloorPieceID != nil {
+			restored.OnFloor, restored.Floor = true, references.BuildPieceID(*placement.FloorPieceID)
+		}
+		deed.placements[position] = restored
+	}
+	if len(saved.Chests) > 0 {
+		deed.chests = make(map[references.Position]*StorageChest, len(saved.Chests))
+	}
+	for _, chest := range saved.Chests {
+		position := references.Position{X: references.Coordinate(chest.X), Y: references.Coordinate(chest.Y)}
+		deed.chests[position] = &StorageChest{
+			Materials: chest.Materials, Tools: chest.Tools, Pieces: chest.Pieces, Provisions: chest.Provisions, Gold: chest.Gold,
+		}
+	}
 }
