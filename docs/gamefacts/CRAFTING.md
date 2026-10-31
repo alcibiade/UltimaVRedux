@@ -519,6 +519,7 @@ while standing on the head of a bed the party built on its own deed map sleeps t
 night instead, for free:
 
 ```
+"Hole up-" (the original's town bed prompt, not "Hole up & camp...")
 if any active member is poisoned:
     warn that poison not cured by dawn is fatal, as at an inn; Esc cancels for free
 "Zzzzzzz...", fade out

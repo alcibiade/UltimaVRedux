@@ -211,13 +211,15 @@ func (g *GameScene) smallMapInputHandlerWithGame(game *Game, key ebiten.Key) {
 		}
 	case ebiten.KeyH:
 		g.debugMessage = "Hole Up & Camp"
-		g.gameState.SystemCallbacks.Message.ShowCommandPrompt("Hole up & camp...")
 		if g.gameState.IsOnOwnDeedBed() {
-			// A bed the party built on its own deed rests like an inn (ref:CRAFT-0012).
+			// A bed the party built on its own deed rests like an inn (ref:CRAFT-0012). It
+			// prints the original's town bed prompt, not the camping one.
+			g.gameState.SystemCallbacks.Message.ShowCommandPrompt(deedBedRestPrompt)
 			g.beginDeedBedRest(originMapType)
 
 			return
 		}
+		g.gameState.SystemCallbacks.Message.ShowCommandPrompt("Hole up & camp...")
 		if g.gameState.ActionHoleUpSmallMap() {
 			result = newSurfaceCommandResult(surfaceCommandDeferred, originMapType)
 			g.deferSurfaceCommandCompletion(result)

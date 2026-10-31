@@ -188,6 +188,8 @@ func TestHoleUpOnTheOwnBedRestsLikeAnInnThroughTheScene(t *testing.T) {
 	}
 
 	require.False(t, state.EventQueueManager.HasActiveWorkflows())
+	assert.Equal(t, []string{deedBedRestPrompt}, callbacks.CommandPrompts, "a bed, not a camp")
+	assert.Contains(t, callbacks.Messages, "Zzzzzzz...")
 	assert.Contains(t, callbacks.Messages, "Rested!")
 	assert.Equal(t, avatar.GetMaxHp(), avatar.GetCurrentHp())
 	assert.Equal(t, byte(6), state.DateTime.Hour)

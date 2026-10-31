@@ -10,7 +10,12 @@ import (
 	"github.com/bradhannah/UltimaVRedux/internal/ui/widgets"
 )
 
-const deedBedRestWorkflowName = "deed_bed_rest"
+const (
+	deedBedRestWorkflowName = "deed_bed_rest"
+	// deedBedRestPrompt is the original's Hole Up prompt on a town bed (DATA.OVL "Hole up- "),
+	// used for the party's own bed instead of the camping prompt (ref:CRAFT-0012).
+	deedBedRestPrompt = "Hole up-"
+)
 
 // beginDeedBuild answers Alt+B on the party's own deed map (ref:CRAFT-0010): a menu of the piece
 // categories the party carries, then the pieces, then a direction; or Demolish and a direction.
