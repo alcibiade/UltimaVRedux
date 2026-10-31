@@ -69,6 +69,8 @@ func newCraftingManualRig(t *testing.T) *craftingManualRig {
 	scene.startTime = time.Now() // Starts the presentation clock that timed workflows wait on.
 	scene.gameState.DebugOptions.MonsterGen = false
 	scene.gameState.CurrentNPCAIController.GetNpcs().ClearAllMapUnits()
+	// Raids come only where the rig forces one (captureRaid), never at random mid-capture.
+	scene.gameState.SuppressDeedRaidsForTest(true)
 
 	rig := &craftingManualRig{t: t, scene: scene, held: map[ebiten.Key]bool{}, outDir: outDir, width: 1280, height: 720}
 	scene.keyboard = input.NewKeyboardWithKeyStateSource(0, func(key ebiten.Key) bool { return rig.held[key] })
@@ -305,6 +307,7 @@ func TestCraftingManualCapture(t *testing.T) {
 	rig.capture("07-meadow-deed-centre")
 	rig.captureGathering()
 	rig.captureBuilding()
+	rig.captureRaid()
 	rig.state().MapState.PlayerLocation.Position = references.Position{X: references.DeedMapEntry.X, Y: 31}
 	rig.command(ebiten.KeyDown)
 	rig.pump(10)
@@ -737,4 +740,70 @@ func (r *craftingManualRig) captureBuilding() {
 	r.capture("21b-demolished")
 	r.noon()
 	r.settle()
+}
+
+// passTurns presses Space n times, one ordinary turn each.
+func (r *craftingManualRig) passTurns(n int) {
+	for range n {
+		r.command(ebiten.KeySpace)
+	}
+}
+
+// captureRaid covers ref:CRAFT-0020 and ref:CRAFT-0021 on the meadow deed, around the house of
+// captureBuilding: a forced raid of orcs from the south, the raiders working their way around
+// the house toward the party north of it, the battle, and the house intact afterwards.
+func (r *craftingManualRig) captureRaid() {
+	r.t.Helper()
+	r.noon()
+	deed, ok := r.state().ActiveDeed()
+	require.True(r.t, ok)
+	builtBefore := deed.PlacementPositions()
+	house := func(position references.Position) bool { // Beside the house, which spans 11-17 by 11-15.
+		return position.X >= 9 && position.X <= 19 && position.Y >= 11 && position.Y <= 15
+	}
+
+	r.moveTo(14, 9)
+	r.scene.output.Clear()
+	r.state().SpawnDeedRaidersForTest(references.MonsterOrc, []references.Position{{X: 15, Y: 29}, {X: 3, Y: 22}, {X: 28, Y: 24}})
+	r.capture("22a-raiders-approach")
+
+	// The orcs close in and must go around the house to reach the party.
+	for range 20 {
+		r.command(ebiten.KeySpace)
+		around := 0
+		for _, raider := range r.state().DeedRaiderPositionsForTest() {
+			if house(raider) {
+				around++
+			}
+		}
+		if around >= 2 || r.state().CombatScene != nil {
+			break
+		}
+	}
+	require.Nil(r.t, r.state().CombatScene, "the raid reached the party before it was seen")
+	r.noon()
+	r.capture("22b-raiders-around-the-house")
+
+	// The first orc to reach the party starts the battle, fought by the whole raid.
+	for range 20 {
+		if r.state().CombatScene != nil {
+			break
+		}
+		r.command(ebiten.KeySpace)
+	}
+	require.NotNil(r.t, r.state().CombatScene, "the raid never reached the party")
+	r.capture("22c-raid-battle")
+
+	// The battle won, the party is back on the deed with the house as it was.
+	r.state().EndCombat(game_state.CombatVictory)
+	r.pump(30)
+	r.capturePlain("22d-battle-complete")
+	r.menuKey(ebiten.KeyEnter)
+	r.settle()
+	r.noon()
+	r.scene.output.Clear()
+	r.capture("22e-after-the-raid")
+	deed, _ = r.state().ActiveDeed()
+	require.Equal(r.t, builtBefore, deed.PlacementPositions(), "the raid left every piece in place")
+	require.Zero(r.t, r.state().DeedRaiderCount())
 }
